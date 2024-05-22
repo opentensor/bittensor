@@ -158,14 +158,14 @@ custom_rpc_type_registry = {
                 ["stake", "Compact<u64>"],
             ],
         },
-         "SubnetStakeInfo": {
+        "SubnetStakeInfo": {
             "type": "struct",
             "type_mapping": [
                 ["hotkey", "AccountId"],
                 ["netuid", "u16"],
                 ["stake", "Compact<u64>"],
             ],
-        },       
+        },
         "SubstakeElements": {
             "type": "struct",
             "type_mapping": [
@@ -309,15 +309,15 @@ class DynamicPool:
         self, tao: Union[float, Balance]
     ) -> Tuple[Balance, Balance]:
         """
-        Returns an estimate of how much Alpha would a staker receive if they stake their tao 
+        Returns an estimate of how much Alpha would a staker receive if they stake their tao
         using the current pool state
 
         Args:
             tao: Amount of TAO to stake.
 
         Returns:
-            Tuple of balances where the first part is the amount of Alpha received, and the 
-            second part (slippage) is the difference between the estimated amount and ideal 
+            Tuple of balances where the first part is the amount of Alpha received, and the
+            second part (slippage) is the difference between the estimated amount and ideal
             amount as if there was no slippage
         """
         new_tao_in = self.tao_reserve + tao
@@ -341,15 +341,15 @@ class DynamicPool:
         self, alpha: Union[float, Balance]
     ) -> Tuple[Balance, Balance]:
         """
-        Returns an estimate of how much TAO would a staker receive if they unstake their 
+        Returns an estimate of how much TAO would a staker receive if they unstake their
         alpha using the current pool state
 
         Args:
             alpha: Amount of Alpha to stake.
 
         Returns:
-            Tuple of balances where the first part is the amount of TAO received, and the 
-            second part (slippage) is the difference between the estimated amount and ideal 
+            Tuple of balances where the first part is the amount of TAO received, and the
+            second part (slippage) is the difference between the estimated amount and ideal
             amount as if there was no slippage
         """
 
@@ -357,14 +357,13 @@ class DynamicPool:
         new_tao_reserve = self.k / new_alpha_in
 
         # Amount of TAO given to the unstaker
-        tao_returned = Balance.from_rao(
-            self.tao_reserve - new_tao_reserve
-        )
+        tao_returned = Balance.from_rao(self.tao_reserve - new_tao_reserve)
 
         # Ideal conversion as if there is no slippage, just price
         tao_ideal = self.alpha_to_tao(alpha)
         slippage = Balance.from_tao(tao_ideal.tao - tao_returned.tao)
         return tao_returned, slippage
+
 
 class SubstakeElements:
     @staticmethod
@@ -973,10 +972,10 @@ class StakeInfo:
         cls, vec_u8: List[int]
     ) -> Dict[str, List["StakeInfo"]]:
         r"""Returns a list of StakeInfo objects from a ``vec_u8``."""
-        decoded: Optional[List[Tuple(str, List[object])]] = (
-            from_scale_encoding_using_type_string(
-                input=vec_u8, type_string="Vec<(AccountId, Vec<StakeInfo>)>"
-            )
+        decoded: Optional[
+            List[Tuple(str, List[object])]
+        ] = from_scale_encoding_using_type_string(
+            input=vec_u8, type_string="Vec<(AccountId, Vec<StakeInfo>)>"
         )
 
         if decoded is None:
@@ -1003,6 +1002,7 @@ class StakeInfo:
 
         return decoded
 
+
 @dataclass
 class SubnetStakeInfo:
     r"""
@@ -1010,7 +1010,7 @@ class SubnetStakeInfo:
     """
 
     hotkey_ss58: str  # Hotkey address
-    netuid: int # Subnet ID
+    netuid: int  # Subnet ID
     stake: Balance  # Stake for the hotkey-coldkey pair
 
     @classmethod
@@ -1043,10 +1043,10 @@ class SubnetStakeInfo:
         cls, vec_u8: List[int]
     ) -> Dict[str, List["SubnetStakeInfo"]]:
         r"""Returns a list of SubnetStakeInfo objects from a ``vec_u8``."""
-        decoded: Optional[List[Tuple(str, List[object])]] = (
-            from_scale_encoding_using_type_string(
-                input=vec_u8, type_string="Vec<(AccountId, Vec<SubnetStakeInfo>)>"
-            )
+        decoded: Optional[
+            List[Tuple(str, List[object])]
+        ] = from_scale_encoding_using_type_string(
+            input=vec_u8, type_string="Vec<(AccountId, Vec<SubnetStakeInfo>)>"
         )
 
         if decoded is None:
@@ -1064,7 +1064,9 @@ class SubnetStakeInfo:
     @classmethod
     def list_from_vec_u8(cls, vec_u8: List[int]) -> List["SubnetStakeInfo"]:
         r"""Returns a list of SubnetStakeInfo objects from a ``vec_u8``."""
-        decoded = from_scale_encoding(vec_u8, ChainDataType.SubnetStakeInfo, is_vec=True)
+        decoded = from_scale_encoding(
+            vec_u8, ChainDataType.SubnetStakeInfo, is_vec=True
+        )
 
         if decoded is None:
             return []

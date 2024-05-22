@@ -22,8 +22,13 @@ from rich.prompt import Confirm, Prompt
 from bittensor.commands.utils import get_hotkey_wallets_for_wallet
 from bittensor.utils.balance import Balance
 from bittensor.utils.user_io import (
-    user_input_float, user_input_int, user_input_str, user_input_confirmation,
-    print_summary_header, print_summary_footer, print_summary_item
+    user_input_float,
+    user_input_int,
+    user_input_str,
+    user_input_confirmation,
+    print_summary_header,
+    print_summary_footer,
+    print_summary_item,
 )
 from typing import Optional, Tuple, List, Union
 from tqdm import tqdm
@@ -204,7 +209,10 @@ class SubStakeCommand:
         print_summary_item("wallet", wallet.name)
         print_summary_item("netuid", config.netuid)
         for hotkey, amount in zip(final_hotkeys, final_amounts):
-            print_summary_item("hotkey/amount", f"[bold white]{hotkey[0] + ':' if hotkey[0] else ''}{hotkey[1]}: {f'{amount} {bittensor.__tao_symbol__}' if amount else 'All'}[/bold white]")
+            print_summary_item(
+                "hotkey/amount",
+                f"[bold white]{hotkey[0] + ':' if hotkey[0] else ''}{hotkey[1]}: {f'{amount} {bittensor.__tao_symbol__}' if amount else 'All'}[/bold white]",
+            )
         print_summary_footer()
 
         # Ask to stake
@@ -439,7 +447,11 @@ class RemoveSubStakeCommand:
         print_summary_item("netuid", config.netuid)
         amount = "unstake all"
         if not config.get("unstake_all"):
-            amount = bittensor.Balance.from_tao(unstake_amount_tao).set_unit(config.netuid).__str__()
+            amount = (
+                bittensor.Balance.from_tao(unstake_amount_tao)
+                .set_unit(config.netuid)
+                .__str__()
+            )
         print_summary_item("hotkey", f"[bold white]{hotkey_tup[0]}[/bold white]")
         print_summary_item("amount", f"[bold white]{amount}[/bold white]")
         print_summary_item("currently staked", currently_staked)

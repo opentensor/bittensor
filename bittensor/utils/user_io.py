@@ -23,10 +23,14 @@ import sys
 
 INPUT_WIDTH = 60
 
+
 def formatted_prompt(name, default_value):
     formatted_message = "Enter {}".format(name)
-    aligned_message = "{:<{width}}".format(formatted_message, width=INPUT_WIDTH - len(str(default_value)) - 3)
+    aligned_message = "{:<{width}}".format(
+        formatted_message, width=INPUT_WIDTH - len(str(default_value)) - 3
+    )
     return Prompt.ask(aligned_message, default=str(default_value))
+
 
 def user_input_float(name, default_value):
     val = formatted_prompt(name, default_value)
@@ -37,12 +41,12 @@ def user_input_float(name, default_value):
     except ValueError:
         bittensor.__console__.print(
             ":cross_mark: [red]Invalid {}[/red]: [bold white]{}[/bold white]".format(
-                name,
-                val
+                name, val
             )
         )
         sys.exit()
     return result
+
 
 def user_input_int(name, default_value):
     val = formatted_prompt(name, default_value)
@@ -53,30 +57,37 @@ def user_input_int(name, default_value):
     except ValueError:
         bittensor.__console__.print(
             ":cross_mark: [red]Invalid {}[/red]: [bold white]{}[/bold white]".format(
-                name,
-                val
+                name, val
             )
         )
         sys.exit()
     return result
 
+
 def user_input_str(name, default_value):
     return str(formatted_prompt(name, default_value))
 
+
 def user_input_confirmation(action):
     formatted_message = "Would you like to {}".format(action)
-    aligned_message = "{:<{width}}".format(formatted_message, width=INPUT_WIDTH-6)
+    aligned_message = "{:<{width}}".format(formatted_message, width=INPUT_WIDTH - 6)
     return Confirm.ask(aligned_message)
 
+
 def print_summary_header(message):
-    bittensor.__console__.print("=============================================================")
+    bittensor.__console__.print(
+        "============================================================="
+    )
     bittensor.__console__.print("   {}".format(message))
+
 
 def print_summary_item(name, value):
     bittensor.__console__.print("      {}: {}".format(name, value))
 
+
 def print_summary_message(message):
     bittensor.__console__.print("      {}".format(message))
+
 
 def print_summary_footer():
     bittensor.__console__.print("-----------------------------")
