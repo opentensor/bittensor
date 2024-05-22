@@ -708,6 +708,12 @@ class DendriteMixin:
                 except:
                     # Ignore errors during attribute setting
                     pass
+        else:
+            # If the server responded with an error, update the local synapse state
+            if local_synapse.axon is None:
+                local_synapse.axon = bittensor.TerminalInfo()
+            local_synapse.axon.status_code = server_response.status
+            local_synapse.axon.status_message = json_response.get("message")
 
         # Extract server headers and overwrite None values in local synapse headers
         server_headers = bittensor.Synapse.from_headers(server_response.headers)  # type: ignore
