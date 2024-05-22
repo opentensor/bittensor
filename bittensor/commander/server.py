@@ -16,14 +16,11 @@
 # DEALINGS IN THE SOFTWARE.
 
 import asyncio
-from functools import partial
 import time
 from typing import Union, Optional, List
 
-from fastapi import FastAPI, Request, Response, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.responses import JSONResponse
-
-# import uvicorn
 
 import bittensor
 from bittensor.commands import network
@@ -205,6 +202,11 @@ async def wallet_transfer(dest: str, amount: float):
     )
 
 
+@app.get("/wallet/balance", dependencies=[Depends(check_config)])
+async def wallet_balance(all_wallets: bool = False):
+    return await run_fn(wallets.WalletBalanceCommand, params={"all_wallets": all_wallets})
+
+
 @app.get("/wallet/inspect", dependencies=[Depends(check_config)])
 async def wallet_inspect(all_wallets: bool = False):
     return await run_fn(inspect.InspectCommand, params={"all_wallets": all_wallets})
@@ -214,7 +216,6 @@ async def wallet_inspect(all_wallets: bool = False):
 async def wallet(sub_cmd: str):
     routing_list = {
         "list": list_commands.ListCommand,
-        "balance": wallets.WalletBalanceCommand,
         "create": wallets.WalletCreateCommand,
         "faucet": register.RunFaucetCommand,
         "update": wallets.UpdateWalletCommand,

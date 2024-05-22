@@ -1,4 +1,5 @@
 aiohttp==3.9.0b0
+aiofiles==23.2.1
 ansible==6.7.0
 ansible_vault==2.1.0
 backoff
@@ -31,5 +32,5 @@ starlette~=0.37.2
 substrate-interface==1.7.5
 termcolor
 tqdm
-uvicorn[standard]==0.29.0  # standard adds uvloop
+uvicorn==0.29.0
 wheel

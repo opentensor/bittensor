@@ -17,17 +17,34 @@
 
 import argparse
 import asyncio
-
+from dataclasses import dataclass
 import aiofiles
 import bittensor
 import os
 import sys
 from rich.prompt import Prompt, Confirm
 from rich.table import Table
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Union
 from . import defaults
 import requests
 from ..utils import RAOPERTAO
+
+
+BalancesDict = dict[str, "WalletBalance"]
+
+
+class WalletBalance:
+    def __init__(self, coldkey_name: str, free_balance: "bittensor.Balance", staked_balance: "bittensor.Balance"):
+        self.coldkey_name = coldkey_name
+        self.free_balance = free_balance
+        self.staked_balance = staked_balance
+
+    def to_dict(self):
+        return {
+            "coldkey_name": self.coldkey_name,
+            "free_balance": self.free_balance.to_dict(),
+            "staked_balance": self.staked_balance.to_dict()
+        }
 
 
 class RegenColdkeyCommand:
@@ -835,6 +852,18 @@ class WalletBalanceCommand:
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
+    async def commander_run(subtensor: "bittensor.subtensor", config, params=None) -> dict[str, Union[dict, str, int, float]]:
+        try:
+            balances, total_free_balance, total_staked_balance = await get_balances(subtensor, config, params)
+            return {
+                "wallets": {x: y.to_dict() for x, y in balances.items()},
+                "total_free_balance": total_free_balance.to_dict(),
+                "total_staked_balance": total_staked_balance.to_dict()
+            }
+        except ValueError:
+            raise  # TODO make this raise something special
+
+    @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         wallet = bittensor.wallet(config=cli.config)
 
@@ -1172,3 +1201,92 @@ async def check_json(config, kwargs: dict) -> dict:
                 **{"json": ((await f.read()), config.json_encrypted_pw)},
             }
     return kwargs
+
+
+async def get_balances(
+    subtensor, config, params
+) -> tuple[BalancesDict, "bittensor.Balance", "bittensor.Balance"]:
+    """
+    Gets the balances of all wallets requested
+    """
+    def fetch_balances(
+        coldkeys: list[str],
+    ) -> tuple[
+        list["bittensor.Balance"],
+        list["bittensor.Balance"],
+        "bittensor.Balance",
+        "bittensor.Balance",
+    ]:
+        free_balances = [subtensor.get_balance(coldkey) for coldkey in coldkeys]
+        staked_balances = [
+            subtensor.get_total_stake_for_coldkey(coldkey) for coldkey in coldkeys
+        ]
+        return free_balances, staked_balances, sum(free_balances), sum(staked_balances)
+
+    def generate_balances_dict(
+        wallet_names: list[str],
+        coldkeys: list[str],
+        free_balances: list["bittensor.Balance"],
+        staked_balances: list["bittensor.Balance"],
+    ) -> BalancesDict:
+        return {
+            name: WalletBalance(coldkey, free, staked)
+            for name, coldkey, free, staked in sorted(
+                zip(wallet_names, coldkeys, free_balances, staked_balances)
+            )
+        }
+
+    def handle_all_wallets() -> (
+        tuple[BalancesDict, "bittensor.Balance", "bittensor.Balance"]
+    ):
+        coldkeys, wallet_names = _get_coldkey_ss58_addresses_for_path(
+            config.wallet.path
+        )
+        (
+            free_balances,
+            staked_balances,
+            total_free_balance_,
+            total_staked_balance_,
+        ) = fetch_balances(coldkeys)
+        return (
+            generate_balances_dict(
+                wallet_names, coldkeys, free_balances, staked_balances
+            ),
+            total_free_balance_,
+            total_staked_balance_,
+        )
+
+    def handle_single_wallet() -> (
+        tuple[BalancesDict, "bittensor.Balance", "bittensor.Balance"]
+    ):
+        coldkey_wallet = config.wallet
+        if (
+            coldkey_wallet.coldkeypub_file.exists_on_device()
+            and not coldkey_wallet.coldkeypub_file.is_encrypted()
+        ):
+            coldkeys = [coldkey_wallet.coldkeypub.ss58_address]
+            wallet_names = [coldkey_wallet.name]
+            (
+                free_balances,
+                staked_balances,
+                total_free_balance_,
+                total_staked_balance_,
+            ) = fetch_balances(coldkeys)
+            return (
+                generate_balances_dict(
+                    wallet_names, coldkeys, free_balances, staked_balances
+                ),
+                total_free_balance_,
+                total_staked_balance_,
+            )
+
+        if not coldkey_wallet.coldkeypub_file.exists_on_device():
+            bittensor.__console__.print("[bold red]No wallets found.")
+            raise ValueError
+
+    if params.get("all_wallets"):
+        balances, total_free_balance, total_staked_balance = handle_all_wallets()
+    else:
+        balances, total_free_balance, total_staked_balance = handle_single_wallet()
+
+    return balances, total_free_balance, total_staked_balance
