@@ -27,7 +27,7 @@ import nest_asyncio
 nest_asyncio.apply()
 
 # Bittensor code and protocol version.
-__version__ = "6.9.3"
+__version__ = "7.0.0"
 
 version_split = __version__.split(".")
 __version_as_int__: int = (
@@ -278,6 +278,7 @@ from .chain_data import (
     NeuronInfoLite,
     PrometheusInfo,
     DelegateInfo,
+    DelegateInfoLite,
     StakeInfo,
     SubnetInfo,
     SubnetHyperparameters,
@@ -285,6 +286,8 @@ from .chain_data import (
     ProposalCallData,
     ProposalVoteData,
 )
+
+from . import subtensor as subtensor_module
 from .subtensor import subtensor as subtensor
 from .cli import cli as cli, COMMANDS as ALL_COMMANDS
 from .btlogging import logging

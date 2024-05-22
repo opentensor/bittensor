@@ -20,29 +20,29 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import os
-import uuid
-import copy
-import json
-import time
-import asyncio
-import inspect
-import uvicorn
 import argparse
-import traceback
-import threading
-import bittensor
+import asyncio
 import contextlib
-
+import copy
+import inspect
+import json
+import os
+import threading
+import time
+import traceback
+import uuid
 from inspect import signature, Signature, Parameter
-from fastapi.responses import JSONResponse
-from substrateinterface import Keypair
-from fastapi import FastAPI, APIRouter, Request, Response, Depends
-from starlette.responses import Response
-from starlette.requests import Request
-from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from typing import List, Optional, Tuple, Callable, Any, Dict
 
+import uvicorn
+from fastapi import FastAPI, APIRouter, Depends
+from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from starlette.requests import Request
+from starlette.responses import Response
+from substrateinterface import Keypair
+
+import bittensor
 from bittensor.errors import (
     InvalidRequestNameError,
     SynapseDendriteNoneException,

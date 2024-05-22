@@ -29,6 +29,7 @@ from .commands import (
     InspectCommand,
     ListCommand,
     ListDelegatesCommand,
+    ListDelegatesLiteCommand,
     MetagraphCommand,
     MyDelegatesCommand,
     NewColdkeyCommand,
@@ -51,6 +52,7 @@ from .commands import (
     RunFaucetCommand,
     SenateCommand,
     SetIdentityCommand,
+    SetTakeCommand,
     StakeCommand,
     StakeShow,
     SubnetGetHyperparamsCommand,
@@ -121,10 +123,12 @@ COMMANDS = {
             "senate": SenateCommand,
             "register": RootRegisterCommand,
             "proposals": ProposalsCommand,
+            "set_take": SetTakeCommand,
             "delegate": DelegateStakeCommand,
             "undelegate": DelegateUnstakeCommand,
             "my_delegates": MyDelegatesCommand,
             "list_delegates": ListDelegatesCommand,
+            "list_delegates_lite": ListDelegatesLiteCommand,
             "nominate": NominateCommand,
         },
     },
@@ -246,8 +250,8 @@ class cli:
         # If no_version_checking is not set or set as False in the config, version checking is done.
         if not self.config.get("no_version_checking", d=True):
             try:
-                bittensor.utils.version_checking()
-            except:
+                bittensor.utils.check_version()
+            except bittensor.utils.VersionCheckError:
                 # If version checking fails, inform user with an exception.
                 raise RuntimeError(
                     "To avoid internet-based version checking, pass --no_version_checking while running the CLI."
@@ -329,7 +333,7 @@ class cli:
             command_data = COMMANDS[command]
 
             if isinstance(command_data, dict):
-                if config["subcommand"] != None:
+                if config["subcommand"] is not None:
                     command_data["commands"][config["subcommand"]].check_config(config)
                 else:
                     console.print(
