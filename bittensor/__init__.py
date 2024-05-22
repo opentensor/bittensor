@@ -176,6 +176,19 @@ __type_registry__ = {
                     ],
                     "type": "Vec<u8>",
                 },
+                "get_subnet_stake_info_for_coldkey": {
+                    "params": [
+                        {
+                            "name": "coldkey_account_vecs",
+                            "type": "Vec<Vec<u8>>",
+                        },
+                        {
+                            "name": "netuid",
+                            "type": "u16",
+                        },
+                    ],
+                    "type": "Vec<u8>",
+                },
             },
         },
         "ValidatorIPRuntimeApi": {

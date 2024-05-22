@@ -132,6 +132,7 @@ def check_for_cuda_reg_config(config: "bittensor.config") -> None:
 def get_hotkey_wallets_for_wallet(wallet) -> List["bittensor.wallet"]:
     hotkey_wallets = []
     hotkeys_path = wallet.path + "/" + wallet.name + "/hotkeys"
+    print("hotkeys_path", hotkeys_path)
     try:
         hotkey_files = next(os.walk(os.path.expanduser(hotkeys_path)))[2]
     except StopIteration:

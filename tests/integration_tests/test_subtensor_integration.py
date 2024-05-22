@@ -590,10 +590,11 @@ class TestSubtensor(unittest.TestCase):
                 msg="only tries to submit once, then exits",
             )
 
-    def test_defaults_to_finney(self):
-        sub = bittensor.subtensor()
-        assert sub.network == "finney"
-        assert sub.chain_endpoint == bittensor.__finney_entrypoint__
+    # TODO: (sam): uncomment when we remove the restrictions to local on this branch
+    # def test_defaults_to_finney(self):
+    #     sub = bittensor.subtensor()
+    #     assert sub.network == "finney"
+    #     assert sub.chain_endpoint == bittensor.__finney_entrypoint__
 
 
 if __name__ == "__main__":

@@ -288,7 +288,8 @@ class SubnetListCommand:
                                 )
                             )
                         )
-                        if is_dtao else "-"
+                        if is_dtao
+                        else "-"
                     ),
                     str(
                         bittensor.Balance.from_rao(

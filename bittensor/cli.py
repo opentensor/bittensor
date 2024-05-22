@@ -139,7 +139,6 @@ COMMANDS = {
         "aliases": ["su", "sudos"],
         "help": "Commands for subnet management",
         "commands": {
-            # "dissolve": None,
             "set": SubnetSudoCommand,
             "get": SubnetGetHyperparamsCommand,
         },

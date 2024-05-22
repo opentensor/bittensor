@@ -23,6 +23,7 @@ from time import sleep
 from typing import List, Union, Optional
 from bittensor.utils.balance import Balance
 import bittensor.utils.weight_utils as weight_utils
+from loguru import logger
 
 
 def add_stake_weight_extrinsic(
@@ -56,13 +57,48 @@ def add_stake_weight_extrinsic(
             f":cross_mark: You don't have any stake delegated to this hotkey, you should first delegate to it: \n\t [bold white]btcli st delegate --delegate_ss58key {hotkey} [/bold white]"
         )
         return False
+    # Set maximum slippage percentage
+    max_slippage_pct = 5.0
+
+    # Calculate slippage for each subnet and collect subnets exceeding max slippage
+    high_slippage_subnets = []
+    for netuid, weight in zip(netuids, weights):
+        dynamic_pool = subtensor.get_dynamic_info_for_netuid(netuid)
+        subnet_stake_amount_tao = bittensor.Balance.from_tao(
+            weight * stake_on_delegate.tao
+        )
+        alpha_returned, slippage = dynamic_pool.tao_to_alpha_with_slippage(
+            subnet_stake_amount_tao
+        )
+        slippage_pct = 100 * (
+            1 - float(alpha_returned) / float(subnet_stake_amount_tao)
+        )
+
+        logger.debug(
+            f"Slippage for subnet {netuid}: {slippage} TAO, Tao staked {subnet_stake_amount_tao}, Alpha returned {alpha_returned}, Slippage percent {slippage_pct}%"
+        )
+
+        if slippage_pct > max_slippage_pct:
+            high_slippage_subnets.append((netuid, slippage.tao, slippage_pct))
+
+    # Warn and confirm if any subnet exceeds the maximum slippage threshold
+    if high_slippage_subnets:
+        warning_message = "\n".join(
+            f"Subnet {netuid}: {bittensor.Balance.from_tao(slippage_tao)} TAO ({slippage_pct:.2f}%)"
+            for netuid, slippage_tao, slippage_pct in high_slippage_subnets
+        )
+        bittensor.__console__.print(
+            f":warning: [yellow]Warning:[/yellow] Slippage exceeds {max_slippage_pct}% for the following subnets:\n{warning_message}"
+        )
+        if not Confirm.ask("Do you want to proceed with staking?"):
+            return False
 
     # Ask before moving on.
     if prompt:
         if not Confirm.ask(
             "Do you want to set the following stake weights?:\n[bold white] netuids: {}\n weights: {}\n stake: {}\n  [/bold white ]".format(
-                weights.tolist(),
                 netuids.tolist(),
+                weights.tolist(),
                 (weights * stake_on_delegate.tao).tolist(),
             )
         ):

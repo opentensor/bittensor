@@ -41,6 +41,7 @@ from .chain_data import (
     SubnetInfo,
     SubnetHyperparameters,
     StakeInfo,
+    SubnetStakeInfo,
     NeuronInfoLite,
     AxonInfo,
     ProposalVoteData,
@@ -65,7 +66,11 @@ from .extrinsics.staking import (
     add_stake_weight_extrinsic,
 )
 from .extrinsics.unstaking import unstake_extrinsic, unstake_multiple_extrinsic
-from .extrinsics.substaking import add_substake_extrinsic, remove_substake_extrinsic
+from .extrinsics.substaking import (
+    add_substake_extrinsic,
+    remove_substake_extrinsic,
+    add_substake_multiple_extrinsic,
+)
 from .extrinsics.serving import (
     serve_extrinsic,
     serve_axon_extrinsic,
@@ -248,7 +253,7 @@ class subtensor:
             elif network == "dtao":
                 return network, bittensor.__dtao_entrypoint__
             else:
-                raise ValueError(f'Network {network} unknown.')
+                raise ValueError(f"Network {network} unknown.")
         else:
             if (
                 network == bittensor.__finney_entrypoint__
@@ -497,6 +502,7 @@ class subtensor:
     def delegate(
         self,
         wallet: "bittensor.wallet",
+        netuid: int,
         delegate_ss58: Optional[str] = None,
         amount: Optional[Union[Balance, float]] = None,
         wait_for_inclusion: bool = True,
@@ -524,6 +530,7 @@ class subtensor:
             wallet=wallet,
             delegate_ss58=delegate_ss58,
             amount=amount,
+            netuid=netuid,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
             prompt=prompt,
@@ -532,6 +539,7 @@ class subtensor:
     def undelegate(
         self,
         wallet: "bittensor.wallet",
+        netuid: int,
         delegate_ss58: Optional[str] = None,
         amount: Optional[Union[Balance, float]] = None,
         wait_for_inclusion: bool = True,
@@ -561,6 +569,7 @@ class subtensor:
             wallet=wallet,
             delegate_ss58=delegate_ss58,
             amount=amount,
+            netuid=netuid,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
             prompt=prompt,
@@ -1769,6 +1778,46 @@ class subtensor:
             prompt,
         )
 
+    def add_substake_multiple(
+        self,
+        wallet: "bittensor.wallet",
+        hotkey_ss58s: List[str],
+        netuid: int,
+        amounts: Optional[List[Union[Balance, float]]] = None,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+        prompt: bool = False,
+    ) -> bool:
+        """
+        Adds substakes to multiple neurons identified by their hotkey SS58 addresses on a specific subnet.
+        This bulk operation allows for efficient substaking across different neurons from a single wallet.
+
+        Args:
+            wallet (bittensor.wallet): The wallet used for substaking.
+            hotkey_ss58s (List[str]): List of ``SS58`` addresses of hotkeys to substake to.
+            netuid (int): The unique identifier of the subnet to substake on.
+            amounts (List[Union[Balance, float]], optional): Corresponding amounts of TAO to substake for each hotkey.
+            wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
+            wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
+            prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
+
+        Returns:
+            bool: ``True`` if the substaking is successful for all specified neurons, False otherwise.
+
+        This function enables managing substakes across multiple neurons on a specific subnet, enhancing the
+        flexibility and granularity of stake allocation within the Bittensor network.
+        """
+        return add_substake_multiple_extrinsic(
+            self,
+            wallet,
+            hotkey_ss58s,
+            netuid,
+            amounts,
+            wait_for_inclusion,
+            wait_for_finalization,
+            prompt,
+        )
+
     def add_substake(
         self,
         wallet: "bittensor.wallet",
@@ -2064,6 +2113,7 @@ class subtensor:
         Args:
             wallet (:func:`bittensor.wallet`): Wallet object that can sign the extrinsic.
             hotkey_ss58 (str): Hotkey ``ss58`` address to unstake from.
+            netuid (int): The subnet you are unstaking from.
             amount (:func:`Balance`): Amount to unstake.
             wait_for_inclusion (bool): If ``true``, waits for inclusion before returning.
             wait_for_finalization (bool): If ``true``, waits for finalization before returning.
@@ -3344,19 +3394,32 @@ class subtensor:
         self, ss58_address: str, block: Optional[int] = None
     ) -> Optional["Balance"]:
         """Returns the total stake held on a hotkey including delegative"""
-        return self.get_total_stake_for_key(ss58_address, "delegateInfo_getTotalStakeForColdkey", block)
+        return self.get_total_stake_for_key(
+            ss58_address, "delegateInfo_getTotalStakeForHotkey", block
+        )
 
     def get_total_stake_for_coldkey(
         self, ss58_address: str, block: Optional[int] = None
     ) -> Optional["Balance"]:
         """Returns the total stake held on a coldkey for all its hotkeys"""
-        return self.get_total_stake_for_key(ss58_address, "delegateInfo_getTotalStakeForHotkey", block)
+        return self.get_total_stake_for_key(
+            ss58_address, "delegateInfo_getTotalStakeForColdkey", block
+        )
 
     def get_stake_for_coldkey_and_hotkey(
         self, hotkey_ss58: str, coldkey_ss58: str, block: Optional[int] = None
     ) -> Optional["Balance"]:
         """Returns the stake under a coldkey - hotkey pairing"""
         _result = self.query_subtensor("Stake", block, [hotkey_ss58, coldkey_ss58])
+        if not hasattr(_result, "value") or _result is None:
+            return None
+        return Balance.from_rao(_result.value)
+
+    def get_substake_for_coldkey_and_hotkey(
+        self, hotkey_ss58: str, coldkey_ss58: str, block: Optional[int] = None
+    ) -> Optional["Balance"]:
+        """Returns the stake under a coldkey - hotkey pairing"""
+        _result = self.query_subtensor("SubStake", block, [hotkey_ss58, coldkey_ss58])
         if not hasattr(_result, "value") or _result is None:
             return None
         return Balance.from_rao(_result.value)
@@ -3370,7 +3433,7 @@ class subtensor:
     ) -> Optional["Balance"]:
         """Returns the stake under a coldkey - hotkey - netuid pairing"""
         _result = self.query_subtensor(
-            "SubStake", block, [hotkey_ss58, coldkey_ss58, netuid]
+            "SubStake", block, [coldkey_ss58, hotkey_ss58, netuid]
         )
         if not hasattr(_result, "value") or _result is None:
             return None
@@ -4209,6 +4272,42 @@ class subtensor:
 
         return StakeInfo.list_of_tuple_from_vec_u8(bytes_result)  # type: ignore
 
+    def get_subnet_stake_info_for_coldkey(
+        self, coldkey_ss58: str, netuid: int, block: Optional[int] = None
+    ) -> Optional[List[SubnetStakeInfo]]:
+        """
+        Retrieves stake information associated with a specific coldkey. This function provides details
+        about the stakes held by an account, including the staked amounts and associated delegates.
+
+        Args:
+            coldkey_ss58 (str): The ``SS58`` address of the account's coldkey.
+            netuid (int): The Subnet ID.
+            block (Optional[int], optional): The blockchain block number for the query.
+
+        Returns:
+            List[SubnetStakeInfo]: A list of SubnetStakeInfo objects detailing the stake allocations for the account.
+
+        Stake information is vital for account holders to assess their investment and participation
+        in the network's delegation and consensus processes.
+        """
+        encoded_coldkey = ss58_to_vec_u8(coldkey_ss58)
+
+        hex_bytes_result = self.query_runtime_api(
+            runtime_api="StakeInfoRuntimeApi",
+            method="get_subnet_stake_info_for_coldkey",
+            params=[encoded_coldkey, netuid],  # type: ignore
+            block=block,
+        )
+
+        if hex_bytes_result is None:
+            return None
+
+        if hex_bytes_result.startswith("0x"):
+            bytes_result = bytes.fromhex(hex_bytes_result[2:])
+        else:
+            bytes_result = bytes.fromhex(hex_bytes_result)
+        return SubnetStakeInfo.list_from_vec_u8(bytes_result)
+
     ########################################
     #### Neuron information per subnet ####
     ########################################
@@ -4765,6 +4864,7 @@ class subtensor:
         wallet: "bittensor.wallet",
         delegate_ss58: str,
         amount: "Balance",
+        netuid: int,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
     ) -> bool:
@@ -4773,8 +4873,12 @@ class subtensor:
             with self.substrate as substrate:
                 call = substrate.compose_call(
                     call_module="SubtensorModule",
-                    call_function="add_stake",
-                    call_params={"hotkey": delegate_ss58, "amount_staked": amount.rao},
+                    call_function="add_subnet_stake",
+                    call_params={
+                        "hotkey": delegate_ss58,
+                        "amount_staked": amount.rao,
+                        "netuid": netuid,
+                    },
                 )
                 extrinsic = substrate.create_signed_extrinsic(
                     call=call, keypair=wallet.coldkey
@@ -4800,6 +4904,7 @@ class subtensor:
         wallet: "bittensor.wallet",
         delegate_ss58: str,
         amount: "Balance",
+        netuid: int,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
     ) -> bool:
@@ -4808,10 +4913,11 @@ class subtensor:
             with self.substrate as substrate:
                 call = substrate.compose_call(
                     call_module="SubtensorModule",
-                    call_function="remove_stake",
+                    call_function="remove_subnet_stake",
                     call_params={
                         "hotkey": delegate_ss58,
                         "amount_unstaked": amount.rao,
+                        "netuid": netuid,
                     },
                 )
                 extrinsic = substrate.create_signed_extrinsic(

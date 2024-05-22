@@ -20,9 +20,8 @@ import os
 import argparse
 import bittensor
 import re
-import torch
 import numpy as np
-from typing import List, Optional, Tuple
+from typing import List, Optional
 from rich.table import Table
 from rich.prompt import Prompt, IntPrompt, FloatPrompt, Confirm
 from rich.console import Text
@@ -31,7 +30,6 @@ from substrateinterface.exceptions import SubstrateRequestException
 from .utils import get_delegates_details, DelegatesDetails
 from .identity import SetIdentityCommand
 from . import defaults
-import json
 
 import os
 import bittensor
@@ -207,7 +205,7 @@ def show_delegates(
             f"{delegate.total_stake!s:13.13}",
             rate_change_in_stake_str,
             str(delegate.registrations),
-            str([f"({t[0]}-{t[1] * 100:.1f}%" + ")" for t in delegate.take]),
+            str([f"({t[0]}-{t[1] * 100:.1f}%)" for t in delegate.take]),
             f"{bittensor.Balance.from_tao( delegate.total_daily_return.tao * (1000/ ( 0.001 + delegate.total_stake.tao ) ))!s:6.6}",
             f"{bittensor.Balance.from_tao( delegate.total_daily_return.tao * (0.18) ) !s:6.6}",
             str(delegate_description),
@@ -254,6 +252,7 @@ class DelegateStakeCommand:
             subtensor.delegate(
                 wallet=wallet,
                 delegate_ss58=config.get("delegate_ss58key"),
+                netuid=config.get("netuid"),
                 amount=config.get("amount"),
                 wait_for_inclusion=True,
                 prompt=not config.no_prompt,
@@ -394,6 +393,7 @@ class DelegateUnstakeCommand:
             wallet=wallet,
             delegate_ss58=config.get("delegate_ss58key"),
             amount=config.get("amount"),
+            netuid=config.get("netuid"),
             wait_for_inclusion=True,
             prompt=not config.no_prompt,
         )
