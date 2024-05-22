@@ -1297,11 +1297,16 @@ class AxonMiddleware(BaseHTTPMiddleware):
         if blacklist_fn:
             # We execute the blacklist checking function using the synapse instance as input.
             # If the function returns True, it means that the key or identifier is blacklisted.
-            blacklisted, reason = (
-                await blacklist_fn(synapse)
-                if inspect.iscoroutinefunction(blacklist_fn)
-                else blacklist_fn(synapse)
-            )
+            blacklisted, reason = None
+            try:
+                blacklisted, reason = (
+                    await blacklist_fn(synapse)
+                    if inspect.iscoroutinefunction(blacklist_fn)
+                    else blacklist_fn(synapse)
+                )
+            except:
+                raise Exception("Error processing blacklist function")
+            
             if blacklisted:
                 # We log that the key or identifier is blacklisted.
                 bittensor.logging.trace(f"Blacklisted: {blacklisted}, {reason}")
