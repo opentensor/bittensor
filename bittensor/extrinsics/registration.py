@@ -20,7 +20,12 @@ import bittensor
 import time
 from rich.prompt import Confirm
 from typing import List, Union, Optional, Tuple
-from bittensor.utils.registration import POWSolution, create_pow, torch, use_torch
+from bittensor.utils.registration import (
+    POWSolution,
+    create_pow,
+    torch,
+    log_no_torch_error,
+)
 
 
 def register_extrinsic(
@@ -100,7 +105,8 @@ def register_extrinsic(
         ):
             return False
 
-    if not use_torch():
+    if not torch:
+        log_no_torch_error()
         return False
 
     # Attempt rolling registration.
@@ -380,8 +386,8 @@ def run_faucet_extrinsic(
         ):
             return False, ""
 
-    if not use_torch():
-        torch.error()
+    if not torch:
+        log_no_torch_error()
         return False, "Requires torch"
 
     # Unlock coldkey

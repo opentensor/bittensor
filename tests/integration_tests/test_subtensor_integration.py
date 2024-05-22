@@ -423,7 +423,6 @@ class TestSubtensor(unittest.TestCase):
         self.assertFalse(registered, msg="Hotkey should not be registered")
 
     def test_registration_multiprocessed_already_registered(self):
-        os.environ["USE_TORCH"] = "1"
         workblocks_before_is_registered = random.randint(5, 10)
         # return False each work block but return True after a random number of blocks
         is_registered_return_values = (
@@ -477,10 +476,8 @@ class TestSubtensor(unittest.TestCase):
                     self.subtensor.is_hotkey_registered.call_count
                     == workblocks_before_is_registered + 2
                 )
-        del os.environ["USE_TORCH"]
 
     def test_registration_partly_failed(self):
-        os.environ["USE_TORCH"] = "1"
         do_pow_register_mock = MagicMock(
             side_effect=[(False, "Failed"), (False, "Failed"), (True, None)]
         )
@@ -514,10 +511,8 @@ class TestSubtensor(unittest.TestCase):
             ),
             msg="Registration should succeed",
         )
-        del os.environ["USE_TORCH"]
 
     def test_registration_failed(self):
-        os.environ["USE_TORCH"] = "1"
         is_registered_return_values = [False for _ in range(100)]
         current_block = [i for i in range(0, 100)]
         mock_neuron = MagicMock()
@@ -551,11 +546,9 @@ class TestSubtensor(unittest.TestCase):
                 msg="Registration should fail",
             )
             self.assertEqual(mock_create_pow.call_count, 3)
-        del os.environ["USE_TORCH"]
 
     def test_registration_stale_then_continue(self):
         # verify that after a stale solution, the solve will continue without exiting
-        os.environ["USE_TORCH"] = "1"
 
         class ExitEarly(Exception):
             pass
@@ -596,7 +589,6 @@ class TestSubtensor(unittest.TestCase):
                 1,
                 msg="only tries to submit once, then exits",
             )
-        del os.environ["USE_TORCH"]
 
     def test_defaults_to_finney(self):
         sub = bittensor.subtensor()
