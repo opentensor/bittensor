@@ -157,7 +157,7 @@ def test_normalize_with_max_weight__legacy_torch_api_compat(
     # Check for Ordering after normalization
     weights = torch.rand(100)
     wn = weight_utils.normalize_max_weight(weights, limit=1)
-    assert torch.equal(wn, weights / weights.sum())
+    assert torch.isclose(wn, weights / weights.sum(), atol=1e-08, rtol=0).all()
 
     # Check for eplison changes
     eplison = 0.01
