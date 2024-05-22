@@ -1304,9 +1304,9 @@ class AxonMiddleware(BaseHTTPMiddleware):
                     if inspect.iscoroutinefunction(blacklist_fn)
                     else blacklist_fn(synapse)
                 )
-            except:
-                raise Exception("Error processing blacklist function")
-            
+            except Exception as e:
+                blacklisted, reason = True, f"Unhandled exception checking blacklist_fn [{e}], assuming True"
+
             if blacklisted:
                 # We log that the key or identifier is blacklisted.
                 bittensor.logging.trace(f"Blacklisted: {blacklisted}, {reason}")
