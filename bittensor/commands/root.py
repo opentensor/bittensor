@@ -282,7 +282,6 @@ class RootSetBoostCommand:
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""Set weights for root network."""
         wallet = bittensor.wallet(config=cli.config)
-        # subnets: List[bittensor.SubnetInfo] = subtensor.get_all_subnets_info()
 
         root = subtensor.metagraph(0, lite=False)
         try:
@@ -400,7 +399,6 @@ class RootSetSlashCommand:
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         wallet = bittensor.wallet(config=cli.config)
-        # subnets: List[bittensor.SubnetInfo] = subtensor.get_all_subnets_info()
 
         bittensor.__console__.print(
             "Slashing weight for subnet: {} by amount: {}".format(
