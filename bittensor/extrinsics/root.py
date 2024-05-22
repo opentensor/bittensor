@@ -26,7 +26,7 @@ from rich.prompt import Confirm
 from typing import Union, List
 import bittensor.utils.weight_utils as weight_utils
 from bittensor.btlogging.defines import BITTENSOR_LOGGER_NAME
-from bittensor.utils.registration import torch, use_torch
+from bittensor.utils.registration import torch, legacy_torch_api_compat
 
 logger = logging.getLogger(BITTENSOR_LOGGER_NAME)
 
@@ -100,6 +100,7 @@ def root_register_extrinsic(
                 )
 
 
+@legacy_torch_api_compat
 def set_root_weights_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
@@ -134,36 +135,22 @@ def set_root_weights_extrinsic(
 
     # First convert types.
     if isinstance(netuids, list):
-        netuids = (
-            torch.tensor(netuids, dtype=torch.int64)
-            if use_torch()
-            else np.array(netuids, dtype=np.int64)
-        )
+        netuids = np.array(netuids, dtype=np.int64)
     if isinstance(weights, list):
-        weights = (
-            torch.tensor(weights, dtype=torch.float32)
-            if use_torch()
-            else np.array(weights, dtype=np.float32)
-        )
+        weights = np.array(weights, dtype=np.float32)
 
     # Get weight restrictions.
     min_allowed_weights = subtensor.min_allowed_weights(netuid=0)
     max_weight_limit = subtensor.max_weight_limit(netuid=0)
 
     # Get non zero values.
-    non_zero_weight_idx = (
-        torch.argwhere(weights > 0).squeeze(dim=1)
-        if use_torch()
-        else np.argwhere(weights > 0).squeeze(axis=1)
-    )
+    non_zero_weight_idx = np.argwhere(weights > 0).squeeze(axis=1)
+    non_zero_weight_uids = netuids[non_zero_weight_idx]
     non_zero_weights = weights[non_zero_weight_idx]
-    non_zero_weights_size = (
-        non_zero_weights.numel() if use_torch() else non_zero_weights.size
-    )
-    if non_zero_weights_size < min_allowed_weights:
+    if non_zero_weights.size < min_allowed_weights:
         raise ValueError(
             "The minimum number of weights required to set weights is {}, got {}".format(
-                min_allowed_weights, non_zero_weights_size
+                min_allowed_weights, non_zero_weights.size
             )
         )
 
