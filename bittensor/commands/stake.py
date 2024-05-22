@@ -512,14 +512,12 @@ class StakeList:
         table.add_column(
             "[white]Hotkey", footer_style="overline white", style="dark_slate_gray3"
         )
+        table.add_column(
+            "[white]Subnet", footer_style="overline white", style="dark_slate_gray3"
+        )
         table.add_column(f"[white]Stake", footer_style="overline white", style="blue")
-        for netuid in netuids:
-            table.add_column(
-                f"[overline white]{bittensor.Balance.get_unit(netuid)}",
-                str(netuid_totals[netuid]) if netuid in netuid_totals else "",
-                footer_style="overline white",
-                style="green",
-            )
+        table.add_column(f"[white]TAO", footer_style="overline white", style="blue")
+        table.add_column(f"[white]Price", footer_style="overline white", style="white")
 
         # Fill rows
         for hotkey in hot_netuid_pairs.keys():
@@ -528,22 +526,40 @@ class StakeList:
                 row_name = registered_delegate_info[hotkey].name
             else:
                 row_name = hotkey[:10]
-            row1 = [row_name, hot_alpha_totals[hotkey].set_unit(1)]
             for netuid in netuids:
-                row1.append(
-                    str(
+                # Hotkey and subnet
+                row = [
+                    row_name, 
+                    "{} ({})".format(bittensor.Balance.get_unit(netuid), netuid), 
+                ]
+                # Stake
+                row.append(
+                    "[green]{:,.4f}[/green]".format(
                         bittensor.Balance.from_rao(
                             int(hot_netuid_pairs[hotkey].get(netuid, 0))
-                        ).set_unit(netuid)
+                        ).tao
                     )
                 )
-            table.add_row(*row1)
-            row2 = ["", f"[blue]{hot_tao_totals[hotkey]}[/blue]"]
-            for netuid in netuids:
-                row2.append(
+                # Stake in TAO
+                row.append(
                     f"[blue]{hot_netuid_pairs[hotkey].get(netuid, 0) * dynamic_info[ netuid ]['price'] }[/blue]"
                 )
-            table.add_row(*row2)
+                # Price
+                row.append(
+                    f"[white]{dynamic_info[ netuid ]['price']:.4f}[/white]"
+                )
+
+                table.add_row(*row)
+
+        table.add_row("")
+        row_totals = ["TOTAL", ""]
+        # Stake
+        row_totals.append("[green]{:,.4f}[/green]".format(hot_alpha_totals[hotkey].tao))
+        # Stake in TAO
+        row_totals.append(
+            "[blue]{:,.4f}[/blue]".format(hot_tao_totals[hotkey].tao)
+        )
+        table.add_row(*row_totals)
 
         table.box = None
         table.pad_edge = False
@@ -584,21 +600,29 @@ class StakeList:
             ),
             (
                 "[bold white]2.[/bold white]",
-                "[bold white]Stake[/bold white]",
-                "The sum of [green]dTAO(\u03B1)[/green] across all subnets and that summation's corresponding value in [blue]TAO[/blue].",
+                "[bold white]Subnet[/bold white]",
+                "The Subnet ID and symbol.",
             ),
             (
                 "[bold white]3.[/bold white]",
-                "[bold white]DTAO[/bold white]",
-                """For each subnet, the quantity of staked [green]dynamic TAO (\u03B1)[/green] and its [blue]TAO[/blue] value calculated using the current subnet exchange rate.
-            """,
+                "[bold white]Stake[/bold white]",
+                "The [green]Alpha(\u03B1)[/green] currently staked in the subnet.",
+            ),
+            (
+                "[bold white]4.[/bold white]",
+                "[bold white]TAO[/bold white]",
+                "Corresponding stake value in [blue]TAO[/blue] based on the current Alpha price.",
+            ),
+            (
+                "[bold white]5.[/bold white]",
+                "[bold white]Price[/bold white]",
+                "Current Alpha price for reference.",
             ),
         ]
 
         for no, name, description in column_descriptions:
             column_descriptions_table.add_row(no, name, description)
         bittensor.__console__.print(column_descriptions_table)
-        bittensor.__console__.print("\n")
         bittensor.__console__.print("\n")
         bittensor.__console__.print(table)
 
