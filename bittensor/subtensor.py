@@ -1177,8 +1177,7 @@ class subtensor:
             wait_for_finalization (bool): Whether to wait for the transaction to be finalized. Default is True.
 
         Returns:
-            Tuple[bool, Optional[str]]: A tuple containing a boolean indicating success or failure, and an optional
-                error message.
+            Tuple[bool, Optional[str]]: A tuple containing a boolean indicating success or failure, and an optional error message.
         """
 
         @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
@@ -2393,7 +2392,7 @@ class subtensor:
         self,
         key: str,
         block: Optional[int] = None,
-    ) -> Optional["ScaleType"]:
+    ) -> dict:
         """
         Queries the identity of a neuron on the Bittensor blockchain using the given key. This function retrieves
         detailed identity information about a specific neuron, which is a crucial aspect of the network's decentralized
@@ -2408,15 +2407,14 @@ class subtensor:
             block (Optional[int]): The blockchain block number at which to perform the query.
 
         Returns:
-            Optional[ScaleType]: An object containing the identity information of the neuron if found, ``None``
-                otherwise.
+            result (dict): An object containing the identity information of the neuron if found, ``None`` otherwise.
 
         The identity information can include various attributes such as the neuron's stake, rank, and other
         network-specific details, providing insights into the neuron's role and status within the Bittensor network.
         """
 
         @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
-        def make_substrate_call_with_retry():
+        def make_substrate_call_with_retry() -> "ScaleType":
             return self.substrate.query(
                 module="Registry",
                 storage_function="IdentityOf",
@@ -2427,6 +2425,7 @@ class subtensor:
             )
 
         identity_info = make_substrate_call_with_retry()
+
         return bittensor.utils.wallet_utils.decode_hex_identity_dict(
             identity_info.value["info"]
         )
@@ -3351,62 +3350,150 @@ class subtensor:
     def get_total_stake_for_hotkey(
         self, ss58_address: str, block: Optional[int] = None
     ) -> Optional["Balance"]:
-        """Returns the total stake held on a hotkey including delegative"""
+        """
+        Returns the total stake held on a hotkey including delegative.
+
+        Args:
+            ss58_address (str): The SS58 address of the hotkey.
+            block (Optional[int], optional): The block number to retrieve the stake from. If ``None``, the latest
+                block is used. Default is ``None``.
+
+        Returns:
+            Optional[Balance]: The total stake held on the hotkey, or ``None`` if the hotkey does not
+                exist or the stake is not found.
+        """
         _result = self.query_subtensor("TotalHotkeyStake", block, [ss58_address])
-        if not hasattr(_result, "value") or _result is None:
-            return None
-        return Balance.from_rao(_result.value)
+        return (
+            None
+            if _result is None or not hasattr(_result, "value")
+            else Balance.from_rao(_result.value)
+        )
 
     def get_total_stake_for_coldkey(
         self, ss58_address: str, block: Optional[int] = None
     ) -> Optional["Balance"]:
-        """Returns the total stake held on a coldkey across all hotkeys including delegates"""
+        """
+        Returns the total stake held on a coldkey.
+
+        Args:
+            ss58_address (str): The SS58 address of the coldkey.
+            block (Optional[int], optional): The block number to retrieve the stake from. If ``None``, the latest
+                block is used. Default is ``None``.
+
+        Returns:
+            Optional[Balance]: The total stake held on the coldkey, or ``None`` if the coldkey does not
+                exist or the stake is not found.
+        """
         _result = self.query_subtensor("TotalColdkeyStake", block, [ss58_address])
-        if not hasattr(_result, "value") or _result is None:
-            return None
-        return Balance.from_rao(_result.value)
+        return (
+            None
+            if _result is None or not hasattr(_result, "value")
+            else Balance.from_rao(_result.value)
+        )
 
     def get_stake_for_coldkey_and_hotkey(
         self, hotkey_ss58: str, coldkey_ss58: str, block: Optional[int] = None
     ) -> Optional["Balance"]:
-        """Returns the stake under a coldkey - hotkey pairing"""
+        """
+        Returns the stake under a coldkey - hotkey pairing.
+
+        Args:
+            hotkey_ss58 (str): The SS58 address of the hotkey.
+            coldkey_ss58 (str): The SS58 address of the coldkey.
+            block (Optional[int], optional): The block number to retrieve the stake from. If ``None``, the latest
+                block is used. Default is ``None``.
+
+        Returns:
+            Optional[Balance]: The stake under the coldkey - hotkey pairing, or ``None`` if the pairing does not
+                exist or the stake is not found.
+        """
         _result = self.query_subtensor("Stake", block, [hotkey_ss58, coldkey_ss58])
-        if not hasattr(_result, "value") or _result is None:
-            return None
-        return Balance.from_rao(_result.value)
+        return (
+            None
+            if _result is None or not hasattr(_result, "value")
+            else Balance.from_rao(_result.value)
+        )
 
     def get_stake(
         self, hotkey_ss58: str, block: Optional[int] = None
     ) -> List[Tuple[str, "Balance"]]:
-        """Returns a list of stake tuples (coldkey, balance) for each delegating coldkey including the owner"""
+        """
+        Returns a list of stake tuples (coldkey, balance) for each delegating coldkey including the owner.
+
+        Args:
+            hotkey_ss58 (str): The SS58 address of the hotkey.
+            block (Optional[int], optional): The block number to retrieve the stakes from. If ``None``, the latest
+                block is used. Default is ``None``.
+
+        Returns:
+            List[Tuple[str, Balance]]: A list of tuples, each containing a coldkey SS58 address and the corresponding
+                balance staked by that coldkey.
+        """
         return [
             (r[0].value, Balance.from_rao(r[1].value))
             for r in self.query_map_subtensor("Stake", block, [hotkey_ss58])
         ]
 
     def does_hotkey_exist(self, hotkey_ss58: str, block: Optional[int] = None) -> bool:
-        """Returns true if the hotkey is known by the chain and there are accounts."""
-        _result = self.query_subtensor("Owner", block, [hotkey_ss58])
-        if not hasattr(_result, "value") or _result is None:
-            return False
+        """
+        Returns true if the hotkey is known by the chain and there are accounts.
 
-        return _result.value != "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM"
+        Args:
+            hotkey_ss58 (str): The SS58 address of the hotkey.
+            block (Optional[int], optional): The block number to check the hotkey against. If ``None``, the latest
+                block is used. Default is ``None``.
+
+        Returns:
+            bool: ``True`` if the hotkey is known by the chain and there are accounts, ``False`` otherwise.
+        """
+        _result = self.query_subtensor("Owner", block, [hotkey_ss58])
+        return (
+            False
+            if not _result or not hasattr(_result, "value")
+            else _result.value != "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM"
+        )
 
     def get_hotkey_owner(
         self, hotkey_ss58: str, block: Optional[int] = None
     ) -> Optional[str]:
-        """Returns the coldkey owner of the passed hotkey"""
-        _result = self.query_subtensor("Owner", block, [hotkey_ss58])
-        if not hasattr(_result, "value") or _result is None:
-            return None
-        if self.does_hotkey_exist(hotkey_ss58, block):
-            return _result.value
-        return None
+        """
+        Returns the coldkey owner of the passed hotkey.
 
+        Args:
+            hotkey_ss58 (str): The SS58 address of the hotkey.
+            block (Optional[int], optional): The block number to check the hotkey owner against. If ``None``, the latest
+                block is used. Default is ``None``.
+
+        Returns:
+            Optional[str]: The SS58 address of the coldkey owner, or ``None`` if the hotkey does not exist or the owner
+                is not found.
+        """
+        _result = self.query_subtensor("Owner", block, [hotkey_ss58])
+        return (
+            None
+            if not _result
+            or not hasattr(_result, "value")
+            or not self.does_hotkey_exist(hotkey_ss58, block)
+            else _result.value
+        )
+
+    # TODO: check if someone still use this method. bittensor not.
     def get_axon_info(
         self, netuid: int, hotkey_ss58: str, block: Optional[int] = None
     ) -> Optional[AxonInfo]:
-        """Returns the axon information for this hotkey account"""
+        """
+        Returns the axon information for this hotkey account.
+
+        Args:
+            netuid (int): The unique identifier of the subnetwork.
+            hotkey_ss58 (str): The SS58 address of the hotkey.
+            block (Optional[int], optional): The block number to retrieve the axon information from. If ``None``, the
+                latest block is used. Default is ``None``.
+
+        Returns:
+            Optional[AxonInfo]: An AxonInfo object containing the axon information, or ``None`` if the axon information
+                is not found.
+        """
         result = self.query_subtensor("Axons", block, [netuid, hotkey_ss58])
         if result is not None and hasattr(result, "value"):
             return AxonInfo(
@@ -3420,15 +3507,27 @@ class subtensor:
                 hotkey=hotkey_ss58,
                 coldkey="",
             )
-
         return None
 
+    # TODO: check if someone still use this method. bittensor not.
     def get_prometheus_info(
         self, netuid: int, hotkey_ss58: str, block: Optional[int] = None
     ) -> Optional[PrometheusInfo]:
-        """Returns the prometheus information for this hotkey account"""
+        """
+        Returns the prometheus information for this hotkey account.
+
+        Args:
+            netuid (int): The unique identifier of the subnetwork.
+            hotkey_ss58 (str): The SS58 address of the hotkey.
+            block (Optional[int], optional): The block number to retrieve the prometheus information from. If ``None``,
+                the latest block is used. Default is ``None``.
+
+        Returns:
+            Optional[PrometheusInfo]: A PrometheusInfo object containing the prometheus information, or ``None`` if the
+                prometheus information is not found.
+        """
         result = self.query_subtensor("Prometheus", block, [netuid, hotkey_ss58])
-        if result is not None:
+        if result is not None and hasattr(result, "value"):
             return PrometheusInfo(
                 ip=networking.int_to_ip(result.value["ip"]),
                 ip_type=result.value["ip_type"],
@@ -3436,8 +3535,7 @@ class subtensor:
                 version=result.value["version"],
                 block=result.value["block"],
             )
-        else:
-            return None
+        return None
 
     #####################
     # Global Parameters #
@@ -3467,9 +3565,11 @@ class subtensor:
         of the currency and providing insights into the network's economic health and inflationary trends.
         """
         _result = self.query_subtensor("TotalIssuance", block)
-        if not hasattr(_result, "value") or _result is None:
-            return None
-        return Balance.from_rao(_result.value)
+        return (
+            None
+            if not _result or not hasattr(_result, "value")
+            else Balance.from_rao(_result.value)
+        )
 
     def total_stake(self, block: Optional[int] = None) -> Optional[Balance]:
         """
@@ -3488,9 +3588,11 @@ class subtensor:
         consensus and incentive mechanisms.
         """
         _result = self.query_subtensor("TotalStake", block)
-        if not hasattr(_result, "value") or _result is None:
-            return None
-        return Balance.from_rao(_result.value)
+        return (
+            None
+            if _result is None or not hasattr(_result, "value")
+            else Balance.from_rao(_result.value)
+        )
 
     def serving_rate_limit(
         self, netuid: int, block: Optional[int] = None
@@ -3512,12 +3614,10 @@ class subtensor:
         overuse of resources by individual neurons. It helps ensure a balanced distribution of service
         requests across the network.
         """
-        if not self.subnet_exists(netuid, block):
-            return None
-        _result = self.query_subtensor("ServingRateLimit", block, [netuid])
-        if not hasattr(_result, "value") or _result is None:
-            return None
-        return _result.value
+        call = self._get_hyperparameter(
+            param_name="ServingRateLimit", netuid=netuid, block=block
+        )
+        return None if call is None else int(call)
 
     def tx_rate_limit(self, block: Optional[int] = None) -> Optional[int]:
         """
@@ -3535,9 +3635,9 @@ class subtensor:
         maintaining efficient and timely transaction processing.
         """
         _result = self.query_subtensor("TxRateLimit", block)
-        if not hasattr(_result, "value") or _result is None:
-            return None
-        return _result.value
+        return (
+            None if _result is None or not hasattr(_result, "value") else _result.value
+        )
 
     ######################
     # Network Parameters #
