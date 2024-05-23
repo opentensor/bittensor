@@ -111,7 +111,7 @@ if hasattr(RuntimeConfiguration, "convert_type_string"):
     original_convert_type_string = RuntimeConfiguration.convert_type_string
 
     @functools.lru_cache(maxsize=None)
-    def convert_type_string(cls, name):
+    def convert_type_string(_, name):
         return original_convert_type_string(name)
 
     RuntimeConfiguration.convert_type_string = convert_type_string
@@ -2557,7 +2557,7 @@ class subtensor:
         """
 
         @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
-        def make_substrate_call_with_retry():
+        def make_substrate_call_with_retry() -> "ScaleType":
             return self.substrate.query(
                 module="SubtensorModule",
                 storage_function=name,
@@ -2830,6 +2830,30 @@ class subtensor:
     # Hyper parameter calls. #
     ##########################
 
+    def _get_hyperparameter(
+        self, param_name: str, netuid: int, block: Optional[int] = None
+    ) -> Optional[Any]:
+        """
+        Retrieves a specified hyperparameter for a specific subnet.
+
+        Args:
+            param_name (str): The name of the hyperparameter to retrieve.
+            netuid (int): The unique identifier of the subnet.
+            block (Optional[int]): The blockchain block number for the query.
+
+        Returns:
+            Optional[Union[int, float]]: The value of the specified hyperparameter if the subnet exists, ``None``
+                otherwise.
+        """
+        if not self.subnet_exists(netuid, block):
+            return None
+
+        result = self.query_subtensor(param_name, block, [netuid])
+        if result is None or not hasattr(result, "value"):
+            return None
+
+        return result.value
+
     def rho(self, netuid: int, block: Optional[int] = None) -> Optional[int]:
         """
         Retrieves the 'Rho' hyperparameter for a specified subnet within the Bittensor network. 'Rho' represents the
@@ -2855,12 +2879,8 @@ class subtensor:
         'Rho' is essential for understanding the network's economic dynamics, affecting the reward distribution
         and incentive structures across the network's neurons.
         """
-        if not self.subnet_exists(netuid, block):
-            return None
-        _result = self.query_subtensor("Rho", block, [netuid])
-        if not hasattr(_result, "value") or _result is None:
-            return None
-        return _result.value
+        call = self._get_hyperparameter(param_name="Rho", netuid=netuid, block=block)
+        return None if call is None else int(call)
 
     def kappa(self, netuid: int, block: Optional[int] = None) -> Optional[float]:
         """
@@ -2885,13 +2905,8 @@ class subtensor:
         Understanding 'Kappa' is crucial for analyzing stake dynamics and the consensus mechanism within the network,
         as it plays a significant role in neuron ranking and incentive allocation processes.
         """
-        if not self.subnet_exists(netuid, block):
-            return None
-
-        _result = self.query_subtensor("Kappa", block, [netuid])
-        if not hasattr(_result, "value") or _result is None:
-            return None
-        return U16_NORMALIZED_FLOAT(_result.value)
+        call = self._get_hyperparameter(param_name="Kappa", netuid=netuid, block=block)
+        return None if call is None else U16_NORMALIZED_FLOAT(int(call))
 
     def difficulty(self, netuid: int, block: Optional[int] = None) -> Optional[int]:
         """
@@ -2910,12 +2925,12 @@ class subtensor:
         computational effort required for validating transactions and participating in the network's consensus
         mechanism.
         """
-        if not self.subnet_exists(netuid, block):
+        call = self._get_hyperparameter(
+            param_name="Difficulty", netuid=netuid, block=block
+        )
+        if call is None:
             return None
-        _result = self.query_subtensor("Difficulty", block, [netuid])
-        if not hasattr(_result, "value") or _result is None:
-            return None
-        return _result.value
+        return int(call)
 
     def recycle(self, netuid: int, block: Optional[int] = None) -> Optional["Balance"]:
         """
@@ -2932,12 +2947,8 @@ class subtensor:
         Understanding the 'Burn' rate is essential for analyzing the network registration usage, particularly
         how it is correlated with user activity and the overall cost of participation in a given subnet.
         """
-        if not self.subnet_exists(netuid, block):
-            return None
-        _result = self.query_subtensor("Burn", block, [netuid])
-        if not hasattr(_result, "value") or _result is None:
-            return None
-        return Balance.from_rao(_result.value)
+        call = self._get_hyperparameter(param_name="Burn", netuid=netuid, block=block)
+        return None if call is None else Balance.from_rao(int(call))
 
     # Returns network ImmunityPeriod hyper parameter.
     def immunity_period(
@@ -2958,12 +2969,10 @@ class subtensor:
         participants have a grace period to establish themselves and contribute to the network without facing
         immediate punitive actions.
         """
-        if not self.subnet_exists(netuid, block):
-            return None
-        _result = self.query_subtensor("ImmunityPeriod", block, [netuid])
-        if not hasattr(_result, "value") or _result is None:
-            return None
-        return _result.value
+        call = self._get_hyperparameter(
+            param_name="ImmunityPeriod", netuid=netuid, block=block
+        )
+        return None if call is None else int(call)
 
     def validator_batch_size(
         self, netuid: int, block: Optional[int] = None
@@ -2980,12 +2989,10 @@ class subtensor:
             Optional[int]: The value of the ValidatorBatchSize hyperparameter, or None if the subnetwork does not exist
                 or the parameter is not found.
         """
-        if not self.subnet_exists(netuid, block):
-            return None
-        _result = self.query_subtensor("ValidatorBatchSize", block, [netuid])
-        if not hasattr(_result, "value") or _result is None:
-            return None
-        return _result.value
+        call = self._get_hyperparameter(
+            param_name="ValidatorBatchSize", netuid=netuid, block=block
+        )
+        return None if call is None else int(call)
 
     def validator_prune_len(
         self, netuid: int, block: Optional[int] = None
@@ -3002,12 +3009,10 @@ class subtensor:
             Optional[int]: The value of the ValidatorPruneLen hyperparameter, or None if the subnetwork does not exist
             or the parameter is not found.
         """
-        if not self.subnet_exists(netuid, block):
-            return None
-        _result = self.query_subtensor("ValidatorPruneLen", block, [netuid])
-        if not hasattr(_result, "value") or _result is None:
-            return None
-        return _result.value
+        call = self._get_hyperparameter(
+            param_name="ValidatorPruneLen", netuid=netuid, block=block
+        )
+        return None if call is None else int(call)
 
     def validator_logits_divergence(
         self, netuid: int, block: Optional[int] = None
@@ -3024,189 +3029,320 @@ class subtensor:
             Optional[float]: The value of the ValidatorLogitsDivergence hyperparameter, or None if the subnetwork does
             not exist or the parameter is not found.
         """
-        if not self.subnet_exists(netuid, block):
-            return None
-        _result = self.query_subtensor("ValidatorLogitsDivergence", block, [netuid])
-        if not hasattr(_result, "value") or _result is None:
-            return None
-        return U16_NORMALIZED_FLOAT(_result.value)
+        call = self._get_hyperparameter(
+            param_name="ValidatorLogitsDivergence", netuid=netuid, block=block
+        )
+        return None if call is None else U16_NORMALIZED_FLOAT(int(call))
 
     def validator_sequence_length(
         self, netuid: int, block: Optional[int] = None
     ) -> Optional[int]:
-        """Returns network ValidatorSequenceLength hyper parameter"""
-        if not self.subnet_exists(netuid, block):
-            return None
-        _result = self.query_subtensor("ValidatorSequenceLength", block, [netuid])
-        if not hasattr(_result, "value") or _result is None:
-            return None
-        return _result.value
+        """
+        Returns network ValidatorSequenceLength hyperparameter.
+
+        Args:
+            netuid (int): The unique identifier of the subnetwork.
+            block (Optional[int], optional): The block number to retrieve the parameter from. If ``None``, the latest
+                block is used. Default is ``None``.
+
+        Returns:
+            Optional[int]: The value of the ValidatorSequenceLength hyperparameter, or ``None`` if the subnetwork does
+                not exist or the parameter is not found.
+        """
+        call = self._get_hyperparameter(
+            param_name="ValidatorSequenceLength", netuid=netuid, block=block
+        )
+        return None if call is None else int(call)
 
     def validator_epochs_per_reset(
         self, netuid: int, block: Optional[int] = None
     ) -> Optional[int]:
-        """Returns network ValidatorEpochsPerReset hyper parameter"""
-        if not self.subnet_exists(netuid, block):
-            return None
-        _result = self.query_subtensor("ValidatorEpochsPerReset", block, [netuid])
-        if not hasattr(_result, "value") or _result is None:
-            return None
-        return _result.value
+        """
+        Returns network ValidatorEpochsPerReset hyperparameter.
+
+        Args:
+            netuid (int): The unique identifier of the subnetwork.
+            block (Optional[int], optional): The block number to retrieve the parameter from. If ``None``, the latest
+                block is used. Default is ``None``.
+
+        Returns:
+            Optional[int]: The value of the ValidatorEpochsPerReset hyperparameter, or ``None`` if the subnetwork does
+                not exist or the parameter is not found.
+        """
+        call = self._get_hyperparameter(
+            param_name="ValidatorEpochsPerReset", netuid=netuid, block=block
+        )
+        return None if call is None else int(call)
 
     def validator_epoch_length(
         self, netuid: int, block: Optional[int] = None
     ) -> Optional[int]:
-        """Returns network ValidatorEpochLen hyper parameter"""
-        if not self.subnet_exists(netuid, block):
-            return None
-        _result = self.query_subtensor("ValidatorEpochLen", block, [netuid])
-        if not hasattr(_result, "value") or _result is None:
-            return None
+        """
+        Returns network ValidatorEpochLen hyperparameter.
 
-        return _result.value
+        Args:
+            netuid (int): The unique identifier of the subnetwork.
+            block (Optional[int], optional): The block number to retrieve the parameter from. If ``None``, the latest
+                block is used. Default is ``None``.
+
+        Returns:
+            Optional[int]: The value of the ValidatorEpochLen hyperparameter, or ``None`` if the subnetwork does not
+                exist or the parameter is not found.
+        """
+        call = self._get_hyperparameter(
+            param_name="ValidatorEpochLen", netuid=netuid, block=block
+        )
+        return None if call is None else int(call)
 
     def validator_exclude_quantile(
         self, netuid: int, block: Optional[int] = None
     ) -> Optional[float]:
-        """Returns network ValidatorEpochLen hyper parameter"""
-        if not self.subnet_exists(netuid, block):
-            return None
-        _result = self.query_subtensor("ValidatorExcludeQuantile", block, [netuid])
-        if not hasattr(_result, "value") or _result is None:
-            return None
-        return U16_NORMALIZED_FLOAT(_result.value)
+        """
+        Returns network ValidatorExcludeQuantile hyperparameter.
+
+        Args:
+            netuid (int): The unique identifier of the subnetwork.
+            block (Optional[int], optional): The block number to retrieve the parameter from. If ``None``, the latest
+                block is used. Default is ``None``.
+
+        Returns:
+            Optional[float]: The value of the ValidatorExcludeQuantile hyperparameter, or ``None`` if the subnetwork
+                does not exist or the parameter is not found.
+        """
+        call = self._get_hyperparameter(
+            param_name="ValidatorExcludeQuantile", netuid=netuid, block=block
+        )
+        return None if call is None else U16_NORMALIZED_FLOAT(int(call))
 
     def max_allowed_validators(
         self, netuid: int, block: Optional[int] = None
     ) -> Optional[int]:
-        """Returns network MaxAllowedValidators hyper parameter"""
-        if not self.subnet_exists(netuid, block):
-            return None
-        _result = self.query_subtensor("MaxAllowedValidators", block, [netuid])
-        if not hasattr(_result, "value") or _result is None:
-            return None
-        return _result.value
+        """
+        Returns network ValidatorExcludeQuantile hyperparameter.
+
+        Args:
+            netuid (int): The unique identifier of the subnetwork.
+            block (Optional[int], optional): The block number to retrieve the parameter from. If ``None``, the latest
+                block is used. Default is ``None``.
+
+        Returns:
+            Optional[float]: The value of the ValidatorExcludeQuantile hyperparameter, or ``None`` if the subnetwork
+                does not exist or the parameter is not found.
+        """
+        call = self._get_hyperparameter(
+            param_name="MaxAllowedValidators", netuid=netuid, block=block
+        )
+        return None if call is None else int(call)
 
     def min_allowed_weights(
         self, netuid: int, block: Optional[int] = None
     ) -> Optional[int]:
-        """Returns network MinAllowedWeights hyper parameter"""
-        if not self.subnet_exists(netuid, block):
-            return None
-        _result = self.query_subtensor("MinAllowedWeights", block, [netuid])
-        if not hasattr(_result, "value") or _result is None:
-            return None
-        return _result.value
+        """
+        Returns network MinAllowedWeights hyperparameter.
+
+        Args:
+            netuid (int): The unique identifier of the subnetwork.
+            block (Optional[int], optional): The block number to retrieve the parameter from. If ``None``, the latest
+                block is used. Default is ``None``.
+
+        Returns:
+            Optional[int]: The value of the MinAllowedWeights hyperparameter, or ``None`` if the subnetwork does not
+                exist or the parameter is not found.
+        """
+        call = self._get_hyperparameter(
+            param_name="MinAllowedWeights", block=block, netuid=netuid
+        )
+        return None if call is None else int(call)
 
     def max_weight_limit(
         self, netuid: int, block: Optional[int] = None
     ) -> Optional[float]:
-        """Returns network MaxWeightsLimit hyper parameter"""
-        if not self.subnet_exists(netuid, block):
-            return None
-        _result = self.query_subtensor("MaxWeightsLimit", block, [netuid])
-        if not hasattr(_result, "value") or _result is None:
-            return None
-        return U16_NORMALIZED_FLOAT(_result.value)
+        """
+        Returns network MaxWeightsLimit hyperparameter.
+
+        Args:
+            netuid (int): The unique identifier of the subnetwork.
+            block (Optional[int], optional): The block number to retrieve the parameter from. If ``None``, the latest
+                block is used. Default is ``None``.
+
+        Returns:
+            Optional[float]: The value of the MaxWeightsLimit hyperparameter, or ``None`` if the subnetwork does not
+                exist or the parameter is not found.
+        """
+        call = self._get_hyperparameter(
+            param_name="MaxWeightsLimit", block=block, netuid=netuid
+        )
+        return None if call is None else U16_NORMALIZED_FLOAT(int(call))
 
     def adjustment_alpha(
         self, netuid: int, block: Optional[int] = None
     ) -> Optional[float]:
-        """Returns network AdjustmentAlpha hyper parameter"""
-        if not self.subnet_exists(netuid, block):
-            return None
-        _result = self.query_subtensor("AdjustmentAlpha", block, [netuid])
-        if not hasattr(_result, "value") or _result is None:
-            return None
-        return U64_NORMALIZED_FLOAT(_result.value)
+        """
+        Returns network AdjustmentAlpha hyperparameter.
+
+        Args:
+            netuid (int): The unique identifier of the subnetwork.
+            block (Optional[int], optional): The block number to retrieve the parameter from. If ``None``, the latest
+                block is used. Default is ``None``.
+
+        Returns:
+            Optional[float]: The value of the AdjustmentAlpha hyperparameter, or ``None`` if the subnetwork does not
+                exist or the parameter is not found.
+        """
+        call = self._get_hyperparameter(
+            param_name="AdjustmentAlpha", block=block, netuid=netuid
+        )
+        return None if call is None else U64_NORMALIZED_FLOAT(int(call))
 
     def bonds_moving_avg(
         self, netuid: int, block: Optional[int] = None
     ) -> Optional[float]:
-        """Returns network BondsMovingAverage hyper parameter"""
-        if not self.subnet_exists(netuid, block):
-            return None
-        _result = self.query_subtensor("BondsMovingAverage", block, [netuid])
-        if not hasattr(_result, "value") or _result is None:
-            return None
-        return U64_NORMALIZED_FLOAT(_result.value)
+        """
+        Returns network BondsMovingAverage hyperparameter.
+
+        Args:
+            netuid (int): The unique identifier of the subnetwork.
+            block (Optional[int], optional): The block number to retrieve the parameter from. If ``None``, the latest
+                block is used. Default is ``None``.
+
+        Returns:
+            Optional[float]: The value of the BondsMovingAverage hyperparameter, or ``None`` if the subnetwork does not
+                exist or the parameter is not found.
+        """
+        call = self._get_hyperparameter(
+            param_name="BondsMovingAverage", netuid=netuid, block=block
+        )
+        return None if call is None else U64_NORMALIZED_FLOAT(int(call))
 
     def scaling_law_power(
         self, netuid: int, block: Optional[int] = None
     ) -> Optional[float]:
         """Returns network ScalingLawPower hyper parameter"""
-        if not self.subnet_exists(netuid, block):
-            return None
-        _result = self.query_subtensor("ScalingLawPower", block, [netuid])
-        if not hasattr(_result, "value") or _result is None:
-            return None
-        return _result.value / 100.0
+        call = self._get_hyperparameter(
+            param_name="ScalingLawPower", netuid=netuid, block=block
+        )
+        return None if call is None else int(call) / 100.0
 
     def synergy_scaling_law_power(
         self, netuid: int, block: Optional[int] = None
     ) -> Optional[float]:
-        """Returns network SynergyScalingLawPower hyper parameter"""
-        if not self.subnet_exists(netuid, block):
-            return None
-        _result = self.query_subtensor("SynergyScalingLawPower", block, [netuid])
-        if not hasattr(_result, "value") or _result is None:
-            return None
-        return _result.value / 100.0
+        """
+        Returns network ScalingLawPower hyperparameter.
+
+        Args:
+            netuid (int): The unique identifier of the subnetwork.
+            block (Optional[int], optional): The block number to retrieve the parameter from. If ``None``, the latest
+                block is used. Default is ``None``.
+
+        Returns:
+            Optional[float]: The value of the ScalingLawPower hyperparameter, or ``None`` if the subnetwork does not
+                exist or the parameter is not found.
+        """
+        call = self._get_hyperparameter(
+            param_name="SynergyScalingLawPower", netuid=netuid, block=block
+        )
+        return None if call is None else int(call) / 100.0
 
     def subnetwork_n(self, netuid: int, block: Optional[int] = None) -> Optional[int]:
-        """Returns network SubnetworkN hyper parameter"""
-        if not self.subnet_exists(netuid, block):
-            return None
-        _result = self.query_subtensor("SubnetworkN", block, [netuid])
-        if not hasattr(_result, "value") or _result is None:
-            return None
-        return _result.value
+        """
+        Returns network SubnetworkN hyperparameter.
+
+        Args:
+            netuid (int): The unique identifier of the subnetwork.
+            block (Optional[int], optional): The block number to retrieve the parameter from. If ``None``, the latest
+                block is used. Default is ``None``.
+
+        Returns:
+            Optional[int]: The value of the SubnetworkN hyperparameter, or ``None`` if the subnetwork does not
+                exist or the parameter is not found.
+        """
+        call = self._get_hyperparameter(
+            param_name="SubnetworkN", netuid=netuid, block=block
+        )
+        return None if call is None else int(call)
 
     def max_n(self, netuid: int, block: Optional[int] = None) -> Optional[int]:
-        """Returns network MaxAllowedUids hyper parameter"""
-        if not self.subnet_exists(netuid, block):
-            return None
-        _result = self.query_subtensor("MaxAllowedUids", block, [netuid])
-        if not hasattr(_result, "value") or _result is None:
-            return None
-        return _result.value
+        """
+        Returns network MaxAllowedUids hyperparameter.
+
+        Args:
+            netuid (int): The unique identifier of the subnetwork.
+            block (Optional[int], optional): The block number to retrieve the parameter from. If ``None``, the latest
+                block is used. Default is ``None``.
+
+        Returns:
+            Optional[int]: The value of the MaxAllowedUids hyperparameter, or ``None`` if the subnetwork does not
+                exist or the parameter is not found.
+        """
+        call = self._get_hyperparameter(
+            param_name="MaxAllowedUids", netuid=netuid, block=block
+        )
+        return None if call is None else int(call)
 
     def blocks_since_epoch(
         self, netuid: int, block: Optional[int] = None
     ) -> Optional[int]:
-        """Returns network BlocksSinceLastStep hyper parameter"""
-        if not self.subnet_exists(netuid, block):
-            return None
-        _result = self.query_subtensor("BlocksSinceEpoch", block, [netuid])
-        if not hasattr(_result, "value") or _result is None:
-            return None
-        return _result.value
+        """
+        Returns network BlocksSinceEpoch hyperparameter.
+
+        Args:
+            netuid (int): The unique identifier of the subnetwork.
+            block (Optional[int], optional): The block number to retrieve the parameter from. If ``None``, the latest
+                block is used. Default is ``None``.
+
+        Returns:
+            Optional[int]: The value of the BlocksSinceEpoch hyperparameter, or ``None`` if the subnetwork does not
+                exist or the parameter is not found.
+        """
+        call = self._get_hyperparameter(
+            param_name="BlocksSinceEpoch", netuid=netuid, block=block
+        )
+        return None if call is None else int(call)
 
     def blocks_since_last_update(self, netuid: int, uid: int) -> Optional[int]:
-        if not self.subnet_exists(netuid):
-            return None
-        _result = self.query_subtensor("LastUpdate", None, [netuid])
-        if not hasattr(_result, "value") or _result is None:
-            return None
+        """
+        Returns the number of blocks since the last update for a specific UID in the subnetwork.
 
-        return self.get_current_block() - _result.value[uid]
+        Args:
+            netuid (int): The unique identifier of the subnetwork.
+            uid (int): The unique identifier of the neuron.
+
+        Returns:
+            Optional[int]: The number of blocks since the last update, or ``None`` if the subnetwork or UID does not
+                exist.
+        """
+        call = self._get_hyperparameter(param_name="LastUpdate", netuid=netuid)
+        return None if call is None else self.get_current_block() - int(call[uid])
 
     def weights_rate_limit(self, netuid: int) -> Optional[int]:
-        if not self.subnet_exists(netuid):
-            return None
-        _result = self.query_subtensor("WeightsSetRateLimit", None, [netuid])
-        if not hasattr(_result, "value") or _result is None:
-            return None
-        return _result.value
+        """
+        Returns network WeightsSetRateLimit hyperparameter.
+
+        Args:
+            netuid (int): The unique identifier of the subnetwork.
+
+        Returns:
+            Optional[int]: The value of the WeightsSetRateLimit hyperparameter, or ``None`` if the subnetwork does not
+                exist or the parameter is not found.
+        """
+        call = self._get_hyperparameter(param_name="WeightsSetRateLimit", netuid=netuid)
+        return None if call is None else int(call)
 
     def tempo(self, netuid: int, block: Optional[int] = None) -> Optional[int]:
-        """Returns network Tempo hyper parameter"""
-        if not self.subnet_exists(netuid, block):
-            return None
-        _result = self.query_subtensor("Tempo", block, [netuid])
-        if not hasattr(_result, "value") or _result is None:
-            return None
-        return _result.value
+        """
+        Returns network Tempo hyperparameter.
+
+        Args:
+            netuid (int): The unique identifier of the subnetwork.
+            block (Optional[int], optional): The block number to retrieve the parameter from. If ``None``, the latest
+                block is used. Default is ``None``.
+
+        Returns:
+            Optional[int]: The value of the Tempo hyperparameter, or ``None`` if the subnetwork does not
+                exist or the parameter is not found.
+        """
+        call = self._get_hyperparameter(param_name="Tempo", netuid=netuid, block=block)
+        return None if call is None else int(call)
 
     #####################
     # Account functions #
