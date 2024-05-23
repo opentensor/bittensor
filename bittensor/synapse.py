@@ -20,7 +20,6 @@
 import base64
 import json
 import sys
-import typing
 import warnings
 
 from pydantic import (
@@ -31,7 +30,7 @@ from pydantic import (
     model_validator,
 )
 import bittensor
-from typing import Optional, Any, Dict
+from typing import Optional, Any, Dict, ClassVar, Tuple
 
 
 def get_size(obj, seen=None) -> int:
@@ -80,7 +79,7 @@ def cast_int(raw: str) -> int:
         int or None: The converted integer, or ``None`` if the input was ``None``.
 
     """
-    return int(raw) if raw != None else raw  # type: ignore
+    return int(raw) if raw is not None else raw  # type: ignore
 
 
 def cast_float(raw: str) -> float:
@@ -96,7 +95,7 @@ def cast_float(raw: str) -> float:
         float or None: The converted float, or ``None`` if the input was ``None``.
 
     """
-    return float(raw) if raw != None else raw  # type: ignore
+    return float(raw) if raw is not None else raw  # type: ignore
 
 
 class TerminalInfo(BaseModel):
@@ -482,7 +481,7 @@ class Synapse(BaseModel):
         repr=False,
     )
 
-    required_hash_fields: typing.ClassVar[typing.Tuple[str, ...]] = ()
+    required_hash_fields: ClassVar[Tuple[str, ...]] = ()
 
     _extract_total_size = field_validator("total_size", mode="before")(cast_int)
 
@@ -676,7 +675,7 @@ class Synapse(BaseModel):
 
         Process:
 
-        1. Iterates over each required field as specified in ``required_fields_hash``.
+        1. Iterates over each required field as specified in ``required_hash_fields``.
         2. Concatenates the string representation of these fields.
         3. Applies SHA3-256 hashing to the concatenated string to produce a unique fingerprint of the data.
 
