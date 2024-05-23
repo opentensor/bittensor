@@ -25,7 +25,13 @@ import pytest
 
 # Application
 import bittensor
-from bittensor.subtensor import subtensor as Subtensor, _logger, Balance
+from bittensor.subtensor import (
+    subtensor as Subtensor,
+    _logger,
+    Balance,
+    U16_NORMALIZED_FLOAT,
+    U64_NORMALIZED_FLOAT,
+)
 from bittensor import subtensor_module
 
 
@@ -402,6 +408,10 @@ def test_hyper_parameter_success_calls(
     # Prep
     subtensor._get_hyperparameter = mocker.MagicMock(return_value=value)
 
+    spy_u16_normalized_float = mocker.spy(subtensor_module, "U16_NORMALIZED_FLOAT")
+    spy_u64_normalized_float = mocker.spy(subtensor_module, "U64_NORMALIZED_FLOAT")
+    spy_balance_from_rao = mocker.spy(Balance, "from_rao")
+
     # Call
     subtensor_method = getattr(subtensor, method)
     result = subtensor_method(netuid=7, block=707)
@@ -412,6 +422,21 @@ def test_hyper_parameter_success_calls(
     )
     # if we change the methods logic in the future we have to be make sure tha returned type is correct
     assert isinstance(result, expected_result_type)
+
+    # Special cases
+    if method in [
+        "kappa",
+        "validator_logits_divergence",
+        "validator_exclude_quantile",
+        "max_weight_limit",
+    ]:
+        spy_u16_normalized_float.assert_called_once()
+
+    if method in ["adjustment_alpha", "bonds_moving_avg"]:
+        spy_u64_normalized_float.assert_called_once()
+
+    if method in ["recycle"]:
+        spy_balance_from_rao.assert_called_once()
 
 
 def test_blocks_since_last_update_success_calls(subtensor, mocker):
@@ -427,6 +452,7 @@ def test_blocks_since_last_update_success_calls(subtensor, mocker):
     result = subtensor.blocks_since_last_update(netuid=7, uid=uid)
 
     # Assertions
+    subtensor.get_current_block.assert_called_once()
     subtensor._get_hyperparameter.assert_called_once_with(
         param_name="LastUpdate", netuid=7
     )
