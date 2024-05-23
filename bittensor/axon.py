@@ -942,8 +942,10 @@ def log_and_handle_error(
 ):
     if isinstance(exception, SynapseException):
         synapse = exception.synapse or synapse
-    # Display the traceback for user clarity.
-    bittensor.logging.trace(f"Forward exception: {traceback.format_exc()}")
+
+        bittensor.logging.trace(f"Forward handled exception: {exception}")
+    else:
+        bittensor.logging.trace(f"Forward exception: {traceback.format_exc()}")
 
     if synapse.axon is None:
         synapse.axon = bittensor.TerminalInfo()
