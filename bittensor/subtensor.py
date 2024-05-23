@@ -618,7 +618,6 @@ class subtensor:
     ) -> bool:
         """
         Set delegate hotkey take
-
         Args:
             wallet (bittensor.wallet): The wallet containing the hotkey to be nominated.
             delegate_ss58 (str, optional): Hotkey

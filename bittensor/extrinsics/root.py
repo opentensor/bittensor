@@ -131,6 +131,7 @@ def set_root_weights_extrinsic(
         success (bool):
             Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
+
     # First convert types.
     if isinstance(netuids, list):
         netuids = (
