@@ -16,11 +16,9 @@
 # DEALINGS IN THE SOFTWARE.
 import json
 import base64
-import typing
-from typing import Optional
-
 import pytest
 import bittensor
+from typing import Optional, ClassVar
 
 
 def test_parse_headers_to_inputs():
@@ -239,7 +237,7 @@ class HashedSynapse(bittensor.Synapse):
     b: int
     c: Optional[int] = None
     d: Optional[list[str]] = None
-    required_hash_fields: typing.ClassVar[tuple[str, ...]] = ("a", "b", "d")
+    required_hash_fields: ClassVar[tuple[str, ...]] = ("a", "b", "d")
 
 
 @pytest.mark.parametrize("synapse_cls", [LegacyHashedSynapse, HashedSynapse])
