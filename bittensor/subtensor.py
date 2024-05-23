@@ -48,7 +48,7 @@ from .chain_data import (
     SubstakeElements,
     DynamicPool,
     from_scale_encoding_using_type_string,
-    custom_rpc_type_registry,    
+    custom_rpc_type_registry,
 )
 from .errors import *
 from .extrinsics.network import (
@@ -249,7 +249,7 @@ class subtensor:
             elif network == "dtao":
                 return network, bittensor.__dtao_entrypoint__
             else:
-                raise ValueError(f'Network {network} unknown.')
+                raise ValueError(f"Network {network} unknown.")
         else:
             if (
                 network == bittensor.__finney_entrypoint__
@@ -3345,13 +3345,17 @@ class subtensor:
         self, ss58_address: str, block: Optional[int] = None
     ) -> Optional["Balance"]:
         """Returns the total stake held on a hotkey including delegative"""
-        return self.get_total_stake_for_key(ss58_address, "delegateInfo_getTotalStakeForColdkey", block)
+        return self.get_total_stake_for_key(
+            ss58_address, "delegateInfo_getTotalStakeForColdkey", block
+        )
 
     def get_total_stake_for_coldkey(
         self, ss58_address: str, block: Optional[int] = None
     ) -> Optional["Balance"]:
         """Returns the total stake held on a coldkey for all its hotkeys"""
-        return self.get_total_stake_for_key(ss58_address, "delegateInfo_getTotalStakeForHotkey", block)
+        return self.get_total_stake_for_key(
+            ss58_address, "delegateInfo_getTotalStakeForHotkey", block
+        )
 
     def get_stake_for_coldkey_and_hotkey(
         self, hotkey_ss58: str, coldkey_ss58: str, block: Optional[int] = None

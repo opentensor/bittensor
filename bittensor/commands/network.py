@@ -274,7 +274,9 @@ class SubnetListCommand:
             total_emission += subnet.emission_value
             tao_locked = bittensor.Balance(0)
             if is_dtao:
-                tao_locked = bittensor.Balance(dynamic_info[subnet.netuid]["tao_reserve"])
+                tao_locked = bittensor.Balance(
+                    dynamic_info[subnet.netuid]["tao_reserve"]
+                )
             else:
                 tao_locked = subtensor.get_total_subnet_stake(subnet.netuid)
             total_tao_locked += tao_locked
@@ -296,7 +298,8 @@ class SubnetListCommand:
                                 )
                             )
                         )
-                        if is_dtao else "-"
+                        if is_dtao
+                        else "-"
                     ),
                     str(
                         bittensor.Balance.from_rao(
