@@ -44,6 +44,24 @@
 * @opendansor made their first contribution in https://github.com/opentensor/bittensor/pull/1895
 
 **Full Changelog**: https://github.com/opentensor/bittensor/compare/v6.12.0...v7.0.0
+## 6.12.2 / 2024-05-20
+
+## What's Changed
+* Add setting delegate take
+* fix: deprecated transfer method usage
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v6.12.1...54eee604c00ac4f04a31d5d7bc663124731a34d8
+
+
+## 6.12.1 / 2024-05-17
+
+## What's Changed
+* Hotfix if the subnet UID is not in the Subnets
+
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v6.12.0...fd2442db8bb8aad55ced2ac3b748b04ebdc73292
+
+
 
 ## 6.12.0 / 2024-04-29
 
@@ -135,8 +153,8 @@
 * Expands type checking to subtensor by @gus-opentensor in https://github.com/opentensor/bittensor/pull/1731
 * Feature: Synapse passing type check by @gus-opentensor in https://github.com/opentensor/bittensor/pull/1725
 * bump req for security vulnerability in crpytography by @ifrit98 in https://github.com/opentensor/bittensor/pull/1718
-* Fix: proper association with wallet dir and coldkey addr #1739 by @gus-opentensor & @sepehr-opentensor 
-* Fixed event lookup on new network added #1741 by @shibshib 
+* Fix: proper association with wallet dir and coldkey addr #1739 by @gus-opentensor & @sepehr-opentensor
+* Fixed event lookup on new network added #1741 by @shibshib
 
 **Full Changelog**: https://github.com/opentensor/bittensor/compare/v6.8.2...v6.9.0
 
@@ -168,11 +186,11 @@
 * logging off switch by @ifrit98 in https://github.com/opentensor/bittensor/pull/1704
 * Extrinsic update by @ifrit98 in https://github.com/opentensor/bittensor/pull/1703
 * Bittensor shared request layer by @ifrit98 in https://github.com/opentensor/bittensor/pull/1698
-* Add no_prompt argument to help printout in https://github.com/opentensor/bittensor/pull/1707 
-* Adds mypi typechecking to circleci by @gus-opentensor in https://github.com/opentensor/bittensor/pull/1705 
+* Add no_prompt argument to help printout in https://github.com/opentensor/bittensor/pull/1707
+* Adds mypi typechecking to circleci by @gus-opentensor in https://github.com/opentensor/bittensor/pull/1705
 * Remove set weights ttl now that we have a better extrinsic method by @ifrit98
-* Bug fix in overview command for dereg stake with outdated `stake_info` object fields by @ifrit98 in https://github.com/opentensor/bittensor/pull/1712 
-* Moves mock wallet creation to temp dir by @gus-opentensor in https://github.com/opentensor/bittensor/pull/1711 
+* Bug fix in overview command for dereg stake with outdated `stake_info` object fields by @ifrit98 in https://github.com/opentensor/bittensor/pull/1712
+* Moves mock wallet creation to temp dir by @gus-opentensor in https://github.com/opentensor/bittensor/pull/1711
 
 
 **Full Changelog**: https://github.com/opentensor/bittensor/compare/v6.7.2...v6.8.0
@@ -735,7 +753,7 @@
   - allow set synapse All using flag
   - add test
   - use dot get
-  
+
 - [Feature] Mark registration threads as daemons (https://github.com/opentensor/bittensor/pull/998)
   - make solver processes daemons
 
@@ -785,9 +803,9 @@
 ## 3.4.0 / 2022-10-13
 
 ## What's Changed
-* Parameters update by @Eugene-hu  #936 
-* Bittensor Generate by @unconst  #941 
-* Prometheus by @unconst  #928 
+* Parameters update by @Eugene-hu  #936
+* Bittensor Generate by @unconst  #941
+* Prometheus by @unconst  #928
 * [Tooling][Release] Adding release script by @eduardogr in https://github.com/opentensor/bittensor/pull/948
 
 
@@ -846,7 +864,7 @@
 ## 3.3.0 / 2022-08-16
 
 ### CUDA registration
-This release adds the ability to complete the registration using a CUDA-capable device.   
+This release adds the ability to complete the registration using a CUDA-capable device.
 See https://github.com/opentensor/cubit/releases/tag/v1.0.5 for the required `cubit` v1.0.5 release
 
 Also a few bug fixes for the CLI
@@ -879,5 +897,5 @@ This release refactors the registration code for CPU registration to improve sol
 
 ### Synapse update
 
-## 
+##
 
