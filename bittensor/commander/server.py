@@ -23,14 +23,18 @@ from fastapi import FastAPI, HTTPException, Depends
 from fastapi.responses import JSONResponse
 
 import bittensor
-from bittensor.commands import network
-from bittensor.commands import metagraph
-from bittensor.commands import register
+from bittensor.commands import (
+    network,
+    metagraph,
+    register,
+    overview,
+    transfer,
+    inspect,
+    wallets,
+    identity,
+)
 from bittensor.commands import list as list_commands
-from bittensor.commands import overview
-from bittensor.commands import transfer
-from bittensor.commands import inspect
-from bittensor.commands import wallets
+from bittensor.commands import root as root_commands
 from bittensor.commander import data
 
 
@@ -202,6 +206,42 @@ async def wallet_transfer(dest: str, amount: float):
     )
 
 
+@app.get("/wallet/identity/get", dependencies=[Depends(check_config)])
+async def wallet_identity_get(key: str):
+    return await run_fn(identity.GetIdentityCommand, params={"key": key})
+
+
+@app.get("/wallet/identity/set", dependencies=[Depends(check_config)])
+async def wallet_identity_set(
+    operating_hotkey_identity: bool,
+    display: str = "",
+    legal: str = "",
+    web: str = "",
+    pgp_fingerprint: str = "",
+    riot: str = "",
+    email: str = "",
+    image: str = "",
+    twitter: str = "",
+    info: str = "",
+):
+    # TODO require coldkey unlocked
+    return await run_fn(
+        identity.SetIdentityCommand,
+        params={
+            "display": display,
+            "legal": legal,
+            "web": web,
+            "pgp_fingerprint": pgp_fingerprint,
+            "riot": riot,
+            "email": email,
+            "image": image,
+            "twitter": twitter,
+            "info": info,
+            "operating_hotkey_identity": operating_hotkey_identity,
+        },
+    )
+
+
 @app.get("/wallet/{sub_cmd}", dependencies=[Depends(check_config)])
 async def wallet(
     sub_cmd: str,
@@ -231,6 +271,20 @@ async def wallet(
 
 
 # Root
+
+
+@app.get("/root/{sub_cmd}", dependencies=[Depends(check_config)])
+async def root(sub_cmd: str):
+    routing_list = {
+        "list": root_commands.RootList,
+        "boost": 0,
+        "slash": 0,
+        "register": 0,
+        "proposals": 0,
+        "nominate": 0,
+    }
+    return await run_fn(routing_list[sub_cmd])
+
 
 # Sudo
 

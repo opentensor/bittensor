@@ -1,5 +1,6 @@
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
+import asyncio
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
@@ -16,6 +17,9 @@
 # DEALINGS IN THE SOFTWARE.
 
 import re
+from concurrent.futures import ProcessPoolExecutor
+from functools import partial
+from dataclasses import make_dataclass, asdict
 import numpy as np
 import typing
 import argparse
@@ -25,6 +29,7 @@ from typing import List, Optional, Dict
 from rich.prompt import Prompt
 from rich.table import Table
 from .utils import get_delegates_details, DelegatesDetails
+from bittensor.utils import rpc_request
 
 from . import defaults
 
@@ -135,6 +140,48 @@ class RootList:
             if "subtensor" in locals():
                 subtensor.close()
                 bittensor.logging.debug("closing subtensor connection")
+
+    @staticmethod
+    async def commander_run(
+        subtensor: "bittensor.subtensor", config, params: dict
+    ) -> dict[str, dict[str, typing.Union[str, float, bool]]]:
+        senate_members: list[str] = subtensor.get_senate_members()
+        root_neurons: typing.List[bittensor.NeuronInfoLite] = subtensor.neurons_lite(
+            netuid=0
+        )
+        delegate_info: Optional[Dict[str, DelegatesDetails]] = get_delegates_details(
+            bittensor.__delegates_details_url__
+        )
+
+        # This would be massively sped up by implementation of asyncio in the substrate interface
+
+        NeuronInfo = make_dataclass(
+            "NeuronInfo",
+            [
+                ("uid", str),
+                ("name", str),
+                ("address", str),
+                ("stake", float),
+                ("senator", bool),
+            ],
+        )
+
+        total_stakes = await rpc_request.query_subtensor(
+            subtensor, [n.hotkey for n in root_neurons], "TotalHotkeyStake"
+        )
+        neuron_data = {
+            str(n.uid): asdict(
+                NeuronInfo(
+                    str(n.uid),
+                    (delegate_info[n.hotkey].name if n.hotkey in delegate_info else ""),
+                    n.hotkey,
+                    bittensor.Balance.from_rao(total_stakes[n.hotkey].value).to_dict(),
+                    bool(n.hotkey in senate_members),
+                )
+            )
+            for n in root_neurons
+        }
+        return neuron_data
 
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
