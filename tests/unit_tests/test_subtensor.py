@@ -26,7 +26,7 @@ import pytest
 # Application
 import bittensor
 from bittensor.subtensor import (
-    subtensor as Subtensor,
+    Subtensor,
     _logger,
     Balance,
     U16_NORMALIZED_FLOAT,

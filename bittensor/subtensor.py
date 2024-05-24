@@ -123,7 +123,7 @@ class ParamWithTypes(TypedDict):
     type: str  # ScaleType string of the parameter.
 
 
-class subtensor:
+class Subtensor:
     """
     The Subtensor class in Bittensor serves as a crucial interface for interacting with the Bittensor blockchain,
     facilitating a range of operations essential for the decentralized machine learning network.
@@ -223,11 +223,11 @@ class subtensor:
             network = None
 
         if config is None:
-            config = subtensor.config()
+            config = Subtensor.config()
         self.config = copy.deepcopy(config)  # type: ignore
 
         # Setup config.subtensor.network and config.subtensor.chain_endpoint
-        self.chain_endpoint, self.network = subtensor.setup_config(network, config)  # type: ignore
+        self.chain_endpoint, self.network = Subtensor.setup_config(network, config)  # type: ignore
 
         if (
             self.network == "finney"
@@ -304,7 +304,7 @@ class subtensor:
                 `subtensor.add_args` method.
         """
         parser = argparse.ArgumentParser()
-        subtensor.add_args(parser)
+        Subtensor.add_args(parser)
         return bittensor.config(parser, args=[])
 
     @classmethod
@@ -439,13 +439,13 @@ class subtensor:
             (
                 evaluated_network,
                 evaluated_endpoint,
-            ) = subtensor.determine_chain_endpoint_and_network(network)
+            ) = Subtensor.determine_chain_endpoint_and_network(network)
         else:
             if config.get("__is_set", {}).get("subtensor.chain_endpoint"):
                 (
                     evaluated_network,
                     evaluated_endpoint,
-                ) = subtensor.determine_chain_endpoint_and_network(
+                ) = Subtensor.determine_chain_endpoint_and_network(
                     config.subtensor.chain_endpoint
                 )
 
@@ -453,7 +453,7 @@ class subtensor:
                 (
                     evaluated_network,
                     evaluated_endpoint,
-                ) = subtensor.determine_chain_endpoint_and_network(
+                ) = Subtensor.determine_chain_endpoint_and_network(
                     config.subtensor.network
                 )
 
@@ -461,7 +461,7 @@ class subtensor:
                 (
                     evaluated_network,
                     evaluated_endpoint,
-                ) = subtensor.determine_chain_endpoint_and_network(
+                ) = Subtensor.determine_chain_endpoint_and_network(
                     config.subtensor.chain_endpoint
                 )
 
@@ -469,7 +469,7 @@ class subtensor:
                 (
                     evaluated_network,
                     evaluated_endpoint,
-                ) = subtensor.determine_chain_endpoint_and_network(
+                ) = Subtensor.determine_chain_endpoint_and_network(
                     config.subtensor.network
                 )
 
@@ -477,7 +477,7 @@ class subtensor:
                 (
                     evaluated_network,
                     evaluated_endpoint,
-                ) = subtensor.determine_chain_endpoint_and_network(
+                ) = Subtensor.determine_chain_endpoint_and_network(
                     bittensor.defaults.subtensor.network
                 )
 
@@ -5216,3 +5216,7 @@ class subtensor:
             )
 
         return name, description
+
+
+# TODO: remove this after fully migrate `bittensor.subtensor` to `bittensor.Subtensor` in `bittensor/__init__.py`
+subtensor = Subtensor
