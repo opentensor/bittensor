@@ -119,18 +119,18 @@ def create_identity_dict(
     Creates a dictionary with structure for identity extrinsic. Must fit within 64 bits.
 
     Args:
-    display (str): String to be converted and stored under 'display'.
-    legal (str): String to be converted and stored under 'legal'.
-    web (str): String to be converted and stored under 'web'.
-    riot (str): String to be converted and stored under 'riot'.
-    email (str): String to be converted and stored under 'email'.
-    pgp_fingerprint (str): String to be converted and stored under 'pgp_fingerprint'.
-    image (str): String to be converted and stored under 'image'.
-    info (str): String to be converted and stored under 'info'.
-    twitter (str): String to be converted and stored under 'twitter'.
+        display (str): String to be converted and stored under 'display'.
+        legal (str): String to be converted and stored under 'legal'.
+        web (str): String to be converted and stored under 'web'.
+        riot (str): String to be converted and stored under 'riot'.
+        email (str): String to be converted and stored under 'email'.
+        pgp_fingerprint (str): String to be converted and stored under 'pgp_fingerprint'.
+        image (str): String to be converted and stored under 'image'.
+        info (str): String to be converted and stored under 'info'.
+        twitter (str): String to be converted and stored under 'twitter'.
 
     Returns:
-    dict: A dictionary with the specified structure and byte string conversions.
+        dict: A dictionary with the specified structure and byte string conversions.
 
     Raises:
     ValueError: If pgp_fingerprint is not exactly 20 bytes long when encoded.

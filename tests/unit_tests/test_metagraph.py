@@ -85,7 +85,7 @@ def test_set_metagraph_attributes(mock_environment):
             metagraph.consensus,
             np.array([neuron.consensus for neuron in neurons], dtype=np.float32),
         )
-        == True
+        is True
     )
     # Similarly for other attributes...
 
