@@ -3364,7 +3364,7 @@ class subtensor:
         _result = self.query_subtensor("TotalHotkeyStake", block, [ss58_address])
         return (
             None
-            if not getattr(_result, "value", None)
+            if getattr(_result, "value", None) is None
             else Balance.from_rao(_result.value)
         )
 
@@ -3386,7 +3386,7 @@ class subtensor:
         _result = self.query_subtensor("TotalColdkeyStake", block, [ss58_address])
         return (
             None
-            if not getattr(_result, "value", None)
+            if getattr(_result, "value", None) is None
             else Balance.from_rao(_result.value)
         )
 
@@ -3409,7 +3409,7 @@ class subtensor:
         _result = self.query_subtensor("Stake", block, [hotkey_ss58, coldkey_ss58])
         return (
             None
-            if not getattr(_result, "value", None)
+            if getattr(_result, "value", None) is None
             else Balance.from_rao(_result.value)
         )
 
@@ -3448,7 +3448,7 @@ class subtensor:
         _result = self.query_subtensor("Owner", block, [hotkey_ss58])
         return (
             False
-            if not getattr(_result, "value", None)
+            if getattr(_result, "value", None) is None
             else _result.value != "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM"
         )
 
@@ -3470,7 +3470,7 @@ class subtensor:
         _result = self.query_subtensor("Owner", block, [hotkey_ss58])
         return (
             None
-            if not getattr(_result, "value", None)
+            if getattr(_result, "value", None) is None
             or not self.does_hotkey_exist(hotkey_ss58, block)
             else _result.value
         )
@@ -3565,7 +3565,7 @@ class subtensor:
         _result = self.query_subtensor("TotalIssuance", block)
         return (
             None
-            if not getattr(_result, "value", None)
+            if getattr(_result, "value", None) is None
             else Balance.from_rao(_result.value)
         )
 
@@ -3588,7 +3588,7 @@ class subtensor:
         _result = self.query_subtensor("TotalStake", block)
         return (
             None
-            if not getattr(_result, "value", None)
+            if getattr(_result, "value", None) is None
             else Balance.from_rao(_result.value)
         )
 
@@ -3734,7 +3734,7 @@ class subtensor:
         _result = self.query_subtensor("EmissionValues", block, [netuid])
         return (
             None
-            if not getattr(_result, "value", None)
+            if getattr(_result, "value", None) is None
             else Balance.from_rao(_result.value)
         )
 
@@ -3944,7 +3944,7 @@ class subtensor:
         _result = self.query_subtensor("Delegates", block, [hotkey_ss58])
         return (
             None
-            if not getattr(_result, "value", None)
+            if getattr(_result, "value", None) is None
             else U16_NORMALIZED_FLOAT(_result.value)
         )
 
