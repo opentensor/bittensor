@@ -103,6 +103,7 @@ async def make_call(
 
 
 async def query_subtensor(subtensor, hotkeys: list[str], storage_function) -> dict:
+    # TODO make this more general
     block_hash = subtensor.substrate.get_chain_head()
     stuff = await asyncio.gather(
         *[
