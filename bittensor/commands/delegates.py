@@ -1172,9 +1172,7 @@ class SetTakeCommand:
             new_take = float(new_take_str)
 
         if new_take > 0.18:
-            bittensor.__console__.print(
-                "ERROR: Take value should be in the range of 0 to 18%"
-            )
+            bittensor.__console__.print("ERROR: Take value should not exceed 18%")
             return
 
         result: bool = subtensor.set_take(
