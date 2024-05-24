@@ -910,8 +910,9 @@ class subtensor:
         self,
         wallet: "bittensor.wallet",
         netuid: int,
-        uids: torch.Tensor,
-        weights: torch.Tensor,
+        uids: Union[NDArray[np.int64], list],
+        weights: Union[NDArray[np.float32], list],
+        version_key: int = bittensor.__version_as_int__,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
         prompt: bool = False,
@@ -920,16 +921,22 @@ class subtensor:
         """
         Commits a hash of the neuron's weights to the Bittensor blockchain using the provided wallet.
         This action serves as a commitment or snapshot of the neuron's current weight distribution.
+
         Args:
             wallet (bittensor.wallet): The wallet associated with the neuron committing the weights.
             netuid (int): The unique identifier of the subnet.
+            uids (np.ndarray): NumPy array of neuron UIDs for which weights are being committed.
+            weights (np.ndarray): NumPy array of weight values corresponding to each UID.
+            version_key (int, optional): Version key for compatibility with the network.
             wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
             wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
             prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
             max_retries (int, optional): The number of maximum attempts to commit weights. (Default: 5)
+
         Returns:
             Tuple[bool, str]: ``True`` if the weight commitment is successful, False otherwise. And `msg`, a string
             value describing the success or potential error.
+
         This function allows neurons to create a tamper-proof record of their weight distribution at a specific point in time,
         enhancing transparency and accountability within the Bittensor network.
         """
@@ -938,14 +945,22 @@ class subtensor:
         success = False
         message = "No attempt made. Perhaps it is too soon to commit weights!"
 
+        _logger.info(
+            "Committing weights with params: netuid={}, uids={}, weights={}, version_key={}".format(
+                netuid, uids, weights, version_key
+            )
+        )
+
         # Generate the hash of the weights
         commit_hash = weight_utils.generate_weight_hash(
             who=wallet.hotkey.ss58_address,
             netuid=netuid,
-            uids=uids.tolist(),
-            values=weights.tolist(),
-            version_key=0,
+            uids=uids,
+            values=weights,
+            version_key=version_key,
         )
+
+        _logger.info("Commit Hash: {}".format(commit_hash))
 
         while retries < max_retries:
             try:
@@ -978,16 +993,19 @@ class subtensor:
         """
         Internal method to send a transaction to the Bittensor blockchain, committing the hash of a neuron's weights.
         This method constructs and submits the transaction, handling retries and blockchain communication.
+
         Args:
             wallet (bittensor.wallet): The wallet associated with the neuron committing the weights.
             netuid (int): The unique identifier of the subnet.
             commit_hash (str): The hash of the neuron's weights to be committed.
             wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
             wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
+
         Returns:
             Tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
-        This method ensures that the weight commitment is securely recorded on the Bittensor blockchain, providing a verifiable
-        record of the neuron's weight distribution at a specific point in time.
+
+        This method ensures that the weight commitment is securely recorded on the Bittensor blockchain, providing a
+        verifiable record of the neuron's weight distribution at a specific point in time.
         """
 
         @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
@@ -1028,9 +1046,9 @@ class subtensor:
         self,
         wallet: "bittensor.wallet",
         netuid: int,
-        uids: torch.Tensor,
-        weights: torch.Tensor,
-        version_key: int,
+        uids: Union[NDArray[np.int64], list],
+        weights: Union[NDArray[np.float32], list],
+        version_key: int = bittensor.__version_as_int__,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
         prompt: bool = False,
@@ -1039,19 +1057,22 @@ class subtensor:
         """
         Reveals the weights for a specific subnet on the Bittensor blockchain using the provided wallet.
         This action serves as a revelation of the neuron's previously committed weight distribution.
+
         Args:
             wallet (bittensor.wallet): The wallet associated with the neuron revealing the weights.
             netuid (int): The unique identifier of the subnet.
-            uids (torch.Tensor): Tensor of neuron UIDs for which weights are being revealed.
-            weights (torch.Tensor): Tensor of weight values corresponding to each UID.
-            version_key (int): Version key for compatibility with the network.
+            uids (np.ndarray): NumPy array of neuron UIDs for which weights are being revealed.
+            weights (np.ndarray): NumPy array of weight values corresponding to each UID.
+            version_key (int, optional): Version key for compatibility with the network.
             wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
             wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
             prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
             max_retries (int, optional): The number of maximum attempts to reveal weights. (Default: 5)
+
         Returns:
             Tuple[bool, str]: ``True`` if the weight revelation is successful, False otherwise. And `msg`, a string
             value describing the success or potential error.
+
         This function allows neurons to reveal their previously committed weight distribution, ensuring transparency
         and accountability within the Bittensor network.
         """
@@ -1066,8 +1087,8 @@ class subtensor:
                     subtensor=self,
                     wallet=wallet,
                     netuid=netuid,
-                    uids=uids.tolist(),
-                    weights=weights.tolist(),
+                    uids=uids,
+                    weights=weights,
                     version_key=version_key,
                     wait_for_inclusion=wait_for_inclusion,
                     wait_for_finalization=wait_for_finalization,
@@ -1095,6 +1116,7 @@ class subtensor:
         """
         Internal method to send a transaction to the Bittensor blockchain, revealing the weights for a specific subnet.
         This method constructs and submits the transaction, handling retries and blockchain communication.
+
         Args:
             wallet (bittensor.wallet): The wallet associated with the neuron revealing the weights.
             netuid (int): The unique identifier of the subnet.
@@ -1103,13 +1125,15 @@ class subtensor:
             version_key (int): Version key for compatibility with the network.
             wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
             wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
+
         Returns:
             Tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
+
         This method ensures that the weight revelation is securely recorded on the Bittensor blockchain, providing transparency
         and accountability for the neuron's weight distribution.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=_logger)
+        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
         def make_substrate_call_with_retry():
             call = self.substrate.compose_call(
                 call_module="SubtensorModule",

@@ -1,9 +1,27 @@
+# The MIT License (MIT)
+# Copyright © 2021 Yuma Rao
+# Copyright © 2023 Opentensor Foundation
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
+# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+# the Software.
+
+# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
+
 import argparse
 import re
 
-import torch
+import numpy as np
 from rich.prompt import Prompt
-
+import bittensor.utils.weight_utils as weight_utils
 import bittensor
 from . import defaults
 
@@ -55,21 +73,22 @@ class CommitWeightCommand:
 
         # Parse from string
         netuid = cli.config.netuid
-        uids = torch.tensor(
+        uids = np.array(
             list(map(int, re.split(r"[ ,]+", cli.config.uids))),
-            dtype=torch.int64
+            dtype=np.int64
         )
-        weights = torch.tensor(
-            list(map(int, re.split(r"[ ,]+", cli.config.weights))),
-            dtype=torch.float32
+        weights = np.array(
+            list(map(float, re.split(r"[ ,]+", cli.config.weights))),
+            dtype=np.float32
         )
+        weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(uids=uids, weights=weights)
 
         # Run the commit weights operation
         success, message = subtensor.commit_weights(
             wallet=wallet,
             netuid=netuid,
-            uids=uids,
-            weights=weights,
+            uids=weight_uids,
+            weights=weight_vals,
             wait_for_inclusion=cli.config.wait_for_inclusion,
             wait_for_finalization=cli.config.wait_for_finalization,
             prompt=cli.config.prompt,
@@ -105,7 +124,7 @@ class CommitWeightCommand:
             "--prompt",
             dest="prompt",
             action="store_true",
-            default=True,
+            default=False,
         )
 
         bittensor.wallet.add_args(parser)
@@ -140,9 +159,7 @@ class RevealWeightCommand:
     def run(cli: "bittensor.cli"):
         r"""Reveal weights for a specific subnet."""
         try:
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(
-                config=cli.config, log_verbose=False
-            )
+            subtensor: "bittensor.subtensor" = bittensor.subtensor(config=cli.config, log_verbose=False)
             RevealWeightCommand._run(cli, subtensor)
         finally:
             if "subtensor" in locals():
@@ -166,22 +183,24 @@ class RevealWeightCommand:
 
         # Parse from string
         netuid = cli.config.netuid
-        uids = torch.tensor(
+        version = bittensor.__version_as_int__
+        uids = np.array(
             list(map(int, re.split(r"[ ,]+", cli.config.uids))),
-            dtype=torch.int64,
+            dtype=np.int64,
         )
-        weights = torch.tensor(
+        weights = np.array(
             list(map(float, re.split(r"[ ,]+", cli.config.weights))),
-            dtype=torch.float32,
+            dtype=np.float32,
         )
+        weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(uids=uids, weights=weights)
 
         # Run the reveal weights operation.
         success, message = subtensor.reveal_weights(
             wallet=wallet,
             netuid=netuid,
-            uids=uids,
-            weights=weights,
-            version_key=0,
+            uids=weight_uids,
+            weights=weight_vals,
+            version_key=version,
             wait_for_inclusion=cli.config.wait_for_inclusion,
             wait_for_finalization=cli.config.wait_for_finalization,
             prompt=cli.config.prompt,
@@ -216,7 +235,7 @@ class RevealWeightCommand:
             "--prompt",
             dest="prompt",
             action="store_true",
-            default=True,
+            default=False,
         )
 
         bittensor.wallet.add_args(parser)

@@ -95,9 +95,9 @@ ALIAS_TO_COMMAND = {
     "sudos": "sudo",
     "i": "info",
     "info": "info",
-    "weights": "weight",
-    "wt": "weight",
-    "weight": "weight",
+    "weights": "weights",
+    "wt": "weights",
+    "weight": "weights",
 }
 COMMANDS = {
     "subnets": {
@@ -171,9 +171,9 @@ COMMANDS = {
             "remove": UnStakeCommand,
         },
     },
-    "weight": {
-        "name": "weight",
-        "aliases": ["wt", "weights"],
+    "weights": {
+        "name": "weights",
+        "aliases": ["wt", "weight"],
         "help": "Commands for managing weight for subnets.",
         "commands": {
             "commit": CommitWeightCommand,
