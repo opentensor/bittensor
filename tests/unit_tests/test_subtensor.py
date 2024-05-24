@@ -29,7 +29,6 @@ from bittensor.subtensor import (
     Subtensor,
     _logger,
     Balance,
-    U16_NORMALIZED_FLOAT,
 )
 from bittensor import subtensor_module
 
@@ -419,7 +418,7 @@ def test_hyper_parameter_success_calls(
     subtensor._get_hyperparameter.assert_called_once_with(
         block=707, netuid=7, param_name=param_name
     )
-    # if we change the methods logic in the future we have to be make sure tha returned type is correct
+    # if we change the methods logic in the future we have to be make sure the returned type is correct
     assert isinstance(result, expected_result_type)
 
     # Special cases
@@ -456,7 +455,7 @@ def test_blocks_since_last_update_success_calls(subtensor, mocker):
         param_name="LastUpdate", netuid=7
     )
     assert result == 1
-    # if we change the methods logic in the future we have to be make sure tha returned type is correct
+    # if we change the methods logic in the future we have to be make sure the returned type is correct
     assert isinstance(result, int)
 
 
@@ -472,7 +471,7 @@ def test_weights_rate_limit_success_calls(subtensor, mocker):
     subtensor._get_hyperparameter.assert_called_once_with(
         param_name="WeightsSetRateLimit", netuid=7
     )
-    # if we change the methods logic in the future we have to be make sure tha returned type is correct
+    # if we change the methods logic in the future we have to be make sure the returned type is correct
     assert isinstance(result, int)
 
 
@@ -497,7 +496,7 @@ def test_get_total_stake_for_hotkey_success(subtensor, mocker):
         "TotalHotkeyStake", None, [fake_ss58_address]
     )
     spy_balance_from_rao.assert_called_once()
-    # if we change the methods logic in the future we have to be make sure tha returned type is correct
+    # if we change the methods logic in the future we have to be make sure the returned type is correct
     assert isinstance(result, Balance)
 
 
@@ -516,7 +515,7 @@ def test_get_total_stake_for_hotkey_not_result(subtensor, mocker):
         "TotalHotkeyStake", None, [fake_ss58_address]
     )
     spy_balance_from_rao.assert_not_called()
-    # if we change the methods logic in the future we have to be make sure tha returned type is correct
+    # if we change the methods logic in the future we have to be make sure the returned type is correct
     assert isinstance(result, type(None))
 
 
@@ -535,7 +534,7 @@ def test_get_total_stake_for_hotkey_not_value(subtensor, mocker):
         "TotalHotkeyStake", None, [fake_ss58_address]
     )
     spy_balance_from_rao.assert_not_called()
-    # if we change the methods logic in the future we have to be make sure tha returned type is correct
+    # if we change the methods logic in the future we have to be make sure the returned type is correct
     assert isinstance(subtensor.query_subtensor.return_value, object)
     assert not hasattr(result, "value")
 
@@ -556,7 +555,7 @@ def test_get_total_stake_for_coldkey_success(subtensor, mocker):
         "TotalColdkeyStake", None, [fake_ss58_address]
     )
     spy_balance_from_rao.assert_called_once()
-    # if we change the methods logic in the future we have to be make sure tha returned type is correct
+    # if we change the methods logic in the future we have to be make sure the returned type is correct
     assert isinstance(result, Balance)
 
 
@@ -575,7 +574,7 @@ def test_get_total_stake_for_coldkey_not_result(subtensor, mocker):
         "TotalColdkeyStake", None, [fake_ss58_address]
     )
     spy_balance_from_rao.assert_not_called()
-    # if we change the methods logic in the future we have to be make sure tha returned type is correct
+    # if we change the methods logic in the future we have to be make sure the returned type is correct
     assert isinstance(result, type(None))
 
 
@@ -594,7 +593,7 @@ def test_get_total_stake_for_coldkey_not_value(subtensor, mocker):
         "TotalColdkeyStake", None, [fake_ss58_address]
     )
     spy_balance_from_rao.assert_not_called()
-    # if we change the methods logic in the future we have to be make sure tha returned type is correct
+    # if we change the methods logic in the future we have to be make sure the returned type is correct
     assert isinstance(subtensor.query_subtensor.return_value, object)
     assert not hasattr(result, "value")
 
@@ -1212,7 +1211,9 @@ def test_serving_rate_limit_success(mocker, subtensor):
     # Asserts
     assert result is not None
     assert result == int(rate_limit_value)
-    # subtensor._get_hyperparameter.assert_called_once_with("ServingRateLimit", netuid=netuid, block=block)
+    subtensor._get_hyperparameter.assert_called_once_with(
+        param_name="ServingRateLimit", netuid=netuid, block=block
+    )
 
 
 def test_serving_rate_limit_no_data(mocker, subtensor):
@@ -2178,6 +2179,3 @@ def test_get_delegate_take_no_data(mocker, subtensor):
     subtensor.query_subtensor.assert_called_once_with("Delegates", block, [hotkey_ss58])
     spy_u16_normalized_float.assert_not_called()
     assert result is None
-
-
-# `get_delegate_by_hotkey` tests

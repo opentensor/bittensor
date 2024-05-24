@@ -3364,7 +3364,7 @@ class Subtensor:
         _result = self.query_subtensor("TotalHotkeyStake", block, [ss58_address])
         return (
             None
-            if _result is None or not hasattr(_result, "value")
+            if getattr(_result, "value", None) is None
             else Balance.from_rao(_result.value)
         )
 
@@ -3386,7 +3386,7 @@ class Subtensor:
         _result = self.query_subtensor("TotalColdkeyStake", block, [ss58_address])
         return (
             None
-            if _result is None or not hasattr(_result, "value")
+            if getattr(_result, "value", None) is None
             else Balance.from_rao(_result.value)
         )
 
@@ -3409,7 +3409,7 @@ class Subtensor:
         _result = self.query_subtensor("Stake", block, [hotkey_ss58, coldkey_ss58])
         return (
             None
-            if _result is None or not hasattr(_result, "value")
+            if getattr(_result, "value", None) is None
             else Balance.from_rao(_result.value)
         )
 
@@ -3448,7 +3448,7 @@ class Subtensor:
         _result = self.query_subtensor("Owner", block, [hotkey_ss58])
         return (
             False
-            if not _result or not hasattr(_result, "value")
+            if getattr(_result, "value", None) is None
             else _result.value != "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM"
         )
 
@@ -3470,8 +3470,7 @@ class Subtensor:
         _result = self.query_subtensor("Owner", block, [hotkey_ss58])
         return (
             None
-            if not _result
-            or not hasattr(_result, "value")
+            if getattr(_result, "value", None) is None
             or not self.does_hotkey_exist(hotkey_ss58, block)
             else _result.value
         )
@@ -3508,7 +3507,7 @@ class Subtensor:
             )
         return None
 
-    # TODO: check if someone still use this method. bittensor not.
+    # It is used in subtensor in neuron_info, and serving
     def get_prometheus_info(
         self, netuid: int, hotkey_ss58: str, block: Optional[int] = None
     ) -> Optional[PrometheusInfo]:
@@ -3566,7 +3565,7 @@ class Subtensor:
         _result = self.query_subtensor("TotalIssuance", block)
         return (
             None
-            if not _result or not hasattr(_result, "value")
+            if getattr(_result, "value", None) is None
             else Balance.from_rao(_result.value)
         )
 
@@ -3589,7 +3588,7 @@ class Subtensor:
         _result = self.query_subtensor("TotalStake", block)
         return (
             None
-            if _result is None or not hasattr(_result, "value")
+            if getattr(_result, "value", None) is None
             else Balance.from_rao(_result.value)
         )
 
@@ -3634,9 +3633,7 @@ class Subtensor:
         maintaining efficient and timely transaction processing.
         """
         _result = self.query_subtensor("TxRateLimit", block)
-        return (
-            None if _result is None or not hasattr(_result, "value") else _result.value
-        )
+        return getattr(_result, "value", None)
 
     ######################
     # Network Parameters #
@@ -3657,9 +3654,7 @@ class Subtensor:
         enabling a deeper understanding of the network's structure and composition.
         """
         _result = self.query_subtensor("NetworksAdded", block, [netuid])
-        return (
-            False if _result is None or not hasattr(_result, "value") else _result.value
-        )
+        return getattr(_result, "value", False)
 
     def get_all_subnet_netuids(self, block: Optional[int] = None) -> List[int]:
         """
@@ -3695,9 +3690,7 @@ class Subtensor:
         the extent of its decentralized infrastructure.
         """
         _result = self.query_subtensor("TotalNetworks", block)
-        return (
-            None if _result is None or not hasattr(_result, "value") else _result.value
-        )
+        return getattr(_result, "value", None)
 
     def get_subnet_modality(
         self, netuid: int, block: Optional[int] = None
@@ -3713,17 +3706,13 @@ class Subtensor:
             Optional[int]: The value of the NetworkModality hyperparameter, or ``None`` if the subnetwork does not exist or the parameter is not found.
         """
         _result = self.query_subtensor("NetworkModality", block, [netuid])
-        return (
-            None if _result is None or not hasattr(_result, "value") else _result.value
-        )
+        return getattr(_result, "value", None)
 
     def get_subnet_connection_requirement(
         self, netuid_0: int, netuid_1: int, block: Optional[int] = None
     ) -> Optional[int]:
         _result = self.query_subtensor("NetworkConnect", block, [netuid_0, netuid_1])
-        if not hasattr(_result, "value") or _result is None:
-            return None
-        return _result.value
+        return getattr(_result, "value", None)
 
     def get_emission_value_by_subnet(
         self, netuid: int, block: Optional[int] = None
@@ -3745,7 +3734,7 @@ class Subtensor:
         _result = self.query_subtensor("EmissionValues", block, [netuid])
         return (
             None
-            if _result is None or not hasattr(_result, "value")
+            if getattr(_result, "value", None) is None
             else Balance.from_rao(_result.value)
         )
 
@@ -3819,9 +3808,8 @@ class Subtensor:
             )
 
         json_body = make_substrate_call_with_retry()
-        result = json_body.get("result", None)
 
-        if not result:
+        if not (result := json_body.get("result", None)):
             return []
 
         return SubnetInfo.list_from_vec_u8(result)
@@ -3854,9 +3842,8 @@ class Subtensor:
             )
 
         json_body = make_substrate_call_with_retry()
-        result = json_body.get("result", None)
 
-        if not result:
+        if not (result := json_body.get("result", None)):
             return None
 
         return SubnetInfo.from_vec_u8(result)
@@ -3913,7 +3900,7 @@ class Subtensor:
         which can be important for decision-making and collaboration within the network.
         """
         _result = self.query_subtensor("SubnetOwner", block, [netuid])
-        return _result.value if _result and hasattr(_result, "value") else None
+        return getattr(_result, "value", None)
 
     ##############
     # Nomination #
@@ -3956,9 +3943,9 @@ class Subtensor:
         """
         _result = self.query_subtensor("Delegates", block, [hotkey_ss58])
         return (
-            U16_NORMALIZED_FLOAT(_result.value)
-            if _result and hasattr(_result, "value")
-            else None
+            None
+            if getattr(_result, "value", None) is None
+            else U16_NORMALIZED_FLOAT(_result.value)
         )
 
     def get_nominators_for_hotkey(
@@ -4016,9 +4003,8 @@ class Subtensor:
 
         encoded_hotkey = ss58_to_vec_u8(hotkey_ss58)
         json_body = make_substrate_call_with_retry(encoded_hotkey)
-        result = json_body.get("result", None)
 
-        if not result:
+        if not (result := json_body.get("result", None)):
             return None
 
         return DelegateInfo.from_vec_u8(result)
@@ -4051,9 +4037,8 @@ class Subtensor:
             )
 
         json_body = make_substrate_call_with_retry()
-        result = json_body.get("result", None)
 
-        if not result:
+        if not (result := json_body.get("result", None)):
             return []
 
         return [DelegateInfoLite(**d) for d in result]
@@ -4086,9 +4071,8 @@ class Subtensor:
             )
 
         json_body = make_substrate_call_with_retry()
-        result = json_body.get("result", None)
 
-        if not result:
+        if not (result := json_body.get("result", None)):
             return []
 
         return DelegateInfo.list_from_vec_u8(result)
@@ -4125,9 +4109,8 @@ class Subtensor:
 
         encoded_coldkey = ss58_to_vec_u8(coldkey_ss58)
         json_body = make_substrate_call_with_retry(encoded_coldkey)
-        result = json_body.get("result", None)
 
-        if not result:
+        if not (result := json_body.get("result", None)):
             return []
 
         return DelegateInfo.delegated_list_from_vec_u8(result)
@@ -4324,7 +4307,7 @@ class Subtensor:
         operational and governance activities on a particular subnet.
         """
         _result = self.query_subtensor("Uids", block, [netuid, hotkey_ss58])
-        return _result.value if _result and hasattr(_result, "value") else None
+        return getattr(_result, "value", None)
 
     def get_all_uids_for_hotkey(
         self, hotkey_ss58: str, block: Optional[int] = None
@@ -4438,9 +4421,7 @@ class Subtensor:
         subnet, particularly regarding its involvement in network validation and governance.
         """
         _result = self.query_subtensor("ValidatorPermit", block, [netuid, uid])
-        if not hasattr(_result, "value") or _result is None:
-            return None
-        return _result.value
+        return getattr(_result, "value", None)
 
     def neuron_for_wallet(
         self, wallet: "bittensor.wallet", netuid: int, block: Optional[int] = None
@@ -4499,9 +4480,8 @@ class Subtensor:
             )
 
         json_body = make_substrate_call_with_retry()
-        result = json_body.get("result", None)
 
-        if not result:
+        if not (result := json_body.get("result", None)):
             # TODO: fix `Access to a protected member _null_neuron of a class` error when chane_data.py refactoring.
             return NeuronInfo._null_neuron()
 
@@ -5136,9 +5116,9 @@ class Subtensor:
             return self.substrate.query_map(
                 module="System",
                 storage_function="Account",
-                block_hash=None
-                if block is None
-                else self.substrate.get_block_hash(block),
+                block_hash=(
+                    None if block is None else self.substrate.get_block_hash(block)
+                ),
             )
 
         result = make_substrate_call_with_retry()
@@ -5148,7 +5128,7 @@ class Subtensor:
             return_dict[r[0].value] = bal
         return return_dict
 
-    # TODO: check with the teem if this is used anywhere outside. in bittensor no
+    # TODO: check with the team if this is used anywhere externally. not in bittensor
     @staticmethod
     def _null_neuron() -> NeuronInfo:
         neuron = NeuronInfo(
