@@ -24,33 +24,54 @@ from typing import Optional, Union, List
 from bittensor.utils.registration import torch, use_torch
 from pydantic import ConfigDict, BaseModel, Field, field_validator
 
-NUMPY_DTYPES = {
-    "float16": np.float16,
-    "float32": np.float32,
-    "float64": np.float64,
-    "uint8": np.uint8,
-    "int16": np.int16,
-    "int8": np.int8,
-    "int32": np.int32,
-    "int64": np.int64,
-    "bool": bool,
-}
 
-if use_torch():
-    TORCH_DTYPES = {
-        "torch.float16": torch.float16,
-        "torch.float32": torch.float32,
-        "torch.float64": torch.float64,
-        "torch.uint8": torch.uint8,
-        "torch.int16": torch.int16,
-        "torch.int8": torch.int8,
-        "torch.int32": torch.int32,
-        "torch.int64": torch.int64,
-        "torch.bool": torch.bool,
-    }
+class DTypes(dict):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.torch: bool = False
+        self.update(
+            {
+                "float16": np.float16,
+                "float32": np.float32,
+                "float64": np.float64,
+                "uint8": np.uint8,
+                "int16": np.int16,
+                "int8": np.int8,
+                "int32": np.int32,
+                "int64": np.int64,
+                "bool": bool,
+            }
+        )
+
+    def __getitem__(self, key):
+        self._add_torch()
+        return super().__getitem__(key)
+
+    def __contains__(self, key):
+        self._add_torch()
+        return super().__contains__(key)
+
+    def _add_torch(self):
+        if self.torch is False:
+            torch_dtypes = {
+                "torch.float16": torch.float16,
+                "torch.float32": torch.float32,
+                "torch.float64": torch.float64,
+                "torch.uint8": torch.uint8,
+                "torch.int16": torch.int16,
+                "torch.int8": torch.int8,
+                "torch.int32": torch.int32,
+                "torch.int64": torch.int64,
+                "torch.bool": torch.bool,
+            }
+            self.update(torch_dtypes)
+            self.torch = True
 
 
-def cast_dtype(raw: Union[None, np.dtype, "torch.dtype", str]) -> str:
+dtypes = DTypes()
+
+
+def cast_dtype(raw: Union[None, np.dtype, "torch.dtype", str]) -> Optional[str]:
     """
     Casts the raw value to a string representing the
     `numpy data type <https://numpy.org/doc/stable/user/basics.types.html>`_, or the
@@ -67,21 +88,16 @@ def cast_dtype(raw: Union[None, np.dtype, "torch.dtype", str]) -> str:
     """
     if not raw:
         return None
-    if isinstance(raw, np.dtype):
-        return NUMPY_DTYPES[raw]
-    elif use_torch():
-        if isinstance(raw, torch.dtype):
-            return TORCH_DTYPES[raw]
+    if use_torch() and isinstance(raw, torch.dtype):
+        return dtypes[raw]
+    elif isinstance(raw, np.dtype):
+        return dtypes[raw]
     elif isinstance(raw, str):
         if use_torch():
-            assert (
-                raw in TORCH_DTYPES
-            ), f"{raw} not a valid torch type in dict {TORCH_DTYPES}"
+            assert raw in dtypes, f"{raw} not a valid torch type in dict {dtypes}"
             return raw
         else:
-            assert (
-                raw in NUMPY_DTYPES
-            ), f"{raw} not a valid numpy type in dict {NUMPY_DTYPES}"
+            assert raw in dtypes, f"{raw} not a valid numpy type in dict {dtypes}"
             return raw
     else:
         raise Exception(
@@ -89,7 +105,7 @@ def cast_dtype(raw: Union[None, np.dtype, "torch.dtype", str]) -> str:
         )
 
 
-def cast_shape(raw: Union[None, List[int], str]) -> str:
+def cast_shape(raw: Union[None, List[int], str]) -> Optional[Union[str, list]]:
     """
     Casts the raw value to a string representing the tensor shape.
 
@@ -105,9 +121,7 @@ def cast_shape(raw: Union[None, List[int], str]) -> str:
     if not raw:
         return None
     elif isinstance(raw, list):
-        if len(raw) == 0:
-            return raw
-        elif isinstance(raw[0], int):
+        if len(raw) == 0 or isinstance(raw[0], int):
             return raw
         else:
             raise Exception(f"{raw} list elements are not of type int")
@@ -124,7 +138,7 @@ class tensor:
     def __new__(cls, tensor: Union[list, np.ndarray, "torch.Tensor"]):
         if isinstance(tensor, list) or isinstance(tensor, np.ndarray):
             tensor = torch.tensor(tensor) if use_torch() else np.array(tensor)
-        return Tensor.serialize(tensor=tensor)
+        return Tensor.serialize(tensor_=tensor)
 
 
 class Tensor(BaseModel):
@@ -170,20 +184,20 @@ class Tensor(BaseModel):
             # Reshape does not work for (0) or [0]
             if not (len(shape) == 1 and shape[0] == 0):
                 torch_object = torch_object.reshape(shape)
-            return torch_object.type(TORCH_DTYPES[self.dtype])
+            return torch_object.type(dtypes[self.dtype])
         else:
             # Reshape does not work for (0) or [0]
             if not (len(shape) == 1 and shape[0] == 0):
                 numpy_object = numpy_object.reshape(shape)
-            return numpy_object.astype(NUMPY_DTYPES[self.dtype])
+            return numpy_object.astype(dtypes[self.dtype])
 
     @staticmethod
-    def serialize(tensor: Union["np.ndarray", "torch.Tensor"]) -> "Tensor":
+    def serialize(tensor_: Union["np.ndarray", "torch.Tensor"]) -> "Tensor":
         """
         Serializes the given tensor.
 
         Args:
-            tensor (np.array or torch.Tensor): The tensor to serialize.
+            tensor_ (np.array or torch.Tensor): The tensor to serialize.
 
         Returns:
             Tensor: The serialized tensor.
@@ -191,19 +205,14 @@ class Tensor(BaseModel):
         Raises:
             Exception: If the serialization process encounters an error.
         """
-        dtype = str(tensor.dtype)
-        shape = list(tensor.shape)
+        dtype = str(tensor_.dtype)
+        shape = list(tensor_.shape)
         if len(shape) == 0:
             shape = [0]
-        if use_torch():
-            torch_numpy = tensor.cpu().detach().numpy().copy()
-            data_buffer = base64.b64encode(
-                msgpack.packb(torch_numpy, default=msgpack_numpy.encode)
-            ).decode("utf-8")
-        else:
-            data_buffer = base64.b64encode(
-                msgpack.packb(tensor, default=msgpack_numpy.encode)
-            ).decode("utf-8")
+        tensor__ = tensor_.cpu().detach().numpy().copy() if use_torch() else tensor_
+        data_buffer = base64.b64encode(
+            msgpack.packb(tensor__, default=msgpack_numpy.encode)
+        ).decode("utf-8")
         return Tensor(buffer=data_buffer, shape=shape, dtype=dtype)
 
     # Represents the tensor buffer data.
