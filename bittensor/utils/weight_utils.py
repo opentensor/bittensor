@@ -20,6 +20,7 @@
 
 import numpy as np
 import bittensor
+import hashlib
 from numpy.typing import NDArray
 from typing import Tuple, List, Union
 from bittensor.utils.registration import torch, use_torch, legacy_torch_api_compat
@@ -341,3 +342,29 @@ def process_weights_for_netuid(
     bittensor.logging.debug("final_weights", normalized_weights)
 
     return non_zero_weight_uids, normalized_weights
+
+
+def generate_weight_hash(
+    who: str, netuid: int, uids: List[int], values: List[int], version_key: int
+) -> str:
+    """
+    Generate a valid commit hash from the provided weights.
+    Args:
+        who (str): The account identifier.
+        netuid (int): The network unique identifier.
+        uids (List[int]): The list of UIDs.
+        values (List[int]): The list of weight values.
+        version_key (int): The version key.
+    Returns:
+        str: The generated commit hash.
+    """
+    # Create a tuple of the input parameters
+    data = (who, netuid, uids, values, version_key)
+
+    # Generate Blake2b hash of the data tuple
+    blake2b_hash = hashlib.blake2b(str(data).encode(), digest_size=32).digest()
+
+    # Convert the hash to hex string and add "0x" prefix
+    commit_hash = "0x" + blake2b_hash.hex()
+
+    return commit_hash
