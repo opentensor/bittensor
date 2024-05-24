@@ -475,3 +475,846 @@ def test_weights_rate_limit_success_calls(subtensor, mocker):
     )
     # if we change the methods logic in the future we have to be make sure tha returned type is correct
     assert isinstance(result, int)
+
+
+###########################
+# Account functions tests #
+###########################
+
+
+# `get_total_stake_for_hotkey` tests
+def test_get_total_stake_for_hotkey_success(subtensor, mocker):
+    """Tests successful retrieval of total stake for hotkey."""
+    # Prep
+    subtensor.query_subtensor = mocker.MagicMock(return_value=mocker.MagicMock(value=1))
+    fake_ss58_address = "12bzRJfh7arnnfPPUZHeJUaE62QLEwhK48QnH9LXeK2m1iZU"
+    spy_balance_from_rao = mocker.spy(Balance, "from_rao")
+
+    # Call
+    result = subtensor.get_total_stake_for_hotkey(ss58_address=fake_ss58_address)
+
+    # Assertions
+    subtensor.query_subtensor.assert_called_once_with(
+        "TotalHotkeyStake", None, [fake_ss58_address]
+    )
+    spy_balance_from_rao.assert_called_once()
+    # if we change the methods logic in the future we have to be make sure tha returned type is correct
+    assert isinstance(result, Balance)
+
+
+def test_get_total_stake_for_hotkey_not_result(subtensor, mocker):
+    """Tests retrieval of total stake for hotkey when no result is returned."""
+    # Prep
+    subtensor.query_subtensor = mocker.MagicMock(return_value=None)
+    fake_ss58_address = "12bzRJfh7arnnfPPUZHeJUaE62QLEwhK48QnH9LXeK2m1iZU"
+    spy_balance_from_rao = mocker.spy(Balance, "from_rao")
+
+    # Call
+    result = subtensor.get_total_stake_for_hotkey(ss58_address=fake_ss58_address)
+
+    # Assertions
+    subtensor.query_subtensor.assert_called_once_with(
+        "TotalHotkeyStake", None, [fake_ss58_address]
+    )
+    spy_balance_from_rao.assert_not_called()
+    # if we change the methods logic in the future we have to be make sure tha returned type is correct
+    assert isinstance(result, type(None))
+
+
+def test_get_total_stake_for_hotkey_not_value(subtensor, mocker):
+    """Tests retrieval of total stake for hotkey when no value attribute is present."""
+    # Prep
+    subtensor.query_subtensor = mocker.MagicMock(return_value=object)
+    fake_ss58_address = "12bzRJfh7arnnfPPUZHeJUaE62QLEwhK48QnH9LXeK2m1iZU"
+    spy_balance_from_rao = mocker.spy(Balance, "from_rao")
+
+    # Call
+    result = subtensor.get_total_stake_for_hotkey(ss58_address=fake_ss58_address)
+
+    # Assertions
+    subtensor.query_subtensor.assert_called_once_with(
+        "TotalHotkeyStake", None, [fake_ss58_address]
+    )
+    spy_balance_from_rao.assert_not_called()
+    # if we change the methods logic in the future we have to be make sure tha returned type is correct
+    assert isinstance(subtensor.query_subtensor.return_value, object)
+    assert not hasattr(result, "value")
+
+
+# `get_total_stake_for_coldkey` tests
+def test_get_total_stake_for_coldkey_success(subtensor, mocker):
+    """Tests successful retrieval of total stake for coldkey."""
+    # Prep
+    subtensor.query_subtensor = mocker.MagicMock(return_value=mocker.MagicMock(value=1))
+    fake_ss58_address = "12bzRJfh7arnnfPPUZHeJUaE62QLEwhK48QnH9LXeK2m1iZU"
+    spy_balance_from_rao = mocker.spy(Balance, "from_rao")
+
+    # Call
+    result = subtensor.get_total_stake_for_coldkey(ss58_address=fake_ss58_address)
+
+    # Assertions
+    subtensor.query_subtensor.assert_called_once_with(
+        "TotalColdkeyStake", None, [fake_ss58_address]
+    )
+    spy_balance_from_rao.assert_called_once()
+    # if we change the methods logic in the future we have to be make sure tha returned type is correct
+    assert isinstance(result, Balance)
+
+
+def test_get_total_stake_for_coldkey_not_result(subtensor, mocker):
+    """Tests retrieval of total stake for coldkey when no result is returned."""
+    # Prep
+    subtensor.query_subtensor = mocker.MagicMock(return_value=None)
+    fake_ss58_address = "12bzRJfh7arnnfPPUZHeJUaE62QLEwhK48QnH9LXeK2m1iZU"
+    spy_balance_from_rao = mocker.spy(Balance, "from_rao")
+
+    # Call
+    result = subtensor.get_total_stake_for_coldkey(ss58_address=fake_ss58_address)
+
+    # Assertions
+    subtensor.query_subtensor.assert_called_once_with(
+        "TotalColdkeyStake", None, [fake_ss58_address]
+    )
+    spy_balance_from_rao.assert_not_called()
+    # if we change the methods logic in the future we have to be make sure tha returned type is correct
+    assert isinstance(result, type(None))
+
+
+def test_get_total_stake_for_coldkey_not_value(subtensor, mocker):
+    """Tests retrieval of total stake for coldkey when no value attribute is present."""
+    # Prep
+    subtensor.query_subtensor = mocker.MagicMock(return_value=object)
+    fake_ss58_address = "12bzRJfh7arnnfPPUZHeJUaE62QLEwhK48QnH9LXeK2m1iZU"
+    spy_balance_from_rao = mocker.spy(Balance, "from_rao")
+
+    # Call
+    result = subtensor.get_total_stake_for_coldkey(ss58_address=fake_ss58_address)
+
+    # Assertions
+    subtensor.query_subtensor.assert_called_once_with(
+        "TotalColdkeyStake", None, [fake_ss58_address]
+    )
+    spy_balance_from_rao.assert_not_called()
+    # if we change the methods logic in the future we have to be make sure tha returned type is correct
+    assert isinstance(subtensor.query_subtensor.return_value, object)
+    assert not hasattr(result, "value")
+
+
+# `get_stake` tests
+def test_get_stake_returns_correct_data(mocker, subtensor):
+    """Tests that get_stake returns correct data."""
+    # Prep
+    hotkey_ss58 = "test_hotkey"
+    block = 123
+    expected_query_result = [
+        (mocker.MagicMock(value="coldkey1"), mocker.MagicMock(value=100)),
+        (mocker.MagicMock(value="coldkey2"), mocker.MagicMock(value=200)),
+    ]
+    mocker.patch.object(
+        subtensor, "query_map_subtensor", return_value=expected_query_result
+    )
+
+    # Call
+    result = subtensor.get_stake(hotkey_ss58, block)
+
+    # Assertion
+    assert result == [
+        ("coldkey1", Balance.from_rao(100)),
+        ("coldkey2", Balance.from_rao(200)),
+    ]
+    subtensor.query_map_subtensor.assert_called_once_with("Stake", block, [hotkey_ss58])
+
+
+def test_get_stake_no_block(mocker, subtensor):
+    """Tests get_stake with no block specified."""
+    # Prep
+    hotkey_ss58 = "test_hotkey"
+    expected_query_result = [
+        (MagicMock(value="coldkey1"), MagicMock(value=100)),
+    ]
+    mocker.patch.object(
+        subtensor, "query_map_subtensor", return_value=expected_query_result
+    )
+
+    # Call
+    result = subtensor.get_stake(hotkey_ss58)
+
+    # Assertion
+    assert result == [("coldkey1", Balance.from_rao(100))]
+    subtensor.query_map_subtensor.assert_called_once_with("Stake", None, [hotkey_ss58])
+
+
+def test_get_stake_empty_result(mocker, subtensor):
+    """Tests get_stake with an empty result."""
+    # Prep
+    hotkey_ss58 = "test_hotkey"
+    block = 123
+    expected_query_result = []
+    mocker.patch.object(
+        subtensor, "query_map_subtensor", return_value=expected_query_result
+    )
+
+    # Call
+    result = subtensor.get_stake(hotkey_ss58, block)
+
+    # Assertion
+    assert result == []
+    subtensor.query_map_subtensor.assert_called_once_with("Stake", block, [hotkey_ss58])
+
+
+# `does_hotkey_exist` tests
+def test_does_hotkey_exist_true(mocker, subtensor):
+    """Test does_hotkey_exist returns True when hotkey exists and is valid."""
+    # Prep
+    hotkey_ss58 = "test_hotkey"
+    block = 123
+    mock_result = mocker.MagicMock(value="valid_coldkey")
+    mocker.patch.object(subtensor, "query_subtensor", return_value=mock_result)
+
+    # Call
+    result = subtensor.does_hotkey_exist(hotkey_ss58, block)
+
+    # Assertions
+    assert result is True
+    subtensor.query_subtensor.assert_called_once_with("Owner", block, [hotkey_ss58])
+
+
+def test_does_hotkey_exist_false_special_value(mocker, subtensor):
+    """Test does_hotkey_exist returns False when result value is the special value."""
+    # Prep
+    hotkey_ss58 = "test_hotkey"
+    block = 123
+    special_value = "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM"
+    mock_result = MagicMock(value=special_value)
+    mocker.patch.object(subtensor, "query_subtensor", return_value=mock_result)
+
+    # Call
+    result = subtensor.does_hotkey_exist(hotkey_ss58, block)
+
+    # Assertions
+    assert result is False
+    subtensor.query_subtensor.assert_called_once_with("Owner", block, [hotkey_ss58])
+
+
+def test_does_hotkey_exist_false_no_value(mocker, subtensor):
+    """Test does_hotkey_exist returns False when result has no value attribute."""
+    # Prep
+    hotkey_ss58 = "test_hotkey"
+    block = 123
+    mock_result = mocker.MagicMock()
+    del mock_result.value
+    mocker.patch.object(subtensor, "query_subtensor", return_value=mock_result)
+
+    # Call
+    result = subtensor.does_hotkey_exist(hotkey_ss58, block)
+
+    # Assertions
+    assert result is False
+    subtensor.query_subtensor.assert_called_once_with("Owner", block, [hotkey_ss58])
+
+
+def test_does_hotkey_exist_false_no_result(mocker, subtensor):
+    """Test does_hotkey_exist returns False when query_subtensor returns None."""
+    # Prep
+    hotkey_ss58 = "test_hotkey"
+    block = 123
+    mocker.patch.object(subtensor, "query_subtensor", return_value=None)
+
+    # Call
+    result = subtensor.does_hotkey_exist(hotkey_ss58, block)
+
+    # Assertions
+    assert result is False
+    subtensor.query_subtensor.assert_called_once_with("Owner", block, [hotkey_ss58])
+
+
+def test_does_hotkey_exist_no_block(mocker, subtensor):
+    """Test does_hotkey_exist with no block specified."""
+    # Prep
+    hotkey_ss58 = "test_hotkey"
+    mock_result = mocker.MagicMock(value="valid_coldkey")
+    mocker.patch.object(subtensor, "query_subtensor", return_value=mock_result)
+
+    # Call
+    result = subtensor.does_hotkey_exist(hotkey_ss58)
+
+    # Assertions
+    assert result is True
+    subtensor.query_subtensor.assert_called_once_with("Owner", None, [hotkey_ss58])
+
+
+# `get_hotkey_owner` tests
+def test_get_hotkey_owner_exists(mocker, subtensor):
+    """Test get_hotkey_owner when the hotkey exists."""
+    # Prep
+    hotkey_ss58 = "test_hotkey"
+    block = 123
+    expected_owner = "coldkey_owner"
+    mock_result = mocker.MagicMock(value=expected_owner)
+    mocker.patch.object(subtensor, "query_subtensor", return_value=mock_result)
+    mocker.patch.object(subtensor, "does_hotkey_exist", return_value=True)
+
+    # Call
+    result = subtensor.get_hotkey_owner(hotkey_ss58, block)
+
+    # Assertions
+    assert result == expected_owner
+    subtensor.query_subtensor.assert_called_once_with("Owner", block, [hotkey_ss58])
+    subtensor.does_hotkey_exist.assert_called_once_with(hotkey_ss58, block)
+
+
+def test_get_hotkey_owner_does_not_exist(mocker, subtensor):
+    """Test get_hotkey_owner when the hotkey does not exist."""
+    # Prep
+    hotkey_ss58 = "test_hotkey"
+    block = 123
+    mocker.patch.object(subtensor, "query_subtensor", return_value=None)
+    mocker.patch.object(subtensor, "does_hotkey_exist", return_value=False)
+
+    # Call
+    result = subtensor.get_hotkey_owner(hotkey_ss58, block)
+
+    # Assertions
+    assert result is None
+    subtensor.query_subtensor.assert_called_once_with("Owner", block, [hotkey_ss58])
+    subtensor.does_hotkey_exist.assert_not_called()
+
+
+def test_get_hotkey_owner_no_block(mocker, subtensor):
+    """Test get_hotkey_owner with no block specified."""
+    # Prep
+    hotkey_ss58 = "test_hotkey"
+    expected_owner = "coldkey_owner"
+    mock_result = mocker.MagicMock(value=expected_owner)
+    mocker.patch.object(subtensor, "query_subtensor", return_value=mock_result)
+    mocker.patch.object(subtensor, "does_hotkey_exist", return_value=True)
+
+    # Call
+    result = subtensor.get_hotkey_owner(hotkey_ss58)
+
+    # Assertions
+    assert result == expected_owner
+    subtensor.query_subtensor.assert_called_once_with("Owner", None, [hotkey_ss58])
+    subtensor.does_hotkey_exist.assert_called_once_with(hotkey_ss58, None)
+
+
+def test_get_hotkey_owner_no_value_attribute(mocker, subtensor):
+    """Test get_hotkey_owner when the result has no value attribute."""
+    # Prep
+    hotkey_ss58 = "test_hotkey"
+    block = 123
+    mock_result = mocker.MagicMock()
+    del mock_result.value
+    mocker.patch.object(subtensor, "query_subtensor", return_value=mock_result)
+    mocker.patch.object(subtensor, "does_hotkey_exist", return_value=True)
+
+    # Call
+    result = subtensor.get_hotkey_owner(hotkey_ss58, block)
+
+    # Assertions
+    assert result is None
+    subtensor.query_subtensor.assert_called_once_with("Owner", block, [hotkey_ss58])
+    subtensor.does_hotkey_exist.assert_not_called()
+
+
+# `get_axon_info` tests
+def test_get_axon_info_success(mocker, subtensor):
+    """Test get_axon_info returns correct data when axon information is found."""
+    # Prep
+    netuid = 1
+    hotkey_ss58 = "test_hotkey"
+    block = 123
+    mock_result = mocker.MagicMock(
+        value={
+            "ip": "192.168.1.1",
+            "ip_type": 4,
+            "port": 8080,
+            "protocol": "tcp",
+            "version": "1.0",
+            "placeholder1": "data1",
+            "placeholder2": "data2",
+        }
+    )
+    mocker.patch.object(subtensor, "query_subtensor", return_value=mock_result)
+
+    # Call
+    result = subtensor.get_axon_info(netuid, hotkey_ss58, block)
+
+    # Asserts
+    assert result is not None
+    assert result.ip == "192.168.1.1"
+    assert result.ip_type == 4
+    assert result.port == 8080
+    assert result.protocol == "tcp"
+    assert result.version == "1.0"
+    assert result.placeholder1 == "data1"
+    assert result.placeholder2 == "data2"
+    assert result.hotkey == hotkey_ss58
+    assert result.coldkey == ""
+    subtensor.query_subtensor.assert_called_once_with(
+        "Axons", block, [netuid, hotkey_ss58]
+    )
+
+
+def test_get_axon_info_no_data(mocker, subtensor):
+    """Test get_axon_info returns None when no axon information is found."""
+    # Prep
+    netuid = 1
+    hotkey_ss58 = "test_hotkey"
+    block = 123
+    mocker.patch.object(subtensor, "query_subtensor", return_value=None)
+
+    # Call
+    result = subtensor.get_axon_info(netuid, hotkey_ss58, block)
+
+    # Asserts
+    assert result is None
+    subtensor.query_subtensor.assert_called_once_with(
+        "Axons", block, [netuid, hotkey_ss58]
+    )
+
+
+def test_get_axon_info_no_value_attribute(mocker, subtensor):
+    """Test get_axon_info returns None when result has no value attribute."""
+    # Prep
+    netuid = 1
+    hotkey_ss58 = "test_hotkey"
+    block = 123
+    mock_result = mocker.MagicMock()
+    del mock_result.value
+    mocker.patch.object(subtensor, "query_subtensor", return_value=mock_result)
+
+    # Call
+    result = subtensor.get_axon_info(netuid, hotkey_ss58, block)
+
+    # Asserts
+    assert result is None
+    subtensor.query_subtensor.assert_called_once_with(
+        "Axons", block, [netuid, hotkey_ss58]
+    )
+
+
+def test_get_axon_info_no_block(mocker, subtensor):
+    """Test get_axon_info with no block specified."""
+    # Prep
+    netuid = 1
+    hotkey_ss58 = "test_hotkey"
+    mock_result = mocker.MagicMock(
+        value={
+            "ip": 3232235777,  # 192.168.1.1
+            "ip_type": 4,
+            "port": 8080,
+            "protocol": "tcp",
+            "version": "1.0",
+            "placeholder1": "data1",
+            "placeholder2": "data2",
+        }
+    )
+    mocker.patch.object(subtensor, "query_subtensor", return_value=mock_result)
+
+    # Call
+    result = subtensor.get_axon_info(netuid, hotkey_ss58)
+
+    # Asserts
+    assert result is not None
+    assert result.ip == "192.168.1.1"
+    assert result.ip_type == 4
+    assert result.port == 8080
+    assert result.protocol == "tcp"
+    assert result.version == "1.0"
+    assert result.placeholder1 == "data1"
+    assert result.placeholder2 == "data2"
+    assert result.hotkey == hotkey_ss58
+    assert result.coldkey == ""
+    subtensor.query_subtensor.assert_called_once_with(
+        "Axons", None, [netuid, hotkey_ss58]
+    )
+
+
+# get_prometheus_info tests
+def test_get_prometheus_info_success(mocker, subtensor):
+    """Test get_prometheus_info returns correct data when information is found."""
+    # Prep
+    netuid = 1
+    hotkey_ss58 = "test_hotkey"
+    block = 123
+    mock_result = mocker.MagicMock(
+        value={
+            "ip": 3232235777,  # 192.168.1.1
+            "ip_type": 4,
+            "port": 9090,
+            "version": "1.0",
+            "block": 1000,
+        }
+    )
+    mocker.patch.object(subtensor, "query_subtensor", return_value=mock_result)
+
+    # Call
+    result = subtensor.get_prometheus_info(netuid, hotkey_ss58, block)
+
+    # Asserts
+    assert result is not None
+    assert result.ip == "192.168.1.1"
+    assert result.ip_type == 4
+    assert result.port == 9090
+    assert result.version == "1.0"
+    assert result.block == 1000
+    subtensor.query_subtensor.assert_called_once_with(
+        "Prometheus", block, [netuid, hotkey_ss58]
+    )
+
+
+def test_get_prometheus_info_no_data(mocker, subtensor):
+    """Test get_prometheus_info returns None when no information is found."""
+    # Prep
+    netuid = 1
+    hotkey_ss58 = "test_hotkey"
+    block = 123
+    mocker.patch.object(subtensor, "query_subtensor", return_value=None)
+
+    # Call
+    result = subtensor.get_prometheus_info(netuid, hotkey_ss58, block)
+
+    # Asserts
+    assert result is None
+    subtensor.query_subtensor.assert_called_once_with(
+        "Prometheus", block, [netuid, hotkey_ss58]
+    )
+
+
+def test_get_prometheus_info_no_value_attribute(mocker, subtensor):
+    """Test get_prometheus_info returns None when result has no value attribute."""
+    # Prep
+    netuid = 1
+    hotkey_ss58 = "test_hotkey"
+    block = 123
+    mock_result = mocker.MagicMock()
+    del mock_result.value
+    mocker.patch.object(subtensor, "query_subtensor", return_value=mock_result)
+
+    # Call
+    result = subtensor.get_prometheus_info(netuid, hotkey_ss58, block)
+
+    # Asserts
+    assert result is None
+    subtensor.query_subtensor.assert_called_once_with(
+        "Prometheus", block, [netuid, hotkey_ss58]
+    )
+
+
+def test_get_prometheus_info_no_block(mocker, subtensor):
+    """Test get_prometheus_info with no block specified."""
+    # Prep
+    netuid = 1
+    hotkey_ss58 = "test_hotkey"
+    mock_result = MagicMock(
+        value={
+            "ip": "192.168.1.1",
+            "ip_type": 4,
+            "port": 9090,
+            "version": "1.0",
+            "block": 1000,
+        }
+    )
+    mocker.patch.object(subtensor, "query_subtensor", return_value=mock_result)
+
+    # Call
+    result = subtensor.get_prometheus_info(netuid, hotkey_ss58)
+
+    # Asserts
+    assert result is not None
+    assert result.ip == "192.168.1.1"
+    assert result.ip_type == 4
+    assert result.port == 9090
+    assert result.version == "1.0"
+    assert result.block == 1000
+    subtensor.query_subtensor.assert_called_once_with(
+        "Prometheus", None, [netuid, hotkey_ss58]
+    )
+
+
+###########################
+# Global Parameters tests #
+###########################
+
+
+# `block` property test
+def test_block_property(mocker, subtensor):
+    """Test block property returns the correct block number."""
+    expected_block = 123
+    mocker.patch.object(subtensor, "get_current_block", return_value=expected_block)
+
+    result = subtensor.block
+
+    assert result == expected_block
+    subtensor.get_current_block.assert_called_once()
+
+
+# `total_issuance` tests
+def test_total_issuance_success(mocker, subtensor):
+    """Test total_issuance returns correct data when issuance information is found."""
+    # Prep
+    block = 123
+    issuance_value = 1000
+    mock_result = mocker.MagicMock(value=issuance_value)
+    mocker.patch.object(subtensor, "query_subtensor", return_value=mock_result)
+    spy_balance_from_rao = mocker.spy(Balance, "from_rao")
+
+    # Call
+    result = subtensor.total_issuance(block)
+
+    # Asserts
+    assert result is not None
+    subtensor.query_subtensor.assert_called_once_with("TotalIssuance", block)
+    spy_balance_from_rao.assert_called_once_with(
+        subtensor.query_subtensor.return_value.value
+    )
+
+
+def test_total_issuance_no_data(mocker, subtensor):
+    """Test total_issuance returns None when no issuance information is found."""
+    # Prep
+    block = 123
+    mocker.patch.object(subtensor, "query_subtensor", return_value=None)
+    spy_balance_from_rao = mocker.spy(Balance, "from_rao")
+
+    # Call
+    result = subtensor.total_issuance(block)
+
+    # Asserts
+    assert result is None
+    subtensor.query_subtensor.assert_called_once_with("TotalIssuance", block)
+    spy_balance_from_rao.assert_not_called()
+
+
+def test_total_issuance_no_value_attribute(mocker, subtensor):
+    """Test total_issuance returns None when result has no value attribute."""
+    # Prep
+    block = 123
+    mock_result = mocker.MagicMock()
+    del mock_result.value
+    mocker.patch.object(subtensor, "query_subtensor", return_value=mock_result)
+    spy_balance_from_rao = mocker.spy(Balance, "from_rao")
+
+    # Call
+    result = subtensor.total_issuance(block)
+
+    # Asserts
+    assert result is None
+    subtensor.query_subtensor.assert_called_once_with("TotalIssuance", block)
+    spy_balance_from_rao.assert_not_called()
+
+
+def test_total_issuance_no_block(mocker, subtensor):
+    """Test total_issuance with no block specified."""
+    # Prep
+    issuance_value = 1000
+    mock_result = mocker.MagicMock(value=issuance_value)
+    mocker.patch.object(subtensor, "query_subtensor", return_value=mock_result)
+    spy_balance_from_rao = mocker.spy(Balance, "from_rao")
+
+    # Call
+    result = subtensor.total_issuance()
+
+    # Asserts
+    assert result is not None
+    subtensor.query_subtensor.assert_called_once_with("TotalIssuance", None)
+    spy_balance_from_rao.assert_called_once_with(
+        subtensor.query_subtensor.return_value.value
+    )
+
+
+# `total_stake` method tests
+def test_total_stake_success(mocker, subtensor):
+    """Test total_stake returns correct data when stake information is found."""
+    # Prep
+    block = 123
+    stake_value = 5000
+    mock_result = mocker.MagicMock(value=stake_value)
+    mocker.patch.object(subtensor, "query_subtensor", return_value=mock_result)
+    spy_balance_from_rao = mocker.spy(Balance, "from_rao")
+
+    # Call
+    result = subtensor.total_stake(block)
+
+    # Asserts
+    assert result is not None
+    subtensor.query_subtensor.assert_called_once_with("TotalStake", block)
+    spy_balance_from_rao.assert_called_once_with(
+        subtensor.query_subtensor.return_value.value
+    )
+
+
+def test_total_stake_no_data(mocker, subtensor):
+    """Test total_stake returns None when no stake information is found."""
+    # Prep
+    block = 123
+    mocker.patch.object(subtensor, "query_subtensor", return_value=None)
+    spy_balance_from_rao = mocker.spy(Balance, "from_rao")
+
+    # Call
+    result = subtensor.total_stake(block)
+
+    # Asserts
+    assert result is None
+    subtensor.query_subtensor.assert_called_once_with("TotalStake", block)
+    spy_balance_from_rao.assert_not_called()
+
+
+def test_total_stake_no_value_attribute(mocker, subtensor):
+    """Test total_stake returns None when result has no value attribute."""
+    # Prep
+    block = 123
+    mock_result = mocker.MagicMock()
+    del mock_result.value
+    mocker.patch.object(subtensor, "query_subtensor", return_value=mock_result)
+    spy_balance_from_rao = mocker.spy(Balance, "from_rao")
+
+    # Call
+    result = subtensor.total_stake(block)
+
+    # Asserts
+    assert result is None
+    subtensor.query_subtensor.assert_called_once_with("TotalStake", block)
+    spy_balance_from_rao.assert_not_called()
+
+
+def test_total_stake_no_block(mocker, subtensor):
+    """Test total_stake with no block specified."""
+    # Prep
+    stake_value = 5000
+    mock_result = mocker.MagicMock(value=stake_value)
+    mocker.patch.object(subtensor, "query_subtensor", return_value=mock_result)
+    spy_balance_from_rao = mocker.spy(Balance, "from_rao")
+
+    # Call
+    result = subtensor.total_stake()
+
+    # Asserts
+    assert result is not None
+    subtensor.query_subtensor.assert_called_once_with("TotalStake", None)
+    spy_balance_from_rao.assert_called_once_with(
+        subtensor.query_subtensor.return_value.value
+    ),
+
+
+# `serving_rate_limit` method tests
+def test_serving_rate_limit_success(mocker, subtensor):
+    """Test serving_rate_limit returns correct data when rate limit information is found."""
+    # Prep
+    netuid = 1
+    block = 123
+    rate_limit_value = "10"
+    mocker.patch.object(subtensor, "_get_hyperparameter", return_value=rate_limit_value)
+
+    # Call
+    result = subtensor.serving_rate_limit(netuid, block)
+
+    # Asserts
+    assert result is not None
+    assert result == int(rate_limit_value)
+    # subtensor._get_hyperparameter.assert_called_once_with("ServingRateLimit", netuid=netuid, block=block)
+
+
+def test_serving_rate_limit_no_data(mocker, subtensor):
+    """Test serving_rate_limit returns None when no rate limit information is found."""
+    # Prep
+    netuid = 1
+    block = 123
+    mocker.patch.object(subtensor, "_get_hyperparameter", return_value=None)
+
+    # Call
+    result = subtensor.serving_rate_limit(netuid, block)
+
+    # Asserts
+    assert result is None
+    subtensor._get_hyperparameter.assert_called_once_with(
+        param_name="ServingRateLimit", netuid=netuid, block=block
+    )
+
+
+def test_serving_rate_limit_no_block(mocker, subtensor):
+    """Test serving_rate_limit with no block specified."""
+    # Prep
+    netuid = 1
+    rate_limit_value = "10"
+    mocker.patch.object(subtensor, "_get_hyperparameter", return_value=rate_limit_value)
+
+    # Call
+    result = subtensor.serving_rate_limit(netuid)
+
+    # Asserts
+    assert result is not None
+    assert result == int(rate_limit_value)
+    subtensor._get_hyperparameter.assert_called_once_with(
+        param_name="ServingRateLimit", netuid=netuid, block=None
+    )
+
+
+# `tx_rate_limit` tests
+def test_tx_rate_limit_success(mocker, subtensor):
+    """Test tx_rate_limit returns correct data when rate limit information is found."""
+    # Prep
+    block = 123
+    rate_limit_value = 100
+    mock_result = mocker.MagicMock(value=rate_limit_value)
+    mocker.patch.object(subtensor, "query_subtensor", return_value=mock_result)
+
+    # Call
+    result = subtensor.tx_rate_limit(block)
+
+    # Asserts
+    assert result is not None
+    assert result == rate_limit_value
+    subtensor.query_subtensor.assert_called_once_with("TxRateLimit", block)
+
+
+def test_tx_rate_limit_no_data(mocker, subtensor):
+    """Test tx_rate_limit returns None when no rate limit information is found."""
+    # Prep
+    block = 123
+    mocker.patch.object(subtensor, "query_subtensor", return_value=None)
+
+    # Call
+    result = subtensor.tx_rate_limit(block)
+
+    # Asserts
+    assert result is None
+    subtensor.query_subtensor.assert_called_once_with("TxRateLimit", block)
+
+
+def test_tx_rate_limit_no_value_attribute(mocker, subtensor):
+    """Test tx_rate_limit returns None when result has no value attribute."""
+    # Prep
+    block = 123
+    mock_result = mocker.MagicMock()
+    del mock_result.value
+    mocker.patch.object(subtensor, "query_subtensor", return_value=mock_result)
+
+    # Call
+    result = subtensor.tx_rate_limit(block)
+
+    # Asserts
+    assert result is None
+    subtensor.query_subtensor.assert_called_once_with("TxRateLimit", block)
+
+
+def test_tx_rate_limit_no_block(mocker, subtensor):
+    """Test tx_rate_limit with no block specified."""
+    # Prep
+    rate_limit_value = 100
+    mock_result = mocker.MagicMock(value=rate_limit_value)
+    mocker.patch.object(subtensor, "query_subtensor", return_value=mock_result)
+
+    # Call
+    result = subtensor.tx_rate_limit()
+
+    # Asserts
+    assert result is not None
+    assert result == rate_limit_value
+    subtensor.query_subtensor.assert_called_once_with("TxRateLimit", None)
+
+
+############################
+# Network Parameters tests #
+############################
