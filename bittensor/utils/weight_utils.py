@@ -1,4 +1,5 @@
-""" Conversion for weight between chain representation and np.array or torch.Tensor
+"""
+Conversion for weight between chain representation and np.array or torch.Tensor
 """
 
 # The MIT License (MIT)
@@ -21,6 +22,9 @@
 import numpy as np
 import bittensor
 import hashlib
+import struct
+from scalecodec import ScaleBytes, U16, Vec
+from substrateinterface import Keypair
 from numpy.typing import NDArray
 from typing import Tuple, List, Union
 from bittensor.utils.registration import torch, use_torch, legacy_torch_api_compat
@@ -349,22 +353,39 @@ def generate_weight_hash(
 ) -> str:
     """
     Generate a valid commit hash from the provided weights.
+
     Args:
         who (str): The account identifier.
         netuid (int): The network unique identifier.
         uids (List[int]): The list of UIDs.
         values (List[int]): The list of weight values.
         version_key (int): The version key.
+
     Returns:
         str: The generated commit hash.
     """
-    # Create a tuple of the input parameters
-    data = (who, netuid, uids, values, version_key)
+    # Encode data using SCALE codec
+    the_who = ScaleBytes(Keypair(ss58_address=who).public_key)
+    the_netuid = ScaleBytes(netuid.to_bytes(2, "little"))
+
+    vec_uids = Vec(data=None, sub_type="U16")
+    vec_uids.value = [U16(ScaleBytes(uid.to_bytes(2, "little"))) for uid in uids]
+    the_uids = ScaleBytes(vec_uids.encode().data)
+
+    vec_values = Vec(data=None, sub_type="U16")
+    vec_values.value = [
+        U16(ScaleBytes(bytearray(struct.pack("<f", value)))) for value in values
+    ]
+    the_values = ScaleBytes(vec_values.encode().data)
+
+    the_version_key = ScaleBytes(version_key.to_bytes(8, "little"))
+
+    the_data = the_who + the_netuid + the_uids + the_values + the_version_key
 
     # Generate Blake2b hash of the data tuple
-    blake2b_hash = hashlib.blake2b(str(data).encode(), digest_size=32).digest()
+    blake2b_hash = hashlib.blake2b(the_data.data, digest_size=32)
 
     # Convert the hash to hex string and add "0x" prefix
-    commit_hash = "0x" + blake2b_hash.hex()
+    commit_hash = "0x" + blake2b_hash.hexdigest()
 
     return commit_hash

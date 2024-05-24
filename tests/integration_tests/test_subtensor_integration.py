@@ -24,6 +24,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 import torch
 from substrateinterface import Keypair
+import numpy as np
 
 import bittensor
 from bittensor.mock import MockSubtensor
@@ -361,8 +362,8 @@ class TestSubtensor(unittest.TestCase):
         assert fail == False
 
     def test_commit_weights(self):
-        weights = torch.FloatTensor([0.1, 0.2, 0.3, 0.4])
-        uids = torch.tensor([1, 2, 3, 4], dtype=torch.int64)
+        weights = np.array([0.1, 0.2, 0.3, 0.4], dtype=np.float32)
+        uids = np.array([1, 2, 3, 4], dtype=np.int64)
         commit_hash = bittensor.utils.weight_utils.generate_weight_hash(
             who=self.wallet.hotkey.ss58_address,
             netuid=3,
@@ -386,8 +387,8 @@ class TestSubtensor(unittest.TestCase):
         assert message == "Successfully committed weights."
 
     def test_commit_weights_inclusion(self):
-        weights = torch.FloatTensor([0.1, 0.2, 0.3, 0.4])
-        uids = torch.tensor([1, 2, 3, 4], dtype=torch.int64)
+        weights = np.array([0.1, 0.2, 0.3, 0.4], dtype=np.float32)
+        uids = np.array([1, 2, 3, 4], dtype=np.int64)
         commit_hash = bittensor.utils.weight_utils.generate_weight_hash(
             who=self.wallet.hotkey.ss58_address,
             netuid=1,
@@ -412,8 +413,8 @@ class TestSubtensor(unittest.TestCase):
         assert message == "Successfully committed weights."
 
     def test_commit_weights_failed(self):
-        weights = torch.FloatTensor([0.1, 0.2, 0.3, 0.4])
-        uids = torch.tensor([1, 2, 3, 4], dtype=torch.int64)
+        weights = np.array([0.1, 0.2, 0.3, 0.4], dtype=np.float32)
+        uids = np.array([1, 2, 3, 4], dtype=np.int64)
         commit_hash = bittensor.utils.weight_utils.generate_weight_hash(
             who=self.wallet.hotkey.ss58_address,
             netuid=3,
@@ -440,8 +441,8 @@ class TestSubtensor(unittest.TestCase):
         assert message == "Mock failure message"
 
     def test_reveal_weights(self):
-        weights = torch.FloatTensor([0.1, 0.2, 0.3, 0.4])
-        uids = torch.tensor([1, 2, 3, 4], dtype=torch.int64)
+        weights = np.array([0.1, 0.2, 0.3, 0.4], dtype=np.float32)
+        uids = np.array([1, 2, 3, 4], dtype=np.int64)
 
         self.subtensor.reveal_weights = MagicMock(
             return_value=(True, "Successfully revealed weights.")
@@ -455,8 +456,8 @@ class TestSubtensor(unittest.TestCase):
         assert message == "Successfully revealed weights."
 
     def test_reveal_weights_inclusion(self):
-        weights = torch.FloatTensor([0.1, 0.2, 0.3, 0.4])
-        uids = torch.tensor([1, 2, 3, 4], dtype=torch.int64)
+        weights = np.array([0.1, 0.2, 0.3, 0.4], dtype=np.float32)
+        uids = np.array([1, 2, 3, 4], dtype=np.int64)
 
         self.subtensor._do_reveal_weights = MagicMock(return_value=(True, None))
         self.subtensor.reveal_weights = MagicMock(
@@ -475,8 +476,8 @@ class TestSubtensor(unittest.TestCase):
         assert message == "Successfully revealed weights."
 
     def test_reveal_weights_failed(self):
-        weights = torch.FloatTensor([0.1, 0.2, 0.3, 0.4])
-        uids = torch.tensor([1, 2, 3, 4], dtype=torch.int64)
+        weights = np.array([0.1, 0.2, 0.3, 0.4], dtype=np.float32)
+        uids = np.array([1, 2, 3, 4], dtype=np.int64)
 
         self.subtensor._do_reveal_weights = MagicMock(
             return_value=(False, "Mock failure message")
@@ -497,8 +498,8 @@ class TestSubtensor(unittest.TestCase):
         assert message == "Mock failure message"
 
     def test_commit_and_reveal_weights(self):
-        weights = torch.FloatTensor([0.1, 0.2, 0.3, 0.4])
-        uids = torch.tensor([1, 2, 3, 4], dtype=torch.int64)
+        weights = np.array([0.1, 0.2, 0.3, 0.4], dtype=np.float32)
+        uids = np.array([1, 2, 3, 4], dtype=np.int64)
         version_key = 0
 
         # Mock the commit_weights and reveal_weights functions
@@ -533,8 +534,8 @@ class TestSubtensor(unittest.TestCase):
         assert reveal_message == "Successfully revealed weights."
 
     def test_commit_and_reveal_weights_inclusion(self):
-        weights = torch.FloatTensor([0.1, 0.2, 0.3, 0.4])
-        uids = torch.tensor([1, 2, 3, 4], dtype=torch.int64)
+        weights = np.array([0.1, 0.2, 0.3, 0.4], dtype=np.float32)
+        uids = np.array([1, 2, 3, 4], dtype=np.int64)
         version_key = 0
 
         # Mock the commit_weights and reveal_weights functions

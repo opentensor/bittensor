@@ -427,7 +427,7 @@ class TestEmptyArgs(unittest.TestCase):
                 "stakes",
                 "roots",
                 "wallets",
-                "weights",
+                "weight",
                 "st",
                 "wt",
                 "su",

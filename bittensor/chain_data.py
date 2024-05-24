@@ -177,6 +177,8 @@ custom_rpc_type_registry = {
                 ["max_validators", "Compact<u16>"],
                 ["adjustment_alpha", "Compact<u64>"],
                 ["difficulty", "Compact<u64>"],
+                ["commit_reveal_weights_interval", "Compact<u64>"],
+                ["commit_reveal_weights_enabled", "bool"],
             ],
         },
     }
@@ -1074,6 +1076,8 @@ class SubnetHyperparameters:
     max_validators: int
     adjustment_alpha: int
     difficulty: int
+    commit_reveal_weights_interval: int
+    commit_reveal_weights_enabled: bool
 
     @classmethod
     def from_vec_u8(cls, vec_u8: List[int]) -> Optional["SubnetHyperparameters"]:
@@ -1128,6 +1132,8 @@ class SubnetHyperparameters:
             bonds_moving_avg=decoded["bonds_moving_avg"],
             adjustment_alpha=decoded["adjustment_alpha"],
             difficulty=decoded["difficulty"],
+            commit_reveal_weights_interval=decoded["commit_reveal_weights_interval"],
+            commit_reveal_weights_enabled=decoded["commit_reveal_weights_enabled"],
         )
 
     def _to_parameter_dict_torch(
