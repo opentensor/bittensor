@@ -671,11 +671,8 @@ class TestSubtensor(unittest.TestCase):
                     mock_set_status.__exit__ = MagicMock(return_value=True)
 
                     # should return True
-                    assert (
-                        self.subtensor.register(
-                            wallet=wallet, netuid=3, num_processes=3, update_interval=5
-                        )
-                        == True
+                    assert self.subtensor.register(
+                        wallet=wallet, netuid=3, num_processes=3, update_interval=5
                     )
 
                 # calls until True and once again before exiting subtensor class

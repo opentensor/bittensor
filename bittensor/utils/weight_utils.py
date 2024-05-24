@@ -56,7 +56,7 @@ def normalize_max_weight(
         if estimation.max() <= limit:
             return weights / weights.sum()
 
-        # Find the cumlative sum and sorted tensor
+        # Find the cumulative sum and sorted tensor
         cumsum = np.cumsum(estimation, 0)
 
         # Determine the index of cutoff
