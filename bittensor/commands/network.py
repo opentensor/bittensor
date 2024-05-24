@@ -492,7 +492,7 @@ class SubnetHyperparamsCommand:
         table.title = "[white]Subnet Hyperparameters - NETUID: {} - {}".format(
             cli.config.netuid, subtensor.network
         )
-        table.add_column("[overline white]HYPERPARAMETER", style="bold white")
+        table.add_column("[overline white]HYPERPARAMETER", style="white")
         table.add_column("[overline white]VALUE", style="green")
         table.add_column("[overline white]NORMALIZED", style="cyan")
 
@@ -601,9 +601,12 @@ class SubnetGetHyperparamsCommand:
         )
         table.add_column("[overline white]HYPERPARAMETER", style="white")
         table.add_column("[overline white]VALUE", style="green")
+        table.add_column("[overline white]NORMALIZED", style="cyan")
 
-        for param in subnet.__dict__:
-            table.add_row(param, str(subnet.__dict__[param]))
+        normalized_values = normalize_hyperparameters(subnet)
+
+        for param, value, norm_value in normalized_values:
+            table.add_row("  " + param, value, norm_value)
 
         bittensor.__console__.print(table)
 

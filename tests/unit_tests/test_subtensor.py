@@ -32,7 +32,10 @@ from bittensor.subtensor import (
     U16_NORMALIZED_FLOAT,
     U64_NORMALIZED_FLOAT,
 )
+from bittensor.chain_data import SubnetHyperparameters, U16_MAX, U64_MAX
+from bittensor.commands.utils import normalize_hyperparameters
 from bittensor import subtensor_module
+from bittensor.utils.balance import Balance
 
 
 def test_serve_axon_with_external_ip_set():
@@ -475,3 +478,88 @@ def test_weights_rate_limit_success_calls(subtensor, mocker):
     )
     # if we change the methods logic in the future we have to be make sure tha returned type is correct
     assert isinstance(result, int)
+
+
+@pytest.fixture
+def sample_hyperparameters():
+    return MagicMock(spec=SubnetHyperparameters)
+
+
+def get_normalized_value(normalized_data, param_name):
+    return next(
+        (
+            norm_value
+            for p_name, _, norm_value in normalized_data
+            if p_name == param_name
+        ),
+        None,
+    )
+
+
+@pytest.mark.parametrize(
+    "param_name, max_value, mid_value, zero_value, is_balance",
+    [
+        ("adjustment_alpha", U64_MAX, U64_MAX / 2, 0, False),
+        ("max_weight_limit", U16_MAX, U16_MAX / 2, 0, False),
+        ("difficulty", U64_MAX, U64_MAX / 2, 0, False),
+        ("min_difficulty", U64_MAX, U64_MAX / 2, 0, False),
+        ("max_difficulty", U64_MAX, U64_MAX / 2, 0, False),
+        ("bonds_moving_avg", U64_MAX, U64_MAX / 2, 0, False),
+        ("min_burn", 10000000000, 5000000000, 0, True),  # These are in rao
+        ("max_burn", 20000000000, 10000000000, 0, True),
+    ],
+    ids=[
+        "adjustment-alpha",
+        "max_weight_limit",
+        "difficulty",
+        "min_difficulty",
+        "max_difficulty",
+        "bonds_moving_avg",
+        "min_burn",
+        "max_burn",
+    ],
+)
+def test_hyperparameter_normalization(
+    sample_hyperparameters, param_name, max_value, mid_value, zero_value, is_balance
+):
+    setattr(sample_hyperparameters, param_name, mid_value)
+    normalized = normalize_hyperparameters(sample_hyperparameters)
+    norm_value = get_normalized_value(normalized, param_name)
+
+    # Mid-value test
+    if is_balance:
+        numeric_value = float(str(norm_value).lstrip(bittensor.__tao_symbol__))
+        expected_tao = mid_value / 1e9
+        assert (
+            numeric_value == expected_tao
+        ), f"Mismatch in tao value for {param_name} at mid value"
+    else:
+        assert float(norm_value) == 0.5, f"Failed mid-point test for {param_name}"
+
+    # Max-value test
+    setattr(sample_hyperparameters, param_name, max_value)
+    normalized = normalize_hyperparameters(sample_hyperparameters)
+    norm_value = get_normalized_value(normalized, param_name)
+
+    if is_balance:
+        numeric_value = float(str(norm_value).lstrip(bittensor.__tao_symbol__))
+        expected_tao = max_value / 1e9
+        assert (
+            numeric_value == expected_tao
+        ), f"Mismatch in tao value for {param_name} at max value"
+    else:
+        assert float(norm_value) == 1.0, f"Failed max value test for {param_name}"
+
+    # Zero-value test
+    setattr(sample_hyperparameters, param_name, zero_value)
+    normalized = normalize_hyperparameters(sample_hyperparameters)
+    norm_value = get_normalized_value(normalized, param_name)
+
+    if is_balance:
+        numeric_value = float(str(norm_value).lstrip(bittensor.__tao_symbol__))
+        expected_tao = zero_value / 1e9
+        assert (
+            numeric_value == expected_tao
+        ), f"Mismatch in tao value for {param_name} at zero value"
+    else:
+        assert float(norm_value) == 0.0, f"Failed zero value test for {param_name}"
