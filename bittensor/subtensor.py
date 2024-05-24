@@ -127,7 +127,7 @@ class ParamWithTypes(TypedDict):
     type: str  # ScaleType string of the parameter.
 
 
-class subtensor:
+class Subtensor:
     """
     The Subtensor class in Bittensor serves as a crucial interface for interacting with the Bittensor blockchain,
     facilitating a range of operations essential for the decentralized machine learning network.
@@ -227,11 +227,11 @@ class subtensor:
             network = None
 
         if config is None:
-            config = subtensor.config()
+            config = Subtensor.config()
         self.config = copy.deepcopy(config)  # type: ignore
 
         # Setup config.subtensor.network and config.subtensor.chain_endpoint
-        self.chain_endpoint, self.network = subtensor.setup_config(network, config)  # type: ignore
+        self.chain_endpoint, self.network = Subtensor.setup_config(network, config)  # type: ignore
 
         if (
             self.network == "finney"
@@ -308,7 +308,7 @@ class subtensor:
                 `subtensor.add_args` method.
         """
         parser = argparse.ArgumentParser()
-        subtensor.add_args(parser)
+        Subtensor.add_args(parser)
         return bittensor.config(parser, args=[])
 
     @classmethod
@@ -443,13 +443,13 @@ class subtensor:
             (
                 evaluated_network,
                 evaluated_endpoint,
-            ) = subtensor.determine_chain_endpoint_and_network(network)
+            ) = Subtensor.determine_chain_endpoint_and_network(network)
         else:
             if config.get("__is_set", {}).get("subtensor.chain_endpoint"):
                 (
                     evaluated_network,
                     evaluated_endpoint,
-                ) = subtensor.determine_chain_endpoint_and_network(
+                ) = Subtensor.determine_chain_endpoint_and_network(
                     config.subtensor.chain_endpoint
                 )
 
@@ -457,7 +457,7 @@ class subtensor:
                 (
                     evaluated_network,
                     evaluated_endpoint,
-                ) = subtensor.determine_chain_endpoint_and_network(
+                ) = Subtensor.determine_chain_endpoint_and_network(
                     config.subtensor.network
                 )
 
@@ -465,7 +465,7 @@ class subtensor:
                 (
                     evaluated_network,
                     evaluated_endpoint,
-                ) = subtensor.determine_chain_endpoint_and_network(
+                ) = Subtensor.determine_chain_endpoint_and_network(
                     config.subtensor.chain_endpoint
                 )
 
@@ -473,7 +473,7 @@ class subtensor:
                 (
                     evaluated_network,
                     evaluated_endpoint,
-                ) = subtensor.determine_chain_endpoint_and_network(
+                ) = Subtensor.determine_chain_endpoint_and_network(
                     config.subtensor.network
                 )
 
@@ -481,7 +481,7 @@ class subtensor:
                 (
                     evaluated_network,
                     evaluated_endpoint,
-                ) = subtensor.determine_chain_endpoint_and_network(
+                ) = Subtensor.determine_chain_endpoint_and_network(
                     bittensor.defaults.subtensor.network
                 )
 
@@ -1444,8 +1444,7 @@ class subtensor:
             wait_for_finalization (bool): Whether to wait for the transaction to be finalized. Default is True.
 
         Returns:
-            Tuple[bool, Optional[str]]: A tuple containing a boolean indicating success or failure, and an optional
-                error message.
+            Tuple[bool, Optional[str]]: A tuple containing a boolean indicating success or failure, and an optional error message.
         """
 
         @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
@@ -2660,7 +2659,7 @@ class subtensor:
         self,
         key: str,
         block: Optional[int] = None,
-    ) -> Optional["ScaleType"]:
+    ) -> dict:
         """
         Queries the identity of a neuron on the Bittensor blockchain using the given key. This function retrieves
         detailed identity information about a specific neuron, which is a crucial aspect of the network's decentralized
@@ -2675,15 +2674,14 @@ class subtensor:
             block (Optional[int]): The blockchain block number at which to perform the query.
 
         Returns:
-            Optional[ScaleType]: An object containing the identity information of the neuron if found, ``None``
-                otherwise.
+            result (dict): An object containing the identity information of the neuron if found, ``None`` otherwise.
 
         The identity information can include various attributes such as the neuron's stake, rank, and other
         network-specific details, providing insights into the neuron's role and status within the Bittensor network.
         """
 
         @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
-        def make_substrate_call_with_retry():
+        def make_substrate_call_with_retry() -> "ScaleType":
             return self.substrate.query(
                 module="Registry",
                 storage_function="IdentityOf",
@@ -2694,6 +2692,7 @@ class subtensor:
             )
 
         identity_info = make_substrate_call_with_retry()
+
         return bittensor.utils.wallet_utils.decode_hex_identity_dict(
             identity_info.value["info"]
         )
@@ -3009,10 +3008,11 @@ class subtensor:
         @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
         def make_substrate_call_with_retry() -> Dict[Any, Any]:
             block_hash = None if block is None else self.substrate.get_block_hash(block)
-            params = [method, data]
-            if block_hash:
-                params = params + [block_hash]
-            return self.substrate.rpc_request(method="state_call", params=params)
+
+            return self.substrate.rpc_request(
+                method="state_call",
+                params=[method, data, block_hash] if block_hash else [method, data],
+            )
 
         return make_substrate_call_with_retry()
 
@@ -3369,12 +3369,10 @@ class subtensor:
 
         Args:
             netuid (int): The unique identifier of the subnetwork.
-            block (Optional[int], optional): The block number to retrieve the parameter from. If ``None``, the latest
-                block is used. Default is ``None``.
+            block (Optional[int], optional): The block number to retrieve the parameter from. If ``None``, the latest block is used. Default is ``None``.
 
         Returns:
-            Optional[float]: The value of the ValidatorExcludeQuantile hyperparameter, or ``None`` if the subnetwork
-                does not exist or the parameter is not found.
+            Optional[float]: The value of the ValidatorExcludeQuantile hyperparameter, or ``None`` if the subnetwork does not exist or the parameter is not found.
         """
         call = self._get_hyperparameter(
             param_name="ValidatorExcludeQuantile", netuid=netuid, block=block
@@ -3618,62 +3616,149 @@ class subtensor:
     def get_total_stake_for_hotkey(
         self, ss58_address: str, block: Optional[int] = None
     ) -> Optional["Balance"]:
-        """Returns the total stake held on a hotkey including delegative"""
+        """
+        Returns the total stake held on a hotkey including delegative.
+
+        Args:
+            ss58_address (str): The SS58 address of the hotkey.
+            block (Optional[int], optional): The block number to retrieve the stake from. If ``None``, the latest
+                block is used. Default is ``None``.
+
+        Returns:
+            Optional[Balance]: The total stake held on the hotkey, or ``None`` if the hotkey does not
+                exist or the stake is not found.
+        """
         _result = self.query_subtensor("TotalHotkeyStake", block, [ss58_address])
-        if not hasattr(_result, "value") or _result is None:
-            return None
-        return Balance.from_rao(_result.value)
+        return (
+            None
+            if getattr(_result, "value", None) is None
+            else Balance.from_rao(_result.value)
+        )
 
     def get_total_stake_for_coldkey(
         self, ss58_address: str, block: Optional[int] = None
     ) -> Optional["Balance"]:
-        """Returns the total stake held on a coldkey across all hotkeys including delegates"""
+        """
+        Returns the total stake held on a coldkey.
+
+        Args:
+            ss58_address (str): The SS58 address of the coldkey.
+            block (Optional[int], optional): The block number to retrieve the stake from. If ``None``, the latest
+                block is used. Default is ``None``.
+
+        Returns:
+            Optional[Balance]: The total stake held on the coldkey, or ``None`` if the coldkey does not
+                exist or the stake is not found.
+        """
         _result = self.query_subtensor("TotalColdkeyStake", block, [ss58_address])
-        if not hasattr(_result, "value") or _result is None:
-            return None
-        return Balance.from_rao(_result.value)
+        return (
+            None
+            if getattr(_result, "value", None) is None
+            else Balance.from_rao(_result.value)
+        )
 
     def get_stake_for_coldkey_and_hotkey(
         self, hotkey_ss58: str, coldkey_ss58: str, block: Optional[int] = None
     ) -> Optional["Balance"]:
-        """Returns the stake under a coldkey - hotkey pairing"""
+        """
+        Returns the stake under a coldkey - hotkey pairing.
+
+        Args:
+            hotkey_ss58 (str): The SS58 address of the hotkey.
+            coldkey_ss58 (str): The SS58 address of the coldkey.
+            block (Optional[int], optional): The block number to retrieve the stake from. If ``None``, the latest
+                block is used. Default is ``None``.
+
+        Returns:
+            Optional[Balance]: The stake under the coldkey - hotkey pairing, or ``None`` if the pairing does not
+                exist or the stake is not found.
+        """
         _result = self.query_subtensor("Stake", block, [hotkey_ss58, coldkey_ss58])
-        if not hasattr(_result, "value") or _result is None:
-            return None
-        return Balance.from_rao(_result.value)
+        return (
+            None
+            if getattr(_result, "value", None) is None
+            else Balance.from_rao(_result.value)
+        )
 
     def get_stake(
         self, hotkey_ss58: str, block: Optional[int] = None
     ) -> List[Tuple[str, "Balance"]]:
-        """Returns a list of stake tuples (coldkey, balance) for each delegating coldkey including the owner"""
+        """
+        Returns a list of stake tuples (coldkey, balance) for each delegating coldkey including the owner.
+
+        Args:
+            hotkey_ss58 (str): The SS58 address of the hotkey.
+            block (Optional[int], optional): The block number to retrieve the stakes from. If ``None``, the latest
+                block is used. Default is ``None``.
+
+        Returns:
+            List[Tuple[str, Balance]]: A list of tuples, each containing a coldkey SS58 address and the corresponding
+                balance staked by that coldkey.
+        """
         return [
             (r[0].value, Balance.from_rao(r[1].value))
             for r in self.query_map_subtensor("Stake", block, [hotkey_ss58])
         ]
 
     def does_hotkey_exist(self, hotkey_ss58: str, block: Optional[int] = None) -> bool:
-        """Returns true if the hotkey is known by the chain and there are accounts."""
-        _result = self.query_subtensor("Owner", block, [hotkey_ss58])
-        if not hasattr(_result, "value") or _result is None:
-            return False
+        """
+        Returns true if the hotkey is known by the chain and there are accounts.
 
-        return _result.value != "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM"
+        Args:
+            hotkey_ss58 (str): The SS58 address of the hotkey.
+            block (Optional[int], optional): The block number to check the hotkey against. If ``None``, the latest
+                block is used. Default is ``None``.
+
+        Returns:
+            bool: ``True`` if the hotkey is known by the chain and there are accounts, ``False`` otherwise.
+        """
+        _result = self.query_subtensor("Owner", block, [hotkey_ss58])
+        return (
+            False
+            if getattr(_result, "value", None) is None
+            else _result.value != "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM"
+        )
 
     def get_hotkey_owner(
         self, hotkey_ss58: str, block: Optional[int] = None
     ) -> Optional[str]:
-        """Returns the coldkey owner of the passed hotkey"""
-        _result = self.query_subtensor("Owner", block, [hotkey_ss58])
-        if not hasattr(_result, "value") or _result is None:
-            return None
-        if self.does_hotkey_exist(hotkey_ss58, block):
-            return _result.value
-        return None
+        """
+        Returns the coldkey owner of the passed hotkey.
 
+        Args:
+            hotkey_ss58 (str): The SS58 address of the hotkey.
+            block (Optional[int], optional): The block number to check the hotkey owner against. If ``None``, the latest
+                block is used. Default is ``None``.
+
+        Returns:
+            Optional[str]: The SS58 address of the coldkey owner, or ``None`` if the hotkey does not exist or the owner
+                is not found.
+        """
+        _result = self.query_subtensor("Owner", block, [hotkey_ss58])
+        return (
+            None
+            if getattr(_result, "value", None) is None
+            or not self.does_hotkey_exist(hotkey_ss58, block)
+            else _result.value
+        )
+
+    # TODO: check if someone still use this method. bittensor not.
     def get_axon_info(
         self, netuid: int, hotkey_ss58: str, block: Optional[int] = None
     ) -> Optional[AxonInfo]:
-        """Returns the axon information for this hotkey account"""
+        """
+        Returns the axon information for this hotkey account.
+
+        Args:
+            netuid (int): The unique identifier of the subnetwork.
+            hotkey_ss58 (str): The SS58 address of the hotkey.
+            block (Optional[int], optional): The block number to retrieve the axon information from. If ``None``, the
+                latest block is used. Default is ``None``.
+
+        Returns:
+            Optional[AxonInfo]: An AxonInfo object containing the axon information, or ``None`` if the axon information
+                is not found.
+        """
         result = self.query_subtensor("Axons", block, [netuid, hotkey_ss58])
         if result is not None and hasattr(result, "value"):
             return AxonInfo(
@@ -3687,15 +3772,27 @@ class subtensor:
                 hotkey=hotkey_ss58,
                 coldkey="",
             )
-
         return None
 
+    # It is used in subtensor in neuron_info, and serving
     def get_prometheus_info(
         self, netuid: int, hotkey_ss58: str, block: Optional[int] = None
     ) -> Optional[PrometheusInfo]:
-        """Returns the prometheus information for this hotkey account"""
+        """
+        Returns the prometheus information for this hotkey account.
+
+        Args:
+            netuid (int): The unique identifier of the subnetwork.
+            hotkey_ss58 (str): The SS58 address of the hotkey.
+            block (Optional[int], optional): The block number to retrieve the prometheus information from. If ``None``,
+                the latest block is used. Default is ``None``.
+
+        Returns:
+            Optional[PrometheusInfo]: A PrometheusInfo object containing the prometheus information, or ``None`` if the
+                prometheus information is not found.
+        """
         result = self.query_subtensor("Prometheus", block, [netuid, hotkey_ss58])
-        if result is not None:
+        if result is not None and hasattr(result, "value"):
             return PrometheusInfo(
                 ip=networking.int_to_ip(result.value["ip"]),
                 ip_type=result.value["ip_type"],
@@ -3703,8 +3800,7 @@ class subtensor:
                 version=result.value["version"],
                 block=result.value["block"],
             )
-        else:
-            return None
+        return None
 
     #####################
     # Global Parameters #
@@ -3734,9 +3830,11 @@ class subtensor:
         of the currency and providing insights into the network's economic health and inflationary trends.
         """
         _result = self.query_subtensor("TotalIssuance", block)
-        if not hasattr(_result, "value") or _result is None:
-            return None
-        return Balance.from_rao(_result.value)
+        return (
+            None
+            if getattr(_result, "value", None) is None
+            else Balance.from_rao(_result.value)
+        )
 
     def total_stake(self, block: Optional[int] = None) -> Optional[Balance]:
         """
@@ -3755,9 +3853,11 @@ class subtensor:
         consensus and incentive mechanisms.
         """
         _result = self.query_subtensor("TotalStake", block)
-        if not hasattr(_result, "value") or _result is None:
-            return None
-        return Balance.from_rao(_result.value)
+        return (
+            None
+            if getattr(_result, "value", None) is None
+            else Balance.from_rao(_result.value)
+        )
 
     def serving_rate_limit(
         self, netuid: int, block: Optional[int] = None
@@ -3779,12 +3879,10 @@ class subtensor:
         overuse of resources by individual neurons. It helps ensure a balanced distribution of service
         requests across the network.
         """
-        if not self.subnet_exists(netuid, block):
-            return None
-        _result = self.query_subtensor("ServingRateLimit", block, [netuid])
-        if not hasattr(_result, "value") or _result is None:
-            return None
-        return _result.value
+        call = self._get_hyperparameter(
+            param_name="ServingRateLimit", netuid=netuid, block=block
+        )
+        return None if call is None else int(call)
 
     def tx_rate_limit(self, block: Optional[int] = None) -> Optional[int]:
         """
@@ -3802,9 +3900,7 @@ class subtensor:
         maintaining efficient and timely transaction processing.
         """
         _result = self.query_subtensor("TxRateLimit", block)
-        if not hasattr(_result, "value") or _result is None:
-            return None
-        return _result.value
+        return getattr(_result, "value", None)
 
     ######################
     # Network Parameters #
@@ -3825,9 +3921,7 @@ class subtensor:
         enabling a deeper understanding of the network's structure and composition.
         """
         _result = self.query_subtensor("NetworksAdded", block, [netuid])
-        if not hasattr(_result, "value") or _result is None:
-            return False
-        return _result.value
+        return getattr(_result, "value", False)
 
     def get_all_subnet_netuids(self, block: Optional[int] = None) -> List[int]:
         """
@@ -3842,14 +3936,12 @@ class subtensor:
         This function provides a comprehensive view of the subnets within the Bittensor network,
         offering insights into its diversity and scale.
         """
-        subnet_netuids = []
         result = self.query_map_subtensor("NetworksAdded", block)
-        if result.records:
-            for netuid, exists in result:
-                if exists:
-                    subnet_netuids.append(netuid.value)
-
-        return subnet_netuids
+        return (
+            []
+            if result is None or not hasattr(result, "records")
+            else [netuid.value for netuid, exists in result if exists]
+        )
 
     def get_total_subnets(self, block: Optional[int] = None) -> Optional[int]:
         """
@@ -3865,25 +3957,29 @@ class subtensor:
         the extent of its decentralized infrastructure.
         """
         _result = self.query_subtensor("TotalNetworks", block)
-        if not hasattr(_result, "value") or _result is None:
-            return None
-        return _result.value
+        return getattr(_result, "value", None)
 
     def get_subnet_modality(
         self, netuid: int, block: Optional[int] = None
     ) -> Optional[int]:
+        """
+        Returns the NetworkModality hyperparameter for a specific subnetwork.
+
+        Args:
+            netuid (int): The unique identifier of the subnetwork.
+            block (Optional[int], optional): The block number to retrieve the parameter from. If ``None``, the latest block is used. Default is ``None``.
+
+        Returns:
+            Optional[int]: The value of the NetworkModality hyperparameter, or ``None`` if the subnetwork does not exist or the parameter is not found.
+        """
         _result = self.query_subtensor("NetworkModality", block, [netuid])
-        if not hasattr(_result, "value") or _result is None:
-            return None
-        return _result.value
+        return getattr(_result, "value", None)
 
     def get_subnet_connection_requirement(
         self, netuid_0: int, netuid_1: int, block: Optional[int] = None
     ) -> Optional[int]:
         _result = self.query_subtensor("NetworkConnect", block, [netuid_0, netuid_1])
-        if not hasattr(_result, "value") or _result is None:
-            return None
-        return _result.value
+        return getattr(_result, "value", None)
 
     def get_emission_value_by_subnet(
         self, netuid: int, block: Optional[int] = None
@@ -3903,9 +3999,11 @@ class subtensor:
         reward mechanisms within the subnet.
         """
         _result = self.query_subtensor("EmissionValues", block, [netuid])
-        if not hasattr(_result, "value") or _result is None:
-            return None
-        return Balance.from_rao(_result.value)
+        return (
+            None
+            if getattr(_result, "value", None) is None
+            else Balance.from_rao(_result.value)
+        )
 
     def get_subnet_connection_requirements(
         self, netuid: int, block: Optional[int] = None
@@ -3925,10 +4023,11 @@ class subtensor:
         with specific subnets, ensuring compliance with their connection standards.
         """
         result = self.query_map_subtensor("NetworkConnect", block, [netuid])
-        if result.records:
-            return {str(tuple_[0].value): tuple_[1].value for tuple_ in result.records}
-        else:
-            return {}
+        return (
+            {str(netuid.value): exists.value for netuid, exists in result.records}
+            if result and hasattr(result, "records")
+            else {}
+        )
 
     def get_subnets(self, block: Optional[int] = None) -> List[int]:
         """
@@ -3944,14 +4043,12 @@ class subtensor:
         This function is valuable for understanding the network's structure and the diversity of subnets
         available for neuron participation and collaboration.
         """
-        subnets = []
         result = self.query_map_subtensor("NetworksAdded", block)
-        if result.records:
-            for network in result.records:
-                subnets.append(network[0].value)
-            return subnets
-        else:
-            return []
+        return (
+            [network[0].value for network in result.records]
+            if result and hasattr(result, "records")
+            else []
+        )
 
     def get_all_subnets_info(self, block: Optional[int] = None) -> List[SubnetInfo]:
         """
@@ -3971,18 +4068,15 @@ class subtensor:
         @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
         def make_substrate_call_with_retry():
             block_hash = None if block is None else self.substrate.get_block_hash(block)
-            params = []
-            if block_hash:
-                params = params + [block_hash]
+
             return self.substrate.rpc_request(
                 method="subnetInfo_getSubnetsInfo",  # custom rpc method
-                params=params,
+                params=[block_hash] if block_hash else [],
             )
 
         json_body = make_substrate_call_with_retry()
-        result = json_body["result"]
 
-        if result in (None, []):
+        if not (result := json_body.get("result", None)):
             return []
 
         return SubnetInfo.list_from_vec_u8(result)
@@ -4008,18 +4102,15 @@ class subtensor:
         @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
         def make_substrate_call_with_retry():
             block_hash = None if block is None else self.substrate.get_block_hash(block)
-            params = [netuid]
-            if block_hash:
-                params = params + [block_hash]
+
             return self.substrate.rpc_request(
                 method="subnetInfo_getSubnetInfo",  # custom rpc method
-                params=params,
+                params=[netuid, block_hash] if block_hash else [netuid],
             )
 
         json_body = make_substrate_call_with_retry()
-        result = json_body["result"]
 
-        if result in (None, []):
+        if not (result := json_body.get("result", None)):
             return None
 
         return SubnetInfo.from_vec_u8(result)
@@ -4044,17 +4135,17 @@ class subtensor:
         hex_bytes_result = self.query_runtime_api(
             runtime_api="SubnetInfoRuntimeApi",
             method="get_subnet_hyperparams",
-            params=[netuid],  # type: ignore
+            params=[netuid],
             block=block,
         )
 
         if hex_bytes_result is None:
             return []
 
-        if hex_bytes_result.startswith("0x"):  # type: ignore
-            bytes_result = bytes.fromhex(hex_bytes_result[2:])  # type: ignore
+        if hex_bytes_result.startswith("0x"):
+            bytes_result = bytes.fromhex(hex_bytes_result[2:])
         else:
-            bytes_result = bytes.fromhex(hex_bytes_result)  # type: ignore
+            bytes_result = bytes.fromhex(hex_bytes_result)
 
         return SubnetHyperparameters.from_vec_u8(bytes_result)  # type: ignore
 
@@ -4076,9 +4167,7 @@ class subtensor:
         which can be important for decision-making and collaboration within the network.
         """
         _result = self.query_subtensor("SubnetOwner", block, [netuid])
-        if not hasattr(_result, "value") or _result is None:
-            return None
-        return _result.value
+        return getattr(_result, "value", None)
 
     ##############
     # Nomination #
@@ -4120,9 +4209,11 @@ class subtensor:
         the distribution of rewards among neurons and their nominators.
         """
         _result = self.query_subtensor("Delegates", block, [hotkey_ss58])
-        if not hasattr(_result, "value") or _result is None:
-            return None
-        return U16_NORMALIZED_FLOAT(_result.value)
+        return (
+            None
+            if getattr(_result, "value", None) is None
+            else U16_NORMALIZED_FLOAT(_result.value)
+        )
 
     def get_nominators_for_hotkey(
         self, hotkey_ss58: str, block: Optional[int] = None
@@ -4136,17 +4227,17 @@ class subtensor:
             block (Optional[int], optional): The blockchain block number for the query.
 
         Returns:
-           Union[List[Tuple[str, Balance]], int]: A list of tuples containing each nominator's address and staked amount
-            or 0.
+           Union[List[Tuple[str, Balance]], int]: A list of tuples containing each nominator's address and staked amount or 0.
 
         This function provides insights into the neuron's support network within the Bittensor ecosystem,
         indicating its trust and collaboration relationships.
         """
         result = self.query_map_subtensor("Stake", block, [hotkey_ss58])
-        if result.records:
-            return [(record[0].value, record[1].value) for record in result.records]
-        else:
-            return 0
+        return (
+            [(record[0].value, record[1].value) for record in result.records]
+            if result and hasattr(result, "records")
+            else 0
+        )
 
     def get_delegate_by_hotkey(
         self, hotkey_ss58: str, block: Optional[int] = None
@@ -4169,19 +4260,18 @@ class subtensor:
         @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
         def make_substrate_call_with_retry(encoded_hotkey_: List[int]):
             block_hash = None if block is None else self.substrate.get_block_hash(block)
-            params = [encoded_hotkey_]
-            if block_hash:
-                params = params + [block_hash]
+
             return self.substrate.rpc_request(
                 method="delegateInfo_getDelegate",  # custom rpc method
-                params=params,
+                params=[encoded_hotkey_, block_hash]
+                if block_hash
+                else [encoded_hotkey_],
             )
 
         encoded_hotkey = ss58_to_vec_u8(hotkey_ss58)
         json_body = make_substrate_call_with_retry(encoded_hotkey)
-        result = json_body["result"]
 
-        if result in (None, []):
+        if not (result := json_body.get("result", None)):
             return None
 
         return DelegateInfo.from_vec_u8(result)
@@ -4207,18 +4297,15 @@ class subtensor:
         @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
         def make_substrate_call_with_retry():
             block_hash = None if block is None else self.substrate.get_block_hash(block)
-            params = []
-            if block_hash:
-                params.extend([block_hash])
+
             return self.substrate.rpc_request(
                 method="delegateInfo_getDelegatesLite",  # custom rpc method
-                params=params,
+                params=[block_hash] if block_hash else [],
             )
 
         json_body = make_substrate_call_with_retry()
-        result = json_body["result"]
 
-        if result in (None, []):
+        if not (result := json_body.get("result", None)):
             return []
 
         return [DelegateInfoLite(**d) for d in result]
@@ -4244,18 +4331,15 @@ class subtensor:
         @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
         def make_substrate_call_with_retry():
             block_hash = None if block is None else self.substrate.get_block_hash(block)
-            params = []
-            if block_hash:
-                params.extend([block_hash])
+
             return self.substrate.rpc_request(
                 method="delegateInfo_getDelegates",  # custom rpc method
-                params=params,
+                params=[block_hash] if block_hash else [],
             )
 
         json_body = make_substrate_call_with_retry()
-        result = json_body["result"]
 
-        if result in (None, []):
+        if not (result := json_body.get("result", None)):
             return []
 
         return DelegateInfo.list_from_vec_u8(result)
@@ -4282,19 +4366,18 @@ class subtensor:
         @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
         def make_substrate_call_with_retry(encoded_coldkey_: List[int]):
             block_hash = None if block is None else self.substrate.get_block_hash(block)
-            params = [encoded_coldkey_]
-            if block_hash:
-                params = params + [block_hash]
+
             return self.substrate.rpc_request(
-                method="delegateInfo_getDelegated",  # custom rpc method
-                params=params,
+                method="delegateInfo_getDelegated",
+                params=[block_hash, encoded_coldkey_]
+                if block_hash
+                else [encoded_coldkey_],
             )
 
         encoded_coldkey = ss58_to_vec_u8(coldkey_ss58)
         json_body = make_substrate_call_with_retry(encoded_coldkey)
-        result = json_body["result"]
 
-        if result in (None, []):
+        if not (result := json_body.get("result", None)):
             return []
 
         return DelegateInfo.delegated_list_from_vec_u8(result)
@@ -4380,7 +4463,19 @@ class subtensor:
 
     def get_minimum_required_stake(
         self,
-    ):
+    ) -> Balance:
+        """
+        Returns the minimum required stake for nominators in the Subtensor network.
+
+        This method retries the substrate call up to three times with exponential backoff in case of failures.
+
+        Returns:
+            Balance: The minimum required stake as a Balance object.
+
+        Raises:
+            Exception: If the substrate call fails after the maximum number of retries.
+        """
+
         @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
         def make_substrate_call_with_retry():
             return self.substrate.query(
@@ -4479,9 +4574,7 @@ class subtensor:
         operational and governance activities on a particular subnet.
         """
         _result = self.query_subtensor("Uids", block, [netuid, hotkey_ss58])
-        if not hasattr(_result, "value") or _result is None:
-            return None
-        return _result.value
+        return getattr(_result, "value", None)
 
     def get_all_uids_for_hotkey(
         self, hotkey_ss58: str, block: Optional[int] = None
@@ -4522,7 +4615,11 @@ class subtensor:
             List[int]: A list of netuids where the neuron is a member.
         """
         result = self.query_map_subtensor("IsNetworkMember", block, [hotkey_ss58])
-        return [record[0].value for record in result.records if record[1]]
+        return (
+            [record[0].value for record in result.records if record[1]]
+            if result and hasattr(result, "records")
+            else []
+        )
 
     def get_neuron_for_pubkey_and_subnet(
         self, hotkey_ss58: str, netuid: int, block: Optional[int] = None
@@ -4551,7 +4648,7 @@ class subtensor:
 
     def get_all_neurons_for_pubkey(
         self, hotkey_ss58: str, block: Optional[int] = None
-    ) -> Optional[List[NeuronInfo]]:
+    ) -> List[NeuronInfo]:
         """
         Retrieves information about all neuron instances associated with a given public key (hotkey ``SS58``
         address) across different subnets of the Bittensor network. This function aggregates neuron data
@@ -4569,7 +4666,7 @@ class subtensor:
         """
         netuids = self.get_netuids_for_hotkey(hotkey_ss58, block)
         uids = [self.get_uid_for_hotkey_on_subnet(hotkey_ss58, net) for net in netuids]
-        return [self.neuron_for_uid(uid, net) for uid, net in list(zip(uids, netuids))]  # type: ignore
+        return [self.neuron_for_uid(uid, net) for uid, net in list(zip(uids, netuids))]
 
     def neuron_has_validator_permit(
         self, uid: int, netuid: int, block: Optional[int] = None
@@ -4591,9 +4688,7 @@ class subtensor:
         subnet, particularly regarding its involvement in network validation and governance.
         """
         _result = self.query_subtensor("ValidatorPermit", block, [netuid, uid])
-        if not hasattr(_result, "value") or _result is None:
-            return None
-        return _result.value
+        return getattr(_result, "value", None)
 
     def neuron_for_wallet(
         self, wallet: "bittensor.wallet", netuid: int, block: Optional[int] = None
@@ -4620,7 +4715,7 @@ class subtensor:
 
     def neuron_for_uid(
         self, uid: Optional[int], netuid: int, block: Optional[int] = None
-    ) -> Optional[NeuronInfo]:
+    ) -> NeuronInfo:
         """
         Retrieves detailed information about a specific neuron identified by its unique identifier (UID)
         within a specified subnet (netuid) of the Bittensor network. This function provides a comprehensive
@@ -4632,12 +4727,13 @@ class subtensor:
             block (Optional[int], optional): The blockchain block number for the query.
 
         Returns:
-            Optional[NeuronInfo]: Detailed information about the neuron if found, ``None`` otherwise.
+            NeuronInfo: Detailed information about the neuron if found, ``None`` otherwise.
 
         This function is crucial for analyzing individual neurons' contributions and status within a specific
         subnet, offering insights into their roles in the network's consensus and validation mechanisms.
         """
         if uid is None:
+            # TODO: fix `Access to a protected member _null_neuron of a class` error when chane_data.py refactoring.
             return NeuronInfo._null_neuron()
 
         @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
@@ -4651,9 +4747,9 @@ class subtensor:
             )
 
         json_body = make_substrate_call_with_retry()
-        result = json_body["result"]
 
-        if result in (None, []):
+        if not (result := json_body.get("result", None)):
+            # TODO: fix `Access to a protected member _null_neuron of a class` error when chane_data.py refactoring.
             return NeuronInfo._null_neuron()
 
         return NeuronInfo.from_vec_u8(result)
@@ -4709,6 +4805,7 @@ class subtensor:
         subnet without the need for comprehensive data retrieval.
         """
         if uid is None:
+            # TODO: fix `Access to a protected member _null_neuron of a class` error when chane_data.py refactoring.
             return NeuronInfoLite._null_neuron()
 
         hex_bytes_result = self.query_runtime_api(
@@ -4722,6 +4819,7 @@ class subtensor:
         )
 
         if hex_bytes_result is None:
+            # TODO: fix `Access to a protected member _null_neuron of a class` error when chane_data.py refactoring.
             return NeuronInfoLite._null_neuron()
 
         if hex_bytes_result.startswith("0x"):
@@ -4953,6 +5051,23 @@ class subtensor:
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
     ) -> bool:
+        """
+        Delegates a specified amount of stake to a delegate's hotkey.
+
+        This method sends a transaction to add stake to a delegate's hotkey and retries the call up to three times
+        with exponential backoff in case of failures.
+
+        Args:
+            wallet (bittensor.wallet): The wallet from which the stake will be delegated.
+            delegate_ss58 (str): The SS58 address of the delegate's hotkey.
+            amount (Balance): The amount of stake to be delegated.
+            wait_for_inclusion (bool, optional): Whether to wait for the transaction to be included in a block. Default is ``True``.
+            wait_for_finalization (bool, optional): Whether to wait for the transaction to be finalized. Default is ``False``.
+
+        Returns:
+            bool: ``True`` if the delegation is successful, ``False`` otherwise.
+        """
+
         @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
         def make_substrate_call_with_retry():
             call = self.substrate.compose_call(
@@ -4987,6 +5102,23 @@ class subtensor:
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
     ) -> bool:
+        """
+        Removes a specified amount of stake from a delegate's hotkey.
+
+        This method sends a transaction to remove stake from a delegate's hotkey and retries the call up to three times
+        with exponential backoff in case of failures.
+
+        Args:
+            wallet (bittensor.wallet): The wallet from which the stake will be removed.
+            delegate_ss58 (str): The SS58 address of the delegate's hotkey.
+            amount (Balance): The amount of stake to be removed.
+            wait_for_inclusion (bool, optional): Whether to wait for the transaction to be included in a block. Default is ``True``.
+            wait_for_finalization (bool, optional): Whether to wait for the transaction to be finalized. Default is ``False``.
+
+        Returns:
+            bool: ``True`` if the undelegation is successful, ``False`` otherwise.
+        """
+
         @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
         def make_substrate_call_with_retry():
             call = self.substrate.compose_call(
@@ -5022,6 +5154,21 @@ class subtensor:
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
     ) -> bool:
+        """
+        Nominates the wallet's hotkey to become a delegate.
+
+        This method sends a transaction to nominate the wallet's hotkey to become a delegate and retries the call up to
+        three times with exponential backoff in case of failures.
+
+        Args:
+            wallet (bittensor.wallet): The wallet whose hotkey will be nominated.
+            wait_for_inclusion (bool, optional): Whether to wait for the transaction to be included in a block. Default is ``True``.
+            wait_for_finalization (bool, optional): Whether to wait for the transaction to be finalized. Default is ``False``.
+
+        Returns:
+            bool: ``True`` if the nomination is successful, ``False`` otherwise.
+        """
+
         @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
         def make_substrate_call_with_retry():
             call = self.substrate.compose_call(
@@ -5056,6 +5203,23 @@ class subtensor:
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
     ) -> bool:
+        """
+        Increases the take rate for a delegate's hotkey.
+
+        This method sends a transaction to increase the take rate for a delegate's hotkey and retries the call up to
+        three times with exponential backoff in case of failures.
+
+        Args:
+            wallet (bittensor.wallet): The wallet from which the transaction will be signed.
+            hotkey_ss58 (str): The SS58 address of the delegate's hotkey.
+            take (int): The new take rate to be set.
+            wait_for_inclusion (bool, optional): Whether to wait for the transaction to be included in a block. Default is ``True``.
+            wait_for_finalization (bool, optional): Whether to wait for the transaction to be finalized. Default is ``False``.
+
+        Returns:
+            bool: ``True`` if the take rate increase is successful, ``False`` otherwise.
+        """
+
         @retry(delay=1, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
@@ -5094,6 +5258,23 @@ class subtensor:
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
     ) -> bool:
+        """
+        Decreases the take rate for a delegate's hotkey.
+
+        This method sends a transaction to decrease the take rate for a delegate's hotkey and retries the call up to
+        three times with exponential backoff in case of failures.
+
+        Args:
+            wallet (bittensor.wallet): The wallet from which the transaction will be signed.
+            hotkey_ss58 (str): The SS58 address of the delegate's hotkey.
+            take (int): The new take rate to be set.
+            wait_for_inclusion (bool, optional): Whether to wait for the transaction to be included in a block. Default is ``True``.
+            wait_for_finalization (bool, optional): Whether to wait for the transaction to be finalized. Default is ``False``.
+
+        Returns:
+            bool: ``True`` if the take rate decrease is successful, ``False`` otherwise.
+        """
+
         @retry(delay=1, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry():
             with self.substrate as substrate:
@@ -5214,6 +5395,7 @@ class subtensor:
             return_dict[r[0].value] = bal
         return return_dict
 
+    # TODO: check with the team if this is used anywhere externally. not in bittensor
     @staticmethod
     def _null_neuron() -> NeuronInfo:
         neuron = NeuronInfo(
@@ -5259,8 +5441,15 @@ class subtensor:
         return self.substrate.get_block_hash(block_id=block_id)
 
     def get_error_info_by_index(self, error_index: int) -> Tuple[str, str]:
-        """Returns the error name and description from the Subtensor error list."""
+        """
+        Returns the error name and description from the Subtensor error list.
 
+        Args:
+            error_index (int): The index of the error to retrieve.
+
+        Returns:
+            Tuple[str, str]: A tuple containing the error name and description from substrate metadata. If the error index is not found, returns ("Unknown Error", "") and logs a warning.
+        """
         unknown_error = ("Unknown Error", "")
 
         if not self._subtensor_errors:
@@ -5274,3 +5463,7 @@ class subtensor:
             )
 
         return name, description
+
+
+# TODO: remove this after fully migrate `bittensor.subtensor` to `bittensor.Subtensor` in `bittensor/__init__.py`
+subtensor = Subtensor
