@@ -29,8 +29,6 @@ from bittensor.subtensor import (
     subtensor as Subtensor,
     _logger,
     Balance,
-    U16_NORMALIZED_FLOAT,
-    U64_NORMALIZED_FLOAT,
 )
 from bittensor import subtensor_module
 
@@ -420,7 +418,7 @@ def test_hyper_parameter_success_calls(
     subtensor._get_hyperparameter.assert_called_once_with(
         block=707, netuid=7, param_name=param_name
     )
-    # if we change the methods logic in the future we have to be make sure tha returned type is correct
+    # if we change the methods logic in the future we have to be make sure the returned type is correct
     assert isinstance(result, expected_result_type)
 
     # Special cases
@@ -457,7 +455,7 @@ def test_blocks_since_last_update_success_calls(subtensor, mocker):
         param_name="LastUpdate", netuid=7
     )
     assert result == 1
-    # if we change the methods logic in the future we have to be make sure tha returned type is correct
+    # if we change the methods logic in the future we have to be make sure the returned type is correct
     assert isinstance(result, int)
 
 
@@ -473,7 +471,7 @@ def test_weights_rate_limit_success_calls(subtensor, mocker):
     subtensor._get_hyperparameter.assert_called_once_with(
         param_name="WeightsSetRateLimit", netuid=7
     )
-    # if we change the methods logic in the future we have to be make sure tha returned type is correct
+    # if we change the methods logic in the future we have to be make sure the returned type is correct
     assert isinstance(result, int)
 
 
@@ -498,7 +496,7 @@ def test_get_total_stake_for_hotkey_success(subtensor, mocker):
         "TotalHotkeyStake", None, [fake_ss58_address]
     )
     spy_balance_from_rao.assert_called_once()
-    # if we change the methods logic in the future we have to be make sure tha returned type is correct
+    # if we change the methods logic in the future we have to be make sure the returned type is correct
     assert isinstance(result, Balance)
 
 
@@ -517,7 +515,7 @@ def test_get_total_stake_for_hotkey_not_result(subtensor, mocker):
         "TotalHotkeyStake", None, [fake_ss58_address]
     )
     spy_balance_from_rao.assert_not_called()
-    # if we change the methods logic in the future we have to be make sure tha returned type is correct
+    # if we change the methods logic in the future we have to be make sure the returned type is correct
     assert isinstance(result, type(None))
 
 
@@ -536,7 +534,7 @@ def test_get_total_stake_for_hotkey_not_value(subtensor, mocker):
         "TotalHotkeyStake", None, [fake_ss58_address]
     )
     spy_balance_from_rao.assert_not_called()
-    # if we change the methods logic in the future we have to be make sure tha returned type is correct
+    # if we change the methods logic in the future we have to be make sure the returned type is correct
     assert isinstance(subtensor.query_subtensor.return_value, object)
     assert not hasattr(result, "value")
 
@@ -557,7 +555,7 @@ def test_get_total_stake_for_coldkey_success(subtensor, mocker):
         "TotalColdkeyStake", None, [fake_ss58_address]
     )
     spy_balance_from_rao.assert_called_once()
-    # if we change the methods logic in the future we have to be make sure tha returned type is correct
+    # if we change the methods logic in the future we have to be make sure the returned type is correct
     assert isinstance(result, Balance)
 
 
@@ -576,7 +574,7 @@ def test_get_total_stake_for_coldkey_not_result(subtensor, mocker):
         "TotalColdkeyStake", None, [fake_ss58_address]
     )
     spy_balance_from_rao.assert_not_called()
-    # if we change the methods logic in the future we have to be make sure tha returned type is correct
+    # if we change the methods logic in the future we have to be make sure the returned type is correct
     assert isinstance(result, type(None))
 
 
@@ -595,7 +593,7 @@ def test_get_total_stake_for_coldkey_not_value(subtensor, mocker):
         "TotalColdkeyStake", None, [fake_ss58_address]
     )
     spy_balance_from_rao.assert_not_called()
-    # if we change the methods logic in the future we have to be make sure tha returned type is correct
+    # if we change the methods logic in the future we have to be make sure the returned type is correct
     assert isinstance(subtensor.query_subtensor.return_value, object)
     assert not hasattr(result, "value")
 
@@ -1213,7 +1211,9 @@ def test_serving_rate_limit_success(mocker, subtensor):
     # Asserts
     assert result is not None
     assert result == int(rate_limit_value)
-    # subtensor._get_hyperparameter.assert_called_once_with("ServingRateLimit", netuid=netuid, block=block)
+    subtensor._get_hyperparameter.assert_called_once_with(
+        param_name="ServingRateLimit", netuid=netuid, block=block
+    )
 
 
 def test_serving_rate_limit_no_data(mocker, subtensor):
@@ -1318,3 +1318,864 @@ def test_tx_rate_limit_no_block(mocker, subtensor):
 ############################
 # Network Parameters tests #
 ############################
+
+
+# `subnet_exists` tests
+def test_subnet_exists_success(mocker, subtensor):
+    """Test subnet_exists returns True when subnet exists."""
+    # Prep
+    netuid = 1
+    block = 123
+    mock_result = mocker.MagicMock(value=True)
+    mocker.patch.object(subtensor, "query_subtensor", return_value=mock_result)
+
+    # Call
+    result = subtensor.subnet_exists(netuid, block)
+
+    # Asserts
+    assert result is True
+    subtensor.query_subtensor.assert_called_once_with("NetworksAdded", block, [netuid])
+
+
+def test_subnet_exists_no_data(mocker, subtensor):
+    """Test subnet_exists returns False when no subnet information is found."""
+    # Prep
+    netuid = 1
+    block = 123
+    mocker.patch.object(subtensor, "query_subtensor", return_value=None)
+
+    # Call
+    result = subtensor.subnet_exists(netuid, block)
+
+    # Asserts
+    assert result is False
+    subtensor.query_subtensor.assert_called_once_with("NetworksAdded", block, [netuid])
+
+
+def test_subnet_exists_no_value_attribute(mocker, subtensor):
+    """Test subnet_exists returns False when result has no value attribute."""
+    # Prep
+    netuid = 1
+    block = 123
+    mock_result = mocker.MagicMock()
+    del mock_result.value
+    mocker.patch.object(subtensor, "query_subtensor", return_value=mock_result)
+
+    # Call
+    result = subtensor.subnet_exists(netuid, block)
+
+    # Asserts
+    assert result is False
+    subtensor.query_subtensor.assert_called_once_with("NetworksAdded", block, [netuid])
+
+
+def test_subnet_exists_no_block(mocker, subtensor):
+    """Test subnet_exists with no block specified."""
+    # Prep
+    netuid = 1
+    mock_result = mocker.MagicMock(value=True)
+    mocker.patch.object(subtensor, "query_subtensor", return_value=mock_result)
+
+    # Call
+    result = subtensor.subnet_exists(netuid)
+
+    # Asserts
+    assert result is True
+    subtensor.query_subtensor.assert_called_once_with("NetworksAdded", None, [netuid])
+
+
+# `get_all_subnet_netuids` tests
+def test_get_all_subnet_netuids_success(mocker, subtensor):
+    """Test get_all_subnet_netuids returns correct list when netuid information is found."""
+    # Prep
+    block = 123
+    mock_netuid1 = mocker.MagicMock(value=1)
+    mock_netuid2 = mocker.MagicMock(value=2)
+    mock_result = mocker.MagicMock()
+    mock_result.records = True
+    mock_result.__iter__.return_value = [(mock_netuid1, True), (mock_netuid2, True)]
+    mocker.patch.object(subtensor, "query_map_subtensor", return_value=mock_result)
+
+    # Call
+    result = subtensor.get_all_subnet_netuids(block)
+
+    # Asserts
+    assert result == [1, 2]
+    subtensor.query_map_subtensor.assert_called_once_with("NetworksAdded", block)
+
+
+def test_get_all_subnet_netuids_no_data(mocker, subtensor):
+    """Test get_all_subnet_netuids returns empty list when no netuid information is found."""
+    # Prep
+    block = 123
+    mocker.patch.object(subtensor, "query_map_subtensor", return_value=None)
+
+    # Call
+    result = subtensor.get_all_subnet_netuids(block)
+
+    # Asserts
+    assert result == []
+    subtensor.query_map_subtensor.assert_called_once_with("NetworksAdded", block)
+
+
+def test_get_all_subnet_netuids_no_records_attribute(mocker, subtensor):
+    """Test get_all_subnet_netuids returns empty list when result has no records attribute."""
+    # Prep
+    block = 123
+    mock_result = mocker.MagicMock()
+    del mock_result.records
+    mock_result.__iter__.return_value = []
+    mocker.patch.object(subtensor, "query_map_subtensor", return_value=mock_result)
+
+    # Call
+    result = subtensor.get_all_subnet_netuids(block)
+
+    # Asserts
+    assert result == []
+    subtensor.query_map_subtensor.assert_called_once_with("NetworksAdded", block)
+
+
+def test_get_all_subnet_netuids_no_block(mocker, subtensor):
+    """Test get_all_subnet_netuids with no block specified."""
+    # Prep
+    mock_netuid1 = mocker.MagicMock(value=1)
+    mock_netuid2 = mocker.MagicMock(value=2)
+    mock_result = mocker.MagicMock()
+    mock_result.records = True
+    mock_result.__iter__.return_value = [(mock_netuid1, True), (mock_netuid2, True)]
+    mocker.patch.object(subtensor, "query_map_subtensor", return_value=mock_result)
+
+    # Call
+    result = subtensor.get_all_subnet_netuids()
+
+    # Asserts
+    assert result == [1, 2]
+    subtensor.query_map_subtensor.assert_called_once_with("NetworksAdded", None)
+
+
+# `get_total_subnets` tests
+def test_get_total_subnets_success(mocker, subtensor):
+    """Test get_total_subnets returns correct data when total subnet information is found."""
+    # Prep
+    block = 123
+    total_subnets_value = 10
+    mock_result = mocker.MagicMock(value=total_subnets_value)
+    mocker.patch.object(subtensor, "query_subtensor", return_value=mock_result)
+
+    # Call
+    result = subtensor.get_total_subnets(block)
+
+    # Asserts
+    assert result is not None
+    assert result == total_subnets_value
+    subtensor.query_subtensor.assert_called_once_with("TotalNetworks", block)
+
+
+def test_get_total_subnets_no_data(mocker, subtensor):
+    """Test get_total_subnets returns None when no total subnet information is found."""
+    # Prep
+    block = 123
+    mocker.patch.object(subtensor, "query_subtensor", return_value=None)
+
+    # Call
+    result = subtensor.get_total_subnets(block)
+
+    # Asserts
+    assert result is None
+    subtensor.query_subtensor.assert_called_once_with("TotalNetworks", block)
+
+
+def test_get_total_subnets_no_value_attribute(mocker, subtensor):
+    """Test get_total_subnets returns None when result has no value attribute."""
+    # Prep
+    block = 123
+    mock_result = mocker.MagicMock()
+    del mock_result.value  # Simulating a missing value attribute
+    mocker.patch.object(subtensor, "query_subtensor", return_value=mock_result)
+
+    # Call
+    result = subtensor.get_total_subnets(block)
+
+    # Asserts
+    assert result is None
+    subtensor.query_subtensor.assert_called_once_with("TotalNetworks", block)
+
+
+def test_get_total_subnets_no_block(mocker, subtensor):
+    """Test get_total_subnets with no block specified."""
+    # Prep
+    total_subnets_value = 10
+    mock_result = mocker.MagicMock(value=total_subnets_value)
+    mocker.patch.object(subtensor, "query_subtensor", return_value=mock_result)
+
+    # Call
+    result = subtensor.get_total_subnets()
+
+    # Asserts
+    assert result is not None
+    assert result == total_subnets_value
+    subtensor.query_subtensor.assert_called_once_with("TotalNetworks", None)
+
+
+# `get_subnet_modality` tests
+def test_get_subnet_modality_success(mocker, subtensor):
+    """Test get_subnet_modality returns correct data when modality information is found."""
+    # Prep
+    netuid = 1
+    block = 123
+    modality_value = 42
+    mock_result = mocker.MagicMock(value=modality_value)
+    mocker.patch.object(subtensor, "query_subtensor", return_value=mock_result)
+
+    # Call
+    result = subtensor.get_subnet_modality(netuid, block)
+
+    # Asserts
+    assert result is not None
+    assert result == modality_value
+    subtensor.query_subtensor.assert_called_once_with(
+        "NetworkModality", block, [netuid]
+    )
+
+
+def test_get_subnet_modality_no_data(mocker, subtensor):
+    """Test get_subnet_modality returns None when no modality information is found."""
+    # Prep
+    netuid = 1
+    block = 123
+    mocker.patch.object(subtensor, "query_subtensor", return_value=None)
+
+    # Call
+    result = subtensor.get_subnet_modality(netuid, block)
+
+    # Asserts
+    assert result is None
+    subtensor.query_subtensor.assert_called_once_with(
+        "NetworkModality", block, [netuid]
+    )
+
+
+def test_get_subnet_modality_no_value_attribute(mocker, subtensor):
+    """Test get_subnet_modality returns None when result has no value attribute."""
+    # Prep
+    netuid = 1
+    block = 123
+    mock_result = mocker.MagicMock()
+    del mock_result.value  # Simulating a missing value attribute
+    mocker.patch.object(subtensor, "query_subtensor", return_value=mock_result)
+
+    # Call
+    result = subtensor.get_subnet_modality(netuid, block)
+
+    # Asserts
+    assert result is None
+    subtensor.query_subtensor.assert_called_once_with(
+        "NetworkModality", block, [netuid]
+    )
+
+
+def test_get_subnet_modality_no_block_specified(mocker, subtensor):
+    """Test get_subnet_modality with no block specified."""
+    # Prep
+    netuid = 1
+    modality_value = 42
+    mock_result = mocker.MagicMock(value=modality_value)
+    mocker.patch.object(subtensor, "query_subtensor", return_value=mock_result)
+
+    # Call
+    result = subtensor.get_subnet_modality(netuid)
+
+    # Asserts
+    assert result is not None
+    assert result == modality_value
+    subtensor.query_subtensor.assert_called_once_with("NetworkModality", None, [netuid])
+
+
+# `get_emission_value_by_subnet` tests
+def test_get_emission_value_by_subnet_success(mocker, subtensor):
+    """Test get_emission_value_by_subnet returns correct data when emission value is found."""
+    # Prep
+    netuid = 1
+    block = 123
+    emission_value = 1000
+    mock_result = mocker.MagicMock(value=emission_value)
+    mocker.patch.object(subtensor, "query_subtensor", return_value=mock_result)
+    spy_balance_from_rao = mocker.spy(Balance, "from_rao")
+
+    # Call
+    result = subtensor.get_emission_value_by_subnet(netuid, block)
+
+    # Asserts
+    assert result is not None
+    subtensor.query_subtensor.assert_called_once_with("EmissionValues", block, [netuid])
+    spy_balance_from_rao.assert_called_once_with(emission_value)
+    assert result == Balance.from_rao(emission_value)
+
+
+def test_get_emission_value_by_subnet_no_data(mocker, subtensor):
+    """Test get_emission_value_by_subnet returns None when no emission value is found."""
+    # Prep
+    netuid = 1
+    block = 123
+    mocker.patch.object(subtensor, "query_subtensor", return_value=None)
+    spy_balance_from_rao = mocker.spy(Balance, "from_rao")
+
+    # Call
+    result = subtensor.get_emission_value_by_subnet(netuid, block)
+
+    # Asserts
+    assert result is None
+    subtensor.query_subtensor.assert_called_once_with("EmissionValues", block, [netuid])
+    spy_balance_from_rao.assert_not_called()
+
+
+def test_get_emission_value_by_subnet_no_value_attribute(mocker, subtensor):
+    """Test get_emission_value_by_subnet returns None when result has no value attribute."""
+    # Prep
+    netuid = 1
+    block = 123
+    mock_result = mocker.MagicMock()
+    del mock_result.value  # Simulating a missing value attribute
+    mocker.patch.object(subtensor, "query_subtensor", return_value=mock_result)
+    spy_balance_from_rao = mocker.spy(Balance, "from_rao")
+
+    # Call
+    result = subtensor.get_emission_value_by_subnet(netuid, block)
+
+    # Asserts
+    assert result is None
+    subtensor.query_subtensor.assert_called_once_with("EmissionValues", block, [netuid])
+    spy_balance_from_rao.assert_not_called()
+
+
+def test_get_emission_value_by_subnet_no_block_specified(mocker, subtensor):
+    """Test get_emission_value_by_subnet with no block specified."""
+    # Prep
+    netuid = 1
+    emission_value = 1000
+    mock_result = mocker.MagicMock(value=emission_value)
+    mocker.patch.object(subtensor, "query_subtensor", return_value=mock_result)
+    spy_balance_from_rao = mocker.spy(Balance, "from_rao")
+
+    # Call
+    result = subtensor.get_emission_value_by_subnet(netuid)
+
+    # Asserts
+    assert result is not None
+    subtensor.query_subtensor.assert_called_once_with("EmissionValues", None, [netuid])
+    spy_balance_from_rao.assert_called_once_with(emission_value)
+    assert result == Balance.from_rao(emission_value)
+
+
+# `get_subnet_connection_requirements` tests
+def test_get_subnet_connection_requirements_success(mocker, subtensor):
+    """Test get_subnet_connection_requirements returns correct data when requirements are found."""
+    # Prep
+    netuid = 1
+    block = 123
+    mock_tuple1 = (mocker.MagicMock(value="requirement1"), mocker.MagicMock(value=10))
+    mock_tuple2 = (mocker.MagicMock(value="requirement2"), mocker.MagicMock(value=20))
+    mock_result = mocker.MagicMock()
+    mock_result.records = [mock_tuple1, mock_tuple2]
+    mocker.patch.object(subtensor, "query_map_subtensor", return_value=mock_result)
+
+    # Call
+    result = subtensor.get_subnet_connection_requirements(netuid, block)
+
+    # Asserts
+    assert result == {"requirement1": 10, "requirement2": 20}
+    subtensor.query_map_subtensor.assert_called_once_with(
+        "NetworkConnect", block, [netuid]
+    )
+
+
+def test_get_subnet_connection_requirements_no_data(mocker, subtensor):
+    """Test get_subnet_connection_requirements returns empty dict when no data is found."""
+    # Prep
+    netuid = 1
+    block = 123
+    mock_result = mocker.MagicMock()
+    mock_result.records = []
+    mocker.patch.object(subtensor, "query_map_subtensor", return_value=mock_result)
+
+    # Call
+    result = subtensor.get_subnet_connection_requirements(netuid, block)
+
+    # Asserts
+    assert result == {}
+    subtensor.query_map_subtensor.assert_called_once_with(
+        "NetworkConnect", block, [netuid]
+    )
+
+
+def test_get_subnet_connection_requirements_no_records_attribute(mocker, subtensor):
+    """Test get_subnet_connection_requirements returns empty dict when result has no records attribute."""
+    # Prep
+    netuid = 1
+    block = 123
+    mock_result = mocker.MagicMock()
+    del mock_result.records  # Simulating a missing records attribute
+
+    mocker.patch.object(subtensor, "query_map_subtensor", return_value=mock_result)
+
+    # Call
+    result = subtensor.get_subnet_connection_requirements(netuid, block)
+
+    # Asserts
+    assert result == {}
+    subtensor.query_map_subtensor.assert_called_once_with(
+        "NetworkConnect", block, [netuid]
+    )
+
+
+def test_get_subnet_connection_requirements_no_block_specified(mocker, subtensor):
+    """Test get_subnet_connection_requirements with no block specified."""
+    # Prep
+    netuid = 1
+    mock_tuple1 = (mocker.MagicMock(value="requirement1"), mocker.MagicMock(value=10))
+    mock_tuple2 = (mocker.MagicMock(value="requirement2"), mocker.MagicMock(value=20))
+    mock_result = mocker.MagicMock()
+    mock_result.records = [mock_tuple1, mock_tuple2]
+    mocker.patch.object(subtensor, "query_map_subtensor", return_value=mock_result)
+
+    # Call
+    result = subtensor.get_subnet_connection_requirements(netuid)
+
+    # Asserts
+    assert result == {"requirement1": 10, "requirement2": 20}
+    subtensor.query_map_subtensor.assert_called_once_with(
+        "NetworkConnect", None, [netuid]
+    )
+
+
+# `get_subnets` tests
+def test_get_subnets_success(mocker, subtensor):
+    """Test get_subnets returns correct list when subnet information is found."""
+    # Prep
+    block = 123
+    mock_netuid1 = mocker.MagicMock(value=1)
+    mock_netuid2 = mocker.MagicMock(value=2)
+    mock_result = mocker.MagicMock()
+    mock_result.records = [(mock_netuid1, True), (mock_netuid2, True)]
+    mocker.patch.object(subtensor, "query_map_subtensor", return_value=mock_result)
+
+    # Call
+    result = subtensor.get_subnets(block)
+
+    # Asserts
+    assert result == [1, 2]
+    subtensor.query_map_subtensor.assert_called_once_with("NetworksAdded", block)
+
+
+def test_get_subnets_no_data(mocker, subtensor):
+    """Test get_subnets returns empty list when no subnet information is found."""
+    # Prep
+    block = 123
+    mock_result = mocker.MagicMock()
+    mock_result.records = []
+    mocker.patch.object(subtensor, "query_map_subtensor", return_value=mock_result)
+
+    # Call
+    result = subtensor.get_subnets(block)
+
+    # Asserts
+    assert result == []
+    subtensor.query_map_subtensor.assert_called_once_with("NetworksAdded", block)
+
+
+def test_get_subnets_no_records_attribute(mocker, subtensor):
+    """Test get_subnets returns empty list when result has no records attribute."""
+    # Prep
+    block = 123
+    mock_result = mocker.MagicMock()
+    del mock_result.records  # Simulating a missing records attribute
+    mocker.patch.object(subtensor, "query_map_subtensor", return_value=mock_result)
+
+    # Call
+    result = subtensor.get_subnets(block)
+
+    # Asserts
+    assert result == []
+    subtensor.query_map_subtensor.assert_called_once_with("NetworksAdded", block)
+
+
+def test_get_subnets_no_block_specified(mocker, subtensor):
+    """Test get_subnets with no block specified."""
+    # Prep
+    mock_netuid1 = mocker.MagicMock(value=1)
+    mock_netuid2 = mocker.MagicMock(value=2)
+    mock_result = mocker.MagicMock()
+    mock_result.records = [(mock_netuid1, True), (mock_netuid2, True)]
+    mocker.patch.object(subtensor, "query_map_subtensor", return_value=mock_result)
+
+    # Call
+    result = subtensor.get_subnets()
+
+    # Asserts
+    assert result == [1, 2]
+    subtensor.query_map_subtensor.assert_called_once_with("NetworksAdded", None)
+
+
+# `get_all_subnets_info` tests
+def test_get_all_subnets_info_success(mocker, subtensor):
+    """Test get_all_subnets_info returns correct data when subnet information is found."""
+    # Prep
+    block = 123
+    subnet_data = [1, 2, 3]  # Mocked response data
+    mocker.patch.object(
+        subtensor.substrate, "get_block_hash", return_value="mock_block_hash"
+    )
+    mock_response = {"result": subnet_data}
+    mocker.patch.object(subtensor.substrate, "rpc_request", return_value=mock_response)
+    mocker.patch.object(
+        subtensor_module.SubnetInfo,
+        "list_from_vec_u8",
+        return_value="list_from_vec_u80",
+    )
+
+    # Call
+    result = subtensor.get_all_subnets_info(block)
+
+    # Asserts
+    subtensor.substrate.get_block_hash.assert_called_once_with(block)
+    subtensor.substrate.rpc_request.assert_called_once_with(
+        method="subnetInfo_getSubnetsInfo", params=["mock_block_hash"]
+    )
+    subtensor_module.SubnetInfo.list_from_vec_u8.assert_called_once_with(subnet_data)
+
+
+@pytest.mark.parametrize("result_", [[], None])
+def test_get_all_subnets_info_no_data(mocker, subtensor, result_):
+    """Test get_all_subnets_info returns empty list when no subnet information is found."""
+    # Prep
+    block = 123
+    mocker.patch.object(
+        subtensor.substrate, "get_block_hash", return_value="mock_block_hash"
+    )
+    mock_response = {"result": result_}
+    mocker.patch.object(subtensor.substrate, "rpc_request", return_value=mock_response)
+    mocker.patch.object(subtensor_module.SubnetInfo, "list_from_vec_u8")
+
+    # Call
+    result = subtensor.get_all_subnets_info(block)
+
+    # Asserts
+    assert result == []
+    subtensor.substrate.get_block_hash.assert_called_once_with(block)
+    subtensor.substrate.rpc_request.assert_called_once_with(
+        method="subnetInfo_getSubnetsInfo", params=["mock_block_hash"]
+    )
+    subtensor_module.SubnetInfo.list_from_vec_u8.assert_not_called()
+
+
+def test_get_all_subnets_info_retry(mocker, subtensor):
+    """Test get_all_subnets_info retries on failure."""
+    # Prep
+    block = 123
+    subnet_data = [1, 2, 3]
+    mocker.patch.object(
+        subtensor.substrate, "get_block_hash", return_value="mock_block_hash"
+    )
+    mock_response = {"result": subnet_data}
+    mock_rpc_request = mocker.patch.object(
+        subtensor.substrate,
+        "rpc_request",
+        side_effect=[Exception, Exception, mock_response],
+    )
+    mocker.patch.object(
+        subtensor_module.SubnetInfo, "list_from_vec_u8", return_value=["some_data"]
+    )
+
+    # Call
+    result = subtensor.get_all_subnets_info(block)
+
+    # Asserts
+    subtensor.substrate.get_block_hash.assert_called_with(block)
+    assert mock_rpc_request.call_count == 3
+    subtensor_module.SubnetInfo.list_from_vec_u8.assert_called_once_with(subnet_data)
+    assert result == ["some_data"]
+
+
+# `get_subnet_info` tests
+def test_get_subnet_info_success(mocker, subtensor):
+    """Test get_subnet_info returns correct data when subnet information is found."""
+    # Prep
+    netuid = 1
+    block = 123
+    subnet_data = [1, 2, 3]
+    mocker.patch.object(
+        subtensor.substrate, "get_block_hash", return_value="mock_block_hash"
+    )
+    mock_response = {"result": subnet_data}
+    mocker.patch.object(subtensor.substrate, "rpc_request", return_value=mock_response)
+    mocker.patch.object(
+        subtensor_module.SubnetInfo, "from_vec_u8", return_value=["from_vec_u8"]
+    )
+
+    # Call
+    result = subtensor.get_subnet_info(netuid, block)
+
+    # Asserts
+    subtensor.substrate.get_block_hash.assert_called_once_with(block)
+    subtensor.substrate.rpc_request.assert_called_once_with(
+        method="subnetInfo_getSubnetInfo", params=[netuid, "mock_block_hash"]
+    )
+    subtensor_module.SubnetInfo.from_vec_u8.assert_called_once_with(subnet_data)
+
+
+@pytest.mark.parametrize("result_", [None, {}])
+def test_get_subnet_info_no_data(mocker, subtensor, result_):
+    """Test get_subnet_info returns None when no subnet information is found."""
+    # Prep
+    netuid = 1
+    block = 123
+    mocker.patch.object(
+        subtensor.substrate, "get_block_hash", return_value="mock_block_hash"
+    )
+    mock_response = {"result": result_}
+    mocker.patch.object(subtensor.substrate, "rpc_request", return_value=mock_response)
+    mocker.patch.object(subtensor_module.SubnetInfo, "from_vec_u8")
+
+    # Call
+    result = subtensor.get_subnet_info(netuid, block)
+
+    # Asserts
+    assert result is None
+    subtensor.substrate.get_block_hash.assert_called_once_with(block)
+    subtensor.substrate.rpc_request.assert_called_once_with(
+        method="subnetInfo_getSubnetInfo", params=[netuid, "mock_block_hash"]
+    )
+    subtensor_module.SubnetInfo.from_vec_u8.assert_not_called()
+
+
+def test_get_subnet_info_retry(mocker, subtensor):
+    """Test get_subnet_info retries on failure."""
+    # Prep
+    netuid = 1
+    block = 123
+    subnet_data = [1, 2, 3]
+    mocker.patch.object(
+        subtensor.substrate, "get_block_hash", return_value="mock_block_hash"
+    )
+    mock_response = {"result": subnet_data}
+    mock_rpc_request = mocker.patch.object(
+        subtensor.substrate,
+        "rpc_request",
+        side_effect=[Exception, Exception, mock_response],
+    )
+    mocker.patch.object(
+        subtensor_module.SubnetInfo, "from_vec_u8", return_value=["from_vec_u8"]
+    )
+
+    # Call
+    result = subtensor.get_subnet_info(netuid, block)
+
+    # Asserts
+    subtensor.substrate.get_block_hash.assert_called_with(block)
+    assert mock_rpc_request.call_count == 3
+    subtensor_module.SubnetInfo.from_vec_u8.assert_called_once_with(subnet_data)
+
+
+# `get_subnet_hyperparameters` tests
+def test_get_subnet_hyperparameters_success(mocker, subtensor):
+    """Test get_subnet_hyperparameters returns correct data when hyperparameters are found."""
+    # Prep
+    netuid = 1
+    block = 123
+    hex_bytes_result = "0x010203"
+    bytes_result = bytes.fromhex(hex_bytes_result[2:])
+    mocker.patch.object(subtensor, "query_runtime_api", return_value=hex_bytes_result)
+    mocker.patch.object(
+        subtensor_module.SubnetHyperparameters,
+        "from_vec_u8",
+        return_value=["from_vec_u8"],
+    )
+
+    # Call
+    result = subtensor.get_subnet_hyperparameters(netuid, block)
+
+    # Asserts
+    subtensor.query_runtime_api.assert_called_once_with(
+        runtime_api="SubnetInfoRuntimeApi",
+        method="get_subnet_hyperparams",
+        params=[netuid],
+        block=block,
+    )
+    subtensor_module.SubnetHyperparameters.from_vec_u8.assert_called_once_with(
+        bytes_result
+    )
+
+
+def test_get_subnet_hyperparameters_no_data(mocker, subtensor):
+    """Test get_subnet_hyperparameters returns empty list when no data is found."""
+    # Prep
+    netuid = 1
+    block = 123
+    mocker.patch.object(subtensor, "query_runtime_api", return_value=None)
+    mocker.patch.object(subtensor_module.SubnetHyperparameters, "from_vec_u8")
+
+    # Call
+    result = subtensor.get_subnet_hyperparameters(netuid, block)
+
+    # Asserts
+    assert result == []
+    subtensor.query_runtime_api.assert_called_once_with(
+        runtime_api="SubnetInfoRuntimeApi",
+        method="get_subnet_hyperparams",
+        params=[netuid],
+        block=block,
+    )
+    subtensor_module.SubnetHyperparameters.from_vec_u8.assert_not_called()
+
+
+def test_get_subnet_hyperparameters_hex_without_prefix(mocker, subtensor):
+    """Test get_subnet_hyperparameters correctly processes hex string without '0x' prefix."""
+    # Prep
+    netuid = 1
+    block = 123
+    hex_bytes_result = "010203"
+    bytes_result = bytes.fromhex(hex_bytes_result)
+    mocker.patch.object(subtensor, "query_runtime_api", return_value=hex_bytes_result)
+    mocker.patch.object(subtensor_module.SubnetHyperparameters, "from_vec_u8")
+
+    # Call
+    result = subtensor.get_subnet_hyperparameters(netuid, block)
+
+    # Asserts
+    subtensor.query_runtime_api.assert_called_once_with(
+        runtime_api="SubnetInfoRuntimeApi",
+        method="get_subnet_hyperparams",
+        params=[netuid],
+        block=block,
+    )
+    subtensor_module.SubnetHyperparameters.from_vec_u8.assert_called_once_with(
+        bytes_result
+    )
+
+
+# `get_subnet_owner` tests
+def test_get_subnet_owner_success(mocker, subtensor):
+    """Test get_subnet_owner returns correct data when owner information is found."""
+    # Prep
+    netuid = 1
+    block = 123
+    owner_address = "5F3sa2TJAWMqDhXG6jhV4N8ko9rXPM6twz9mG9m3rrgq3xiJ"
+    mock_result = mocker.MagicMock(value=owner_address)
+    mocker.patch.object(subtensor, "query_subtensor", return_value=mock_result)
+
+    # Call
+    result = subtensor.get_subnet_owner(netuid, block)
+
+    # Asserts
+    subtensor.query_subtensor.assert_called_once_with("SubnetOwner", block, [netuid])
+    assert result == owner_address
+
+
+def test_get_subnet_owner_no_data(mocker, subtensor):
+    """Test get_subnet_owner returns None when no owner information is found."""
+    # Prep
+    netuid = 1
+    block = 123
+    mocker.patch.object(subtensor, "query_subtensor", return_value=None)
+
+    # Call
+    result = subtensor.get_subnet_owner(netuid, block)
+
+    # Asserts
+    subtensor.query_subtensor.assert_called_once_with("SubnetOwner", block, [netuid])
+    assert result is None
+
+
+def test_get_subnet_owner_no_value_attribute(mocker, subtensor):
+    """Test get_subnet_owner returns None when result has no value attribute."""
+    # Prep
+    netuid = 1
+    block = 123
+    mock_result = mocker.MagicMock()
+    del mock_result.value  # Simulating a missing value attribute
+    mocker.patch.object(subtensor, "query_subtensor", return_value=mock_result)
+
+    # Call
+    result = subtensor.get_subnet_owner(netuid, block)
+
+    # Asserts
+    subtensor.query_subtensor.assert_called_once_with("SubnetOwner", block, [netuid])
+    assert result is None
+
+
+####################
+# Nomination tests #
+####################
+
+
+# `is_hotkey_delegate` tests
+def test_is_hotkey_delegate_success(mocker, subtensor):
+    """Test is_hotkey_delegate returns True when hotkey is a delegate."""
+    # Prep
+    hotkey_ss58 = "hotkey_ss58"
+    block = 123
+    mock_delegates = [
+        mocker.MagicMock(hotkey_ss58=hotkey_ss58),
+        mocker.MagicMock(hotkey_ss58="hotkey_ss583"),
+    ]
+    mocker.patch.object(subtensor, "get_delegates", return_value=mock_delegates)
+
+    # Call
+    result = subtensor.is_hotkey_delegate(hotkey_ss58, block)
+
+    # Asserts
+    subtensor.get_delegates.assert_called_once_with(block=block)
+    assert result is True
+
+
+def test_is_hotkey_delegate_not_found(mocker, subtensor):
+    """Test is_hotkey_delegate returns False when hotkey is not a delegate."""
+    # Prep
+    hotkey_ss58 = "hotkey_ss58"
+    block = 123
+    mock_delegates = [mocker.MagicMock(hotkey_ss58="hotkey_ss583")]
+    mocker.patch.object(subtensor, "get_delegates", return_value=mock_delegates)
+
+    # Call
+    result = subtensor.is_hotkey_delegate(hotkey_ss58, block)
+
+    # Asserts
+    subtensor.get_delegates.assert_called_once_with(block=block)
+    assert result is False
+
+
+# `get_delegate_take` tests
+def test_get_delegate_take_success(mocker, subtensor):
+    """Test get_delegate_take returns correct data when delegate take is found."""
+    # Prep
+    hotkey_ss58 = "hotkey_ss58"
+    block = 123
+    delegate_take_value = 32768
+    mock_result = mocker.MagicMock(value=delegate_take_value)
+    mocker.patch.object(subtensor, "query_subtensor", return_value=mock_result)
+    spy_u16_normalized_float = mocker.spy(subtensor_module, "U16_NORMALIZED_FLOAT")
+
+    # Call
+    subtensor.get_delegate_take(hotkey_ss58, block)
+
+    # Asserts
+    subtensor.query_subtensor.assert_called_once_with("Delegates", block, [hotkey_ss58])
+    spy_u16_normalized_float.assert_called_once_with(delegate_take_value)
+
+
+def test_get_delegate_take_no_data(mocker, subtensor):
+    """Test get_delegate_take returns None when no delegate take is found."""
+    # Prep
+    hotkey_ss58 = "hotkey_ss58"
+    block = 123
+    delegate_take_value = 32768
+    mocker.patch.object(subtensor, "query_subtensor", return_value=None)
+    spy_u16_normalized_float = mocker.spy(subtensor_module, "U16_NORMALIZED_FLOAT")
+
+    # Call
+    result = subtensor.get_delegate_take(hotkey_ss58, block)
+
+    # Asserts
+    subtensor.query_subtensor.assert_called_once_with("Delegates", block, [hotkey_ss58])
+    spy_u16_normalized_float.assert_not_called()
+    assert result is None
