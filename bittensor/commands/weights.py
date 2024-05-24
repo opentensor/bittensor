@@ -49,7 +49,9 @@ class CommitWeightCommand:
     def run(cli: "bittensor.cli"):
         r"""Commit weights for a specific subnet."""
         try:
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(config=cli.config, log_verbose=False)
+            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+                config=cli.config, log_verbose=False
+            )
             CommitWeightCommand._run(cli, subtensor)
         finally:
             if "subtensor" in locals():
@@ -74,14 +76,14 @@ class CommitWeightCommand:
         # Parse from string
         netuid = cli.config.netuid
         uids = np.array(
-            list(map(int, re.split(r"[ ,]+", cli.config.uids))),
-            dtype=np.int64
+            list(map(int, re.split(r"[ ,]+", cli.config.uids))), dtype=np.int64
         )
         weights = np.array(
-            list(map(float, re.split(r"[ ,]+", cli.config.weights))),
-            dtype=np.float32
+            list(map(float, re.split(r"[ ,]+", cli.config.weights))), dtype=np.float32
         )
-        weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(uids=uids, weights=weights)
+        weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(
+            uids=uids, weights=weights
+        )
 
         # Run the commit weights operation
         success, message = subtensor.commit_weights(
@@ -159,7 +161,9 @@ class RevealWeightCommand:
     def run(cli: "bittensor.cli"):
         r"""Reveal weights for a specific subnet."""
         try:
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(config=cli.config, log_verbose=False)
+            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+                config=cli.config, log_verbose=False
+            )
             RevealWeightCommand._run(cli, subtensor)
         finally:
             if "subtensor" in locals():
@@ -192,7 +196,9 @@ class RevealWeightCommand:
             list(map(float, re.split(r"[ ,]+", cli.config.weights))),
             dtype=np.float32,
         )
-        weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(uids=uids, weights=weights)
+        weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(
+            uids=uids, weights=weights
+        )
 
         # Run the reveal weights operation.
         success, message = subtensor.reveal_weights(
