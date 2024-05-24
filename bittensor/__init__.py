@@ -93,7 +93,6 @@ __networks__ = ["local", "finney", "test", "archive"]
 __finney_entrypoint__ = "wss://entrypoint-finney.opentensor.ai:443"
 
 __finney_test_entrypoint__ = "wss://test.finney.opentensor.ai:443/"
-__finney_test_entrypoint__ = "wss://test.finney.opentensor.ai:443/"
 
 __archive_entrypoint__ = "wss://archive.chain.opentensor.ai:443/"
 
@@ -234,9 +233,7 @@ from .errors import (
     UnstakeError,
 )
 
-from substrateinterface import Keypair
-
-_ = Keypair
+from substrateinterface import Keypair  # noqa: F401
 from .config import InvalidConfigFile, DefaultConfig, config, T
 from .keyfile import (
     serialized_keypair_to_keyfile_data,
