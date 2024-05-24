@@ -232,7 +232,7 @@ def normalize_hyperparameters(
             else:
                 norm_value = value
         except Exception as e:
-            bittensor.logging.error(f"Error normalizing parameter '{param}': {e}")
+            bittensor.logging.warning(f"Error normalizing parameter '{param}': {e}")
             norm_value = "-"
 
         normalized_values.append((param, str(value), str(norm_value)))
