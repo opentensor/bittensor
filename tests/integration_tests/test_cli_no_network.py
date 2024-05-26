@@ -1099,7 +1099,7 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
         delegate_ss58 = _get_mock_coldkey(0)
         with patch("bittensor.commands.delegates.show_delegates"):
             with patch(
-                "bittensor.subtensor.subtensor.get_delegates",
+                "bittensor.subtensor.Subtensor.get_delegates",
                 return_value=[
                     bittensor.DelegateInfo(
                         hotkey_ss58=delegate_ss58,  # return delegate with mock coldkey
@@ -1186,7 +1186,7 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
         delegate_ss58 = _get_mock_coldkey(0)
         with patch("bittensor.commands.delegates.show_delegates"):
             with patch(
-                "bittensor.subtensor.subtensor.get_delegates",
+                "bittensor.subtensor.Subtensor.get_delegates",
                 return_value=[
                     bittensor.DelegateInfo(
                         hotkey_ss58=delegate_ss58,  # return delegate with mock coldkey
@@ -1271,9 +1271,9 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
 
         mock_proposal_hash = "mock_proposal_hash"
 
-        with patch("bittensor.subtensor.subtensor.is_senate_member", return_value=True):
+        with patch("bittensor.subtensor.Subtensor.is_senate_member", return_value=True):
             with patch(
-                "bittensor.subtensor.subtensor.get_vote_data",
+                "bittensor.subtensor.Subtensor.get_vote_data",
                 return_value={"index": 1},
             ):
                 # Patch command to exit early

@@ -17,20 +17,17 @@
 # DEALINGS IN THE SOFTWARE.
 
 import random
-import socket
-import os
 import unittest
 from queue import Empty as QueueEmpty
 from unittest.mock import MagicMock, patch
-from types import SimpleNamespace
+
+import pytest
+from substrateinterface import Keypair
 
 import bittensor
 from bittensor.mock import MockSubtensor
-import pytest
 from bittensor.utils.balance import Balance
-from substrateinterface import Keypair
 from tests.helpers import (
-    _get_mock_hotkey,
     _get_mock_coldkey,
     MockConsole,
     _get_mock_keypair,
@@ -463,11 +460,8 @@ class TestSubtensor(unittest.TestCase):
                     mock_set_status.__exit__ = MagicMock(return_value=True)
 
                     # should return True
-                    assert (
-                        self.subtensor.register(
-                            wallet=wallet, netuid=3, num_processes=3, update_interval=5
-                        )
-                        == True
+                    assert self.subtensor.register(
+                        wallet=wallet, netuid=3, num_processes=3, update_interval=5
                     )
 
                 # calls until True and once again before exiting subtensor class
