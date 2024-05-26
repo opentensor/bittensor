@@ -129,7 +129,6 @@ def set_weights_extrinsic(
                 return False, error_message
 
         except Exception as e:
-            # TODO( devs ): lets remove all of the bittensor.__console__ calls and replace with loguru.
             bittensor.__console__.print(
                 ":cross_mark: [red]Failed[/red]: error:{}".format(e)
             )

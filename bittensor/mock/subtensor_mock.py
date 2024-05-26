@@ -35,7 +35,7 @@ from ..chain_data import (
     AxonInfo,
 )
 from ..errors import ChainQueryError
-from ..subtensor import subtensor
+from ..subtensor import Subtensor
 from ..utils import RAOPERTAO, U16_NORMALIZED_FLOAT
 from ..utils.balance import Balance
 from ..utils.registration import POWSolution
@@ -196,7 +196,7 @@ class MockChainState(TypedDict):
     SubtensorModule: MockSubtensorState
 
 
-class MockSubtensor(subtensor):
+class MockSubtensor(Subtensor):
     """
     A Mock Subtensor class for running tests.
     This should mock only methods that make queries to the chain.
