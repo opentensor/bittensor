@@ -4533,27 +4533,4 @@ class subtensor:
             )
 
         return name, description
-
-
-
-    def set_network_hyperparameter(
-            self,
-            wallet: "bittensor.wallet",
-            parameter: str,
-            value,
-            wait_for_inclusion: bool = False,
-            wait_for_finalization=True,
-            prompt: bool = False,
-        ) -> bool:
-            """
-            
-            """
-            return set_network_hyperparameter_extrinsic(
-                self,
-                wallet=wallet,
-                parameter=parameter,
-                value=value,
-                wait_for_inclusion=wait_for_inclusion,
-                wait_for_finalization=wait_for_finalization,
-                prompt=prompt,
-            )
+    

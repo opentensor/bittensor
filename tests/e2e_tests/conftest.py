@@ -1,13 +1,14 @@
-import os
-import signal
-from substrateinterface import SubstrateInterface
-import pytest
-import subprocess
 import logging
-import shlex
+import os
 import re
+import shlex
+import signal
+import subprocess
 import time
-from bittensor.subtensor import subtensor
+
+import pytest
+from substrateinterface import SubstrateInterface
+
 logging.basicConfig(level=logging.INFO)
 
 
@@ -41,7 +42,7 @@ def local_chain():
     wait_for_node_start(process, pattern)
 
     # Run the test, passing in substrate interface
-    yield subtensor(network="ws://127.0.0.1:9945")
+    yield SubstrateInterface(url="ws://127.0.0.1:9945")
 
     # Terminate the process group (includes all child processes)
     os.killpg(os.getpgid(process.pid), signal.SIGTERM)
