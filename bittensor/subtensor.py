@@ -54,7 +54,6 @@ from .errors import IdentityError, NominationError, StakeError
 from .extrinsics.network import (
     register_subnetwork_extrinsic,
     set_hyperparameter_extrinsic,
-    set_network_hyperparameter_extrinsic,
 )
 from .extrinsics.staking import add_stake_extrinsic, add_stake_multiple_extrinsic
 from .extrinsics.unstaking import unstake_extrinsic, unstake_multiple_extrinsic
@@ -4533,4 +4532,3 @@ class subtensor:
             )
 
         return name, description
-    
