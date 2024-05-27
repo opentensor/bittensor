@@ -1,5 +1,7 @@
-from substrateinterface import Keypair
 from typing import List
+
+from substrateinterface import Keypair
+
 import bittensor
 
 
@@ -30,15 +32,3 @@ def setup_wallet(uri: str):
         command.run(cli_instance)
 
     return (keypair, exec_command)
-
-def get_wallet(uri: str, uri2: str):
-    cold_keypair = Keypair.create_from_uri(uri)
-    hot_keypair = Keypair.create_from_uri(uri2)
-
-    wallet_path = "/tmp/btcli-e2e-wallet-{}-{}".format(uri.strip("/"), uri2.strip("/"))
-    wallet = bittensor.wallet(path=wallet_path)
-    wallet.set_coldkey(keypair=cold_keypair, encrypt=False, overwrite=True)
-    wallet.set_coldkeypub(keypair=cold_keypair, encrypt=False, overwrite=True)
-    wallet.set_hotkey(keypair=hot_keypair, encrypt=False, overwrite=True)
-
-    return wallet
