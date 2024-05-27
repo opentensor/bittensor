@@ -23,9 +23,10 @@ import logging
 import numpy as np
 from numpy.typing import NDArray
 from rich.prompt import Confirm
-from typing import Union
+from typing import Union, List
 import bittensor.utils.weight_utils as weight_utils
 from bittensor.btlogging.defines import BITTENSOR_LOGGER_NAME
+from bittensor.utils.registration import torch, legacy_torch_api_compat
 
 logger = logging.getLogger(BITTENSOR_LOGGER_NAME)
 
@@ -99,11 +100,12 @@ def root_register_extrinsic(
                 )
 
 
+@legacy_torch_api_compat
 def set_root_weights_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
-    netuids: Union[NDArray[np.int64], list],
-    weights: Union[NDArray[np.float32], list],
+    netuids: Union[NDArray[np.int64], "torch.LongTensor", List[int]],
+    weights: Union[NDArray[np.float32], "torch.FloatTensor", List[float]],
     version_key: int = 0,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
@@ -114,9 +116,9 @@ def set_root_weights_extrinsic(
     Args:
         wallet (bittensor.wallet):
             Bittensor wallet object.
-        netuids (List[int]):
+        netuids (Union[NDArray[np.int64], torch.LongTensor, List[int]]):
             The ``netuid`` of the subnet to set weights for.
-        weights (Union[NDArray[np.float32], list]):
+        weights (Union[NDArray[np.float32], torch.FloatTensor, list]):
             Weights to set. These must be ``float`` s and must correspond to the passed ``netuid`` s.
         version_key (int):
             The version key of the validator.
@@ -192,13 +194,13 @@ def set_root_weights_extrinsic(
             if not wait_for_finalization and not wait_for_inclusion:
                 return True
 
-            if success == True:
+            if success is True:
                 bittensor.__console__.print(
                     ":white_heavy_check_mark: [green]Finalized[/green]"
                 )
                 bittensor.logging.success(
                     prefix="Set weights",
-                    sufix="<green>Finalized: </green>" + str(success),
+                    suffix="<green>Finalized: </green>" + str(success),
                 )
                 return True
             else:
@@ -207,7 +209,7 @@ def set_root_weights_extrinsic(
                 )
                 bittensor.logging.warning(
                     prefix="Set weights",
-                    sufix="<red>Failed: </red>" + str(error_message),
+                    suffix="<red>Failed: </red>" + str(error_message),
                 )
                 return False
 
@@ -217,6 +219,6 @@ def set_root_weights_extrinsic(
                 ":cross_mark: [red]Failed[/red]: error:{}".format(e)
             )
             bittensor.logging.warning(
-                prefix="Set weights", sufix="<red>Failed: </red>" + str(e)
+                prefix="Set weights", suffix="<red>Failed: </red>" + str(e)
             )
             return False

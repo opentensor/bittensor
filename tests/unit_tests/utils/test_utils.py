@@ -19,7 +19,6 @@
 
 import numpy as np
 import bittensor.utils.weight_utils as weight_utils
-import bittensor.utils as unbiased_topk
 import pytest
 
 

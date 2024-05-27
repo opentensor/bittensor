@@ -2088,6 +2088,8 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             self.assertTrue(registered)
 
     def test_pow_register(self, _):
+        # Not the best way to do this, but I need to finish these tests, and unittest doesn't make this
+        # as simple as pytest
         config = self.config
         config.command = "subnets"
         config.subcommand = "pow_register"
