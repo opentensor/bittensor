@@ -13,6 +13,8 @@ def test_stake_show(local_chain: subtensor):
     netuid = 1
     wallet = get_wallet("//Alice", "//Bob")
 
+    assert local_chain.set_network_hyperparameter(wallet, "network_rate_limit", 2, wait_for_finalization=True, wait_for_inclusion=True)
+
     assert local_chain.register_subnetwork(wallet, wait_for_finalization=True, wait_for_inclusion=True)
 
     subnet_list = local_chain.get_all_subnet_netuids()
