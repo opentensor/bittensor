@@ -1,8 +1,11 @@
-from ...utils import setup_wallet
-from bittensor.commands.transfer import TransferCommand
-from bittensor import wallet
-from bittensor.subtensor import subtensor
 from substrateinterface import Keypair
+
+from bittensor import wallet
+from bittensor.commands.transfer import TransferCommand
+from bittensor.subtensor import subtensor
+
+from ...utils import setup_wallet
+
 
 # Example test using the local_chain fixture
 def test_transfer(local_chain: subtensor):

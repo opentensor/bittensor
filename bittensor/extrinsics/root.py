@@ -16,14 +16,15 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import bittensor
-
-import time
 import logging
+import time
+from typing import Union
+
 import numpy as np
 from numpy.typing import NDArray
 from rich.prompt import Confirm
-from typing import Union
+
+import bittensor
 import bittensor.utils.weight_utils as weight_utils
 from bittensor.btlogging.defines import BITTENSOR_LOGGER_NAME
 

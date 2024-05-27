@@ -16,13 +16,16 @@
 # DEALINGS IN THE SOFTWARE.
 
 import argparse
-import bittensor
-from . import defaults
+from typing import Dict, List, Optional
+
 from rich.prompt import Prompt
 from rich.table import Table
-from typing import List, Optional, Dict
-from .utils import get_delegates_details, DelegatesDetails, check_netuid_set
+
+import bittensor
+
+from . import defaults
 from .identity import SetIdentityCommand
+from .utils import DelegatesDetails, check_netuid_set, get_delegates_details
 
 console = bittensor.__console__
 
