@@ -1,3 +1,4 @@
+aioresponses==0.7.6
 pytest==7.2.0
 pytest-mock==3.12.0
 pytest-split==0.8.0
