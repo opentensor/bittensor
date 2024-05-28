@@ -1,7 +1,6 @@
 """
 Conversion for weight between chain representation and np.array or torch.Tensor
 """
-import os
 
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
