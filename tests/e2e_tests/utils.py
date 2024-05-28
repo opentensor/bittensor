@@ -85,3 +85,29 @@ def sudo_call_set_network_limit(
 
     response.process_events()
     return response.is_success
+
+
+# no such extrinsic in the subtensor yet
+# def sudo_call_set_stake_rate_limit(
+#     substrate: SubstrateInterface, wallet: bittensor.wallet
+# ) -> bool:
+#     inner_call = substrate.compose_call(
+#         call_module="AdminUtils",
+#         call_function="sudo_set_stake_rate_limit",
+#         call_params={"rate_limit": 1},
+#     )
+#     call = substrate.compose_call(
+#         call_module="Sudo",
+#         call_function="sudo",
+#         call_params={"call": inner_call},
+#     )
+
+#     extrinsic = substrate.create_signed_extrinsic(call=call, keypair=wallet.coldkey)
+#     response = substrate.submit_extrinsic(
+#         extrinsic,
+#         wait_for_inclusion=True,
+#         wait_for_finalization=True,
+#     )
+
+#     response.process_events()
+#     return response.is_success
