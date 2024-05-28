@@ -388,7 +388,7 @@ def generate_weight_hash(
     version_key = ScaleBytes(version_key.to_bytes(8, "little"))
 
     vec_salt = Vec(data=None, sub_type="U16")
-    vec_salt.value = [U16(ScaleBytes(salts.to_bytes(3, "little"))) for salts in salt]
+    vec_salt.value = [U16(ScaleBytes(salts.to_bytes(2, "little"))) for salts in salt]
     salt = ScaleBytes(vec_salt.encode().data)
 
     data = wallet_address + netuid + uids + values + salt + version_key
