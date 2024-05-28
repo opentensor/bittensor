@@ -74,7 +74,6 @@ async def process_response(
         )
         obj.decode(check_remaining=True)
         obj.meta_info = {"result_found": response.get("result") is not None}
-        print(obj)
         return obj
 
 
@@ -84,20 +83,17 @@ async def make_call(
     async with websockets.connect(CHAIN_ENDPOINT) as websocket:
         for payload in (x["payload"] for x in payloads.values()):
             await websocket.send(json.dumps(payload))
-            print(f"Sent: {payload}")
 
         responses = {}
 
         for _ in payloads:
             response = json.loads(await websocket.recv())
-            print(f"Received: {response}")
             decoded_response = await process_response(
                 response, value_scale_type, storage_item, runtime_config, metadata
             )
 
             request_id = response.get("id")
             responses[payloads[request_id]["ss58"]] = decoded_response
-            print(f"Decoded response for request ID {request_id}: {decoded_response}")
 
         return responses
 

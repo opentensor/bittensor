@@ -29,6 +29,7 @@ class Config:
     json_encrypted_path = None
     json_encrypted_pw = None
     netuids = []  # TODO implement
+    coldkey_unlocked = False
 
     def __bool__(self):
         return self.initialized

@@ -32,6 +32,8 @@ from bittensor.commands import (
     inspect,
     wallets,
     identity,
+    senate,
+    delegates,
 )
 from bittensor.commands import list as list_commands
 from bittensor.commands import root as root_commands
@@ -51,6 +53,14 @@ async def check_config():
         raise HTTPException(status_code=401, detail="Config missing")
 
 
+async def is_cold_key_unlocked():
+    if not config.initialized and not config.wallet.cold_key_unlocked:
+        raise HTTPException(
+            status_code=401,
+            detail="Cold key needs to be unlocked before performing this operation.",
+        )
+
+
 @app.post("/setup")
 async def setup(conf: data.ConfigBody):
     config.setup(conf)
@@ -64,13 +74,12 @@ async def get_setup():
 
 @app.post("/unlock-cold-key", dependencies=[Depends(check_config)])
 async def unlock_cold_key(password: data.Password):
-    return JSONResponse(
-        {
-            "success": await event_loop.run_in_executor(
-                None, config.wallet.unlock_coldkey, password.password
-            )
-        }
+    result = await event_loop.run_in_executor(
+        None, config.wallet.unlock_coldkey, password.password
     )
+    if result is True:
+        config.wallet.cold_key_unlocked = True
+    return JSONResponse({"success": result})
 
 
 async def run_fn(command_class, params=None):
@@ -211,7 +220,10 @@ async def wallet_identity_get(key: str):
     return await run_fn(identity.GetIdentityCommand, params={"key": key})
 
 
-@app.get("/wallet/identity/set", dependencies=[Depends(check_config)])
+@app.get(
+    "/wallet/identity/set",
+    dependencies=[Depends(check_config), Depends(is_cold_key_unlocked)],
+)
 async def wallet_identity_set(
     operating_hotkey_identity: bool,
     display: str = "",
@@ -224,7 +236,6 @@ async def wallet_identity_set(
     twitter: str = "",
     info: str = "",
 ):
-    # TODO require coldkey unlocked
     return await run_fn(
         identity.SetIdentityCommand,
         params={
@@ -271,19 +282,52 @@ async def wallet(
 
 
 # Root
+@app.get(
+    "/root/nominate",
+    dependencies=[Depends(check_config), Depends(is_cold_key_unlocked)],
+)
+async def root_nominate():
+    return await run_fn(delegates.NominateCommand)
+
+
+@app.get("/root/weights/set", dependencies=[Depends(check_config)])
+async def root_weights(netuids: list[int], weights: list[float]):
+    return await run_fn(
+        root_commands.RootSetWeightsCommand,
+        params={
+            "netuids": netuids,
+            "weights": weights
+        }
+    )
+
+
+@app.get("/root/delegates/{sub_cmd}", dependencies=[Depends(check_config)])
+async def root_delegates(sub_cmd: str):
+    routing_list = {
+        "delegate": delegates.DelegateStakeCommand,
+        "undelegate": delegates.DelegateUnstakeCommand,
+        "my": delegates.MyDelegatesCommand,
+        "list": delegates.ListDelegatesCommand,
+        "list_lite": delegates.ListDelegatesLiteCommand
+    }
 
 
 @app.get("/root/{sub_cmd}", dependencies=[Depends(check_config)])
-async def root(sub_cmd: str):
+async def root(sub_cmd: str, amount: int = 0):
     routing_list = {
         "list": root_commands.RootList,
-        "boost": 0,
-        "slash": 0,
-        "register": 0,
-        "proposals": 0,
-        "nominate": 0,
+        "boost": root_commands.RootSetBoostCommand,
+        "slash": root_commands.RootSetSlashCommand,
+        "register": root_commands.RootRegisterCommand,
+        "proposals": senate.ProposalsCommand,
+        "weights": root_commands.RootGetWeightsCommand,
     }
-    return await run_fn(routing_list[sub_cmd])
+    return await run_fn(
+        routing_list[sub_cmd],
+        params={
+            "amount": amount,
+        },
+    )
 
 
 # Sudo

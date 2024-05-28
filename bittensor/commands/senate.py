@@ -17,10 +17,13 @@
 
 
 import argparse
+import asyncio
+import time
+
 import bittensor
 from rich.prompt import Prompt, Confirm
 from rich.table import Table
-from typing import Optional, Dict
+from typing import Optional, Dict, Any, List
 from .utils import get_delegates_details, DelegatesDetails
 from . import defaults
 
@@ -143,7 +146,8 @@ def format_call_data(call_data: "bittensor.ProposalCallData") -> str:
 
 
 def display_votes(
-    vote_data: "bittensor.ProposalVoteData", delegate_info: "bittensor.DelegateInfo"
+    vote_data: "bittensor.ProposalVoteData",
+    delegate_info: dict[str, "DelegatesDetails"],
 ) -> str:
     vote_list = list()
 
@@ -197,6 +201,61 @@ class ProposalsCommand:
             if "subtensor" in locals():
                 subtensor.close()
                 bittensor.logging.debug("closing subtensor connection")
+
+    @staticmethod
+    async def commander_run(
+        subtensor: "bittensor.subtensor", config, params
+    ) -> list[dict[str, Any]]:
+        def votes(
+            vote_data, delegate_info: dict[str, "DelegatesDetails"]
+        ) -> dict[str, list[str]]:
+            ayes = [
+                delegate_info[address].name if address in delegate_info else address
+                for address in vote_data["ayes"]
+            ]
+            nays = [
+                delegate_info[address].name if address in delegate_info else address
+                for address in vote_data["nays"]
+            ]
+            return {"ayes": ayes, "nays": nays}
+
+        def _format_call_data(call_data) -> dict[str, list[dict[str, Any]]]:
+            def format_arg(arg) -> dict[str, Any]:
+                arg_value = arg["value"]
+                if isinstance(arg_value, dict) and "call_function" in arg_value:
+                    return {
+                        arg["name"]: _format_call_data(
+                            {
+                                "call_function": arg_value["call_function"],
+                                "call_args": arg_value["call_args"],
+                            }
+                        )
+                    }
+                return {arg["name"]: arg_value}
+
+            human_call_data = [format_arg(arg) for arg in call_data["call_args"]]
+
+            return {call_data["call_function"]: human_call_data}
+
+        # could be asyncio.gather, if refactored rpc calls
+        senate_members = subtensor.get_senate_members()
+        proposals = subtensor.get_proposals()
+        registered_delegate_info: dict[str, DelegatesDetails] = get_delegates_details(
+            url=bittensor.__delegates_details_url__
+        )
+        table = [
+            {
+                "hash": hash_,
+                "threshold": str(vote_data["threshold"]),
+                "ayes": len(vote_data["ayes"]),
+                "nays": len(vote_data["nays"]),
+                "votes": votes(vote_data, registered_delegate_info),
+                "end": str(vote_data["end"]),
+                "call_data": format_call_data(call_data),
+            }
+            for hash_, (call_data, vote_data) in proposals.items()
+        ]
+        return table
 
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
