@@ -1,13 +1,13 @@
-import logging
 import os
-import re
-import shlex
 import signal
+from substrateinterface import SubstrateInterface
+import pytest
 import subprocess
+import logging
+import shlex
+import re
 import time
 
-import pytest
-from substrateinterface import SubstrateInterface
 
 logging.basicConfig(level=logging.INFO)
 
