@@ -1,7 +1,5 @@
-from typing import List
-
 from substrateinterface import Keypair
-
+from typing import List
 import bittensor
 
 
