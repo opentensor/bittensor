@@ -76,7 +76,7 @@ __blocktime__ = 12
 # Pip address for versioning
 __pipaddress__ = "https://pypi.org/pypi/bittensor/json"
 
-# Raw github url for delegates registry file
+# Raw GitHub url for delegates registry file
 __delegates_details_url__: str = "https://raw.githubusercontent.com/opentensor/bittensor-delegates/main/public/delegates.json"
 
 # Substrate ss58_format
@@ -103,7 +103,7 @@ __tao_symbol__: str = chr(0x03C4)
 __rao_symbol__: str = chr(0x03C1)
 
 # Block Explorers map network to explorer url
-## Must all be polkadotjs explorer urls
+# Must all be polkadotjs explorer urls
 __network_explorer_map__ = {
     "opentensor": {
         "local": "https://polkadot.js.org/apps/?rpc=wss%3A%2F%2Fentrypoint-finney.opentensor.ai%3A443#/explorer",
@@ -230,7 +230,7 @@ from .errors import (
     UnstakeError,
 )
 
-from substrateinterface import Keypair as Keypair
+from substrateinterface import Keypair  # noqa: F401
 from .config import InvalidConfigFile, DefaultConfig, config, T
 from .keyfile import (
     serialized_keypair_to_keyfile_data,
@@ -283,7 +283,15 @@ from .chain_data import (
     ProposalCallData,
     ProposalVoteData,
 )
-from .subtensor import subtensor as subtensor
+
+# Allows avoiding name spacing conflicts and continue access to the `subtensor` module with `subtensor_module` name
+from . import subtensor as subtensor_module
+
+# Double import allows using class `Subtensor` by referencing `bittensor.Subtensor` and `bittensor.subtensor`.
+# This will be available for a while until we remove reference `bittensor.subtensor`
+from .subtensor import Subtensor
+from .subtensor import Subtensor as subtensor
+
 from .cli import cli as cli, COMMANDS as ALL_COMMANDS
 from .btlogging import logging
 from .metagraph import metagraph as metagraph
