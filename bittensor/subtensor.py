@@ -1050,7 +1050,7 @@ class Subtensor:
         wallet: "bittensor.wallet",
         netuid: int,
         uids: Union[NDArray[np.int64], list],
-        weights: Union[NDArray[np.float32], list],
+        weights: Union[NDArray[np.int64], list],
         salt: Union[NDArray[np.int64], list],
         version_key: int = bittensor.__version_as_int__,
         wait_for_inclusion: bool = False,

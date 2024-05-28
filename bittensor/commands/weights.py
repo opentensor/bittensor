@@ -16,6 +16,10 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+"""Module that encapsulates the CommitWeightCommand and the RevealWeightCommand. Used to commit and reveal weights
+for a specific subnet on the Bittensor Network."""
+
+
 import argparse
 import os
 import re
@@ -24,10 +28,7 @@ import numpy as np
 from rich.prompt import Prompt, Confirm
 import bittensor.utils.weight_utils as weight_utils
 import bittensor
-from . import defaults
-
-"""Module that encapsulates the CommitWeightCommand and the RevealWeightCommand. Used to commit and reveal weights 
-for a specific subnet on the Bittensor Network."""
+from . import defaults  # type: ignore
 
 
 class CommitWeightCommand:
