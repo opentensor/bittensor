@@ -302,8 +302,13 @@ def test_get_error_info_by_index_known_error(subtensor):
     assert description == "Description one"
 
 
-def test_get_error_info_by_index_unknown_error(subtensor):
-    mock_logger = mock.patch.object(_logger, "warning").start()
+@pytest.fixture
+def mock_logger():
+    with mock.patch.object(_logger, "warning") as mock_warning:
+        yield mock_warning
+
+
+def test_get_error_info_by_index_unknown_error(subtensor, mock_logger):
     fake_index = 999
     name, description = subtensor.get_error_info_by_index(fake_index)
     assert name == "Unknown Error"
