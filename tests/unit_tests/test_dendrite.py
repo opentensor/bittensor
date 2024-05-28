@@ -294,7 +294,7 @@ async def test_dendrite__call__success_response(
     input_synapse = SynapseDummy(input=1)
     expected_synapse = SynapseDummy(
         **(
-            input_synapse.dict()
+            input_synapse.model_dump()
             | dict(
                 output=2,
                 axon=TerminalInfo(

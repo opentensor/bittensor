@@ -452,7 +452,7 @@ class SynapseHTTPClient(TestClient):
     def post_synapse(self, synapse: Synapse):
         return self.post(
             f"/{synapse.__class__.__name__}",
-            json=synapse.dict(),
+            json=synapse.model_dump(),
             headers={"computed_body_hash": synapse.body_hash},
         )
 
