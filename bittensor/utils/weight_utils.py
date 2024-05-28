@@ -19,14 +19,15 @@ Conversion for weight between chain representation and np.array or torch.Tensor
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import numpy as np
-import bittensor
 import hashlib
-import struct
+from typing import Tuple, List, Union
+
+import numpy as np
+from numpy.typing import NDArray
 from scalecodec import ScaleBytes, U16, Vec
 from substrateinterface import Keypair
-from numpy.typing import NDArray
-from typing import Tuple, List, Union
+
+import bittensor
 from bittensor.utils.registration import torch, use_torch, legacy_torch_api_compat
 
 U32_MAX = 4294967295
@@ -380,7 +381,7 @@ def generate_weight_hash(
 
     vec_values = Vec(data=None, sub_type="U16")
     vec_values.value = [
-        U16(ScaleBytes(bytearray(struct.pack("<f", value)))) for value in values
+        U16(ScaleBytes(value.to_bytes(2, "little"))) for value in values
     ]
     values = ScaleBytes(vec_values.encode().data)
 
