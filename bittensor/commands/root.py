@@ -330,7 +330,6 @@ class RootSetBoostCommand:
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""Set weights for root network."""
         wallet = bittensor.wallet(config=cli.config)
-        subnets: List[bittensor.SubnetInfo] = subtensor.get_all_subnets_info()
 
         root = subtensor.metagraph(0, lite=False)
         try:
@@ -448,7 +447,6 @@ class RootSetSlashCommand:
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         wallet = bittensor.wallet(config=cli.config)
-        subnets: List[bittensor.SubnetInfo] = subtensor.get_all_subnets_info()
 
         bittensor.__console__.print(
             "Slashing weight for subnet: {} by amount: {}".format(
@@ -567,13 +565,13 @@ class RootSetWeightsCommand:
             cli.config.weights = Prompt.ask(f"Enter weights (e.g. {example})")
 
         # Parse from string
-        netuids = np.array(
-            list(map(int, re.split(r"[ ,]+", cli.config.netuids))), dtype=np.int64
-        )
-        weights = np.array(
-            list(map(float, re.split(r"[ ,]+", cli.config.weights))),
-            dtype=np.float32,
-        )
+        matched_netuids = list(map(int, re.split(r"[ ,]+", cli.config.netuids)))
+        netuids = np.array(matched_netuids, dtype=np.int64)
+
+        matched_weights = [
+            float(weight) for weight in re.split(r"[ ,]+", cli.config.weights)
+        ]
+        weights = np.array(matched_weights, dtype=np.float32)
 
         # Run the set weights operation.
         subtensor.root_set_weights(

@@ -176,7 +176,7 @@ def serve_axon_extrinsic(
                 )
             )
             bittensor.logging.success(
-                prefix="External IP", sufix="<blue>{}</blue>".format(external_ip)
+                prefix="External IP", suffix="<blue>{}</blue>".format(external_ip)
             )
         except Exception as E:
             raise RuntimeError(
@@ -196,7 +196,6 @@ def serve_axon_extrinsic(
         protocol=4,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
-        prompt=prompt,
     )
     return serve_success
 
