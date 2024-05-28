@@ -93,8 +93,10 @@ class CommitWeightCommand:
         salt_length = 8
         salt = list(os.urandom(salt_length))
 
-        if not Confirm.ask(f"Have you recorded the [red]salt[/red]: [bold white]'{salt}'[/bold white]? It will be "
-                           f"required to reveal weights."):
+        if not Confirm.ask(
+            f"Have you recorded the [red]salt[/red]: [bold white]'{salt}'[/bold white]? It will be "
+            f"required to reveal weights."
+        ):
             return False, "User cancelled the operation."
 
         # Run the commit weights operation

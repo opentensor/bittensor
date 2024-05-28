@@ -101,9 +101,9 @@ def reveal_weights_extrinsic(
     This function provides a user-friendly interface for revealing weights on the Bittensor blockchain, ensuring proper
     error handling and user interaction when required.
     """
-    if prompt:
-        if not input("Would you like to reveal weights? (y/n) ").lower() == "y":
-            return False, "User cancelled the operation."
+
+    if prompt and not Confirm.ask(f"Would you like to reveal weights?"):
+        return False, "User cancelled the operation."
 
     success, error_message = subtensor._do_reveal_weights(
         wallet=wallet,
