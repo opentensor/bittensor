@@ -21,12 +21,13 @@ import unittest
 from queue import Empty as QueueEmpty
 from unittest.mock import MagicMock, patch
 
+import numpy as np
 import pytest
 from substrateinterface import Keypair
-import numpy as np
 
 import bittensor
 from bittensor.mock import MockSubtensor
+from bittensor.utils import weight_utils
 from bittensor.utils.balance import Balance
 from tests.helpers import (
     _get_mock_coldkey,
@@ -364,11 +365,14 @@ class TestSubtensor(unittest.TestCase):
         weights = np.array([0.1, 0.2, 0.3, 0.4], dtype=np.float32)
         uids = np.array([1, 2, 3, 4], dtype=np.int64)
         salt = np.array([1, 2, 3, 4, 5, 6, 7, 8], dtype=np.int64)
+        weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(
+            uids=uids, weights=weights
+        )
         commit_hash = bittensor.utils.weight_utils.generate_weight_hash(
             address=self.wallet.hotkey.ss58_address,
             netuid=3,
-            uids=uids.tolist(),
-            values=weights.tolist(),
+            uids=weight_uids,
+            values=weight_vals,
             salt=salt.tolist(),
             version_key=0,
         )
@@ -388,11 +392,16 @@ class TestSubtensor(unittest.TestCase):
         weights = np.array([0.1, 0.2, 0.3, 0.4], dtype=np.float32)
         uids = np.array([1, 2, 3, 4], dtype=np.int64)
         salt = np.array([1, 2, 3, 4, 5, 6, 7, 8], dtype=np.int64)
+
+        weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(
+            uids=uids, weights=weights
+        )
+
         commit_hash = bittensor.utils.weight_utils.generate_weight_hash(
             address=self.wallet.hotkey.ss58_address,
             netuid=1,
-            uids=uids.tolist(),
-            values=weights.tolist(),
+            uids=weight_uids,
+            values=weight_vals,
             salt=salt.tolist(),
             version_key=0,
         )
@@ -417,11 +426,16 @@ class TestSubtensor(unittest.TestCase):
         weights = np.array([0.1, 0.2, 0.3, 0.4], dtype=np.float32)
         uids = np.array([1, 2, 3, 4], dtype=np.int64)
         salt = np.array([1, 2, 3, 4, 5, 6, 7, 8], dtype=np.int64)
+
+        weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(
+            uids=uids, weights=weights
+        )
+
         commit_hash = bittensor.utils.weight_utils.generate_weight_hash(
             address=self.wallet.hotkey.ss58_address,
             netuid=3,
-            uids=uids.tolist(),
-            values=weights.tolist(),
+            uids=weight_uids,
+            values=weight_vals,
             salt=salt.tolist(),
             version_key=0,
         )
