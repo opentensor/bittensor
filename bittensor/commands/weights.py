@@ -17,13 +17,17 @@
 # DEALINGS IN THE SOFTWARE.
 
 import argparse
+import os
 import re
 
 import numpy as np
-from rich.prompt import Prompt
+from rich.prompt import Prompt, Confirm
 import bittensor.utils.weight_utils as weight_utils
 import bittensor
 from . import defaults
+
+"""Module that encapsulates the CommitWeightCommand and the RevealWeightCommand. Used to commit and reveal weights 
+for a specific subnet on the Bittensor Network."""
 
 
 class CommitWeightCommand:
@@ -76,14 +80,22 @@ class CommitWeightCommand:
         # Parse from string
         netuid = cli.config.netuid
         uids = np.array(
-            list(map(int, re.split(r"[ ,]+", cli.config.uids))), dtype=np.int64
+            [int(x) for x in re.split(r"[ ,]+", cli.config.uids)], dtype=np.int64
         )
         weights = np.array(
-            list(map(float, re.split(r"[ ,]+", cli.config.weights))), dtype=np.float32
+            [float(x) for x in re.split(r"[ ,]+", cli.config.weights)], dtype=np.float32
         )
         weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(
             uids=uids, weights=weights
         )
+
+        # Generate random salt
+        salt_length = 8
+        salt = list(os.urandom(salt_length))
+
+        if not Confirm.ask(f"Have you recorded the [red]salt[/red]: [bold white]'{salt}'[/bold white]? It will be "
+                           f"required to reveal weights."):
+            return False, "User cancelled the operation."
 
         # Run the commit weights operation
         success, message = subtensor.commit_weights(
@@ -91,6 +103,7 @@ class CommitWeightCommand:
             netuid=netuid,
             uids=weight_uids,
             weights=weight_vals,
+            salt=salt,
             wait_for_inclusion=cli.config.wait_for_inclusion,
             wait_for_finalization=cli.config.wait_for_finalization,
             prompt=cli.config.prompt,
@@ -110,6 +123,7 @@ class CommitWeightCommand:
         parser.add_argument("--netuid", dest="netuid", type=int, required=False)
         parser.add_argument("--uids", dest="uids", type=str, required=False)
         parser.add_argument("--weights", dest="weights", type=str, required=False)
+        parser.add_argument("--salt", dest="salt", type=str, required=False)
         parser.add_argument(
             "--wait-for-inclusion",
             dest="wait_for_inclusion",
@@ -134,10 +148,10 @@ class CommitWeightCommand:
 
     @staticmethod
     def check_config(config: "bittensor.config"):
-        if not config.is_set("wallet.name") and not config.no_prompt:
+        if not config.no_prompt and not config.is_set("wallet.name"):
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
             config.wallet.name = str(wallet_name)
-        if not config.is_set("wallet.hotkey") and not config.no_prompt:
+        if not config.no_prompt and not config.is_set("wallet.hotkey"):
             hotkey = Prompt.ask("Enter hotkey name", default=defaults.wallet.hotkey)
             config.wallet.hotkey = str(hotkey)
 
@@ -151,8 +165,9 @@ class RevealWeightCommand:
         - ``--netuid`` (int): The netuid of the subnet for which weights are to be revealed.
         - ``--uids`` (str): Corresponding UIDs for the specified netuid, in comma-separated format.
         - ``--weights`` (str): Corresponding weights for the specified UIDs, in comma-separated format.
+        - ``--salt`` (str): Corresponding salt for the hash function, integers in comma-separated format.
     Example usage::
-        $ btcli wt reveal --netuid 1 --uids 1,2,3,4 --weights 0.1,0.2,0.3,0.4
+        $ btcli wt reveal --netuid 1 --uids 1,2,3,4 --weights 0.1,0.2,0.3,0.4 --salt 163,241,217,11,161,142,147,189
     Note:
         This command is used to reveal weights for a specific subnet and requires the user to have the necessary permissions.
     """
@@ -185,16 +200,23 @@ class RevealWeightCommand:
         if not cli.config.is_set("weights"):
             cli.config.weights = Prompt.ask(f"Enter weights (comma-separated)")
 
+        if not cli.config.is_set("salt"):
+            cli.config.salt = Prompt.ask(f"Enter salt (comma-separated)")
+
         # Parse from string
         netuid = cli.config.netuid
         version = bittensor.__version_as_int__
         uids = np.array(
-            list(map(int, re.split(r"[ ,]+", cli.config.uids))),
+            [int(x) for x in re.split(r"[ ,]+", cli.config.uids)],
             dtype=np.int64,
         )
         weights = np.array(
-            list(map(float, re.split(r"[ ,]+", cli.config.weights))),
+            [float(x) for x in re.split(r"[ ,]+", cli.config.weights)],
             dtype=np.float32,
+        )
+        salt = np.array(
+            [int(x) for x in re.split(r"[ ,]+", cli.config.salt)],
+            dtype=np.int64,
         )
         weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(
             uids=uids, weights=weights
@@ -206,6 +228,7 @@ class RevealWeightCommand:
             netuid=netuid,
             uids=weight_uids,
             weights=weight_vals,
+            salt=salt,
             version_key=version,
             wait_for_inclusion=cli.config.wait_for_inclusion,
             wait_for_finalization=cli.config.wait_for_finalization,
@@ -225,6 +248,7 @@ class RevealWeightCommand:
         parser.add_argument("--netuid", dest="netuid", type=int, required=False)
         parser.add_argument("--uids", dest="uids", type=str, required=False)
         parser.add_argument("--weights", dest="weights", type=str, required=False)
+        parser.add_argument("--salt", dest="salt", type=str, required=False)
         parser.add_argument(
             "--wait-for-inclusion",
             dest="wait_for_inclusion",

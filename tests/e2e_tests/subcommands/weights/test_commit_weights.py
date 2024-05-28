@@ -167,9 +167,9 @@ def test_commit_and_reveal_weights(local_chain):
     # Assert that the revealed weights are set correctly
     assert revealed_weights.value is not None, "Weight reveal not found in storage"
 
-    uid_list = list(map(int, re.split(r"[ ,]+", str(uid))))
+    uid_list = [int(x) for x in re.split(r"[ ,]+", str(uid))]
     uids = np.array(uid_list, dtype=np.int64)
-    weight_list = list(map(float, re.split(r"[ ,]+", str(weights))))
+    weight_list = [float(x) for x in re.split(r"[ ,]+", str(weights))]
     weights_array = np.array(weight_list, dtype=np.float32)
     weight_uids, expected_weights = weight_utils.convert_weights_and_uids_for_emit(
         uids, weights_array

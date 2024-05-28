@@ -23,6 +23,7 @@ blockchain, facilitating a range of operations essential for the decentralized m
 import argparse
 import copy
 import functools
+import os
 import socket
 import time
 from typing import List, Dict, Union, Optional, Tuple, TypedDict, Any
@@ -910,6 +911,7 @@ class Subtensor:
         self,
         wallet: "bittensor.wallet",
         netuid: int,
+        salt: List[int],
         uids: Union[NDArray[np.int64], list],
         weights: Union[NDArray[np.float32], list],
         version_key: int = bittensor.__version_as_int__,
@@ -925,6 +927,7 @@ class Subtensor:
         Args:
             wallet (bittensor.wallet): The wallet associated with the neuron committing the weights.
             netuid (int): The unique identifier of the subnet.
+            salt (List[int]): list of randomly generated integers as salt to generated weighted hash.
             uids (np.ndarray): NumPy array of neuron UIDs for which weights are being committed.
             weights (np.ndarray): NumPy array of weight values corresponding to each UID.
             version_key (int, optional): Version key for compatibility with the network.
@@ -953,10 +956,11 @@ class Subtensor:
 
         # Generate the hash of the weights
         commit_hash = weight_utils.generate_weight_hash(
-            who=wallet.hotkey.ss58_address,
+            address=wallet.hotkey.ss58_address,
             netuid=netuid,
             uids=list(uids),
             values=list(weights),
+            salt=salt,
             version_key=version_key,
         )
 
@@ -1048,6 +1052,7 @@ class Subtensor:
         netuid: int,
         uids: Union[NDArray[np.int64], list],
         weights: Union[NDArray[np.float32], list],
+        salt: Union[NDArray[np.int64], list],
         version_key: int = bittensor.__version_as_int__,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
@@ -1063,6 +1068,7 @@ class Subtensor:
             netuid (int): The unique identifier of the subnet.
             uids (np.ndarray): NumPy array of neuron UIDs for which weights are being revealed.
             weights (np.ndarray): NumPy array of weight values corresponding to each UID.
+            salt (np.ndarray): NumPy array of salt values corresponding to the hash function.
             version_key (int, optional): Version key for compatibility with the network.
             wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
             wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
@@ -1089,6 +1095,7 @@ class Subtensor:
                     netuid=netuid,
                     uids=list(uids),
                     weights=list(weights),
+                    salt=list(salt),
                     version_key=version_key,
                     wait_for_inclusion=wait_for_inclusion,
                     wait_for_finalization=wait_for_finalization,
@@ -1109,6 +1116,7 @@ class Subtensor:
         netuid: int,
         uids: List[int],
         values: List[int],
+        salt: List[int],
         version_key: int,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
@@ -1122,6 +1130,7 @@ class Subtensor:
             netuid (int): The unique identifier of the subnet.
             uids (List[int]): List of neuron UIDs for which weights are being revealed.
             values (List[int]): List of weight values corresponding to each UID.
+            salt (List[int]): List of salt values corresponding to the hash function.
             version_key (int): Version key for compatibility with the network.
             wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
             wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
@@ -1142,6 +1151,7 @@ class Subtensor:
                     "netuid": netuid,
                     "uids": uids,
                     "values": values,
+                    "salt": salt,
                     "version_key": version_key,
                 },
             )
