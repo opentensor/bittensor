@@ -373,7 +373,7 @@ class TestSubtensor(unittest.TestCase):
             version_key=0,
         )
 
-        self.subtensor.commit_weights = mocker.MagicMock(
+        self.subtensor.commit_weights = MagicMock(
             return_value=(True, "Successfully committed weights.")
         )
         self.subtensor._do_commit_weights = MagicMock(return_value=(True, None))
