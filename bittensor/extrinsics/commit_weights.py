@@ -17,8 +17,11 @@
 # DEALINGS IN THE SOFTWARE.
 
 from typing import Tuple, List
+from rich.prompt import Confirm
 
 import bittensor
+
+""" Module commit weights and reveal weights extrinsic. """
 
 
 def commit_weights_extrinsic(
@@ -47,9 +50,8 @@ def commit_weights_extrinsic(
     This function provides a user-friendly interface for committing weights to the Bittensor blockchain, ensuring proper
     error handling and user interaction when required.
     """
-    if prompt:
-        if not input("Would you like to commit weights? (y/n) ").lower() == "y":
-            return False, "User cancelled the operation."
+    if prompt and not Confirm.ask(f"Would you like to commit weights?"):
+        return False, "User cancelled the operation."
 
     success, error_message = subtensor._do_commit_weights(
         wallet=wallet,
@@ -73,6 +75,7 @@ def reveal_weights_extrinsic(
     netuid: int,
     uids: List[int],
     weights: List[int],
+    salt: List[int],
     version_key: int,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
@@ -87,6 +90,7 @@ def reveal_weights_extrinsic(
         netuid (int): The unique identifier of the subnet.
         uids (List[int]): List of neuron UIDs for which weights are being revealed.
         weights (List[int]): List of weight values corresponding to each UID.
+        salt (List[int]): List of salt values corresponding to the hash function.
         version_key (int): Version key for compatibility with the network.
         wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
         wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
@@ -106,6 +110,7 @@ def reveal_weights_extrinsic(
         netuid=netuid,
         uids=uids,
         values=weights,
+        salt=salt,
         version_key=version_key,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
