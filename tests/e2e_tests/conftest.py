@@ -8,7 +8,6 @@ import shlex
 import re
 import time
 
-
 logging.basicConfig(level=logging.INFO)
 
 
