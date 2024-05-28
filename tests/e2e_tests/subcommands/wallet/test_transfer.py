@@ -1,5 +1,4 @@
 from bittensor.commands.transfer import TransferCommand
-
 from ...utils import setup_wallet
 import bittensor
 
