@@ -56,6 +56,10 @@ from .chain_data import (
     custom_rpc_type_registry,
 )
 from .errors import IdentityError, NominationError, StakeError, TakeError
+from .extrinsics.commit_weights import (
+    commit_weights_extrinsic,
+    reveal_weights_extrinsic,
+)
 from .extrinsics.delegation import (
     delegate_extrinsic,
     nominate_extrinsic,
@@ -86,10 +90,6 @@ from .extrinsics.serving import (
     publish_metadata,
     get_metadata,
 )
-from .extrinsics.commit_weights import (
-    commit_weights_extrinsic,
-    reveal_weights_extrinsic,
-)
 from .extrinsics.set_weights import set_weights_extrinsic
 from .extrinsics.staking import add_stake_extrinsic, add_stake_multiple_extrinsic
 from .extrinsics.transfer import transfer_extrinsic
@@ -103,8 +103,8 @@ from .utils import (
 )
 from .utils.balance import Balance
 from .utils.registration import POWSolution
-from .utils.subtensor import get_subtensor_errors
 from .utils.registration import legacy_torch_api_compat
+from .utils.subtensor import get_subtensor_errors
 
 KEY_NONCE: Dict[str, int] = {}
 
@@ -912,7 +912,7 @@ class Subtensor:
         netuid: int,
         salt: List[int],
         uids: Union[NDArray[np.int64], list],
-        weights: Union[NDArray[np.float32], list],
+        weights: Union[NDArray[np.int64], list],
         version_key: int = bittensor.__version_as_int__,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
