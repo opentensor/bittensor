@@ -21,8 +21,13 @@ import base64
 import json
 import sys
 
-import pydantic
-from pydantic.schema import schema
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    field_validator,
+    model_validator,
+)
 import bittensor
 from typing import Optional, List, Any, Dict
 
@@ -92,7 +97,7 @@ def cast_float(raw: str) -> float:
     return float(raw) if raw != None else raw  # type: ignore
 
 
-class TerminalInfo(pydantic.BaseModel):
+class TerminalInfo(BaseModel):
     """
     TerminalInfo encapsulates detailed information about a network synapse (node) involved in a communication process.
 
@@ -144,112 +149,115 @@ class TerminalInfo(pydantic.BaseModel):
     TerminalInfo plays a pivotal role in providing transparency and control over network operations, making it an indispensable tool for developers and users interacting with the Bittensor ecosystem.
     """
 
-    class Config:
-        validate_assignment = True
+    model_config = ConfigDict(validate_assignment=True)
 
     # The HTTP status code from: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
-    status_code: Optional[int] = pydantic.Field(
+    status_code: Optional[int] = Field(
         title="status_code",
         description="The HTTP status code from: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status",
-        examples=200,
+        examples=[200],
         default=None,
-        allow_mutation=True,
+        frozen=False,
     )
-    _extract_status_code = pydantic.validator(
-        "status_code", pre=True, allow_reuse=True
-    )(cast_int)
 
     # The HTTP status code from: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
-    status_message: Optional[str] = pydantic.Field(
+    status_message: Optional[str] = Field(
         title="status_message",
         description="The status_message associated with the status_code",
-        examples="Success",
+        examples=["Success"],
         default=None,
-        allow_mutation=True,
+        frozen=False,
     )
 
     # Process time on this terminal side of call
-    process_time: Optional[float] = pydantic.Field(
+    process_time: Optional[float] = Field(
         title="process_time",
         description="Process time on this terminal side of call",
-        examples=0.1,
+        examples=[0.1],
         default=None,
-        allow_mutation=True,
+        frozen=False,
     )
-    _extract_process_time = pydantic.validator(
-        "process_time", pre=True, allow_reuse=True
-    )(cast_float)
 
     # The terminal ip.
-    ip: Optional[str] = pydantic.Field(
+    ip: Optional[str] = Field(
         title="ip",
-        description="The ip of the axon recieving the request.",
-        examples="198.123.23.1",
+        description="The ip of the axon receiving the request.",
+        examples=["198.123.23.1"],
         default=None,
-        allow_mutation=True,
+        frozen=False,
     )
 
     # The host port of the terminal.
-    port: Optional[int] = pydantic.Field(
+    port: Optional[int] = Field(
         title="port",
         description="The port of the terminal.",
-        examples="9282",
+        examples=["9282"],
         default=None,
-        allow_mutation=True,
+        frozen=False,
     )
-    _extract_port = pydantic.validator("port", pre=True, allow_reuse=True)(cast_int)
 
     # The bittensor version on the terminal as an int.
-    version: Optional[int] = pydantic.Field(
+    version: Optional[int] = Field(
         title="version",
         description="The bittensor version on the axon as str(int)",
-        examples=111,
+        examples=[111],
         default=None,
-        allow_mutation=True,
-    )
-    _extract_version = pydantic.validator("version", pre=True, allow_reuse=True)(
-        cast_int
+        frozen=False,
     )
 
-    # A unique monotonically increasing integer nonce associate with the terminal
-    nonce: Optional[int] = pydantic.Field(
+    # A Unix timestamp to associate with the terminal
+    nonce: Optional[int] = Field(
         title="nonce",
-        description="A unique monotonically increasing integer nonce associate with the terminal generated from time.monotonic_ns()",
-        examples=111111,
+        description="A Unix timestamp that prevents replay attacks",
+        examples=[111111],
         default=None,
-        allow_mutation=True,
+        frozen=False,
     )
-    _extract_nonce = pydantic.validator("nonce", pre=True, allow_reuse=True)(cast_int)
 
     # A unique identifier associated with the terminal, set on the axon side.
-    uuid: Optional[str] = pydantic.Field(
+    uuid: Optional[str] = Field(
         title="uuid",
         description="A unique identifier associated with the terminal",
-        examples="5ecbd69c-1cec-11ee-b0dc-e29ce36fec1a",
+        examples=["5ecbd69c-1cec-11ee-b0dc-e29ce36fec1a"],
         default=None,
-        allow_mutation=True,
+        frozen=False,
     )
 
     # The bittensor version on the terminal as an int.
-    hotkey: Optional[str] = pydantic.Field(
+    hotkey: Optional[str] = Field(
         title="hotkey",
         description="The ss58 encoded hotkey string of the terminal wallet.",
-        examples="5EnjDGNqqWnuL2HCAdxeEtN2oqtXZw6BMBe936Kfy2PFz1J1",
+        examples=["5EnjDGNqqWnuL2HCAdxeEtN2oqtXZw6BMBe936Kfy2PFz1J1"],
         default=None,
-        allow_mutation=True,
+        frozen=False,
     )
 
     # A signature verifying the tuple (axon_nonce, axon_hotkey, dendrite_hotkey, axon_uuid)
-    signature: Optional[str] = pydantic.Field(
+    signature: Optional[str] = Field(
         title="signature",
         description="A signature verifying the tuple (nonce, axon_hotkey, dendrite_hotkey, uuid)",
-        examples="0x0813029319030129u4120u10841824y0182u091u230912u",
+        examples=["0x0813029319030129u4120u10841824y0182u091u230912u"],
         default=None,
-        allow_mutation=True,
+        frozen=False,
     )
 
+    # Extract the process time on this terminal side of call as a float
+    _extract_process_time = field_validator("process_time", mode="before")(cast_float)
 
-class Synapse(pydantic.BaseModel):
+    # Extract the host port of the terminal as an int
+    _extract_port = field_validator("port", mode="before")(cast_int)
+
+    # Extract the bittensor version on the terminal as an int.
+    _extract_version = field_validator("version", mode="before")(cast_int)
+
+    # Extract the Unix timestamp associated with the terminal as an int
+    _extract_nonce = field_validator("nonce", mode="before")(cast_int)
+
+    # Extract the HTTP status code as an int
+    _extract_status_code = field_validator("status_code", mode="before")(cast_int)
+
+
+class Synapse(BaseModel):
     """
     Represents a Synapse in the Bittensor network, serving as a communication schema between neurons (nodes).
 
@@ -315,7 +323,7 @@ class Synapse(pydantic.BaseModel):
         synapse.dummy_input = 1 # This will raise an error because dummy_input is not defined in the Synapse class
 
         # Get a dictionary of headers and body from the synapse instance
-        synapse_dict = synapse.json()
+        synapse_dict = synapse.model_dump_json()
 
         # Get a dictionary of headers from the synapse instance
         headers = synapse.to_headers()
@@ -357,8 +365,7 @@ class Synapse(pydantic.BaseModel):
     standardized communication in a decentralized environment.
     """
 
-    class Config:
-        validate_assignment = True
+    model_config = ConfigDict(validate_assignment=True)
 
     def deserialize(self) -> "Synapse":
         """
@@ -387,7 +394,7 @@ class Synapse(pydantic.BaseModel):
                     return self
 
             serialized_data = '{"additional_data": "SGVsbG8gV29ybGQ="}'  # Base64 for 'Hello World'
-            custom_synapse = CustomSynapse.parse_raw(serialized_data)
+            custom_synapse = CustomSynapse.model_validate_json(serialized_data)
             deserialized_synapse = custom_synapse.deserialize()
 
             # deserialized_synapse.additional_data would now be 'Hello World'
@@ -397,97 +404,94 @@ class Synapse(pydantic.BaseModel):
         """
         return self
 
-    @pydantic.root_validator(pre=True)
+    @model_validator(mode="before")
     def set_name_type(cls, values) -> dict:
         values["name"] = cls.__name__  # type: ignore
         return values
 
     # Defines the http route name which is set on axon.attach( callable( request: RequestName ))
-    name: Optional[str] = pydantic.Field(
+    name: Optional[str] = Field(
         title="name",
         description="Defines the http route name which is set on axon.attach( callable( request: RequestName ))",
-        examples="Forward",
-        allow_mutation=True,
+        examples=["Forward"],
+        frozen=False,
         default=None,
         repr=False,
     )
 
     # The call timeout, set by the dendrite terminal.
-    timeout: Optional[float] = pydantic.Field(
+    timeout: Optional[float] = Field(
         title="timeout",
         description="Defines the total query length.",
-        examples=12.0,
+        examples=[12.0],
         default=12.0,
-        allow_mutation=True,
+        frozen=False,
         repr=False,
-    )
-    _extract_timeout = pydantic.validator("timeout", pre=True, allow_reuse=True)(
-        cast_float
     )
 
     # The call timeout, set by the dendrite terminal.
-    total_size: Optional[int] = pydantic.Field(
+    total_size: Optional[int] = Field(
         title="total_size",
         description="Total size of request body in bytes.",
-        examples=1000,
+        examples=[1000],
         default=0,
-        allow_mutation=True,
+        frozen=False,
         repr=False,
-    )
-    _extract_total_size = pydantic.validator("total_size", pre=True, allow_reuse=True)(
-        cast_int
     )
 
     # The call timeout, set by the dendrite terminal.
-    header_size: Optional[int] = pydantic.Field(
+    header_size: Optional[int] = Field(
         title="header_size",
         description="Size of request header in bytes.",
-        examples=1000,
+        examples=[1000],
         default=0,
-        allow_mutation=True,
+        frozen=False,
         repr=False,
     )
-    _extract_header_size = pydantic.validator(
-        "header_size", pre=True, allow_reuse=True
-    )(cast_int)
 
     # The dendrite Terminal Information.
-    dendrite: Optional[TerminalInfo] = pydantic.Field(
+    dendrite: Optional[TerminalInfo] = Field(
         title="dendrite",
         description="Dendrite Terminal Information",
-        examples="bittensor.TerminalInfo",
+        examples=["bittensor.TerminalInfo"],
         default=TerminalInfo(),
-        allow_mutation=True,
+        frozen=False,
         repr=False,
     )
 
     # A axon terminal information
-    axon: Optional[TerminalInfo] = pydantic.Field(
+    axon: Optional[TerminalInfo] = Field(
         title="axon",
         description="Axon Terminal Information",
-        examples="bittensor.TerminalInfo",
+        examples=["bittensor.TerminalInfo"],
         default=TerminalInfo(),
-        allow_mutation=True,
+        frozen=False,
         repr=False,
     )
 
-    computed_body_hash: Optional[str] = pydantic.Field(
+    computed_body_hash: Optional[str] = Field(
         title="computed_body_hash",
         description="The computed body hash of the request.",
-        examples="0x0813029319030129u4120u10841824y0182u091u230912u",
+        examples=["0x0813029319030129u4120u10841824y0182u091u230912u"],
         default="",
-        allow_mutation=False,
+        frozen=True,
         repr=False,
     )
 
-    required_hash_fields: Optional[List[str]] = pydantic.Field(
+    required_hash_fields: Optional[List[str]] = Field(
         title="required_hash_fields",
         description="The list of required fields to compute the body hash.",
         examples=["roles", "messages"],
         default=[],
-        allow_mutation=False,
+        frozen=True,
         repr=False,
     )
+
+    _extract_total_size = field_validator("total_size", mode="before")(cast_int)
+
+    _extract_header_size = field_validator("header_size", mode="before")(cast_int)
+
+    _extract_timeout = field_validator("timeout", mode="before")(cast_float)
 
     def __setattr__(self, name: str, value: Any):
         """
@@ -580,6 +584,13 @@ class Synapse(pydantic.BaseModel):
         """
         return self.dendrite is not None and self.dendrite.status_code == 401
 
+    def get_required_fields(self):
+        """
+        Get the required fields from the model's JSON schema.
+        """
+        schema = self.__class__.model_json_schema()
+        return schema.get("required", [])
+
     def to_headers(self) -> dict:
         """
         Converts the state of a Synapse instance into a dictionary of HTTP headers.
@@ -612,7 +623,7 @@ class Synapse(pydantic.BaseModel):
             headers.update(
                 {
                     f"bt_header_axon_{k}": str(v)
-                    for k, v in self.axon.dict().items()
+                    for k, v in self.axon.model_dump().items()
                     if v is not None
                 }
             )
@@ -620,20 +631,18 @@ class Synapse(pydantic.BaseModel):
             headers.update(
                 {
                     f"bt_header_dendrite_{k}": str(v)
-                    for k, v in self.dendrite.dict().items()
+                    for k, v in self.dendrite.model_dump().items()
                     if v is not None
                 }
             )
 
         # Getting the fields of the instance
-        instance_fields = self.dict()
+        instance_fields = self.model_dump()
 
         # Iterating over the fields of the instance
         for field, value in instance_fields.items():
             # If the object is not optional, serializing it, encoding it, and adding it to the headers
-            required = schema([self.__class__])["definitions"][self.name].get(
-                "required"
-            )
+            required = self.get_required_fields()
 
             # Skipping the field if it's already in the headers or its value is None
             if field in headers or value is None:
@@ -687,7 +696,7 @@ class Synapse(pydantic.BaseModel):
         hashes = []
 
         # Getting the fields of the instance
-        instance_fields = self.dict()
+        instance_fields = self.model_dump()
 
         for field, value in instance_fields.items():
             # If the field is required in the subclass schema, hash and add it.

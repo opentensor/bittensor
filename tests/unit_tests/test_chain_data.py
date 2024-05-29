@@ -1,6 +1,6 @@
 import pytest
-import torch
 import bittensor
+import torch
 from bittensor.chain_data import AxonInfo, ChainDataType, DelegateInfo, NeuronInfo
 
 SS58_FORMAT = bittensor.__ss58_format__
@@ -199,10 +199,72 @@ def test_to_parameter_dict(axon_info, test_case):
     result = axon_info.to_parameter_dict()
 
     # Assert
+    assert isinstance(result, dict)
+    for key, value in axon_info.__dict__.items():
+        assert key in result
+        assert result[key] == value, f"Test case: {test_case}"
+
+
+@pytest.mark.parametrize(
+    "axon_info, test_case",
+    [
+        (
+            AxonInfo(
+                version=1,
+                ip="127.0.0.1",
+                port=8080,
+                ip_type=4,
+                hotkey="hot",
+                coldkey="cold",
+            ),
+            "ID_to_parameter_dict",
+        ),
+    ],
+)
+def test_to_parameter_dict_torch(
+    axon_info,
+    test_case,
+    force_legacy_torch_compat_api,
+):
+    result = axon_info.to_parameter_dict()
+
+    # Assert
     assert isinstance(result, torch.nn.ParameterDict)
     for key, value in axon_info.__dict__.items():
         assert key in result
         assert result[key] == value, f"Test case: {test_case}"
+
+
+@pytest.mark.parametrize(
+    "parameter_dict, expected, test_case",
+    [
+        (
+            {
+                "version": 1,
+                "ip": "127.0.0.1",
+                "port": 8080,
+                "ip_type": 4,
+                "hotkey": "hot",
+                "coldkey": "cold",
+            },
+            AxonInfo(
+                version=1,
+                ip="127.0.0.1",
+                port=8080,
+                ip_type=4,
+                hotkey="hot",
+                coldkey="cold",
+            ),
+            "ID_from_parameter_dict",
+        ),
+    ],
+)
+def test_from_parameter_dict(parameter_dict, expected, test_case):
+    # Act
+    result = AxonInfo.from_parameter_dict(parameter_dict)
+
+    # Assert
+    assert result == expected, f"Test case: {test_case}"
 
 
 @pytest.mark.parametrize(
@@ -231,7 +293,9 @@ def test_to_parameter_dict(axon_info, test_case):
         ),
     ],
 )
-def test_from_parameter_dict(parameter_dict, expected, test_case):
+def test_from_parameter_dict_torch(
+    parameter_dict, expected, test_case, force_legacy_torch_compat_api
+):
     # Act
     result = AxonInfo.from_parameter_dict(parameter_dict)
 

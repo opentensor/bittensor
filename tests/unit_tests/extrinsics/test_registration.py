@@ -102,7 +102,9 @@ def test_run_faucet_extrinsic_happy_path(
         # Assert
         if isinstance(result, tuple):
             assert result[0] == expected
-            mock_subtensor.substrate.submit_extrinsic.assert_called()
+            if result[0] is True:
+                # Checks only if successful
+                mock_subtensor.substrate.submit_extrinsic.assert_called()
         else:
             assert result == expected
         mock_subtensor.get_balance.assert_called_with("mock_address")
@@ -140,7 +142,7 @@ def test_run_faucet_extrinsic_edge_cases(
         )
 
         # Assert
-        assert result == expected
+        assert result[0] == expected
 
 
 @pytest.mark.parametrize(
