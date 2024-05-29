@@ -189,7 +189,7 @@ def test_body_hash_override():
 
 def test_default_instance_fields_dict_consistency():
     synapse_instance = bittensor.Synapse()
-    assert synapse_instance.dict() == {
+    assert synapse_instance.model_dump() == {
         "name": "Synapse",
         "timeout": 12.0,
         "total_size": 0,
