@@ -702,7 +702,7 @@ class Synapse(BaseModel):
 
             if required_hash_fields:
                 instance_fields = self.model_dump()
-                # Preserve backward compatibility in which fields will added in .dict() order
+                # Preserve backward compatibility in which fields will added in .model_dump() order
                 # instead of the order one from `self.required_hash_fields`
                 required_hash_fields = [
                     field for field in instance_fields if field in required_hash_fields
@@ -715,7 +715,7 @@ class Synapse(BaseModel):
             required_hash_fields = self.__class__.required_hash_fields
 
         if required_hash_fields:
-            instance_fields = instance_fields or self.dict()
+            instance_fields = instance_fields or self.model_dump()
             for field in required_hash_fields:
                 hashes.append(bittensor.utils.hash(str(instance_fields[field])))
 
