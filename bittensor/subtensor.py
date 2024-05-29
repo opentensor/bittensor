@@ -2694,7 +2694,7 @@ class subtensor:
         trust in other neurons based on observed performance and contributions on the root network.
         """
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=logger)
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=_logger)
         def make_substrate_call_with_retry():
             call = self.substrate.compose_call(
                 call_module="SubtensorModule",
