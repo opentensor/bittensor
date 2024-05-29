@@ -1,24 +1,101 @@
 import binascii
+import functools
 import hashlib
 import math
 import multiprocessing
 import os
 import random
 import time
+import typing
 from dataclasses import dataclass
 from datetime import timedelta
 from queue import Empty, Full
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import backoff
+import numpy
+
 import bittensor
-import torch
 from Crypto.Hash import keccak
 from rich import console as rich_console
 from rich import status as rich_status
 
 from .formatting import get_human_readable, millify
 from ._register_cuda import solve_cuda
+
+
+def use_torch() -> bool:
+    """Force the use of torch over numpy for certain operations."""
+    return True if os.getenv("USE_TORCH") == "1" else False
+
+
+def legacy_torch_api_compat(func):
+    """
+    Convert function operating on numpy Input&Output to legacy torch Input&Output API if `use_torch()` is True.
+
+    Args:
+        func (function):
+            Function with numpy Input/Output to be decorated.
+    Returns:
+        decorated (function):
+            Decorated function.
+    """
+
+    @functools.wraps(func)
+    def decorated(*args, **kwargs):
+        if use_torch():
+            # if argument is a Torch tensor, convert it to numpy
+            args = [
+                arg.cpu().numpy() if isinstance(arg, torch.Tensor) else arg
+                for arg in args
+            ]
+            kwargs = {
+                key: value.cpu().numpy() if isinstance(value, torch.Tensor) else value
+                for key, value in kwargs.items()
+            }
+        ret = func(*args, **kwargs)
+        if use_torch():
+            # if return value is a numpy array, convert it to Torch tensor
+            if isinstance(ret, numpy.ndarray):
+                ret = torch.from_numpy(ret)
+        return ret
+
+    return decorated
+
+
+@functools.cache
+def _get_real_torch():
+    try:
+        import torch as _real_torch
+    except ImportError:
+        _real_torch = None
+    return _real_torch
+
+
+def log_no_torch_error():
+    bittensor.btlogging.error(
+        "This command requires torch. You can install torch for bittensor"
+        ' with `pip install bittensor[torch]` or `pip install ".[torch]"`'
+        " if installing from source, and then run the command with USE_TORCH=1 {command}"
+    )
+
+
+class LazyLoadedTorch:
+    def __bool__(self):
+        return bool(_get_real_torch())
+
+    def __getattr__(self, name):
+        if real_torch := _get_real_torch():
+            return getattr(real_torch, name)
+        else:
+            log_no_torch_error()
+            raise ImportError("torch not installed")
+
+
+if typing.TYPE_CHECKING:
+    import torch
+else:
+    torch = LazyLoadedTorch()
 
 
 class CUDAException(Exception):

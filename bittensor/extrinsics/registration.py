@@ -17,12 +17,15 @@
 # DEALINGS IN THE SOFTWARE.
 
 import bittensor
-
-import torch
 import time
 from rich.prompt import Confirm
 from typing import List, Union, Optional, Tuple
-from bittensor.utils.registration import POWSolution, create_pow
+from bittensor.utils.registration import (
+    POWSolution,
+    create_pow,
+    torch,
+    log_no_torch_error,
+)
 
 
 def register_extrinsic(
@@ -102,6 +105,10 @@ def register_extrinsic(
         ):
             return False
 
+    if not torch:
+        log_no_torch_error()
+        return False
+
     # Attempt rolling registration.
     attempts = 1
     while True:
@@ -112,7 +119,7 @@ def register_extrinsic(
         if cuda:
             if not torch.cuda.is_available():
                 if prompt:
-                    bittensor.__console__.error("CUDA is not available.")
+                    bittensor.__console__.print("CUDA is not available.")
                 return False
             pow_result: Optional[POWSolution] = create_pow(
                 subtensor,
@@ -340,7 +347,7 @@ def run_faucet_extrinsic(
     num_processes: Optional[int] = None,
     update_interval: Optional[int] = None,
     log_verbose: bool = False,
-) -> bool:
+) -> Tuple[bool, str]:
     r"""Runs a continual POW to get a faucet of TAO on the test net.
 
     Args:
@@ -377,7 +384,11 @@ def run_faucet_extrinsic(
                 subtensor.network,
             )
         ):
-            return False
+            return False, ""
+
+    if not torch:
+        log_no_torch_error()
+        return False, "Requires torch"
 
     # Unlock coldkey
     wallet.coldkey
@@ -391,13 +402,13 @@ def run_faucet_extrinsic(
     while True:
         try:
             pow_result = None
-            while pow_result == None or pow_result.is_stale(subtensor=subtensor):
+            while pow_result is None or pow_result.is_stale(subtensor=subtensor):
                 # Solve latest POW.
                 if cuda:
                     if not torch.cuda.is_available():
                         if prompt:
-                            bittensor.__console__.error("CUDA is not available.")
-                        return False
+                            bittensor.__console__.print("CUDA is not available.")
+                        return False, "CUDA is not available."
                     pow_result: Optional[POWSolution] = create_pow(
                         subtensor,
                         wallet,

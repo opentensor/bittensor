@@ -16,9 +16,9 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-
 import random
 import socket
+import os
 import unittest
 from queue import Empty as QueueEmpty
 from unittest.mock import MagicMock, patch
@@ -548,7 +548,7 @@ class TestSubtensor(unittest.TestCase):
             self.assertEqual(mock_create_pow.call_count, 3)
 
     def test_registration_stale_then_continue(self):
-        # verifty that after a stale solution, the solve will continue without exiting
+        # verify that after a stale solution, the solve will continue without exiting
 
         class ExitEarly(Exception):
             pass
