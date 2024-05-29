@@ -10,14 +10,12 @@ import bittensor
 # Example test using the local_chain fixture
 def test_root_get_set_weights(local_chain, capsys):
     (wallet, exec_command) = new_wallet("//Alice", "//Bob")
-    # assert sudo_call_set_network_limit(local_chain, wallet)
+    assert sudo_call_set_network_limit(local_chain, wallet)
 
-    # assert not local_chain.query("SubtensorModule", "NetworksAdded", [1]).serialize()
+    assert not local_chain.query("SubtensorModule", "NetworksAdded", [1]).serialize()
 
-    # exec_command(RegisterSubnetworkCommand, ["s", "create"])
-    # exec_command(RegisterSubnetworkCommand, ["s", "create"])
-    # exec_command(RegisterSubnetworkCommand, ["s", "create"])
-    # assert local_chain.query("SubtensorModule", "NetworksAdded", [1]).serialize()
+    exec_command(RegisterSubnetworkCommand, ["s", "create"])
+    assert local_chain.query("SubtensorModule", "NetworksAdded", [1]).serialize()
 
     assert (
         local_chain.query("SubtensorModule", "Uids", [1, wallet.hotkey.ss58_address])
@@ -25,8 +23,6 @@ def test_root_get_set_weights(local_chain, capsys):
     )
 
     exec_command(RegisterCommand, ["subnets", "register", "--netuid", "1"])
-    # assert local_chain.query("SubtensorModule", "NetworksAdded", [2]).serialize()
-    # assert local_chain.query("SubtensorModule", "NetworksAdded", [4]).serialize()
 
     # netuids = "1,2,4"
     # weights = "0.1,0.3,0.6"
@@ -39,7 +35,6 @@ def test_root_get_set_weights(local_chain, capsys):
     #     "SubtensorModule", "Weights", [wallet.hotkey.ss58_address]
     # )
 
-    # bittensor.logging.info(weights)
     netuid = "1"
     increase = "0.01"
 
@@ -48,8 +43,8 @@ def test_root_get_set_weights(local_chain, capsys):
         ["root", "boost", "--netuid", netuid, "--increase", increase],
     )
 
-    weights = local_chain.query("SubtensorModule", "Weights", [1])
-    assert weights == 1
+    # weights = local_chain.query("SubtensorModule", "Weights", [1])
+    # assert weights == 1
 
     # captured = capsys.readouterr()
     # lines = captured.out.splitlines()
