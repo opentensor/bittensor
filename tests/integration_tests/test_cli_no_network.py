@@ -427,7 +427,9 @@ class TestEmptyArgs(unittest.TestCase):
                 "stakes",
                 "roots",
                 "wallets",
+                "weight",
                 "st",
+                "wt",
                 "su",
             ]  # Skip duplicate aliases
         ]
