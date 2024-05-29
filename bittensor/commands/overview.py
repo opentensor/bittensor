@@ -317,7 +317,7 @@ class OverviewCommand:
                 de_registered_neurons = []
                 for hotkey_addr, our_stake in de_registered_stake:
                     # Make a neuron info lite for this hotkey and coldkey.
-                    de_registered_neuron = bittensor.NeuronInfoLite._null_neuron()
+                    de_registered_neuron = bittensor.NeuronInfoLite.get_null_neuron()
                     de_registered_neuron.hotkey = hotkey_addr
                     de_registered_neuron.coldkey = (
                         coldkey_wallet.coldkeypub.ss58_address
