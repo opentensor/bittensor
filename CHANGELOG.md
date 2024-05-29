@@ -1,8 +1,9 @@
 # Changelog
 
-## 7.0.0 / 2024-05-17
+## 7.0.0 / 2024-05-29
 
 ## What's Changed
+* replace torch with numpy by @andreea-popescu-reef in https://github.com/opentensor/bittensor/pull/1777
 * Fix broken link in contrib/RELEASE_GUIDELINES #1821 by @thewhaleking in https://github.com/opentensor/bittensor/pull/1823
 * Tests: Added coverage for set_weights by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/1825
 * Remove irrelevant call to get_delegates method. by @RomanCh-OT in https://github.com/opentensor/bittensor/pull/1826
@@ -34,6 +35,15 @@
 * fix get_coldkey_password_from_environment resolving wrong password by @mjurbanski-reef in https://github.com/opentensor/bittensor/pull/1843
 * Drop python 3.8 support by @mjurbanski-reef in https://github.com/opentensor/bittensor/pull/1892
 * feat: Refactor phase 2 overview cmd & add test cov. Adds factories by @gus-opentensor in https://github.com/opentensor/bittensor/pull/1887
+* Add setting delegate take by @gztensor in https://github.com/opentensor/bittensor/pull/1903
+* E2E Test Patterns by @orriin in https://github.com/opentensor/bittensor/pull/1885
+* chore: correct method types by @distributedstatemachine in https://github.com/opentensor/bittensor/pull/1907
+* bittensor.btlogging refactoring by @RomanCh-OT in https://github.com/opentensor/bittensor/pull/1896
+* Part 1 for refactoring bittensor/subtensor.py by @RomanCh-OT in https://github.com/opentensor/bittensor/pull/1911
+* Update: Pydantic V2 by @opendansor in https://github.com/opentensor/bittensor/pull/1889
+* Add back compatibility with torch by @thewhaleking in https://github.com/opentensor/bittensor/pull/1904
+* Release/6.12.2 by @gus-opentensor in https://github.com/opentensor/bittensor/pull/1910
+* Chore: Updated dev requirements by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/1946
 
 ## New Contributors
 * @andreea-popescu-reef made their first contribution in https://github.com/opentensor/bittensor/pull/1777
@@ -43,7 +53,8 @@
 * @orriin made their first contribution in https://github.com/opentensor/bittensor/pull/1886
 * @opendansor made their first contribution in https://github.com/opentensor/bittensor/pull/1895
 
-**Full Changelog**: https://github.com/opentensor/bittensor/compare/v6.12.0...v7.0.0
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v6.12.2...v7.0.0
+
 ## 6.12.2 / 2024-05-20
 
 ## What's Changed
