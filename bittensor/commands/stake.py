@@ -15,14 +15,22 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import sys
 import argparse
-import bittensor
-from tqdm import tqdm
-from rich.prompt import Confirm, Prompt
-from bittensor.utils.balance import Balance
+import os
+import sys
 from typing import List, Union, Optional, Dict, Tuple
-from .utils import get_hotkey_wallets_for_wallet
+
+from rich.prompt import Confirm, Prompt
+from rich.table import Table
+from tqdm import tqdm
+
+import bittensor
+from bittensor.utils.balance import Balance
+from .utils import (
+    get_hotkey_wallets_for_wallet,
+    get_delegates_details,
+    DelegatesDetails,
+)
 from . import defaults
 
 console = bittensor.__console__
@@ -289,23 +297,6 @@ class StakeCommand:
         )
         bittensor.wallet.add_args(stake_parser)
         bittensor.subtensor.add_args(stake_parser)
-
-
-### Stake list.
-import argparse
-import bittensor
-from tqdm import tqdm
-from rich.table import Table
-from rich.prompt import Prompt
-from typing import Dict, Union, List, Tuple
-from .utils import get_delegates_details, DelegatesDetails
-from . import defaults
-
-console = bittensor.__console__
-
-import os
-import bittensor
-from typing import List, Tuple, Optional, Dict
 
 
 def _get_coldkey_wallets_for_path(path: str) -> List["bittensor.wallet"]:
