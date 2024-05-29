@@ -187,7 +187,7 @@ class SubnetLockCostCommand:
         config = cli.config.copy()
         try:
             bittensor.__console__.print(
-                f"Subnet lock cost: [green]{bittensor.utils.balance.Balance( subtensor.get_subnet_burn_cost() )}[/green]"
+                f"Subnet lock cost: [green]{bittensor.utils.balance.Balance(subtensor.get_subnet_burn_cost())}[/green]"
             )
         except Exception as e:
             bittensor.__console__.print(
@@ -416,6 +416,21 @@ class SubnetSudoCommand:
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
+    async def commander_run(subtensor: "bittensor.subtensor", config, params):
+        await SubnetHyperparamsCommand.commander_run(subtensor, config, params)
+        result = await asyncio.get_event_loop().run_in_executor(
+            None,
+            lambda: subtensor.set_hyperparameter(
+                config.wallet,
+                netuid=config.netuid,
+                parameter=params["param"],
+                value=params["value"],
+                prompt=False,
+            ),
+        )
+        return {"Success": result}
+
+    @staticmethod
     def _run(
         cli: "bittensor.cli",
         subtensor: "bittensor.subtensor",
@@ -638,6 +653,13 @@ class SubnetGetHyperparamsCommand:
             if "subtensor" in locals():
                 subtensor.close()
                 bittensor.logging.debug("closing subtensor connection")
+
+    @staticmethod
+    async def commander_run(subtensor: "bittensor.subtensor", config, params):
+        hyperparameters = await asyncio.get_event_loop().run_in_executor(
+            None, subtensor.get_subnet_hyperparameters, config.netuid
+        )
+        return hyperparameters.__dict__
 
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):

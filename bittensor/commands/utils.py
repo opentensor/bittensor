@@ -15,6 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import aiohttp
 import sys
 import os
 import bittensor
@@ -241,3 +242,20 @@ def get_delegates_details(url: str) -> Optional[Dict[str, DelegatesDetails]]:
         return _get_delegates_details_from_github(requests.get, url)
     except Exception:
         return None  # Fail silently
+
+
+async def a_get_delegates_details(url: str) -> dict[str, DelegatesDetails]:
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as response:
+                if response.status == 200:
+                    all_delegates: Dict[str, Any] = await response.json(content_type=None)
+                    all_delegates_details = {
+                        delegate_hotkey: DelegatesDetails.from_json(delegates_details)
+                        for delegate_hotkey, delegates_details in all_delegates.items()
+                    }
+                    return all_delegates_details
+                else:
+                    return {}
+    except aiohttp.ClientError as e:
+        raise ValueError(e)

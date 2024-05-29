@@ -624,10 +624,7 @@ class RootSetWeightsCommand:
                 ", ".join(
                     map(
                         str,
-                        [
-                            "{:.2f}".format(float(1 / len(subnets)))
-                            for _ in subnets
-                        ][:3],
+                        ["{:.2f}".format(float(1 / len(subnets))) for _ in subnets][:3],
                     )
                 )
                 + " ..."

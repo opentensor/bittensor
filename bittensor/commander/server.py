@@ -34,11 +34,12 @@ from bittensor.commands import (
     identity,
     senate,
     delegates,
+    unstake,
 )
 from bittensor.commands import list as list_commands
 from bittensor.commands import root as root_commands
+from bittensor.commands import stake as stake_commands
 from bittensor.commander import data
-
 
 # TODO app-wide error-handling
 
@@ -294,10 +295,7 @@ async def root_nominate():
 async def root_weights(netuids: list[int], weights: list[float]):
     return await run_fn(
         root_commands.RootSetWeightsCommand,
-        params={
-            "netuids": netuids,
-            "weights": weights
-        }
+        params={"netuids": netuids, "weights": weights},
     )
 
 
@@ -308,7 +306,7 @@ async def root_delegates(sub_cmd: str):
         "undelegate": delegates.DelegateUnstakeCommand,
         "my": delegates.MyDelegatesCommand,
         "list": delegates.ListDelegatesCommand,
-        "list_lite": delegates.ListDelegatesLiteCommand
+        "list_lite": delegates.ListDelegatesLiteCommand,
     }
 
 
@@ -331,5 +329,24 @@ async def root(sub_cmd: str, amount: int = 0):
 
 
 # Sudo
+@app.get("/sudo/get", dependencies=[Depends(check_config)])
+async def sudo_get():
+    return await run_fn(network.SubnetGetHyperparamsCommand)
+
+
+@app.get("/sudo/set", dependencies=[Depends(check_config)])
+async def sudo_set(param: str, value: Union[str, int, bool, float]):
+    return await run_fn(
+        network.SubnetSudoCommand, params={"param": param, "value": value}
+    )
+
 
 # Stake
+@app.get("/stake/{sub_cmd}", dependencies=[Depends(check_config)])
+async def stake(sub_cmd: str, all_wallets: bool = False):
+    routing_list = {
+        "show": stake_commands.StakeShow,
+        "add": stake_commands.StakeCommand,
+        "remove": unstake.UnStakeCommand,
+    }
+    return await run_fn(routing_list[sub_cmd], params={"all_wallets": all_wallets})
