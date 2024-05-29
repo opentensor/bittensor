@@ -28,7 +28,7 @@ def local_chain():
         cmds, stdout=subprocess.PIPE, text=True, preexec_fn=os.setsid
     )
 
-    # # Pattern match indicates node is compiled and ready
+    # Pattern match indicates node is compiled and ready
     pattern = re.compile(r"Successfully ran block step\.")
 
     def wait_for_node_start(process, pattern):
