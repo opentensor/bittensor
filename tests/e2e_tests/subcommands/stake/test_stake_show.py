@@ -8,7 +8,7 @@ def test_stake_show(local_chain, capsys):
 
     exec_command(StakeShow, ["stake", "show"])
     captured = capsys.readouterr()
-    lines = captured.out.split("\n")
+    lines = captured.out.splitlines()
 
     assert len(lines) == 5
     assert "Coldkey" in lines[0]
