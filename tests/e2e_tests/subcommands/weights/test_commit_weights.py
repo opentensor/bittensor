@@ -1,3 +1,10 @@
+import re
+import time
+
+import numpy as np
+
+import bittensor
+import bittensor.utils.weight_utils as weight_utils
 from bittensor.commands import (
     RegisterCommand,
     StakeCommand,
@@ -5,12 +12,7 @@ from bittensor.commands import (
     CommitWeightCommand,
     RevealWeightCommand,
 )
-import bittensor
 from tests.e2e_tests.utils import setup_wallet
-import time
-import bittensor.utils.weight_utils as weight_utils
-import re
-import numpy as np
 
 
 def test_commit_and_reveal_weights(local_chain):
@@ -21,6 +23,7 @@ def test_commit_and_reveal_weights(local_chain):
     # define values
     weights = 0.1
     uid = 0
+    salt = "18, 179, 107, 0, 165, 211, 141, 197"
 
     # Verify subnet 1 created successfully
     assert local_chain.query("SubtensorModule", "NetworksAdded", [1]).serialize()
@@ -101,6 +104,8 @@ def test_commit_and_reveal_weights(local_chain):
             str(uid),
             "--weights",
             str(weights),
+            "--salt",
+            str(salt),
             "--subtensor.network",
             "local",
             "--subtensor.chain_endpoint",
@@ -150,6 +155,8 @@ def test_commit_and_reveal_weights(local_chain):
             str(uid),
             "--weights",
             str(weights),
+            "--salt",
+            str(salt),
             "--subtensor.network",
             "local",
             "--subtensor.chain_endpoint",
