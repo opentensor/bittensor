@@ -942,7 +942,6 @@ class Subtensor:
         This function allows neurons to create a tamper-proof record of their weight distribution at a specific point in time,
         enhancing transparency and accountability within the Bittensor network.
         """
-        uid = self.get_uid_for_hotkey_on_subnet(wallet.hotkey.ss58_address, netuid)
         retries = 0
         success = False
         message = "No attempt made. Perhaps it is too soon to commit weights!"
@@ -1081,7 +1080,6 @@ class Subtensor:
         This function allows neurons to reveal their previously committed weight distribution, ensuring transparency
         and accountability within the Bittensor network.
         """
-        uid = self.get_uid_for_hotkey_on_subnet(wallet.hotkey.ss58_address, netuid)
         retries = 0
         success = False
         message = "No attempt made. Perhaps it is too soon to reveal weights!"
@@ -4742,8 +4740,7 @@ class Subtensor:
         subnet, offering insights into their roles in the network's consensus and validation mechanisms.
         """
         if uid is None:
-            # TODO: fix `Access to a protected member _null_neuron of a class` error when chane_data.py refactoring.
-            return NeuronInfo._null_neuron()
+            return NeuronInfo.get_null_neuron()
 
         @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
         def make_substrate_call_with_retry():
@@ -4758,8 +4755,7 @@ class Subtensor:
         json_body = make_substrate_call_with_retry()
 
         if not (result := json_body.get("result", None)):
-            # TODO: fix `Access to a protected member _null_neuron of a class` error when chane_data.py refactoring.
-            return NeuronInfo._null_neuron()
+            return NeuronInfo.get_null_neuron()
 
         return NeuronInfo.from_vec_u8(result)
 
@@ -4814,8 +4810,7 @@ class Subtensor:
         subnet without the need for comprehensive data retrieval.
         """
         if uid is None:
-            # TODO: fix `Access to a protected member _null_neuron of a class` error when chane_data.py refactoring.
-            return NeuronInfoLite._null_neuron()
+            return NeuronInfoLite.get_null_neuron()
 
         hex_bytes_result = self.query_runtime_api(
             runtime_api="NeuronInfoRuntimeApi",
@@ -4828,8 +4823,7 @@ class Subtensor:
         )
 
         if hex_bytes_result is None:
-            # TODO: fix `Access to a protected member _null_neuron of a class` error when chane_data.py refactoring.
-            return NeuronInfoLite._null_neuron()
+            return NeuronInfoLite.get_null_neuron()
 
         if hex_bytes_result.startswith("0x"):
             bytes_result = bytes.fromhex(hex_bytes_result[2:])

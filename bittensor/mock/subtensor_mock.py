@@ -756,7 +756,7 @@ class MockSubtensor(Subtensor):
         self, uid: int, netuid: int, block: Optional[int] = None
     ) -> Optional[NeuronInfo]:
         if uid is None:
-            return NeuronInfo._null_neuron()
+            return NeuronInfo.get_null_neuron()
 
         if block:
             if self.block_number < block:
