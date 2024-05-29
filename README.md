@@ -221,6 +221,11 @@ source ~/.bashrc  # Reload Bash configuration to take effect
 # The Bittensor Package
 The bittensor package contains data structures for interacting with the bittensor ecosystem, writing miners, validators and querying the network. Additionally, it provides many utilities for efficient serialization of Tensors over the wire, performing data analysis of the network, and other useful utilities.
 
+In the 7.0.0 release, we have removed `torch` by default. However, you can still use `torch` by setting the environment variable
+`USE_TORCH=1` and making sure that you have installed the `torch` library. 
+You can install `torch` by running `pip install bittensor[torch]` (if installing via PyPI), or by running `pip install -e ".[torch]"` (if installing from source). 
+We will not be adding any new functionality based on torch.
+
 Wallet: Interface over locally stored bittensor hot + coldkey styled wallets. 
 ```python
 import bittensor
@@ -273,7 +278,7 @@ Synapse: Responsible for defining the protocol definition between axon servers a
 ```python
 class Topk( bittensor.Synapse ):
     topk: int = 2  # Number of "top" elements to select
-    input: bittensor.Tensor = pydantic.Field(..., allow_mutation=False)  # Ensure that input cannot be set on the server side. 
+    input: bittensor.Tensor = pydantic.Field(..., frozen=True)  # Ensure that input cannot be set on the server side. 
     v: bittensor.Tensor = None
     i: bittensor.Tensor = None
 
@@ -329,8 +334,8 @@ my_axon.attach(
 ).start()
 ```     
 
-Dendrite: Inheriting from PyTorch's Module class, represents the abstracted implementation of a network client module designed 
-to send requests to those endpoints to receive inputs.
+Dendrite: Represents the abstracted implementation of a network client module
+designed to send requests to those endpoints to receive inputs.
 
 Example:
 ```python

@@ -21,7 +21,7 @@ from pydantic import ValidationError
 import pytest
 import typing
 import bittensor
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, Mock
 from tests.helpers import _get_mock_wallet
 
 from bittensor.synapse import TerminalInfo
@@ -253,9 +253,11 @@ def test_terminal_info_edge_cases(
 @pytest.mark.parametrize(
     "status_code, process_time, port, ip, version, nonce, expected_exception",
     [
-        (None, 0.1, 9282, 111, TerminalInfo(), 111111, ValidationError),
+        (None, 0.1, 9282, 111, TerminalInfo(), 111111, TypeError),
     ],
-    ids=["missing-required-field"],
+    ids=[
+        "int() argument must be a string, a bytes-like object or a real number, not 'TerminalInfo'"
+    ],
 )
 def test_terminal_info_error_cases(
     status_code, process_time, port, ip, version, nonce, expected_exception

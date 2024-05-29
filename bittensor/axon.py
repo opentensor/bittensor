@@ -20,29 +20,29 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import os
-import uuid
-import copy
-import json
-import time
-import asyncio
-import inspect
-import uvicorn
 import argparse
-import traceback
-import threading
-import bittensor
+import asyncio
 import contextlib
-
+import copy
+import inspect
+import json
+import os
+import threading
+import time
+import traceback
+import uuid
 from inspect import signature, Signature, Parameter
-from fastapi.responses import JSONResponse
-from substrateinterface import Keypair
-from fastapi import FastAPI, APIRouter, Request, Response, Depends
-from starlette.responses import Response
-from starlette.requests import Request
-from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from typing import List, Optional, Tuple, Callable, Any, Dict
 
+import uvicorn
+from fastapi import FastAPI, APIRouter, Depends
+from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from starlette.requests import Request
+from starlette.responses import Response
+from substrateinterface import Keypair
+
+import bittensor
 from bittensor.errors import (
     InvalidRequestNameError,
     SynapseDendriteNoneException,
@@ -567,7 +567,7 @@ class axon:
         self.forward_fns[request_name] = forward_fn
 
         # Parse required hash fields from the forward function protocol defaults
-        required_hash_fields = request_class.__dict__["__fields__"][
+        required_hash_fields = request_class.__dict__["model_fields"][
             "required_hash_fields"
         ].default
         self.required_hash_fields[request_name] = required_hash_fields
@@ -914,25 +914,14 @@ class axon:
             # Build the unique endpoint key.
             endpoint_key = f"{synapse.dendrite.hotkey}:{synapse.dendrite.uuid}"
 
-            # Check the nonce from the endpoint key with 4 second delta
-            allowedDelta = 4000000000
-
-            # Requests must have nonces to be safe from replays
-            if synapse.dendrite.nonce is None:
-                raise Exception("Missing Nonce")
-
-            # If we don't have a nonce stored, ensure that the nonce falls within
-            # a reasonable delta.
+            # Check the nonce from the endpoint key.
             if (
-                self.nonces.get(endpoint_key) is None
-                and synapse.dendrite.nonce <= time.time_ns() - allowedDelta
-            ):
-                raise Exception("Nonce is too old")
-            if (
-                self.nonces.get(endpoint_key) is not None
+                endpoint_key in self.nonces.keys()
+                and self.nonces[endpoint_key] is not None
+                and synapse.dendrite.nonce is not None
                 and synapse.dendrite.nonce <= self.nonces[endpoint_key]
             ):
-                raise Exception("Nonce is too old")
+                raise Exception("Nonce is too small")
 
             if not keypair.verify(message, synapse.dendrite.signature):
                 raise Exception(
@@ -1201,7 +1190,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
             {
                 "version": str(bittensor.__version_as_int__),
                 "uuid": str(self.axon.uuid),
-                "nonce": f"{time.time_ns()}",
+                "nonce": f"{time.monotonic_ns()}",
                 "status_message": "Success",
                 "status_code": "100",
             }
