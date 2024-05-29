@@ -342,11 +342,15 @@ async def sudo_set(param: str, value: Union[str, int, bool, float]):
 
 
 # Stake
+@app.post("/stake/add", dependencies=[Depends(check_config)])
+async def stake_add(params: data.StakeAdd):
+    return await run_fn(stake_commands.StakeCommand, params=params.model_dump())
+
+
 @app.get("/stake/{sub_cmd}", dependencies=[Depends(check_config)])
 async def stake(sub_cmd: str, all_wallets: bool = False):
     routing_list = {
         "show": stake_commands.StakeShow,
-        "add": stake_commands.StakeCommand,
         "remove": unstake.UnStakeCommand,
     }
     return await run_fn(routing_list[sub_cmd], params={"all_wallets": all_wallets})

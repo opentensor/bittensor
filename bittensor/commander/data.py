@@ -69,3 +69,13 @@ class ConfigBody(BaseModel):
 class Password(BaseModel):
     # TODO maybe encrypt this?
     password: str
+
+
+class StakeAdd(BaseModel):
+    all_tokens: bool = False
+    # uid: int
+    amount: float = None
+    max_stake: float = None
+    hotkeys_to_use: list[str] = None
+    all_hotkeys: bool = False
+    excluded_hotkeys: list[str] = None

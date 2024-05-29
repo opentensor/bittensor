@@ -16,6 +16,8 @@
 # DEALINGS IN THE SOFTWARE.
 
 import argparse
+import asyncio
+from functools import reduce
 import os
 import sys
 from typing import List, Union, Optional, Dict, Tuple
@@ -29,8 +31,8 @@ from bittensor.utils.balance import Balance
 from .utils import (
     get_hotkey_wallets_for_wallet,
     get_delegates_details,
-    a_get_delegates_details
-    DelegatesDetails
+    a_get_delegates_details,
+    DelegatesDetails,
 )
 from . import defaults
 
@@ -79,6 +81,118 @@ class StakeCommand:
             if "subtensor" in locals():
                 subtensor.close()
                 bittensor.logging.debug("closing subtensor connection")
+
+    @staticmethod
+    async def commander_run(subtensor: "bittensor.subtensor", config, params):
+        a_run = asyncio.get_event_loop().run_in_executor
+        hotkeys_to_stake_to: List[Tuple[Optional[str], str]] = []
+        if params.get("all_hotkeys"):
+            all_hotkeys: List[bittensor.wallet] = await a_run(
+                None, lambda: get_hotkey_wallets_for_wallet(wallet=config.wallet)
+            )
+            hotkeys_to_exclude = params.get("excluded_hotkeys")
+            hotkeys_to_stake_to = [
+                (wallet.hotkey_str, wallet.hotkey.ss58_address)
+                for wallet in all_hotkeys
+                if wallet.hotkey_str not in hotkeys_to_exclude
+            ]
+        elif htu := params.get("hotkeys_to_use"):
+            for hotkey_ss58_or_hotkey_name in htu:
+                if bittensor.utils.is_valid_ss58_address(hotkey_ss58_or_hotkey_name):
+                    hotkeys_to_stake_to.append((None, hotkey_ss58_or_hotkey_name))
+                else:
+                    wallet_ = bittensor.wallet(
+                        config=config, hotkey=hotkey_ss58_or_hotkey_name
+                    )
+                    hotkeys_to_stake_to.append(
+                        (wallet_.hotkey_str, wallet_.hotkey.ss58_address)
+                    )
+        elif wallet_hotkey := config.wallet.hotkey:
+            hotkey_ss58_or_name = wallet_hotkey
+            if bittensor.utils.is_valid_ss58_address(hotkey_ss58_or_name):
+                hotkeys_to_stake_to = [(None, hotkey_ss58_or_name)]
+            else:
+                wallet_ = bittensor.wallet(config=config, hotkey=hotkey_ss58_or_name)
+                hotkeys_to_stake_to = [
+                    (wallet_.hotkey_str, wallet_.hotkey.ss58_address)
+                ]
+        else:
+            assert wallet_hotkey is not None
+            hotkeys_to_stake_to = [
+                (None, bittensor.wallet(config=config).hotkey.ss58_address)
+            ]
+
+        wallet_balance: Balance = subtensor.get_balance(
+            config.wallet.coldkeypub.ss58_address
+        )
+        final_hotkeys: List[Tuple[str, str]] = []
+        final_amounts: List[Union[float, Balance]] = []
+        for hotkey in hotkeys_to_stake_to:
+            hotkey: Tuple[Optional[str], str]
+            if not await a_run(
+                None, lambda: subtensor.is_hotkey_registered_any(hotkey_ss58=hotkey[1])
+            ):
+                if len(hotkeys_to_stake_to) == 1:
+                    return {
+                        "Success": False,
+                        "Error": f"Hotkey {hotkey[1]} is not registered",
+                    }
+                else:
+                    continue
+            stake_amount_tao: float = params.get("amount")
+            if max_stake := params.get("max_stake"):
+                hotkey_stake: Balance = await a_run(
+                    None,
+                    lambda: subtensor.get_stake_for_coldkey_and_hotkey(
+                        hotkey_ss58=hotkey[1],
+                        coldkey_ss58=config.wallet.coldkeypub.ss58_address,
+                    ),
+                )
+                stake_amount_tao: float = min(
+                    max_stake - hotkey_stake.tao, wallet_balance.tao
+                )
+                if stake_amount_tao <= 0.000_01:
+                    continue
+                wallet_balance = Balance.from_tao(wallet_balance.tao - stake_amount_tao)
+                if wallet_balance.tao < 0:
+                    # No more balance to stake.
+                    break
+
+            final_amounts.append(stake_amount_tao)
+            final_hotkeys.append(hotkey)  # add both the name and the ss58 address.
+
+        if len(final_hotkeys) == 0:
+            return {
+                "Success": False,
+                "Error": "Not enough balance to stake to any hotkeys or max_stake is less than current stake.",
+            }
+
+        if len(final_hotkeys) == 1:
+            # do regular stake
+            do_stake = await a_run(
+                None,
+                lambda: subtensor.add_stake(
+                    wallet=config.wallet,
+                    hotkey_ss58=final_hotkeys[0][1],
+                    amount=None if params.get("all_tokens") else final_amounts[0],
+                    wait_for_inclusion=True,
+                    prompt=False,
+                ),
+            )
+            return {"Success": do_stake}
+
+        else:
+            do_stake = await a_run(
+                None,
+                lambda: subtensor.add_stake_multiple(
+                    wallet=config.wallet,
+                    hotkey_ss58s=[hotkey_ss58 for _, hotkey_ss58 in final_hotkeys],
+                    amounts=None if params.get("all_tokens") else final_amounts,
+                    wait_for_inclusion=True,
+                    prompt=False,
+                ),
+            )
+            return {"Success": do_stake}
 
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
@@ -472,7 +586,14 @@ class StakeShow:
     @staticmethod
     async def commander_run(
         subtensor: "bittensor.subtensor", config, params
-    ) -> dict[str, Union[float, Balance, list[dict[str, Union[str, dict[str, Union[int, float]], int]]]]]:
+    ) -> dict[
+        str,
+        Union[
+            float,
+            Balance,
+            list[dict[str, Union[str, dict[str, Union[int, float]], int]]],
+        ],
+    ]:
         def accumulate_totals(totals, account):
             tot_bal = totals[0] + account["balance"]
             tot_stake = totals[1] + sum(

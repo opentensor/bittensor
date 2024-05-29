@@ -249,7 +249,9 @@ async def a_get_delegates_details(url: str) -> dict[str, DelegatesDetails]:
         async with aiohttp.ClientSession() as session:
             async with session.get(url) as response:
                 if response.status == 200:
-                    all_delegates: Dict[str, Any] = await response.json(content_type=None)
+                    all_delegates: Dict[str, Any] = await response.json(
+                        content_type=None
+                    )
                     all_delegates_details = {
                         delegate_hotkey: DelegatesDetails.from_json(delegates_details)
                         for delegate_hotkey, delegates_details in all_delegates.items()
