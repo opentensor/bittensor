@@ -133,6 +133,8 @@ def set_root_weights_extrinsic(
             Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
 
+    wallet.coldkey  # unlock coldkey
+
     # First convert types.
     if isinstance(netuids, list):
         netuids = np.array(netuids, dtype=np.int64)
@@ -180,7 +182,7 @@ def set_root_weights_extrinsic(
             weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(
                 netuids, weights
             )
-            success, error_message = subtensor._do_set_weights(
+            success, error_message = subtensor._do_set_root_weights(
                 wallet=wallet,
                 netuid=0,
                 uids=weight_uids,
