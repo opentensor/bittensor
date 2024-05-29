@@ -26,8 +26,9 @@ import re
 
 import numpy as np
 from rich.prompt import Prompt, Confirm
-import bittensor.utils.weight_utils as weight_utils
+
 import bittensor
+import bittensor.utils.weight_utils as weight_utils
 from . import defaults  # type: ignore
 
 
@@ -90,15 +91,21 @@ class CommitWeightCommand:
             uids=uids, weights=weights
         )
 
-        # Generate random salt
-        salt_length = 8
-        salt = list(os.urandom(salt_length))
+        if not cli.config.is_set("salt"):
+            # Generate random salt
+            salt_length = 8
+            salt = list(os.urandom(salt_length))
 
-        if not Confirm.ask(
-            f"Have you recorded the [red]salt[/red]: [bold white]'{salt}'[/bold white]? It will be "
-            f"required to reveal weights."
-        ):
-            return False, "User cancelled the operation."
+            if not Confirm.ask(
+                f"Have you recorded the [red]salt[/red]: [bold white]'{salt}'[/bold white]? It will be "
+                f"required to reveal weights."
+            ):
+                return False, "User cancelled the operation."
+        else:
+            salt = np.array(
+                [int(x) for x in re.split(r"[ ,]+", cli.config.salt)],
+                dtype=np.int64,
+            ).tolist()
 
         # Run the commit weights operation
         success, message = subtensor.commit_weights(
