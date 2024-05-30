@@ -3,9 +3,20 @@ version: 2.1
 orbs:
   python: circleci/python@2.1.1
   python-lib: dialogue/python-lib@0.1.55
-  # coveralls: coveralls/coveralls@1.0.6
 
 jobs:
+  check-pr-status:
+    docker:
+      - image: cimg/python:3.10
+    steps:
+      - checkout
+      - run:
+          name: Install jq
+          command: sudo apt-get update && sudo apt-get install -y jq
+      - run:
+          name: Check if PR is a draft
+          command: .circleci/check_pr_status.sh
+
   black:
     resource_class: small
     parameters:
@@ -108,7 +119,6 @@ jobs:
             . env/bin/activate
             ./scripts/create_wallet.sh
 
-      # TODO: Update test durations on different runs
       - run:
           name: Unit Tests
           command: |
@@ -135,22 +145,6 @@ jobs:
           path: test-results
       - store_artifacts:
           path: test-results
-
-      #- when:
-          #condition:
-            #equal: ["3.10.5", << parameters.python-version >> ]
-          #steps:
-            #- run:
-                #name: Upload Coverage
-                #command: |
-                  #. env/bin/activate && coveralls
-                #env:
-                  #CI_NAME: circleci
-                  #CI_BUILD_NUMBER: $CIRCLE_BUILD_NUM
-                  #CI_BUILD_URL: $CIRCLE_BUILD_URL
-                  #CI_BRANCH: $CIRCLE_BRANCH
-                  #CI_JOB_ID: $CIRCLE_NODE_INDEX
-                  #COVERALLS_PARALLEL: true
 
   lint-and-type-check:
     resource_class: medium
@@ -290,12 +284,17 @@ workflows:
 
   pr-requirements:
     jobs:
+      - check-pr-status
       - black:
           python-version: "3.9.13"
+          requires:
+            - check-pr-status
       - build-and-test:
           matrix:
             parameters:
               python-version: ["3.9.13", "3.10.6", "3.11.4"]
+          requires:
+            - check-pr-status
       - unit-tests-all-python-versions:
           requires:
             - build-and-test
@@ -304,7 +303,7 @@ workflows:
             parameters:
               python-version: ["3.9.13", "3.10.6", "3.11.4"]
           requires:
-            - build-and-test
+            - check-pr-status
       #- coveralls:
           #requires:
             #- build-and-test
