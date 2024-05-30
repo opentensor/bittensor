@@ -19,8 +19,8 @@ echo $IS_DRAFT
 
 if [ "$IS_DRAFT" == "true" ]; then
   echo "This PR is a draft. Skipping the workflow."
-  exit 0
+  exit 1
 else
   echo "This PR is not a draft. Proceeding with the workflow."
-  exit 1
+  exit 0
 fi
