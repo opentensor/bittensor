@@ -35,3 +35,4 @@ termcolor
 tqdm
 uvicorn==0.22.0
 wheel
+websockets>=12.0
