@@ -5,7 +5,7 @@ orbs:
   python-lib: dialogue/python-lib@0.1.55
 
 jobs:
-  check-pr-status:
+  check-if-pr-is-draft:
     docker:
       - image: cimg/python:3.10
     steps:
@@ -284,17 +284,17 @@ workflows:
 
   pr-requirements:
     jobs:
-      - check-pr-status
+      - check-if-pr-is-draft
       - black:
           python-version: "3.9.13"
           requires:
-            - check-pr-status
+            - check-if-pr-is-draft
       - build-and-test:
           matrix:
             parameters:
               python-version: ["3.9.13", "3.10.6", "3.11.4"]
           requires:
-            - check-pr-status
+            - check-if-pr-is-draft
       - unit-tests-all-python-versions:
           requires:
             - build-and-test
@@ -303,7 +303,7 @@ workflows:
             parameters:
               python-version: ["3.9.13", "3.10.6", "3.11.4"]
           requires:
-            - check-pr-status
+            - check-if-pr-is-draft
       #- coveralls:
           #requires:
             #- build-and-test
