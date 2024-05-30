@@ -16,15 +16,40 @@
 # DEALINGS IN THE SOFTWARE.
 
 import argparse
+import asyncio
+from dataclasses import dataclass
+import aiofiles
 import bittensor
 import os
 import sys
 from rich.prompt import Prompt, Confirm
 from rich.table import Table
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Union, Any
 from . import defaults
 import requests
 from ..utils import RAOPERTAO
+
+
+BalancesDict = dict[str, "WalletBalance"]
+
+
+class WalletBalance:
+    def __init__(
+        self,
+        coldkey_name: str,
+        free_balance: "bittensor.Balance",
+        staked_balance: "bittensor.Balance",
+    ):
+        self.coldkey_name = coldkey_name
+        self.free_balance = free_balance
+        self.staked_balance = staked_balance
+
+    def to_dict(self):
+        return {
+            "coldkey_name": self.coldkey_name,
+            "free_balance": self.free_balance.to_dict(),
+            "staked_balance": self.staked_balance.to_dict(),
+        }
 
 
 class RegenColdkeyCommand:
@@ -75,6 +100,23 @@ class RegenColdkeyCommand:
             use_password=cli.config.use_password,
             overwrite=cli.config.overwrite_coldkey,
         )
+
+    @staticmethod
+    async def commander_run(subtensor: "bittensor.subtensor", config, params):
+        kwargs = await check_json(
+            config,
+            {
+                "mnemonic": params.mnemonic,
+                "seed": params.seed,
+                "use_password": params.use_password,
+                "overwrite": params.overwrite,
+            },
+        )
+        # TODO I probably need to do something with this after regeneration.
+        await asyncio.get_event_loop().run_in_executor(
+            config.wallet.regenerate_hotkey(**kwargs)
+        )
+        return {"success": True}
 
     @staticmethod
     def check_config(config: "bittensor.config"):
@@ -174,6 +216,7 @@ class RegenColdkeypubCommand:
         It is a recovery-focused utility that ensures continued access to wallet functionalities.
     """
 
+    @staticmethod
     def run(cli):
         r"""Creates a new coldkeypub under this wallet."""
         wallet = bittensor.wallet(config=cli.config)
@@ -182,6 +225,18 @@ class RegenColdkeypubCommand:
             public_key=cli.config.get("public_key_hex"),
             overwrite=cli.config.overwrite_coldkeypub,
         )
+
+    @staticmethod
+    async def commander_run(subtensor: "bittensor.subtensor", config, params):
+        asyncio.get_event_loop().run_in_executor(
+            None,
+            lambda: config.wallet.regen_coldkeypub(
+                ss58_address=params.ss58_address,
+                public_key=params.public_key_hex,
+                overwrite=params.overwrite,
+            ),
+        )
+        return {"success": True}
 
     @staticmethod
     def check_config(config: "bittensor.config"):
@@ -281,7 +336,6 @@ class RegenHotkeyCommand:
 
             # Password can be "", assume if None
             json_password = cli.config.get("json_password", "")
-
         wallet.regenerate_hotkey(
             mnemonic=cli.config.mnemonic,
             seed=cli.config.seed,
@@ -289,6 +343,23 @@ class RegenHotkeyCommand:
             use_password=cli.config.use_password,
             overwrite=cli.config.overwrite_hotkey,
         )
+
+    @staticmethod
+    async def commander_run(subtensor: "bittensor.subtensor", config, params):
+        kwargs = await check_json(
+            config,
+            {
+                "mnemonic": params.mnemonic,
+                "seed": params.seed,
+                "use_password": params.use_password,
+                "overwrite": params.overwrite,
+            },
+        )
+        # TODO I probably need to do something with this after regeneration.
+        await asyncio.get_event_loop().run_in_executor(
+            config.wallet.regenerate_hotkey(**kwargs)
+        )
+        return {"success": True}
 
     @staticmethod
     def check_config(config: "bittensor.config"):
@@ -394,14 +465,27 @@ class NewHotkeyCommand:
         such as running multiple miners or separating operational roles within the network.
     """
 
+    @staticmethod
     def run(cli):
-        """Creates a new hotke under this wallet."""
+        """Creates a new hotkey under this wallet."""
         wallet = bittensor.wallet(config=cli.config)
         wallet.create_new_hotkey(
             n_words=cli.config.n_words,
             use_password=cli.config.use_password,
             overwrite=cli.config.overwrite_hotkey,
         )
+
+    @staticmethod
+    async def commander_run(subtensor: "bittensor.subtensor", config, params):
+        asyncio.get_event_loop().run_in_executor(
+            None,
+            lambda: config.wallet.create_new_hotkey(
+                n_words=params.n_words,
+                use_password=params.use_password,
+                overwrite=params.overwrite_hotkey,
+            ),
+        )
+        return {"success": True}
 
     @staticmethod
     def check_config(config: "bittensor.config"):
@@ -549,6 +633,7 @@ class WalletCreateCommand:
         It ensures a fresh start with new keys for secure and effective participation in the network.
     """
 
+    @staticmethod
     def run(cli):
         r"""Creates a new coldkey and hotkey under this wallet."""
         wallet = bittensor.wallet(config=cli.config)
@@ -562,6 +647,31 @@ class WalletCreateCommand:
             use_password=False,
             overwrite=cli.config.overwrite_hotkey,
         )
+
+    @staticmethod
+    async def commander_run(
+        subtensor: "bittensor.subtensor", config, params=None
+    ) -> bool:
+        run_in_executor = asyncio.get_event_loop().run_in_executor
+        await asyncio.gather(
+            run_in_executor(
+                None,
+                lambda: config.wallet.create_new_coldkey(
+                    n_words=params.get("n_words"),
+                    use_password=params.get("use_password"),
+                    overwrite=params.get("overwrite_coldkey"),
+                ),
+            ),
+            run_in_executor(
+                None,
+                lambda: config.wallet.create_new_hotkey(
+                    n_words=params.get("n_words"),
+                    use_password=params.get("use_password"),
+                    overwrite=params.get("overwrite_hotkey"),
+                ),
+            ),
+        )
+        return True
 
     @staticmethod
     def check_config(config: "bittensor.config"):
@@ -660,6 +770,15 @@ class UpdateWalletCommand:
         for wallet in wallets:
             print("\n===== ", wallet, " =====")
             wallet.coldkey_file.check_and_update_encryption()
+
+    @staticmethod
+    async def commander_run(_, config, params) -> dict[str, bool]:
+        wallets = (
+            _get_coldkey_wallets_for_path(config.wallet.path)
+            if params.get("all_wallets")
+            else [config.wallet]
+        )
+        return {x.name: x.coldkey_file.check_and_update_encryption() for x in wallets}
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
@@ -771,6 +890,22 @@ class WalletBalanceCommand:
             if "subtensor" in locals():
                 subtensor.close()
                 bittensor.logging.debug("closing subtensor connection")
+
+    @staticmethod
+    async def commander_run(
+        subtensor: "bittensor.subtensor", config, params=None
+    ) -> dict[str, Union[dict, str, int, float]]:
+        try:
+            balances, total_free_balance, total_staked_balance = await get_balances(
+                subtensor, config, params
+            )
+            return {
+                "wallets": {x: y.to_dict() for x, y in balances.items()},
+                "total_free_balance": total_free_balance.to_dict(),
+                "total_staked_balance": total_staked_balance.to_dict(),
+            }
+        except bittensor.KeyFileError:
+            raise
 
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
@@ -998,6 +1133,24 @@ class GetWalletHistoryCommand:
         bittensor.__console__.print(table)
 
     @staticmethod
+    async def commander_run(
+        subtensor: "bittensor.subtensor", config, params
+    ) -> list[dict[str, Any]]:
+        transfers = get_wallet_transfers(config.wallet.get_coldkeypub().ss58_address)
+        return [
+            {
+                "Id": i["id"],
+                "From": i["from"],
+                "To": i["to"],
+                "Amount": i["amount"].to_dict(),
+                "Extrinsic Id": str(i["extrinsicId"]),
+                "Block Number": i["blockNumber"],
+                "URL (taostats)": f"https://x.taostats.io/extrinsic/{i['blockNumber']}-{i['extrinsicId']}",
+            }
+            for i in transfers
+        ]
+
+    @staticmethod
     def add_args(parser: argparse.ArgumentParser):
         history_parser = parser.add_parser(
             "history",
@@ -1097,3 +1250,105 @@ def create_transfer_history_table(transfers):
     table.pad_edge = False
     table.width = None
     return table
+
+
+async def check_json(config, kwargs: dict) -> dict:
+    if file_name := config.json_encrypted_path:
+        if not os.path.exists(file_name) or not os.path.isfile(file_name):
+            # TODO ensure server error handling for this
+            raise ValueError(f"File {file_name} does not exist")
+        with aiofiles.open(file_name, "r") as f:
+            return {
+                **kwargs,
+                **{"json": ((await f.read()), config.json_encrypted_pw)},
+            }
+    return kwargs
+
+
+async def get_balances(
+    subtensor, config, params
+) -> tuple[BalancesDict, "bittensor.Balance", "bittensor.Balance"]:
+    """
+    Gets the balances of all wallets requested
+    """
+
+    def fetch_balances(
+        coldkeys: list[str],
+    ) -> tuple[
+        list["bittensor.Balance"],
+        list["bittensor.Balance"],
+        "bittensor.Balance",
+        "bittensor.Balance",
+    ]:
+        free_balances = [subtensor.get_balance(coldkey) for coldkey in coldkeys]
+        staked_balances = [
+            subtensor.get_total_stake_for_coldkey(coldkey) for coldkey in coldkeys
+        ]
+        return free_balances, staked_balances, sum(free_balances), sum(staked_balances)
+
+    def generate_balances_dict(
+        wallet_names: list[str],
+        coldkeys: list[str],
+        free_balances: list["bittensor.Balance"],
+        staked_balances: list["bittensor.Balance"],
+    ) -> BalancesDict:
+        return {
+            name: WalletBalance(coldkey, free, staked)
+            for name, coldkey, free, staked in sorted(
+                zip(wallet_names, coldkeys, free_balances, staked_balances)
+            )
+        }
+
+    def handle_all_wallets() -> (
+        tuple[BalancesDict, "bittensor.Balance", "bittensor.Balance"]
+    ):
+        coldkeys, wallet_names = _get_coldkey_ss58_addresses_for_path(
+            config.wallet.path
+        )
+        (
+            free_balances,
+            staked_balances,
+            total_free_balance_,
+            total_staked_balance_,
+        ) = fetch_balances(coldkeys)
+        return (
+            generate_balances_dict(
+                wallet_names, coldkeys, free_balances, staked_balances
+            ),
+            total_free_balance_,
+            total_staked_balance_,
+        )
+
+    def handle_single_wallet() -> (
+        tuple[BalancesDict, "bittensor.Balance", "bittensor.Balance"]
+    ):
+        coldkey_wallet = config.wallet
+        if (
+            coldkey_wallet.coldkeypub_file.exists_on_device()
+            and not coldkey_wallet.coldkeypub_file.is_encrypted()
+        ):
+            coldkeys = [coldkey_wallet.coldkeypub.ss58_address]
+            wallet_names = [coldkey_wallet.name]
+            (
+                free_balances,
+                staked_balances,
+                total_free_balance_,
+                total_staked_balance_,
+            ) = fetch_balances(coldkeys)
+            return (
+                generate_balances_dict(
+                    wallet_names, coldkeys, free_balances, staked_balances
+                ),
+                total_free_balance_,
+                total_staked_balance_,
+            )
+
+        if not coldkey_wallet.coldkeypub_file.exists_on_device():
+            raise bittensor.KeyFileError("File does not exist on device.")
+
+    if params.get("all_wallets"):
+        balances, total_free_balance, total_staked_balance = handle_all_wallets()
+    else:
+        balances, total_free_balance, total_staked_balance = handle_single_wallet()
+
+    return balances, total_free_balance, total_staked_balance

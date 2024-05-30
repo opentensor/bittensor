@@ -16,14 +16,16 @@
 # DEALINGS IN THE SOFTWARE.
 
 import re
+from dataclasses import make_dataclass, asdict
 import typing
 import argparse
 import numpy as np
 import bittensor
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Union
 from rich.prompt import Prompt
 from rich.table import Table
 from .utils import get_delegates_details, DelegatesDetails
+from bittensor.utils import rpc_request
 
 from . import defaults
 
@@ -64,6 +66,13 @@ class RootRegisterCommand:
             if "subtensor" in locals():
                 subtensor.close()
                 bittensor.logging.debug("closing subtensor connection")
+
+    @staticmethod
+    async def commander_run(
+        subtensor: "bittensor.subtensor", config, params
+    ) -> dict[str, bool]:
+        result = subtensor.root_register(wallet=config.wallet, prompt=False)
+        return {"success": result}
 
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
@@ -134,6 +143,48 @@ class RootList:
             if "subtensor" in locals():
                 subtensor.close()
                 bittensor.logging.debug("closing subtensor connection")
+
+    @staticmethod
+    async def commander_run(
+        subtensor: "bittensor.subtensor", config, params: dict
+    ) -> dict[str, dict[str, typing.Union[str, float, bool]]]:
+        senate_members: list[str] = subtensor.get_senate_members()
+        root_neurons: typing.List[bittensor.NeuronInfoLite] = subtensor.neurons_lite(
+            netuid=0
+        )
+        delegate_info: Optional[Dict[str, DelegatesDetails]] = get_delegates_details(
+            bittensor.__delegates_details_url__
+        )
+
+        # This would be massively sped up by implementation of asyncio in the substrate interface
+
+        NeuronInfo = make_dataclass(
+            "NeuronInfo",
+            [
+                ("uid", str),
+                ("name", str),
+                ("address", str),
+                ("stake", float),
+                ("senator", bool),
+            ],
+        )
+
+        total_stakes = await rpc_request.query_subtensor(
+            subtensor, [n.hotkey for n in root_neurons], "TotalHotkeyStake"
+        )
+        neuron_data = {
+            str(n.uid): asdict(
+                NeuronInfo(
+                    str(n.uid),
+                    (delegate_info[n.hotkey].name if n.hotkey in delegate_info else ""),
+                    n.hotkey,
+                    bittensor.Balance.from_rao(total_stakes[n.hotkey].value).to_dict(),
+                    bool(n.hotkey in senate_members),
+                )
+            )
+            for n in root_neurons
+        }
+        return neuron_data
 
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
@@ -279,6 +330,31 @@ class RootSetBoostCommand:
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
+    async def commander_run(subtensor: "bittensor.subtensor", config, params):
+        root = subtensor.metagraph(0, lite=False)
+        try:
+            my_uid = root.hotkeys.index(config.wallet.hotkey.ss58_address)
+        except ValueError:
+            raise ValueError(
+                f"Wallet hotkey: {config.wallet.hotkey} not found in root metagraph"
+            )
+        my_weights = root.weights[my_uid]
+        prev_weight = my_weights[config.netuid]
+        new_weight = prev_weight + params["amount"]
+        my_weights[config.netuid] = new_weight
+        all_netuids = np.arange(len(my_weights))
+        result = subtensor.root_set_weights(
+            wallet=config.wallet,
+            netuids=all_netuids,
+            weights=my_weights,
+            version_key=0,
+            prompt=False,
+            wait_for_finalization=True,
+            wait_for_inclusion=True,
+        )
+        return {"success": result}
+
+    @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""Set weights for root network."""
         wallet = bittensor.wallet(config=cli.config)
@@ -397,6 +473,33 @@ class RootSetSlashCommand:
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
+    async def commander_run(
+        subtensor: "bittensor.subtensor", config, params
+    ) -> dict[str, bool]:
+        root = subtensor.metagraph(0, lite=False)
+        try:
+            my_uid = root.hotkeys.index(config.wallet.hotkey.ss58_address)
+        except ValueError:
+            raise ValueError(
+                f"Wallet hotkey: {config.wallet.hotkey} not found in root metagraph"
+            )
+        my_weights = root.weights[my_uid]
+        my_weights[config.netuid] -= params["amount"]
+        my_weights[my_weights < 0] = 0  # Ensure weights don't go negative
+        all_netuids = np.arange(len(my_weights))
+
+        result = subtensor.root_set_weights(
+            wallet=config.wallet,
+            netuids=all_netuids,
+            weights=my_weights,
+            version_key=0,
+            prompt=False,
+            wait_for_finalization=True,
+            wait_for_inclusion=True,
+        )
+        return {"success": result}
+
+    @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         wallet = bittensor.wallet(config=cli.config)
 
@@ -489,6 +592,21 @@ class RootSetWeightsCommand:
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
+    async def commander_run(subtensor: "bittensor.subtensor", config, params):
+        netuids = np.array(params.get("netuids"), dtype=np.int64)
+        weights = np.array(params.get("weights"), dtype=np.float32)
+        result = subtensor.root_set_weights(
+            wallet=config.wallet,
+            netuids=netuids,
+            weights=weights,
+            version_key=0,
+            prompt=False,
+            wait_for_finalization=True,
+            wait_for_inclusion=True,
+        )
+        return {"Success": result}
+
+    @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""Set weights for root network."""
         wallet = bittensor.wallet(config=cli.config)
@@ -506,10 +624,7 @@ class RootSetWeightsCommand:
                 ", ".join(
                     map(
                         str,
-                        [
-                            "{:.2f}".format(float(1 / len(subnets)))
-                            for subnet in subnets
-                        ][:3],
+                        ["{:.2f}".format(float(1 / len(subnets))) for _ in subnets][:3],
                     )
                 )
                 + " ..."
@@ -603,6 +718,13 @@ class RootGetWeightsCommand:
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
+    async def commander_run(subtensor: "bittensor.subtensor", config, params):
+        weights: list[tuple[int, list[tuple[int, int]]]] = subtensor.weights(0)
+        uid_to_weights, netuids = process_weights(weights)
+        rows = create_weight_rows(uid_to_weights, netuids)
+        return rows
+
+    @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""Get weights for root network."""
         weights = subtensor.weights(0)
@@ -679,3 +801,39 @@ class RootGetWeightsCommand:
     @staticmethod
     def check_config(config: "bittensor.config"):
         pass
+
+
+def process_weights(
+    weights: list[tuple[int, list[tuple[int, int]]]]
+) -> tuple[dict[int, dict], set[int]]:
+    netuids = set()
+    uid_to_weights = {
+        uid: {
+            netuid: normalized_weight
+            for (netuid, _), normalized_weight in zip(
+                weights_data,
+                np.array(weights_data)[:, 1] / max(np.sum(weights_data, axis=0)[1], 1),
+            )
+        }
+        if weights_data
+        else {}
+        for uid, weights_data in weights
+        if not netuids.update(netuid for netuid, _ in weights_data)
+    }
+    return uid_to_weights, netuids
+
+
+def create_weight_rows(
+    uid_to_weights: dict[int, dict], netuids: list[str]
+) -> list[dict[str, Union[str, int]]]:
+    return [
+        {
+            "uid": uid,
+            **{
+                netuid: "{:0.2f}%".format(uid_to_weights[uid][netuid] * 100)
+                for netuid in netuids
+                if netuid in uid_to_weights[uid]
+            },
+        }
+        for uid in uid_to_weights
+    ]

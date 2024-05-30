@@ -15,6 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import asyncio
 import sys
 import argparse
 import bittensor
@@ -73,6 +74,40 @@ class RegisterCommand:
             if "subtensor" in locals():
                 subtensor.close()
                 bittensor.logging.debug("closing subtensor connection")
+
+    @staticmethod
+    async def commander_run(subtensor: "bittensor.subtensor", config, params=None):
+        if not subtensor.subnet_exists(netuid=config.netuid):
+            return {"success": False, "error": f"Subnet {config.netuid} does not exist"}
+
+        event_loop = asyncio.get_event_loop()
+        # Check current recycle amount
+        current_recycle, balance = await asyncio.gather(
+            event_loop.run_in_executor(
+                None, lambda: subtensor.recycle(netuid=config.netuid)
+            ),
+            event_loop.run_in_executor(
+                None,
+                lambda: subtensor.get_balance(
+                    address=config.wallet.coldkeypub.ss58_address
+                ),
+            ),
+        )
+        # Check balance is sufficient
+        if balance < current_recycle:
+            return {
+                "success": False,
+                "error": f"Insufficient balance {balance} to register neuron. "
+                f"Current recycle is {current_recycle}",
+            }
+        # TODO get prompt working
+        await event_loop.run_in_executor(
+            None,
+            lambda: subtensor.burned_register(
+                wallet=config.wallet, netuid=config.netuid, prompt=False
+            ),
+        )
+        return {"success": True}
 
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
@@ -203,6 +238,28 @@ class PowRegisterCommand:
             if "subtensor" in locals():
                 subtensor.close()
                 bittensor.logging.debug("closing subtensor connection")
+
+    @staticmethod
+    async def commander_run(subtensor: "bittensor.subtensor", config, params=None):
+        # TODO figure out what tpb is
+        # This does not yet work
+        if not subtensor.subnet_exists(netuid=config.netuid):
+            return {"success": False, "msg": f"Subnet {config.netuid} does not exist"}
+
+        registered = subtensor.register(
+            wallet=config.wallet,
+            netuid=config.netuid,
+            prompt=False,
+            tpb=config.get("tpb"),
+            update_interval=config.get("update_interval"),
+            num_processes=config.get(
+                "num_processes", None
+            ),  # TODO look over these as they need to come from POW reg
+            cuda=config.cuda,
+            dev_id=config.dev_id
+            # TODO output in place and log verbose
+        )
+        return {"success": True, "msg": registered}
 
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
@@ -407,6 +464,27 @@ class RunFaucetCommand:
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
+    async def commander_run(subtensor: "bittensor.subtensor", config, params):
+        # TODO make this work — maybe websockets?
+        success = subtensor.run_faucet(
+            wallet=config.wallet,
+            prompt=False,
+            tpb=cli.config.pow_register.cuda.get("tpb", None),
+            update_interval=cli.config.pow_register.get("update_interval", None),
+            num_processes=cli.config.pow_register.get("num_processes", None),
+            cuda=cli.config.pow_register.cuda.get(
+                "use_cuda", defaults.pow_register.cuda.use_cuda
+            ),
+            dev_id=cli.config.pow_register.cuda.get("dev_id", None),
+            output_in_place=cli.config.pow_register.get(
+                "output_in_place", defaults.pow_register.output_in_place
+            ),
+            log_verbose=cli.config.pow_register.get(
+                "verbose", defaults.pow_register.verbose
+            ),
+        )
+
+    @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""Register neuron."""
         wallet = bittensor.wallet(config=cli.config)
@@ -533,6 +611,11 @@ class SwapHotkeyCommand:
             if "subtensor" in locals():
                 subtensor.close()
                 bittensor.logging.debug("closing subtensor connection")
+
+    @staticmethod
+    async def commander_run(subtensor: "bittensor.subtensor", config, params=None):
+        # TODO implement this
+        pass
 
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):

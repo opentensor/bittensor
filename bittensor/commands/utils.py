@@ -15,6 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import aiohttp
 import sys
 import os
 import bittensor
@@ -173,8 +174,8 @@ def get_all_wallets_for_path(path: str) -> List["bittensor.wallet"]:
     return all_wallets
 
 
-def filter_netuids_by_registered_hotkeys(
-    cli, subtensor, netuids, all_hotkeys
+def filter_netuids_by_registered_hotkeys_using_config(
+    config, subtensor, netuids, all_hotkeys
 ) -> List[int]:
     netuids_with_registered_hotkeys = []
     for wallet in all_hotkeys:
@@ -184,14 +185,22 @@ def filter_netuids_by_registered_hotkeys(
         )
         netuids_with_registered_hotkeys.extend(netuids_list)
 
-    if cli.config.netuids == None or cli.config.netuids == []:
+    if config.netuids is None or config.netuids == []:
         netuids = netuids_with_registered_hotkeys
 
-    elif cli.config.netuids != []:
-        netuids = [netuid for netuid in netuids if netuid in cli.config.netuids]
+    elif config.netuids:
+        netuids = [netuid for netuid in netuids if netuid in config.netuids]
         netuids.extend(netuids_with_registered_hotkeys)
 
     return list(set(netuids))
+
+
+def filter_netuids_by_registered_hotkeys(
+    cli, subtensor, netuids, all_hotkeys
+) -> List[int]:
+    return filter_netuids_by_registered_hotkeys_using_config(
+        cli.config, subtensor, netuids, all_hotkeys
+    )
 
 
 @dataclass
@@ -233,3 +242,22 @@ def get_delegates_details(url: str) -> Optional[Dict[str, DelegatesDetails]]:
         return _get_delegates_details_from_github(requests.get, url)
     except Exception:
         return None  # Fail silently
+
+
+async def a_get_delegates_details(url: str) -> dict[str, DelegatesDetails]:
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as response:
+                if response.status == 200:
+                    all_delegates: Dict[str, Any] = await response.json(
+                        content_type=None
+                    )
+                    all_delegates_details = {
+                        delegate_hotkey: DelegatesDetails.from_json(delegates_details)
+                        for delegate_hotkey, delegates_details in all_delegates.items()
+                    }
+                    return all_delegates_details
+                else:
+                    return {}
+    except aiohttp.ClientError as e:
+        raise ValueError(e)

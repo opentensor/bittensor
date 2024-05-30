@@ -18,7 +18,7 @@
 import argparse
 import os
 import sys
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Union
 
 from rich.console import Text
 from rich.prompt import Prompt, FloatPrompt, Confirm
@@ -819,6 +819,31 @@ class NominateCommand:
             if "subtensor" in locals():
                 subtensor.close()
                 bittensor.logging.debug("closing subtensor connection")
+
+    @staticmethod
+    async def commander_run(
+        subtensor: "bittensor.subtensor", config, params
+    ) -> dict[str, Union[bool, str]]:
+        if subtensor.is_hotkey_delegate(config.wallet.hotkey.ss58_address):
+            return {
+                "Success": False,
+                "error": f"Hotkey {config.wallet.hotkey.ss58_address} is already a delegate.",
+            }
+        if not subtensor.nominate(config.wallet):
+            return {
+                "Success": False,
+                "error": f"Could not became a delegate on {subtensor.network}",
+            }
+        if not subtensor.is_hotkey_delegate(config.wallet.hotkey.ss58_address):
+            return {
+                "Success": False,
+                "error": f"Could not became a delegate on {subtensor.network}",
+            }
+        else:
+            return {
+                "Success": True,
+                "msg": "Subnetwork registered successfully. You can set an identity with the identity set command.",
+            }
 
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):

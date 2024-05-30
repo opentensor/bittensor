@@ -16,6 +16,8 @@
 # DEALINGS IN THE SOFTWARE.
 
 import argparse
+import asyncio
+from functools import reduce
 import os
 import sys
 from typing import List, Union, Optional, Dict, Tuple
@@ -29,6 +31,7 @@ from bittensor.utils.balance import Balance
 from .utils import (
     get_hotkey_wallets_for_wallet,
     get_delegates_details,
+    a_get_delegates_details,
     DelegatesDetails,
 )
 from . import defaults
@@ -78,6 +81,118 @@ class StakeCommand:
             if "subtensor" in locals():
                 subtensor.close()
                 bittensor.logging.debug("closing subtensor connection")
+
+    @staticmethod
+    async def commander_run(subtensor: "bittensor.subtensor", config, params):
+        a_run = asyncio.get_event_loop().run_in_executor
+        hotkeys_to_stake_to: List[Tuple[Optional[str], str]] = []
+        if params.get("all_hotkeys"):
+            all_hotkeys: List[bittensor.wallet] = await a_run(
+                None, lambda: get_hotkey_wallets_for_wallet(wallet=config.wallet)
+            )
+            hotkeys_to_exclude = params.get("excluded_hotkeys")
+            hotkeys_to_stake_to = [
+                (wallet.hotkey_str, wallet.hotkey.ss58_address)
+                for wallet in all_hotkeys
+                if wallet.hotkey_str not in hotkeys_to_exclude
+            ]
+        elif htu := params.get("hotkeys_to_use"):
+            for hotkey_ss58_or_hotkey_name in htu:
+                if bittensor.utils.is_valid_ss58_address(hotkey_ss58_or_hotkey_name):
+                    hotkeys_to_stake_to.append((None, hotkey_ss58_or_hotkey_name))
+                else:
+                    wallet_ = bittensor.wallet(
+                        config=config, hotkey=hotkey_ss58_or_hotkey_name
+                    )
+                    hotkeys_to_stake_to.append(
+                        (wallet_.hotkey_str, wallet_.hotkey.ss58_address)
+                    )
+        elif wallet_hotkey := config.wallet.hotkey:
+            hotkey_ss58_or_name = wallet_hotkey
+            if bittensor.utils.is_valid_ss58_address(hotkey_ss58_or_name):
+                hotkeys_to_stake_to = [(None, hotkey_ss58_or_name)]
+            else:
+                wallet_ = bittensor.wallet(config=config, hotkey=hotkey_ss58_or_name)
+                hotkeys_to_stake_to = [
+                    (wallet_.hotkey_str, wallet_.hotkey.ss58_address)
+                ]
+        else:
+            assert wallet_hotkey is not None
+            hotkeys_to_stake_to = [
+                (None, bittensor.wallet(config=config).hotkey.ss58_address)
+            ]
+
+        wallet_balance: Balance = subtensor.get_balance(
+            config.wallet.coldkeypub.ss58_address
+        )
+        final_hotkeys: List[Tuple[str, str]] = []
+        final_amounts: List[Union[float, Balance]] = []
+        for hotkey in hotkeys_to_stake_to:
+            hotkey: Tuple[Optional[str], str]
+            if not await a_run(
+                None, lambda: subtensor.is_hotkey_registered_any(hotkey_ss58=hotkey[1])
+            ):
+                if len(hotkeys_to_stake_to) == 1:
+                    return {
+                        "Success": False,
+                        "Error": f"Hotkey {hotkey[1]} is not registered",
+                    }
+                else:
+                    continue
+            stake_amount_tao: float = params.get("amount")
+            if max_stake := params.get("max_stake"):
+                hotkey_stake: Balance = await a_run(
+                    None,
+                    lambda: subtensor.get_stake_for_coldkey_and_hotkey(
+                        hotkey_ss58=hotkey[1],
+                        coldkey_ss58=config.wallet.coldkeypub.ss58_address,
+                    ),
+                )
+                stake_amount_tao: float = min(
+                    max_stake - hotkey_stake.tao, wallet_balance.tao
+                )
+                if stake_amount_tao <= 0.000_01:
+                    continue
+                wallet_balance = Balance.from_tao(wallet_balance.tao - stake_amount_tao)
+                if wallet_balance.tao < 0:
+                    # No more balance to stake.
+                    break
+
+            final_amounts.append(stake_amount_tao)
+            final_hotkeys.append(hotkey)  # add both the name and the ss58 address.
+
+        if len(final_hotkeys) == 0:
+            return {
+                "Success": False,
+                "Error": "Not enough balance to stake to any hotkeys or max_stake is less than current stake.",
+            }
+
+        if len(final_hotkeys) == 1:
+            # do regular stake
+            do_stake = await a_run(
+                None,
+                lambda: subtensor.add_stake(
+                    wallet=config.wallet,
+                    hotkey_ss58=final_hotkeys[0][1],
+                    amount=None if params.get("all_tokens") else final_amounts[0],
+                    wait_for_inclusion=True,
+                    prompt=False,
+                ),
+            )
+            return {"Success": do_stake}
+
+        else:
+            do_stake = await a_run(
+                None,
+                lambda: subtensor.add_stake_multiple(
+                    wallet=config.wallet,
+                    hotkey_ss58s=[hotkey_ss58 for _, hotkey_ss58 in final_hotkeys],
+                    amounts=None if params.get("all_tokens") else final_amounts,
+                    wait_for_inclusion=True,
+                    prompt=False,
+                ),
+            )
+            return {"Success": do_stake}
 
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
@@ -331,6 +446,100 @@ def _get_hotkey_wallets_for_wallet(wallet) -> List["bittensor.wallet"]:
     return hotkey_wallets
 
 
+def get_stakes_from_hotkeys(
+    subtensor, wallet
+) -> Dict[str, Dict[str, Union[str, Balance]]]:
+    """Fetch stakes from hotkeys for the provided wallet.
+
+    Args:
+        wallet: The wallet object to fetch the stakes for.
+
+    Returns:
+        A dictionary of stakes related to hotkeys.
+    """
+    hotkeys = get_hotkey_wallets_for_wallet(wallet)
+    stakes = {}
+    for hot in hotkeys:
+        emission = sum(
+            [
+                n.emission
+                for n in subtensor.get_all_neurons_for_pubkey(hot.hotkey.ss58_address)
+            ]
+        )
+        hotkey_stake = subtensor.get_stake_for_coldkey_and_hotkey(
+            hotkey_ss58=hot.hotkey.ss58_address,
+            coldkey_ss58=wallet.coldkeypub.ss58_address,
+        )
+        stakes[hot.hotkey.ss58_address] = {
+            "name": hot.hotkey_str,
+            "stake": hotkey_stake,
+            "rate": emission,
+        }
+    return stakes
+
+
+def get_stakes_from_delegates(
+    subtensor, wallet, registered_delegate_info
+) -> Dict[str, Dict[str, Union[str, Balance]]]:
+    """Fetch stakes from delegates for the provided wallet.
+
+    Args:
+        wallet: The wallet object to fetch the stakes for.
+
+    Returns:
+        A dictionary of stakes related to delegates.
+    """
+    delegates = subtensor.get_delegated(coldkey_ss58=wallet.coldkeypub.ss58_address)
+    stakes = {}
+    for dele, staked in delegates:
+        for nom in dele.nominators:
+            if nom[0] == wallet.coldkeypub.ss58_address:
+                delegate_name = (
+                    registered_delegate_info[dele.hotkey_ss58].name
+                    if dele.hotkey_ss58 in registered_delegate_info
+                    else dele.hotkey_ss58
+                )
+                stakes[dele.hotkey_ss58] = {
+                    "name": delegate_name,
+                    "stake": nom[1],
+                    "rate": dele.total_daily_return.tao
+                    * (nom[1] / dele.total_stake.tao),
+                }
+    return stakes
+
+
+def get_stake_accounts(
+    wallet, subtensor, registered_delegate_info
+) -> Dict[str, Dict[str, Union[str, Balance]]]:
+    """Get stake account details for the given wallet.
+
+    Args:
+        wallet: The wallet object to fetch the stake account details for.
+
+    Returns:
+        A dictionary mapping SS58 addresses to their respective stake account details.
+    """
+
+    wallet_stake_accounts = {}
+
+    # Get this wallet's coldkey balance.
+    cold_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
+
+    # Populate the stake accounts with local hotkeys data.
+    wallet_stake_accounts.update(get_stakes_from_hotkeys(subtensor, wallet))
+
+    # Populate the stake accounts with delegations data.
+    wallet_stake_accounts.update(
+        get_stakes_from_delegates(subtensor, wallet, registered_delegate_info)
+    )
+
+    return {
+        "name": wallet.name,
+        "balance": cold_balance,
+        "accounts": wallet_stake_accounts,
+    }
+
+
 class StakeShow:
     """
     Executes the ``show`` command to list all stake accounts associated with a user's wallet on the Bittensor network.
@@ -375,6 +584,66 @@ class StakeShow:
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
+    async def commander_run(
+        subtensor: "bittensor.subtensor", config, params
+    ) -> dict[
+        str,
+        Union[
+            float,
+            Balance,
+            list[dict[str, Union[str, dict[str, Union[int, float]], int]]],
+        ],
+    ]:
+        def accumulate_totals(totals, account):
+            tot_bal = totals[0] + account["balance"]
+            tot_stake = totals[1] + sum(
+                value["stake"] for value in account["accounts"].values()
+            )
+            tot_rate = totals[2] + sum(
+                float(value["rate"]) for value in account["accounts"].values()
+            )
+            rows_ = totals[3] + [
+                {
+                    "account": value["name"],
+                    "stake": value["stake"].to_dict(),
+                    "rate": value["rate"],
+                }
+                for value in account["accounts"].values()
+            ]
+            return tot_bal, tot_stake, tot_rate, rows_
+
+        wallets = (
+            _get_coldkey_wallets_for_path(config.wallet.path)
+            if params.get("all_wallets")
+            else [config.wallet]
+        )
+        registered_delegate_info: dict[
+            str, DelegatesDetails
+        ] = await a_get_delegates_details(url=bittensor.__delegates_details_url__)
+        run = asyncio.get_event_loop().run_in_executor
+        accounts: list[dict[str, dict[str, Union[str, Balance]]]] = [
+            (
+                await run(
+                    None,
+                    get_stake_accounts,
+                    wallet,
+                    subtensor,
+                    registered_delegate_info,
+                )
+            )
+            for wallet in wallets
+        ]
+        total_balance, total_stake, total_rate, rows = reduce(
+            accumulate_totals, accounts, (Balance(0), Balance(0), 0, [])
+        )
+        return {
+            "total_balance": total_balance.to_dict(),
+            "total_stake": total_stake.to_dict(),
+            "total_rate": total_rate,
+            "accounts": rows,
+        }
+
+    @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""Show all stake accounts."""
         if cli.config.get("all", d=False) == True:
@@ -384,99 +653,6 @@ class StakeShow:
         registered_delegate_info: Optional[
             Dict[str, DelegatesDetails]
         ] = get_delegates_details(url=bittensor.__delegates_details_url__)
-
-        def get_stake_accounts(
-            wallet, subtensor
-        ) -> Dict[str, Dict[str, Union[str, Balance]]]:
-            """Get stake account details for the given wallet.
-
-            Args:
-                wallet: The wallet object to fetch the stake account details for.
-
-            Returns:
-                A dictionary mapping SS58 addresses to their respective stake account details.
-            """
-
-            wallet_stake_accounts = {}
-
-            # Get this wallet's coldkey balance.
-            cold_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
-
-            # Populate the stake accounts with local hotkeys data.
-            wallet_stake_accounts.update(get_stakes_from_hotkeys(subtensor, wallet))
-
-            # Populate the stake accounts with delegations data.
-            wallet_stake_accounts.update(get_stakes_from_delegates(subtensor, wallet))
-
-            return {
-                "name": wallet.name,
-                "balance": cold_balance,
-                "accounts": wallet_stake_accounts,
-            }
-
-        def get_stakes_from_hotkeys(
-            subtensor, wallet
-        ) -> Dict[str, Dict[str, Union[str, Balance]]]:
-            """Fetch stakes from hotkeys for the provided wallet.
-
-            Args:
-                wallet: The wallet object to fetch the stakes for.
-
-            Returns:
-                A dictionary of stakes related to hotkeys.
-            """
-            hotkeys = get_hotkey_wallets_for_wallet(wallet)
-            stakes = {}
-            for hot in hotkeys:
-                emission = sum(
-                    [
-                        n.emission
-                        for n in subtensor.get_all_neurons_for_pubkey(
-                            hot.hotkey.ss58_address
-                        )
-                    ]
-                )
-                hotkey_stake = subtensor.get_stake_for_coldkey_and_hotkey(
-                    hotkey_ss58=hot.hotkey.ss58_address,
-                    coldkey_ss58=wallet.coldkeypub.ss58_address,
-                )
-                stakes[hot.hotkey.ss58_address] = {
-                    "name": hot.hotkey_str,
-                    "stake": hotkey_stake,
-                    "rate": emission,
-                }
-            return stakes
-
-        def get_stakes_from_delegates(
-            subtensor, wallet
-        ) -> Dict[str, Dict[str, Union[str, Balance]]]:
-            """Fetch stakes from delegates for the provided wallet.
-
-            Args:
-                wallet: The wallet object to fetch the stakes for.
-
-            Returns:
-                A dictionary of stakes related to delegates.
-            """
-            delegates = subtensor.get_delegated(
-                coldkey_ss58=wallet.coldkeypub.ss58_address
-            )
-            stakes = {}
-            for dele, staked in delegates:
-                for nom in dele.nominators:
-                    if nom[0] == wallet.coldkeypub.ss58_address:
-                        delegate_name = (
-                            registered_delegate_info[dele.hotkey_ss58].name
-                            if dele.hotkey_ss58 in registered_delegate_info
-                            else dele.hotkey_ss58
-                        )
-                        stakes[dele.hotkey_ss58] = {
-                            "name": delegate_name,
-                            "stake": nom[1],
-                            "rate": dele.total_daily_return.tao
-                            * (nom[1] / dele.total_stake.tao),
-                        }
-            return stakes
 
         def get_all_wallet_accounts(
             wallets,
@@ -495,7 +671,9 @@ class StakeShow:
             # Create a progress bar using tqdm
             with tqdm(total=len(wallets), desc="Fetching accounts", ncols=100) as pbar:
                 for wallet in wallets:
-                    accounts.append(get_stake_accounts(wallet, subtensor))
+                    accounts.append(
+                        get_stake_accounts(wallet, subtensor, registered_delegate_info)
+                    )
                     pbar.update()
             return accounts
 

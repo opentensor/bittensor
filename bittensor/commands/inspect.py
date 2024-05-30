@@ -16,7 +16,9 @@
 # DEALINGS IN THE SOFTWARE.
 
 import argparse
+import asyncio
 import bittensor
+from dataclasses import dataclass, asdict
 from tqdm import tqdm
 from rich.table import Table
 from rich.prompt import Prompt
@@ -26,6 +28,7 @@ from .utils import (
     get_hotkey_wallets_for_wallet,
     get_all_wallets_for_path,
     filter_netuids_by_registered_hotkeys,
+    filter_netuids_by_registered_hotkeys_using_config,
 )
 from . import defaults
 
@@ -33,7 +36,7 @@ console = bittensor.__console__
 
 import os
 import bittensor
-from typing import List, Tuple, Optional, Dict
+from typing import List, Tuple, Optional, Dict, Any
 
 
 def _get_coldkey_wallets_for_path(path: str) -> List["bittensor.wallet"]:
@@ -122,6 +125,42 @@ class InspectCommand:
             if "subtensor" in locals():
                 subtensor.close()
                 bittensor.logging.debug("closing subtensor connection")
+
+    @staticmethod
+    async def commander_run(
+        subtensor: "bittensor.subtensor", config, params=None
+    ) -> List[Dict[str, Any]]:
+        wallets = (
+            _get_coldkey_wallets_for_path(config.wallet.path)
+            if (all_wallets := params.get("all_wallets", False))
+            else [bittensor.wallet(path=config.wallet.path, name=config.wallet.name)]
+        )
+        all_hotkeys = (
+            get_all_wallets_for_path(config.wallet.path)
+            if all_wallets
+            else [get_hotkey_wallets_for_wallet(wallets[0])]
+        )
+        event_loop = asyncio.get_event_loop()
+        netuids = await event_loop.run_in_executor(
+            None,
+            filter_netuids_by_registered_hotkeys_using_config,
+            config,
+            subtensor,
+            (await event_loop.run_in_executor(None, subtensor.get_all_subnet_netuids)),
+            all_hotkeys,
+        )
+        registered_delegate_info: Optional[Dict[str, DelegatesDetails]] = (
+            get_delegates_details(url=bittensor.__delegates_details_url__) or {}
+        )
+        neuron_state_dict = {
+            netuid: subtensor.neurons_lite(netuid) or [] for netuid in netuids
+        }
+        return [
+            asdict(x)
+            for x in await wallet_processor(
+                wallets, subtensor, registered_delegate_info, netuids, neuron_state_dict
+            )
+        ]
 
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
@@ -277,3 +316,104 @@ class InspectCommand:
 
         bittensor.wallet.add_args(inspect_parser)
         bittensor.subtensor.add_args(inspect_parser)
+
+
+@dataclass
+class WalletInspection:
+    name: str
+    balance: dict
+    delegates: List["Delegate"]
+    neurons: List["Neuron"]
+
+
+@dataclass
+class Delegate:
+    delegate: str
+    stake: dict
+    emission: dict
+
+
+@dataclass
+class Neuron:
+    netuid: int
+    hotkey: str
+    stake: dict
+    emission: dict
+
+
+def map_delegate(delegate_staked, registered_delegate_info):
+    delegate, staked_ = delegate_staked
+    delegate_name_ = registered_delegate_info.get(
+        delegate.hotkey_ss58, delegate.hotkey_ss58
+    ).name
+    return Delegate(
+        delegate=delegate_name_,
+        stake=staked_.to_dict(),
+        emission=(
+            delegate.total_daily_return.tao * (staked_.tao / delegate.total_stake.tao)
+        ).to_dict(),
+    )
+
+
+def create_neuron(netuid, neuron, hotkeys, wallet):
+    if neuron.coldkey == wallet.coldkeypub.ss58_address:
+        hotkey_names = [
+            wall.hotkey_str
+            for wall in hotkeys
+            if wall.hotkey.ss58_address == neuron.hotkey
+        ]
+        hotkey_name = f"{hotkey_names[0]}-" if hotkey_names else ""
+        return Neuron(
+            netuid=netuid,
+            hotkey=f"{hotkey_name}{neuron.hotkey}",
+            stake=neuron.stake.to_dict(),
+            emission=bittensor.Balance.from_tao(neuron.emission).to_dict(),
+        )
+
+
+async def wallet_processor(
+    wallets,
+    subtensor: "bittensor.subtensor",
+    registered_delegate_info,
+    netuids,
+    neuron_state_dict,
+) -> List[WalletInspection]:
+    async def map_wallet(wall):
+        if not wall.coldkeypub_file.exists_on_device():
+            return
+        # Note: running these concurrently breaks this. Need to redo the subtensor lib for this to work properly
+        # Ideally, this would be asyncio.gather...
+        delegates: List[
+            Tuple[bittensor.DelegateInfo, bittensor.Balance]
+        ] = await event_loop.run_in_executor(
+            None,
+            lambda: subtensor.get_delegated(coldkey_ss58=wall.coldkeypub.ss58_address),
+        )
+        cold_balance = await event_loop.run_in_executor(
+            None, subtensor.get_balance, wall.coldkeypub.ss58_address
+        )
+        hotkeys = _get_hotkey_wallets_for_wallet(wall)
+        wallet_ = WalletInspection(
+            name=wall.name,
+            balance=cold_balance.to_dict(),
+            delegates=[
+                map_delegate(x, registered_delegate_info=registered_delegate_info)
+                for x in delegates
+            ],
+            neurons=[
+                neuron
+                for neuron in (
+                    create_neuron(netuid, neuron_, hotkeys, wall)
+                    for netuid in netuids
+                    for neuron_ in neuron_state_dict[netuid]
+                )
+                if neuron
+            ],
+        )
+        return wallet_
+
+    event_loop = asyncio.get_event_loop()
+    # This should work but like in line 384, it does not. Subtensor needs fully ported
+    # to asyncio before this can work
+    # return list(await asyncio.gather(*[map_wallet(x) for x in wallets]))
+    return [(await map_wallet(x)) for x in wallets]

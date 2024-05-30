@@ -15,6 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import asyncio
 import os
 import argparse
 import bittensor
@@ -101,6 +102,51 @@ class ListCommand:
 
         # Uses rich print to display the tree.
         print(root)
+
+    @staticmethod
+    async def commander_run(
+        subtensor: "bittensor.subtensor", config, params=None
+    ) -> dict:
+        async def wallet_structure(wallet_name) -> dict:
+            async def get_hotkeys(hotkey_name) -> dict:
+                hotkey_for_name = bittensor.wallet(
+                    path=config.wallet.path, name=wallet_name, hotkey=hotkey_name
+                )
+                if (
+                    hotkey_for_name.hotkey_file.exists_on_device()
+                    and not hotkey_for_name.hotkey_file.is_encrypted()
+                ):
+                    hotkey_str = hotkey_for_name.hotkey.ss58_address
+                else:
+                    hotkey_str = "?"
+                return {"name": hotkey_name, "address": hotkey_str}
+
+            wallet_for_name = bittensor.wallet(
+                path=config.wallet.path, name=wallet_name
+            )
+            coldkeypub_str = (
+                wallet_for_name.coldkeypub.ss58_address
+                if wallet_for_name.coldkeypub_file.exists_on_device()
+                and not wallet_for_name.coldkeypub_file.is_encrypted()
+                else "?"
+            )
+            hotkeys_path = os.path.join(
+                os.path.expanduser(config.wallet.path), wallet_name, "hotkeys"
+            )
+            hotkeys = [(await get_hotkeys(h)) for h in os.listdir(hotkeys_path)]
+            return {wallet_name: {"coldkeypub": coldkeypub_str, "hotkeys": hotkeys}}
+
+        wallets = await asyncio.get_event_loop().run_in_executor(
+            None,
+            lambda: [
+                d
+                for d in os.listdir(os.path.expanduser(config.wallet.path))
+                if os.path.isdir(
+                    os.path.join(os.path.expanduser(config.wallet.path), d)
+                )
+            ],
+        )
+        return {"wallets": [await wallet_structure(w) for w in wallets]}
 
     @staticmethod
     def check_config(config: "bittensor.config"):

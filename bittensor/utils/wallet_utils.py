@@ -154,7 +154,7 @@ def create_identity_dict(
     }
 
 
-def decode_hex_identity_dict(info_dictionary):
+def decode_hex_identity_dict(info_dictionary) -> dict:
     for key, value in info_dictionary.items():
         if isinstance(value, dict):
             item = list(value.values())[0]

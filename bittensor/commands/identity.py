@@ -1,4 +1,7 @@
 import argparse
+import asyncio
+from typing import Any
+
 from rich.table import Table
 from rich.prompt import Prompt
 from sys import getsizeof
@@ -55,6 +58,7 @@ class SetIdentityCommand:
         part of other scripts or applications.
     """
 
+    @staticmethod
     def run(cli: "bittensor.cli"):
         r"""Create a new or update existing identity on-chain."""
         try:
@@ -67,6 +71,34 @@ class SetIdentityCommand:
                 subtensor.close()
                 bittensor.logging.debug("closing subtensor connection")
 
+    @staticmethod
+    async def commander_run(
+        subtensor: "bittensor.subtensor", config, params: dict
+    ) -> dict[str, Any]:
+        for field, string in params.items():
+            if getsizeof(string) > 113:  # 64 + 49 overhead bytes for string
+                raise ValueError(f"Identity value `{field}` must be <= 64 raw bytes")
+        identified = (
+            config.wallet.hotkey.ss58_address
+            if params.pop("operating_hotkey_identity")
+            else None
+        )
+        # TODO forewarn in the frontend that the cost to register an identity is 0.1 TAO
+        try:
+            subtensor.update_identity(
+                identified=identified,
+                wallet=config.wallet,
+                params=params,
+            )
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+        identity = subtensor.query_identity(
+            identified or config.wallet.coldkey.ss58_address
+        )
+        return {"success": True, "identity": identity}
+
+    @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""Create a new or update existing identity on-chain."""
         console = bittensor.__console__
@@ -272,6 +304,7 @@ class GetIdentityCommand:
         primarily used for informational purposes and has no side effects on the network state.
     """
 
+    @staticmethod
     def run(cli: "bittensor.cli"):
         r"""Queries the subtensor chain for user identity."""
         try:
@@ -284,6 +317,14 @@ class GetIdentityCommand:
                 subtensor.close()
                 bittensor.logging.debug("closing subtensor connection")
 
+    @staticmethod
+    async def commander_run(subtensor: "bittensor.subtensor", config, params=None):
+        identity = asyncio.get_event_loop().run_in_executor(
+            None, subtensor.query_identity, params.get("key")
+        )
+        return await identity
+
+    @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         console = bittensor.__console__
 
