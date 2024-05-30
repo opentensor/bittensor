@@ -110,3 +110,28 @@ def sudo_call_set_target_stakes_per_interval(
 
     response.process_events()
     return response.is_success
+
+
+def sudo_call_add_senate_member(
+    substrate: SubstrateInterface, wallet: bittensor.wallet
+) -> bool:
+    inner_call = substrate.compose_call(
+        call_module="SenateMembers",
+        call_function="add_member",
+        call_params={"who": wallet.hotkey.ss58_address},
+    )
+    call = substrate.compose_call(
+        call_module="Sudo",
+        call_function="sudo",
+        call_params={"call": inner_call},
+    )
+
+    extrinsic = substrate.create_signed_extrinsic(call=call, keypair=wallet.coldkey)
+    response = substrate.submit_extrinsic(
+        extrinsic,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+    response.process_events()
+    return response.is_success
