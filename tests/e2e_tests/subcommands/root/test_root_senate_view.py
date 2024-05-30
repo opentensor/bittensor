@@ -8,7 +8,7 @@ import bittensor
 
 
 # Example test using the local_chain fixture
-def test_root_get_set_weights(local_chain, capsys)
+def test_root_senate_view(local_chain, capsys)
     (wallet, exec_command) = new_wallet("//Alice", "//Bob")
 
     members = local_chain.query("SenateMembers", "Members").serialize()
