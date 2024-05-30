@@ -734,7 +734,7 @@ class TestSubtensor(unittest.TestCase):
         )
 
         self.subtensor.get_neuron_for_pubkey_and_subnet = MagicMock(
-            return_value=bittensor.NeuronInfo._null_neuron()
+            return_value=bittensor.NeuronInfo.get_null_neuron()
         )
         self.subtensor.is_hotkey_registered = MagicMock(
             side_effect=is_registered_side_effect
@@ -816,7 +816,7 @@ class TestSubtensor(unittest.TestCase):
             # then should create a new pow and check if it is stale
             # then should enter substrate and exit early because of test
             self.subtensor.get_neuron_for_pubkey_and_subnet = MagicMock(
-                return_value=bittensor.NeuronInfo._null_neuron()
+                return_value=bittensor.NeuronInfo.get_null_neuron()
             )
             with pytest.raises(ExitEarly):
                 bittensor.subtensor.register(mock_subtensor_self, mock_wallet, netuid=3)
