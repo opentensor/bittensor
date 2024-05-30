@@ -74,7 +74,7 @@ async def process_response(
     value_scale_type: str,
     storage_item: ScaleType,
     runtime_config: RuntimeConfigurationObject,
-    metadata: GenericMetadataVersioned,
+    metadata: GenericMetadataVersioned
 ):
     if value_scale_type:
         if response.get("result") is not None:
@@ -95,6 +95,8 @@ async def process_response(
         obj.decode(check_remaining=True)
         obj.meta_info = {"result_found": response.get("result") is not None}
         return obj
+    else:
+        return response
 
 
 async def make_call(
