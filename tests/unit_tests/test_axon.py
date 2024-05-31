@@ -24,7 +24,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 # Third Party
 import netaddr
-
 # Standard Lib
 import pytest
 from starlette.requests import Request
