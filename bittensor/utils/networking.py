@@ -44,6 +44,28 @@ def int_to_ip(int_val: int) -> str:
     return str(netaddr.IPAddress(int_val))
 
 
+def unpack_encoded_ip_port(ip_str: str, port: int) -> tuple:
+    r"""Unpacks an encoded IP and port if they are encoded together.
+    Args:
+        ip_str (:type:`str`, `required`):
+            The encoded IP address string.
+        port (:type:`int`, `required`):
+            The port number.
+
+    Returns:
+        tuple: A tuple containing the IP address string and port number.
+
+    Raises:
+        netaddr.core.AddrFormatError (Exception):
+            Raised when the passed IP string is not a valid IP int value.
+    """
+    if ip_str < (1 << 128) + (1 << 16) and port == 0:
+        port = ip_str & 0xFFFF
+        ip = ip_str >> 16
+        return int_to_ip(ip), port
+    return int_to_ip(ip), port
+
+
 def ip_to_int(str_val: str) -> int:
     r"""Maps an ip-string to a unique integer.
     arg:
