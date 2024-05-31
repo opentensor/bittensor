@@ -28,7 +28,7 @@ def test_int_to_ip_range():
 def test_packed_ip_port():
     """Test packing and unpacking IP and port."""
     assert utils.networking.unpack_encoded_ip_port(184046647580618, 0) == (
-        utils.networking.ip_to_int("167.99.179.13"),
+        2808328973,
         6090,
     )
 
