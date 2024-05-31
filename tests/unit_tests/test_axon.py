@@ -17,14 +17,16 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-# Standard Lib
-import pytest
 import unittest
 from typing import Any
 from unittest import IsolatedAsyncioTestCase
 from unittest.mock import AsyncMock, MagicMock, patch
 
 # Third Party
+import netaddr
+
+# Standard Lib
+import pytest
 from starlette.requests import Request
 
 # Bittensor
@@ -339,6 +341,55 @@ def test_to_string(info_return, expected_output, test_id):
 
         # Assert
         assert output == expected_output, f"Test ID: {test_id}"
+
+
+@pytest.mark.parametrize(
+    "ip, port, expected_ip_type, test_id",
+    [
+        # Happy path
+        (
+            "127.0.0.1",
+            8080,
+            4,
+            "valid_ipv4",
+        ),
+        (
+            "2001:0db8:85a3:0000:0000:8a2e:0370:7334",
+            3030,
+            6,
+            "valid_ipv6",
+        ),
+    ],
+)
+def test_valid_ipv4_and_ipv6_address(ip, port, expected_ip_type, test_id):
+    # Arrange
+    axon = Axon()
+    axon.ip = ip
+    axon.external_ip = ip
+    axon.port = port
+
+    # Act
+    ip_type = axon.info().ip_type
+
+    # Assert
+    assert ip_type == expected_ip_type, f"Test ID: {test_id}"
+
+
+@pytest.mark.parametrize(
+    "ip, port, expected_exception",
+    [
+        (
+            "This Is not a valid address",
+            65534,
+            netaddr.core.AddrFormatError,
+        ),
+    ],
+    ids=["failed to detect a valid IP " "address from %r"],
+)
+def test_invalid_ip_address(ip, port, expected_exception):
+    # Assert
+    with pytest.raises(expected_exception):
+        Axon(ip=ip, external_ip=ip, port=port).info()
 
 
 @pytest.mark.parametrize(
