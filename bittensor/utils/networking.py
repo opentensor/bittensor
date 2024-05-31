@@ -63,7 +63,7 @@ def unpack_encoded_ip_port(ip_str: str, port: int) -> tuple:
         port = ip_str & 0xFFFF
         ip = ip_str >> 16
         return int_to_ip(ip), port
-    return int_to_ip(ip), port
+    return int_to_ip(ip_str), port
 
 
 def ip_to_int(str_val: str) -> int:
