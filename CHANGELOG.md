@@ -1,5 +1,15 @@
 # Changelog
 
+## 7.0.1 / 2024-05-31
+
+## What's Changed
+* Release/7.0.0 by @gus-opentensor in https://github.com/opentensor/bittensor/pull/1899
+* Fix return of ip version. by @opendansor in https://github.com/opentensor/bittensor/pull/1961
+
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v7.0.0...v7.0.1
+
+
 ## 7.0.0 / 2024-05-29
 
 ## What's Changed
