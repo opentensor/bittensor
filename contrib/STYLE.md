@@ -58,15 +58,17 @@ Python's official style guide is PEP 8, which provides conventions for writing c
 
 #### More details
 
-Use `black` to format your python code before commiting for consistency across such a large pool of contributors. Black's code [style](https://black.readthedocs.io/en/stable/the_black_code_style/current_style.html#code-style) ensures consistent and opinionated code formatting. It automatically formats your Python code according to the Black style guide, enhancing code readability and maintainability.
+Use [`ruff` to format](https://docs.astral.sh/ruff/formatter/#the-ruff-formatter) your python code before commiting for consistency across such a large pool of contributors.
+Black code [style](https://black.readthedocs.io/en/stable/the_black_code_style/current_style.html#code-style) ensures consistent and opinionated code formatting.
+Ruff automatically formats your Python code according to the Black style guide, enhancing code readability and maintainability.
 
-Key Features of Black:
+Key Features of ruff & Black code style:
 
-    Consistency: Black enforces a single, consistent coding style across your project, eliminating style debates and allowing developers to focus on code logic.
+    Consistency: ruff enforces a single, consistent coding style across your project, eliminating style debates and allowing developers to focus on code logic.
 
     Readability: By applying a standard formatting style, Black improves code readability, making it easier to understand and collaborate on projects.
 
-    Automation: Black automates the code formatting process, saving time and effort. It eliminates the need for manual formatting and reduces the likelihood of inconsistencies.
+    Automation: ruff automates the code formatting process, saving time and effort. It eliminates the need for manual formatting and reduces the likelihood of inconsistencies.
 
 ### Naming Conventions
 
