@@ -1,5 +1,14 @@
 # Changelog
 
+## 7.0.2 / 2024-06-01
+
+## What's Changed
+Improve: Introduced _do_set_root_weights @ibraheem-opentensor
+Merge pull request #1938 from opentensor/feature/opendansor/commit_we… @opendansor
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v7.0.2...v7.0.1
+
+
 ## 7.0.0 / 2024-05-17
 
 ## What's Changed
