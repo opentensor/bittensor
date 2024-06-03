@@ -43,6 +43,13 @@ class RPCRequest:
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         pass
 
+    async def get_storage_item(self, module: str, storage_function: str):
+        if not self.substrate.metadata:
+            self.substrate.init_runtime()
+        metadata_pallet = self.substrate.metadata.get_metadata_pallet(module)
+        storage_item = metadata_pallet.get_storage_function(storage_function)
+        return storage_item
+
     async def _preprocess(
         self,
         query_for: str,
@@ -120,9 +127,9 @@ class RPCRequest:
     async def _make_rpc_request(
         self,
         payloads: dict[int, dict],
-        value_scale_type: str,
-        storage_item: ScaleType,
-        metadata: GenericMetadataVersioned,
+        value_scale_type: Optional[str] = None,
+        storage_item: Optional[ScaleType] = None,
+        metadata: Optional[GenericMetadataVersioned] = None,
     ):
         async with websockets.connect(self.chain_endpoint) as websocket:
             for payload in (x["payload"] for x in payloads.values()):
@@ -138,17 +145,33 @@ class RPCRequest:
 
                 response_id: int = response.get("id")
                 if response_id in payloads:
-                    responses[payloads[response_id]["id"]]["results"].append(decoded_response)
+                    responses[payloads[response_id]["id"]]["results"].append(
+                        decoded_response
+                    )
                     responses[payloads[response_id]["id"]]["complete"] = complete
-                if all(key["complete"] for key in responses.values()) and len(responses) == len(payloads.values()):
+                if all(key["complete"] for key in responses.values()) and len(
+                    responses
+                ) == len(payloads.values()):
                     break
             responses = {k: v["results"] for k, v in responses.items()}
             return responses
 
     async def rpc_request(
-        self, method, params, block_hash: Optional[str] = None
+        self, method: str, params: list, block_hash: Optional[str] = None
     ) -> dict:
-        pass
+        payloads = {
+            1: {
+                "id": "rpc_request",
+                "payload": {
+                    "jsonrpc": "2.0",
+                    "method": method,
+                    "params": params + [block_hash] if block_hash else params,
+                    "id": 1,
+                },
+            }
+        }
+        result = await self._make_rpc_request(payloads)
+        return result["rpc_request"][0]["result"]
 
     async def get_block_hash(self, block: int):
         pass
@@ -167,9 +190,7 @@ class RPCRequest:
         self.substrate.init_runtime(block_hash=block_hash)  # TODO
         preprocessed: tuple[Preprocessed] = await asyncio.gather(
             *[
-                self._preprocess(
-                    x, block_hash, storage_function, module
-                )
+                self._preprocess(x, block_hash, storage_function, module)
                 for x in query_for
             ]
         )
