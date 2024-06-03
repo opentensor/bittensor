@@ -83,9 +83,7 @@ def test_unstake_extrinsic(
         mock_subtensor,
         "get_stake_for_coldkey_and_hotkey",
         return_value=mock_current_stake,
-    ), patch(
-        "rich.prompt.Confirm.ask", return_value=user_accepts
-    ) as mock_confirm:
+    ), patch("rich.prompt.Confirm.ask", return_value=user_accepts) as mock_confirm:
         result = unstake_extrinsic(
             subtensor=mock_subtensor,
             wallet=mock_wallet,
@@ -291,15 +289,11 @@ def test_unstake_multiple_extrinsic(
         side_effect=mock_get_minimum_required_stake,
     ), patch.object(
         mock_subtensor, "get_balance", return_value=Balance.from_tao(wallet_balance)
-    ), patch.object(
-        mock_subtensor, "tx_rate_limit", return_value=0
-    ), patch.object(
+    ), patch.object(mock_subtensor, "tx_rate_limit", return_value=0), patch.object(
         mock_subtensor,
         "get_stake_for_coldkey_and_hotkey",
         return_value=mock_current_stake,
-    ), patch(
-        "rich.prompt.Confirm.ask", return_value=prompt_response
-    ) as mock_confirm:
+    ), patch("rich.prompt.Confirm.ask", return_value=prompt_response) as mock_confirm:
         # Act
         if exception:
             with pytest.raises(exception) as exc_info:

@@ -381,9 +381,9 @@ class StakeShow:
             wallets = _get_coldkey_wallets_for_path(cli.config.wallet.path)
         else:
             wallets = [bittensor.wallet(config=cli.config)]
-        registered_delegate_info: Optional[
-            Dict[str, DelegatesDetails]
-        ] = get_delegates_details(url=bittensor.__delegates_details_url__)
+        registered_delegate_info: Optional[Dict[str, DelegatesDetails]] = (
+            get_delegates_details(url=bittensor.__delegates_details_url__)
+        )
 
         def get_stake_accounts(
             wallet, subtensor
@@ -515,7 +515,7 @@ class StakeShow:
         )
         table.add_column(
             "[overline white]Balance",
-            "\u03C4{:.5f}".format(total_balance),
+            "\u03c4{:.5f}".format(total_balance),
             footer_style="overline white",
             style="green",
         )
@@ -524,13 +524,13 @@ class StakeShow:
         )
         table.add_column(
             "[overline white]Stake",
-            "\u03C4{:.5f}".format(total_stake),
+            "\u03c4{:.5f}".format(total_stake),
             footer_style="overline white",
             style="green",
         )
         table.add_column(
             "[overline white]Rate",
-            "\u03C4{:.5f}/d".format(total_rate),
+            "\u03c4{:.5f}/d".format(total_rate),
             footer_style="overline white",
             style="green",
         )
