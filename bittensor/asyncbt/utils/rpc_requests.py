@@ -2,7 +2,6 @@ import asyncio
 from collections import defaultdict
 from dataclasses import dataclass
 import json
-import time
 from typing import Optional
 
 from substrateinterface.base import SubstrateInterface
