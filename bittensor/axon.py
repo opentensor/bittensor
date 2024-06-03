@@ -163,18 +163,15 @@ def load_nonces(
     Returns:
         Dict[str, int]: A dictionary containing the (endpoint_key, nonce) pairs loaded from the file.
     """
-    if not os.path.exists(nonces_basepath):
-        os.makedirs(nonces_basepath)
-
     nonce_dirname = str(hash(f"{coldkey}:{hotkey}:{ip}:{port}"))
     nonces_path = os.path.join(nonces_basepath, nonce_dirname, "nonces.json")
 
-    if os.path.exists(nonces_path):
+    try:
         with open(nonces_path, "r") as f:
             nonces = json.load(f)
         return nonces
-
-    return {}
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
 
 
 def save_nonces(
