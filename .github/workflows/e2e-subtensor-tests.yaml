@@ -80,6 +80,5 @@ jobs:
 
       - name: Run tests
         run: |
-          python3 -m pip install -e .
-          python3 -m pip install torch
+          python3 -m pip install -e .[torch] pytest
           LOCALNET_SH_PATH="./subtensor/scripts/localnet.sh" pytest tests/e2e_tests/ -s
