@@ -283,10 +283,13 @@ class AxonInfo:
         Returns:
             instance (AxonInfo): An instance of AxonInfo created from the dictionary.
         """
+        ip, port = net.unpack_encoded_ip_port(
+            neuron_info["axon_info"]["ip"], neuron_info["axon_info"]["port"]
+        )
         return cls(
             version=neuron_info["axon_info"]["version"],
-            ip=net.int_to_ip(int(neuron_info["axon_info"]["ip"])),
-            port=neuron_info["axon_info"]["port"],
+            ip=ip,
+            port=port,
             ip_type=neuron_info["axon_info"]["ip_type"],
             hotkey=neuron_info["hotkey"],
             coldkey=neuron_info["coldkey"],
