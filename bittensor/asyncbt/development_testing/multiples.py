@@ -113,10 +113,11 @@ async def main():
     rpc = rpc_requests.RPCRequest(rpc_requests.CHAIN_ENDPOINT)
     # print("block hash", block_hash)
     async with rpc:
+        block_hash = rpc.substrate.get_chain_head()
         results = await asyncio.gather(
             get_delegated("5H11iQ22o3cLLNzE1uwEjHdQgRXpueSPyCBFHAX3VKQiz3v3", rpc),
-            root_list(None, rpc),
-            get_balance(None, "5H11iQ22o3cLLNzE1uwEjHdQgRXpueSPyCBFHAX3VKQiz3v3", rpc)
+            root_list(block_hash, rpc),
+            get_balance(block_hash, "5H11iQ22o3cLLNzE1uwEjHdQgRXpueSPyCBFHAX3VKQiz3v3", rpc)
         )
     pp(results)
     end = time.time()
