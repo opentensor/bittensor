@@ -209,8 +209,8 @@ def test_balance_mul(balance: Union[int, float], balance2: Union[int, float]):
     prod_ = balance_ * balance2_
     assert isinstance(prod_, Balance)
 
-    assert prod_.rao == pytest.approx(
-        rao_ * rao2_, 9
+    assert (
+        prod_.rao == pytest.approx(rao_ * rao2_, 9)
     ), f"{balance_} * {balance2_} == {prod_.rao} != {rao_} * {balance2} == {rao_ * balance2}"
 
 

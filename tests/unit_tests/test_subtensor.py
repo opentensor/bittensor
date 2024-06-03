@@ -1191,9 +1191,11 @@ def test_total_stake_no_block(mocker, subtensor):
     # Asserts
     assert result is not None
     subtensor.query_subtensor.assert_called_once_with("TotalStake", None)
-    spy_balance_from_rao.assert_called_once_with(
-        subtensor.query_subtensor.return_value.value
-    ),
+    (
+        spy_balance_from_rao.assert_called_once_with(
+            subtensor.query_subtensor.return_value.value
+        ),
+    )
 
 
 # `serving_rate_limit` method tests
