@@ -257,7 +257,7 @@ def process_weights_for_netuid(
         metagraph = subtensor.metagraph(netuid)
 
     # Cast weights to floats.
-    if not use_torch():
+    if use_torch():
         if not isinstance(weights, torch.FloatTensor):
             weights = weights.type(torch.float32)
     else:
