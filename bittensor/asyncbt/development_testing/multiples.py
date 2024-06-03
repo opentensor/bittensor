@@ -67,7 +67,7 @@ async def main():
         )
     pp(results)
     end = time.time()
-    print("Total time:", end - start)
+    print("First run time:", end - start)
     new_start = time.time()
     async with rpc:
         block_hash = rpc.substrate.get_chain_head()
@@ -80,7 +80,7 @@ async def main():
                 block_hash, "5H11iQ22o3cLLNzE1uwEjHdQgRXpueSPyCBFHAX3VKQiz3v3", rpc
             ),
         )
-    print("Total time:", time.time() - new_start)
+    print("Second run time:", time.time() - new_start)
 
 
 if __name__ == "__main__":
