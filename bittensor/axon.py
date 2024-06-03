@@ -1,5 +1,4 @@
-""" Create and initialize Axon, which services the forward and backward requests from other neurons.
-"""
+"""Create and initialize Axon, which services the forward and backward requests from other neurons."""
 
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
