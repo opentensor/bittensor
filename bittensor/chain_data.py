@@ -833,10 +833,10 @@ class StakeInfo:
         cls, vec_u8: List[int]
     ) -> Dict[str, List["StakeInfo"]]:
         """Returns a list of StakeInfo objects from a ``vec_u8``."""
-        decoded: Optional[
-            list[tuple[str, list[object]]]
-        ] = from_scale_encoding_using_type_string(
-            input_=vec_u8, type_string="Vec<(AccountId, Vec<StakeInfo>)>"
+        decoded: Optional[list[tuple[str, list[object]]]] = (
+            from_scale_encoding_using_type_string(
+                input_=vec_u8, type_string="Vec<(AccountId, Vec<StakeInfo>)>"
+            )
         )
 
         if decoded is None:

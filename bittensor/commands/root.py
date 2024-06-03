@@ -173,7 +173,7 @@ class RootList:
             no_wrap=True,
         )
         table.add_column(
-            "[overline white]STAKE(\u03C4)",
+            "[overline white]STAKE(\u03c4)",
             footer_style="overline white",
             justify="right",
             style="green",

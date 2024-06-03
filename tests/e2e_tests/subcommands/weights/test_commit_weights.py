@@ -168,7 +168,9 @@ def test_commit_and_reveal_weights(local_chain):
 
     # Query the Weights storage map
     revealed_weights = subtensor.query_module(
-        module="SubtensorModule", name="Weights", params=[1, uid]  # netuid and uid
+        module="SubtensorModule",
+        name="Weights",
+        params=[1, uid],  # netuid and uid
     )
 
     # Assert that the revealed weights are set correctly
