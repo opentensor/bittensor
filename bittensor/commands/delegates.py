@@ -83,9 +83,9 @@ def show_delegates_lite(
         the table in the console.
     """
 
-    registered_delegate_info: Optional[
-        Dict[str, DelegatesDetails]
-    ] = get_delegates_details(url=bittensor.__delegates_details_url__)
+    registered_delegate_info: Optional[Dict[str, DelegatesDetails]] = (
+        get_delegates_details(url=bittensor.__delegates_details_url__)
+    )
     if registered_delegate_info is None:
         bittensor.__console__.print(
             ":warning:[yellow]Could not get delegate info from chain.[/yellow]"
@@ -206,9 +206,9 @@ def show_delegates(
         for prev_delegate in prev_delegates:
             prev_delegates_dict[prev_delegate.hotkey_ss58] = prev_delegate
 
-    registered_delegate_info: Optional[
-        Dict[str, DelegatesDetails]
-    ] = get_delegates_details(url=bittensor.__delegates_details_url__)
+    registered_delegate_info: Optional[Dict[str, DelegatesDetails]] = (
+        get_delegates_details(url=bittensor.__delegates_details_url__)
+    )
     if registered_delegate_info is None:
         bittensor.__console__.print(
             ":warning:[yellow]Could not get delegate info from chain.[/yellow]"
@@ -238,10 +238,10 @@ def show_delegates(
         "[overline white]NOMINATORS", justify="center", style="green", no_wrap=True
     )
     table.add_column(
-        "[overline white]DELEGATE STAKE(\u03C4)", justify="right", no_wrap=True
+        "[overline white]DELEGATE STAKE(\u03c4)", justify="right", no_wrap=True
     )
     table.add_column(
-        "[overline white]TOTAL STAKE(\u03C4)",
+        "[overline white]TOTAL STAKE(\u03c4)",
         justify="right",
         style="green",
         no_wrap=True,
@@ -250,7 +250,7 @@ def show_delegates(
     table.add_column("[overline white]VPERMIT", justify="right", no_wrap=False)
     table.add_column("[overline white]TAKE", style="white", no_wrap=True)
     table.add_column(
-        "[overline white]NOMINATOR/(24h)/k\u03C4", style="green", justify="center"
+        "[overline white]NOMINATOR/(24h)/k\u03c4", style="green", justify="center"
     )
     table.add_column("[overline white]DELEGATE/(24h)", style="green", justify="center")
     table.add_column("[overline white]Desc", style="rgb(50,163,219)")
@@ -980,7 +980,7 @@ class MyDelegatesCommand:
             style="bold green",
         )
         table.add_column(
-            "[overline green]\u03C4/24h",
+            "[overline green]\u03c4/24h",
             footer_style="overline green",
             style="bold green",
         )
@@ -988,10 +988,10 @@ class MyDelegatesCommand:
             "[overline white]NOMS", justify="center", style="green", no_wrap=True
         )
         table.add_column(
-            "[overline white]OWNER STAKE(\u03C4)", justify="right", no_wrap=True
+            "[overline white]OWNER STAKE(\u03c4)", justify="right", no_wrap=True
         )
         table.add_column(
-            "[overline white]TOTAL STAKE(\u03C4)",
+            "[overline white]TOTAL STAKE(\u03c4)",
             justify="right",
             style="green",
             no_wrap=True,
@@ -1000,7 +1000,7 @@ class MyDelegatesCommand:
             "[overline white]SUBNETS", justify="right", style="white", no_wrap=True
         )
         table.add_column("[overline white]VPERMIT", justify="right", no_wrap=True)
-        table.add_column("[overline white]24h/k\u03C4", style="green", justify="center")
+        table.add_column("[overline white]24h/k\u03c4", style="green", justify="center")
         table.add_column("[overline white]Desc", style="rgb(50,163,219)")
         total_delegated = 0
 
@@ -1023,9 +1023,9 @@ class MyDelegatesCommand:
             delegates.sort(key=lambda delegate: delegate[0].total_stake, reverse=True)
             total_delegated += sum(my_delegates.values())
 
-            registered_delegate_info: Optional[
-                DelegatesDetails
-            ] = get_delegates_details(url=bittensor.__delegates_details_url__)
+            registered_delegate_info: Optional[DelegatesDetails] = (
+                get_delegates_details(url=bittensor.__delegates_details_url__)
+            )
             if registered_delegate_info is None:
                 bittensor.__console__.print(
                     ":warning:[yellow]Could not get delegate info from chain.[/yellow]"
