@@ -25,6 +25,14 @@ def test_int_to_ip_range():
         )
 
 
+def test_packed_ip_port():
+    """Test packing and unpacking IP and port."""
+    assert utils.networking.unpack_encoded_ip_port(184046647580618, 0) == (
+        "167.99.179.13",
+        6090,
+    )
+
+
 def test_int_to_ip4_max():
     """Test converting integer to maximum IPv4 address."""
     assert utils.networking.int_to_ip(4294967295) == "255.255.255.255"
