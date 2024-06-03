@@ -1,6 +1,8 @@
 import asyncio
+from collections import defaultdict
 from dataclasses import dataclass
 import json
+import time
 from typing import Optional
 
 from substrateinterface.base import SubstrateInterface
@@ -25,18 +27,26 @@ class Preprocessed:
 
 class RPCRequest:
     runtime = None
+    substrate = None
 
     def __init__(self, chain_endpoint: str):
         self.chain_endpoint = chain_endpoint
 
-    async def init_runtime(self):
-        # will set self.runtime
+    async def __aenter__(self):
+        if not self.substrate:
+            self.substrate = SubstrateInterface(
+                ss58_format=bittensor.__ss58_format__,
+                use_remote_preset=True,
+                url=self.chain_endpoint,
+                type_registry=bittensor.__type_registry__,
+            )
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
         pass
 
-    @staticmethod
     async def _preprocess(
+        self,
         query_for: str,
-        substrate_interface: SubstrateInterface,
         block_hash: int,
         storage_function: str,
         module: str,
@@ -45,11 +55,11 @@ class RPCRequest:
         Creates a Preprocessed data object for passing to ``make_call``
         """
         params = [query_for]
-
-        substrate_interface.init_runtime(block_hash=block_hash)  # TODO
-
+        now = time.time()
+        self.substrate.init_runtime(block_hash=block_hash)  # TODO
+        print("Init Runtime", time.time() - now)
         # Search storage call in metadata
-        metadata_pallet = substrate_interface.metadata.get_metadata_pallet(module)
+        metadata_pallet = self.substrate.metadata.get_metadata_pallet(module)
 
         if not metadata_pallet:
             raise Exception(f'Pallet "{module}" not found')
@@ -66,12 +76,12 @@ class RPCRequest:
             module,
             storage_item.value["name"],
             params,
-            runtime_config=substrate_interface.runtime_config,
-            metadata=substrate_interface.metadata,
+            runtime_config=self.substrate.runtime_config,
+            metadata=self.substrate.metadata,
         )
         method = (
             "state_getStorageAt"
-            if substrate_interface.supports_rpc_method("state_getStorageAt")
+            if self.substrate.supports_rpc_method("state_getStorageAt")
             else "state_getStorage"
         )
         return Preprocessed(
@@ -88,7 +98,8 @@ class RPCRequest:
         value_scale_type: str,
         storage_item: Optional[ScaleType] = None,
         metadata: Optional[GenericMetadataVersioned] = None,
-    ):
+    ) -> tuple[dict, bool]:
+        # TODO add logic for handling multipart responses
         if value_scale_type:
             if response.get("result") is not None:
                 query_value = response.get("result")
@@ -100,16 +111,15 @@ class RPCRequest:
                 value_scale_type = f"Option<{value_scale_type}>"
                 query_value = storage_item.value_object["default"].value_object
 
-            obj = self.runtime.create_scale_object(
+            obj = self.substrate.runtime_config.create_scale_object(
                 type_string=value_scale_type,
                 data=ScaleBytes(query_value),
                 metadata=metadata,
             )
             obj.decode(check_remaining=True)
             obj.meta_info = {"result_found": response.get("result") is not None}
-            return obj
-        else:
-            return response
+            return obj, True
+        return response, True
 
     async def _make_rpc_request(
         self,
@@ -122,20 +132,26 @@ class RPCRequest:
             for payload in (x["payload"] for x in payloads.values()):
                 await websocket.send(json.dumps(payload))
 
-            responses = {}
+            responses = defaultdict(lambda: {"complete": False, "results": []})
 
-            for _ in payloads:
+            while True:
                 response = json.loads(await websocket.recv())
-                decoded_response = await self._process_response(
+                decoded_response, complete = await self._process_response(
                     response, value_scale_type, storage_item, metadata
                 )
 
-                request_id = response.get("id")
-                responses[payloads[request_id]["id"]] = decoded_response
-
+                response_id: int = response.get("id")
+                if response_id in payloads:
+                    responses[payloads[response_id]["id"]]["results"].append(decoded_response)
+                    responses[payloads[response_id]["id"]]["complete"] = complete
+                if all(key["complete"] for key in responses.values()):
+                    break
+            responses = {k: v["results"][0] for k, v in responses.items()}
             return responses
 
-    async def rpc_request(self, method, params, block_hash: Optional[str] = None) -> dict:
+    async def rpc_request(
+        self, method, params, block_hash: Optional[str] = None
+    ) -> dict:
         pass
 
     async def get_block_hash(self, block: int):
@@ -143,7 +159,6 @@ class RPCRequest:
 
     async def query_subtensor(
         self,
-        subtensor: "bittensor.Subtensor",
         query_for: list,
         storage_function: str,
         module: str,
@@ -152,10 +167,12 @@ class RPCRequest:
         # By allowing for specifying the block hash, users, if they have multiple query types they want
         # to do, can simply query the block hash first, and then pass multiple query_subtensor calls
         # into an asyncio.gather, with the specified block hash
-        block_hash = block_hash or subtensor.substrate.get_chain_head()
+        block_hash = block_hash or self.substrate.get_chain_head()
         preprocessed: tuple[Preprocessed] = await asyncio.gather(
             *[
-                self._preprocess(x, subtensor.substrate, block_hash, storage_function, module)
+                self._preprocess(
+                    x, block_hash, storage_function, module
+                )
                 for x in query_for
             ]
         )
@@ -179,11 +196,13 @@ class RPCRequest:
             all_info,
             value_scale_type,
             storage_item,
-            subtensor.substrate.metadata,  # individual because I would like to break this out from SSI
+            self.substrate.metadata,  # individual because I would like to break this out from SSI
         )
         return responses
 
-    async def query_map_subtensor(self, module: str, storage_function: str, block_hash: Optional[str] = None) -> dict:
+    async def query_map_subtensor(
+        self, module: str, storage_function: str, block_hash: Optional[str] = None
+    ) -> dict:
         pass
 
 
