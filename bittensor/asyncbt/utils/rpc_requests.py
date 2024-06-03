@@ -55,9 +55,6 @@ class RPCRequest:
         Creates a Preprocessed data object for passing to ``make_call``
         """
         params = [query_for]
-        now = time.time()
-        self.substrate.init_runtime(block_hash=block_hash)  # TODO
-        print("Init Runtime", time.time() - now)
         # Search storage call in metadata
         metadata_pallet = self.substrate.metadata.get_metadata_pallet(module)
 
@@ -144,9 +141,9 @@ class RPCRequest:
                 if response_id in payloads:
                     responses[payloads[response_id]["id"]]["results"].append(decoded_response)
                     responses[payloads[response_id]["id"]]["complete"] = complete
-                if all(key["complete"] for key in responses.values()):
+                if all(key["complete"] for key in responses.values()) and len(responses) == len(payloads.values()):
                     break
-            responses = {k: v["results"][0] for k, v in responses.items()}
+            responses = {k: v["results"] for k, v in responses.items()}
             return responses
 
     async def rpc_request(
@@ -168,6 +165,7 @@ class RPCRequest:
         # to do, can simply query the block hash first, and then pass multiple query_subtensor calls
         # into an asyncio.gather, with the specified block hash
         block_hash = block_hash or self.substrate.get_chain_head()
+        self.substrate.init_runtime(block_hash=block_hash)  # TODO
         preprocessed: tuple[Preprocessed] = await asyncio.gather(
             *[
                 self._preprocess(
