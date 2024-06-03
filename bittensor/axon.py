@@ -193,8 +193,7 @@ def save_nonces(
         port (int): The port to use in the hash.
         nonces (Dict[str, int]): A dictionary containing the (endpoint_key, nonce) pairs to save to the file.
     """
-    if not os.path.exists(nonces_basepath):
-        os.makedirs(nonces_basepath)
+    os.makedirs(nonces_basepath, exists_ok=True)
 
     nonce_dirname = str(hash(f"{coldkey}:{hotkey}:{ip}:{port}"))
     nonces_path = os.path.join(nonces_basepath, nonce_dirname, "nonces.json")
