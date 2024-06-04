@@ -42,33 +42,33 @@ def test_attach():
     server = bittensor.axon()
 
     # Define the Synapse type
-    class Synapse(bittensor.Synapse):
+    class DummySynapse(bittensor.Synapse):
         pass
 
     # Define the functions with the correct signatures
-    def forward_fn(synapse: Synapse) -> Any:
+    def forward_fn(synapse: DummySynapse) -> Any:
         pass
 
-    def blacklist_fn(synapse: Synapse) -> bool:
-        return True
+    def blacklist_fn(synapse: DummySynapse) -> tuple[bool, str]:
+        return True, ""
 
-    def priority_fn(synapse: Synapse) -> float:
+    def priority_fn(synapse: DummySynapse) -> float:
         return 1.0
 
-    def verify_fn(synapse: Synapse) -> None:
+    def verify_fn(synapse: DummySynapse) -> None:
         pass
 
     # Test attaching with correct signatures
     server.attach(forward_fn, blacklist_fn, priority_fn, verify_fn)
 
     # Define functions with incorrect signatures
-    def wrong_blacklist_fn(synapse: Synapse) -> int:
+    def wrong_blacklist_fn(synapse: DummySynapse) -> int:
         return 1
 
-    def wrong_priority_fn(synapse: Synapse) -> int:
+    def wrong_priority_fn(synapse: DummySynapse) -> int:
         return 1
 
-    def wrong_verify_fn(synapse: Synapse) -> bool:
+    def wrong_verify_fn(synapse: DummySynapse) -> bool:
         return True
 
     # Test attaching with incorrect signatures
