@@ -336,7 +336,7 @@ def test_convert_root_weight_uids_and_vals_to_tensor_happy_paths(
         ),  # All zero weights
     ],
 )
-def test_convert_root_weight_uids_and_vals_to_tensor_edge_cases(
+def test_convert_root_weight_uids_and_vals_to_tensor_edge_cases__torch(
     test_id, n, uids, weights, subnets, expected, force_legacy_torch_compat_api
 ):
     # Act

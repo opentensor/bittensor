@@ -82,7 +82,7 @@ def test_attach():
         server.attach(forward_fn, blacklist_fn, priority_fn, wrong_verify_fn)
 
 
-def test_attach():
+def test_attach__inheritance():
     # Create a mock AxonServer instance
     server = bittensor.axon()
 

@@ -113,7 +113,7 @@ class TestSubtensor(unittest.TestCase):
 
     def test_get_current_block(self):
         block = self.subtensor.get_current_block()
-        assert type(block) == int
+        assert type(block) == int  # noqa: E721
 
     def test_unstake(self):
         self.subtensor._do_unstake = MagicMock(return_value=True)
@@ -312,13 +312,6 @@ class TestSubtensor(unittest.TestCase):
 
     def test_set_weights(self):
         chain_weights = [0]
-
-        class success:
-            def __init__(self):
-                self.is_success = True
-
-            def process_events(self):
-                return True
 
         self.subtensor.set_weights = MagicMock(return_value=True)
         self.subtensor._do_set_weights = MagicMock(return_value=(True, None))
@@ -608,13 +601,13 @@ class TestSubtensor(unittest.TestCase):
     def test_get_balance(self):
         fake_coldkey = _get_mock_coldkey(0)
         balance = self.subtensor.get_balance(address=fake_coldkey)
-        assert type(balance) == bittensor.utils.balance.Balance
+        assert type(balance) == bittensor.utils.balance.Balance  # noqa: E721
 
     def test_get_balances(self):
         balances = self.subtensor.get_balances()
-        assert type(balances) == dict
+        assert type(balances) == dict  # noqa: E721
         for i in balances:
-            assert type(balances[i]) == bittensor.utils.balance.Balance
+            assert type(balances[i]) == bittensor.utils.balance.Balance  # noqa: E721
 
     def test_get_uid_by_hotkey_on_subnet(self):
         mock_coldkey_kp = _get_mock_keypair(0, self.id())

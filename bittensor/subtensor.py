@@ -3084,7 +3084,7 @@ class Subtensor:
 
         for i, param in enumerate(call_definition["params"]):  # type: ignore
             scale_obj = self.substrate.create_scale_object(param["type"])
-            if type(params) is list:
+            if type(params) is list:  # noqa: E721
                 param_data += scale_obj.encode(params[i])
             else:
                 if param["name"] not in params:
