@@ -1,0 +1,20 @@
+# To be replaced by pyproject.toml when it is introduced in the project
+#[tool.ruff]
+target-version = "py39"  # to be replaced by project:requires-python after switch to pyproject.toml
+
+#[tool.ruff.lint]
+[lint]
+select = [
+    # "D",  # TODO to be enabled after fixing all issues
+    "E", "F", "I", "UP",
+    "TCH005",
+]
+ignore = [
+    "D100", "D105", "D107", "D200", "D202", "D203", "D205", "D212", "D400", "D401", "D415",
+    "E501",
+]
+
+#[tool.ruff.lint.per-file-ignores]
+[lint.per-file-ignores]
+"__init__.py" = ["F401"]
+"test/**" = ["D", "F403", "F405"]
