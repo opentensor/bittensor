@@ -24,7 +24,7 @@ import bittensor
 
 
 def commit_weights_extrinsic(
-    subtensor: "bittensor.subtensor",
+    subtensor: "bittensor.Subtensor",
     wallet: "bittensor.wallet",
     netuid: int,
     commit_hash: str,
@@ -69,7 +69,7 @@ def commit_weights_extrinsic(
 
 
 def reveal_weights_extrinsic(
-    subtensor: "bittensor.subtensor",
+    subtensor: "bittensor.Subtensor",
     wallet: "bittensor.wallet",
     netuid: int,
     uids: list[int],

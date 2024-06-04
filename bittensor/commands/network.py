@@ -66,7 +66,7 @@ class RegisterSubnetworkCommand:
         r"""Register a subnetwork"""
         try:
             config = cli.config.copy()
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+            subtensor: bittensor.Subtensor = bittensor.Subtensor(
                 config=config, log_verbose=False
             )
             RegisterSubnetworkCommand._run(cli, subtensor)
@@ -76,7 +76,7 @@ class RegisterSubnetworkCommand:
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.Subtensor"):
         r"""Register a subnetwork"""
         wallet = bittensor.wallet(config=cli.config)
 
@@ -153,7 +153,7 @@ class SubnetLockCostCommand:
         r"""View locking cost of creating a new subnetwork"""
         try:
             config = cli.config.copy()
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+            subtensor: bittensor.Subtensor = bittensor.Subtensor(
                 config=config, log_verbose=False
             )
             SubnetLockCostCommand._run(cli, subtensor)
@@ -163,7 +163,7 @@ class SubnetLockCostCommand:
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.Subtensor"):
         r"""View locking cost of creating a new subnetwork"""
         cli.config.copy()
         try:
@@ -229,7 +229,7 @@ class SubnetListCommand:
     def run(cli: "bittensor.cli"):
         r"""List all subnet netuids in the network."""
         try:
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+            subtensor: bittensor.Subtensor = bittensor.Subtensor(
                 config=cli.config, log_verbose=False
             )
             SubnetListCommand._run(cli, subtensor)
@@ -239,7 +239,7 @@ class SubnetListCommand:
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.Subtensor"):
         r"""List all subnet netuids in the network."""
         subnets: list[bittensor.SubnetInfo] = subtensor.get_all_subnets_info()
 
@@ -357,7 +357,7 @@ class SubnetSudoCommand:
     def run(cli: "bittensor.cli"):
         r"""Set subnet hyperparameters."""
         try:
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+            subtensor: bittensor.Subtensor = bittensor.Subtensor(
                 config=cli.config, log_verbose=False
             )
             SubnetSudoCommand._run(cli, subtensor)
@@ -369,7 +369,7 @@ class SubnetSudoCommand:
     @staticmethod
     def _run(
         cli: "bittensor.cli",
-        subtensor: "bittensor.subtensor",
+        subtensor: "bittensor.Subtensor",
     ):
         r"""Set subnet hyperparameters."""
         wallet = bittensor.wallet(config=cli.config)
@@ -404,7 +404,7 @@ class SubnetSudoCommand:
 
         if not config.is_set("netuid") and not config.no_prompt:
             check_netuid_set(
-                config, bittensor.subtensor(config=config, log_verbose=False)
+                config, bittensor.Subtensor(config=config, log_verbose=False)
             )
 
     @staticmethod
@@ -466,7 +466,7 @@ class SubnetHyperparamsCommand:
     def run(cli: "bittensor.cli"):
         r"""View hyperparameters of a subnetwork."""
         try:
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+            subtensor: bittensor.Subtensor = bittensor.Subtensor(
                 config=cli.config, log_verbose=False
             )
             SubnetHyperparamsCommand._run(cli, subtensor)
@@ -476,7 +476,7 @@ class SubnetHyperparamsCommand:
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.Subtensor"):
         r"""View hyperparameters of a subnetwork."""
         subnet: bittensor.SubnetHyperparameters = subtensor.get_subnet_hyperparameters(
             cli.config.netuid
@@ -502,7 +502,7 @@ class SubnetHyperparamsCommand:
     def check_config(config: "bittensor.config"):
         if not config.is_set("netuid") and not config.no_prompt:
             check_netuid_set(
-                config, bittensor.subtensor(config=config, log_verbose=False)
+                config, bittensor.Subtensor(config=config, log_verbose=False)
             )
 
     @staticmethod
@@ -568,7 +568,7 @@ class SubnetGetHyperparamsCommand:
     def run(cli: "bittensor.cli"):
         r"""View hyperparameters of a subnetwork."""
         try:
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+            subtensor: bittensor.Subtensor = bittensor.Subtensor(
                 config=cli.config, log_verbose=False
             )
             SubnetGetHyperparamsCommand._run(cli, subtensor)
@@ -578,7 +578,7 @@ class SubnetGetHyperparamsCommand:
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.Subtensor"):
         r"""View hyperparameters of a subnetwork."""
         subnet: bittensor.SubnetHyperparameters = subtensor.get_subnet_hyperparameters(
             cli.config.netuid
@@ -604,7 +604,7 @@ class SubnetGetHyperparamsCommand:
     def check_config(config: "bittensor.config"):
         if not config.is_set("netuid") and not config.no_prompt:
             check_netuid_set(
-                config, bittensor.subtensor(config=config, log_verbose=False)
+                config, bittensor.Subtensor(config=config, log_verbose=False)
             )
 
     @staticmethod

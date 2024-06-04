@@ -230,7 +230,7 @@ def process_weights_for_netuid(
     uids: Union[NDArray[np.int64], "torch.Tensor"],
     weights: Union[NDArray[np.float32], "torch.Tensor"],
     netuid: int,
-    subtensor: "bittensor.subtensor",
+    subtensor: "bittensor.Subtensor",
     metagraph: "bittensor.metagraph" = None,
     exclude_quantile: int = 0,
 ) -> Union[

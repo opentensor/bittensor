@@ -33,7 +33,7 @@ logger = logging.getLogger(BITTENSOR_LOGGER_NAME)
 
 
 def root_register_extrinsic(
-    subtensor: "bittensor.subtensor",
+    subtensor: "bittensor.Subtensor",
     wallet: "bittensor.wallet",
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = True,
@@ -103,7 +103,7 @@ def root_register_extrinsic(
 
 @legacy_torch_api_compat
 def set_root_weights_extrinsic(
-    subtensor: "bittensor.subtensor",
+    subtensor: "bittensor.Subtensor",
     wallet: "bittensor.wallet",
     netuids: Union[NDArray[np.int64], "torch.LongTensor", list[int]],
     weights: Union[NDArray[np.float32], "torch.FloatTensor", list[float]],

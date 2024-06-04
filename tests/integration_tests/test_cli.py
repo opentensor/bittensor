@@ -2074,7 +2074,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             mock_create_wallet.assert_called_once()
 
             # Verify that the wallet was registered
-            subtensor = bittensor.subtensor(config)
+            subtensor = bittensor.Subtensor(config)
             registered = subtensor.is_hotkey_registered_on_subnet(
                 hotkey_ss58=mock_wallet.hotkey.ss58_address, netuid=1
             )
@@ -2120,7 +2120,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.model = "core_server"
         config.hotkey = "hk0"
 
-        subtensor = bittensor.subtensor(config)
+        subtensor = bittensor.Subtensor(config)
 
         mock_wallet = generate_wallet(hotkey=_get_mock_keypair(100, self.id()))
 

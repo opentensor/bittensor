@@ -53,7 +53,7 @@ def test_commit_and_reveal_weights(local_chain):
         ],
     )
 
-    subtensor = bittensor.subtensor(network="ws://localhost:9945")
+    subtensor = bittensor.Subtensor(network="ws://localhost:9945")
 
     # Enable Commit Reveal
     result = subtensor.set_hyperparameter(

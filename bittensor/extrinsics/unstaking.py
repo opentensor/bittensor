@@ -26,7 +26,7 @@ from bittensor.utils.balance import Balance
 
 
 def __do_remove_stake_single(
-    subtensor: "bittensor.subtensor",
+    subtensor: "bittensor.Subtensor",
     wallet: "bittensor.wallet",
     hotkey_ss58: str,
     amount: "bittensor.Balance",
@@ -74,7 +74,7 @@ def __do_remove_stake_single(
 
 
 def check_threshold_amount(
-    subtensor: "bittensor.subtensor", unstaking_balance: Balance
+    subtensor: "bittensor.Subtensor", unstaking_balance: Balance
 ) -> bool:
     """
     Checks if the unstaking amount is above the threshold or 0
@@ -100,7 +100,7 @@ def check_threshold_amount(
 
 
 def unstake_extrinsic(
-    subtensor: "bittensor.subtensor",
+    subtensor: "bittensor.Subtensor",
     wallet: "bittensor.wallet",
     hotkey_ss58: Optional[str] = None,
     amount: Optional[Union[Balance, float]] = None,
@@ -224,7 +224,7 @@ def unstake_extrinsic(
 
 
 def unstake_multiple_extrinsic(
-    subtensor: "bittensor.subtensor",
+    subtensor: "bittensor.Subtensor",
     wallet: "bittensor.wallet",
     hotkey_ss58s: list[str],
     amounts: Optional[list[Union[Balance, float]]] = None,

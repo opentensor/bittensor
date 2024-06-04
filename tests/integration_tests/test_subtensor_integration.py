@@ -91,7 +91,7 @@ class TestSubtensor(unittest.TestCase):
             with patch("substrateinterface.SubstrateInterface.reload_type_registry"):
                 print(bittensor.subtensor, type(bittensor.subtensor))
                 # Choose network arg over config
-                sub1 = bittensor.subtensor(config=config1, network="local")
+                sub1 = bittensor.Subtensor(config=config1, network="local")
                 self.assertEqual(
                     sub1.chain_endpoint,
                     bittensor.__local_entrypoint__,
@@ -99,14 +99,14 @@ class TestSubtensor(unittest.TestCase):
                 )
 
                 # Choose network config over chain_endpoint config
-                sub2 = bittensor.subtensor(config=config0)
+                sub2 = bittensor.Subtensor(config=config0)
                 self.assertNotEqual(
                     sub2.chain_endpoint,
                     bittensor.__finney_entrypoint__,  # Here we expect the endpoint corresponding to the network "finney"
                     msg="config.network should override config.chain_endpoint",
                 )
 
-                sub3 = bittensor.subtensor(config=config1)
+                sub3 = bittensor.Subtensor(config=config1)
                 # Should pick local instead of finney (default)
                 assert sub3.network == "local"
                 assert sub3.chain_endpoint == bittensor.__local_entrypoint__
@@ -822,7 +822,7 @@ class TestSubtensor(unittest.TestCase):
             )
 
     def test_defaults_to_finney(self):
-        sub = bittensor.subtensor()
+        sub = bittensor.Subtensor()
         assert sub.network == "finney"
         assert sub.chain_endpoint == bittensor.__finney_entrypoint__
 

@@ -104,7 +104,7 @@ import bittensor
 wallet = bittensor.wallet()
 
 # Bittensor's chain interface.
-subtensor = bittensor.subtensor()
+subtensor = bittensor.Subtensor()
 
 # Bittensor's chain state object.
 metagraph = bittensor.metagraph(netuid=1)

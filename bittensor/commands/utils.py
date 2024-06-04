@@ -48,7 +48,7 @@ class IntListPrompt(PromptBase):
 
 def check_netuid_set(
     config: "bittensor.config",
-    subtensor: "bittensor.subtensor",
+    subtensor: "bittensor.Subtensor",
     allow_none: bool = False,
 ):
     if subtensor.network != "nakamoto":

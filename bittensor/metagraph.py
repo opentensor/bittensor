@@ -505,7 +505,7 @@ class MetagraphMixin(ABC):
 
             For example::
 
-                subtensor = bittensor.subtensor(network='archive')
+                subtensor = bittensor.Subtensor(network='archive')
         """
 
         # Initialize subtensor
@@ -552,7 +552,7 @@ class MetagraphMixin(ABC):
         """
         if not subtensor:
             # TODO: Check and test the initialization of the new subtensor
-            subtensor = bittensor.subtensor(network=self.network)
+            subtensor = bittensor.Subtensor(network=self.network)
         return subtensor
 
     def _assign_neurons(self, block, lite, subtensor):
@@ -671,7 +671,7 @@ class MetagraphMixin(ABC):
                             len(self.neurons), list(uids), list(values)
                         ).astype(np.float32)
                     )
-        tensor_param: Union["torch.nn.Parameter", NDArray] = (
+        tensor_param: Union["torch.nn.Parameter", NDArray] = (  # noqa: UP037
             (
                 torch.nn.Parameter(torch.stack(data_array), requires_grad=False)
                 if len(data_array)
@@ -734,7 +734,7 @@ class MetagraphMixin(ABC):
                     )
                 )
 
-        tensor_param: Union[NDArray, "torch.nn.Parameter"] = (
+        tensor_param: Union[NDArray, "torch.nn.Parameter"] = (  # noqa: UP037
             (
                 torch.nn.Parameter(torch.stack(data_array), requires_grad=False)
                 if len(data_array)

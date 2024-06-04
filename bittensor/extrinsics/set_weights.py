@@ -32,7 +32,7 @@ logger = logging.getLogger(BITTENSOR_LOGGER_NAME)
 
 
 def set_weights_extrinsic(
-    subtensor: "bittensor.subtensor",
+    subtensor: "bittensor.Subtensor",
     wallet: "bittensor.wallet",
     netuid: int,
     uids: Union[NDArray[np.int64], "torch.LongTensor", list],

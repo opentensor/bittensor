@@ -133,7 +133,7 @@ class POWSolution:
     difficulty: int
     seal: bytes
 
-    def is_stale(self, subtensor: "bittensor.subtensor") -> bool:
+    def is_stale(self, subtensor: "bittensor.Subtensor") -> bool:
         """Returns True if the POW is stale.
         This means the block the POW is solved for is within 3 blocks of the current block.
         """
@@ -734,7 +734,7 @@ def _solve_for_difficulty_fast(
 
 @backoff.on_exception(backoff.constant, Exception, interval=1, max_tries=3)
 def _get_block_with_retry(
-    subtensor: "bittensor.subtensor", netuid: int
+    subtensor: "bittensor.Subtensor", netuid: int
 ) -> tuple[int, int, bytes]:
     """
     Gets the current block number, difficulty, and block hash from the substrate node.
@@ -790,7 +790,7 @@ class _UsingSpawnStartMethod:
 
 
 def _check_for_newest_block_and_update(
-    subtensor: "bittensor.subtensor",
+    subtensor: "bittensor.Subtensor",
     netuid: int,
     old_block_number: int,
     hotkey_bytes: bytes,
@@ -865,7 +865,7 @@ def _check_for_newest_block_and_update(
 
 
 def _solve_for_difficulty_fast_cuda(
-    subtensor: "bittensor.subtensor",
+    subtensor: "bittensor.Subtensor",
     wallet: "bittensor.wallet",
     netuid: int,
     output_in_place: bool = True,

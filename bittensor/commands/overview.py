@@ -84,7 +84,7 @@ class OverviewCommand:
     def run(cli: "bittensor.cli"):
         r"""Prints an overview for the wallet's colkey."""
         try:
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+            subtensor: bittensor.Subtensor = bittensor.Subtensor(
                 config=cli.config, log_verbose=False
             )
             OverviewCommand._run(cli, subtensor)
@@ -96,7 +96,7 @@ class OverviewCommand:
     @staticmethod
     def _get_total_balance(
         total_balance: "bittensor.Balance",
-        subtensor: "bittensor.subtensor",
+        subtensor: "bittensor.Subtensor",
         cli: "bittensor.cli",
     ) -> tuple[list["bittensor.wallet"], "bittensor.Balance"]:
         if cli.config.get("all", d=None):
@@ -182,7 +182,7 @@ class OverviewCommand:
                 neurons[str(netuid)] = neurons_result
         return neurons
 
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.Subtensor"):
         r"""Prints an overview for the wallet's colkey."""
         console = bittensor.__console__
         wallet = bittensor.wallet(config=cli.config)
@@ -616,12 +616,12 @@ class OverviewCommand:
     ) -> tuple[int, list["bittensor.NeuronInfoLite"], Optional[str]]:
         subtensor_config, netuid, hot_wallets = args_tuple
 
-        result: list["bittensor.NeuronInfoLite"] = []
+        result: list[bittensor.NeuronInfoLite] = []
 
         try:
-            subtensor = bittensor.subtensor(config=subtensor_config, log_verbose=False)
+            subtensor = bittensor.Subtensor(config=subtensor_config, log_verbose=False)
 
-            all_neurons: list["bittensor.NeuronInfoLite"] = subtensor.neurons_lite(
+            all_neurons: list[bittensor.NeuronInfoLite] = subtensor.neurons_lite(
                 netuid=netuid
             )
             # Map the hotkeys to uids
@@ -649,10 +649,10 @@ class OverviewCommand:
         subtensor_config, all_hotkey_addresses, coldkey_wallet = args_tuple
 
         # List of (hotkey_addr, our_stake) tuples.
-        result: list[tuple[str, "bittensor.Balance"]] = []
+        result: list[tuple[str, bittensor.Balance]] = []
 
         try:
-            subtensor = bittensor.subtensor(config=subtensor_config, log_verbose=False)
+            subtensor = bittensor.Subtensor(config=subtensor_config, log_verbose=False)
 
             # Pull all stake for our coldkey
             all_stake_info_for_coldkey = subtensor.get_stake_info_for_coldkey(

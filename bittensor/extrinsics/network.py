@@ -25,7 +25,7 @@ from ..commands.network import HYPERPARAMS
 
 
 def register_subnetwork_extrinsic(
-    subtensor: "bittensor.subtensor",
+    subtensor: "bittensor.Subtensor",
     wallet: "bittensor.wallet",
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = True,
@@ -116,7 +116,7 @@ def find_event_attributes_in_extrinsic_receipt(response, event_name) -> list:
 
 
 def set_hyperparameter_extrinsic(
-    subtensor: "bittensor.subtensor",
+    subtensor: "bittensor.Subtensor",
     wallet: "bittensor.wallet",
     netuid: int,
     parameter: str,

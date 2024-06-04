@@ -71,7 +71,7 @@ class StakeCommand:
         r"""Stake token of amount to hotkey(s)."""
         try:
             config = cli.config.copy()
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+            subtensor: bittensor.Subtensor = bittensor.Subtensor(
                 config=config, log_verbose=False
             )
             StakeCommand._run(cli, subtensor)
@@ -81,7 +81,7 @@ class StakeCommand:
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.Subtensor"):
         r"""Stake token of amount to hotkey(s)."""
         config = cli.config.copy()
         wallet = bittensor.wallet(config=config)
@@ -364,7 +364,7 @@ class StakeShow:
     def run(cli: "bittensor.cli"):
         r"""Show all stake accounts."""
         try:
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+            subtensor: bittensor.Subtensor = bittensor.Subtensor(
                 config=cli.config, log_verbose=False
             )
             StakeShow._run(cli, subtensor)
@@ -374,7 +374,7 @@ class StakeShow:
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.Subtensor"):
         r"""Show all stake accounts."""
         if cli.config.get("all", d=False) is True:
             wallets = _get_coldkey_wallets_for_path(cli.config.wallet.path)

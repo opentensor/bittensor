@@ -76,7 +76,7 @@ class MetagraphCommand:
     def run(cli: "bittensor.cli"):
         r"""Prints an entire metagraph."""
         try:
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+            subtensor: bittensor.Subtensor = bittensor.Subtensor(
                 config=cli.config, log_verbose=False
             )
             MetagraphCommand._run(cli, subtensor)
@@ -85,7 +85,7 @@ class MetagraphCommand:
                 subtensor.close()
                 bittensor.logging.debug("closing subtensor connection")
 
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.Subtensor"):
         r"""Prints an entire metagraph."""
         console = bittensor.__console__
         console.print(
@@ -238,7 +238,7 @@ class MetagraphCommand:
     @staticmethod
     def check_config(config: "bittensor.config"):
         check_netuid_set(
-            config, subtensor=bittensor.subtensor(config=config, log_verbose=False)
+            config, subtensor=bittensor.Subtensor(config=config, log_verbose=False)
         )
 
     @staticmethod

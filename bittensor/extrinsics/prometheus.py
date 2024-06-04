@@ -22,7 +22,7 @@ import bittensor.utils.networking as net
 
 
 def prometheus_extrinsic(
-    subtensor: "bittensor.subtensor",
+    subtensor: "bittensor.Subtensor",
     wallet: "bittensor.wallet",
     port: int,
     netuid: int,
@@ -70,7 +70,7 @@ def prometheus_extrinsic(
     else:
         external_ip = ip
 
-    call_params: "bittensor.PrometheusServeCallParams" = {
+    call_params: bittensor.PrometheusServeCallParams = {
         "version": bittensor.__version_as_int__,
         "ip": net.ip_to_int(external_ip),
         "port": port,

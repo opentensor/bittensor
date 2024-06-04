@@ -55,7 +55,7 @@ class CommitWeightCommand:
     def run(cli: "bittensor.cli"):
         r"""Commit weights for a specific subnet."""
         try:
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+            subtensor: bittensor.Subtensor = bittensor.Subtensor(
                 config=cli.config, log_verbose=False
             )
             CommitWeightCommand._run(cli, subtensor)
@@ -65,7 +65,7 @@ class CommitWeightCommand:
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.Subtensor"):
         r"""Commit weights for a specific subnet"""
         wallet = bittensor.wallet(config=cli.config)
 
@@ -186,7 +186,7 @@ class RevealWeightCommand:
     def run(cli: "bittensor.cli"):
         r"""Reveal weights for a specific subnet."""
         try:
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+            subtensor: bittensor.Subtensor = bittensor.Subtensor(
                 config=cli.config, log_verbose=False
             )
             RevealWeightCommand._run(cli, subtensor)
@@ -196,7 +196,7 @@ class RevealWeightCommand:
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.Subtensor"):
         r"""Reveal weights for a specific subnet."""
         wallet = bittensor.wallet(config=cli.config)
 

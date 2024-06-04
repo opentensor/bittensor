@@ -27,7 +27,7 @@ from ..utils.balance import Balance
 
 
 def transfer_extrinsic(
-    subtensor: "bittensor.subtensor",
+    subtensor: "bittensor.Subtensor",
     wallet: "bittensor.wallet",
     dest: str,
     amount: Union[Balance, float],
