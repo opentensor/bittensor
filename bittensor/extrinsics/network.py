@@ -21,6 +21,8 @@ from rich.prompt import Confirm
 
 import bittensor
 
+from ..commands.network import HYPERPARAMS
+
 
 def register_subnetwork_extrinsic(
     subtensor: "bittensor.subtensor",
@@ -111,9 +113,6 @@ def find_event_attributes_in_extrinsic_receipt(response, event_name) -> list:
             # Once found, you can access the attributes of the event_name
             return event_details["attributes"]
     return [-1]
-
-
-from ..commands.network import HYPERPARAMS
 
 
 def set_hyperparameter_extrinsic(

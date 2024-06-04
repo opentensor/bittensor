@@ -16,7 +16,9 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 import json
+from typing import Optional
 
+from retry import retry
 from rich.prompt import Confirm
 
 import bittensor
@@ -258,10 +260,6 @@ def publish_metadata(
         else:
             raise MetadataError(response.error_message)
 
-
-from typing import Optional
-
-from retry import retry
 
 
 def get_metadata(self, netuid: int, hotkey: str, block: Optional[int] = None) -> str:
