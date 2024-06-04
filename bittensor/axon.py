@@ -905,9 +905,6 @@ class axon:
                 print(f"Error fetching NTP time: {e}")
                 # Fallback to local time if NTP fails
                 current_time = time.time_ns()
-
-            if synapse.dendrite.nonce is None:
-                raise Exception("Missing Nonce")
             
             # Updated nonce using NTP implementated at v7.2
             if synapse.dendrite.version >= 720:
