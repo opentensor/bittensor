@@ -23,9 +23,10 @@ import asyncio
 import uuid
 import time
 import aiohttp
+
 import bittensor
-import ntplib
 from typing import Optional, List, Union, AsyncGenerator, Any
+from bittensor.utils.networking import BittensorNTPClient
 from bittensor.utils.registration import torch, use_torch
 
 
@@ -632,7 +633,7 @@ class DendriteMixin:
                 yield synapse.deserialize()
             else:
                 yield synapse
- 
+
     def preprocess_synapse_for_request(
         self,
         target_axon_info: bittensor.AxonInfo,
@@ -655,11 +656,13 @@ class DendriteMixin:
         # Set the timeout for the synapse
         synapse.timeout = timeout
         try:
-            ntp_client = ntplib.NTPClient()
-            response = ntp_client.request('pool.ntp.org')
+            ntp_client = BittensorNTPClient()
+            response = ntp_client.request("pool.ntp.org")
             current_time = int(response.tx_time * 1e9)  # Convert to nanoseconds
         except Exception as e:
-            bittensor.logging.debug(f"Error fetching NTP time: {e}, using system UNIX time")
+            bittensor.logging.debug(
+                f"Error fetching NTP time: {e}, using system UNIX time"
+            )
             # Fallback to local time if NTP fails
             current_time = time.time_ns()
         # Build the Dendrite headers using the local system's details
