@@ -30,8 +30,8 @@ from bittensor.mock import MockSubtensor
 from bittensor.utils import weight_utils
 from bittensor.utils.balance import Balance
 from tests.helpers import (
-    _get_mock_coldkey,
     MockConsole,
+    _get_mock_coldkey,
     _get_mock_keypair,
     _get_mock_wallet,
 )
@@ -91,7 +91,7 @@ class TestSubtensor(unittest.TestCase):
             with patch("substrateinterface.SubstrateInterface.reload_type_registry"):
                 print(bittensor.subtensor, type(bittensor.subtensor))
                 # Choose network arg over config
-                sub1 = bittensor.subtensor(config=config1, network="local")
+                sub1 = bittensor.Subtensor(config=config1, network="local")
                 self.assertEqual(
                     sub1.chain_endpoint,
                     bittensor.__local_entrypoint__,
@@ -99,21 +99,21 @@ class TestSubtensor(unittest.TestCase):
                 )
 
                 # Choose network config over chain_endpoint config
-                sub2 = bittensor.subtensor(config=config0)
+                sub2 = bittensor.Subtensor(config=config0)
                 self.assertNotEqual(
                     sub2.chain_endpoint,
                     bittensor.__finney_entrypoint__,  # Here we expect the endpoint corresponding to the network "finney"
                     msg="config.network should override config.chain_endpoint",
                 )
 
-                sub3 = bittensor.subtensor(config=config1)
+                sub3 = bittensor.Subtensor(config=config1)
                 # Should pick local instead of finney (default)
                 assert sub3.network == "local"
                 assert sub3.chain_endpoint == bittensor.__local_entrypoint__
 
     def test_get_current_block(self):
         block = self.subtensor.get_current_block()
-        assert type(block) == int
+        assert type(block) == int  # noqa: E721
 
     def test_unstake(self):
         self.subtensor._do_unstake = MagicMock(return_value=True)
@@ -313,13 +313,6 @@ class TestSubtensor(unittest.TestCase):
     def test_set_weights(self):
         chain_weights = [0]
 
-        class success:
-            def __init__(self):
-                self.is_success = True
-
-            def process_events(self):
-                return True
-
         self.subtensor.set_weights = MagicMock(return_value=True)
         self.subtensor._do_set_weights = MagicMock(return_value=(True, None))
 
@@ -329,7 +322,7 @@ class TestSubtensor(unittest.TestCase):
             uids=[1],
             weights=chain_weights,
         )
-        assert success == True
+        assert success is True
 
     def test_set_weights_inclusion(self):
         chain_weights = [0]
@@ -343,7 +336,7 @@ class TestSubtensor(unittest.TestCase):
             weights=chain_weights,
             wait_for_inclusion=True,
         )
-        assert success == True
+        assert success is True
 
     def test_set_weights_failed(self):
         chain_weights = [0]
@@ -359,7 +352,7 @@ class TestSubtensor(unittest.TestCase):
             weights=chain_weights,
             wait_for_inclusion=True,
         )
-        assert fail == False
+        assert fail is False
 
     def test_commit_weights(self):
         weights = np.array([0.1, 0.2, 0.3, 0.4], dtype=np.float32)
@@ -368,7 +361,7 @@ class TestSubtensor(unittest.TestCase):
         weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(
             uids=uids, weights=weights
         )
-        commit_hash = bittensor.utils.weight_utils.generate_weight_hash(
+        bittensor.utils.weight_utils.generate_weight_hash(
             address=self.wallet.hotkey.ss58_address,
             netuid=3,
             uids=weight_uids,
@@ -397,7 +390,7 @@ class TestSubtensor(unittest.TestCase):
             uids=uids, weights=weights
         )
 
-        commit_hash = bittensor.utils.weight_utils.generate_weight_hash(
+        bittensor.utils.weight_utils.generate_weight_hash(
             address=self.wallet.hotkey.ss58_address,
             netuid=1,
             uids=weight_uids,
@@ -431,7 +424,7 @@ class TestSubtensor(unittest.TestCase):
             uids=uids, weights=weights
         )
 
-        commit_hash = bittensor.utils.weight_utils.generate_weight_hash(
+        bittensor.utils.weight_utils.generate_weight_hash(
             address=self.wallet.hotkey.ss58_address,
             netuid=3,
             uids=weight_uids,
@@ -608,13 +601,13 @@ class TestSubtensor(unittest.TestCase):
     def test_get_balance(self):
         fake_coldkey = _get_mock_coldkey(0)
         balance = self.subtensor.get_balance(address=fake_coldkey)
-        assert type(balance) == bittensor.utils.balance.Balance
+        assert type(balance) == bittensor.utils.balance.Balance  # noqa: E721
 
     def test_get_balances(self):
         balances = self.subtensor.get_balances()
-        assert type(balances) == dict
+        assert type(balances) == dict  # noqa: E721
         for i in balances:
-            assert type(balances[i]) == bittensor.utils.balance.Balance
+            assert type(balances[i]) == bittensor.utils.balance.Balance  # noqa: E721
 
     def test_get_uid_by_hotkey_on_subnet(self):
         mock_coldkey_kp = _get_mock_keypair(0, self.id())
@@ -679,13 +672,11 @@ class TestSubtensor(unittest.TestCase):
         mock_neuron.is_null = True
 
         # patch solution queue to return None
-        with patch(
-            "multiprocessing.queues.Queue.get", return_value=None
-        ) as mock_queue_get:
+        with patch("multiprocessing.queues.Queue.get", return_value=None):
             # patch time queue get to raise Empty exception
             with patch(
                 "multiprocessing.queues.Queue.get_nowait", side_effect=QueueEmpty
-            ) as mock_queue_get_nowait:
+            ):
                 wallet = _get_mock_wallet(
                     hotkey=_get_mock_keypair(0, self.id()),
                     coldkey=_get_mock_keypair(1, self.id()),
@@ -831,7 +822,7 @@ class TestSubtensor(unittest.TestCase):
             )
 
     def test_defaults_to_finney(self):
-        sub = bittensor.subtensor()
+        sub = bittensor.Subtensor()
         assert sub.network == "finney"
         assert sub.chain_endpoint == bittensor.__finney_entrypoint__
 

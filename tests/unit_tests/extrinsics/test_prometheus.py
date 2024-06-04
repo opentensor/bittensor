@@ -1,9 +1,11 @@
-import pytest
 from unittest.mock import MagicMock, patch
+
+import pytest
+
 import bittensor
+from bittensor.extrinsics.prometheus import prometheus_extrinsic
 from bittensor.subtensor import Subtensor
 from bittensor.wallet import wallet as Wallet
-from bittensor.extrinsics.prometheus import prometheus_extrinsic
 
 
 # Mocking the bittensor and networking modules
@@ -112,7 +114,7 @@ def test_prometheus_extrinsic_edge_cases(
     )
 
     # Assert
-    assert result == True, f"Test ID: {test_id}"
+    assert result is True, f"Test ID: {test_id}"
 
 
 # Error cases

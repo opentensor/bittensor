@@ -1,14 +1,15 @@
+from unittest.mock import MagicMock, patch
+
 import pytest
 
-from unittest.mock import MagicMock, patch
-from bittensor.subtensor import Subtensor
-from bittensor.wallet import wallet as Wallet
 from bittensor.axon import axon as Axon
 from bittensor.extrinsics.serving import (
-    serve_extrinsic,
     publish_metadata,
     serve_axon_extrinsic,
+    serve_extrinsic,
 )
+from bittensor.subtensor import Subtensor
+from bittensor.wallet import wallet as Wallet
 
 
 @pytest.fixture
@@ -280,12 +281,15 @@ def test_serve_axon_extrinsic(
 ):
     mock_axon.external_ip = external_ip
     # Arrange
-    with patch(
-        "bittensor.utils.networking.get_external_ip",
-        side_effect=Exception("Failed to fetch IP")
-        if not external_ip_success
-        else MagicMock(return_value="192.168.1.1"),
-    ), patch.object(mock_subtensor, "serve", return_value=serve_success):
+    with (
+        patch(
+            "bittensor.utils.networking.get_external_ip",
+            side_effect=Exception("Failed to fetch IP")
+            if not external_ip_success
+            else MagicMock(return_value="192.168.1.1"),
+        ),
+        patch.object(mock_subtensor, "serve", return_value=serve_success),
+    ):
         # Act
         if not external_ip_success:
             with pytest.raises(RuntimeError):
@@ -349,15 +353,17 @@ def test_publish_metadata(
     test_id,
 ):
     # Arrange
-    with patch.object(mock_subtensor.substrate, "compose_call"), patch.object(
-        mock_subtensor.substrate, "create_signed_extrinsic"
-    ), patch.object(
-        mock_subtensor.substrate,
-        "submit_extrinsic",
-        return_value=MagicMock(
-            is_success=response_success,
-            process_events=MagicMock(),
-            error_message="error",
+    with (
+        patch.object(mock_subtensor.substrate, "compose_call"),
+        patch.object(mock_subtensor.substrate, "create_signed_extrinsic"),
+        patch.object(
+            mock_subtensor.substrate,
+            "submit_extrinsic",
+            return_value=MagicMock(
+                is_success=response_success,
+                process_events=MagicMock(),
+                error_message="error",
+            ),
         ),
     ):
         # Act

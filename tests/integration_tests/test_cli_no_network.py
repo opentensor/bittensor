@@ -17,18 +17,17 @@
 # DEALINGS IN THE SOFTWARE.
 
 
-import unittest
-from unittest.mock import MagicMock, patch
-from typing import Any, Optional
-import pytest
-from copy import deepcopy
 import re
+import unittest
+from copy import deepcopy
+from typing import Any
+from unittest.mock import MagicMock, patch
 
-from tests.helpers import _get_mock_coldkey, __mock_wallet_factory__, MockConsole
+import pytest
 
 import bittensor
 from bittensor import Balance
-from rich.table import Table
+from tests.helpers import __mock_wallet_factory__, _get_mock_coldkey
 
 
 class MockException(Exception):
@@ -301,7 +300,7 @@ class TestCLINoNetwork(unittest.TestCase):
             cli.run()
 
     def test_btcli_help(self, _, __):
-        with pytest.raises(SystemExit) as pytest_wrapped_e:
+        with pytest.raises(SystemExit):
             with patch(
                 "argparse.ArgumentParser._print_message", return_value=None
             ) as mock_print_message:

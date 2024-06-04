@@ -15,14 +15,16 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import sys
 import argparse
-import bittensor
-from rich.prompt import Prompt, Confirm
-from .utils import check_netuid_set, check_for_cuda_reg_config
+import sys
 from copy import deepcopy
 
+from rich.prompt import Confirm, Prompt
+
+import bittensor
+
 from . import defaults
+from .utils import check_for_cuda_reg_config, check_netuid_set
 
 console = bittensor.__console__
 
@@ -65,7 +67,7 @@ class RegisterCommand:
         r"""Register neuron by recycling some TAO."""
         try:
             config = cli.config.copy()
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+            subtensor: bittensor.Subtensor = bittensor.Subtensor(
                 config=config, log_verbose=False
             )
             RegisterCommand._run(cli, subtensor)
@@ -75,7 +77,7 @@ class RegisterCommand:
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.Subtensor"):
         r"""Register neuron by recycling some TAO."""
         wallet = bittensor.wallet(config=cli.config)
 
@@ -103,7 +105,7 @@ class RegisterCommand:
                     f"Your balance is: [bold green]{balance}[/bold green]\nThe cost to register by recycle is [bold red]{current_recycle}[/bold red]\nDo you want to continue?",
                     default=False,
                 )
-                == False
+                is False
             ):
                 sys.exit(1)
 
@@ -144,7 +146,7 @@ class RegisterCommand:
             config.subtensor.chain_endpoint = endpoint
 
         check_netuid_set(
-            config, subtensor=bittensor.subtensor(config=config, log_verbose=False)
+            config, subtensor=bittensor.Subtensor(config=config, log_verbose=False)
         )
 
         if not config.is_set("wallet.name") and not config.no_prompt:
@@ -195,7 +197,7 @@ class PowRegisterCommand:
     def run(cli: "bittensor.cli"):
         r"""Register neuron."""
         try:
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+            subtensor: bittensor.Subtensor = bittensor.Subtensor(
                 config=cli.config, log_verbose=False
             )
             PowRegisterCommand._run(cli, subtensor)
@@ -205,7 +207,7 @@ class PowRegisterCommand:
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.Subtensor"):
         r"""Register neuron."""
         wallet = bittensor.wallet(config=cli.config)
 
@@ -343,7 +345,7 @@ class PowRegisterCommand:
             config.subtensor.chain_endpoint = endpoint
 
         check_netuid_set(
-            config, subtensor=bittensor.subtensor(config=config, log_verbose=False)
+            config, subtensor=bittensor.Subtensor(config=config, log_verbose=False)
         )
 
         if not config.is_set("wallet.name") and not config.no_prompt:
@@ -397,7 +399,7 @@ class RunFaucetCommand:
     def run(cli: "bittensor.cli"):
         r"""Register neuron."""
         try:
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+            subtensor: bittensor.Subtensor = bittensor.Subtensor(
                 config=cli.config, log_verbose=False
             )
             RunFaucetCommand._run(cli, subtensor)
@@ -407,7 +409,7 @@ class RunFaucetCommand:
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.Subtensor"):
         r"""Register neuron."""
         wallet = bittensor.wallet(config=cli.config)
         success = subtensor.run_faucet(
@@ -525,7 +527,7 @@ class SwapHotkeyCommand:
     def run(cli: "bittensor.cli"):
         r"""Swap your hotkey for all registered axons on the network."""
         try:
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+            subtensor: bittensor.Subtensor = bittensor.Subtensor(
                 config=cli.config, log_verbose=False
             )
             SwapHotkeyCommand._run(cli, subtensor)
@@ -535,7 +537,7 @@ class SwapHotkeyCommand:
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.Subtensor"):
         r"""Swap your hotkey for all registered axons on the network."""
         wallet = bittensor.wallet(config=cli.config)
 

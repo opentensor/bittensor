@@ -22,7 +22,7 @@
 import json
 import logging
 import os
-from typing import Dict, Optional, Union, Any
+from typing import Any, Optional, Union
 
 from substrateinterface.base import SubstrateInterface
 
@@ -41,7 +41,7 @@ os.makedirs(_BT_DIR, exist_ok=True)
 # https://github.com/polkascan/py-scale-codec/blob/master/scalecodec/type_registry/core.json#L1024
 # A class object is created dynamically at runtime.
 # Circleci linter complains about string represented classes like 'PalletMetadataV14'.
-def _get_errors_from_pallet(pallet) -> Optional[Dict[str, Dict[str, str]]]:
+def _get_errors_from_pallet(pallet) -> Optional[dict[str, dict[str, str]]]:
     """Extracts and returns error information from the given pallet metadata.
 
     Args:
@@ -68,7 +68,7 @@ def _get_errors_from_pallet(pallet) -> Optional[Dict[str, Dict[str, str]]]:
     }
 
 
-def _save_errors_to_cache(uniq_version: str, errors: Dict[str, Dict[str, str]]):
+def _save_errors_to_cache(uniq_version: str, errors: dict[str, dict[str, str]]):
     """Saves error details and unique version identifier to a JSON file.
 
     Args:
@@ -79,11 +79,11 @@ def _save_errors_to_cache(uniq_version: str, errors: Dict[str, Dict[str, str]]):
     try:
         with open(_ERRORS_FILE_PATH, "w") as json_file:
             json.dump(data, json_file, indent=4)
-    except IOError as e:
+    except OSError as e:
         _logger.warning(f"Error saving to file: {e}")
 
 
-def _get_errors_from_cache() -> Optional[Dict[str, Dict[str, Dict[str, str]]]]:
+def _get_errors_from_cache() -> Optional[dict[str, dict[str, dict[str, str]]]]:
     """Retrieves and returns the cached error information from a JSON file, if it exists.
 
     Returns:
@@ -93,9 +93,9 @@ def _get_errors_from_cache() -> Optional[Dict[str, Dict[str, Dict[str, str]]]]:
         return None
 
     try:
-        with open(_ERRORS_FILE_PATH, "r") as json_file:
+        with open(_ERRORS_FILE_PATH) as json_file:
             data = json.load(json_file)
-    except IOError as e:
+    except OSError as e:
         _logger.warning(f"Error reading from file: {e}")
         return None
 
@@ -104,7 +104,7 @@ def _get_errors_from_cache() -> Optional[Dict[str, Dict[str, Dict[str, str]]]]:
 
 def get_subtensor_errors(
     substrate: SubstrateInterface,
-) -> Union[Dict[str, Dict[str, str]], Dict[Any, Any]]:
+) -> Union[dict[str, dict[str, str]], dict[Any, Any]]:
     """Fetches or retrieves cached Subtensor error definitions using metadata.
 
     Args:

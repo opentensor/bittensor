@@ -17,9 +17,10 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import bittensor as bt
 from abc import ABC, abstractmethod
-from typing import Any, List, Union, Optional
+from typing import Any, Optional, Union
+
+import bittensor as bt
 
 
 class SubnetsAPI(ABC):
@@ -38,7 +39,7 @@ class SubnetsAPI(ABC):
         ...
 
     @abstractmethod
-    def process_responses(self, responses: List[Union["bt.Synapse", Any]]) -> Any:
+    def process_responses(self, responses: list[Union["bt.Synapse", Any]]) -> Any:
         """
         Process the responses from the network.
         """
@@ -46,7 +47,7 @@ class SubnetsAPI(ABC):
 
     async def query_api(
         self,
-        axons: Union[bt.axon, List[bt.axon]],
+        axons: Union[bt.axon, list[bt.axon]],
         deserialize: Optional[bool] = False,
         timeout: Optional[int] = 12,
         **kwargs: Optional[Any],

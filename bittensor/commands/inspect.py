@@ -16,27 +16,28 @@
 # DEALINGS IN THE SOFTWARE.
 
 import argparse
-import bittensor
-from tqdm import tqdm
-from rich.table import Table
+import os
+from typing import Optional
+
 from rich.prompt import Prompt
-from .utils import (
-    get_delegates_details,
-    DelegatesDetails,
-    get_hotkey_wallets_for_wallet,
-    get_all_wallets_for_path,
-    filter_netuids_by_registered_hotkeys,
-)
+from rich.table import Table
+from tqdm import tqdm
+
+import bittensor
+
 from . import defaults
+from .utils import (
+    DelegatesDetails,
+    filter_netuids_by_registered_hotkeys,
+    get_all_wallets_for_path,
+    get_delegates_details,
+    get_hotkey_wallets_for_wallet,
+)
 
 console = bittensor.__console__
 
-import os
-import bittensor
-from typing import List, Tuple, Optional, Dict
 
-
-def _get_coldkey_wallets_for_path(path: str) -> List["bittensor.wallet"]:
+def _get_coldkey_wallets_for_path(path: str) -> list["bittensor.wallet"]:
     try:
         wallet_names = next(os.walk(os.path.expanduser(path)))[1]
         return [bittensor.wallet(path=path, name=name) for name in wallet_names]
@@ -46,7 +47,7 @@ def _get_coldkey_wallets_for_path(path: str) -> List["bittensor.wallet"]:
     return wallets
 
 
-def _get_hotkey_wallets_for_wallet(wallet) -> List["bittensor.wallet"]:
+def _get_hotkey_wallets_for_wallet(wallet) -> list["bittensor.wallet"]:
     hotkey_wallets = []
     hotkeys_path = wallet.path + "/" + wallet.name + "/hotkeys"
     try:
@@ -114,7 +115,7 @@ class InspectCommand:
     def run(cli: "bittensor.cli"):
         r"""Inspect a cold, hot pair."""
         try:
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+            subtensor: bittensor.Subtensor = bittensor.Subtensor(
                 config=cli.config, log_verbose=False
             )
             InspectCommand._run(cli, subtensor)
@@ -124,8 +125,8 @@ class InspectCommand:
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
-        if cli.config.get("all", d=False) == True:
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.Subtensor"):
+        if cli.config.get("all", d=False) is True:
             wallets = _get_coldkey_wallets_for_path(cli.config.wallet.path)
             all_hotkeys = get_all_wallets_for_path(cli.config.wallet.path)
         else:
@@ -138,7 +139,7 @@ class InspectCommand:
         )
         bittensor.logging.debug(f"Netuids to check: {netuids}")
 
-        registered_delegate_info: Optional[Dict[str, DelegatesDetails]] = (
+        registered_delegate_info: Optional[dict[str, DelegatesDetails]] = (
             get_delegates_details(url=bittensor.__delegates_details_url__)
         )
         if registered_delegate_info is None:
@@ -150,7 +151,7 @@ class InspectCommand:
         neuron_state_dict = {}
         for netuid in tqdm(netuids):
             neurons = subtensor.neurons_lite(netuid)
-            neuron_state_dict[netuid] = neurons if neurons != None else []
+            neuron_state_dict[netuid] = neurons if neurons is not None else []
 
         table = Table(show_footer=True, pad_edge=False, box=None, expand=True)
         table.add_column(
@@ -181,7 +182,7 @@ class InspectCommand:
             "[overline white]Emission", footer_style="overline white", style="green"
         )
         for wallet in tqdm(wallets):
-            delegates: List[Tuple[bittensor.DelegateInfo, bittensor.Balance]] = (
+            delegates: list[tuple[bittensor.DelegateInfo, bittensor.Balance]] = (
                 subtensor.get_delegated(coldkey_ss58=wallet.coldkeypub.ss58_address)
             )
             if not wallet.coldkeypub_file.exists_on_device():
@@ -214,7 +215,7 @@ class InspectCommand:
                     if neuron.coldkey == wallet.coldkeypub.ss58_address:
                         hotkey_name: str = ""
 
-                        hotkey_names: List[str] = [
+                        hotkey_names: list[str] = [
                             wallet.hotkey_str
                             for wallet in filter(
                                 lambda hotkey: hotkey.hotkey.ss58_address
@@ -249,7 +250,7 @@ class InspectCommand:
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
-        if config.netuids != [] and config.netuids != None:
+        if config.netuids != [] and config.netuids is not None:
             if not isinstance(config.netuids, list):
                 config.netuids = [int(config.netuids)]
             else:

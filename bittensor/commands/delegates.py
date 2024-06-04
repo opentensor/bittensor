@@ -18,21 +18,22 @@
 import argparse
 import os
 import sys
-from typing import List, Dict, Optional
+from typing import Optional
 
 from rich.console import Text
-from rich.prompt import Prompt, FloatPrompt, Confirm
+from rich.prompt import Confirm, FloatPrompt, Prompt
 from rich.table import Table
 from substrateinterface.exceptions import SubstrateRequestException
 from tqdm import tqdm
 
 import bittensor
+
 from . import defaults
 from .identity import SetIdentityCommand
-from .utils import get_delegates_details, DelegatesDetails
+from .utils import DelegatesDetails, get_delegates_details
 
 
-def _get_coldkey_wallets_for_path(path: str) -> List["bittensor.wallet"]:
+def _get_coldkey_wallets_for_path(path: str) -> list["bittensor.wallet"]:
     try:
         wallet_names = next(os.walk(os.path.expanduser(path)))[1]
         return [bittensor.wallet(path=path, name=name) for name in wallet_names]
@@ -46,7 +47,7 @@ console = bittensor.__console__
 
 
 def show_delegates_lite(
-    delegates_lite: List["bittensor.DelegateInfoLite"], width: Optional[int] = None
+    delegates_lite: list["bittensor.DelegateInfoLite"], width: Optional[int] = None
 ):
     """
     This method is a lite version of the :func:`show_delegates`. This method displays a formatted table of Bittensor network delegates with detailed statistics to the console.
@@ -83,7 +84,7 @@ def show_delegates_lite(
         the table in the console.
     """
 
-    registered_delegate_info: Optional[Dict[str, DelegatesDetails]] = (
+    registered_delegate_info: Optional[dict[str, DelegatesDetails]] = (
         get_delegates_details(url=bittensor.__delegates_details_url__)
     )
     if registered_delegate_info is None:
@@ -153,8 +154,8 @@ def show_delegates_lite(
 
 # Uses rich console to pretty print a table of delegates.
 def show_delegates(
-    delegates: List["bittensor.DelegateInfo"],
-    prev_delegates: Optional[List["bittensor.DelegateInfo"]],
+    delegates: list["bittensor.DelegateInfo"],
+    prev_delegates: Optional[list["bittensor.DelegateInfo"]],
     width: Optional[int] = None,
 ):
     """
@@ -206,7 +207,7 @@ def show_delegates(
         for prev_delegate in prev_delegates:
             prev_delegates_dict[prev_delegate.hotkey_ss58] = prev_delegate
 
-    registered_delegate_info: Optional[Dict[str, DelegatesDetails]] = (
+    registered_delegate_info: Optional[dict[str, DelegatesDetails]] = (
         get_delegates_details(url=bittensor.__delegates_details_url__)
     )
     if registered_delegate_info is None:
@@ -287,13 +288,11 @@ def show_delegates(
                     / float(prev_stake)
                 )
                 if rate_change_in_stake > 0:
-                    rate_change_in_stake_str = "[green]{:.2f}%[/green]".format(
-                        rate_change_in_stake
+                    rate_change_in_stake_str = (
+                        f"[green]{rate_change_in_stake:.2f}%[/green]"
                     )
                 elif rate_change_in_stake < 0:
-                    rate_change_in_stake_str = "[red]{:.2f}%[/red]".format(
-                        rate_change_in_stake
-                    )
+                    rate_change_in_stake_str = f"[red]{rate_change_in_stake:.2f}%[/red]"
                 else:
                     rate_change_in_stake_str = "[grey0]0%[/grey0]"
         else:
@@ -366,7 +365,7 @@ class DelegateStakeCommand:
         try:
             config = cli.config.copy()
             wallet = bittensor.wallet(config=config)
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+            subtensor: bittensor.Subtensor = bittensor.Subtensor(
                 config=config, log_verbose=False
             )
             subtensor.delegate(
@@ -408,8 +407,8 @@ class DelegateStakeCommand:
         if not config.get("delegate_ss58key"):
             # Check for delegates.
             with bittensor.__console__.status(":satellite: Loading delegates..."):
-                subtensor = bittensor.subtensor(config=config, log_verbose=False)
-                delegates: List[bittensor.DelegateInfo] = subtensor.get_delegates()
+                subtensor = bittensor.Subtensor(config=config, log_verbose=False)
+                delegates: list[bittensor.DelegateInfo] = subtensor.get_delegates()
                 try:
                     prev_delegates = subtensor.get_delegates(
                         max(0, subtensor.block - 1200)
@@ -424,9 +423,7 @@ class DelegateStakeCommand:
 
             if len(delegates) == 0:
                 console.print(
-                    ":cross_mark: [red]There are no delegates on {}[/red]".format(
-                        subtensor.network
-                    )
+                    f":cross_mark: [red]There are no delegates on {subtensor.network}[/red]"
                 )
                 sys.exit(1)
 
@@ -434,9 +431,7 @@ class DelegateStakeCommand:
             show_delegates(delegates, prev_delegates=prev_delegates)
             delegate_index = Prompt.ask("Enter delegate index")
             config.delegate_ss58key = str(delegates[int(delegate_index)].hotkey_ss58)
-            console.print(
-                "Selected: [yellow]{}[/yellow]".format(config.delegate_ss58key)
-            )
+            console.print(f"Selected: [yellow]{config.delegate_ss58key}[/yellow]")
 
         if not config.is_set("wallet.name") and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
@@ -454,9 +449,7 @@ class DelegateStakeCommand:
                     config.amount = float(amount)
                 except ValueError:
                     console.print(
-                        ":cross_mark: [red]Invalid Tao amount[/red] [bold white]{}[/bold white]".format(
-                            amount
-                        )
+                        f":cross_mark: [red]Invalid Tao amount[/red] [bold white]{amount}[/bold white]"
                     )
                     sys.exit()
             else:
@@ -501,7 +494,7 @@ class DelegateUnstakeCommand:
         """Undelegates stake from a chain delegate."""
         try:
             config = cli.config.copy()
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+            subtensor: bittensor.Subtensor = bittensor.Subtensor(
                 config=config, log_verbose=False
             )
             DelegateUnstakeCommand._run(cli, subtensor)
@@ -510,7 +503,7 @@ class DelegateUnstakeCommand:
                 subtensor.close()
                 bittensor.logging.debug("closing subtensor connection")
 
-    def _run(self: "bittensor.cli", subtensor: "bittensor.subtensor"):
+    def _run(self: "bittensor.cli", subtensor: "bittensor.Subtensor"):
         """Undelegates stake from a chain delegate."""
         config = self.config.copy()
         wallet = bittensor.wallet(config=config)
@@ -553,8 +546,8 @@ class DelegateUnstakeCommand:
         if not config.get("delegate_ss58key"):
             # Check for delegates.
             with bittensor.__console__.status(":satellite: Loading delegates..."):
-                subtensor = bittensor.subtensor(config=config, log_verbose=False)
-                delegates: List[bittensor.DelegateInfo] = subtensor.get_delegates()
+                subtensor = bittensor.Subtensor(config=config, log_verbose=False)
+                delegates: list[bittensor.DelegateInfo] = subtensor.get_delegates()
                 try:
                     prev_delegates = subtensor.get_delegates(
                         max(0, subtensor.block - 1200)
@@ -569,9 +562,7 @@ class DelegateUnstakeCommand:
 
             if len(delegates) == 0:
                 console.print(
-                    ":cross_mark: [red]There are no delegates on {}[/red]".format(
-                        subtensor.network
-                    )
+                    f":cross_mark: [red]There are no delegates on {subtensor.network}[/red]"
                 )
                 sys.exit(1)
 
@@ -579,9 +570,7 @@ class DelegateUnstakeCommand:
             show_delegates(delegates, prev_delegates=prev_delegates)
             delegate_index = Prompt.ask("Enter delegate index")
             config.delegate_ss58key = str(delegates[int(delegate_index)].hotkey_ss58)
-            console.print(
-                "Selected: [yellow]{}[/yellow]".format(config.delegate_ss58key)
-            )
+            console.print(f"Selected: [yellow]{config.delegate_ss58key}[/yellow]")
 
         # Get amount.
         if not config.get("amount") and not config.get("unstake_all"):
@@ -595,9 +584,7 @@ class DelegateUnstakeCommand:
                     config.amount = float(amount)
                 except ValueError:
                     console.print(
-                        ":cross_mark: [red]Invalid Tao amount[/red] [bold white]{}[/bold white]".format(
-                            amount
-                        )
+                        f":cross_mark: [red]Invalid Tao amount[/red] [bold white]{amount}[/bold white]"
                     )
                     sys.exit()
             else:
@@ -647,7 +634,7 @@ class ListDelegatesLiteCommand:
             cli.config.subtensor.chain_endpoint = (
                 "wss://archive.chain.opentensor.ai:443"
             )
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+            subtensor: bittensor.Subtensor = bittensor.Subtensor(
                 config=cli.config, log_verbose=False
             )
             ListDelegatesLiteCommand._run(cli, subtensor)
@@ -657,7 +644,7 @@ class ListDelegatesLiteCommand:
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.Subtensor"):
         r"""
         List all delegates on the network.
         """
@@ -729,7 +716,7 @@ class ListDelegatesCommand:
             cli.config.subtensor.chain_endpoint = (
                 "wss://archive.chain.opentensor.ai:443"
             )
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+            subtensor: bittensor.Subtensor = bittensor.Subtensor(
                 config=cli.config, log_verbose=False
             )
             ListDelegatesCommand._run(cli, subtensor)
@@ -739,7 +726,7 @@ class ListDelegatesCommand:
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.Subtensor"):
         r"""
         List all delegates on the network.
         """
@@ -811,7 +798,7 @@ class NominateCommand:
     def run(cli: "bittensor.cli"):
         r"""Nominate wallet."""
         try:
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+            subtensor: bittensor.Subtensor = bittensor.Subtensor(
                 config=cli.config, log_verbose=False
             )
             NominateCommand._run(cli, subtensor)
@@ -821,7 +808,7 @@ class NominateCommand:
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.Subtensor"):
         r"""Nominate wallet."""
         wallet = bittensor.wallet(config=cli.config)
 
@@ -832,39 +819,31 @@ class NominateCommand:
         # Check if the hotkey is already a delegate.
         if subtensor.is_hotkey_delegate(wallet.hotkey.ss58_address):
             bittensor.__console__.print(
-                "Aborting: Hotkey {} is already a delegate.".format(
-                    wallet.hotkey.ss58_address
-                )
+                f"Aborting: Hotkey {wallet.hotkey.ss58_address} is already a delegate."
             )
             return
 
         result: bool = subtensor.nominate(wallet)
         if not result:
             bittensor.__console__.print(
-                "Could not became a delegate on [white]{}[/white]".format(
-                    subtensor.network
-                )
+                f"Could not became a delegate on [white]{subtensor.network}[/white]"
             )
         else:
             # Check if we are a delegate.
             is_delegate: bool = subtensor.is_hotkey_delegate(wallet.hotkey.ss58_address)
             if not is_delegate:
                 bittensor.__console__.print(
-                    "Could not became a delegate on [white]{}[/white]".format(
-                        subtensor.network
-                    )
+                    f"Could not became a delegate on [white]{subtensor.network}[/white]"
                 )
                 return
             bittensor.__console__.print(
-                "Successfully became a delegate on [white]{}[/white]".format(
-                    subtensor.network
-                )
+                f"Successfully became a delegate on [white]{subtensor.network}[/white]"
             )
 
             # Prompt use to set identity on chain.
             if not cli.config.no_prompt:
                 do_set_identity = Prompt.ask(
-                    f"Subnetwork registered successfully. Would you like to set your identity? [y/n]",
+                    "Subnetwork registered successfully. Would you like to set your identity? [y/n]",
                     choices=["y", "n"],
                 )
 
@@ -943,7 +922,7 @@ class MyDelegatesCommand:
         """Delegates stake to a chain delegate."""
         try:
             config = cli.config.copy()
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+            subtensor: bittensor.Subtensor = bittensor.Subtensor(
                 config=config, log_verbose=False
             )
             MyDelegatesCommand._run(cli, subtensor)
@@ -953,7 +932,7 @@ class MyDelegatesCommand:
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.Subtensor"):
         """Delegates stake to a chain delegate."""
         config = cli.config.copy()
         if config.get("all", d=None):
@@ -1080,7 +1059,7 @@ class MyDelegatesCommand:
                     )
 
         bittensor.__console__.print(table)
-        bittensor.__console__.print("Total delegated Tao: {}".format(total_delegated))
+        bittensor.__console__.print(f"Total delegated Tao: {total_delegated}")
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
@@ -1136,7 +1115,7 @@ class SetTakeCommand:
     def run(cli: "bittensor.cli"):
         r"""Set delegate take."""
         try:
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+            subtensor: bittensor.Subtensor = bittensor.Subtensor(
                 config=cli.config, log_verbose=False
             )
             SetTakeCommand._run(cli, subtensor)
@@ -1146,7 +1125,7 @@ class SetTakeCommand:
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.Subtensor"):
         r"""Set delegate take."""
         config = cli.config.copy()
         wallet = bittensor.wallet(config=cli.config)
@@ -1158,16 +1137,14 @@ class SetTakeCommand:
         # Check if the hotkey is not a delegate.
         if not subtensor.is_hotkey_delegate(wallet.hotkey.ss58_address):
             bittensor.__console__.print(
-                "Aborting: Hotkey {} is NOT a delegate.".format(
-                    wallet.hotkey.ss58_address
-                )
+                f"Aborting: Hotkey {wallet.hotkey.ss58_address} is NOT a delegate."
             )
             return
 
         # Prompt user for take value.
         new_take_str = config.get("take")
-        if new_take_str == None:
-            new_take = FloatPrompt.ask(f"Enter take value (0.18 for 18%)")
+        if new_take_str is None:
+            new_take = FloatPrompt.ask("Enter take value (0.18 for 18%)")
         else:
             new_take = float(new_take_str)
 
@@ -1187,13 +1164,11 @@ class SetTakeCommand:
             is_delegate: bool = subtensor.is_hotkey_delegate(wallet.hotkey.ss58_address)
             if not is_delegate:
                 bittensor.__console__.print(
-                    "Could not set the take [white]{}[/white]".format(subtensor.network)
+                    f"Could not set the take [white]{subtensor.network}[/white]"
                 )
                 return
             bittensor.__console__.print(
-                "Successfully set the take on [white]{}[/white]".format(
-                    subtensor.network
-                )
+                f"Successfully set the take on [white]{subtensor.network}[/white]"
             )
 
     @staticmethod

@@ -244,7 +244,7 @@ Subtensor: Interfaces with bittensor's blockchain and can perform operations lik
 ```python
 import bittensor
 # Bittensor's chain interface.
-subtensor = bittensor.subtensor() 
+subtensor = bittensor.Subtensor() 
 # Get the chain block
 subtensor.get_current_block()
 # Transfer Tao to a destination address.

@@ -31,11 +31,12 @@ import time
 import traceback
 import typing
 import uuid
-from inspect import signature, Signature, Parameter
-from typing import List, Optional, Tuple, Callable, Any, Dict, Awaitable
+from collections.abc import Awaitable
+from inspect import Parameter, Signature, signature
+from typing import Any, Callable, Optional
 
 import uvicorn
-from fastapi import FastAPI, APIRouter, Depends
+from fastapi import APIRouter, Depends, FastAPI
 from fastapi.responses import JSONResponse
 from fastapi.routing import serialize_response
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
@@ -45,15 +46,15 @@ from substrateinterface import Keypair
 
 import bittensor
 from bittensor.errors import (
+    BlacklistedException,
     InvalidRequestNameError,
+    NotVerifiedException,
+    PostProcessException,
+    PriorityException,
     SynapseDendriteNoneException,
+    SynapseException,
     SynapseParsingError,
     UnknownSynapseError,
-    NotVerifiedException,
-    BlacklistedException,
-    PriorityException,
-    PostProcessException,
-    SynapseException,
 )
 from bittensor.threadpool import PriorityThreadPoolExecutor
 from bittensor.utils import networking
@@ -342,12 +343,12 @@ class axon:
         self.port = self.config.axon.port
         self.external_ip = (
             self.config.axon.external_ip
-            if self.config.axon.external_ip != None
+            if self.config.axon.external_ip is not None
             else bittensor.utils.networking.get_external_ip()
         )
         self.external_port = (
             self.config.axon.external_port
-            if self.config.axon.external_port != None
+            if self.config.axon.external_port is not None
             else self.config.axon.port
         )
         self.full_address = str(self.config.axon.ip) + ":" + str(self.config.axon.port)
@@ -357,14 +358,14 @@ class axon:
         self.thread_pool = bittensor.PriorityThreadPoolExecutor(
             max_workers=self.config.axon.max_workers
         )
-        self.nonces: Dict[str, int] = {}
+        self.nonces: dict[str, int] = {}
 
         # Request default functions.
-        self.forward_class_types: Dict[str, List[Signature]] = {}
-        self.blacklist_fns: Dict[str, Optional[Callable]] = {}
-        self.priority_fns: Dict[str, Optional[Callable]] = {}
-        self.forward_fns: Dict[str, Optional[Callable]] = {}
-        self.verify_fns: Dict[str, Optional[Callable]] = {}
+        self.forward_class_types: dict[str, list[Signature]] = {}
+        self.blacklist_fns: dict[str, Optional[Callable]] = {}
+        self.priority_fns: dict[str, Optional[Callable]] = {}
+        self.forward_fns: dict[str, Optional[Callable]] = {}
+        self.verify_fns: dict[str, Optional[Callable]] = {}
 
         # Instantiate FastAPI
         self.app = FastAPI()
@@ -517,27 +518,21 @@ class axon:
         ]
         if blacklist_fn:
             blacklist_sig = Signature(
-                expected_params, return_annotation=Tuple[bool, str]
+                expected_params, return_annotation=tuple[bool, str]
             )
             assert (
                 signature(blacklist_fn) == blacklist_sig
-            ), "The blacklist_fn function must have the signature: blacklist( synapse: {} ) -> Tuple[bool, str]".format(
-                request_name
-            )
+            ), f"The blacklist_fn function must have the signature: blacklist( synapse: {request_name} ) -> Tuple[bool, str]"
         if priority_fn:
             priority_sig = Signature(expected_params, return_annotation=float)
             assert (
                 signature(priority_fn) == priority_sig
-            ), "The priority_fn function must have the signature: priority( synapse: {} ) -> float".format(
-                request_name
-            )
+            ), f"The priority_fn function must have the signature: priority( synapse: {request_name} ) -> float"
         if verify_fn:
             verify_sig = Signature(expected_params, return_annotation=None)
             assert (
                 signature(verify_fn) == verify_sig
-            ), "The verify_fn function must have the signature: verify( synapse: {} ) -> None".format(
-                request_name
-            )
+            ), f"The verify_fn function must have the signature: verify( synapse: {request_name} ) -> None"
 
         # Store functions in appropriate attribute dictionaries
         self.forward_class_types[request_name] = param_class
@@ -1149,7 +1144,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
         # Extracts the request name from the URL path.
         try:
             request_name = request.url.path.split("/")[1]
-        except:
+        except:  # noqa: E722  # FIXME: This is a broad exception catch, should be narrowed down.
             raise InvalidRequestNameError(
                 f"Improperly formatted request. Could not parser request {request.url.path}."
             )
@@ -1164,7 +1159,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
 
         try:
             synapse = request_synapse.from_headers(request.headers)  # type: ignore
-        except Exception as e:
+        except Exception:
             raise SynapseParsingError(
                 f"Improperly formatted request. Could not parse headers {request.headers} into synapse of type {request_name}."
             )
@@ -1325,7 +1320,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
 
         async def submit_task(
             executor: PriorityThreadPoolExecutor, priority: float
-        ) -> Tuple[float, Any]:
+        ) -> tuple[float, Any]:
             """
             Submits the given priority function to the specified executor for asynchronous execution.
             The function will run in the provided executor and return the priority value along with the result.

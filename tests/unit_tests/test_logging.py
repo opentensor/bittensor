@@ -1,9 +1,11 @@
-import pytest
-import multiprocessing
 import logging as stdlogging
+import multiprocessing
 from unittest.mock import MagicMock, patch
+
+import pytest
+
 from bittensor.btlogging import LoggingMachine
-from bittensor.btlogging.defines import DEFAULT_LOG_FILE_NAME, BITTENSOR_LOGGER_NAME
+from bittensor.btlogging.defines import BITTENSOR_LOGGER_NAME, DEFAULT_LOG_FILE_NAME
 from bittensor.btlogging.loggingmachine import LoggingConfig
 
 
@@ -130,7 +132,7 @@ def test_enable_file_logging_with_new_config(tmp_path):
     """
     log_dir = tmp_path / "logs"
     log_dir.mkdir()  # Create the temporary directory
-    log_file_path = log_dir / DEFAULT_LOG_FILE_NAME
+    log_dir / DEFAULT_LOG_FILE_NAME
 
     # check no file handler is created
     config = LoggingConfig(debug=False, trace=False, record_log=True, logging_dir=None)

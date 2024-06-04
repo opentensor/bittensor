@@ -18,7 +18,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from bittensor import serialized_keypair_to_keyfile_data, keyfile, Keypair
+from bittensor import Keypair, keyfile, serialized_keypair_to_keyfile_data
 
 
 class MockKeyfile(keyfile):
@@ -34,11 +34,11 @@ class MockKeyfile(keyfile):
 
     def __str__(self):
         if not self.exists_on_device():
-            return "Keyfile (empty, {})>".format(self.path)
+            return f"Keyfile (empty, {self.path})>"
         if self.is_encrypted():
-            return "Keyfile (encrypted, {})>".format(self.path)
+            return f"Keyfile (encrypted, {self.path})>"
         else:
-            return "Keyfile (decrypted, {})>".format(self.path)
+            return f"Keyfile (decrypted, {self.path})>"
 
     def __repr__(self):
         return self.__str__()

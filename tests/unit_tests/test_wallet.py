@@ -16,15 +16,17 @@
 # DEALINGS IN THE SOFTWARE.
 
 import json
-import time
-import pytest
 import random
 import re
+import time
+from unittest.mock import patch
+
+import pytest
+from ansible_vault import Vault
+from rich.prompt import Confirm
+
 import bittensor
 from bittensor.errors import KeyFileError
-from rich.prompt import Confirm
-from ansible_vault import Vault
-from unittest.mock import patch
 
 
 def legacy_encrypt_keyfile_data(keyfile_data: bytes, password: str = None) -> bytes:
@@ -69,7 +71,7 @@ def create_legacy_wallet(default_legacy_password=None, legacy_password=None):
         path="/tmp/tests_wallets/do_not_use",
     )
     legacy_password = (
-        default_legacy_password if legacy_password == None else legacy_password
+        default_legacy_password if legacy_password is None else legacy_password
     )
 
     # create a legacy ansible wallet
@@ -168,8 +170,9 @@ def test_check_and_update_encryption_not_updated(wallet_update_setup):
         legacy_wallet = create_legacy_wallet(
             default_legacy_password=default_legacy_password
         )
-        with patch("getpass.getpass", return_value="wrong_password"), patch.object(
-            Confirm, "ask", return_value=False
+        with (
+            patch("getpass.getpass", return_value="wrong_password"),
+            patch.object(Confirm, "ask", return_value=False),
         ):
             assert not legacy_wallet.coldkey_file.check_and_update_encryption()
 
@@ -198,8 +201,8 @@ def test_check_and_update_excryption(wallet_update_setup, legacy_wallet=None):
         )
         new_path = legacy_wallet.coldkey_file.path
 
-        assert old_coldkey_file_data != None
-        assert new_keyfile_data != None
+        assert old_coldkey_file_data is not None
+        assert new_keyfile_data is not None
         assert not old_coldkey_file_data == new_keyfile_data
         assert bittensor.keyfile_data_is_encrypted_ansible(old_coldkey_file_data)
         assert bittensor.keyfile_data_is_encrypted_nacl(new_keyfile_data)
@@ -216,7 +219,7 @@ def test_check_and_update_excryption(wallet_update_setup, legacy_wallet=None):
         assert new_path == old_hotkey_path
         assert not bittensor.keyfile_data_is_encrypted(new_keyfile_data)
 
-    if legacy_wallet == None:
+    if legacy_wallet is None:
         legacy_password = f"PASSword-{random.randint(0, 10000)}"
         legacy_wallet = create_legacy_wallet(legacy_password=legacy_password)
 
@@ -235,8 +238,9 @@ def test_check_and_update_excryption(wallet_update_setup, legacy_wallet=None):
     old_hotkey_path = legacy_wallet.hotkey_file.path
 
     # update legacy_wallet from ansible to nacl
-    with patch("getpass.getpass", return_value=legacy_password), patch.object(
-        Confirm, "ask", return_value=True
+    with (
+        patch("getpass.getpass", return_value=legacy_password),
+        patch.object(Confirm, "ask", return_value=True),
     ):
         legacy_wallet.coldkey_file.check_and_update_encryption()
 
@@ -461,9 +465,10 @@ def test_regen_coldkey_mnemonic(mock_wallet, mnemonic, expected_exception):
     """Test the `regenerate_coldkey` method of the wallet class, which regenerates the cold key pair from a mnemonic.
     We test different input formats of mnemonics and check if the function works as expected.
     """
-    with patch.object(mock_wallet, "set_coldkey") as mock_set_coldkey, patch.object(
-        mock_wallet, "set_coldkeypub"
-    ) as mock_set_coldkeypub:
+    with (
+        patch.object(mock_wallet, "set_coldkey") as mock_set_coldkey,
+        patch.object(mock_wallet, "set_coldkeypub") as mock_set_coldkeypub,
+    ):
         if expected_exception:
             with pytest.raises(expected_exception):
                 mock_wallet.regenerate_coldkey(
@@ -490,8 +495,9 @@ def test_regen_coldkey_overwrite_functionality(
     ss58_addr = "5D5cwd8DX6ij7nouVcoxDuWtJfiR1BnzCkiBVTt7DU8ft5Ta"
     seed_str = "0x659c024d5be809000d0d93fe378cfde020846150b01c49a201fc2a02041f7636"
 
-    with patch.object(mock_wallet, "set_coldkey") as mock_set_coldkey, patch(
-        "builtins.input", return_value=user_input
+    with (
+        patch.object(mock_wallet, "set_coldkey") as mock_set_coldkey,
+        patch("builtins.input", return_value=user_input),
     ):
         if expected_exception:
             with pytest.raises(KeyFileError):

@@ -1,6 +1,7 @@
 import pytest
-import bittensor
 import torch
+
+import bittensor
 from bittensor.chain_data import AxonInfo, ChainDataType, DelegateInfo, NeuronInfo
 
 SS58_FORMAT = bittensor.__ss58_format__

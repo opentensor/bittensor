@@ -62,8 +62,28 @@ defaults: Munch = munchify(
     }
 )
 
-from .stake import StakeCommand, StakeShow
-from .unstake import UnStakeCommand
+from .delegates import (
+    DelegateStakeCommand,
+    DelegateUnstakeCommand,
+    ListDelegatesCommand,
+    ListDelegatesLiteCommand,
+    MyDelegatesCommand,
+    NominateCommand,
+    SetTakeCommand,
+)
+from .identity import GetIdentityCommand, SetIdentityCommand
+from .inspect import InspectCommand
+from .list import ListCommand
+from .metagraph import MetagraphCommand
+from .misc import AutocompleteCommand, UpdateCommand
+from .network import (
+    RegisterSubnetworkCommand,
+    SubnetGetHyperparamsCommand,
+    SubnetHyperparamsCommand,
+    SubnetListCommand,
+    SubnetLockCostCommand,
+    SubnetSudoCommand,
+)
 from .overview import OverviewCommand
 from .register import (
     PowRegisterCommand,
@@ -71,54 +91,34 @@ from .register import (
     RunFaucetCommand,
     SwapHotkeyCommand,
 )
-from .delegates import (
-    NominateCommand,
-    ListDelegatesCommand,
-    ListDelegatesLiteCommand,
-    DelegateStakeCommand,
-    DelegateUnstakeCommand,
-    MyDelegatesCommand,
-    SetTakeCommand,
+from .root import (
+    RootGetWeightsCommand,
+    RootList,
+    RootRegisterCommand,
+    RootSetBoostCommand,
+    RootSetSlashCommand,
+    RootSetWeightsCommand,
 )
+from .senate import (
+    ProposalsCommand,
+    SenateCommand,
+    SenateLeaveCommand,
+    SenateRegisterCommand,
+    ShowVotesCommand,
+    VoteCommand,
+)
+from .stake import StakeCommand, StakeShow
+from .transfer import TransferCommand
+from .unstake import UnStakeCommand
 from .wallets import (
+    GetWalletHistoryCommand,
     NewColdkeyCommand,
     NewHotkeyCommand,
     RegenColdkeyCommand,
     RegenColdkeypubCommand,
     RegenHotkeyCommand,
     UpdateWalletCommand,
-    WalletCreateCommand,
     WalletBalanceCommand,
-    GetWalletHistoryCommand,
+    WalletCreateCommand,
 )
 from .weights import CommitWeightCommand, RevealWeightCommand
-from .transfer import TransferCommand
-from .inspect import InspectCommand
-from .metagraph import MetagraphCommand
-from .list import ListCommand
-from .misc import UpdateCommand, AutocompleteCommand
-from .senate import (
-    SenateCommand,
-    ProposalsCommand,
-    ShowVotesCommand,
-    SenateRegisterCommand,
-    SenateLeaveCommand,
-    VoteCommand,
-)
-from .network import (
-    RegisterSubnetworkCommand,
-    SubnetLockCostCommand,
-    SubnetListCommand,
-    SubnetSudoCommand,
-    SubnetHyperparamsCommand,
-    SubnetGetHyperparamsCommand,
-)
-from .root import (
-    RootRegisterCommand,
-    RootList,
-    RootSetWeightsCommand,
-    RootGetWeightsCommand,
-    RootSetBoostCommand,
-    RootSetSlashCommand,
-)
-from .identity import GetIdentityCommand, SetIdentityCommand

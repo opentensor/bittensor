@@ -23,10 +23,8 @@ This module defines custom logging formatters for the Bittensor project.
 
 import logging
 import time
-from typing import Dict
 
-from colorama import init, Fore, Back, Style
-
+from colorama import Back, Fore, Style, init
 
 init(autoreset=True)
 
@@ -52,14 +50,14 @@ logging.TRACE = TRACE_LEVEL_NUM
 logging.addLevelName(TRACE_LEVEL_NUM, "TRACE")
 logging.Logger.trace = _trace
 
-emoji_map: Dict[str, str] = {
+emoji_map: dict[str, str] = {
     ":white_heavy_check_mark:": "✅",
     ":cross_mark:": "❌",
     ":satellite:": "🛰️",
 }
 
 
-color_map: Dict[str, str] = {
+color_map: dict[str, str] = {
     "<red>": Fore.RED,
     "</red>": Style.RESET_ALL,
     "<blue>": Fore.BLUE,
@@ -69,7 +67,7 @@ color_map: Dict[str, str] = {
 }
 
 
-log_level_color_prefix: Dict[int, str] = {
+log_level_color_prefix: dict[int, str] = {
     logging.NOTSET: Fore.RESET,
     logging.TRACE: Fore.MAGENTA,
     logging.DEBUG: Fore.BLUE,
@@ -81,12 +79,12 @@ log_level_color_prefix: Dict[int, str] = {
 }
 
 
-LOG_FORMATS: Dict[int, str] = {
+LOG_FORMATS: dict[int, str] = {
     level: f"{Fore.BLUE}%(asctime)s{Fore.RESET} | {Style.BRIGHT}{color}%(levelname)s\033[0m | %(message)s"
     for level, color in log_level_color_prefix.items()
 }
 
-LOG_TRACE_FORMATS: Dict[int, str] = {
+LOG_TRACE_FORMATS: dict[int, str] = {
     level: f"{Fore.BLUE}%(asctime)s{Fore.RESET}"
     f" | {Style.BRIGHT}{color}%(levelname)s{Fore.RESET}{Back.RESET}{Style.RESET_ALL}"
     f" | %(name)s:%(filename)s:%(lineno)s"
@@ -134,7 +132,7 @@ class BtStreamFormatter(logging.Formatter):
             s = time.strftime(datefmt, created)
         else:
             s = time.strftime("%Y-%m-%d %H:%M:%S", created)
-        s += ".{:03d}".format(int(record.msecs))
+        s += f".{int(record.msecs):03d}"
         return s
 
     def format(self, record) -> str:
@@ -205,7 +203,7 @@ class BtFileFormatter(logging.Formatter):
             s = time.strftime(datefmt, created)
         else:
             s = time.strftime("%Y-%m-%d %H:%M:%S", created)
-        s += ".{:03d}".format(int(record.msecs))
+        s += f".{int(record.msecs):03d}"
         return s
 
     def format(self, record) -> str:

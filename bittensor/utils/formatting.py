@@ -19,4 +19,4 @@ def millify(n: int):
         ),
     )
 
-    return "{:.2f}{}".format(n / 10 ** (3 * millidx), millnames[millidx])
+    return f"{n / 10 ** (3 * millidx):.2f}{millnames[millidx]}"

@@ -15,14 +15,17 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import sys
 import os
-import bittensor
-import requests
-from bittensor.utils.registration import torch
-from typing import List, Dict, Any, Optional
-from rich.prompt import Confirm, PromptBase
+import sys
 from dataclasses import dataclass
+from typing import Any, Optional
+
+import requests
+from rich.prompt import Confirm, PromptBase
+
+import bittensor
+from bittensor.utils.registration import torch
+
 from . import defaults
 
 console = bittensor.__console__
@@ -45,7 +48,7 @@ class IntListPrompt(PromptBase):
 
 def check_netuid_set(
     config: "bittensor.config",
-    subtensor: "bittensor.subtensor",
+    subtensor: "bittensor.Subtensor",
     allow_none: bool = False,
 ):
     if subtensor.network != "nakamoto":
@@ -72,7 +75,7 @@ def check_netuid_set(
                 netuid = netuid[0]
             try:
                 config.netuid = int(netuid)
-            except:
+            except:  # noqa: E722  # FIXME: This is a broad exception catch, should be narrowed down.
                 raise ValueError('netuid must be an integer or "None" (if applicable)')
 
 
@@ -90,15 +93,15 @@ def check_for_cuda_reg_config(config: "bittensor.config") -> None:
                 config.pow_register.cuda.use_cuda
                 and config.pow_register.cuda.get("dev_id") is None
             ):
-                devices: List[str] = [str(x) for x in range(torch.cuda.device_count())]
-                device_names: List[str] = [
+                devices: list[str] = [str(x) for x in range(torch.cuda.device_count())]
+                device_names: list[str] = [
                     torch.cuda.get_device_name(x)
                     for x in range(torch.cuda.device_count())
                 ]
                 console.print("Available CUDA devices:")
                 choices_str: str = ""
                 for i, device in enumerate(devices):
-                    choices_str += "  {}: {}\n".format(device, device_names[i])
+                    choices_str += f"  {device}: {device_names[i]}\n"
                 console.print(choices_str)
                 dev_id = IntListPrompt.ask(
                     "Which GPU(s) would you like to use? Please list one, or comma-separated",
@@ -117,9 +120,7 @@ def check_for_cuda_reg_config(config: "bittensor.config") -> None:
                         ]
                     except ValueError:
                         console.log(
-                            ":cross_mark:[red]Invalid GPU device[/red] [bold white]{}[/bold white]\nAvailable CUDA devices:{}".format(
-                                dev_id, choices_str
-                            )
+                            f":cross_mark:[red]Invalid GPU device[/red] [bold white]{dev_id}[/bold white]\nAvailable CUDA devices:{choices_str}"
                         )
                         sys.exit(1)
                 config.pow_register.cuda.dev_id = dev_id
@@ -129,7 +130,7 @@ def check_for_cuda_reg_config(config: "bittensor.config") -> None:
                 config.pow_register.cuda.use_cuda = defaults.pow_register.cuda.use_cuda
 
 
-def get_hotkey_wallets_for_wallet(wallet) -> List["bittensor.wallet"]:
+def get_hotkey_wallets_for_wallet(wallet) -> list["bittensor.wallet"]:
     hotkey_wallets = []
     hotkeys_path = wallet.path + "/" + wallet.name + "/hotkeys"
     try:
@@ -151,7 +152,7 @@ def get_hotkey_wallets_for_wallet(wallet) -> List["bittensor.wallet"]:
     return hotkey_wallets
 
 
-def get_coldkey_wallets_for_path(path: str) -> List["bittensor.wallet"]:
+def get_coldkey_wallets_for_path(path: str) -> list["bittensor.wallet"]:
     try:
         wallet_names = next(os.walk(os.path.expanduser(path)))[1]
         return [bittensor.wallet(path=path, name=name) for name in wallet_names]
@@ -161,7 +162,7 @@ def get_coldkey_wallets_for_path(path: str) -> List["bittensor.wallet"]:
     return wallets
 
 
-def get_all_wallets_for_path(path: str) -> List["bittensor.wallet"]:
+def get_all_wallets_for_path(path: str) -> list["bittensor.wallet"]:
     all_wallets = []
     cold_wallets = get_coldkey_wallets_for_path(path)
     for cold_wallet in cold_wallets:
@@ -175,7 +176,7 @@ def get_all_wallets_for_path(path: str) -> List["bittensor.wallet"]:
 
 def filter_netuids_by_registered_hotkeys(
     cli, subtensor, netuids, all_hotkeys
-) -> List[int]:
+) -> list[int]:
     netuids_with_registered_hotkeys = []
     for wallet in all_hotkeys:
         netuids_list = subtensor.get_netuids_for_hotkey(wallet.hotkey.ss58_address)
@@ -184,7 +185,7 @@ def filter_netuids_by_registered_hotkeys(
         )
         netuids_with_registered_hotkeys.extend(netuids_list)
 
-    if cli.config.netuids == None or cli.config.netuids == []:
+    if cli.config.netuids is None or cli.config.netuids == []:
         netuids = netuids_with_registered_hotkeys
 
     elif cli.config.netuids != []:
@@ -202,7 +203,7 @@ class DelegatesDetails:
     signature: str
 
     @classmethod
-    def from_json(cls, json: Dict[str, any]) -> "DelegatesDetails":
+    def from_json(cls, json: dict[str, any]) -> "DelegatesDetails":
         return cls(
             name=json["name"],
             url=json["url"],
@@ -213,11 +214,11 @@ class DelegatesDetails:
 
 def _get_delegates_details_from_github(
     requests_get, url: str
-) -> Dict[str, DelegatesDetails]:
+) -> dict[str, DelegatesDetails]:
     response = requests_get(url)
 
     if response.status_code == 200:
-        all_delegates: Dict[str, Any] = response.json()
+        all_delegates: dict[str, Any] = response.json()
         all_delegates_details = {}
         for delegate_hotkey, delegates_details in all_delegates.items():
             all_delegates_details[delegate_hotkey] = DelegatesDetails.from_json(
@@ -228,7 +229,7 @@ def _get_delegates_details_from_github(
         return {}
 
 
-def get_delegates_details(url: str) -> Optional[Dict[str, DelegatesDetails]]:
+def get_delegates_details(url: str) -> Optional[dict[str, DelegatesDetails]]:
     try:
         return _get_delegates_details_from_github(requests.get, url)
     except Exception:

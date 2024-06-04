@@ -15,13 +15,13 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from unittest.mock import Mock
-import pytest
-import numpy as np
-import bittensor
+from unittest.mock import MagicMock, Mock
 
+import numpy as np
+import pytest
+
+import bittensor
 from bittensor.metagraph import metagraph as Metagraph
-from unittest.mock import MagicMock
 
 
 @pytest.fixture

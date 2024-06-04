@@ -1,5 +1,5 @@
 from substrateinterface import Keypair
-from typing import List
+
 import bittensor
 
 
@@ -11,7 +11,7 @@ def setup_wallet(uri: str):
     wallet.set_coldkeypub(keypair=keypair, encrypt=False, overwrite=True)
     wallet.set_hotkey(keypair=keypair, encrypt=False, overwrite=True)
 
-    def exec_command(command, extra_args: List[str]):
+    def exec_command(command, extra_args: list[str]):
         parser = bittensor.cli.__create_parser__()
         args = extra_args + [
             "--no_prompt",

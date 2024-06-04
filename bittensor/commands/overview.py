@@ -16,22 +16,25 @@
 # DEALINGS IN THE SOFTWARE.
 
 import argparse
-import bittensor
-from tqdm import tqdm
-from concurrent.futures import ProcessPoolExecutor
 from collections import defaultdict
+from concurrent.futures import ProcessPoolExecutor
+from typing import Optional
+
 from fuzzywuzzy import fuzz
 from rich.align import Align
-from rich.table import Table
 from rich.prompt import Prompt
-from typing import List, Optional, Dict, Tuple
-from .utils import (
-    get_hotkey_wallets_for_wallet,
-    get_coldkey_wallets_for_path,
-    get_all_wallets_for_path,
-    filter_netuids_by_registered_hotkeys,
-)
+from rich.table import Table
+from tqdm import tqdm
+
+import bittensor
+
 from . import defaults
+from .utils import (
+    filter_netuids_by_registered_hotkeys,
+    get_all_wallets_for_path,
+    get_coldkey_wallets_for_path,
+    get_hotkey_wallets_for_wallet,
+)
 
 console = bittensor.__console__
 
@@ -81,7 +84,7 @@ class OverviewCommand:
     def run(cli: "bittensor.cli"):
         r"""Prints an overview for the wallet's colkey."""
         try:
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+            subtensor: bittensor.Subtensor = bittensor.Subtensor(
                 config=cli.config, log_verbose=False
             )
             OverviewCommand._run(cli, subtensor)
@@ -93,9 +96,9 @@ class OverviewCommand:
     @staticmethod
     def _get_total_balance(
         total_balance: "bittensor.Balance",
-        subtensor: "bittensor.subtensor",
+        subtensor: "bittensor.Subtensor",
         cli: "bittensor.cli",
-    ) -> Tuple[List["bittensor.wallet"], "bittensor.Balance"]:
+    ) -> tuple[list["bittensor.wallet"], "bittensor.Balance"]:
         if cli.config.get("all", d=None):
             cold_wallets = get_coldkey_wallets_for_path(cli.config.wallet.path)
             for cold_wallet in tqdm(cold_wallets, desc="Pulling balances"):
@@ -126,8 +129,8 @@ class OverviewCommand:
 
     @staticmethod
     def _get_hotkeys(
-        cli: "bittensor.cli", all_hotkeys: List["bittensor.wallet"]
-    ) -> List["bittensor.wallet"]:
+        cli: "bittensor.cli", all_hotkeys: list["bittensor.wallet"]
+    ) -> list["bittensor.wallet"]:
         if not cli.config.get("all_hotkeys", False):
             # We are only showing hotkeys that are specified.
             all_hotkeys = [
@@ -145,7 +148,7 @@ class OverviewCommand:
         return all_hotkeys
 
     @staticmethod
-    def _get_key_address(all_hotkeys: List["bittensor.wallet"]):
+    def _get_key_address(all_hotkeys: list["bittensor.wallet"]):
         hotkey_coldkey_to_hotkey_wallet = {}
         for hotkey_wallet in all_hotkeys:
             if hotkey_wallet.hotkey.ss58_address not in hotkey_coldkey_to_hotkey_wallet:
@@ -161,10 +164,10 @@ class OverviewCommand:
 
     @staticmethod
     def _process_neuron_results(
-        results: List[Tuple[int, List["bittensor.NeuronInfoLite"], Optional[str]]],
-        neurons: Dict[str, List["bittensor.NeuronInfoLite"]],
-        netuids: List[int],
-    ) -> Dict[str, List["bittensor.NeuronInfoLite"]]:
+        results: list[tuple[int, list["bittensor.NeuronInfoLite"], Optional[str]]],
+        neurons: dict[str, list["bittensor.NeuronInfoLite"]],
+        netuids: list[int],
+    ) -> dict[str, list["bittensor.NeuronInfoLite"]]:
         for result in results:
             netuid, neurons_result, err_msg = result
             if err_msg is not None:
@@ -179,7 +182,7 @@ class OverviewCommand:
                 neurons[str(netuid)] = neurons_result
         return neurons
 
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.Subtensor"):
         r"""Prints an overview for the wallet's colkey."""
         console = bittensor.__console__
         wallet = bittensor.wallet(config=cli.config)
@@ -202,7 +205,7 @@ class OverviewCommand:
             return
 
         # Pull neuron info for all keys.
-        neurons: Dict[str, List[bittensor.NeuronInfoLite]] = {}
+        neurons: dict[str, list[bittensor.NeuronInfoLite]] = {}
         block = subtensor.block
 
         netuids = subtensor.get_all_subnet_netuids()
@@ -283,9 +286,7 @@ class OverviewCommand:
 
                 coldkeys_to_check.append(coldkey_wallet)
                 alerts_table.add_row(
-                    "Found {} stake with coldkey {} that is not registered.".format(
-                        difference, coldkey_wallet.coldkeypub.ss58_address
-                    )
+                    f"Found {difference} stake with coldkey {coldkey_wallet.coldkeypub.ss58_address} that is not registered."
                 )
 
             if coldkeys_to_check:
@@ -351,9 +352,7 @@ class OverviewCommand:
 
         title: str = ""
         if not cli.config.get("all", d=None):
-            title = "[bold white italic]Wallet - {}:{}".format(
-                cli.config.wallet.name, wallet.coldkeypub.ss58_address
-            )
+            title = f"[bold white italic]Wallet - {cli.config.wallet.name}:{wallet.coldkeypub.ss58_address}"
         else:
             title = "[bold whit italic]All Wallets:"
 
@@ -404,14 +403,14 @@ class OverviewCommand:
                     hotwallet.hotkey_str,
                     str(uid),
                     str(active),
-                    "{:.5f}".format(stake),
-                    "{:.5f}".format(rank),
-                    "{:.5f}".format(trust),
-                    "{:.5f}".format(consensus),
-                    "{:.5f}".format(incentive),
-                    "{:.5f}".format(dividends),
-                    "{:_}".format(emission),
-                    "{:.5f}".format(validator_trust),
+                    f"{stake:.5f}",
+                    f"{rank:.5f}",
+                    f"{trust:.5f}",
+                    f"{consensus:.5f}",
+                    f"{incentive:.5f}",
+                    f"{dividends:.5f}",
+                    f"{emission:_}",
+                    f"{validator_trust:.5f}",
                     "*" if validator_permit else "",
                     str(last_update),
                     (
@@ -432,7 +431,7 @@ class OverviewCommand:
                 total_emission += emission
                 total_validator_trust += validator_trust
 
-                if not (nn.hotkey, nn.coldkey) in hotkeys_seen:
+                if (nn.hotkey, nn.coldkey) not in hotkeys_seen:
                     # Don't double count stake on hotkey-coldkey pairs.
                     hotkeys_seen.add((nn.hotkey, nn.coldkey))
                     total_stake += stake
@@ -445,7 +444,7 @@ class OverviewCommand:
 
             # Add subnet header
             if netuid == "-1":
-                grid.add_row(f"Deregistered Neurons")
+                grid.add_row("Deregistered Neurons")
             else:
                 grid.add_row(f"Subnet: [bold white]{netuid}[/bold white]")
 
@@ -484,7 +483,7 @@ class OverviewCommand:
             if last_subnet:
                 table.add_column(
                     "[overline white]STAKE(\u03c4)",
-                    "\u03c4{:.5f}".format(total_stake),
+                    f"\u03c4{total_stake:.5f}",
                     footer_style="overline white",
                     justify="right",
                     style="green",
@@ -500,7 +499,7 @@ class OverviewCommand:
                 )
             table.add_column(
                 "[overline white]RANK",
-                "{:.5f}".format(total_rank),
+                f"{total_rank:.5f}",
                 footer_style="overline white",
                 justify="right",
                 style="green",
@@ -508,7 +507,7 @@ class OverviewCommand:
             )
             table.add_column(
                 "[overline white]TRUST",
-                "{:.5f}".format(total_trust),
+                f"{total_trust:.5f}",
                 footer_style="overline white",
                 justify="right",
                 style="green",
@@ -516,7 +515,7 @@ class OverviewCommand:
             )
             table.add_column(
                 "[overline white]CONSENSUS",
-                "{:.5f}".format(total_consensus),
+                f"{total_consensus:.5f}",
                 footer_style="overline white",
                 justify="right",
                 style="green",
@@ -524,7 +523,7 @@ class OverviewCommand:
             )
             table.add_column(
                 "[overline white]INCENTIVE",
-                "{:.5f}".format(total_incentive),
+                f"{total_incentive:.5f}",
                 footer_style="overline white",
                 justify="right",
                 style="green",
@@ -532,7 +531,7 @@ class OverviewCommand:
             )
             table.add_column(
                 "[overline white]DIVIDENDS",
-                "{:.5f}".format(total_dividends),
+                f"{total_dividends:.5f}",
                 footer_style="overline white",
                 justify="right",
                 style="green",
@@ -540,7 +539,7 @@ class OverviewCommand:
             )
             table.add_column(
                 "[overline white]EMISSION(\u03c1)",
-                "\u03c1{:_}".format(total_emission),
+                f"\u03c1{total_emission:_}",
                 footer_style="overline white",
                 justify="right",
                 style="green",
@@ -548,7 +547,7 @@ class OverviewCommand:
             )
             table.add_column(
                 "[overline white]VTRUST",
-                "{:.5f}".format(total_validator_trust),
+                f"{total_validator_trust:.5f}",
                 footer_style="overline white",
                 justify="right",
                 style="green",
@@ -613,16 +612,16 @@ class OverviewCommand:
 
     @staticmethod
     def _get_neurons_for_netuid(
-        args_tuple: Tuple["bittensor.Config", int, List[str]],
-    ) -> Tuple[int, List["bittensor.NeuronInfoLite"], Optional[str]]:
+        args_tuple: tuple["bittensor.Config", int, list[str]],
+    ) -> tuple[int, list["bittensor.NeuronInfoLite"], Optional[str]]:
         subtensor_config, netuid, hot_wallets = args_tuple
 
-        result: List["bittensor.NeuronInfoLite"] = []
+        result: list[bittensor.NeuronInfoLite] = []
 
         try:
-            subtensor = bittensor.subtensor(config=subtensor_config, log_verbose=False)
+            subtensor = bittensor.Subtensor(config=subtensor_config, log_verbose=False)
 
-            all_neurons: List["bittensor.NeuronInfoLite"] = subtensor.neurons_lite(
+            all_neurons: list[bittensor.NeuronInfoLite] = subtensor.neurons_lite(
                 netuid=netuid
             )
             # Map the hotkeys to uids
@@ -633,7 +632,7 @@ class OverviewCommand:
                     nn = all_neurons[uid]
                     result.append(nn)
         except Exception as e:
-            return netuid, [], "Error: {}".format(e)
+            return netuid, [], f"Error: {e}"
         finally:
             if "subtensor" in locals():
                 subtensor.close()
@@ -644,16 +643,16 @@ class OverviewCommand:
     @staticmethod
     def _get_de_registered_stake_for_coldkey_wallet(
         args_tuple,
-    ) -> Tuple[
-        "bittensor.Wallet", List[Tuple[str, "bittensor.Balance"]], Optional[str]
+    ) -> tuple[
+        "bittensor.Wallet", list[tuple[str, "bittensor.Balance"]], Optional[str]
     ]:
         subtensor_config, all_hotkey_addresses, coldkey_wallet = args_tuple
 
         # List of (hotkey_addr, our_stake) tuples.
-        result: List[Tuple[str, "bittensor.Balance"]] = []
+        result: list[tuple[str, bittensor.Balance]] = []
 
         try:
-            subtensor = bittensor.subtensor(config=subtensor_config, log_verbose=False)
+            subtensor = bittensor.Subtensor(config=subtensor_config, log_verbose=False)
 
             # Pull all stake for our coldkey
             all_stake_info_for_coldkey = subtensor.get_stake_info_for_coldkey(
@@ -682,7 +681,7 @@ class OverviewCommand:
             ]
 
         except Exception as e:
-            return coldkey_wallet, [], "Error: {}".format(e)
+            return coldkey_wallet, [], f"Error: {e}"
         finally:
             if "subtensor" in locals():
                 subtensor.close()
@@ -771,7 +770,7 @@ class OverviewCommand:
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
-        if config.netuids != [] and config.netuids != None:
+        if config.netuids != [] and config.netuids is not None:
             if not isinstance(config.netuids, list):
                 config.netuids = [int(config.netuids)]
             else:

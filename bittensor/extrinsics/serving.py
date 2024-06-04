@@ -16,14 +16,19 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 import json
+from typing import Optional
+
+from retry import retry
+from rich.prompt import Confirm
+
 import bittensor
 import bittensor.utils.networking as net
-from rich.prompt import Confirm
+
 from ..errors import MetadataError
 
 
 def serve_extrinsic(
-    subtensor: "bittensor.subtensor",
+    subtensor: "bittensor.Subtensor",
     wallet: "bittensor.wallet",
     ip: str,
     port: int,
@@ -64,7 +69,7 @@ def serve_extrinsic(
     """
     # Decrypt hotkey
     wallet.hotkey
-    params: "bittensor.AxonServeCallParams" = {
+    params: bittensor.AxonServeCallParams = {
         "version": bittensor.__version_as_int__,
         "ip": net.ip_to_int(ip),
         "port": port,
@@ -106,9 +111,7 @@ def serve_extrinsic(
         output["coldkey"] = wallet.coldkeypub.ss58_address
         output["hotkey"] = wallet.hotkey.ss58_address
         if not Confirm.ask(
-            "Do you want to serve axon:\n  [bold white]{}[/bold white]".format(
-                json.dumps(output, indent=4, sort_keys=True)
-            )
+            f"Do you want to serve axon:\n  [bold white]{json.dumps(output, indent=4, sort_keys=True)}[/bold white]"
         ):
             return False
 
@@ -123,7 +126,7 @@ def serve_extrinsic(
     )
 
     if wait_for_inclusion or wait_for_finalization:
-        if success == True:
+        if success is True:
             bittensor.logging.debug(
                 f"Axon served with: AxonInfo({wallet.hotkey.ss58_address},{ip}:{port}) on {subtensor.network}:{netuid} "
             )
@@ -138,7 +141,7 @@ def serve_extrinsic(
 
 
 def serve_axon_extrinsic(
-    subtensor: "bittensor.subtensor",
+    subtensor: "bittensor.Subtensor",
     netuid: int,
     axon: "bittensor.Axon",
     wait_for_inclusion: bool = False,
@@ -167,22 +170,18 @@ def serve_axon_extrinsic(
     external_port = axon.external_port
 
     # ---- Get external ip ----
-    if axon.external_ip == None:
+    if axon.external_ip is None:
         try:
             external_ip = net.get_external_ip()
             bittensor.__console__.print(
-                ":white_heavy_check_mark: [green]Found external ip: {}[/green]".format(
-                    external_ip
-                )
+                f":white_heavy_check_mark: [green]Found external ip: {external_ip}[/green]"
             )
             bittensor.logging.success(
-                prefix="External IP", suffix="<blue>{}</blue>".format(external_ip)
+                prefix="External IP", suffix=f"<blue>{external_ip}</blue>"
             )
         except Exception as E:
             raise RuntimeError(
-                "Unable to attain your external ip. Check your internet connection. error: {}".format(
-                    E
-                )
+                f"Unable to attain your external ip. Check your internet connection. error: {E}"
             ) from E
     else:
         external_ip = axon.external_ip
@@ -201,7 +200,7 @@ def serve_axon_extrinsic(
 
 
 def publish_metadata(
-    subtensor: "bittensor.subtensor",
+    subtensor: "bittensor.Subtensor",
     wallet: "bittensor.wallet",
     netuid: int,
     type: str,
@@ -262,10 +261,6 @@ def publish_metadata(
             raise MetadataError(response.error_message)
 
 
-from retry import retry
-from typing import Optional
-
-
 def get_metadata(self, netuid: int, hotkey: str, block: Optional[int] = None) -> str:
     @retry(delay=2, tries=3, backoff=2, max_delay=4)
     def make_substrate_call_with_retry():
@@ -274,7 +269,7 @@ def get_metadata(self, netuid: int, hotkey: str, block: Optional[int] = None) ->
                 module="Commitments",
                 storage_function="CommitmentOf",
                 params=[netuid, hotkey],
-                block_hash=None if block == None else substrate.get_block_hash(block),
+                block_hash=None if block is None else substrate.get_block_hash(block),
             )
 
     commit_data = make_substrate_call_with_retry()

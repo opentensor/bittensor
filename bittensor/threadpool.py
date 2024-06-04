@@ -5,21 +5,20 @@
 
 __author__ = "Brian Quinlan (brian@sweetapp.com)"
 
+import argparse
+import itertools
+import logging
 import os
-import sys
-import time
 import queue
 import random
-import weakref
-import logging
-import argparse
-import bittensor
-import itertools
+import sys
 import threading
-
-from typing import Callable
+import time
+import weakref
 from concurrent.futures import _base
+from typing import Callable
 
+import bittensor
 from bittensor.btlogging.defines import BITTENSOR_LOGGER_NAME
 
 # Workers are created as daemon threads. This is done to allow the interpreter
@@ -42,7 +41,7 @@ _threads_queues = weakref.WeakKeyDictionary()
 _shutdown = False
 
 
-class _WorkItem(object):
+class _WorkItem:
     def __init__(self, future, fn, start_time, args, kwargs):
         self.future = future
         self.fn = fn
@@ -168,16 +167,16 @@ class PriorityThreadPoolExecutor(_base.Executor):
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser, prefix: str = None):
         """Accept specific arguments from parser"""
-        prefix_str = "" if prefix == None else prefix + "."
+        prefix_str = "" if prefix is None else prefix + "."
         try:
             default_max_workers = (
                 os.getenv("BT_PRIORITY_MAX_WORKERS")
-                if os.getenv("BT_PRIORITY_MAX_WORKERS") != None
+                if os.getenv("BT_PRIORITY_MAX_WORKERS") is not None
                 else 5
             )
             default_maxsize = (
                 os.getenv("BT_PRIORITY_MAXSIZE")
-                if os.getenv("BT_PRIORITY_MAXSIZE") != None
+                if os.getenv("BT_PRIORITY_MAXSIZE") is not None
                 else 10
             )
             parser.add_argument(

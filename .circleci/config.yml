@@ -37,7 +37,13 @@ jobs:
           key: v2-pypi-py-ruff-<< parameters.python-version >>
 
       - run:
-          name: Ruff format check
+          name: Ruff linter check
+          command: |
+            . .venv/bin/activate
+            ruff check --diff --unsafe-fixes .
+
+      - run:
+          name: Ruff format
           command: |
             . .venv/bin/activate
             ruff format --diff .

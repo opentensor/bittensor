@@ -15,11 +15,13 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import os
 import argparse
-import bittensor
+import os
+
 from rich import print
 from rich.tree import Tree
+
+import bittensor
 
 console = bittensor.__console__
 
@@ -68,12 +70,10 @@ class ListCommand:
                     coldkeypub_str = wallet_for_name.coldkeypub.ss58_address
                 else:
                     coldkeypub_str = "?"
-            except:
+            except:  # noqa: E722  # FIXME: This is a broad exception catch, should be narrowed down.
                 coldkeypub_str = "?"
 
-            wallet_tree = root.add(
-                "\n[bold white]{} ({})".format(w_name, coldkeypub_str)
-            )
+            wallet_tree = root.add(f"\n[bold white]{w_name} ({coldkeypub_str})")
             hotkeys_path = os.path.join(cli.config.wallet.path, w_name, "hotkeys")
             try:
                 hotkeys = next(os.walk(os.path.expanduser(hotkeys_path)))
@@ -90,10 +90,10 @@ class ListCommand:
                                 hotkey_str = hotkey_for_name.hotkey.ss58_address
                             else:
                                 hotkey_str = "?"
-                        except:
+                        except:  # noqa: E722  # FIXME: This is a broad exception catch, should be narrowed down.
                             hotkey_str = "?"
-                        wallet_tree.add("[bold grey]{} ({})".format(h_name, hotkey_str))
-            except:
+                        wallet_tree.add(f"[bold grey]{h_name} ({hotkey_str})")
+            except:  # noqa: E722  # FIXME: This is a broad exception catch, should be narrowed down.
                 continue
 
         if len(wallets) == 0:

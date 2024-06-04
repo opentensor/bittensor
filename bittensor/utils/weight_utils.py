@@ -20,15 +20,15 @@ Conversion for weight between chain representation and np.array or torch.Tensor
 # DEALINGS IN THE SOFTWARE.
 
 import hashlib
-from typing import Tuple, List, Union
+from typing import Union
 
 import numpy as np
 from numpy.typing import NDArray
-from scalecodec import ScaleBytes, U16, Vec
+from scalecodec import U16, ScaleBytes, Vec
 from substrateinterface import Keypair
 
 import bittensor
-from bittensor.utils.registration import torch, use_torch, legacy_torch_api_compat
+from bittensor.utils.registration import legacy_torch_api_compat, torch, use_torch
 
 U32_MAX = 4294967295
 U16_MAX = 65535
@@ -85,7 +85,7 @@ def normalize_max_weight(
 
 
 def convert_weight_uids_and_vals_to_tensor(
-    n: int, uids: List[int], weights: List[int]
+    n: int, uids: list[int], weights: list[int]
 ) -> Union[NDArray[np.float32], "torch.FloatTensor"]:
     r"""Converts weights and uids from chain representation into a np.array (inverse operation from convert_weights_and_uids_for_emit)
     Args:
@@ -115,7 +115,7 @@ def convert_weight_uids_and_vals_to_tensor(
 
 
 def convert_root_weight_uids_and_vals_to_tensor(
-    n: int, uids: List[int], weights: List[int], subnets: List[int]
+    n: int, uids: list[int], weights: list[int], subnets: list[int]
 ) -> Union[NDArray[np.float32], "torch.FloatTensor"]:
     r"""Converts root weights and uids from chain representation into a np.array or torch FloatTensor (inverse operation from convert_weights_and_uids_for_emit)
     Args:
@@ -152,7 +152,7 @@ def convert_root_weight_uids_and_vals_to_tensor(
 
 
 def convert_bond_uids_and_vals_to_tensor(
-    n: int, uids: List[int], bonds: List[int]
+    n: int, uids: list[int], bonds: list[int]
 ) -> Union[NDArray[np.int64], "torch.LongTensor"]:
     r"""Converts bond and uids from chain representation into a np.array.
     Args:
@@ -179,7 +179,7 @@ def convert_bond_uids_and_vals_to_tensor(
 def convert_weights_and_uids_for_emit(
     uids: Union[NDArray[np.int64], "torch.LongTensor"],
     weights: Union[NDArray[np.float32], "torch.FloatTensor"],
-) -> Tuple[List[int], List[int]]:
+) -> tuple[list[int], list[int]]:
     r"""Converts weights into integer u32 representation that sum to MAX_INT_WEIGHT.
     Args:
         uids (:obj:`np.int64,`):
@@ -196,16 +196,12 @@ def convert_weights_and_uids_for_emit(
     weights = weights.tolist()
     uids = uids.tolist()
     if min(weights) < 0:
-        raise ValueError(
-            "Passed weight is negative cannot exist on chain {}".format(weights)
-        )
+        raise ValueError(f"Passed weight is negative cannot exist on chain {weights}")
     if min(uids) < 0:
-        raise ValueError("Passed uid is negative cannot exist on chain {}".format(uids))
+        raise ValueError(f"Passed uid is negative cannot exist on chain {uids}")
     if len(uids) != len(weights):
         raise ValueError(
-            "Passed weights and uids must have the same length, got {} and {}".format(
-                len(uids), len(weights)
-            )
+            f"Passed weights and uids must have the same length, got {len(uids)} and {len(weights)}"
         )
     if sum(weights) == 0:
         return [], []  # Nothing to set on chain.
@@ -234,12 +230,12 @@ def process_weights_for_netuid(
     uids: Union[NDArray[np.int64], "torch.Tensor"],
     weights: Union[NDArray[np.float32], "torch.Tensor"],
     netuid: int,
-    subtensor: "bittensor.subtensor",
+    subtensor: "bittensor.Subtensor",
     metagraph: "bittensor.metagraph" = None,
     exclude_quantile: int = 0,
 ) -> Union[
-    Tuple["torch.Tensor", "torch.FloatTensor"],
-    Tuple[NDArray[np.int64], NDArray[np.float32]],
+    tuple["torch.Tensor", "torch.FloatTensor"],
+    tuple[NDArray[np.int64], NDArray[np.float32]],
 ]:
     bittensor.logging.debug("process_weights_for_netuid()")
     bittensor.logging.debug("weights", weights)
@@ -280,7 +276,7 @@ def process_weights_for_netuid(
     if nzw_size == 0 or metagraph.n < min_allowed_weights:
         bittensor.logging.warning("No non-zero weights returning all ones.")
         final_weights = (
-            torch.ones((metagraph.n)).to(metagraph.n) / metagraph.n
+            torch.ones(metagraph.n).to(metagraph.n) / metagraph.n
             if use_torch()
             else np.ones((metagraph.n), dtype=np.int64) / metagraph.n
         )
@@ -302,7 +298,7 @@ def process_weights_for_netuid(
         )
         # ( const ): Should this be np.zeros( ( metagraph.n ) ) to reset everyone to build up weight?
         weights = (
-            torch.ones((metagraph.n)).to(metagraph.n) * 1e-5
+            torch.ones(metagraph.n).to(metagraph.n) * 1e-5
             if use_torch()
             else np.ones((metagraph.n), dtype=np.int64) * 1e-5
         )  # creating minimum even non-zero weights
@@ -352,10 +348,10 @@ def process_weights_for_netuid(
 def generate_weight_hash(
     address: str,
     netuid: int,
-    uids: List[int],
-    values: List[int],
+    uids: list[int],
+    values: list[int],
     version_key: int,
-    salt: List[int],
+    salt: list[int],
 ) -> str:
     """
     Generate a valid commit hash from the provided weights.

@@ -17,16 +17,17 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from abc import ABC, abstractmethod
 import os
 import pickle
-import numpy as np
-from numpy.typing import NDArray
-import bittensor
+from abc import ABC, abstractmethod
 from os import listdir
 from os.path import join
-from typing import List, Optional, Union, Tuple
+from typing import Optional, Union
 
+import numpy as np
+from numpy.typing import NDArray
+
+import bittensor
 from bittensor.chain_data import AxonInfo
 from bittensor.utils.registration import torch, use_torch
 
@@ -85,7 +86,7 @@ def latest_block_path(dir_path: str) -> str:
             if block_number > latest_block:
                 latest_block = block_number
                 latest_file_full_path = full_path_filename
-        except Exception as e:
+        except Exception:
             pass
     if not latest_file_full_path:
         raise ValueError(f"Metagraph not found at: {dir_path}")
@@ -152,7 +153,7 @@ class MetagraphMixin(ABC):
 
     netuid: int
     network: str
-    version: Union["torch.nn.Parameter", Tuple[NDArray]]
+    version: Union["torch.nn.Parameter", tuple[NDArray]]
     n: Union["torch.nn.Parameter", NDArray]
     block: Union["torch.nn.Parameter", NDArray]
     stake: Union["torch.nn.Parameter", NDArray]
@@ -170,7 +171,7 @@ class MetagraphMixin(ABC):
     weights: Union["torch.nn.Parameter", NDArray]
     bonds: Union["torch.nn.Parameter", NDArray]
     uids: Union["torch.nn.Parameter", NDArray]
-    axons: List[AxonInfo]
+    axons: list[AxonInfo]
 
     @property
     def S(self) -> Union[NDArray, "torch.nn.Parameter"]:
@@ -199,7 +200,7 @@ class MetagraphMixin(ABC):
         return self.ranks
 
     @property
-    def I(self) -> Union[NDArray, "torch.nn.Parameter"]:
+    def I(self) -> Union[NDArray, "torch.nn.Parameter"]:  # noqa: E743
         """
         Incentive values of neurons represent the rewards they receive for their contributions to the network.
         The Bittensor network employs an incentive mechanism that rewards neurons based on their
@@ -315,7 +316,7 @@ class MetagraphMixin(ABC):
         return self.weights
 
     @property
-    def hotkeys(self) -> List[str]:
+    def hotkeys(self) -> list[str]:
         """
         Represents a list of ``hotkeys`` for each neuron in the Bittensor network.
 
@@ -333,7 +334,7 @@ class MetagraphMixin(ABC):
         return [axon.hotkey for axon in self.axons]
 
     @property
-    def coldkeys(self) -> List[str]:
+    def coldkeys(self) -> list[str]:
         """
         Contains a list of ``coldkeys`` for each neuron in the Bittensor network.
 
@@ -349,7 +350,7 @@ class MetagraphMixin(ABC):
         return [axon.coldkey for axon in self.axons]
 
     @property
-    def addresses(self) -> List[str]:
+    def addresses(self) -> list[str]:
         """
         Provides a list of IP addresses for each neuron in the Bittensor network. These addresses are used for
         network communication, allowing neurons to connect, interact, and exchange information with each other.
@@ -397,9 +398,7 @@ class MetagraphMixin(ABC):
 
                 print(metagraph)  # Output: "metagraph(netuid:1, n:100, block:500, network:finney)"
         """
-        return "metagraph(netuid:{}, n:{}, block:{}, network:{})".format(
-            self.netuid, self.n.item(), self.block.item(), self.network
-        )
+        return f"metagraph(netuid:{self.netuid}, n:{self.n.item()}, block:{self.block.item()}, network:{self.network})"
 
     def __repr__(self) -> str:
         """
@@ -506,7 +505,7 @@ class MetagraphMixin(ABC):
 
             For example::
 
-                subtensor = bittensor.subtensor(network='archive')
+                subtensor = bittensor.Subtensor(network='archive')
         """
 
         # Initialize subtensor
@@ -553,7 +552,7 @@ class MetagraphMixin(ABC):
         """
         if not subtensor:
             # TODO: Check and test the initialization of the new subtensor
-            subtensor = bittensor.subtensor(network=self.network)
+            subtensor = bittensor.Subtensor(network=self.network)
         return subtensor
 
     def _assign_neurons(self, block, lite, subtensor):
@@ -672,7 +671,7 @@ class MetagraphMixin(ABC):
                             len(self.neurons), list(uids), list(values)
                         ).astype(np.float32)
                     )
-        tensor_param: Union["torch.nn.Parameter", NDArray] = (
+        tensor_param: Union["torch.nn.Parameter", NDArray] = (  # noqa: UP037
             (
                 torch.nn.Parameter(torch.stack(data_array), requires_grad=False)
                 if len(data_array)
@@ -735,7 +734,7 @@ class MetagraphMixin(ABC):
                     )
                 )
 
-        tensor_param: Union[NDArray, "torch.nn.Parameter"] = (
+        tensor_param: Union[NDArray, "torch.nn.Parameter"] = (  # noqa: UP037
             (
                 torch.nn.Parameter(torch.stack(data_array), requires_grad=False)
                 if len(data_array)
@@ -928,7 +927,7 @@ class TorchMetaGraph(MetagraphMixin, BaseClass):  # type: ignore
         self.uids = torch.nn.Parameter(
             torch.tensor([], dtype=torch.int64), requires_grad=False
         )
-        self.axons: List[AxonInfo] = []
+        self.axons: list[AxonInfo] = []
         if sync:
             self.sync(block=None, lite=lite)
 
@@ -1065,7 +1064,7 @@ class NonTorchMetagraph(MetagraphMixin):
         self.weights = np.array([], dtype=np.float32)
         self.bonds = np.array([], dtype=np.int64)
         self.uids = np.array([], dtype=np.int64)
-        self.axons: List[AxonInfo] = []
+        self.axons: list[AxonInfo] = []
         if sync:
             self.sync(block=None, lite=lite)
 

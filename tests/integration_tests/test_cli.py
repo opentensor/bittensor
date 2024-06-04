@@ -18,14 +18,11 @@
 # DEALINGS IN THE SOFTWARE.
 
 
-import contextlib
-from copy import deepcopy
 import os
 import random
-import shutil
-from types import SimpleNamespace
-from typing import Dict
 import unittest
+from copy import deepcopy
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -38,12 +35,13 @@ from bittensor.commands.wallets import _get_coldkey_ss58_addresses_for_path
 from bittensor.mock import MockSubtensor
 from bittensor.wallet import wallet as Wallet
 from tests.helpers import (
-    is_running_in_circleci,
     MockConsole,
     _get_mock_keypair,
+    is_running_in_circleci,
+)
+from tests.helpers import (
     _get_mock_wallet as generate_wallet,
 )
-
 
 _subtensor_mock: MockSubtensor = MockSubtensor()
 
@@ -252,11 +250,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             print("Registering mock wallets to subnets...")
 
             for netuid, wallet in mock_registrations:
-                print(
-                    "Registering wallet {} to subnet {}".format(
-                        wallet.hotkey_str, netuid
-                    )
-                )
+                print(f"Registering wallet {wallet.hotkey_str} to subnet {netuid}")
                 _ = _subtensor_mock.force_register_neuron(
                     netuid=netuid,
                     coldkey=wallet.coldkey.ss58_address,
@@ -458,7 +452,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.all_hotkeys = False
         # Notice no max_stake specified
 
-        mock_stakes: Dict[str, Balance] = {
+        mock_stakes: dict[str, Balance] = {
             # All have more than 5.0 stake
             "hk0": Balance.from_float(10.0),
             "hk1": Balance.from_float(11.1),
@@ -534,7 +528,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.all_hotkeys = True
         # Notice no max_stake specified
 
-        mock_stakes: Dict[str, Balance] = {
+        mock_stakes: dict[str, Balance] = {
             # All have more than 5.0 stake
             "hk0": Balance.from_float(10.0),
             "hk1": Balance.from_float(11.1),
@@ -613,7 +607,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.hotkeys = ["hk1"]  # Exclude hk1
         config.all_hotkeys = True
 
-        mock_stakes: Dict[str, Balance] = {
+        mock_stakes: dict[str, Balance] = {
             # All have more than 5.0 stake
             "hk0": Balance.from_float(10.0),
             "hk1": Balance.from_float(11.1),
@@ -699,7 +693,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.hotkeys = ["hk0", "hk1", "hk2"]
         config.all_hotkeys = False
 
-        mock_stakes: Dict[str, Balance] = {
+        mock_stakes: dict[str, Balance] = {
             # All have more than 5.0 stake
             "hk0": Balance.from_float(10.0),
             "hk1": Balance.from_float(4.9),
@@ -723,7 +717,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         print("Registering mock wallets...")
 
         for wallet in mock_wallets:
-            print("Registering mock wallet {}".format(wallet.hotkey_str))
+            print(f"Registering mock wallet {wallet.hotkey_str}")
             _ = _subtensor_mock.force_register_neuron(
                 netuid=1,
                 hotkey=wallet.hotkey.ss58_address,
@@ -788,7 +782,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.all_hotkeys = False
         # Notice no max_stake specified
 
-        mock_stakes: Dict[str, Balance] = {
+        mock_stakes: dict[str, Balance] = {
             "hk0": Balance.from_float(10.0),
             "hk1": Balance.from_float(11.1),
             "hk2": Balance.from_float(12.2),
@@ -859,7 +853,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.hotkeys = ["hk0"]
         config.all_hotkeys = False
 
-        mock_stakes: Dict[str, Balance] = {"hk0": Balance.from_float(10.0)}
+        mock_stakes: dict[str, Balance] = {"hk0": Balance.from_float(10.0)}
 
         mock_coldkey_kp = _get_mock_keypair(0, self.id())
 
@@ -946,7 +940,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         print("Registering mock wallets...")
 
         for wallet in mock_wallets:
-            print("Registering mock wallet {}".format(wallet.hotkey_str))
+            print(f"Registering mock wallet {wallet.hotkey_str}")
             _ = _subtensor_mock.force_register_neuron(
                 netuid=1,
                 hotkey=wallet.hotkey.ss58_address,
@@ -1020,7 +1014,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         print("Registering mock wallets...")
 
         for wallet in mock_wallets:
-            print("Registering mock wallet {}".format(wallet.hotkey_str))
+            print(f"Registering mock wallet {wallet.hotkey_str}")
             _ = _subtensor_mock.force_register_neuron(
                 netuid=1,
                 hotkey=wallet.hotkey.ss58_address,
@@ -1118,7 +1112,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         print("Registering mock wallets...")
 
         for wallet in mock_wallets:
-            print("Registering mock wallet {}".format(wallet.hotkey_str))
+            print(f"Registering mock wallet {wallet.hotkey_str}")
             _ = _subtensor_mock.force_register_neuron(
                 netuid=1,
                 hotkey=wallet.hotkey.ss58_address,
@@ -1201,7 +1195,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         mock_balance = Balance.from_float(config.max_stake * 3)
 
-        mock_stakes: Dict[str, Balance] = {
+        mock_stakes: dict[str, Balance] = {
             "hk0": Balance.from_float(0.0),
             "hk1": Balance.from_float(config.max_stake * 2),
             "hk2": Balance.from_float(0.0),
@@ -1224,7 +1218,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         print("Registering mock wallets...")
 
         for wallet in mock_wallets:
-            print("Registering mock wallet {}".format(wallet.hotkey_str))
+            print(f"Registering mock wallet {wallet.hotkey_str}")
             if wallet.hotkey_str == "hk1":
                 # Set the stake for hk1
                 _ = _subtensor_mock.force_register_neuron(
@@ -1331,7 +1325,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         print("Registering mock wallets...")
 
         for wallet in mock_wallets:
-            print("Registering mock wallet {}".format(wallet.hotkey_str))
+            print(f"Registering mock wallet {wallet.hotkey_str}")
             _ = _subtensor_mock.force_register_neuron(
                 netuid=1,
                 hotkey=wallet.hotkey.ss58_address,
@@ -1424,7 +1418,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         print("Registering mock wallets...")
 
         for wallet in mock_wallets:
-            print("Registering mock wallet {}".format(wallet.hotkey_str))
+            print(f"Registering mock wallet {wallet.hotkey_str}")
             _ = _subtensor_mock.force_register_neuron(
                 netuid=1,
                 hotkey=wallet.hotkey.ss58_address,
@@ -1584,7 +1578,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         mock_balance = Balance.from_float(config.max_stake * 3)
 
-        mock_stakes: Dict[str, Balance] = {  # has enough stake, more than max_stake
+        mock_stakes: dict[str, Balance] = {  # has enough stake, more than max_stake
             "hk0": Balance.from_float(config.max_stake * 2)
         }
 
@@ -1732,7 +1726,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.amount = 5.0
         config.wallet.name = "w1"
 
-        mock_balances: Dict[str, Balance] = {
+        mock_balances: dict[str, Balance] = {
             # All have more than 5.0 stake
             "w0": {
                 "hk0": Balance.from_float(10.0),
@@ -1817,7 +1811,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.amount = 5.0
         config.wallet.name = "w1"
 
-        mock_balances: Dict[str, Balance] = {
+        mock_balances: dict[str, Balance] = {
             # All have more than 5.0 stake
             "w0": {
                 "hk0": Balance.from_float(10.0),
@@ -1921,7 +1915,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.amount = 3.2
         config.wallet.name = "w1"
 
-        mock_balances: Dict[str, Balance] = {
+        mock_balances: dict[str, Balance] = {
             "w0": Balance.from_float(10.0),
             "w1": Balance.from_float(config.amount + 0.001),
         }
@@ -1989,7 +1983,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.amount = 3.2
         config.wallet.name = "w1"
 
-        mock_balances: Dict[str, Balance] = {
+        mock_balances: dict[str, Balance] = {
             "w0": Balance.from_float(10.0),
             "w1": Balance.from_float(config.amount - 0.1),  # not enough balance
         }
@@ -2080,7 +2074,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             mock_create_wallet.assert_called_once()
 
             # Verify that the wallet was registered
-            subtensor = bittensor.subtensor(config)
+            subtensor = bittensor.Subtensor(config)
             registered = subtensor.is_hotkey_registered_on_subnet(
                 hotkey_ss58=mock_wallet.hotkey.ss58_address, netuid=1
             )
@@ -2126,7 +2120,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.model = "core_server"
         config.hotkey = "hk0"
 
-        subtensor = bittensor.subtensor(config)
+        subtensor = bittensor.Subtensor(config)
 
         mock_wallet = generate_wallet(hotkey=_get_mock_keypair(100, self.id()))
 
@@ -2515,11 +2509,13 @@ def test_set_identity_command(
     mock_wallet.coldkey.ss58_address = "fake_coldkey_ss58_address"
     mock_wallet.coldkey = MagicMock()
 
-    with patch("bittensor.subtensor", return_value=mock_subtensor), patch(
-        "bittensor.wallet", return_value=mock_wallet
-    ), patch("bittensor.__console__", MagicMock()), patch(
-        "rich.prompt.Prompt.ask", side_effect=["y", "y"]
-    ), patch("sys.exit") as mock_exit:
+    with (
+        patch("bittensor.subtensor", return_value=mock_subtensor),
+        patch("bittensor.wallet", return_value=mock_wallet),
+        patch("bittensor.__console__", MagicMock()),
+        patch("rich.prompt.Prompt.ask", side_effect=["y", "y"]),
+        patch("sys.exit") as mock_exit,
+    ):
         # Act
         if expected_exception:
             with pytest.raises(expected_exception) as exc_info:

@@ -18,22 +18,20 @@
 
 """Module commit weights and reveal weights extrinsic."""
 
-from typing import Tuple, List
-
 from rich.prompt import Confirm
 
 import bittensor
 
 
 def commit_weights_extrinsic(
-    subtensor: "bittensor.subtensor",
+    subtensor: "bittensor.Subtensor",
     wallet: "bittensor.wallet",
     netuid: int,
     commit_hash: str,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
     prompt: bool = False,
-) -> Tuple[bool, str]:
+) -> tuple[bool, str]:
     """
     Commits a hash of the neuron's weights to the Bittensor blockchain using the provided wallet.
     This function is a wrapper around the `_do_commit_weights` method, handling user prompts and error messages.
@@ -51,7 +49,7 @@ def commit_weights_extrinsic(
     This function provides a user-friendly interface for committing weights to the Bittensor blockchain, ensuring proper
     error handling and user interaction when required.
     """
-    if prompt and not Confirm.ask(f"Would you like to commit weights?"):
+    if prompt and not Confirm.ask("Would you like to commit weights?"):
         return False, "User cancelled the operation."
 
     success, error_message = subtensor._do_commit_weights(
@@ -71,17 +69,17 @@ def commit_weights_extrinsic(
 
 
 def reveal_weights_extrinsic(
-    subtensor: "bittensor.subtensor",
+    subtensor: "bittensor.Subtensor",
     wallet: "bittensor.wallet",
     netuid: int,
-    uids: List[int],
-    weights: List[int],
-    salt: List[int],
+    uids: list[int],
+    weights: list[int],
+    salt: list[int],
     version_key: int,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
     prompt: bool = False,
-) -> Tuple[bool, str]:
+) -> tuple[bool, str]:
     """
     Reveals the weights for a specific subnet on the Bittensor blockchain using the provided wallet.
     This function is a wrapper around the `_do_reveal_weights` method, handling user prompts and error messages.
@@ -103,7 +101,7 @@ def reveal_weights_extrinsic(
     error handling and user interaction when required.
     """
 
-    if prompt and not Confirm.ask(f"Would you like to reveal weights?"):
+    if prompt and not Confirm.ask("Would you like to reveal weights?"):
         return False, "User cancelled the operation."
 
     success, error_message = subtensor._do_reveal_weights(

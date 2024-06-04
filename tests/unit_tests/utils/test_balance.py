@@ -1,7 +1,8 @@
+from typing import Union
+
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from typing import Union
 
 from bittensor import Balance
 from tests.helpers import CLOSE_IN_VALUE
@@ -439,7 +440,7 @@ def test_balance_not_eq_none(balance: Union[int, float]):
     Test the inequality (!=) of a Balance object and None.
     """
     balance_ = Balance(balance)
-    assert not balance_ == None
+    assert balance_ is not None
 
 
 @given(balance=valid_tao_numbers_strategy)
@@ -448,7 +449,7 @@ def test_balance_neq_none(balance: Union[int, float]):
     Test the inequality (!=) of a Balance object and None.
     """
     balance_ = Balance(balance)
-    assert balance_ != None
+    assert balance_ is not None
 
 
 def test_balance_init_from_invalid_value():

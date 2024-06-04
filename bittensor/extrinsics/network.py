@@ -16,13 +16,16 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 import time
-import bittensor
 
 from rich.prompt import Confirm
 
+import bittensor
+
+from ..commands.network import HYPERPARAMS
+
 
 def register_subnetwork_extrinsic(
-    subtensor: "bittensor.subtensor",
+    subtensor: "bittensor.Subtensor",
     wallet: "bittensor.wallet",
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = True,
@@ -86,9 +89,7 @@ def register_subnetwork_extrinsic(
             response.process_events()
             if not response.is_success:
                 bittensor.__console__.print(
-                    ":cross_mark: [red]Failed[/red]: error:{}".format(
-                        response.error_message
-                    )
+                    f":cross_mark: [red]Failed[/red]: error:{response.error_message}"
                 )
                 time.sleep(0.5)
 
@@ -114,11 +115,8 @@ def find_event_attributes_in_extrinsic_receipt(response, event_name) -> list:
     return [-1]
 
 
-from ..commands.network import HYPERPARAMS
-
-
 def set_hyperparameter_extrinsic(
-    subtensor: "bittensor.subtensor",
+    subtensor: "bittensor.Subtensor",
     wallet: "bittensor.wallet",
     netuid: int,
     parameter: str,
@@ -158,7 +156,7 @@ def set_hyperparameter_extrinsic(
     wallet.coldkey  # unlock coldkey
 
     extrinsic = HYPERPARAMS.get(parameter)
-    if extrinsic == None:
+    if extrinsic is None:
         bittensor.__console__.print(
             ":cross_mark: [red]Invalid hyperparameter specified.[/red]"
         )
@@ -198,9 +196,7 @@ def set_hyperparameter_extrinsic(
             response.process_events()
             if not response.is_success:
                 bittensor.__console__.print(
-                    ":cross_mark: [red]Failed[/red]: error:{}".format(
-                        response.error_message
-                    )
+                    f":cross_mark: [red]Failed[/red]: error:{response.error_message}"
                 )
                 time.sleep(0.5)
 

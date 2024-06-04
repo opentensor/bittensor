@@ -1,6 +1,6 @@
 from bittensor.commands.transfer import TransferCommand
+
 from ...utils import setup_wallet
-import bittensor
 
 
 # Example test using the local_chain fixture

@@ -24,10 +24,11 @@ import os
 import re
 
 import numpy as np
-from rich.prompt import Prompt, Confirm
+from rich.prompt import Confirm, Prompt
 
 import bittensor
 import bittensor.utils.weight_utils as weight_utils
+
 from . import defaults  # type: ignore
 
 
@@ -54,7 +55,7 @@ class CommitWeightCommand:
     def run(cli: "bittensor.cli"):
         r"""Commit weights for a specific subnet."""
         try:
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+            subtensor: bittensor.Subtensor = bittensor.Subtensor(
                 config=cli.config, log_verbose=False
             )
             CommitWeightCommand._run(cli, subtensor)
@@ -64,19 +65,19 @@ class CommitWeightCommand:
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.Subtensor"):
         r"""Commit weights for a specific subnet"""
         wallet = bittensor.wallet(config=cli.config)
 
         # Get values if not set
         if not cli.config.is_set("netuid"):
-            cli.config.netuid = int(Prompt.ask(f"Enter netuid"))
+            cli.config.netuid = int(Prompt.ask("Enter netuid"))
 
         if not cli.config.is_set("uids"):
-            cli.config.uids = Prompt.ask(f"Enter UIDs (comma-separated)")
+            cli.config.uids = Prompt.ask("Enter UIDs (comma-separated)")
 
         if not cli.config.is_set("weights"):
-            cli.config.weights = Prompt.ask(f"Enter weights (comma-separated)")
+            cli.config.weights = Prompt.ask("Enter weights (comma-separated)")
 
         # Parse from string
         netuid = cli.config.netuid
@@ -120,7 +121,7 @@ class CommitWeightCommand:
 
         # Result
         if success:
-            bittensor.__console__.print(f"Weights committed successfully")
+            bittensor.__console__.print("Weights committed successfully")
         else:
             bittensor.__console__.print(f"Failed to commit weights: {message}")
 
@@ -185,7 +186,7 @@ class RevealWeightCommand:
     def run(cli: "bittensor.cli"):
         r"""Reveal weights for a specific subnet."""
         try:
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+            subtensor: bittensor.Subtensor = bittensor.Subtensor(
                 config=cli.config, log_verbose=False
             )
             RevealWeightCommand._run(cli, subtensor)
@@ -195,22 +196,22 @@ class RevealWeightCommand:
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.Subtensor"):
         r"""Reveal weights for a specific subnet."""
         wallet = bittensor.wallet(config=cli.config)
 
         # Get values if not set.
         if not cli.config.is_set("netuid"):
-            cli.config.netuid = int(Prompt.ask(f"Enter netuid"))
+            cli.config.netuid = int(Prompt.ask("Enter netuid"))
 
         if not cli.config.is_set("uids"):
-            cli.config.uids = Prompt.ask(f"Enter UIDs (comma-separated)")
+            cli.config.uids = Prompt.ask("Enter UIDs (comma-separated)")
 
         if not cli.config.is_set("weights"):
-            cli.config.weights = Prompt.ask(f"Enter weights (comma-separated)")
+            cli.config.weights = Prompt.ask("Enter weights (comma-separated)")
 
         if not cli.config.is_set("salt"):
-            cli.config.salt = Prompt.ask(f"Enter salt (comma-separated)")
+            cli.config.salt = Prompt.ask("Enter salt (comma-separated)")
 
         # Parse from string
         netuid = cli.config.netuid
@@ -245,7 +246,7 @@ class RevealWeightCommand:
         )
 
         if success:
-            bittensor.__console__.print(f"Weights revealed successfully")
+            bittensor.__console__.print("Weights revealed successfully")
         else:
             bittensor.__console__.print(f"Failed to reveal weights: {message}")
 

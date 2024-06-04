@@ -16,13 +16,15 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import numpy as np
 import base64
+from typing import Optional, Union
+
 import msgpack
 import msgpack_numpy
-from typing import Optional, Union, List
+import numpy as np
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
 from bittensor.utils.registration import torch, use_torch
-from pydantic import ConfigDict, BaseModel, Field, field_validator
 
 
 class DTypes(dict):
@@ -105,7 +107,7 @@ def cast_dtype(raw: Union[None, np.dtype, "torch.dtype", str]) -> Optional[str]:
         )
 
 
-def cast_shape(raw: Union[None, List[int], str]) -> Optional[Union[str, list]]:
+def cast_shape(raw: Union[None, list[int], str]) -> Optional[Union[str, list]]:
     """
     Casts the raw value to a string representing the tensor shape.
 
@@ -156,7 +158,7 @@ class Tensor(BaseModel):
     def tensor(self) -> Union[np.ndarray, "torch.Tensor"]:
         return self.deserialize()
 
-    def tolist(self) -> List[object]:
+    def tolist(self) -> list[object]:
         return self.deserialize().tolist()
 
     def numpy(self) -> "numpy.ndarray":
@@ -235,7 +237,7 @@ class Tensor(BaseModel):
     )
 
     # Represents the shape of the tensor.
-    shape: List[int] = Field(
+    shape: list[int] = Field(
         title="shape",
         description="Tensor shape. This field defines the dimensions of the tensor as a list of integers, such as [10, 10] for a 2D tensor with shape (10, 10).",
         examples=[10, 10],

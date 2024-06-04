@@ -14,11 +14,12 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
-import pytest
-import numpy as np
-import bittensor
 import numpy
+import numpy as np
+import pytest
 import torch
+
+import bittensor
 
 
 # This is a fixture that creates an example tensor for testing
