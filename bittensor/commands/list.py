@@ -70,7 +70,7 @@ class ListCommand:
                     coldkeypub_str = wallet_for_name.coldkeypub.ss58_address
                 else:
                     coldkeypub_str = "?"
-            except:
+            except:  # noqa: E722  # FIXME: This is a broad exception catch, should be narrowed down.
                 coldkeypub_str = "?"
 
             wallet_tree = root.add(
@@ -92,10 +92,10 @@ class ListCommand:
                                 hotkey_str = hotkey_for_name.hotkey.ss58_address
                             else:
                                 hotkey_str = "?"
-                        except:
+                        except:  # noqa: E722  # FIXME: This is a broad exception catch, should be narrowed down.
                             hotkey_str = "?"
                         wallet_tree.add(f"[bold grey]{h_name} ({hotkey_str})")
-            except:
+            except:  # noqa: E722  # FIXME: This is a broad exception catch, should be narrowed down.
                 continue
 
         if len(wallets) == 0:

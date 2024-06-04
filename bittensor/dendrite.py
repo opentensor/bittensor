@@ -314,7 +314,7 @@ class DendriteMixin:
         try:
             loop = asyncio.get_event_loop()
             result = loop.run_until_complete(self.forward(*args, **kwargs))
-        except:
+        except:  # noqa: E722  # FIXME: This is a broad exception catch, should be narrowed down.
             new_loop = asyncio.new_event_loop()
             asyncio.set_event_loop(new_loop)
             result = loop.run_until_complete(self.forward(*args, **kwargs))
@@ -701,7 +701,7 @@ class DendriteMixin:
                     # Set the attribute in the local synapse from the corresponding
                     # attribute in the server synapse
                     setattr(local_synapse, key, getattr(server_synapse, key))
-                except:
+                except:  # noqa: E722  # FIXME: This is a broad exception catch, should be narrowed down.
                     # Ignore errors during attribute setting
                     pass
         else:

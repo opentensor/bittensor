@@ -84,7 +84,7 @@ def deserialize_keypair_from_keyfile_data(keyfile_data: bytes) -> "bittensor.Key
     keyfile_data = keyfile_data.decode()
     try:
         keyfile_dict = dict(json.loads(keyfile_data))
-    except:
+    except:  # noqa: E722  # FIXME: This is a broad exception catch, should be narrowed down.
         string_value = str(keyfile_data)
         if string_value[:2] == "0x":
             string_value = ss58_encode(string_value)

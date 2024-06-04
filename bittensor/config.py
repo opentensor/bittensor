@@ -82,7 +82,7 @@ class config(DefaultMunch):
                 type=str,
                 help="If set, defaults are overridden by passed file.",
             )
-        except:
+        except:  # noqa: E722  # FIXME: This is a broad exception catch, should be narrowed down.
             # this can fail if --config has already been added.
             pass
 
@@ -93,7 +93,7 @@ class config(DefaultMunch):
                 help="""If flagged, config will check that only exact arguments have been set.""",
                 default=False,
             )
-        except:
+        except:  # noqa: E722  # FIXME: This is a broad exception catch, should be narrowed down.
             # this can fail if --strict has already been added.
             pass
 
@@ -104,7 +104,7 @@ class config(DefaultMunch):
                 help="Set ``true`` to stop cli version checking.",
                 default=False,
             )
-        except:
+        except:  # noqa: E722  # FIXME: This is a broad exception catch, should be narrowed down.
             # this can fail if --no_version_checking has already been added.
             pass
 
@@ -116,7 +116,7 @@ class config(DefaultMunch):
                 help="Set ``true`` to stop cli from prompting the user.",
                 default=False,
             )
-        except:
+        except:  # noqa: E722  # FIXME: This is a broad exception catch, should be narrowed down.
             # this can fail if --no_version_checking has already been added.
             pass
 

@@ -1144,7 +1144,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
         # Extracts the request name from the URL path.
         try:
             request_name = request.url.path.split("/")[1]
-        except:
+        except:  # noqa: E722  # FIXME: This is a broad exception catch, should be narrowed down.
             raise InvalidRequestNameError(
                 f"Improperly formatted request. Could not parser request {request.url.path}."
             )

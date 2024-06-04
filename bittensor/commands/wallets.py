@@ -1083,7 +1083,7 @@ def create_transfer_history_table(transfers):
     for item in transfers:
         try:
             tao_amount = int(item["amount"]) / RAOPERTAO
-        except:
+        except:  # noqa: E722  # FIXME: This is a broad exception catch, should be narrowed down.
             tao_amount = item["amount"]
         table.add_row(
             item["id"],

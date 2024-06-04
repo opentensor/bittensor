@@ -75,7 +75,7 @@ def check_netuid_set(
                 netuid = netuid[0]
             try:
                 config.netuid = int(netuid)
-            except:
+            except:  # noqa: E722  # FIXME: This is a broad exception catch, should be narrowed down.
                 raise ValueError('netuid must be an integer or "None" (if applicable)')
 
 
