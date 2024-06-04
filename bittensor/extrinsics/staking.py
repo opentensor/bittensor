@@ -92,7 +92,7 @@ def add_stake_extrinsic(
         )
 
     # Convert to bittensor.Balance
-    if amount == None:
+    if amount is None:
         # Stake it all.
         staking_balance = bittensor.Balance.from_tao(old_balance.tao)
     elif not isinstance(amount, bittensor.Balance):
@@ -148,7 +148,7 @@ def add_stake_extrinsic(
                 wait_for_finalization=wait_for_finalization,
             )
 
-        if staking_response == True:  # If we successfully staked.
+        if staking_response is True:  # If we successfully staked.
             # We only wait here if we expect finalization.
             if not wait_for_finalization and not wait_for_inclusion:
                 return True
