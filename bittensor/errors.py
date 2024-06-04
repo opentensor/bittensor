@@ -14,6 +14,12 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
+from __future__ import annotations
+
+import typing
+
+if typing.TYPE_CHECKING:
+    import bittensor
 
 
 class ChainError(BaseException):
@@ -64,6 +70,12 @@ class NominationError(ChainTransactionError):
     pass
 
 
+class TakeError(ChainTransactionError):
+    r"""Error raised when a increase / decrease take transaction fails."""
+
+    pass
+
+
 class TransferError(ChainTransactionError):
     r"""Error raised when a transfer transaction fails."""
 
@@ -106,7 +118,16 @@ class InvalidRequestNameError(Exception):
     pass
 
 
-class UnknownSynapseError(Exception):
+class SynapseException(Exception):
+    def __init__(
+        self, message="Synapse Exception", synapse: "bittensor.Synapse" | None = None
+    ):
+        self.message = message
+        self.synapse = synapse
+        super().__init__(self.message)
+
+
+class UnknownSynapseError(SynapseException):
     r"""This exception is raised when the request name is not found in the Axon's forward_fns dictionary."""
 
     pass
@@ -118,43 +139,47 @@ class SynapseParsingError(Exception):
     pass
 
 
-class NotVerifiedException(Exception):
+class NotVerifiedException(SynapseException):
     r"""This exception is raised when the request is not verified."""
 
     pass
 
 
-class BlacklistedException(Exception):
+class BlacklistedException(SynapseException):
     r"""This exception is raised when the request is blacklisted."""
 
     pass
 
 
-class PriorityException(Exception):
+class PriorityException(SynapseException):
     r"""This exception is raised when the request priority is not met."""
 
     pass
 
 
-class PostProcessException(Exception):
+class PostProcessException(SynapseException):
     r"""This exception is raised when the response headers cannot be updated."""
 
     pass
 
 
-class RunException(Exception):
+class RunException(SynapseException):
     r"""This exception is raised when the requested function cannot be executed. Indicates a server error."""
 
     pass
 
 
-class InternalServerError(Exception):
+class InternalServerError(SynapseException):
     r"""This exception is raised when the requested function fails on the server. Indicates a server error."""
 
     pass
 
 
-class SynapseDendriteNoneException(Exception):
-    def __init__(self, message="Synapse Dendrite is None"):
+class SynapseDendriteNoneException(SynapseException):
+    def __init__(
+        self,
+        message="Synapse Dendrite is None",
+        synapse: "bittensor.Synapse" | None = None,
+    ):
         self.message = message
-        super().__init__(self.message)
+        super().__init__(self.message, synapse)

@@ -66,10 +66,8 @@ class RegenColdkeyCommand:
                 raise ValueError("File {} does not exist".format(file_name))
             with open(cli.config.get("json"), "r") as f:
                 json_str = f.read()
-
             # Password can be "", assume if None
             json_password = cli.config.get("json_password", "")
-
         wallet.regenerate_coldkey(
             mnemonic=cli.config.mnemonic,
             seed=cli.config.seed,
@@ -146,7 +144,7 @@ class RegenColdkeyCommand:
         regen_coldkey_parser.add_argument(
             "--overwrite_coldkey",
             default=False,
-            action="store_false",
+            action="store_true",
             help="""Overwrite the old coldkey with the newly generated coldkey""",
         )
         bittensor.wallet.add_args(regen_coldkey_parser)
@@ -443,7 +441,7 @@ class NewHotkeyCommand:
         )
         new_hotkey_parser.add_argument(
             "--overwrite_hotkey",
-            action="store_false",
+            action="store_true",
             default=False,
             help="""Overwrite the old hotkey with the newly generated hotkey""",
         )
@@ -518,7 +516,7 @@ class NewColdkeyCommand:
         )
         new_coldkey_parser.add_argument(
             "--overwrite_coldkey",
-            action="store_false",
+            action="store_true",
             default=False,
             help="""Overwrite the old coldkey with the newly generated coldkey""",
         )
@@ -602,13 +600,13 @@ class WalletCreateCommand:
         )
         new_coldkey_parser.add_argument(
             "--overwrite_coldkey",
-            action="store_false",
+            action="store_true",
             default=False,
             help="""Overwrite the old coldkey with the newly generated coldkey""",
         )
         new_coldkey_parser.add_argument(
             "--overwrite_hotkey",
-            action="store_false",
+            action="store_true",
             default=False,
             help="""Overwrite the old hotkey with the newly generated hotkey""",
         )

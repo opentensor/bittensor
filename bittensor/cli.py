@@ -29,6 +29,7 @@ from .commands import (
     InspectCommand,
     ListCommand,
     ListDelegatesCommand,
+    ListDelegatesLiteCommand,
     MetagraphCommand,
     MyDelegatesCommand,
     NewColdkeyCommand,
@@ -51,6 +52,7 @@ from .commands import (
     RunFaucetCommand,
     SenateCommand,
     SetIdentityCommand,
+    SetTakeCommand,
     StakeCommand,
     StakeShow,
     SubnetGetHyperparamsCommand,
@@ -66,6 +68,8 @@ from .commands import (
     VoteCommand,
     WalletBalanceCommand,
     WalletCreateCommand,
+    CommitWeightCommand,
+    RevealWeightCommand,
 )
 
 # Create a console instance for CLI display.
@@ -91,6 +95,9 @@ ALIAS_TO_COMMAND = {
     "sudos": "sudo",
     "i": "info",
     "info": "info",
+    "weights": "weights",
+    "wt": "weights",
+    "weight": "weights",
 }
 COMMANDS = {
     "subnets": {
@@ -121,10 +128,12 @@ COMMANDS = {
             "senate": SenateCommand,
             "register": RootRegisterCommand,
             "proposals": ProposalsCommand,
+            "set_take": SetTakeCommand,
             "delegate": DelegateStakeCommand,
             "undelegate": DelegateUnstakeCommand,
             "my_delegates": MyDelegatesCommand,
             "list_delegates": ListDelegatesCommand,
+            "list_delegates_lite": ListDelegatesLiteCommand,
             "nominate": NominateCommand,
         },
     },
@@ -160,6 +169,15 @@ COMMANDS = {
             "show": StakeShow,
             "add": StakeCommand,
             "remove": UnStakeCommand,
+        },
+    },
+    "weights": {
+        "name": "weights",
+        "aliases": ["wt", "weight"],
+        "help": "Commands for managing weight for subnets.",
+        "commands": {
+            "commit": CommitWeightCommand,
+            "reveal": RevealWeightCommand,
         },
     },
     "sudo": {
@@ -246,8 +264,8 @@ class cli:
         # If no_version_checking is not set or set as False in the config, version checking is done.
         if not self.config.get("no_version_checking", d=True):
             try:
-                bittensor.utils.version_checking()
-            except:
+                bittensor.utils.check_version()
+            except bittensor.utils.VersionCheckError:
                 # If version checking fails, inform user with an exception.
                 raise RuntimeError(
                     "To avoid internet-based version checking, pass --no_version_checking while running the CLI."
@@ -329,7 +347,7 @@ class cli:
             command_data = COMMANDS[command]
 
             if isinstance(command_data, dict):
-                if config["subcommand"] != None:
+                if config["subcommand"] is not None:
                     command_data["commands"][config["subcommand"]].check_config(config)
                 else:
                     console.print(

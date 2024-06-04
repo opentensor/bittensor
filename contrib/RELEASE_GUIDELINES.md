@@ -1,8 +1,8 @@
 # Release Guidelines
 
 The release manager in charge can release a Bittensor version using two scripts:
-  - [./scripts/release/versioning.sh](./scripts/release/versioning.sh)
-  - [./scripts/release/release.sh](./scripts/release/release.sh)
+  - [../scripts/release/versioning.sh](../scripts/release/versioning.sh)
+  - [../scripts/release/release.sh](../scripts/release/release.sh)
 
 The release manager will need the right permissions for:
   - github.com
@@ -14,6 +14,7 @@ If you are new in this role, ask for the proper setup you need to run this proce
 ## Process of release
 
 1. Create a branch called `release/VERSION`, having VERSION with the version to release.
+1. Make sure twine is installed: `pip install twine`
 1. Within the release branch:
   1. Update the version executing:`./scripts/release/versioning.sh --update UPDATE_TYPE`
     1. **UPDATE_TYPE** could be *major*, *minor* or *patch*.

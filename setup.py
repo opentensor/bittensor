@@ -16,14 +16,12 @@
 # DEALINGS IN THE SOFTWARE.
 
 from setuptools import setup, find_packages
-from pkg_resources import parse_requirements
 from os import path
 from io import open
 import codecs
 import re
 import os
 import pathlib
-import subprocess
 
 
 def read_requirements(path):
@@ -44,6 +42,7 @@ def read_requirements(path):
 requirements = read_requirements("requirements/prod.txt")
 extra_requirements_dev = read_requirements("requirements/dev.txt")
 extra_requirements_cubit = read_requirements("requirements/cubit.txt")
+extra_requirements_torch = read_requirements("requirements/torch.txt")
 
 here = path.abspath(path.dirname(__file__))
 
@@ -68,14 +67,15 @@ setup(
     long_description_content_type="text/markdown",
     url="https://github.com/opentensor/bittensor",
     author="bittensor.com",
-    packages=find_packages(),
+    packages=find_packages(exclude=["tests", "tests.*"]),
     include_package_data=True,
     author_email="",
     license="MIT",
-    python_requires=">=3.8",
+    python_requires=">=3.9",
     install_requires=requirements,
     extras_require={
         "dev": extra_requirements_dev,
+        "torch": extra_requirements_torch,
     },
     scripts=["bin/btcli"],
     classifiers=[
@@ -85,9 +85,9 @@ setup(
         # Pick your license as you wish
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python :: 3 :: Only",
-        "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
         "Topic :: Scientific/Engineering",
         "Topic :: Scientific/Engineering :: Mathematics",
         "Topic :: Scientific/Engineering :: Artificial Intelligence",
