@@ -124,7 +124,7 @@ def serve_extrinsic(
     )
 
     if wait_for_inclusion or wait_for_finalization:
-        if success == True:
+        if success is True:
             bittensor.logging.debug(
                 f"Axon served with: AxonInfo({wallet.hotkey.ss58_address},{ip}:{port}) on {subtensor.network}:{netuid} "
             )
@@ -168,7 +168,7 @@ def serve_axon_extrinsic(
     external_port = axon.external_port
 
     # ---- Get external ip ----
-    if axon.external_ip == None:
+    if axon.external_ip is None:
         try:
             external_ip = net.get_external_ip()
             bittensor.__console__.print(
@@ -272,7 +272,7 @@ def get_metadata(self, netuid: int, hotkey: str, block: Optional[int] = None) ->
                 module="Commitments",
                 storage_function="CommitmentOf",
                 params=[netuid, hotkey],
-                block_hash=None if block == None else substrate.get_block_hash(block),
+                block_hash=None if block is None else substrate.get_block_hash(block),
             )
 
     commit_data = make_substrate_call_with_retry()

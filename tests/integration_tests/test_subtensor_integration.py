@@ -368,7 +368,7 @@ class TestSubtensor(unittest.TestCase):
         weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(
             uids=uids, weights=weights
         )
-        commit_hash = bittensor.utils.weight_utils.generate_weight_hash(
+        bittensor.utils.weight_utils.generate_weight_hash(
             address=self.wallet.hotkey.ss58_address,
             netuid=3,
             uids=weight_uids,
@@ -397,7 +397,7 @@ class TestSubtensor(unittest.TestCase):
             uids=uids, weights=weights
         )
 
-        commit_hash = bittensor.utils.weight_utils.generate_weight_hash(
+        bittensor.utils.weight_utils.generate_weight_hash(
             address=self.wallet.hotkey.ss58_address,
             netuid=1,
             uids=weight_uids,
@@ -431,7 +431,7 @@ class TestSubtensor(unittest.TestCase):
             uids=uids, weights=weights
         )
 
-        commit_hash = bittensor.utils.weight_utils.generate_weight_hash(
+        bittensor.utils.weight_utils.generate_weight_hash(
             address=self.wallet.hotkey.ss58_address,
             netuid=3,
             uids=weight_uids,
@@ -681,11 +681,11 @@ class TestSubtensor(unittest.TestCase):
         # patch solution queue to return None
         with patch(
             "multiprocessing.queues.Queue.get", return_value=None
-        ) as mock_queue_get:
+        ):
             # patch time queue get to raise Empty exception
             with patch(
                 "multiprocessing.queues.Queue.get_nowait", side_effect=QueueEmpty
-            ) as mock_queue_get_nowait:
+            ):
                 wallet = _get_mock_wallet(
                     hotkey=_get_mock_keypair(0, self.id()),
                     coldkey=_get_mock_keypair(1, self.id()),

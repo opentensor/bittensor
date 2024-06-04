@@ -18,7 +18,7 @@
 import argparse
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor
-from typing import Dict, List, Optional, Tuple
+from typing import Optional
 
 from fuzzywuzzy import fuzz
 from rich.align import Align
@@ -98,7 +98,7 @@ class OverviewCommand:
         total_balance: "bittensor.Balance",
         subtensor: "bittensor.subtensor",
         cli: "bittensor.cli",
-    ) -> Tuple[List["bittensor.wallet"], "bittensor.Balance"]:
+    ) -> tuple[list["bittensor.wallet"], "bittensor.Balance"]:
         if cli.config.get("all", d=None):
             cold_wallets = get_coldkey_wallets_for_path(cli.config.wallet.path)
             for cold_wallet in tqdm(cold_wallets, desc="Pulling balances"):
@@ -129,8 +129,8 @@ class OverviewCommand:
 
     @staticmethod
     def _get_hotkeys(
-        cli: "bittensor.cli", all_hotkeys: List["bittensor.wallet"]
-    ) -> List["bittensor.wallet"]:
+        cli: "bittensor.cli", all_hotkeys: list["bittensor.wallet"]
+    ) -> list["bittensor.wallet"]:
         if not cli.config.get("all_hotkeys", False):
             # We are only showing hotkeys that are specified.
             all_hotkeys = [
@@ -148,7 +148,7 @@ class OverviewCommand:
         return all_hotkeys
 
     @staticmethod
-    def _get_key_address(all_hotkeys: List["bittensor.wallet"]):
+    def _get_key_address(all_hotkeys: list["bittensor.wallet"]):
         hotkey_coldkey_to_hotkey_wallet = {}
         for hotkey_wallet in all_hotkeys:
             if hotkey_wallet.hotkey.ss58_address not in hotkey_coldkey_to_hotkey_wallet:
@@ -164,10 +164,10 @@ class OverviewCommand:
 
     @staticmethod
     def _process_neuron_results(
-        results: List[Tuple[int, List["bittensor.NeuronInfoLite"], Optional[str]]],
-        neurons: Dict[str, List["bittensor.NeuronInfoLite"]],
-        netuids: List[int],
-    ) -> Dict[str, List["bittensor.NeuronInfoLite"]]:
+        results: list[tuple[int, list["bittensor.NeuronInfoLite"], Optional[str]]],
+        neurons: dict[str, list["bittensor.NeuronInfoLite"]],
+        netuids: list[int],
+    ) -> dict[str, list["bittensor.NeuronInfoLite"]]:
         for result in results:
             netuid, neurons_result, err_msg = result
             if err_msg is not None:
@@ -205,7 +205,7 @@ class OverviewCommand:
             return
 
         # Pull neuron info for all keys.
-        neurons: Dict[str, List[bittensor.NeuronInfoLite]] = {}
+        neurons: dict[str, list[bittensor.NeuronInfoLite]] = {}
         block = subtensor.block
 
         netuids = subtensor.get_all_subnet_netuids()
@@ -612,16 +612,16 @@ class OverviewCommand:
 
     @staticmethod
     def _get_neurons_for_netuid(
-        args_tuple: Tuple["bittensor.Config", int, List[str]],
-    ) -> Tuple[int, List["bittensor.NeuronInfoLite"], Optional[str]]:
+        args_tuple: tuple["bittensor.Config", int, list[str]],
+    ) -> tuple[int, list["bittensor.NeuronInfoLite"], Optional[str]]:
         subtensor_config, netuid, hot_wallets = args_tuple
 
-        result: List["bittensor.NeuronInfoLite"] = []
+        result: list["bittensor.NeuronInfoLite"] = []
 
         try:
             subtensor = bittensor.subtensor(config=subtensor_config, log_verbose=False)
 
-            all_neurons: List["bittensor.NeuronInfoLite"] = subtensor.neurons_lite(
+            all_neurons: list["bittensor.NeuronInfoLite"] = subtensor.neurons_lite(
                 netuid=netuid
             )
             # Map the hotkeys to uids
@@ -643,13 +643,13 @@ class OverviewCommand:
     @staticmethod
     def _get_de_registered_stake_for_coldkey_wallet(
         args_tuple,
-    ) -> Tuple[
-        "bittensor.Wallet", List[Tuple[str, "bittensor.Balance"]], Optional[str]
+    ) -> tuple[
+        "bittensor.Wallet", list[tuple[str, "bittensor.Balance"]], Optional[str]
     ]:
         subtensor_config, all_hotkey_addresses, coldkey_wallet = args_tuple
 
         # List of (hotkey_addr, our_stake) tuples.
-        result: List[Tuple[str, "bittensor.Balance"]] = []
+        result: list[tuple[str, "bittensor.Balance"]] = []
 
         try:
             subtensor = bittensor.subtensor(config=subtensor_config, log_verbose=False)
@@ -770,7 +770,7 @@ class OverviewCommand:
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
-        if config.netuids != [] and config.netuids != None:
+        if config.netuids != [] and config.netuids is not None:
             if not isinstance(config.netuids, list):
                 config.netuids = [int(config.netuids)]
             else:

@@ -21,7 +21,7 @@ import base64
 import json
 import sys
 import warnings
-from typing import Any, ClassVar, Dict, Optional, Tuple
+from typing import Any, ClassVar, Optional
 
 from pydantic import (
     BaseModel,
@@ -482,7 +482,7 @@ class Synapse(BaseModel):
         repr=False,
     )
 
-    required_hash_fields: ClassVar[Tuple[str, ...]] = ()
+    required_hash_fields: ClassVar[tuple[str, ...]] = ()
 
     _extract_total_size = field_validator("total_size", mode="before")(cast_int)
 
@@ -757,7 +757,7 @@ class Synapse(BaseModel):
         """
 
         # Initialize the input dictionary with empty sub-dictionaries for 'axon' and 'dendrite'
-        inputs_dict: Dict[str, Dict[str, str]] = {"axon": {}, "dendrite": {}}
+        inputs_dict: dict[str, dict[str, str]] = {"axon": {}, "dendrite": {}}
 
         # Iterate over each item in the headers
         for key, value in headers.items():

@@ -101,14 +101,14 @@ async def test_aclose(dendrite_obj, setup_axon):
     axon = setup_axon
     # Use context manager to open an async session
     async with dendrite_obj:
-        resp = await dendrite_obj([axon], SynapseDummy(input=1), deserialize=False)
+        await dendrite_obj([axon], SynapseDummy(input=1), deserialize=False)
     # Close should automatically be called on the session after context manager scope
     assert dendrite_obj._session is None
 
 
 class AsyncMock(Mock):
     def __call__(self, *args, **kwargs):
-        sup = super(AsyncMock, self)
+        sup = super()
 
         async def coro():
             return sup.__call__(*args, **kwargs)

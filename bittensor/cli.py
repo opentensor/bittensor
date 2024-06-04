@@ -17,7 +17,7 @@
 
 import argparse
 import sys
-from typing import List, Optional
+from typing import Optional
 
 import shtab
 
@@ -236,7 +236,7 @@ class cli:
     def __init__(
         self,
         config: Optional["bittensor.config"] = None,
-        args: Optional[List[str]] = None,
+        args: Optional[list[str]] = None,
     ):
         """
         Initializes a bittensor.CLI object.
@@ -316,7 +316,7 @@ class cli:
         return parser
 
     @staticmethod
-    def create_config(args: List[str]) -> "bittensor.config":
+    def create_config(args: list[str]) -> "bittensor.config":
         """
         From the argument parser, add config to bittensor.executor and local config
 

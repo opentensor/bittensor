@@ -32,9 +32,9 @@ U16_MAX = 65535
 U64_MAX = 18446744073709551615
 
 
-def ss58_to_vec_u8(ss58_address: str) -> List[int]:
+def ss58_to_vec_u8(ss58_address: str) -> list[int]:
     ss58_bytes: bytes = bittensor.utils.ss58_address_to_bytes(ss58_address)
-    encoded_address: List[int] = [int(byte) for byte in ss58_bytes]
+    encoded_address: list[int] = [int(byte) for byte in ss58_bytes]
     return encoded_address
 
 
@@ -46,7 +46,7 @@ def _unbiased_topk(
     largest=True,
     axis=0,
     return_type: str = "numpy",
-) -> Union[Tuple[np.ndarray, np.ndarray], Tuple["torch.Tensor", "torch.LongTensor"]]:
+) -> Union[tuple[np.ndarray, np.ndarray], tuple["torch.Tensor", "torch.LongTensor"]]:
     """Selects topk as in torch.topk but does not bias lower indices when values are equal.
     Args:
         values: (np.ndarray) if using numpy, (torch.Tensor) if using torch:
@@ -100,7 +100,7 @@ def unbiased_topk(
     sorted: bool = True,
     largest: bool = True,
     axis: int = 0,
-) -> Union[Tuple[np.ndarray, np.ndarray], Tuple["torch.Tensor", "torch.LongTensor"]]:
+) -> Union[tuple[np.ndarray, np.ndarray], tuple["torch.Tensor", "torch.LongTensor"]]:
     """Selects topk as in torch.topk but does not bias lower indices when values are equal.
     Args:
         values: (np.ndarray) if using numpy, (torch.Tensor) if using torch:
@@ -162,12 +162,12 @@ def strtobool(val: str) -> Union[bool, Literal["==SUPRESS=="]]:
     elif val in ("n", "no", "f", "false", "off", "0"):
         return False
     else:
-        raise ValueError("invalid truth value %r" % (val,))
+        raise ValueError(f"invalid truth value {val!r}")
 
 
 def get_explorer_root_url_by_network_from_map(
-    network: str, network_map: Dict[str, Dict[str, str]]
-) -> Optional[Dict[str, str]]:
+    network: str, network_map: dict[str, dict[str, str]]
+) -> Optional[dict[str, str]]:
     r"""
     Returns the explorer root url for the given network name from the given network map.
 
@@ -179,7 +179,7 @@ def get_explorer_root_url_by_network_from_map(
         The explorer url for the given network.
         Or None if the network is not in the network map.
     """
-    explorer_urls: Optional[Dict[str, str]] = {}
+    explorer_urls: Optional[dict[str, str]] = {}
     for entity_nm, entity_network_map in network_map.items():
         if network in entity_network_map:
             explorer_urls[entity_nm] = entity_network_map[network]
@@ -188,8 +188,8 @@ def get_explorer_root_url_by_network_from_map(
 
 
 def get_explorer_url_for_network(
-    network: str, block_hash: str, network_map: Dict[str, str]
-) -> Optional[List[str]]:
+    network: str, block_hash: str, network_map: dict[str, str]
+) -> Optional[list[str]]:
     r"""
     Returns the explorer url for the given block hash and network.
 
@@ -203,9 +203,9 @@ def get_explorer_url_for_network(
         Or None if the network is not known.
     """
 
-    explorer_urls: Optional[Dict[str, str]] = {}
+    explorer_urls: Optional[dict[str, str]] = {}
     # Will be None if the network is not known. i.e. not in network_map
-    explorer_root_urls: Optional[Dict[str, str]] = (
+    explorer_root_urls: Optional[dict[str, str]] = (
         get_explorer_root_url_by_network_from_map(network, network_map)
     )
 
@@ -239,7 +239,7 @@ def U64_NORMALIZED_FLOAT(x: int) -> float:
     return float(x) / float(U64_MAX)
 
 
-def u8_key_to_ss58(u8_key: List[int]) -> str:
+def u8_key_to_ss58(u8_key: list[int]) -> str:
     r"""
     Converts a u8-encoded account key to an ss58 address.
 

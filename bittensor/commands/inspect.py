@@ -35,12 +35,12 @@ from .utils import (
 console = bittensor.__console__
 
 import os
-from typing import Dict, List, Optional, Tuple
+from typing import Optional
 
 import bittensor
 
 
-def _get_coldkey_wallets_for_path(path: str) -> List["bittensor.wallet"]:
+def _get_coldkey_wallets_for_path(path: str) -> list["bittensor.wallet"]:
     try:
         wallet_names = next(os.walk(os.path.expanduser(path)))[1]
         return [bittensor.wallet(path=path, name=name) for name in wallet_names]
@@ -50,7 +50,7 @@ def _get_coldkey_wallets_for_path(path: str) -> List["bittensor.wallet"]:
     return wallets
 
 
-def _get_hotkey_wallets_for_wallet(wallet) -> List["bittensor.wallet"]:
+def _get_hotkey_wallets_for_wallet(wallet) -> list["bittensor.wallet"]:
     hotkey_wallets = []
     hotkeys_path = wallet.path + "/" + wallet.name + "/hotkeys"
     try:
@@ -129,7 +129,7 @@ class InspectCommand:
 
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
-        if cli.config.get("all", d=False) == True:
+        if cli.config.get("all", d=False) is True:
             wallets = _get_coldkey_wallets_for_path(cli.config.wallet.path)
             all_hotkeys = get_all_wallets_for_path(cli.config.wallet.path)
         else:
@@ -142,7 +142,7 @@ class InspectCommand:
         )
         bittensor.logging.debug(f"Netuids to check: {netuids}")
 
-        registered_delegate_info: Optional[Dict[str, DelegatesDetails]] = (
+        registered_delegate_info: Optional[dict[str, DelegatesDetails]] = (
             get_delegates_details(url=bittensor.__delegates_details_url__)
         )
         if registered_delegate_info is None:
@@ -154,7 +154,7 @@ class InspectCommand:
         neuron_state_dict = {}
         for netuid in tqdm(netuids):
             neurons = subtensor.neurons_lite(netuid)
-            neuron_state_dict[netuid] = neurons if neurons != None else []
+            neuron_state_dict[netuid] = neurons if neurons is not None else []
 
         table = Table(show_footer=True, pad_edge=False, box=None, expand=True)
         table.add_column(
@@ -185,7 +185,7 @@ class InspectCommand:
             "[overline white]Emission", footer_style="overline white", style="green"
         )
         for wallet in tqdm(wallets):
-            delegates: List[Tuple[bittensor.DelegateInfo, bittensor.Balance]] = (
+            delegates: list[tuple[bittensor.DelegateInfo, bittensor.Balance]] = (
                 subtensor.get_delegated(coldkey_ss58=wallet.coldkeypub.ss58_address)
             )
             if not wallet.coldkeypub_file.exists_on_device():
@@ -218,7 +218,7 @@ class InspectCommand:
                     if neuron.coldkey == wallet.coldkeypub.ss58_address:
                         hotkey_name: str = ""
 
-                        hotkey_names: List[str] = [
+                        hotkey_names: list[str] = [
                             wallet.hotkey_str
                             for wallet in filter(
                                 lambda hotkey: hotkey.hotkey.ss58_address
@@ -253,7 +253,7 @@ class InspectCommand:
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
-        if config.netuids != [] and config.netuids != None:
+        if config.netuids != [] and config.netuids is not None:
             if not isinstance(config.netuids, list):
                 config.netuids = [int(config.netuids)]
             else:

@@ -157,7 +157,7 @@ def set_hyperparameter_extrinsic(
     wallet.coldkey  # unlock coldkey
 
     extrinsic = HYPERPARAMS.get(parameter)
-    if extrinsic == None:
+    if extrinsic is None:
         bittensor.__console__.print(
             ":cross_mark: [red]Invalid hyperparameter specified.[/red]"
         )

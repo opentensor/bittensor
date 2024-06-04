@@ -20,7 +20,7 @@ Conversion for weight between chain representation and np.array or torch.Tensor
 # DEALINGS IN THE SOFTWARE.
 
 import hashlib
-from typing import List, Tuple, Union
+from typing import Union
 
 import numpy as np
 from numpy.typing import NDArray
@@ -85,7 +85,7 @@ def normalize_max_weight(
 
 
 def convert_weight_uids_and_vals_to_tensor(
-    n: int, uids: List[int], weights: List[int]
+    n: int, uids: list[int], weights: list[int]
 ) -> Union[NDArray[np.float32], "torch.FloatTensor"]:
     r"""Converts weights and uids from chain representation into a np.array (inverse operation from convert_weights_and_uids_for_emit)
     Args:
@@ -115,7 +115,7 @@ def convert_weight_uids_and_vals_to_tensor(
 
 
 def convert_root_weight_uids_and_vals_to_tensor(
-    n: int, uids: List[int], weights: List[int], subnets: List[int]
+    n: int, uids: list[int], weights: list[int], subnets: list[int]
 ) -> Union[NDArray[np.float32], "torch.FloatTensor"]:
     r"""Converts root weights and uids from chain representation into a np.array or torch FloatTensor (inverse operation from convert_weights_and_uids_for_emit)
     Args:
@@ -152,7 +152,7 @@ def convert_root_weight_uids_and_vals_to_tensor(
 
 
 def convert_bond_uids_and_vals_to_tensor(
-    n: int, uids: List[int], bonds: List[int]
+    n: int, uids: list[int], bonds: list[int]
 ) -> Union[NDArray[np.int64], "torch.LongTensor"]:
     r"""Converts bond and uids from chain representation into a np.array.
     Args:
@@ -179,7 +179,7 @@ def convert_bond_uids_and_vals_to_tensor(
 def convert_weights_and_uids_for_emit(
     uids: Union[NDArray[np.int64], "torch.LongTensor"],
     weights: Union[NDArray[np.float32], "torch.FloatTensor"],
-) -> Tuple[List[int], List[int]]:
+) -> tuple[list[int], list[int]]:
     r"""Converts weights into integer u32 representation that sum to MAX_INT_WEIGHT.
     Args:
         uids (:obj:`np.int64,`):
@@ -236,8 +236,8 @@ def process_weights_for_netuid(
     metagraph: "bittensor.metagraph" = None,
     exclude_quantile: int = 0,
 ) -> Union[
-    Tuple["torch.Tensor", "torch.FloatTensor"],
-    Tuple[NDArray[np.int64], NDArray[np.float32]],
+    tuple["torch.Tensor", "torch.FloatTensor"],
+    tuple[NDArray[np.int64], NDArray[np.float32]],
 ]:
     bittensor.logging.debug("process_weights_for_netuid()")
     bittensor.logging.debug("weights", weights)
@@ -350,10 +350,10 @@ def process_weights_for_netuid(
 def generate_weight_hash(
     address: str,
     netuid: int,
-    uids: List[int],
-    values: List[int],
+    uids: list[int],
+    values: list[int],
     version_key: int,
-    salt: List[int],
+    salt: list[int],
 ) -> str:
     """
     Generate a valid commit hash from the provided weights.

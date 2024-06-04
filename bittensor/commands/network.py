@@ -16,7 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import argparse
-from typing import Dict, List, Optional
+from typing import Optional
 
 from rich.prompt import Prompt
 from rich.table import Table
@@ -165,7 +165,7 @@ class SubnetLockCostCommand:
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""View locking cost of creating a new subnetwork"""
-        config = cli.config.copy()
+        cli.config.copy()
         try:
             bittensor.__console__.print(
                 f"Subnet lock cost: [green]{bittensor.utils.balance.Balance( subtensor.get_subnet_burn_cost() )}[/green]"
@@ -241,11 +241,11 @@ class SubnetListCommand:
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""List all subnet netuids in the network."""
-        subnets: List[bittensor.SubnetInfo] = subtensor.get_all_subnets_info()
+        subnets: list[bittensor.SubnetInfo] = subtensor.get_all_subnets_info()
 
         rows = []
         total_neurons = 0
-        delegate_info: Optional[Dict[str, DelegatesDetails]] = get_delegates_details(
+        delegate_info: Optional[dict[str, DelegatesDetails]] = get_delegates_details(
             url=bittensor.__delegates_details_url__
         )
 

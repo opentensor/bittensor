@@ -23,7 +23,6 @@ import random
 import unittest
 from copy import deepcopy
 from types import SimpleNamespace
-from typing import Dict
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -455,7 +454,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.all_hotkeys = False
         # Notice no max_stake specified
 
-        mock_stakes: Dict[str, Balance] = {
+        mock_stakes: dict[str, Balance] = {
             # All have more than 5.0 stake
             "hk0": Balance.from_float(10.0),
             "hk1": Balance.from_float(11.1),
@@ -531,7 +530,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.all_hotkeys = True
         # Notice no max_stake specified
 
-        mock_stakes: Dict[str, Balance] = {
+        mock_stakes: dict[str, Balance] = {
             # All have more than 5.0 stake
             "hk0": Balance.from_float(10.0),
             "hk1": Balance.from_float(11.1),
@@ -610,7 +609,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.hotkeys = ["hk1"]  # Exclude hk1
         config.all_hotkeys = True
 
-        mock_stakes: Dict[str, Balance] = {
+        mock_stakes: dict[str, Balance] = {
             # All have more than 5.0 stake
             "hk0": Balance.from_float(10.0),
             "hk1": Balance.from_float(11.1),
@@ -696,7 +695,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.hotkeys = ["hk0", "hk1", "hk2"]
         config.all_hotkeys = False
 
-        mock_stakes: Dict[str, Balance] = {
+        mock_stakes: dict[str, Balance] = {
             # All have more than 5.0 stake
             "hk0": Balance.from_float(10.0),
             "hk1": Balance.from_float(4.9),
@@ -785,7 +784,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.all_hotkeys = False
         # Notice no max_stake specified
 
-        mock_stakes: Dict[str, Balance] = {
+        mock_stakes: dict[str, Balance] = {
             "hk0": Balance.from_float(10.0),
             "hk1": Balance.from_float(11.1),
             "hk2": Balance.from_float(12.2),
@@ -856,7 +855,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.hotkeys = ["hk0"]
         config.all_hotkeys = False
 
-        mock_stakes: Dict[str, Balance] = {"hk0": Balance.from_float(10.0)}
+        mock_stakes: dict[str, Balance] = {"hk0": Balance.from_float(10.0)}
 
         mock_coldkey_kp = _get_mock_keypair(0, self.id())
 
@@ -1198,7 +1197,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         mock_balance = Balance.from_float(config.max_stake * 3)
 
-        mock_stakes: Dict[str, Balance] = {
+        mock_stakes: dict[str, Balance] = {
             "hk0": Balance.from_float(0.0),
             "hk1": Balance.from_float(config.max_stake * 2),
             "hk2": Balance.from_float(0.0),
@@ -1581,7 +1580,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         mock_balance = Balance.from_float(config.max_stake * 3)
 
-        mock_stakes: Dict[str, Balance] = {  # has enough stake, more than max_stake
+        mock_stakes: dict[str, Balance] = {  # has enough stake, more than max_stake
             "hk0": Balance.from_float(config.max_stake * 2)
         }
 
@@ -1729,7 +1728,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.amount = 5.0
         config.wallet.name = "w1"
 
-        mock_balances: Dict[str, Balance] = {
+        mock_balances: dict[str, Balance] = {
             # All have more than 5.0 stake
             "w0": {
                 "hk0": Balance.from_float(10.0),
@@ -1814,7 +1813,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.amount = 5.0
         config.wallet.name = "w1"
 
-        mock_balances: Dict[str, Balance] = {
+        mock_balances: dict[str, Balance] = {
             # All have more than 5.0 stake
             "w0": {
                 "hk0": Balance.from_float(10.0),
@@ -1918,7 +1917,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.amount = 3.2
         config.wallet.name = "w1"
 
-        mock_balances: Dict[str, Balance] = {
+        mock_balances: dict[str, Balance] = {
             "w0": Balance.from_float(10.0),
             "w1": Balance.from_float(config.amount + 0.001),
         }
@@ -1986,7 +1985,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.amount = 3.2
         config.wallet.name = "w1"
 
-        mock_balances: Dict[str, Balance] = {
+        mock_balances: dict[str, Balance] = {
             "w0": Balance.from_float(10.0),
             "w1": Balance.from_float(config.amount - 0.1),  # not enough balance
         }

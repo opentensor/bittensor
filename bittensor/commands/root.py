@@ -17,8 +17,7 @@
 
 import argparse
 import re
-import typing
-from typing import Dict, List, Optional
+from typing import Optional
 
 import numpy as np
 from rich.prompt import Prompt
@@ -145,10 +144,10 @@ class RootList:
         )
 
         senate_members = subtensor.get_senate_members()
-        root_neurons: typing.List[bittensor.NeuronInfoLite] = subtensor.neurons_lite(
+        root_neurons: list[bittensor.NeuronInfoLite] = subtensor.neurons_lite(
             netuid=0
         )
-        delegate_info: Optional[Dict[str, DelegatesDetails]] = get_delegates_details(
+        delegate_info: Optional[dict[str, DelegatesDetails]] = get_delegates_details(
             url=bittensor.__delegates_details_url__
         )
 
@@ -488,7 +487,7 @@ class RootSetWeightsCommand:
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""Set weights for root network."""
         wallet = bittensor.wallet(config=cli.config)
-        subnets: List[bittensor.SubnetInfo] = subtensor.get_all_subnets_info()
+        subnets: list[bittensor.SubnetInfo] = subtensor.get_all_subnets_info()
 
         # Get values if not set.
         if not cli.config.is_set("netuids"):

@@ -94,7 +94,7 @@ def test_get_total_balance(
 
     with patch(
         "bittensor.wallet", return_value=mock_wallet
-    ) as mock_wallet_constructor, patch(
+    ), patch(
         "bittensor.commands.overview.get_coldkey_wallets_for_path",
         return_value=[mock_wallet] if config_all else [],
     ), patch(

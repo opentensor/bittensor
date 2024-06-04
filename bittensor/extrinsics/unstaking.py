@@ -17,7 +17,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 from time import sleep
-from typing import List, Optional, Union
+from typing import Optional, Union
 
 from rich.prompt import Confirm
 
@@ -142,7 +142,7 @@ def unstake_extrinsic(
         )
 
     # Convert to bittensor.Balance
-    if amount == None:
+    if amount is None:
         # Unstake it all.
         unstaking_balance = old_stake
     elif not isinstance(amount, bittensor.Balance):
@@ -183,7 +183,7 @@ def unstake_extrinsic(
                 wait_for_finalization=wait_for_finalization,
             )
 
-        if staking_response == True:  # If we successfully unstaked.
+        if staking_response is True:  # If we successfully unstaked.
             # We only wait here if we expect finalization.
             if not wait_for_finalization and not wait_for_inclusion:
                 return True
@@ -226,8 +226,8 @@ def unstake_extrinsic(
 def unstake_multiple_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
-    hotkey_ss58s: List[str],
-    amounts: Optional[List[Union[Balance, float]]] = None,
+    hotkey_ss58s: list[str],
+    amounts: Optional[list[Union[Balance, float]]] = None,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
     prompt: bool = False,
@@ -302,7 +302,7 @@ def unstake_multiple_extrinsic(
         zip(hotkey_ss58s, amounts, old_stakes)
     ):
         # Covert to bittensor.Balance
-        if amount == None:
+        if amount is None:
             # Unstake it all.
             unstaking_balance = old_stake
         elif not isinstance(amount, bittensor.Balance):
@@ -343,7 +343,7 @@ def unstake_multiple_extrinsic(
                     wait_for_finalization=wait_for_finalization,
                 )
 
-            if staking_response == True:  # If we successfully unstaked.
+            if staking_response is True:  # If we successfully unstaked.
                 # We only wait here if we expect finalization.
 
                 if idx < len(hotkey_ss58s) - 1:

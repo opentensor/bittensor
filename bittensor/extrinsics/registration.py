@@ -17,7 +17,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import time
-from typing import List, Optional, Tuple, Union
+from typing import Optional, Union
 
 from rich.prompt import Confirm
 
@@ -40,7 +40,7 @@ def register_extrinsic(
     max_allowed_attempts: int = 3,
     output_in_place: bool = True,
     cuda: bool = False,
-    dev_id: Union[List[int], int] = 0,
+    dev_id: Union[list[int], int] = 0,
     tpb: int = 256,
     num_processes: Optional[int] = None,
     update_interval: Optional[int] = None,
@@ -158,7 +158,7 @@ def register_extrinsic(
             with bittensor.__console__.status(":satellite: Submitting POW..."):
                 # check if pow result is still valid
                 while not pow_result.is_stale(subtensor=subtensor):
-                    result: Tuple[bool, Optional[str]] = subtensor._do_pow_register(
+                    result: tuple[bool, Optional[str]] = subtensor._do_pow_register(
                         netuid=netuid,
                         wallet=wallet,
                         pow_result=pow_result,
@@ -167,7 +167,7 @@ def register_extrinsic(
                     )
                     success, err_msg = result
 
-                    if success != True or success == False:
+                    if success is not True or success is False:
                         if "key is already registered" in err_msg:
                             # Error meant that the key is already registered.
                             bittensor.__console__.print(
@@ -280,7 +280,7 @@ def burned_register_extrinsic(
             wait_for_finalization=wait_for_finalization,
         )
 
-        if success != True or success == False:
+        if success is not True or success is False:
             bittensor.__console__.print(
                 f":cross_mark: [red]Failed[/red]: error:{err_msg}"
             )
@@ -330,12 +330,12 @@ def run_faucet_extrinsic(
     max_allowed_attempts: int = 3,
     output_in_place: bool = True,
     cuda: bool = False,
-    dev_id: Union[List[int], int] = 0,
+    dev_id: Union[list[int], int] = 0,
     tpb: int = 256,
     num_processes: Optional[int] = None,
     update_interval: Optional[int] = None,
     log_verbose: bool = False,
-) -> Tuple[bool, str]:
+) -> tuple[bool, str]:
     r"""Runs a continual POW to get a faucet of TAO on the test net.
 
     Args:
@@ -491,7 +491,7 @@ def swap_hotkey_extrinsic(
             wait_for_finalization=wait_for_finalization,
         )
 
-        if success != True or success == False:
+        if success is not True or success is False:
             bittensor.__console__.print(
                 f":cross_mark: [red]Failed[/red]: error:{err_msg}"
             )

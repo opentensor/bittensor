@@ -300,7 +300,7 @@ class TestCLINoNetwork(unittest.TestCase):
             cli.run()
 
     def test_btcli_help(self, _, __):
-        with pytest.raises(SystemExit) as pytest_wrapped_e:
+        with pytest.raises(SystemExit):
             with patch(
                 "argparse.ArgumentParser._print_message", return_value=None
             ) as mock_print_message:

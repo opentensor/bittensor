@@ -17,7 +17,7 @@
 
 
 import argparse
-from typing import Dict, Optional
+from typing import Optional
 
 from rich.prompt import Confirm, Prompt
 from rich.table import Table
@@ -71,7 +71,7 @@ class SenateCommand:
         )
 
         senate_members = subtensor.get_senate_members()
-        delegate_info: Optional[Dict[str, DelegatesDetails]] = get_delegates_details(
+        delegate_info: Optional[dict[str, DelegatesDetails]] = get_delegates_details(
             url=bittensor.__delegates_details_url__
         )
 
@@ -210,7 +210,7 @@ class ProposalsCommand:
         senate_members = subtensor.get_senate_members()
         proposals = subtensor.get_proposals()
 
-        registered_delegate_info: Optional[Dict[str, DelegatesDetails]] = (
+        registered_delegate_info: Optional[dict[str, DelegatesDetails]] = (
             get_delegates_details(url=bittensor.__delegates_details_url__)
         )
 
@@ -333,11 +333,11 @@ class ShowVotesCommand:
             return
 
         proposal_vote_data = subtensor.get_vote_data(proposal_hash)
-        if proposal_vote_data == None:
+        if proposal_vote_data is None:
             console.print(":cross_mark: [red]Failed[/red]: Proposal not found.")
             return
 
-        registered_delegate_info: Optional[Dict[str, DelegatesDetails]] = (
+        registered_delegate_info: Optional[dict[str, DelegatesDetails]] = (
             get_delegates_details(url=bittensor.__delegates_details_url__)
         )
 
@@ -593,7 +593,7 @@ class VoteCommand:
         wallet.coldkey
 
         vote_data = subtensor.get_vote_data(proposal_hash)
-        if vote_data == None:
+        if vote_data is None:
             console.print(":cross_mark: [red]Failed[/red]: Proposal not found.")
             return
 

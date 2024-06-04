@@ -17,7 +17,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 from time import sleep
-from typing import List, Optional, Union
+from typing import Optional, Union
 
 from rich.prompt import Confirm
 
@@ -92,7 +92,7 @@ def add_stake_extrinsic(
         )
 
     # Convert to bittensor.Balance
-    if amount == None:
+    if amount is None:
         # Stake it all.
         staking_balance = bittensor.Balance.from_tao(old_balance.tao)
     elif not isinstance(amount, bittensor.Balance):
@@ -140,7 +140,7 @@ def add_stake_extrinsic(
                 wait_for_finalization=wait_for_finalization,
             )
 
-        if staking_response == True:  # If we successfully staked.
+        if staking_response is True:  # If we successfully staked.
             # We only wait here if we expect finalization.
             if not wait_for_finalization and not wait_for_inclusion:
                 return True
@@ -187,8 +187,8 @@ def add_stake_extrinsic(
 def add_stake_multiple_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
-    hotkey_ss58s: List[str],
-    amounts: Optional[List[Union[Balance, float]]] = None,
+    hotkey_ss58s: list[str],
+    amounts: Optional[list[Union[Balance, float]]] = None,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
     prompt: bool = False,
@@ -287,7 +287,7 @@ def add_stake_multiple_extrinsic(
     ):
         staking_all = False
         # Convert to bittensor.Balance
-        if amount == None:
+        if amount is None:
             # Stake it all.
             staking_balance = bittensor.Balance.from_tao(old_balance.tao)
             staking_all = True
@@ -320,7 +320,7 @@ def add_stake_multiple_extrinsic(
                 wait_for_finalization=wait_for_finalization,
             )
 
-            if staking_response == True:  # If we successfully staked.
+            if staking_response is True:  # If we successfully staked.
                 # We only wait here if we expect finalization.
 
                 if idx < len(hotkey_ss58s) - 1:

@@ -54,7 +54,7 @@ def prometheus_extrinsic(
     """
 
     # ---- Get external ip ----
-    if ip == None:
+    if ip is None:
         try:
             external_ip = net.get_external_ip()
             bittensor.__console__.print(
@@ -118,7 +118,7 @@ def prometheus_extrinsic(
         )
 
         if wait_for_inclusion or wait_for_finalization:
-            if success == True:
+            if success is True:
                 bittensor.__console__.print(
                     f":white_heavy_check_mark: [green]Served prometheus[/green]\n  [bold white]{json.dumps(call_params, indent=4, sort_keys=True)}[/bold white]"
                 )

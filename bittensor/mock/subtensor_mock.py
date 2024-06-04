@@ -21,7 +21,7 @@ from dataclasses import dataclass
 from hashlib import sha256
 from random import randint
 from types import SimpleNamespace
-from typing import Any, Dict, List, Optional, Tuple, TypedDict, Union
+from typing import Any, Optional, TypedDict, Union
 from unittest.mock import MagicMock
 
 from ..chain_data import (
@@ -132,12 +132,12 @@ class MockSubtensorValue:
 
 
 class MockMapResult:
-    records: Optional[List[Tuple[MockSubtensorValue, MockSubtensorValue]]]
+    records: Optional[list[tuple[MockSubtensorValue, MockSubtensorValue]]]
 
     def __init__(
         self,
         records: Optional[
-            List[Tuple[Union[Any, MockSubtensorValue], Union[Any, MockSubtensorValue]]]
+            list[tuple[Union[Any, MockSubtensorValue], Union[Any, MockSubtensorValue]]]
         ] = None,
     ):
         _records = [
@@ -166,25 +166,25 @@ class MockMapResult:
 
 
 class MockSystemState(TypedDict):
-    Account: Dict[str, Dict[int, int]]  # address -> block -> balance
+    Account: dict[str, dict[int, int]]  # address -> block -> balance
 
 
 class MockSubtensorState(TypedDict):
-    Rho: Dict[int, Dict[BlockNumber, int]]  # netuid -> block -> rho
-    Kappa: Dict[int, Dict[BlockNumber, int]]  # netuid -> block -> kappa
-    Difficulty: Dict[int, Dict[BlockNumber, int]]  # netuid -> block -> difficulty
-    ImmunityPeriod: Dict[
-        int, Dict[BlockNumber, int]
+    Rho: dict[int, dict[BlockNumber, int]]  # netuid -> block -> rho
+    Kappa: dict[int, dict[BlockNumber, int]]  # netuid -> block -> kappa
+    Difficulty: dict[int, dict[BlockNumber, int]]  # netuid -> block -> difficulty
+    ImmunityPeriod: dict[
+        int, dict[BlockNumber, int]
     ]  # netuid -> block -> immunity_period
-    ValidatorBatchSize: Dict[
-        int, Dict[BlockNumber, int]
+    ValidatorBatchSize: dict[
+        int, dict[BlockNumber, int]
     ]  # netuid -> block -> validator_batch_size
-    Active: Dict[int, Dict[BlockNumber, bool]]  # (netuid, uid), block -> active
-    Stake: Dict[str, Dict[str, Dict[int, int]]]  # (hotkey, coldkey) -> block -> stake
+    Active: dict[int, dict[BlockNumber, bool]]  # (netuid, uid), block -> active
+    Stake: dict[str, dict[str, dict[int, int]]]  # (hotkey, coldkey) -> block -> stake
 
-    Delegates: Dict[str, Dict[int, float]]  # address -> block -> delegate_take
+    Delegates: dict[str, dict[int, float]]  # address -> block -> delegate_take
 
-    NetworksAdded: Dict[int, Dict[BlockNumber, bool]]  # netuid -> block -> added
+    NetworksAdded: dict[int, dict[BlockNumber, bool]]  # netuid -> block -> added
 
 
 class MockChainState(TypedDict):
@@ -519,7 +519,7 @@ class MockSubtensor(Subtensor):
 
     def force_set_balance(
         self, ss58_address: str, balance: Union["Balance", float, int] = Balance(0)
-    ) -> Tuple[bool, Optional[str]]:
+    ) -> tuple[bool, Optional[str]]:
         """
         Returns:
             Tuple[bool, Optional[str]]: (success, err_msg)
@@ -564,7 +564,7 @@ class MockSubtensor(Subtensor):
                 + 1
             )
 
-    def _handle_type_default(self, name: str, params: List[object]) -> object:
+    def _handle_type_default(self, name: str, params: list[object]) -> object:
         defaults_mapping = {
             "TotalStake": 0,
             "TotalHotkeyStake": 0,
@@ -596,7 +596,7 @@ class MockSubtensor(Subtensor):
         self,
         name: str,
         block: Optional[int] = None,
-        params: Optional[List[object]] = [],
+        params: Optional[list[object]] = [],
     ) -> MockSubtensorValue:
         if block:
             if self.block_number < block:
@@ -632,7 +632,7 @@ class MockSubtensor(Subtensor):
         self,
         name: str,
         block: Optional[int] = None,
-        params: Optional[List[object]] = [],
+        params: Optional[list[object]] = [],
     ) -> Optional[MockMapResult]:
         """
         Note: Double map requires one param
@@ -739,7 +739,7 @@ class MockSubtensor(Subtensor):
         else:
             return Balance(0)
 
-    def get_balances(self, block: int = None) -> Dict[str, "Balance"]:
+    def get_balances(self, block: int = None) -> dict[str, "Balance"]:
         balances = {}
         for address in self.chain_state["System"]["Account"]:
             balances[address] = self.get_balance(address, block)
@@ -771,7 +771,7 @@ class MockSubtensor(Subtensor):
         else:
             return neuron_info
 
-    def neurons(self, netuid: int, block: Optional[int] = None) -> List[NeuronInfo]:
+    def neurons(self, netuid: int, block: Optional[int] = None) -> list[NeuronInfo]:
         if netuid not in self.chain_state["SubtensorModule"]["NetworksAdded"]:
             raise Exception("Subnet does not exist")
 
@@ -788,7 +788,7 @@ class MockSubtensor(Subtensor):
 
     @staticmethod
     def _get_most_recent_storage(
-        storage: Dict[BlockNumber, Any], block_number: Optional[int] = None
+        storage: dict[BlockNumber, Any], block_number: Optional[int] = None
     ) -> Any:
         if block_number is None:
             items = list(storage.items())
@@ -985,7 +985,7 @@ class MockSubtensor(Subtensor):
 
     def neurons_lite(
         self, netuid: int, block: Optional[int] = None
-    ) -> List[NeuronInfoLite]:
+    ) -> list[NeuronInfoLite]:
         if netuid not in self.chain_state["SubtensorModule"]["NetworksAdded"]:
             raise Exception("Subnet does not exist")
 
@@ -1052,7 +1052,6 @@ class MockSubtensor(Subtensor):
         wait_for_finalization: bool = False,
     ) -> bool:
         hotkey_ss58 = wallet.hotkey.ss58_address
-        coldkey_ss58 = wallet.coldkeypub.ss58_address
 
         subtensor_state = self.chain_state["SubtensorModule"]
         if self.is_hotkey_delegate(hotkey_ss58=hotkey_ss58):
@@ -1078,7 +1077,7 @@ class MockSubtensor(Subtensor):
         transfer_balance: "Balance",
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
-    ) -> Tuple[bool, Optional[str], Optional[str]]:
+    ) -> tuple[bool, Optional[str], Optional[str]]:
         bal = self.get_balance(wallet.coldkeypub.ss58_address)
         dest_bal = self.get_balance(dest)
         transfer_fee = self.get_transfer_fee(wallet, dest, transfer_balance)
@@ -1110,7 +1109,7 @@ class MockSubtensor(Subtensor):
         pow_result: "POWSolution",
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
-    ) -> Tuple[bool, Optional[str]]:
+    ) -> tuple[bool, Optional[str]]:
         # Assume pow result is valid
 
         subtensor_state = self.chain_state["SubtensorModule"]
@@ -1131,7 +1130,7 @@ class MockSubtensor(Subtensor):
         wallet: "wallet",
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
-    ) -> Tuple[bool, Optional[str]]:
+    ) -> tuple[bool, Optional[str]]:
         subtensor_state = self.chain_state["SubtensorModule"]
         if netuid not in subtensor_state["NetworksAdded"]:
             raise Exception("Subnet does not exist")
@@ -1364,7 +1363,7 @@ class MockSubtensor(Subtensor):
 
         return info
 
-    def get_delegates(self, block: Optional[int] = None) -> List["DelegateInfo"]:
+    def get_delegates(self, block: Optional[int] = None) -> list["DelegateInfo"]:
         subtensor_state = self.chain_state["SubtensorModule"]
         delegates_info = []
         for hotkey in subtensor_state["Delegates"]:
@@ -1376,7 +1375,7 @@ class MockSubtensor(Subtensor):
 
     def get_delegated(
         self, coldkey_ss58: str, block: Optional[int] = None
-    ) -> List[Tuple["DelegateInfo", "Balance"]]:
+    ) -> list[tuple["DelegateInfo", "Balance"]]:
         """Returns the list of delegates that a given coldkey is staked to."""
         delegates = self.get_delegates(block=block)
 
@@ -1387,7 +1386,7 @@ class MockSubtensor(Subtensor):
 
         return result
 
-    def get_all_subnets_info(self, block: Optional[int] = None) -> List[SubnetInfo]:
+    def get_all_subnets_info(self, block: Optional[int] = None) -> list[SubnetInfo]:
         subtensor_state = self.chain_state["SubtensorModule"]
         result = []
         for subnet in subtensor_state["NetworksAdded"]:
@@ -1440,7 +1439,7 @@ class MockSubtensor(Subtensor):
         call_params: "PrometheusServeCallParams",
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
-    ) -> Tuple[bool, Optional[str]]:
+    ) -> tuple[bool, Optional[str]]:
         return True, None
 
     def _do_set_weights(
@@ -1448,11 +1447,11 @@ class MockSubtensor(Subtensor):
         wallet: "wallet",
         netuid: int,
         uids: int,
-        vals: List[int],
+        vals: list[int],
         version_key: int,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
-    ) -> Tuple[bool, Optional[str]]:
+    ) -> tuple[bool, Optional[str]]:
         return True, None
 
     def _do_serve_axon(
@@ -1461,5 +1460,5 @@ class MockSubtensor(Subtensor):
         call_params: "AxonServeCallParams",
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
-    ) -> Tuple[bool, Optional[str]]:
+    ) -> tuple[bool, Optional[str]]:
         return True, None

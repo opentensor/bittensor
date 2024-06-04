@@ -18,7 +18,6 @@
 
 """Module commit weights and reveal weights extrinsic."""
 
-from typing import List, Tuple
 
 from rich.prompt import Confirm
 
@@ -33,7 +32,7 @@ def commit_weights_extrinsic(
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
     prompt: bool = False,
-) -> Tuple[bool, str]:
+) -> tuple[bool, str]:
     """
     Commits a hash of the neuron's weights to the Bittensor blockchain using the provided wallet.
     This function is a wrapper around the `_do_commit_weights` method, handling user prompts and error messages.
@@ -74,14 +73,14 @@ def reveal_weights_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
     netuid: int,
-    uids: List[int],
-    weights: List[int],
-    salt: List[int],
+    uids: list[int],
+    weights: list[int],
+    salt: list[int],
     version_key: int,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
     prompt: bool = False,
-) -> Tuple[bool, str]:
+) -> tuple[bool, str]:
     """
     Reveals the weights for a specific subnet on the Bittensor blockchain using the provided wallet.
     This function is a wrapper around the `_do_reveal_weights` method, handling user prompts and error messages.

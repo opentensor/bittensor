@@ -33,7 +33,7 @@ import typing
 import uuid
 from collections.abc import Awaitable
 from inspect import Parameter, Signature, signature
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Optional
 
 import uvicorn
 from fastapi import APIRouter, Depends, FastAPI
@@ -343,12 +343,12 @@ class axon:
         self.port = self.config.axon.port
         self.external_ip = (
             self.config.axon.external_ip
-            if self.config.axon.external_ip != None
+            if self.config.axon.external_ip is not None
             else bittensor.utils.networking.get_external_ip()
         )
         self.external_port = (
             self.config.axon.external_port
-            if self.config.axon.external_port != None
+            if self.config.axon.external_port is not None
             else self.config.axon.port
         )
         self.full_address = str(self.config.axon.ip) + ":" + str(self.config.axon.port)
@@ -358,14 +358,14 @@ class axon:
         self.thread_pool = bittensor.PriorityThreadPoolExecutor(
             max_workers=self.config.axon.max_workers
         )
-        self.nonces: Dict[str, int] = {}
+        self.nonces: dict[str, int] = {}
 
         # Request default functions.
-        self.forward_class_types: Dict[str, List[Signature]] = {}
-        self.blacklist_fns: Dict[str, Optional[Callable]] = {}
-        self.priority_fns: Dict[str, Optional[Callable]] = {}
-        self.forward_fns: Dict[str, Optional[Callable]] = {}
-        self.verify_fns: Dict[str, Optional[Callable]] = {}
+        self.forward_class_types: dict[str, list[Signature]] = {}
+        self.blacklist_fns: dict[str, Optional[Callable]] = {}
+        self.priority_fns: dict[str, Optional[Callable]] = {}
+        self.forward_fns: dict[str, Optional[Callable]] = {}
+        self.verify_fns: dict[str, Optional[Callable]] = {}
 
         # Instantiate FastAPI
         self.app = FastAPI()
@@ -518,7 +518,7 @@ class axon:
         ]
         if blacklist_fn:
             blacklist_sig = Signature(
-                expected_params, return_annotation=Tuple[bool, str]
+                expected_params, return_annotation=tuple[bool, str]
             )
             assert (
                 signature(blacklist_fn) == blacklist_sig
@@ -1320,7 +1320,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
 
         async def submit_task(
             executor: PriorityThreadPoolExecutor, priority: float
-        ) -> Tuple[float, Any]:
+        ) -> tuple[float, Any]:
             """
             Submits the given priority function to the specified executor for asynchronous execution.
             The function will run in the provided executor and return the priority value along with the result.

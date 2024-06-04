@@ -547,7 +547,7 @@ def test_overwriting(keyfile_setup_teardown):
     )
     bob = bittensor.Keypair.create_from_uri("/Bob")
 
-    with pytest.raises(bittensor.KeyFileError) as pytest_wrapped_e:
+    with pytest.raises(bittensor.KeyFileError):
         with mock.patch("builtins.input", return_value="n"):
             keyfile.set_keypair(
                 bob, encrypt=True, overwrite=False, password="thisisafakepassword"

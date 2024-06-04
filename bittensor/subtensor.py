@@ -25,7 +25,7 @@ import argparse
 import copy
 import functools
 import time
-from typing import Any, Dict, List, Optional, Tuple, TypedDict, Union
+from typing import Any, Optional, TypedDict, Union
 
 import numpy as np
 import scalecodec
@@ -106,7 +106,7 @@ from .utils.balance import Balance
 from .utils.registration import POWSolution, legacy_torch_api_compat
 from .utils.subtensor import get_subtensor_errors
 
-KEY_NONCE: Dict[str, int] = {}
+KEY_NONCE: dict[str, int] = {}
 
 #######
 # Monkey patch in caching the convert_type_string method
@@ -285,7 +285,7 @@ class Subtensor:
                 f"Connected to {self.network} network and {self.chain_endpoint}."
             )
 
-        self._subtensor_errors: Dict[str, Dict[str, str]] = {}
+        self._subtensor_errors: dict[str, dict[str, str]] = {}
 
     def __str__(self) -> str:
         if self.network == self.chain_endpoint:
@@ -784,7 +784,7 @@ class Subtensor:
         wait_for_finalization: bool = False,
         prompt: bool = False,
         max_retries: int = 5,
-    ) -> Tuple[bool, str]:
+    ) -> tuple[bool, str]:
         """
         Sets the inter-neuronal weights for the specified neuron. This process involves specifying the
         influence or trust a neuron places on other neurons in the network, which is a fundamental aspect
@@ -840,13 +840,13 @@ class Subtensor:
     def _do_set_weights(
         self,
         wallet: "bittensor.wallet",
-        uids: List[int],
-        vals: List[int],
+        uids: list[int],
+        vals: list[int],
         netuid: int,
         version_key: int = bittensor.__version_as_int__,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
-    ) -> Tuple[bool, Optional[str]]:  # (success, error_message)
+    ) -> tuple[bool, Optional[str]]:  # (success, error_message)
         """
         Internal method to send a transaction to the Bittensor blockchain, setting weights
         for specified neurons. This method constructs and submits the transaction, handling
@@ -910,7 +910,7 @@ class Subtensor:
         self,
         wallet: "bittensor.wallet",
         netuid: int,
-        salt: List[int],
+        salt: list[int],
         uids: Union[NDArray[np.int64], list],
         weights: Union[NDArray[np.int64], list],
         version_key: int = bittensor.__version_as_int__,
@@ -918,7 +918,7 @@ class Subtensor:
         wait_for_finalization: bool = False,
         prompt: bool = False,
         max_retries: int = 5,
-    ) -> Tuple[bool, str]:
+    ) -> tuple[bool, str]:
         """
         Commits a hash of the neuron's weights to the Bittensor blockchain using the provided wallet.
         This action serves as a commitment or snapshot of the neuron's current weight distribution.
@@ -989,7 +989,7 @@ class Subtensor:
         commit_hash: str,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
-    ) -> Tuple[bool, Optional[str]]:
+    ) -> tuple[bool, Optional[str]]:
         """
         Internal method to send a transaction to the Bittensor blockchain, committing the hash of a neuron's weights.
         This method constructs and submits the transaction, handling retries and blockchain communication.
@@ -1054,7 +1054,7 @@ class Subtensor:
         wait_for_finalization: bool = False,
         prompt: bool = False,
         max_retries: int = 5,
-    ) -> Tuple[bool, str]:
+    ) -> tuple[bool, str]:
         """
         Reveals the weights for a specific subnet on the Bittensor blockchain using the provided wallet.
         This action serves as a revelation of the neuron's previously committed weight distribution.
@@ -1109,13 +1109,13 @@ class Subtensor:
         self,
         wallet: "bittensor.wallet",
         netuid: int,
-        uids: List[int],
-        values: List[int],
-        salt: List[int],
+        uids: list[int],
+        values: list[int],
+        salt: list[int],
         version_key: int,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
-    ) -> Tuple[bool, Optional[str]]:
+    ) -> tuple[bool, Optional[str]]:
         """
         Internal method to send a transaction to the Bittensor blockchain, revealing the weights for a specific subnet.
         This method constructs and submits the transaction, handling retries and blockchain communication.
@@ -1184,7 +1184,7 @@ class Subtensor:
         max_allowed_attempts: int = 3,
         output_in_place: bool = True,
         cuda: bool = False,
-        dev_id: Union[List[int], int] = 0,
+        dev_id: Union[list[int], int] = 0,
         tpb: int = 256,
         num_processes: Optional[int] = None,
         update_interval: Optional[int] = None,
@@ -1279,7 +1279,7 @@ class Subtensor:
         max_allowed_attempts: int = 3,
         output_in_place: bool = True,
         cuda: bool = False,
-        dev_id: Union[List[int], int] = 0,
+        dev_id: Union[list[int], int] = 0,
         tpb: int = 256,
         num_processes: Optional[int] = None,
         update_interval: Optional[int] = None,
@@ -1374,7 +1374,7 @@ class Subtensor:
         pow_result: POWSolution,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
-    ) -> Tuple[bool, Optional[str]]:
+    ) -> tuple[bool, Optional[str]]:
         """Sends a (POW) register extrinsic to the chain.
 
         Args:
@@ -1435,7 +1435,7 @@ class Subtensor:
         wallet: "bittensor.wallet",
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
-    ) -> Tuple[bool, Optional[str]]:
+    ) -> tuple[bool, Optional[str]]:
         """
         Performs a burned register extrinsic call to the Subtensor chain.
 
@@ -1492,7 +1492,7 @@ class Subtensor:
         new_wallet: "bittensor.wallet",
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
-    ) -> Tuple[bool, Optional[str]]:
+    ) -> tuple[bool, Optional[str]]:
         """
         Performs a hotkey swap extrinsic call to the Subtensor chain.
 
@@ -1645,7 +1645,7 @@ class Subtensor:
         transfer_balance: "Balance",
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
-    ) -> Tuple[bool, Optional[str], Optional[str]]:
+    ) -> tuple[bool, Optional[str], Optional[str]]:
         """Sends a transfer extrinsic to the chain.
 
         Args:
@@ -1879,7 +1879,7 @@ class Subtensor:
         call_params: AxonServeCallParams,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
-    ) -> Tuple[bool, Optional[str]]:
+    ) -> tuple[bool, Optional[str]]:
         """
         Internal method to submit a serve axon transaction to the Bittensor blockchain. This method
         creates and submits a transaction, enabling a neuron's Axon to serve requests on the network.
@@ -1946,7 +1946,7 @@ class Subtensor:
         call_params: PrometheusServeCallParams,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
-    ) -> Tuple[bool, Optional[str]]:
+    ) -> tuple[bool, Optional[str]]:
         """
         Sends a serve prometheus extrinsic to the chain.
         Args:
@@ -1988,11 +1988,11 @@ class Subtensor:
     def _do_associate_ips(
         self,
         wallet: "bittensor.wallet",
-        ip_info_list: List["IPInfo"],
+        ip_info_list: list["IPInfo"],
         netuid: int,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
-    ) -> Tuple[bool, Optional[str]]:
+    ) -> tuple[bool, Optional[str]]:
         """
         Sends an associate IPs extrinsic to the chain.
 
@@ -2081,8 +2081,8 @@ class Subtensor:
     def add_stake_multiple(
         self,
         wallet: "bittensor.wallet",
-        hotkey_ss58s: List[str],
-        amounts: Optional[List[Union["Balance", float]]] = None,
+        hotkey_ss58s: list[str],
+        amounts: Optional[list[Union["Balance", float]]] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
         prompt: bool = False,
@@ -2170,8 +2170,8 @@ class Subtensor:
     def unstake_multiple(
         self,
         wallet: "bittensor.wallet",
-        hotkey_ss58s: List[str],
-        amounts: Optional[List[Union["Balance", float]]] = None,
+        hotkey_ss58s: list[str],
+        amounts: Optional[list[Union["Balance", float]]] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
         prompt: bool = False,
@@ -2443,7 +2443,7 @@ class Subtensor:
 
     get_proposal_vote_data = get_vote_data
 
-    def get_senate_members(self, block: Optional[int] = None) -> Optional[List[str]]:
+    def get_senate_members(self, block: Optional[int] = None) -> Optional[list[str]]:
         """
         Retrieves the list of current senate members from the Bittensor blockchain. Senate members are
         responsible for governance and decision-making within the network.
@@ -2487,7 +2487,7 @@ class Subtensor:
 
         return proposal_data.serialize() if proposal_data is not None else None
 
-    def get_proposal_hashes(self, block: Optional[int] = None) -> Optional[List[str]]:
+    def get_proposal_hashes(self, block: Optional[int] = None) -> Optional[list[str]]:
         """
         Retrieves the list of proposal hashes currently present on the Bittensor blockchain. Each hash
         uniquely identifies a proposal made within the network.
@@ -2511,7 +2511,7 @@ class Subtensor:
 
     def get_proposals(
         self, block: Optional[int] = None
-    ) -> Optional[Dict[str, Tuple["GenericCall", "ProposalVoteData"]]]:
+    ) -> Optional[dict[str, tuple["GenericCall", "ProposalVoteData"]]]:
         """
         Retrieves all active proposals on the Bittensor blockchain, along with their call and voting data.
         This comprehensive view allows for a thorough understanding of the proposals and their reception
@@ -2527,7 +2527,7 @@ class Subtensor:
         This function is integral for analyzing the governance activity on the Bittensor network,
         providing a holistic view of the proposals and their impact or potential changes within the network.
         """
-        proposal_hashes: Optional[List[str]] = self.get_proposal_hashes(block=block)
+        proposal_hashes: Optional[list[str]] = self.get_proposal_hashes(block=block)
         if proposal_hashes is None:
             return None
         return {
@@ -2578,7 +2578,7 @@ class Subtensor:
         wallet: "bittensor.wallet",
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
-    ) -> Tuple[bool, Optional[str]]:
+    ) -> tuple[bool, Optional[str]]:
         @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
         def make_substrate_call_with_retry():
             # create extrinsic call
@@ -2991,7 +2991,7 @@ class Subtensor:
         method: str,
         data: str,
         block: Optional[int] = None,
-    ) -> Dict[Any, Any]:
+    ) -> dict[Any, Any]:
         """
         Makes a state call to the Bittensor blockchain, allowing for direct queries of the blockchain's state.
         This function is typically used for advanced queries that require specific method calls and data inputs.
@@ -3009,7 +3009,7 @@ class Subtensor:
         """
 
         @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
-        def make_substrate_call_with_retry() -> Dict[Any, Any]:
+        def make_substrate_call_with_retry() -> dict[Any, Any]:
             block_hash = None if block is None else self.substrate.get_block_hash(block)
 
             return self.substrate.rpc_request(
@@ -3023,7 +3023,7 @@ class Subtensor:
         self,
         runtime_api: str,
         method: str,
-        params: Optional[Union[List[int], Dict[str, int]]],
+        params: Optional[Union[list[int], dict[str, int]]],
         block: Optional[int] = None,
     ) -> Optional[str]:
         """
@@ -3076,8 +3076,8 @@ class Subtensor:
 
     def _encode_params(
         self,
-        call_definition: List["ParamWithTypes"],
-        params: Union[List[Any], Dict[str, Any]],
+        call_definition: list["ParamWithTypes"],
+        params: Union[list[Any], dict[str, Any]],
     ) -> str:
         """Returns a hex encoded string of the params using their types."""
         param_data = scalecodec.ScaleBytes(b"")
@@ -3683,7 +3683,7 @@ class Subtensor:
 
     def get_stake(
         self, hotkey_ss58: str, block: Optional[int] = None
-    ) -> List[Tuple[str, "Balance"]]:
+    ) -> list[tuple[str, "Balance"]]:
         """
         Returns a list of stake tuples (coldkey, balance) for each delegating coldkey including the owner.
 
@@ -3924,7 +3924,7 @@ class Subtensor:
         _result = self.query_subtensor("NetworksAdded", block, [netuid])
         return getattr(_result, "value", False)
 
-    def get_all_subnet_netuids(self, block: Optional[int] = None) -> List[int]:
+    def get_all_subnet_netuids(self, block: Optional[int] = None) -> list[int]:
         """
         Retrieves the list of all subnet unique identifiers (netuids) currently present in the Bittensor network.
 
@@ -4008,7 +4008,7 @@ class Subtensor:
 
     def get_subnet_connection_requirements(
         self, netuid: int, block: Optional[int] = None
-    ) -> Dict[str, int]:
+    ) -> dict[str, int]:
         """
         Retrieves the connection requirements for a specific subnet within the Bittensor network. This
         function provides details on the criteria that must be met for neurons to connect to the subnet.
@@ -4030,7 +4030,7 @@ class Subtensor:
             else {}
         )
 
-    def get_subnets(self, block: Optional[int] = None) -> List[int]:
+    def get_subnets(self, block: Optional[int] = None) -> list[int]:
         """
         Retrieves a list of all subnets currently active within the Bittensor network. This function
         provides an overview of the various subnets and their identifiers.
@@ -4051,7 +4051,7 @@ class Subtensor:
             else []
         )
 
-    def get_all_subnets_info(self, block: Optional[int] = None) -> List[SubnetInfo]:
+    def get_all_subnets_info(self, block: Optional[int] = None) -> list[SubnetInfo]:
         """
         Retrieves detailed information about all subnets within the Bittensor network. This function
         provides comprehensive data on each subnet, including its characteristics and operational parameters.
@@ -4118,7 +4118,7 @@ class Subtensor:
 
     def get_subnet_hyperparameters(
         self, netuid: int, block: Optional[int] = None
-    ) -> Optional[Union[List, SubnetHyperparameters]]:
+    ) -> Optional[Union[list, SubnetHyperparameters]]:
         """
         Retrieves the hyperparameters for a specific subnet within the Bittensor network. These hyperparameters
         define the operational settings and rules governing the subnet's behavior.
@@ -4218,7 +4218,7 @@ class Subtensor:
 
     def get_nominators_for_hotkey(
         self, hotkey_ss58: str, block: Optional[int] = None
-    ) -> Union[List[Tuple[str, Balance]], int]:
+    ) -> Union[list[tuple[str, Balance]], int]:
         """
         Retrieves a list of nominators and their stakes for a neuron identified by its hotkey.
         Nominators are neurons that stake their tokens on a delegate to support its operations.
@@ -4259,7 +4259,7 @@ class Subtensor:
         """
 
         @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
-        def make_substrate_call_with_retry(encoded_hotkey_: List[int]):
+        def make_substrate_call_with_retry(encoded_hotkey_: list[int]):
             block_hash = None if block is None else self.substrate.get_block_hash(block)
 
             return self.substrate.rpc_request(
@@ -4277,7 +4277,7 @@ class Subtensor:
 
         return DelegateInfo.from_vec_u8(result)
 
-    def get_delegates_lite(self, block: Optional[int] = None) -> List[DelegateInfoLite]:
+    def get_delegates_lite(self, block: Optional[int] = None) -> list[DelegateInfoLite]:
         """
         Retrieves a lighter list of all delegate neurons within the Bittensor network. This function provides an
         overview of the neurons that are actively involved in the network's delegation system.
@@ -4311,7 +4311,7 @@ class Subtensor:
 
         return [DelegateInfoLite(**d) for d in result]
 
-    def get_delegates(self, block: Optional[int] = None) -> List[DelegateInfo]:
+    def get_delegates(self, block: Optional[int] = None) -> list[DelegateInfo]:
         """
         Retrieves a list of all delegate neurons within the Bittensor network. This function provides an overview of the
         neurons that are actively involved in the network's delegation system.
@@ -4347,7 +4347,7 @@ class Subtensor:
 
     def get_delegated(
         self, coldkey_ss58: str, block: Optional[int] = None
-    ) -> List[Tuple[DelegateInfo, Balance]]:
+    ) -> list[tuple[DelegateInfo, Balance]]:
         """
         Retrieves a list of delegates and their associated stakes for a given coldkey. This function
         identifies the delegates that a specific account has staked tokens on.
@@ -4365,7 +4365,7 @@ class Subtensor:
         """
 
         @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
-        def make_substrate_call_with_retry(encoded_coldkey_: List[int]):
+        def make_substrate_call_with_retry(encoded_coldkey_: list[int]):
             block_hash = None if block is None else self.substrate.get_block_hash(block)
 
             return self.substrate.rpc_request(
@@ -4389,7 +4389,7 @@ class Subtensor:
 
     def get_stake_info_for_coldkey(
         self, coldkey_ss58: str, block: Optional[int] = None
-    ) -> Optional[List[StakeInfo]]:
+    ) -> Optional[list[StakeInfo]]:
         """
         Retrieves stake information associated with a specific coldkey. This function provides details
         about the stakes held by an account, including the staked amounts and associated delegates.
@@ -4424,8 +4424,8 @@ class Subtensor:
         return StakeInfo.list_from_vec_u8(bytes_result)  # type: ignore
 
     def get_stake_info_for_coldkeys(
-        self, coldkey_ss58_list: List[str], block: Optional[int] = None
-    ) -> Optional[Dict[str, List[StakeInfo]]]:
+        self, coldkey_ss58_list: list[str], block: Optional[int] = None
+    ) -> Optional[dict[str, list[StakeInfo]]]:
         """
         Retrieves stake information for a list of coldkeys. This function aggregates stake data for multiple
         accounts, providing a collective view of their stakes and delegations.
@@ -4579,7 +4579,7 @@ class Subtensor:
 
     def get_all_uids_for_hotkey(
         self, hotkey_ss58: str, block: Optional[int] = None
-    ) -> List[int]:
+    ) -> list[int]:
         """
         Retrieves all unique identifiers (UIDs) associated with a given hotkey across different subnets
         within the Bittensor network. This function helps in identifying all the neuron instances that are
@@ -4602,7 +4602,7 @@ class Subtensor:
 
     def get_netuids_for_hotkey(
         self, hotkey_ss58: str, block: Optional[int] = None
-    ) -> List[int]:
+    ) -> list[int]:
         """
         Retrieves a list of subnet UIDs (netuids) for which a given hotkey is a member. This function
         identifies the specific subnets within the Bittensor network where the neuron associated with
@@ -4649,7 +4649,7 @@ class Subtensor:
 
     def get_all_neurons_for_pubkey(
         self, hotkey_ss58: str, block: Optional[int] = None
-    ) -> List[NeuronInfo]:
+    ) -> list[NeuronInfo]:
         """
         Retrieves information about all neuron instances associated with a given public key (hotkey ``SS58``
         address) across different subnets of the Bittensor network. This function aggregates neuron data
@@ -4754,7 +4754,7 @@ class Subtensor:
 
         return NeuronInfo.from_vec_u8(result)
 
-    def neurons(self, netuid: int, block: Optional[int] = None) -> List[NeuronInfo]:
+    def neurons(self, netuid: int, block: Optional[int] = None) -> list[NeuronInfo]:
         """
         Retrieves a list of all neurons within a specified subnet of the Bittensor network. This function
         provides a snapshot of the subnet's neuron population, including each neuron's attributes and network
@@ -4829,7 +4829,7 @@ class Subtensor:
 
     def neurons_lite(
         self, netuid: int, block: Optional[int] = None
-    ) -> List[NeuronInfoLite]:
+    ) -> list[NeuronInfoLite]:
         """
         Retrieves a list of neurons in a 'lite' format from a specific subnet of the Bittensor network.
         This function provides a streamlined view of the neurons, focusing on key attributes such as stake
@@ -4891,7 +4891,7 @@ class Subtensor:
 
         return metagraph_
 
-    def incentive(self, netuid: int, block: Optional[int] = None) -> List[int]:
+    def incentive(self, netuid: int, block: Optional[int] = None) -> list[int]:
         """
         Retrieves the list of incentives for neurons within a specific subnet of the Bittensor network.
         This function provides insights into the reward distribution mechanisms and the incentives allocated
@@ -4919,7 +4919,7 @@ class Subtensor:
 
     def weights(
         self, netuid: int, block: Optional[int] = None
-    ) -> List[Tuple[int, List[Tuple[int, int]]]]:
+    ) -> list[tuple[int, list[tuple[int, int]]]]:
         """
         Retrieves the weight distribution set by neurons within a specific subnet of the Bittensor network.
         This function maps each neuron's UID to the weights it assigns to other neurons, reflecting the
@@ -4947,7 +4947,7 @@ class Subtensor:
 
     def bonds(
         self, netuid: int, block: Optional[int] = None
-    ) -> List[Tuple[int, List[Tuple[int, int]]]]:
+    ) -> list[tuple[int, list[tuple[int, int]]]]:
         """
         Retrieves the bond distribution set by neurons within a specific subnet of the Bittensor network.
         Bonds represent the investments or commitments made by neurons in one another, indicating a level
@@ -4978,7 +4978,7 @@ class Subtensor:
 
     def associated_validator_ip_info(
         self, netuid: int, block: Optional[int] = None
-    ) -> Optional[List["IPInfo"]]:
+    ) -> Optional[list["IPInfo"]]:
         """
         Retrieves the list of all validator IP addresses associated with a specific subnet in the Bittensor
         network. This information is crucial for network communication and the identification of validator nodes.
@@ -5361,7 +5361,7 @@ class Subtensor:
 
         return make_substrate_call_with_retry()
 
-    def get_balances(self, block: Optional[int] = None) -> Dict[str, Balance]:
+    def get_balances(self, block: Optional[int] = None) -> dict[str, Balance]:
         """
         Retrieves the token balances of all accounts within the Bittensor network as of a specific blockchain block.
         This function provides a comprehensive view of the token distribution among different accounts.
@@ -5438,7 +5438,7 @@ class Subtensor:
         """
         return self.substrate.get_block_hash(block_id=block_id)
 
-    def get_error_info_by_index(self, error_index: int) -> Tuple[str, str]:
+    def get_error_info_by_index(self, error_index: int) -> tuple[str, str]:
         """
         Returns the error name and description from the Subtensor error list.
 

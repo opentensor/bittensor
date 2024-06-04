@@ -3,7 +3,6 @@ import hashlib
 import io
 import math
 from contextlib import redirect_stdout
-from typing import Tuple
 
 import numpy as np
 from Crypto.Hash import keccak
@@ -17,7 +16,7 @@ def solve_cuda(
     difficulty: int,
     limit: int,
     dev_id: int = 0,
-) -> Tuple[np.int64, bytes]:
+) -> tuple[np.int64, bytes]:
     """
     Solves the PoW problem using CUDA.
     Args:

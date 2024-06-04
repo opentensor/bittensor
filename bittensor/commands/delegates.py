@@ -18,7 +18,7 @@
 import argparse
 import os
 import sys
-from typing import Dict, List, Optional
+from typing import Optional
 
 from rich.console import Text
 from rich.prompt import Confirm, FloatPrompt, Prompt
@@ -33,7 +33,7 @@ from .identity import SetIdentityCommand
 from .utils import DelegatesDetails, get_delegates_details
 
 
-def _get_coldkey_wallets_for_path(path: str) -> List["bittensor.wallet"]:
+def _get_coldkey_wallets_for_path(path: str) -> list["bittensor.wallet"]:
     try:
         wallet_names = next(os.walk(os.path.expanduser(path)))[1]
         return [bittensor.wallet(path=path, name=name) for name in wallet_names]
@@ -47,7 +47,7 @@ console = bittensor.__console__
 
 
 def show_delegates_lite(
-    delegates_lite: List["bittensor.DelegateInfoLite"], width: Optional[int] = None
+    delegates_lite: list["bittensor.DelegateInfoLite"], width: Optional[int] = None
 ):
     """
     This method is a lite version of the :func:`show_delegates`. This method displays a formatted table of Bittensor network delegates with detailed statistics to the console.
@@ -84,7 +84,7 @@ def show_delegates_lite(
         the table in the console.
     """
 
-    registered_delegate_info: Optional[Dict[str, DelegatesDetails]] = (
+    registered_delegate_info: Optional[dict[str, DelegatesDetails]] = (
         get_delegates_details(url=bittensor.__delegates_details_url__)
     )
     if registered_delegate_info is None:
@@ -154,8 +154,8 @@ def show_delegates_lite(
 
 # Uses rich console to pretty print a table of delegates.
 def show_delegates(
-    delegates: List["bittensor.DelegateInfo"],
-    prev_delegates: Optional[List["bittensor.DelegateInfo"]],
+    delegates: list["bittensor.DelegateInfo"],
+    prev_delegates: Optional[list["bittensor.DelegateInfo"]],
     width: Optional[int] = None,
 ):
     """
@@ -207,7 +207,7 @@ def show_delegates(
         for prev_delegate in prev_delegates:
             prev_delegates_dict[prev_delegate.hotkey_ss58] = prev_delegate
 
-    registered_delegate_info: Optional[Dict[str, DelegatesDetails]] = (
+    registered_delegate_info: Optional[dict[str, DelegatesDetails]] = (
         get_delegates_details(url=bittensor.__delegates_details_url__)
     )
     if registered_delegate_info is None:
@@ -406,7 +406,7 @@ class DelegateStakeCommand:
             # Check for delegates.
             with bittensor.__console__.status(":satellite: Loading delegates..."):
                 subtensor = bittensor.subtensor(config=config, log_verbose=False)
-                delegates: List[bittensor.DelegateInfo] = subtensor.get_delegates()
+                delegates: list[bittensor.DelegateInfo] = subtensor.get_delegates()
                 try:
                     prev_delegates = subtensor.get_delegates(
                         max(0, subtensor.block - 1200)
@@ -547,7 +547,7 @@ class DelegateUnstakeCommand:
             # Check for delegates.
             with bittensor.__console__.status(":satellite: Loading delegates..."):
                 subtensor = bittensor.subtensor(config=config, log_verbose=False)
-                delegates: List[bittensor.DelegateInfo] = subtensor.get_delegates()
+                delegates: list[bittensor.DelegateInfo] = subtensor.get_delegates()
                 try:
                     prev_delegates = subtensor.get_delegates(
                         max(0, subtensor.block - 1200)
@@ -1145,7 +1145,7 @@ class SetTakeCommand:
 
         # Prompt user for take value.
         new_take_str = config.get("take")
-        if new_take_str == None:
+        if new_take_str is None:
             new_take = FloatPrompt.ask("Enter take value (0.18 for 18%)")
         else:
             new_take = float(new_take_str)

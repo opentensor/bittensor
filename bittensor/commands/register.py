@@ -104,8 +104,7 @@ class RegisterCommand:
                 Confirm.ask(
                     f"Your balance is: [bold green]{balance}[/bold green]\nThe cost to register by recycle is [bold red]{current_recycle}[/bold red]\nDo you want to continue?",
                     default=False,
-                )
-                == False
+                ) is False
             ):
                 sys.exit(1)
 

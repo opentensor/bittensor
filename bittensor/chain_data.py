@@ -23,7 +23,7 @@ including neuron and subnet information, SCALE encoding/decoding, and custom RPC
 import json
 from dataclasses import asdict, dataclass
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple, TypedDict, Union
+from typing import Any, Optional, TypedDict, Union
 
 from scalecodec.base import RuntimeConfiguration, ScaleBytes
 from scalecodec.type_registry import load_type_registry_preset
@@ -327,11 +327,11 @@ class ChainDataType(Enum):
 
 
 def from_scale_encoding(
-    input_: Union[List[int], bytes, ScaleBytes],
+    input_: Union[list[int], bytes, ScaleBytes],
     type_name: ChainDataType,
     is_vec: bool = False,
     is_option: bool = False,
-) -> Optional[Dict]:
+) -> Optional[dict]:
     """
     Decodes input_ data from SCALE encoding based on the specified type name and modifiers.
 
@@ -357,8 +357,8 @@ def from_scale_encoding(
 
 
 def from_scale_encoding_using_type_string(
-    input_: Union[List[int], bytes, ScaleBytes], type_string: str
-) -> Optional[Dict]:
+    input_: Union[list[int], bytes, ScaleBytes], type_string: str
+) -> Optional[dict]:
     if isinstance(input_, ScaleBytes):
         as_scale_bytes = input_
     else:
@@ -393,7 +393,7 @@ class NeuronInfo:
     active: int
     stake: Balance
     # mapping of coldkey to amount staked to this Neuron
-    stake_dict: Dict[str, Balance]
+    stake_dict: dict[str, Balance]
     total_stake: Balance
     rank: float
     emission: float
@@ -404,8 +404,8 @@ class NeuronInfo:
     dividends: float
     last_update: int
     validator_permit: bool
-    weights: List[List[int]]
-    bonds: List[List[int]]
+    weights: list[list[int]]
+    bonds: list[list[int]]
     pruning_score: int
     prometheus_info: Optional["PrometheusInfo"] = None
     axon_info: Optional[AxonInfo] = None
@@ -462,7 +462,7 @@ class NeuronInfo:
         return cls(**neuron_info_decoded)
 
     @classmethod
-    def from_vec_u8(cls, vec_u8: List[int]) -> "NeuronInfo":
+    def from_vec_u8(cls, vec_u8: list[int]) -> "NeuronInfo":
         """Returns a NeuronInfo object from a ``vec_u8``."""
         if len(vec_u8) == 0:
             return NeuronInfo.get_null_neuron()
@@ -474,7 +474,7 @@ class NeuronInfo:
         return NeuronInfo.fix_decoded_values(decoded)
 
     @classmethod
-    def list_from_vec_u8(cls, vec_u8: List[int]) -> List["NeuronInfo"]:
+    def list_from_vec_u8(cls, vec_u8: list[int]) -> list["NeuronInfo"]:
         """Returns a list of NeuronInfo objects from a ``vec_u8``"""
 
         decoded_list = from_scale_encoding(
@@ -521,8 +521,8 @@ class NeuronInfo:
     def from_weights_bonds_and_neuron_lite(
         cls,
         neuron_lite: "NeuronInfoLite",
-        weights_as_dict: Dict[int, List[Tuple[int, int]]],
-        bonds_as_dict: Dict[int, List[Tuple[int, int]]],
+        weights_as_dict: dict[int, list[tuple[int, int]]],
+        bonds_as_dict: dict[int, list[tuple[int, int]]],
     ) -> "NeuronInfo":
         n_dict = neuron_lite.__dict__
         n_dict["weights"] = weights_as_dict.get(neuron_lite.uid, [])
@@ -542,7 +542,7 @@ class NeuronInfoLite:
     active: int
     stake: Balance
     # mapping of coldkey to amount staked to this Neuron
-    stake_dict: Dict[str, Balance]
+    stake_dict: dict[str, Balance]
     total_stake: Balance
     rank: float
     emission: float
@@ -602,7 +602,7 @@ class NeuronInfoLite:
         return cls(**neuron_info_decoded)
 
     @classmethod
-    def from_vec_u8(cls, vec_u8: List[int]) -> "NeuronInfoLite":
+    def from_vec_u8(cls, vec_u8: list[int]) -> "NeuronInfoLite":
         """Returns a NeuronInfoLite object from a ``vec_u8``."""
         if len(vec_u8) == 0:
             return NeuronInfoLite.get_null_neuron()
@@ -614,7 +614,7 @@ class NeuronInfoLite:
         return NeuronInfoLite.fix_decoded_values(decoded)
 
     @classmethod
-    def list_from_vec_u8(cls, vec_u8: List[int]) -> List["NeuronInfoLite"]:
+    def list_from_vec_u8(cls, vec_u8: list[int]) -> list["NeuronInfoLite"]:
         """Returns a list of NeuronInfoLite objects from a ``vec_u8``."""
 
         decoded_list = from_scale_encoding(
@@ -667,7 +667,7 @@ class PrometheusInfo:
     ip_type: int
 
     @classmethod
-    def fix_decoded_values(cls, prometheus_info_decoded: Dict) -> "PrometheusInfo":
+    def fix_decoded_values(cls, prometheus_info_decoded: dict) -> "PrometheusInfo":
         """Returns a PrometheusInfo object from a prometheus_info_decoded dictionary."""
         prometheus_info_decoded["ip"] = net.int_to_ip(
             int(prometheus_info_decoded["ip"])
@@ -724,15 +724,15 @@ class DelegateInfo:
 
     hotkey_ss58: str  # Hotkey of delegate
     total_stake: Balance  # Total stake of the delegate
-    nominators: List[
-        Tuple[str, Balance]
+    nominators: list[
+        tuple[str, Balance]
     ]  # List of nominators of the delegate and their stake
     owner_ss58: str  # Coldkey of owner
     take: float  # Take of the delegate as a percentage
-    validator_permits: List[
+    validator_permits: list[
         int
     ]  # List of subnets that the delegate is allowed to validate on
-    registrations: List[int]  # List of subnets that the delegate is registered on
+    registrations: list[int]  # List of subnets that the delegate is registered on
     return_per_1000: Balance  # Return per 1000 tao of the delegate over a day
     total_daily_return: Balance  # Total daily return of the delegate
 
@@ -763,7 +763,7 @@ class DelegateInfo:
         )
 
     @classmethod
-    def from_vec_u8(cls, vec_u8: List[int]) -> Optional["DelegateInfo"]:
+    def from_vec_u8(cls, vec_u8: list[int]) -> Optional["DelegateInfo"]:
         """Returns a DelegateInfo object from a ``vec_u8``."""
         if len(vec_u8) == 0:
             return None
@@ -775,7 +775,7 @@ class DelegateInfo:
         return DelegateInfo.fix_decoded_values(decoded)
 
     @classmethod
-    def list_from_vec_u8(cls, vec_u8: List[int]) -> List["DelegateInfo"]:
+    def list_from_vec_u8(cls, vec_u8: list[int]) -> list["DelegateInfo"]:
         """Returns a list of DelegateInfo objects from a ``vec_u8``."""
         decoded = from_scale_encoding(vec_u8, ChainDataType.DelegateInfo, is_vec=True)
 
@@ -786,8 +786,8 @@ class DelegateInfo:
 
     @classmethod
     def delegated_list_from_vec_u8(
-        cls, vec_u8: List[int]
-    ) -> List[Tuple["DelegateInfo", Balance]]:
+        cls, vec_u8: list[int]
+    ) -> list[tuple["DelegateInfo", Balance]]:
         """Returns a list of Tuples of DelegateInfo objects, and Balance, from a ``vec_u8``.
 
         This is the list of delegates that the user has delegated to, and the amount of stake delegated.
@@ -820,7 +820,7 @@ class StakeInfo:
         )
 
     @classmethod
-    def from_vec_u8(cls, vec_u8: List[int]) -> Optional["StakeInfo"]:
+    def from_vec_u8(cls, vec_u8: list[int]) -> Optional["StakeInfo"]:
         """Returns a StakeInfo object from a ``vec_u8``."""
         if len(vec_u8) == 0:
             return None
@@ -833,8 +833,8 @@ class StakeInfo:
 
     @classmethod
     def list_of_tuple_from_vec_u8(
-        cls, vec_u8: List[int]
-    ) -> Dict[str, List["StakeInfo"]]:
+        cls, vec_u8: list[int]
+    ) -> dict[str, list["StakeInfo"]]:
         """Returns a list of StakeInfo objects from a ``vec_u8``."""
         decoded: Optional[list[tuple[str, list[object]]]] = (
             from_scale_encoding_using_type_string(
@@ -853,7 +853,7 @@ class StakeInfo:
         }
 
     @classmethod
-    def list_from_vec_u8(cls, vec_u8: List[int]) -> List["StakeInfo"]:
+    def list_from_vec_u8(cls, vec_u8: list[int]) -> list["StakeInfo"]:
         """Returns a list of StakeInfo objects from a ``vec_u8``."""
         decoded = from_scale_encoding(vec_u8, ChainDataType.StakeInfo, is_vec=True)
         if decoded is None:
@@ -881,13 +881,13 @@ class SubnetInfo:
     tempo: int
     modality: int
     # netuid -> topk percentile prunning score requirement (u16:MAX normalized.)
-    connection_requirements: Dict[str, float]
+    connection_requirements: dict[str, float]
     emission_value: float
     burn: Balance
     owner_ss58: str
 
     @classmethod
-    def from_vec_u8(cls, vec_u8: List[int]) -> Optional["SubnetInfo"]:
+    def from_vec_u8(cls, vec_u8: list[int]) -> Optional["SubnetInfo"]:
         """Returns a SubnetInfo object from a ``vec_u8``."""
         if len(vec_u8) == 0:
             return None
@@ -899,7 +899,7 @@ class SubnetInfo:
         return SubnetInfo.fix_decoded_values(decoded)
 
     @classmethod
-    def list_from_vec_u8(cls, vec_u8: List[int]) -> List["SubnetInfo"]:
+    def list_from_vec_u8(cls, vec_u8: list[int]) -> list["SubnetInfo"]:
         r"""Returns a list of SubnetInfo objects from a ``vec_u8``."""
         decoded = from_scale_encoding(
             vec_u8, ChainDataType.SubnetInfo, is_vec=True, is_option=True
@@ -911,7 +911,7 @@ class SubnetInfo:
         return [SubnetInfo.fix_decoded_values(d) for d in decoded]
 
     @classmethod
-    def fix_decoded_values(cls, decoded: Dict) -> "SubnetInfo":
+    def fix_decoded_values(cls, decoded: dict) -> "SubnetInfo":
         """Returns a SubnetInfo object from a decoded SubnetInfo dictionary."""
         return SubnetInfo(
             netuid=decoded["netuid"],
@@ -986,7 +986,7 @@ class SubnetHyperparameters:
     commit_reveal_weights_enabled: bool
 
     @classmethod
-    def from_vec_u8(cls, vec_u8: List[int]) -> Optional["SubnetHyperparameters"]:
+    def from_vec_u8(cls, vec_u8: list[int]) -> Optional["SubnetHyperparameters"]:
         """Returns a SubnetHyperparameters object from a ``vec_u8``."""
         if len(vec_u8) == 0:
             return None
@@ -998,7 +998,7 @@ class SubnetHyperparameters:
         return SubnetHyperparameters.fix_decoded_values(decoded)
 
     @classmethod
-    def list_from_vec_u8(cls, vec_u8: List[int]) -> List["SubnetHyperparameters"]:
+    def list_from_vec_u8(cls, vec_u8: list[int]) -> list["SubnetHyperparameters"]:
         """Returns a list of SubnetHyperparameters objects from a ``vec_u8``."""
         decoded = from_scale_encoding(
             vec_u8, ChainDataType.SubnetHyperparameters, is_vec=True, is_option=True
@@ -1009,7 +1009,7 @@ class SubnetHyperparameters:
         return [SubnetHyperparameters.fix_decoded_values(d) for d in decoded]
 
     @classmethod
-    def fix_decoded_values(cls, decoded: Dict) -> "SubnetHyperparameters":
+    def fix_decoded_values(cls, decoded: dict) -> "SubnetHyperparameters":
         """Returns a SubnetInfo object from a decoded SubnetInfo dictionary."""
         return SubnetHyperparameters(
             rho=decoded["rho"],
@@ -1065,7 +1065,7 @@ class IPInfo:
     ip_type: int
     protocol: int
 
-    def encode(self) -> Dict[str, Any]:
+    def encode(self) -> dict[str, Any]:
         """Returns a dictionary of the IPInfo object that can be encoded."""
         return {
             "ip": net.ip_to_int(
@@ -1075,7 +1075,7 @@ class IPInfo:
         }
 
     @classmethod
-    def from_vec_u8(cls, vec_u8: List[int]) -> Optional["IPInfo"]:
+    def from_vec_u8(cls, vec_u8: list[int]) -> Optional["IPInfo"]:
         """Returns a IPInfo object from a ``vec_u8``."""
         if len(vec_u8) == 0:
             return None
@@ -1087,7 +1087,7 @@ class IPInfo:
         return IPInfo.fix_decoded_values(decoded)
 
     @classmethod
-    def list_from_vec_u8(cls, vec_u8: List[int]) -> List["IPInfo"]:
+    def list_from_vec_u8(cls, vec_u8: list[int]) -> list["IPInfo"]:
         r"""Returns a list of IPInfo objects from a ``vec_u8``."""
         decoded = from_scale_encoding(vec_u8, ChainDataType.IPInfo, is_vec=True)
 
@@ -1097,7 +1097,7 @@ class IPInfo:
         return [IPInfo.fix_decoded_values(d) for d in decoded]
 
     @classmethod
-    def fix_decoded_values(cls, decoded: Dict) -> "IPInfo":
+    def fix_decoded_values(cls, decoded: dict) -> "IPInfo":
         """Returns a SubnetInfo object from a decoded IPInfo dictionary."""
         return IPInfo(
             ip=net.int_to_ip(decoded["ip"]),
@@ -1128,8 +1128,8 @@ class IPInfo:
 class ProposalVoteData(TypedDict):
     index: int
     threshold: int
-    ayes: List[str]
-    nays: List[str]
+    ayes: list[str]
+    nays: list[str]
     end: int
 
 

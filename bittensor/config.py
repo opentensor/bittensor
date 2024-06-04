@@ -25,7 +25,7 @@ import copy
 import os
 import sys
 from copy import deepcopy
-from typing import Any, Dict, List, Optional, Type, TypeVar
+from typing import Any, Optional, TypeVar
 
 import yaml
 from munch import DefaultMunch
@@ -42,7 +42,7 @@ class config(DefaultMunch):
     Implementation of the config class, which manages the configuration of different Bittensor modules.
     """
 
-    __is_set: Dict[str, bool]
+    __is_set: dict[str, bool]
 
     r""" Translates the passed parser into a nested Bittensor config.
     
@@ -64,7 +64,7 @@ class config(DefaultMunch):
     def __init__(
         self,
         parser: argparse.ArgumentParser = None,
-        args: Optional[List[str]] = None,
+        args: Optional[list[str]] = None,
         strict: bool = False,
         default: Optional[Any] = None,
     ) -> None:
@@ -72,7 +72,7 @@ class config(DefaultMunch):
 
         self["__is_set"] = {}
 
-        if parser == None:
+        if parser is None:
             return None
 
         # Optionally add config specific arguments
@@ -121,7 +121,7 @@ class config(DefaultMunch):
             pass
 
         # Get args from argv if not passed in.
-        if args == None:
+        if args is None:
             args = sys.argv[1:]
 
         # Check for missing required arguments before proceeding
@@ -149,7 +149,7 @@ class config(DefaultMunch):
         ## strict=True when passed in OR when --strict is set
         strict = config_params.strict or strict
 
-        if config_file_path != None:
+        if config_file_path is not None:
             config_file_path = os.path.expanduser(config_file_path)
             try:
                 with open(config_file_path) as f:
@@ -176,10 +176,10 @@ class config(DefaultMunch):
         # Only command as the arg, else no args
         default_param_args = (
             [_config.get("command")]
-            if _config.get("command") != None and _config.get("subcommand") == None
+            if _config.get("command") is not None and _config.get("subcommand") is None
             else []
         )
-        if _config.get("command") != None and _config.get("subcommand") != None:
+        if _config.get("command") is not None and _config.get("subcommand") is not None:
             default_param_args = [_config.get("command"), _config.get("subcommand")]
 
         ## Get all args by name
@@ -193,7 +193,7 @@ class config(DefaultMunch):
         parser_no_defaults._defaults.clear()  # Needed for quirk of argparse
 
         ### Check for subparsers and do the same
-        if parser_no_defaults._subparsers != None:
+        if parser_no_defaults._subparsers is not None:
             for action in parser_no_defaults._subparsers._actions:
                 # Should only be the "command" subparser action
                 if isinstance(action, argparse._SubParsersAction):
@@ -241,7 +241,7 @@ class config(DefaultMunch):
             keys = split_keys
             while len(keys) > 1:
                 if (
-                    hasattr(head, keys[0]) and head[keys[0]] != None
+                    hasattr(head, keys[0]) and head[keys[0]] is not None
                 ):  # Needs to be Config
                     head = getattr(head, keys[0])
                     keys = keys[1:]
@@ -254,7 +254,7 @@ class config(DefaultMunch):
 
     @staticmethod
     def __parse_args__(
-        args: List[str], parser: argparse.ArgumentParser = None, strict: bool = False
+        args: list[str], parser: argparse.ArgumentParser = None, strict: bool = False
     ) -> argparse.Namespace:
         """Parses the passed args use the passed parser.
 
@@ -355,7 +355,7 @@ class config(DefaultMunch):
         self = self._merge(self, b)
 
     @classmethod
-    def merge_all(cls, configs: List["config"]) -> "config":
+    def merge_all(cls, configs: list["config"]) -> "config":
         """
         Merge all configs in the list into one config.
         If there is a conflict, the value from the last configuration in the list will take precedence.
@@ -383,14 +383,14 @@ class config(DefaultMunch):
             return self.get("__is_set")[param_name]
 
     def __check_for_missing_required_args(
-        self, parser: argparse.ArgumentParser, args: List[str]
-    ) -> List[str]:
+        self, parser: argparse.ArgumentParser, args: list[str]
+    ) -> list[str]:
         required_args = self.__get_required_args_from_parser(parser)
         missing_args = [arg for arg in required_args if not any(arg in s for s in args)]
         return missing_args
 
     @staticmethod
-    def __get_required_args_from_parser(parser: argparse.ArgumentParser) -> List[str]:
+    def __get_required_args_from_parser(parser: argparse.ArgumentParser) -> list[str]:
         required_args = []
         for action in parser._actions:
             if action.required:
@@ -409,7 +409,7 @@ class DefaultConfig(config):
     """
 
     @classmethod
-    def default(cls: Type[T]) -> T:
+    def default(cls: type[T]) -> T:
         """
         Get default config.
         """

@@ -23,7 +23,7 @@ import asyncio
 import time
 import uuid
 from collections.abc import AsyncGenerator
-from typing import Any, List, Optional, Union
+from typing import Any
 
 import aiohttp
 
@@ -98,7 +98,7 @@ class DendriteMixin:
     """
 
     def __init__(
-        self, wallet: Optional[Union[bittensor.wallet, bittensor.Keypair]] = None
+        self, wallet: bittensor.wallet | bittensor.Keypair | None = None
     ):
         """
         Initializes the Dendrite object, setting up essential properties.
@@ -108,7 +108,7 @@ class DendriteMixin:
                 The user's wallet or keypair used for signing messages. Defaults to ``None``, in which case a new :func:`bittensor.wallet().hotkey` is generated and used.
         """
         # Initialize the parent class
-        super(DendriteMixin, self).__init__()
+        super().__init__()
 
         # Unique identifier for the instance
         self.uuid = str(uuid.uuid1())
@@ -123,7 +123,7 @@ class DendriteMixin:
 
         self.synapse_history: list = []
 
-        self._session: Optional[aiohttp.ClientSession] = None
+        self._session: aiohttp.ClientSession | None = None
 
     @property
     async def session(self) -> aiohttp.ClientSession:
@@ -293,8 +293,8 @@ class DendriteMixin:
 
     def query(
         self, *args, **kwargs
-    ) -> List[
-        Union[AsyncGenerator[Any, Any], bittensor.Synapse, bittensor.StreamingSynapse]
+    ) -> list[
+        AsyncGenerator[Any, Any] | bittensor.Synapse | bittensor.StreamingSynapse
     ]:
         """
         Makes a synchronous request to multiple target Axons and returns the server responses.
@@ -325,17 +325,14 @@ class DendriteMixin:
 
     async def forward(
         self,
-        axons: Union[
-            List[Union[bittensor.AxonInfo, bittensor.axon]],
-            Union[bittensor.AxonInfo, bittensor.axon],
-        ],
+        axons: list[bittensor.AxonInfo | bittensor.axon] | bittensor.AxonInfo | bittensor.axon,
         synapse: bittensor.Synapse = bittensor.Synapse(),
         timeout: float = 12,
         deserialize: bool = True,
         run_async: bool = True,
         streaming: bool = False,
-    ) -> List[
-        Union[AsyncGenerator[Any, Any], bittensor.Synapse, bittensor.StreamingSynapse]
+    ) -> list[
+        AsyncGenerator[Any, Any] | bittensor.Synapse | bittensor.StreamingSynapse
     ]:
         """
         Asynchronously sends requests to one or multiple Axons and collates their responses.
@@ -401,9 +398,7 @@ class DendriteMixin:
 
         async def query_all_axons(
             is_stream: bool,
-        ) -> Union[
-            AsyncGenerator[Any, Any], bittensor.Synapse, bittensor.StreamingSynapse
-        ]:
+        ) -> AsyncGenerator[Any, Any] | bittensor.Synapse | bittensor.StreamingSynapse:
             """
             Handles the processing of requests to all targeted axons, accommodating both streaming and non-streaming responses.
 
@@ -423,9 +418,7 @@ class DendriteMixin:
 
             async def single_axon_response(
                 target_axon,
-            ) -> Union[
-                AsyncGenerator[Any, Any], bittensor.Synapse, bittensor.StreamingSynapse
-            ]:
+            ) -> AsyncGenerator[Any, Any] | bittensor.Synapse | bittensor.StreamingSynapse:
                 """
                 Manages the request and response process for a single axon, supporting both streaming and non-streaming modes.
 
@@ -477,7 +470,7 @@ class DendriteMixin:
 
     async def call(
         self,
-        target_axon: Union[bittensor.AxonInfo, bittensor.axon],
+        target_axon: bittensor.AxonInfo | bittensor.axon,
         synapse: bittensor.Synapse = bittensor.Synapse(),
         timeout: float = 12.0,
         deserialize: bool = True,
@@ -552,7 +545,7 @@ class DendriteMixin:
 
     async def call_stream(
         self,
-        target_axon: Union[bittensor.AxonInfo, bittensor.axon],
+        target_axon: bittensor.AxonInfo | bittensor.axon,
         synapse: bittensor.StreamingSynapse = bittensor.Synapse(),  # type: ignore
         timeout: float = 12.0,
         deserialize: bool = True,
@@ -818,12 +811,12 @@ class DendriteMixin:
 
 
 # For back-compatibility with torch
-BaseModel: Union[torch.nn.Module, object] = torch.nn.Module if use_torch() else object
+BaseModel: torch.nn.Module | object = torch.nn.Module if use_torch() else object
 
 
 class dendrite(DendriteMixin, BaseModel):  # type: ignore
     def __init__(
-        self, wallet: Optional[Union[bittensor.wallet, bittensor.Keypair]] = None
+        self, wallet: bittensor.wallet | bittensor.Keypair | None = None
     ):
         if use_torch():
             torch.nn.Module.__init__(self)

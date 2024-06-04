@@ -10,7 +10,7 @@ import typing
 from dataclasses import dataclass
 from datetime import timedelta
 from queue import Empty, Full
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Optional, Union
 
 import backoff
 import numpy
@@ -231,7 +231,7 @@ class _SolverBase(multiprocessing.Process):
 
     @staticmethod
     def create_shared_memory() -> (
-        Tuple[multiprocessing.Array, multiprocessing.Value, multiprocessing.Array]
+        tuple[multiprocessing.Array, multiprocessing.Value, multiprocessing.Array]
     ):
         """Creates shared memory for the solver processes to use."""
         curr_block = multiprocessing.Array("h", 32, lock=True)  # byte array
@@ -561,7 +561,7 @@ def _solve_for_difficulty_fast(
         while still updating the block information after a different number of nonces,
         to increase the transparency of the process while still keeping the speed.
     """
-    if num_processes == None:
+    if num_processes is None:
         # get the number of allowed processes for this process
         num_processes = min(1, get_cpu_count())
 
@@ -684,7 +684,7 @@ def _solve_for_difficulty_fast(
         num_time = 0
         for finished_queue in finished_queues:
             try:
-                proc_num = finished_queue.get(timeout=0.1)
+                finished_queue.get(timeout=0.1)
                 num_time += 1
 
             except Empty:
@@ -735,7 +735,7 @@ def _solve_for_difficulty_fast(
 @backoff.on_exception(backoff.constant, Exception, interval=1, max_tries=3)
 def _get_block_with_retry(
     subtensor: "bittensor.subtensor", netuid: int
-) -> Tuple[int, int, bytes]:
+) -> tuple[int, int, bytes]:
     """
     Gets the current block number, difficulty, and block hash from the substrate node.
 
@@ -779,7 +779,7 @@ class _UsingSpawnStartMethod:
 
     def __enter__(self):
         self._old_start_method = multiprocessing.get_start_method(allow_none=True)
-        if self._old_start_method == None:
+        if self._old_start_method is None:
             self._old_start_method = "spawn"  # default to spawn
 
         multiprocessing.set_start_method("spawn", force=self._force)
@@ -799,7 +799,7 @@ def _check_for_newest_block_and_update(
     curr_block_num: multiprocessing.Value,
     update_curr_block: Callable,
     check_block: "multiprocessing.Lock",
-    solvers: List[_Solver],
+    solvers: list[_Solver],
     curr_stats: RegistrationStatistics,
 ) -> int:
     """
@@ -871,7 +871,7 @@ def _solve_for_difficulty_fast_cuda(
     output_in_place: bool = True,
     update_interval: int = 50_000,
     tpb: int = 512,
-    dev_id: Union[List[int], int] = 0,
+    dev_id: Union[list[int], int] = 0,
     n_samples: int = 10,
     alpha_: float = 0.80,
     log_verbose: bool = False,
@@ -1032,7 +1032,7 @@ def _solve_for_difficulty_fast_cuda(
             # Get times for each solver
             for finished_queue in finished_queues:
                 try:
-                    proc_num = finished_queue.get(timeout=0.1)
+                    finished_queue.get(timeout=0.1)
                     num_time += 1
 
                 except Empty:
@@ -1082,7 +1082,7 @@ def _solve_for_difficulty_fast_cuda(
 
 
 def _terminate_workers_and_wait_for_exit(
-    workers: List[multiprocessing.Process],
+    workers: list[multiprocessing.Process],
 ) -> None:
     for worker in workers:
         worker.terminate()
@@ -1095,12 +1095,12 @@ def create_pow(
     netuid: int,
     output_in_place: bool = True,
     cuda: bool = False,
-    dev_id: Union[List[int], int] = 0,
+    dev_id: Union[list[int], int] = 0,
     tpb: int = 256,
     num_processes: int = None,
     update_interval: int = None,
     log_verbose: bool = False,
-) -> Optional[Dict[str, Any]]:
+) -> Optional[dict[str, Any]]:
     """
     Creates a proof of work for the given subtensor and wallet.
     Args:

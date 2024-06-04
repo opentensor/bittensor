@@ -18,7 +18,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 from abc import ABC, abstractmethod
-from typing import Any, List, Optional, Union
+from typing import Any, Optional, Union
 
 import bittensor as bt
 
@@ -39,7 +39,7 @@ class SubnetsAPI(ABC):
         ...
 
     @abstractmethod
-    def process_responses(self, responses: List[Union["bt.Synapse", Any]]) -> Any:
+    def process_responses(self, responses: list[Union["bt.Synapse", Any]]) -> Any:
         """
         Process the responses from the network.
         """
@@ -47,7 +47,7 @@ class SubnetsAPI(ABC):
 
     async def query_api(
         self,
-        axons: Union[bt.axon, List[bt.axon]],
+        axons: Union[bt.axon, list[bt.axon]],
         deserialize: Optional[bool] = False,
         timeout: Optional[int] = 12,
         **kwargs: Optional[Any],

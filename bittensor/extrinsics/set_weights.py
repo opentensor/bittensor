@@ -17,7 +17,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import logging
-from typing import Tuple, Union
+from typing import Union
 
 import numpy as np
 from numpy.typing import NDArray
@@ -41,7 +41,7 @@ def set_weights_extrinsic(
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
     prompt: bool = False,
-) -> Tuple[bool, str]:
+) -> tuple[bool, str]:
     r"""Sets the given weights and values on chain for wallet hotkey account.
 
     Args:
@@ -108,7 +108,7 @@ def set_weights_extrinsic(
             if not wait_for_finalization and not wait_for_inclusion:
                 return True, "Not waiting for finalization or inclusion."
 
-            if success == True:
+            if success is True:
                 bittensor.__console__.print(
                     ":white_heavy_check_mark: [green]Finalized[/green]"
                 )

@@ -18,7 +18,7 @@
 
 import logging
 import time
-from typing import List, Union
+from typing import Union
 
 import numpy as np
 from numpy.typing import NDArray
@@ -78,7 +78,7 @@ def root_register_extrinsic(
             wait_for_finalization=wait_for_finalization,
         )
 
-        if success != True or success == False:
+        if success is not True or success is False:
             bittensor.__console__.print(
                 f":cross_mark: [red]Failed[/red]: error:{err_msg}"
             )
@@ -105,8 +105,8 @@ def root_register_extrinsic(
 def set_root_weights_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
-    netuids: Union[NDArray[np.int64], "torch.LongTensor", List[int]],
-    weights: Union[NDArray[np.float32], "torch.FloatTensor", List[float]],
+    netuids: Union[NDArray[np.int64], "torch.LongTensor", list[int]],
+    weights: Union[NDArray[np.float32], "torch.FloatTensor", list[float]],
     version_key: int = 0,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
@@ -145,7 +145,7 @@ def set_root_weights_extrinsic(
 
     # Get non zero values.
     non_zero_weight_idx = np.argwhere(weights > 0).squeeze(axis=1)
-    non_zero_weight_uids = netuids[non_zero_weight_idx]
+    netuids[non_zero_weight_idx]
     non_zero_weights = weights[non_zero_weight_idx]
     if non_zero_weights.size < min_allowed_weights:
         raise ValueError(

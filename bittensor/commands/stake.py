@@ -18,7 +18,7 @@
 import argparse
 import os
 import sys
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Optional, Union
 
 from rich.prompt import Confirm, Prompt
 from rich.table import Table
@@ -87,14 +87,14 @@ class StakeCommand:
         wallet = bittensor.wallet(config=config)
 
         # Get the hotkey_names (if any) and the hotkey_ss58s.
-        hotkeys_to_stake_to: List[Tuple[Optional[str], str]] = []
+        hotkeys_to_stake_to: list[tuple[Optional[str], str]] = []
         if config.get("all_hotkeys"):
             # Stake to all hotkeys.
-            all_hotkeys: List[bittensor.wallet] = get_hotkey_wallets_for_wallet(
+            all_hotkeys: list[bittensor.wallet] = get_hotkey_wallets_for_wallet(
                 wallet=wallet
             )
             # Get the hotkeys to exclude. (d)efault to no exclusions.
-            hotkeys_to_exclude: List[str] = cli.config.get("hotkeys", d=[])
+            hotkeys_to_exclude: list[str] = cli.config.get("hotkeys", d=[])
             # Exclude hotkeys that are specified.
             hotkeys_to_stake_to = [
                 (wallet.hotkey_str, wallet.hotkey.ss58_address)
@@ -139,10 +139,10 @@ class StakeCommand:
 
         # Get coldkey balance
         wallet_balance: Balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
-        final_hotkeys: List[Tuple[str, str]] = []
-        final_amounts: List[Union[float, Balance]] = []
+        final_hotkeys: list[tuple[str, str]] = []
+        final_amounts: list[Union[float, Balance]] = []
         for hotkey in tqdm(hotkeys_to_stake_to):
-            hotkey: Tuple[Optional[str], str]  # (hotkey_name (or None), hotkey_ss58)
+            hotkey: tuple[Optional[str], str]  # (hotkey_name (or None), hotkey_ss58)
             if not subtensor.is_hotkey_registered_any(hotkey_ss58=hotkey[1]):
                 # Hotkey is not registered.
                 if len(hotkeys_to_stake_to) == 1:
@@ -298,7 +298,7 @@ class StakeCommand:
         bittensor.subtensor.add_args(stake_parser)
 
 
-def _get_coldkey_wallets_for_path(path: str) -> List["bittensor.wallet"]:
+def _get_coldkey_wallets_for_path(path: str) -> list["bittensor.wallet"]:
     try:
         wallet_names = next(os.walk(os.path.expanduser(path)))[1]
         return [bittensor.wallet(path=path, name=name) for name in wallet_names]
@@ -308,7 +308,7 @@ def _get_coldkey_wallets_for_path(path: str) -> List["bittensor.wallet"]:
     return wallets
 
 
-def _get_hotkey_wallets_for_wallet(wallet) -> List["bittensor.wallet"]:
+def _get_hotkey_wallets_for_wallet(wallet) -> list["bittensor.wallet"]:
     hotkey_wallets = []
     hotkeys_path = wallet.path + "/" + wallet.name + "/hotkeys"
     try:
@@ -376,17 +376,17 @@ class StakeShow:
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""Show all stake accounts."""
-        if cli.config.get("all", d=False) == True:
+        if cli.config.get("all", d=False) is True:
             wallets = _get_coldkey_wallets_for_path(cli.config.wallet.path)
         else:
             wallets = [bittensor.wallet(config=cli.config)]
-        registered_delegate_info: Optional[Dict[str, DelegatesDetails]] = (
+        registered_delegate_info: Optional[dict[str, DelegatesDetails]] = (
             get_delegates_details(url=bittensor.__delegates_details_url__)
         )
 
         def get_stake_accounts(
             wallet, subtensor
-        ) -> Dict[str, Dict[str, Union[str, Balance]]]:
+        ) -> dict[str, dict[str, Union[str, Balance]]]:
             """Get stake account details for the given wallet.
 
             Args:
@@ -415,7 +415,7 @@ class StakeShow:
 
         def get_stakes_from_hotkeys(
             subtensor, wallet
-        ) -> Dict[str, Dict[str, Union[str, Balance]]]:
+        ) -> dict[str, dict[str, Union[str, Balance]]]:
             """Fetch stakes from hotkeys for the provided wallet.
 
             Args:
@@ -448,7 +448,7 @@ class StakeShow:
 
         def get_stakes_from_delegates(
             subtensor, wallet
-        ) -> Dict[str, Dict[str, Union[str, Balance]]]:
+        ) -> dict[str, dict[str, Union[str, Balance]]]:
             """Fetch stakes from delegates for the provided wallet.
 
             Args:
@@ -480,7 +480,7 @@ class StakeShow:
         def get_all_wallet_accounts(
             wallets,
             subtensor,
-        ) -> List[Dict[str, Dict[str, Union[str, Balance]]]]:
+        ) -> list[dict[str, dict[str, Union[str, Balance]]]]:
             """Fetch stake accounts for all provided wallets using a ThreadPool.
 
             Args:

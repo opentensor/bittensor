@@ -19,7 +19,6 @@ import codecs
 import os
 import pathlib
 import re
-from io import open
 from os import path
 
 from setuptools import find_packages, setup
@@ -27,7 +26,6 @@ from setuptools import find_packages, setup
 
 def read_requirements(path):
     requirements = []
-    git_requirements = []
 
     with pathlib.Path(path).open() as requirements_txt:
         for line in requirements_txt:
