@@ -260,3 +260,7 @@ def hash(content, encoding="utf-8"):
 
     # Produce the hash
     return sha3.hexdigest()
+
+
+def some_new_func():
+    return
