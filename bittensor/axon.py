@@ -24,6 +24,7 @@ import asyncio
 import contextlib
 import copy
 import inspect
+import ntplib
 import json
 import os
 import threading
@@ -896,16 +897,39 @@ class axon:
 
             # If we don't have a nonce stored, ensure that the nonce falls within
             # a reasonable delta.
-            if (
-                self.nonces.get(endpoint_key) is None
-                and synapse.dendrite.nonce <= time.time_ns() - allowedDelta
-            ):
-                raise Exception("Nonce is too old")
-            if (
-                self.nonces.get(endpoint_key) is not None
+            try:
+                ntp_client = ntplib.NTPClient()
+                response = ntp_client.request('pool.ntp.org')
+                current_time = int(response.tx_time * 1e9)  # Convert to nanoseconds
+            except Exception as e:
+                print(f"Error fetching NTP time: {e}")
+                # Fallback to local time if NTP fails
+                current_time = time.time_ns()
+
+            if synapse.dendrite.nonce is None:
+                raise Exception("Missing Nonce")
+            
+            # Updated nonce using NTP implementated at v7.2
+            if synapse.dendrite.version >= 720:
+                # If we don't have a nonce stored, ensure that the nonce falls within
+                # a reasonable delta.
+                if (
+                    self.nonces.get(endpoint_key) is None
+                    and synapse.dendrite.nonce <= current_time - allowedDelta
+                ):
+                    raise Exception("Nonce is too old")
+                if (
+                    self.nonces.get(endpoint_key) is not None
+                    and synapse.dendrite.nonce <= self.nonces[endpoint_key]
+                ):
+                    raise Exception("Nonce is too old")
+            else:
+                if (
+                endpoint_key in self.nonces.keys()
+                and self.nonces[endpoint_key] is not None
                 and synapse.dendrite.nonce <= self.nonces[endpoint_key]
             ):
-                raise Exception("Nonce is too old")
+                    raise Exception("Nonce is too small")
 
             if not keypair.verify(message, synapse.dendrite.signature):
                 raise Exception(
@@ -1168,13 +1192,21 @@ class AxonMiddleware(BaseHTTPMiddleware):
                 f"Improperly formatted request. Could not parse headers {request.headers} into synapse of type {request_name}."
             )
         synapse.name = request_name
+        try:
+            ntp_client = ntplib.NTPClient()
+            response = ntp_client.request('pool.ntp.org')
+            current_time = int(response.tx_time * 1e9)  # Convert to nanoseconds
+        except Exception as e:
+            print(f"Error fetching NTP time: {e}")
+            # Fallback to local time if NTP fails
+            current_time = time.time_ns()
 
         # Fills the local axon information into the synapse.
         synapse.axon.__dict__.update(
             {
                 "version": str(bittensor.__version_as_int__),
                 "uuid": str(self.axon.uuid),
-                "nonce": f"{time.time_ns()}",
+                "nonce": current_time,
                 "status_code": 100,
             }
         )
