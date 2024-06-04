@@ -16,6 +16,8 @@
 # DEALINGS IN THE SOFTWARE.
 
 import argparse
+import os
+from typing import Optional
 
 from rich.prompt import Prompt
 from rich.table import Table
@@ -33,11 +35,6 @@ from .utils import (
 )
 
 console = bittensor.__console__
-
-import os
-from typing import Optional
-
-import bittensor
 
 
 def _get_coldkey_wallets_for_path(path: str) -> list["bittensor.wallet"]:

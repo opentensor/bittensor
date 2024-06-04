@@ -18,3 +18,5 @@ ignore = [
 [lint.per-file-ignores]
 "__init__.py" = ["F401"]
 "test/**" = ["D", "F403", "F405"]
+"bittensor/__init__.py" = ["E402"]  # FIXME to be changed and tested afterwards
+"bittensor/commands/__init__.py" = ["E402"]  # FIXME to be changed and tested afterwards
