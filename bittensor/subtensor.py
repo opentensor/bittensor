@@ -41,7 +41,7 @@ from substrateinterface.exceptions import SubstrateRequestException
 
 import bittensor
 from bittensor.btlogging import logging as _logger
-from bittensor.utils import torch, weight_utils
+from bittensor.utils import torch, weight_utils, format_error_message
 from .chain_data import (
     NeuronInfo,
     DelegateInfo,
@@ -774,6 +774,7 @@ class Subtensor:
     ###############
     # Set Weights #
     ###############
+    # TODO: still needed? Can't find any usage of this method.
     def set_weights(
         self,
         wallet: "bittensor.wallet",
@@ -900,7 +901,7 @@ class Subtensor:
             if response.is_success:
                 return True, "Successfully set weights."
             else:
-                return False, response.error_message
+                return False, format_error_message(response.error_message)
 
         return make_substrate_call_with_retry()
 
@@ -1170,7 +1171,7 @@ class Subtensor:
             if response.is_success:
                 return True, None
             else:
-                return False, response.error_message
+                return False, format_error_message(response.error_message)
 
         return make_substrate_call_with_retry()
 
@@ -1425,7 +1426,7 @@ class Subtensor:
             # process if registration successful, try again if pow is still valid
             response.process_events()
             if not response.is_success:
-                return False, response.error_message
+                return False, format_error_message(response.error_message)
             # Successful registration
             else:
                 return True, None
@@ -1482,7 +1483,7 @@ class Subtensor:
             # process if registration successful, try again if pow is still valid
             response.process_events()
             if not response.is_success:
-                return False, response.error_message
+                return False, format_error_message(response.error_message)
             # Successful registration
             else:
                 return True, None
@@ -1538,7 +1539,7 @@ class Subtensor:
             # process if registration successful, try again if pow is still valid
             response.process_events()
             if not response.is_success:
-                return False, response.error_message
+                return False, format_error_message(response.error_message)
             # Successful registration
             else:
                 return True, None
@@ -1691,7 +1692,7 @@ class Subtensor:
                 block_hash = response.block_hash
                 return True, block_hash, None
             else:
-                return False, None, response.error_message
+                return False, None, format_error_message(response.error_message)
 
         return make_substrate_call_with_retry()
 
@@ -1922,7 +1923,7 @@ class Subtensor:
                 if response.is_success:
                     return True, None
                 else:
-                    return False, response.error_message
+                    return False, format_error_message(response.error_message)
             else:
                 return True, None
 
@@ -1984,7 +1985,7 @@ class Subtensor:
                 if response.is_success:
                     return True, None
                 else:
-                    return False, response.error_message
+                    return False, format_error_message(response.error_message)
             else:
                 return True, None
 
@@ -2165,7 +2166,7 @@ class Subtensor:
             if response.is_success:
                 return True
             else:
-                raise StakeError(response.error_message)
+                raise StakeError(format_error_message(response.error_message))
 
         return make_substrate_call_with_retry()
 
@@ -2292,7 +2293,7 @@ class Subtensor:
             if response.is_success:
                 return True
             else:
-                raise StakeError(response.error_message)
+                raise StakeError(format_error_message(response.error_message))
 
         return make_substrate_call_with_retry()
 
@@ -2608,7 +2609,7 @@ class Subtensor:
             # process if registration successful, try again if pow is still valid
             response.process_events()
             if not response.is_success:
-                return False, response.error_message
+                return False, format_error_message(response.error_message)
             # Successful registration
             else:
                 return True, None
@@ -5093,7 +5094,7 @@ class Subtensor:
             if response.is_success:
                 return True
             else:
-                raise StakeError(response.error_message)
+                raise StakeError(format_error_message(response.error_message))
 
         return make_substrate_call_with_retry()
 
@@ -5147,7 +5148,7 @@ class Subtensor:
             if response.is_success:
                 return True
             else:
-                raise StakeError(response.error_message)
+                raise StakeError(format_error_message(response.error_message))
 
         return make_substrate_call_with_retry()
 
@@ -5194,7 +5195,7 @@ class Subtensor:
             if response.is_success:
                 return True
             else:
-                raise NominationError(response.error_message)
+                raise NominationError(format_error_message(response.error_message))
 
         return make_substrate_call_with_retry()
 
@@ -5249,7 +5250,7 @@ class Subtensor:
                 if response.is_success:
                     return True
                 else:
-                    raise TakeError(response.error_message)
+                    raise TakeError(format_error_message(response.error_message))
 
         return make_substrate_call_with_retry()
 
@@ -5304,7 +5305,7 @@ class Subtensor:
                 if response.is_success:
                     return True
                 else:
-                    raise TakeError(response.error_message)
+                    raise TakeError(format_error_message(response.error_message))
 
         return make_substrate_call_with_retry()
 
