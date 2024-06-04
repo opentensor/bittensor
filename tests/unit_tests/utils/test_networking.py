@@ -173,3 +173,10 @@ def test_get_external_ip_os_request_urllib_broken():
 def test_format(url: str, expected: str):
     """Test formatting WebSocket endpoint URL."""
     assert utils.networking.get_formatted_ws_endpoint_url(url) == expected
+
+
+def test_bt_ntp_client():
+    client_1 = utils.networking.BittensorNTPClient()
+    client_2 = utils.networking.BittensorNTPClient()
+
+    assert client_1 == client_2

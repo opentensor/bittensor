@@ -19,10 +19,14 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+# Standard Lib
 import os
 import urllib
 import json
 import netaddr
+
+# 3rd party
+import ntplib
 import requests
 
 
@@ -190,3 +194,14 @@ def get_formatted_ws_endpoint_url(endpoint_url: str) -> str:
         endpoint_url = "ws://{}".format(endpoint_url)
 
     return endpoint_url
+
+
+class BittensorNTPClient:
+    """NTP singleton client"""
+
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = ntplib.NTPClient()
+        return cls._instance
