@@ -16,15 +16,28 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
+import os
+import warnings
 
 from rich.console import Console
 from rich.traceback import install
 
-# Install and apply nest asyncio to allow the async functions
-# to run in a .ipynb
-import nest_asyncio
 
-nest_asyncio.apply()
+if (NEST_ASYNCIO_ENV := os.getenv("NEST_ASYNCIO")) in ("1", None):
+    if NEST_ASYNCIO_ENV is None:
+        warnings.warn(
+            "NEST_ASYNCIO implicitly set to '1'. In the future, the default value will be '0'."
+            "If you use `nest_asyncio` make sure to add it explicitly to your project dependencies,"
+            "as it will be removed from `bittensor` package dependencies in the future."
+            "To silence this warning, explicitly set the environment variable, e.g. `export NEST_ASYNCIO=0`.",
+            DeprecationWarning,
+        )
+    # Install and apply nest asyncio to allow the async functions
+    # to run in a .ipynb
+    import nest_asyncio
+
+    nest_asyncio.apply()
+
 
 # Bittensor code and protocol version.
 __version__ = "7.0.0"
