@@ -632,15 +632,6 @@ class DendriteMixin:
                 yield synapse.deserialize()
             else:
                 yield synapse
-
-    def get_ntp_time_ns(self):
-        try:
-            response = self.ntp_client.request('pool.ntp.org')
-            return int(response.tx_time * 1e9)  # Convert to nanoseconds
-        except Exception as e:
-            print(f"Error fetching NTP time: {e}")
-            # Fallback to local t
-            return time.time_ns()
  
     def preprocess_synapse_for_request(
         self,
