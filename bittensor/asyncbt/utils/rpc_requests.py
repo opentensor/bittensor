@@ -24,6 +24,32 @@ class Preprocessed:
     storage_item: ScaleType
 
 
+class RequestManager:
+    def __init__(self, payloads):
+        self.response_map = {}
+        self.responses = defaultdict(lambda: {"complete": False, "results": []})
+        self.payloads_count = len(payloads)
+
+    def add_request(self, item_id: int, request_id: int):
+        self.response_map[item_id] = request_id
+
+    def add_response(self, item_id: int, response: dict, complete: bool):
+        request_id = self.response_map[item_id]
+        self.responses[request_id]["results"].append(response)
+        self.responses[request_id]["complete"] = complete
+
+    def is_complete(self):
+        return (
+            all(info["complete"] for info in self.responses.values())
+            and len(self.responses) == self.payloads_count
+        )
+
+    def get_results(self):
+        return {
+            request_id: info["results"] for request_id, info in self.responses.items()
+        }
+
+
 class Websocket:
     def __init__(self, ws_url: str):
         # TODO allow setting max concurrent connections and rpc subscriptions per connection, default 100/1024
@@ -195,29 +221,27 @@ class RPCRequest:
         storage_item: Optional[ScaleType] = None,
         metadata: Optional[GenericMetadataVersioned] = None,
     ):
-        response_map = {}
-        responses = defaultdict(lambda: {"complete": False, "results": []})
+        request_manager = RequestManager(payloads)
+
         async with self.ws as ws:
             for item in payloads.values():
                 item_id = await ws.send(item["payload"])
-                response_map[item_id] = item["id"]
-                # {0: rpc_request}
+                request_manager.add_request(item_id, item["id"])
 
             while True:
-                for item_id in response_map.keys():
+                for item_id in list(request_manager.response_map.keys()):
                     if response := await ws.retrieve(item_id):
                         decoded_response, complete = await self._process_response(
                             response, value_scale_type, storage_item, metadata
                         )
-                        responses[response_map[item_id]]["results"].append(
-                            decoded_response
+                        request_manager.add_response(
+                            item_id, decoded_response, complete
                         )
-                        responses[response_map[item_id]]["complete"] = complete
-                if all(key["complete"] for key in responses.values()) and len(
-                    responses
-                ) == len(payloads.values()):
+
+                if request_manager.is_complete():
                     break
-        return {k: v["results"] for k, v in responses.items()}
+
+        return request_manager.get_results()
 
     async def rpc_request(
         self, method: str, params: list, block_hash: Optional[str] = None
