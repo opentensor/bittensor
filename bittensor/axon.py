@@ -1165,7 +1165,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
                 "version": str(bittensor.__version_as_int__),
                 "uuid": str(self.axon.uuid),
                 "nonce": f"{time.monotonic_ns()}",
-                "status_code": "100",
+                "status_code": 100,
             }
         )
 
