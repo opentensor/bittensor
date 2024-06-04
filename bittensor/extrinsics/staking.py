@@ -375,9 +375,7 @@ def add_stake_multiple_extrinsic(
             )
             continue
         except bittensor.errors.StakeError as e:
-            bittensor.__console__.print(
-                f":cross_mark: [red]Stake Error: {e}[/red]"
-            )
+            bittensor.__console__.print(f":cross_mark: [red]Stake Error: {e}[/red]")
             continue
 
     if successful_stakes != 0:

@@ -119,9 +119,7 @@ def transfer_extrinsic(
             bittensor.__console__.print(
                 ":white_heavy_check_mark: [green]Finalized[/green]"
             )
-            bittensor.__console__.print(
-                f"[green]Block Hash: {block_hash}[/green]"
-            )
+            bittensor.__console__.print(f"[green]Block Hash: {block_hash}[/green]")
 
             explorer_urls = bittensor.utils.get_explorer_url_for_network(
                 subtensor.network, block_hash, bittensor.__network_explorer_map__

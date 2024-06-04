@@ -71,19 +71,21 @@ def test_unstake_extrinsic(
     mock_current_stake = Balance.from_tao(50)
     mock_current_balance = Balance.from_tao(100)
 
-    with patch.object(
-        mock_subtensor, "_do_unstake", return_value=(expected_success)
-    ), patch.object(
-        mock_subtensor, "get_balance", return_value=mock_current_balance
-    ), patch.object(
-        mock_subtensor,
-        "get_minimum_required_stake",
-        side_effect=mock_get_minimum_required_stake,
-    ), patch.object(
-        mock_subtensor,
-        "get_stake_for_coldkey_and_hotkey",
-        return_value=mock_current_stake,
-    ), patch("rich.prompt.Confirm.ask", return_value=user_accepts) as mock_confirm:
+    with (
+        patch.object(mock_subtensor, "_do_unstake", return_value=(expected_success)),
+        patch.object(mock_subtensor, "get_balance", return_value=mock_current_balance),
+        patch.object(
+            mock_subtensor,
+            "get_minimum_required_stake",
+            side_effect=mock_get_minimum_required_stake,
+        ),
+        patch.object(
+            mock_subtensor,
+            "get_stake_for_coldkey_and_hotkey",
+            return_value=mock_current_stake,
+        ),
+        patch("rich.prompt.Confirm.ask", return_value=user_accepts) as mock_confirm,
+    ):
         result = unstake_extrinsic(
             subtensor=mock_subtensor,
             wallet=mock_wallet,
@@ -281,19 +283,26 @@ def test_unstake_multiple_extrinsic(
         index = hotkey_ss58s.index(hotkey_ss58)
         return unstake_responses[index]
 
-    with patch.object(
-        mock_subtensor, "_do_unstake", side_effect=unstake_side_effect
-    ) as mock_unstake, patch.object(
-        mock_subtensor,
-        "get_minimum_required_stake",
-        side_effect=mock_get_minimum_required_stake,
-    ), patch.object(
-        mock_subtensor, "get_balance", return_value=Balance.from_tao(wallet_balance)
-    ), patch.object(mock_subtensor, "tx_rate_limit", return_value=0), patch.object(
-        mock_subtensor,
-        "get_stake_for_coldkey_and_hotkey",
-        return_value=mock_current_stake,
-    ), patch("rich.prompt.Confirm.ask", return_value=prompt_response) as mock_confirm:
+    with (
+        patch.object(
+            mock_subtensor, "_do_unstake", side_effect=unstake_side_effect
+        ) as mock_unstake,
+        patch.object(
+            mock_subtensor,
+            "get_minimum_required_stake",
+            side_effect=mock_get_minimum_required_stake,
+        ),
+        patch.object(
+            mock_subtensor, "get_balance", return_value=Balance.from_tao(wallet_balance)
+        ),
+        patch.object(mock_subtensor, "tx_rate_limit", return_value=0),
+        patch.object(
+            mock_subtensor,
+            "get_stake_for_coldkey_and_hotkey",
+            return_value=mock_current_stake,
+        ),
+        patch("rich.prompt.Confirm.ask", return_value=prompt_response) as mock_confirm,
+    ):
         # Act
         if exception:
             with pytest.raises(exception) as exc_info:

@@ -99,8 +99,7 @@ def prometheus_extrinsic(
         )
 
         bittensor.__console__.print(
-            ":white_heavy_check_mark: [white]Prometheus already served.[/white]".format(
-                )
+            ":white_heavy_check_mark: [white]Prometheus already served.[/white]".format()
         )
         return True
 

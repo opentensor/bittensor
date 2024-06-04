@@ -132,16 +132,19 @@ def test_set_hyperparameter_extrinsic(
     expected_result,
 ):
     # Arrange
-    with patch.object(
-        mock_subtensor,
-        "get_subnet_owner",
-        return_value=mock_wallet.coldkeypub.ss58_address
-        if is_owner
-        else mock_other_owner_wallet.coldkeypub.ss58_address,
-    ), patch.object(
-        mock_subtensor.substrate,
-        "submit_extrinsic",
-        return_value=MagicMock(is_success=extrinsic_success),
+    with (
+        patch.object(
+            mock_subtensor,
+            "get_subnet_owner",
+            return_value=mock_wallet.coldkeypub.ss58_address
+            if is_owner
+            else mock_other_owner_wallet.coldkeypub.ss58_address,
+        ),
+        patch.object(
+            mock_subtensor.substrate,
+            "submit_extrinsic",
+            return_value=MagicMock(is_success=extrinsic_success),
+        ),
     ):
         # Act
         result = set_hyperparameter_extrinsic(

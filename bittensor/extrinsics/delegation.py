@@ -55,9 +55,7 @@ def nominate_extrinsic(
 
     # Check if the hotkey is already a delegate.
     if subtensor.is_hotkey_delegate(wallet.hotkey.ss58_address):
-        logger.error(
-            f"Hotkey {wallet.hotkey.ss58_address} is already a delegate."
-        )
+        logger.error(f"Hotkey {wallet.hotkey.ss58_address} is already a delegate.")
         return False
 
     with bittensor.__console__.status(
@@ -83,16 +81,12 @@ def nominate_extrinsic(
             return success
 
         except Exception as e:
-            bittensor.__console__.print(
-                f":cross_mark: [red]Failed[/red]: error:{e}"
-            )
+            bittensor.__console__.print(f":cross_mark: [red]Failed[/red]: error:{e}")
             bittensor.logging.warning(
                 prefix="Set weights", suffix="<red>Failed: </red>" + str(e)
             )
         except NominationError as e:
-            bittensor.__console__.print(
-                f":cross_mark: [red]Failed[/red]: error:{e}"
-            )
+            bittensor.__console__.print(f":cross_mark: [red]Failed[/red]: error:{e}")
             bittensor.logging.warning(
                 prefix="Set weights", suffix="<red>Failed: </red>" + str(e)
             )
@@ -386,9 +380,7 @@ def decrease_take_extrinsic(
             return success
 
         except (TakeError, Exception) as e:
-            bittensor.__console__.print(
-                f":cross_mark: [red]Failed[/red]: error:{e}"
-            )
+            bittensor.__console__.print(f":cross_mark: [red]Failed[/red]: error:{e}")
             bittensor.logging.warning(
                 prefix="Set weights", suffix="<red>Failed: </red>" + str(e)
             )
@@ -444,16 +436,12 @@ def increase_take_extrinsic(
             return success
 
         except Exception as e:
-            bittensor.__console__.print(
-                f":cross_mark: [red]Failed[/red]: error:{e}"
-            )
+            bittensor.__console__.print(f":cross_mark: [red]Failed[/red]: error:{e}")
             bittensor.logging.warning(
                 prefix="Set weights", suffix="<red>Failed: </red>" + str(e)
             )
         except TakeError as e:
-            bittensor.__console__.print(
-                f":cross_mark: [red]Failed[/red]: error:{e}"
-            )
+            bittensor.__console__.print(f":cross_mark: [red]Failed[/red]: error:{e}")
             bittensor.logging.warning(
                 prefix="Set weights", suffix="<red>Failed: </red>" + str(e)
             )

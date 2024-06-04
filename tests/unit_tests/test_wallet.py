@@ -170,8 +170,9 @@ def test_check_and_update_encryption_not_updated(wallet_update_setup):
         legacy_wallet = create_legacy_wallet(
             default_legacy_password=default_legacy_password
         )
-        with patch("getpass.getpass", return_value="wrong_password"), patch.object(
-            Confirm, "ask", return_value=False
+        with (
+            patch("getpass.getpass", return_value="wrong_password"),
+            patch.object(Confirm, "ask", return_value=False),
         ):
             assert not legacy_wallet.coldkey_file.check_and_update_encryption()
 
@@ -237,8 +238,9 @@ def test_check_and_update_excryption(wallet_update_setup, legacy_wallet=None):
     old_hotkey_path = legacy_wallet.hotkey_file.path
 
     # update legacy_wallet from ansible to nacl
-    with patch("getpass.getpass", return_value=legacy_password), patch.object(
-        Confirm, "ask", return_value=True
+    with (
+        patch("getpass.getpass", return_value=legacy_password),
+        patch.object(Confirm, "ask", return_value=True),
     ):
         legacy_wallet.coldkey_file.check_and_update_encryption()
 
@@ -463,9 +465,10 @@ def test_regen_coldkey_mnemonic(mock_wallet, mnemonic, expected_exception):
     """Test the `regenerate_coldkey` method of the wallet class, which regenerates the cold key pair from a mnemonic.
     We test different input formats of mnemonics and check if the function works as expected.
     """
-    with patch.object(mock_wallet, "set_coldkey") as mock_set_coldkey, patch.object(
-        mock_wallet, "set_coldkeypub"
-    ) as mock_set_coldkeypub:
+    with (
+        patch.object(mock_wallet, "set_coldkey") as mock_set_coldkey,
+        patch.object(mock_wallet, "set_coldkeypub") as mock_set_coldkeypub,
+    ):
         if expected_exception:
             with pytest.raises(expected_exception):
                 mock_wallet.regenerate_coldkey(
@@ -492,8 +495,9 @@ def test_regen_coldkey_overwrite_functionality(
     ss58_addr = "5D5cwd8DX6ij7nouVcoxDuWtJfiR1BnzCkiBVTt7DU8ft5Ta"
     seed_str = "0x659c024d5be809000d0d93fe378cfde020846150b01c49a201fc2a02041f7636"
 
-    with patch.object(mock_wallet, "set_coldkey") as mock_set_coldkey, patch(
-        "builtins.input", return_value=user_input
+    with (
+        patch.object(mock_wallet, "set_coldkey") as mock_set_coldkey,
+        patch("builtins.input", return_value=user_input),
     ):
         if expected_exception:
             with pytest.raises(KeyFileError):

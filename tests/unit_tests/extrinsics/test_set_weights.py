@@ -70,14 +70,18 @@ def test_set_weights_extrinsic(
 ):
     uids_tensor = torch.tensor(uids, dtype=torch.int64)
     weights_tensor = torch.tensor(weights, dtype=torch.float32)
-    with patch(
-        "bittensor.utils.weight_utils.convert_weights_and_uids_for_emit",
-        return_value=(uids_tensor, weights_tensor),
-    ), patch("rich.prompt.Confirm.ask", return_value=user_accepts), patch.object(
-        mock_subtensor,
-        "_do_set_weights",
-        return_value=(expected_success, "Mock error message"),
-    ) as mock_do_set_weights:
+    with (
+        patch(
+            "bittensor.utils.weight_utils.convert_weights_and_uids_for_emit",
+            return_value=(uids_tensor, weights_tensor),
+        ),
+        patch("rich.prompt.Confirm.ask", return_value=user_accepts),
+        patch.object(
+            mock_subtensor,
+            "_do_set_weights",
+            return_value=(expected_success, "Mock error message"),
+        ) as mock_do_set_weights,
+    ):
         result, message = set_weights_extrinsic(
             subtensor=mock_subtensor,
             wallet=mock_wallet,

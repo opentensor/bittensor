@@ -144,9 +144,7 @@ class RootList:
         )
 
         senate_members = subtensor.get_senate_members()
-        root_neurons: list[bittensor.NeuronInfoLite] = subtensor.neurons_lite(
-            netuid=0
-        )
+        root_neurons: list[bittensor.NeuronInfoLite] = subtensor.neurons_lite(netuid=0)
         delegate_info: Optional[dict[str, DelegatesDetails]] = get_delegates_details(
             url=bittensor.__delegates_details_url__
         )
@@ -501,10 +499,7 @@ class RootSetWeightsCommand:
                 ", ".join(
                     map(
                         str,
-                        [
-                            f"{float(1 / len(subnets)):.2f}"
-                            for subnet in subnets
-                        ][:3],
+                        [f"{float(1 / len(subnets)):.2f}" for subnet in subnets][:3],
                     )
                 )
                 + " ..."

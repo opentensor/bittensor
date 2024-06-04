@@ -344,9 +344,7 @@ def decrypt_keyfile_data(
                 decrypted_keyfile_data = cipher_suite.decrypt(keyfile_data)
             # Unknown.
             else:
-                raise bittensor.KeyFileError(
-                    f"keyfile data: {keyfile_data} is corrupt"
-                )
+                raise bittensor.KeyFileError(f"keyfile data: {keyfile_data} is corrupt")
 
     except (InvalidSignature, InvalidKey, InvalidToken):
         raise bittensor.KeyFileError("Invalid password")
@@ -620,17 +618,11 @@ class keyfile:
             KeyFileError: Raised if the file does not exist, is not readable, or writable.
         """
         if not self.exists_on_device():
-            raise bittensor.KeyFileError(
-                f"Keyfile at: {self.path} does not exist"
-            )
+            raise bittensor.KeyFileError(f"Keyfile at: {self.path} does not exist")
         if not self.is_readable():
-            raise bittensor.KeyFileError(
-                f"Keyfile at: {self.path} is not readable"
-            )
+            raise bittensor.KeyFileError(f"Keyfile at: {self.path} is not readable")
         if not self.is_writable():
-            raise bittensor.KeyFileError(
-                f"Keyfile at: {self.path} is not writable"
-            )
+            raise bittensor.KeyFileError(f"Keyfile at: {self.path} is not writable")
         keyfile_data = self._read_keyfile_data_from_file()
         if not keyfile_data_is_encrypted(keyfile_data):
             as_keypair = deserialize_keypair_from_keyfile_data(keyfile_data)
@@ -647,17 +639,11 @@ class keyfile:
             KeyFileError: Raised if the file does not exist, is not readable, writable, corrupted, or if the password is incorrect.
         """
         if not self.exists_on_device():
-            raise bittensor.KeyFileError(
-                f"Keyfile at: {self.path} does not exist"
-            )
+            raise bittensor.KeyFileError(f"Keyfile at: {self.path} does not exist")
         if not self.is_readable():
-            raise bittensor.KeyFileError(
-                f"Keyfile at: {self.path} is not readable"
-            )
+            raise bittensor.KeyFileError(f"Keyfile at: {self.path} is not readable")
         if not self.is_writable():
-            raise bittensor.KeyFileError(
-                f"Keyfile at: {self.path} is not writable"
-            )
+            raise bittensor.KeyFileError(f"Keyfile at: {self.path} is not writable")
         keyfile_data = self._read_keyfile_data_from_file()
         if keyfile_data_is_encrypted(keyfile_data):
             keyfile_data = decrypt_keyfile_data(
@@ -676,13 +662,9 @@ class keyfile:
             KeyFileError: Raised if the file does not exist or is not readable.
         """
         if not self.exists_on_device():
-            raise bittensor.KeyFileError(
-                f"Keyfile at: {self.path} does not exist"
-            )
+            raise bittensor.KeyFileError(f"Keyfile at: {self.path} does not exist")
         if not self.is_readable():
-            raise bittensor.KeyFileError(
-                f"Keyfile at: {self.path} is not readable"
-            )
+            raise bittensor.KeyFileError(f"Keyfile at: {self.path} is not readable")
         with open(self.path, "rb") as file:
             data = file.read()
         return data
@@ -699,9 +681,7 @@ class keyfile:
         # Check overwrite.
         if self.exists_on_device() and not overwrite:
             if not self._may_overwrite():
-                raise bittensor.KeyFileError(
-                    f"Keyfile at: {self.path} is not writable"
-                )
+                raise bittensor.KeyFileError(f"Keyfile at: {self.path} is not writable")
         with open(self.path, "wb") as keyfile:
             keyfile.write(keyfile_data)
         # Set file permissions.

@@ -86,11 +86,14 @@ def test_root_register_extrinsic(
     # Arrange
     mock_subtensor.is_hotkey_registered.side_effect = hotkey_registered
 
-    with patch.object(
-        mock_subtensor,
-        "_do_root_register",
-        return_value=(registration_success, "Error registering"),
-    ) as mock_register, patch("rich.prompt.Confirm.ask", return_value=user_response):
+    with (
+        patch.object(
+            mock_subtensor,
+            "_do_root_register",
+            return_value=(registration_success, "Error registering"),
+        ) as mock_register,
+        patch("rich.prompt.Confirm.ask", return_value=user_response),
+    ):
         # Act
         result = root_register_extrinsic(
             subtensor=mock_subtensor,
@@ -187,13 +190,16 @@ def test_set_root_weights_extrinsic(
     expected_success,
 ):
     # Arrange
-    with patch.object(
-        mock_subtensor, "_do_set_weights", return_value=(expected_success, "Mock error")
-    ), patch.object(
-        mock_subtensor, "min_allowed_weights", return_value=0
-    ), patch.object(mock_subtensor, "max_weight_limit", return_value=1), patch(
-        "rich.prompt.Confirm.ask", return_value=user_response
-    ) as mock_confirm:
+    with (
+        patch.object(
+            mock_subtensor,
+            "_do_set_weights",
+            return_value=(expected_success, "Mock error"),
+        ),
+        patch.object(mock_subtensor, "min_allowed_weights", return_value=0),
+        patch.object(mock_subtensor, "max_weight_limit", return_value=1),
+        patch("rich.prompt.Confirm.ask", return_value=user_response) as mock_confirm,
+    ):
         # Act
         result = set_root_weights_extrinsic(
             subtensor=mock_subtensor,

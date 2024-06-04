@@ -92,17 +92,20 @@ def test_get_total_balance(
     mock_wallet.coldkeypub_file.exists_on_device.return_value = exists_on_device
     mock_wallet.coldkeypub_file.is_encrypted.return_value = is_encrypted
 
-    with patch(
-        "bittensor.wallet", return_value=mock_wallet
-    ), patch(
-        "bittensor.commands.overview.get_coldkey_wallets_for_path",
-        return_value=[mock_wallet] if config_all else [],
-    ), patch(
-        "bittensor.commands.overview.get_all_wallets_for_path",
-        return_value=[mock_wallet],
-    ), patch(
-        "bittensor.commands.overview.get_hotkey_wallets_for_wallet",
-        return_value=[mock_wallet],
+    with (
+        patch("bittensor.wallet", return_value=mock_wallet),
+        patch(
+            "bittensor.commands.overview.get_coldkey_wallets_for_path",
+            return_value=[mock_wallet] if config_all else [],
+        ),
+        patch(
+            "bittensor.commands.overview.get_all_wallets_for_path",
+            return_value=[mock_wallet],
+        ),
+        patch(
+            "bittensor.commands.overview.get_hotkey_wallets_for_wallet",
+            return_value=[mock_wallet],
+        ),
     ):
         # Act
         result_hotkeys, result_balance = OverviewCommand._get_total_balance(

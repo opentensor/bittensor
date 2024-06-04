@@ -672,9 +672,7 @@ class TestSubtensor(unittest.TestCase):
         mock_neuron.is_null = True
 
         # patch solution queue to return None
-        with patch(
-            "multiprocessing.queues.Queue.get", return_value=None
-        ):
+        with patch("multiprocessing.queues.Queue.get", return_value=None):
             # patch time queue get to raise Empty exception
             with patch(
                 "multiprocessing.queues.Queue.get_nowait", side_effect=QueueEmpty

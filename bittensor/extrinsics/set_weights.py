@@ -128,9 +128,7 @@ def set_weights_extrinsic(
                 return False, error_message
 
         except Exception as e:
-            bittensor.__console__.print(
-                f":cross_mark: [red]Failed[/red]: error:{e}"
-            )
+            bittensor.__console__.print(f":cross_mark: [red]Failed[/red]: error:{e}")
             bittensor.logging.warning(
                 prefix="Set weights", suffix="<red>Failed: </red>" + str(e)
             )

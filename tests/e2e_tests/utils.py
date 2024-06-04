@@ -1,4 +1,3 @@
-
 from substrateinterface import Keypair
 
 import bittensor

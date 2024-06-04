@@ -56,20 +56,21 @@ def test_register_senate_extrinsic(
     test_id,
 ):
     # Arrange
-    with patch(
-        "bittensor.extrinsics.senate.Confirm.ask", return_value=not prompt
-    ), patch("bittensor.extrinsics.senate.time.sleep"), patch.object(
-        mock_subtensor.substrate, "compose_call"
-    ), patch.object(mock_subtensor.substrate, "create_signed_extrinsic"), patch.object(
-        mock_subtensor.substrate,
-        "submit_extrinsic",
-        return_value=MagicMock(
-            is_success=response_success,
-            process_events=MagicMock(),
-            error_message="error",
+    with (
+        patch("bittensor.extrinsics.senate.Confirm.ask", return_value=not prompt),
+        patch("bittensor.extrinsics.senate.time.sleep"),
+        patch.object(mock_subtensor.substrate, "compose_call"),
+        patch.object(mock_subtensor.substrate, "create_signed_extrinsic"),
+        patch.object(
+            mock_subtensor.substrate,
+            "submit_extrinsic",
+            return_value=MagicMock(
+                is_success=response_success,
+                process_events=MagicMock(),
+                error_message="error",
+            ),
         ),
-    ), patch.object(
-        mock_wallet, "is_senate_member", return_value=is_registered
+        patch.object(mock_wallet, "is_senate_member", return_value=is_registered),
     ):
         # Act
         result = register_senate_extrinsic(
@@ -149,25 +150,28 @@ def test_vote_senate_extrinsic(
     proposal_hash = "mock_hash"
     proposal_idx = 123
 
-    with patch(
-        "bittensor.extrinsics.senate.Confirm.ask", return_value=not prompt
-    ), patch("bittensor.extrinsics.senate.time.sleep"), patch.object(
-        mock_subtensor.substrate, "compose_call"
-    ), patch.object(mock_subtensor.substrate, "create_signed_extrinsic"), patch.object(
-        mock_subtensor.substrate,
-        "submit_extrinsic",
-        return_value=MagicMock(
-            is_success=response_success,
-            process_events=MagicMock(),
-            error_message="error",
+    with (
+        patch("bittensor.extrinsics.senate.Confirm.ask", return_value=not prompt),
+        patch("bittensor.extrinsics.senate.time.sleep"),
+        patch.object(mock_subtensor.substrate, "compose_call"),
+        patch.object(mock_subtensor.substrate, "create_signed_extrinsic"),
+        patch.object(
+            mock_subtensor.substrate,
+            "submit_extrinsic",
+            return_value=MagicMock(
+                is_success=response_success,
+                process_events=MagicMock(),
+                error_message="error",
+            ),
         ),
-    ), patch.object(
-        mock_subtensor,
-        "get_vote_data",
-        return_value={
-            "ayes": [mock_wallet.hotkey.ss58_address] if vote_in_ayes else [],
-            "nays": [mock_wallet.hotkey.ss58_address] if vote_in_nays else [],
-        },
+        patch.object(
+            mock_subtensor,
+            "get_vote_data",
+            return_value={
+                "ayes": [mock_wallet.hotkey.ss58_address] if vote_in_ayes else [],
+                "nays": [mock_wallet.hotkey.ss58_address] if vote_in_nays else [],
+            },
+        ),
     ):
         # Act
         result = vote_senate_extrinsic(
@@ -213,19 +217,22 @@ def test_leave_senate_extrinsic(
     test_id,
 ):
     # Arrange
-    with patch(
-        "bittensor.extrinsics.senate.Confirm.ask", return_value=not prompt
-    ), patch("bittensor.extrinsics.senate.time.sleep"), patch.object(
-        mock_subtensor.substrate, "compose_call"
-    ), patch.object(mock_subtensor.substrate, "create_signed_extrinsic"), patch.object(
-        mock_subtensor.substrate,
-        "submit_extrinsic",
-        return_value=MagicMock(
-            is_success=response_success,
-            process_events=MagicMock(),
-            error_message="error",
+    with (
+        patch("bittensor.extrinsics.senate.Confirm.ask", return_value=not prompt),
+        patch("bittensor.extrinsics.senate.time.sleep"),
+        patch.object(mock_subtensor.substrate, "compose_call"),
+        patch.object(mock_subtensor.substrate, "create_signed_extrinsic"),
+        patch.object(
+            mock_subtensor.substrate,
+            "submit_extrinsic",
+            return_value=MagicMock(
+                is_success=response_success,
+                process_events=MagicMock(),
+                error_message="error",
+            ),
         ),
-    ), patch.object(mock_wallet, "is_senate_member", return_value=is_registered):
+        patch.object(mock_wallet, "is_senate_member", return_value=is_registered),
+    ):
         # Act
         result = leave_senate_extrinsic(
             subtensor=mock_subtensor,

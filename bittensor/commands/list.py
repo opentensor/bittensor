@@ -73,9 +73,7 @@ class ListCommand:
             except:  # noqa: E722  # FIXME: This is a broad exception catch, should be narrowed down.
                 coldkeypub_str = "?"
 
-            wallet_tree = root.add(
-                f"\n[bold white]{w_name} ({coldkeypub_str})"
-            )
+            wallet_tree = root.add(f"\n[bold white]{w_name} ({coldkeypub_str})")
             hotkeys_path = os.path.join(cli.config.wallet.path, w_name, "hotkeys")
             try:
                 hotkeys = next(os.walk(os.path.expanduser(hotkeys_path)))

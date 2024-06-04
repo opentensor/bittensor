@@ -18,7 +18,6 @@
 
 """Module commit weights and reveal weights extrinsic."""
 
-
 from rich.prompt import Confirm
 
 import bittensor

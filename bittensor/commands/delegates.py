@@ -288,7 +288,9 @@ def show_delegates(
                     / float(prev_stake)
                 )
                 if rate_change_in_stake > 0:
-                    rate_change_in_stake_str = f"[green]{rate_change_in_stake:.2f}%[/green]"
+                    rate_change_in_stake_str = (
+                        f"[green]{rate_change_in_stake:.2f}%[/green]"
+                    )
                 elif rate_change_in_stake < 0:
                     rate_change_in_stake_str = f"[red]{rate_change_in_stake:.2f}%[/red]"
                 else:
@@ -429,9 +431,7 @@ class DelegateStakeCommand:
             show_delegates(delegates, prev_delegates=prev_delegates)
             delegate_index = Prompt.ask("Enter delegate index")
             config.delegate_ss58key = str(delegates[int(delegate_index)].hotkey_ss58)
-            console.print(
-                f"Selected: [yellow]{config.delegate_ss58key}[/yellow]"
-            )
+            console.print(f"Selected: [yellow]{config.delegate_ss58key}[/yellow]")
 
         if not config.is_set("wallet.name") and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
@@ -570,9 +570,7 @@ class DelegateUnstakeCommand:
             show_delegates(delegates, prev_delegates=prev_delegates)
             delegate_index = Prompt.ask("Enter delegate index")
             config.delegate_ss58key = str(delegates[int(delegate_index)].hotkey_ss58)
-            console.print(
-                f"Selected: [yellow]{config.delegate_ss58key}[/yellow]"
-            )
+            console.print(f"Selected: [yellow]{config.delegate_ss58key}[/yellow]")
 
         # Get amount.
         if not config.get("amount") and not config.get("unstake_all"):

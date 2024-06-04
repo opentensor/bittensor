@@ -250,9 +250,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             print("Registering mock wallets to subnets...")
 
             for netuid, wallet in mock_registrations:
-                print(
-                    f"Registering wallet {wallet.hotkey_str} to subnet {netuid}"
-                )
+                print(f"Registering wallet {wallet.hotkey_str} to subnet {netuid}")
                 _ = _subtensor_mock.force_register_neuron(
                     netuid=netuid,
                     coldkey=wallet.coldkey.ss58_address,
@@ -2511,11 +2509,13 @@ def test_set_identity_command(
     mock_wallet.coldkey.ss58_address = "fake_coldkey_ss58_address"
     mock_wallet.coldkey = MagicMock()
 
-    with patch("bittensor.subtensor", return_value=mock_subtensor), patch(
-        "bittensor.wallet", return_value=mock_wallet
-    ), patch("bittensor.__console__", MagicMock()), patch(
-        "rich.prompt.Prompt.ask", side_effect=["y", "y"]
-    ), patch("sys.exit") as mock_exit:
+    with (
+        patch("bittensor.subtensor", return_value=mock_subtensor),
+        patch("bittensor.wallet", return_value=mock_wallet),
+        patch("bittensor.__console__", MagicMock()),
+        patch("rich.prompt.Prompt.ask", side_effect=["y", "y"]),
+        patch("sys.exit") as mock_exit,
+    ):
         # Act
         if expected_exception:
             with pytest.raises(expected_exception) as exc_info:

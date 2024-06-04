@@ -76,10 +76,13 @@ def test_run_faucet_extrinsic_happy_path(
     log_verbose,
     expected,
 ):
-    with patch(
-        "bittensor.utils.registration._solve_for_difficulty_fast",
-        return_value=mock_pow_solution,
-    ), patch("rich.prompt.Confirm.ask", return_value=True):
+    with (
+        patch(
+            "bittensor.utils.registration._solve_for_difficulty_fast",
+            return_value=mock_pow_solution,
+        ),
+        patch("rich.prompt.Confirm.ask", return_value=True),
+    ):
         from bittensor.extrinsics.registration import run_faucet_extrinsic
 
         # Arrange
@@ -133,8 +136,9 @@ def test_run_faucet_extrinsic_happy_path(
 def test_run_faucet_extrinsic_edge_cases(
     mock_subtensor, mock_wallet, cuda, torch_cuda_available, prompt_response, expected
 ):
-    with patch("torch.cuda.is_available", return_value=torch_cuda_available), patch(
-        "rich.prompt.Confirm.ask", return_value=prompt_response
+    with (
+        patch("torch.cuda.is_available", return_value=torch_cuda_available),
+        patch("rich.prompt.Confirm.ask", return_value=prompt_response),
     ):
         from bittensor.extrinsics.registration import run_faucet_extrinsic
 
@@ -259,19 +263,23 @@ def test_burned_register_extrinsic(
     test_id,
 ):
     # Arrange
-    with patch.object(
-        mock_subtensor, "subnet_exists", return_value=subnet_exists
-    ), patch.object(
-        mock_subtensor,
-        "get_neuron_for_pubkey_and_subnet",
-        return_value=MagicMock(is_null=neuron_is_null),
-    ), patch.object(
-        mock_subtensor,
-        "_do_burned_register",
-        return_value=(recycle_success, "Mock error message"),
-    ), patch.object(
-        mock_subtensor, "is_hotkey_registered", return_value=is_registered
-    ), patch("rich.prompt.Confirm.ask", return_value=prompt_response) as mock_confirm:
+    with (
+        patch.object(mock_subtensor, "subnet_exists", return_value=subnet_exists),
+        patch.object(
+            mock_subtensor,
+            "get_neuron_for_pubkey_and_subnet",
+            return_value=MagicMock(is_null=neuron_is_null),
+        ),
+        patch.object(
+            mock_subtensor,
+            "_do_burned_register",
+            return_value=(recycle_success, "Mock error message"),
+        ),
+        patch.object(
+            mock_subtensor, "is_hotkey_registered", return_value=is_registered
+        ),
+        patch("rich.prompt.Confirm.ask", return_value=prompt_response) as mock_confirm,
+    ):
         # Act
         result = burned_register_extrinsic(
             subtensor=mock_subtensor, wallet=mock_wallet, netuid=123, prompt=True
@@ -307,14 +315,15 @@ def test_register_extrinsic_without_pow(
     test_id,
 ):
     # Arrange
-    with patch.object(
-        mock_subtensor, "subnet_exists", return_value=subnet_exists
-    ), patch.object(
-        mock_subtensor,
-        "get_neuron_for_pubkey_and_subnet",
-        return_value=MagicMock(is_null=neuron_is_null),
-    ), patch("rich.prompt.Confirm.ask", return_value=prompt_response), patch(
-        "torch.cuda.is_available", return_value=cuda_available
+    with (
+        patch.object(mock_subtensor, "subnet_exists", return_value=subnet_exists),
+        patch.object(
+            mock_subtensor,
+            "get_neuron_for_pubkey_and_subnet",
+            return_value=MagicMock(is_null=neuron_is_null),
+        ),
+        patch("rich.prompt.Confirm.ask", return_value=prompt_response),
+        patch("torch.cuda.is_available", return_value=cuda_available),
     ):
         # Act
         result = register_extrinsic(
@@ -362,17 +371,22 @@ def test_register_extrinsic_with_pow(
     test_id,
 ):
     # Arrange
-    with patch(
-        "bittensor.utils.registration._solve_for_difficulty_fast",
-        return_value=mock_pow_solution if pow_success else None,
-    ), patch(
-        "bittensor.utils.registration._solve_for_difficulty_fast_cuda",
-        return_value=mock_pow_solution if pow_success else None,
-    ), patch.object(
-        mock_subtensor,
-        "_do_pow_register",
-        return_value=(registration_success, "key is already registered"),
-    ), patch("torch.cuda.is_available", return_value=cuda):
+    with (
+        patch(
+            "bittensor.utils.registration._solve_for_difficulty_fast",
+            return_value=mock_pow_solution if pow_success else None,
+        ),
+        patch(
+            "bittensor.utils.registration._solve_for_difficulty_fast_cuda",
+            return_value=mock_pow_solution if pow_success else None,
+        ),
+        patch.object(
+            mock_subtensor,
+            "_do_pow_register",
+            return_value=(registration_success, "key is already registered"),
+        ),
+        patch("torch.cuda.is_available", return_value=cuda),
+    ):
         # Act
         if pow_success:
             mock_pow_solution.is_stale.return_value = pow_stale

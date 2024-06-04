@@ -196,9 +196,7 @@ def convert_weights_and_uids_for_emit(
     weights = weights.tolist()
     uids = uids.tolist()
     if min(weights) < 0:
-        raise ValueError(
-            f"Passed weight is negative cannot exist on chain {weights}"
-        )
+        raise ValueError(f"Passed weight is negative cannot exist on chain {weights}")
     if min(uids) < 0:
         raise ValueError(f"Passed uid is negative cannot exist on chain {uids}")
     if len(uids) != len(weights):

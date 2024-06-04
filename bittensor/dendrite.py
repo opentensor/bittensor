@@ -97,9 +97,7 @@ class DendriteMixin:
         >>> d( bittensor.axon(), bittensor.Synapse )
     """
 
-    def __init__(
-        self, wallet: bittensor.wallet | bittensor.Keypair | None = None
-    ):
+    def __init__(self, wallet: bittensor.wallet | bittensor.Keypair | None = None):
         """
         Initializes the Dendrite object, setting up essential properties.
 
@@ -325,7 +323,9 @@ class DendriteMixin:
 
     async def forward(
         self,
-        axons: list[bittensor.AxonInfo | bittensor.axon] | bittensor.AxonInfo | bittensor.axon,
+        axons: list[bittensor.AxonInfo | bittensor.axon]
+        | bittensor.AxonInfo
+        | bittensor.axon,
         synapse: bittensor.Synapse = bittensor.Synapse(),
         timeout: float = 12,
         deserialize: bool = True,
@@ -418,7 +418,11 @@ class DendriteMixin:
 
             async def single_axon_response(
                 target_axon,
-            ) -> AsyncGenerator[Any, Any] | bittensor.Synapse | bittensor.StreamingSynapse:
+            ) -> (
+                AsyncGenerator[Any, Any]
+                | bittensor.Synapse
+                | bittensor.StreamingSynapse
+            ):
                 """
                 Manages the request and response process for a single axon, supporting both streaming and non-streaming modes.
 
@@ -815,9 +819,7 @@ BaseModel: torch.nn.Module | object = torch.nn.Module if use_torch() else object
 
 
 class dendrite(DendriteMixin, BaseModel):  # type: ignore
-    def __init__(
-        self, wallet: bittensor.wallet | bittensor.Keypair | None = None
-    ):
+    def __init__(self, wallet: bittensor.wallet | bittensor.Keypair | None = None):
         if use_torch():
             torch.nn.Module.__init__(self)
         DendriteMixin.__init__(self, wallet)

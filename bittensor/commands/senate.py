@@ -215,9 +215,7 @@ class ProposalsCommand:
         )
 
         table = Table(show_footer=False)
-        table.title = (
-            f"[white]Proposals\t\tActive Proposals: {len(proposals)}\t\tSenate Size: {len(senate_members)}"
-        )
+        table.title = f"[white]Proposals\t\tActive Proposals: {len(proposals)}\t\tSenate Size: {len(senate_members)}"
         table.add_column(
             "[overline white]HASH",
             footer_style="overline white",

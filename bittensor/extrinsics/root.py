@@ -210,9 +210,7 @@ def set_root_weights_extrinsic(
 
         except Exception as e:
             # TODO( devs ): lets remove all of the bittensor.__console__ calls and replace with the bittensor logger.
-            bittensor.__console__.print(
-                f":cross_mark: [red]Failed[/red]: error:{e}"
-            )
+            bittensor.__console__.print(f":cross_mark: [red]Failed[/red]: error:{e}")
             bittensor.logging.warning(
                 prefix="Set weights", suffix="<red>Failed: </red>" + str(e)
             )
