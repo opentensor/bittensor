@@ -17,12 +17,9 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from rich.console import Console
-from rich.traceback import install
-
 # Install and apply nest asyncio to allow the async functions
 # to run in a .ipynb
-import nest_asyncio
+import nest_asyncio  # noqa: F401
 
 nest_asyncio.apply()
 
@@ -36,6 +33,9 @@ __version_as_int__: int = (
     + (1 * int(version_split[2]))
 )
 __new_signature_version__ = 360
+
+from rich.console import Console  # noqa: F401, E402
+from rich.traceback import install  # noqa: F401, E402
 
 # Rich console.
 __console__ = Console()
