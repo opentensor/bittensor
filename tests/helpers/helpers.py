@@ -24,6 +24,9 @@ from bittensor import AxonInfo, Balance, NeuronInfo, PrometheusInfo
 from bittensor.mock.wallet_mock import MockWallet as _MockWallet
 from bittensor.mock.wallet_mock import get_mock_coldkey as _get_mock_coldkey
 from bittensor.mock.wallet_mock import get_mock_hotkey as _get_mock_hotkey
+from bittensor.mock.wallet_mock import (
+    get_mock_keypair as _get_mock_keypair,  # noqa: F401
+)
 from bittensor.mock.wallet_mock import get_mock_wallet as _get_mock_wallet
 
 
