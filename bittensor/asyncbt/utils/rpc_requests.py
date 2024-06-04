@@ -24,12 +24,76 @@ class Preprocessed:
     storage_item: ScaleType
 
 
+class Websocket:
+    def __init__(self, ws_url: str):
+        # TODO allow setting max concurrent connections and rpc subscriptions per connection, default 100/1024
+        self.ws_url = ws_url
+        self.ws = None
+        self.id = 0
+        self._received = {}
+        self._in_use = 0
+        self._receiving_task = None
+        self._attempts = 0
+        self._initialized = False
+        self._lock = asyncio.Lock()
+
+    async def __aenter__(self):
+        async with self._lock:
+            self._in_use += 1
+            if not self._initialized:
+                self._initialized = True
+                self.ws = await asyncio.wait_for(
+                    websockets.connect(self.ws_url), timeout=None
+                )
+                self._receiving_task = asyncio.create_task(self.start_receiving())
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        async with self._lock:
+            self._in_use -= 1
+            if self._in_use == 0 and self.ws is not None:
+                self._receiving_task.cancel()
+                await self._receiving_task
+                await self.ws.close()
+                self.ws = None
+                self._initialized = False
+                self._receiving_task = None
+                self.id = 0
+
+    async def send(self, payload: dict) -> int:
+        async with self._lock:
+            original_id = self.id
+            await self.ws.send(json.dumps({**payload, **{"id": original_id}}))
+            self.id += 1
+            return original_id
+
+    async def _recv(self) -> None:
+        response = json.loads(await self.ws.recv())
+        async with self._lock:
+            self._received[response["id"]] = response
+
+    async def start_receiving(self):
+        try:
+            while True:
+                await self._recv()
+        except asyncio.CancelledError:
+            pass
+
+    async def retrieve(self, item_id: int) -> Optional[dict]:
+        while True:
+            async with self._lock:
+                if item_id in self._received:
+                    return self._received.pop(item_id)
+            await asyncio.sleep(0.1)
+
+
 class RPCRequest:
     runtime = None
     substrate = None
 
     def __init__(self, chain_endpoint: str):
         self.chain_endpoint = chain_endpoint
+        self.ws = Websocket(chain_endpoint)
 
     async def __aenter__(self):
         if not self.substrate:
@@ -131,30 +195,29 @@ class RPCRequest:
         storage_item: Optional[ScaleType] = None,
         metadata: Optional[GenericMetadataVersioned] = None,
     ):
-        async with websockets.connect(self.chain_endpoint) as websocket:
-            for payload in (x["payload"] for x in payloads.values()):
-                await websocket.send(json.dumps(payload))
-
-            responses = defaultdict(lambda: {"complete": False, "results": []})
+        response_map = {}
+        responses = defaultdict(lambda: {"complete": False, "results": []})
+        async with self.ws as ws:
+            for item in payloads.values():
+                item_id = await ws.send(item["payload"])
+                response_map[item_id] = item["id"]
+                # {0: rpc_request}
 
             while True:
-                response = json.loads(await websocket.recv())
-                decoded_response, complete = await self._process_response(
-                    response, value_scale_type, storage_item, metadata
-                )
-
-                response_id: int = response.get("id")
-                if response_id in payloads:
-                    responses[payloads[response_id]["id"]]["results"].append(
-                        decoded_response
-                    )
-                    responses[payloads[response_id]["id"]]["complete"] = complete
+                for item_id in response_map.keys():
+                    if response := await ws.retrieve(item_id):
+                        decoded_response, complete = await self._process_response(
+                            response, value_scale_type, storage_item, metadata
+                        )
+                        responses[response_map[item_id]]["results"].append(
+                            decoded_response
+                        )
+                        responses[response_map[item_id]]["complete"] = complete
                 if all(key["complete"] for key in responses.values()) and len(
                     responses
                 ) == len(payloads.values()):
                     break
-            responses = {k: v["results"] for k, v in responses.items()}
-            return responses
+        return {k: v["results"] for k, v in responses.items()}
 
     async def rpc_request(
         self, method: str, params: list, block_hash: Optional[str] = None
@@ -166,7 +229,6 @@ class RPCRequest:
                     "jsonrpc": "2.0",
                     "method": method,
                     "params": params + [block_hash] if block_hash else params,
-                    "id": 1,
                 },
             }
         }
@@ -201,7 +263,6 @@ class RPCRequest:
                     "jsonrpc": "2.0",
                     "method": item.method,
                     "params": item.params,
-                    "id": i,
                 },
             }
             for (i, item) in enumerate(preprocessed)
