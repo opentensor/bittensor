@@ -17,13 +17,15 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import os
-import copy
 import argparse
-import bittensor
-from termcolor import colored
+import copy
+import os
+from typing import Dict, Optional, Tuple, Union, overload
+
 from substrateinterface import Keypair
-from typing import Optional, Union, Tuple, Dict, overload
+from termcolor import colored
+
+import bittensor
 from bittensor.utils import is_valid_bittensor_address_or_public_key
 
 
@@ -44,11 +46,11 @@ def display_mnemonic_msg(keypair: Keypair, key_type: str):
             "red",
         )
     )
-    print("The mnemonic to the new {} is:\n\n{}\n".format(key_type, mnemonic_green))
+    print(f"The mnemonic to the new {key_type} is:\n\n{mnemonic_green}\n")
     print(
         "You can use the mnemonic to recreate the key in case it gets lost. The command to use to regenerate the key using this mnemonic is:"
     )
-    print("btcli w regen_{} --mnemonic {}".format(key_type, mnemonic))
+    print(f"btcli w regen_{key_type} --mnemonic {mnemonic}")
     print("")
 
 
@@ -169,7 +171,7 @@ class wallet:
                 default=default_path,
                 help="The path to your bittensor wallets",
             )
-        except argparse.ArgumentError as e:
+        except argparse.ArgumentError:
             pass
 
     def __init__(
@@ -217,7 +219,7 @@ class wallet:
         Returns:
             str: The string representation.
         """
-        return "wallet({}, {}, {})".format(self.name, self.hotkey_str, self.path)
+        return f"wallet({self.name}, {self.hotkey_str}, {self.path})"
 
     def __repr__(self):
         """

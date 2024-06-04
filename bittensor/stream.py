@@ -1,11 +1,13 @@
-from aiohttp import ClientResponse
-import bittensor
-
-from starlette.responses import StreamingResponse as _StreamingResponse
-from starlette.types import Send, Receive, Scope
-from typing import Callable, Awaitable
-from pydantic import ConfigDict, BaseModel
 from abc import ABC, abstractmethod
+from collections.abc import Awaitable
+from typing import Callable
+
+from aiohttp import ClientResponse
+from pydantic import BaseModel, ConfigDict
+from starlette.responses import StreamingResponse as _StreamingResponse
+from starlette.types import Receive, Scope, Send
+
+import bittensor
 
 
 class BTStreamingResponseModel(BaseModel):

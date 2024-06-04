@@ -16,9 +16,10 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 import time
-import bittensor
 
 from rich.prompt import Confirm
+
+import bittensor
 
 
 def register_subnetwork_extrinsic(
@@ -86,9 +87,7 @@ def register_subnetwork_extrinsic(
             response.process_events()
             if not response.is_success:
                 bittensor.__console__.print(
-                    ":cross_mark: [red]Failed[/red]: error:{}".format(
-                        response.error_message
-                    )
+                    f":cross_mark: [red]Failed[/red]: error:{response.error_message}"
                 )
                 time.sleep(0.5)
 
@@ -198,9 +197,7 @@ def set_hyperparameter_extrinsic(
             response.process_events()
             if not response.is_success:
                 bittensor.__console__.print(
-                    ":cross_mark: [red]Failed[/red]: error:{}".format(
-                        response.error_message
-                    )
+                    f":cross_mark: [red]Failed[/red]: error:{response.error_message}"
                 )
                 time.sleep(0.5)
 

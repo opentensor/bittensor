@@ -17,7 +17,14 @@
 # DEALINGS IN THE SOFTWARE.
 
 import logging
+from typing import Optional, Union
+
+from rich.prompt import Confirm
+
 import bittensor
+from bittensor.btlogging.defines import BITTENSOR_LOGGER_NAME
+from bittensor.utils.balance import Balance
+
 from ..errors import (
     NominationError,
     NotDelegateError,
@@ -25,10 +32,6 @@ from ..errors import (
     StakeError,
     TakeError,
 )
-from rich.prompt import Confirm
-from typing import Union, Optional
-from bittensor.utils.balance import Balance
-from bittensor.btlogging.defines import BITTENSOR_LOGGER_NAME
 
 logger = logging.getLogger(BITTENSOR_LOGGER_NAME)
 
@@ -53,14 +56,12 @@ def nominate_extrinsic(
     # Check if the hotkey is already a delegate.
     if subtensor.is_hotkey_delegate(wallet.hotkey.ss58_address):
         logger.error(
-            "Hotkey {} is already a delegate.".format(wallet.hotkey.ss58_address)
+            f"Hotkey {wallet.hotkey.ss58_address} is already a delegate."
         )
         return False
 
     with bittensor.__console__.status(
-        ":satellite: Sending nominate call on [white]{}[/white] ...".format(
-            subtensor.network
-        )
+        f":satellite: Sending nominate call on [white]{subtensor.network}[/white] ..."
     ):
         try:
             success = subtensor._do_nominate(
@@ -83,14 +84,14 @@ def nominate_extrinsic(
 
         except Exception as e:
             bittensor.__console__.print(
-                ":cross_mark: [red]Failed[/red]: error:{}".format(e)
+                f":cross_mark: [red]Failed[/red]: error:{e}"
             )
             bittensor.logging.warning(
                 prefix="Set weights", suffix="<red>Failed: </red>" + str(e)
             )
         except NominationError as e:
             bittensor.__console__.print(
-                ":cross_mark: [red]Failed[/red]: error:{}".format(e)
+                f":cross_mark: [red]Failed[/red]: error:{e}"
             )
             bittensor.logging.warning(
                 prefix="Set weights", suffix="<red>Failed: </red>" + str(e)
@@ -127,7 +128,7 @@ def delegate_extrinsic(
     # Decrypt keys,
     wallet.coldkey
     if not subtensor.is_hotkey_delegate(delegate_ss58):
-        raise NotDelegateError("Hotkey: {} is not a delegate.".format(delegate_ss58))
+        raise NotDelegateError(f"Hotkey: {delegate_ss58} is not a delegate.")
 
     # Get state.
     my_prev_coldkey_balance = subtensor.get_balance(wallet.coldkey.ss58_address)
@@ -155,26 +156,20 @@ def delegate_extrinsic(
     # Check enough balance to stake.
     if staking_balance > my_prev_coldkey_balance:
         bittensor.__console__.print(
-            ":cross_mark: [red]Not enough balance[/red]:[bold white]\n  balance:{}\n  amount: {}\n  coldkey: {}[/bold white]".format(
-                my_prev_coldkey_balance, staking_balance, wallet.name
-            )
+            f":cross_mark: [red]Not enough balance[/red]:[bold white]\n  balance:{my_prev_coldkey_balance}\n  amount: {staking_balance}\n  coldkey: {wallet.name}[/bold white]"
         )
         return False
 
     # Ask before moving on.
     if prompt:
         if not Confirm.ask(
-            "Do you want to delegate:[bold white]\n  amount: {}\n  to: {}\n owner: {}[/bold white]".format(
-                staking_balance, delegate_ss58, delegate_owner
-            )
+            f"Do you want to delegate:[bold white]\n  amount: {staking_balance}\n  to: {delegate_ss58}\n owner: {delegate_owner}[/bold white]"
         ):
             return False
 
     try:
         with bittensor.__console__.status(
-            ":satellite: Staking to: [bold white]{}[/bold white] ...".format(
-                subtensor.network
-            )
+            f":satellite: Staking to: [bold white]{subtensor.network}[/bold white] ..."
         ):
             staking_response: bool = subtensor._do_delegation(
                 wallet=wallet,
@@ -193,9 +188,7 @@ def delegate_extrinsic(
                 ":white_heavy_check_mark: [green]Finalized[/green]"
             )
             with bittensor.__console__.status(
-                ":satellite: Checking Balance on: [white]{}[/white] ...".format(
-                    subtensor.network
-                )
+                f":satellite: Checking Balance on: [white]{subtensor.network}[/white] ..."
             ):
                 new_balance = subtensor.get_balance(address=wallet.coldkey.ss58_address)
                 block = subtensor.get_current_block()
@@ -206,14 +199,10 @@ def delegate_extrinsic(
                 )  # Get current stake
 
                 bittensor.__console__.print(
-                    "Balance:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format(
-                        my_prev_coldkey_balance, new_balance
-                    )
+                    f"Balance:\n  [blue]{my_prev_coldkey_balance}[/blue] :arrow_right: [green]{new_balance}[/green]"
                 )
                 bittensor.__console__.print(
-                    "Stake:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format(
-                        my_prev_delegated_stake, new_delegate_stake
-                    )
+                    f"Stake:\n  [blue]{my_prev_delegated_stake}[/blue] :arrow_right: [green]{new_delegate_stake}[/green]"
                 )
                 return True
         else:
@@ -222,15 +211,13 @@ def delegate_extrinsic(
             )
             return False
 
-    except NotRegisteredError as e:
+    except NotRegisteredError:
         bittensor.__console__.print(
-            ":cross_mark: [red]Hotkey: {} is not registered.[/red]".format(
-                wallet.hotkey_str
-            )
+            f":cross_mark: [red]Hotkey: {wallet.hotkey_str} is not registered.[/red]"
         )
         return False
     except StakeError as e:
-        bittensor.__console__.print(":cross_mark: [red]Stake Error: {}[/red]".format(e))
+        bittensor.__console__.print(f":cross_mark: [red]Stake Error: {e}[/red]")
         return False
 
 
@@ -262,7 +249,7 @@ def undelegate_extrinsic(
     # Decrypt keys,
     wallet.coldkey
     if not subtensor.is_hotkey_delegate(delegate_ss58):
-        raise NotDelegateError("Hotkey: {} is not a delegate.".format(delegate_ss58))
+        raise NotDelegateError(f"Hotkey: {delegate_ss58} is not a delegate.")
 
     # Get state.
     my_prev_coldkey_balance = subtensor.get_balance(wallet.coldkey.ss58_address)
@@ -286,26 +273,20 @@ def undelegate_extrinsic(
     # Check enough stake to unstake.
     if unstaking_balance > my_prev_delegated_stake:
         bittensor.__console__.print(
-            ":cross_mark: [red]Not enough delegated stake[/red]:[bold white]\n  stake:{}\n  amount: {}\n coldkey: {}[/bold white]".format(
-                my_prev_delegated_stake, unstaking_balance, wallet.name
-            )
+            f":cross_mark: [red]Not enough delegated stake[/red]:[bold white]\n  stake:{my_prev_delegated_stake}\n  amount: {unstaking_balance}\n coldkey: {wallet.name}[/bold white]"
         )
         return False
 
     # Ask before moving on.
     if prompt:
         if not Confirm.ask(
-            "Do you want to un-delegate:[bold white]\n  amount: {}\n  from: {}\n  owner: {}[/bold white]".format(
-                unstaking_balance, delegate_ss58, delegate_owner
-            )
+            f"Do you want to un-delegate:[bold white]\n  amount: {unstaking_balance}\n  from: {delegate_ss58}\n  owner: {delegate_owner}[/bold white]"
         ):
             return False
 
     try:
         with bittensor.__console__.status(
-            ":satellite: Unstaking from: [bold white]{}[/bold white] ...".format(
-                subtensor.network
-            )
+            f":satellite: Unstaking from: [bold white]{subtensor.network}[/bold white] ..."
         ):
             staking_response: bool = subtensor._do_undelegation(
                 wallet=wallet,
@@ -324,9 +305,7 @@ def undelegate_extrinsic(
                 ":white_heavy_check_mark: [green]Finalized[/green]"
             )
             with bittensor.__console__.status(
-                ":satellite: Checking Balance on: [white]{}[/white] ...".format(
-                    subtensor.network
-                )
+                f":satellite: Checking Balance on: [white]{subtensor.network}[/white] ..."
             ):
                 new_balance = subtensor.get_balance(address=wallet.coldkey.ss58_address)
                 block = subtensor.get_current_block()
@@ -337,14 +316,10 @@ def undelegate_extrinsic(
                 )  # Get current stake
 
                 bittensor.__console__.print(
-                    "Balance:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format(
-                        my_prev_coldkey_balance, new_balance
-                    )
+                    f"Balance:\n  [blue]{my_prev_coldkey_balance}[/blue] :arrow_right: [green]{new_balance}[/green]"
                 )
                 bittensor.__console__.print(
-                    "Stake:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format(
-                        my_prev_delegated_stake, new_delegate_stake
-                    )
+                    f"Stake:\n  [blue]{my_prev_delegated_stake}[/blue] :arrow_right: [green]{new_delegate_stake}[/green]"
                 )
                 return True
         else:
@@ -353,15 +328,13 @@ def undelegate_extrinsic(
             )
             return False
 
-    except NotRegisteredError as e:
+    except NotRegisteredError:
         bittensor.__console__.print(
-            ":cross_mark: [red]Hotkey: {} is not registered.[/red]".format(
-                wallet.hotkey_str
-            )
+            f":cross_mark: [red]Hotkey: {wallet.hotkey_str} is not registered.[/red]"
         )
         return False
     except StakeError as e:
-        bittensor.__console__.print(":cross_mark: [red]Stake Error: {}[/red]".format(e))
+        bittensor.__console__.print(f":cross_mark: [red]Stake Error: {e}[/red]")
         return False
 
 
@@ -390,9 +363,7 @@ def decrease_take_extrinsic(
     wallet.hotkey
 
     with bittensor.__console__.status(
-        ":satellite: Sending decrease_take_extrinsic call on [white]{}[/white] ...".format(
-            subtensor.network
-        )
+        f":satellite: Sending decrease_take_extrinsic call on [white]{subtensor.network}[/white] ..."
     ):
         try:
             success = subtensor._do_decrease_take(
@@ -416,7 +387,7 @@ def decrease_take_extrinsic(
 
         except (TakeError, Exception) as e:
             bittensor.__console__.print(
-                ":cross_mark: [red]Failed[/red]: error:{}".format(e)
+                f":cross_mark: [red]Failed[/red]: error:{e}"
             )
             bittensor.logging.warning(
                 prefix="Set weights", suffix="<red>Failed: </red>" + str(e)
@@ -450,9 +421,7 @@ def increase_take_extrinsic(
     wallet.hotkey
 
     with bittensor.__console__.status(
-        ":satellite: Sending increase_take_extrinsic call on [white]{}[/white] ...".format(
-            subtensor.network
-        )
+        f":satellite: Sending increase_take_extrinsic call on [white]{subtensor.network}[/white] ..."
     ):
         try:
             success = subtensor._do_increase_take(
@@ -476,14 +445,14 @@ def increase_take_extrinsic(
 
         except Exception as e:
             bittensor.__console__.print(
-                ":cross_mark: [red]Failed[/red]: error:{}".format(e)
+                f":cross_mark: [red]Failed[/red]: error:{e}"
             )
             bittensor.logging.warning(
                 prefix="Set weights", suffix="<red>Failed: </red>" + str(e)
             )
         except TakeError as e:
             bittensor.__console__.print(
-                ":cross_mark: [red]Failed[/red]: error:{}".format(e)
+                f":cross_mark: [red]Failed[/red]: error:{e}"
             )
             bittensor.logging.warning(
                 prefix="Set weights", suffix="<red>Failed: </red>" + str(e)

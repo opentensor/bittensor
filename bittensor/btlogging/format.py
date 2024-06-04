@@ -25,8 +25,7 @@ import logging
 import time
 from typing import Dict
 
-from colorama import init, Fore, Back, Style
-
+from colorama import Back, Fore, Style, init
 
 init(autoreset=True)
 
@@ -134,7 +133,7 @@ class BtStreamFormatter(logging.Formatter):
             s = time.strftime(datefmt, created)
         else:
             s = time.strftime("%Y-%m-%d %H:%M:%S", created)
-        s += ".{:03d}".format(int(record.msecs))
+        s += f".{int(record.msecs):03d}"
         return s
 
     def format(self, record) -> str:
@@ -205,7 +204,7 @@ class BtFileFormatter(logging.Formatter):
             s = time.strftime(datefmt, created)
         else:
             s = time.strftime("%Y-%m-%d %H:%M:%S", created)
-        s += ".{:03d}".format(int(record.msecs))
+        s += f".{int(record.msecs):03d}"
         return s
 
     def format(self, record) -> str:

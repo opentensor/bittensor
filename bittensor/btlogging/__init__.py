@@ -24,5 +24,4 @@ formatters to ensure consistent logging throughout the project.
 
 from bittensor.btlogging.loggingmachine import LoggingMachine
 
-
 logging = LoggingMachine(LoggingMachine.config())

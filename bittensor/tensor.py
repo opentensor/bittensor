@@ -16,13 +16,15 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import numpy as np
 import base64
+from typing import List, Optional, Union
+
 import msgpack
 import msgpack_numpy
-from typing import Optional, Union, List
+import numpy as np
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
 from bittensor.utils.registration import torch, use_torch
-from pydantic import ConfigDict, BaseModel, Field, field_validator
 
 
 class DTypes(dict):

@@ -21,6 +21,7 @@ import base64
 import json
 import sys
 import warnings
+from typing import Any, ClassVar, Dict, Optional, Tuple
 
 from pydantic import (
     BaseModel,
@@ -29,8 +30,8 @@ from pydantic import (
     field_validator,
     model_validator,
 )
+
 import bittensor
-from typing import Optional, Any, Dict, ClassVar, Tuple
 
 
 def get_size(obj, seen=None) -> int:

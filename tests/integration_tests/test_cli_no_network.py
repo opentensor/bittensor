@@ -17,18 +17,17 @@
 # DEALINGS IN THE SOFTWARE.
 
 
-import unittest
-from unittest.mock import MagicMock, patch
-from typing import Any, Optional
-import pytest
-from copy import deepcopy
 import re
+import unittest
+from copy import deepcopy
+from typing import Any
+from unittest.mock import MagicMock, patch
 
-from tests.helpers import _get_mock_coldkey, __mock_wallet_factory__, MockConsole
+import pytest
 
 import bittensor
 from bittensor import Balance
-from rich.table import Table
+from tests.helpers import __mock_wallet_factory__, _get_mock_coldkey
 
 
 class MockException(Exception):

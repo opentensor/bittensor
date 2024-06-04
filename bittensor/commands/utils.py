@@ -15,14 +15,17 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import sys
 import os
-import bittensor
-import requests
-from bittensor.utils.registration import torch
-from typing import List, Dict, Any, Optional
-from rich.prompt import Confirm, PromptBase
+import sys
 from dataclasses import dataclass
+from typing import Any, Dict, List, Optional
+
+import requests
+from rich.prompt import Confirm, PromptBase
+
+import bittensor
+from bittensor.utils.registration import torch
+
 from . import defaults
 
 console = bittensor.__console__
@@ -98,7 +101,7 @@ def check_for_cuda_reg_config(config: "bittensor.config") -> None:
                 console.print("Available CUDA devices:")
                 choices_str: str = ""
                 for i, device in enumerate(devices):
-                    choices_str += "  {}: {}\n".format(device, device_names[i])
+                    choices_str += f"  {device}: {device_names[i]}\n"
                 console.print(choices_str)
                 dev_id = IntListPrompt.ask(
                     "Which GPU(s) would you like to use? Please list one, or comma-separated",
@@ -117,9 +120,7 @@ def check_for_cuda_reg_config(config: "bittensor.config") -> None:
                         ]
                     except ValueError:
                         console.log(
-                            ":cross_mark:[red]Invalid GPU device[/red] [bold white]{}[/bold white]\nAvailable CUDA devices:{}".format(
-                                dev_id, choices_str
-                            )
+                            f":cross_mark:[red]Invalid GPU device[/red] [bold white]{dev_id}[/bold white]\nAvailable CUDA devices:{choices_str}"
                         )
                         sys.exit(1)
                 config.pow_register.cuda.dev_id = dev_id

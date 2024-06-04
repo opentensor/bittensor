@@ -18,9 +18,9 @@
 # DEALINGS IN THE SOFTWARE.
 
 import numpy as np
-import bittensor.utils.weight_utils as weight_utils
 import pytest
 
+import bittensor.utils.weight_utils as weight_utils
 from bittensor.utils import torch
 
 

@@ -21,9 +21,9 @@ including neuron and subnet information, SCALE encoding/decoding, and custom RPC
 """
 
 import json
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from enum import Enum
-from typing import List, Tuple, Dict, Optional, Any, TypedDict, Union
+from typing import Any, Dict, List, Optional, Tuple, TypedDict, Union
 
 from scalecodec.base import RuntimeConfiguration, ScaleBytes
 from scalecodec.type_registry import load_type_registry_preset
@@ -31,7 +31,9 @@ from scalecodec.types import GenericCall
 from scalecodec.utils.ss58 import ss58_encode
 
 import bittensor
-from .utils import networking as net, RAOPERTAO, U16_NORMALIZED_FLOAT
+
+from .utils import RAOPERTAO, U16_NORMALIZED_FLOAT
+from .utils import networking as net
 from .utils.balance import Balance
 from .utils.registration import torch, use_torch
 
@@ -230,9 +232,7 @@ class AxonInfo:
         return False
 
     def __str__(self):
-        return "AxonInfo( {}, {}, {}, {} )".format(
-            str(self.ip_str()), str(self.hotkey), str(self.coldkey), self.version
-        )
+        return f"AxonInfo( {str(self.ip_str())}, {str(self.hotkey)}, {str(self.coldkey)}, {self.version} )"
 
     def __repr__(self):
         return self.__str__()

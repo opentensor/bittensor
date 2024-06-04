@@ -30,8 +30,8 @@ from bittensor.mock import MockSubtensor
 from bittensor.utils import weight_utils
 from bittensor.utils.balance import Balance
 from tests.helpers import (
-    _get_mock_coldkey,
     MockConsole,
+    _get_mock_coldkey,
     _get_mock_keypair,
     _get_mock_wallet,
 )
@@ -329,7 +329,7 @@ class TestSubtensor(unittest.TestCase):
             uids=[1],
             weights=chain_weights,
         )
-        assert success == True
+        assert success is True
 
     def test_set_weights_inclusion(self):
         chain_weights = [0]
@@ -343,7 +343,7 @@ class TestSubtensor(unittest.TestCase):
             weights=chain_weights,
             wait_for_inclusion=True,
         )
-        assert success == True
+        assert success is True
 
     def test_set_weights_failed(self):
         chain_weights = [0]
@@ -359,7 +359,7 @@ class TestSubtensor(unittest.TestCase):
             weights=chain_weights,
             wait_for_inclusion=True,
         )
-        assert fail == False
+        assert fail is False
 
     def test_commit_weights(self):
         weights = np.array([0.1, 0.2, 0.3, 0.4], dtype=np.float32)

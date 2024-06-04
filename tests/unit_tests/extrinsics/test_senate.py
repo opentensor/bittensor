@@ -1,5 +1,7 @@
-import pytest
 from unittest.mock import MagicMock, patch
+
+import pytest
+
 from bittensor import subtensor, wallet
 from bittensor.extrinsics.senate import (
     leave_senate_extrinsic,

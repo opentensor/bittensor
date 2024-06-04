@@ -19,9 +19,10 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import json
 import os
 import urllib
-import json
+
 import netaddr
 import requests
 
@@ -187,6 +188,6 @@ def get_formatted_ws_endpoint_url(endpoint_url: str) -> str:
             The formatted endpoint url. In the form of ws://<endpoint_url> or wss://<endpoint_url>
     """
     if endpoint_url[0:6] != "wss://" and endpoint_url[0:5] != "ws://":
-        endpoint_url = "ws://{}".format(endpoint_url)
+        endpoint_url = f"ws://{endpoint_url}"
 
     return endpoint_url

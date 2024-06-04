@@ -24,9 +24,8 @@ blockchain, facilitating a range of operations essential for the decentralized m
 import argparse
 import copy
 import functools
-import socket
 import time
-from typing import List, Dict, Union, Optional, Tuple, TypedDict, Any
+from typing import Any, Dict, List, Optional, Tuple, TypedDict, Union
 
 import numpy as np
 import scalecodec
@@ -36,24 +35,25 @@ from scalecodec.base import RuntimeConfiguration
 from scalecodec.exceptions import RemainingScaleBytesNotEmptyException
 from scalecodec.type_registry import load_type_registry_preset
 from scalecodec.types import GenericCall, ScaleType
-from substrateinterface.base import QueryMapResult, SubstrateInterface, ExtrinsicReceipt
+from substrateinterface.base import ExtrinsicReceipt, QueryMapResult, SubstrateInterface
 from substrateinterface.exceptions import SubstrateRequestException
 
 import bittensor
 from bittensor.btlogging import logging as _logger
 from bittensor.utils import torch, weight_utils
+
 from .chain_data import (
-    NeuronInfo,
+    AxonInfo,
     DelegateInfo,
     DelegateInfoLite,
-    PrometheusInfo,
-    SubnetInfo,
-    SubnetHyperparameters,
-    StakeInfo,
-    NeuronInfoLite,
-    AxonInfo,
-    ProposalVoteData,
     IPInfo,
+    NeuronInfo,
+    NeuronInfoLite,
+    PrometheusInfo,
+    ProposalVoteData,
+    StakeInfo,
+    SubnetHyperparameters,
+    SubnetInfo,
     custom_rpc_type_registry,
 )
 from .errors import IdentityError, NominationError, StakeError, TakeError
@@ -62,11 +62,11 @@ from .extrinsics.commit_weights import (
     reveal_weights_extrinsic,
 )
 from .extrinsics.delegation import (
+    decrease_take_extrinsic,
     delegate_extrinsic,
+    increase_take_extrinsic,
     nominate_extrinsic,
     undelegate_extrinsic,
-    increase_take_extrinsic,
-    decrease_take_extrinsic,
 )
 from .extrinsics.network import (
     register_subnetwork_extrinsic,
@@ -74,22 +74,22 @@ from .extrinsics.network import (
 )
 from .extrinsics.prometheus import prometheus_extrinsic
 from .extrinsics.registration import (
-    register_extrinsic,
     burned_register_extrinsic,
+    register_extrinsic,
     run_faucet_extrinsic,
     swap_hotkey_extrinsic,
 )
 from .extrinsics.root import root_register_extrinsic, set_root_weights_extrinsic
 from .extrinsics.senate import (
-    register_senate_extrinsic,
     leave_senate_extrinsic,
+    register_senate_extrinsic,
     vote_senate_extrinsic,
 )
 from .extrinsics.serving import (
-    serve_extrinsic,
-    serve_axon_extrinsic,
-    publish_metadata,
     get_metadata,
+    publish_metadata,
+    serve_axon_extrinsic,
+    serve_extrinsic,
 )
 from .extrinsics.set_weights import set_weights_extrinsic
 from .extrinsics.staking import add_stake_extrinsic, add_stake_multiple_extrinsic
@@ -98,13 +98,12 @@ from .extrinsics.unstaking import unstake_extrinsic, unstake_multiple_extrinsic
 from .types import AxonServeCallParams, PrometheusServeCallParams
 from .utils import (
     U16_NORMALIZED_FLOAT,
-    ss58_to_vec_u8,
     U64_NORMALIZED_FLOAT,
     networking,
+    ss58_to_vec_u8,
 )
 from .utils.balance import Balance
-from .utils.registration import POWSolution
-from .utils.registration import legacy_torch_api_compat
+from .utils.registration import POWSolution, legacy_torch_api_compat
 from .utils.subtensor import get_subtensor_errors
 
 KEY_NONCE: Dict[str, int] = {}
@@ -115,7 +114,7 @@ KEY_NONCE: Dict[str, int] = {}
 if hasattr(RuntimeConfiguration, "convert_type_string"):
     original_convert_type_string = RuntimeConfiguration.convert_type_string
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def convert_type_string(_, name):
         return original_convert_type_string(name)
 
@@ -278,7 +277,7 @@ class Subtensor:
             _logger.warning(f"AttributeError: {e}")
         except TypeError as e:
             _logger.warning(f"TypeError: {e}")
-        except (socket.error, OSError) as e:
+        except OSError as e:
             _logger.warning(f"Socket error: {e}")
 
         if log_verbose:
@@ -291,10 +290,10 @@ class Subtensor:
     def __str__(self) -> str:
         if self.network == self.chain_endpoint:
             # Connecting to chain endpoint without network known.
-            return "subtensor({})".format(self.chain_endpoint)
+            return f"subtensor({self.chain_endpoint})"
         else:
             # Connecting to network with endpoint known.
-            return "subtensor({}, {})".format(self.network, self.chain_endpoint)
+            return f"subtensor({self.network}, {self.chain_endpoint})"
 
     def __repr__(self) -> str:
         return self.__str__()
@@ -948,9 +947,7 @@ class Subtensor:
         message = "No attempt made. Perhaps it is too soon to commit weights!"
 
         _logger.info(
-            "Committing weights with params: netuid={}, uids={}, weights={}, version_key={}".format(
-                netuid, uids, weights, version_key
-            )
+            f"Committing weights with params: netuid={netuid}, uids={uids}, weights={weights}, version_key={version_key}"
         )
 
         # Generate the hash of the weights
@@ -963,7 +960,7 @@ class Subtensor:
             version_key=version_key,
         )
 
-        _logger.info("Commit Hash: {}".format(commit_hash))
+        _logger.info(f"Commit Hash: {commit_hash}")
 
         while retries < max_retries:
             try:
@@ -1625,9 +1622,7 @@ class Subtensor:
                 )
             except Exception as e:
                 bittensor.__console__.print(
-                    ":cross_mark: [red]Failed to get payment info[/red]:[bold white]\n  {}[/bold white]".format(
-                        e
-                    )
+                    f":cross_mark: [red]Failed to get payment info[/red]:[bold white]\n  {e}[/bold white]"
                 )
                 payment_info = {"partialFee": int(2e7)}  # assume  0.02 Tao
 

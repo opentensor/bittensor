@@ -1,14 +1,15 @@
+from unittest.mock import MagicMock, patch
+
 import pytest
 
-from unittest.mock import MagicMock, patch
-from bittensor.subtensor import Subtensor
-from bittensor.wallet import wallet as Wallet
 from bittensor.axon import axon as Axon
 from bittensor.extrinsics.serving import (
-    serve_extrinsic,
     publish_metadata,
     serve_axon_extrinsic,
+    serve_extrinsic,
 )
+from bittensor.subtensor import Subtensor
+from bittensor.wallet import wallet as Wallet
 
 
 @pytest.fixture

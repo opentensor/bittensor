@@ -16,13 +16,16 @@
 # DEALINGS IN THE SOFTWARE.
 
 import argparse
-import bittensor
-from . import defaults
+from typing import Dict, List, Optional
+
 from rich.prompt import Prompt
 from rich.table import Table
-from typing import List, Optional, Dict
-from .utils import get_delegates_details, DelegatesDetails, check_netuid_set
+
+import bittensor
+
+from . import defaults
 from .identity import SetIdentityCommand
+from .utils import DelegatesDetails, check_netuid_set, get_delegates_details
 
 console = bittensor.__console__
 
@@ -85,7 +88,7 @@ class RegisterSubnetworkCommand:
         if success and not cli.config.no_prompt:
             # Prompt for user to set identity.
             do_set_identity = Prompt.ask(
-                f"Subnetwork registered successfully. Would you like to set your identity? [y/n]",
+                "Subnetwork registered successfully. Would you like to set your identity? [y/n]",
                 choices=["y", "n"],
             )
 
@@ -267,7 +270,7 @@ class SubnetListCommand:
             box=None,
             show_edge=True,
         )
-        table.title = "[white]Subnets - {}".format(subtensor.network)
+        table.title = f"[white]Subnets - {subtensor.network}"
         table.add_column(
             "[overline white]NETUID",
             str(len(subnets)),
@@ -486,9 +489,7 @@ class SubnetHyperparamsCommand:
             box=None,
             show_edge=True,
         )
-        table.title = "[white]Subnet Hyperparameters - NETUID: {} - {}".format(
-            cli.config.netuid, subtensor.network
-        )
+        table.title = f"[white]Subnet Hyperparameters - NETUID: {cli.config.netuid} - {subtensor.network}"
         table.add_column("[overline white]HYPERPARAMETER", style="bold white")
         table.add_column("[overline white]VALUE", style="green")
 
@@ -590,9 +591,7 @@ class SubnetGetHyperparamsCommand:
             box=None,
             show_edge=True,
         )
-        table.title = "[white]Subnet Hyperparameters - NETUID: {} - {}".format(
-            cli.config.netuid, subtensor.network
-        )
+        table.title = f"[white]Subnet Hyperparameters - NETUID: {cli.config.netuid} - {subtensor.network}"
         table.add_column("[overline white]HYPERPARAMETER", style="white")
         table.add_column("[overline white]VALUE", style="green")
 

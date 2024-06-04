@@ -17,14 +17,14 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from pydantic import ValidationError
-import pytest
 import typing
-import bittensor
 from unittest.mock import MagicMock, Mock
-from tests.helpers import _get_mock_wallet
 
+import pytest
+
+import bittensor
 from bittensor.synapse import TerminalInfo
+from tests.helpers import _get_mock_wallet
 
 
 class SynapseDummy(bittensor.Synapse):
@@ -79,12 +79,12 @@ def test_init(setup_dendrite):
 
 
 def test_str(dendrite_obj):
-    expected_string = "dendrite({})".format(dendrite_obj.keypair.ss58_address)
+    expected_string = f"dendrite({dendrite_obj.keypair.ss58_address})"
     assert str(dendrite_obj) == expected_string
 
 
 def test_repr(dendrite_obj):
-    expected_string = "dendrite({})".format(dendrite_obj.keypair.ss58_address)
+    expected_string = f"dendrite({dendrite_obj.keypair.ss58_address})"
     assert repr(dendrite_obj) == expected_string
 
 
@@ -93,7 +93,7 @@ def test_close(dendrite_obj, setup_axon):
     # Query the axon to open a session
     dendrite_obj.query(axon, SynapseDummy(input=1))
     # Session should be automatically closed after query
-    assert dendrite_obj._session == None
+    assert dendrite_obj._session is None
 
 
 @pytest.mark.asyncio
@@ -103,7 +103,7 @@ async def test_aclose(dendrite_obj, setup_axon):
     async with dendrite_obj:
         resp = await dendrite_obj([axon], SynapseDummy(input=1), deserialize=False)
     # Close should automatically be called on the session after context manager scope
-    assert dendrite_obj._session == None
+    assert dendrite_obj._session is None
 
 
 class AsyncMock(Mock):
@@ -306,7 +306,7 @@ async def test_dendrite__call__success_response(
         )
     )
     mock_aioresponse.post(
-        f"http://127.0.0.1:666/SynapseDummy",
+        "http://127.0.0.1:666/SynapseDummy",
         body=expected_synapse.json(),
     )
     synapse = await dendrite_obj.call(axon_info, synapse=input_synapse)
@@ -326,7 +326,7 @@ async def test_dendrite__call__handles_http_error_response(
     message = "Custom Error"
 
     mock_aioresponse.post(
-        f"http://127.0.0.1:666/SynapseDummy",
+        "http://127.0.0.1:666/SynapseDummy",
         status=status_code,
         payload={"message": message},
     )

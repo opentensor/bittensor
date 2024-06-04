@@ -15,13 +15,17 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import sys
-import shtab
 import argparse
-import bittensor
+import sys
 from typing import List, Optional
+
+import shtab
+
+import bittensor
+
 from .commands import (
     AutocompleteCommand,
+    CommitWeightCommand,
     DelegateStakeCommand,
     DelegateUnstakeCommand,
     GetIdentityCommand,
@@ -43,6 +47,7 @@ from .commands import (
     RegenHotkeyCommand,
     RegisterCommand,
     RegisterSubnetworkCommand,
+    RevealWeightCommand,
     RootGetWeightsCommand,
     RootList,
     RootRegisterCommand,
@@ -68,8 +73,6 @@ from .commands import (
     VoteCommand,
     WalletBalanceCommand,
     WalletCreateCommand,
-    CommitWeightCommand,
-    RevealWeightCommand,
 )
 
 # Create a console instance for CLI display.

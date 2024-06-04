@@ -206,6 +206,30 @@ __type_registry__ = {
     },
 }
 
+from substrateinterface import Keypair  # noqa: F401
+
+# Allows avoiding name spacing conflicts and continue access to the `subtensor` module with `subtensor_module` name
+from . import subtensor as subtensor_module
+from .axon import axon as axon
+from .btlogging import logging
+from .chain_data import (
+    AxonInfo,
+    DelegateInfo,
+    DelegateInfoLite,
+    IPInfo,
+    NeuronInfo,
+    NeuronInfoLite,
+    PrometheusInfo,
+    ProposalCallData,
+    ProposalVoteData,
+    StakeInfo,
+    SubnetHyperparameters,
+    SubnetInfo,
+)
+from .cli import COMMANDS as ALL_COMMANDS
+from .cli import cli as cli
+from .config import DefaultConfig, InvalidConfigFile, T, config
+from .dendrite import dendrite as dendrite
 from .errors import (
     BlacklistedException,
     ChainConnectionError,
@@ -232,85 +256,54 @@ from .errors import (
     UnknownSynapseError,
     UnstakeError,
 )
-
-from substrateinterface import Keypair  # noqa: F401
-from .config import InvalidConfigFile, DefaultConfig, config, T
 from .keyfile import (
-    serialized_keypair_to_keyfile_data,
-    deserialize_keypair_from_keyfile_data,
-    validate_password,
+    Mockkeyfile,
     ask_password_to_encrypt,
-    keyfile_data_is_encrypted_nacl,
-    keyfile_data_is_encrypted_ansible,
-    keyfile_data_is_encrypted_legacy,
-    keyfile_data_is_encrypted,
-    keyfile_data_encryption_method,
-    legacy_encrypt_keyfile_data,
+    decrypt_keyfile_data,
+    deserialize_keypair_from_keyfile_data,
     encrypt_keyfile_data,
     get_coldkey_password_from_environment,
-    decrypt_keyfile_data,
     keyfile,
-    Mockkeyfile,
+    keyfile_data_encryption_method,
+    keyfile_data_is_encrypted,
+    keyfile_data_is_encrypted_ansible,
+    keyfile_data_is_encrypted_legacy,
+    keyfile_data_is_encrypted_nacl,
+    legacy_encrypt_keyfile_data,
+    serialized_keypair_to_keyfile_data,
+    validate_password,
 )
-from .wallet import display_mnemonic_msg, wallet
-
-from .utils import (
-    ss58_to_vec_u8,
-    unbiased_topk,
-    version_checking,
-    strtobool,
-    strtobool_with_default,
-    get_explorer_root_url_by_network_from_map,
-    get_explorer_root_url_by_network_from_map,
-    get_explorer_url_for_network,
-    ss58_address_to_bytes,
-    U16_NORMALIZED_FLOAT,
-    U64_NORMALIZED_FLOAT,
-    u8_key_to_ss58,
-    hash,
-    wallet_utils,
-)
-
-from .utils.balance import Balance as Balance
-from .chain_data import (
-    AxonInfo,
-    NeuronInfo,
-    NeuronInfoLite,
-    PrometheusInfo,
-    DelegateInfo,
-    DelegateInfoLite,
-    StakeInfo,
-    SubnetInfo,
-    SubnetHyperparameters,
-    IPInfo,
-    ProposalCallData,
-    ProposalVoteData,
-)
-
-# Allows avoiding name spacing conflicts and continue access to the `subtensor` module with `subtensor_module` name
-from . import subtensor as subtensor_module
+from .metagraph import metagraph as metagraph
+from .mock.keyfile_mock import MockKeyfile as MockKeyfile
+from .mock.subtensor_mock import MockSubtensor as MockSubtensor
+from .mock.wallet_mock import MockWallet as MockWallet
+from .stream import StreamingSynapse
+from .subnets import SubnetsAPI as SubnetsAPI
 
 # Double import allows using class `Subtensor` by referencing `bittensor.Subtensor` and `bittensor.subtensor`.
 # This will be available for a while until we remove reference `bittensor.subtensor`
 from .subtensor import Subtensor
 from .subtensor import Subtensor as subtensor
-
-from .cli import cli as cli, COMMANDS as ALL_COMMANDS
-from .btlogging import logging
-from .metagraph import metagraph as metagraph
+from .synapse import Synapse, TerminalInfo
+from .tensor import Tensor, tensor
 from .threadpool import PriorityThreadPoolExecutor as PriorityThreadPoolExecutor
-
-from .synapse import TerminalInfo, Synapse
-from .stream import StreamingSynapse
-from .tensor import tensor, Tensor
-from .axon import axon as axon
-from .dendrite import dendrite as dendrite
-
-from .mock.keyfile_mock import MockKeyfile as MockKeyfile
-from .mock.subtensor_mock import MockSubtensor as MockSubtensor
-from .mock.wallet_mock import MockWallet as MockWallet
-
-from .subnets import SubnetsAPI as SubnetsAPI
+from .utils import (
+    U16_NORMALIZED_FLOAT,
+    U64_NORMALIZED_FLOAT,
+    get_explorer_root_url_by_network_from_map,
+    get_explorer_url_for_network,
+    hash,
+    ss58_address_to_bytes,
+    ss58_to_vec_u8,
+    strtobool,
+    strtobool_with_default,
+    u8_key_to_ss58,
+    unbiased_topk,
+    version_checking,
+    wallet_utils,
+)
+from .utils.balance import Balance as Balance
+from .wallet import display_mnemonic_msg, wallet
 
 configs = [
     axon.config(),

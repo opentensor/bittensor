@@ -16,24 +16,28 @@
 # DEALINGS IN THE SOFTWARE.
 
 import argparse
-import bittensor
-from tqdm import tqdm
-from rich.table import Table
+
 from rich.prompt import Prompt
-from .utils import (
-    get_delegates_details,
-    DelegatesDetails,
-    get_hotkey_wallets_for_wallet,
-    get_all_wallets_for_path,
-    filter_netuids_by_registered_hotkeys,
-)
+from rich.table import Table
+from tqdm import tqdm
+
+import bittensor
+
 from . import defaults
+from .utils import (
+    DelegatesDetails,
+    filter_netuids_by_registered_hotkeys,
+    get_all_wallets_for_path,
+    get_delegates_details,
+    get_hotkey_wallets_for_wallet,
+)
 
 console = bittensor.__console__
 
 import os
+from typing import Dict, List, Optional, Tuple
+
 import bittensor
-from typing import List, Tuple, Optional, Dict
 
 
 def _get_coldkey_wallets_for_path(path: str) -> List["bittensor.wallet"]:

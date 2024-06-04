@@ -6,11 +6,11 @@ import numpy as np
 import bittensor
 import bittensor.utils.weight_utils as weight_utils
 from bittensor.commands import (
-    RegisterCommand,
-    StakeCommand,
-    RegisterSubnetworkCommand,
     CommitWeightCommand,
+    RegisterCommand,
+    RegisterSubnetworkCommand,
     RevealWeightCommand,
+    StakeCommand,
 )
 from tests.e2e_tests.utils import setup_wallet
 

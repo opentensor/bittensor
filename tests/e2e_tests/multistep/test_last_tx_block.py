@@ -1,7 +1,8 @@
-from bittensor.commands.root import RootRegisterCommand
 from bittensor.commands.delegates import NominateCommand
 from bittensor.commands.network import RegisterSubnetworkCommand
 from bittensor.commands.register import RegisterCommand
+from bittensor.commands.root import RootRegisterCommand
+
 from ..utils import setup_wallet
 
 

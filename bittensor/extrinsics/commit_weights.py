@@ -18,7 +18,7 @@
 
 """Module commit weights and reveal weights extrinsic."""
 
-from typing import Tuple, List
+from typing import List, Tuple
 
 from rich.prompt import Confirm
 
@@ -51,7 +51,7 @@ def commit_weights_extrinsic(
     This function provides a user-friendly interface for committing weights to the Bittensor blockchain, ensuring proper
     error handling and user interaction when required.
     """
-    if prompt and not Confirm.ask(f"Would you like to commit weights?"):
+    if prompt and not Confirm.ask("Would you like to commit weights?"):
         return False, "User cancelled the operation."
 
     success, error_message = subtensor._do_commit_weights(
@@ -103,7 +103,7 @@ def reveal_weights_extrinsic(
     error handling and user interaction when required.
     """
 
-    if prompt and not Confirm.ask(f"Would you like to reveal weights?"):
+    if prompt and not Confirm.ask("Would you like to reveal weights?"):
         return False, "User cancelled the operation."
 
     success, error_message = subtensor._do_reveal_weights(

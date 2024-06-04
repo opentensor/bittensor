@@ -16,13 +16,14 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import bittensor
-
 import logging
+from typing import Tuple, Union
+
 import numpy as np
 from numpy.typing import NDArray
 from rich.prompt import Confirm
-from typing import Union, Tuple
+
+import bittensor
 import bittensor.utils.weight_utils as weight_utils
 from bittensor.btlogging.defines import BITTENSOR_LOGGER_NAME
 from bittensor.utils.registration import torch, use_torch
@@ -86,14 +87,12 @@ def set_weights_extrinsic(
     # Ask before moving on.
     if prompt:
         if not Confirm.ask(
-            "Do you want to set weights:\n[bold white]  weights: {}\n  uids: {}[/bold white ]?".format(
-                [float(v / 65535) for v in weight_vals], weight_uids
-            )
+            f"Do you want to set weights:\n[bold white]  weights: {[float(v / 65535) for v in weight_vals]}\n  uids: {weight_uids}[/bold white ]?"
         ):
             return False, "Prompt refused."
 
     with bittensor.__console__.status(
-        ":satellite: Setting weights on [white]{}[/white] ...".format(subtensor.network)
+        f":satellite: Setting weights on [white]{subtensor.network}[/white] ..."
     ):
         try:
             success, error_message = subtensor._do_set_weights(
@@ -120,7 +119,7 @@ def set_weights_extrinsic(
                 return True, "Successfully set weights and Finalized."
             else:
                 bittensor.__console__.print(
-                    ":cross_mark: [red]Failed[/red]: error:{}".format(error_message)
+                    f":cross_mark: [red]Failed[/red]: error:{error_message}"
                 )
                 bittensor.logging.warning(
                     prefix="Set weights",
@@ -130,7 +129,7 @@ def set_weights_extrinsic(
 
         except Exception as e:
             bittensor.__console__.print(
-                ":cross_mark: [red]Failed[/red]: error:{}".format(e)
+                f":cross_mark: [red]Failed[/red]: error:{e}"
             )
             bittensor.logging.warning(
                 prefix="Set weights", suffix="<red>Failed: </red>" + str(e)

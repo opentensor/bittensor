@@ -120,7 +120,7 @@ class InvalidRequestNameError(Exception):
 
 class SynapseException(Exception):
     def __init__(
-        self, message="Synapse Exception", synapse: "bittensor.Synapse" | None = None
+        self, message="Synapse Exception", synapse: bittensor.Synapse | None = None
     ):
         self.message = message
         self.synapse = synapse
@@ -179,7 +179,7 @@ class SynapseDendriteNoneException(SynapseException):
     def __init__(
         self,
         message="Synapse Dendrite is None",
-        synapse: "bittensor.Synapse" | None = None,
+        synapse: bittensor.Synapse | None = None,
     ):
         self.message = message
         super().__init__(self.message, synapse)

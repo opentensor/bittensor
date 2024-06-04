@@ -15,17 +15,19 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import argparse
 import re
 import typing
-import argparse
+from typing import Dict, List, Optional
+
 import numpy as np
-import bittensor
-from typing import List, Optional, Dict
 from rich.prompt import Prompt
 from rich.table import Table
-from .utils import get_delegates_details, DelegatesDetails
+
+import bittensor
 
 from . import defaults
+from .utils import DelegatesDetails, get_delegates_details
 
 console = bittensor.__console__
 
@@ -139,9 +141,7 @@ class RootList:
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""List the root network"""
         console.print(
-            ":satellite: Syncing with chain: [white]{}[/white] ...".format(
-                subtensor.network
-            )
+            f":satellite: Syncing with chain: [white]{subtensor.network}[/white] ..."
         )
 
         senate_members = subtensor.get_senate_members()
@@ -196,9 +196,7 @@ class RootList:
                     else ""
                 ),
                 neuron_data.hotkey,
-                "{:.5f}".format(
-                    float(subtensor.get_total_stake_for_hotkey(neuron_data.hotkey))
-                ),
+                f"{float(subtensor.get_total_stake_for_hotkey(neuron_data.hotkey)):.5f}",
                 "Yes" if neuron_data.hotkey in senate_members else "No",
             )
 
@@ -288,7 +286,7 @@ class RootSetBoostCommand:
             my_uid = root.hotkeys.index(wallet.hotkey.ss58_address)
         except ValueError:
             bittensor.__console__.print(
-                "Wallet hotkey: {} not found in root metagraph".format(wallet.hotkey)
+                f"Wallet hotkey: {wallet.hotkey} not found in root metagraph"
             )
             exit()
         my_weights = root.weights[my_uid]
@@ -332,9 +330,9 @@ class RootSetBoostCommand:
             hotkey = Prompt.ask("Enter hotkey name", default=defaults.wallet.hotkey)
             config.wallet.hotkey = str(hotkey)
         if not config.is_set("netuid") and not config.no_prompt:
-            config.netuid = int(Prompt.ask(f"Enter netuid (e.g. 1)"))
+            config.netuid = int(Prompt.ask("Enter netuid (e.g. 1)"))
         if not config.is_set("amount") and not config.no_prompt:
-            config.amount = float(Prompt.ask(f"Enter amount (e.g. 0.01)"))
+            config.amount = float(Prompt.ask("Enter amount (e.g. 0.01)"))
 
 
 class RootSetSlashCommand:
@@ -401,16 +399,14 @@ class RootSetSlashCommand:
         wallet = bittensor.wallet(config=cli.config)
 
         bittensor.__console__.print(
-            "Slashing weight for subnet: {} by amount: {}".format(
-                cli.config.netuid, cli.config.amount
-            )
+            f"Slashing weight for subnet: {cli.config.netuid} by amount: {cli.config.amount}"
         )
         root = subtensor.metagraph(0, lite=False)
         try:
             my_uid = root.hotkeys.index(wallet.hotkey.ss58_address)
         except ValueError:
             bittensor.__console__.print(
-                "Wallet hotkey: {} not found in root metagraph".format(wallet.hotkey)
+                f"Wallet hotkey: {wallet.hotkey} not found in root metagraph"
             )
             exit()
         my_weights = root.weights[my_uid]
@@ -448,9 +444,9 @@ class RootSetSlashCommand:
             hotkey = Prompt.ask("Enter hotkey name", default=defaults.wallet.hotkey)
             config.wallet.hotkey = str(hotkey)
         if not config.is_set("netuid") and not config.no_prompt:
-            config.netuid = int(Prompt.ask(f"Enter netuid (e.g. 1)"))
+            config.netuid = int(Prompt.ask("Enter netuid (e.g. 1)"))
         if not config.is_set("amount") and not config.no_prompt:
-            config.amount = float(Prompt.ask(f"Enter decrease amount (e.g. 0.01)"))
+            config.amount = float(Prompt.ask("Enter decrease amount (e.g. 0.01)"))
 
 
 class RootSetWeightsCommand:
@@ -507,7 +503,7 @@ class RootSetWeightsCommand:
                     map(
                         str,
                         [
-                            "{:.2f}".format(float(1 / len(subnets)))
+                            f"{float(1 / len(subnets)):.2f}"
                             for subnet in subnets
                         ][:3],
                     )
@@ -655,7 +651,7 @@ class RootGetWeightsCommand:
             for netuid in netuids:
                 if netuid in uid_weights:
                     normalized_weight = uid_weights[netuid]
-                    row.append("{:0.2f}%".format(normalized_weight * 100))
+                    row.append(f"{normalized_weight * 100:0.2f}%")
                 else:
                     row.append("-")
             table.add_row(*row)

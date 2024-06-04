@@ -16,12 +16,14 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import bittensor
+from typing import Union
 
 from rich.prompt import Confirm
-from typing import Union
-from ..utils.balance import Balance
+
+import bittensor
+
 from ..utils import is_valid_bittensor_address_or_public_key
+from ..utils.balance import Balance
 
 
 def transfer_extrinsic(
@@ -58,9 +60,7 @@ def transfer_extrinsic(
     # Validate destination address.
     if not is_valid_bittensor_address_or_public_key(dest):
         bittensor.__console__.print(
-            ":cross_mark: [red]Invalid destination address[/red]:[bold white]\n  {}[/bold white]".format(
-                dest
-            )
+            f":cross_mark: [red]Invalid destination address[/red]:[bold white]\n  {dest}[/bold white]"
         )
         return False
 
@@ -95,18 +95,14 @@ def transfer_extrinsic(
     # Check if we have enough balance.
     if account_balance < (transfer_balance + fee + existential_deposit):
         bittensor.__console__.print(
-            ":cross_mark: [red]Not enough balance[/red]:[bold white]\n  balance: {}\n  amount: {}\n  for fee: {}[/bold white]".format(
-                account_balance, transfer_balance, fee
-            )
+            f":cross_mark: [red]Not enough balance[/red]:[bold white]\n  balance: {account_balance}\n  amount: {transfer_balance}\n  for fee: {fee}[/bold white]"
         )
         return False
 
     # Ask before moving on.
     if prompt:
         if not Confirm.ask(
-            "Do you want to transfer:[bold white]\n  amount: {}\n  from: {}:{}\n  to: {}\n  for fee: {}[/bold white]".format(
-                transfer_balance, wallet.name, wallet.coldkey.ss58_address, dest, fee
-            )
+            f"Do you want to transfer:[bold white]\n  amount: {transfer_balance}\n  from: {wallet.name}:{wallet.coldkey.ss58_address}\n  to: {dest}\n  for fee: {fee}[/bold white]"
         ):
             return False
 
@@ -124,7 +120,7 @@ def transfer_extrinsic(
                 ":white_heavy_check_mark: [green]Finalized[/green]"
             )
             bittensor.__console__.print(
-                "[green]Block Hash: {}[/green]".format(block_hash)
+                f"[green]Block Hash: {block_hash}[/green]"
             )
 
             explorer_urls = bittensor.utils.get_explorer_url_for_network(
@@ -143,16 +139,14 @@ def transfer_extrinsic(
                 )
         else:
             bittensor.__console__.print(
-                ":cross_mark: [red]Failed[/red]: error:{}".format(err_msg)
+                f":cross_mark: [red]Failed[/red]: error:{err_msg}"
             )
 
     if success:
         with bittensor.__console__.status(":satellite: Checking Balance..."):
             new_balance = subtensor.get_balance(wallet.coldkey.ss58_address)
             bittensor.__console__.print(
-                "Balance:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format(
-                    account_balance, new_balance
-                )
+                f"Balance:\n  [blue]{account_balance}[/blue] :arrow_right: [green]{new_balance}[/green]"
             )
             return True
 

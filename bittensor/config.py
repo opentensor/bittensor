@@ -20,14 +20,15 @@ Implementation of the config class, which manages the configuration of different
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import argparse
+import copy
 import os
 import sys
-import yaml
-import copy
 from copy import deepcopy
+from typing import Any, Dict, List, Optional, Type, TypeVar
+
+import yaml
 from munch import DefaultMunch
-from typing import List, Optional, Dict, Any, TypeVar, Type
-import argparse
 
 
 class InvalidConfigFile(Exception):
@@ -138,7 +139,7 @@ class config(DefaultMunch):
                 + "/"
                 + vars(parser.parse_known_args(args)[0])["config"]
             )
-        except Exception as e:
+        except Exception:
             config_file_path = None
 
         # Parse args not strict
@@ -153,10 +154,10 @@ class config(DefaultMunch):
             try:
                 with open(config_file_path) as f:
                     params_config = yaml.safe_load(f)
-                    print("Loading config defaults from: {}".format(config_file_path))
+                    print(f"Loading config defaults from: {config_file_path}")
                     parser.set_defaults(**params_config)
             except Exception as e:
-                print("Error in loading: {} using default parser settings".format(e))
+                print(f"Error in loading: {e} using default parser settings")
 
         # 2. Continue with loading in params.
         params = config.__parse_args__(args=args, parser=parser, strict=strict)

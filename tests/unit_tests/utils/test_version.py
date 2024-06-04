@@ -17,20 +17,21 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from unittest.mock import MagicMock
+
 import pytest
 from freezegun import freeze_time
-from datetime import datetime, timedelta, timezone
+from pytest_mock import MockerFixture
 
 from bittensor.utils.version import (
     VERSION_CHECK_THRESHOLD,
     VersionCheckError,
-    get_and_save_latest_version,
     check_version,
+    get_and_save_latest_version,
     version_checking,
 )
-from unittest.mock import MagicMock
-from pytest_mock import MockerFixture
 
 
 @pytest.fixture

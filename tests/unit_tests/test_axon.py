@@ -27,12 +27,12 @@ from unittest.mock import AsyncMock, MagicMock, patch
 # Third Party
 import netaddr
 import pytest
-from starlette.requests import Request
 from fastapi.testclient import TestClient
+from starlette.requests import Request
 
 # Bittensor
 import bittensor
-from bittensor import Synapse, RunException
+from bittensor import RunException, Synapse
 from bittensor.axon import AxonMiddleware
 from bittensor.axon import axon as Axon
 

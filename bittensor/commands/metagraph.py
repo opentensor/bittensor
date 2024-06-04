@@ -16,8 +16,11 @@
 # DEALINGS IN THE SOFTWARE.
 
 import argparse
-import bittensor
+
 from rich.table import Table
+
+import bittensor
+
 from .utils import check_netuid_set
 
 console = bittensor.__console__  # type: ignore
@@ -86,9 +89,7 @@ class MetagraphCommand:
         r"""Prints an entire metagraph."""
         console = bittensor.__console__
         console.print(
-            ":satellite: Syncing with chain: [white]{}[/white] ...".format(
-                cli.config.subtensor.network
-            )
+            f":satellite: Syncing with chain: [white]{cli.config.subtensor.network}[/white] ..."
         )
         metagraph: bittensor.metagraph = subtensor.metagraph(netuid=cli.config.netuid)
         metagraph.save()
@@ -112,16 +113,16 @@ class MetagraphCommand:
             ep = metagraph.axons[uid]
             row = [
                 str(neuron.uid),
-                "{:.5f}".format(metagraph.total_stake[uid]),
-                "{:.5f}".format(metagraph.ranks[uid]),
-                "{:.5f}".format(metagraph.trust[uid]),
-                "{:.5f}".format(metagraph.consensus[uid]),
-                "{:.5f}".format(metagraph.incentive[uid]),
-                "{:.5f}".format(metagraph.dividends[uid]),
-                "{}".format(int(metagraph.emission[uid] * 1000000000)),
-                "{:.5f}".format(metagraph.validator_trust[uid]),
+                f"{metagraph.total_stake[uid]:.5f}",
+                f"{metagraph.ranks[uid]:.5f}",
+                f"{metagraph.trust[uid]:.5f}",
+                f"{metagraph.consensus[uid]:.5f}",
+                f"{metagraph.incentive[uid]:.5f}",
+                f"{metagraph.dividends[uid]:.5f}",
+                f"{int(metagraph.emission[uid] * 1000000000)}",
+                f"{metagraph.validator_trust[uid]:.5f}",
                 "*" if metagraph.validator_permit[uid] else "",
-                str((metagraph.block.item() - metagraph.last_update[uid].item())),
+                str(metagraph.block.item() - metagraph.last_update[uid].item()),
                 str(metagraph.active[uid].item()),
                 (
                     ep.ip + ":" + str(ep.port)
@@ -142,16 +143,7 @@ class MetagraphCommand:
             TABLE_DATA.append(row)
         total_neurons = len(metagraph.uids)
         table = Table(show_footer=False)
-        table.title = "[white]Metagraph: net: {}:{}, block: {}, N: {}/{}, stake: {}, issuance: {}, difficulty: {}".format(
-            subtensor.network,
-            metagraph.netuid,
-            metagraph.block.item(),
-            sum(metagraph.active.tolist()),
-            metagraph.n.item(),
-            bittensor.Balance.from_tao(total_stake),
-            total_issuance,
-            difficulty,
-        )
+        table.title = f"[white]Metagraph: net: {subtensor.network}:{metagraph.netuid}, block: {metagraph.block.item()}, N: {sum(metagraph.active.tolist())}/{metagraph.n.item()}, stake: {bittensor.Balance.from_tao(total_stake)}, issuance: {total_issuance}, difficulty: {difficulty}"
         table.add_column(
             "[overline white]UID",
             str(total_neurons),
@@ -160,7 +152,7 @@ class MetagraphCommand:
         )
         table.add_column(
             "[overline white]STAKE(\u03c4)",
-            "\u03c4{:.5f}".format(total_stake),
+            f"\u03c4{total_stake:.5f}",
             footer_style="overline white",
             justify="right",
             style="green",
@@ -168,7 +160,7 @@ class MetagraphCommand:
         )
         table.add_column(
             "[overline white]RANK",
-            "{:.5f}".format(total_rank),
+            f"{total_rank:.5f}",
             footer_style="overline white",
             justify="right",
             style="green",
@@ -176,7 +168,7 @@ class MetagraphCommand:
         )
         table.add_column(
             "[overline white]TRUST",
-            "{:.5f}".format(total_trust),
+            f"{total_trust:.5f}",
             footer_style="overline white",
             justify="right",
             style="green",
@@ -184,7 +176,7 @@ class MetagraphCommand:
         )
         table.add_column(
             "[overline white]CONSENSUS",
-            "{:.5f}".format(total_consensus),
+            f"{total_consensus:.5f}",
             footer_style="overline white",
             justify="right",
             style="green",
@@ -192,7 +184,7 @@ class MetagraphCommand:
         )
         table.add_column(
             "[overline white]INCENTIVE",
-            "{:.5f}".format(total_incentive),
+            f"{total_incentive:.5f}",
             footer_style="overline white",
             justify="right",
             style="green",
@@ -200,7 +192,7 @@ class MetagraphCommand:
         )
         table.add_column(
             "[overline white]DIVIDENDS",
-            "{:.5f}".format(total_dividends),
+            f"{total_dividends:.5f}",
             footer_style="overline white",
             justify="right",
             style="green",
@@ -208,7 +200,7 @@ class MetagraphCommand:
         )
         table.add_column(
             "[overline white]EMISSION(\u03c1)",
-            "\u03c1{}".format(int(total_emission)),
+            f"\u03c1{int(total_emission)}",
             footer_style="overline white",
             justify="right",
             style="green",
@@ -216,7 +208,7 @@ class MetagraphCommand:
         )
         table.add_column(
             "[overline white]VTRUST",
-            "{:.5f}".format(total_validator_trust),
+            f"{total_validator_trust:.5f}",
             footer_style="overline white",
             justify="right",
             style="green",

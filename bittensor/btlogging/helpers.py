@@ -20,7 +20,7 @@ btlogging.helpers module provides helper functions for the Bittensor logging sys
 """
 
 import logging
-from typing import Generator
+from collections.abc import Generator
 
 
 def all_loggers() -> Generator[logging.Logger, None, None]:

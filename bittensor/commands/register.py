@@ -15,14 +15,16 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import sys
 import argparse
-import bittensor
-from rich.prompt import Prompt, Confirm
-from .utils import check_netuid_set, check_for_cuda_reg_config
+import sys
 from copy import deepcopy
 
+from rich.prompt import Confirm, Prompt
+
+import bittensor
+
 from . import defaults
+from .utils import check_for_cuda_reg_config, check_netuid_set
 
 console = bittensor.__console__
 

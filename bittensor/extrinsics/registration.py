@@ -16,15 +16,17 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import bittensor
 import time
+from typing import List, Optional, Tuple, Union
+
 from rich.prompt import Confirm
-from typing import List, Union, Optional, Tuple
+
+import bittensor
 from bittensor.utils.registration import (
     POWSolution,
     create_pow,
-    torch,
     log_no_torch_error,
+    torch,
 )
 
 
@@ -77,9 +79,7 @@ def register_extrinsic(
     """
     if not subtensor.subnet_exists(netuid):
         bittensor.__console__.print(
-            ":cross_mark: [red]Failed[/red]: error: [bold white]subnet:{}[/bold white] does not exist.".format(
-                netuid
-            )
+            f":cross_mark: [red]Failed[/red]: error: [bold white]subnet:{netuid}[/bold white] does not exist."
         )
         return False
 
@@ -97,11 +97,7 @@ def register_extrinsic(
 
     if prompt:
         if not Confirm.ask(
-            "Continue Registration?\n  hotkey:     [bold white]{}[/bold white]\n  coldkey:    [bold white]{}[/bold white]\n  network:    [bold white]{}[/bold white]".format(
-                wallet.hotkey.ss58_address,
-                wallet.coldkeypub.ss58_address,
-                subtensor.network,
-            )
+            f"Continue Registration?\n  hotkey:     [bold white]{wallet.hotkey.ss58_address}[/bold white]\n  coldkey:    [bold white]{wallet.coldkeypub.ss58_address}[/bold white]\n  network:    [bold white]{subtensor.network}[/bold white]"
         ):
             return False
 
@@ -113,7 +109,7 @@ def register_extrinsic(
     attempts = 1
     while True:
         bittensor.__console__.print(
-            ":satellite: Registering...({}/{})".format(attempts, max_allowed_attempts)
+            f":satellite: Registering...({attempts}/{max_allowed_attempts})"
         )
         # Solve latest POW.
         if cuda:
@@ -180,7 +176,7 @@ def register_extrinsic(
                             return True
 
                         bittensor.__console__.print(
-                            ":cross_mark: [red]Failed[/red]: error:{}".format(err_msg)
+                            f":cross_mark: [red]Failed[/red]: error:{err_msg}"
                         )
                         time.sleep(0.5)
 
@@ -211,9 +207,7 @@ def register_extrinsic(
             # Failed registration, retry pow
             attempts += 1
             bittensor.__console__.print(
-                ":satellite: Failed registration, retrying pow ...({}/{})".format(
-                    attempts, max_allowed_attempts
-                )
+                f":satellite: Failed registration, retrying pow ...({attempts}/{max_allowed_attempts})"
             )
         else:
             # Failed to register after max attempts.
@@ -248,9 +242,7 @@ def burned_register_extrinsic(
     """
     if not subtensor.subnet_exists(netuid):
         bittensor.__console__.print(
-            ":cross_mark: [red]Failed[/red]: error: [bold white]subnet:{}[/bold white] does not exist.".format(
-                netuid
-            )
+            f":cross_mark: [red]Failed[/red]: error: [bold white]subnet:{netuid}[/bold white] does not exist."
         )
         return False
 
@@ -268,12 +260,10 @@ def burned_register_extrinsic(
         if not neuron.is_null:
             bittensor.__console__.print(
                 ":white_heavy_check_mark: [green]Already Registered[/green]:\n"
-                "uid: [bold white]{}[/bold white]\n"
-                "netuid: [bold white]{}[/bold white]\n"
-                "hotkey: [bold white]{}[/bold white]\n"
-                "coldkey: [bold white]{}[/bold white]".format(
-                    neuron.uid, neuron.netuid, neuron.hotkey, neuron.coldkey
-                )
+                f"uid: [bold white]{neuron.uid}[/bold white]\n"
+                f"netuid: [bold white]{neuron.netuid}[/bold white]\n"
+                f"hotkey: [bold white]{neuron.hotkey}[/bold white]\n"
+                f"coldkey: [bold white]{neuron.coldkey}[/bold white]"
             )
             return True
 
@@ -292,7 +282,7 @@ def burned_register_extrinsic(
 
         if success != True or success == False:
             bittensor.__console__.print(
-                ":cross_mark: [red]Failed[/red]: error:{}".format(err_msg)
+                f":cross_mark: [red]Failed[/red]: error:{err_msg}"
             )
             time.sleep(0.5)
             return False
@@ -305,9 +295,7 @@ def burned_register_extrinsic(
             )
 
             bittensor.__console__.print(
-                "Balance:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format(
-                    old_balance, new_balance
-                )
+                f"Balance:\n  [blue]{old_balance}[/blue] :arrow_right: [green]{new_balance}[/green]"
             )
             is_registered = subtensor.is_hotkey_registered(
                 netuid=netuid, hotkey_ss58=wallet.hotkey.ss58_address
@@ -379,10 +367,7 @@ def run_faucet_extrinsic(
     """
     if prompt:
         if not Confirm.ask(
-            "Run Faucet ?\n coldkey:    [bold white]{}[/bold white]\n network:    [bold white]{}[/bold white]".format(
-                wallet.coldkeypub.ss58_address,
-                subtensor.network,
-            )
+            f"Run Faucet ?\n coldkey:    [bold white]{wallet.coldkeypub.ss58_address}[/bold white]\n network:    [bold white]{subtensor.network}[/bold white]"
         ):
             return False, ""
 
@@ -508,7 +493,7 @@ def swap_hotkey_extrinsic(
 
         if success != True or success == False:
             bittensor.__console__.print(
-                ":cross_mark: [red]Failed[/red]: error:{}".format(err_msg)
+                f":cross_mark: [red]Failed[/red]: error:{err_msg}"
             )
             time.sleep(0.5)
             return False

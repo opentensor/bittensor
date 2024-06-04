@@ -1,15 +1,17 @@
-import pytest
 from unittest.mock import MagicMock, patch
-from bittensor.subtensor import Subtensor
-from bittensor.wallet import wallet as Wallet
-from bittensor.utils.registration import POWSolution
+
+import pytest
+
 from bittensor.extrinsics.registration import (
-    MaxSuccessException,
     MaxAttemptsException,
-    swap_hotkey_extrinsic,
+    MaxSuccessException,
     burned_register_extrinsic,
     register_extrinsic,
+    swap_hotkey_extrinsic,
 )
+from bittensor.subtensor import Subtensor
+from bittensor.utils.registration import POWSolution
+from bittensor.wallet import wallet as Wallet
 
 
 # Mocking external dependencies

@@ -14,11 +14,13 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
-import json
 import base64
+import json
+from typing import ClassVar, Optional
+
 import pytest
+
 import bittensor
-from typing import Optional, ClassVar
 
 
 def test_parse_headers_to_inputs():

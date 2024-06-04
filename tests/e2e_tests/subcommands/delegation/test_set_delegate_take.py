@@ -1,8 +1,7 @@
-from bittensor.commands.delegates import SetTakeCommand, NominateCommand
+from bittensor.commands.delegates import NominateCommand, SetTakeCommand
 from bittensor.commands.network import RegisterSubnetworkCommand
 from bittensor.commands.register import RegisterCommand
 from bittensor.commands.root import RootRegisterCommand
-
 from tests.e2e_tests.utils import setup_wallet
 
 

@@ -31,11 +31,12 @@ import time
 import traceback
 import typing
 import uuid
-from inspect import signature, Signature, Parameter
-from typing import List, Optional, Tuple, Callable, Any, Dict, Awaitable
+from collections.abc import Awaitable
+from inspect import Parameter, Signature, signature
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import uvicorn
-from fastapi import FastAPI, APIRouter, Depends
+from fastapi import APIRouter, Depends, FastAPI
 from fastapi.responses import JSONResponse
 from fastapi.routing import serialize_response
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
@@ -45,15 +46,15 @@ from substrateinterface import Keypair
 
 import bittensor
 from bittensor.errors import (
+    BlacklistedException,
     InvalidRequestNameError,
+    NotVerifiedException,
+    PostProcessException,
+    PriorityException,
     SynapseDendriteNoneException,
+    SynapseException,
     SynapseParsingError,
     UnknownSynapseError,
-    NotVerifiedException,
-    BlacklistedException,
-    PriorityException,
-    PostProcessException,
-    SynapseException,
 )
 from bittensor.threadpool import PriorityThreadPoolExecutor
 from bittensor.utils import networking
@@ -521,23 +522,17 @@ class axon:
             )
             assert (
                 signature(blacklist_fn) == blacklist_sig
-            ), "The blacklist_fn function must have the signature: blacklist( synapse: {} ) -> Tuple[bool, str]".format(
-                request_name
-            )
+            ), f"The blacklist_fn function must have the signature: blacklist( synapse: {request_name} ) -> Tuple[bool, str]"
         if priority_fn:
             priority_sig = Signature(expected_params, return_annotation=float)
             assert (
                 signature(priority_fn) == priority_sig
-            ), "The priority_fn function must have the signature: priority( synapse: {} ) -> float".format(
-                request_name
-            )
+            ), f"The priority_fn function must have the signature: priority( synapse: {request_name} ) -> float"
         if verify_fn:
             verify_sig = Signature(expected_params, return_annotation=None)
             assert (
                 signature(verify_fn) == verify_sig
-            ), "The verify_fn function must have the signature: verify( synapse: {} ) -> None".format(
-                request_name
-            )
+            ), f"The verify_fn function must have the signature: verify( synapse: {request_name} ) -> None"
 
         # Store functions in appropriate attribute dictionaries
         self.forward_class_types[request_name] = param_class
@@ -1164,7 +1159,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
 
         try:
             synapse = request_synapse.from_headers(request.headers)  # type: ignore
-        except Exception as e:
+        except Exception:
             raise SynapseParsingError(
                 f"Improperly formatted request. Could not parse headers {request.headers} into synapse of type {request_name}."
             )

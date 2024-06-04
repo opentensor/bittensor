@@ -17,16 +17,17 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from abc import ABC, abstractmethod
 import os
 import pickle
-import numpy as np
-from numpy.typing import NDArray
-import bittensor
+from abc import ABC, abstractmethod
 from os import listdir
 from os.path import join
-from typing import List, Optional, Union, Tuple
+from typing import List, Optional, Tuple, Union
 
+import numpy as np
+from numpy.typing import NDArray
+
+import bittensor
 from bittensor.chain_data import AxonInfo
 from bittensor.utils.registration import torch, use_torch
 
@@ -85,7 +86,7 @@ def latest_block_path(dir_path: str) -> str:
             if block_number > latest_block:
                 latest_block = block_number
                 latest_file_full_path = full_path_filename
-        except Exception as e:
+        except Exception:
             pass
     if not latest_file_full_path:
         raise ValueError(f"Metagraph not found at: {dir_path}")
@@ -397,9 +398,7 @@ class MetagraphMixin(ABC):
 
                 print(metagraph)  # Output: "metagraph(netuid:1, n:100, block:500, network:finney)"
         """
-        return "metagraph(netuid:{}, n:{}, block:{}, network:{})".format(
-            self.netuid, self.n.item(), self.block.item(), self.network
-        )
+        return f"metagraph(netuid:{self.netuid}, n:{self.n.item()}, block:{self.block.item()}, network:{self.network})"
 
     def __repr__(self) -> str:
         """

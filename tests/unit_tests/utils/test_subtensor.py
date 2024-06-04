@@ -69,7 +69,7 @@ def test_save_errors_to_cache(tmp_path):
     st_utils._ERRORS_FILE_PATH = test_file
     st_utils._save_errors_to_cache("0x123", errors)
 
-    with open(test_file, "r") as file:
+    with open(test_file) as file:
         data = json.load(file)
         assert data["subtensor_build_id"] == "0x123"
         assert data["errors"] == errors

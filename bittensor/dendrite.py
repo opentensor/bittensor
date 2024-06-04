@@ -20,11 +20,14 @@
 from __future__ import annotations
 
 import asyncio
-import uuid
 import time
+import uuid
+from collections.abc import AsyncGenerator
+from typing import Any, List, Optional, Union
+
 import aiohttp
+
 import bittensor
-from typing import Optional, List, Union, AsyncGenerator, Any
 from bittensor.utils.registration import torch, use_torch
 
 
@@ -745,7 +748,7 @@ class DendriteMixin:
         Returns:
             str: The string representation of the Dendrite object in the format :func:`dendrite(<user_wallet_address>)`.
         """
-        return "dendrite({})".format(self.keypair.ss58_address)
+        return f"dendrite({self.keypair.ss58_address})"
 
     def __repr__(self) -> str:
         """
@@ -815,7 +818,7 @@ class DendriteMixin:
 
 
 # For back-compatibility with torch
-BaseModel: Union["torch.nn.Module", object] = torch.nn.Module if use_torch() else object
+BaseModel: Union[torch.nn.Module, object] = torch.nn.Module if use_torch() else object
 
 
 class dendrite(DendriteMixin, BaseModel):  # type: ignore

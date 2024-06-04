@@ -16,9 +16,12 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 import json
+
+from rich.prompt import Confirm
+
 import bittensor
 import bittensor.utils.networking as net
-from rich.prompt import Confirm
+
 from ..errors import MetadataError
 
 
@@ -106,9 +109,7 @@ def serve_extrinsic(
         output["coldkey"] = wallet.coldkeypub.ss58_address
         output["hotkey"] = wallet.hotkey.ss58_address
         if not Confirm.ask(
-            "Do you want to serve axon:\n  [bold white]{}[/bold white]".format(
-                json.dumps(output, indent=4, sort_keys=True)
-            )
+            f"Do you want to serve axon:\n  [bold white]{json.dumps(output, indent=4, sort_keys=True)}[/bold white]"
         ):
             return False
 
@@ -171,18 +172,14 @@ def serve_axon_extrinsic(
         try:
             external_ip = net.get_external_ip()
             bittensor.__console__.print(
-                ":white_heavy_check_mark: [green]Found external ip: {}[/green]".format(
-                    external_ip
-                )
+                f":white_heavy_check_mark: [green]Found external ip: {external_ip}[/green]"
             )
             bittensor.logging.success(
-                prefix="External IP", suffix="<blue>{}</blue>".format(external_ip)
+                prefix="External IP", suffix=f"<blue>{external_ip}</blue>"
             )
         except Exception as E:
             raise RuntimeError(
-                "Unable to attain your external ip. Check your internet connection. error: {}".format(
-                    E
-                )
+                f"Unable to attain your external ip. Check your internet connection. error: {E}"
             ) from E
     else:
         external_ip = axon.external_ip
@@ -262,8 +259,9 @@ def publish_metadata(
             raise MetadataError(response.error_message)
 
 
-from retry import retry
 from typing import Optional
+
+from retry import retry
 
 
 def get_metadata(self, netuid: int, hotkey: str, block: Optional[int] = None) -> str:

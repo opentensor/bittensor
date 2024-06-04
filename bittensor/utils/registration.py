@@ -14,14 +14,14 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import backoff
 import numpy
-
-import bittensor
 from Crypto.Hash import keccak
 from rich import console as rich_console
 from rich import status as rich_status
 
-from .formatting import get_human_readable, millify
+import bittensor
+
 from ._register_cuda import solve_cuda
+from .formatting import get_human_readable, millify
 
 
 def use_torch() -> bool:

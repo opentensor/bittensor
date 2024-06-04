@@ -18,18 +18,19 @@
 import argparse
 import os
 import sys
-from typing import List, Dict, Optional
+from typing import Dict, List, Optional
 
 from rich.console import Text
-from rich.prompt import Prompt, FloatPrompt, Confirm
+from rich.prompt import Confirm, FloatPrompt, Prompt
 from rich.table import Table
 from substrateinterface.exceptions import SubstrateRequestException
 from tqdm import tqdm
 
 import bittensor
+
 from . import defaults
 from .identity import SetIdentityCommand
-from .utils import get_delegates_details, DelegatesDetails
+from .utils import DelegatesDetails, get_delegates_details
 
 
 def _get_coldkey_wallets_for_path(path: str) -> List["bittensor.wallet"]:
@@ -287,13 +288,9 @@ def show_delegates(
                     / float(prev_stake)
                 )
                 if rate_change_in_stake > 0:
-                    rate_change_in_stake_str = "[green]{:.2f}%[/green]".format(
-                        rate_change_in_stake
-                    )
+                    rate_change_in_stake_str = f"[green]{rate_change_in_stake:.2f}%[/green]"
                 elif rate_change_in_stake < 0:
-                    rate_change_in_stake_str = "[red]{:.2f}%[/red]".format(
-                        rate_change_in_stake
-                    )
+                    rate_change_in_stake_str = f"[red]{rate_change_in_stake:.2f}%[/red]"
                 else:
                     rate_change_in_stake_str = "[grey0]0%[/grey0]"
         else:
@@ -424,9 +421,7 @@ class DelegateStakeCommand:
 
             if len(delegates) == 0:
                 console.print(
-                    ":cross_mark: [red]There are no delegates on {}[/red]".format(
-                        subtensor.network
-                    )
+                    f":cross_mark: [red]There are no delegates on {subtensor.network}[/red]"
                 )
                 sys.exit(1)
 
@@ -435,7 +430,7 @@ class DelegateStakeCommand:
             delegate_index = Prompt.ask("Enter delegate index")
             config.delegate_ss58key = str(delegates[int(delegate_index)].hotkey_ss58)
             console.print(
-                "Selected: [yellow]{}[/yellow]".format(config.delegate_ss58key)
+                f"Selected: [yellow]{config.delegate_ss58key}[/yellow]"
             )
 
         if not config.is_set("wallet.name") and not config.no_prompt:
@@ -454,9 +449,7 @@ class DelegateStakeCommand:
                     config.amount = float(amount)
                 except ValueError:
                     console.print(
-                        ":cross_mark: [red]Invalid Tao amount[/red] [bold white]{}[/bold white]".format(
-                            amount
-                        )
+                        f":cross_mark: [red]Invalid Tao amount[/red] [bold white]{amount}[/bold white]"
                     )
                     sys.exit()
             else:
@@ -569,9 +562,7 @@ class DelegateUnstakeCommand:
 
             if len(delegates) == 0:
                 console.print(
-                    ":cross_mark: [red]There are no delegates on {}[/red]".format(
-                        subtensor.network
-                    )
+                    f":cross_mark: [red]There are no delegates on {subtensor.network}[/red]"
                 )
                 sys.exit(1)
 
@@ -580,7 +571,7 @@ class DelegateUnstakeCommand:
             delegate_index = Prompt.ask("Enter delegate index")
             config.delegate_ss58key = str(delegates[int(delegate_index)].hotkey_ss58)
             console.print(
-                "Selected: [yellow]{}[/yellow]".format(config.delegate_ss58key)
+                f"Selected: [yellow]{config.delegate_ss58key}[/yellow]"
             )
 
         # Get amount.
@@ -595,9 +586,7 @@ class DelegateUnstakeCommand:
                     config.amount = float(amount)
                 except ValueError:
                     console.print(
-                        ":cross_mark: [red]Invalid Tao amount[/red] [bold white]{}[/bold white]".format(
-                            amount
-                        )
+                        f":cross_mark: [red]Invalid Tao amount[/red] [bold white]{amount}[/bold white]"
                     )
                     sys.exit()
             else:
@@ -832,39 +821,31 @@ class NominateCommand:
         # Check if the hotkey is already a delegate.
         if subtensor.is_hotkey_delegate(wallet.hotkey.ss58_address):
             bittensor.__console__.print(
-                "Aborting: Hotkey {} is already a delegate.".format(
-                    wallet.hotkey.ss58_address
-                )
+                f"Aborting: Hotkey {wallet.hotkey.ss58_address} is already a delegate."
             )
             return
 
         result: bool = subtensor.nominate(wallet)
         if not result:
             bittensor.__console__.print(
-                "Could not became a delegate on [white]{}[/white]".format(
-                    subtensor.network
-                )
+                f"Could not became a delegate on [white]{subtensor.network}[/white]"
             )
         else:
             # Check if we are a delegate.
             is_delegate: bool = subtensor.is_hotkey_delegate(wallet.hotkey.ss58_address)
             if not is_delegate:
                 bittensor.__console__.print(
-                    "Could not became a delegate on [white]{}[/white]".format(
-                        subtensor.network
-                    )
+                    f"Could not became a delegate on [white]{subtensor.network}[/white]"
                 )
                 return
             bittensor.__console__.print(
-                "Successfully became a delegate on [white]{}[/white]".format(
-                    subtensor.network
-                )
+                f"Successfully became a delegate on [white]{subtensor.network}[/white]"
             )
 
             # Prompt use to set identity on chain.
             if not cli.config.no_prompt:
                 do_set_identity = Prompt.ask(
-                    f"Subnetwork registered successfully. Would you like to set your identity? [y/n]",
+                    "Subnetwork registered successfully. Would you like to set your identity? [y/n]",
                     choices=["y", "n"],
                 )
 
@@ -1080,7 +1061,7 @@ class MyDelegatesCommand:
                     )
 
         bittensor.__console__.print(table)
-        bittensor.__console__.print("Total delegated Tao: {}".format(total_delegated))
+        bittensor.__console__.print(f"Total delegated Tao: {total_delegated}")
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
@@ -1158,16 +1139,14 @@ class SetTakeCommand:
         # Check if the hotkey is not a delegate.
         if not subtensor.is_hotkey_delegate(wallet.hotkey.ss58_address):
             bittensor.__console__.print(
-                "Aborting: Hotkey {} is NOT a delegate.".format(
-                    wallet.hotkey.ss58_address
-                )
+                f"Aborting: Hotkey {wallet.hotkey.ss58_address} is NOT a delegate."
             )
             return
 
         # Prompt user for take value.
         new_take_str = config.get("take")
         if new_take_str == None:
-            new_take = FloatPrompt.ask(f"Enter take value (0.18 for 18%)")
+            new_take = FloatPrompt.ask("Enter take value (0.18 for 18%)")
         else:
             new_take = float(new_take_str)
 
@@ -1187,13 +1166,11 @@ class SetTakeCommand:
             is_delegate: bool = subtensor.is_hotkey_delegate(wallet.hotkey.ss58_address)
             if not is_delegate:
                 bittensor.__console__.print(
-                    "Could not set the take [white]{}[/white]".format(subtensor.network)
+                    f"Could not set the take [white]{subtensor.network}[/white]"
                 )
                 return
             bittensor.__console__.print(
-                "Successfully set the take on [white]{}[/white]".format(
-                    subtensor.network
-                )
+                f"Successfully set the take on [white]{subtensor.network}[/white]"
             )
 
     @staticmethod

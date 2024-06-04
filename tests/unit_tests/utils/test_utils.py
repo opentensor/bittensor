@@ -18,8 +18,9 @@
 # DEALINGS IN THE SOFTWARE.
 
 import numpy as np
-import bittensor.utils.weight_utils as weight_utils
 import pytest
+
+import bittensor.utils.weight_utils as weight_utils
 
 
 def test_convert_weight_and_uids():

@@ -25,12 +25,12 @@ import pytest
 
 # Application
 import bittensor
+from bittensor import subtensor_module
 from bittensor.subtensor import (
+    Balance,
     Subtensor,
     _logger,
-    Balance,
 )
-from bittensor import subtensor_module
 
 
 def test_serve_axon_with_external_ip_set():

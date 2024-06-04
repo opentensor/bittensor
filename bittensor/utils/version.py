@@ -1,10 +1,11 @@
-from typing import Optional
-from pathlib import Path
 import time
+from pathlib import Path
+from typing import Optional
+
+import requests
 from packaging.version import Version
 
 import bittensor
-import requests
 
 VERSION_CHECK_THRESHOLD = 86400
 
@@ -76,10 +77,8 @@ def check_version(timeout: int = 15):
 
         if Version(latest_version) > Version(bittensor.__version__):
             print(
-                "\u001b[33mBittensor Version: Current {}/Latest {}\nPlease update to the latest version at your earliest convenience. "
-                "Run the following command to upgrade:\n\n\u001b[0mpython -m pip install --upgrade bittensor".format(
-                    bittensor.__version__, latest_version
-                )
+                f"\u001b[33mBittensor Version: Current {bittensor.__version__}/Latest {latest_version}\nPlease update to the latest version at your earliest convenience. "
+                "Run the following command to upgrade:\n\n\u001b[0mpython -m pip install --upgrade bittensor"
             )
     except Exception as e:
         raise VersionCheckError("Version check failed") from e

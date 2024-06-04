@@ -31,18 +31,18 @@ import sys
 from logging.handlers import QueueHandler, QueueListener, RotatingFileHandler
 from typing import NamedTuple
 
-from statemachine import StateMachine, State
+from statemachine import State, StateMachine
 
 import bittensor.config
 from bittensor.btlogging.defines import (
-    TRACE_LOG_FORMAT,
-    DATE_FORMAT,
     BITTENSOR_LOGGER_NAME,
+    DATE_FORMAT,
+    DEFAULT_LOG_BACKUP_COUNT,
     DEFAULT_LOG_FILE_NAME,
     DEFAULT_MAX_ROTATING_LOG_FILE_SIZE,
-    DEFAULT_LOG_BACKUP_COUNT,
+    TRACE_LOG_FORMAT,
 )
-from bittensor.btlogging.format import BtStreamFormatter, BtFileFormatter
+from bittensor.btlogging.format import BtFileFormatter, BtStreamFormatter
 from bittensor.btlogging.helpers import all_loggers
 
 
@@ -260,7 +260,7 @@ class LoggingMachine(StateMachine):
     # Default Logging
     def before_enable_default(self):
         """Logs status before enable Default."""
-        self._logger.info(f"Enabling default logging.")
+        self._logger.info("Enabling default logging.")
         self._logger.setLevel(stdlogging.INFO)
         for logger in all_loggers():
             if logger.name in self._primary_loggers:
@@ -284,7 +284,7 @@ class LoggingMachine(StateMachine):
 
     def before_disable_trace(self):
         """Logs status before disable Trace."""
-        self._logger.info(f"Disabling trace.")
+        self._logger.info("Disabling trace.")
         self._stream_formatter.set_trace(False)
         self.enable_default()
 

@@ -1,13 +1,12 @@
 import binascii
 import hashlib
+import io
 import math
+from contextlib import redirect_stdout
 from typing import Tuple
 
 import numpy as np
 from Crypto.Hash import keccak
-
-from contextlib import redirect_stdout
-import io
 
 
 def solve_cuda(

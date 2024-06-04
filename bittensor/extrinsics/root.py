@@ -16,17 +16,18 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import bittensor
-
-import time
 import logging
+import time
+from typing import List, Union
+
 import numpy as np
 from numpy.typing import NDArray
 from rich.prompt import Confirm
-from typing import Union, List
+
+import bittensor
 import bittensor.utils.weight_utils as weight_utils
 from bittensor.btlogging.defines import BITTENSOR_LOGGER_NAME
-from bittensor.utils.registration import torch, legacy_torch_api_compat
+from bittensor.utils.registration import legacy_torch_api_compat, torch
 
 logger = logging.getLogger(BITTENSOR_LOGGER_NAME)
 
@@ -61,13 +62,13 @@ def root_register_extrinsic(
     )
     if is_registered:
         bittensor.__console__.print(
-            f":white_heavy_check_mark: [green]Already registered on root network.[/green]"
+            ":white_heavy_check_mark: [green]Already registered on root network.[/green]"
         )
         return True
 
     if prompt:
         # Prompt user for confirmation.
-        if not Confirm.ask(f"Register to root network?"):
+        if not Confirm.ask("Register to root network?"):
             return False
 
     with bittensor.__console__.status(":satellite: Registering to root network..."):
@@ -79,7 +80,7 @@ def root_register_extrinsic(
 
         if success != True or success == False:
             bittensor.__console__.print(
-                ":cross_mark: [red]Failed[/red]: error:{}".format(err_msg)
+                f":cross_mark: [red]Failed[/red]: error:{err_msg}"
             )
             time.sleep(0.5)
 
@@ -148,9 +149,7 @@ def set_root_weights_extrinsic(
     non_zero_weights = weights[non_zero_weight_idx]
     if non_zero_weights.size < min_allowed_weights:
         raise ValueError(
-            "The minimum number of weights required to set weights is {}, got {}".format(
-                min_allowed_weights, non_zero_weights.size
-            )
+            f"The minimum number of weights required to set weights is {min_allowed_weights}, got {non_zero_weights.size}"
         )
 
     # Normalize the weights to max value.
@@ -164,16 +163,12 @@ def set_root_weights_extrinsic(
     # Ask before moving on.
     if prompt:
         if not Confirm.ask(
-            "Do you want to set the following root weights?:\n[bold white]  weights: {}\n  uids: {}[/bold white ]?".format(
-                formatted_weights, netuids
-            )
+            f"Do you want to set the following root weights?:\n[bold white]  weights: {formatted_weights}\n  uids: {netuids}[/bold white ]?"
         ):
             return False
 
     with bittensor.__console__.status(
-        ":satellite: Setting root weights on [white]{}[/white] ...".format(
-            subtensor.network
-        )
+        f":satellite: Setting root weights on [white]{subtensor.network}[/white] ..."
     ):
         try:
             weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(
@@ -205,7 +200,7 @@ def set_root_weights_extrinsic(
                 return True
             else:
                 bittensor.__console__.print(
-                    ":cross_mark: [red]Failed[/red]: error:{}".format(error_message)
+                    f":cross_mark: [red]Failed[/red]: error:{error_message}"
                 )
                 bittensor.logging.warning(
                     prefix="Set weights",
@@ -216,7 +211,7 @@ def set_root_weights_extrinsic(
         except Exception as e:
             # TODO( devs ): lets remove all of the bittensor.__console__ calls and replace with the bittensor logger.
             bittensor.__console__.print(
-                ":cross_mark: [red]Failed[/red]: error:{}".format(e)
+                f":cross_mark: [red]Failed[/red]: error:{e}"
             )
             bittensor.logging.warning(
                 prefix="Set weights", suffix="<red>Failed: </red>" + str(e)

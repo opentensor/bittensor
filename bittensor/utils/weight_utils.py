@@ -20,15 +20,15 @@ Conversion for weight between chain representation and np.array or torch.Tensor
 # DEALINGS IN THE SOFTWARE.
 
 import hashlib
-from typing import Tuple, List, Union
+from typing import List, Tuple, Union
 
 import numpy as np
 from numpy.typing import NDArray
-from scalecodec import ScaleBytes, U16, Vec
+from scalecodec import U16, ScaleBytes, Vec
 from substrateinterface import Keypair
 
 import bittensor
-from bittensor.utils.registration import torch, use_torch, legacy_torch_api_compat
+from bittensor.utils.registration import legacy_torch_api_compat, torch, use_torch
 
 U32_MAX = 4294967295
 U16_MAX = 65535
@@ -197,15 +197,13 @@ def convert_weights_and_uids_for_emit(
     uids = uids.tolist()
     if min(weights) < 0:
         raise ValueError(
-            "Passed weight is negative cannot exist on chain {}".format(weights)
+            f"Passed weight is negative cannot exist on chain {weights}"
         )
     if min(uids) < 0:
-        raise ValueError("Passed uid is negative cannot exist on chain {}".format(uids))
+        raise ValueError(f"Passed uid is negative cannot exist on chain {uids}")
     if len(uids) != len(weights):
         raise ValueError(
-            "Passed weights and uids must have the same length, got {} and {}".format(
-                len(uids), len(weights)
-            )
+            f"Passed weights and uids must have the same length, got {len(uids)} and {len(weights)}"
         )
     if sum(weights) == 0:
         return [], []  # Nothing to set on chain.
@@ -280,7 +278,7 @@ def process_weights_for_netuid(
     if nzw_size == 0 or metagraph.n < min_allowed_weights:
         bittensor.logging.warning("No non-zero weights returning all ones.")
         final_weights = (
-            torch.ones((metagraph.n)).to(metagraph.n) / metagraph.n
+            torch.ones(metagraph.n).to(metagraph.n) / metagraph.n
             if use_torch()
             else np.ones((metagraph.n), dtype=np.int64) / metagraph.n
         )
@@ -302,7 +300,7 @@ def process_weights_for_netuid(
         )
         # ( const ): Should this be np.zeros( ( metagraph.n ) ) to reset everyone to build up weight?
         weights = (
-            torch.ones((metagraph.n)).to(metagraph.n) * 1e-5
+            torch.ones(metagraph.n).to(metagraph.n) * 1e-5
             if use_torch()
             else np.ones((metagraph.n), dtype=np.int64) * 1e-5
         )  # creating minimum even non-zero weights

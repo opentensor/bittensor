@@ -1,7 +1,8 @@
 import argparse
-from rich.table import Table
-from rich.prompt import Prompt
 from sys import getsizeof
+
+from rich.prompt import Prompt
+from rich.table import Table
 
 import bittensor
 

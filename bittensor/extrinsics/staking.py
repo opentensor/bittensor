@@ -16,10 +16,12 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import bittensor
-from rich.prompt import Confirm
 from time import sleep
-from typing import List, Union, Optional
+from typing import List, Optional, Union
+
+from rich.prompt import Confirm
+
+import bittensor
 from bittensor.utils.balance import Balance
 
 
@@ -68,9 +70,7 @@ def add_stake_extrinsic(
     own_hotkey: bool
 
     with bittensor.__console__.status(
-        ":satellite: Syncing with chain: [white]{}[/white] ...".format(
-            subtensor.network
-        )
+        f":satellite: Syncing with chain: [white]{subtensor.network}[/white] ..."
     ):
         old_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
         # Get hotkey owner
@@ -80,7 +80,7 @@ def add_stake_extrinsic(
             # This is not the wallet's own hotkey so we are delegating.
             if not subtensor.is_hotkey_delegate(hotkey_ss58):
                 raise bittensor.errors.NotDelegateError(
-                    "Hotkey: {} is not a delegate.".format(hotkey_ss58)
+                    f"Hotkey: {hotkey_ss58} is not a delegate."
                 )
 
             # Get hotkey take
@@ -109,9 +109,7 @@ def add_stake_extrinsic(
     # Check enough to stake.
     if staking_balance > old_balance:
         bittensor.__console__.print(
-            ":cross_mark: [red]Not enough stake[/red]:[bold white]\n  balance:{}\n  amount: {}\n  coldkey: {}[/bold white]".format(
-                old_balance, staking_balance, wallet.name
-            )
+            f":cross_mark: [red]Not enough stake[/red]:[bold white]\n  balance:{old_balance}\n  amount: {staking_balance}\n  coldkey: {wallet.name}[/bold white]"
         )
         return False
 
@@ -120,24 +118,18 @@ def add_stake_extrinsic(
         if not own_hotkey:
             # We are delegating.
             if not Confirm.ask(
-                "Do you want to delegate:[bold white]\n  amount: {}\n  to: {}\n  take: {}\n  owner: {}[/bold white]".format(
-                    staking_balance, wallet.hotkey_str, hotkey_take, hotkey_owner
-                )
+                f"Do you want to delegate:[bold white]\n  amount: {staking_balance}\n  to: {wallet.hotkey_str}\n  take: {hotkey_take}\n  owner: {hotkey_owner}[/bold white]"
             ):
                 return False
         else:
             if not Confirm.ask(
-                "Do you want to stake:[bold white]\n  amount: {}\n  to: {}[/bold white]".format(
-                    staking_balance, wallet.hotkey_str
-                )
+                f"Do you want to stake:[bold white]\n  amount: {staking_balance}\n  to: {wallet.hotkey_str}[/bold white]"
             ):
                 return False
 
     try:
         with bittensor.__console__.status(
-            ":satellite: Staking to: [bold white]{}[/bold white] ...".format(
-                subtensor.network
-            )
+            f":satellite: Staking to: [bold white]{subtensor.network}[/bold white] ..."
         ):
             staking_response: bool = __do_add_stake_single(
                 subtensor=subtensor,
@@ -157,9 +149,7 @@ def add_stake_extrinsic(
                 ":white_heavy_check_mark: [green]Finalized[/green]"
             )
             with bittensor.__console__.status(
-                ":satellite: Checking Balance on: [white]{}[/white] ...".format(
-                    subtensor.network
-                )
+                f":satellite: Checking Balance on: [white]{subtensor.network}[/white] ..."
             ):
                 new_balance = subtensor.get_balance(
                     address=wallet.coldkeypub.ss58_address
@@ -172,14 +162,10 @@ def add_stake_extrinsic(
                 )  # Get current stake
 
                 bittensor.__console__.print(
-                    "Balance:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format(
-                        old_balance, new_balance
-                    )
+                    f"Balance:\n  [blue]{old_balance}[/blue] :arrow_right: [green]{new_balance}[/green]"
                 )
                 bittensor.__console__.print(
-                    "Stake:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format(
-                        old_stake, new_stake
-                    )
+                    f"Stake:\n  [blue]{old_stake}[/blue] :arrow_right: [green]{new_stake}[/green]"
                 )
                 return True
         else:
@@ -188,15 +174,13 @@ def add_stake_extrinsic(
             )
             return False
 
-    except bittensor.errors.NotRegisteredError as e:
+    except bittensor.errors.NotRegisteredError:
         bittensor.__console__.print(
-            ":cross_mark: [red]Hotkey: {} is not registered.[/red]".format(
-                wallet.hotkey_str
-            )
+            f":cross_mark: [red]Hotkey: {wallet.hotkey_str} is not registered.[/red]"
         )
         return False
     except bittensor.errors.StakeError as e:
-        bittensor.__console__.print(":cross_mark: [red]Stake Error: {}[/red]".format(e))
+        bittensor.__console__.print(f":cross_mark: [red]Stake Error: {e}[/red]")
         return False
 
 
@@ -264,9 +248,7 @@ def add_stake_multiple_extrinsic(
 
     old_stakes = []
     with bittensor.__console__.status(
-        ":satellite: Syncing with chain: [white]{}[/white] ...".format(
-            subtensor.network
-        )
+        f":satellite: Syncing with chain: [white]{subtensor.network}[/white] ..."
     ):
         old_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
 
@@ -317,18 +299,14 @@ def add_stake_multiple_extrinsic(
         # Check enough to stake
         if staking_balance > old_balance:
             bittensor.__console__.print(
-                ":cross_mark: [red]Not enough balance[/red]: [green]{}[/green] to stake: [blue]{}[/blue] from coldkey: [white]{}[/white]".format(
-                    old_balance, staking_balance, wallet.name
-                )
+                f":cross_mark: [red]Not enough balance[/red]: [green]{old_balance}[/green] to stake: [blue]{staking_balance}[/blue] from coldkey: [white]{wallet.name}[/white]"
             )
             continue
 
         # Ask before moving on.
         if prompt:
             if not Confirm.ask(
-                "Do you want to stake:\n[bold white]  amount: {}\n  hotkey: {}[/bold white ]?".format(
-                    staking_balance, wallet.hotkey_str
-                )
+                f"Do you want to stake:\n[bold white]  amount: {staking_balance}\n  hotkey: {wallet.hotkey_str}[/bold white ]?"
             ):
                 continue
 
@@ -350,9 +328,7 @@ def add_stake_multiple_extrinsic(
                     tx_rate_limit_blocks = subtensor.tx_rate_limit()
                     if tx_rate_limit_blocks > 0:
                         bittensor.__console__.print(
-                            ":hourglass: [yellow]Waiting for tx rate limit: [white]{}[/white] blocks[/yellow]".format(
-                                tx_rate_limit_blocks
-                            )
+                            f":hourglass: [yellow]Waiting for tx rate limit: [white]{tx_rate_limit_blocks}[/white] blocks[/yellow]"
                         )
                         sleep(tx_rate_limit_blocks * 12)  # 12 seconds per block
 
@@ -379,9 +355,7 @@ def add_stake_multiple_extrinsic(
                     wallet.coldkeypub.ss58_address, block=block
                 )
                 bittensor.__console__.print(
-                    "Stake ({}): [blue]{}[/blue] :arrow_right: [green]{}[/green]".format(
-                        hotkey_ss58, old_stake, new_stake
-                    )
+                    f"Stake ({hotkey_ss58}): [blue]{old_stake}[/blue] :arrow_right: [green]{new_stake}[/green]"
                 )
                 old_balance = new_balance
                 successful_stakes += 1
@@ -395,30 +369,24 @@ def add_stake_multiple_extrinsic(
                 )
                 continue
 
-        except bittensor.errors.NotRegisteredError as e:
+        except bittensor.errors.NotRegisteredError:
             bittensor.__console__.print(
-                ":cross_mark: [red]Hotkey: {} is not registered.[/red]".format(
-                    hotkey_ss58
-                )
+                f":cross_mark: [red]Hotkey: {hotkey_ss58} is not registered.[/red]"
             )
             continue
         except bittensor.errors.StakeError as e:
             bittensor.__console__.print(
-                ":cross_mark: [red]Stake Error: {}[/red]".format(e)
+                f":cross_mark: [red]Stake Error: {e}[/red]"
             )
             continue
 
     if successful_stakes != 0:
         with bittensor.__console__.status(
-            ":satellite: Checking Balance on: ([white]{}[/white] ...".format(
-                subtensor.network
-            )
+            f":satellite: Checking Balance on: ([white]{subtensor.network}[/white] ..."
         ):
             new_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
         bittensor.__console__.print(
-            "Balance: [blue]{}[/blue] :arrow_right: [green]{}[/green]".format(
-                old_balance, new_balance
-            )
+            f"Balance: [blue]{old_balance}[/blue] :arrow_right: [green]{new_balance}[/green]"
         )
         return True
 
@@ -471,7 +439,7 @@ def __do_add_stake_single(
         # Verify that the hotkey is a delegate.
         if not subtensor.is_hotkey_delegate(hotkey_ss58=hotkey_ss58):
             raise bittensor.errors.NotDelegateError(
-                "Hotkey: {} is not a delegate.".format(hotkey_ss58)
+                f"Hotkey: {hotkey_ss58} is not a delegate."
             )
 
     success = subtensor._do_stake(

@@ -15,33 +15,29 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+from abc import abstractclassmethod
+from collections.abc import Mapping
+from dataclasses import dataclass
+from hashlib import sha256
 from random import randint
 from types import SimpleNamespace
 from typing import Any, Dict, List, Optional, Tuple, TypedDict, Union
 from unittest.mock import MagicMock
-from dataclasses import dataclass
-from abc import abstractclassmethod
-from collections.abc import Mapping
-
-from hashlib import sha256
-from ..wallet import wallet
 
 from ..chain_data import (
+    AxonInfo,
+    DelegateInfo,
     NeuronInfo,
     NeuronInfoLite,
     PrometheusInfo,
-    DelegateInfo,
     SubnetInfo,
-    AxonInfo,
 )
 from ..errors import ChainQueryError
 from ..subtensor import Subtensor
 from ..utils import RAOPERTAO, U16_NORMALIZED_FLOAT
 from ..utils.balance import Balance
 from ..utils.registration import POWSolution
-
-from typing import TypedDict
-
+from ..wallet import wallet
 
 # Mock Testing Constant
 __GLOBAL_MOCK_STATE__ = {}
@@ -1184,9 +1180,9 @@ class MockSubtensor(Subtensor):
         stake_state = subtensor_state["Stake"]
 
         # Stake the funds
-        if not hotkey_ss58 in stake_state:
+        if hotkey_ss58 not in stake_state:
             stake_state[hotkey_ss58] = {}
-        if not wallet.coldkeypub.ss58_address in stake_state[hotkey_ss58]:
+        if wallet.coldkeypub.ss58_address not in stake_state[hotkey_ss58]:
             stake_state[hotkey_ss58][wallet.coldkeypub.ss58_address] = {}
 
         stake_state[hotkey_ss58][wallet.coldkeypub.ss58_address][self.block_number] = (
@@ -1199,11 +1195,11 @@ class MockSubtensor(Subtensor):
         )
 
         total_hotkey_stake_state = subtensor_state["TotalHotkeyStake"]
-        if not hotkey_ss58 in total_hotkey_stake_state:
+        if hotkey_ss58 not in total_hotkey_stake_state:
             total_hotkey_stake_state[hotkey_ss58] = {}
 
         total_coldkey_stake_state = subtensor_state["TotalColdkeyStake"]
-        if not wallet.coldkeypub.ss58_address in total_coldkey_stake_state:
+        if wallet.coldkeypub.ss58_address not in total_coldkey_stake_state:
             total_coldkey_stake_state[wallet.coldkeypub.ss58_address] = {}
 
         curr_total_hotkey_stake = self.query_subtensor(
@@ -1273,14 +1269,14 @@ class MockSubtensor(Subtensor):
         )
 
         total_hotkey_stake_state = subtensor_state["TotalHotkeyStake"]
-        if not hotkey_ss58 in total_hotkey_stake_state:
+        if hotkey_ss58 not in total_hotkey_stake_state:
             total_hotkey_stake_state[hotkey_ss58] = {}
             total_hotkey_stake_state[hotkey_ss58][self.block_number] = (
                 0  # Shouldn't happen
             )
 
         total_coldkey_stake_state = subtensor_state["TotalColdkeyStake"]
-        if not wallet.coldkeypub.ss58_address in total_coldkey_stake_state:
+        if wallet.coldkeypub.ss58_address not in total_coldkey_stake_state:
             total_coldkey_stake_state[wallet.coldkeypub.ss58_address] = {}
             total_coldkey_stake_state[wallet.coldkeypub.ss58_address][
                 self.block_number

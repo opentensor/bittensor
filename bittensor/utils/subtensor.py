@@ -22,7 +22,7 @@
 import json
 import logging
 import os
-from typing import Dict, Optional, Union, Any
+from typing import Any, Dict, Optional, Union
 
 from substrateinterface.base import SubstrateInterface
 
@@ -79,7 +79,7 @@ def _save_errors_to_cache(uniq_version: str, errors: Dict[str, Dict[str, str]]):
     try:
         with open(_ERRORS_FILE_PATH, "w") as json_file:
             json.dump(data, json_file, indent=4)
-    except IOError as e:
+    except OSError as e:
         _logger.warning(f"Error saving to file: {e}")
 
 
@@ -93,9 +93,9 @@ def _get_errors_from_cache() -> Optional[Dict[str, Dict[str, Dict[str, str]]]]:
         return None
 
     try:
-        with open(_ERRORS_FILE_PATH, "r") as json_file:
+        with open(_ERRORS_FILE_PATH) as json_file:
             data = json.load(json_file)
-    except IOError as e:
+    except OSError as e:
         _logger.warning(f"Error reading from file: {e}")
         return None
 

@@ -18,14 +18,12 @@
 # DEALINGS IN THE SOFTWARE.
 
 
-import contextlib
-from copy import deepcopy
 import os
 import random
-import shutil
+import unittest
+from copy import deepcopy
 from types import SimpleNamespace
 from typing import Dict
-import unittest
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -38,12 +36,13 @@ from bittensor.commands.wallets import _get_coldkey_ss58_addresses_for_path
 from bittensor.mock import MockSubtensor
 from bittensor.wallet import wallet as Wallet
 from tests.helpers import (
-    is_running_in_circleci,
     MockConsole,
     _get_mock_keypair,
+    is_running_in_circleci,
+)
+from tests.helpers import (
     _get_mock_wallet as generate_wallet,
 )
-
 
 _subtensor_mock: MockSubtensor = MockSubtensor()
 
@@ -253,9 +252,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
             for netuid, wallet in mock_registrations:
                 print(
-                    "Registering wallet {} to subnet {}".format(
-                        wallet.hotkey_str, netuid
-                    )
+                    f"Registering wallet {wallet.hotkey_str} to subnet {netuid}"
                 )
                 _ = _subtensor_mock.force_register_neuron(
                     netuid=netuid,
@@ -723,7 +720,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         print("Registering mock wallets...")
 
         for wallet in mock_wallets:
-            print("Registering mock wallet {}".format(wallet.hotkey_str))
+            print(f"Registering mock wallet {wallet.hotkey_str}")
             _ = _subtensor_mock.force_register_neuron(
                 netuid=1,
                 hotkey=wallet.hotkey.ss58_address,
@@ -946,7 +943,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         print("Registering mock wallets...")
 
         for wallet in mock_wallets:
-            print("Registering mock wallet {}".format(wallet.hotkey_str))
+            print(f"Registering mock wallet {wallet.hotkey_str}")
             _ = _subtensor_mock.force_register_neuron(
                 netuid=1,
                 hotkey=wallet.hotkey.ss58_address,
@@ -1020,7 +1017,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         print("Registering mock wallets...")
 
         for wallet in mock_wallets:
-            print("Registering mock wallet {}".format(wallet.hotkey_str))
+            print(f"Registering mock wallet {wallet.hotkey_str}")
             _ = _subtensor_mock.force_register_neuron(
                 netuid=1,
                 hotkey=wallet.hotkey.ss58_address,
@@ -1118,7 +1115,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         print("Registering mock wallets...")
 
         for wallet in mock_wallets:
-            print("Registering mock wallet {}".format(wallet.hotkey_str))
+            print(f"Registering mock wallet {wallet.hotkey_str}")
             _ = _subtensor_mock.force_register_neuron(
                 netuid=1,
                 hotkey=wallet.hotkey.ss58_address,
@@ -1224,7 +1221,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         print("Registering mock wallets...")
 
         for wallet in mock_wallets:
-            print("Registering mock wallet {}".format(wallet.hotkey_str))
+            print(f"Registering mock wallet {wallet.hotkey_str}")
             if wallet.hotkey_str == "hk1":
                 # Set the stake for hk1
                 _ = _subtensor_mock.force_register_neuron(
@@ -1331,7 +1328,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         print("Registering mock wallets...")
 
         for wallet in mock_wallets:
-            print("Registering mock wallet {}".format(wallet.hotkey_str))
+            print(f"Registering mock wallet {wallet.hotkey_str}")
             _ = _subtensor_mock.force_register_neuron(
                 netuid=1,
                 hotkey=wallet.hotkey.ss58_address,
@@ -1424,7 +1421,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         print("Registering mock wallets...")
 
         for wallet in mock_wallets:
-            print("Registering mock wallet {}".format(wallet.hotkey_str))
+            print(f"Registering mock wallet {wallet.hotkey_str}")
             _ = _subtensor_mock.force_register_neuron(
                 netuid=1,
                 hotkey=wallet.hotkey.ss58_address,

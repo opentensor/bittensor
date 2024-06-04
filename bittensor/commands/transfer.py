@@ -16,10 +16,13 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import sys
 import argparse
-import bittensor
+import sys
+
 from rich.prompt import Prompt
+
+import bittensor
+
 from . import defaults
 
 console = bittensor.__console__
@@ -95,7 +98,7 @@ class TransferCommand:
             with bittensor.__console__.status(":satellite: Checking Balance..."):
                 account_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
                 bittensor.__console__.print(
-                    "Balance: [green]{}[/green]".format(account_balance)
+                    f"Balance: [green]{account_balance}[/green]"
                 )
 
         # Get amount.
@@ -106,16 +109,12 @@ class TransferCommand:
                     config.amount = float(amount)
                 except ValueError:
                     console.print(
-                        ":cross_mark:[red] Invalid TAO amount[/red] [bold white]{}[/bold white]".format(
-                            amount
-                        )
+                        f":cross_mark:[red] Invalid TAO amount[/red] [bold white]{amount}[/bold white]"
                     )
                     sys.exit()
             else:
                 console.print(
-                    ":cross_mark:[red] Invalid TAO amount[/red] [bold white]{}[/bold white]".format(
-                        amount
-                    )
+                    f":cross_mark:[red] Invalid TAO amount[/red] [bold white]{amount}[/bold white]"
                 )
                 sys.exit(1)
 

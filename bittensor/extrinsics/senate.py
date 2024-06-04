@@ -17,10 +17,11 @@
 # DEALINGS IN THE SOFTWARE.
 
 # Imports
-import bittensor
-
 import time
+
 from rich.prompt import Confirm
+
+import bittensor
 
 
 def register_senate_extrinsic(
@@ -50,7 +51,7 @@ def register_senate_extrinsic(
 
     if prompt:
         # Prompt user for confirmation.
-        if not Confirm.ask(f"Register delegate hotkey to senate?"):
+        if not Confirm.ask("Register delegate hotkey to senate?"):
             return False
 
     with bittensor.__console__.status(":satellite: Registering with senate..."):
@@ -78,9 +79,7 @@ def register_senate_extrinsic(
             response.process_events()
             if not response.is_success:
                 bittensor.__console__.print(
-                    ":cross_mark: [red]Failed[/red]: error:{}".format(
-                        response.error_message
-                    )
+                    f":cross_mark: [red]Failed[/red]: error:{response.error_message}"
                 )
                 time.sleep(0.5)
 
@@ -127,7 +126,7 @@ def leave_senate_extrinsic(
 
     if prompt:
         # Prompt user for confirmation.
-        if not Confirm.ask(f"Remove delegate hotkey from senate?"):
+        if not Confirm.ask("Remove delegate hotkey from senate?"):
             return False
 
     with bittensor.__console__.status(":satellite: Leaving senate..."):
@@ -155,9 +154,7 @@ def leave_senate_extrinsic(
             response.process_events()
             if not response.is_success:
                 bittensor.__console__.print(
-                    ":cross_mark: [red]Failed[/red]: error:{}".format(
-                        response.error_message
-                    )
+                    f":cross_mark: [red]Failed[/red]: error:{response.error_message}"
                 )
                 time.sleep(0.5)
 
@@ -207,7 +204,7 @@ def vote_senate_extrinsic(
 
     if prompt:
         # Prompt user for confirmation.
-        if not Confirm.ask("Cast a vote of {}?".format(vote)):
+        if not Confirm.ask(f"Cast a vote of {vote}?"):
             return False
 
     with bittensor.__console__.status(":satellite: Casting vote.."):
@@ -240,9 +237,7 @@ def vote_senate_extrinsic(
             response.process_events()
             if not response.is_success:
                 bittensor.__console__.print(
-                    ":cross_mark: [red]Failed[/red]: error:{}".format(
-                        response.error_message
-                    )
+                    f":cross_mark: [red]Failed[/red]: error:{response.error_message}"
                 )
                 time.sleep(0.5)
 

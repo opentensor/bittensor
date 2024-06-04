@@ -16,15 +16,18 @@
 # DEALINGS IN THE SOFTWARE.
 
 import argparse
-import bittensor
 import os
 import sys
-from rich.prompt import Prompt, Confirm
-from rich.table import Table
-from typing import Optional, List, Tuple
-from . import defaults
+from typing import List, Optional, Tuple
+
 import requests
+from rich.prompt import Confirm, Prompt
+from rich.table import Table
+
+import bittensor
+
 from ..utils import RAOPERTAO
+from . import defaults
 
 
 class RegenColdkeyCommand:
@@ -63,8 +66,8 @@ class RegenColdkeyCommand:
         if cli.config.get("json"):
             file_name: str = cli.config.get("json")
             if not os.path.exists(file_name) or not os.path.isfile(file_name):
-                raise ValueError("File {} does not exist".format(file_name))
-            with open(cli.config.get("json"), "r") as f:
+                raise ValueError(f"File {file_name} does not exist")
+            with open(cli.config.get("json")) as f:
                 json_str = f.read()
             # Password can be "", assume if None
             json_password = cli.config.get("json_password", "")
@@ -275,8 +278,8 @@ class RegenHotkeyCommand:
         if cli.config.get("json"):
             file_name: str = cli.config.get("json")
             if not os.path.exists(file_name) or not os.path.isfile(file_name):
-                raise ValueError("File {} does not exist".format(file_name))
-            with open(cli.config.get("json"), "r") as f:
+                raise ValueError(f"File {file_name} does not exist")
+            with open(cli.config.get("json")) as f:
                 json_str = f.read()
 
             # Password can be "", assume if None

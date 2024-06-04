@@ -17,12 +17,15 @@
 
 
 import argparse
-import bittensor
-from rich.prompt import Prompt, Confirm
+from typing import Dict, Optional
+
+from rich.prompt import Confirm, Prompt
 from rich.table import Table
-from typing import Optional, Dict
-from .utils import get_delegates_details, DelegatesDetails
+
+import bittensor
+
 from . import defaults
+from .utils import DelegatesDetails, get_delegates_details
 
 console = bittensor.__console__
 
@@ -64,9 +67,7 @@ class SenateCommand:
         r"""View Bittensor's governance protocol proposals"""
         console = bittensor.__console__
         console.print(
-            ":satellite: Syncing with chain: [white]{}[/white] ...".format(
-                cli.config.subtensor.network
-            )
+            f":satellite: Syncing with chain: [white]{cli.config.subtensor.network}[/white] ..."
         )
 
         senate_members = subtensor.get_senate_members()
@@ -203,9 +204,7 @@ class ProposalsCommand:
         r"""View Bittensor's governance protocol proposals"""
         console = bittensor.__console__
         console.print(
-            ":satellite: Syncing with chain: [white]{}[/white] ...".format(
-                subtensor.network
-            )
+            f":satellite: Syncing with chain: [white]{subtensor.network}[/white] ..."
         )
 
         senate_members = subtensor.get_senate_members()
@@ -217,9 +216,7 @@ class ProposalsCommand:
 
         table = Table(show_footer=False)
         table.title = (
-            "[white]Proposals\t\tActive Proposals: {}\t\tSenate Size: {}".format(
-                len(proposals), len(senate_members)
-            )
+            f"[white]Proposals\t\tActive Proposals: {len(proposals)}\t\tSenate Size: {len(senate_members)}"
         )
         table.add_column(
             "[overline white]HASH",
@@ -325,9 +322,7 @@ class ShowVotesCommand:
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""View Bittensor's governance protocol proposals active votes"""
         console.print(
-            ":satellite: Syncing with chain: [white]{}[/white] ...".format(
-                cli.config.subtensor.network
-            )
+            f":satellite: Syncing with chain: [white]{cli.config.subtensor.network}[/white] ..."
         )
 
         proposal_hash = cli.config.proposal_hash
@@ -347,7 +342,7 @@ class ShowVotesCommand:
         )
 
         table = Table(show_footer=False)
-        table.title = "[white]Votes for Proposal {}".format(proposal_hash)
+        table.title = f"[white]Votes for Proposal {proposal_hash}"
         table.add_column(
             "[overline white]ADDRESS",
             footer_style="overline white",
@@ -437,17 +432,13 @@ class SenateRegisterCommand:
         # Check if the hotkey is a delegate.
         if not subtensor.is_hotkey_delegate(wallet.hotkey.ss58_address):
             console.print(
-                "Aborting: Hotkey {} isn't a delegate.".format(
-                    wallet.hotkey.ss58_address
-                )
+                f"Aborting: Hotkey {wallet.hotkey.ss58_address} isn't a delegate."
             )
             return
 
         if subtensor.is_senate_member(hotkey_ss58=wallet.hotkey.ss58_address):
             console.print(
-                "Aborting: Hotkey {} is already a senate member.".format(
-                    wallet.hotkey.ss58_address
-                )
+                f"Aborting: Hotkey {wallet.hotkey.ss58_address} is already a senate member."
             )
             return
 
@@ -518,9 +509,7 @@ class SenateLeaveCommand:
 
         if not subtensor.is_senate_member(hotkey_ss58=wallet.hotkey.ss58_address):
             console.print(
-                "Aborting: Hotkey {} isn't a senate member.".format(
-                    wallet.hotkey.ss58_address
-                )
+                f"Aborting: Hotkey {wallet.hotkey.ss58_address} isn't a senate member."
             )
             return
 
@@ -595,9 +584,7 @@ class VoteCommand:
 
         if not subtensor.is_senate_member(hotkey_ss58=wallet.hotkey.ss58_address):
             console.print(
-                "Aborting: Hotkey {} isn't a senate member.".format(
-                    wallet.hotkey.ss58_address
-                )
+                f"Aborting: Hotkey {wallet.hotkey.ss58_address} isn't a senate member."
             )
             return
 

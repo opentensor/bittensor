@@ -15,9 +15,9 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
-import bittensor
-
 import json
+
+import bittensor
 import bittensor.utils.networking as net
 
 
@@ -58,18 +58,14 @@ def prometheus_extrinsic(
         try:
             external_ip = net.get_external_ip()
             bittensor.__console__.print(
-                ":white_heavy_check_mark: [green]Found external ip: {}[/green]".format(
-                    external_ip
-                )
+                f":white_heavy_check_mark: [green]Found external ip: {external_ip}[/green]"
             )
             bittensor.logging.success(
-                prefix="External IP", suffix="<blue>{}</blue>".format(external_ip)
+                prefix="External IP", suffix=f"<blue>{external_ip}</blue>"
             )
         except Exception as E:
             raise RuntimeError(
-                "Unable to attain your external ip. Check your internet connection. error: {}".format(
-                    E
-                )
+                f"Unable to attain your external ip. Check your internet connection. error: {E}"
             ) from E
     else:
         external_ip = ip
@@ -104,8 +100,7 @@ def prometheus_extrinsic(
 
         bittensor.__console__.print(
             ":white_heavy_check_mark: [white]Prometheus already served.[/white]".format(
-                external_ip
-            )
+                )
         )
         return True
 
@@ -113,9 +108,7 @@ def prometheus_extrinsic(
     call_params["netuid"] = netuid
 
     with bittensor.__console__.status(
-        ":satellite: Serving prometheus on: [white]{}:{}[/white] ...".format(
-            subtensor.network, netuid
-        )
+        f":satellite: Serving prometheus on: [white]{subtensor.network}:{netuid}[/white] ..."
     ):
         success, err = subtensor._do_serve_prometheus(
             wallet=wallet,
@@ -127,16 +120,12 @@ def prometheus_extrinsic(
         if wait_for_inclusion or wait_for_finalization:
             if success == True:
                 bittensor.__console__.print(
-                    ":white_heavy_check_mark: [green]Served prometheus[/green]\n  [bold white]{}[/bold white]".format(
-                        json.dumps(call_params, indent=4, sort_keys=True)
-                    )
+                    f":white_heavy_check_mark: [green]Served prometheus[/green]\n  [bold white]{json.dumps(call_params, indent=4, sort_keys=True)}[/bold white]"
                 )
                 return True
             else:
                 bittensor.__console__.print(
-                    ":cross_mark: [green]Failed to serve prometheus[/green] error: {}".format(
-                        err
-                    )
+                    f":cross_mark: [green]Failed to serve prometheus[/green] error: {err}"
                 )
                 return False
         else:

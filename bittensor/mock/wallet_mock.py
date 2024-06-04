@@ -19,9 +19,11 @@
 # DEALINGS IN THE SOFTWARE.
 
 import os
-import bittensor
 from typing import Optional
+
 from Crypto.Hash import keccak
+
+import bittensor
 
 from .keyfile_mock import MockKeyfile
 

@@ -15,11 +15,13 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import os
 import argparse
-import bittensor
+import os
+
 from rich import print
 from rich.tree import Tree
+
+import bittensor
 
 console = bittensor.__console__
 
@@ -72,7 +74,7 @@ class ListCommand:
                 coldkeypub_str = "?"
 
             wallet_tree = root.add(
-                "\n[bold white]{} ({})".format(w_name, coldkeypub_str)
+                f"\n[bold white]{w_name} ({coldkeypub_str})"
             )
             hotkeys_path = os.path.join(cli.config.wallet.path, w_name, "hotkeys")
             try:
@@ -92,7 +94,7 @@ class ListCommand:
                                 hotkey_str = "?"
                         except:
                             hotkey_str = "?"
-                        wallet_tree.add("[bold grey]{} ({})".format(h_name, hotkey_str))
+                        wallet_tree.add(f"[bold grey]{h_name} ({hotkey_str})")
             except:
                 continue
 

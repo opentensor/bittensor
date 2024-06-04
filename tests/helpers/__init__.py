@@ -16,14 +16,15 @@
 # DEALINGS IN THE SOFTWARE.
 
 import os
+
 from .helpers import (
+    CLOSE_IN_VALUE,
+    MockConsole,
+    __mock_wallet_factory__,
     _get_mock_coldkey,
     _get_mock_hotkey,
     _get_mock_keypair,
     _get_mock_wallet,
-    CLOSE_IN_VALUE,
-    MockConsole,
-    __mock_wallet_factory__,
 )
 
 

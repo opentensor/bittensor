@@ -18,7 +18,7 @@
 import argparse
 import os
 import sys
-from typing import List, Union, Optional, Dict, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 
 from rich.prompt import Confirm, Prompt
 from rich.table import Table
@@ -26,12 +26,13 @@ from tqdm import tqdm
 
 import bittensor
 from bittensor.utils.balance import Balance
-from .utils import (
-    get_hotkey_wallets_for_wallet,
-    get_delegates_details,
-    DelegatesDetails,
-)
+
 from . import defaults
+from .utils import (
+    DelegatesDetails,
+    get_delegates_details,
+    get_hotkey_wallets_for_wallet,
+)
 
 console = bittensor.__console__
 
@@ -250,9 +251,7 @@ class StakeCommand:
                     config.amount = float(amount)
                 except ValueError:
                     console.print(
-                        ":cross_mark:[red]Invalid Tao amount[/red] [bold white]{}[/bold white]".format(
-                            amount
-                        )
+                        f":cross_mark:[red]Invalid Tao amount[/red] [bold white]{amount}[/bold white]"
                     )
                     sys.exit()
             else:
@@ -515,7 +514,7 @@ class StakeShow:
         )
         table.add_column(
             "[overline white]Balance",
-            "\u03c4{:.5f}".format(total_balance),
+            f"\u03c4{total_balance:.5f}",
             footer_style="overline white",
             style="green",
         )
@@ -524,13 +523,13 @@ class StakeShow:
         )
         table.add_column(
             "[overline white]Stake",
-            "\u03c4{:.5f}".format(total_stake),
+            f"\u03c4{total_stake:.5f}",
             footer_style="overline white",
             style="green",
         )
         table.add_column(
             "[overline white]Rate",
-            "\u03c4{:.5f}/d".format(total_rate),
+            f"\u03c4{total_rate:.5f}/d",
             footer_style="overline white",
             style="green",
         )

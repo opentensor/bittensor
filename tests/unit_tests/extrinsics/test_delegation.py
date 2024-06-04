@@ -1,19 +1,21 @@
-import pytest
 from unittest.mock import MagicMock, patch
-from bittensor.subtensor import Subtensor
-from bittensor.wallet import wallet as Wallet
-from bittensor.utils.balance import Balance
-from bittensor.extrinsics.delegation import (
-    nominate_extrinsic,
-    delegate_extrinsic,
-    undelegate_extrinsic,
-)
+
+import pytest
+
 from bittensor.errors import (
     NominationError,
     NotDelegateError,
     NotRegisteredError,
     StakeError,
 )
+from bittensor.extrinsics.delegation import (
+    delegate_extrinsic,
+    nominate_extrinsic,
+    undelegate_extrinsic,
+)
+from bittensor.subtensor import Subtensor
+from bittensor.utils.balance import Balance
+from bittensor.wallet import wallet as Wallet
 
 
 @pytest.fixture

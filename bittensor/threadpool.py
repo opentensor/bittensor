@@ -5,21 +5,20 @@
 
 __author__ = "Brian Quinlan (brian@sweetapp.com)"
 
+import argparse
+import itertools
+import logging
 import os
-import sys
-import time
 import queue
 import random
-import weakref
-import logging
-import argparse
-import bittensor
-import itertools
+import sys
 import threading
-
-from typing import Callable
+import time
+import weakref
 from concurrent.futures import _base
+from typing import Callable
 
+import bittensor
 from bittensor.btlogging.defines import BITTENSOR_LOGGER_NAME
 
 # Workers are created as daemon threads. This is done to allow the interpreter
@@ -42,7 +41,7 @@ _threads_queues = weakref.WeakKeyDictionary()
 _shutdown = False
 
 
-class _WorkItem(object):
+class _WorkItem:
     def __init__(self, future, fn, start_time, args, kwargs):
         self.future = future
         self.fn = fn
