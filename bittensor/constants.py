@@ -16,5 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 
-ALLOWED_DELTA = 4000000000  # Delta of 4 seconds for nonce validation
+ALLOWED_DELTA = 5000000000  # Delta of 5 seconds for nonce validation
 NTP_POOL_RETRIES = 2
+NTP_SERVERS = ["0.pool.ntp.org", "1.pool.ntp.org", "2.pool.ntp.org"]
+V_7_2_0 = 720

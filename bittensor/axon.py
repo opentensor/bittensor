@@ -55,7 +55,7 @@ from bittensor.errors import (
     PostProcessException,
     SynapseException,
 )
-from bittensor.constants import ALLOWED_DELTA
+from bittensor.constants import ALLOWED_DELTA, V_7_2_0
 from bittensor.threadpool import PriorityThreadPoolExecutor
 from bittensor.utils import networking
 from bittensor.utils.networking import BittensorNTPClient
@@ -898,7 +898,7 @@ class axon:
             # a reasonable delta.
 
             # Updated nonce using NTP implementated at v7.2
-            if synapse.dendrite.version >= 720:
+            if synapse.dendrite.version >= V_7_2_0:
                 # If we don't have a nonce stored, ensure that the nonce falls within
                 # a reasonable delta.
                 current_time = BittensorNTPClient.get_current_ntp_time()

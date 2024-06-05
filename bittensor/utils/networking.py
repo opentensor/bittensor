@@ -26,7 +26,7 @@ import urllib
 import time
 import json
 import netaddr
-from bittensor.constants import NTP_POOL_RETRIES
+from bittensor.constants import NTP_POOL_RETRIES, NTP_SERVERS
 
 # 3rd party
 import ntplib
@@ -189,10 +189,9 @@ class BittensorNTPClient:
 
     @staticmethod
     def get_current_ntp_time(retries: int = NTP_POOL_RETRIES) -> int:
-        ntp_servers = ["0.pool.ntp.org", "1.pool.ntp.org", "2.pool.ntp.org"]
         attempts = 0
         while attempts < retries:
-            server = ntp_servers[attempts % len(ntp_servers)]
+            server = NTP_SERVERS[attempts % len(NTP_SERVERS)]
             try:
                 ntp_client = BittensorNTPClient()
                 response = ntp_client.request(server)
