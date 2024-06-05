@@ -369,7 +369,7 @@ def test_register_extrinsic_with_pow(
     ), patch.object(
         mock_subtensor,
         "_do_pow_register",
-        return_value=(registration_success, "key is already registered"),
+        return_value=(registration_success, "HotKeyAlreadyRegisteredInSubNet"),
     ), patch("torch.cuda.is_available", return_value=cuda):
         # Act
         if pow_success:
