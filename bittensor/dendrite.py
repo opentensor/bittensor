@@ -656,17 +656,6 @@ class DendriteMixin:
         # Set the timeout for the synapse
         synapse.timeout = timeout
         current_time = BittensorNTPClient.get_current_ntp_time()
-        # try:
-        #     ntp_client = BittensorNTPClient()
-        #     response = ntp_client.request("pool.ntp.org")
-        #     current_time = int(response.tx_time * 1e9)  # Convert to nanoseconds
-        # except Exception as e:
-        #     bittensor.logging.debug(
-        #         f"Error fetching NTP time: {e}, using system UNIX time"
-        #     )
-        #     # Fallback to local time if NTP fails
-        #     current_time = time.time_ns()
-        # Build the Dendrite headers using the local system's details
         synapse.dendrite = bittensor.TerminalInfo(
             ip=self.external_ip,
             version=bittensor.__version_as_int__,
