@@ -2,10 +2,11 @@ import asyncio
 from collections import defaultdict
 from dataclasses import dataclass
 import json
-from typing import Optional
+from typing import Optional, Any
 
 from substrateinterface.base import SubstrateInterface
 from substrateinterface.storage import StorageKey
+from substrateinterface.exceptions import SubstrateRequestException
 from scalecodec.base import ScaleBytes, ScaleType
 from scalecodec.types import GenericMetadataVersioned
 import websockets
@@ -78,6 +79,7 @@ class Websocket:
         self._initialized = False
         self._lock = asyncio.Lock()
         self._exit_task = None
+        self._open_subscriptions = 0
 
     async def __aenter__(self):
         async with self._lock:
@@ -99,6 +101,8 @@ class Websocket:
                 self._exit_task.cancel()
                 await self._exit_task
             if self._in_use == 0 and self.ws is not None:
+                self.id = 0
+                self._open_subscriptions = 0
                 self._exit_task = asyncio.create_task(self._exit_with_timer())
 
     async def _exit_with_timer(self):
@@ -122,6 +126,7 @@ class Websocket:
     async def _recv(self) -> None:
         response = json.loads(await self.ws.recv())
         async with self._lock:
+            self._open_subscriptions -= 1
             self._received[response["id"]] = response
 
     async def _start_receiving(self):
@@ -136,6 +141,7 @@ class Websocket:
             original_id = self.id
             await self.ws.send(json.dumps({**payload, **{"id": original_id}}))
             self.id += 1
+            self._open_subscriptions += 1
             return original_id
 
     async def retrieve(self, item_id: int) -> Optional[dict]:
@@ -178,7 +184,7 @@ class RPCRequest:
     async def _preprocess(
         self,
         query_for: str,
-        block_hash: int,
+        block_hash: str,
         storage_function: str,
         module: str,
     ) -> Preprocessed:
@@ -251,27 +257,28 @@ class RPCRequest:
 
     async def _make_rpc_request(
         self,
-        payloads: dict[int, dict],
+        payloads: list[dict],
         value_scale_type: Optional[str] = None,
         storage_item: Optional[ScaleType] = None,
         metadata: Optional[GenericMetadataVersioned] = None,
-    ):
+    ) -> dict:
         request_manager = RequestManager(payloads)
 
         async with self.ws as ws:
-            for item in payloads.values():
+            for item in payloads:
                 item_id = await ws.send(item["payload"])
                 request_manager.add_request(item_id, item["id"])
 
             while True:
-                for item_id in list(request_manager.response_map.keys()):
-                    if response := await ws.retrieve(item_id):
-                        decoded_response, complete = await self._process_response(
-                            response, value_scale_type, storage_item, metadata
-                        )
-                        request_manager.add_response(
-                            item_id, decoded_response, complete
-                        )
+                for item_id in request_manager.response_map.keys():
+                    if item_id not in request_manager.responses:
+                        if response := await ws.retrieve(item_id):
+                            decoded_response, complete = await self._process_response(
+                                response, value_scale_type, storage_item, metadata
+                            )
+                            request_manager.add_response(
+                                item_id, decoded_response, complete
+                            )
 
                 if request_manager.is_complete():
                     break
@@ -280,9 +287,9 @@ class RPCRequest:
 
     async def rpc_request(
         self, method: str, params: list, block_hash: Optional[str] = None
-    ) -> dict:
-        payloads = {
-            1: {
+    ) -> Any:
+        payloads = [
+            {
                 "id": "rpc_request",
                 "payload": {
                     "jsonrpc": "2.0",
@@ -290,14 +297,17 @@ class RPCRequest:
                     "params": params + [block_hash] if block_hash else params,
                 },
             }
-        }
+        ]
         result = await self._make_rpc_request(payloads)
+        if 'error' in result["rpc_request"][0]:
+            raise SubstrateRequestException(result["rpc_request"][0]['error']['message'])
+        print("result", result)
         return result["rpc_request"][0]["result"]
 
-    async def get_block_hash(self, block: int):
-        pass
+    async def get_block_hash(self, block: int) -> str:
+        return await self.rpc_request("chain_getBlockHash", [block])
 
-    async def get_chain_head(self):
+    async def get_chain_head(self) -> str:
         return await self.rpc_request("chain_getHead", [])
 
     async def query_subtensor(
@@ -318,8 +328,8 @@ class RPCRequest:
                 for x in query_for
             ]
         )
-        all_info = {
-            i: {
+        all_info = [
+            {
                 "id": item.queryable,
                 "payload": {
                     "jsonrpc": "2.0",
@@ -327,8 +337,8 @@ class RPCRequest:
                     "params": item.params,
                 },
             }
-            for (i, item) in enumerate(preprocessed)
-        }
+            for item in preprocessed
+        ]
         # These will always be the same throughout the preprocessed list, so we just grab the first one
         value_scale_type = preprocessed[0].value_scale_type
         storage_item = preprocessed[0].storage_item
