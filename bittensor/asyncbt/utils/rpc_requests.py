@@ -51,11 +51,23 @@ class RequestManager:
 
 
 class Websocket:
-    def __init__(self, ws_url: str):
-        # TODO allow setting max concurrent connections and rpc subscriptions per connection, default 100/1024
+    def __init__(self, ws_url: str, max_subscriptions=1024, max_connections=100, shutdown_timer=5):
+        """
+        Websocket manager object. Allows for the use of a single websocket connection by multiple
+        calls.
+
+        :param ws_url: Websocket URL to connect to
+        :param max_subscriptions: Maximum number of subscriptions per websocket connection
+        :param max_connections: Maximum number of connections total
+        :param shutdown_timer: Number of seconds to shut down websocket connection after last use
+        """
+        # TODO allow setting max concurrent connections and rpc subscriptions per connection
         self.ws_url = ws_url
         self.ws = None
         self.id = 0
+        self.max_subscriptions = max_subscriptions
+        self.max_connections = max_connections
+        self.shutdown_timer = shutdown_timer
         self._received = {}
         self._in_use = 0
         self._receiving_task = None
@@ -74,7 +86,7 @@ class Websocket:
                 self.ws = await asyncio.wait_for(
                     websockets.connect(self.ws_url), timeout=None
                 )
-                self._receiving_task = asyncio.create_task(self.start_receiving())
+                self._receiving_task = asyncio.create_task(self._start_receiving())
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
@@ -86,8 +98,12 @@ class Websocket:
             self._exit_task = asyncio.create_task(self._exit_with_timer())
 
     async def _exit_with_timer(self):
+        """
+        Allows for graceful shutdown of websocket connection after specified number of seconds, allowing
+        for reuse of the websocket connection.
+        """
         try:
-            await asyncio.sleep(5)
+            await asyncio.sleep(self.shutdown_timer)
             async with self._lock:
                 if self._in_use == 0 and self.ws is not None:
                     self._receiving_task.cancel()
@@ -100,24 +116,24 @@ class Websocket:
         except asyncio.CancelledError:
             pass
 
+    async def _recv(self) -> None:
+        response = json.loads(await self.ws.recv())
+        async with self._lock:
+            self._received[response["id"]] = response
+
+    async def _start_receiving(self):
+        try:
+            while True:
+                await self._recv()
+        except asyncio.CancelledError:
+            pass
+
     async def send(self, payload: dict) -> int:
         async with self._lock:
             original_id = self.id
             await self.ws.send(json.dumps({**payload, **{"id": original_id}}))
             self.id += 1
             return original_id
-
-    async def _recv(self) -> None:
-        response = json.loads(await self.ws.recv())
-        async with self._lock:
-            self._received[response["id"]] = response
-
-    async def start_receiving(self):
-        try:
-            while True:
-                await self._recv()
-        except asyncio.CancelledError:
-            pass
 
     async def retrieve(self, item_id: int) -> Optional[dict]:
         while True:
