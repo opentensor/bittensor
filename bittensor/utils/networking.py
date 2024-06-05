@@ -226,7 +226,5 @@ class BittensorNTPClient:
                     f"Attempt {attempts} - Error fetching NTP time: {e}"
                 )
         # Fallback to local time if all retries fail
-        bittensor.logging.warning(
-            "All NTP retries failed, using system UNIX time"
-        )
+        bittensor.logging.warning("All NTP retries failed, using system UNIX time")
         return time.time_ns()

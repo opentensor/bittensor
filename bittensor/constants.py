@@ -16,5 +16,5 @@
 # DEALINGS IN THE SOFTWARE.
 
 
-ALLOWED_DELTA = 4000000000 # Delta of 4 seconds for nonce validation
+ALLOWED_DELTA = 4000000000  # Delta of 4 seconds for nonce validation
 NTP_POOL_RETRIES = 2
