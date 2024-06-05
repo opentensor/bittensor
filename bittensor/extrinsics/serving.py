@@ -15,10 +15,16 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
+
 import json
+from typing import Optional
+
+from retry import retry
+from rich.prompt import Confirm
+
 import bittensor
 import bittensor.utils.networking as net
-from rich.prompt import Confirm
+from bittensor.utils import format_error_message
 from ..errors import MetadataError
 
 
@@ -123,15 +129,13 @@ def serve_extrinsic(
     )
 
     if wait_for_inclusion or wait_for_finalization:
-        if success == True:
+        if success is True:
             bittensor.logging.debug(
                 f"Axon served with: AxonInfo({wallet.hotkey.ss58_address},{ip}:{port}) on {subtensor.network}:{netuid} "
             )
             return True
         else:
-            bittensor.logging.debug(
-                f"Axon failed to served with error: {error_message} "
-            )
+            bittensor.logging.error(f"Failed: {error_message}")
             return False
     else:
         return True
@@ -167,7 +171,7 @@ def serve_axon_extrinsic(
     external_port = axon.external_port
 
     # ---- Get external ip ----
-    if axon.external_ip == None:
+    if axon.external_ip is None:
         try:
             external_ip = net.get_external_ip()
             bittensor.__console__.print(
@@ -204,7 +208,7 @@ def publish_metadata(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
     netuid: int,
-    type: str,
+    data_type: str,
     data: bytes,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = True,
@@ -219,7 +223,7 @@ def publish_metadata(
             The wallet object used for authentication in the transaction.
         netuid (int):
             Network UID on which the metadata is to be published.
-        type (str):
+        data_type (str):
             The data type of the information being submitted. It should be one of the following: ``'Sha256'``, ``'Blake256'``, ``'Keccak256'``, or ``'Raw0-128'``. This specifies the format or hashing algorithm used for the data.
         data (str):
             The actual metadata content to be published. This should be formatted or hashed according to the ``type`` specified. (Note: max ``str`` length is 128 bytes)
@@ -243,7 +247,10 @@ def publish_metadata(
         call = substrate.compose_call(
             call_module="Commitments",
             call_function="set_commitment",
-            call_params={"netuid": netuid, "info": {"fields": [[{f"{type}": data}]]}},
+            call_params={
+                "netuid": netuid,
+                "info": {"fields": [[{f"{data_type}": data}]]},
+            },
         )
 
         extrinsic = substrate.create_signed_extrinsic(call=call, keypair=wallet.hotkey)
@@ -259,11 +266,7 @@ def publish_metadata(
         if response.is_success:
             return True
         else:
-            raise MetadataError(response.error_message)
-
-
-from retry import retry
-from typing import Optional
+            raise MetadataError(format_error_message(response.error_message))
 
 
 def get_metadata(self, netuid: int, hotkey: str, block: Optional[int] = None) -> str:
@@ -274,7 +277,7 @@ def get_metadata(self, netuid: int, hotkey: str, block: Optional[int] = None) ->
                 module="Commitments",
                 storage_function="CommitmentOf",
                 params=[netuid, hotkey],
-                block_hash=None if block == None else substrate.get_block_hash(block),
+                block_hash=None if block is None else substrate.get_block_hash(block),
             )
 
     commit_data = make_substrate_call_with_retry()
