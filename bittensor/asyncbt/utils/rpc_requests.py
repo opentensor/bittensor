@@ -51,7 +51,9 @@ class RequestManager:
 
 
 class Websocket:
-    def __init__(self, ws_url: str, max_subscriptions=1024, max_connections=100, shutdown_timer=5):
+    def __init__(
+        self, ws_url: str, max_subscriptions=1024, max_connections=100, shutdown_timer=5
+    ):
         """
         Websocket manager object. Allows for the use of a single websocket connection by multiple
         calls.
@@ -62,6 +64,7 @@ class Websocket:
         :param shutdown_timer: Number of seconds to shut down websocket connection after last use
         """
         # TODO allow setting max concurrent connections and rpc subscriptions per connection
+        # TODO reconnection logic
         self.ws_url = ws_url
         self.ws = None
         self.id = 0
@@ -95,7 +98,8 @@ class Websocket:
             if self._exit_task is not None:
                 self._exit_task.cancel()
                 await self._exit_task
-            self._exit_task = asyncio.create_task(self._exit_with_timer())
+            if self._in_use == 0 and self.ws is not None:
+                self._exit_task = asyncio.create_task(self._exit_with_timer())
 
     async def _exit_with_timer(self):
         """
@@ -105,14 +109,13 @@ class Websocket:
         try:
             await asyncio.sleep(self.shutdown_timer)
             async with self._lock:
-                if self._in_use == 0 and self.ws is not None:
-                    self._receiving_task.cancel()
-                    await self._receiving_task
-                    await self.ws.close()
-                    self.ws = None
-                    self._initialized = False
-                    self._receiving_task = None
-                    self.id = 0
+                self._receiving_task.cancel()
+                await self._receiving_task
+                await self.ws.close()
+                self.ws = None
+                self._initialized = False
+                self._receiving_task = None
+                self.id = 0
         except asyncio.CancelledError:
             pass
 
@@ -150,15 +153,17 @@ class RPCRequest:
     def __init__(self, chain_endpoint: str):
         self.chain_endpoint = chain_endpoint
         self.ws = Websocket(chain_endpoint)
+        self._lock = asyncio.Lock()
 
     async def __aenter__(self):
-        if not self.substrate:
-            self.substrate = SubstrateInterface(
-                ss58_format=bittensor.__ss58_format__,
-                use_remote_preset=True,
-                url=self.chain_endpoint,
-                type_registry=bittensor.__type_registry__,
-            )
+        async with self._lock:
+            if not self.substrate:
+                self.substrate = SubstrateInterface(
+                    ss58_format=bittensor.__ss58_format__,
+                    use_remote_preset=True,
+                    url=self.chain_endpoint,
+                    type_registry=bittensor.__type_registry__,
+                )
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         pass
