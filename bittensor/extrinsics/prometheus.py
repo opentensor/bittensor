@@ -15,6 +15,7 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
+
 import bittensor
 
 import json
@@ -54,7 +55,7 @@ def prometheus_extrinsic(
     """
 
     # ---- Get external ip ----
-    if ip == None:
+    if ip is None:
         try:
             external_ip = net.get_external_ip()
             bittensor.__console__.print(
@@ -125,7 +126,7 @@ def prometheus_extrinsic(
         )
 
         if wait_for_inclusion or wait_for_finalization:
-            if success == True:
+            if success is True:
                 bittensor.__console__.print(
                     ":white_heavy_check_mark: [green]Served prometheus[/green]\n  [bold white]{}[/bold white]".format(
                         json.dumps(call_params, indent=4, sort_keys=True)
@@ -133,11 +134,7 @@ def prometheus_extrinsic(
                 )
                 return True
             else:
-                bittensor.__console__.print(
-                    ":cross_mark: [green]Failed to serve prometheus[/green] error: {}".format(
-                        err
-                    )
-                )
+                bittensor.__console__.print(f":cross_mark: [red]Failed[/red]: {err}")
                 return False
         else:
             return True
