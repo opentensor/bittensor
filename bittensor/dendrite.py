@@ -707,7 +707,9 @@ class DendriteMixin:
                     # attribute in the server synapse
                     setattr(local_synapse, key, getattr(server_synapse, key))
                 except Exception as e:
-                    bittensor.logging.info(f"Ignoring error when setting attribute: {e}")
+                    bittensor.logging.info(
+                        f"Ignoring error when setting attribute: {e}"
+                    )
                     # Ignore errors during attribute setting
                     pass
         else:
