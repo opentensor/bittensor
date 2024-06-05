@@ -2455,6 +2455,7 @@ class Subtensor:
         decision-making authority within the Bittensor network.
         """
         async with self.substrate:
+            # This will not be like this in the future!
             senate_members = (await self.query_module("SenateMembers", "Members", block=block, params=[None]))[None][0]
         if not hasattr(senate_members, "serialize"):
             return None
