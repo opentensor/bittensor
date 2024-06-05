@@ -896,12 +896,12 @@ class axon:
 
             # If we don't have a nonce stored, ensure that the nonce falls within
             # a reasonable delta.
-            current_time = BittensorNTPClient.get_current_ntp_time()
 
             # Updated nonce using NTP implementated at v7.2
             if synapse.dendrite.version >= 720:
                 # If we don't have a nonce stored, ensure that the nonce falls within
                 # a reasonable delta.
+                current_time = BittensorNTPClient.get_current_ntp_time()
                 if (
                     self.nonces.get(endpoint_key) is None
                     and synapse.dendrite.nonce <= current_time - ALLOWED_DELTA
