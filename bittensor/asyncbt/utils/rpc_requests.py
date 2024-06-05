@@ -307,7 +307,6 @@ class RPCRequest:
         result = await self._make_rpc_request(payloads)
         if 'error' in result["rpc_request"][0]:
             raise SubstrateRequestException(result["rpc_request"][0]['error']['message'])
-        print("result", result)
         return result["rpc_request"][0]["result"]
 
     async def get_block_hash(self, block: int) -> str:
