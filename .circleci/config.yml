@@ -108,9 +108,9 @@ jobs:
             . .venv/bin/activate
             ./scripts/create_wallet.sh
 
-      # TODO: Update test durations on different runs
       - run:
           name: Unit Tests
+          no_output_timeout: 20m
           command: |
             . .venv/bin/activate
             export PYTHONUNBUFFERED=1
@@ -122,6 +122,7 @@ jobs:
 
       - run:
           name: Integration Tests
+          no_output_timeout: 30m
           command: |
             . .venv/bin/activate
             export PYTHONUNBUFFERED=1
