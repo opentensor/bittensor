@@ -35,7 +35,7 @@ def test_takes(local_chain):
         ).serialize()
         == 0
     )
-    exec_command(RegisterCommand, ["s", "register", "--neduid", "1"])
+    exec_command(RegisterCommand, ["s", "register", "--netuid", "1"])
     exec_command(NominateCommand, ["root", "nominate"])
     assert (
         local_chain.query(
