@@ -1,12 +1,18 @@
-import os
-import signal
-from substrateinterface import SubstrateInterface
-import pytest
-import subprocess
 import logging
-import shlex
+import os
 import re
+import shlex
+import signal
+import subprocess
 import time
+
+import pytest
+from substrateinterface import SubstrateInterface
+
+from tests.e2e_tests.utils import (
+    clone_or_update_templates,
+    install_templates,
+)
 
 logging.basicConfig(level=logging.INFO)
 
@@ -21,6 +27,9 @@ def local_chain():
         # Skip the test if the localhost.sh path is not set
         logging.warning("LOCALNET_SH_PATH env variable is not set, e2e test skipped.")
         pytest.skip("LOCALNET_SH_PATH environment variable is not set.")
+
+    templates_dir = clone_or_update_templates()
+    install_templates(templates_dir)
 
     # Start new node process
     cmds = shlex.split(script_path)
