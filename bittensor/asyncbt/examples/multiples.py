@@ -56,31 +56,31 @@ async def main():
     rpc = rpc_requests.RPCRequest(rpc_requests.CHAIN_ENDPOINT)
     async with rpc:
         block_hash = await rpc.get_chain_head()
-        # results = await asyncio.gather(
-            # get_delegated(
-            #     "5H11iQ22o3cLLNzE1uwEjHdQgRXpueSPyCBFHAX3VKQiz3v3", rpc, block_hash
-            # ),
-            # root_list(block_hash, rpc),
-            # get_balance(
-            #     block_hash, "5H11iQ22o3cLLNzE1uwEjHdQgRXpueSPyCBFHAX3VKQiz3v3", rpc
-            # ),
-        # )
-        results = await root_list(block_hash, rpc)
+        results = await asyncio.gather(
+            get_delegated(
+                "5H11iQ22o3cLLNzE1uwEjHdQgRXpueSPyCBFHAX3VKQiz3v3", rpc, block_hash
+            ),
+            root_list(block_hash, rpc),
+            get_balance(
+                block_hash, "5H11iQ22o3cLLNzE1uwEjHdQgRXpueSPyCBFHAX3VKQiz3v3", rpc
+            ),
+        )
     pp(results)
     end = time.time()
     print("First run time:", end - start)
-    # new_start = time.time()
-    # block_hash = await rpc.get_chain_head()
-    # # await asyncio.gather(
-    # await get_delegated(
-    #     "5H11iQ22o3cLLNzE1uwEjHdQgRXpueSPyCBFHAX3VKQiz3v3", rpc, block_hash
-    # )
-    # await root_list(block_hash, rpc)
-    # await get_balance(
-    #     block_hash, "5H11iQ22o3cLLNzE1uwEjHdQgRXpueSPyCBFHAX3VKQiz3v3", rpc
-    # )
-    # # )
-    # print("Second run time:", time.time() - new_start)
+    new_start = time.time()
+    async with rpc:
+        block_hash = await rpc.get_chain_head()
+        await asyncio.gather(
+            get_delegated(
+                "5H11iQ22o3cLLNzE1uwEjHdQgRXpueSPyCBFHAX3VKQiz3v3", rpc, block_hash
+            ),
+            root_list(block_hash, rpc),
+            get_balance(
+                block_hash, "5H11iQ22o3cLLNzE1uwEjHdQgRXpueSPyCBFHAX3VKQiz3v3", rpc
+            ),
+        )
+    print("Second run time:", time.time() - new_start)
 
 
 if __name__ == "__main__":
