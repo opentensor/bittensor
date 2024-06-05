@@ -1,5 +1,13 @@
 # Changelog
 
+## 7.1.0 / 2024-06-05
+
+## What's Changed
+* Added _do_set_root_weights by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/1838
+* Release/7.0.1 by @gus-opentensor in https://github.com/opentensor/bittensor/pull/1963
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v7.0.1...v7.1.0
+
 ## 7.0.1 / 2024-05-31
 
 ## What's Changed
@@ -7,9 +15,10 @@
 * Fix return of ip version. by @opendansor in https://github.com/opentensor/bittensor/pull/1961
 * Fix trigger use_torch() by @renesweet24 https://github.com/opentensor/bittensor/pull/1960
 
+## New Contributors
+* @renesweet24 made their first contribution in https://github.com/opentensor/bittensor/pull/1960
 
 **Full Changelog**: https://github.com/opentensor/bittensor/compare/v7.0.0...v7.0.1
-
 
 ## 7.0.0 / 2024-05-17
 
@@ -931,4 +940,5 @@ This release refactors the registration code for CPU registration to improve sol
 ### Synapse update
 
 ##
+
 
