@@ -99,7 +99,10 @@ class Websocket:
             self._in_use -= 1
             if self._exit_task is not None:
                 self._exit_task.cancel()
-                await self._exit_task
+                try:
+                    await self._exit_task
+                except asyncio.CancelledError:
+                    pass
             if self._in_use == 0 and self.ws is not None:
                 self.id = 0
                 self._open_subscriptions = 0
@@ -114,7 +117,10 @@ class Websocket:
             await asyncio.sleep(self.shutdown_timer)
             async with self._lock:
                 self._receiving_task.cancel()
-                await self._receiving_task
+                try:
+                    await self._receiving_task
+                except asyncio.CancelledError:
+                    pass
                 await self.ws.close()
                 self.ws = None
                 self._initialized = False
@@ -191,7 +197,7 @@ class RPCRequest:
         """
         Creates a Preprocessed data object for passing to ``make_call``
         """
-        params = [query_for]
+        params = [query_for] if query_for else []
         # Search storage call in metadata
         metadata_pallet = self.substrate.metadata.get_metadata_pallet(module)
 
