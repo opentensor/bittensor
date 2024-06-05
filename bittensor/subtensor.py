@@ -39,6 +39,7 @@ from substrateinterface.exceptions import SubstrateRequestException
 
 import bittensor
 from bittensor.btlogging import logging as _logger
+from bittensor.asyncbt.utils import rpc_requests
 from bittensor.utils import torch, weight_utils
 from .chain_data import (
     NeuronInfo,
@@ -238,11 +239,17 @@ class Subtensor:
         # Attempt to connect to chosen endpoint. Fallback to finney if local unavailable.
         try:
             # Set up params.
-            self.substrate = SubstrateInterface(
-                ss58_format=bittensor.__ss58_format__,
-                use_remote_preset=True,
-                url=self.chain_endpoint,
-                type_registry=bittensor.__type_registry__,
+            # self.substrate = SubstrateInterface(
+            #     ss58_format=bittensor.__ss58_format__,
+            #     use_remote_preset=True,
+            #     url=self.chain_endpoint,
+            #     type_registry=bittensor.__type_registry__,
+            # )
+            self.substrate = rpc_requests.RPCRequest(
+                self.chain_endpoint
+            )
+            self.rpc = rpc_requests.RPCRequest(
+                self.chain_endpoint
             )
         except ConnectionRefusedError:
             _logger.error(
@@ -255,16 +262,16 @@ class Subtensor:
             exit(1)
             # TODO (edu/phil): Advise to run local subtensor and point to dev docs.
 
-        try:
-            self.substrate.websocket.settimeout(600)
-        # except:
-        #     bittensor.logging.warning("Could not set websocket timeout.")
-        except AttributeError as e:
-            _logger.warning(f"AttributeError: {e}")
-        except TypeError as e:
-            _logger.warning(f"TypeError: {e}")
-        except (socket.error, OSError) as e:
-            _logger.warning(f"Socket error: {e}")
+        # try:
+        #     self.substrate.websocket.settimeout(600)
+        # # except:
+        # #     bittensor.logging.warning("Could not set websocket timeout.")
+        # except AttributeError as e:
+        #     _logger.warning(f"AttributeError: {e}")
+        # except TypeError as e:
+        #     _logger.warning(f"TypeError: {e}")
+        # except (socket.error, OSError) as e:
+        #     _logger.warning(f"Socket error: {e}")
 
         if log_verbose:
             _logger.info(
@@ -2433,7 +2440,7 @@ class Subtensor:
 
     get_proposal_vote_data = get_vote_data
 
-    def get_senate_members(self, block: Optional[int] = None) -> Optional[List[str]]:
+    async def get_senate_members(self, block: Optional[int] = None) -> Optional[List[str]]:
         """
         Retrieves the list of current senate members from the Bittensor blockchain. Senate members are
         responsible for governance and decision-making within the network.
@@ -2447,10 +2454,39 @@ class Subtensor:
         Understanding the composition of the senate is key to grasping the governance structure and
         decision-making authority within the Bittensor network.
         """
-        senate_members = self.query_module("SenateMembers", "Members", block=block)
+        async with self.substrate:
+            senate_members = (await self.query_module("SenateMembers", "Members", block=block, params=[None]))[None][0]
         if not hasattr(senate_members, "serialize"):
             return None
         return senate_members.serialize() if senate_members is not None else None
+
+    async def root_list(self):
+        async def process_neuron_result(json_):
+            call_definition = bittensor.__type_registry__["runtime_api"][
+                "NeuronInfoRuntimeApi"
+            ]["methods"]["get_neurons_lite"]
+            return_type = call_definition["type"]
+            as_scale_bytes = scalecodec.ScaleBytes(json_)  # type: ignore
+            rpc_runtime_config = RuntimeConfiguration()
+            rpc_runtime_config.update_type_registry(load_type_registry_preset("legacy"))
+            rpc_runtime_config.update_type_registry(custom_rpc_type_registry)
+            obj = rpc_runtime_config.create_scale_object(return_type, as_scale_bytes)
+            hex_bytes_result = obj.decode()
+            bytes_result = bytes.fromhex(hex_bytes_result[2:])
+            return bittensor.NeuronInfoLite.list_from_vec_u8(bytes_result)  # type: ignore
+        async with self.rpc:
+            block_hash = await self.rpc.get_chain_head()
+
+            json_result = await self.rpc.rpc_request(
+                "state_call", ["NeuronInfoRuntimeApi_get_neurons_lite", "0x0000"]
+            )
+            hotkeys = [n.hotkey for n in await process_neuron_result(json_result)]
+            print(hotkeys)
+
+            result = await self.rpc.query_subtensor(
+                hotkeys, "TotalHotkeyStake", "SubtensorModule"
+            )
+        return json_result, result
 
     def get_proposal_call_data(
         self, proposal_hash: str, block: Optional[int] = None
@@ -2899,7 +2935,7 @@ class Subtensor:
         return make_substrate_call_with_retry()
 
     # Queries any module storage with params and block.
-    def query_module(
+    async def query_module(
         self,
         module: str,
         name: str,
@@ -2925,17 +2961,23 @@ class Subtensor:
         """
 
         @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
-        def make_substrate_call_with_retry() -> "ScaleType":
-            return self.substrate.query(
+        async def make_substrate_call_with_retry() -> "ScaleType":
+            # return self.substrate.query(
+            #     module=module,
+            #     storage_function=name,
+            #     params=params,
+            #     block_hash=(
+            #         None if block is None else self.substrate.get_block_hash(block)
+            #     ),
+            # )
+            return await self.substrate.query_subtensor(
                 module=module,
                 storage_function=name,
-                params=params,
-                block_hash=(
-                    None if block is None else self.substrate.get_block_hash(block)
-                ),
+                query_for=params,
+                block_hash=None
             )
 
-        return make_substrate_call_with_retry()
+        return await make_substrate_call_with_retry()
 
     # Queries any module map storage with params and block.
     def query_map(
@@ -4818,7 +4860,7 @@ class Subtensor:
 
         return NeuronInfoLite.from_vec_u8(bytes_result)  # type: ignore
 
-    def neurons_lite(
+    async def neurons_lite(
         self, netuid: int, block: Optional[int] = None
     ) -> List[NeuronInfoLite]:
         """
