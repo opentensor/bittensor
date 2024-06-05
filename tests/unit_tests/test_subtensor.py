@@ -34,8 +34,8 @@ from bittensor import subtensor_module
 
 
 def test_serve_axon_with_external_ip_set():
-    internal_ip: str = "this is an internal ip"
-    external_ip: str = "this is an external ip"
+    internal_ip: str = "192.0.2.146"
+    external_ip: str = "2001:0db8:85a3:0000:0000:8a2e:0370:7334"
 
     mock_serve_axon = MagicMock(return_value=True)
 
@@ -76,7 +76,7 @@ def test_serve_axon_with_external_ip_set():
 
 
 def test_serve_axon_with_external_port_set():
-    external_ip: str = "this is an external ip"
+    external_ip: str = "2001:0db8:85a3:0000:0000:8a2e:0370:7334"
 
     internal_port: int = 1234
     external_port: int = 5678
@@ -1191,9 +1191,11 @@ def test_total_stake_no_block(mocker, subtensor):
     # Asserts
     assert result is not None
     subtensor.query_subtensor.assert_called_once_with("TotalStake", None)
-    spy_balance_from_rao.assert_called_once_with(
-        subtensor.query_subtensor.return_value.value
-    ),
+    (
+        spy_balance_from_rao.assert_called_once_with(
+            subtensor.query_subtensor.return_value.value
+        ),
+    )
 
 
 # `serving_rate_limit` method tests

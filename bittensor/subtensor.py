@@ -20,6 +20,7 @@
 The ``bittensor.subtensor`` module in Bittensor serves as a crucial interface for interacting with the Bittensor
 blockchain, facilitating a range of operations essential for the decentralized machine learning network.
 """
+
 import argparse
 import copy
 import functools
@@ -40,7 +41,7 @@ from substrateinterface.exceptions import SubstrateRequestException
 
 import bittensor
 from bittensor.btlogging import logging as _logger
-from bittensor.utils import torch, weight_utils
+from bittensor.utils import torch, weight_utils, format_error_message
 from .chain_data import (
     NeuronInfo,
     DelegateInfo,
@@ -773,6 +774,7 @@ class Subtensor:
     ###############
     # Set Weights #
     ###############
+    # TODO: still needed? Can't find any usage of this method.
     def set_weights(
         self,
         wallet: "bittensor.wallet",
@@ -899,7 +901,7 @@ class Subtensor:
             if response.is_success:
                 return True, "Successfully set weights."
             else:
-                return False, response.error_message
+                return False, format_error_message(response.error_message)
 
         return make_substrate_call_with_retry()
 
@@ -942,7 +944,6 @@ class Subtensor:
         This function allows neurons to create a tamper-proof record of their weight distribution at a specific point in time,
         enhancing transparency and accountability within the Bittensor network.
         """
-        uid = self.get_uid_for_hotkey_on_subnet(wallet.hotkey.ss58_address, netuid)
         retries = 0
         success = False
         message = "No attempt made. Perhaps it is too soon to commit weights!"
@@ -1081,7 +1082,6 @@ class Subtensor:
         This function allows neurons to reveal their previously committed weight distribution, ensuring transparency
         and accountability within the Bittensor network.
         """
-        uid = self.get_uid_for_hotkey_on_subnet(wallet.hotkey.ss58_address, netuid)
         retries = 0
         success = False
         message = "No attempt made. Perhaps it is too soon to reveal weights!"
@@ -1171,7 +1171,7 @@ class Subtensor:
             if response.is_success:
                 return True, None
             else:
-                return False, response.error_message
+                return False, format_error_message(response.error_message)
 
         return make_substrate_call_with_retry()
 
@@ -1426,7 +1426,7 @@ class Subtensor:
             # process if registration successful, try again if pow is still valid
             response.process_events()
             if not response.is_success:
-                return False, response.error_message
+                return False, format_error_message(response.error_message)
             # Successful registration
             else:
                 return True, None
@@ -1483,7 +1483,7 @@ class Subtensor:
             # process if registration successful, try again if pow is still valid
             response.process_events()
             if not response.is_success:
-                return False, response.error_message
+                return False, format_error_message(response.error_message)
             # Successful registration
             else:
                 return True, None
@@ -1539,7 +1539,7 @@ class Subtensor:
             # process if registration successful, try again if pow is still valid
             response.process_events()
             if not response.is_success:
-                return False, response.error_message
+                return False, format_error_message(response.error_message)
             # Successful registration
             else:
                 return True, None
@@ -1692,7 +1692,7 @@ class Subtensor:
                 block_hash = response.block_hash
                 return True, block_hash, None
             else:
-                return False, None, response.error_message
+                return False, None, format_error_message(response.error_message)
 
         return make_substrate_call_with_retry()
 
@@ -1923,7 +1923,7 @@ class Subtensor:
                 if response.is_success:
                     return True, None
                 else:
-                    return False, response.error_message
+                    return False, format_error_message(response.error_message)
             else:
                 return True, None
 
@@ -1985,7 +1985,7 @@ class Subtensor:
                 if response.is_success:
                     return True, None
                 else:
-                    return False, response.error_message
+                    return False, format_error_message(response.error_message)
             else:
                 return True, None
 
@@ -2166,7 +2166,7 @@ class Subtensor:
             if response.is_success:
                 return True
             else:
-                raise StakeError(response.error_message)
+                raise StakeError(format_error_message(response.error_message))
 
         return make_substrate_call_with_retry()
 
@@ -2293,7 +2293,7 @@ class Subtensor:
             if response.is_success:
                 return True
             else:
-                raise StakeError(response.error_message)
+                raise StakeError(format_error_message(response.error_message))
 
         return make_substrate_call_with_retry()
 
@@ -2609,7 +2609,7 @@ class Subtensor:
             # process if registration successful, try again if pow is still valid
             response.process_events()
             if not response.is_success:
-                return False, response.error_message
+                return False, format_error_message(response.error_message)
             # Successful registration
             else:
                 return True, None
@@ -3051,9 +3051,7 @@ class Subtensor:
         """
         call_definition = bittensor.__type_registry__["runtime_api"][runtime_api][  # type: ignore
             "methods"  # type: ignore
-        ][
-            method
-        ]  # type: ignore
+        ][method]  # type: ignore
 
         json_result = self.state_call(
             method=f"{runtime_api}_{method}",
@@ -4742,8 +4740,7 @@ class Subtensor:
         subnet, offering insights into their roles in the network's consensus and validation mechanisms.
         """
         if uid is None:
-            # TODO: fix `Access to a protected member _null_neuron of a class` error when chane_data.py refactoring.
-            return NeuronInfo._null_neuron()
+            return NeuronInfo.get_null_neuron()
 
         @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
         def make_substrate_call_with_retry():
@@ -4752,14 +4749,14 @@ class Subtensor:
             if block_hash:
                 params = params + [block_hash]
             return self.substrate.rpc_request(
-                method="neuronInfo_getNeuron", params=params  # custom rpc method
+                method="neuronInfo_getNeuron",
+                params=params,  # custom rpc method
             )
 
         json_body = make_substrate_call_with_retry()
 
         if not (result := json_body.get("result", None)):
-            # TODO: fix `Access to a protected member _null_neuron of a class` error when chane_data.py refactoring.
-            return NeuronInfo._null_neuron()
+            return NeuronInfo.get_null_neuron()
 
         return NeuronInfo.from_vec_u8(result)
 
@@ -4814,8 +4811,7 @@ class Subtensor:
         subnet without the need for comprehensive data retrieval.
         """
         if uid is None:
-            # TODO: fix `Access to a protected member _null_neuron of a class` error when chane_data.py refactoring.
-            return NeuronInfoLite._null_neuron()
+            return NeuronInfoLite.get_null_neuron()
 
         hex_bytes_result = self.query_runtime_api(
             runtime_api="NeuronInfoRuntimeApi",
@@ -4828,8 +4824,7 @@ class Subtensor:
         )
 
         if hex_bytes_result is None:
-            # TODO: fix `Access to a protected member _null_neuron of a class` error when chane_data.py refactoring.
-            return NeuronInfoLite._null_neuron()
+            return NeuronInfoLite.get_null_neuron()
 
         if hex_bytes_result.startswith("0x"):
             bytes_result = bytes.fromhex(hex_bytes_result[2:])
@@ -5099,7 +5094,7 @@ class Subtensor:
             if response.is_success:
                 return True
             else:
-                raise StakeError(response.error_message)
+                raise StakeError(format_error_message(response.error_message))
 
         return make_substrate_call_with_retry()
 
@@ -5153,7 +5148,7 @@ class Subtensor:
             if response.is_success:
                 return True
             else:
-                raise StakeError(response.error_message)
+                raise StakeError(format_error_message(response.error_message))
 
         return make_substrate_call_with_retry()
 
@@ -5200,7 +5195,7 @@ class Subtensor:
             if response.is_success:
                 return True
             else:
-                raise NominationError(response.error_message)
+                raise NominationError(format_error_message(response.error_message))
 
         return make_substrate_call_with_retry()
 
@@ -5255,7 +5250,7 @@ class Subtensor:
                 if response.is_success:
                     return True
                 else:
-                    raise TakeError(response.error_message)
+                    raise TakeError(format_error_message(response.error_message))
 
         return make_substrate_call_with_retry()
 
@@ -5310,7 +5305,7 @@ class Subtensor:
                 if response.is_success:
                     return True
                 else:
-                    raise TakeError(response.error_message)
+                    raise TakeError(format_error_message(response.error_message))
 
         return make_substrate_call_with_retry()
 
