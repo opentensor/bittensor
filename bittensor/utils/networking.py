@@ -20,10 +20,13 @@
 # DEALINGS IN THE SOFTWARE.
 
 # Standard Lib
+import bittensor
 import os
 import urllib
+import time
 import json
 import netaddr
+from bittensor.constants import NTP_POOL_RETRIES
 
 # 3rd party
 import ntplib
@@ -205,3 +208,25 @@ class BittensorNTPClient:
         if cls._instance is None:
             cls._instance = ntplib.NTPClient()
         return cls._instance
+
+    @staticmethod
+    def get_current_ntp_time(retries: int = NTP_POOL_RETRIES) -> int:
+        ntp_servers = ["0.pool.ntp.org", "1.pool.ntp.org", "2.pool.ntp.org"]
+        attempts = 0
+        while attempts < retries:
+            server = ntp_servers[attempts % len(ntp_servers)]
+            try:
+                ntp_client = BittensorNTPClient()
+                response = ntp_client.request(server)
+                current_time = int(response.tx_time * 1e9)  # Convert to nanoseconds
+                return current_time
+            except Exception as e:
+                attempts += 1
+                bittensor.logging.error(
+                    f"Attempt {attempts} - Error fetching NTP time: {e}"
+                )
+        # Fallback to local time if all retries fail
+        bittensor.logging.error(
+            "All retries failed, using system UNIX time"
+        )
+        return time.time_ns()
