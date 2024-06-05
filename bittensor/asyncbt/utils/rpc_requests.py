@@ -62,10 +62,13 @@ class Websocket:
         self._attempts = 0
         self._initialized = False
         self._lock = asyncio.Lock()
+        self._exit_task = None
 
     async def __aenter__(self):
         async with self._lock:
             self._in_use += 1
+            if self._exit_task:
+                self._exit_task.cancel()
             if not self._initialized:
                 self._initialized = True
                 self.ws = await asyncio.wait_for(
@@ -77,14 +80,25 @@ class Websocket:
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         async with self._lock:
             self._in_use -= 1
-            if self._in_use == 0 and self.ws is not None:
-                self._receiving_task.cancel()
-                await self._receiving_task
-                await self.ws.close()
-                self.ws = None
-                self._initialized = False
-                self._receiving_task = None
-                self.id = 0
+            if self._exit_task is not None:
+                self._exit_task.cancel()
+                await self._exit_task
+            self._exit_task = asyncio.create_task(self._exit_with_timer())
+
+    async def _exit_with_timer(self):
+        try:
+            await asyncio.sleep(5)
+            async with self._lock:
+                if self._in_use == 0 and self.ws is not None:
+                    self._receiving_task.cancel()
+                    await self._receiving_task
+                    await self.ws.close()
+                    self.ws = None
+                    self._initialized = False
+                    self._receiving_task = None
+                    self.id = 0
+        except asyncio.CancelledError:
+            pass
 
     async def send(self, payload: dict) -> int:
         async with self._lock:
@@ -262,6 +276,9 @@ class RPCRequest:
     async def get_block_hash(self, block: int):
         pass
 
+    async def get_chain_head(self):
+        return await self.rpc_request("chain_getHead", [])
+
     async def query_subtensor(
         self,
         query_for: list,
@@ -272,7 +289,7 @@ class RPCRequest:
         # By allowing for specifying the block hash, users, if they have multiple query types they want
         # to do, can simply query the block hash first, and then pass multiple query_subtensor calls
         # into an asyncio.gather, with the specified block hash
-        block_hash = block_hash or self.substrate.get_chain_head()
+        block_hash = block_hash or await self.get_chain_head()
         self.substrate.init_runtime(block_hash=block_hash)  # TODO
         preprocessed: tuple[Preprocessed] = await asyncio.gather(
             *[
