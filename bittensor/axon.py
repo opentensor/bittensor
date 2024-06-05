@@ -55,6 +55,7 @@ from bittensor.errors import (
     PostProcessException,
     SynapseException,
 )
+from bittensor.constants import ALLOWED_DELTA
 from bittensor.threadpool import PriorityThreadPoolExecutor
 from bittensor.utils import networking
 from bittensor.utils.networking import BittensorNTPClient
@@ -343,12 +344,12 @@ class axon:
         self.port = self.config.axon.port
         self.external_ip = (
             self.config.axon.external_ip
-            if self.config.axon.external_ip != None
+            if self.config.axon.external_ip is not None
             else bittensor.utils.networking.get_external_ip()
         )
         self.external_port = (
             self.config.axon.external_port
-            if self.config.axon.external_port != None
+            if self.config.axon.external_port is not None
             else self.config.axon.port
         )
         self.full_address = str(self.config.axon.ip) + ":" + str(self.config.axon.port)
@@ -889,23 +890,13 @@ class axon:
             # Build the unique endpoint key.
             endpoint_key = f"{synapse.dendrite.hotkey}:{synapse.dendrite.uuid}"
 
-            # Check the nonce from the endpoint key with 4 second delta
-            allowedDelta = 4000000000
-
             # Requests must have nonces to be safe from replays
             if synapse.dendrite.nonce is None:
                 raise Exception("Missing Nonce")
 
             # If we don't have a nonce stored, ensure that the nonce falls within
             # a reasonable delta.
-            try:
-                ntp_client = BittensorNTPClient()
-                response = ntp_client.request("pool.ntp.org")
-                current_time = int(response.tx_time * 1e9)  # Convert to nanoseconds
-            except Exception as e:
-                print(f"Error fetching NTP time: {e}")
-                # Fallback to local time if NTP fails
-                current_time = time.time_ns()
+            current_time = BittensorNTPClient.get_current_ntp_time()
 
             # Updated nonce using NTP implementated at v7.2
             if synapse.dendrite.version >= 720:
@@ -913,7 +904,7 @@ class axon:
                 # a reasonable delta.
                 if (
                     self.nonces.get(endpoint_key) is None
-                    and synapse.dendrite.nonce <= current_time - allowedDelta
+                    and synapse.dendrite.nonce <= current_time - ALLOWED_DELTA
                 ):
                     raise Exception("Nonce is too old")
                 if (
@@ -1170,7 +1161,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
         # Extracts the request name from the URL path.
         try:
             request_name = request.url.path.split("/")[1]
-        except:
+        except Exception:
             raise InvalidRequestNameError(
                 f"Improperly formatted request. Could not parser request {request.url.path}."
             )
@@ -1185,19 +1176,12 @@ class AxonMiddleware(BaseHTTPMiddleware):
 
         try:
             synapse = request_synapse.from_headers(request.headers)  # type: ignore
-        except Exception as e:
+        except Exception:
             raise SynapseParsingError(
                 f"Improperly formatted request. Could not parse headers {request.headers} into synapse of type {request_name}."
             )
         synapse.name = request_name
-        try:
-            ntp_client = BittensorNTPClient()
-            response = ntp_client.request("pool.ntp.org")
-            current_time = int(response.tx_time * 1e9)  # Convert to nanoseconds
-        except Exception as e:
-            print(f"Error fetching NTP time: {e}")
-            # Fallback to local time if NTP fails
-            current_time = time.time_ns()
+        current_time = BittensorNTPClient.get_current_ntp_time()
 
         # Fills the local axon information into the synapse.
         synapse.axon.__dict__.update(

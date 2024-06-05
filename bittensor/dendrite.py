@@ -313,7 +313,7 @@ class DendriteMixin:
         try:
             loop = asyncio.get_event_loop()
             result = loop.run_until_complete(self.forward(*args, **kwargs))
-        except:
+        except Exception:
             new_loop = asyncio.new_event_loop()
             asyncio.set_event_loop(new_loop)
             result = loop.run_until_complete(self.forward(*args, **kwargs))
@@ -655,16 +655,17 @@ class DendriteMixin:
         """
         # Set the timeout for the synapse
         synapse.timeout = timeout
-        try:
-            ntp_client = BittensorNTPClient()
-            response = ntp_client.request("pool.ntp.org")
-            current_time = int(response.tx_time * 1e9)  # Convert to nanoseconds
-        except Exception as e:
-            bittensor.logging.debug(
-                f"Error fetching NTP time: {e}, using system UNIX time"
-            )
-            # Fallback to local time if NTP fails
-            current_time = time.time_ns()
+        current_time = BittensorNTPClient.get_current_ntp_time()
+        # try:
+        #     ntp_client = BittensorNTPClient()
+        #     response = ntp_client.request("pool.ntp.org")
+        #     current_time = int(response.tx_time * 1e9)  # Convert to nanoseconds
+        # except Exception as e:
+        #     bittensor.logging.debug(
+        #         f"Error fetching NTP time: {e}, using system UNIX time"
+        #     )
+        #     # Fallback to local time if NTP fails
+        #     current_time = time.time_ns()
         # Build the Dendrite headers using the local system's details
         synapse.dendrite = bittensor.TerminalInfo(
             ip=self.external_ip,
@@ -716,7 +717,7 @@ class DendriteMixin:
                     # Set the attribute in the local synapse from the corresponding
                     # attribute in the server synapse
                     setattr(local_synapse, key, getattr(server_synapse, key))
-                except:
+                except Exception:
                     # Ignore errors during attribute setting
                     pass
         else:
