@@ -1,5 +1,4 @@
-""" Create and initialize Axon, which services the forward and backward requests from other neurons.
-"""
+"""Create and initialize Axon, which services the forward and backward requests from other neurons."""
 
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
@@ -57,6 +56,7 @@ from bittensor.errors import (
     SynapseException,
 )
 from bittensor.threadpool import PriorityThreadPoolExecutor
+from bittensor.utils import networking
 
 
 class FastAPIThreadedServer(uvicorn.Server):
@@ -393,7 +393,7 @@ class axon:
         return bittensor.AxonInfo(
             version=bittensor.__version_as_int__,
             ip=self.external_ip,
-            ip_type=4,
+            ip_type=networking.ip_version(self.external_ip),
             port=self.external_port,
             hotkey=self.wallet.hotkey.ss58_address,
             coldkey=self.wallet.coldkeypub.ss58_address,
@@ -942,8 +942,10 @@ def log_and_handle_error(
 ):
     if isinstance(exception, SynapseException):
         synapse = exception.synapse or synapse
-    # Display the traceback for user clarity.
-    bittensor.logging.trace(f"Forward exception: {traceback.format_exc()}")
+
+        bittensor.logging.trace(f"Forward handled exception: {exception}")
+    else:
+        bittensor.logging.trace(f"Forward exception: {traceback.format_exc()}")
 
     if synapse.axon is None:
         synapse.axon = bittensor.TerminalInfo()

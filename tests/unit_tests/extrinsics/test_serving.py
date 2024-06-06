@@ -1,7 +1,7 @@
 import pytest
 
 from unittest.mock import MagicMock, patch
-from bittensor.subtensor import subtensor as Subtensor
+from bittensor.subtensor import Subtensor
 from bittensor.wallet import wallet as Wallet
 from bittensor.axon import axon as Axon
 from bittensor.extrinsics.serving import (
@@ -365,7 +365,7 @@ def test_publish_metadata(
             subtensor=mock_subtensor,
             wallet=mock_wallet,
             netuid=net_uid,
-            type=type_u,
+            data_type=type_u,
             data=data,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,

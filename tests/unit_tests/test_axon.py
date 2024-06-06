@@ -25,6 +25,7 @@ from unittest import IsolatedAsyncioTestCase
 from unittest.mock import AsyncMock, MagicMock, patch
 
 # Third Party
+import netaddr
 import pytest
 from starlette.requests import Request
 from fastapi.testclient import TestClient
@@ -350,6 +351,55 @@ def test_to_string(info_return, expected_output, test_id):
 
 
 @pytest.mark.parametrize(
+    "ip, port, expected_ip_type, test_id",
+    [
+        # Happy path
+        (
+            "127.0.0.1",
+            8080,
+            4,
+            "valid_ipv4",
+        ),
+        (
+            "2001:0db8:85a3:0000:0000:8a2e:0370:7334",
+            3030,
+            6,
+            "valid_ipv6",
+        ),
+    ],
+)
+def test_valid_ipv4_and_ipv6_address(ip, port, expected_ip_type, test_id):
+    # Arrange
+    axon = Axon()
+    axon.ip = ip
+    axon.external_ip = ip
+    axon.port = port
+
+    # Act
+    ip_type = axon.info().ip_type
+
+    # Assert
+    assert ip_type == expected_ip_type, f"Test ID: {test_id}"
+
+
+@pytest.mark.parametrize(
+    "ip, port, expected_exception",
+    [
+        (
+            "This Is not a valid address",
+            65534,
+            netaddr.core.AddrFormatError,
+        ),
+    ],
+    ids=["failed to detect a valid IP " "address from %r"],
+)
+def test_invalid_ip_address(ip, port, expected_exception):
+    # Assert
+    with pytest.raises(expected_exception):
+        Axon(ip=ip, external_ip=ip, port=port).info()
+
+
+@pytest.mark.parametrize(
     "ip, port, ss58_address, started, forward_fns, expected_str, test_id",
     [
         # Happy path
@@ -452,7 +502,7 @@ class SynapseHTTPClient(TestClient):
     def post_synapse(self, synapse: Synapse):
         return self.post(
             f"/{synapse.__class__.__name__}",
-            json=synapse.dict(),
+            json=synapse.model_dump(),
             headers={"computed_body_hash": synapse.body_hash},
         )
 
