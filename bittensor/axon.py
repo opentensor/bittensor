@@ -58,7 +58,6 @@ from bittensor.errors import (
 from bittensor.constants import ALLOWED_DELTA, V_7_2_0
 from bittensor.threadpool import PriorityThreadPoolExecutor
 from bittensor.utils import networking
-from bittensor.utils.networking import BittensorNTPClient
 
 
 class FastAPIThreadedServer(uvicorn.Server):
@@ -904,10 +903,9 @@ class axon:
             ):
                 # If we don't have a nonce stored, ensure that the nonce falls within
                 # a reasonable delta.
-                current_time = BittensorNTPClient.get_current_ntp_time()
                 if (
                     self.nonces.get(endpoint_key) is None
-                    and synapse.dendrite.nonce <= current_time - ALLOWED_DELTA
+                    and synapse.dendrite.nonce <= time.time_ns() - ALLOWED_DELTA
                 ):
                     raise Exception("Nonce is too old")
                 if (
@@ -1184,14 +1182,13 @@ class AxonMiddleware(BaseHTTPMiddleware):
                 f"Improperly formatted request. Could not parse headers {request.headers} into synapse of type {request_name}."
             )
         synapse.name = request_name
-        current_time = BittensorNTPClient.get_current_ntp_time()
 
         # Fills the local axon information into the synapse.
         synapse.axon.__dict__.update(
             {
                 "version": str(bittensor.__version_as_int__),
                 "uuid": str(self.axon.uuid),
-                "nonce": current_time,
+                "nonce": time.time_ns(),
                 "status_code": 100,
             }
         )

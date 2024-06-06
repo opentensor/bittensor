@@ -11,7 +11,6 @@ fuzzywuzzy>=0.18.0
 fastapi~=0.110.1
 munch~=2.5.0
 netaddr
-ntplib==0.4.0
 numpy
 msgpack-numpy-opentensor~=0.5.0
 nest_asyncio

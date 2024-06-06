@@ -26,7 +26,6 @@ import aiohttp
 
 import bittensor
 from typing import Optional, List, Union, AsyncGenerator, Any
-from bittensor.utils.networking import BittensorNTPClient
 from bittensor.utils.registration import torch, use_torch
 
 
@@ -655,11 +654,10 @@ class DendriteMixin:
         """
         # Set the timeout for the synapse
         synapse.timeout = timeout
-        current_time = BittensorNTPClient.get_current_ntp_time()
         synapse.dendrite = bittensor.TerminalInfo(
             ip=self.external_ip,
             version=bittensor.__version_as_int__,
-            nonce=current_time,
+            nonce=time.time_ns(),
             uuid=self.uuid,
             hotkey=self.keypair.ss58_address,
         )
