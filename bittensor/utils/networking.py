@@ -26,7 +26,6 @@ import urllib
 import time
 import json
 import netaddr
-from bittensor.constants import NTP_POOL_RETRIES, NTP_SERVERS
 
 # 3rd party
 import requests
