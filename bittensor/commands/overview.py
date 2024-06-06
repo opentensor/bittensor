@@ -16,6 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import argparse
+import asyncio
 import bittensor
 from tqdm import tqdm
 from concurrent.futures import ProcessPoolExecutor
@@ -179,7 +180,7 @@ class OverviewCommand:
                 neurons[str(netuid)] = neurons_result
         return neurons
 
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+    async def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""Prints an overview for the wallet's colkey."""
         console = bittensor.__console__
         wallet = bittensor.wallet(config=cli.config)
@@ -237,15 +238,24 @@ class OverviewCommand:
             copy_config["__parser"] = None
             copy_config["formatter_class"] = None
 
+            loop = asyncio.get_running_loop()
+
             # Pull neuron info for all keys.
             ## Max len(netuids) or 5 threads.
             with ProcessPoolExecutor(max_workers=max(len(netuids), 5)) as executor:
-                results = executor.map(
-                    OverviewCommand._get_neurons_for_netuid,
-                    [(copy_config, netuid, all_hotkey_addresses) for netuid in netuids],
-                )
-                executor.shutdown(wait=True)  # wait for all complete
 
+                results = await asyncio.gather(
+                    *[
+                        loop.run_in_executor(
+                            executor,
+                            OverviewCommand._get_neurons_for_netuid,
+                            copy_config,
+                            netuid,
+                            all_hotkey_addresses,
+                        )
+                        for netuid in netuids
+                    ]
+                )
                 neurons = OverviewCommand._process_neuron_results(
                     results, neurons, netuids
                 )
@@ -292,19 +302,23 @@ class OverviewCommand:
                 # We have some stake that is not with a registered hotkey.
                 if "-1" not in neurons:
                     neurons["-1"] = []
-
-            # Use process pool to check each coldkey wallet for de-registered stake.
+            loop = asyncio.get_running_loop()
             with ProcessPoolExecutor(
                 max_workers=max(len(coldkeys_to_check), 5)
             ) as executor:
-                results = executor.map(
-                    OverviewCommand._get_de_registered_stake_for_coldkey_wallet,
-                    [
-                        (cli.config, all_hotkey_addresses, coldkey_wallet)
-                        for coldkey_wallet in coldkeys_to_check
-                    ],
+                results = await asyncio.gather(
+                    # tasks
+                    *[
+                        loop.run_in_executor(
+                            executor,
+                            OverviewCommand._get_de_registered_stake_for_coldkey_wallet,
+                            cli.config,
+                            all_hotkey_addresses,
+                            coldkey_wallet,
+                        )
+                        for coldkey_wallet in [x[1] for x in coldkeys_to_check]
+                    ]
                 )
-                executor.shutdown(wait=True)  # wait for all complete
 
             for result in results:
                 coldkey_wallet, de_registered_stake, err_msg = result
