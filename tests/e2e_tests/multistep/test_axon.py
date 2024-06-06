@@ -17,7 +17,7 @@ from tests.e2e_tests.utils import (
 
 
 @pytest.mark.asyncio
-async def test_parameter_validation_from_subtensor(local_chain, updated_axon=None):
+async def test_axon(local_chain):
     # Register root as Alice
     alice_keypair, exec_command, wallet_path = setup_wallet("//Alice")
     exec_command(RegisterSubnetworkCommand, ["s", "create"])
