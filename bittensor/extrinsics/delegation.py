@@ -232,6 +232,7 @@ def undelegate_extrinsic(
     wallet: "bittensor.wallet",
     delegate_ss58: Optional[str] = None,
     amount: Optional[Union[Balance, float]] = None,
+    netuid: int = 0,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
     prompt: bool = False,
@@ -260,20 +261,24 @@ def undelegate_extrinsic(
     # Get state.
     my_prev_coldkey_balance = subtensor.get_balance(wallet.coldkey.ss58_address)
     delegate_owner = subtensor.get_hotkey_owner(delegate_ss58)
-    my_prev_delegated_stake = subtensor.get_stake_for_coldkey_and_hotkey(
-        coldkey_ss58=wallet.coldkeypub.ss58_address, hotkey_ss58=delegate_ss58
+    netuids = subtensor.get_all_subnet_netuids()
+
+    my_prev_delegated_stake = subtensor.get_stake_for_coldkey_and_hotkey_on_netuid(
+        hotkey_ss58=delegate_ss58,
+        coldkey_ss58=wallet.coldkeypub.ss58_address,
+        netuid=netuid,
     )
 
     # Convert to bittensor.Balance
     if amount == None:
-        # Stake it all.
-        unstaking_balance = bittensor.Balance.from_tao(my_prev_delegated_stake.tao)
+        # Unstake it all.
+        unstaking_balance = bittensor.Balance.from_tao(my_prev_delegated_stake.tao).set_unit(netuid)
 
     elif not isinstance(amount, bittensor.Balance):
-        unstaking_balance = bittensor.Balance.from_tao(amount)
+        unstaking_balance = bittensor.Balance.from_tao(amount).set_unit(netuid)
 
     else:
-        unstaking_balance = amount
+        unstaking_balance = amount.set_unit(netuid)
 
     # Check enough stake to unstake.
     if unstaking_balance > my_prev_delegated_stake:
@@ -303,6 +308,7 @@ def undelegate_extrinsic(
                 wallet=wallet,
                 delegate_ss58=delegate_ss58,
                 amount=unstaking_balance,
+                netuid=netuid,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
             )

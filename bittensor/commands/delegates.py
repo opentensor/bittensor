@@ -215,6 +215,30 @@ def show_delegates(
         )
     bittensor.__console__.print(table)
 
+# Uses rich console to pretty print a table of stakes for a coldkey
+def show_delegate_stakes(
+    stakes: List[Tuple[int, bittensor.Balance]],
+    width: Optional[int] = None,
+):
+    """
+    Displays a formatted table of stakes.
+    """
+    table = Table(show_footer=True, width=width, pad_edge=False, box=None, expand=False)
+    table.add_column(
+        "[overline white]Netuid",
+        str(len(stakes)),
+        footer_style="overline white",
+        style="bold white",
+    )
+    table.add_column(
+        "[overline white]DELEGATE STAKE(\u03C4)", justify="right", no_wrap=True
+    )
+    for netuid, stake in stakes:
+        table.add_row(
+            str(netuid),
+            "[green]{:s}[/green]".format(str(stake.set_unit(netuid))),
+        )
+    bittensor.__console__.print(table)
 
 class DelegateStakeCommand:
     """
@@ -355,6 +379,7 @@ class DelegateUnstakeCommand:
         - ``wallet.name``: The name of the wallet to use for the command.
         - ``delegate_ss58key``: The ``SS58`` address of the delegate to undelegate from.
         - ``amount``: The amount of Tao to undelegate.
+        - ``netuid``: The subnet ID to undelegate from.
         - ``all``: If specified, the command undelegates all staked Tao from the delegate.
 
     The command prompts the user for the amount of Tao to undelegate and the ``SS58`` address of the delegate from which to undelegate. If the ``--all`` flag is used, it will attempt to undelegate the entire staked amount from the specified delegate.
@@ -389,11 +414,11 @@ class DelegateUnstakeCommand:
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         """Undelegates stake from a chain delegate."""
         config = cli.config.copy()
-        wallet = bittensor.wallet(config=config)
         subtensor.undelegate(
-            wallet=wallet,
+            wallet=config.bittensor_wallet_object,
             delegate_ss58=config.get("delegate_ss58key"),
             amount=config.get("amount"),
+            netuid=config.get("netuid"),
             wait_for_inclusion=True,
             prompt=not config.no_prompt,
         )
@@ -417,6 +442,9 @@ class DelegateUnstakeCommand:
         undelegate_stake_parser.add_argument(
             "--amount", dest="amount", type=float, required=False
         )
+        undelegate_stake_parser.add_argument(
+            "--netuid", dest="netuid", type=int, required=False
+        )
         bittensor.wallet.add_args(undelegate_stake_parser)
         bittensor.subtensor.add_args(undelegate_stake_parser)
 
@@ -425,6 +453,11 @@ class DelegateUnstakeCommand:
         if not config.is_set("wallet.name") and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
             config.wallet.name = str(wallet_name)
+
+        # unlock the wallet right away
+        wallet = bittensor.wallet(config=config)
+        wallet.coldkey
+        config.bittensor_wallet_object = wallet
 
         if not config.get("delegate_ss58key"):
             # Check for delegates.
@@ -458,6 +491,26 @@ class DelegateUnstakeCommand:
             console.print(
                 "Selected: [yellow]{}[/yellow]".format(config.delegate_ss58key)
             )
+
+        # Get netuid.
+        if not config.get("netuid"):
+            # Get netuids this coldkey has stake in for this delegate
+            stakeList = subtensor.get_stake_list_for_coldkey_and_hotkey(
+                config.delegate_ss58key,
+                wallet.coldkey.ss58_address,
+            )
+            show_delegate_stakes(stakeList)
+
+            netuid = Prompt.ask("Enter subnet ID to unstake from")
+            try:
+                config.netuid = int(netuid)
+            except ValueError:
+                console.print(
+                    ":cross_mark: [red]Invalid subnet ID[/red] [bold white]{}[/bold white]".format(
+                        netuid
+                    )
+                )
+                sys.exit()
 
         # Get amount.
         if not config.get("amount") and not config.get("unstake_all"):

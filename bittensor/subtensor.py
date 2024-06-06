@@ -535,6 +535,7 @@ class subtensor:
         wallet: "bittensor.wallet",
         delegate_ss58: Optional[str] = None,
         amount: Optional[Union[Balance, float]] = None,
+        netuid: int = 0,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
         prompt: bool = False,
@@ -547,6 +548,7 @@ class subtensor:
             wallet (bittensor.wallet): The wallet used for the undelegation process.
             delegate_ss58 (Optional[str]): The ``SS58`` address of the delegate neuron.
             amount (Union[Balance, float]): The amount of TAO to undelegate.
+            netuid (int): Subnet ID.
             wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
             wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
             prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
@@ -562,6 +564,7 @@ class subtensor:
             wallet=wallet,
             delegate_ss58=delegate_ss58,
             amount=amount,
+            netuid=netuid,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
             prompt=prompt,
@@ -3368,6 +3371,21 @@ class subtensor:
         ])
         return Balance.from_rao(balance)
 
+    def get_stake_list_for_coldkey_and_hotkey(
+        self, hotkey_ss58: str, coldkey_ss58: str, block: Optional[int] = None
+    ) -> List[Tuple[int, Balance]]:
+        """Returns the list of stakes for coldkey - hotkey pairing for multiple netuids"""
+        netuids = self.get_all_subnet_netuids()
+        netuid_balances = {
+            netuid: Balance.from_rao(self.get_stake_for_coldkey_and_hotkey_on_netuid(hotkey_ss58, coldkey_ss58, netuid, block))
+            for netuid in netuids
+        }
+        return [
+            (netuid, balance)
+            for netuid, balance in netuid_balances.items()
+            if balance != 0
+        ]
+
     def get_stake_for_coldkey_and_hotkey_on_netuid(
         self,
         hotkey_ss58: str,
@@ -3377,7 +3395,7 @@ class subtensor:
     ) -> Optional["Balance"]:
         """Returns the stake under a coldkey - hotkey - netuid pairing"""
         _result = self.query_subtensor(
-            "SubStake", block, [hotkey_ss58, coldkey_ss58, netuid]
+            "SubStake", block, [coldkey_ss58, hotkey_ss58, netuid]
         )
         if not hasattr(_result, "value") or _result is None:
             return None
@@ -4808,6 +4826,7 @@ class subtensor:
         wallet: "bittensor.wallet",
         delegate_ss58: str,
         amount: "Balance",
+        netuid: int,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
     ) -> bool:
@@ -4816,9 +4835,10 @@ class subtensor:
             with self.substrate as substrate:
                 call = substrate.compose_call(
                     call_module="SubtensorModule",
-                    call_function="remove_stake",
+                    call_function="remove_subnet_stake",
                     call_params={
                         "hotkey": delegate_ss58,
+                        "netuid": netuid,
                         "amount_unstaked": amount.rao,
                     },
                 )
