@@ -12,6 +12,8 @@ from substrateinterface import SubstrateInterface
 from tests.e2e_tests.utils import (
     clone_or_update_templates,
     install_templates,
+    uninstall_templates,
+    template_path,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -28,9 +30,6 @@ def local_chain():
         logging.warning("LOCALNET_SH_PATH env variable is not set, e2e test skipped.")
         pytest.skip("LOCALNET_SH_PATH environment variable is not set.")
 
-    templates_dir = clone_or_update_templates()
-    install_templates(templates_dir)
-
     # Start new node process
     cmds = shlex.split(script_path)
     process = subprocess.Popen(
@@ -39,6 +38,11 @@ def local_chain():
 
     # Pattern match indicates node is compiled and ready
     pattern = re.compile(r"Successfully ran block step\.")
+
+    # install neuron templates
+    logging.info("downloading and installing neuron templates from github")
+    templates_dir = clone_or_update_templates()
+    install_templates(templates_dir)
 
     def wait_for_node_start(process, pattern):
         for line in process.stdout:
@@ -64,3 +68,7 @@ def local_chain():
 
     # Ensure the process has terminated
     process.wait()
+
+    # uninstall templates
+    logging.info("uninstalling neuron templates")
+    uninstall_templates(template_path)

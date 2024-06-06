@@ -11,7 +11,6 @@ from bittensor.commands import (
 )
 from tests.e2e_tests.utils import (
     setup_wallet,
-    uninstall_templates,
     template_path,
     repo_name,
 )
@@ -102,5 +101,3 @@ async def test_parameter_validation_from_subtensor(local_chain, updated_axon=Non
     assert updated_axon.port == 8091
     assert updated_axon.hotkey == alice_keypair.ss58_address
     assert updated_axon.coldkey == alice_keypair.ss58_address
-
-    uninstall_templates(template_path)
