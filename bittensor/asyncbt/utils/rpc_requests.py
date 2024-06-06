@@ -89,7 +89,7 @@ class Websocket:
             if not self._initialized:
                 self._initialized = True
                 self.ws = await asyncio.wait_for(
-                    websockets.connect(self.ws_url), timeout=None
+                    websockets.connect(self.ws_url, max_size=None), timeout=None
                 )
                 self._receiving_task = asyncio.create_task(self._start_receiving())
         return self
