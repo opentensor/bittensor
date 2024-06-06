@@ -29,7 +29,6 @@ import netaddr
 from bittensor.constants import NTP_POOL_RETRIES, NTP_SERVERS
 
 # 3rd party
-import ntplib
 import requests
 
 
@@ -175,33 +174,3 @@ def get_formatted_ws_endpoint_url(endpoint_url: str) -> str:
         endpoint_url = "ws://{}".format(endpoint_url)
 
     return endpoint_url
-
-
-class BittensorNTPClient:
-    """NTP singleton client"""
-
-    _instance = None
-
-    def __new__(cls):
-        if cls._instance is None:
-            cls._instance = ntplib.NTPClient()
-        return cls._instance
-
-    @staticmethod
-    def get_current_ntp_time(retries: int = NTP_POOL_RETRIES) -> int:
-        attempts = 0
-        while attempts < retries:
-            server = NTP_SERVERS[attempts % len(NTP_SERVERS)]
-            try:
-                ntp_client = BittensorNTPClient()
-                response = ntp_client.request(server)
-                current_time = int(response.tx_time * 1e9)  # Convert to nanoseconds
-                return current_time
-            except Exception as e:
-                attempts += 1
-                bittensor.logging.info(
-                    f"Attempt {attempts} - Error fetching NTP time: {e}"
-                )
-        # Fallback to local time if all retries fail
-        bittensor.logging.warning("All NTP retries failed, using system UNIX time")
-        return time.time_ns()
