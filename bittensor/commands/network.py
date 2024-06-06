@@ -21,7 +21,12 @@ from . import defaults
 from rich.prompt import Prompt
 from rich.table import Table
 from typing import List, Optional, Dict
-from .utils import get_delegates_details, DelegatesDetails, check_netuid_set
+from .utils import (
+    get_delegates_details,
+    DelegatesDetails,
+    check_netuid_set,
+    normalize_hyperparameters,
+)
 from .identity import SetIdentityCommand
 
 console = bittensor.__console__
@@ -489,11 +494,14 @@ class SubnetHyperparamsCommand:
         table.title = "[white]Subnet Hyperparameters - NETUID: {} - {}".format(
             cli.config.netuid, subtensor.network
         )
-        table.add_column("[overline white]HYPERPARAMETER", style="bold white")
+        table.add_column("[overline white]HYPERPARAMETER", style="white")
         table.add_column("[overline white]VALUE", style="green")
+        table.add_column("[overline white]NORMALIZED", style="cyan")
 
-        for param in subnet.__dict__:
-            table.add_row("  " + param, str(subnet.__dict__[param]))
+        normalized_values = normalize_hyperparameters(subnet)
+
+        for param, value, norm_value in normalized_values:
+            table.add_row("  " + param, value, norm_value)
 
         bittensor.__console__.print(table)
 
@@ -595,9 +603,12 @@ class SubnetGetHyperparamsCommand:
         )
         table.add_column("[overline white]HYPERPARAMETER", style="white")
         table.add_column("[overline white]VALUE", style="green")
+        table.add_column("[overline white]NORMALIZED", style="cyan")
 
-        for param in subnet.__dict__:
-            table.add_row(param, str(subnet.__dict__[param]))
+        normalized_values = normalize_hyperparameters(subnet)
+
+        for param, value, norm_value in normalized_values:
+            table.add_row("  " + param, value, norm_value)
 
         bittensor.__console__.print(table)
 
