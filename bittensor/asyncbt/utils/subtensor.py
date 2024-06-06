@@ -24,7 +24,7 @@ import logging
 import os
 from typing import Dict, Optional, Union, Any
 
-from substrateinterface.base import SubstrateInterface
+from bittensor.asyncbt import subtensor_module
 
 _logger = logging.getLogger("subtensor.errors_handler")
 
@@ -103,12 +103,12 @@ def _get_errors_from_cache() -> Optional[Dict[str, Dict[str, Dict[str, str]]]]:
 
 
 def get_subtensor_errors(
-    substrate: SubstrateInterface,
+    substrate: subtensor_module.AsyncSubstrateInterface,
 ) -> Union[Dict[str, Dict[str, str]], Dict[Any, Any]]:
     """Fetches or retrieves cached Subtensor error definitions using metadata.
 
     Args:
-        substrate (SubstrateInterface): Instance of SubstrateInterface to access metadata.
+        substrate (AsyncSubstrateInterface): Instance of AsyncSubstrateInterface to access metadata.
 
     Returns:
         dict[str, str]: A dictionary containing error information.

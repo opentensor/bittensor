@@ -318,6 +318,12 @@ class AsyncSubstrateInterface:
     ) -> "ExtrinsicReceipt":
         raise NotImplementedError()
 
+    async def get_block_number(self, block_hash: str) -> int:
+        raise NotImplementedError()
+
+    def close(self):
+        raise NotImplementedError()
+
 
 class RequestManager:
     def __init__(self, payloads):
