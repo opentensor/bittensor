@@ -1,8 +1,10 @@
-import subprocess
+import asyncio
 import sys
-import time
+
+import pytest
 
 import bittensor
+from bittensor.utils import networking
 from bittensor.commands import (
     RegisterCommand,
     RegisterSubnetworkCommand,
@@ -15,13 +17,11 @@ from tests.e2e_tests.utils import (
 )
 
 
-def test_parameter_validation_from_subtensor(local_chain):
+@pytest.mark.asyncio
+async def test_parameter_validation_from_subtensor(local_chain, updated_axon=None):
     # Register root as Alice
     alice_keypair, exec_command, wallet_path = setup_wallet("//Alice")
     exec_command(RegisterSubnetworkCommand, ["s", "create"])
-
-    # define values
-    uid = 0
 
     # Verify subnet 1 created successfully
     assert local_chain.query("SubtensorModule", "NetworksAdded", [1]).serialize()
@@ -48,30 +48,24 @@ def test_parameter_validation_from_subtensor(local_chain):
         ],
     )
 
-    # Create a test wallet and set the coldkey, coldkeypub, and hotkey
-    # wallet = bittensor.wallet(path="/tmp/btcli-wallet")
-    # wallet.set_coldkey(keypair=alice_keypair, encrypt=False, overwrite=True)
-    # wallet.set_coldkeypub(keypair=alice_keypair, encrypt=False, overwrite=True)
-    # wallet.set_hotkey(keypair=alice_keypair, encrypt=False, overwrite=True)
-
     metagraph = bittensor.metagraph(netuid=1, network="ws://localhost:9945")
-    subtensor = bittensor.subtensor(network="ws://localhost:9945")
 
-    # validate miner with stake, ip, hotkey
-    new_axon = metagraph.axons[0]
-    assert new_axon.hotkey == alice_keypair.ss58_address
-    assert new_axon.coldkey == alice_keypair.ss58_address
-    assert new_axon.ip == "0.0.0.0"
-    assert new_axon.port == 0
-    assert new_axon.ip_type == 0
+    # validate one miner with ip of none
+    old_axon = metagraph.axons[0]
+
+    assert len(metagraph.axons) == 1
+    assert old_axon.hotkey == alice_keypair.ss58_address
+    assert old_axon.coldkey == alice_keypair.ss58_address
+    assert old_axon.ip == "0.0.0.0"
+    assert old_axon.port == 0
+    assert old_axon.ip_type == 0
 
     # register miner
     # "python neurons/miner.py --netuid 1 --subtensor.chain_endpoint ws://localhost:9945 --wallet.name wallet.name --wallet.hotkey wallet.hotkey.ss58_address"
-
-    process = subprocess.Popen(
+    cmd = " ".join(
         [
-            sys.executable,
-            f"{template_path}/{repo_name}/neurons/miner.py",
+            f"{sys.executable}",
+            f'"{template_path}{repo_name}/neurons/miner.py"',
             "--no_prompt",
             "--netuid",
             "1",
@@ -85,17 +79,28 @@ def test_parameter_validation_from_subtensor(local_chain):
             "default",
             "--wallet.hotkey",
             "default",
-        ],
-        shell=True,
-        stdout=subprocess.PIPE,
+        ]
     )
 
-    try:
-        outs, errs = process.communicate(timeout=15)
-        time.sleep(15)
-    except subprocess.TimeoutExpired:
-        process.kill()
-    # validate miner with new ip
-    new_axon = metagraph.axons[0]
+    await asyncio.create_subprocess_shell(
+        cmd,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    await asyncio.sleep(
+        5
+    )  # wait for 5 seconds for the metagraph to refresh with latest data
 
-    uninstall_templates(local_chain.templates_dir)
+    # refresh metagraph
+    metagraph = bittensor.metagraph(netuid=1, network="ws://localhost:9945")
+    updated_axon = metagraph.axons[0]
+    external_ip = networking.get_external_ip()
+
+    assert len(metagraph.axons) == 1
+    assert updated_axon.ip == external_ip
+    assert updated_axon.ip_type == networking.ip_version(external_ip)
+    assert updated_axon.port == 8091
+    assert updated_axon.hotkey == alice_keypair.ss58_address
+    assert updated_axon.coldkey == alice_keypair.ss58_address
+
+    uninstall_templates(template_path)

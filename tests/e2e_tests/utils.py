@@ -2,6 +2,8 @@ import os
 import shutil
 import subprocess
 import sys
+
+import requests
 from substrateinterface import Keypair
 from typing import List
 import bittensor
