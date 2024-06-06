@@ -93,7 +93,7 @@ def test_close(dendrite_obj, setup_axon):
     # Query the axon to open a session
     dendrite_obj.query(axon, SynapseDummy(input=1))
     # Session should be automatically closed after query
-    assert dendrite_obj._session == None
+    assert dendrite_obj._session is None
 
 
 @pytest.mark.asyncio
@@ -103,7 +103,7 @@ async def test_aclose(dendrite_obj, setup_axon):
     async with dendrite_obj:
         resp = await dendrite_obj([axon], SynapseDummy(input=1), deserialize=False)
     # Close should automatically be called on the session after context manager scope
-    assert dendrite_obj._session == None
+    assert dendrite_obj._session is None
 
 
 class AsyncMock(Mock):
