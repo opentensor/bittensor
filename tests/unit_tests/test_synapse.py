@@ -131,12 +131,12 @@ def test_custom_synapse():
         c: Optional[int]  # Required, carried through headers, cannot be None
         d: Optional[list[int]]  # Required, carried though headers, cannot be None
         e: list[int]  # Carried through headers
-        f: Optional[
-            int
-        ] = None  # Not Required, Not carried through headers, can be None
-        g: Optional[
-            list[int]
-        ] = None  # Not Required, Not carried though headers, can be None
+        f: Optional[int] = (
+            None  # Not Required, Not carried through headers, can be None
+        )
+        g: Optional[list[int]] = (
+            None  # Not Required, Not carried though headers, can be None
+        )
 
     # Create an instance of the custom Synapse subclass
     synapse = Test(
@@ -189,7 +189,7 @@ def test_body_hash_override():
 
 def test_default_instance_fields_dict_consistency():
     synapse_instance = bittensor.Synapse()
-    assert synapse_instance.dict() == {
+    assert synapse_instance.model_dump() == {
         "name": "Synapse",
         "timeout": 12.0,
         "total_size": 0,

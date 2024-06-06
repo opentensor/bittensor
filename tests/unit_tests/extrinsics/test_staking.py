@@ -133,9 +133,7 @@ def test_add_stake_extrinsic(
         else mock_other_owner_wallet.coldkeypub.ss58_address,
     ), patch.object(
         mock_subtensor, "is_hotkey_delegate", return_value=hotkey_delegate
-    ), patch.object(
-        mock_subtensor, "get_delegate_take", return_value=0.01
-    ), patch(
+    ), patch.object(mock_subtensor, "get_delegate_take", return_value=0.01), patch(
         "rich.prompt.Confirm.ask", return_value=user_accepts
     ) as mock_confirm:
         # Act
@@ -506,9 +504,7 @@ def test_add_stake_multiple_extrinsic(
         mock_subtensor, "_do_stake", side_effect=stake_side_effect
     ) as mock_do_stake, patch.object(
         mock_subtensor, "tx_rate_limit", return_value=0
-    ), patch(
-        "rich.prompt.Confirm.ask", return_value=prompt_response
-    ) as mock_confirm:
+    ), patch("rich.prompt.Confirm.ask", return_value=prompt_response) as mock_confirm:
         # Act
         if exception:
             with pytest.raises(exception) as exc_info:
