@@ -565,6 +565,7 @@ def test_hyperparameter_normalization(
     else:
         assert float(norm_value) == 0.0, f"Failed zero value test for {param_name}"
 
+
 ###########################
 # Account functions tests #
 ###########################
