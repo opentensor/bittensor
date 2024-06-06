@@ -122,11 +122,12 @@ def add_stake_extrinsic(
     wallet: "bittensor.wallet",
     hotkey_ss58: Optional[str] = None,
     amount: Optional[Union[Balance, float]] = None,
+    netuid: int = 0,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
     prompt: bool = False,
 ) -> bool:
-    r"""Adds the specified amount of stake to passed hotkey ``uid``.
+    r"""Adds the specified amount of stake to passed hotkey ``uid`` for a subnet identified by netuid.
 
     Args:
         wallet (bittensor.wallet):
@@ -135,6 +136,8 @@ def add_stake_extrinsic(
             The ``ss58`` address of the hotkey account to stake to defaults to the wallet's hotkey.
         amount (Union[Balance, float]):
             Amount to stake as Bittensor balance, or ``float`` interpreted as Tao.
+        netuid (int):
+            Id of subnet to stake to.
         wait_for_inclusion (bool):
             If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool):
@@ -524,6 +527,7 @@ def __do_add_stake_single(
     wallet: "bittensor.wallet",
     hotkey_ss58: str,
     amount: "bittensor.Balance",
+    netiud: int,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
 ) -> bool:
@@ -537,6 +541,8 @@ def __do_add_stake_single(
             Hotkey to stake to.
         amount (bittensor.Balance):
             Amount to stake as Bittensor balance object.
+        netuid (int):
+            Subnet ID to stake to.
         wait_for_inclusion (bool):
             If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool):

@@ -259,7 +259,7 @@ class MockSubtensor(subtensor):
                     "ValidatorPermit": {},
                     "Weights": {},
                     "Bonds": {},
-                    "Stake": {},
+                    "Staker": {},
                     "TotalStake": {0: 0},
                     "TotalIssuance": {0: 0},
                     "TotalHotkeyStake": {},

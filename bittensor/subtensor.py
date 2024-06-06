@@ -3360,11 +3360,13 @@ class subtensor:
     def get_stake_for_coldkey_and_hotkey(
         self, hotkey_ss58: str, coldkey_ss58: str, block: Optional[int] = None
     ) -> Optional["Balance"]:
-        """Returns the stake under a coldkey - hotkey pairing"""
-        _result = self.query_subtensor("Stake", block, [hotkey_ss58, coldkey_ss58])
-        if not hasattr(_result, "value") or _result is None:
-            return None
-        return Balance.from_rao(_result.value)
+        """Returns the total stake under a coldkey - hotkey pairing"""
+        netuids = self.get_all_subnet_netuids()
+        balance = sum([
+            self.get_stake_for_coldkey_and_hotkey_on_netuid(hotkey_ss58, coldkey_ss58, netuid, block)
+            for netuid in netuids
+        ])
+        return Balance.from_rao(balance)
 
     def get_stake_for_coldkey_and_hotkey_on_netuid(
         self,
@@ -3448,15 +3450,6 @@ class subtensor:
             alpha_reserve=alpha_reserve,
             k=k,
         )
-
-    def get_stake(
-        self, hotkey_ss58: str, block: Optional[int] = None
-    ) -> List[Tuple[str, "Balance"]]:
-        """Returns a list of stake tuples (coldkey, balance) for each delegating coldkey including the owner"""
-        return [
-            (r[0].value, Balance.from_rao(r[1].value))
-            for r in self.query_map_subtensor("Stake", block, [hotkey_ss58])
-        ]
 
     def does_hotkey_exist(self, hotkey_ss58: str, block: Optional[int] = None) -> bool:
         """Returns true if the hotkey is known by the chain and there are accounts."""
@@ -3908,9 +3901,8 @@ class subtensor:
             info.hotkey_ss58 for info in self.get_delegates(block=block)
         ]
 
-    # TODO needs to be subnet specific.
     def get_delegate_take(
-        self, hotkey_ss58: str, block: Optional[int] = None
+        self, hotkey_ss58: str, netuid: int, block: Optional[int] = None
     ) -> Optional[float]:
         """
         Retrieves the delegate 'take' percentage for a neuron identified by its hotkey. The 'take'
@@ -3926,33 +3918,10 @@ class subtensor:
         The delegate take is a critical parameter in the network's incentive structure, influencing
         the distribution of rewards among neurons and their nominators.
         """
-        _result = self.query_subtensor("Delegates", block, [hotkey_ss58])
+        _result = self.query_subtensor("DelegatesTake", block, [hotkey_ss58, netuid])
         if not hasattr(_result, "value") or _result is None:
             return None
         return U16_NORMALIZED_FLOAT(_result.value)
-
-    def get_nominators_for_hotkey(
-        self, hotkey_ss58: str, block: Optional[int] = None
-    ) -> Union[List[Tuple[str, Balance]], int]:
-        """
-        Retrieves a list of nominators and their stakes for a neuron identified by its hotkey.
-        Nominators are neurons that stake their tokens on a delegate to support its operations.
-
-        Args:
-            hotkey_ss58 (str): The ``SS58`` address of the neuron's hotkey.
-            block (Optional[int], optional): The blockchain block number for the query.
-
-        Returns:
-           Union[List[Tuple[str, Balance]], int]: A list of tuples containing each nominator's address and staked amount or 0.
-
-        This function provides insights into the neuron's support network within the Bittensor ecosystem,
-        indicating its trust and collaboration relationships.
-        """
-        result = self.query_map_subtensor("Stake", block, [hotkey_ss58])
-        if result.records:
-            return [(record[0].value, record[1].value) for record in result.records]
-        else:
-            return 0
 
     def get_substake_for_hotkey(
         self, hotkey_ss58: str, block: Optional[int] = None

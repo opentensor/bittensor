@@ -125,7 +125,6 @@ def delegate_extrinsic(
 
     # Get state.
     my_prev_coldkey_balance = subtensor.get_balance(wallet.coldkey.ss58_address)
-    delegate_take = subtensor.get_delegate_take(delegate_ss58)
     delegate_owner = subtensor.get_hotkey_owner(delegate_ss58)
     my_prev_delegated_stake = subtensor.get_stake_for_coldkey_and_hotkey(
         coldkey_ss58=wallet.coldkeypub.ss58_address, hotkey_ss58=delegate_ss58
@@ -260,7 +259,6 @@ def undelegate_extrinsic(
 
     # Get state.
     my_prev_coldkey_balance = subtensor.get_balance(wallet.coldkey.ss58_address)
-    delegate_take = subtensor.get_delegate_take(delegate_ss58)
     delegate_owner = subtensor.get_hotkey_owner(delegate_ss58)
     my_prev_delegated_stake = subtensor.get_stake_for_coldkey_and_hotkey(
         coldkey_ss58=wallet.coldkeypub.ss58_address, hotkey_ss58=delegate_ss58
