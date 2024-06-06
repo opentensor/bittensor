@@ -21,6 +21,7 @@ The ``bittensor.subtensor`` module in Bittensor serves as a crucial interface fo
 blockchain, facilitating a range of operations essential for the decentralized machine learning network.
 """
 import argparse
+import asyncio
 import copy
 import socket
 import time
@@ -34,8 +35,10 @@ from scalecodec.base import RuntimeConfiguration
 from scalecodec.exceptions import RemainingScaleBytesNotEmptyException
 from scalecodec.type_registry import load_type_registry_preset
 from scalecodec.types import GenericCall, ScaleType
-from substrateinterface.base import QueryMapResult, SubstrateInterface, ExtrinsicReceipt
+from substrateinterface.base import QueryMapResult, ExtrinsicReceipt
 from substrateinterface.exceptions import SubstrateRequestException
+
+from bittensor.asyncbt.utils.async_substrate import AsyncSubstrateInterface
 
 import bittensor
 from bittensor.btlogging import logging as _logger
@@ -196,33 +199,42 @@ class Subtensor:
         blockchain operations such as neuron registration, stake management, and setting weights.
 
         """
+        self._subtensor_errors = None
+        self.chain_endpoint = None
+        self.substrate = None
+        self.network = network
+        self.config = config
+        self._mock = _mock
+        self.log_verbose = log_verbose
+
+    async def init(self):
         # Determine config.subtensor.chain_endpoint and config.subtensor.network config.
         # If chain_endpoint is set, we override the network flag, otherwise, the chain_endpoint is assigned by the
         # network.
         # Argument importance: network > chain_endpoint > config.subtensor.chain_endpoint > config.subtensor.network
 
         # Check if network is a config object. (Single argument passed as first positional)
-        if isinstance(network, bittensor.config):
-            if network.subtensor is None:
+        if isinstance(self.network, bittensor.config):
+            if self.network.subtensor is None:
                 _logger.warning(
                     "If passing a bittensor config object, it must not be empty. Using default subtensor config."
                 )
-                config = None
+                self.config = None
             else:
-                config = network
-            network = None
+                self.config = self.network
+            self.network = None
 
-        if config is None:
-            config = Subtensor.config()
-        self.config = copy.deepcopy(config)  # type: ignore
+        if self.config is None:
+            self.config = Subtensor.config()
+        self.config = copy.deepcopy(self.config)  # type: ignore
 
         # Setup config.subtensor.network and config.subtensor.chain_endpoint
-        self.chain_endpoint, self.network = Subtensor.setup_config(network, config)  # type: ignore
+        self.chain_endpoint, self.network = Subtensor.setup_config(self.network, self.config)  # type: ignore
 
         if (
             self.network == "finney"
             or self.chain_endpoint == bittensor.__finney_entrypoint__
-        ) and log_verbose:
+        ) and self.log_verbose:
             _logger.info(
                 f"You are connecting to {self.network} network with endpoint {self.chain_endpoint}."
             )
@@ -238,12 +250,7 @@ class Subtensor:
         # Attempt to connect to chosen endpoint. Fallback to finney if local unavailable.
         try:
             # Set up params.
-            self.substrate = SubstrateInterface(
-                ss58_format=bittensor.__ss58_format__,
-                use_remote_preset=True,
-                url=self.chain_endpoint,
-                type_registry=bittensor.__type_registry__,
-            )
+            self.substrate = AsyncSubstrateInterface(bittensor.__finney_entrypoint__)
         except ConnectionRefusedError:
             _logger.error(
                 f"Could not connect to {self.network} network with {self.chain_endpoint} chain endpoint. Exiting...",
@@ -266,7 +273,7 @@ class Subtensor:
         except (socket.error, OSError) as e:
             _logger.warning(f"Socket error: {e}")
 
-        if log_verbose:
+        if self.log_verbose:
             _logger.info(
                 f"Connected to {self.network} network and {self.chain_endpoint}."
             )
@@ -2793,7 +2800,7 @@ class Subtensor:
     ##################
 
     # Queries subtensor named storage with params and block.
-    def query_subtensor(
+    async def query_subtensor(
         self,
         name: str,
         block: Optional[int] = None,
@@ -2816,17 +2823,17 @@ class Subtensor:
         """
 
         @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
-        def make_substrate_call_with_retry() -> "ScaleType":
-            return self.substrate.query(
+        async def make_substrate_call_with_retry() -> "ScaleType":
+            return await self.substrate.query(
                 module="SubtensorModule",
                 storage_function=name,
                 params=params,
                 block_hash=(
-                    None if block is None else self.substrate.get_block_hash(block)
+                    None if block is None else await self.substrate.get_block_hash(block)
                 ),
             )
 
-        return make_substrate_call_with_retry()
+        return await make_substrate_call_with_retry()
 
     # Queries subtensor map storage with params and block.
     def query_map_subtensor(
@@ -3606,7 +3613,7 @@ class Subtensor:
     # Account functions #
     #####################
 
-    def get_total_stake_for_hotkey(
+    async def get_total_stake_for_hotkey(
         self, ss58_address: str, block: Optional[int] = None
     ) -> Optional["Balance"]:
         """
@@ -3621,7 +3628,7 @@ class Subtensor:
             Optional[Balance]: The total stake held on the hotkey, or ``None`` if the hotkey does not
                 exist or the stake is not found.
         """
-        _result = self.query_subtensor("TotalHotkeyStake", block, [ss58_address])
+        _result = await self.query_subtensor("TotalHotkeyStake", block, [ss58_address])
         return (
             None
             if getattr(_result, "value", None) is None
@@ -4165,7 +4172,7 @@ class Subtensor:
     ##############
     # Nomination #
     ##############
-    def is_hotkey_delegate(self, hotkey_ss58: str, block: Optional[int] = None) -> bool:
+    async def is_hotkey_delegate(self, hotkey_ss58: str, block: Optional[int] = None) -> bool:
         """
         Determines whether a given hotkey (public key) is a delegate on the Bittensor network. This function
         checks if the neuron associated with the hotkey is part of the network's delegation system.
@@ -4181,7 +4188,7 @@ class Subtensor:
         involvement in consensus and governance processes.
         """
         return hotkey_ss58 in [
-            info.hotkey_ss58 for info in self.get_delegates(block=block)
+            info.hotkey_ss58 for info in await self.get_delegates(block=block)
         ]
 
     def get_delegate_take(
@@ -4303,7 +4310,7 @@ class Subtensor:
 
         return [DelegateInfoLite(**d) for d in result]
 
-    def get_delegates(self, block: Optional[int] = None) -> List[DelegateInfo]:
+    async def get_delegates(self, block: Optional[int] = None) -> List[DelegateInfo]:
         """
         Retrieves a list of all delegate neurons within the Bittensor network. This function provides an overview of the
         neurons that are actively involved in the network's delegation system.
@@ -4322,22 +4329,21 @@ class Subtensor:
         """
 
         @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
-        def make_substrate_call_with_retry():
-            block_hash = None if block is None else self.substrate.get_block_hash(block)
+        async def make_substrate_call_with_retry():
+            block_hash = None if block is None else await self.substrate.get_block_hash(block)
 
-            return self.substrate.rpc_request(
+            return await self.substrate.rpc_request(
                 method="delegateInfo_getDelegates",  # custom rpc method
                 params=[block_hash] if block_hash else [],
             )
 
-        json_body = make_substrate_call_with_retry()
-
+        json_body = await make_substrate_call_with_retry()
         if not (result := json_body.get("result", None)):
             return []
 
         return DelegateInfo.list_from_vec_u8(result)
 
-    def get_delegated(
+    async def get_delegated(
         self, coldkey_ss58: str, block: Optional[int] = None
     ) -> List[Tuple[DelegateInfo, Balance]]:
         """
@@ -4357,10 +4363,10 @@ class Subtensor:
         """
 
         @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
-        def make_substrate_call_with_retry(encoded_coldkey_: List[int]):
-            block_hash = None if block is None else self.substrate.get_block_hash(block)
+        async def make_substrate_call_with_retry(encoded_coldkey_: List[int]):
+            block_hash = None if block is None else await self.substrate.get_block_hash(block)
 
-            return self.substrate.rpc_request(
+            return await self.substrate.rpc_request(
                 method="delegateInfo_getDelegated",
                 params=[block_hash, encoded_coldkey_]
                 if block_hash
@@ -4368,7 +4374,7 @@ class Subtensor:
             )
 
         encoded_coldkey = ss58_to_vec_u8(coldkey_ss58)
-        json_body = make_substrate_call_with_retry(encoded_coldkey)
+        json_body = await make_substrate_call_with_retry(encoded_coldkey)
 
         if not (result := json_body.get("result", None)):
             return []
@@ -5411,7 +5417,7 @@ class Subtensor:
         )  # type: ignore
         return neuron
 
-    def get_block_hash(self, block_id: int) -> str:
+    async def get_block_hash(self, block_id: int) -> str:
         """
         Retrieves the hash of a specific block on the Bittensor blockchain. The block hash is a unique
         identifier representing the cryptographic hash of the block's content, ensuring its integrity and
@@ -5427,7 +5433,7 @@ class Subtensor:
         each block's data. It is crucial for verifying transactions, ensuring data consistency, and
         maintaining the trustworthiness of the blockchain.
         """
-        return self.substrate.get_block_hash(block_id=block_id)
+        return await self.substrate.get_block_hash(block=block_id)
 
     def get_error_info_by_index(self, error_index: int) -> Tuple[str, str]:
         """
@@ -5456,3 +5462,12 @@ class Subtensor:
 
 # TODO: remove this after fully migrate `bittensor.subtensor` to `bittensor.Subtensor` in `bittensor/__init__.py`
 subtensor = Subtensor
+
+
+def _create_async_subtensor():
+    async_subtensor_ = Subtensor()
+    asyncio.run(async_subtensor_.init())
+    return async_subtensor_
+
+# It will be used across the bittensor as a reference to async Subtensor
+async_subtensor = _create_async_subtensor
