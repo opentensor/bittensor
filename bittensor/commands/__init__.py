@@ -20,7 +20,11 @@ from munch import Munch, munchify
 defaults: Munch = munchify(
     {
         "netuid": 1,
-        "subtensor": {"network": "dtao", "chain_endpoint": "wss://dtao-demo.chain.opentensor.ai:443", "_mock": False},
+        "subtensor": {
+            "network": "dtao",
+            "chain_endpoint": "wss://dtao-demo.chain.opentensor.ai:443",
+            "_mock": False,
+        },
         "pow_register": {
             "num_processes": None,
             "update_interval": 50000,
