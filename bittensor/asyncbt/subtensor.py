@@ -106,7 +106,7 @@ from .utils import (
 from .utils.balance import Balance
 from .utils.registration import POWSolution
 from .utils.registration import legacy_torch_api_compat
-from .utils.subtensor import get_subtensor_errors
+
 
 KEY_NONCE: Dict[str, int] = {}
 
@@ -5432,30 +5432,6 @@ class Subtensor:
         maintaining the trustworthiness of the blockchain.
         """
         return await self.substrate.get_block_hash(block=block_id)
-
-    def get_error_info_by_index(self, error_index: int) -> Tuple[str, str]:
-        """
-        Returns the error name and description from the Subtensor error list.
-
-        Args:
-            error_index (int): The index of the error to retrieve.
-
-        Returns:
-            Tuple[str, str]: A tuple containing the error name and description from substrate metadata. If the error index is not found, returns ("Unknown Error", "") and logs a warning.
-        """
-        unknown_error = ("Unknown Error", "")
-
-        if not self._subtensor_errors:
-            self._subtensor_errors = get_subtensor_errors(self.substrate)
-
-        name, description = self._subtensor_errors.get(str(error_index), unknown_error)
-
-        if name == unknown_error[0]:
-            _logger.warning(
-                f"Subtensor returned an error with an unknown index: {error_index}"
-            )
-
-        return name, description
 
 
 # TODO: remove this after fully migrate `bittensor.subtensor` to `bittensor.Subtensor` in `bittensor/__init__.py`
