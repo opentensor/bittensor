@@ -250,7 +250,8 @@ class Subtensor:
         # Attempt to connect to chosen endpoint. Fallback to finney if local unavailable.
         try:
             # Set up params.
-            self.substrate = AsyncSubstrateInterface(bittensor.__finney_entrypoint__)
+            ws_options = {'max_size': 2 ** 32, 'read_limit': 2 ** 32, 'write_limit': 2 ** 32}
+            self.substrate = AsyncSubstrateInterface(bittensor.__finney_entrypoint__, ws_options=ws_options)
         except ConnectionRefusedError:
             _logger.error(
                 f"Could not connect to {self.network} network with {self.chain_endpoint} chain endpoint. Exiting...",
@@ -5431,7 +5432,7 @@ class Subtensor:
         each block's data. It is crucial for verifying transactions, ensuring data consistency, and
         maintaining the trustworthiness of the blockchain.
         """
-        return await self.substrate.get_block_hash(block=block_id)
+        return await self.substrate.get_block_hash(block_id=block_id)
 
 
 # TODO: remove this after fully migrate `bittensor.subtensor` to `bittensor.Subtensor` in `bittensor/__init__.py`

@@ -41,10 +41,10 @@ class AsyncSubstrateInterface:
     runtime = None
     substrate = None
 
-    def __init__(self, chain_endpoint: str):
+    def __init__(self, chain_endpoint: str, ws_options=None):
         self.init_runtime = None
         self.chain_endpoint = chain_endpoint
-        self.ws = Websocket(chain_endpoint, options={'max_size': 2 ** 32, 'read_limit': 2 ** 32, 'write_limit': 2 ** 32})
+        self.ws = Websocket(chain_endpoint, options=ws_options, shutdown_timer=None)
         self._lock = asyncio.Lock()
 
     async def initialize(self):
@@ -187,11 +187,18 @@ class AsyncSubstrateInterface:
             raise SubstrateRequestException(result["rpc_request"][0]['error']['message'])
         return result["rpc_request"][0]
 
-    async def get_block_hash(self, block: int) -> str:
-        return await self.rpc_request("chain_getBlockHash", [block])
+    async def get_block_hash(self, block_id: int) -> str:
+        response = await self.rpc_request("chain_getBlockHash", [block_id])
+
+        if 'error' in response:
+            raise SubstrateRequestException(response['error']['message'])
+        else:
+            return response.get('result')
 
     async def get_chain_head(self) -> str:
-        return await self.rpc_request("chain_getHead", [])
+
+        result = await self.rpc_request("chain_getHead", [])
+        return result
 
     async def query_subtensor(
         self,
@@ -319,7 +326,16 @@ class AsyncSubstrateInterface:
         raise NotImplementedError()
 
     async def get_block_number(self, block_hash: str) -> int:
-        raise NotImplementedError()
+        """Async version of `substrateinterface.base.get_block_number` method."""
+        response = await self.rpc_request("chain_getHeader", [block_hash])
+
+        if 'error' in response:
+            raise SubstrateRequestException(response['error']['message'])
+
+        elif 'result' in response:
+
+            if response['result']:
+                return int(response['result']['number'], 16)
 
     def close(self):
         raise NotImplementedError()
@@ -350,13 +366,33 @@ class RequestManager:
             request_id: info["results"] for request_id, info in self.responses.items()
         }
 
+    async def supports_rpc_method(self, name: str) -> bool:
+        """
+        Check if substrate RPC supports given method
+        Parameters
+        ----------
+        name: name of method to check
+
+        Returns
+        -------
+        bool
+        """
+        if self.config.get('rpc_methods') is None:
+            self.config['rpc_methods'] = []
+            result = self.rpc_request("rpc_methods", []).get('result')
+            if result:
+                self.config['rpc_methods'] = result.get('methods', [])
+
+        return name in self.config['rpc_methods']
+
 
 class Websocket:
     def __init__(
-            self, ws_url:
-            str, max_subscriptions=1024,
+            self,
+            ws_url: str,
+            max_subscriptions=1024,
             max_connections=100,
-            shutdown_timer=15,
+            shutdown_timer: Optional[int] = 15,
             options: dict = None):
         """
         Websocket manager object. Allows for the use of a single websocket connection by multiple
@@ -366,6 +402,7 @@ class Websocket:
         :param max_subscriptions: Maximum number of subscriptions per websocket connection
         :param max_connections: Maximum number of connections total
         :param shutdown_timer: Number of seconds to shut down websocket connection after last use
+        :options: WS connection options
         """
         # TODO allow setting max concurrent connections and rpc subscriptions per connection
         # TODO reconnection logic
@@ -384,6 +421,8 @@ class Websocket:
         self._exit_task = None
         self._open_subscriptions = 0
         self._options = options if options else {}
+        self._max_reconnect_attempts = 5
+        self._reconnect_delay = 5  # seconds
 
     async def __aenter__(self):
         async with self._lock:
@@ -391,11 +430,7 @@ class Websocket:
             if self._exit_task:
                 self._exit_task.cancel()
             if not self._initialized:
-                self._initialized = True
-                self.ws = await asyncio.wait_for(
-                    websockets.connect(self.ws_url, **self._options), timeout=None
-                )
-                self._receiving_task = asyncio.create_task(self._start_receiving())
+                await self._initialize()
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
@@ -404,34 +439,55 @@ class Websocket:
             if self._exit_task is not None:
                 self._exit_task.cancel()
                 await self._exit_task
-            if self._in_use == 0 and self.ws is not None:
+            if self._in_use == 0 and self.ws is not None and self.shutdown_timer:
                 self.id = 0
                 self._open_subscriptions = 0
                 self._exit_task = asyncio.create_task(self._exit_with_timer())
 
+    async def _initialize(self):
+        self._initialized = True
+        try:
+            self.ws = await asyncio.wait_for(websockets.connect(self.ws_url, **self._options), timeout=None)
+            self._receiving_task = asyncio.create_task(self._start_receiving())
+        except Exception as e:
+            await self._reconnect()
+
+    async def _reconnect(self):
+        self._attempts = 0
+        while self._attempts < self._max_reconnect_attempts:
+            try:
+                await asyncio.sleep(self._reconnect_delay)
+                self.ws = await asyncio.wait_for(websockets.connect(self.ws_url, **self._options), timeout=None)
+                self._receiving_task = asyncio.create_task(self._start_receiving())
+                self._initialized = True
+                return
+            except Exception as e:
+                self._attempts += 1
+        raise ConnectionError(f"Failed to reconnect after {self._max_reconnect_attempts} attempts. {e}")
+
     async def _exit_with_timer(self):
-        """
-        Allows for graceful shutdown of websocket connection after specified number of seconds, allowing
-        for reuse of the websocket connection.
-        """
         try:
             await asyncio.sleep(self.shutdown_timer)
             async with self._lock:
-                self._receiving_task.cancel()
-                await self._receiving_task
-                await self.ws.close()
-                self.ws = None
-                self._initialized = False
-                self._receiving_task = None
-                self.id = 0
+                if self.ws:
+                    self._receiving_task.cancel()
+                    await self._receiving_task
+                    await self.ws.close()
+                    self.ws = None
+                    self._initialized = False
+                    self._receiving_task = None
+                    self.id = 0
         except asyncio.CancelledError:
             pass
 
     async def _recv(self) -> None:
-        response = json.loads(await self.ws.recv())
-        async with self._lock:
-            self._open_subscriptions -= 1
-            self._received[response["id"]] = response
+        try:
+            response = json.loads(await self.ws.recv())
+            async with self._lock:
+                self._open_subscriptions -= 1
+                self._received[response["id"]] = response
+        except websockets.exceptions.ConnectionClosed:
+            await self._reconnect()
 
     async def _start_receiving(self):
         try:
