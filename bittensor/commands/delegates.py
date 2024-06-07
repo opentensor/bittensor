@@ -374,7 +374,7 @@ class DelegateStakeCommand:
             )
             show_delegate_stakes(stakeList)
 
-            netuid = Prompt.ask("Enter subnet ID to unstake from")
+            netuid = Prompt.ask("Enter subnet ID to stake to")
             try:
                 config.netuid = int(netuid)
             except ValueError:
