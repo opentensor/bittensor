@@ -3,9 +3,10 @@ import shutil
 import subprocess
 import sys
 
-import requests
-from substrateinterface import Keypair
 from typing import List
+
+from substrateinterface import Keypair
+
 import bittensor
 
 template_path = os.getcwd() + "/neurons/"
