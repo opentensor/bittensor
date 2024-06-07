@@ -28,10 +28,11 @@ pytest
 retry
 requests
 rich
-scalecodec==1.2.7  # scalecodec should not be changed unless first verifying compatibility with the subtensor's monkeypatching of scalecodec.RuntimeConfiguration.get_decoder_class
+scalecodec==1.2.9
 shtab==1.6.5
 substrate-interface==1.7.5
 termcolor
 tqdm
 uvicorn==0.22.0
 wheel
+websockets>=12.0

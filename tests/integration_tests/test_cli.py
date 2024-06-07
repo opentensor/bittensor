@@ -2519,9 +2519,7 @@ def test_set_identity_command(
         "bittensor.wallet", return_value=mock_wallet
     ), patch("bittensor.__console__", MagicMock()), patch(
         "rich.prompt.Prompt.ask", side_effect=["y", "y"]
-    ), patch(
-        "sys.exit"
-    ) as mock_exit:
+    ), patch("sys.exit") as mock_exit:
         # Act
         if expected_exception:
             with pytest.raises(expected_exception) as exc_info:
