@@ -29,7 +29,7 @@ async def run():
         get_delegates(),
         get_all_subnets_info(),
         get_block_hash(),
-        get_current_block()
+        get_current_block(),
     ]
     return await asyncio.gather(*tasks)
 
@@ -38,4 +38,4 @@ if __name__ == "__main__":
     now = time.time()
     res = asyncio.run(run())
     print(res)
-    print('>>> time', time.time() - now)
+    print(">>> time", time.time() - now)

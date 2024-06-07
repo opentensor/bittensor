@@ -5,7 +5,12 @@ from dataclasses import dataclass
 import json
 from typing import Optional, Any, Union
 
-from substrateinterface.base import SubstrateInterface, Keypair, QueryMapResult, ExtrinsicReceipt
+from substrateinterface.base import (
+    SubstrateInterface,
+    Keypair,
+    QueryMapResult,
+    ExtrinsicReceipt,
+)
 from substrateinterface.storage import StorageKey
 from substrateinterface.exceptions import SubstrateRequestException
 from scalecodec.base import ScaleBytes, ScaleType
@@ -28,12 +33,14 @@ class Preprocessed:
 
 def ensure_initialized(func):
     """Wrapper for initialization of SubstrateInterface before connection."""
+
     @functools.wraps(func)
     async def wrapper(self, *args, **kwargs):
         async with self._lock:
             if not self.substrate:
                 await self.initialize()
         return await func(self, *args, **kwargs)
+
     return wrapper
 
 
@@ -183,20 +190,21 @@ class AsyncSubstrateInterface:
             }
         ]
         result = await self._make_rpc_request(payloads)
-        if 'error' in result["rpc_request"][0]:
-            raise SubstrateRequestException(result["rpc_request"][0]['error']['message'])
+        if "error" in result["rpc_request"][0]:
+            raise SubstrateRequestException(
+                result["rpc_request"][0]["error"]["message"]
+            )
         return result["rpc_request"][0]
 
     async def get_block_hash(self, block_id: int) -> str:
         response = await self.rpc_request("chain_getBlockHash", [block_id])
 
-        if 'error' in response:
-            raise SubstrateRequestException(response['error']['message'])
+        if "error" in response:
+            raise SubstrateRequestException(response["error"]["message"])
         else:
-            return response.get('result')
+            return response.get("result")
 
     async def get_chain_head(self) -> str:
-
         result = await self.rpc_request("chain_getHead", [])
         return result
 
@@ -247,31 +255,32 @@ class AsyncSubstrateInterface:
         raise NotImplementedError()
 
     async def compose_call(
-            self,
-            call_module: str,
-            call_function: str,
-            call_params: dict[str, Any] = None,
-            block_hash: str = None
+        self,
+        call_module: str,
+        call_function: str,
+        call_params: dict[str, Any] = None,
+        block_hash: str = None,
     ) -> "GenericCall":
         raise NotImplementedError()
 
     async def create_scale_object(
-            self,
-            type_string: str,
-            data: ScaleBytes = None,
-            block_hash: str = None,
-            **kwargs) -> "ScaleType":
+        self,
+        type_string: str,
+        data: ScaleBytes = None,
+        block_hash: str = None,
+        **kwargs,
+    ) -> "ScaleType":
         raise NotImplementedError()
 
     async def create_signed_extrinsic(
-            self,
-            call: GenericCall,
-            keypair: Keypair,
-            era: dict = None,
-            nonce: int = None,
-            tip: int = 0,
-            tip_asset_id: int = None,
-            signature: Union[bytes, str] = None
+        self,
+        call: GenericCall,
+        keypair: Keypair,
+        era: dict = None,
+        nonce: int = None,
+        tip: int = 0,
+        tip_asset_id: int = None,
+        signature: Union[bytes, str] = None,
     ) -> "GenericExtrinsic":
         raise NotImplementedError()
 
@@ -279,49 +288,44 @@ class AsyncSubstrateInterface:
         raise NotImplementedError()
 
     async def get_constant(
-            self,
-            module_name: str,
-            constant_name: str,
-            block_hash: Optional[str] = None
+        self, module_name: str, constant_name: str, block_hash: Optional[str] = None
     ) -> Optional["ScaleType"]:
         raise NotImplementedError()
 
     async def get_payment_info(
-            self,
-            call: GenericCall,
-            keypair: Keypair
+        self, call: GenericCall, keypair: Keypair
     ) -> dict[str, Any]:
         raise NotImplementedError()
 
     async def query(
-            self,
-            module: str,
-            storage_function: str,
-            params: list = None,
-            block_hash: str = None,
-            subscription_handler: callable = None,
-            raw_storage_key: bytes = None
+        self,
+        module: str,
+        storage_function: str,
+        params: list = None,
+        block_hash: str = None,
+        subscription_handler: callable = None,
+        raw_storage_key: bytes = None,
     ) -> "ScaleType":
         raise NotImplementedError()
 
     async def query_map(
-            self,
-            module: str,
-            storage_function: str,
-            params: Optional[list] = None,
-            block_hash: str = None,
-            max_results: int = None,
-            start_key: str = None,
-            page_size: int = 100,
-            ignore_decoding_errors: bool = True
+        self,
+        module: str,
+        storage_function: str,
+        params: Optional[list] = None,
+        block_hash: str = None,
+        max_results: int = None,
+        start_key: str = None,
+        page_size: int = 100,
+        ignore_decoding_errors: bool = True,
     ) -> "QueryMapResult":
         raise NotImplementedError()
 
     async def submit_extrinsic(
-            self,
-            extrinsic: GenericExtrinsic,
-            wait_for_inclusion: bool = False,
-            wait_for_finalization: bool = False
+        self,
+        extrinsic: GenericExtrinsic,
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = False,
     ) -> "ExtrinsicReceipt":
         raise NotImplementedError()
 
@@ -329,13 +333,12 @@ class AsyncSubstrateInterface:
         """Async version of `substrateinterface.base.get_block_number` method."""
         response = await self.rpc_request("chain_getHeader", [block_hash])
 
-        if 'error' in response:
-            raise SubstrateRequestException(response['error']['message'])
+        if "error" in response:
+            raise SubstrateRequestException(response["error"]["message"])
 
-        elif 'result' in response:
-
-            if response['result']:
-                return int(response['result']['number'], 16)
+        elif "result" in response:
+            if response["result"]:
+                return int(response["result"]["number"], 16)
 
     def close(self):
         raise NotImplementedError()
@@ -377,23 +380,24 @@ class RequestManager:
         -------
         bool
         """
-        if self.config.get('rpc_methods') is None:
-            self.config['rpc_methods'] = []
-            result = self.rpc_request("rpc_methods", []).get('result')
+        if self.config.get("rpc_methods") is None:
+            self.config["rpc_methods"] = []
+            result = self.rpc_request("rpc_methods", []).get("result")
             if result:
-                self.config['rpc_methods'] = result.get('methods', [])
+                self.config["rpc_methods"] = result.get("methods", [])
 
-        return name in self.config['rpc_methods']
+        return name in self.config["rpc_methods"]
 
 
 class Websocket:
     def __init__(
-            self,
-            ws_url: str,
-            max_subscriptions=1024,
-            max_connections=100,
-            shutdown_timer: Optional[int] = 15,
-            options: dict = None):
+        self,
+        ws_url: str,
+        max_subscriptions=1024,
+        max_connections=100,
+        shutdown_timer: Optional[int] = 15,
+        options: dict = None,
+    ):
         """
         Websocket manager object. Allows for the use of a single websocket connection by multiple
         calls.
@@ -447,7 +451,9 @@ class Websocket:
     async def _initialize(self):
         self._initialized = True
         try:
-            self.ws = await asyncio.wait_for(websockets.connect(self.ws_url, **self._options), timeout=None)
+            self.ws = await asyncio.wait_for(
+                websockets.connect(self.ws_url, **self._options), timeout=None
+            )
             self._receiving_task = asyncio.create_task(self._start_receiving())
         except Exception as e:
             await self._reconnect()
@@ -457,13 +463,17 @@ class Websocket:
         while self._attempts < self._max_reconnect_attempts:
             try:
                 await asyncio.sleep(self._reconnect_delay)
-                self.ws = await asyncio.wait_for(websockets.connect(self.ws_url, **self._options), timeout=None)
+                self.ws = await asyncio.wait_for(
+                    websockets.connect(self.ws_url, **self._options), timeout=None
+                )
                 self._receiving_task = asyncio.create_task(self._start_receiving())
                 self._initialized = True
                 return
             except Exception as e:
                 self._attempts += 1
-        raise ConnectionError(f"Failed to reconnect after {self._max_reconnect_attempts} attempts. {e}")
+        raise ConnectionError(
+            f"Failed to reconnect after {self._max_reconnect_attempts} attempts. {e}"
+        )
 
     async def _exit_with_timer(self):
         try:

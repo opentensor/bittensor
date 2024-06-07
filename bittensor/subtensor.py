@@ -20,6 +20,7 @@
 The ``bittensor.subtensor`` module in Bittensor serves as a crucial interface for interacting with the Bittensor
 blockchain, facilitating a range of operations essential for the decentralized machine learning network.
 """
+
 import argparse
 import copy
 import socket
@@ -79,7 +80,10 @@ from bittensor.extrinsics.registration import (
     run_faucet_extrinsic,
     swap_hotkey_extrinsic,
 )
-from bittensor.extrinsics.root import root_register_extrinsic, set_root_weights_extrinsic
+from bittensor.extrinsics.root import (
+    root_register_extrinsic,
+    set_root_weights_extrinsic,
+)
 from bittensor.extrinsics.senate import (
     register_senate_extrinsic,
     leave_senate_extrinsic,
@@ -92,7 +96,10 @@ from bittensor.extrinsics.serving import (
     get_metadata,
 )
 from bittensor.extrinsics.set_weights import set_weights_extrinsic
-from bittensor.extrinsics.staking import add_stake_extrinsic, add_stake_multiple_extrinsic
+from bittensor.extrinsics.staking import (
+    add_stake_extrinsic,
+    add_stake_multiple_extrinsic,
+)
 from bittensor.extrinsics.transfer import transfer_extrinsic
 from bittensor.extrinsics.unstaking import unstake_extrinsic, unstake_multiple_extrinsic
 from bittensor.types import AxonServeCallParams, PrometheusServeCallParams
@@ -240,8 +247,10 @@ class Subtensor:
         # Attempt to connect to chosen endpoint. Fallback to finney if local unavailable.
         try:
             # Set up params.
-            ws_options = {'max_size': 2 ** 32, 'read_limit': 2 ** 32, 'write_limit': 2 ** 32}
-            self.substrate = AsyncSubstrateInterface(bittensor.__finney_entrypoint__, ws_options=ws_options)
+            ws_options = {"max_size": 2**32, "read_limit": 2**32, "write_limit": 2**32}
+            self.substrate = AsyncSubstrateInterface(
+                bittensor.__finney_entrypoint__, ws_options=ws_options
+            )
         except ConnectionRefusedError:
             _logger.error(
                 f"Could not connect to {self.network} network with {self.chain_endpoint} chain endpoint. Exiting...",
@@ -2377,7 +2386,9 @@ class Subtensor:
             prompt,
         )
 
-    async def is_senate_member(self, hotkey_ss58: str, block: Optional[int] = None) -> bool:
+    async def is_senate_member(
+        self, hotkey_ss58: str, block: Optional[int] = None
+    ) -> bool:
         """
         Checks if a given neuron (identified by its hotkey SS58 address) is a member of the Bittensor senate.
         The senate is a key governance body within the Bittensor network, responsible for overseeing and
@@ -2431,7 +2442,9 @@ class Subtensor:
 
     get_proposal_vote_data = get_vote_data
 
-    async def get_senate_members(self, block: Optional[int] = None) -> Optional[List[str]]:
+    async def get_senate_members(
+        self, block: Optional[int] = None
+    ) -> Optional[List[str]]:
         """
         Retrieves the list of current senate members from the Bittensor blockchain. Senate members are
         responsible for governance and decision-making within the network.
@@ -2445,7 +2458,9 @@ class Subtensor:
         Understanding the composition of the senate is key to grasping the governance structure and
         decision-making authority within the Bittensor network.
         """
-        senate_members = await self.query_module("SenateMembers", "Members", block=block)
+        senate_members = await self.query_module(
+            "SenateMembers", "Members", block=block
+        )
         if not hasattr(senate_members, "serialize"):
             return None
         return senate_members.serialize() if senate_members is not None else None
@@ -2475,7 +2490,9 @@ class Subtensor:
 
         return proposal_data.serialize() if proposal_data is not None else None
 
-    async def get_proposal_hashes(self, block: Optional[int] = None) -> Optional[List[str]]:
+    async def get_proposal_hashes(
+        self, block: Optional[int] = None
+    ) -> Optional[List[str]]:
         """
         Retrieves the list of proposal hashes currently present on the Bittensor blockchain. Each hash
         uniquely identifies a proposal made within the network.
@@ -2515,7 +2532,9 @@ class Subtensor:
         This function is integral for analyzing the governance activity on the Bittensor network,
         providing a holistic view of the proposals and their impact or potential changes within the network.
         """
-        proposal_hashes: Optional[List[str]] = await self.get_proposal_hashes(block=block)
+        proposal_hashes: Optional[List[str]] = await self.get_proposal_hashes(
+            block=block
+        )
         if proposal_hashes is None:
             return None
         return {
@@ -2820,7 +2839,9 @@ class Subtensor:
                 storage_function=name,
                 params=params,
                 block_hash=(
-                    None if block is None else await self.substrate.get_block_hash(block)
+                    None
+                    if block is None
+                    else await self.substrate.get_block_hash(block)
                 ),
             )
 
@@ -2890,7 +2911,9 @@ class Subtensor:
                 module_name=module_name,
                 constant_name=constant_name,
                 block_hash=(
-                    None if block is None else await self.substrate.get_block_hash(block)
+                    None
+                    if block is None
+                    else await self.substrate.get_block_hash(block)
                 ),
             )
 
@@ -2929,7 +2952,9 @@ class Subtensor:
                 storage_function=name,
                 params=params,
                 block_hash=(
-                    None if block is None else await self.substrate.get_block_hash(block)
+                    None
+                    if block is None
+                    else await self.substrate.get_block_hash(block)
                 ),
             )
 
@@ -2968,7 +2993,9 @@ class Subtensor:
                 storage_function=name,
                 params=params,
                 block_hash=(
-                    None if block is None else await self.substrate.get_block_hash(block)
+                    None
+                    if block is None
+                    else await self.substrate.get_block_hash(block)
                 ),
             )
 
@@ -2998,7 +3025,9 @@ class Subtensor:
 
         @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
         async def make_substrate_call_with_retry() -> Dict[Any, Any]:
-            block_hash = None if block is None else await self.substrate.get_block_hash(block)
+            block_hash = (
+                None if block is None else await self.substrate.get_block_hash(block)
+            )
 
             return await self.substrate.rpc_request(
                 method="state_call",
@@ -3033,9 +3062,7 @@ class Subtensor:
         """
         call_definition = bittensor.__type_registry__["runtime_api"][runtime_api][  # type: ignore
             "methods"  # type: ignore
-        ][
-            method
-        ]  # type: ignore
+        ][method]  # type: ignore
 
         json_result = self.state_call(
             method=f"{runtime_api}_{method}",
@@ -3137,7 +3164,9 @@ class Subtensor:
         'Rho' is essential for understanding the network's economic dynamics, affecting the reward distribution
         and incentive structures across the network's neurons.
         """
-        call = await self._get_hyperparameter(param_name="Rho", netuid=netuid, block=block)
+        call = await self._get_hyperparameter(
+            param_name="Rho", netuid=netuid, block=block
+        )
         return None if call is None else int(call)
 
     async def kappa(self, netuid: int, block: Optional[int] = None) -> Optional[float]:
@@ -3163,10 +3192,14 @@ class Subtensor:
         Understanding 'Kappa' is crucial for analyzing stake dynamics and the consensus mechanism within the network,
         as it plays a significant role in neuron ranking and incentive allocation processes.
         """
-        call = await self._get_hyperparameter(param_name="Kappa", netuid=netuid, block=block)
+        call = await self._get_hyperparameter(
+            param_name="Kappa", netuid=netuid, block=block
+        )
         return None if call is None else U16_NORMALIZED_FLOAT(int(call))
 
-    async def difficulty(self, netuid: int, block: Optional[int] = None) -> Optional[int]:
+    async def difficulty(
+        self, netuid: int, block: Optional[int] = None
+    ) -> Optional[int]:
         """
         Retrieves the 'Difficulty' hyperparameter for a specified subnet in the Bittensor network.
         This parameter is instrumental in determining the computational challenge required for neurons
@@ -3190,7 +3223,9 @@ class Subtensor:
             return None
         return int(call)
 
-    async def recycle(self, netuid: int, block: Optional[int] = None) -> Optional["Balance"]:
+    async def recycle(
+        self, netuid: int, block: Optional[int] = None
+    ) -> Optional["Balance"]:
         """
         Retrieves the 'Burn' hyperparameter for a specified subnet. The 'Burn' parameter represents the
         amount of Tao that is effectively recycled within the Bittensor network.
@@ -3205,7 +3240,9 @@ class Subtensor:
         Understanding the 'Burn' rate is essential for analyzing the network registration usage, particularly
         how it is correlated with user activity and the overall cost of participation in a given subnet.
         """
-        call = await self._get_hyperparameter(param_name="Burn", netuid=netuid, block=block)
+        call = await self._get_hyperparameter(
+            param_name="Burn", netuid=netuid, block=block
+        )
         return None if call is None else Balance.from_rao(int(call))
 
     # Returns network ImmunityPeriod hyper parameter.
@@ -3499,7 +3536,9 @@ class Subtensor:
         )
         return None if call is None else int(call) / 100.0
 
-    async def subnetwork_n(self, netuid: int, block: Optional[int] = None) -> Optional[int]:
+    async def subnetwork_n(
+        self, netuid: int, block: Optional[int] = None
+    ) -> Optional[int]:
         """
         Returns network SubnetworkN hyperparameter.
 
@@ -3581,7 +3620,9 @@ class Subtensor:
             Optional[int]: The value of the WeightsSetRateLimit hyperparameter, or ``None`` if the subnetwork does not
                 exist or the parameter is not found.
         """
-        call = await self._get_hyperparameter(param_name="WeightsSetRateLimit", netuid=netuid)
+        call = await self._get_hyperparameter(
+            param_name="WeightsSetRateLimit", netuid=netuid
+        )
         return None if call is None else int(call)
 
     async def tempo(self, netuid: int, block: Optional[int] = None) -> Optional[int]:
@@ -3597,7 +3638,9 @@ class Subtensor:
             Optional[int]: The value of the Tempo hyperparameter, or ``None`` if the subnetwork does not
                 exist or the parameter is not found.
         """
-        call = await self._get_hyperparameter(param_name="Tempo", netuid=netuid, block=block)
+        call = await self._get_hyperparameter(
+            param_name="Tempo", netuid=netuid, block=block
+        )
         return None if call is None else int(call)
 
     #####################
@@ -3664,7 +3707,9 @@ class Subtensor:
             Optional[Balance]: The stake under the coldkey - hotkey pairing, or ``None`` if the pairing does not
                 exist or the stake is not found.
         """
-        _result = await self.query_subtensor("Stake", block, [hotkey_ss58, coldkey_ss58])
+        _result = await self.query_subtensor(
+            "Stake", block, [hotkey_ss58, coldkey_ss58]
+        )
         return (
             None
             if getattr(_result, "value", None) is None
@@ -3691,7 +3736,9 @@ class Subtensor:
             for r in await self.query_map_subtensor("Stake", block, [hotkey_ss58])
         ]
 
-    async def does_hotkey_exist(self, hotkey_ss58: str, block: Optional[int] = None) -> bool:
+    async def does_hotkey_exist(
+        self, hotkey_ss58: str, block: Optional[int] = None
+    ) -> bool:
         """
         Returns true if the hotkey is known by the chain and there are accounts.
 
@@ -3969,7 +4016,9 @@ class Subtensor:
     async def get_subnet_connection_requirement(
         self, netuid_0: int, netuid_1: int, block: Optional[int] = None
     ) -> Optional[int]:
-        _result = await self.query_subtensor("NetworkConnect", block, [netuid_0, netuid_1])
+        _result = await self.query_subtensor(
+            "NetworkConnect", block, [netuid_0, netuid_1]
+        )
         return getattr(_result, "value", None)
 
     async def get_emission_value_by_subnet(
@@ -4041,7 +4090,9 @@ class Subtensor:
             else []
         )
 
-    async def get_all_subnets_info(self, block: Optional[int] = None) -> List[SubnetInfo]:
+    async def get_all_subnets_info(
+        self, block: Optional[int] = None
+    ) -> List[SubnetInfo]:
         """
         Retrieves detailed information about all subnets within the Bittensor network. This function
         provides comprehensive data on each subnet, including its characteristics and operational parameters.
@@ -4058,7 +4109,9 @@ class Subtensor:
 
         @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
         async def make_substrate_call_with_retry():
-            block_hash = None if block is None else await self.substrate.get_block_hash(block)
+            block_hash = (
+                None if block is None else await self.substrate.get_block_hash(block)
+            )
 
             return await self.substrate.rpc_request(
                 method="subnetInfo_getSubnetsInfo",  # custom rpc method
@@ -4092,7 +4145,9 @@ class Subtensor:
 
         @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
         async def make_substrate_call_with_retry():
-            block_hash = None if block is None else await self.substrate.get_block_hash(block)
+            block_hash = (
+                None if block is None else await self.substrate.get_block_hash(block)
+            )
 
             return await self.substrate.rpc_request(
                 method="subnetInfo_getSubnetInfo",  # custom rpc method
@@ -4163,7 +4218,9 @@ class Subtensor:
     ##############
     # Nomination #
     ##############
-    async def is_hotkey_delegate(self, hotkey_ss58: str, block: Optional[int] = None) -> bool:
+    async def is_hotkey_delegate(
+        self, hotkey_ss58: str, block: Optional[int] = None
+    ) -> bool:
         """
         Determines whether a given hotkey (public key) is a delegate on the Bittensor network. This function
         checks if the neuron associated with the hotkey is part of the network's delegation system.
@@ -4267,7 +4324,9 @@ class Subtensor:
 
         return DelegateInfo.from_vec_u8(result)
 
-    async def get_delegates_lite(self, block: Optional[int] = None) -> List[DelegateInfoLite]:
+    async def get_delegates_lite(
+        self, block: Optional[int] = None
+    ) -> List[DelegateInfoLite]:
         """
         Retrieves a lighter list of all delegate neurons within the Bittensor network. This function provides an
         overview of the neurons that are actively involved in the network's delegation system.
@@ -4287,7 +4346,9 @@ class Subtensor:
 
         @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
         async def make_substrate_call_with_retry():
-            block_hash = None if block is None else await self.substrate.get_block_hash(block)
+            block_hash = (
+                None if block is None else await self.substrate.get_block_hash(block)
+            )
 
             return await self.substrate.rpc_request(
                 method="delegateInfo_getDelegatesLite",  # custom rpc method
@@ -4321,7 +4382,9 @@ class Subtensor:
 
         @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
         async def make_substrate_call_with_retry():
-            block_hash = None if block is None else await self.substrate.get_block_hash(block)
+            block_hash = (
+                None if block is None else await self.substrate.get_block_hash(block)
+            )
 
             return await self.substrate.rpc_request(
                 method="delegateInfo_getDelegates",  # custom rpc method
@@ -4355,7 +4418,9 @@ class Subtensor:
 
         @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
         async def make_substrate_call_with_retry(encoded_coldkey_: List[int]):
-            block_hash = None if block is None else await self.substrate.get_block_hash(block)
+            block_hash = (
+                None if block is None else await self.substrate.get_block_hash(block)
+            )
 
             return await self.substrate.rpc_request(
                 method="delegateInfo_getDelegated",
@@ -4513,7 +4578,10 @@ class Subtensor:
         This function helps in assessing the participation of a neuron in a particular subnet,
         indicating its specific area of operation or influence within the network.
         """
-        return await self.get_uid_for_hotkey_on_subnet(hotkey_ss58, netuid, block) is not None
+        return (
+            await self.get_uid_for_hotkey_on_subnet(hotkey_ss58, netuid, block)
+            is not None
+        )
 
     async def is_hotkey_registered(
         self,
@@ -4655,8 +4723,12 @@ class Subtensor:
         contributions across the Bittensor network.
         """
         netuids = await self.get_netuids_for_hotkey(hotkey_ss58, block)
-        uids = [await self.get_uid_for_hotkey_on_subnet(hotkey_ss58, net) for net in netuids]
-        return [await self.neuron_for_uid(uid, net) for uid, net in list(zip(uids, netuids))]
+        uids = [
+            await self.get_uid_for_hotkey_on_subnet(hotkey_ss58, net) for net in netuids
+        ]
+        return [
+            await self.neuron_for_uid(uid, net) for uid, net in list(zip(uids, netuids))
+        ]
 
     async def neuron_has_validator_permit(
         self, uid: int, netuid: int, block: Optional[int] = None
@@ -4727,12 +4799,15 @@ class Subtensor:
 
         @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
         async def make_substrate_call_with_retry():
-            block_hash = None if block is None else await self.substrate.get_block_hash(block)
+            block_hash = (
+                None if block is None else await self.substrate.get_block_hash(block)
+            )
             params = [netuid, uid]
             if block_hash:
                 params = params + [block_hash]
             return await self.substrate.rpc_request(
-                method="neuronInfo_getNeuron", params=params  # custom rpc method
+                method="neuronInfo_getNeuron",
+                params=params,  # custom rpc method
             )
 
         json_body = await make_substrate_call_with_retry()
@@ -4742,7 +4817,9 @@ class Subtensor:
 
         return NeuronInfo.from_vec_u8(result)
 
-    async def neurons(self, netuid: int, block: Optional[int] = None) -> List[NeuronInfo]:
+    async def neurons(
+        self, netuid: int, block: Optional[int] = None
+    ) -> List[NeuronInfo]:
         """
         Retrieves a list of all neurons within a specified subnet of the Bittensor network. This function
         provides a snapshot of the subnet's neuron population, including each neuron's attributes and network
@@ -5317,7 +5394,9 @@ class Subtensor:
                     storage_function="Account",
                     params=[address],
                     block_hash=(
-                        None if block is None else await self.substrate.get_block_hash(block)
+                        None
+                        if block is None
+                        else await self.substrate.get_block_hash(block)
                     ),
                 )
 
@@ -5368,7 +5447,9 @@ class Subtensor:
                 module="System",
                 storage_function="Account",
                 block_hash=(
-                    None if block is None else await self.substrate.get_block_hash(block)
+                    None
+                    if block is None
+                    else await self.substrate.get_block_hash(block)
                 ),
             )
 
