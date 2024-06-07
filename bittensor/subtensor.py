@@ -642,7 +642,7 @@ class Subtensor:
             bittensor.__console__.print(
                 "Current take is either not set or is lower than the new one. Will use increase_take"
             )
-            return increase_take_extrinsic(
+            return await increase_take_extrinsic(
                 subtensor=self,
                 wallet=wallet,
                 hotkey_ss58=delegate_ss58,
@@ -654,7 +654,7 @@ class Subtensor:
             bittensor.__console__.print(
                 "Current take is higher than the new one. Will use decrease_take"
             )
-            return decrease_take_extrinsic(
+            return await decrease_take_extrinsic(
                 subtensor=self,
                 wallet=wallet,
                 hotkey_ss58=delegate_ss58,
