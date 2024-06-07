@@ -5,7 +5,7 @@ import sys
 
 from typing import List
 
-from substrateinterface import Keypair
+from bittensor import Keypair
 
 import bittensor
 
