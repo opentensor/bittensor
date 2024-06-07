@@ -899,7 +899,7 @@ class Subtensor:
     ##################
     # Commit Weights #
     ##################
-    def commit_weights(
+    async def commit_weights(
         self,
         wallet: "bittensor.wallet",
         netuid: int,
@@ -932,8 +932,8 @@ class Subtensor:
             Tuple[bool, str]: ``True`` if the weight commitment is successful, False otherwise. And `msg`, a string
             value describing the success or potential error.
 
-        This function allows neurons to create a tamper-proof record of their weight distribution at a specific point in time,
-        enhancing transparency and accountability within the Bittensor network.
+        This function allows neurons to create a tamper-proof record of their weight distribution at a specific point in
+        time, enhancing transparency and accountability within the Bittensor network.
         """
         retries = 0
         success = False
@@ -959,7 +959,7 @@ class Subtensor:
 
         while retries < max_retries:
             try:
-                success, message = commit_weights_extrinsic(
+                success, message = await commit_weights_extrinsic(
                     subtensor=self,
                     wallet=wallet,
                     netuid=netuid,
@@ -977,7 +977,7 @@ class Subtensor:
 
         return success, message
 
-    async def _do_commit_weights(
+    async def do_commit_weights(
         self,
         wallet: "bittensor.wallet",
         netuid: int,

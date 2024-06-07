@@ -380,7 +380,7 @@ class TestSubtensor(unittest.TestCase):
         self.subtensor.commit_weights = MagicMock(
             return_value=(True, "Successfully committed weights.")
         )
-        self.subtensor._do_commit_weights = MagicMock(return_value=(True, None))
+        self.subtensor.do_commit_weights = MagicMock(return_value=(True, None))
 
         success, message = self.subtensor.commit_weights(
             wallet=self.wallet, netuid=3, uids=uids, weights=weights, salt=salt
@@ -406,7 +406,7 @@ class TestSubtensor(unittest.TestCase):
             version_key=0,
         )
 
-        self.subtensor._do_commit_weights = MagicMock(return_value=(True, None))
+        self.subtensor.do_commit_weights = MagicMock(return_value=(True, None))
         self.subtensor.commit_weights = MagicMock(
             return_value=(True, "Successfully committed weights.")
         )
@@ -440,7 +440,7 @@ class TestSubtensor(unittest.TestCase):
             version_key=0,
         )
 
-        self.subtensor._do_commit_weights = MagicMock(
+        self.subtensor.do_commit_weights = MagicMock(
             return_value=(False, "Mock failure message")
         )
         self.subtensor.commit_weights = MagicMock(
@@ -535,7 +535,7 @@ class TestSubtensor(unittest.TestCase):
         self.subtensor.commit_weights = MagicMock(
             return_value=(True, "Successfully committed weights.")
         )
-        self.subtensor._do_commit_weights = MagicMock(return_value=(True, None))
+        self.subtensor.do_commit_weights = MagicMock(return_value=(True, None))
         self.subtensor.reveal_weights = MagicMock(
             return_value=(True, "Successfully revealed weights.")
         )
@@ -574,7 +574,7 @@ class TestSubtensor(unittest.TestCase):
         self.subtensor.commit_weights = MagicMock(
             return_value=(True, "Successfully committed weights.")
         )
-        self.subtensor._do_commit_weights = MagicMock(return_value=(True, None))
+        self.subtensor.do_commit_weights = MagicMock(return_value=(True, None))
         self.subtensor.reveal_weights = MagicMock(
             return_value=(True, "Successfully revealed weights.")
         )
