@@ -53,6 +53,7 @@ class AsyncSubstrateInterface:
         self.chain_endpoint = chain_endpoint
         self.ws = Websocket(chain_endpoint, options=ws_options, shutdown_timer=None)
         self._lock = asyncio.Lock()
+        self.substrate = None
 
     async def initialize(self):
         if not self.substrate:
@@ -62,7 +63,9 @@ class AsyncSubstrateInterface:
                 url=self.chain_endpoint,
                 type_registry=bittensor.__type_registry__,
             )
-            self.init_runtime = self.substrate.init_runtime
+            # self.init_runtime = self.substrate.init_runtime
+
+    async def init_runtime(self): ...
 
     async def get_storage_item(self, module: str, storage_function: str):
         if not self.substrate.metadata:
@@ -301,10 +304,10 @@ class AsyncSubstrateInterface:
         self,
         module: str,
         storage_function: str,
-        params: list = None,
-        block_hash: str = None,
-        subscription_handler: callable = None,
-        raw_storage_key: bytes = None,
+        params: Optional[list] = None,
+        block_hash: Optional[str] = None,
+        subscription_handler: Optional[callable] = None,
+        raw_storage_key: Optional[bytes] = None,
     ) -> "ScaleType":
         raise NotImplementedError()
 
@@ -313,9 +316,9 @@ class AsyncSubstrateInterface:
         module: str,
         storage_function: str,
         params: Optional[list] = None,
-        block_hash: str = None,
-        max_results: int = None,
-        start_key: str = None,
+        block_hash: Optional[str] = None,
+        max_results: Optional[int] = None,
+        start_key: Optional[str] = None,
         page_size: int = 100,
         ignore_decoding_errors: bool = True,
     ) -> "QueryMapResult":
