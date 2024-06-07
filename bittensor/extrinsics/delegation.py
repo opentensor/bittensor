@@ -38,10 +38,14 @@ def nominate_extrinsic(
     wait_for_finalization: bool = False,
     wait_for_inclusion: bool = True,
 ) -> bool:
-    r"""Becomes a delegate for the hotkey.
+    """Becomes a delegate for the hotkey.
 
     Args:
+        subtensor (bittensor.subtensor): The instance of the Subtensor.
         wallet (bittensor.wallet): The wallet to become a delegate for.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
+
     Returns:
         success (bool): ``True`` if the transaction was successful.
     """
@@ -68,7 +72,7 @@ def nominate_extrinsic(
                 wait_for_finalization=wait_for_finalization,
             )
 
-            if success == True:
+            if success is True:
                 bittensor.__console__.print(
                     ":white_heavy_check_mark: [green]Finalized[/green]"
                 )
@@ -107,15 +111,17 @@ def delegate_extrinsic(
     wait_for_finalization: bool = False,
     prompt: bool = False,
 ) -> bool:
-    r"""Delegates the specified amount of stake to the passed delegate.
+    """Delegates the specified amount of stake to the passed delegate.
 
     Args:
+        subtensor (bittensor.subtensor): The instance of the Subtensor.
         wallet (bittensor.wallet): Bittensor wallet object.
         delegate_ss58 (Optional[str]): The ``ss58`` address of the delegate.
         amount (Union[Balance, float]): Amount to stake as bittensor balance, or ``float`` interpreted as Tao.
         wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
         prompt (bool): If ``true``, the call waits for confirmation from the user before proceeding.
+
     Returns:
         success (bool): Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
 
@@ -130,14 +136,13 @@ def delegate_extrinsic(
 
     # Get state.
     my_prev_coldkey_balance = subtensor.get_balance(wallet.coldkey.ss58_address)
-    delegate_take = subtensor.get_delegate_take(delegate_ss58)
     delegate_owner = subtensor.get_hotkey_owner(delegate_ss58)
     my_prev_delegated_stake = subtensor.get_stake_for_coldkey_and_hotkey(
         coldkey_ss58=wallet.coldkeypub.ss58_address, hotkey_ss58=delegate_ss58
     )
 
     # Convert to bittensor.Balance
-    if amount == None:
+    if amount is None:
         # Stake it all.
         staking_balance = bittensor.Balance.from_tao(my_prev_coldkey_balance.tao)
     elif not isinstance(amount, bittensor.Balance):
@@ -183,7 +188,7 @@ def delegate_extrinsic(
                 wait_for_finalization=wait_for_finalization,
             )
 
-        if staking_response == True:  # If we successfully staked.
+        if staking_response is True:  # If we successfully staked.
             # We only wait here if we expect finalization.
             if not wait_for_finalization and not wait_for_inclusion:
                 return True
@@ -221,7 +226,7 @@ def delegate_extrinsic(
             )
             return False
 
-    except NotRegisteredError as e:
+    except NotRegisteredError:
         bittensor.__console__.print(
             ":cross_mark: [red]Hotkey: {} is not registered.[/red]".format(
                 wallet.hotkey_str
@@ -242,15 +247,17 @@ def undelegate_extrinsic(
     wait_for_finalization: bool = False,
     prompt: bool = False,
 ) -> bool:
-    r"""Un-delegates stake from the passed delegate.
+    """Un-delegates stake from the passed delegate.
 
     Args:
+        subtensor (bittensor.subtensor): The instance of the Subtensor.
         wallet (bittensor.wallet): Bittensor wallet object.
         delegate_ss58 (Optional[str]): The ``ss58`` address of the delegate.
         amount (Union[Balance, float]): Amount to unstake as bittensor balance, or ``float`` interpreted as Tao.
         wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
         prompt (bool): If ``true``, the call waits for confirmation from the user before proceeding.
+
     Returns:
         success (bool): Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
 
@@ -265,14 +272,13 @@ def undelegate_extrinsic(
 
     # Get state.
     my_prev_coldkey_balance = subtensor.get_balance(wallet.coldkey.ss58_address)
-    delegate_take = subtensor.get_delegate_take(delegate_ss58)
     delegate_owner = subtensor.get_hotkey_owner(delegate_ss58)
     my_prev_delegated_stake = subtensor.get_stake_for_coldkey_and_hotkey(
         coldkey_ss58=wallet.coldkeypub.ss58_address, hotkey_ss58=delegate_ss58
     )
 
     # Convert to bittensor.Balance
-    if amount == None:
+    if amount is None:
         # Stake it all.
         unstaking_balance = bittensor.Balance.from_tao(my_prev_delegated_stake.tao)
 
@@ -314,7 +320,7 @@ def undelegate_extrinsic(
                 wait_for_finalization=wait_for_finalization,
             )
 
-        if staking_response == True:  # If we successfully staked.
+        if staking_response is True:  # If we successfully staked.
             # We only wait here if we expect finalization.
             if not wait_for_finalization and not wait_for_inclusion:
                 return True
@@ -352,7 +358,7 @@ def undelegate_extrinsic(
             )
             return False
 
-    except NotRegisteredError as e:
+    except NotRegisteredError:
         bittensor.__console__.print(
             ":cross_mark: [red]Hotkey: {} is not registered.[/red]".format(
                 wallet.hotkey_str
@@ -372,15 +378,16 @@ def decrease_take_extrinsic(
     wait_for_finalization: bool = False,
     wait_for_inclusion: bool = True,
 ) -> bool:
-    r"""Decrease delegate take for the hotkey.
+    """Decrease delegate take for the hotkey.
 
     Args:
-        wallet (bittensor.wallet):
-            Bittensor wallet object.
-        hotkey_ss58 (Optional[str]):
-            The ``ss58`` address of the hotkey account to stake to defaults to the wallet's hotkey.
-        take (float):
-            The ``take`` of the hotkey.
+        subtensor (bittensor.subtensor): The instance of the Subtensor.
+        wallet (bittensor.wallet): Bittensor wallet object.
+        hotkey_ss58 (Optional[str]): Еhe ``ss58`` address of the hotkey account to stake to defaults to the wallet's hotkey.
+        take (float): The ``take`` of the hotkey.
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
+
     Returns:
         success (bool): ``True`` if the transaction was successful.
     """
@@ -389,9 +396,9 @@ def decrease_take_extrinsic(
     wallet.hotkey
 
     with bittensor.__console__.status(
-        ":satellite: Sending decrease_take_extrinsic call on [white]{}[/white] ...".format(
-            subtensor.network
-        )
+            ":satellite: Sending decrease_take_extrinsic call on [white]{}[/white] ...".format(
+                subtensor.network
+            )
     ):
         try:
             success = subtensor._do_decrease_take(
@@ -402,7 +409,7 @@ def decrease_take_extrinsic(
                 wait_for_finalization=wait_for_finalization,
             )
 
-            if success == True:
+            if success is True:
                 bittensor.__console__.print(
                     ":white_heavy_check_mark: [green]Finalized[/green]"
                 )
@@ -432,15 +439,16 @@ def increase_take_extrinsic(
     wait_for_finalization: bool = False,
     wait_for_inclusion: bool = True,
 ) -> bool:
-    r"""Increase delegate take for the hotkey.
+    """Increase delegate take for the hotkey.
 
     Args:
-        wallet (bittensor.wallet):
-            Bittensor wallet object.
-        hotkey_ss58 (Optional[str]):
-            The ``ss58`` address of the hotkey account to stake to defaults to the wallet's hotkey.
-        take (float):
-            The ``take`` of the hotkey.
+        subtensor (bittensor.subtensor): The instance of the Subtensor.
+        wallet (bittensor.wallet): Bittensor wallet object.
+        hotkey_ss58 (Optional[str]): The ``ss58`` address of the hotkey account to stake to defaults to the wallet's hotkey.
+        take (float): The ``take`` of the hotkey.
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
+
     Returns:
         success (bool): ``True`` if the transaction was successful.
     """
@@ -462,7 +470,7 @@ def increase_take_extrinsic(
                 wait_for_finalization=wait_for_finalization,
             )
 
-            if success == True:
+            if success is True:
                 bittensor.__console__.print(
                     ":white_heavy_check_mark: [green]Finalized[/green]"
                 )
