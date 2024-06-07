@@ -374,7 +374,7 @@ async def undelegate_extrinsic(
         return False
 
 
-def decrease_take_extrinsic(
+async def decrease_take_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
     hotkey_ss58: Optional[str] = None,
@@ -405,7 +405,7 @@ def decrease_take_extrinsic(
         )
     ):
         try:
-            success = subtensor._do_decrease_take(
+            success = await subtensor.do_decrease_take(
                 wallet=wallet,
                 hotkey_ss58=hotkey_ss58,
                 take=take,

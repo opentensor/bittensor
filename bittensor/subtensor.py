@@ -5318,7 +5318,7 @@ class Subtensor:
 
         return await make_substrate_call_with_retry()
 
-    async def _do_decrease_take(
+    async def do_decrease_take(
         self,
         wallet: "bittensor.wallet",
         hotkey_ss58: str,
