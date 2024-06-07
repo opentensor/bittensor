@@ -9,7 +9,7 @@ from ..utils import setup_wallet
 # https://discord.com/channels/799672011265015819/1176889736636407808/1236057424134144152
 def test_takes(local_chain):
     # Register root as Alice
-    (keypair, exec_command) = setup_wallet("//Alice")
+    keypair, exec_command, wallet_path = setup_wallet("//Alice")
     exec_command(RootRegisterCommand, ["root", "register"])
 
     # Create subnet 1 and verify created successfully
@@ -21,7 +21,7 @@ def test_takes(local_chain):
     assert local_chain.query("SubtensorModule", "NetworksAdded", [1]).serialize()
 
     # Register and nominate Bob
-    (keypair, exec_command) = setup_wallet("//Bob")
+    keypair, exec_command, wallet_path = setup_wallet("//Bob")
     assert (
         local_chain.query(
             "SubtensorModule", "LastTxBlock", [keypair.ss58_address]
@@ -35,7 +35,7 @@ def test_takes(local_chain):
         ).serialize()
         == 0
     )
-    exec_command(RegisterCommand, ["s", "register", "--neduid", "1"])
+    exec_command(RegisterCommand, ["s", "register", "--netuid", "1"])
     exec_command(NominateCommand, ["root", "nominate"])
     assert (
         local_chain.query(
