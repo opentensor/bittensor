@@ -491,7 +491,7 @@ class Subtensor:
     ##############
     # Delegation #
     ##############
-    def nominate(
+    async def nominate(
         self,
         wallet: "bittensor.wallet",
         wait_for_finalization: bool = False,
@@ -514,14 +514,14 @@ class Subtensor:
         This function is a key part of the decentralized governance mechanism of Bittensor, allowing for the
         dynamic selection and participation of validators in the network's consensus process.
         """
-        return nominate_extrinsic(
+        return await nominate_extrinsic(
             subtensor=self,
             wallet=wallet,
             wait_for_finalization=wait_for_finalization,
             wait_for_inclusion=wait_for_inclusion,
         )
 
-    def delegate(
+    async def delegate(
         self,
         wallet: "bittensor.wallet",
         delegate_ss58: Optional[str] = None,
@@ -550,7 +550,7 @@ class Subtensor:
         This function is a key part of the decentralized governance mechanism of Bittensor, allowing for the
         dynamic selection and participation of validators in the network's consensus process.
         """
-        return delegate_extrinsic(
+        return await delegate_extrinsic(
             subtensor=self,
             wallet=wallet,
             delegate_ss58=delegate_ss58,
@@ -560,7 +560,7 @@ class Subtensor:
             prompt=prompt,
         )
 
-    def undelegate(
+    async def undelegate(
         self,
         wallet: "bittensor.wallet",
         delegate_ss58: Optional[str] = None,
@@ -587,7 +587,7 @@ class Subtensor:
         This function reflects the dynamic and speculative nature of the Bittensor network, allowing neurons
         to adjust their stakes and investments based on changing perceptions and performances within the network.
         """
-        return undelegate_extrinsic(
+        return await undelegate_extrinsic(
             subtensor=self,
             wallet=wallet,
             delegate_ss58=delegate_ss58,

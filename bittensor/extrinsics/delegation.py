@@ -1,7 +1,7 @@
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 # Copyright © 2023 Opentensor Foundation
-
+import asyncio
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
 # the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
@@ -130,10 +130,12 @@ async def delegate_extrinsic(
         raise NotDelegateError("Hotkey: {} is not a delegate.".format(delegate_ss58))
 
     # Get state.
-    my_prev_coldkey_balance = await subtensor.get_balance(wallet.coldkey.ss58_address)
-    delegate_owner = await subtensor.get_hotkey_owner(delegate_ss58)
-    my_prev_delegated_stake = await subtensor.get_stake_for_coldkey_and_hotkey(
-        coldkey_ss58=wallet.coldkeypub.ss58_address, hotkey_ss58=delegate_ss58
+    my_prev_coldkey_balance, delegate_owner, my_prev_delegated_stake = asyncio.gather(
+        subtensor.get_balance(wallet.coldkey.ss58_address),
+        subtensor.get_hotkey_owner(delegate_ss58),
+        subtensor.get_stake_for_coldkey_and_hotkey(
+            coldkey_ss58=wallet.coldkeypub.ss58_address, hotkey_ss58=delegate_ss58
+        ),
     )
 
     # Convert to bittensor.Balance
@@ -196,10 +198,11 @@ async def delegate_extrinsic(
                     subtensor.network
                 )
             ):
-                new_balance = await subtensor.get_balance(
-                    address=wallet.coldkey.ss58_address
+                new_balance, block = asyncio.gather(
+                    subtensor.get_balance(address=wallet.coldkey.ss58_address),
+                    subtensor.get_current_block(),
                 )
-                block = await subtensor.get_current_block()
+
                 new_delegate_stake = await subtensor.get_stake_for_coldkey_and_hotkey(
                     coldkey_ss58=wallet.coldkeypub.ss58_address,
                     hotkey_ss58=delegate_ss58,
@@ -268,10 +271,12 @@ async def undelegate_extrinsic(
         raise NotDelegateError("Hotkey: {} is not a delegate.".format(delegate_ss58))
 
     # Get state.
-    my_prev_coldkey_balance = await subtensor.get_balance(wallet.coldkey.ss58_address)
-    delegate_owner = await subtensor.get_hotkey_owner(delegate_ss58)
-    my_prev_delegated_stake = await subtensor.get_stake_for_coldkey_and_hotkey(
-        coldkey_ss58=wallet.coldkeypub.ss58_address, hotkey_ss58=delegate_ss58
+    my_prev_coldkey_balance, delegate_owner, my_prev_delegated_stake = asyncio.gather(
+        subtensor.get_balance(wallet.coldkey.ss58_address),
+        subtensor.get_hotkey_owner(delegate_ss58),
+        subtensor.get_stake_for_coldkey_and_hotkey(
+            coldkey_ss58=wallet.coldkeypub.ss58_address, hotkey_ss58=delegate_ss58
+        )
     )
 
     # Convert to bittensor.Balance
@@ -330,7 +335,9 @@ async def undelegate_extrinsic(
                     subtensor.network
                 )
             ):
-                new_balance = await subtensor.get_balance(address=wallet.coldkey.ss58_address)
+                new_balance = await subtensor.get_balance(
+                    address=wallet.coldkey.ss58_address
+                )
                 block = await subtensor.get_current_block()
                 new_delegate_stake = await subtensor.get_stake_for_coldkey_and_hotkey(
                     coldkey_ss58=wallet.coldkeypub.ss58_address,
