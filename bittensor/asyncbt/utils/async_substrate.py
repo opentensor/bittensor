@@ -25,18 +25,22 @@ def ensure_initialized(func):
 
     @functools.wraps(func)
     async def wrapper(self, *args, **kwargs):
-        async with self._lock:
-            if not self.substrate:
-                await self.initialize()
+        if not self.initialized and not self.substrate:
+            await self.initialize()
         return await func(self, *args, **kwargs)
 
     return wrapper
 
 
+def no_wrap(func):
+    func._no_wrap = True
+    return func
+
+
 def all_coroutine_methods(wrapper):
     def class_decorator(cls):
         for attr_name, attr_value in cls.__dict__.items():
-            if asyncio.iscoroutinefunction(attr_value):
+            if asyncio.iscoroutinefunction(attr_value) and not getattr(attr_value, "_no_wrap", False):
                 setattr(cls, attr_name, wrapper(attr_value))
         return cls
 
@@ -301,7 +305,7 @@ class RuntimeCache:
         self.by_hash_cache[block_hash] = block_id
 
 
-@all_coroutine_methods(ensure_initialized)   # TODO investigate the overhead of this
+@all_coroutine_methods(ensure_initialized)
 class AsyncSubstrateInterface:
     runtime = None
     substrate = None
@@ -332,10 +336,12 @@ class AsyncSubstrateInterface:
             "rpc_methods": None,
             "strict_scale_decode": True,
         }
+        self.initialized = False
 
     async def __aenter__(self):
         await self.initialize()
 
+    @no_wrap
     async def initialize(self):
         async with self._lock:
             if not self.substrate:
@@ -345,6 +351,7 @@ class AsyncSubstrateInterface:
                     url=self.chain_endpoint,
                     type_registry=bittensor.__type_registry__,
                 )
+            self.initialized = True
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         pass
