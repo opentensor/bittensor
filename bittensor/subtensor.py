@@ -1037,7 +1037,7 @@ class Subtensor:
     ##################
     # Reveal Weights #
     ##################
-    def reveal_weights(
+    async def reveal_weights(
         self,
         wallet: "bittensor.wallet",
         netuid: int,
@@ -1079,7 +1079,7 @@ class Subtensor:
 
         while retries < max_retries:
             try:
-                success, message = reveal_weights_extrinsic(
+                success, message = await reveal_weights_extrinsic(
                     subtensor=self,
                     wallet=wallet,
                     netuid=netuid,
@@ -1100,7 +1100,7 @@ class Subtensor:
 
         return success, message
 
-    async def _do_reveal_weights(
+    async def do_reveal_weights(
         self,
         wallet: "bittensor.wallet",
         netuid: int,
@@ -1128,8 +1128,8 @@ class Subtensor:
         Returns:
             Tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
 
-        This method ensures that the weight revelation is securely recorded on the Bittensor blockchain, providing transparency
-        and accountability for the neuron's weight distribution.
+        This method ensures that the weight revelation is securely recorded on the Bittensor blockchain, providing
+        transparency and accountability for the neuron's weight distribution.
         """
 
         @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
