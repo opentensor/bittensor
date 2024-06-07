@@ -21,7 +21,6 @@ The ``bittensor.subtensor`` module in Bittensor serves as a crucial interface fo
 blockchain, facilitating a range of operations essential for the decentralized machine learning network.
 """
 import argparse
-import asyncio
 import copy
 import socket
 import time
@@ -199,42 +198,33 @@ class Subtensor:
         blockchain operations such as neuron registration, stake management, and setting weights.
 
         """
-        self._subtensor_errors = None
-        self.chain_endpoint = None
-        self.substrate: Optional[AsyncSubstrateInterface] = None
-        self.network = network
-        self.config = config
-        self._mock = _mock
-        self.log_verbose = log_verbose
-
-    async def init(self):
         # Determine config.subtensor.chain_endpoint and config.subtensor.network config.
         # If chain_endpoint is set, we override the network flag, otherwise, the chain_endpoint is assigned by the
         # network.
         # Argument importance: network > chain_endpoint > config.subtensor.chain_endpoint > config.subtensor.network
 
         # Check if network is a config object. (Single argument passed as first positional)
-        if isinstance(self.network, bittensor.config):
-            if self.network.subtensor is None:
+        if isinstance(network, bittensor.config):
+            if network.subtensor is None:
                 _logger.warning(
                     "If passing a bittensor config object, it must not be empty. Using default subtensor config."
                 )
-                self.config = None
+                config = None
             else:
-                self.config = self.network
-            self.network = None
+                config = network
+            network = None
 
-        if self.config is None:
-            self.config = Subtensor.config()
-        self.config = copy.deepcopy(self.config)  # type: ignore
+        if config is None:
+            config = Subtensor.config()
+        self.config = copy.deepcopy(config)  # type: ignore
 
         # Setup config.subtensor.network and config.subtensor.chain_endpoint
-        self.chain_endpoint, self.network = Subtensor.setup_config(self.network, self.config)  # type: ignore
+        self.chain_endpoint, self.network = Subtensor.setup_config(network, config)  # type: ignore
 
         if (
             self.network == "finney"
             or self.chain_endpoint == bittensor.__finney_entrypoint__
-        ) and self.log_verbose:
+        ) and log_verbose:
             _logger.info(
                 f"You are connecting to {self.network} network with endpoint {self.chain_endpoint}."
             )
@@ -274,7 +264,7 @@ class Subtensor:
         except (socket.error, OSError) as e:
             _logger.warning(f"Socket error: {e}")
 
-        if self.log_verbose:
+        if log_verbose:
             _logger.info(
                 f"Connected to {self.network} network and {self.chain_endpoint}."
             )
@@ -5437,13 +5427,3 @@ class Subtensor:
 
 # TODO: remove this after fully migrate `bittensor.subtensor` to `bittensor.Subtensor` in `bittensor/__init__.py`
 subtensor = Subtensor
-
-
-def _create_async_subtensor():
-    async_subtensor_ = Subtensor()
-    asyncio.run(async_subtensor_.init())
-    return async_subtensor_
-
-
-# It will be used across the bittensor as a reference to async Subtensor
-async_subtensor = _create_async_subtensor

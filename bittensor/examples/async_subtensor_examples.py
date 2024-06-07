@@ -3,26 +3,25 @@
 import asyncio
 import time
 
-from bittensor.asyncbt import subtensor_module
+from bittensor import subtensor
 
-
-subtensor = subtensor_module.async_subtensor()
+sub = subtensor()
 
 
 async def get_delegates():
-    return await subtensor.get_delegates()
+    return await sub.get_delegates()
 
 
 async def get_all_subnets_info():
-    return await subtensor.get_all_subnets_info()
+    return await sub.get_all_subnets_info()
 
 
 async def get_block_hash():
-    return await subtensor.get_block_hash(1000)
+    return await sub.get_block_hash(1000)
 
 
 async def get_current_block():
-    return await subtensor.get_current_block()
+    return await sub.get_current_block()
 
 
 async def run():
