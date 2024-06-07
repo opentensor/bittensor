@@ -1049,7 +1049,7 @@ class MockSubtensor(Subtensor):
             wait_for_finalization=wait_for_finalization,
         )
 
-    def _do_nominate(
+    def do_nominate(
         self,
         wallet: "wallet",
         wait_for_inclusion: bool = True,

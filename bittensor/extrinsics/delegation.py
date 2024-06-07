@@ -32,7 +32,10 @@ from ..errors import (
 )
 
 
-def nominate_extrinsic(
+bittensor.logging.on()
+
+
+async def nominate_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
     wait_for_finalization: bool = False,
@@ -54,7 +57,7 @@ def nominate_extrinsic(
     wallet.hotkey
 
     # Check if the hotkey is already a delegate.
-    if subtensor.is_hotkey_delegate(wallet.hotkey.ss58_address):
+    if await subtensor.is_hotkey_delegate(wallet.hotkey.ss58_address):
         bittensor.logging.error(
             "Hotkey {} is already a delegate.".format(wallet.hotkey.ss58_address)
         )
@@ -66,16 +69,13 @@ def nominate_extrinsic(
         )
     ):
         try:
-            success = subtensor._do_nominate(
+            success = await subtensor.do_nominate(
                 wallet=wallet,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
             )
 
             if success is True:
-                bittensor.__console__.print(
-                    ":white_heavy_check_mark: [green]Finalized[/green]"
-                )
                 bittensor.logging.success(
                     prefix="Become Delegate",
                     suffix="<green>Finalized: </green>" + str(success),
@@ -85,16 +85,10 @@ def nominate_extrinsic(
             return success
 
         except Exception as e:
-            bittensor.__console__.print(
-                ":cross_mark: [red]Failed[/red]: error:{}".format(e)
-            )
             bittensor.logging.warning(
                 prefix="Set weights", suffix="<red>Failed: </red>" + str(e)
             )
         except NominationError as e:
-            bittensor.__console__.print(
-                ":cross_mark: [red]Failed[/red]: error:{}".format(e)
-            )
             bittensor.logging.warning(
                 prefix="Set weights", suffix="<red>Failed: </red>" + str(e)
             )

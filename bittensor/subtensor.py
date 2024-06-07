@@ -5211,7 +5211,7 @@ class Subtensor:
 
         return await make_substrate_call_with_retry()
 
-    async def _do_nominate(
+    async def do_nominate(
         self,
         wallet: "bittensor.wallet",
         wait_for_inclusion: bool = True,

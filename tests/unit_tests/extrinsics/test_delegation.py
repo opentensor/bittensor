@@ -62,7 +62,7 @@ def test_nominate_extrinsic(
     with patch.object(
         mock_subtensor, "is_hotkey_delegate", return_value=already_delegate
     ), patch.object(
-        mock_subtensor, "_do_nominate", return_value=nomination_success
+        mock_subtensor, "do_nominate", return_value=nomination_success
     ) as mock_nominate:
         if raises_exception:
             mock_subtensor._do_nominate.side_effect = raises_exception
