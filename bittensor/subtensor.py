@@ -263,7 +263,8 @@ class Subtensor:
             # TODO (edu/phil): Advise to run local subtensor and point to dev docs.
 
         try:
-            self.substrate.substrate.websocket.settimeout(600)
+            if self.substrate.substrate:
+                self.substrate.substrate.websocket.settimeout(600)
         # except:
         #     bittensor.logging.warning("Could not set websocket timeout.")
         except AttributeError as e:
@@ -707,10 +708,11 @@ class Subtensor:
 
         nonce = KEY_NONCE[hotkey]
 
+        # TODO: comment this until Ben uncomment this for some reason
         # <3 parity tech
-        old_init_runtime = self.substrate.init_runtime
-        self.substrate.init_runtime = lambda: None
-        self.substrate.init_runtime = old_init_runtime
+        # old_init_runtime = self.substrate.init_runtime
+        # self.substrate.init_runtime = lambda: None
+        # self.substrate.init_runtime = old_init_runtime
         response = None
 
         for attempt in range(1, max_retries + 1):
@@ -2697,7 +2699,9 @@ class Subtensor:
                 storage_function="IdentityOf",
                 params=[key],
                 block_hash=(
-                    None if block is None else self.substrate.get_block_hash(block)
+                    None
+                    if block is None
+                    else await self.substrate.get_block_hash(block)
                 ),
             )
 
@@ -3069,7 +3073,9 @@ class Subtensor:
             data=(
                 "0x"
                 if params is None
-                else self._encode_params(call_definition=call_definition, params=params)
+                else await self._encode_params(
+                    call_definition=call_definition, params=params
+                )
             ),
             block=block,
         )
