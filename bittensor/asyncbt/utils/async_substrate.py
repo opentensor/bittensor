@@ -4,11 +4,13 @@ from dataclasses import dataclass
 import json
 from typing import Optional, Any
 
-from substrateinterface.base import SubstrateInterface
+from scalecodec import GenericExtrinsic
+from substrateinterface import Keypair, ExtrinsicReceipt
+from substrateinterface.base import SubstrateInterface, QueryMapResult
 from substrateinterface.storage import StorageKey
 from substrateinterface.exceptions import SubstrateRequestException
 from scalecodec.base import ScaleBytes, ScaleType
-from scalecodec.types import GenericMetadataVersioned
+from scalecodec.types import GenericMetadataVersioned, GenericCall
 import websockets
 
 import bittensor
@@ -130,10 +132,13 @@ class Websocket:
             pass
 
     async def _recv(self) -> None:
-        response = json.loads(await self.ws.recv())
-        async with self._lock:
-            self._open_subscriptions -= 1
-            self._received[response["id"]] = response
+        try:
+            response = json.loads(await self.ws.recv())
+            async with self._lock:
+                self._open_subscriptions -= 1
+                self._received[response["id"]] = response
+        except websockets.ConnectionClosed:
+            raise
 
     async def _start_receiving(self):
         try:
@@ -141,14 +146,20 @@ class Websocket:
                 await self._recv()
         except asyncio.CancelledError:
             pass
+        except websockets.ConnectionClosed:
+            # TODO try reconnect
+            raise
 
     async def send(self, payload: dict) -> int:
         async with self._lock:
             original_id = self.id
-            await self.ws.send(json.dumps({**payload, **{"id": original_id}}))
-            self.id += 1
-            self._open_subscriptions += 1
-            return original_id
+            try:
+                await self.ws.send(json.dumps({**payload, **{"id": original_id}}))
+                self.id += 1
+                self._open_subscriptions += 1
+                return original_id
+            except websockets.ConnectionClosed:
+                raise
 
     async def retrieve(self, item_id: int) -> Optional[dict]:
         while True:
@@ -158,7 +169,7 @@ class Websocket:
             await asyncio.sleep(0.1)
 
 
-class RPCRequest:
+class AsyncSubstrateInterface:
     runtime = None
     substrate = None
 
@@ -166,6 +177,7 @@ class RPCRequest:
         self.chain_endpoint = chain_endpoint
         self.ws = Websocket(chain_endpoint)
         self._lock = asyncio.Lock()
+        self.last_block_hash = None
 
     async def __aenter__(self):
         async with self._lock:
@@ -292,8 +304,21 @@ class RPCRequest:
         return request_manager.get_results()
 
     async def rpc_request(
-        self, method: str, params: list, block_hash: Optional[str] = None
+        self,
+        method: str,
+        params: list,
+        block_hash: Optional[str] = None,
+        reuse_block_hash: bool = False,
     ) -> Any:
+        """
+        Makes an RPC request to the subtensor. Use this only if ``self.query`` and ``self.query_multiple`` and
+        ``self.query_map`` do not meet your needs.
+        """
+        block_hash = (
+            block_hash
+            if block_hash
+            else (self.last_block_hash if reuse_block_hash else None)
+        )
         payloads = [
             {
                 "id": "rpc_request",
@@ -305,9 +330,11 @@ class RPCRequest:
             }
         ]
         result = await self._make_rpc_request(payloads)
-        if 'error' in result["rpc_request"][0]:
-            raise SubstrateRequestException(result["rpc_request"][0]['error']['message'])
-        return result["rpc_request"][0]["result"]
+        if "error" in result["rpc_request"][0]:
+            raise SubstrateRequestException(
+                result["rpc_request"][0]["error"]["message"]
+            )
+        return result["rpc_request"][0]
 
     async def get_block_hash(self, block: int) -> str:
         return await self.rpc_request("chain_getBlockHash", [block])
@@ -315,22 +342,48 @@ class RPCRequest:
     async def get_chain_head(self) -> str:
         return await self.rpc_request("chain_getHead", [])
 
-    async def query_subtensor(
+    async def compose_call(
         self,
-        query_for: list,
+        call_module: str,
+        call_function: str,
+        call_params: dict = None,
+        block_hash: str = None,
+    ) -> GenericCall:
+        return self.substrate.compose_call(
+            call_module, call_function, call_params, block_hash
+        )
+
+    async def query_multiple(
+        self,
+        params: list,
         storage_function: str,
         module: str,
         block_hash: Optional[str] = None,
+        subscription_handler: callable = None,
+        raw_storage_key: bytes = None,
+        reuse_block_hash: bool = False
     ) -> dict:
+        """
+        Queries the subtensor. Only use this when making multiple queries, else use ``self.query``
+        """
         # By allowing for specifying the block hash, users, if they have multiple query types they want
         # to do, can simply query the block hash first, and then pass multiple query_subtensor calls
         # into an asyncio.gather, with the specified block hash
-        block_hash = block_hash or await self.get_chain_head()
+        block_hash = (
+            block_hash
+            if block_hash
+            else (
+                self.last_block_hash
+                if reuse_block_hash
+                else await self.get_chain_head()
+            )
+        )
+        self.last_block_hash = block_hash
         self.substrate.init_runtime(block_hash=block_hash)  # TODO
         preprocessed: tuple[Preprocessed] = await asyncio.gather(
             *[
                 self._preprocess(x, block_hash, storage_function, module)
-                for x in query_for
+                for x in params
             ]
         )
         all_info = [
@@ -356,10 +409,95 @@ class RPCRequest:
         )
         return responses
 
-    async def query_map_subtensor(
-        self, module: str, storage_function: str, block_hash: Optional[str] = None
-    ) -> dict:
-        pass
+    async def create_scale_object(
+            self,
+            type_string: str,
+            data: ScaleBytes = None,
+            block_hash: str = None,
+            **kwargs) -> "ScaleType":
+        raise NotImplementedError()
+
+    async def create_signed_extrinsic(
+            self,
+            call: GenericCall,
+            keypair: Keypair,
+            era: dict = None,
+            nonce: int = None,
+            tip: int = 0,
+            tip_asset_id: int = None,
+            signature: Union[bytes, str] = None
+    ) -> "GenericExtrinsic":
+        raise NotImplementedError()
+
+    async def get_account_nonce(self, account_address: str) -> int:
+        raise NotImplementedError()
+
+    async def get_constant(
+            self,
+            module_name: str,
+            constant_name: str,
+            block_hash: Optional[str] = None
+    ) -> Optional["ScaleType"]:
+        raise NotImplementedError()
+
+    async def get_payment_info(
+            self,
+            call: GenericCall,
+            keypair: Keypair
+    ) -> dict[str, Any]:
+        raise NotImplementedError()
+
+    async def query(
+            self,
+            module: str,
+            storage_function: str,
+            params: list = None,
+            block_hash: str = None,
+            subscription_handler: callable = None,
+            raw_storage_key: bytes = None,
+            reuse_block_hash: bool = False
+    ) -> "ScaleType":
+        """
+        Queries subtensor. This should only be used when making a single request. For multiple requests,
+        you should use ``self.query_multiple``
+        """
+        raise NotImplementedError()
+
+    async def query_map(
+            self,
+            module: str,
+            storage_function: str,
+            params: Optional[list] = None,
+            block_hash: str = None,
+            max_results: int = None,
+            start_key: str = None,
+            page_size: int = 100,
+            ignore_decoding_errors: bool = True
+    ) -> "QueryMapResult":
+        raise NotImplementedError()
+
+    async def submit_extrinsic(
+            self,
+            extrinsic: GenericExtrinsic,
+            wait_for_inclusion: bool = False,
+            wait_for_finalization: bool = False
+    ) -> "ExtrinsicReceipt":
+        raise NotImplementedError()
+
+    async def get_block_number(self, block_hash: str) -> int:
+        """Async version of `substrateinterface.base.get_block_number` method."""
+        response = await self.rpc_request("chain_getHeader", [block_hash])
+
+        if 'error' in response:
+            raise SubstrateRequestException(response['error']['message'])
+
+        elif 'result' in response:
+
+            if response['result']:
+                return int(response['result']['number'], 16)
+
+    def close(self):
+        raise NotImplementedError()
 
 
 if __name__ == "__main__":
