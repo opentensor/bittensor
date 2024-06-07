@@ -55,7 +55,12 @@ class RequestManager:
 
 class Websocket:
     def __init__(
-        self, ws_url: str, max_subscriptions=1024, max_connections=100, shutdown_timer=5
+        self,
+        ws_url: str,
+        max_subscriptions=1024,
+        max_connections=100,
+        shutdown_timer=5,
+        options: dict = None,
     ):
         """
         Websocket manager object. Allows for the use of a single websocket connection by multiple
@@ -82,6 +87,7 @@ class Websocket:
         self._lock = asyncio.Lock()
         self._exit_task = None
         self._open_subscriptions = 0
+        self._options = options if options else {}
 
     async def __aenter__(self):
         async with self._lock:
@@ -91,7 +97,7 @@ class Websocket:
             if not self._initialized:
                 self._initialized = True
                 self.ws = await asyncio.wait_for(
-                    websockets.connect(self.ws_url, max_size=None), timeout=None
+                    websockets.connect(self.ws_url, **self._options), timeout=None
                 )
                 self._receiving_task = asyncio.create_task(self._start_receiving())
         return self
@@ -175,7 +181,14 @@ class AsyncSubstrateInterface:
 
     def __init__(self, chain_endpoint: str):
         self.chain_endpoint = chain_endpoint
-        self.ws = Websocket(chain_endpoint)
+        self.ws = Websocket(
+            chain_endpoint,
+            options={
+                "max_size": 2**32,
+                "read_limit": 2**32,
+                "write_limit": 2**32,
+            },
+        )
         self._lock = asyncio.Lock()
         self.last_block_hash = None
 
@@ -361,7 +374,7 @@ class AsyncSubstrateInterface:
         block_hash: Optional[str] = None,
         subscription_handler: callable = None,
         raw_storage_key: bytes = None,
-        reuse_block_hash: bool = False
+        reuse_block_hash: bool = False,
     ) -> dict:
         """
         Queries the subtensor. Only use this when making multiple queries, else use ``self.query``
@@ -381,10 +394,7 @@ class AsyncSubstrateInterface:
         self.last_block_hash = block_hash
         self.substrate.init_runtime(block_hash=block_hash)  # TODO
         preprocessed: tuple[Preprocessed] = await asyncio.gather(
-            *[
-                self._preprocess(x, block_hash, storage_function, module)
-                for x in params
-            ]
+            *[self._preprocess(x, block_hash, storage_function, module) for x in params]
         )
         all_info = [
             {
@@ -410,22 +420,23 @@ class AsyncSubstrateInterface:
         return responses
 
     async def create_scale_object(
-            self,
-            type_string: str,
-            data: ScaleBytes = None,
-            block_hash: str = None,
-            **kwargs) -> "ScaleType":
+        self,
+        type_string: str,
+        data: ScaleBytes = None,
+        block_hash: str = None,
+        **kwargs,
+    ) -> "ScaleType":
         raise NotImplementedError()
 
     async def create_signed_extrinsic(
-            self,
-            call: GenericCall,
-            keypair: Keypair,
-            era: dict = None,
-            nonce: int = None,
-            tip: int = 0,
-            tip_asset_id: int = None,
-            signature: Union[bytes, str] = None
+        self,
+        call: GenericCall,
+        keypair: Keypair,
+        era: dict = None,
+        nonce: int = None,
+        tip: int = 0,
+        tip_asset_id: int = None,
+        signature: Union[bytes, str] = None,
     ) -> "GenericExtrinsic":
         raise NotImplementedError()
 
@@ -433,29 +444,24 @@ class AsyncSubstrateInterface:
         raise NotImplementedError()
 
     async def get_constant(
-            self,
-            module_name: str,
-            constant_name: str,
-            block_hash: Optional[str] = None
+        self, module_name: str, constant_name: str, block_hash: Optional[str] = None
     ) -> Optional["ScaleType"]:
         raise NotImplementedError()
 
     async def get_payment_info(
-            self,
-            call: GenericCall,
-            keypair: Keypair
+        self, call: GenericCall, keypair: Keypair
     ) -> dict[str, Any]:
         raise NotImplementedError()
 
     async def query(
-            self,
-            module: str,
-            storage_function: str,
-            params: list = None,
-            block_hash: str = None,
-            subscription_handler: callable = None,
-            raw_storage_key: bytes = None,
-            reuse_block_hash: bool = False
+        self,
+        module: str,
+        storage_function: str,
+        params: list = None,
+        block_hash: str = None,
+        subscription_handler: callable = None,
+        raw_storage_key: bytes = None,
+        reuse_block_hash: bool = False,
     ) -> "ScaleType":
         """
         Queries subtensor. This should only be used when making a single request. For multiple requests,
@@ -464,23 +470,23 @@ class AsyncSubstrateInterface:
         raise NotImplementedError()
 
     async def query_map(
-            self,
-            module: str,
-            storage_function: str,
-            params: Optional[list] = None,
-            block_hash: str = None,
-            max_results: int = None,
-            start_key: str = None,
-            page_size: int = 100,
-            ignore_decoding_errors: bool = True
+        self,
+        module: str,
+        storage_function: str,
+        params: Optional[list] = None,
+        block_hash: str = None,
+        max_results: int = None,
+        start_key: str = None,
+        page_size: int = 100,
+        ignore_decoding_errors: bool = True,
     ) -> "QueryMapResult":
         raise NotImplementedError()
 
     async def submit_extrinsic(
-            self,
-            extrinsic: GenericExtrinsic,
-            wait_for_inclusion: bool = False,
-            wait_for_finalization: bool = False
+        self,
+        extrinsic: GenericExtrinsic,
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = False,
     ) -> "ExtrinsicReceipt":
         raise NotImplementedError()
 
@@ -488,13 +494,12 @@ class AsyncSubstrateInterface:
         """Async version of `substrateinterface.base.get_block_number` method."""
         response = await self.rpc_request("chain_getHeader", [block_hash])
 
-        if 'error' in response:
-            raise SubstrateRequestException(response['error']['message'])
+        if "error" in response:
+            raise SubstrateRequestException(response["error"]["message"])
 
-        elif 'result' in response:
-
-            if response['result']:
-                return int(response['result']['number'], 16)
+        elif "result" in response:
+            if response["result"]:
+                return int(response["result"]["number"], 16)
 
     def close(self):
         raise NotImplementedError()
