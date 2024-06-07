@@ -1005,7 +1005,7 @@ class MockSubtensor(Subtensor):
         return neurons
 
     # Extrinsics
-    def _do_delegation(
+    def do_delegation(
         self,
         wallet: "wallet",
         delegate_ss58: str,

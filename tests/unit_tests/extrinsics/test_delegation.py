@@ -249,7 +249,7 @@ def test_delegate_extrinsic(
     ), patch.object(
         mock_subtensor, "is_hotkey_delegate", return_value=is_delegate
     ), patch.object(
-        mock_subtensor, "_do_delegation", return_value=transaction_success
+        mock_subtensor, "do_delegation", return_value=transaction_success
     ) as mock_delegate:
         if raises_error:
             mock_delegate.side_effect = raises_error

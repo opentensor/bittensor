@@ -5106,7 +5106,7 @@ class Subtensor:
     # Extrinsics #
     ##############
 
-    async def _do_delegation(
+    async def do_delegation(
         self,
         wallet: "bittensor.wallet",
         delegate_ss58: str,
