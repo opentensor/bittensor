@@ -7,7 +7,7 @@ from ...utils import (
 import bittensor
 
 
-# Example test using the local_chain fixture
+# test case to add and view the proposals
 def test_root_view_proposal(local_chain, capsys):
     (wallet, exec_command) = new_wallet("//Alice", "//Bob")
 
