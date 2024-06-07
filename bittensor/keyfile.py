@@ -53,6 +53,7 @@ def serialized_keypair_to_keyfile_data(keypair: "bittensor.Keypair") -> bytes:
     json_data = {
         "accountId": "0x" + keypair.public_key.hex() if keypair.public_key else None,
         "publicKey": "0x" + keypair.public_key.hex() if keypair.public_key else None,
+        "privateKey": "0x" + keypair.private_key.hex() if keypair.private_key else None,
         "secretPhrase": keypair.mnemonic if keypair.mnemonic else None,
         "secretSeed": (
             "0x"
@@ -90,6 +91,7 @@ def deserialize_keypair_from_keyfile_data(keyfile_data: bytes) -> "bittensor.Key
             keyfile_dict = {
                 "accountId": None,
                 "publicKey": None,
+                "privateKey": None,
                 "secretPhrase": None,
                 "secretSeed": None,
                 "ss58Address": string_value,
@@ -104,9 +106,15 @@ def deserialize_keypair_from_keyfile_data(keyfile_data: bytes) -> "bittensor.Key
     if "secretSeed" in keyfile_dict and keyfile_dict["secretSeed"] is not None:
         return bittensor.Keypair.create_from_seed(keyfile_dict["secretSeed"])
 
-    if "secretPhrase" in keyfile_dict and keyfile_dict["secretPhrase"] is not None:
+    elif "secretPhrase" in keyfile_dict and keyfile_dict["secretPhrase"] is not None:
         return bittensor.Keypair.create_from_mnemonic(
             mnemonic=keyfile_dict["secretPhrase"]
+        )
+
+    elif keyfile_dict.get("privateKey", None) is not None:
+        # May have the above dict keys also, but we want to preserve the first two
+        return bittensor.Keypair.create_from_private_key(
+            keyfile_dict["privateKey"], ss58_format=bittensor.__ss58_format__
         )
 
     if "ss58Address" in keyfile_dict and keyfile_dict["ss58Address"] is not None:
@@ -268,13 +276,12 @@ def get_coldkey_password_from_environment(coldkey_name: str) -> Optional[str]:
     Returns:
         password (str): The password retrieved from the environment variables, or ``None`` if not found.
     """
-    for env_var in os.environ:
-        if env_var.upper().startswith("BT_COLD_PW_") and env_var.upper().endswith(
-            coldkey_name.upper()
-        ):
-            return os.getenv(env_var)
-
-    return None
+    envs = {
+        normalized_env_name: env_value
+        for env_name, env_value in os.environ.items()
+        if (normalized_env_name := env_name.upper()).startswith("BT_COLD_PW_")
+    }
+    return envs.get(f"BT_COLD_PW_{coldkey_name.upper()}")
 
 
 def decrypt_keyfile_data(

@@ -16,15 +16,21 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import logging
 import bittensor
-from ..errors import *
+from ..errors import (
+    NominationError,
+    NotDelegateError,
+    NotRegisteredError,
+    StakeError,
+    TakeError,
+)
 from rich.prompt import Confirm
 from typing import Union, Optional, Tuple, List
 from bittensor.utils.balance import Balance
+from bittensor.btlogging.defines import BITTENSOR_LOGGER_NAME
 
-from loguru import logger
-
-logger = logger.opt(colors=True)
+logger = logging.getLogger(BITTENSOR_LOGGER_NAME)
 
 
 def nominate_extrinsic(
@@ -69,7 +75,7 @@ def nominate_extrinsic(
                 )
                 bittensor.logging.success(
                     prefix="Become Delegate",
-                    sufix="<green>Finalized: </green>" + str(success),
+                    suffix="<green>Finalized: </green>" + str(success),
                 )
 
             # Raises NominationError if False
@@ -80,14 +86,14 @@ def nominate_extrinsic(
                 ":cross_mark: [red]Failed[/red]: error:{}".format(e)
             )
             bittensor.logging.warning(
-                prefix="Set weights", sufix="<red>Failed: </red>" + str(e)
+                prefix="Set weights", suffix="<red>Failed: </red>" + str(e)
             )
         except NominationError as e:
             bittensor.__console__.print(
                 ":cross_mark: [red]Failed[/red]: error:{}".format(e)
             )
             bittensor.logging.warning(
-                prefix="Set weights", sufix="<red>Failed: </red>" + str(e)
+                prefix="Set weights", suffix="<red>Failed: </red>" + str(e)
             )
 
     return False
@@ -416,14 +422,7 @@ def decrease_take_extrinsic(
 
             return success
 
-        except Exception as e:
-            bittensor.__console__.print(
-                ":cross_mark: [red]Failed[/red]: error:{}".format(e)
-            )
-            bittensor.logging.warning(
-                prefix="Set weights", sufix="<red>Failed: </red>" + str(e)
-            )
-        except TakeError as e:
+        except (TakeError, Exception) as e:
             bittensor.__console__.print(
                 ":cross_mark: [red]Failed[/red]: error:{}".format(e)
             )

@@ -28,6 +28,8 @@ from substrateinterface.constants import DEV_PHRASE
 from substrateinterface.exceptions import ConfigurationError
 from bip39 import bip39_validate
 
+from bittensor import get_coldkey_password_from_environment
+
 
 def test_generate_mnemonic():
     """
@@ -432,8 +434,18 @@ def test_legacy_coldkey(keyfile_setup_teardown):
     assert keyfile.keyfile_data == keyfile_data
     keyfile.encrypt(password="this is the fake password")
     keyfile.decrypt(password="this is the fake password")
-    keypair_bytes = b'{"accountId": "0x32939b6abc4d81f02dff04d2b8d1d01cc8e71c5e4c7492e4fa6a238cdca3512f", "publicKey": "0x32939b6abc4d81f02dff04d2b8d1d01cc8e71c5e4c7492e4fa6a238cdca3512f", "secretPhrase": null, "secretSeed": null, "ss58Address": "5DD26kC2kxajmwfbbZmVmxhrY9VeeyR1Gpzy9i8wxLUg6zxm"}'
-    assert keyfile.keyfile_data == keypair_bytes
+    expected_decryption = {
+        "accountId": "0x32939b6abc4d81f02dff04d2b8d1d01cc8e71c5e4c7492e4fa6a238cdca3512f",
+        "publicKey": "0x32939b6abc4d81f02dff04d2b8d1d01cc8e71c5e4c7492e4fa6a238cdca3512f",
+        "privateKey": None,
+        "secretPhrase": None,
+        "secretSeed": None,
+        "ss58Address": "5DD26kC2kxajmwfbbZmVmxhrY9VeeyR1Gpzy9i8wxLUg6zxm",
+    }
+    for key, value in expected_decryption.items():
+        value_str = f'"{value}"' if value is not None else "null"
+        assert f'"{key}": {value_str}'.encode() in keyfile.keyfile_data
+
     assert (
         keyfile.get_keypair().ss58_address
         == "5DD26kC2kxajmwfbbZmVmxhrY9VeeyR1Gpzy9i8wxLUg6zxm"
@@ -596,3 +608,18 @@ def test_deserialize_keypair_from_keyfile_data(keyfile_setup_teardown):
     assert deserialized_keypair.ss58_address == keypair.ss58_address
     assert deserialized_keypair.public_key == keypair.public_key
     assert deserialized_keypair.private_key == keypair.private_key
+
+
+def test_get_coldkey_password_from_environment(monkeypatch):
+    password_by_wallet = {
+        "WALLET": "password",
+        "my_wallet": "password",
+    }
+
+    monkeypatch.setenv("bt_cold_pw_wallet", password_by_wallet["WALLET"])
+    monkeypatch.setenv("BT_COLD_PW_My_Wallet", password_by_wallet["my_wallet"])
+
+    for wallet, password in password_by_wallet.items():
+        assert get_coldkey_password_from_environment(wallet) == password
+
+    assert get_coldkey_password_from_environment("non_existent_wallet") is None

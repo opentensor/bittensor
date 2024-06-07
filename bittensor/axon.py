@@ -20,29 +20,29 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import os
-import uuid
-import copy
-import json
-import time
-import asyncio
-import inspect
-import uvicorn
 import argparse
-import traceback
-import threading
-import bittensor
+import asyncio
 import contextlib
-
+import copy
+import inspect
+import json
+import os
+import threading
+import time
+import traceback
+import uuid
 from inspect import signature, Signature, Parameter
-from fastapi.responses import JSONResponse
-from substrateinterface import Keypair
-from fastapi import FastAPI, APIRouter, Request, Response, Depends
-from starlette.responses import Response
-from starlette.requests import Request
-from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from typing import List, Optional, Tuple, Callable, Any, Dict
 
+import uvicorn
+from fastapi import FastAPI, APIRouter, Depends
+from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from starlette.requests import Request
+from starlette.responses import Response
+from substrateinterface import Keypair
+
+import bittensor
 from bittensor.errors import (
     InvalidRequestNameError,
     SynapseDendriteNoneException,
@@ -56,6 +56,7 @@ from bittensor.errors import (
     InternalServerError,
 )
 from bittensor.threadpool import PriorityThreadPoolExecutor
+from bittensor.utils import networking
 
 
 class FastAPIThreadedServer(uvicorn.Server):
@@ -392,7 +393,7 @@ class axon:
         return bittensor.AxonInfo(
             version=bittensor.__version_as_int__,
             ip=self.external_ip,
-            ip_type=4,
+            ip_type=networking.ip_version(self.external_ip),
             port=self.external_port,
             hotkey=self.wallet.hotkey.ss58_address,
             coldkey=self.wallet.coldkeypub.ss58_address,
@@ -567,7 +568,7 @@ class axon:
         self.forward_fns[request_name] = forward_fn
 
         # Parse required hash fields from the forward function protocol defaults
-        required_hash_fields = request_class.__dict__["__fields__"][
+        required_hash_fields = request_class.__dict__["model_fields"][
             "required_hash_fields"
         ].default
         self.required_hash_fields[request_name] = required_hash_fields

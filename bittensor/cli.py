@@ -20,7 +20,51 @@ import shtab
 import argparse
 import bittensor
 from typing import List, Optional
-from .commands import *
+from .commands import (
+    AutocompleteCommand,
+    DelegateStakeCommand,
+    DelegateUnstakeCommand,
+    GetIdentityCommand,
+    GetWalletHistoryCommand,
+    InspectCommand,
+    ListCommand,
+    ListDelegatesCommand,
+    MetagraphCommand,
+    MyDelegatesCommand,
+    NewColdkeyCommand,
+    NewHotkeyCommand,
+    OverviewCommand,
+    PowRegisterCommand,
+    ProposalsCommand,
+    RegenColdkeyCommand,
+    RegenColdkeypubCommand,
+    RegenHotkeyCommand,
+    RegisterCommand,
+    RegisterSubnetworkCommand,
+    RemoveSubStakeCommand,
+    RootList,
+    RootRegisterCommand,
+    RunFaucetCommand,
+    SenateCommand,
+    SetDelegateTakesCommand,
+    SetIdentityCommand,
+    SetTakeCommand,
+    StakeList,
+    StakeShow,
+    SubnetGetHyperparamsCommand,
+    SubnetHyperparamsCommand,
+    SubnetListCommand,
+    SubnetLockCostCommand,
+    SubnetSudoCommand,
+    SubStakeCommand,
+    SwapHotkeyCommand,
+    TransferCommand,
+    UpdateCommand,
+    UpdateWalletCommand,
+    VoteCommand,
+    WalletBalanceCommand,
+    WalletCreateCommand,
+)
 
 # Create a console instance for CLI display.
 console = bittensor.__console__
@@ -75,17 +119,12 @@ COMMANDS = {
             "senate": SenateCommand,
             "register": RootRegisterCommand,
             "proposals": ProposalsCommand,
-            # Sets yourself up to become a nominator.
-            # TODO deprecate this. Sets yourself up to become a nominator.
-            # "nominate": NominateCommand,
             "set_take": SetTakeCommand,
-            "set_delegate_takes": SetDelegateTakesCommand,
-            # TODO write set_takes ...
-            # Deprecated.
-            # "get_weights": RootGetWeightsCommand,
-            # TODO implement this to show takes per subnet
-            # takes: show take values.
+            "delegate": DelegateStakeCommand,
+            "undelegate": DelegateUnstakeCommand,
+            "my_delegates": MyDelegatesCommand,
             "list_delegates": ListDelegatesCommand,
+            "set_delegate_takes": SetDelegateTakesCommand,
         },
     },
     "wallet": {
@@ -123,8 +162,6 @@ COMMANDS = {
             # "remove": UnStakeCommand,
             "add": SubStakeCommand,
             "remove": RemoveSubStakeCommand,
-            # Allows a nominator to set weights for their stake across subnets.
-            "weights": StakeWeightsCommand,
             # Delegate to a specific root member.
             "delegate": DelegateStakeCommand,
             # Remove stake from a root member
@@ -218,8 +255,8 @@ class cli:
         # If no_version_checking is not set or set as False in the config, version checking is done.
         if not self.config.get("no_version_checking", d=True):
             try:
-                bittensor.utils.version_checking()
-            except:
+                bittensor.utils.check_version()
+            except bittensor.utils.VersionCheckError:
                 # If version checking fails, inform user with an exception.
                 raise RuntimeError(
                     "To avoid internet-based version checking, pass --no_version_checking while running the CLI."
@@ -301,7 +338,7 @@ class cli:
             command_data = COMMANDS[command]
 
             if isinstance(command_data, dict):
-                if config["subcommand"] != None:
+                if config["subcommand"] is not None:
                     command_data["commands"][config["subcommand"]].check_config(config)
                 else:
                     console.print(
@@ -320,6 +357,7 @@ class cli:
         """
         # Check for print-completion argument
         if self.config.print_completion:
+            parser = cli.__create_parser__()
             shell = self.config.print_completion
             # TODO Wat?
             print(shtab.complete(parser, shell))

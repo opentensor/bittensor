@@ -66,10 +66,8 @@ class RegenColdkeyCommand:
                 raise ValueError("File {} does not exist".format(file_name))
             with open(cli.config.get("json"), "r") as f:
                 json_str = f.read()
-
             # Password can be "", assume if None
             json_password = cli.config.get("json_password", "")
-
         wallet.regenerate_coldkey(
             mnemonic=cli.config.mnemonic,
             seed=cli.config.seed,
@@ -146,7 +144,7 @@ class RegenColdkeyCommand:
         regen_coldkey_parser.add_argument(
             "--overwrite_coldkey",
             default=False,
-            action="store_false",
+            action="store_true",
             help="""Overwrite the old coldkey with the newly generated coldkey""",
         )
         bittensor.wallet.add_args(regen_coldkey_parser)
@@ -443,7 +441,7 @@ class NewHotkeyCommand:
         )
         new_hotkey_parser.add_argument(
             "--overwrite_hotkey",
-            action="store_false",
+            action="store_true",
             default=False,
             help="""Overwrite the old hotkey with the newly generated hotkey""",
         )
@@ -518,7 +516,7 @@ class NewColdkeyCommand:
         )
         new_coldkey_parser.add_argument(
             "--overwrite_coldkey",
-            action="store_false",
+            action="store_true",
             default=False,
             help="""Overwrite the old coldkey with the newly generated coldkey""",
         )
@@ -602,13 +600,13 @@ class WalletCreateCommand:
         )
         new_coldkey_parser.add_argument(
             "--overwrite_coldkey",
-            action="store_false",
+            action="store_true",
             default=False,
             help="""Overwrite the old coldkey with the newly generated coldkey""",
         )
         new_coldkey_parser.add_argument(
             "--overwrite_hotkey",
-            action="store_false",
+            action="store_true",
             default=False,
             help="""Overwrite the old hotkey with the newly generated hotkey""",
         )
@@ -785,6 +783,7 @@ class WalletBalanceCommand:
         total_free_balance = 0
         total_staked_balance = 0
         balances = {}
+        dynamic_info = subtensor.get_dynamic_info()
 
         if cli.config.get("all", d=None):
             coldkeys, wallet_names = _get_coldkey_ss58_addresses_for_path(
@@ -799,6 +798,11 @@ class WalletBalanceCommand:
                 subtensor.get_total_stake_for_coldkey(coldkeys[i])
                 for i in range(len(coldkeys))
             ]
+
+            stake_breakdown = {
+                coldkey: subtensor.get_substake_for_coldkey(coldkey)
+                for coldkey in coldkeys
+            }
 
             total_free_balance = sum(free_balances)
             total_staked_balance = sum(staked_balances)
@@ -826,6 +830,11 @@ class WalletBalanceCommand:
                     subtensor.get_total_stake_for_coldkey(coldkeys[i])
                     for i in range(len(coldkeys))
                 ]
+
+                stake_breakdown = {
+                    coldkey: subtensor.get_substake_for_coldkey(coldkey)
+                    for coldkey in coldkeys
+                }
 
                 total_free_balance = sum(free_balances)
                 total_staked_balance = sum(staked_balances)
@@ -869,6 +878,30 @@ class WalletBalanceCommand:
                 no_wrap=True,
             )
 
+        table.add_column(
+            "[white]Netuid",
+            header_style="overline white",
+            footer_style="overline white",
+            style="green",
+            no_wrap=True,
+        )
+
+        table.add_column(
+            "[white]Subnet Stake",
+            header_style="overline white",
+            footer_style="overline white",
+            style="green",
+            no_wrap=True,
+        )
+
+        table.add_column(
+            "[white]Subnet Price",
+            header_style="overline white",
+            footer_style="overline white",
+            style="green",
+            no_wrap=True,
+        )
+
         for name, (coldkey, free, staked) in balances.items():
             table.add_row(
                 name,
@@ -876,7 +909,23 @@ class WalletBalanceCommand:
                 str(free),
                 str(staked),
                 str(free + staked),
+                "", 
+                "",
+                "",
             )
+
+            for stake in stake_breakdown[coldkey]:
+                table.add_row(
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    str(stake["netuid"]), 
+                    str(bittensor.Balance.from_rao(stake["stake"]).set_unit(stake["netuid"])),
+                    "{:.4f}".format(dynamic_info[stake["netuid"]]["price"]),
+                )
+
         table.add_row()
         table.add_row(
             "Total Balance Across All Coldkeys",

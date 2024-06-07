@@ -15,16 +15,17 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 import json
-import torch
 import base64
-import typing
+from typing import List, Optional
+
+import pydantic_core
 import pytest
 import bittensor
 
 
 def test_parse_headers_to_inputs():
     class Test(bittensor.Synapse):
-        key1: typing.List[int]
+        key1: List[int]
 
     # Define a mock headers dictionary to use for testing
     headers = {
@@ -59,7 +60,7 @@ def test_parse_headers_to_inputs():
 
 def test_from_headers():
     class Test(bittensor.Synapse):
-        key1: typing.List[int]
+        key1: List[int]
 
     # Define a mock headers dictionary to use for testing
     headers = {
@@ -129,9 +130,15 @@ def test_custom_synapse():
     class Test(bittensor.Synapse):
         a: int  # Carried through because required.
         b: int = None  # Not carried through headers
-        c: typing.Optional[int]  # Not carried through headers
-        d: typing.Optional[typing.List[int]]  # Not carried through headers
-        e: typing.List[int]  # Carried through headers
+        c: Optional[int]  # Required, carried through headers, cannot be None
+        d: Optional[List[int]]  # Required, carried though headers, cannot be None
+        e: List[int]  # Carried through headers
+        f: Optional[
+            int
+        ] = None  # Not Required, Not carried through headers, can be None
+        g: Optional[
+            List[int]
+        ] = None  # Not Required, Not carried though headers, can be None
 
     # Create an instance of the custom Synapse subclass
     synapse = Test(
@@ -149,6 +156,8 @@ def test_custom_synapse():
     assert synapse.c == 3
     assert synapse.d == [1, 2, 3, 4]
     assert synapse.e == [1, 2, 3, 4]
+    assert synapse.f == None
+    assert synapse.g == None
 
     # Convert the Test instance to a headers dictionary
     headers = synapse.to_headers()
@@ -161,9 +170,11 @@ def test_custom_synapse():
     next_synapse = synapse.from_headers(synapse.to_headers())
     assert next_synapse.a == 0  # Default value is 0
     assert next_synapse.b == None
-    assert next_synapse.c == None
-    assert next_synapse.d == None
+    assert next_synapse.c == 0  # Default is 0
+    assert next_synapse.d == []  # Default is []
     assert next_synapse.e == []  # Empty list is default for list types
+    assert next_synapse.f == None
+    assert next_synapse.g == None
 
 
 def test_body_hash_override():
@@ -184,15 +195,15 @@ def test_required_fields_override():
 
     # Try to set the required_hash_fields property and expect a TypeError
     with pytest.raises(
-        TypeError,
-        match='"required_hash_fields" has allow_mutation set to False and cannot be assigned',
+        pydantic_core.ValidationError,
+        match="required_hash_fields\n  Field is frozen",
     ):
         synapse_instance.required_hash_fields = []
 
 
 def test_default_instance_fields_dict_consistency():
     synapse_instance = bittensor.Synapse()
-    assert synapse_instance.dict() == {
+    assert synapse_instance.model_dump() == {
         "name": "Synapse",
         "timeout": 12.0,
         "total_size": 0,

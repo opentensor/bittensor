@@ -11,14 +11,16 @@ import time
 import queue
 import random
 import weakref
+import logging
 import argparse
 import bittensor
 import itertools
 import threading
 
-from loguru import logger
 from typing import Callable
 from concurrent.futures import _base
+
+from bittensor.btlogging.defines import BITTENSOR_LOGGER_NAME
 
 # Workers are created as daemon threads. This is done to allow the interpreter
 # to exit when there are still idle threads in a ThreadPoolExecutor's thread
@@ -33,6 +35,8 @@ from concurrent.futures import _base
 # To work around this problem, an exit handler is installed which tells the
 # workers to exit when their work queues are empty and then waits until the
 # threads finish.
+
+logger = logging.getLogger(BITTENSOR_LOGGER_NAME)
 
 _threads_queues = weakref.WeakKeyDictionary()
 _shutdown = False
@@ -221,14 +225,14 @@ class PriorityThreadPoolExecutor(_base.Executor):
             priority = kwargs.get("priority", random.randint(0, 1000000))
             if priority == 0:
                 priority = random.randint(1, 100)
-            eplison = random.uniform(0, 0.01) * priority
+            epsilon = random.uniform(0, 0.01) * priority
             start_time = time.time()
             if "priority" in kwargs:
                 del kwargs["priority"]
 
             f = _base.Future()
             w = _WorkItem(f, fn, start_time, args, kwargs)
-            self._work_queue.put((-float(priority + eplison), w), block=False)
+            self._work_queue.put((-float(priority + epsilon), w), block=False)
             self._adjust_thread_count()
             return f
 

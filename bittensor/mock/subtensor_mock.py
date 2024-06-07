@@ -34,7 +34,7 @@ from ..chain_data import (
     SubnetInfo,
     AxonInfo,
 )
-from ..errors import *
+from ..errors import ChainQueryError
 from ..subtensor import subtensor
 from ..utils import RAOPERTAO, U16_NORMALIZED_FLOAT
 from ..utils.balance import Balance
@@ -260,10 +260,8 @@ class MockSubtensor(subtensor):
                     "Weights": {},
                     "Bonds": {},
                     "Staker": {},
-                    "TotalStake": {0: 0},
+                    "TotalHotkeySubStake": {},
                     "TotalIssuance": {0: 0},
-                    "TotalHotkeyStake": {},
-                    "TotalColdkeyStake": {},
                     "TxRateLimit": {0: 0},  # No limit
                     "Delegates": {},
                     "Axons": {},
@@ -570,10 +568,8 @@ class MockSubtensor(subtensor):
 
     def _handle_type_default(self, name: str, params: List[object]) -> object:
         defaults_mapping = {
-            "TotalStake": 0,
-            "TotalHotkeyStake": 0,
-            "TotalColdkeyStake": 0,
-            "Stake": 0,
+            "TotalHotkeySubstake": 0,
+            "Staker": False,
         }
 
         return defaults_mapping.get(name, None)
@@ -1304,6 +1300,18 @@ class MockSubtensor(subtensor):
         ][self.block_number] = (bal + amount).rao
 
         return True
+
+    @staticmethod
+    def min_required_stake():
+        """
+        As the minimum required stake may change, this method allows us to dynamically
+        update the amount in the mock without updating the tests
+        """
+        # valid minimum threshold as of 2024/05/01
+        return 100_000_000  # RAO
+
+    def get_minimum_required_stake(self):
+        return Balance.from_rao(self.min_required_stake())
 
     def get_delegate_by_hotkey(
         self, hotkey_ss58: str, block: Optional[int] = None

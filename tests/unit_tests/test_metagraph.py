@@ -17,12 +17,11 @@
 
 from unittest.mock import Mock
 import pytest
-import torch
+import numpy as np
 import bittensor
 
 from bittensor.metagraph import metagraph as Metagraph
 from unittest.mock import MagicMock
-from loguru import logger
 
 
 @pytest.fixture
@@ -66,27 +65,27 @@ def test_set_metagraph_attributes(mock_environment):
     assert metagraph.n.item() == len(neurons)
     assert metagraph.block.item() == 5
     assert (
-        torch.equal(
+        np.array_equal(
             metagraph.uids,
-            torch.tensor([neuron.uid for neuron in neurons], dtype=torch.int64),
+            np.array([neuron.uid for neuron in neurons], dtype=np.int64),
         )
-        == True
+        is True
     )
 
     assert (
-        torch.equal(
+        np.array_equal(
             metagraph.trust,
-            torch.tensor([neuron.trust for neuron in neurons], dtype=torch.float32),
+            np.array([neuron.trust for neuron in neurons], dtype=np.float32),
         )
-        == True
+        is True
     )
 
     assert (
-        torch.equal(
+        np.array_equal(
             metagraph.consensus,
-            torch.tensor([neuron.consensus for neuron in neurons], dtype=torch.float32),
+            np.array([neuron.consensus for neuron in neurons], dtype=np.float32),
         )
-        == True
+        is True
     )
     # Similarly for other attributes...
 
@@ -167,16 +166,10 @@ def loguru_sink():
         (300, "warning_case_block_greater_than_300"),
     ],
 )
-def test_sync_warning_cases(
-    block, test_id, metagraph_instance, mock_subtensor, loguru_sink
-):
-    handler_id = logger.add(loguru_sink.write, level="WARNING")
-
+def test_sync_warning_cases(block, test_id, metagraph_instance, mock_subtensor, caplog):
     metagraph_instance.sync(block=block, lite=True, subtensor=mock_subtensor)
 
     expected_message = "Attempting to sync longer than 300 blocks ago on a non-archive node. Please use the 'archive' network for subtensor and retry."
     assert (
-        expected_message in loguru_sink
+        expected_message in caplog.text
     ), f"Test ID: {test_id} - Expected warning message not found in Loguru sink."
-
-    logger.remove(handler_id)
