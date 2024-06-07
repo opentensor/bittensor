@@ -1,3 +1,5 @@
+import asyncio
+
 import pytest
 
 import bittensor
@@ -64,6 +66,7 @@ async def test_faucet(local_chain):
                 "ws://localhost:9945",
             ],
         )
+        await asyncio.sleep(5)
 
     subtensor = bittensor.subtensor(network="ws://localhost:9945")
 
