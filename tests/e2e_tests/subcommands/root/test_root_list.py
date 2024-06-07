@@ -1,5 +1,5 @@
 from bittensor.commands.root import RootList
-from ...utils import new_wallet, sudo_call_set_network_limit
+from ...utils import new_wallet
 from bittensor.commands.network import RegisterSubnetworkCommand
 import bittensor
 

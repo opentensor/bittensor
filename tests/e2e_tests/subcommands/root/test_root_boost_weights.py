@@ -1,11 +1,11 @@
 from bittensor.commands.root import RootSetBoostCommand, RootSetWeightsCommand
-# from bittensor.commands.weights import SetWeightsCommand
 from bittensor.commands.stake import StakeCommand
 from bittensor.commands.unstake import UnStakeCommand
 from bittensor.commands.network import RegisterSubnetworkCommand
 from bittensor.commands.register import RegisterCommand
 from ...utils import new_wallet, sudo_call_set_network_limit
 import bittensor
+
 
 # we can't test it now since the root network weights can't be set
 # Test case to set weights for root network
