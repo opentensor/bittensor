@@ -16,8 +16,13 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import logging
+
+from typing import Union, Optional
+
+from rich.prompt import Confirm
+
 import bittensor
+from bittensor.utils.balance import Balance
 from ..errors import (
     NominationError,
     NotDelegateError,
@@ -25,12 +30,6 @@ from ..errors import (
     StakeError,
     TakeError,
 )
-from rich.prompt import Confirm
-from typing import Union, Optional
-from bittensor.utils.balance import Balance
-from bittensor.btlogging.defines import BITTENSOR_LOGGER_NAME
-
-logger = logging.getLogger(BITTENSOR_LOGGER_NAME)
 
 
 def nominate_extrinsic(
@@ -52,7 +51,7 @@ def nominate_extrinsic(
 
     # Check if the hotkey is already a delegate.
     if subtensor.is_hotkey_delegate(wallet.hotkey.ss58_address):
-        logger.error(
+        bittensor.logging.error(
             "Hotkey {} is already a delegate.".format(wallet.hotkey.ss58_address)
         )
         return False
