@@ -4181,24 +4181,30 @@ class Subtensor:
     ##############
     # Nomination #
     ##############
-    def is_hotkey_delegate(self, hotkey_ss58: str, block: Optional[int] = None) -> bool:
-        """
-        Determines whether a given hotkey (public key) is a delegate on the Bittensor network. This function
-        checks if the neuron associated with the hotkey is part of the network's delegation system.
+    # def is_hotkey_delegate_2(self, hotkey_ss58: str, block: Optional[int] = None) -> bool:
+    #     """
+    #     Determines whether a given hotkey (public key) is a delegate on the Bittensor network. This function
+    #     checks if the neuron associated with the hotkey is part of the network's delegation system.
 
-        Args:
-            hotkey_ss58 (str): The SS58 address of the neuron's hotkey.
-            block (Optional[int], optional): The blockchain block number for the query.
+    #     Args:
+    #         hotkey_ss58 (str): The SS58 address of the neuron's hotkey.
+    #         block (Optional[int], optional): The blockchain block number for the query.
 
-        Returns:
-            bool: ``True`` if the hotkey is a delegate, ``False`` otherwise.
+    #     Returns:
+    #         bool: ``True`` if the hotkey is a delegate, ``False`` otherwise.
 
-        Being a delegate is a significant status within the Bittensor network, indicating a neuron's
-        involvement in consensus and governance processes.
-        """
-        return hotkey_ss58 in [
-            info.hotkey_ss58 for info in self.get_delegates(block=block)
-        ]
+    #     Being a delegate is a significant status within the Bittensor network, indicating a neuron's
+    #     involvement in consensus and governance processes.
+    #     """
+    #     return hotkey_ss58 in [
+    #         info.hotkey_ss58 for info in self.get_delegates(block=block)
+    #     ]
+    
+    def is_hotkey_delegate(
+        self, hotkey_ss58: str
+    ) -> bool:
+        delegates = self.substrate.query( "SubtensorModule", "Delegates", [hotkey_ss58])
+        return delegates > 0
 
     def get_delegate_take(
         self, hotkey_ss58: str, block: Optional[int] = None
