@@ -62,7 +62,7 @@ def test_nominate_extrinsic(
     with patch.object(
         mock_subtensor, "is_hotkey_delegate", return_value=already_delegate
     ), patch.object(
-        mock_subtensor, "_do_nominate", return_value=nomination_success
+        mock_subtensor, "do_nominate", return_value=nomination_success
     ) as mock_nominate:
         if raises_exception:
             mock_subtensor._do_nominate.side_effect = raises_exception
@@ -249,7 +249,7 @@ def test_delegate_extrinsic(
     ), patch.object(
         mock_subtensor, "is_hotkey_delegate", return_value=is_delegate
     ), patch.object(
-        mock_subtensor, "_do_delegation", return_value=transaction_success
+        mock_subtensor, "do_delegation", return_value=transaction_success
     ) as mock_delegate:
         if raises_error:
             mock_delegate.side_effect = raises_error
@@ -411,7 +411,7 @@ def test_undelegate_extrinsic(
         "get_stake_for_coldkey_and_hotkey",
         return_value=Balance.from_tao(current_stake),
     ), patch.object(
-        mock_subtensor, "_do_undelegation", return_value=transaction_success
+        mock_subtensor, "do_undelegation", return_value=transaction_success
     ) as mock_undelegate:
         if raises_error:
             mock_undelegate.side_effect = raises_error

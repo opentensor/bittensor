@@ -491,7 +491,7 @@ class Subtensor:
     ##############
     # Delegation #
     ##############
-    def nominate(
+    async def nominate(
         self,
         wallet: "bittensor.wallet",
         wait_for_finalization: bool = False,
@@ -514,14 +514,14 @@ class Subtensor:
         This function is a key part of the decentralized governance mechanism of Bittensor, allowing for the
         dynamic selection and participation of validators in the network's consensus process.
         """
-        return nominate_extrinsic(
+        return await nominate_extrinsic(
             subtensor=self,
             wallet=wallet,
             wait_for_finalization=wait_for_finalization,
             wait_for_inclusion=wait_for_inclusion,
         )
 
-    def delegate(
+    async def delegate(
         self,
         wallet: "bittensor.wallet",
         delegate_ss58: Optional[str] = None,
@@ -550,7 +550,7 @@ class Subtensor:
         This function is a key part of the decentralized governance mechanism of Bittensor, allowing for the
         dynamic selection and participation of validators in the network's consensus process.
         """
-        return delegate_extrinsic(
+        return await delegate_extrinsic(
             subtensor=self,
             wallet=wallet,
             delegate_ss58=delegate_ss58,
@@ -560,7 +560,7 @@ class Subtensor:
             prompt=prompt,
         )
 
-    def undelegate(
+    async def undelegate(
         self,
         wallet: "bittensor.wallet",
         delegate_ss58: Optional[str] = None,
@@ -587,7 +587,7 @@ class Subtensor:
         This function reflects the dynamic and speculative nature of the Bittensor network, allowing neurons
         to adjust their stakes and investments based on changing perceptions and performances within the network.
         """
-        return undelegate_extrinsic(
+        return await undelegate_extrinsic(
             subtensor=self,
             wallet=wallet,
             delegate_ss58=delegate_ss58,
@@ -642,7 +642,7 @@ class Subtensor:
             bittensor.__console__.print(
                 "Current take is either not set or is lower than the new one. Will use increase_take"
             )
-            return increase_take_extrinsic(
+            return await increase_take_extrinsic(
                 subtensor=self,
                 wallet=wallet,
                 hotkey_ss58=delegate_ss58,
@@ -654,7 +654,7 @@ class Subtensor:
             bittensor.__console__.print(
                 "Current take is higher than the new one. Will use decrease_take"
             )
-            return decrease_take_extrinsic(
+            return await decrease_take_extrinsic(
                 subtensor=self,
                 wallet=wallet,
                 hotkey_ss58=delegate_ss58,
@@ -901,7 +901,7 @@ class Subtensor:
     ##################
     # Commit Weights #
     ##################
-    def commit_weights(
+    async def commit_weights(
         self,
         wallet: "bittensor.wallet",
         netuid: int,
@@ -934,8 +934,8 @@ class Subtensor:
             Tuple[bool, str]: ``True`` if the weight commitment is successful, False otherwise. And `msg`, a string
             value describing the success or potential error.
 
-        This function allows neurons to create a tamper-proof record of their weight distribution at a specific point in time,
-        enhancing transparency and accountability within the Bittensor network.
+        This function allows neurons to create a tamper-proof record of their weight distribution at a specific point in
+        time, enhancing transparency and accountability within the Bittensor network.
         """
         retries = 0
         success = False
@@ -961,7 +961,7 @@ class Subtensor:
 
         while retries < max_retries:
             try:
-                success, message = commit_weights_extrinsic(
+                success, message = await commit_weights_extrinsic(
                     subtensor=self,
                     wallet=wallet,
                     netuid=netuid,
@@ -979,7 +979,7 @@ class Subtensor:
 
         return success, message
 
-    async def _do_commit_weights(
+    async def do_commit_weights(
         self,
         wallet: "bittensor.wallet",
         netuid: int,
@@ -1039,7 +1039,7 @@ class Subtensor:
     ##################
     # Reveal Weights #
     ##################
-    def reveal_weights(
+    async def reveal_weights(
         self,
         wallet: "bittensor.wallet",
         netuid: int,
@@ -1081,7 +1081,7 @@ class Subtensor:
 
         while retries < max_retries:
             try:
-                success, message = reveal_weights_extrinsic(
+                success, message = await reveal_weights_extrinsic(
                     subtensor=self,
                     wallet=wallet,
                     netuid=netuid,
@@ -1102,7 +1102,7 @@ class Subtensor:
 
         return success, message
 
-    async def _do_reveal_weights(
+    async def do_reveal_weights(
         self,
         wallet: "bittensor.wallet",
         netuid: int,
@@ -1130,8 +1130,8 @@ class Subtensor:
         Returns:
             Tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
 
-        This method ensures that the weight revelation is securely recorded on the Bittensor blockchain, providing transparency
-        and accountability for the neuron's weight distribution.
+        This method ensures that the weight revelation is securely recorded on the Bittensor blockchain, providing
+        transparency and accountability for the neuron's weight distribution.
         """
 
         @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
@@ -5112,7 +5112,7 @@ class Subtensor:
     # Extrinsics #
     ##############
 
-    async def _do_delegation(
+    async def do_delegation(
         self,
         wallet: "bittensor.wallet",
         delegate_ss58: str,
@@ -5163,7 +5163,7 @@ class Subtensor:
 
         return await make_substrate_call_with_retry()
 
-    async def _do_undelegation(
+    async def do_undelegation(
         self,
         wallet: "bittensor.wallet",
         delegate_ss58: str,
@@ -5217,7 +5217,7 @@ class Subtensor:
 
         return await make_substrate_call_with_retry()
 
-    async def _do_nominate(
+    async def do_nominate(
         self,
         wallet: "bittensor.wallet",
         wait_for_inclusion: bool = True,
@@ -5264,7 +5264,7 @@ class Subtensor:
 
         return await make_substrate_call_with_retry()
 
-    async def _do_increase_take(
+    async def do_increase_take(
         self,
         wallet: "bittensor.wallet",
         hotkey_ss58: str,
@@ -5318,7 +5318,7 @@ class Subtensor:
 
         return await make_substrate_call_with_retry()
 
-    async def _do_decrease_take(
+    async def do_decrease_take(
         self,
         wallet: "bittensor.wallet",
         hotkey_ss58: str,

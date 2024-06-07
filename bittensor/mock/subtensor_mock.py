@@ -1005,7 +1005,7 @@ class MockSubtensor(Subtensor):
         return neurons
 
     # Extrinsics
-    def _do_delegation(
+    def do_delegation(
         self,
         wallet: "wallet",
         delegate_ss58: str,
@@ -1028,7 +1028,7 @@ class MockSubtensor(Subtensor):
 
         return success
 
-    def _do_undelegation(
+    def do_undelegation(
         self,
         wallet: "wallet",
         delegate_ss58: str,
@@ -1049,7 +1049,7 @@ class MockSubtensor(Subtensor):
             wait_for_finalization=wait_for_finalization,
         )
 
-    def _do_nominate(
+    def do_nominate(
         self,
         wallet: "wallet",
         wait_for_inclusion: bool = True,

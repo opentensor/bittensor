@@ -25,7 +25,7 @@ from rich.prompt import Confirm
 import bittensor
 
 
-def commit_weights_extrinsic(
+async def commit_weights_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
     netuid: int,
@@ -36,7 +36,7 @@ def commit_weights_extrinsic(
 ) -> Tuple[bool, str]:
     """
     Commits a hash of the neuron's weights to the Bittensor blockchain using the provided wallet.
-    This function is a wrapper around the `_do_commit_weights` method, handling user prompts and error messages.
+    This function is a wrapper around the `do_commit_weights` method, handling user prompts and error messages.
     Args:
         subtensor (bittensor.subtensor): The subtensor instance used for blockchain interaction.
         wallet (bittensor.wallet): The wallet associated with the neuron committing the weights.
@@ -54,7 +54,7 @@ def commit_weights_extrinsic(
     if prompt and not Confirm.ask(f"Would you like to commit weights?"):
         return False, "User cancelled the operation."
 
-    success, error_message = subtensor._do_commit_weights(
+    success, error_message = await subtensor.do_commit_weights(
         wallet=wallet,
         netuid=netuid,
         commit_hash=commit_hash,
@@ -70,7 +70,7 @@ def commit_weights_extrinsic(
         return False, error_message
 
 
-def reveal_weights_extrinsic(
+async def reveal_weights_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
     netuid: int,
@@ -84,7 +84,7 @@ def reveal_weights_extrinsic(
 ) -> Tuple[bool, str]:
     """
     Reveals the weights for a specific subnet on the Bittensor blockchain using the provided wallet.
-    This function is a wrapper around the `_do_reveal_weights` method, handling user prompts and error messages.
+    This function is a wrapper around the `do_reveal_weights` method, handling user prompts and error messages.
     Args:
         subtensor (bittensor.subtensor): The subtensor instance used for blockchain interaction.
         wallet (bittensor.wallet): The wallet associated with the neuron revealing the weights.
@@ -106,7 +106,7 @@ def reveal_weights_extrinsic(
     if prompt and not Confirm.ask(f"Would you like to reveal weights?"):
         return False, "User cancelled the operation."
 
-    success, error_message = subtensor._do_reveal_weights(
+    success, error_message = await subtensor.do_reveal_weights(
         wallet=wallet,
         netuid=netuid,
         uids=uids,
