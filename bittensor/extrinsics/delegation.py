@@ -435,7 +435,7 @@ async def decrease_take_extrinsic(
     return False
 
 
-def increase_take_extrinsic(
+async def increase_take_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
     hotkey_ss58: Optional[str] = None,
@@ -466,7 +466,7 @@ def increase_take_extrinsic(
         )
     ):
         try:
-            success = subtensor._do_increase_take(
+            success = await subtensor.do_increase_take(
                 wallet=wallet,
                 hotkey_ss58=hotkey_ss58,
                 take=take,
