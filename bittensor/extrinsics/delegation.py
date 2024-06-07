@@ -235,7 +235,7 @@ async def delegate_extrinsic(
         return False
 
 
-def undelegate_extrinsic(
+async def undelegate_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
     delegate_ss58: Optional[str] = None,
@@ -264,13 +264,13 @@ def undelegate_extrinsic(
     """
     # Decrypt keys,
     wallet.coldkey
-    if not subtensor.is_hotkey_delegate(delegate_ss58):
+    if not await subtensor.is_hotkey_delegate(delegate_ss58):
         raise NotDelegateError("Hotkey: {} is not a delegate.".format(delegate_ss58))
 
     # Get state.
-    my_prev_coldkey_balance = subtensor.get_balance(wallet.coldkey.ss58_address)
-    delegate_owner = subtensor.get_hotkey_owner(delegate_ss58)
-    my_prev_delegated_stake = subtensor.get_stake_for_coldkey_and_hotkey(
+    my_prev_coldkey_balance = await subtensor.get_balance(wallet.coldkey.ss58_address)
+    delegate_owner = await subtensor.get_hotkey_owner(delegate_ss58)
+    my_prev_delegated_stake = await subtensor.get_stake_for_coldkey_and_hotkey(
         coldkey_ss58=wallet.coldkeypub.ss58_address, hotkey_ss58=delegate_ss58
     )
 
@@ -309,7 +309,7 @@ def undelegate_extrinsic(
                 subtensor.network
             )
         ):
-            staking_response: bool = subtensor._do_undelegation(
+            staking_response: bool = await subtensor.do_undelegation(
                 wallet=wallet,
                 delegate_ss58=delegate_ss58,
                 amount=unstaking_balance,
@@ -330,9 +330,9 @@ def undelegate_extrinsic(
                     subtensor.network
                 )
             ):
-                new_balance = subtensor.get_balance(address=wallet.coldkey.ss58_address)
-                block = subtensor.get_current_block()
-                new_delegate_stake = subtensor.get_stake_for_coldkey_and_hotkey(
+                new_balance = await subtensor.get_balance(address=wallet.coldkey.ss58_address)
+                block = await subtensor.get_current_block()
+                new_delegate_stake = await subtensor.get_stake_for_coldkey_and_hotkey(
                     coldkey_ss58=wallet.coldkeypub.ss58_address,
                     hotkey_ss58=delegate_ss58,
                     block=block,

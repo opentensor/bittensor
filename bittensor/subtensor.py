@@ -5157,7 +5157,7 @@ class Subtensor:
 
         return await make_substrate_call_with_retry()
 
-    async def _do_undelegation(
+    async def do_undelegation(
         self,
         wallet: "bittensor.wallet",
         delegate_ss58: str,

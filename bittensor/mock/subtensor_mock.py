@@ -1028,7 +1028,7 @@ class MockSubtensor(Subtensor):
 
         return success
 
-    def _do_undelegation(
+    def do_undelegation(
         self,
         wallet: "wallet",
         delegate_ss58: str,

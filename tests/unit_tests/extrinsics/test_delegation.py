@@ -411,7 +411,7 @@ def test_undelegate_extrinsic(
         "get_stake_for_coldkey_and_hotkey",
         return_value=Balance.from_tao(current_stake),
     ), patch.object(
-        mock_subtensor, "_do_undelegation", return_value=transaction_success
+        mock_subtensor, "do_undelegation", return_value=transaction_success
     ) as mock_undelegate:
         if raises_error:
             mock_undelegate.side_effect = raises_error
