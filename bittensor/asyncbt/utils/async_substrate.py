@@ -1,21 +1,46 @@
 import asyncio
 from collections import defaultdict
 from dataclasses import dataclass
+import functools
 import json
-from typing import Optional, Any
+from typing import Optional, Any, Union
 
 from scalecodec import GenericExtrinsic
 from substrateinterface import Keypair, ExtrinsicReceipt
 from substrateinterface.base import SubstrateInterface, QueryMapResult
 from substrateinterface.storage import StorageKey
-from substrateinterface.exceptions import SubstrateRequestException
-from scalecodec.base import ScaleBytes, ScaleType
+from substrateinterface.exceptions import SubstrateRequestException, BlockNotFound
+from scalecodec.base import ScaleBytes, ScaleType, RuntimeConfigurationObject
 from scalecodec.types import GenericMetadataVersioned, GenericCall
+from scalecodec.type_registry import load_type_registry_preset
 import websockets
 
 import bittensor
 
 CHAIN_ENDPOINT = "wss://test.finney.opentensor.ai:443"
+
+
+def ensure_initialized(func):
+    """Wrapper for initialization of SubstrateInterface before connection."""
+
+    @functools.wraps(func)
+    async def wrapper(self, *args, **kwargs):
+        async with self._lock:
+            if not self.substrate:
+                await self.initialize()
+        return await func(self, *args, **kwargs)
+
+    return wrapper
+
+
+def all_coroutine_methods(wrapper):
+    def class_decorator(cls):
+        for attr_name, attr_value in cls.__dict__.items():
+            if asyncio.iscoroutinefunction(attr_value):
+                setattr(cls, attr_name, wrapper(attr_value))
+        return cls
+
+    return class_decorator
 
 
 @dataclass
@@ -25,6 +50,88 @@ class Preprocessed:
     params: list
     value_scale_type: str
     storage_item: ScaleType
+
+
+class Runtime:
+    block_hash: str
+    block_id: int
+    runtime_version = None
+    transaction_version = None
+    cache_region = None
+    metadata = None
+    type_registry_preset = None
+
+    def __init__(self):
+        self.runtime_config = RuntimeConfigurationObject()
+        self.config = {}
+
+    @property
+    def implements_scaleinfo(self) -> bool:
+        if self.metadata:
+            return self.metadata.portable_registry is not None
+        else:
+            return False
+
+    def reload_type_registry(
+        self, use_remote_preset: bool = True, auto_discover: bool = True
+    ):
+        """
+        Reload type registry and preset used to instantiate the SubtrateInterface object. Useful to periodically apply
+        changes in type definitions when a runtime upgrade occurred
+
+        Parameters
+        ----------
+        use_remote_preset: When True preset is downloaded from Github master, otherwise use files from local installed scalecodec package
+        auto_discover
+
+        Returns
+        -------
+
+        """
+        self.runtime_config.clear_type_registry()
+
+        self.runtime_config.implements_scale_info = self.implements_scaleinfo
+
+        # Load metadata types in runtime configuration
+        self.runtime_config.update_type_registry(load_type_registry_preset(name="core"))
+        self.apply_type_registry_presets(
+            use_remote_preset=use_remote_preset, auto_discover=auto_discover
+        )
+
+    def apply_type_registry_presets(
+        self,
+        use_remote_preset: bool = True,
+    ):
+        if self.type_registry_preset is not None:
+            # Load type registry according to preset
+            type_registry_preset_dict = load_type_registry_preset(
+                name=self.type_registry_preset, use_remote_preset=use_remote_preset
+            )
+
+            if not type_registry_preset_dict:
+                raise ValueError(
+                    f"Type registry preset '{self.type_registry_preset}' not found"
+                )
+
+        else:
+            type_registry_preset_dict = None
+
+        if type_registry_preset_dict:
+            # Load type registries in runtime configuration
+            if self.implements_scaleinfo is False:
+                # Only runtime with no embedded types in metadata need the default set of explicit defined types
+                self.runtime_config.update_type_registry(
+                    load_type_registry_preset(
+                        "legacy", use_remote_preset=use_remote_preset
+                    )
+                )
+
+            if self.type_registry_preset != "legacy":
+                self.runtime_config.update_type_registry(type_registry_preset_dict)
+
+        if self.type_registry:
+            # Load type registries in runtime configuration
+            self.runtime_config.update_type_registry(self.type_registry)
 
 
 class RequestManager:
@@ -175,11 +282,37 @@ class Websocket:
             await asyncio.sleep(0.1)
 
 
+class RuntimeCache:
+    def __init__(self):
+        self.cache = {}
+        self.by_hash_cache = {}
+        self.metadata_cache = {}
+
+    def by_block_id(self, block_id: int) -> Optional[Runtime]:
+        if block_id in self.cache:
+            return self.cache[block_id]
+
+    def by_hash(self, block_hash: str) -> Optional[Runtime]:
+        if block_hash in self.by_hash_cache:
+            return self.cache[self.by_hash_cache[block_hash]]
+
+    def add(self, block_id: int, block_hash: str, runtime: Runtime) -> None:
+        self.cache[block_id] = runtime
+        self.by_hash_cache[block_hash] = block_id
+
+
+@all_coroutine_methods(ensure_initialized)   # TODO investigate the overhead of this
 class AsyncSubstrateInterface:
     runtime = None
     substrate = None
 
-    def __init__(self, chain_endpoint: str):
+    def __init__(
+        self,
+        chain_endpoint: str,
+        use_remote_preset=False,
+        auto_discover=True,
+        auto_reconnect=True,
+    ):
         self.chain_endpoint = chain_endpoint
         self.ws = Websocket(
             chain_endpoint,
@@ -191,8 +324,19 @@ class AsyncSubstrateInterface:
         )
         self._lock = asyncio.Lock()
         self.last_block_hash = None
+        self.runtime_cache = RuntimeCache()
+        self.config = {
+            "use_remote_preset": use_remote_preset,
+            "auto_discover": auto_discover,
+            "auto_reconnect": auto_reconnect,
+            "rpc_methods": None,
+            "strict_scale_decode": True,
+        }
 
     async def __aenter__(self):
+        await self.initialize()
+
+    async def initialize(self):
         async with self._lock:
             if not self.substrate:
                 self.substrate = SubstrateInterface(
@@ -211,6 +355,154 @@ class AsyncSubstrateInterface:
         metadata_pallet = self.substrate.metadata.get_metadata_pallet(module)
         storage_item = metadata_pallet.get_storage_function(storage_function)
         return storage_item
+
+    def _get_current_block_hash(self, block_hash: Optional[str], reuse: bool):
+        return block_hash if block_hash else (self.last_block_hash if reuse else None)
+
+    async def init_runtime(
+        self, block_hash: Optional[str] = None, block_id: Optional[int] = None
+    ) -> Runtime:
+        def get_runtime() -> Optional[Runtime]:
+            if block_id:
+                return self.runtime_cache.by_block_id(block_id)
+
+            if block_hash:
+                return self.runtime_cache.by_hash(block_hash)
+
+        if block_id and block_hash:
+            raise ValueError("Cannot provide block_hash and block_id at the same time")
+
+        if runtime := get_runtime():
+            return runtime
+
+        runtime = Runtime()
+
+        if block_id is not None:
+            block_hash = self.get_block_hash(block_id)
+
+        if not block_hash:
+            block_hash = self.get_chain_head()
+
+        runtime.block_hash = block_hash
+        runtime.block_id = block_id
+
+        # In fact calls and storage functions are decoded against runtime of previous block, therefor retrieve
+        # metadata and apply type registry of runtime of parent block
+        block_header = await self.rpc_request("chain_getHeader", [runtime.block_hash])
+
+        if block_header["result"] is None:
+            raise BlockNotFound(f'Block not found for "{runtime.block_hash}"')
+
+        parent_block_hash = block_header["result"]["parentHash"]
+
+        if (
+            parent_block_hash
+            == "0x0000000000000000000000000000000000000000000000000000000000000000"
+        ):
+            runtime_block_hash = runtime.block_hash
+        else:
+            runtime_block_hash = parent_block_hash
+
+        runtime_info = await self.get_block_runtime_version(
+            block_hash=runtime_block_hash
+        )
+
+        if runtime_info is None:
+            raise SubstrateRequestException(
+                f"No runtime information for block '{block_hash}'"
+            )
+
+        runtime.runtime_version = runtime_info.get("specVersion")
+        runtime.transaction_version = runtime_info.get("transactionVersion")
+
+        # TODO
+        if runtime.runtime_version in self.runtime_cache.metadata_cache:
+            # Get metadata from cache
+            # self.debug_message('Retrieved metadata for {} from memory'.format(self.runtime_version))
+            runtime.metadata = self.runtime_cache.metadata_cache[
+                runtime.runtime_version
+            ]
+        else:
+            runtime.metadata = self.get_block_metadata(
+                block_hash=runtime_block_hash, decode=True
+            )
+
+            # Update metadata cache
+            self.runtime_cache.metadata_cache[
+                runtime.runtime_version
+            ] = runtime.metadata
+
+        # Update type registry
+        runtime.reload_type_registry(
+            use_remote_preset=self.config.get("use_remote_preset"),
+            auto_discover=self.config.get("auto_discover"),
+        )
+
+        # Check if PortableRegistry is present in metadata (V14+), otherwise fall back on legacy type registry (<V14)
+        if runtime.implements_scaleinfo:
+            runtime.runtime_config.add_portable_registry(runtime.metadata)
+
+        # Set active runtime version
+        runtime.runtime_config.set_active_spec_version_id(runtime.runtime_version)
+
+        # Check and apply runtime constants
+        ss58_prefix_constant = await self.get_constant(  # TODO
+            "System", "SS58Prefix", block_hash=block_hash
+        )
+
+        if ss58_prefix_constant:
+            runtime.ss58_format = ss58_prefix_constant.value
+
+        # Set runtime compatibility flags
+        try:
+            _ = runtime.runtime_config.create_scale_object(
+                "sp_weights::weight_v2::Weight"
+            )
+            runtime.config["is_weight_v2"] = True
+            runtime.runtime_config.update_type_registry_types(
+                {"Weight": "sp_weights::weight_v2::Weight"}
+            )
+        except NotImplementedError:
+            runtime.config["is_weight_v2"] = False
+            runtime.runtime_config.update_type_registry_types({"Weight": "WeightV1"})
+
+        return runtime
+
+    async def get_block_runtime_version(self, block_hash: str):
+        response = await self.rpc_request("state_getRuntimeVersion", [block_hash])
+        return response.get("result")
+
+    async def get_block_metadata(self, block_hash=None, decode=True):
+        """
+        A pass-though to existing JSONRPC method `state_getMetadata`.
+
+        Parameters
+        ----------
+        block_hash
+        decode: True for decoded version
+
+        Returns
+        -------
+
+        """
+        params = None
+        if block_hash:
+            params = [block_hash]
+        response = await self.rpc_request("state_getMetadata", params)
+
+        if "error" in response:
+            raise SubstrateRequestException(response["error"]["message"])
+
+        if response.get("result") and decode:
+            # TODO
+            metadata_decoder = self.runtime_config.create_scale_object(
+                "MetadataVersioned", data=ScaleBytes(response.get("result"))
+            )
+            metadata_decoder.decode()
+
+            return metadata_decoder
+
+        return response
 
     async def _preprocess(
         self,
@@ -327,11 +619,7 @@ class AsyncSubstrateInterface:
         Makes an RPC request to the subtensor. Use this only if ``self.query`` and ``self.query_multiple`` and
         ``self.query_map`` do not meet your needs.
         """
-        block_hash = (
-            block_hash
-            if block_hash
-            else (self.last_block_hash if reuse_block_hash else None)
-        )
+        block_hash = self._get_current_block_hash(block_hash, reuse_block_hash)
         payloads = [
             {
                 "id": "rpc_request",
