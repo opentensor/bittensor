@@ -1,8 +1,4 @@
 from bittensor.commands.senate import SenateCommand
-from bittensor.commands.stake import StakeCommand
-from bittensor.commands.unstake import UnStakeCommand
-from bittensor.commands.network import RegisterSubnetworkCommand
-from bittensor.commands.register import RegisterCommand
 from ...utils import new_wallet, sudo_call_add_senate_member
 import bittensor
 

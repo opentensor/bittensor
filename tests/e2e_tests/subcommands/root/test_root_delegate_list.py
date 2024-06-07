@@ -1,10 +1,7 @@
 from bittensor.commands.delegates import ListDelegatesCommand
 from bittensor.commands.root import RootRegisterCommand
 from bittensor.commands.delegates import SetTakeCommand
-from ...utils import (
-    new_wallet,
-    call_add_proposal,
-)
+from ...utils import new_wallet
 
 
 # delegate seems hard code the network config
