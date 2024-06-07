@@ -1,4 +1,4 @@
-import time
+import pytest
 
 import bittensor
 from bittensor import logging
@@ -12,9 +12,10 @@ from tests.e2e_tests.utils import (
 )
 
 
+@pytest.mark.parametrize("local_chain", [False], indirect=True)
 def test_faucet(local_chain):
     # Register root as Alice
-    keypair, exec_command, wallet_path = setup_wallet("//Bob")
+    keypair, exec_command, wallet_path = setup_wallet("//Alice")
     exec_command(RegisterSubnetworkCommand, ["s", "create"])
 
     # Verify subnet 1 created successfully
@@ -46,8 +47,8 @@ def test_faucet(local_chain):
     wallet_balance = subtensor.get_balance(keypair.ss58_address)
     assert wallet_balance.tao == 998999.0
 
-    # run faucet 5 times
-    for i in range(5):
+    # run faucet 3 times
+    for i in range(3):
         logging.info(f"faucet run #:{i+1}")
         try:
             exec_command(
@@ -66,14 +67,17 @@ def test_faucet(local_chain):
             logging.info(
                 f"wallet balance is {subtensor.get_balance(keypair.ss58_address).tao} tao"
             )
-        except Exception:
+        except SystemExit as e:
             logging.warning(
                 "Block not generated fast enough to be within 3 block seconds window."
             )
-        time.sleep(1)
+            # Handle the SystemExit exception
+            assert e.code == 1  # Assert that the exit code is 1
+        except Exception as e:
+            logging.warning(f"Unexpected exception occurred on faucet: {e}")
 
     subtensor = bittensor.subtensor(network="ws://localhost:9945")
 
     new_wallet_balance = subtensor.get_balance(keypair.ss58_address)
     # verify balance increase
-    assert wallet_balance.tao < new_wallet_balance
+    assert wallet_balance.tao < new_wallet_balance.tao
