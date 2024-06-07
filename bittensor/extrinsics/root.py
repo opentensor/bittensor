@@ -77,10 +77,8 @@ def root_register_extrinsic(
             wait_for_finalization=wait_for_finalization,
         )
 
-        if success != True or success == False:
-            bittensor.__console__.print(
-                ":cross_mark: [red]Failed[/red]: error:{}".format(err_msg)
-            )
+        if not success:
+            bittensor.__console__.print(f":cross_mark: [red]Failed[/red]: {err_msg}")
             time.sleep(0.5)
 
         # Successful registration, final check for neuron and pubkey
@@ -205,7 +203,7 @@ def set_root_weights_extrinsic(
                 return True
             else:
                 bittensor.__console__.print(
-                    ":cross_mark: [red]Failed[/red]: error:{}".format(error_message)
+                    f":cross_mark: [red]Failed[/red]: {error_message}"
                 )
                 bittensor.logging.warning(
                     prefix="Set weights",

@@ -1,12 +1,20 @@
-import os
-import signal
-from substrateinterface import SubstrateInterface
-import pytest
-import subprocess
 import logging
-import shlex
+import os
 import re
+import shlex
+import signal
+import subprocess
 import time
+
+import pytest
+from substrateinterface import SubstrateInterface
+
+from tests.e2e_tests.utils import (
+    clone_or_update_templates,
+    install_templates,
+    uninstall_templates,
+    template_path,
+)
 
 logging.basicConfig(level=logging.INFO)
 
@@ -30,6 +38,11 @@ def local_chain():
 
     # Pattern match indicates node is compiled and ready
     pattern = re.compile(r"Successfully ran block step\.")
+
+    # install neuron templates
+    logging.info("downloading and installing neuron templates from github")
+    templates_dir = clone_or_update_templates()
+    install_templates(templates_dir)
 
     def wait_for_node_start(process, pattern):
         for line in process.stdout:
@@ -55,3 +68,7 @@ def local_chain():
 
     # Ensure the process has terminated
     process.wait()
+
+    # uninstall templates
+    logging.info("uninstalling neuron templates")
+    uninstall_templates(template_path)

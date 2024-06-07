@@ -15,14 +15,22 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import sys
 import argparse
-import bittensor
-from tqdm import tqdm
-from rich.prompt import Confirm, Prompt
-from bittensor.utils.balance import Balance
+import os
+import sys
 from typing import List, Union, Optional, Dict, Tuple
-from .utils import get_hotkey_wallets_for_wallet
+
+from rich.prompt import Confirm, Prompt
+from rich.table import Table
+from tqdm import tqdm
+
+import bittensor
+from bittensor.utils.balance import Balance
+from .utils import (
+    get_hotkey_wallets_for_wallet,
+    get_delegates_details,
+    DelegatesDetails,
+)
 from . import defaults
 
 console = bittensor.__console__
@@ -291,23 +299,6 @@ class StakeCommand:
         bittensor.subtensor.add_args(stake_parser)
 
 
-### Stake list.
-import argparse
-import bittensor
-from tqdm import tqdm
-from rich.table import Table
-from rich.prompt import Prompt
-from typing import Dict, Union, List, Tuple
-from .utils import get_delegates_details, DelegatesDetails
-from . import defaults
-
-console = bittensor.__console__
-
-import os
-import bittensor
-from typing import List, Tuple, Optional, Dict
-
-
 def _get_coldkey_wallets_for_path(path: str) -> List["bittensor.wallet"]:
     try:
         wallet_names = next(os.walk(os.path.expanduser(path)))[1]
@@ -390,9 +381,9 @@ class StakeShow:
             wallets = _get_coldkey_wallets_for_path(cli.config.wallet.path)
         else:
             wallets = [bittensor.wallet(config=cli.config)]
-        registered_delegate_info: Optional[
-            Dict[str, DelegatesDetails]
-        ] = get_delegates_details(url=bittensor.__delegates_details_url__)
+        registered_delegate_info: Optional[Dict[str, DelegatesDetails]] = (
+            get_delegates_details(url=bittensor.__delegates_details_url__)
+        )
 
         def get_stake_accounts(
             wallet, subtensor
@@ -524,7 +515,7 @@ class StakeShow:
         )
         table.add_column(
             "[overline white]Balance",
-            "\u03C4{:.5f}".format(total_balance),
+            "\u03c4{:.5f}".format(total_balance),
             footer_style="overline white",
             style="green",
         )
@@ -533,13 +524,13 @@ class StakeShow:
         )
         table.add_column(
             "[overline white]Stake",
-            "\u03C4{:.5f}".format(total_stake),
+            "\u03c4{:.5f}".format(total_stake),
             footer_style="overline white",
             style="green",
         )
         table.add_column(
             "[overline white]Rate",
-            "\u03C4{:.5f}/d".format(total_rate),
+            "\u03c4{:.5f}/d".format(total_rate),
             footer_style="overline white",
             style="green",
         )

@@ -1,3 +1,10 @@
+import re
+import time
+
+import numpy as np
+
+import bittensor
+import bittensor.utils.weight_utils as weight_utils
 from bittensor.commands import (
     RegisterCommand,
     StakeCommand,
@@ -5,22 +12,18 @@ from bittensor.commands import (
     CommitWeightCommand,
     RevealWeightCommand,
 )
-import bittensor
 from tests.e2e_tests.utils import setup_wallet
-import time
-import bittensor.utils.weight_utils as weight_utils
-import re
-import numpy as np
 
 
 def test_commit_and_reveal_weights(local_chain):
     # Register root as Alice
-    (alice_keypair, exec_command) = setup_wallet("//Alice")
+    keypair, exec_command, wallet_path = setup_wallet("//Alice")
     exec_command(RegisterSubnetworkCommand, ["s", "create"])
 
     # define values
     weights = 0.1
     uid = 0
+    salt = "18, 179, 107, 0, 165, 211, 141, 197"
 
     # Verify subnet 1 created successfully
     assert local_chain.query("SubtensorModule", "NetworksAdded", [1]).serialize()
@@ -33,9 +36,9 @@ def test_commit_and_reveal_weights(local_chain):
 
     # Create a test wallet and set the coldkey, coldkeypub, and hotkey
     wallet = bittensor.wallet(path="/tmp/btcli-wallet")
-    wallet.set_coldkey(keypair=alice_keypair, encrypt=False, overwrite=True)
-    wallet.set_coldkeypub(keypair=alice_keypair, encrypt=False, overwrite=True)
-    wallet.set_hotkey(keypair=alice_keypair, encrypt=False, overwrite=True)
+    wallet.set_coldkey(keypair=keypair, encrypt=False, overwrite=True)
+    wallet.set_coldkeypub(keypair=keypair, encrypt=False, overwrite=True)
+    wallet.set_hotkey(keypair=keypair, encrypt=False, overwrite=True)
 
     # Stake to become to top neuron after the first epoch
     exec_command(
@@ -101,6 +104,8 @@ def test_commit_and_reveal_weights(local_chain):
             str(uid),
             "--weights",
             str(weights),
+            "--salt",
+            str(salt),
             "--subtensor.network",
             "local",
             "--subtensor.chain_endpoint",
@@ -150,6 +155,8 @@ def test_commit_and_reveal_weights(local_chain):
             str(uid),
             "--weights",
             str(weights),
+            "--salt",
+            str(salt),
             "--subtensor.network",
             "local",
             "--subtensor.chain_endpoint",
@@ -161,7 +168,9 @@ def test_commit_and_reveal_weights(local_chain):
 
     # Query the Weights storage map
     revealed_weights = subtensor.query_module(
-        module="SubtensorModule", name="Weights", params=[1, uid]  # netuid and uid
+        module="SubtensorModule",
+        name="Weights",
+        params=[1, uid],  # netuid and uid
     )
 
     # Assert that the revealed weights are set correctly
