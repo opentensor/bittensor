@@ -4,7 +4,6 @@ import os
 import shutil
 import subprocess
 import sys
-import requests
 import bittensor
 
 template_path = os.getcwd() + "/neurons/"
