@@ -7,7 +7,7 @@ from ...utils import (
 )
 
 
-# Example test using the local_chain fixture
+# test case to vote the proposal
 def test_root_senate_vote(local_chain, capsys):
     (wallet, exec_command) = new_wallet("//Alice", "//Bob")
     exec_command(
