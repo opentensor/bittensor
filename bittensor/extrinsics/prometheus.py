@@ -95,7 +95,7 @@ async def prometheus_extrinsic(
         bittensor.__console__.print(
             f":white_heavy_check_mark: [green]Prometheus already Served[/green]\n"
             f"[green not bold]- Status: [/green not bold] |"
-            f"[green not bold] ip: [/green not bold][white not bold]{net.ip_to_int(neuron.prometheus_info.ip)}[/white not bold] |"
+            f"[green not bold] ip: [/green not bold][white not bold]{net.int_to_ip(int(neuron.prometheus_info.ip))}[/white not bold] |"
             f"[green not bold] ip_type: [/green not bold][white not bold]{neuron.prometheus_info.ip_type}[/white not bold] |"
             f"[green not bold] port: [/green not bold][white not bold]{neuron.prometheus_info.port}[/white not bold] | "
             f"[green not bold] version: [/green not bold][white not bold]{neuron.prometheus_info.version}[/white not bold] |"
