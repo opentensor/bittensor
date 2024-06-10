@@ -21,6 +21,7 @@ Network module provides functions to interact with the Subtensor blockchain, spe
 and setting hyperparameters.
 """
 
+import asyncio
 import time
 
 from rich.prompt import Confirm
@@ -30,7 +31,7 @@ from bittensor.utils import balance
 from ..commands.network import HYPERPARAMS
 
 
-def register_subnetwork_extrinsic(
+async def register_subnetwork_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
     wait_for_inclusion: bool = False,
@@ -50,8 +51,8 @@ def register_subnetwork_extrinsic(
         success (bool):
             Flag is ``true`` if extrinsic was finalized or included in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
-    your_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
-    burn_cost = balance.Balance(subtensor.get_subnet_burn_cost())
+    your_balance = await subtensor.get_balance(wallet.coldkeypub.ss58_address)
+    burn_cost = balance.Balance(await subtensor.get_subnet_burn_cost())
     if burn_cost > your_balance:
         bittensor.__console__.print(
             f"Your balance of: [green]{your_balance}[/green] is not enough to pay the subnet lock cost of: [green]{burn_cost}[/green]"
@@ -68,48 +69,48 @@ def register_subnetwork_extrinsic(
     wallet.coldkey  # unlock coldkey
 
     with bittensor.__console__.status(":satellite: Registering subnet..."):
-        with subtensor.substrate as substrate:
-            # create extrinsic call
-            call = substrate.compose_call(
-                call_module="SubtensorModule",
-                call_function="register_network",
-                call_params={"immunity_period": 0, "reg_allowed": True},
-            )
-            extrinsic = substrate.create_signed_extrinsic(
-                call=call, keypair=wallet.coldkey
-            )
-            response = substrate.submit_extrinsic(
-                extrinsic,
-                wait_for_inclusion=wait_for_inclusion,
-                wait_for_finalization=wait_for_finalization,
-            )
+        # create extrinsic call
+        call = await subtensor.substrate.compose_call(
+            call_module="SubtensorModule",
+            call_function="register_network",
+            call_params={"immunity_period": 0, "reg_allowed": True},
+        )
+        extrinsic = await subtensor.substrate.create_signed_extrinsic(
+            call=call, keypair=wallet.coldkey
+        )
+        response = await subtensor.substrate.submit_extrinsic(
+            extrinsic,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
 
-            # We only wait here if we expect finalization.
-            if not wait_for_finalization and not wait_for_inclusion:
-                return True
+        # We only wait here if we expect finalization.
+        if not wait_for_finalization and not wait_for_inclusion:
+            return True
 
-            # process if registration successful
-            response.process_events()
-            if not response.is_success:
-                bittensor.__console__.print(
-                    ":cross_mark: [red]Failed[/red]: error:{}".format(
-                        response.error_message
-                    )
+        # process if registration successful
+        # TODO: ? passably have to be awaited after `submit_extrinsic` implemented in `async_substrate.py`
+        response.process_events()
+        if not response.is_success:
+            bittensor.__console__.print(
+                ":cross_mark: [red]Failed[/red]: error:{}".format(
+                    response.error_message
                 )
-                time.sleep(0.5)
+            )
+            time.sleep(0.5)
 
-            # Successful registration, final check for membership
-            else:
-                attributes = find_event_attributes_in_extrinsic_receipt(
-                    response, "NetworkAdded"
-                )
-                bittensor.__console__.print(
-                    f":white_heavy_check_mark: [green]Registered subnetwork with netuid: {attributes[0]}[/green]"
-                )
-                return True
+        # Successful registration, final check for membership
+        else:
+            attributes = await find_event_attributes_in_extrinsic_receipt(
+                response, "NetworkAdded"
+            )
+            bittensor.__console__.print(
+                f":white_heavy_check_mark: [green]Registered subnetwork with netuid: {attributes[0]}[/green]"
+            )
+            return True
 
 
-def find_event_attributes_in_extrinsic_receipt(response, event_name) -> list:
+async def find_event_attributes_in_extrinsic_receipt(response, event_name) -> list:
     """
     Searches for the attributes of a specified event within an extrinsic receipt.
 
@@ -130,7 +131,7 @@ def find_event_attributes_in_extrinsic_receipt(response, event_name) -> list:
     return [-1]
 
 
-def set_hyperparameter_extrinsic(
+async def set_hyperparameter_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
     netuid: int,
@@ -155,7 +156,7 @@ def set_hyperparameter_extrinsic(
     Returns:
         success (bool): Flag is ``true`` if extrinsic was finalized or included in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
-    if subtensor.get_subnet_owner(netuid) != wallet.coldkeypub.ss58_address:
+    if await subtensor.get_subnet_owner(netuid) != wallet.coldkeypub.ss58_address:
         bittensor.__console__.print(
             ":cross_mark: [red]This wallet doesn't own the specified subnet.[/red]"
         )
@@ -173,46 +174,44 @@ def set_hyperparameter_extrinsic(
     with bittensor.__console__.status(
         f":satellite: Setting hyperparameter {parameter} to {value} on subnet: {netuid} ..."
     ):
-        with subtensor.substrate as substrate:
-            extrinsic_params = substrate.get_metadata_call_function(
-                "AdminUtils", extrinsic
-            )
-            value_argument = extrinsic_params["fields"][
-                len(extrinsic_params["fields"]) - 1
-            ]
+        extrinsic_params = await subtensor.substrate.get_metadata_call_function(
+            "AdminUtils", extrinsic
+        )
+        value_argument = extrinsic_params["fields"][len(extrinsic_params["fields"]) - 1]
 
-            # create extrinsic call
-            call = substrate.compose_call(
-                call_module="AdminUtils",
-                call_function=extrinsic,
-                call_params={"netuid": netuid, str(value_argument["name"]): value},
-            )
-            extrinsic = substrate.create_signed_extrinsic(
-                call=call, keypair=wallet.coldkey
-            )
-            response = substrate.submit_extrinsic(
-                extrinsic,
-                wait_for_inclusion=wait_for_inclusion,
-                wait_for_finalization=wait_for_finalization,
-            )
+        # create extrinsic call
+        call = await subtensor.substrate.compose_call(
+            call_module="AdminUtils",
+            call_function=extrinsic,
+            call_params={"netuid": netuid, str(value_argument["name"]): value},
+        )
+        extrinsic = await subtensor.substrate.create_signed_extrinsic(
+            call=call, keypair=wallet.coldkey
+        )
+        response = await subtensor.substrate.submit_extrinsic(
+            extrinsic,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
 
-            # We only wait here if we expect finalization.
-            if not wait_for_finalization and not wait_for_inclusion:
-                return True
+        # We only wait here if we expect finalization.
+        if not wait_for_finalization and not wait_for_inclusion:
+            return True
 
-            # process if registration successful
-            response.process_events()
-            if not response.is_success:
-                bittensor.__console__.print(
-                    ":cross_mark: [red]Failed[/red]: error:{}".format(
-                        response.error_message
-                    )
+        # process if registration successful
+        # TODO: ? passably have to be awaited after `submit_extrinsic` implemented in `async_substrate.py`
+        response.process_events()
+        if not response.is_success:
+            bittensor.__console__.print(
+                ":cross_mark: [red]Failed[/red]: error:{}".format(
+                    response.error_message
                 )
-                time.sleep(0.5)
+            )
+            await asyncio.sleep(0.5)
 
-            # Successful registration, final check for membership
-            else:
-                bittensor.__console__.print(
-                    f":white_heavy_check_mark: [green]Hyper parameter {parameter} changed to {value}[/green]"
-                )
-                return True
+        # Successful registration, final check for membership
+        else:
+            bittensor.__console__.print(
+                f":white_heavy_check_mark: [green]Hyper parameter {parameter} changed to {value}[/green]"
+            )
+            return True
