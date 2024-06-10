@@ -302,15 +302,7 @@ class SubnetListCommand:
                         bittensor.Balance.from_rao( dynamic_info[subnet.netuid]["alpha_outstanding"] ).set_unit(subnet.netuid) if is_dtao else bittensor.Balance.from_tao( tao_locked.tao ).set_unit(subnet.netuid) 
                     ),
                     (
-                        "{:.8}/τ".format(
-                            str(
-                                bittensor.Balance.from_tao(
-                                    dynamic_info[subnet.netuid]["price"]
-                                ).set_unit(subnet.netuid)
-                            )
-                        )
-                        if is_dtao
-                        else f"{bittensor.Balance.from_tao( 1.0 ).set_unit(subnet.netuid)}/τ"
+                        "{:.8}{}".format(dynamic_info[subnet.netuid]["price"], f"τ/{bittensor.Balance.get_unit(subnet.netuid)}") if is_dtao else f"{1.0}τ/{bittensor.Balance.get_unit(subnet.netuid)}"
                     ),
                     str(subnet.tempo),
                     f"{subnet.burn!s:8.8}",
