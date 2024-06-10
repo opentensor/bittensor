@@ -71,6 +71,7 @@ class Runtime:
         self.runtime_config = RuntimeConfigurationObject()
         self.config = {}
         self.chain = chain
+        self.type_registry = bittensor.__type_registry__
 
     @property
     def implements_scaleinfo(self) -> bool:
@@ -452,7 +453,7 @@ class AsyncSubstrateInterface:
             ]
         else:
             runtime.metadata = self.get_block_metadata(
-                block_hash=runtime_block_hash, decode=True
+                block_hash=runtime_block_hash, decode=True, runtime_config=runtime.runtime_config
             )
 
             # Update metadata cache
@@ -500,7 +501,7 @@ class AsyncSubstrateInterface:
         response = await self.rpc_request("state_getRuntimeVersion", [block_hash])
         return response.get("result")
 
-    async def get_block_metadata(self, block_hash=None, decode=True):
+    async def get_block_metadata(self, block_hash=None, decode=True, runtime_config: RuntimeConfigurationObject = None):
         """
         A pass-though to existing JSONRPC method `state_getMetadata`.
 
@@ -514,6 +515,9 @@ class AsyncSubstrateInterface:
 
         """
         params = None
+        if decode and not runtime_config:
+            raise ValueError("Cannot decode runtime configuration without a supplied runtime_config")
+
         if block_hash:
             params = [block_hash]
         response = await self.rpc_request("state_getMetadata", params)
@@ -522,8 +526,7 @@ class AsyncSubstrateInterface:
             raise SubstrateRequestException(response["error"]["message"])
 
         if response.get("result") and decode:
-            # TODO
-            metadata_decoder = self.runtime_config.create_scale_object(
+            metadata_decoder = runtime_config.create_scale_object(
                 "MetadataVersioned", data=ScaleBytes(response.get("result"))
             )
             metadata_decoder.decode()
