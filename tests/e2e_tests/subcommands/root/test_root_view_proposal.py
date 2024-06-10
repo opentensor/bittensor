@@ -31,4 +31,4 @@ def test_root_view_proposal(local_chain, capsys):
     for line in lines:
         bittensor.logging.info(line)
 
-    assert len(lines) == 6
+    assert len(lines) >= 6

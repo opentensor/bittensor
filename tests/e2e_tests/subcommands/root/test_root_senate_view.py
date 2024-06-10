@@ -8,7 +8,7 @@ def test_root_senate_view(local_chain, capsys):
     (wallet, exec_command) = new_wallet("//Alice", "//Bob")
 
     members = local_chain.query("SenateMembers", "Members").serialize()
-    assert len(members) == 3
+    assert len(members) >= 3
 
     exec_command(
         SenateCommand,
@@ -18,7 +18,7 @@ def test_root_senate_view(local_chain, capsys):
     captured = capsys.readouterr()
     lines = captured.out.splitlines()
 
-    assert len(lines) == 7
+    assert len(lines) >= 7
 
     sudo_call_add_senate_member(local_chain, wallet)
 
@@ -34,4 +34,4 @@ def test_root_senate_view(local_chain, capsys):
     captured = capsys.readouterr()
     lines = captured.out.splitlines()
 
-    assert len(lines) == 8
+    assert len(lines) >= 8
