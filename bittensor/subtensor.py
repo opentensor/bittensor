@@ -366,8 +366,8 @@ class subtensor:
         """
         prefix_str = "" if prefix is None else f"{prefix}."
         try:
-            default_network = bittensor.__networks__[1]
-            default_chain_endpoint = bittensor.__finney_entrypoint__
+            default_network = "dtao"
+            default_chain_endpoint = bittensor.__dtao_entrypoint__
 
             parser.add_argument(
                 f"--{prefix_str}subtensor.network",
