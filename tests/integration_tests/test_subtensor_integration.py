@@ -380,7 +380,7 @@ class TestSubtensor(unittest.TestCase):
         self.subtensor.commit_weights = MagicMock(
             return_value=(True, "Successfully committed weights.")
         )
-        self.subtensor._do_commit_weights = MagicMock(return_value=(True, None))
+        self.subtensor.do_commit_weights = MagicMock(return_value=(True, None))
 
         success, message = self.subtensor.commit_weights(
             wallet=self.wallet, netuid=3, uids=uids, weights=weights, salt=salt
@@ -406,7 +406,7 @@ class TestSubtensor(unittest.TestCase):
             version_key=0,
         )
 
-        self.subtensor._do_commit_weights = MagicMock(return_value=(True, None))
+        self.subtensor.do_commit_weights = MagicMock(return_value=(True, None))
         self.subtensor.commit_weights = MagicMock(
             return_value=(True, "Successfully committed weights.")
         )
@@ -440,7 +440,7 @@ class TestSubtensor(unittest.TestCase):
             version_key=0,
         )
 
-        self.subtensor._do_commit_weights = MagicMock(
+        self.subtensor.do_commit_weights = MagicMock(
             return_value=(False, "Mock failure message")
         )
         self.subtensor.commit_weights = MagicMock(
@@ -466,7 +466,7 @@ class TestSubtensor(unittest.TestCase):
         self.subtensor.reveal_weights = MagicMock(
             return_value=(True, "Successfully revealed weights.")
         )
-        self.subtensor._do_reveal_weights = MagicMock(return_value=(True, None))
+        self.subtensor.do_reveal_weights = MagicMock(return_value=(True, None))
 
         success, message = self.subtensor.reveal_weights(
             wallet=self.wallet,
@@ -484,7 +484,7 @@ class TestSubtensor(unittest.TestCase):
         uids = np.array([1, 2, 3, 4], dtype=np.int64)
         salt = np.array([1, 2, 3, 4, 5, 6, 7, 8], dtype=np.int64)
 
-        self.subtensor._do_reveal_weights = MagicMock(return_value=(True, None))
+        self.subtensor.do_reveal_weights = MagicMock(return_value=(True, None))
         self.subtensor.reveal_weights = MagicMock(
             return_value=(True, "Successfully revealed weights.")
         )
@@ -506,7 +506,7 @@ class TestSubtensor(unittest.TestCase):
         uids = np.array([1, 2, 3, 4], dtype=np.int64)
         salt = np.array([1, 2, 3, 4, 5, 6, 7, 8], dtype=np.int64)
 
-        self.subtensor._do_reveal_weights = MagicMock(
+        self.subtensor.do_reveal_weights = MagicMock(
             return_value=(False, "Mock failure message")
         )
         self.subtensor.reveal_weights = MagicMock(
@@ -535,11 +535,11 @@ class TestSubtensor(unittest.TestCase):
         self.subtensor.commit_weights = MagicMock(
             return_value=(True, "Successfully committed weights.")
         )
-        self.subtensor._do_commit_weights = MagicMock(return_value=(True, None))
+        self.subtensor.do_commit_weights = MagicMock(return_value=(True, None))
         self.subtensor.reveal_weights = MagicMock(
             return_value=(True, "Successfully revealed weights.")
         )
-        self.subtensor._do_reveal_weights = MagicMock(return_value=(True, None))
+        self.subtensor.do_reveal_weights = MagicMock(return_value=(True, None))
 
         # Commit weights
         commit_success, commit_message = self.subtensor.commit_weights(
@@ -574,11 +574,11 @@ class TestSubtensor(unittest.TestCase):
         self.subtensor.commit_weights = MagicMock(
             return_value=(True, "Successfully committed weights.")
         )
-        self.subtensor._do_commit_weights = MagicMock(return_value=(True, None))
+        self.subtensor.do_commit_weights = MagicMock(return_value=(True, None))
         self.subtensor.reveal_weights = MagicMock(
             return_value=(True, "Successfully revealed weights.")
         )
-        self.subtensor._do_reveal_weights = MagicMock(return_value=(True, None))
+        self.subtensor.do_reveal_weights = MagicMock(return_value=(True, None))
 
         # Commit weights with wait_for_inclusion
         commit_success, commit_message = self.subtensor.commit_weights(

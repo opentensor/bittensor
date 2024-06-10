@@ -430,9 +430,9 @@ class MockSubtensor(Subtensor):
             subtensor_state["Active"][netuid][uid][self.block_number] = True
 
             subtensor_state["LastUpdate"][netuid][uid] = {}
-            subtensor_state["LastUpdate"][netuid][uid][
+            subtensor_state["LastUpdate"][netuid][uid][self.block_number] = (
                 self.block_number
-            ] = self.block_number
+            )
 
             subtensor_state["Rank"][netuid][uid] = {}
             subtensor_state["Rank"][netuid][uid][self.block_number] = 0.0
@@ -1005,7 +1005,7 @@ class MockSubtensor(Subtensor):
         return neurons
 
     # Extrinsics
-    def _do_delegation(
+    def do_delegation(
         self,
         wallet: "wallet",
         delegate_ss58: str,
@@ -1028,7 +1028,7 @@ class MockSubtensor(Subtensor):
 
         return success
 
-    def _do_undelegation(
+    def do_undelegation(
         self,
         wallet: "wallet",
         delegate_ss58: str,
@@ -1049,7 +1049,7 @@ class MockSubtensor(Subtensor):
             wait_for_finalization=wait_for_finalization,
         )
 
-    def _do_nominate(
+    def do_nominate(
         self,
         wallet: "wallet",
         wait_for_inclusion: bool = True,
@@ -1064,9 +1064,9 @@ class MockSubtensor(Subtensor):
 
         else:
             subtensor_state["Delegates"][hotkey_ss58] = {}
-            subtensor_state["Delegates"][hotkey_ss58][
-                self.block_number
-            ] = 0.18  # Constant for now
+            subtensor_state["Delegates"][hotkey_ss58][self.block_number] = (
+                0.18  # Constant for now
+            )
 
             return True
 
@@ -1189,9 +1189,9 @@ class MockSubtensor(Subtensor):
         if not wallet.coldkeypub.ss58_address in stake_state[hotkey_ss58]:
             stake_state[hotkey_ss58][wallet.coldkeypub.ss58_address] = {}
 
-        stake_state[hotkey_ss58][wallet.coldkeypub.ss58_address][
-            self.block_number
-        ] = amount.rao
+        stake_state[hotkey_ss58][wallet.coldkeypub.ss58_address][self.block_number] = (
+            amount.rao
+        )
 
         # Add to total_stake storage
         subtensor_state["TotalStake"][self.block_number] = (
@@ -1275,9 +1275,9 @@ class MockSubtensor(Subtensor):
         total_hotkey_stake_state = subtensor_state["TotalHotkeyStake"]
         if not hotkey_ss58 in total_hotkey_stake_state:
             total_hotkey_stake_state[hotkey_ss58] = {}
-            total_hotkey_stake_state[hotkey_ss58][
-                self.block_number
-            ] = 0  # Shouldn't happen
+            total_hotkey_stake_state[hotkey_ss58][self.block_number] = (
+                0  # Shouldn't happen
+            )
 
         total_coldkey_stake_state = subtensor_state["TotalColdkeyStake"]
         if not wallet.coldkeypub.ss58_address in total_coldkey_stake_state:
