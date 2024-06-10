@@ -73,7 +73,7 @@ def _get_real_torch():
 
 
 def log_no_torch_error():
-    bittensor.btlogging.error(
+    bittensor.btlogging.logging.error(
         "This command requires torch. You can install torch for bittensor"
         ' with `pip install bittensor[torch]` or `pip install ".[torch]"`'
         " if installing from source, and then run the command with USE_TORCH=1 {command}"

@@ -698,7 +698,7 @@ class TestSubtensor(unittest.TestCase):
                 self.subtensor.get_neuron_for_pubkey_and_subnet = MagicMock(
                     side_effect=mock_neuron
                 )
-                self.subtensor._do_pow_register = MagicMock(return_value=(True, None))
+                self.subtensor.do_pow_register = MagicMock(return_value=(True, None))
 
                 with patch("bittensor.__console__.status") as mock_set_status:
                     # Need to patch the console status to avoid opening a parallel live display
@@ -742,7 +742,7 @@ class TestSubtensor(unittest.TestCase):
 
         self.subtensor.difficulty = MagicMock(return_value=1)
         self.subtensor.get_current_block = MagicMock(side_effect=current_block)
-        self.subtensor._do_pow_register = do_pow_register_mock
+        self.subtensor.do_pow_register = do_pow_register_mock
 
         # should return True
         self.assertTrue(
@@ -777,7 +777,7 @@ class TestSubtensor(unittest.TestCase):
             self.subtensor.substrate.get_block_hash = MagicMock(
                 return_value="0x" + "0" * 64
             )
-            self.subtensor._do_pow_register = MagicMock(return_value=(False, "Failed"))
+            self.subtensor.do_pow_register = MagicMock(return_value=(False, "Failed"))
 
             # should return True
             self.assertIsNot(

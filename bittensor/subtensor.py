@@ -1364,7 +1364,7 @@ class Subtensor:
             prompt=prompt,
         )
 
-    async def _do_pow_register(
+    async def do_pow_register(
         self,
         netuid: int,
         wallet: "bittensor.wallet",
@@ -1426,7 +1426,7 @@ class Subtensor:
 
         return await make_substrate_call_with_retry()
 
-    async def _do_burned_register(
+    async def do_burned_register(
         self,
         netuid: int,
         wallet: "bittensor.wallet",
@@ -1483,7 +1483,7 @@ class Subtensor:
 
         return await make_substrate_call_with_retry()
 
-    async def _do_swap_hotkey(
+    async def do_swap_hotkey(
         self,
         wallet: "bittensor.wallet",
         new_wallet: "bittensor.wallet",
