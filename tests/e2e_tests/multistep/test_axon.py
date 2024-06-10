@@ -10,7 +10,7 @@ from bittensor.commands import (
     RegisterSubnetworkCommand,
 )
 from tests.e2e_tests.utils import (
-    setup_wallet,
+    setup_wallet_with_path,
     template_path,
     repo_name,
 )
@@ -19,7 +19,7 @@ from tests.e2e_tests.utils import (
 @pytest.mark.asyncio
 async def test_axon(local_chain):
     # Register root as Alice
-    alice_keypair, exec_command, wallet_path = setup_wallet("//Alice")
+    alice_keypair, exec_command, wallet_path = setup_wallet_with_path("//Alice")
     exec_command(RegisterSubnetworkCommand, ["s", "create"])
 
     # Verify subnet 1 created successfully
