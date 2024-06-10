@@ -67,9 +67,10 @@ class Runtime:
     metadata = None
     type_registry_preset = None
 
-    def __init__(self):
+    def __init__(self, chain):
         self.runtime_config = RuntimeConfigurationObject()
         self.config = {}
+        self.chain = chain
 
     @property
     def implements_scaleinfo(self) -> bool:
@@ -105,8 +106,9 @@ class Runtime:
         )
 
     def apply_type_registry_presets(
-        self,
-        use_remote_preset: bool = True,
+            self,
+            use_remote_preset: bool = True,
+            auto_discover: bool = True,
     ):
         if self.type_registry_preset is not None:
             # Load type registry according to preset
@@ -118,6 +120,15 @@ class Runtime:
                 raise ValueError(
                     f"Type registry preset '{self.type_registry_preset}' not found"
                 )
+
+        elif auto_discover:
+            # Try to auto discover type registry preset by chain name
+            type_registry_name = self.chain.lower().replace(' ', '-')
+            try:
+                type_registry_preset_dict = load_type_registry_preset(type_registry_name)
+                self.type_registry_preset = type_registry_name
+            except ValueError:
+                type_registry_preset_dict = None
 
         else:
             type_registry_preset_dict = None
@@ -321,6 +332,7 @@ class AsyncSubstrateInterface:
         auto_reconnect=True,
     ):
         self.chain_endpoint = chain_endpoint
+        self.__chain = None
         self.ws = Websocket(
             chain_endpoint,
             options={
@@ -358,6 +370,12 @@ class AsyncSubstrateInterface:
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         pass
+    
+    async def get_chain(self):
+        if self.__chain is None:
+            with self._lock:
+                self.__chain = (await self.rpc_request("system_chain", [])).get('result')
+        return self.__chain
 
     async def get_storage_item(self, module: str, storage_function: str):
         if not self.substrate.metadata:
@@ -385,7 +403,7 @@ class AsyncSubstrateInterface:
         if runtime := get_runtime():
             return runtime
 
-        runtime = Runtime()
+        runtime = Runtime(await self.get_chain())
 
         if block_id is not None:
             block_hash = self.get_block_hash(block_id)
