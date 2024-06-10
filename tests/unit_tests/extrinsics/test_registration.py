@@ -206,7 +206,7 @@ def test_swap_hotkey_extrinsic(
     # Arrange
     with patch.object(
         mock_subtensor,
-        "_do_swap_hotkey",
+        "do_swap_hotkey",
         return_value=(swap_success, "Mock error message"),
     ):
         with patch(
@@ -265,7 +265,7 @@ def test_burned_register_extrinsic(
         return_value=MagicMock(is_null=neuron_is_null),
     ), patch.object(
         mock_subtensor,
-        "_do_burned_register",
+        "do_burned_register",
         return_value=(recycle_success, "Mock error message"),
     ), patch.object(
         mock_subtensor, "is_hotkey_registered", return_value=is_registered
@@ -368,7 +368,7 @@ def test_register_extrinsic_with_pow(
         return_value=mock_pow_solution if pow_success else None,
     ), patch.object(
         mock_subtensor,
-        "_do_pow_register",
+        "do_pow_register",
         return_value=(registration_success, "key is already registered"),
     ), patch("torch.cuda.is_available", return_value=cuda):
         # Act

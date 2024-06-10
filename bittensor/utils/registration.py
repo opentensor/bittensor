@@ -73,7 +73,7 @@ def _get_real_torch():
 
 
 def log_no_torch_error():
-    bittensor.btlogging.error(
+    bittensor.btlogging.logging.error(
         "This command requires torch. You can install torch for bittensor"
         ' with `pip install bittensor[torch]` or `pip install ".[torch]"`'
         " if installing from source, and then run the command with USE_TORCH=1 {command}"
@@ -133,11 +133,11 @@ class POWSolution:
     difficulty: int
     seal: bytes
 
-    def is_stale(self, subtensor: "bittensor.subtensor") -> bool:
+    async def is_stale(self, subtensor: "bittensor.subtensor") -> bool:
         """Returns True if the POW is stale.
         This means the block the POW is solved for is within 3 blocks of the current block.
         """
-        return self.block_number < subtensor.get_current_block() - 3
+        return self.block_number < await subtensor.get_current_block() - 3
 
 
 class _SolverBase(multiprocessing.Process):
@@ -469,7 +469,8 @@ class RegistrationStatistics:
     hash_rate: float
     difficulty: int
     block_number: int
-    block_hash: bytes
+    # TODO: lets make sure the E2E tests run and pass (Roman, Den)
+    block_hash: str
 
 
 class RegistrationStatisticsLogger:
@@ -523,7 +524,7 @@ class RegistrationStatisticsLogger:
             self.console.log(self.get_status_message(stats, verbose=verbose))
 
 
-def _solve_for_difficulty_fast(
+async def _solve_for_difficulty_fast(
     subtensor,
     wallet: "bittensor.wallet",
     netuid: int,
@@ -561,7 +562,7 @@ def _solve_for_difficulty_fast(
         while still updating the block information after a different number of nonces,
         to increase the transparency of the process while still keeping the speed.
     """
-    if num_processes == None:
+    if num_processes is None:
         # get the number of allowed processes for this process
         num_processes = min(1, get_cpu_count())
 
@@ -573,9 +574,9 @@ def _solve_for_difficulty_fast(
     curr_block, curr_block_num, curr_diff = _Solver.create_shared_memory()
 
     # Establish communication queues
-    ## See the _Solver class for more information on the queues.
-    stopEvent = multiprocessing.Event()
-    stopEvent.clear()
+    # See the _Solver class for more information on the queues.
+    stop_event = multiprocessing.Event()
+    stop_event.clear()
 
     solution_queue = multiprocessing.Queue()
     finished_queues = [multiprocessing.Queue() for _ in range(num_processes)]
@@ -592,7 +593,7 @@ def _solve_for_difficulty_fast(
             update_interval,
             finished_queues[i],
             solution_queue,
-            stopEvent,
+            stop_event,
             curr_block,
             curr_block_num,
             curr_diff,
@@ -603,7 +604,7 @@ def _solve_for_difficulty_fast(
     ]
 
     # Get first block
-    block_number, difficulty, block_hash = _get_block_with_retry(
+    block_number, difficulty, block_hash = await _get_block_with_retry(
         subtensor=subtensor, netuid=netuid
     )
 
@@ -667,7 +668,7 @@ def _solve_for_difficulty_fast(
             pass
 
         # check for new block
-        old_block_number = _check_for_newest_block_and_update(
+        old_block_number = await _check_for_newest_block_and_update(
             subtensor=subtensor,
             netuid=netuid,
             hotkey_bytes=hotkey_bytes,
@@ -723,19 +724,19 @@ def _solve_for_difficulty_fast(
         logger.update(curr_stats, verbose=log_verbose)
 
     # exited while, solution contains the nonce or wallet is registered
-    stopEvent.set()  # stop all other processes
+    stop_event.set()  # stop all other processes
     logger.stop()
 
     # terminate and wait for all solvers to exit
-    _terminate_workers_and_wait_for_exit(solvers)
+    await _terminate_workers_and_wait_for_exit(solvers)
 
     return solution
 
 
 @backoff.on_exception(backoff.constant, Exception, interval=1, max_tries=3)
-def _get_block_with_retry(
+async def _get_block_with_retry(
     subtensor: "bittensor.subtensor", netuid: int
-) -> Tuple[int, int, bytes]:
+) -> Tuple[int, int, str]:
     """
     Gets the current block number, difficulty, and block hash from the substrate node.
 
@@ -760,9 +761,11 @@ def _get_block_with_retry(
         Exception: If the block hash is None.
         ValueError: If the difficulty is None.
     """
-    block_number = subtensor.get_current_block()
-    difficulty = 1_000_000 if netuid == -1 else subtensor.difficulty(netuid=netuid)
-    block_hash = subtensor.get_block_hash(block_number)
+    block_number = await subtensor.get_current_block()
+    difficulty = (
+        1_000_000 if netuid == -1 else await subtensor.difficulty(netuid=netuid)
+    )
+    block_hash = await subtensor.get_block_hash(block_number)
     if block_hash is None:
         raise Exception(
             "Network error. Could not connect to substrate to get block hash"
@@ -779,7 +782,7 @@ class _UsingSpawnStartMethod:
 
     def __enter__(self):
         self._old_start_method = multiprocessing.get_start_method(allow_none=True)
-        if self._old_start_method == None:
+        if self._old_start_method is None:
             self._old_start_method = "spawn"  # default to spawn
 
         multiprocessing.set_start_method("spawn", force=self._force)
@@ -789,7 +792,7 @@ class _UsingSpawnStartMethod:
         multiprocessing.set_start_method(self._old_start_method, force=True)
 
 
-def _check_for_newest_block_and_update(
+async def _check_for_newest_block_and_update(
     subtensor: "bittensor.subtensor",
     netuid: int,
     old_block_number: int,
@@ -832,11 +835,11 @@ def _check_for_newest_block_and_update(
     Returns:
         (int) The current block number.
     """
-    block_number = subtensor.get_current_block()
+    block_number = await subtensor.get_current_block()
     if block_number != old_block_number:
         old_block_number = block_number
         # update block information
-        block_number, difficulty, block_hash = _get_block_with_retry(
+        block_number, difficulty, block_hash = await _get_block_with_retry(
             subtensor=subtensor, netuid=netuid
         )
         block_bytes = bytes.fromhex(block_hash[2:])
@@ -864,7 +867,7 @@ def _check_for_newest_block_and_update(
     return old_block_number
 
 
-def _solve_for_difficulty_fast_cuda(
+async def _solve_for_difficulty_fast_cuda(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
     netuid: int,
@@ -918,12 +921,12 @@ def _solve_for_difficulty_fast_cuda(
     with _UsingSpawnStartMethod(force=True):
         curr_block, curr_block_num, curr_diff = _CUDASolver.create_shared_memory()
 
-        ## Create a worker per CUDA device
+        # Create a worker per CUDA device
         num_processes = len(dev_id)
 
         # Establish communication queues
-        stopEvent = multiprocessing.Event()
-        stopEvent.clear()
+        stop_event = multiprocessing.Event()
+        stop_event.clear()
         solution_queue = multiprocessing.Queue()
         finished_queues = [multiprocessing.Queue() for _ in range(num_processes)]
         check_block = multiprocessing.Lock()
@@ -937,7 +940,7 @@ def _solve_for_difficulty_fast_cuda(
                 update_interval,
                 finished_queues[i],
                 solution_queue,
-                stopEvent,
+                stop_event,
                 curr_block,
                 curr_block_num,
                 curr_diff,
@@ -950,7 +953,7 @@ def _solve_for_difficulty_fast_cuda(
         ]
 
         # Get first block
-        block_number, difficulty, block_hash = _get_block_with_retry(
+        block_number, difficulty, block_hash = await _get_block_with_retry(
             subtensor=subtensor, netuid=netuid
         )
 
@@ -1001,7 +1004,7 @@ def _solve_for_difficulty_fast_cuda(
         weights = [alpha_**i for i in range(n_samples)]  # weights decay by alpha
 
         solution = None
-        while netuid == -1 or not subtensor.is_hotkey_registered(
+        while netuid == -1 or not await subtensor.is_hotkey_registered(
             netuid=netuid, hotkey_ss58=wallet.hotkey.ss58_address
         ):
             # Wait until a solver finds a solution
@@ -1014,7 +1017,7 @@ def _solve_for_difficulty_fast_cuda(
                 pass
 
             # check for new block
-            old_block_number = _check_for_newest_block_and_update(
+            old_block_number = await _check_for_newest_block_and_update(
                 subtensor=subtensor,
                 netuid=netuid,
                 hotkey_bytes=hotkey_bytes,
@@ -1072,16 +1075,16 @@ def _solve_for_difficulty_fast_cuda(
 
         # exited while, found_solution contains the nonce or wallet is registered
 
-        stopEvent.set()  # stop all other processes
+        stop_event.set()  # stop all other processes
         logger.stop()
 
         # terminate and wait for all solvers to exit
-        _terminate_workers_and_wait_for_exit(solvers)
+        await _terminate_workers_and_wait_for_exit(solvers)
 
         return solution
 
 
-def _terminate_workers_and_wait_for_exit(
+async def _terminate_workers_and_wait_for_exit(
     workers: List[multiprocessing.Process],
 ) -> None:
     for worker in workers:
@@ -1089,7 +1092,7 @@ def _terminate_workers_and_wait_for_exit(
         worker.join()
 
 
-def create_pow(
+async def create_pow(
     subtensor,
     wallet,
     netuid: int,
@@ -1103,45 +1106,31 @@ def create_pow(
 ) -> Optional[Dict[str, Any]]:
     """
     Creates a proof of work for the given subtensor and wallet.
+
     Args:
-        subtensor (:obj:`bittensor.subtensor.subtensor`, `required`):
-            The subtensor to create a proof of work for.
-        wallet (:obj:`bittensor.wallet.wallet`, `required`):
-            The wallet to create a proof of work for.
-        netuid (:obj:`int`, `required`):
-            The netuid for the subnet to create a proof of work for.
-        output_in_place (:obj:`bool`, `optional`, defaults to :obj:`True`):
-            If true, prints the progress of the proof of work to the console
-                in-place. Meaning the progress is printed on the same lines.
-        cuda (:obj:`bool`, `optional`, defaults to :obj:`False`):
-            If true, uses CUDA to solve the proof of work.
-        dev_id (:obj:`Union[List[int], int]`, `optional`, defaults to :obj:`0`):
-            The CUDA device id(s) to use. If cuda is true and dev_id is a list,
-                then multiple CUDA devices will be used to solve the proof of work.
-        tpb (:obj:`int`, `optional`, defaults to :obj:`256`):
-            The number of threads per block to use when solving the proof of work.
-            Should be a multiple of 32.
-        num_processes (:obj:`int`, `optional`, defaults to :obj:`None`):
-            The number of processes to use when solving the proof of work.
-            If None, then the number of processes is equal to the number of
-                CPU cores.
-        update_interval (:obj:`int`, `optional`, defaults to :obj:`None`):
-            The number of nonces to run before checking for a new block.
-        log_verbose (:obj:`bool`, `optional`, defaults to :obj:`False`):
-            If true, prints the progress of the proof of work more verbosely.
+        subtensor (:obj:`bittensor.subtensor.subtensor`, `required`): The subtensor to create a proof of work for.
+        wallet (:obj:`bittensor.wallet.wallet`, `required`): The wallet to create a proof of work for.
+        netuid (:obj:`int`, `required`): The netuid for the subnet to create a proof of work for.
+        output_in_place (:obj:`bool`, `optional`, defaults to :obj:`True`): If true, prints the progress of the proof of work to the console in-place. Meaning the progress is printed on the same lines.
+        cuda (:obj:`bool`, `optional`, defaults to :obj:`False`): If true, uses CUDA to solve the proof of work.
+        dev_id (:obj:`Union[List[int], int]`, `optional`, defaults to :obj:`0`): The CUDA device id(s) to use. If cuda is true and dev_id is a list, then multiple CUDA devices will be used to solve the proof of work.
+        tpb (:obj:`int`, `optional`, defaults to :obj:`256`): The number of threads per block to use when solving the proof of work. Should be a multiple of 32.
+        num_processes (:obj:`int`, `optional`, defaults to :obj:`None`): The number of processes to use when solving the proof of work. If None, then the number of processes is equal to the number of CPU cores.
+        update_interval (:obj:`int`, `optional`, defaults to :obj:`None`): The number of nonces to run before checking for a new block.
+        log_verbose (:obj:`bool`, `optional`, defaults to :obj:`False`): If true, prints the progress of the proof of work more verbosely.
+
     Returns:
-        :obj:`Optional[Dict[str, Any]]`: The proof of work solution or None if
-            the wallet is already registered or there is a different error.
+        :obj:`Optional[Dict[str, Any]]`: The proof of work solution or None if the wallet is already registered or there is a different error.
 
     Raises:
         :obj:`ValueError`: If the subnet does not exist.
     """
     if netuid != -1:
-        if not subtensor.subnet_exists(netuid=netuid):
+        if not await subtensor.subnet_exists(netuid=netuid):
             raise ValueError(f"Subnet {netuid} does not exist")
 
     if cuda:
-        solution: Optional[POWSolution] = _solve_for_difficulty_fast_cuda(
+        solution: Optional[POWSolution] = await _solve_for_difficulty_fast_cuda(
             subtensor,
             wallet,
             netuid=netuid,
@@ -1152,7 +1141,7 @@ def create_pow(
             log_verbose=log_verbose,
         )
     else:
-        solution: Optional[POWSolution] = _solve_for_difficulty_fast(
+        solution: Optional[POWSolution] = await _solve_for_difficulty_fast(
             subtensor,
             wallet,
             netuid=netuid,

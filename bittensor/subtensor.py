@@ -1171,7 +1171,7 @@ class Subtensor:
     ################
     # Registration #
     ################
-    def register(
+    async def register(
         self,
         wallet: "bittensor.wallet",
         netuid: int,
@@ -1216,7 +1216,7 @@ class Subtensor:
         This function facilitates the entry of new neurons into the network, supporting the decentralized
         growth and scalability of the Bittensor ecosystem.
         """
-        return register_extrinsic(
+        return await register_extrinsic(
             subtensor=self,
             wallet=wallet,
             netuid=netuid,
@@ -1233,7 +1233,7 @@ class Subtensor:
             log_verbose=log_verbose,
         )
 
-    def swap_hotkey(
+    async def swap_hotkey(
         self,
         wallet: "bittensor.wallet",
         new_wallet: "bittensor.wallet",
@@ -1258,7 +1258,7 @@ class Subtensor:
         Returns:
             bool: True if the hotkey swap was successful, False otherwise.
         """
-        return swap_hotkey_extrinsic(
+        return await swap_hotkey_extrinsic(
             subtensor=self,
             wallet=wallet,
             new_wallet=new_wallet,
@@ -1267,7 +1267,7 @@ class Subtensor:
             prompt=prompt,
         )
 
-    def run_faucet(
+    async def run_faucet(
         self,
         wallet: "bittensor.wallet",
         wait_for_inclusion: bool = False,
@@ -1314,7 +1314,7 @@ class Subtensor:
             This is for testnet ONLY and is disabled currently. You must build your own staging subtensor chain with the
             ``--features pow-faucet`` argument to enable this.
         """
-        result, _ = run_faucet_extrinsic(
+        result, _ = await run_faucet_extrinsic(
             subtensor=self,
             wallet=wallet,
             wait_for_inclusion=wait_for_inclusion,
@@ -1331,7 +1331,7 @@ class Subtensor:
         )
         return result
 
-    def burned_register(
+    async def burned_register(
         self,
         wallet: "bittensor.wallet",
         netuid: int,
@@ -1355,7 +1355,7 @@ class Subtensor:
         Returns:
             bool: ``True`` if the registration is successful, False otherwise.
         """
-        return burned_register_extrinsic(
+        return await burned_register_extrinsic(
             subtensor=self,
             wallet=wallet,
             netuid=netuid,
@@ -1364,7 +1364,7 @@ class Subtensor:
             prompt=prompt,
         )
 
-    async def _do_pow_register(
+    async def do_pow_register(
         self,
         netuid: int,
         wallet: "bittensor.wallet",
@@ -1426,7 +1426,7 @@ class Subtensor:
 
         return await make_substrate_call_with_retry()
 
-    async def _do_burned_register(
+    async def do_burned_register(
         self,
         netuid: int,
         wallet: "bittensor.wallet",
@@ -1483,7 +1483,7 @@ class Subtensor:
 
         return await make_substrate_call_with_retry()
 
-    async def _do_swap_hotkey(
+    async def do_swap_hotkey(
         self,
         wallet: "bittensor.wallet",
         new_wallet: "bittensor.wallet",
@@ -1922,7 +1922,8 @@ class Subtensor:
 
         return await make_substrate_call_with_retry()
 
-    def serve_prometheus(
+    # TODO: Is this used somewhere outside of Bittensor? Not inside.
+    async def serve_prometheus(
         self,
         wallet: "bittensor.wallet",
         port: int,
@@ -1930,7 +1931,7 @@ class Subtensor:
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
     ) -> bool:
-        return prometheus_extrinsic(
+        return await prometheus_extrinsic(
             self,
             wallet=wallet,
             port=port,
@@ -1939,7 +1940,7 @@ class Subtensor:
             wait_for_finalization=wait_for_finalization,
         )
 
-    async def _do_serve_prometheus(
+    async def do_serve_prometheus(
         self,
         wallet: "bittensor.wallet",
         call_params: PrometheusServeCallParams,

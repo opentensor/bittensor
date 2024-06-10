@@ -1107,7 +1107,7 @@ class MockSubtensor(Subtensor):
 
         return True, None, None
 
-    def _do_pow_register(
+    def do_pow_register(
         self,
         netuid: int,
         wallet: "wallet",
@@ -1129,7 +1129,7 @@ class MockSubtensor(Subtensor):
 
         return True, None
 
-    def _do_burned_register(
+    def do_burned_register(
         self,
         netuid: int,
         wallet: "wallet",
@@ -1438,7 +1438,7 @@ class MockSubtensor(Subtensor):
 
         return info
 
-    def _do_serve_prometheus(
+    def do_serve_prometheus(
         self,
         wallet: "wallet",
         call_params: "PrometheusServeCallParams",
