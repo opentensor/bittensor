@@ -103,7 +103,7 @@ class SubStakeCommand:
         hotkey_tup: Tuple[Optional[str], str]  # (hotkey_name (or None), hotkey_ss58)
 
         if config.is_set("hotkey"):
-            assert bittensor.is_valid_ss58_address(config.get("hotkey"))
+            assert bittensor.utils.is_valid_ss58_address(config.get("hotkey"))
             hotkey_tup = (None, config.get("hotkey"))
         else:
             wallet_ = bittensor.wallet(
@@ -185,7 +185,7 @@ class SubStakeCommand:
                 "Enter hotkey name or ss58_address to stake to",
                 default=defaults.wallet.hotkey,
             )
-            if bittensor.is_valid_ss58_address(hotkey):
+            if bittensor.utils.is_valid_ss58_address(hotkey):
                 config.hotkey = str(hotkey)
             else:
                 config.wallet.hotkey = str(hotkey)
@@ -314,7 +314,7 @@ class RemoveSubStakeCommand:
         hotkey_tup: Tuple[Optional[str], str]  # (hotkey_name (or None), hotkey_ss58)
 
         if config.is_set("hotkey"):
-            assert bittensor.is_valid_ss58_address(config.get("hotkey"))
+            assert bittensor.utils.is_valid_ss58_address(config.get("hotkey"))
             hotkey_tup = (None, config.get("hotkey"))
         else:
             wallet_ = bittensor.wallet(
@@ -380,7 +380,7 @@ class RemoveSubStakeCommand:
                 "Enter hotkey name or ss58_address to unstake from",
                 default=defaults.wallet.hotkey,
             )
-            if bittensor.is_valid_ss58_address(hotkey):
+            if bittensor.utils.is_valid_ss58_address(hotkey):
                 config.hotkey = str(hotkey)
             else:
                 config.hotkey = str(hotkey)
