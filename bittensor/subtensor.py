@@ -1719,7 +1719,7 @@ class Subtensor:
     ###########
     # Network #
     ###########
-    def register_subnetwork(
+    async def register_subnetwork(
         self,
         wallet: "bittensor.wallet",
         wait_for_inclusion: bool = False,
@@ -1743,7 +1743,7 @@ class Subtensor:
         This function allows for the expansion and diversification of the Bittensor network, supporting
         its decentralized and adaptable architecture.
         """
-        return register_subnetwork_extrinsic(
+        return await register_subnetwork_extrinsic(
             self,
             wallet=wallet,
             wait_for_inclusion=wait_for_inclusion,
@@ -1751,7 +1751,7 @@ class Subtensor:
             prompt=prompt,
         )
 
-    def set_hyperparameter(
+    async def set_hyperparameter(
         self,
         wallet: "bittensor.wallet",
         netuid: int,
@@ -1781,7 +1781,7 @@ class Subtensor:
         This function plays a critical role in the dynamic governance and adaptability of the Bittensor
         network, allowing for fine-tuning of network operations and characteristics.
         """
-        return set_hyperparameter_extrinsic(
+        return await set_hyperparameter_extrinsic(
             self,
             wallet=wallet,
             netuid=netuid,
@@ -5082,7 +5082,7 @@ class Subtensor:
 
         return IPInfo.list_from_vec_u8(bytes_result)  # type: ignore
 
-    async def get_subnet_burn_cost(self, block: Optional[int] = None) -> Optional[str]:
+    async def get_subnet_burn_cost(self, block: Optional[int] = None) -> Optional[int]:
         """
         Retrieves the burn cost for registering a new subnet within the Bittensor network. This cost
         represents the amount of Tao that needs to be locked or burned to establish a new subnet.
@@ -5106,7 +5106,7 @@ class Subtensor:
         if lock_cost is None:
             return None
 
-        return lock_cost
+        return int(lock_cost)
 
     ##############
     # Extrinsics #

@@ -53,7 +53,7 @@ class AsyncSubstrateInterface:
         self.chain_endpoint = chain_endpoint
         self.ws = Websocket(chain_endpoint, options=ws_options, shutdown_timer=None)
         self._lock = asyncio.Lock()
-        self.substrate = None
+        self.substrate: Optional[SubstrateInterface] = None
 
     async def initialize(self):
         if not self.substrate:
@@ -332,6 +332,11 @@ class AsyncSubstrateInterface:
     ) -> "ExtrinsicReceipt":
         raise NotImplementedError()
 
+    async def get_metadata_call_function(
+        self, module_name: str, call_function_name: str, block_hash: str = None
+    ):
+        raise NotImplementedError()
+
     async def get_block_number(self, block_hash: str) -> int:
         """Async version of `substrateinterface.base.get_block_number` method."""
         response = await self.rpc_request("chain_getHeader", [block_hash])
@@ -344,7 +349,8 @@ class AsyncSubstrateInterface:
                 return int(response["result"]["number"], 16)
 
     def close(self):
-        raise NotImplementedError()
+        self.substrate.close()
+        # TODO: Websocket close need to be implemented and added here.
 
 
 class RequestManager:
@@ -371,25 +377,6 @@ class RequestManager:
         return {
             request_id: info["results"] for request_id, info in self.responses.items()
         }
-
-    async def supports_rpc_method(self, name: str) -> bool:
-        """
-        Check if substrate RPC supports given method
-        Parameters
-        ----------
-        name: name of method to check
-
-        Returns
-        -------
-        bool
-        """
-        if self.config.get("rpc_methods") is None:
-            self.config["rpc_methods"] = []
-            result = self.rpc_request("rpc_methods", []).get("result")
-            if result:
-                self.config["rpc_methods"] = result.get("methods", [])
-
-        return name in self.config["rpc_methods"]
 
 
 class Websocket:
