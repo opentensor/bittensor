@@ -30,7 +30,6 @@ def test_root_senate_vote(local_chain, capsys, monkeypatch):
     assert len(proposals) == 1
     proposal_hash = proposals[0]
 
-    # test will be hanging here it need input from user
     exec_command(
         VoteCommand,
         ["root", "senate_vote", "--proposal", proposal_hash],
