@@ -1922,7 +1922,8 @@ class Subtensor:
 
         return await make_substrate_call_with_retry()
 
-    def serve_prometheus(
+    # TODO: Is this used somewhere outside of Bittensor? Not inside.
+    async def serve_prometheus(
         self,
         wallet: "bittensor.wallet",
         port: int,
@@ -1930,7 +1931,7 @@ class Subtensor:
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
     ) -> bool:
-        return prometheus_extrinsic(
+        return await prometheus_extrinsic(
             self,
             wallet=wallet,
             port=port,
@@ -1939,7 +1940,7 @@ class Subtensor:
             wait_for_finalization=wait_for_finalization,
         )
 
-    async def _do_serve_prometheus(
+    async def do_serve_prometheus(
         self,
         wallet: "bittensor.wallet",
         call_params: PrometheusServeCallParams,

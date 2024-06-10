@@ -1438,7 +1438,7 @@ class MockSubtensor(Subtensor):
 
         return info
 
-    def _do_serve_prometheus(
+    def do_serve_prometheus(
         self,
         wallet: "wallet",
         call_params: "PrometheusServeCallParams",

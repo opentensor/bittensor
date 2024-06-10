@@ -659,7 +659,7 @@ class PrometheusInfo:
 
     block: int
     version: int
-    ip: str
+    ip: str  # string representation of converted ip to int using tool like https://tools.iplocation.net/ip-to-integer-converter
     port: int
     ip_type: int
 
