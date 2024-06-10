@@ -152,6 +152,7 @@ class RequestManager:
         self.responses[request_id]["results"].append(response)
         self.responses[request_id]["complete"] = complete
 
+    @property
     def is_complete(self):
         return (
             all(info["complete"] for info in self.responses.values())
@@ -519,7 +520,7 @@ class AsyncSubstrateInterface:
         module: str,
     ) -> Preprocessed:
         """
-        Creates a Preprocessed data object for passing to ``make_call``
+        Creates a Preprocessed data object for passing to ``_make_rpc_request``
         """
         params = [query_for] if query_for else []
         # Search storage call in metadata
@@ -610,7 +611,7 @@ class AsyncSubstrateInterface:
                                 item_id, decoded_response, complete
                             )
 
-                if request_manager.is_complete():
+                if request_manager.is_complete:
                     break
 
         return request_manager.get_results()
