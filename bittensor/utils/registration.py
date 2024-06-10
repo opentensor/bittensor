@@ -469,6 +469,7 @@ class RegistrationStatistics:
     hash_rate: float
     difficulty: int
     block_number: int
+    # TODO: lets make sure the E2E tests run and pass (Roman, Den)
     block_hash: str
 
 

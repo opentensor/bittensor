@@ -49,7 +49,7 @@ async def prometheus_extrinsic(
         wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
 
     Returns:
-        success (bool): Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
+        success (bool): Flag is ``true`` if extrinsic was finalized or included in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
 
     # ---- Get external ip ----
@@ -86,7 +86,7 @@ async def prometheus_extrinsic(
         )
         neuron_up_to_date = not neuron.is_null and call_params == {
             "version": neuron.prometheus_info.version,
-            "ip": neuron.prometheus_info.ip,
+            "ip": net.ip_to_int(neuron.prometheus_info.ip),
             "port": neuron.prometheus_info.port,
             "ip_type": neuron.prometheus_info.ip_type,
         }
