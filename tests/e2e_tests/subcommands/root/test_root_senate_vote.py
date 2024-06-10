@@ -8,8 +8,10 @@ from ...utils import (
 
 
 # test case to vote the proposal
-def test_root_senate_vote(local_chain, capsys):
+def test_root_senate_vote(local_chain, capsys, monkeypatch):
     (wallet, exec_command) = new_wallet("//Alice", "//Bob")
+    monkeypatch.setattr("rich.prompt.Confirm.ask", lambda self: True)
+
     exec_command(
         RootRegisterCommand,
         ["root", "register"],
