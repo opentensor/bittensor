@@ -27,9 +27,7 @@ def test_root_get_set_weights(local_chain, capsys):
         ["root", "weights", "--netuids", netuids, "--weights", weights],
     )
 
-    weights = local_chain.query_map(
-        "SubtensorModule", "Weights", [wallet.hotkey.ss58_address]
-    )
+    weights = local_chain.query("SubtensorModule", "Weights", [1, 0])
 
     exec_command(
         RootGetWeightsCommand,
@@ -38,5 +36,3 @@ def test_root_get_set_weights(local_chain, capsys):
 
     captured = capsys.readouterr()
     lines = captured.out.splitlines()
-
-    # assert len(lines) == 4
