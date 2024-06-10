@@ -142,7 +142,7 @@ def show_delegates(
     )
     table.add_column("[overline white]CHANGE/(4h)", style="grey0", justify="center")
     table.add_column("[overline white]VPERMIT", justify="right", no_wrap=False)
-    table.add_column("[overline white]NETUID/TAKE", style="white", no_wrap=True)
+    table.add_column("[overline white]TAKE", style="white", no_wrap=True)
     table.add_column(
         "[overline white]NOMINATOR/(24h)/k\u03C4", style="green", justify="center"
     )
@@ -193,6 +193,12 @@ def show_delegates(
         else:
             rate_change_in_stake_str = "[grey0]NA[/grey0]"
 
+        # pre-analyze takes
+        custom_take = True
+        for t in delegate.take:
+            if t[1] != 0.18:
+                custom_take = False
+
         table.add_row(
             # INDEX
             str(i),
@@ -210,8 +216,8 @@ def show_delegates(
             rate_change_in_stake_str,
             # VPERMIT
             str(delegate.registrations),
-            # NETUID/TAKE
-            " | ".join([f"{t[0]}:{t[1] * 100:.1f}%" for t in delegate.take]),
+            # TAKE
+            "Custom" if custom_take else "18%",
             # NOMINATOR/(24h)/k
             f"{bittensor.Balance.from_tao( delegate.total_daily_return.tao * (1000/ (0.001 + delegate.total_stake.tao)))!s:6.6}",
             # DELEGATE/(24h)
