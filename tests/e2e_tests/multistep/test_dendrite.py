@@ -14,7 +14,7 @@ from bittensor.commands import (
     RootSetBoostCommand,
 )
 from tests.e2e_tests.utils import (
-    setup_wallet,
+    setup_wallet_with_path,
     template_path,
     repo_name,
 )
@@ -25,13 +25,13 @@ logging.basicConfig(level=logging.INFO)
 @pytest.mark.asyncio
 async def test_dendrite(local_chain):
     # Register root as Alice - the subnet owner
-    alice_keypair, exec_command, wallet_path = setup_wallet("//Alice")
+    alice_keypair, exec_command, wallet_path = setup_wallet_with_path("//Alice")
     exec_command(RegisterSubnetworkCommand, ["s", "create"])
 
     # Verify subnet 1 created successfully
     assert local_chain.query("SubtensorModule", "NetworksAdded", [1]).serialize()
 
-    bob_keypair, exec_command, wallet_path = setup_wallet("//Bob")
+    bob_keypair, exec_command, wallet_path = setup_wallet_with_path("//Bob")
 
     # Register a neuron to the subnet
     exec_command(
