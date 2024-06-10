@@ -51,8 +51,12 @@ async def register_subnetwork_extrinsic(
         success (bool):
             Flag is ``true`` if extrinsic was finalized or included in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
-    your_balance = await subtensor.get_balance(wallet.coldkeypub.ss58_address)
-    burn_cost = balance.Balance(await subtensor.get_subnet_burn_cost())
+    your_balance, subnet_burn_cost = asyncio.gather(
+        subtensor.get_balance(wallet.coldkeypub.ss58_address),
+        subtensor.get_subnet_burn_cost(),
+    )
+    burn_cost = balance.Balance(subnet_burn_cost)
+
     if burn_cost > your_balance:
         bittensor.__console__.print(
             f"Your balance of: [green]{your_balance}[/green] is not enough to pay the subnet lock cost of: [green]{burn_cost}[/green]"
