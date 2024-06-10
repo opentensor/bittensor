@@ -27,13 +27,6 @@ from .utils import get_delegates_details, DelegatesDetails
 
 from . import defaults
 
-from scalecodec.base import RuntimeConfiguration
-from scalecodec.type_registry import load_type_registry_preset
-import scalecodec
-
-import bittensor
-from bittensor.chain_data import custom_rpc_type_registry
-
 console = bittensor.__console__
 
 
@@ -136,15 +129,14 @@ class RootList:
             subtensor: "bittensor.subtensor" = bittensor.subtensor(
                 config=cli.config, log_verbose=False
             )
-            import asyncio
-            asyncio.run(RootList._run(cli, subtensor))
+            RootList._run(cli, subtensor)
         finally:
             if "subtensor" in locals():
-                # subtensor.close()
+                subtensor.close()
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
-    async def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""List the root network"""
         console.print(
             ":satellite: Syncing with chain: [white]{}[/white] ...".format(
@@ -152,35 +144,13 @@ class RootList:
             )
         )
 
-        async def process_neuron_result(json_):
-            call_definition = bittensor.__type_registry__["runtime_api"][
-                "NeuronInfoRuntimeApi"
-            ]["methods"]["get_neurons_lite"]
-            return_type = call_definition["type"]
-            as_scale_bytes = scalecodec.ScaleBytes(json_)  # type: ignore
-            rpc_runtime_config = RuntimeConfiguration()
-            rpc_runtime_config.update_type_registry(load_type_registry_preset("legacy"))
-            rpc_runtime_config.update_type_registry(custom_rpc_type_registry)
-            obj = rpc_runtime_config.create_scale_object(return_type, as_scale_bytes)
-            hex_bytes_result = obj.decode()
-            bytes_result = bytes.fromhex(hex_bytes_result[2:])
-            return bittensor.NeuronInfoLite.list_from_vec_u8(bytes_result)  # type: ignore
-
-        senate_members = await subtensor.get_senate_members()
-        async with subtensor.substrate:
-            block_hash = await subtensor.substrate.get_chain_head()
-            json_result = await subtensor.substrate.rpc_request(
-                "state_call", ["NeuronInfoRuntimeApi_get_neurons_lite", "0x0000"], block_hash
-            )
-
-            root_neurons: typing.List[bittensor.NeuronInfoLite] = await process_neuron_result(json_result)
-            hotkeys = [n.hotkey for n in root_neurons]
-            delegate_info: Optional[Dict[str, DelegatesDetails]] = get_delegates_details(
-                url=bittensor.__delegates_details_url__
-            )
-            total_stakes = await subtensor.substrate.query_subtensor(
-                hotkeys, "TotalHotkeyStake", "SubtensorModule", block_hash
-            )
+        senate_members = subtensor.get_senate_members()
+        root_neurons: typing.List[bittensor.NeuronInfoLite] = subtensor.neurons_lite(
+            netuid=0
+        )
+        delegate_info: Optional[Dict[str, DelegatesDetails]] = get_delegates_details(
+            url=bittensor.__delegates_details_url__
+        )
 
         table = Table(show_footer=False)
         table.title = "[white]Root Network"
@@ -216,6 +186,7 @@ class RootList:
             no_wrap=True,
         )
         table.show_footer = True
+
         for neuron_data in root_neurons:
             table.add_row(
                 str(neuron_data.uid),
@@ -226,7 +197,7 @@ class RootList:
                 ),
                 neuron_data.hotkey,
                 "{:.5f}".format(
-                    float(bittensor.Balance.from_rao(total_stakes[neuron_data.hotkey][0].value))
+                    float(subtensor.get_total_stake_for_hotkey(neuron_data.hotkey))
                 ),
                 "Yes" if neuron_data.hotkey in senate_members else "No",
             )
