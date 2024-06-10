@@ -1064,23 +1064,17 @@ class SetTakeCommand:
         netuids = subtensor.get_all_subnet_netuids()
 
         # Prompt user for netuid and take value.
-        netuid = int(config.get("netuid"))
+        netuid = config.get("netuid")
         if netuid == None:
             netuid = IntPrompt.ask(f"Enter subnet ID")
+        else:
+            netuid = int(netuid)
         # Check if netuid exists
         if not netuid in netuids:
             bittensor.__console__.print(
                 "ERROR: This netuid ({}) doesn't exist on the network".format(netuid)
             )
             return
-
-        new_take = float(config.get("take"))
-        if new_take == None:
-            new_take = FloatPrompt.ask(f"Enter take value (0.18 for 18%)")
-        if new_take > 0.18:
-            bittensor.__console__.print(
-                "ERROR: Take value should be in the range of 0 to 18%"
-            )
 
         # Prompt user for take value.
         new_take_str = config.get("take")
