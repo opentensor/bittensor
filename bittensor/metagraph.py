@@ -366,9 +366,7 @@ class MetagraphMixin(ABC):
         return [axon.ip_str() for axon in self.axons]
 
     @abstractmethod
-    def __init__(
-        self, netuid: int, network: str = "finney", lite: bool = True
-    ):
+    def __init__(self, netuid: int, network: str = "finney", lite: bool = True):
         """
         Initializes a new instance of the metagraph object, setting up the basic structure and parameters based on the provided arguments.
         This method is the entry point for creating a metagraph object,
@@ -510,7 +508,7 @@ class MetagraphMixin(ABC):
         """
 
         # Initialize subtensor
-        subtensor = await self._initialize_subtensor(subtensor)
+        subtensor = self._initialize_subtensor(subtensor)
 
         if (
             subtensor.chain_endpoint != bittensor.__archive_entrypoint__  # type: ignore
@@ -532,7 +530,7 @@ class MetagraphMixin(ABC):
         if not lite:
             await self._set_weights_and_bonds(subtensor=subtensor)
 
-    async def _initialize_subtensor(self, subtensor):
+    def _initialize_subtensor(self, subtensor):
         """
         Initializes the subtensor to be used for syncing the metagraph.
 
@@ -603,7 +601,9 @@ class MetagraphMixin(ABC):
             else np.array(data, dtype=dtype)
         )
 
-    async def _set_weights_and_bonds(self, subtensor: Optional[bittensor.subtensor] = None):
+    async def _set_weights_and_bonds(
+        self, subtensor: Optional[bittensor.subtensor] = None
+    ):
         """
         Computes and sets the weights and bonds for each neuron in the metagraph. This method is responsible for processing the raw weight and bond data obtained from the network and converting it into a structured format suitable for the metagraph model.
 
@@ -853,9 +853,7 @@ BaseClass: Union["torch.nn.Module", object] = torch.nn.Module if use_torch() els
 
 
 class TorchMetaGraph(MetagraphMixin, BaseClass):  # type: ignore
-    def __init__(
-        self, netuid: int, network: str = "finney", lite: bool = True
-    ):
+    def __init__(self, netuid: int, network: str = "finney", lite: bool = True):
         """
         Initializes a new instance of the metagraph object, setting up the basic structure and parameters based on the provided arguments.
         This method is the entry point for creating a metagraph object,
@@ -1037,9 +1035,7 @@ class TorchMetaGraph(MetagraphMixin, BaseClass):  # type: ignore
 
 
 class NonTorchMetagraph(MetagraphMixin):
-    def __init__(
-        self, netuid: int, network: str = "finney", lite: bool = True
-    ):
+    def __init__(self, netuid: int, network: str = "finney", lite: bool = True):
         # super(metagraph, self).__init__()
         MetagraphMixin.__init__(self, netuid, network, lite)
 
