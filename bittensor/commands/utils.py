@@ -43,13 +43,13 @@ class IntListPrompt(PromptBase):
         )
 
 
-def check_netuid_set(
+async def check_netuid_set(
     config: "bittensor.config",
     subtensor: "bittensor.subtensor",
     allow_none: bool = False,
 ):
     if subtensor.network != "nakamoto":
-        all_netuids = [str(netuid) for netuid in subtensor.get_subnets()]
+        all_netuids = [str(netuid) for netuid in await subtensor.get_subnets()]
         if len(all_netuids) == 0:
             console.print(":cross_mark:[red]There are no open networks.[/red]")
             sys.exit()
