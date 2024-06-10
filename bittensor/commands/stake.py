@@ -17,6 +17,7 @@
 import os
 import re
 import sys
+import rich
 import argparse
 from tqdm import tqdm
 from rich.table import Table

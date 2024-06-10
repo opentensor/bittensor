@@ -3485,6 +3485,7 @@ class subtensor:
     def get_dynamic_info(self):
         netuids = self.get_all_subnet_netuids()
         alpha_reserves = {netuid: 0 for netuid in netuids}
+        alpha_outstanding = {netuid: 0 for netuid in netuids}
         tao_reserves = {netuid: 0 for netuid in netuids}
         k_values = {netuid: 0 for netuid in netuids}
         prices = {netuid: 1 for netuid in netuids}
@@ -3495,6 +3496,13 @@ class subtensor:
             block_hash=None,
         ).records:
             alpha_reserves[rec[0].value] = rec[1].value
+        for rec in self.substrate.query_map(
+            module="SubtensorModule",
+            storage_function="DynamicAlphaOutstanding",
+            params=[],
+            block_hash=None,
+        ).records:
+            alpha_outstanding[rec[0].value] = rec[1].value
         for rec in self.substrate.query_map(
             module="SubtensorModule",
             storage_function="DynamicTAOReserve",
@@ -3514,6 +3522,7 @@ class subtensor:
                 "netuid": netuid,
                 "tao_reserve": tao_reserves[netuid],
                 "alpha_reserve": alpha_reserves[netuid],
+                "alpha_outstanding": alpha_outstanding[netuid],
                 "k": k_values[netuid],
                 "price": (
                     tao_reserves[netuid] / alpha_reserves[netuid]
