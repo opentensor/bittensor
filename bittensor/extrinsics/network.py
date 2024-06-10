@@ -15,10 +15,19 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
+
+"""
+Network module provides functions to interact with the Subtensor blockchain, specifically for registering subnetworks
+and setting hyperparameters.
+"""
+
 import time
-import bittensor
 
 from rich.prompt import Confirm
+
+import bittensor
+from bittensor.utils import balance
+from ..commands.network import HYPERPARAMS
 
 
 def register_subnetwork_extrinsic(
@@ -28,24 +37,21 @@ def register_subnetwork_extrinsic(
     wait_for_finalization: bool = True,
     prompt: bool = False,
 ) -> bool:
-    r"""Registers a new subnetwork.
+    """Registers a new subnetwork.
 
     Args:
-        wallet (bittensor.wallet):
-            bittensor wallet object.
-        wait_for_inclusion (bool):
-            If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization (bool):
-            If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
-        prompt (bool):
-            If true, the call waits for confirmation from the user before proceeding.
+        subtensor (bittensor.subtensor): The instance of the Subtensor.
+        wallet (bittensor.wallet): bittensor wallet object.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
+        prompt (bool): If true, the call waits for confirmation from the user before proceeding.
     Returns:
+
         success (bool):
-            Flag is ``true`` if extrinsic was finalized or included in the block.
-            If we did not wait for finalization / inclusion, the response is ``true``.
+            Flag is ``true`` if extrinsic was finalized or included in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
     your_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
-    burn_cost = bittensor.utils.balance.Balance(subtensor.get_subnet_burn_cost())
+    burn_cost = balance.Balance(subtensor.get_subnet_burn_cost())
     if burn_cost > your_balance:
         bittensor.__console__.print(
             f"Your balance of: [green]{your_balance}[/green] is not enough to pay the subnet lock cost of: [green]{burn_cost}[/green]"
@@ -104,6 +110,16 @@ def register_subnetwork_extrinsic(
 
 
 def find_event_attributes_in_extrinsic_receipt(response, event_name) -> list:
+    """
+    Searches for the attributes of a specified event within an extrinsic receipt.
+
+    Args:
+        response (substrateinterface.base.ExtrinsicReceipt): The receipt of the extrinsic to be searched.
+        event_name (str): The name of the event to search for.
+
+    Returns:
+        list: A list of attributes for the specified event. Returns [-1] if the event is not found.
+    """
     for event in response.triggered_events:
         # Access the event details
         event_details = event.value["event"]
@@ -112,9 +128,6 @@ def find_event_attributes_in_extrinsic_receipt(response, event_name) -> list:
             # Once found, you can access the attributes of the event_name
             return event_details["attributes"]
     return [-1]
-
-
-from ..commands.network import HYPERPARAMS
 
 
 def set_hyperparameter_extrinsic(
@@ -127,27 +140,20 @@ def set_hyperparameter_extrinsic(
     wait_for_finalization: bool = True,
     prompt: bool = False,
 ) -> bool:
-    r"""Sets a hyperparameter for a specific subnetwork.
+    """Sets a hyperparameter for a specific subnetwork.
 
     Args:
-        wallet (bittensor.wallet):
-            bittensor wallet object.
-        netuid (int):
-            Subnetwork ``uid``.
-        parameter (str):
-            Hyperparameter name.
-        value (any):
-            New hyperparameter value.
-        wait_for_inclusion (bool):
-            If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization (bool):
-            If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
-        prompt (bool):
-            If ``true``, the call waits for confirmation from the user before proceeding.
+        subtensor (bittensor.subtensor): The instance of the Subtensor.
+        wallet (bittensor.wallet): bittensor wallet object.
+        netuid (int): Subnetwork ``uid``.
+        parameter (str): Hyperparameter name.
+        value (any): New hyperparameter value.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
+        prompt (bool): If ``true``, the call waits for confirmation from the user before proceeding.
+
     Returns:
-        success (bool):
-            Flag is ``true`` if extrinsic was finalized or included in the block.
-            If we did not wait for finalization / inclusion, the response is ``true``.
+        success (bool): Flag is ``true`` if extrinsic was finalized or included in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
     if subtensor.get_subnet_owner(netuid) != wallet.coldkeypub.ss58_address:
         bittensor.__console__.print(
@@ -158,7 +164,7 @@ def set_hyperparameter_extrinsic(
     wallet.coldkey  # unlock coldkey
 
     extrinsic = HYPERPARAMS.get(parameter)
-    if extrinsic == None:
+    if extrinsic is None:
         bittensor.__console__.print(
             ":cross_mark: [red]Invalid hyperparameter specified.[/red]"
         )
