@@ -40,7 +40,9 @@ def no_wrap(func):
 def all_coroutine_methods(wrapper):
     def class_decorator(cls):
         for attr_name, attr_value in cls.__dict__.items():
-            if asyncio.iscoroutinefunction(attr_value) and not getattr(attr_value, "_no_wrap", False):
+            if asyncio.iscoroutinefunction(attr_value) and not getattr(
+                attr_value, "_no_wrap", False
+            ):
                 setattr(cls, attr_name, wrapper(attr_value))
         return cls
 
@@ -436,9 +438,9 @@ class AsyncSubstrateInterface:
             )
 
             # Update metadata cache
-            self.runtime_cache.metadata_cache[
-                runtime.runtime_version
-            ] = runtime.metadata
+            self.runtime_cache.metadata_cache[runtime.runtime_version] = (
+                runtime.metadata
+            )
 
         # Update type registry
         runtime.reload_type_registry(
