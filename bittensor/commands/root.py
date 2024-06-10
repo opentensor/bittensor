@@ -16,6 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import re
+import rich
 import typing
 import argparse
 import numpy as np

@@ -286,30 +286,31 @@ class SubnetListCommand:
                     bittensor.Balance.get_unit(subnet.netuid),
                     f"{subnet.subnetwork_n}/{subnet.max_n}",
                     "[red]D[/red]" if is_dtao else "[blue]S[/blue]",
-                    "{:,.2f}".format(tao_locked.tao),
                     "{:.8}".format(
                         str(bittensor.Balance.from_rao(subnet.emission_value))
                     ),
+                    str(
+                        bittensor.Balance.from_tao( tao_locked.tao )
+                    ),
+                    str(
+                        bittensor.Balance.from_rao( dynamic_info[subnet.netuid]["tao_reserve"] )
+                    ),
+                    str(
+                        bittensor.Balance.from_rao( dynamic_info[subnet.netuid]["alpha_reserve"] ).set_unit(subnet.netuid)
+                    ),
+                    str(
+                        bittensor.Balance.from_rao( dynamic_info[subnet.netuid]["alpha_outstanding"] ).set_unit(subnet.netuid) if is_dtao else bittensor.Balance.from_tao( tao_locked.tao ).set_unit(subnet.netuid) 
+                    ),
                     (
-                        "{:.8}".format(
+                        "{:.8}/τ".format(
                             str(
                                 bittensor.Balance.from_tao(
                                     dynamic_info[subnet.netuid]["price"]
-                                )
+                                ).set_unit(subnet.netuid)
                             )
                         )
                         if is_dtao
-                        else "-"
-                    ),
-                    str(
-                        bittensor.Balance.from_rao(
-                            dynamic_info[subnet.netuid]["tao_reserve"]
-                        )
-                    ),
-                    str(
-                        bittensor.Balance.from_rao(
-                            dynamic_info[subnet.netuid]["alpha_reserve"]
-                        ).set_unit(subnet.netuid)
+                        else f"{bittensor.Balance.from_tao( 1.0 ).set_unit(subnet.netuid)}/τ"
                     ),
                     str(subnet.tempo),
                     f"{subnet.burn!s:8.8}",
@@ -372,13 +373,6 @@ class SubnetListCommand:
             justify="center",
         )
         table.add_column(
-            "[white]Total TAO",
-            "{:,.4f}".format(total_tao_locked.tao),
-            footer_style="white",
-            style="white",
-            justify="center",
-        )
-        table.add_column(
             "[white]emission",
             f"{bittensor.Balance.from_rao(total_emission)!s:8.8}",
             footer_style="white",
@@ -386,17 +380,27 @@ class SubnetListCommand:
             justify="center",
         )
         table.add_column(
+            f"[white]{bittensor.Balance.unit}",
+            "{:,.4f}".format(total_tao_locked.tao),
+            footer_style="white",
+            style="blue",
+            justify="center",
+        )
+        table.add_column(
+            f"[white]P({bittensor.Balance.unit})", style="cornflower_blue", justify="left"
+        )
+        table.add_column(
+            f"[white]P({bittensor.Balance.get_unit(1)})", style="green", justify="left"
+        )
+        table.add_column(
+            f"[white]{bittensor.Balance.get_unit(1)}", style="aquamarine3", justify="left"
+        )
+        table.add_column(
             "[white]price",
             f"{bittensor.Balance.from_tao(total_price)!s:8.8}",
             footer_style="white",
             style="yellow",
             justify="right",
-        )
-        table.add_column(
-            f"[white]{bittensor.Balance.unit}", style="blue", justify="left"
-        )
-        table.add_column(
-            f"[white]{bittensor.Balance.get_unit(1)}", style="green", justify="left"
         )
         table.add_column("[white]tempo", style="grey37", justify="center")
         table.add_column("[white]burn", style="deep_pink4", justify="center")
