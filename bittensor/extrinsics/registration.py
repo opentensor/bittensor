@@ -79,7 +79,7 @@ async def register_extrinsic(
         log_verbose (bool): If ``true``, the registration process will log more information.
 
     Returns:
-        success (bool): Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
+        success (bool): Flag is ``true`` if extrinsic was finalized or included in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
     if not await subtensor.subnet_exists(netuid):
         bittensor.__console__.print(
@@ -249,7 +249,7 @@ async def burned_register_extrinsic(
         prompt (bool): If ``true``, the call waits for confirmation from the user before proceeding.
 
     Returns:
-        success (bool): Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
+        success (bool): Flag is ``true`` if extrinsic was finalized or included in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
     if not await subtensor.subnet_exists(netuid):
         bittensor.__console__.print(
@@ -365,7 +365,7 @@ async def run_faucet_extrinsic(
         log_verbose (bool): If ``true``, the registration process will log more information.
 
     Returns:
-        success (bool): Flag is ``True`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``True``.
+        success (bool): Flag is ``True`` if extrinsic was finalized or included in the block. If we did not wait for finalization / inclusion, the response is ``True``.
     """
     if prompt:
         if not Confirm.ask(
