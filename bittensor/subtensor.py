@@ -2551,7 +2551,7 @@ class Subtensor:
     # Root #
     ########
 
-    async def root_register(
+    def root_register(
         self,
         wallet: "bittensor.wallet",
         wait_for_inclusion: bool = False,
@@ -2574,7 +2574,7 @@ class Subtensor:
         This function enables neurons to engage in the most critical and influential aspects of the network's
         governance, signifying a high level of commitment and responsibility in the Bittensor ecosystem.
         """
-        return await root_register_extrinsic(
+        return root_register_extrinsic(
             subtensor=self,
             wallet=wallet,
             wait_for_inclusion=wait_for_inclusion,
@@ -2620,7 +2620,7 @@ class Subtensor:
         return await make_substrate_call_with_retry()
 
     @legacy_torch_api_compat
-    async def root_set_weights(
+    def root_set_weights(
         self,
         wallet: "bittensor.wallet",
         netuids: Union[NDArray[np.int64], "torch.LongTensor", list],
@@ -2651,7 +2651,7 @@ class Subtensor:
         This function plays a pivotal role in shaping the root network's collective intelligence and decision-making
         processes, reflecting the principles of decentralized governance and collaborative learning in Bittensor.
         """
-        return await set_root_weights_extrinsic(
+        return set_root_weights_extrinsic(
             subtensor=self,
             wallet=wallet,
             netuids=netuids,
