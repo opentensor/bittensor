@@ -86,7 +86,7 @@ def test_root_register_extrinsic(
 
     with patch.object(
         mock_subtensor,
-        "_do_root_register",
+        "do_root_register",
         return_value=(registration_success, "Error registering"),
     ) as mock_register, patch("rich.prompt.Confirm.ask", return_value=user_response):
         # Act
