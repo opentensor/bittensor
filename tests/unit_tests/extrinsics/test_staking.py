@@ -118,7 +118,7 @@ def test_add_stake_extrinsic(
         staking_balance = staking_balance - bittensor.Balance.from_rao(1000)
 
     with patch.object(
-        mock_subtensor, "_do_stake", return_value=expected_success
+        mock_subtensor, "do_stake", return_value=expected_success
     ) as mock_add_stake, patch.object(
         mock_subtensor, "get_balance", return_value=Balance.from_tao(100)
     ), patch.object(
@@ -501,7 +501,7 @@ def test_add_stake_multiple_extrinsic(
     ), patch.object(
         mock_subtensor, "get_hotkey_owner", side_effect=owner_side_effect
     ), patch.object(
-        mock_subtensor, "_do_stake", side_effect=stake_side_effect
+        mock_subtensor, "do_stake", side_effect=stake_side_effect
     ) as mock_do_stake, patch.object(
         mock_subtensor, "tx_rate_limit", return_value=0
     ), patch("rich.prompt.Confirm.ask", return_value=prompt_response) as mock_confirm:

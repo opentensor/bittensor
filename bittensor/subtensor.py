@@ -2118,7 +2118,7 @@ class Subtensor:
             prompt,
         )
 
-    async def _do_stake(
+    async def do_stake(
         self,
         wallet: "bittensor.wallet",
         hotkey_ss58: str,
