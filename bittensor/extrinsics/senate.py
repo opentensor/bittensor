@@ -18,13 +18,15 @@
 
 """This module provides functionality for interacting with the senate features of the Bittensor blockchain."""
 
-import bittensor
-
+import asyncio
 import time
+
 from rich.prompt import Confirm
 
+import bittensor
 
-def register_senate_extrinsic(
+
+async def register_senate_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
     wait_for_inclusion: bool = False,
@@ -53,15 +55,15 @@ def register_senate_extrinsic(
 
     with bittensor.__console__.status(":satellite: Registering with senate..."):
         # create extrinsic call
-        call = subtensor.substrate.compose_call(
+        call = await subtensor.substrate.compose_call(
             call_module="SubtensorModule",
             call_function="join_senate",
             call_params={"hotkey": wallet.hotkey.ss58_address},
         )
-        extrinsic = subtensor.substrate.create_signed_extrinsic(
+        extrinsic = await subtensor.substrate.create_signed_extrinsic(
             call=call, keypair=wallet.coldkey
         )
-        response = subtensor.substrate.submit_extrinsic(
+        response = await subtensor.substrate.submit_extrinsic(
             extrinsic,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
@@ -77,11 +79,11 @@ def register_senate_extrinsic(
             bittensor.__console__.print(
                 f":cross_mark: [red]Failed[/red]: error:{response.error_message}"
             )
-            time.sleep(0.5)
+            await asyncio.sleep(0.5)
 
         # Successful registration, final check for membership
         else:
-            is_registered = subtensor.is_senate_member(wallet.hotkey.ss58_address)
+            is_registered = await subtensor.is_senate_member(wallet.hotkey.ss58_address)
 
             if is_registered:
                 bittensor.__console__.print(
@@ -95,7 +97,7 @@ def register_senate_extrinsic(
                 )
 
 
-def leave_senate_extrinsic(
+async def leave_senate_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
     wait_for_inclusion: bool = False,
@@ -124,15 +126,15 @@ def leave_senate_extrinsic(
 
     with bittensor.__console__.status(":satellite: Leaving senate..."):
         # create extrinsic call
-        call = subtensor.substrate.compose_call(
+        call = await subtensor.substrate.compose_call(
             call_module="SubtensorModule",
             call_function="leave_senate",
             call_params={"hotkey": wallet.hotkey.ss58_address},
         )
-        extrinsic = subtensor.substrate.create_signed_extrinsic(
+        extrinsic = await subtensor.substrate.create_signed_extrinsic(
             call=call, keypair=wallet.coldkey
         )
-        response = subtensor.substrate.submit_extrinsic(
+        response = await subtensor.substrate.submit_extrinsic(
             extrinsic,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
@@ -152,7 +154,7 @@ def leave_senate_extrinsic(
 
         # Successful registration, final check for membership
         else:
-            is_registered = subtensor.is_senate_member(wallet.hotkey.ss58_address)
+            is_registered = await subtensor.is_senate_member(wallet.hotkey.ss58_address)
 
             if not is_registered:
                 bittensor.__console__.print(
@@ -166,7 +168,7 @@ def leave_senate_extrinsic(
                 )
 
 
-def vote_senate_extrinsic(
+async def vote_senate_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
     proposal_hash: str,
@@ -201,7 +203,7 @@ def vote_senate_extrinsic(
 
     with bittensor.__console__.status(":satellite: Casting vote.."):
         # create extrinsic call
-        call = subtensor.substrate.compose_call(
+        call = await subtensor.substrate.compose_call(
             call_module="SubtensorModule",
             call_function="vote",
             call_params={
@@ -211,10 +213,10 @@ def vote_senate_extrinsic(
                 "approve": vote,
             },
         )
-        extrinsic = subtensor.substrate.create_signed_extrinsic(
+        extrinsic = await subtensor.substrate.create_signed_extrinsic(
             call=call, keypair=wallet.coldkey
         )
-        response = subtensor.substrate.submit_extrinsic(
+        response = await subtensor.substrate.submit_extrinsic(
             extrinsic,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
@@ -234,7 +236,7 @@ def vote_senate_extrinsic(
 
         # Successful vote, final check for data
         else:
-            vote_data = subtensor.get_vote_data(proposal_hash)
+            vote_data = await subtensor.get_vote_data(proposal_hash)
             has_voted = (
                 vote_data["ayes"].count(wallet.hotkey.ss58_address) > 0
                 or vote_data["nays"].count(wallet.hotkey.ss58_address) > 0
