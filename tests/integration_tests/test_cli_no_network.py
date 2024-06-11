@@ -1363,7 +1363,7 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
                 msg=f"Boolean argument not correctly for {modified}",
             )
 
-        for boolean_value in [True, False]:
+        for boolean_value in [True, False, 1, 0]:
             as_str = str(boolean_value)
 
             _test_value_parsing(boolean_value, as_str)
@@ -1401,7 +1401,7 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
                 msg=f"Boolean argument not correctly for {modified}",
             )
 
-        for boolean_value in [True, False]:
+        for boolean_value in [True, False, 1, 0]:
             as_str = str(boolean_value)
 
             _test_value_parsing(boolean_value, as_str)
@@ -1441,7 +1441,7 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
                 msg=f"Boolean argument not correctly for {modified}",
             )
 
-        for boolean_value in [True, False]:
+        for boolean_value in [True, False, 1, 0]:
             as_str = str(boolean_value)
 
             _test_value_parsing(boolean_value, as_str)
