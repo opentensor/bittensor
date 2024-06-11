@@ -23,10 +23,18 @@ from rich.prompt import Confirm, Prompt
 from bittensor.utils.balance import Balance
 from typing import List, Union, Optional, Dict, Tuple
 from .utils import get_hotkey_wallets_for_wallet
+from bittensor.utils.user_io import (
+    user_input_float,
+    user_input_int,
+    user_input_str,
+    user_input_confirmation,
+    print_summary_header,
+    print_summary_footer,
+    print_summary_item,
+)
 from . import defaults
 
 console = bittensor.__console__
-
 
 class SubStakeCommand:
     """
@@ -102,14 +110,8 @@ class SubStakeCommand:
         dynamic_info = subtensor.get_dynamic_info_for_netuid(config.netuid)
         hotkey_tup: Tuple[Optional[str], str]  # (hotkey_name (or None), hotkey_ss58)
 
-        if config.get("hotkey"):
-            assert bittensor.utils.is_valid_ss58_address(config.get("hotkey"))
-            hotkey_tup = (None, config.get("hotkey"))
-        else:
-            wallet_ = bittensor.wallet(
-                config=config, hotkey=config.wallet.get("hotkey")
-            )
-            hotkey_tup = (wallet_.hotkey_str, wallet_.hotkey.ss58_address)
+        assert bittensor.utils.is_valid_ss58_address(config.get("hotkey"))
+        hotkey_tup = (config.get("hotkey_name"), config.get("hotkey"))
 
         # Get coldkey balance
         wallet_balance: Balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
@@ -147,7 +149,10 @@ class SubStakeCommand:
                 )
                 return None
 
-        elif config.get("stake_all"):
+        # convert to Balance type
+        stake_amount_tao = bittensor.Balance.from_tao(stake_amount_tao)
+
+        if config.get("stake_all"):
             old_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
             stake_amount_tao = bittensor.Balance.from_tao(old_balance.tao)
 
@@ -156,7 +161,8 @@ class SubStakeCommand:
             if not Confirm.ask(
                 f"Do you want to stake to the following hotkey on netuid {config.netuid}: \n"
                 f"[bold white] - from   {wallet.name}:{wallet.coldkeypub.ss58_address}\n"
-                f" - to     {hotkey_tup[0] + ':' if hotkey_tup[0] else ''}{hotkey_tup[1]}\n - [blue]{f'{bittensor.Balance.from_tao(stake_amount_tao)}'}[/blue] --> [green]{dynamic_info.tao_to_alpha_with_slippage(stake_amount_tao)[0]}[/green] (-[red]{dynamic_info.tao_to_alpha_with_slippage(stake_amount_tao)[1]}[/red])\n"
+                f" - to     {hotkey_tup[0] + ':' if hotkey_tup[0] else ''}{hotkey_tup[1]}\n"
+                f" - [blue]{f'{stake_amount_tao}'}[/blue] --> [green]{dynamic_info.tao_to_alpha_with_slippage(stake_amount_tao)[0]}[/green]\n"
             ):
                 return None
 
@@ -182,13 +188,15 @@ class SubStakeCommand:
             and not config.no_prompt
         ):
             hotkey = Prompt.ask(
-                "Enter hotkey name or ss58_address to stake to",
+                "Enter hotkey name or ss58_address to unstake from",
                 default=defaults.wallet.hotkey,
             )
             if bittensor.utils.is_valid_ss58_address(hotkey):
                 config.hotkey = str(hotkey)
             else:
-                config.wallet.hotkey = str(hotkey)
+                config.hotkey_name = hotkey
+                wallet_delegate = bittensor.wallet(name=hotkey)
+                config.hotkey = wallet_delegate.hotkey.ss58_address
 
         if not config.is_set("netuid") and not config.no_prompt:
             netuid = Prompt.ask("Enter netuid", default="0")
@@ -313,14 +321,8 @@ class RemoveSubStakeCommand:
 
         hotkey_tup: Tuple[Optional[str], str]  # (hotkey_name (or None), hotkey_ss58)
 
-        if config.is_set("hotkey"):
-            assert bittensor.utils.is_valid_ss58_address(config.get("hotkey"))
-            hotkey_tup = (None, config.get("hotkey"))
-        else:
-            wallet_ = bittensor.wallet(
-                config=config, hotkey=config.wallet.get("hotkey")
-            )
-            hotkey_tup = (wallet_.hotkey_str, wallet_.hotkey.ss58_address)
+        assert bittensor.utils.is_valid_ss58_address(config.get("hotkey"))
+        hotkey_tup = (config.get("hotkey_name"), config.get("hotkey"))
 
         # Get coldkey balance
         if not subtensor.is_hotkey_registered_any(hotkey_ss58=hotkey_tup[1]):
@@ -331,7 +333,7 @@ class RemoveSubStakeCommand:
             return None
 
         # Calculate if able to unstake amount desired
-        unstake_amount_tao: float = config.get("amount")
+        unstake_amount_alpha: float = config.get("amount")
 
         # Get the current stake of the hotkey from this coldkey.
         hotkey_subnet_balance: Balance = (
@@ -344,22 +346,51 @@ class RemoveSubStakeCommand:
 
         # If we are unstaking all set that value to the amount currently on that account.
         if config.get("unstake_all"):
-            unstake_amount_tao = hotkey_subnet_balance.tao
+            unstake_amount_alpha = hotkey_subnet_balance.tao
 
         balance_after_unstake_tao: float = (
-            hotkey_subnet_balance.tao - unstake_amount_tao
+            hotkey_subnet_balance.tao - unstake_amount_alpha
         )
         if balance_after_unstake_tao < 0:
             bittensor.__console__.print(
-                f"Unstake amount {unstake_amount_tao} is greater than current stake for hotkey [bold]{hotkey_tup[1]}[/bold]. Unstaking all."
+                f"Unstake amount {unstake_amount_alpha} is greater than current stake for hotkey [bold]{hotkey_tup[1]}[/bold]. Unstaking all."
             )
-            unstake_amount_tao = hotkey_subnet_balance.tao
+            unstake_amount_alpha = hotkey_subnet_balance.tao
+
+        # Get currently staked on hotkey provided
+        currently_staked = subtensor.get_stake_for_coldkey_and_hotkey_on_netuid(
+            netuid=config.netuid,
+            hotkey_ss58=hotkey_tup[1],
+            coldkey_ss58=wallet.coldkeypub.ss58_address,
+        )
+
+        # Print summary
+        print_summary_header("Remove Subnet Stake")
+        print_summary_item("wallet", wallet.name)
+        print_summary_item("netuid", config.netuid)
+        amount = "unstake all"
+        if not config.get("unstake_all"):
+            amount = (
+                bittensor.Balance.from_tao(unstake_amount_alpha)
+                .set_unit(config.netuid)
+                .__str__()
+            )
+        hotkey_str = hotkey_tup[0] if hotkey_tup[0] != None else hotkey_tup[1]
+        print_summary_item("hotkey", f"[bold white]{hotkey_str}[/bold white]")
+        print_summary_item("amount", f"[bold white]{amount}[/bold white]")
+        print_summary_item("currently staked", currently_staked)
+        print_summary_footer()
+
+        # Ask to stake
+        if not config.no_prompt:
+            if not user_input_confirmation("continue"):
+                return None
 
         return subtensor.remove_substake(
             wallet=wallet,
             hotkey_ss58=hotkey_tup[1],
             netuid=config.netuid,
-            amount=unstake_amount_tao,
+            amount=unstake_amount_alpha,
             wait_for_inclusion=True,
             prompt=not config.no_prompt,
         )
@@ -383,8 +414,9 @@ class RemoveSubStakeCommand:
             if bittensor.utils.is_valid_ss58_address(hotkey):
                 config.hotkey = str(hotkey)
             else:
-                config.hotkey = str(hotkey)
-                config.wallet.hotkey = str(hotkey)
+                config.hotkey_name = hotkey
+                wallet_delegate = bittensor.wallet(name=hotkey)
+                config.hotkey = wallet_delegate.hotkey.ss58_address
 
         if not config.is_set("netuid") and not config.no_prompt:
             netuid = Prompt.ask("Enter netuid", default="0")
@@ -392,20 +424,13 @@ class RemoveSubStakeCommand:
 
         # Get amount.
         if not config.get("amount") and not config.get("unstake_all"):
-            if not Confirm.ask(
-                "Unstake all {}ao \n  [bold white]from account: '{}'[/bold white] \n  [bold white]and hotkey  : '{}'[/bold white] \n  [bold white]from subnet : '{}'[/bold white]\n".format(
-                    bittensor.__tao_symbol__,
-                    config.wallet.get("name", defaults.wallet.name),
-                    config.get("hotkey"),
-                    config.netuid,
-                )
-            ):
-                amount = Prompt.ask("Enter Tao amount to unstake")
+            if not Confirm.ask("Unstake all Alpha"):
+                amount = Prompt.ask("Enter Alpha amount to unstake")
                 try:
                     config.amount = float(amount)
                 except ValueError:
                     console.print(
-                        ":cross_mark:[red]Invalid Tao amount[/red] [bold white]{}[/bold white]".format(
+                        ":cross_mark:[red]Invalid Alpha amount[/red] [bold white]{}[/bold white]".format(
                             amount
                         )
                     )

@@ -286,38 +286,73 @@ class DynamicPool:
     def __repr__(self) -> str:
         return self.__str__()
 
-    def tao_to_alpha(self, tao: Union[float, Balance]) -> Balance:
-        return Balance.from_tao(tao / self.price.tao).set_unit(self.netuid)
+    def tao_to_alpha(self, tao: Balance) -> Balance:
+        if self.price.tao != 0:
+            return Balance.from_tao(tao.tao / self.price.tao).set_unit(self.netuid)
+        else:
+            return Balance.from_tao(0)
 
-    def alpha_to_tao(self, alpha: Union[float, Balance]) -> Balance:
-        return Balance.from_tao(alpha * self.price.tao)
+    def alpha_to_tao(self, alpha: Balance) -> Balance:
+        return Balance.from_tao(alpha.tao * self.price.tao)
 
     def tao_to_alpha_with_slippage(
-        self, tao: Union[float, Balance]
+        self, tao: Balance
     ) -> Tuple[Balance, Balance]:
-        if self.tao_reserve.rao == 0 or self.alpha_reserve.rao == 0:
-            return Balance.from_tao(tao), Balance.from_rao(0)
+        """
+        Returns an estimate of how much Alpha would a staker receive if they stake their tao
+        using the current pool state
+
+        Args:
+            tao: Amount of TAO to stake.
+
+        Returns:
+            Tuple of balances where the first part is the amount of Alpha received, and the
+            second part (slippage) is the difference between the estimated amount and ideal
+            amount as if there was no slippage
+        """
+        new_tao_in = self.tao_reserve + tao
+        if new_tao_in == 0:
+            return tao, Balance.from_rao(0)
+        new_alpha_in = self.k / new_tao_in
+
+        # Amount of alpha given to the staker
         alpha_returned = Balance.from_rao(
-            self.alpha_reserve.rao
-            - (self.k / (self.tao_reserve.rao + Balance.from_tao(tao).rao))
+            self.alpha_reserve.rao - new_alpha_in.rao
         ).set_unit(self.netuid)
-        to_alpha = self.tao_to_alpha(tao)
-        slippage = Balance.from_tao(to_alpha.tao - alpha_returned.tao).set_unit(
+
+        # Ideal conversion as if there is no slippage, just price
+        alpha_ideal = self.tao_to_alpha(tao)
+        slippage = Balance.from_tao(alpha_ideal.tao - alpha_returned.tao).set_unit(
             self.netuid
         )
         return alpha_returned, slippage
 
     def alpha_to_tao_with_slippage(
-        self, alpha: Union[float, Balance]
+        self, alpha: Balance
     ) -> Tuple[Balance, Balance]:
-        tao_returned = Balance.from_rao(
-            self.tao_reserve.rao
-            - (self.k / (self.alpha_reserve.rao + Balance.from_tao(alpha).rao))
-        )
-        to_tao = self.alpha_to_tao(alpha)
-        slippage = Balance.from_tao(to_tao.tao - tao_returned.tao)
-        return tao_returned, slippage
+        """
+        Returns an estimate of how much TAO would a staker receive if they unstake their
+        alpha using the current pool state
 
+        Args:
+            alpha: Amount of Alpha to stake.
+
+        Returns:
+            Tuple of balances where the first part is the amount of TAO received, and the
+            second part (slippage) is the difference between the estimated amount and ideal
+            amount as if there was no slippage
+        """
+
+        new_alpha_in = self.alpha_reserve + alpha
+        new_tao_reserve = self.k / new_alpha_in
+
+        # Amount of TAO given to the unstaker
+        tao_returned = Balance.from_rao(self.tao_reserve - new_tao_reserve)
+
+        # Ideal conversion as if there is no slippage, just price
+        tao_ideal = self.alpha_to_tao(alpha)
+        slippage = Balance.from_tao(tao_ideal.tao - tao_returned.tao)
+        return tao_returned, slippage
 
 class SubstakeElements:
     @staticmethod
