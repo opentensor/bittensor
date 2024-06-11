@@ -831,7 +831,7 @@ class Subtensor:
 
         return success, message
 
-    async def do_set_weights(
+    async def _do_set_weights(
         self,
         wallet: "bittensor.wallet",
         uids: List[int],
@@ -2582,7 +2582,7 @@ class Subtensor:
             prompt=prompt,
         )
 
-    async def do_root_register(
+    async def _do_root_register(
         self,
         wallet: "bittensor.wallet",
         wait_for_inclusion: bool = False,
