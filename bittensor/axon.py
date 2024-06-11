@@ -905,7 +905,8 @@ class axon:
                 # a reasonable delta.
                 if (
                     self.nonces.get(endpoint_key) is None
-                    and synapse.dendrite.nonce <= time.time_ns() - ALLOWED_DELTA
+                    and synapse.dendrite.nonce
+                    <= time.time_ns() - ALLOWED_DELTA - (synapse.timeout or 0)
                 ):
                     raise Exception("Nonce is too old")
                 if (
