@@ -42,12 +42,15 @@ if (NEST_ASYNCIO_ENV := os.getenv("NEST_ASYNCIO")) in ("1", None):
 # Bittensor code and protocol version.
 __version__ = "7.0.0"
 
-version_split = __version__.split(".")
-__version_as_int__: int = (
-    (100 * int(version_split[0]))
-    + (10 * int(version_split[1]))
-    + (1 * int(version_split[2]))
+_version_split = __version__.split(".")
+__version_info__ = tuple(int(part) for part in _version_split)
+_version_int_base = 1000
+assert max(__version_info__) < _version_int_base
+
+__version_as_int__: int = sum(
+    e * (_version_int_base**i) for i, e in enumerate(reversed(__version_info__))
 )
+assert __version_as_int__ < 2**31  # fits in int32
 __new_signature_version__ = 360
 
 # Rich console.
@@ -56,6 +59,16 @@ __use_console__ = True
 
 # Remove overdue locals in debug training.
 install(show_locals=False)
+
+
+def __getattr__(name):
+    if name == "version_split":
+        warnings.warn(
+            "version_split is deprecated and will be removed in future versions. Use __version__ instead.",
+            DeprecationWarning,
+        )
+        return _version_split
+    raise AttributeError(f"module {__name__} has no attribute {name}")
 
 
 def turn_console_off():
