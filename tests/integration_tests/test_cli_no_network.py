@@ -1363,6 +1363,65 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
             _test_value_parsing(boolean_value, as_str.upper())
             _test_value_parsing(boolean_value, as_str.lower())
 
+    @patch("bittensor.wallet", new_callable=return_mock_wallet_factory)
+    def test_network_registration_allowed_parse_boolean_argument(self, mock_sub, __):
+        param = "network_registration_allowed"
+
+        def _test_value_parsing(parsed_value: bool, modified: str):
+            cli = bittensor.cli(
+                args=[
+                    "sudo",
+                    "set",
+                    "--netuid", "1",
+                    "--param", param,
+                    "--value", modified,
+                    "--wallet.name", "mock",
+                ]
+            )
+            cli.run()
+
+            _, kwargs = mock_sub.call_args
+            passed_config = kwargs["config"]
+            self.assertEqual(passed_config.param, param, msg="Incorrect param")
+            self.assertEqual(passed_config.value, parsed_value, msg=f"Boolean argument not correctly for {modified}")
+        
+        for boolean_value in [True, False]:
+            as_str = str(boolean_value)
+
+            _test_value_parsing(boolean_value, as_str)
+            _test_value_parsing(boolean_value, as_str.capitalize())
+            _test_value_parsing(boolean_value, as_str.upper())
+            _test_value_parsing(boolean_value, as_str.lower())
+
+    @patch("bittensor.wallet", new_callable=return_mock_wallet_factory)
+    def test_network_pow_registration_allowed_parse_boolean_argument(self, mock_sub, __):
+        param = "network_pow_registration_allowed"
+
+        def _test_value_parsing(parsed_value: bool, modified: str):
+            cli = bittensor.cli(
+                args=[
+                    "sudo",
+                    "set",
+                    "--netuid", "1",
+                    "--param", param,
+                    "--value", modified,
+                    "--wallet.name", "mock",
+                ]
+            )
+            cli.run()
+
+            _, kwargs = mock_sub.call_args
+            passed_config = kwargs["config"]
+            self.assertEqual(passed_config.param, param, msg="Incorrect param")
+            self.assertEqual(passed_config.value, parsed_value, msg=f"Boolean argument not correctly for {modified}")
+        
+        for boolean_value in [True, False]:
+            as_str = str(boolean_value)
+
+            _test_value_parsing(boolean_value, as_str)
+            _test_value_parsing(boolean_value, as_str.capitalize())
+            _test_value_parsing(boolean_value, as_str.upper())
+            _test_value_parsing(boolean_value, as_str.lower())
 
 
 if __name__ == "__main__":
