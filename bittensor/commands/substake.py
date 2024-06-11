@@ -102,7 +102,7 @@ class SubStakeCommand:
         dynamic_info = subtensor.get_dynamic_info_for_netuid(config.netuid)
         hotkey_tup: Tuple[Optional[str], str]  # (hotkey_name (or None), hotkey_ss58)
 
-        if config.is_set("hotkey"):
+        if config.get("hotkey"):
             assert bittensor.utils.is_valid_ss58_address(config.get("hotkey"))
             hotkey_tup = (None, config.get("hotkey"))
         else:

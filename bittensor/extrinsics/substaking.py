@@ -88,7 +88,7 @@ def add_substake_extrinsic(
                 )
 
             # Get hotkey take
-            hotkey_take = subtensor.get_delegate_take(hotkey_ss58)
+            hotkey_take = subtensor.get_delegate_take(hotkey_ss58, netuid)
 
         # Get current stake
         old_stake = subtensor.get_stake_for_coldkey_and_hotkey_on_netuid(
