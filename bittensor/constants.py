@@ -17,4 +17,4 @@
 
 
 ALLOWED_DELTA = 4000000000  # Delta of 4 seconds for nonce validation
-V_7_2_0 = 720
+V_7_2_0 = 7002000

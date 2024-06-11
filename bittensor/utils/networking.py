@@ -20,10 +20,8 @@
 # DEALINGS IN THE SOFTWARE.
 
 # Standard Lib
-import bittensor
 import os
 import urllib
-import time
 import json
 import netaddr
 
