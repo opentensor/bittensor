@@ -177,7 +177,7 @@ def set_root_weights_extrinsic(
             weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(
                 netuids, weights
             )
-            success, error_message = subtensor._do_set_weights(
+            success, error_message = subtensor.do_set_weights(
                 wallet=wallet,
                 netuid=0,
                 uids=weight_uids,

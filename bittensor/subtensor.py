@@ -831,7 +831,7 @@ class Subtensor:
 
         return success, message
 
-    async def _do_set_weights(
+    async def do_set_weights(
         self,
         wallet: "bittensor.wallet",
         uids: List[int],

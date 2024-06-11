@@ -1447,7 +1447,7 @@ class MockSubtensor(Subtensor):
     ) -> Tuple[bool, Optional[str]]:
         return True, None
 
-    def _do_set_weights(
+    def do_set_weights(
         self,
         wallet: "wallet",
         netuid: int,
