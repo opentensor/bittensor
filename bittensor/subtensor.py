@@ -2294,7 +2294,7 @@ class Subtensor:
     # Senate #
     ##########
 
-    async def register_senate(
+    def register_senate(
         self,
         wallet: "bittensor.wallet",
         wait_for_inclusion: bool = True,
@@ -2317,11 +2317,11 @@ class Subtensor:
         This function supports flexible stake management, allowing neurons to adjust their network participation
         and potential reward accruals.
         """
-        return await register_senate_extrinsic(
+        return register_senate_extrinsic(
             self, wallet, wait_for_inclusion, wait_for_finalization, prompt
         )
 
-    async def leave_senate(
+    def leave_senate(
         self,
         wallet: "bittensor.wallet",
         wait_for_inclusion: bool = True,
@@ -2344,11 +2344,11 @@ class Subtensor:
         This function supports flexible stake management, allowing neurons to adjust their network participation
         and potential reward accruals.
         """
-        return await leave_senate_extrinsic(
+        return leave_senate_extrinsic(
             self, wallet, wait_for_inclusion, wait_for_finalization, prompt
         )
 
-    async def vote_senate(
+    def vote_senate(
         self,
         wallet: "bittensor.wallet",
         proposal_hash: str,
@@ -2377,7 +2377,7 @@ class Subtensor:
         This function supports flexible stake management, allowing neurons to adjust their network participation
         and potential reward accruals.
         """
-        return await vote_senate_extrinsic(
+        return vote_senate_extrinsic(
             self,
             wallet,
             proposal_hash,
