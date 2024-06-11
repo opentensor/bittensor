@@ -2166,7 +2166,7 @@ class Subtensor:
     #############
     # Unstaking #
     #############
-    def unstake_multiple(
+    async def unstake_multiple(
         self,
         wallet: "bittensor.wallet",
         hotkey_ss58s: List[str],
@@ -2194,7 +2194,7 @@ class Subtensor:
         This function allows for strategic reallocation or withdrawal of stakes, aligning with the dynamic
         stake management aspect of the Bittensor network.
         """
-        return unstake_multiple_extrinsic(
+        return await unstake_multiple_extrinsic(
             self,
             wallet,
             hotkey_ss58s,
@@ -2204,7 +2204,7 @@ class Subtensor:
             prompt,
         )
 
-    def unstake(
+    async def unstake(
         self,
         wallet: "bittensor.wallet",
         hotkey_ss58: Optional[str] = None,
@@ -2231,7 +2231,7 @@ class Subtensor:
         This function supports flexible stake management, allowing neurons to adjust their network participation
         and potential reward accruals.
         """
-        return unstake_extrinsic(
+        return await unstake_extrinsic(
             self,
             wallet,
             hotkey_ss58,
