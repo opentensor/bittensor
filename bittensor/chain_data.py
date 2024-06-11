@@ -177,6 +177,8 @@ custom_rpc_type_registry = {
                 ["max_validators", "Compact<u16>"],
                 ["adjustment_alpha", "Compact<u64>"],
                 ["difficulty", "Compact<u64>"],
+                ["commit_reveal_weights_interval", "Compact<u64>"],
+                ["commit_reveal_weights_enabled", "bool"],
             ],
         },
     }
@@ -254,7 +256,15 @@ class AxonInfo:
 
     @classmethod
     def from_neuron_info(cls, neuron_info: dict) -> "AxonInfo":
-        """Converts a dictionary to an axon_info object."""
+        """
+        Converts a dictionary to an AxonInfo object.
+
+        Args:
+            neuron_info (dict): A dictionary containing the neuron information.
+
+        Returns:
+            instance (AxonInfo): An instance of AxonInfo created from the dictionary.
+        """
         return cls(
             version=neuron_info["axon_info"]["version"],
             ip=net.int_to_ip(int(neuron_info["axon_info"]["ip"])),
@@ -1045,6 +1055,8 @@ class SubnetHyperparameters:
     max_validators: int
     adjustment_alpha: int
     difficulty: int
+    commit_reveal_weights_interval: int
+    commit_reveal_weights_enabled: bool
 
     @classmethod
     def from_vec_u8(cls, vec_u8: List[int]) -> Optional["SubnetHyperparameters"]:
@@ -1099,6 +1111,8 @@ class SubnetHyperparameters:
             bonds_moving_avg=decoded["bonds_moving_avg"],
             adjustment_alpha=decoded["adjustment_alpha"],
             difficulty=decoded["difficulty"],
+            commit_reveal_weights_interval=decoded["commit_reveal_weights_interval"],
+            commit_reveal_weights_enabled=decoded["commit_reveal_weights_enabled"],
         )
 
     def _to_parameter_dict_torch(
