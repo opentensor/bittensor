@@ -385,7 +385,7 @@ async def unstake_multiple_extrinsic(
         with bittensor.__console__.status(
             f":satellite: Checking Balance on: ([white]{subtensor.network}[/white] ..."
         ):
-            new_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
+            new_balance = await subtensor.get_balance(wallet.coldkeypub.ss58_address)
         bittensor.__console__.print(
             f"Balance: [blue]{old_balance}[/blue] :arrow_right: [green]{new_balance}[/green]"
         )
