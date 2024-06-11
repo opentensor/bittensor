@@ -15,6 +15,19 @@ from tests.e2e_tests.utils import (
     repo_name,
 )
 
+"""
+Test the axon mechanism. 
+
+Verify that:
+* axon is registered on network as a miner
+* ip
+* type
+* port
+
+are set correctly, and that the miner is currently running
+
+"""
+
 
 @pytest.mark.asyncio
 async def test_axon(local_chain):
