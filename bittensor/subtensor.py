@@ -4933,7 +4933,7 @@ class Subtensor:
 
         return NeuronInfoLite.list_from_vec_u8(bytes_result)  # type: ignore
 
-    def metagraph(
+    async def metagraph(
         self,
         netuid: int,
         lite: bool = True,
@@ -4955,10 +4955,8 @@ class Subtensor:
         network's decentralized architecture, particularly in relation to neuron interconnectivity and consensus
             processes.
         """
-        metagraph_ = bittensor.metagraph(
-            network=self.network, netuid=netuid, lite=lite, sync=False
-        )
-        metagraph_.sync(block=block, lite=lite, subtensor=self)
+        metagraph_ = bittensor.metagraph(network=self.network, netuid=netuid, lite=lite)
+        await metagraph_.sync(block=block, lite=lite, subtensor=self)
 
         return metagraph_
 
