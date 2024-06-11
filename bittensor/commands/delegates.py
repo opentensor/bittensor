@@ -236,6 +236,8 @@ def show_delegate_stakes(
     """
     Displays a formatted table of stakes.
     """
+    if len(stakes) == 0:
+        return
     table = Table(show_footer=True, width=width, pad_edge=False, box=None, expand=False)
     table.add_column(
         "[overline white]Netuid",
@@ -297,6 +299,7 @@ class DelegateStakeCommand:
                 config.bittensor_wallet_object,
                 delegate_ss58=config.get("delegate_ss58key"),
                 amount=config.get("amount"),
+                netuid=config.get("netuid"),
                 wait_for_inclusion=True,
                 prompt=not config.no_prompt,
             )

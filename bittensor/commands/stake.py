@@ -386,14 +386,9 @@ class StakeList:
         table.add_column(
             "[white]Hotkey", footer_style="overline white", style="dark_slate_gray3"
         )
-        table.add_column(f"[white]Stake", footer_style="overline white", style="blue")
-        for netuid in netuids:
-            table.add_column(
-                f"[overline white]{bittensor.Balance.get_unit(netuid)}",
-                str(netuid_totals[netuid]) if netuid in netuid_totals else "",
-                footer_style="overline white",
-                style="green",
-            )
+        table.add_column(f"[white]Netuid", footer_style="overline white", style="white")
+        table.add_column(f"[white]Alpha", footer_style="overline white", style="green")
+        table.add_column(f"[white]TAO", footer_style="overline white", style="blue")
 
         # Fill rows
         for hotkey in hot_netuid_pairs.keys():
@@ -402,22 +397,30 @@ class StakeList:
                 row_name = registered_delegate_info[hotkey].name
             else:
                 row_name = hotkey[:10]
-            row1 = [row_name, hot_alpha_totals[hotkey].set_unit(1)]
+
+            first_row = True
             for netuid in netuids:
-                row1.append(
+                row = [
+                    row_name if first_row else "",
+                    str(netuid),
                     str(
                         bittensor.Balance.from_rao(
                             int(hot_netuid_pairs[hotkey].get(netuid, 0))
                         ).set_unit(netuid)
-                    )
-                )
-            table.add_row(*row1)
-            row2 = ["", f"[blue]{hot_tao_totals[hotkey]}[/blue]"]
-            for netuid in netuids:
-                row2.append(
-                    f"[blue]{hot_netuid_pairs[hotkey].get(netuid, 0) * dynamic_info[ netuid ]['price'] }[/blue]"
-                )
-            table.add_row(*row2)
+                    ),
+                    f"[blue]{hot_netuid_pairs[hotkey].get(netuid, 0) * dynamic_info[netuid]['price'] }[/blue]"
+                ]
+                table.add_row(*row)
+                first_row = False
+
+            # bottom line
+            row = [
+                "TOTAL",
+                "",
+                "",
+                f"{hot_tao_totals[hotkey].set_unit(0)}",
+            ]    
+            table.add_row(*row)
 
         table.box = None
         table.pad_edge = False
@@ -458,14 +461,18 @@ class StakeList:
             ),
             (
                 "[bold white]2.[/bold white]",
-                "[bold white]Stake[/bold white]",
-                "The sum of [green]dTAO(\u03B1)[/green] across all subnets and that summation's corresponding value in [blue]TAO[/blue].",
+                "[bold white]Netuid[/bold white]",
+                "Subnet ID.",
             ),
             (
                 "[bold white]3.[/bold white]",
+                "[bold white]Alpha[/bold white]",
+                "For each subnet, the quantity of staked [green]dynamic TAO (\u03B1)[/green].",
+            ),
+            (
+                "[bold white]4.[/bold white]",
                 "[bold white]DTAO[/bold white]",
-                """For each subnet, the quantity of staked [green]dynamic TAO (\u03B1)[/green] and its [blue]TAO[/blue] value calculated using the current subnet exchange rate.
-            """,
+                "For each subnet, the staked Alpha [blue]TAO[/blue] value calculated using the current subnet exchange rate.",
             ),
         ]
 

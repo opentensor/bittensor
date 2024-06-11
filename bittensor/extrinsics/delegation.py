@@ -104,6 +104,7 @@ def delegate_extrinsic(
     wallet: "bittensor.wallet",
     delegate_ss58: Optional[str] = None,
     amount: Optional[Union[Balance, float]] = None,
+    netuid: int = 0,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
     prompt: bool = False,
@@ -163,8 +164,12 @@ def delegate_extrinsic(
     # Ask before moving on.
     if prompt:
         if not Confirm.ask(
-            "Do you want to delegate:[bold white]\n\tamount: {}\n\tto: {}\n\towner: {}[/bold white]".format(
-                staking_balance, delegate_ss58, delegate_owner
+            "Do you want to delegate:[bold white]\n"
+            "\tnetuid: {}\n"
+            "\tamount: {}\n"
+            "\tto: {}\n"
+            "\towner: {}[/bold white]".format(
+                netuid, staking_balance, delegate_ss58, delegate_owner
             )
         ):
             return False
@@ -179,6 +184,7 @@ def delegate_extrinsic(
                 wallet=wallet,
                 delegate_ss58=delegate_ss58,
                 amount=staking_balance,
+                netuid=netuid,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
             )
@@ -298,8 +304,12 @@ def undelegate_extrinsic(
     # Ask before moving on.
     if prompt:
         if not Confirm.ask(
-            "Do you want to un-delegate:[bold white]\n  amount: {}\n  from: {}\n  owner: {}[/bold white]".format(
-                unstaking_balance, delegate_ss58, delegate_owner
+            "Do you want to un-delegate:[bold white]\n"
+            "  netuid: {}\n"
+            "  amount: {}\n"
+            "  from: {}\n"
+            "  owner: {}[/bold white]".format(
+                netuid, unstaking_balance, delegate_ss58, delegate_owner
             )
         ):
             return False

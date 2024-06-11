@@ -569,6 +569,7 @@ class subtensor:
         wallet: bittensor.wallet,
         delegate_ss58: Optional[str] = None,
         amount: Optional[Union[Balance, float]] = None,
+        netuid: int = 0,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
         prompt: bool = False,
@@ -582,6 +583,7 @@ class subtensor:
             wallet (bittensor.wallet): The wallet containing the hotkey to be nominated.
             delegate_ss58 (Optional[str]): The ``SS58`` address of the delegate neuron.
             amount (Union[Balance, float]): The amount of TAO to undelegate.
+            netuid (int): Subnet ID.
             wait_for_finalization (bool, optional): If ``True``, waits until the transaction is finalized on the
                 blockchain.
             wait_for_inclusion (bool, optional): If ``True``, waits until the transaction is included in a block.
@@ -598,6 +600,7 @@ class subtensor:
             wallet=wallet,
             delegate_ss58=delegate_ss58,
             amount=amount,
+            netuid=netuid,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
             prompt=prompt,
@@ -4871,6 +4874,7 @@ class subtensor:
         wallet: "bittensor.wallet",
         delegate_ss58: str,
         amount: "Balance",
+        netuid: int,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
     ) -> bool:
@@ -4878,8 +4882,12 @@ class subtensor:
         def make_substrate_call_with_retry():
             call = self.substrate.compose_call(
                 call_module="SubtensorModule",
-                call_function="add_stake",
-                call_params={"hotkey": delegate_ss58, "amount_staked": amount.rao},
+                call_function="add_subnet_stake",
+                call_params={
+                    "hotkey": delegate_ss58,
+                    "netuid": netuid,
+                    "amount_staked": amount.rao
+                },
             )
             extrinsic = self.substrate.create_signed_extrinsic(
                 call=call, keypair=wallet.coldkey
