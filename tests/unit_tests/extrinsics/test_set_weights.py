@@ -73,7 +73,7 @@ def test_set_weights_extrinsic(
         return_value=(uids_tensor, weights_tensor),
     ), patch("rich.prompt.Confirm.ask", return_value=user_accepts), patch.object(
         mock_subtensor,
-        "_do_set_weights",
+        "do_set_weights",
         return_value=(expected_success, "Mock error message"),
     ) as mock_do_set_weights:
         result, message = set_weights_extrinsic(

@@ -831,7 +831,7 @@ class Subtensor:
 
         return success, message
 
-    async def _do_set_weights(
+    async def do_set_weights(
         self,
         wallet: "bittensor.wallet",
         uids: List[int],
@@ -1794,7 +1794,7 @@ class Subtensor:
     ###########
     # Serving #
     ###########
-    def serve(
+    async def serve(
         self,
         wallet: "bittensor.wallet",
         ip: str,
@@ -1830,7 +1830,7 @@ class Subtensor:
         This function is essential for establishing the neuron's presence in the network, enabling
         it to participate in the decentralized machine learning processes of Bittensor.
         """
-        return serve_extrinsic(
+        return await serve_extrinsic(
             self,
             wallet,
             ip,
@@ -1843,7 +1843,7 @@ class Subtensor:
             wait_for_finalization,
         )
 
-    def serve_axon(
+    async def serve_axon(
         self,
         netuid: int,
         axon: "bittensor.axon",
@@ -1867,11 +1867,11 @@ class Subtensor:
         By registering an Axon, the neuron becomes an active part of the network's distributed
         computing infrastructure, contributing to the collective intelligence of Bittensor.
         """
-        return serve_axon_extrinsic(
+        return await serve_axon_extrinsic(
             self, netuid, axon, wait_for_inclusion, wait_for_finalization
         )
 
-    async def _do_serve_axon(
+    async def do_serve_axon(
         self,
         wallet: "bittensor.wallet",
         call_params: AxonServeCallParams,
@@ -2294,7 +2294,7 @@ class Subtensor:
     # Senate #
     ##########
 
-    def register_senate(
+    async def register_senate(
         self,
         wallet: "bittensor.wallet",
         wait_for_inclusion: bool = True,
@@ -2317,11 +2317,11 @@ class Subtensor:
         This function supports flexible stake management, allowing neurons to adjust their network participation
         and potential reward accruals.
         """
-        return register_senate_extrinsic(
+        return await register_senate_extrinsic(
             self, wallet, wait_for_inclusion, wait_for_finalization, prompt
         )
 
-    def leave_senate(
+    async def leave_senate(
         self,
         wallet: "bittensor.wallet",
         wait_for_inclusion: bool = True,
@@ -2344,11 +2344,11 @@ class Subtensor:
         This function supports flexible stake management, allowing neurons to adjust their network participation
         and potential reward accruals.
         """
-        return leave_senate_extrinsic(
+        return await leave_senate_extrinsic(
             self, wallet, wait_for_inclusion, wait_for_finalization, prompt
         )
 
-    def vote_senate(
+    async def vote_senate(
         self,
         wallet: "bittensor.wallet",
         proposal_hash: str,
@@ -2377,7 +2377,7 @@ class Subtensor:
         This function supports flexible stake management, allowing neurons to adjust their network participation
         and potential reward accruals.
         """
-        return vote_senate_extrinsic(
+        return await vote_senate_extrinsic(
             self,
             wallet,
             proposal_hash,
@@ -2551,7 +2551,7 @@ class Subtensor:
     # Root #
     ########
 
-    def root_register(
+    async def root_register(
         self,
         wallet: "bittensor.wallet",
         wait_for_inclusion: bool = False,
@@ -2574,7 +2574,7 @@ class Subtensor:
         This function enables neurons to engage in the most critical and influential aspects of the network's
         governance, signifying a high level of commitment and responsibility in the Bittensor ecosystem.
         """
-        return root_register_extrinsic(
+        return await root_register_extrinsic(
             subtensor=self,
             wallet=wallet,
             wait_for_inclusion=wait_for_inclusion,
@@ -2582,7 +2582,7 @@ class Subtensor:
             prompt=prompt,
         )
 
-    async def _do_root_register(
+    async def do_root_register(
         self,
         wallet: "bittensor.wallet",
         wait_for_inclusion: bool = False,
@@ -2620,7 +2620,7 @@ class Subtensor:
         return await make_substrate_call_with_retry()
 
     @legacy_torch_api_compat
-    def root_set_weights(
+    async def root_set_weights(
         self,
         wallet: "bittensor.wallet",
         netuids: Union[NDArray[np.int64], "torch.LongTensor", list],
@@ -2651,7 +2651,7 @@ class Subtensor:
         This function plays a pivotal role in shaping the root network's collective intelligence and decision-making
         processes, reflecting the principles of decentralized governance and collaborative learning in Bittensor.
         """
-        return set_root_weights_extrinsic(
+        return await set_root_weights_extrinsic(
             subtensor=self,
             wallet=wallet,
             netuids=netuids,
@@ -2776,7 +2776,8 @@ class Subtensor:
         return await make_substrate_call_with_retry()
 
     # Make some commitment on-chain about arbitrary data.
-    def commit(self, wallet, netuid: int, data: str):
+    # TODO: Determine if this is used somewhere?
+    async def commit(self, wallet, netuid: int, data: str):
         """
         Commits arbitrary data to the Bittensor network by publishing metadata.
 
@@ -2785,9 +2786,11 @@ class Subtensor:
             netuid (int): The unique identifier of the subnetwork.
             data (str): The data to be committed to the network.
         """
-        publish_metadata(self, wallet, netuid, f"Raw{len(data)}", data.encode())
+        await publish_metadata(self, wallet, netuid, f"Raw{len(data)}", data.encode())
 
-    def get_commitment(self, netuid: int, uid: int, block: Optional[int] = None) -> str:
+    async def get_commitment(
+        self, netuid: int, uid: int, block: Optional[int] = None
+    ) -> str:
         """
         Retrieves the on-chain commitment for a specific neuron in the Bittensor network.
 
@@ -2800,10 +2803,10 @@ class Subtensor:
         Returns:
             str: The commitment data as a string.
         """
-        metagraph = self.metagraph(netuid)
+        metagraph = await self.metagraph(netuid)
         hotkey = metagraph.hotkeys[uid]  # type: ignore
 
-        metadata = get_metadata(self, netuid, hotkey, block)
+        metadata = await get_metadata(self, netuid, hotkey, block)
         commitment = metadata["info"]["fields"][0]  # type: ignore
         hex_data = commitment[list(commitment.keys())[0]][2:]  # type: ignore
 
