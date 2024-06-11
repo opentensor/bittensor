@@ -43,7 +43,7 @@ if (NEST_ASYNCIO_ENV := os.getenv("NEST_ASYNCIO")) in ("1", None):
 __version__ = "7.0.0"
 
 _version_split = __version__.split(".")
-__version_info__ = tuple(map(int, _version_split))
+__version_info__ = tuple(int(part) for part in _version_split)
 _version_int_base = 1000
 assert max(__version_info__) < _version_int_base
 
