@@ -21,6 +21,25 @@ from tests.e2e_tests.utils import (
 
 logging.basicConfig(level=logging.INFO)
 
+"""
+Test the incentive mechanism. 
+
+Verify that for the miner:
+* trust
+* rank
+* consensus
+* incentive
+are updated with proper values after an epoch has passed. 
+
+For the validator verify that:
+* validator_permit
+* validator_trust
+* dividends
+* stake
+are updated with proper values after an epoch has passed. 
+
+"""
+
 
 @pytest.mark.asyncio
 async def test_incentive(local_chain):

@@ -14,6 +14,18 @@ from bittensor.commands import (
 )
 from tests.e2e_tests.utils import setup_wallet
 
+"""
+Test the Commit/Reveal weights mechanism. 
+
+Verify that:
+* Weights are commited
+* weights are hashed with salt 
+--- after an epoch ---
+* weights are un-hashed with salt
+* weights are properly revealed
+
+"""
+
 
 def test_commit_and_reveal_weights(local_chain):
     # Register root as Alice
@@ -184,5 +196,5 @@ def test_commit_and_reveal_weights(local_chain):
         uids, weights_array
     )
     assert (
-        expected_weights[0] == revealed_weights.value[0][1]
+            expected_weights[0] == revealed_weights.value[0][1]
     ), f"Incorrect revealed weights. Expected: {expected_weights[0]}, Actual: {revealed_weights.value[0][1]}"
