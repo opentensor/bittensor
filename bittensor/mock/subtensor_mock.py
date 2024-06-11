@@ -1459,7 +1459,7 @@ class MockSubtensor(Subtensor):
     ) -> Tuple[bool, Optional[str]]:
         return True, None
 
-    def do_serve_axon(
+    def _do_serve_axon(
         self,
         wallet: "wallet",
         call_params: "AxonServeCallParams",

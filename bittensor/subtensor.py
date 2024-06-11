@@ -1871,7 +1871,7 @@ class Subtensor:
             self, netuid, axon, wait_for_inclusion, wait_for_finalization
         )
 
-    async def do_serve_axon(
+    async def _do_serve_axon(
         self,
         wallet: "bittensor.wallet",
         call_params: AxonServeCallParams,
