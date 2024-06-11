@@ -2043,7 +2043,7 @@ class Subtensor:
     ###########
     # Staking #
     ###########
-    def add_stake(
+    async def add_stake(
         self,
         wallet: "bittensor.wallet",
         hotkey_ss58: Optional[str] = None,
@@ -2071,7 +2071,7 @@ class Subtensor:
         This function enables neurons to increase their stake in the network, enhancing their influence
         and potential rewards in line with Bittensor's consensus and reward mechanisms.
         """
-        return add_stake_extrinsic(
+        return await add_stake_extrinsic(
             subtensor=self,
             wallet=wallet,
             hotkey_ss58=hotkey_ss58,
@@ -2081,7 +2081,7 @@ class Subtensor:
             prompt=prompt,
         )
 
-    def add_stake_multiple(
+    async def add_stake_multiple(
         self,
         wallet: "bittensor.wallet",
         hotkey_ss58s: List[str],
@@ -2108,7 +2108,7 @@ class Subtensor:
         This function is essential for managing stakes across multiple neurons, reflecting the dynamic
         and collaborative nature of the Bittensor network.
         """
-        return add_stake_multiple_extrinsic(
+        return await add_stake_multiple_extrinsic(
             self,
             wallet,
             hotkey_ss58s,
