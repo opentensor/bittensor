@@ -196,5 +196,5 @@ def test_commit_and_reveal_weights(local_chain):
         uids, weights_array
     )
     assert (
-            expected_weights[0] == revealed_weights.value[0][1]
+        expected_weights[0] == revealed_weights.value[0][1]
     ), f"Incorrect revealed weights. Expected: {expected_weights[0]}, Actual: {revealed_weights.value[0][1]}"
