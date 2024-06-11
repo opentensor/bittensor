@@ -16,6 +16,8 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+"""This module provides functionality for setting weights on the Bittensor network."""
+
 from typing import Union, Tuple
 
 import numpy as np
@@ -30,7 +32,7 @@ from bittensor.utils.registration import torch, use_torch
 bittensor.logging.on()
 
 
-def set_weights_extrinsic(
+async def set_weights_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
     netuid: int,
@@ -70,7 +72,9 @@ def set_weights_extrinsic(
             weights = np.array(weights, dtype=np.float32)
 
     # Reformat and normalize.
-    weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(uids, weights)
+    weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(
+        uids, weights
+    )
 
     # Ask before moving on.
     if prompt:
@@ -81,9 +85,11 @@ def set_weights_extrinsic(
         ):
             return False, "Prompt refused."
 
-    with bittensor.__console__.status(f":satellite: Setting weights on [white]{subtensor.network}[/white] ..."):
+    with bittensor.__console__.status(
+        f":satellite: Setting weights on [white]{subtensor.network}[/white] ..."
+    ):
         try:
-            success, error_message = subtensor.do_set_weights(
+            success, error_message = await subtensor.do_set_weights(
                 wallet=wallet,
                 netuid=netuid,
                 uids=weight_uids,
@@ -97,18 +103,27 @@ def set_weights_extrinsic(
                 return True, "Not waiting for finalization or inclusion."
 
             if success is True:
-                bittensor.__console__.print(":white_heavy_check_mark: [green]Finalized[/green]")
+                bittensor.__console__.print(
+                    ":white_heavy_check_mark: [green]Finalized[/green]"
+                )
                 bittensor.logging.success(
                     prefix="Set weights",
                     suffix="<green>Finalized: </green>" + str(success),
                 )
                 return True, "Successfully set weights and Finalized."
             else:
-                bittensor.__console__.print(f":cross_mark: [red]Failed[/red]: error:{error_message}")
-                bittensor.logging.warning(prefix="Set weights", suffix="<red>Failed: </red>" + str(error_message))
+                bittensor.__console__.print(
+                    f":cross_mark: [red]Failed[/red]: error:{error_message}"
+                )
+                bittensor.logging.warning(
+                    prefix="Set weights",
+                    suffix="<red>Failed: </red>" + str(error_message),
+                )
                 return False, error_message
 
         except Exception as e:
             bittensor.__console__.print(f":cross_mark: [red]Failed[/red]: error:{e}")
-            bittensor.logging.warning( prefix="Set weights", suffix="<red>Failed: </red>" + str(e))
+            bittensor.logging.warning(
+                prefix="Set weights", suffix="<red>Failed: </red>" + str(e)
+            )
             return False, str(e)

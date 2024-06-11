@@ -22,6 +22,7 @@ blockchain, facilitating a range of operations essential for the decentralized m
 """
 
 import argparse
+import asyncio
 import copy
 import socket
 import time
@@ -767,7 +768,7 @@ class Subtensor:
     ###############
     # Set Weights #
     ###############
-    def set_weights(
+    async def set_weights(
         self,
         wallet: "bittensor.wallet",
         netuid: int,
@@ -804,16 +805,19 @@ class Subtensor:
         This function is crucial in shaping the network's collective intelligence, where each neuron's
         learning and contribution are influenced by the weights it sets towards others【81†source】.
         """
-        uid = self.get_uid_for_hotkey_on_subnet(wallet.hotkey.ss58_address, netuid)
+        uid, weights_rate_limit = asyncio.gather(
+            self.get_uid_for_hotkey_on_subnet(wallet.hotkey.ss58_address, netuid),
+            self.weights_rate_limit(netuid),
+        )
         retries = 0
         success = False
         message = "No attempt made. Perhaps it is too soon to set weights!"
         while (
-            self.blocks_since_last_update(netuid, uid) > self.weights_rate_limit(netuid)  # type: ignore
+            await self.blocks_since_last_update(netuid, uid) > weights_rate_limit  # type: ignore
             and retries < max_retries
         ):
             try:
-                success, message = set_weights_extrinsic(
+                success, message = await set_weights_extrinsic(
                     subtensor=self,
                     wallet=wallet,
                     netuid=netuid,
