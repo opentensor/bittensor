@@ -1794,7 +1794,7 @@ class Subtensor:
     ###########
     # Serving #
     ###########
-    async def serve(
+    def serve(
         self,
         wallet: "bittensor.wallet",
         ip: str,
@@ -1830,7 +1830,7 @@ class Subtensor:
         This function is essential for establishing the neuron's presence in the network, enabling
         it to participate in the decentralized machine learning processes of Bittensor.
         """
-        return await serve_extrinsic(
+        return serve_extrinsic(
             self,
             wallet,
             ip,
@@ -1843,7 +1843,7 @@ class Subtensor:
             wait_for_finalization,
         )
 
-    async def serve_axon(
+    def serve_axon(
         self,
         netuid: int,
         axon: "bittensor.axon",
@@ -1867,7 +1867,7 @@ class Subtensor:
         By registering an Axon, the neuron becomes an active part of the network's distributed
         computing infrastructure, contributing to the collective intelligence of Bittensor.
         """
-        return await serve_axon_extrinsic(
+        return serve_axon_extrinsic(
             self, netuid, axon, wait_for_inclusion, wait_for_finalization
         )
 
@@ -2776,8 +2776,7 @@ class Subtensor:
         return await make_substrate_call_with_retry()
 
     # Make some commitment on-chain about arbitrary data.
-    # TODO: Determine if this is used somewhere?
-    async def commit(self, wallet, netuid: int, data: str):
+    def commit(self, wallet, netuid: int, data: str):
         """
         Commits arbitrary data to the Bittensor network by publishing metadata.
 
@@ -2786,11 +2785,9 @@ class Subtensor:
             netuid (int): The unique identifier of the subnetwork.
             data (str): The data to be committed to the network.
         """
-        await publish_metadata(self, wallet, netuid, f"Raw{len(data)}", data.encode())
+        publish_metadata(self, wallet, netuid, f"Raw{len(data)}", data.encode())
 
-    async def get_commitment(
-        self, netuid: int, uid: int, block: Optional[int] = None
-    ) -> str:
+    def get_commitment(self, netuid: int, uid: int, block: Optional[int] = None) -> str:
         """
         Retrieves the on-chain commitment for a specific neuron in the Bittensor network.
 
@@ -2803,10 +2800,10 @@ class Subtensor:
         Returns:
             str: The commitment data as a string.
         """
-        metagraph = await self.metagraph(netuid)
+        metagraph = self.metagraph(netuid)
         hotkey = metagraph.hotkeys[uid]  # type: ignore
 
-        metadata = await get_metadata(self, netuid, hotkey, block)
+        metadata = get_metadata(self, netuid, hotkey, block)
         commitment = metadata["info"]["fields"][0]  # type: ignore
         hex_data = commitment[list(commitment.keys())[0]][2:]  # type: ignore
 

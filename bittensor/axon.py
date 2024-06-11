@@ -794,7 +794,7 @@ class axon:
         self.started = False
         return self
 
-    async def serve(
+    def serve(
         self, netuid: int, subtensor: Optional[bittensor.subtensor] = None
     ) -> "bittensor.axon":
         """
@@ -821,7 +821,7 @@ class axon:
             to start receiving and processing requests from other neurons.
         """
         if subtensor is not None and hasattr(subtensor, "serve_axon"):
-            await subtensor.serve_axon(netuid=netuid, axon=self)
+            subtensor.serve_axon(netuid=netuid, axon=self)
         return self
 
     async def default_verify(self, synapse: bittensor.Synapse):
