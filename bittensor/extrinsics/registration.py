@@ -264,7 +264,7 @@ async def burned_register_extrinsic(
     with bittensor.__console__.status(
         f":satellite: Checking Account on [bold]subnet:{netuid}[/bold]..."
     ):
-        neuron, old_balance, recycle_amount = asyncio.gather(
+        neuron, old_balance, recycle_amount = await asyncio.gather(
             subtensor.get_neuron_for_pubkey_and_subnet(
                 wallet.hotkey.ss58_address, netuid=netuid
             ),

@@ -805,7 +805,7 @@ class Subtensor:
         This function is crucial in shaping the network's collective intelligence, where each neuron's
         learning and contribution are influenced by the weights it sets towards others【81†source】.
         """
-        uid, weights_rate_limit = asyncio.gather(
+        uid, weights_rate_limit = await asyncio.gather(
             self.get_uid_for_hotkey_on_subnet(wallet.hotkey.ss58_address, netuid),
             self.weights_rate_limit(netuid),
         )
