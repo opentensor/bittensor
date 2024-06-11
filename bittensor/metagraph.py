@@ -366,9 +366,7 @@ class MetagraphMixin(ABC):
         return [axon.ip_str() for axon in self.axons]
 
     @abstractmethod
-    def __init__(
-        self, netuid: int, network: str = "finney", lite: bool = True, sync: bool = True
-    ):
+    def __init__(self, netuid: int, network: str = "finney", lite: bool = True):
         """
         Initializes a new instance of the metagraph object, setting up the basic structure and parameters based on the provided arguments.
         This method is the entry point for creating a metagraph object,
@@ -469,7 +467,7 @@ class MetagraphMixin(ABC):
             "axons": self.axons,
         }
 
-    def sync(
+    async def sync(
         self,
         block: Optional[int] = None,
         lite: bool = True,
@@ -516,21 +514,21 @@ class MetagraphMixin(ABC):
             subtensor.chain_endpoint != bittensor.__archive_entrypoint__  # type: ignore
             or subtensor.network != "archive"  # type: ignore
         ):
-            cur_block = subtensor.get_current_block()  # type: ignore
+            cur_block = await subtensor.get_current_block()  # type: ignore
             if block and block < (cur_block - 300):
                 bittensor.logging.warning(
                     "Attempting to sync longer than 300 blocks ago on a non-archive node. Please use the 'archive' network for subtensor and retry."
                 )
 
         # Assign neurons based on 'lite' flag
-        self._assign_neurons(block, lite, subtensor)
+        await self._assign_neurons(block, lite, subtensor)
 
         # Set attributes for metagraph
         self._set_metagraph_attributes(block, subtensor)
 
         # If not a 'lite' version, compute and set weights and bonds for each neuron
         if not lite:
-            self._set_weights_and_bonds(subtensor=subtensor)
+            await self._set_weights_and_bonds(subtensor=subtensor)
 
     def _initialize_subtensor(self, subtensor):
         """
@@ -556,7 +554,7 @@ class MetagraphMixin(ABC):
             subtensor = bittensor.subtensor(network=self.network)
         return subtensor
 
-    def _assign_neurons(self, block, lite, subtensor):
+    async def _assign_neurons(self, block, lite, subtensor):
         """
         Assigns neurons to the metagraph based on the provided block number and the lite flag.
 
@@ -574,9 +572,9 @@ class MetagraphMixin(ABC):
         """
         # TODO: Check and test the conditions for assigning neurons
         if lite:
-            self.neurons = subtensor.neurons_lite(block=block, netuid=self.netuid)
+            self.neurons = await subtensor.neurons_lite(block=block, netuid=self.netuid)
         else:
-            self.neurons = subtensor.neurons(block=block, netuid=self.netuid)
+            self.neurons = await subtensor.neurons(block=block, netuid=self.netuid)
         self.lite = lite
 
     @staticmethod
@@ -603,7 +601,9 @@ class MetagraphMixin(ABC):
             else np.array(data, dtype=dtype)
         )
 
-    def _set_weights_and_bonds(self, subtensor: Optional[bittensor.subtensor] = None):
+    async def _set_weights_and_bonds(
+        self, subtensor: Optional[bittensor.subtensor] = None
+    ):
         """
         Computes and sets the weights and bonds for each neuron in the metagraph. This method is responsible for processing the raw weight and bond data obtained from the network and converting it into a structured format suitable for the metagraph model.
 
@@ -617,7 +617,7 @@ class MetagraphMixin(ABC):
         """
         # TODO: Check and test the computation of weights and bonds
         if self.netuid == 0:
-            self.weights = self._process_root_weights(
+            self.weights = await self._process_root_weights(
                 [neuron.weights for neuron in self.neurons],
                 "weights",
                 subtensor,  # type: ignore
@@ -695,7 +695,7 @@ class MetagraphMixin(ABC):
     def _set_metagraph_attributes(self, block, subtensor):
         pass
 
-    def _process_root_weights(
+    async def _process_root_weights(
         self, data, attribute: str, subtensor: bittensor.subtensor
     ) -> Union[NDArray, "torch.nn.Parameter"]:
         """
@@ -718,8 +718,8 @@ class MetagraphMixin(ABC):
 
         """
         data_array = []
-        n_subnets = subtensor.get_total_subnets() or 0
-        subnets = subtensor.get_subnets()
+        n_subnets = await subtensor.get_total_subnets() or 0
+        subnets = await subtensor.get_subnets()
         for item in data:
             if len(item) == 0:
                 if use_torch():
@@ -853,9 +853,7 @@ BaseClass: Union["torch.nn.Module", object] = torch.nn.Module if use_torch() els
 
 
 class TorchMetaGraph(MetagraphMixin, BaseClass):  # type: ignore
-    def __init__(
-        self, netuid: int, network: str = "finney", lite: bool = True, sync: bool = True
-    ):
+    def __init__(self, netuid: int, network: str = "finney", lite: bool = True):
         """
         Initializes a new instance of the metagraph object, setting up the basic structure and parameters based on the provided arguments.
         This method is the entry point for creating a metagraph object,
@@ -870,7 +868,7 @@ class TorchMetaGraph(MetagraphMixin, BaseClass):  # type: ignore
                 metagraph = metagraph(netuid=123, network="finney", lite=True, sync=True)
         """
         torch.nn.Module.__init__(self)
-        MetagraphMixin.__init__(self, netuid, network, lite, sync)
+        MetagraphMixin.__init__(self, netuid, network, lite)
         self.netuid = netuid
         self.network = network
         self.version = torch.nn.Parameter(
@@ -929,8 +927,6 @@ class TorchMetaGraph(MetagraphMixin, BaseClass):  # type: ignore
             torch.tensor([], dtype=torch.int64), requires_grad=False
         )
         self.axons: List[AxonInfo] = []
-        if sync:
-            self.sync(block=None, lite=lite)
 
     def _set_metagraph_attributes(self, block, subtensor):
         """
@@ -1039,11 +1035,9 @@ class TorchMetaGraph(MetagraphMixin, BaseClass):  # type: ignore
 
 
 class NonTorchMetagraph(MetagraphMixin):
-    def __init__(
-        self, netuid: int, network: str = "finney", lite: bool = True, sync: bool = True
-    ):
+    def __init__(self, netuid: int, network: str = "finney", lite: bool = True):
         # super(metagraph, self).__init__()
-        MetagraphMixin.__init__(self, netuid, network, lite, sync)
+        MetagraphMixin.__init__(self, netuid, network, lite)
 
         self.netuid = netuid
         self.network = network
@@ -1066,8 +1060,6 @@ class NonTorchMetagraph(MetagraphMixin):
         self.bonds = np.array([], dtype=np.int64)
         self.uids = np.array([], dtype=np.int64)
         self.axons: List[AxonInfo] = []
-        if sync:
-            self.sync(block=None, lite=lite)
 
     def _set_metagraph_attributes(self, block, subtensor):
         """

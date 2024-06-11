@@ -16,18 +16,18 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import bittensor
+from typing import Union, Tuple
 
-import logging
 import numpy as np
 from numpy.typing import NDArray
 from rich.prompt import Confirm
-from typing import Union, Tuple
+
+import bittensor
 import bittensor.utils.weight_utils as weight_utils
-from bittensor.btlogging.defines import BITTENSOR_LOGGER_NAME
 from bittensor.utils.registration import torch, use_torch
 
-logger = logging.getLogger(BITTENSOR_LOGGER_NAME)
+
+bittensor.logging.on()
 
 
 def set_weights_extrinsic(
@@ -64,7 +64,7 @@ def set_weights_extrinsic(
             If ``true``, the call waits for confirmation from the user before proceeding.
     Returns:
         success (bool):
-            Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
+            Flag is ``true`` if extrinsic was finalized or included in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
     # First convert types.
     if use_torch():
@@ -109,7 +109,7 @@ def set_weights_extrinsic(
             if not wait_for_finalization and not wait_for_inclusion:
                 return True, "Not waiting for finalization or inclusion."
 
-            if success == True:
+            if success is True:
                 bittensor.__console__.print(
                     ":white_heavy_check_mark: [green]Finalized[/green]"
                 )

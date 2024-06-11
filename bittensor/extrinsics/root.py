@@ -19,16 +19,15 @@
 import bittensor
 
 import time
-import logging
 import numpy as np
 from numpy.typing import NDArray
 from rich.prompt import Confirm
 from typing import Union, List
 import bittensor.utils.weight_utils as weight_utils
-from bittensor.btlogging.defines import BITTENSOR_LOGGER_NAME
 from bittensor.utils.registration import torch, legacy_torch_api_compat
 
-logger = logging.getLogger(BITTENSOR_LOGGER_NAME)
+
+bittensor.logging.on()
 
 
 def root_register_extrinsic(
@@ -51,7 +50,7 @@ def root_register_extrinsic(
             If ``true``, the call waits for confirmation from the user before proceeding.
     Returns:
         success (bool):
-            Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
+            Flag is ``true`` if extrinsic was finalized or included in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
 
     wallet.coldkey  # unlock coldkey
@@ -77,7 +76,7 @@ def root_register_extrinsic(
             wait_for_finalization=wait_for_finalization,
         )
 
-        if success != True or success == False:
+        if success is not True or success is False:
             bittensor.__console__.print(
                 ":cross_mark: [red]Failed[/red]: error:{}".format(err_msg)
             )
@@ -130,7 +129,7 @@ def set_root_weights_extrinsic(
             If ``true``, the call waits for confirmation from the user before proceeding.
     Returns:
         success (bool):
-            Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
+            Flag is ``true`` if extrinsic was finalized or included in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
     # First convert types.
     if isinstance(netuids, list):
@@ -144,7 +143,6 @@ def set_root_weights_extrinsic(
 
     # Get non zero values.
     non_zero_weight_idx = np.argwhere(weights > 0).squeeze(axis=1)
-    non_zero_weight_uids = netuids[non_zero_weight_idx]
     non_zero_weights = weights[non_zero_weight_idx]
     if non_zero_weights.size < min_allowed_weights:
         raise ValueError(

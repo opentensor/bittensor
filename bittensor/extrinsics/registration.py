@@ -16,10 +16,18 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import bittensor
+"""
+This module provides functions for interacting with the Bittensor blockchain, including wallet registration,
+stake delegation, and hotkey swaps.
+"""
+
+import asyncio
 import time
-from rich.prompt import Confirm
 from typing import List, Union, Optional, Tuple
+
+from rich.prompt import Confirm
+
+import bittensor
 from bittensor.utils.registration import (
     POWSolution,
     create_pow,
@@ -28,7 +36,15 @@ from bittensor.utils.registration import (
 )
 
 
-def register_extrinsic(
+class MaxSuccessException(Exception):
+    pass
+
+
+class MaxAttemptsException(Exception):
+    pass
+
+
+async def register_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
     netuid: int,
@@ -44,38 +60,28 @@ def register_extrinsic(
     update_interval: Optional[int] = None,
     log_verbose: bool = False,
 ) -> bool:
-    r"""Registers the wallet to the chain.
+    """Registers the wallet to the chain.
 
     Args:
-        wallet (bittensor.wallet):
-            Bittensor wallet object.
-        netuid (int):
-            The ``netuid`` of the subnet to register on.
-        wait_for_inclusion (bool):
-            If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization (bool):
-            If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
-        prompt (bool):
-            If ``true``, the call waits for confirmation from the user before proceeding.
-        max_allowed_attempts (int):
-            Maximum number of attempts to register the wallet.
-        cuda (bool):
-            If ``true``, the wallet should be registered using CUDA device(s).
-        dev_id (Union[List[int], int]):
-            The CUDA device id to use, or a list of device ids.
-        tpb (int):
-            The number of threads per block (CUDA).
-        num_processes (int):
-            The number of processes to use to register.
-        update_interval (int):
-            The number of nonces to solve between updates.
-        log_verbose (bool):
-            If ``true``, the registration process will log more information.
+        subtensor (bittensor.subtensor): Bittensor subtensor object.
+        wallet (bittensor.wallet): Bittensor wallet object.
+        netuid (int): The ``netuid`` of the subnet to register on.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
+        prompt (bool): If ``true``, the call waits for confirmation from the user before proceeding.
+        max_allowed_attempts (int): Maximum number of attempts to register the wallet.
+        output_in_place (bool): If ``true``, updates the output in place in the console. Otherwise, logs updates as separate entries. Defaults to ``True``.
+        cuda (bool): If ``true``, the wallet should be registered using CUDA device(s).
+        dev_id (Union[List[int], int]): The CUDA device id to use, or a list of device ids.
+        tpb (int): The number of threads per block (CUDA).
+        num_processes (int): The number of processes to use to register.
+        update_interval (int): The number of nonces to solve between updates.
+        log_verbose (bool): If ``true``, the registration process will log more information.
+
     Returns:
-        success (bool):
-            Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
+        success (bool): Flag is ``true`` if extrinsic was finalized or included in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
-    if not subtensor.subnet_exists(netuid):
+    if not await subtensor.subnet_exists(netuid):
         bittensor.__console__.print(
             ":cross_mark: [red]Failed[/red]: error: [bold white]subnet:{}[/bold white] does not exist.".format(
                 netuid
@@ -86,7 +92,7 @@ def register_extrinsic(
     with bittensor.__console__.status(
         f":satellite: Checking Account on [bold]subnet:{netuid}[/bold]..."
     ):
-        neuron = subtensor.get_neuron_for_pubkey_and_subnet(
+        neuron = await subtensor.get_neuron_for_pubkey_and_subnet(
             wallet.hotkey.ss58_address, netuid=netuid
         )
         if not neuron.is_null:
@@ -121,7 +127,8 @@ def register_extrinsic(
                 if prompt:
                     bittensor.__console__.print("CUDA is not available.")
                 return False
-            pow_result: Optional[POWSolution] = create_pow(
+
+            pow_result: Optional[POWSolution] = await create_pow(
                 subtensor,
                 wallet,
                 netuid,
@@ -134,7 +141,7 @@ def register_extrinsic(
                 log_verbose=log_verbose,
             )
         else:
-            pow_result: Optional[POWSolution] = create_pow(
+            pow_result: Optional[POWSolution] = await create_pow(
                 subtensor,
                 wallet,
                 netuid,
@@ -148,7 +155,7 @@ def register_extrinsic(
         # pow failed
         if not pow_result:
             # might be registered already on this subnet
-            is_registered = subtensor.is_hotkey_registered(
+            is_registered = await subtensor.is_hotkey_registered(
                 netuid=netuid, hotkey_ss58=wallet.hotkey.ss58_address
             )
             if is_registered:
@@ -161,8 +168,10 @@ def register_extrinsic(
         else:
             with bittensor.__console__.status(":satellite: Submitting POW..."):
                 # check if pow result is still valid
-                while not pow_result.is_stale(subtensor=subtensor):
-                    result: Tuple[bool, Optional[str]] = subtensor._do_pow_register(
+                while not await pow_result.is_stale(subtensor=subtensor):
+                    result: Tuple[
+                        bool, Optional[str]
+                    ] = await subtensor.do_pow_register(
                         netuid=netuid,
                         wallet=wallet,
                         pow_result=pow_result,
@@ -171,7 +180,7 @@ def register_extrinsic(
                     )
                     success, err_msg = result
 
-                    if success != True or success == False:
+                    if success is not True or success is False:
                         if "key is already registered" in err_msg:
                             # Error meant that the key is already registered.
                             bittensor.__console__.print(
@@ -182,12 +191,12 @@ def register_extrinsic(
                         bittensor.__console__.print(
                             ":cross_mark: [red]Failed[/red]: error:{}".format(err_msg)
                         )
-                        time.sleep(0.5)
+                        await asyncio.sleep(0.5)
 
                     # Successful registration, final check for neuron and pubkey
                     else:
                         bittensor.__console__.print(":satellite: Checking Balance...")
-                        is_registered = subtensor.is_hotkey_registered(
+                        is_registered = await subtensor.is_hotkey_registered(
                             netuid=netuid, hotkey_ss58=wallet.hotkey.ss58_address
                         )
                         if is_registered:
@@ -221,7 +230,7 @@ def register_extrinsic(
             return False
 
 
-def burned_register_extrinsic(
+async def burned_register_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
     netuid: int,
@@ -229,24 +238,20 @@ def burned_register_extrinsic(
     wait_for_finalization: bool = True,
     prompt: bool = False,
 ) -> bool:
-    r"""Registers the wallet to chain by recycling TAO.
+    """Registers the wallet to chain by recycling TAO.
 
     Args:
-        wallet (bittensor.wallet):
-            Bittensor wallet object.
-        netuid (int):
-            The ``netuid`` of the subnet to register on.
-        wait_for_inclusion (bool):
-            If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization (bool):
-            If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
-        prompt (bool):
-            If ``true``, the call waits for confirmation from the user before proceeding.
+        subtensor (bittensor.subtensor): Bittensor subtensor object.
+        wallet (bittensor.wallet): Bittensor wallet object.
+        netuid (int): The ``netuid`` of the subnet to register on.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
+        prompt (bool): If ``true``, the call waits for confirmation from the user before proceeding.
+
     Returns:
-        success (bool):
-            Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
+        success (bool): Flag is ``true`` if extrinsic was finalized or included in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
-    if not subtensor.subnet_exists(netuid):
+    if not await subtensor.subnet_exists(netuid):
         bittensor.__console__.print(
             ":cross_mark: [red]Failed[/red]: error: [bold white]subnet:{}[/bold white] does not exist.".format(
                 netuid
@@ -255,16 +260,18 @@ def burned_register_extrinsic(
         return False
 
     wallet.coldkey  # unlock coldkey
+
     with bittensor.__console__.status(
         f":satellite: Checking Account on [bold]subnet:{netuid}[/bold]..."
     ):
-        neuron = subtensor.get_neuron_for_pubkey_and_subnet(
-            wallet.hotkey.ss58_address, netuid=netuid
+        neuron, old_balance, recycle_amount = asyncio.gather(
+            subtensor.get_neuron_for_pubkey_and_subnet(
+                wallet.hotkey.ss58_address, netuid=netuid
+            ),
+            subtensor.get_balance(wallet.coldkeypub.ss58_address),
+            subtensor.recycle(netuid=netuid),
         )
 
-        old_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
-
-        recycle_amount = subtensor.recycle(netuid=netuid)
         if not neuron.is_null:
             bittensor.__console__.print(
                 ":white_heavy_check_mark: [green]Already Registered[/green]:\n"
@@ -283,24 +290,24 @@ def burned_register_extrinsic(
             return False
 
     with bittensor.__console__.status(":satellite: Recycling TAO for Registration..."):
-        success, err_msg = subtensor._do_burned_register(
+        success, err_msg = await subtensor.do_burned_register(
             netuid=netuid,
             wallet=wallet,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
         )
 
-        if success != True or success == False:
+        if success is not True or success is False:
             bittensor.__console__.print(
                 ":cross_mark: [red]Failed[/red]: error:{}".format(err_msg)
             )
-            time.sleep(0.5)
+            await asyncio.sleep(0.5)
             return False
         # Successful registration, final check for neuron and pubkey
         else:
             bittensor.__console__.print(":satellite: Checking Balance...")
-            block = subtensor.get_current_block()
-            new_balance = subtensor.get_balance(
+            block = await subtensor.get_current_block()
+            new_balance = await subtensor.get_balance(
                 wallet.coldkeypub.ss58_address, block=block
             )
 
@@ -309,7 +316,7 @@ def burned_register_extrinsic(
                     old_balance, new_balance
                 )
             )
-            is_registered = subtensor.is_hotkey_registered(
+            is_registered = await subtensor.is_hotkey_registered(
                 netuid=netuid, hotkey_ss58=wallet.hotkey.ss58_address
             )
             if is_registered:
@@ -325,15 +332,7 @@ def burned_register_extrinsic(
                 return False
 
 
-class MaxSuccessException(Exception):
-    pass
-
-
-class MaxAttemptsException(Exception):
-    pass
-
-
-def run_faucet_extrinsic(
+async def run_faucet_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
     wait_for_inclusion: bool = False,
@@ -348,34 +347,25 @@ def run_faucet_extrinsic(
     update_interval: Optional[int] = None,
     log_verbose: bool = False,
 ) -> Tuple[bool, str]:
-    r"""Runs a continual POW to get a faucet of TAO on the test net.
+    """Runs a continual POW to get a faucet of TAO on the test net.
 
     Args:
-        wallet (bittensor.wallet):
-            Bittensor wallet object.
-        prompt (bool):
-            If ``true``, the call waits for confirmation from the user before proceeding.
-        wait_for_inclusion (bool):
-            If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization (bool):
-            If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
-        max_allowed_attempts (int):
-            Maximum number of attempts to register the wallet.
-        cuda (bool):
-            If ``true``, the wallet should be registered using CUDA device(s).
-        dev_id (Union[List[int], int]):
-            The CUDA device id to use, or a list of device ids.
-        tpb (int):
-            The number of threads per block (CUDA).
-        num_processes (int):
-            The number of processes to use to register.
-        update_interval (int):
-            The number of nonces to solve between updates.
-        log_verbose (bool):
-            If ``true``, the registration process will log more information.
+        subtensor (bittensor.subtensor): Bittensor subtensor object.
+        wallet (bittensor.wallet): Bittensor wallet object.
+        prompt (bool): If ``true``, the call waits for confirmation from the user before proceeding.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
+        max_allowed_attempts (int): Maximum number of attempts to register the wallet.
+        output_in_place (bool): If ``true``, updates the output in place in the console. Otherwise, logs updates as separate entries. Defaults to ``True``.
+        cuda (bool): If ``true``, the wallet should be registered using CUDA device(s).
+        dev_id (Union[List[int], int]): The CUDA device id to use, or a list of device ids.
+        tpb (int): The number of threads per block (CUDA).
+        num_processes (int): The number of processes to use to register.
+        update_interval (int): The number of nonces to solve between updates.
+        log_verbose (bool): If ``true``, the registration process will log more information.
+
     Returns:
-        success (bool):
-            Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
+        success (bool): Flag is ``True`` if extrinsic was finalized or included in the block. If we did not wait for finalization / inclusion, the response is ``True``.
     """
     if prompt:
         if not Confirm.ask(
@@ -394,7 +384,7 @@ def run_faucet_extrinsic(
     wallet.coldkey
 
     # Get previous balance.
-    old_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
+    old_balance = await subtensor.get_balance(wallet.coldkeypub.ss58_address)
 
     # Attempt rolling registration.
     attempts = 1
@@ -402,14 +392,14 @@ def run_faucet_extrinsic(
     while True:
         try:
             pow_result = None
-            while pow_result is None or pow_result.is_stale(subtensor=subtensor):
+            while pow_result is None or await pow_result.is_stale(subtensor=subtensor):
                 # Solve latest POW.
                 if cuda:
                     if not torch.cuda.is_available():
                         if prompt:
                             bittensor.__console__.print("CUDA is not available.")
                         return False, "CUDA is not available."
-                    pow_result: Optional[POWSolution] = create_pow(
+                    pow_result: Optional[POWSolution] = await create_pow(
                         subtensor,
                         wallet,
                         -1,
@@ -422,7 +412,7 @@ def run_faucet_extrinsic(
                         log_verbose=log_verbose,
                     )
                 else:
-                    pow_result: Optional[POWSolution] = create_pow(
+                    pow_result: Optional[POWSolution] = await create_pow(
                         subtensor,
                         wallet,
                         -1,
@@ -432,7 +422,7 @@ def run_faucet_extrinsic(
                         update_interval=update_interval,
                         log_verbose=log_verbose,
                     )
-            call = subtensor.substrate.compose_call(
+            call = await subtensor.substrate.compose_call(
                 call_module="SubtensorModule",
                 call_function="faucet",
                 call_params={
@@ -441,10 +431,10 @@ def run_faucet_extrinsic(
                     "work": [int(byte_) for byte_ in pow_result.seal],
                 },
             )
-            extrinsic = subtensor.substrate.create_signed_extrinsic(
+            extrinsic = await subtensor.substrate.create_signed_extrinsic(
                 call=call, keypair=wallet.coldkey
             )
-            response = subtensor.substrate.submit_extrinsic(
+            response = await subtensor.substrate.submit_extrinsic(
                 extrinsic,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
@@ -462,7 +452,9 @@ def run_faucet_extrinsic(
 
             # Successful registration
             else:
-                new_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
+                new_balance = await subtensor.get_balance(
+                    wallet.coldkeypub.ss58_address
+                )
                 bittensor.__console__.print(
                     f"Balance: [blue]{old_balance}[/blue] :arrow_right: [green]{new_balance}[/green]"
                 )
@@ -482,7 +474,7 @@ def run_faucet_extrinsic(
             return False, f"Max attempts reached: {max_allowed_attempts}"
 
 
-def swap_hotkey_extrinsic(
+async def swap_hotkey_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
     new_wallet: "bittensor.wallet",
@@ -490,7 +482,30 @@ def swap_hotkey_extrinsic(
     wait_for_finalization: bool = True,
     prompt: bool = False,
 ) -> bool:
+    """
+    Swaps the hotkey of the given wallet for a new hotkey.
+
+    This function initiates a transaction to swap the hotkey associated with the wallet to a new hotkey.
+    It optionally prompts the user for confirmation and waits for the transaction to be included in a block
+    or finalized.
+
+    Args:
+        subtensor (bittensor.subtensor): The Subtensor instance to interact with the blockchain.
+        wallet (bittensor.wallet): The wallet containing the current hotkey to be swapped.
+        new_wallet (bittensor.wallet): The wallet containing the new hotkey to be set.
+        wait_for_inclusion (bool, optional): Whether to wait for the transaction to be included in a block. Default is ``False``.
+        wait_for_finalization (bool, optional): Whether to wait for the transaction to be finalized. Default is ``True``.
+        prompt (bool, optional): Whether to prompt the user for confirmation before proceeding. Default is ``False``.
+
+    Returns:
+        bool: ``True`` if the hotkey swap is successful, ``False`` otherwise.
+
+    Raises:
+        Exception: If the transaction fails and returns an error message.
+    """
+
     wallet.coldkey  # unlock coldkey
+
     if prompt:
         # Prompt user for confirmation.
         if not Confirm.ask(
@@ -499,14 +514,14 @@ def swap_hotkey_extrinsic(
             return False
 
     with bittensor.__console__.status(":satellite: Swapping hotkeys..."):
-        success, err_msg = subtensor._do_swap_hotkey(
+        success, err_msg = await subtensor.do_swap_hotkey(
             wallet=wallet,
             new_wallet=new_wallet,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
         )
 
-        if success != True or success == False:
+        if success is not True or success is False:
             bittensor.__console__.print(
                 ":cross_mark: [red]Failed[/red]: error:{}".format(err_msg)
             )

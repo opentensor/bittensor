@@ -33,7 +33,7 @@ def int_to_ip(int_val: int) -> str:
             The integer representation of an ip. Must be in the range (0, 3.4028237e+38).
 
     Returns:
-        str_val (:tyep:`str`, `required):
+        str_val (:type:`str`, `required):
             The string representation of an ip. Of form *.*.*.* for ipv4 or *::*:*:*:* for ipv6
 
     Raises:
@@ -46,7 +46,7 @@ def int_to_ip(int_val: int) -> str:
 def ip_to_int(str_val: str) -> int:
     r"""Maps an ip-string to a unique integer.
     arg:
-        str_val (:tyep:`str`, `required):
+        str_val (:type:`str`, `required):
             The string representation of an ip. Of form *.*.*.* for ipv4 or *::*:*:*:* for ipv6
 
     Returns:

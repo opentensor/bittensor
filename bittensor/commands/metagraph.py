@@ -15,6 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import asyncio
 import argparse
 import bittensor
 from rich.table import Table
@@ -76,13 +77,13 @@ class MetagraphCommand:
             subtensor: "bittensor.subtensor" = bittensor.subtensor(
                 config=cli.config, log_verbose=False
             )
-            MetagraphCommand._run(cli, subtensor)
+            asyncio.run(MetagraphCommand._run(cli, subtensor))
         finally:
             if "subtensor" in locals():
                 subtensor.close()
                 bittensor.logging.debug("closing subtensor connection")
 
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+    async def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""Prints an entire metagraph."""
         console = bittensor.__console__
         console.print(
@@ -90,13 +91,17 @@ class MetagraphCommand:
                 cli.config.subtensor.network
             )
         )
-        metagraph: bittensor.metagraph = subtensor.metagraph(netuid=cli.config.netuid)
-        metagraph.save()
-        difficulty = subtensor.difficulty(cli.config.netuid)
-        subnet_emission = bittensor.Balance.from_tao(
-            subtensor.get_emission_value_by_subnet(cli.config.netuid)
+        metagraph: bittensor.metagraph = await subtensor.metagraph(
+            netuid=cli.config.netuid
         )
-        total_issuance = bittensor.Balance.from_rao(subtensor.total_issuance().rao)
+        metagraph.save()
+        difficulty = await subtensor.difficulty(cli.config.netuid)
+        subnet_emission = bittensor.Balance.from_tao(
+            await subtensor.get_emission_value_by_subnet(cli.config.netuid)
+        )
+        total_issuance = bittensor.Balance.from_rao(
+            (await subtensor.total_issuance()).rao
+        )
 
         TABLE_DATA = []
         total_stake = 0.0
@@ -244,8 +249,8 @@ class MetagraphCommand:
         console.print(table)
 
     @staticmethod
-    def check_config(config: "bittensor.config"):
-        check_netuid_set(
+    async def check_config(config: "bittensor.config"):
+        await check_netuid_set(
             config, subtensor=bittensor.subtensor(config=config, log_verbose=False)
         )
 

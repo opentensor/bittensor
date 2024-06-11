@@ -20,13 +20,12 @@
 """Module providing common helper functions for working with Subtensor."""
 
 import json
-import logging
 import os
 from typing import Dict, Optional, Union, Any
 
 from substrateinterface.base import SubstrateInterface
 
-_logger = logging.getLogger("subtensor.errors_handler")
+import bittensor
 
 _USER_HOME_DIR = os.path.expanduser("~")
 _BT_DIR = os.path.join(_USER_HOME_DIR, ".bittensor")
@@ -35,6 +34,7 @@ _ST_BUILD_ID = "subtensor_build_id"
 
 # Create directory if it doesn't exist
 os.makedirs(_BT_DIR, exist_ok=True)
+bittensor.logging.on()
 
 
 # Pallet's typing class `PalletMetadataV14` is defined only at
@@ -54,7 +54,7 @@ def _get_errors_from_pallet(pallet) -> Optional[Dict[str, Dict[str, str]]]:
         ValueError: If the pallet does not contain error definitions or the list is empty.
     """
     if not hasattr(pallet, "errors") or not pallet.errors:
-        _logger.warning(
+        bittensor.logging.warning(
             "The pallet does not contain any error definitions or the list is empty."
         )
         return None
@@ -80,7 +80,7 @@ def _save_errors_to_cache(uniq_version: str, errors: Dict[str, Dict[str, str]]):
         with open(_ERRORS_FILE_PATH, "w") as json_file:
             json.dump(data, json_file, indent=4)
     except IOError as e:
-        _logger.warning(f"Error saving to file: {e}")
+        bittensor.logging.warning(f"Error saving to file: {e}")
 
 
 def _get_errors_from_cache() -> Optional[Dict[str, Dict[str, Dict[str, str]]]]:
@@ -96,7 +96,7 @@ def _get_errors_from_cache() -> Optional[Dict[str, Dict[str, Dict[str, str]]]]:
         with open(_ERRORS_FILE_PATH, "r") as json_file:
             data = json.load(json_file)
     except IOError as e:
-        _logger.warning(f"Error reading from file: {e}")
+        bittensor.logging.warning(f"Error reading from file: {e}")
         return None
 
     return data
@@ -133,7 +133,7 @@ def get_subtensor_errors(
         _save_errors_to_cache(
             uniq_version=substrate.metadata[0].value, errors=subtensor_errors_map
         )
-        _logger.info(f"File {_ERRORS_FILE_PATH} has been updated.")
+        bittensor.logging.info(f"File {_ERRORS_FILE_PATH} has been updated.")
         return subtensor_errors_map
     else:
         return cached_errors_map.get("errors", {})

@@ -814,6 +814,11 @@ class AsyncSubstrateInterface:
     ) -> "ExtrinsicReceipt":
         raise NotImplementedError()
 
+    async def get_metadata_call_function(
+        self, module_name: str, call_function_name: str, block_hash: str = None
+    ):
+        raise NotImplementedError()
+
     async def get_block_number(self, block_hash: str) -> int:
         """Async version of `substrateinterface.base.get_block_number` method."""
         response = await self.rpc_request("chain_getHeader", [block_hash])
@@ -826,7 +831,168 @@ class AsyncSubstrateInterface:
                 return int(response["result"]["number"], 16)
 
     def close(self):
-        raise NotImplementedError()
+        self.substrate.close()
+        # TODO: Websocket close need to be implemented and added here.
+
+
+
+class RequestManager:
+    def __init__(self, payloads):
+        self.response_map = {}
+        self.responses = defaultdict(lambda: {"complete": False, "results": []})
+        self.payloads_count = len(payloads)
+
+    async def add_request(self, item_id: int, request_id: int):
+        self.response_map[item_id] = request_id
+
+    async def add_response(self, item_id: int, response: dict, complete: bool):
+        request_id = self.response_map[item_id]
+        self.responses[request_id]["results"].append(response)
+        self.responses[request_id]["complete"] = complete
+
+    async def is_complete(self):
+        return (
+            all(info["complete"] for info in self.responses.values())
+            and len(self.responses) == self.payloads_count
+        )
+
+    async def get_results(self):
+        return {
+            request_id: info["results"] for request_id, info in self.responses.items()
+        }
+
+
+class Websocket:
+    def __init__(
+        self,
+        ws_url: str,
+        max_subscriptions=1024,
+        max_connections=100,
+        shutdown_timer: Optional[int] = 15,
+        options: dict = None,
+    ):
+        """
+        Websocket manager object. Allows for the use of a single websocket connection by multiple
+        calls.
+
+        :param ws_url: Websocket URL to connect to
+        :param max_subscriptions: Maximum number of subscriptions per websocket connection
+        :param max_connections: Maximum number of connections total
+        :param shutdown_timer: Number of seconds to shut down websocket connection after last use
+        :options: WS connection options
+        """
+        # TODO allow setting max concurrent connections and rpc subscriptions per connection
+        # TODO reconnection logic
+        self.ws_url = ws_url
+        self.ws = None
+        self.id = 0
+        self.max_subscriptions = max_subscriptions
+        self.max_connections = max_connections
+        self.shutdown_timer = shutdown_timer
+        self._received = {}
+        self._in_use = 0
+        self._receiving_task = None
+        self._attempts = 0
+        self._initialized = False
+        self._lock = asyncio.Lock()
+        self._exit_task = None
+        self._open_subscriptions = 0
+        self._options = options if options else {}
+        self._max_reconnect_attempts = 5
+        self._reconnect_delay = 5  # seconds
+
+    async def __aenter__(self):
+        async with self._lock:
+            self._in_use += 1
+            if self._exit_task:
+                self._exit_task.cancel()
+            if not self._initialized:
+                await self._initialize()
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        async with self._lock:
+            self._in_use -= 1
+            if self._exit_task is not None:
+                self._exit_task.cancel()
+                await self._exit_task
+            if self._in_use == 0 and self.ws is not None and self.shutdown_timer:
+                self.id = 0
+                self._open_subscriptions = 0
+                self._exit_task = asyncio.create_task(self._exit_with_timer())
+
+    async def _initialize(self):
+        self._initialized = True
+        try:
+            self.ws = await asyncio.wait_for(
+                websockets.connect(self.ws_url, **self._options), timeout=None
+            )
+            self._receiving_task = asyncio.create_task(self._start_receiving())
+        except Exception:
+            await self._reconnect()
+
+    async def _reconnect(self):
+        self._attempts = 0
+        while self._attempts < self._max_reconnect_attempts:
+            try:
+                await asyncio.sleep(self._reconnect_delay)
+                self.ws = await asyncio.wait_for(
+                    websockets.connect(self.ws_url, **self._options), timeout=None
+                )
+                self._receiving_task = asyncio.create_task(self._start_receiving())
+                self._initialized = True
+                return
+            except Exception:
+                self._attempts += 1
+        raise ConnectionError(
+            f"Failed to reconnect after {self._max_reconnect_attempts} attempts"
+        )
+
+    async def _exit_with_timer(self):
+        try:
+            await asyncio.sleep(self.shutdown_timer)
+            async with self._lock:
+                if self.ws:
+                    self._receiving_task.cancel()
+                    await self._receiving_task
+                    await self.ws.close()
+                    self.ws = None
+                    self._initialized = False
+                    self._receiving_task = None
+                    self.id = 0
+        except asyncio.CancelledError:
+            pass
+
+    async def _recv(self) -> None:
+        try:
+            response = json.loads(await self.ws.recv())
+            async with self._lock:
+                self._open_subscriptions -= 1
+                self._received[response["id"]] = response
+        except websockets.exceptions.ConnectionClosed:
+            await self._reconnect()
+
+    async def _start_receiving(self):
+        try:
+            while True:
+                await self._recv()
+        except asyncio.CancelledError:
+            pass
+
+    async def send(self, payload: dict) -> int:
+        async with self._lock:
+            original_id = self.id
+            await self.ws.send(json.dumps({**payload, **{"id": original_id}}))
+            self.id += 1
+            self._open_subscriptions += 1
+            return original_id
+
+    async def retrieve(self, item_id: int) -> Optional[dict]:
+        while True:
+            async with self._lock:
+                if item_id in self._received:
+                    return self._received.pop(item_id)
+            await asyncio.sleep(0.1)
 
 
 if __name__ == "__main__":

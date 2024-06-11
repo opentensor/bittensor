@@ -5,22 +5,20 @@
 
 __author__ = "Brian Quinlan (brian@sweetapp.com)"
 
+import argparse
+import itertools
 import os
-import sys
-import time
 import queue
 import random
-import weakref
-import logging
-import argparse
-import bittensor
-import itertools
+import sys
 import threading
-
-from typing import Callable
+import time
+import weakref
 from concurrent.futures import _base
+from typing import Callable
 
-from bittensor.btlogging.defines import BITTENSOR_LOGGER_NAME
+import bittensor
+
 
 # Workers are created as daemon threads. This is done to allow the interpreter
 # to exit when there are still idle threads in a ThreadPoolExecutor's thread
@@ -36,7 +34,8 @@ from bittensor.btlogging.defines import BITTENSOR_LOGGER_NAME
 # workers to exit when their work queues are empty and then waits until the
 # threads finish.
 
-logger = logging.getLogger(BITTENSOR_LOGGER_NAME)
+
+bittensor.logging.on()
 
 _threads_queues = weakref.WeakKeyDictionary()
 _shutdown = False
@@ -81,6 +80,7 @@ def _worker(executor_reference, work_queue, initializer, initargs):
             if executor is not None:
                 executor._initializer_failed()
             return
+    work_item = None
     try:
         while True:
             work_item = work_queue.get(block=True)
@@ -109,7 +109,7 @@ def _worker(executor_reference, work_queue, initializer, initargs):
                 return
             del executor
     except BaseException:
-        logger.error("work_item", work_item)
+        bittensor.logging.error("work_item", work_item)
         _base.LOGGER.critical("Exception in worker", exc_info=True)
 
 
@@ -168,16 +168,16 @@ class PriorityThreadPoolExecutor(_base.Executor):
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser, prefix: str = None):
         """Accept specific arguments from parser"""
-        prefix_str = "" if prefix == None else prefix + "."
+        prefix_str = "" if prefix is None else prefix + "."
         try:
             default_max_workers = (
                 os.getenv("BT_PRIORITY_MAX_WORKERS")
-                if os.getenv("BT_PRIORITY_MAX_WORKERS") != None
+                if os.getenv("BT_PRIORITY_MAX_WORKERS") is not None
                 else 5
             )
             default_maxsize = (
                 os.getenv("BT_PRIORITY_MAXSIZE")
-                if os.getenv("BT_PRIORITY_MAXSIZE") != None
+                if os.getenv("BT_PRIORITY_MAXSIZE") is not None
                 else 10
             )
             parser.add_argument(

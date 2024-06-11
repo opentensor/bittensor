@@ -49,7 +49,7 @@ def __do_remove_stake_single(
             If ``true``, the call waits for confirmation from the user before proceeding.
     Returns:
         success (bool):
-            Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
+            Flag is ``true`` if extrinsic was finalized or included in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     Raises:
         bittensor.errors.StakeError:
             If the extrinsic fails to be finalized or included in the block.
@@ -123,7 +123,7 @@ def unstake_extrinsic(
             If ``true``, the call waits for confirmation from the user before proceeding.
     Returns:
         success (bool):
-            Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
+            Flag is ``true`` if extrinsic was finalized or included in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
     # Decrypt keys,
     wallet.coldkey

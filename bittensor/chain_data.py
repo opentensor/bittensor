@@ -659,7 +659,7 @@ class PrometheusInfo:
 
     block: int
     version: int
-    ip: str
+    ip: str  # string representation of converted ip to int using tool like https://netaddr.readthedocs.io/en/latest/api.html#netaddr.IPAddress.value
     port: int
     ip_type: int
 
