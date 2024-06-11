@@ -22,7 +22,7 @@ publishing metadata, and performing extrinsics related to network services.
 """
 
 import json
-from typing import Optional
+from typing import Any, Dict, Optional
 
 from retry import retry
 from rich.prompt import Confirm
@@ -32,7 +32,7 @@ import bittensor.utils.networking as net
 from ..errors import MetadataError
 
 
-def serve_extrinsic(
+async def serve_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
     ip: str,
@@ -65,7 +65,8 @@ def serve_extrinsic(
     """
     # Decrypt hotkey
     wallet.hotkey
-    params: "subtensor.AxonServeCallParams" = {
+
+    params: Dict[str, Any] = {
         "version": bittensor.__version_as_int__,
         "ip": net.ip_to_int(ip),
         "port": port,
@@ -78,7 +79,8 @@ def serve_extrinsic(
         "placeholder2": placeholder2,
     }
     bittensor.logging.debug("Checking axon ...")
-    neuron = subtensor.get_neuron_for_pubkey_and_subnet(
+
+    neuron = await subtensor.get_neuron_for_pubkey_and_subnet(
         wallet.hotkey.ss58_address, netuid=netuid
     )
     neuron_up_to_date = not neuron.is_null and params == {
@@ -96,6 +98,7 @@ def serve_extrinsic(
     output = params.copy()
     output["coldkey"] = wallet.coldkeypub.ss58_address
     output["hotkey"] = wallet.hotkey.ss58_address
+
     if neuron_up_to_date:
         bittensor.logging.debug(
             f"Axon already served on: AxonInfo({wallet.hotkey.ss58_address},{ip}:{port}) "
@@ -116,7 +119,7 @@ def serve_extrinsic(
     bittensor.logging.debug(
         f"Serving axon with: AxonInfo({wallet.hotkey.ss58_address},{ip}:{port}) -> {subtensor.network}:{netuid}"
     )
-    success, error_message = subtensor.do_serve_axon(
+    success, error_message = await subtensor.do_serve_axon(
         wallet=wallet,
         call_params=params,
         wait_for_finalization=wait_for_finalization,
@@ -138,10 +141,10 @@ def serve_extrinsic(
         return True
 
 
-def serve_axon_extrinsic(
+async def serve_axon_extrinsic(
     subtensor: "bittensor.subtensor",
     netuid: int,
-    axon: "bittensor.Axon",
+    axon: "bittensor.axon",
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = True,
     prompt: bool = False,
@@ -167,15 +170,21 @@ def serve_axon_extrinsic(
     if axon.external_ip is None:
         try:
             external_ip = net.get_external_ip()
-            bittensor.__console__.print(f":white_heavy_check_mark: [green]Found external ip: {external_ip}[/green]")
-            bittensor.logging.success(prefix="External IP", suffix=f"<blue>{external_ip}</blue>")
+            bittensor.__console__.print(
+                f":white_heavy_check_mark: [green]Found external ip: {external_ip}[/green]"
+            )
+            bittensor.logging.success(
+                prefix="External IP", suffix=f"<blue>{external_ip}</blue>"
+            )
         except Exception as e:
-            raise RuntimeError(f"Unable to attain your external ip. Check your internet connection. error: {e}") from e
+            raise RuntimeError(
+                f"Unable to attain your external ip. Check your internet connection. error: {e}"
+            ) from e
     else:
         external_ip = axon.external_ip
 
     # ---- Subscribe to chain ----
-    serve_success = subtensor.serve(
+    serve_success = await subtensor.serve(
         wallet=axon.wallet,
         ip=external_ip,
         port=external_port,
@@ -187,7 +196,7 @@ def serve_axon_extrinsic(
     return serve_success
 
 
-def publish_metadata(
+async def publish_metadata(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
     netuid: int,
@@ -217,14 +226,16 @@ def publish_metadata(
 
     wallet.hotkey
 
-    call = subtensor.substrate.compose_call(
+    call = await subtensor.substrate.compose_call(
         call_module="Commitments",
         call_function="set_commitment",
         call_params={"netuid": netuid, "info": {"fields": [[{f"{type_}": data}]]}},
     )
 
-    extrinsic = subtensor.substrate.create_signed_extrinsic(call=call, keypair=wallet.hotkey)
-    response = subtensor.substrate.submit_extrinsic(
+    extrinsic = await subtensor.substrate.create_signed_extrinsic(
+        call=call, keypair=wallet.hotkey
+    )
+    response = await subtensor.substrate.submit_extrinsic(
         extrinsic,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
@@ -240,15 +251,22 @@ def publish_metadata(
         raise MetadataError(response.error_message)
 
 
-def get_metadata(self, netuid: int, hotkey: str, block: Optional[int] = None) -> str:
+async def get_metadata(
+    subtensor: "bittensor.Subtensor",
+    netuid: int,
+    hotkey: str,
+    block: Optional[int] = None,
+) -> str:
     @retry(delay=2, tries=3, backoff=2, max_delay=4)
-    def make_substrate_call_with_retry():
-        return self.substrate.query(
+    async def make_substrate_call_with_retry():
+        return await subtensor.substrate.query(
             module="Commitments",
             storage_function="CommitmentOf",
             params=[netuid, hotkey],
-            block_hash=None if block is None else self.substrate.get_block_hash(block),
+            block_hash=None
+            if block is None
+            else await subtensor.substrate.get_block_hash(block),
         )
 
-    commit_data = make_substrate_call_with_retry()
+    commit_data = await make_substrate_call_with_retry()
     return commit_data.value
