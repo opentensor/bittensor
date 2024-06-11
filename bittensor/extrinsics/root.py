@@ -21,7 +21,7 @@ This module provides functions for interacting with the Bittensor root network,
 including registration and setting weights on the blockchain.
 """
 
-import time
+import asyncio
 from typing import Union, List
 
 import numpy as np
@@ -35,7 +35,7 @@ from bittensor.utils.registration import torch, legacy_torch_api_compat
 bittensor.logging.on()
 
 
-def root_register_extrinsic(
+async def root_register_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
     wait_for_inclusion: bool = False,
@@ -57,7 +57,7 @@ def root_register_extrinsic(
 
     wallet.coldkey  # unlock coldkey
 
-    is_registered = subtensor.is_hotkey_registered(
+    is_registered = await subtensor.is_hotkey_registered(
         netuid=0, hotkey_ss58=wallet.hotkey.ss58_address
     )
 
@@ -73,7 +73,7 @@ def root_register_extrinsic(
             return False
 
     with bittensor.__console__.status(":satellite: Registering to root network..."):
-        success, err_msg = subtensor.do_root_register(
+        success, err_msg = await subtensor.do_root_register(
             wallet=wallet,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
@@ -83,11 +83,11 @@ def root_register_extrinsic(
             bittensor.__console__.print(
                 f":cross_mark: [red]Failed[/red]: error:{err_msg}"
             )
-            time.sleep(0.5)
+            await asyncio.sleep(0.5)
 
         # Successful registration, final check for neuron and pubkey
         else:
-            is_registered = subtensor.is_hotkey_registered(
+            is_registered = await subtensor.is_hotkey_registered(
                 netuid=0, hotkey_ss58=wallet.hotkey.ss58_address
             )
             if is_registered:
@@ -103,7 +103,7 @@ def root_register_extrinsic(
 
 
 @legacy_torch_api_compat
-def set_root_weights_extrinsic(
+async def set_root_weights_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
     netuids: Union[NDArray[np.int64], "torch.LongTensor", List[int]],
@@ -136,8 +136,9 @@ def set_root_weights_extrinsic(
         weights = np.array(weights, dtype=np.float32)
 
     # Get weight restrictions.
-    min_allowed_weights = subtensor.min_allowed_weights(netuid=0)
-    max_weight_limit = subtensor.max_weight_limit(netuid=0)
+    min_allowed_weights, max_weight_limit = asyncio.gather(
+        subtensor.min_allowed_weights(netuid=0), subtensor.max_weight_limit(netuid=0)
+    )
 
     # Get non zero values.
     non_zero_weight_idx = np.argwhere(weights > 0).squeeze(axis=1)
@@ -148,7 +149,7 @@ def set_root_weights_extrinsic(
         )
 
     # Normalize the weights to max value.
-    formatted_weights = bittensor.utils.weight_utils.normalize_max_weight(
+    formatted_weights = weight_utils.normalize_max_weight(
         x=weights, limit=max_weight_limit
     )
     bittensor.__console__.print(
@@ -169,7 +170,7 @@ def set_root_weights_extrinsic(
             weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(
                 netuids, weights
             )
-            success, error_message = subtensor.do_set_weights(
+            success, error_message = await subtensor.do_set_weights(
                 wallet=wallet,
                 netuid=0,
                 uids=weight_uids,
