@@ -15,7 +15,7 @@ pp = PrettyPrinter(indent=4).pprint
 
 
 async def get_delegated(
-        ss58: str, rpc: async_substrate.AsyncSubstrateInterface, block_hash=None
+    ss58: str, rpc: async_substrate.AsyncSubstrateInterface, block_hash=None
 ):
     encoded = subtensor_module.ss58_to_vec_u8(ss58)
     result = await rpc.rpc_request(
@@ -26,8 +26,9 @@ async def get_delegated(
 
 async def root_list(block_hash, rpc: async_substrate.AsyncSubstrateInterface):
     async def process_neuron_result(json_):
-        call_definition = bittensor.__type_registry__[
-            "runtime_api"]["NeuronInfoRuntimeApi"]["methods"]["get_neurons_lite"]
+        call_definition = bittensor.__type_registry__["runtime_api"][
+            "NeuronInfoRuntimeApi"
+        ]["methods"]["get_neurons_lite"]
         return_type = call_definition["type"]
         as_scale_bytes = scalecodec.ScaleBytes(json_["result"])  # type: ignore
         rpc_runtime_config = RuntimeConfiguration()
@@ -51,7 +52,7 @@ async def root_list(block_hash, rpc: async_substrate.AsyncSubstrateInterface):
 
 
 async def get_balance(
-        block_hash, address: str, rpc: async_substrate.AsyncSubstrateInterface
+    block_hash, address: str, rpc: async_substrate.AsyncSubstrateInterface
 ):
     result = await rpc.query_multiple(
         [address], "Account", "System", reuse_block_hash=True
