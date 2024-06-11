@@ -445,7 +445,7 @@ class Websocket:
                 websockets.connect(self.ws_url, **self._options), timeout=None
             )
             self._receiving_task = asyncio.create_task(self._start_receiving())
-        except Exception as e:
+        except Exception:
             await self._reconnect()
 
     async def _reconnect(self):
@@ -459,10 +459,10 @@ class Websocket:
                 self._receiving_task = asyncio.create_task(self._start_receiving())
                 self._initialized = True
                 return
-            except Exception as e:
+            except Exception:
                 self._attempts += 1
         raise ConnectionError(
-            f"Failed to reconnect after {self._max_reconnect_attempts} attempts. {e}"
+            f"Failed to reconnect after {self._max_reconnect_attempts} attempts"
         )
 
     async def _exit_with_timer(self):
