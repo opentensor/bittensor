@@ -62,7 +62,7 @@ async def get_balance(
 
 async def main():
     start = time.time()
-    rpc = async_substrate.AsyncSubstrateInterface(async_substrate.CHAIN_ENDPOINT)
+    rpc = async_substrate.AsyncSubstrateInterface(async_substrate.TEST_CHAIN_ENDPOINT)
     # rpc = async_substrate.AsyncSubstrateInterface("ws://127.0.0.1:9946")
     # rpc = rpc_requests.RPCRequest("wss://entrypoint-finney.opentensor.ai:443")
     async with rpc:

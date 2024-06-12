@@ -3,7 +3,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 import functools
 import json
-from typing import Optional, Any, Union, Coroutine
+from typing import Optional, Any, Union, Callable, Awaitable
 
 from scalecodec import GenericExtrinsic
 from substrateinterface import Keypair, ExtrinsicReceipt
@@ -17,7 +17,9 @@ import websockets
 
 import bittensor
 
-CHAIN_ENDPOINT = "wss://test.finney.opentensor.ai:443"
+TEST_CHAIN_ENDPOINT = "wss://test.finney.opentensor.ai:443"
+
+ResultHandler = Callable[[dict], Any], Awaitable[tuple[dict, bool]]
 
 
 def ensure_initialized(func):
@@ -86,7 +88,7 @@ class Runtime:
         self, use_remote_preset: bool = True, auto_discover: bool = True
     ):
         """
-        Reload type registry and preset used to instantiate the SubtrateInterface object. Useful to periodically apply
+        Reload type registry and preset used to instantiate the SubstrateInterface object. Useful to periodically apply
         changes in type definitions when a runtime upgrade occurred
 
         Parameters
@@ -157,6 +159,8 @@ class Runtime:
 
 
 class RequestManager:
+    RequestResults = dict[Union[str, int], list[Union[ScaleType, dict]]]
+
     def __init__(self, payloads):
         self.response_map = {}
         self.responses = defaultdict(lambda: {"complete": False, "results": []})
@@ -473,8 +477,7 @@ class AsyncSubstrateInterface:
             runtime.metadata = (
                 await self.get_block_metadata(
                     block_hash=runtime_block_hash,
-                    decode=True,
-                    runtime_config=runtime.runtime_config,
+                    decode=True
                 )
             )["result"]
 
@@ -621,7 +624,7 @@ class AsyncSubstrateInterface:
         value_scale_type: str,
         storage_item: Optional[ScaleType] = None,
         runtime: Optional[Runtime] = None,
-        result_handler: Optional[Coroutine] = None,
+        result_handler: Optional[ResultHandler] = None,
     ) -> tuple[Union[ScaleType, dict], bool]:
         if value_scale_type:
             if not runtime:
@@ -649,7 +652,7 @@ class AsyncSubstrateInterface:
             obj.decode(check_remaining=True)
             obj.meta_info = {"result_found": response.get("result") is not None}
             return obj, True
-        elif callable(result_handler):
+        elif asyncio.iscoroutinefunction(result_handler):
             # For multipart responses as a result of subscriptions.
             return await result_handler(response)
         return response, True
@@ -660,8 +663,8 @@ class AsyncSubstrateInterface:
         value_scale_type: Optional[str] = None,
         storage_item: Optional[ScaleType] = None,
         runtime: Optional[Runtime] = None,
-        result_handler=None,
-    ) -> dict:
+        result_handler: Optional[ResultHandler] = None,
+    ) -> RequestManager.RequestResults:
         request_manager = RequestManager(payloads)
 
         async with self.ws as ws:
@@ -671,11 +674,9 @@ class AsyncSubstrateInterface:
 
             while True:
                 for item_id in request_manager.response_map.keys():
-                    if item_id not in request_manager.responses or callable(
-                        result_handler
-                    ):
+                    if item_id not in request_manager.responses or asyncio.iscoroutinefunction(result_handler):
                         if response := await ws.retrieve(item_id):
-                            if callable(result_handler):
+                            if asyncio.iscoroutinefunction(result_handler):
                                 # handles subscriptions, overwrites the previous mapping of {item_id : payload_id}
                                 # with {subscription_id : payload_id}
                                 item_id = request_manager.overwrite_request(
@@ -746,7 +747,9 @@ class AsyncSubstrateInterface:
         call_params: dict = None,
         block_hash: str = None,
     ) -> GenericCall:
-        return self.substrate.compose_call(
+        return await asyncio.get_event_loop().run_in_executor(
+            None, 
+            self.substrate.compose_call,
             call_module, call_function, call_params, block_hash
         )
 
@@ -756,10 +759,8 @@ class AsyncSubstrateInterface:
         storage_function: str,
         module: str,
         block_hash: Optional[str] = None,
-        subscription_handler: callable = None,
-        raw_storage_key: bytes = None,
         reuse_block_hash: bool = False,
-    ) -> dict:
+    ) -> RequestManager.RequestResults:
         """
         Queries the subtensor. Only use this when making multiple queries, else use ``self.query``
         """
@@ -1183,7 +1184,7 @@ class AsyncSubstrateInterface:
         if not isinstance(extrinsic, GenericExtrinsic):
             raise TypeError("'extrinsic' must be of type Extrinsics")
 
-        async def result_handler(message, subscription_id) -> tuple[dict, bool]:
+        async def result_handler(message: dict, subscription_id) -> tuple[dict, bool]:
             # Check if extrinsic is included and finalized
             if "params" in message and type(message["params"]["result"]) is dict:
                 # Convert result enum to lower for backwards compatibility
