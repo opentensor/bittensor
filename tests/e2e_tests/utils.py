@@ -4,6 +4,8 @@ import os
 import shutil
 import subprocess
 import sys
+
+from bittensor import Keypair
 import bittensor
 
 template_path = os.getcwd() + "/neurons/"

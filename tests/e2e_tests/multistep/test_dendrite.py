@@ -21,6 +21,16 @@ from tests.e2e_tests.utils import (
 
 logging.basicConfig(level=logging.INFO)
 
+"""
+Test the dendrites mechanism. 
+
+Verify that:
+* dendrite is registered on network as a validator
+* stake successfully 
+* validator permit is set
+
+"""
+
 
 @pytest.mark.asyncio
 async def test_dendrite(local_chain):
