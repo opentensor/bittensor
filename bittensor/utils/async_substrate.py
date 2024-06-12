@@ -597,9 +597,11 @@ class AsyncSubstrateInterface:
         # SCALE type string of value
         param_types = storage_item.get_params_type_string()
         value_scale_type = storage_item.get_value_type_string()
-        
+
         if len(params) != len(param_types):
-            raise ValueError(f'Storage function requires {len(param_types)} parameters, {len(params)} given')
+            raise ValueError(
+                f"Storage function requires {len(param_types)} parameters, {len(params)} given"
+            )
 
         storage_key = StorageKey.create_from_storage_function(
             module,
