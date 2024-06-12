@@ -21,15 +21,9 @@ from rich.prompt import Confirm
 from time import sleep
 from typing import List, Union, Optional
 from bittensor.utils.balance import Balance
-from bittensor.utils.user_io import (
-    user_input_confirmation,
-    print_summary_header,
-    print_summary_footer,
-    print_summary_message,
+from bittensor.utils.slippage import (
+    Operation, show_slippage_warning_if_needed
 )
-
-# Maximum slippage percentage
-MAX_SLIPPAGE_PCT = 5.0
 
 def add_substake_extrinsic(
     subtensor: "bittensor.subtensor",
@@ -68,9 +62,6 @@ def add_substake_extrinsic(
         bittensor.errors.NotDelegateError:
             If the hotkey is not a delegate on the chain.
     """
-    # Get dynamic pool info for slippage calculation
-    dynamic_info = subtensor.get_dynamic_info_for_netuid(netuid)
-
     # Default to wallet's own hotkey if the value is not passed.
     if hotkey_ss58 is None:
         hotkey_ss58 = wallet.hotkey.ss58_address
@@ -125,36 +116,15 @@ def add_substake_extrinsic(
         )
         return False
 
-    # Calculate slippage
-    subnet_stake_amount_tao = bittensor.Balance.from_tao(staking_balance.tao)
-    alpha_returned, slippage = dynamic_info.tao_to_alpha_with_slippage(
-        subnet_stake_amount_tao
-    )
-    slippage_pct = 0
-    if slippage + alpha_returned != 0:
-        slippage_pct = 100 * float(slippage) / float(slippage + alpha_returned)
-
-    # Check if slippage exceeds the maximum threshold
-    if slippage_pct > MAX_SLIPPAGE_PCT:
-        print_summary_header(f":warning: [yellow]Slippage Warning:[/yellow]")
-        print_summary_message(
-            f"Slippage exceeds {MAX_SLIPPAGE_PCT}% for subnet {netuid}: {bittensor.Balance.from_tao(slippage.tao).set_unit(netuid)} ({slippage_pct:.2f}%)"
-        )
-        estimated = (
-            bittensor.Balance.from_tao(alpha_returned.tao).set_unit(netuid).__str__()
-        )
-        expected = (
-            bittensor.Balance.from_tao(slippage.tao + alpha_returned.tao)
-            .set_unit(netuid)
-            .__str__()
-        )
-        print_summary_message(
-            f"You will only receive [green][bold]{estimated}[/bold][/green] vs. expected [green][bold]{expected}[/bold][/green]"
-        )
-        print_summary_footer()
-        if prompt:
-            if not user_input_confirmation("proceed despite the high slippage"):
-                return False
+    # Slippage warning
+    if not show_slippage_warning_if_needed(
+        subtensor,
+        netuid,
+        Operation.STAKE,
+        staking_balance,
+        prompt,
+    ):
+        return False
 
     # Decrypt keys
     wallet.coldkey
@@ -280,9 +250,6 @@ def remove_substake_extrinsic(
         bittensor.errors.NotDelegateError:
             If the hotkey is not a delegate on the chain.
     """
-    # Get dynamic pool info for slippage calculation
-    dynamic_info = subtensor.get_dynamic_info_for_netuid(netuid)
-
     # Default to wallet's own hotkey if the value is not passed.
     if hotkey_ss58 is None:
         hotkey_ss58 = wallet.hotkey.ss58_address
@@ -341,30 +308,15 @@ def remove_substake_extrinsic(
         )
         return False
 
-    # Calculate slippage
-    subnet_stake_amount_alpha = bittensor.Balance.from_tao(unstaking_balance.tao)
-    tao_returned, slippage = dynamic_info.alpha_to_tao_with_slippage(
-        subnet_stake_amount_alpha
-    )
-    slippage_pct = 0
-    if slippage + tao_returned != 0:
-        slippage_pct = 100 * float(slippage) / float(slippage + tao_returned)
-
-    # Check if slippage exceeds the maximum threshold
-    if prompt and slippage_pct > MAX_SLIPPAGE_PCT:
-        print_summary_header(f":warning: [yellow]Slippage Warning:[/yellow]")
-        print_summary_message(
-            f"Slippage exceeds {MAX_SLIPPAGE_PCT}% for subnet {netuid}: {bittensor.Balance.from_tao(slippage.tao)} TAO ({slippage_pct:.2f}%)"
-        )
-        estimated = bittensor.Balance.from_tao(tao_returned.tao).__str__()
-        expected = bittensor.Balance.from_tao(slippage.tao + tao_returned.tao).__str__()
-        print_summary_message(
-            f"You will only receive [green][bold]{estimated}[/bold][/green] vs. expected [green][bold]{expected}[/bold][/green]"
-        )
-        print_summary_footer()
-        if prompt:
-            if not user_input_confirmation("proceed despite the high slippage"):
-                return False
+    # Slippage warning
+    if not show_slippage_warning_if_needed(
+        subtensor,
+        netuid,
+        Operation.UNSTAKE,
+        unstaking_balance,
+        prompt,
+    ):
+        return False
 
     # Decrypt keys
     wallet.coldkey

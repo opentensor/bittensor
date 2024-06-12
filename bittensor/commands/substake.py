@@ -122,39 +122,16 @@ class SubStakeCommand:
             )
             return None
 
-        stake_amount_tao: float = config.get("amount")
-        if config.get("max_stake"):
-            # Get the current stake of the hotkey from this coldkey.
-            hotkey_stake: Balance = subtensor.get_stake_for_coldkey_and_hotkey(
-                hotkey_ss58=hotkey_tup[1], coldkey_ss58=wallet.coldkeypub.ss58_address
-            )
-            stake_amount_tao: float = config.get("max_stake") - hotkey_stake.tao
+        # Amount to stake
+        if config.get("amount"):
+            stake_amount_tao = bittensor.Balance.from_tao(config.get("amount"))
 
-            # If the max_stake is greater than the current wallet balance, stake the entire balance.
-            stake_amount_tao: float = min(stake_amount_tao, wallet_balance.tao)
-            if (
-                stake_amount_tao <= 0.00001
-            ):  # Threshold because of fees, might create a loop otherwise
-                # Skip hotkey if max_stake is less than current stake.
-                bittensor.__console__.print(
-                    f"Max stake is less than current stake for hotkey [bold]{hotkey_tup[1]}[/bold]. Aborting."
-                )
-                return None
-
-            wallet_balance = Balance.from_tao(wallet_balance.tao - stake_amount_tao)
-            if wallet_balance.tao < 0:
-                # Not enough balance to stake.
-                bittensor.__console__.print(
-                    f"Not enough balance to stake to hotkey [bold]{hotkey_tup[1]}[/bold]."
-                )
-                return None
-
-        # convert to Balance type
-        stake_amount_tao = bittensor.Balance.from_tao(stake_amount_tao)
-
-        if config.get("stake_all"):
+        elif config.get("stake_all"):
             old_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
             stake_amount_tao = bittensor.Balance.from_tao(old_balance.tao)
+
+        else:
+            stake_amount_tao = bittensor.Balance.from_tao(0.0)
 
         # Ask to stake
         if not config.no_prompt:
@@ -188,7 +165,7 @@ class SubStakeCommand:
             and not config.no_prompt
         ):
             hotkey = Prompt.ask(
-                "Enter hotkey name or ss58_address to unstake from",
+                "Enter hotkey name or ss58_address to stake to",
                 default=defaults.wallet.hotkey,
             )
             if bittensor.utils.is_valid_ss58_address(hotkey):
@@ -333,7 +310,8 @@ class RemoveSubStakeCommand:
             return None
 
         # Calculate if able to unstake amount desired
-        unstake_amount_alpha: float = config.get("amount")
+        if config.get("amount"):
+            unstake_amount_alpha: float = config.get("amount")
 
         # Get the current stake of the hotkey from this coldkey.
         hotkey_subnet_balance: Balance = (
