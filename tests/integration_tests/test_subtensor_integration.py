@@ -17,8 +17,6 @@
 # DEALINGS IN THE SOFTWARE.
 
 import random
-import socket
-import os
 import unittest
 from queue import Empty as QueueEmpty
 from unittest.mock import MagicMock, patch
@@ -31,9 +29,7 @@ import bittensor
 from bittensor.mock import MockSubtensor
 from bittensor.utils import weight_utils
 from bittensor.utils.balance import Balance
-from substrateinterface import Keypair
 from tests.helpers import (
-    _get_mock_hotkey,
     _get_mock_coldkey,
     MockConsole,
     _get_mock_keypair,
@@ -710,11 +706,8 @@ class TestSubtensor(unittest.TestCase):
                     mock_set_status.__exit__ = MagicMock(return_value=True)
 
                     # should return True
-                    assert (
-                        self.subtensor.register(
-                            wallet=wallet, netuid=3, num_processes=3, update_interval=5
-                        )
-                        == True
+                    assert self.subtensor.register(
+                        wallet=wallet, netuid=3, num_processes=3, update_interval=5
                     )
 
                 # calls until True and once again before exiting subtensor class
@@ -741,7 +734,7 @@ class TestSubtensor(unittest.TestCase):
         )
 
         self.subtensor.get_neuron_for_pubkey_and_subnet = MagicMock(
-            return_value=bittensor.NeuronInfo._null_neuron()
+            return_value=bittensor.NeuronInfo.get_null_neuron()
         )
         self.subtensor.is_hotkey_registered = MagicMock(
             side_effect=is_registered_side_effect
@@ -823,7 +816,7 @@ class TestSubtensor(unittest.TestCase):
             # then should create a new pow and check if it is stale
             # then should enter substrate and exit early because of test
             self.subtensor.get_neuron_for_pubkey_and_subnet = MagicMock(
-                return_value=bittensor.NeuronInfo._null_neuron()
+                return_value=bittensor.NeuronInfo.get_null_neuron()
             )
             with pytest.raises(ExitEarly):
                 bittensor.subtensor.register(mock_subtensor_self, mock_wallet, netuid=3)

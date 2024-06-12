@@ -46,6 +46,23 @@ def setup_dendrite():
     return dendrite_obj
 
 
+@pytest.fixture
+def dendrite_obj(setup_dendrite):
+    return setup_dendrite
+
+
+@pytest.fixture
+def axon_info():
+    return bittensor.AxonInfo(
+        version=1,
+        ip="127.0.0.1",
+        port=666,
+        ip_type=4,
+        hotkey="hot",
+        coldkey="cold",
+    )
+
+
 @pytest.fixture(scope="session")
 def setup_axon():
     axon = bittensor.axon()
@@ -61,36 +78,32 @@ def test_init(setup_dendrite):
     assert dendrite_obj.keypair == setup_dendrite.keypair
 
 
-def test_str(setup_dendrite):
-    dendrite_obj = setup_dendrite
-    expected_string = "dendrite({})".format(setup_dendrite.keypair.ss58_address)
+def test_str(dendrite_obj):
+    expected_string = "dendrite({})".format(dendrite_obj.keypair.ss58_address)
     assert str(dendrite_obj) == expected_string
 
 
-def test_repr(setup_dendrite):
-    dendrite_obj = setup_dendrite
-    expected_string = "dendrite({})".format(setup_dendrite.keypair.ss58_address)
+def test_repr(dendrite_obj):
+    expected_string = "dendrite({})".format(dendrite_obj.keypair.ss58_address)
     assert repr(dendrite_obj) == expected_string
 
 
-def test_close(setup_dendrite, setup_axon):
+def test_close(dendrite_obj, setup_axon):
     axon = setup_axon
-    dendrite_obj = setup_dendrite
     # Query the axon to open a session
     dendrite_obj.query(axon, SynapseDummy(input=1))
     # Session should be automatically closed after query
-    assert dendrite_obj._session == None
+    assert dendrite_obj._session is None
 
 
 @pytest.mark.asyncio
-async def test_aclose(setup_dendrite, setup_axon):
+async def test_aclose(dendrite_obj, setup_axon):
     axon = setup_axon
-    dendrite_obj = setup_dendrite
     # Use context manager to open an async session
     async with dendrite_obj:
         resp = await dendrite_obj([axon], SynapseDummy(input=1), deserialize=False)
     # Close should automatically be called on the session after context manager scope
-    assert dendrite_obj._session == None
+    assert dendrite_obj._session is None
 
 
 class AsyncMock(Mock):
@@ -272,3 +285,52 @@ def test_terminal_info_error_cases(
             version=version,
             nonce=nonce,
         )
+
+
+@pytest.mark.asyncio
+async def test_dendrite__call__success_response(
+    axon_info, dendrite_obj, mock_aioresponse
+):
+    input_synapse = SynapseDummy(input=1)
+    expected_synapse = SynapseDummy(
+        **(
+            input_synapse.model_dump()
+            | dict(
+                output=2,
+                axon=TerminalInfo(
+                    status_code=200,
+                    status_message="Success",
+                    process_time=0.1,
+                ),
+            )
+        )
+    )
+    mock_aioresponse.post(
+        f"http://127.0.0.1:666/SynapseDummy",
+        body=expected_synapse.json(),
+    )
+    synapse = await dendrite_obj.call(axon_info, synapse=input_synapse)
+
+    assert synapse.input == 1
+    assert synapse.output == 2
+    assert synapse.dendrite.status_code == 200
+    assert synapse.dendrite.status_message == "Success"
+    assert synapse.dendrite.process_time >= 0
+
+
+@pytest.mark.asyncio
+async def test_dendrite__call__handles_http_error_response(
+    axon_info, dendrite_obj, mock_aioresponse
+):
+    status_code = 414
+    message = "Custom Error"
+
+    mock_aioresponse.post(
+        f"http://127.0.0.1:666/SynapseDummy",
+        status=status_code,
+        payload={"message": message},
+    )
+    synapse = await dendrite_obj.call(axon_info, synapse=SynapseDummy(input=1))
+
+    assert synapse.axon.status_code == synapse.dendrite.status_code == status_code
+    assert synapse.axon.status_message == synapse.dendrite.status_message == message

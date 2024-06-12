@@ -32,6 +32,7 @@ from bittensor.utils.registration import torch, use_torch, legacy_torch_api_comp
 
 from bittensor.btlogging import logging
 
+
 U32_MAX = 4294967295
 U16_MAX = 65535
 
