@@ -595,7 +595,11 @@ class AsyncSubstrateInterface:
             raise Exception(f'Storage function "{module}.{storage_function}" not found')
 
         # SCALE type string of value
+        param_types = storage_item.get_params_type_string()
         value_scale_type = storage_item.get_value_type_string()
+        
+        if len(params) != len(param_types):
+            raise ValueError(f'Storage function requires {len(param_types)} parameters, {len(params)} given')
 
         storage_key = StorageKey.create_from_storage_function(
             module,
@@ -610,7 +614,7 @@ class AsyncSubstrateInterface:
             else "state_getStorage"
         )
         return Preprocessed(
-            query_for[0],
+            query_for[0] if query_for else None,
             method,
             [storage_key.to_hex(), block_hash],
             value_scale_type,
