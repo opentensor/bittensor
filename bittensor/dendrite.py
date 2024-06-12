@@ -657,7 +657,7 @@ class DendriteMixin:
         synapse.dendrite = bittensor.TerminalInfo(
             ip=self.external_ip,
             version=bittensor.__version_as_int__,
-            nonce=time.time_ns(),
+            nonce=time.monotonic_ns(),
             uuid=self.uuid,
             hotkey=self.keypair.ss58_address,
         )

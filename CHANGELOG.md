@@ -53,6 +53,7 @@
 
 **Full Changelog**: https://github.com/opentensor/bittensor/compare/v7.0.0...v7.0.1
 
+
 ## 7.0.0 / 2024-05-29
 
 ## What's Changed

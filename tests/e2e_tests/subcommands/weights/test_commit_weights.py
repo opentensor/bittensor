@@ -14,6 +14,7 @@ from bittensor.commands import (
 )
 from tests.e2e_tests.utils import setup_wallet
 
+
 """
 Test the Commit/Reveal weights mechanism. 
 
@@ -30,6 +31,7 @@ Verify that:
 def test_commit_and_reveal_weights(local_chain):
     # Register root as Alice
     keypair, exec_command, wallet_path = setup_wallet("//Alice")
+
     exec_command(RegisterSubnetworkCommand, ["s", "create"])
 
     # define values
