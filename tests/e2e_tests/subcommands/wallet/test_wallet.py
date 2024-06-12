@@ -5,7 +5,7 @@ from ...utils import setup_wallet
 
 
 def test_wallet_list(local_chain: subtensor, capsys):
-    (keypair, exec_command) = setup_wallet("//Alice")
+    (keypair, exec_command) = setup_wallet("//Alice", True)
 
     exec_command(
         ListCommand,
