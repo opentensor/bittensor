@@ -44,6 +44,7 @@ def _get_coldkey_wallets_for_path(path: str) -> List["bittensor.wallet"]:
 
 console = bittensor.__console__
 
+
 def show_delegates_lite(
     delegates_lite: List["bittensor.DelegateInfoLite"], width: Optional[int] = None
 ):
@@ -148,6 +149,7 @@ def show_delegates_lite(
             end_section=True,
         )
     bittensor.__console__.print(table)
+
 
 # Uses rich console to pretty print a table of delegates.
 def show_delegates(
