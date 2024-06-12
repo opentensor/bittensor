@@ -10,8 +10,6 @@
 * ci: e2e tests by @orriin in https://github.com/opentensor/bittensor/pull/1915
 * Dependency cleanup by @mjurbanski-reef in https://github.com/opentensor/bittensor/pull/1967
 * replace `black` with `ruff` by @mjurbanski-reef in https://github.com/opentensor/bittensor/pull/1968
-* Fix: IP is packed with port by @dgagn in https://github.com/opentensor/bittensor/pull/1962
-* Fix return of ip version by @opendansor in https://github.com/opentensor/bittensor/pull/1964
 * post-black to ruff migration cleanup by @mjurbanski-reef in https://github.com/opentensor/bittensor/pull/1979
 * Revert Axon IP decoding changes by @camfairchild in https://github.com/opentensor/bittensor/pull/1981
 * A wrapper for presenting extrinsics errors in a human-readable form. by @RomanCh-OT in https://github.com/opentensor/bittensor/pull/1980
