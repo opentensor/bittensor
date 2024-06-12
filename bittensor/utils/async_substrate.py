@@ -226,11 +226,14 @@ class Websocket:
                 self._exit_task.cancel()
             if not self._initialized:
                 self._initialized = True
-                self.ws = await asyncio.wait_for(
-                    websockets.connect(self.ws_url, **self._options), timeout=None
-                )
+                await self._connect()
                 self._receiving_task = asyncio.create_task(self._start_receiving())
         return self
+    
+    async def _connect(self):
+        self.ws = await asyncio.wait_for(
+            websockets.connect(self.ws_url, **self._options), timeout=None
+        )
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         async with self._lock:
@@ -283,7 +286,7 @@ class Websocket:
         except asyncio.CancelledError:
             pass
         except websockets.ConnectionClosed:
-            # TODO try reconnect
+            # TODO try reconnect, but only if it's needed
             raise
 
     async def send(self, payload: dict) -> int:
@@ -613,9 +616,8 @@ class AsyncSubstrateInterface:
             value_scale_type: str,
             storage_item: Optional[ScaleType] = None,
             runtime: Optional[Runtime] = None,
-            result_handler=None
+            result_handler: asyncio.coroutine = None
     ) -> tuple[Union[ScaleType, dict], bool]:
-        # TODO add logic for handling multipart responses
         if value_scale_type:
             if not runtime:
                 async with self._lock:
@@ -643,7 +645,7 @@ class AsyncSubstrateInterface:
             obj.meta_info = {"result_found": response.get("result") is not None}
             return obj, True
         elif callable(result_handler):
-            # TODO add subscription id to result_handler()
+            # For multipart responses as a result of subscriptions.
             return await result_handler(response)
         return response, True
 
@@ -666,10 +668,12 @@ class AsyncSubstrateInterface:
                 for item_id in request_manager.response_map.keys():
                     if item_id not in request_manager.responses:
                         if response := await ws.retrieve(item_id):
+                            if callable(result_handler):
+                                # handles subscriptions, overwrites the previous mapping of item_id: payload_id
+                                request_manager.add_request(item_id, response["result"])
                             decoded_response, complete = await self._process_response(
                                 response, value_scale_type, storage_item, runtime, result_handler
                             )
-                            # TODO add the request_id => subscription_id logic
                             request_manager.add_response(
                                 item_id, decoded_response, complete
                             )
@@ -1192,7 +1196,6 @@ class AsyncSubstrateInterface:
         if wait_for_inclusion or wait_for_finalization:
             response = (
                 await self._make_rpc_request(
-                    # TODO wait for response from nucleus regarding subscription responses
                     [self.make_payload("rpc_request", "author_submitAndWatchExtrinsic", [str(extrinsic.data)])],
                     result_handler=result_handler)
             )["rpc_request"] 
