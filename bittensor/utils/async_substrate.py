@@ -19,7 +19,7 @@ import bittensor
 
 TEST_CHAIN_ENDPOINT = "wss://test.finney.opentensor.ai:443"
 
-ResultHandler = Callable[[dict], Any], Awaitable[tuple[dict, bool]]
+ResultHandler = Callable[[dict, Any], Awaitable[tuple[dict, bool]]]
 
 
 def ensure_initialized(func):
@@ -476,8 +476,7 @@ class AsyncSubstrateInterface:
         else:
             runtime.metadata = (
                 await self.get_block_metadata(
-                    block_hash=runtime_block_hash,
-                    decode=True
+                    block_hash=runtime_block_hash, decode=True
                 )
             )["result"]
 
@@ -674,7 +673,10 @@ class AsyncSubstrateInterface:
 
             while True:
                 for item_id in request_manager.response_map.keys():
-                    if item_id not in request_manager.responses or asyncio.iscoroutinefunction(result_handler):
+                    if (
+                        item_id not in request_manager.responses
+                        or asyncio.iscoroutinefunction(result_handler)
+                    ):
                         if response := await ws.retrieve(item_id):
                             if asyncio.iscoroutinefunction(result_handler):
                                 # handles subscriptions, overwrites the previous mapping of {item_id : payload_id}
@@ -748,9 +750,12 @@ class AsyncSubstrateInterface:
         block_hash: str = None,
     ) -> GenericCall:
         return await asyncio.get_event_loop().run_in_executor(
-            None, 
+            None,
             self.substrate.compose_call,
-            call_module, call_function, call_params, block_hash
+            call_module,
+            call_function,
+            call_params,
+            block_hash,
         )
 
     async def query_multiple(
@@ -779,7 +784,10 @@ class AsyncSubstrateInterface:
         self.last_block_hash = block_hash
         runtime = await self.init_runtime(block_hash=block_hash)
         preprocessed: tuple[Preprocessed] = await asyncio.gather(
-            *[self._preprocess([x], block_hash, storage_function, module) for x in params]
+            *[
+                self._preprocess([x], block_hash, storage_function, module)
+                for x in params
+            ]
         )
         all_info = [
             self.make_payload(item.queryable, item.method, item.params)
@@ -1232,9 +1240,7 @@ class AsyncSubstrateInterface:
                     ],
                     result_handler=result_handler,
                 )
-            )[
-                "rpc_request"
-            ][1]
+            )["rpc_request"][1]
             # Also, this will be a multipart response, so maybe should change to everything after the first response?
             # The following code implies this will be a single response after the initial subscription id.
 

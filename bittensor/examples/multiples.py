@@ -54,9 +54,7 @@ async def root_list(block_hash, rpc: async_substrate.AsyncSubstrateInterface):
 async def get_balance(
     block_hash, address: str, rpc: async_substrate.AsyncSubstrateInterface
 ):
-    result = await rpc.query(
-        "System", "Account", [address], reuse_block_hash=True
-    )
+    result = await rpc.query("System", "Account", [address], reuse_block_hash=True)
     return result.value["data"]["free"]
 
 
