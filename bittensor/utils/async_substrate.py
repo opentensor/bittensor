@@ -122,7 +122,8 @@ class Runtime:
 
         Parameters
         ----------
-        use_remote_preset: When True preset is downloaded from Github master, otherwise use files from local installed scalecodec package
+        use_remote_preset: When True preset is downloaded from Github master, otherwise use files from local installed
+                           scalecodec package
         auto_discover
 
         Returns
@@ -419,6 +420,9 @@ class AsyncSubstrateInterface:
         auto_discover=True,
         auto_reconnect=True,
     ):
+        """
+        The asyncio-compatible version of the subtensor interface commands we use in bittensor
+        """
         self.chain_endpoint = chain_endpoint
         self.__chain = None
         self.ws = Websocket(
@@ -968,7 +972,8 @@ class AsyncSubstrateInterface:
 
         :param call: GenericCall to create extrinsic for
         :param keypair: Keypair used to sign the extrinsic
-        :param era: Specify mortality in blocks in follow format: {'period': [amount_blocks]} If omitted the extrinsic is immortal
+        :param era: Specify mortality in blocks in follow format:
+                    {'period': [amount_blocks]} If omitted the extrinsic is immortal
         :param nonce: nonce to include in extrinsics, if omitted the current nonce is retrieved on-chain
         :param tip: The tip for the block author to gain priority during network congestion
         :param tip_asset_id: Optional asset ID with which to pay the tip
@@ -1024,7 +1029,9 @@ class AsyncSubstrateInterface:
                     f"Runtime API Call '{api}.{method}' not found in registry"
                 )
 
-            if type(params) is list and len(params) != len(runtime_call_def["params"]):
+            if isinstance(params, list) and len(params) != len(
+                runtime_call_def["params"]
+            ):
                 raise ValueError(
                     f"Number of parameter provided ({len(params)}) does not "
                     f"match definition {len(runtime_call_def['params'])}"
@@ -1040,7 +1047,7 @@ class AsyncSubstrateInterface:
         param_data = ScaleBytes(bytes())
         for idx, param in enumerate(runtime_call_def["params"]):
             scale_obj = runtime.runtime_config.create_scale_object(param["type"])
-            if type(params) is list:
+            if isinstance(params, list):
                 param_data += scale_obj.encode(params[idx])
             else:
                 if param["name"] not in params:
@@ -1219,6 +1226,8 @@ class AsyncSubstrateInterface:
         :param page_size: The results are fetched from the node RPC in chunks of this size
         :param ignore_decoding_errors: When set this will catch all decoding errors, set the item to None and continue
                                        decoding
+        :param reuse_block_hash: use True if you wish to make the query using the last-used block hash. Do not mark True
+                                 if supplying a block_hash
 
         :return: QueryMapResult object
         """
@@ -1487,7 +1496,8 @@ class AsyncSubstrateInterface:
         self, module_name: str, call_function_name: str, block_hash: str = None
     ) -> list:
         """
-        Retrieves a list of all call functions in metadata active for given block_hash (or chaintip if block_hash is omitted)
+        Retrieves a list of all call functions in metadata active for given block_hash (or chaintip if block_hash
+        is omitted)
 
         :param module_name: name of the module
         :param call_function_name: name of the call function
