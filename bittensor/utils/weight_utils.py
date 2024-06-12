@@ -20,6 +20,7 @@ Conversion for weight between chain representation and np.array or torch.Tensor
 # DEALINGS IN THE SOFTWARE.
 
 import hashlib
+import logging
 from typing import Tuple, List, Union
 
 import numpy as np
