@@ -141,6 +141,9 @@ def unstake_extrinsic(
             coldkey_ss58=wallet.coldkeypub.ss58_address, hotkey_ss58=hotkey_ss58
         )
 
+        hotkey_owner = subtensor.get_hotkey_owner(hotkey_ss58)
+        own_hotkey: bool = wallet.coldkeypub.ss58_address == hotkey_owner
+
     # Convert to bittensor.Balance
     if amount is None:
         # Unstake it all.
@@ -160,7 +163,8 @@ def unstake_extrinsic(
         )
         return False
 
-    if not check_threshold_amount(
+    # If nomination stake, check threshold.
+    if not own_hotkey and not check_threshold_amount(
         subtensor=subtensor, stake_balance=(stake_on_uid - unstaking_balance)
     ):
         bittensor.__console__.print(
@@ -303,6 +307,7 @@ def unstake_multiple_extrinsic(
     wallet.coldkey
 
     old_stakes = []
+    own_hotkeys = []
     with bittensor.__console__.status(
         ":satellite: Syncing with chain: [white]{}[/white] ...".format(
             subtensor.network
@@ -316,9 +321,12 @@ def unstake_multiple_extrinsic(
             )  # Get stake on hotkey.
             old_stakes.append(old_stake)  # None if not registered.
 
+            hotkey_owner = subtensor.get_hotkey_owner(hotkey_ss58)
+            own_hotkeys.append(wallet.coldkeypub.ss58_address == hotkey_owner)
+
     successful_unstakes = 0
-    for idx, (hotkey_ss58, amount, old_stake) in enumerate(
-        zip(hotkey_ss58s, amounts, old_stakes)
+    for idx, (hotkey_ss58, amount, old_stake, own_hotkey) in enumerate(
+        zip(hotkey_ss58s, amounts, old_stakes, own_hotkeys)
     ):
         # Covert to bittensor.Balance
         if amount is None:
@@ -339,7 +347,8 @@ def unstake_multiple_extrinsic(
             )
             continue
 
-        if not check_threshold_amount(
+        # If nomination stake, check threshold.
+        if not own_hotkey and not check_threshold_amount(
             subtensor=subtensor, stake_balance=(stake_on_uid - unstaking_balance)
         ):
             bittensor.__console__.print(
