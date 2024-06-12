@@ -162,8 +162,12 @@ class RequestManager:
         self.responses = defaultdict(lambda: {"complete": False, "results": []})
         self.payloads_count = len(payloads)
 
-    def add_request(self, item_id: int, request_id: int):
+    def add_request(self, item_id: int, request_id: Any):
         self.response_map[item_id] = request_id
+
+    def overwrite_request(self, item_id: int, request_id: Any):
+        self.response_map[request_id] = self.response_map.pop(item_id)
+        return request_id
 
     def add_response(self, item_id: int, response: dict, complete: bool):
         request_id = self.response_map[item_id]
@@ -360,6 +364,7 @@ class AsyncSubstrateInterface:
             "strict_scale_decode": True,
         }
         self.initialized = False
+        self._forgettable_task = None
 
     async def __aenter__(self):
         await self.initialize()
@@ -666,11 +671,16 @@ class AsyncSubstrateInterface:
 
             while True:
                 for item_id in request_manager.response_map.keys():
-                    if item_id not in request_manager.responses:
+                    if item_id not in request_manager.responses or callable(
+                        result_handler
+                    ):
                         if response := await ws.retrieve(item_id):
                             if callable(result_handler):
-                                # handles subscriptions, overwrites the previous mapping of item_id: payload_id
-                                request_manager.add_request(item_id, response["result"])
+                                # handles subscriptions, overwrites the previous mapping of {item_id : payload_id}
+                                # with {subscription_id : payload_id}
+                                item_id = request_manager.overwrite_request(
+                                    item_id, response["result"]
+                                )
                             decoded_response, complete = await self._process_response(
                                 response,
                                 value_scale_type,
@@ -1182,7 +1192,10 @@ class AsyncSubstrateInterface:
                 }
 
                 if "finalized" in message_result and wait_for_finalization:
-                    await self.rpc_request("author_unwatchExtrinsic", [subscription_id])
+                    # Created as a task because we don't actually care about the result
+                    self._forgettable_task = asyncio.create_task(
+                        self.rpc_request("author_unwatchExtrinsic", [subscription_id])
+                    )
                     return {
                         "block_hash": message_result["finalized"],
                         "extrinsic_hash": "0x{}".format(extrinsic.extrinsic_hash.hex()),
@@ -1193,7 +1206,12 @@ class AsyncSubstrateInterface:
                     and wait_for_inclusion
                     and not wait_for_finalization
                 ):
-                    await self.rpc_request("author_unwatchExtrinsic", [subscription_id])
+                    # Created as a task because we don't actually care about the result
+                    self._forgettable_task = asyncio.create_task(
+                        await self.rpc_request(
+                            "author_unwatchExtrinsic", [subscription_id]
+                        )
+                    )
                     return {
                         "block_hash": message_result["inblock"],
                         "extrinsic_hash": "0x{}".format(extrinsic.extrinsic_hash.hex()),
@@ -1213,7 +1231,11 @@ class AsyncSubstrateInterface:
                     ],
                     result_handler=result_handler,
                 )
-            )["rpc_request"]
+            )[
+                "rpc_request"
+            ]  # TODO this may no longer be rpc_request, but I need to test to be sure
+            # Also, this will be a multipart response, so maybe should change to everything after the first response?
+            # The following code implies this will be a single response after the initial subscription id.
 
             result = ExtrinsicReceipt(
                 substrate=self.substrate,
