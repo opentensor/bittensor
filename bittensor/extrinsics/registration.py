@@ -473,7 +473,7 @@ def run_faucet_extrinsic(
                 if successes == 3:
                     raise MaxSuccessException
 
-                attempts = 1 # Reset attempts on success
+                attempts = 1  # Reset attempts on success
                 successes += 1
 
         except KeyboardInterrupt:
