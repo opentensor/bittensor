@@ -181,7 +181,7 @@ class Subtensor:
         config: Optional[bittensor.config] = None,
         _mock: bool = False,
         log_verbose: bool = True,
-    ) -> None:
+    ):
         """
         Initializes a Subtensor interface for interacting with the Bittensor blockchain.
 
@@ -246,11 +246,7 @@ class Subtensor:
 
         # Attempt to connect to chosen endpoint. Fallback to finney if local unavailable.
         try:
-            # Set up params.
-            ws_options = {"max_size": 2**32, "read_limit": 2**32, "write_limit": 2**32}
-            self.substrate = AsyncSubstrateInterface(
-                bittensor.__finney_entrypoint__, ws_options=ws_options
-            )
+            self.substrate = AsyncSubstrateInterface(bittensor.__finney_entrypoint__)
         except ConnectionRefusedError:
             bittensor.logging.error(
                 f"Could not connect to {self.network} network with {self.chain_endpoint} chain endpoint. Exiting...",
@@ -1640,7 +1636,7 @@ class Subtensor:
             )
             return fee
 
-    async def _do_transfer(
+    async def do_transfer(
         self,
         wallet: "bittensor.wallet",
         dest: str,
@@ -2245,7 +2241,7 @@ class Subtensor:
             prompt,
         )
 
-    async def _do_unstake(
+    async def do_unstake(
         self,
         wallet: "bittensor.wallet",
         hotkey_ss58: str,

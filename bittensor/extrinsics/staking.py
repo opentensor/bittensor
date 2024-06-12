@@ -19,11 +19,12 @@
 """This module provides functionality for staking and managing stakes in the Bittensor network."""
 
 import asyncio
-
-import bittensor
-from rich.prompt import Confirm
 from time import sleep
 from typing import List, Union, Optional
+
+from rich.prompt import Confirm
+
+import bittensor
 from bittensor.utils.balance import Balance
 
 

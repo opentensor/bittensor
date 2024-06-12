@@ -1041,7 +1041,7 @@ class MockSubtensor(Subtensor):
             raise Exception("Not a delegate")
 
         # do unstake
-        self._do_unstake(
+        self.do_unstake(
             wallet=wallet,
             hotkey_ss58=delegate_ss58,
             amount=amount,
@@ -1075,7 +1075,7 @@ class MockSubtensor(Subtensor):
     ) -> "Balance":
         return Balance(700)
 
-    def _do_transfer(
+    def do_transfer(
         self,
         wallet: "wallet",
         dest: str,
@@ -1231,7 +1231,7 @@ class MockSubtensor(Subtensor):
 
         return True
 
-    def _do_unstake(
+    def do_unstake(
         self,
         wallet: "wallet",
         hotkey_ss58: str,

@@ -37,14 +37,16 @@ async def _do_remove_stake_single(
     Executes an unstake call to the chain using the wallet and the amount specified.
 
     Args:
+        subtensor (bittensor.subtensor): Bittensor subtensor object.
         wallet (bittensor.wallet): Bittensor wallet object.
         hotkey_ss58 (str): Hotkey address to unstake from.
         amount (bittensor.Balance): Amount to unstake as Bittensor balance object.
         wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
-        prompt (bool): If ``true``, the call waits for confirmation from the user before proceeding.
+
     Returns:
         success (bool): Flag is ``true`` if extrinsic was finalized or included in the block. If we did not wait for finalization / inclusion, the response is ``true``.
+
     Raises:
         bittensor.errors.StakeError: If the extrinsic fails to be finalized or included in the block.
         bittensor.errors.NotRegisteredError: If the hotkey is not registered in any subnets.
@@ -52,7 +54,7 @@ async def _do_remove_stake_single(
     # Decrypt keys,
     wallet.coldkey
 
-    success = await subtensor._do_unstake(
+    success = await subtensor.do_unstake(
         wallet=wallet,
         hotkey_ss58=hotkey_ss58,
         amount=amount,
@@ -70,7 +72,9 @@ async def check_threshold_amount(
     Checks if the unstaking amount is above the threshold or 0
 
     Args:
+        subtensor (bittensor.subtensor): Bittensor subtensor object.
         unstaking_balance (Balance): the balance to check for threshold limits.
+
     Returns:
         success (bool): ``true`` if the unstaking is above the threshold or 0, or ``false`` if the unstaking is below the threshold, but not 0.
     """
@@ -97,12 +101,14 @@ async def unstake_extrinsic(
     """Removes stake into the wallet coldkey from the specified hotkey ``uid``.
 
     Args:
+        subtensor (bittensor.subtensor): Bittensor subtensor object.
         wallet (bittensor.wallet): Bittensor wallet object.
         hotkey_ss58 (Optional[str]): The ``ss58`` address of the hotkey to unstake from. By default, the wallet hotkey is used.
         amount (Union[Balance, float]): Amount to stake as Bittensor balance, or ``float`` interpreted as Tao.
         wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
         prompt (bool): If ``true``, the call waits for confirmation from the user before proceeding.
+
     Returns:
         success (bool): Flag is ``true`` if extrinsic was finalized or included in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """

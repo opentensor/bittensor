@@ -1,5 +1,3 @@
-"""An Asyncio-compatible implementation of the Py-Substrate API, as used within bittensor."""
-
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 # Copyright © 2022 Opentensor Foundation
@@ -19,22 +17,24 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+"""An Asyncio-compatible implementation of the Py-Substrate API, as used within bittensor."""
+
 import asyncio
-from collections import defaultdict
-from dataclasses import dataclass
 import functools
 import json
+from collections import defaultdict
+from dataclasses import dataclass
 from typing import Optional, Any, Union, Callable, Awaitable
 
+import websockets
 from scalecodec import GenericExtrinsic
+from scalecodec.base import ScaleBytes, ScaleType, RuntimeConfigurationObject
+from scalecodec.type_registry import load_type_registry_preset
+from scalecodec.types import GenericCall
 from substrateinterface import Keypair, ExtrinsicReceipt
 from substrateinterface.base import SubstrateInterface, QueryMapResult
-from substrateinterface.storage import StorageKey
 from substrateinterface.exceptions import SubstrateRequestException, BlockNotFound
-from scalecodec.base import ScaleBytes, ScaleType, RuntimeConfigurationObject
-from scalecodec.types import GenericCall
-from scalecodec.type_registry import load_type_registry_preset
-import websockets
+from substrateinterface.storage import StorageKey
 
 import bittensor
 
@@ -1154,8 +1154,8 @@ class AsyncSubstrateInterface:
         self,
         module: str,
         storage_function: str,
-        params: list = None,
-        block_hash: str = None,
+        params: Optional[list] = None,
+        block_hash: Optional[str] = None,
         subscription_handler: callable = None,
         raw_storage_key: bytes = None,
         reuse_block_hash: bool = False,
@@ -1196,7 +1196,7 @@ class AsyncSubstrateInterface:
         module: str,
         storage_function: str,
         params: Optional[list] = None,
-        block_hash: str = None,
+        block_hash: Optional[str] = None,
         max_results: int = None,
         start_key: str = None,
         page_size: int = 100,

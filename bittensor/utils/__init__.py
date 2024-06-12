@@ -1,33 +1,31 @@
 # The MIT License (MIT)
 # Copyright © 2022 Opentensor Foundation
 # Copyright © 2023 Opentensor Technologies Inc
-import os
-
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
 # the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
+#
 # The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
-
+#
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
 # THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import hashlib
 from typing import Callable, List, Dict, Literal, Tuple
 
-import bittensor
-import hashlib
-import requests
-import scalecodec
 import numpy as np
+import scalecodec
 
-from .wallet_utils import *  # noqa F401
-from .version import version_checking, check_version, VersionCheckError
+import bittensor
 from .registration import torch, use_torch
+from .version import version_checking, check_version, VersionCheckError
+from .wallet_utils import *  # noqa F401
 
 RAOPERTAO = 1e9
 U16_MAX = 65535
@@ -190,8 +188,8 @@ def get_explorer_root_url_by_network_from_map(
 
 
 def get_explorer_url_for_network(
-    network: str, block_hash: str, network_map: Dict[str, str]
-) -> Optional[List[str]]:
+    network: str, block_hash: str, network_map: Dict[str, Dict[str, str]]
+) -> Optional[Dict[str, str]]:
     r"""
     Returns the explorer url for the given block hash and network.
 

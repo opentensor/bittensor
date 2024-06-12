@@ -116,7 +116,7 @@ class TestSubtensor(unittest.TestCase):
         assert type(block) == int
 
     def test_unstake(self):
-        self.subtensor._do_unstake = MagicMock(return_value=True)
+        self.subtensor.do_unstake = MagicMock(return_value=True)
 
         self.subtensor.substrate.get_payment_info = MagicMock(
             return_value={"partialFee": 100}
@@ -135,7 +135,7 @@ class TestSubtensor(unittest.TestCase):
         self.assertTrue(success, msg="Unstake should succeed")
 
     def test_unstake_inclusion(self):
-        self.subtensor._do_unstake = MagicMock(return_value=True)
+        self.subtensor.do_unstake = MagicMock(return_value=True)
 
         self.subtensor.substrate.get_payment_info = MagicMock(
             return_value={"partialFee": 100}
@@ -155,7 +155,7 @@ class TestSubtensor(unittest.TestCase):
         self.assertTrue(success, msg="Unstake should succeed")
 
     def test_unstake_failed(self):
-        self.subtensor._do_unstake = MagicMock(return_value=False)
+        self.subtensor.do_unstake = MagicMock(return_value=False)
 
         self.subtensor.register = MagicMock(return_value=True)
         self.subtensor.get_balance = MagicMock(return_value=self.balance)
@@ -242,7 +242,7 @@ class TestSubtensor(unittest.TestCase):
     def test_transfer(self):
         fake_coldkey = _get_mock_coldkey(1)
 
-        self.subtensor._do_transfer = MagicMock(return_value=(True, "0x", None))
+        self.subtensor.do_transfer = MagicMock(return_value=(True, "0x", None))
         self.subtensor.register = MagicMock(return_value=True)
         self.subtensor.get_neuron_for_pubkey_and_subnet = MagicMock(
             return_value=self.mock_neuron
@@ -257,7 +257,7 @@ class TestSubtensor(unittest.TestCase):
 
     def test_transfer_inclusion(self):
         fake_coldkey = _get_mock_coldkey(1)
-        self.subtensor._do_transfer = MagicMock(return_value=(True, "0x", None))
+        self.subtensor.do_transfer = MagicMock(return_value=(True, "0x", None))
         self.subtensor.register = MagicMock(return_value=True)
         self.subtensor.get_neuron_for_pubkey_and_subnet = MagicMock(
             return_value=self.mock_neuron
@@ -271,7 +271,7 @@ class TestSubtensor(unittest.TestCase):
 
     def test_transfer_failed(self):
         fake_coldkey = _get_mock_coldkey(1)
-        self.subtensor._do_transfer = MagicMock(
+        self.subtensor.do_transfer = MagicMock(
             return_value=(False, None, "Mock failure message")
         )
 
@@ -293,7 +293,7 @@ class TestSubtensor(unittest.TestCase):
 
     def test_transfer_dest_as_bytes(self):
         fake_coldkey = _get_mock_coldkey(1)
-        self.subtensor._do_transfer = MagicMock(return_value=(True, "0x", None))
+        self.subtensor.do_transfer = MagicMock(return_value=(True, "0x", None))
 
         self.subtensor.register = MagicMock(return_value=True)
         self.subtensor.get_neuron_for_pubkey_and_subnet = MagicMock(
