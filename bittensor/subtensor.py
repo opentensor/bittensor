@@ -45,7 +45,6 @@ from bittensor.utils import torch, weight_utils, format_error_message
 from .chain_data import (
     NeuronInfo,
     DelegateInfo,
-    DelegateInfoLite,
     PrometheusInfo,
     SubnetInfo,
     SubnetHyperparameters,
@@ -614,7 +613,6 @@ class Subtensor:
     ) -> bool:
         """
         Set delegate hotkey take
-
         Args:
             wallet (bittensor.wallet): The wallet containing the hotkey to be nominated.
             delegate_ss58 (str, optional): Hotkey
@@ -1082,6 +1080,7 @@ class Subtensor:
         This function allows neurons to reveal their previously committed weight distribution, ensuring transparency
         and accountability within the Bittensor network.
         """
+
         retries = 0
         success = False
         message = "No attempt made. Perhaps it is too soon to reveal weights!"
@@ -4324,8 +4323,6 @@ class Subtensor:
 
         Analyzing the delegate population offers insights into the network's governance dynamics and the distribution of
         trust and responsibility among participating neurons.
-
-        For a lighter version of this function, see :func:`get_delegates_lite`.
 
         Args:
             block (Optional[int], optional): The blockchain block number for the query.

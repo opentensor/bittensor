@@ -304,7 +304,6 @@ from .chain_data import (
     NeuronInfoLite,
     PrometheusInfo,
     DelegateInfo,
-    DelegateInfoLite,
     StakeInfo,
     SubnetInfo,
     SubnetHyperparameters,
