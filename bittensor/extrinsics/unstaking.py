@@ -72,13 +72,13 @@ def __do_remove_stake_single(
 
 
 def check_threshold_amount(
-    subtensor: "bittensor.subtensor", unstaking_balance: Balance
+    subtensor: "bittensor.subtensor", stake_balance: Balance
 ) -> bool:
     """
-    Checks if the unstaking amount is above the threshold or 0
+    Checks if the remaining stake balance is above the minimum required stake threshold.
 
     Args:
-        unstaking_balance (Balance):
+        stake_balance (Balance):
             the balance to check for threshold limits.
 
     Returns:
@@ -88,9 +88,9 @@ def check_threshold_amount(
     """
     min_req_stake: Balance = subtensor.get_minimum_required_stake()
 
-    if min_req_stake > unstaking_balance > 0:
+    if min_req_stake > stake_balance > 0:
         bittensor.__console__.print(
-            f":cross_mark: [red]Unstaking balance of {unstaking_balance} less than minimum of {min_req_stake} TAO[/red]"
+            f":cross_mark: [yellow]Remaining stake balance of {stake_balance} less than minimum of {min_req_stake} TAO[/yellow]"
         )
         return False
     else:
@@ -161,7 +161,7 @@ def unstake_extrinsic(
         return False
 
     if not check_threshold_amount(
-        subtensor=subtensor, unstaking_balance=unstaking_balance
+        subtensor=subtensor, stake_balance=(stake_on_uid - unstaking_balance)
     ):
         return False
 
@@ -337,7 +337,7 @@ def unstake_multiple_extrinsic(
             continue
 
         if not check_threshold_amount(
-            subtensor=subtensor, unstaking_balance=unstaking_balance
+            subtensor=subtensor, stake_balance=(stake_on_uid - unstaking_balance)
         ):
             return False
 
