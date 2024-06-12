@@ -3,7 +3,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 import functools
 import json
-from typing import Optional, Any, Union
+from typing import Optional, Any, Union, Coroutine
 
 from scalecodec import GenericExtrinsic
 from substrateinterface import Keypair, ExtrinsicReceipt
@@ -572,7 +572,7 @@ class AsyncSubstrateInterface:
 
     async def _preprocess(
         self,
-        query_for: Optional[str],
+        query_for: Optional[list],
         block_hash: str,
         storage_function: str,
         module: str,
@@ -580,7 +580,7 @@ class AsyncSubstrateInterface:
         """
         Creates a Preprocessed data object for passing to ``_make_rpc_request``
         """
-        params = [query_for] if query_for else []
+        params = query_for if query_for else []
         # Search storage call in metadata
         metadata_pallet = self.substrate.metadata.get_metadata_pallet(module)
 
@@ -608,7 +608,7 @@ class AsyncSubstrateInterface:
             else "state_getStorage"
         )
         return Preprocessed(
-            query_for,
+            query_for[0],
             method,
             [storage_key.to_hex(), block_hash],
             value_scale_type,
@@ -621,7 +621,7 @@ class AsyncSubstrateInterface:
         value_scale_type: str,
         storage_item: Optional[ScaleType] = None,
         runtime: Optional[Runtime] = None,
-        result_handler: asyncio.coroutine = None,
+        result_handler: Optional[Coroutine] = None,
     ) -> tuple[Union[ScaleType, dict], bool]:
         if value_scale_type:
             if not runtime:
@@ -778,7 +778,7 @@ class AsyncSubstrateInterface:
         self.last_block_hash = block_hash
         runtime = await self.init_runtime(block_hash=block_hash)
         preprocessed: tuple[Preprocessed] = await asyncio.gather(
-            *[self._preprocess(x, block_hash, storage_function, module) for x in params]
+            *[self._preprocess([x], block_hash, storage_function, module) for x in params]
         )
         all_info = [
             self.make_payload(item.queryable, item.method, item.params)
