@@ -22,6 +22,7 @@ blockchain, facilitating a range of operations essential for the decentralized m
 """
 
 import argparse
+import asyncio
 import copy
 import socket
 import time
@@ -767,7 +768,7 @@ class Subtensor:
     ###############
     # Set Weights #
     ###############
-    def set_weights(
+    async def set_weights(
         self,
         wallet: "bittensor.wallet",
         netuid: int,
@@ -804,16 +805,19 @@ class Subtensor:
         This function is crucial in shaping the network's collective intelligence, where each neuron's
         learning and contribution are influenced by the weights it sets towards others【81†source】.
         """
-        uid = self.get_uid_for_hotkey_on_subnet(wallet.hotkey.ss58_address, netuid)
+        uid, weights_rate_limit = await asyncio.gather(
+            self.get_uid_for_hotkey_on_subnet(wallet.hotkey.ss58_address, netuid),
+            self.weights_rate_limit(netuid),
+        )
         retries = 0
         success = False
         message = "No attempt made. Perhaps it is too soon to set weights!"
         while (
-            self.blocks_since_last_update(netuid, uid) > self.weights_rate_limit(netuid)  # type: ignore
+            await self.blocks_since_last_update(netuid, uid) > weights_rate_limit  # type: ignore
             and retries < max_retries
         ):
             try:
-                success, message = set_weights_extrinsic(
+                success, message = await set_weights_extrinsic(
                     subtensor=self,
                     wallet=wallet,
                     netuid=netuid,
@@ -2039,7 +2043,7 @@ class Subtensor:
     ###########
     # Staking #
     ###########
-    def add_stake(
+    async def add_stake(
         self,
         wallet: "bittensor.wallet",
         hotkey_ss58: Optional[str] = None,
@@ -2067,7 +2071,7 @@ class Subtensor:
         This function enables neurons to increase their stake in the network, enhancing their influence
         and potential rewards in line with Bittensor's consensus and reward mechanisms.
         """
-        return add_stake_extrinsic(
+        return await add_stake_extrinsic(
             subtensor=self,
             wallet=wallet,
             hotkey_ss58=hotkey_ss58,
@@ -2077,7 +2081,7 @@ class Subtensor:
             prompt=prompt,
         )
 
-    def add_stake_multiple(
+    async def add_stake_multiple(
         self,
         wallet: "bittensor.wallet",
         hotkey_ss58s: List[str],
@@ -2104,7 +2108,7 @@ class Subtensor:
         This function is essential for managing stakes across multiple neurons, reflecting the dynamic
         and collaborative nature of the Bittensor network.
         """
-        return add_stake_multiple_extrinsic(
+        return await add_stake_multiple_extrinsic(
             self,
             wallet,
             hotkey_ss58s,
@@ -2114,7 +2118,7 @@ class Subtensor:
             prompt,
         )
 
-    async def _do_stake(
+    async def do_stake(
         self,
         wallet: "bittensor.wallet",
         hotkey_ss58: str,

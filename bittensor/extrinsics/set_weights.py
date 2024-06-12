@@ -16,6 +16,8 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+"""This module provides functionality for setting weights on the Bittensor network."""
+
 from typing import Union, Tuple
 
 import numpy as np
@@ -30,7 +32,7 @@ from bittensor.utils.registration import torch, use_torch
 bittensor.logging.on()
 
 
-def set_weights_extrinsic(
+async def set_weights_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
     netuid: int,
@@ -41,30 +43,21 @@ def set_weights_extrinsic(
     wait_for_finalization: bool = False,
     prompt: bool = False,
 ) -> Tuple[bool, str]:
-    r"""Sets the given weights and values on chain for wallet hotkey account.
+    """Sets the given weights and values on chain for wallet hotkey account.
 
     Args:
-        subtensor_endpoint (bittensor.subtensor):
-            Subtensor endpoint to use.
-        wallet (bittensor.wallet):
-            Bittensor wallet object.
-        netuid (int):
-            The ``netuid`` of the subnet to set weights for.
-        uids (Union[NDArray[np.int64], torch.LongTensor, list]):
-            The ``uint64`` uids of destination neurons.
-        weights (Union[NDArray[np.float32], torch.FloatTensor, list]):
-            The weights to set. These must be ``float`` s and correspond to the passed ``uid`` s.
-        version_key (int):
-            The version key of the validator.
-        wait_for_inclusion (bool):
-            If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization (bool):
-            If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
-        prompt (bool):
-            If ``true``, the call waits for confirmation from the user before proceeding.
+        subtensor (bittensor.subtensor): Bittensor subtensor object.
+        wallet (bittensor.wallet): Bittensor wallet object.
+        netuid (int): The ``netuid`` of the subnet to set weights for.
+        uids (Union[NDArray[np.int64], torch.LongTensor, list]): The ``uint64`` uids of destination neurons.
+        weights (Union[NDArray[np.float32], torch.FloatTensor, list]): The weights to set. These must be ``float`` s and correspond to the passed ``uid`` s.
+        version_key (int): The version key of the validator.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
+        prompt (bool): If ``true``, the call waits for confirmation from the user before proceeding.
+
     Returns:
-        success (bool):
-            Flag is ``true`` if extrinsic was finalized or included in the block. If we did not wait for finalization / inclusion, the response is ``true``.
+        success (bool): Flag is ``true`` if extrinsic was finalized or included in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
     # First convert types.
     if use_torch():
@@ -96,7 +89,7 @@ def set_weights_extrinsic(
         ":satellite: Setting weights on [white]{}[/white] ...".format(subtensor.network)
     ):
         try:
-            success, error_message = subtensor.do_set_weights(
+            success, error_message = await subtensor.do_set_weights(
                 wallet=wallet,
                 netuid=netuid,
                 uids=weight_uids,
@@ -120,7 +113,7 @@ def set_weights_extrinsic(
                 return True, "Successfully set weights and Finalized."
             else:
                 bittensor.__console__.print(
-                    ":cross_mark: [red]Failed[/red]: error:{}".format(error_message)
+                    f":cross_mark: [red]Failed[/red]: error:{error_message}"
                 )
                 bittensor.logging.warning(
                     prefix="Set weights",
@@ -129,9 +122,7 @@ def set_weights_extrinsic(
                 return False, error_message
 
         except Exception as e:
-            bittensor.__console__.print(
-                ":cross_mark: [red]Failed[/red]: error:{}".format(e)
-            )
+            bittensor.__console__.print(f":cross_mark: [red]Failed[/red]: error:{e}")
             bittensor.logging.warning(
                 prefix="Set weights", suffix="<red>Failed: </red>" + str(e)
             )

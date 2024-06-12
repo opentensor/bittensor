@@ -170,7 +170,7 @@ class TestSubtensor(unittest.TestCase):
         self.assertFalse(fail, msg="Unstake should fail")
 
     def test_stake(self):
-        self.subtensor._do_stake = MagicMock(return_value=True)
+        self.subtensor.do_stake = MagicMock(return_value=True)
 
         self.subtensor.substrate.get_payment_info = MagicMock(
             return_value={"partialFee": 100}
@@ -192,7 +192,7 @@ class TestSubtensor(unittest.TestCase):
         self.assertTrue(success, msg="Stake should succeed")
 
     def test_stake_inclusion(self):
-        self.subtensor._do_stake = MagicMock(return_value=True)
+        self.subtensor.do_stake = MagicMock(return_value=True)
 
         self.subtensor.substrate.get_payment_info = MagicMock(
             return_value={"partialFee": 100}
@@ -216,7 +216,7 @@ class TestSubtensor(unittest.TestCase):
         self.assertTrue(success, msg="Stake should succeed")
 
     def test_stake_failed(self):
-        self.subtensor._do_stake = MagicMock(return_value=False)
+        self.subtensor.do_stake = MagicMock(return_value=False)
 
         self.subtensor.substrate.get_payment_info = MagicMock(
             return_value={"partialFee": 100}

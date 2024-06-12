@@ -1018,7 +1018,7 @@ class MockSubtensor(Subtensor):
             raise Exception("Not a delegate")
 
         # do stake
-        success = self._do_stake(
+        success = self.do_stake(
             wallet=wallet,
             hotkey_ss58=delegate_ss58,
             amount=amount,
@@ -1160,7 +1160,7 @@ class MockSubtensor(Subtensor):
 
         return True, None
 
-    def _do_stake(
+    def do_stake(
         self,
         wallet: "wallet",
         hotkey_ss58: str,

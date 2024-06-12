@@ -136,7 +136,7 @@ async def set_root_weights_extrinsic(
         weights = np.array(weights, dtype=np.float32)
 
     # Get weight restrictions.
-    min_allowed_weights, max_weight_limit = asyncio.gather(
+    min_allowed_weights, max_weight_limit = await asyncio.gather(
         subtensor.min_allowed_weights(netuid=0), subtensor.max_weight_limit(netuid=0)
     )
 

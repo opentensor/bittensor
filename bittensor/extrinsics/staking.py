@@ -1,20 +1,24 @@
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 # Copyright © 2023 Opentensor Foundation
-
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
 # the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
+#
 # The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
-
+#
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
 # THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
+
+"""This module provides functionality for staking and managing stakes in the Bittensor network."""
+
+import asyncio
 
 import bittensor
 from rich.prompt import Confirm
@@ -23,7 +27,7 @@ from typing import List, Union, Optional
 from bittensor.utils.balance import Balance
 
 
-def add_stake_extrinsic(
+async def add_stake_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
     hotkey_ss58: Optional[str] = None,
@@ -32,30 +36,23 @@ def add_stake_extrinsic(
     wait_for_finalization: bool = False,
     prompt: bool = False,
 ) -> bool:
-    r"""Adds the specified amount of stake to passed hotkey ``uid``.
+    """Adds the specified amount of stake to passed hotkey ``uid``.
 
     Args:
-        wallet (bittensor.wallet):
-            Bittensor wallet object.
-        hotkey_ss58 (Optional[str]):
-            The ``ss58`` address of the hotkey account to stake to defaults to the wallet's hotkey.
-        amount (Union[Balance, float]):
-            Amount to stake as Bittensor balance, or ``float`` interpreted as Tao.
-        wait_for_inclusion (bool):
-            If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization (bool):
-            If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
-        prompt (bool):
-            If ``true``, the call waits for confirmation from the user before proceeding.
+        subtensor (bittensor.subtensor): Bittensor subtensor object.
+        wallet (bittensor.wallet): Bittensor wallet object.
+        hotkey_ss58 (Optional[str]): The ``ss58`` address of the hotkey account to stake to defaults to the wallet's hotkey.
+        amount (Union[Balance, float]): Amount to stake as Bittensor balance, or ``float`` interpreted as Tao.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
+        prompt (bool): If ``true``, the call waits for confirmation from the user before proceeding.
+
     Returns:
-        success (bool):
-            Flag is ``true`` if extrinsic was finalized or included in the block. If we did not wait for finalization / inclusion, the response is ``true``.
+        success (bool): Flag is ``true`` if extrinsic was finalized or included in the block. If we did not wait for finalization / inclusion, the response is ``true``.
 
     Raises:
-        bittensor.errors.NotRegisteredError:
-            If the wallet is not registered on the chain.
-        bittensor.errors.NotDelegateError:
-            If the hotkey is not a delegate on the chain.
+        bittensor.errors.NotRegisteredError: If the wallet is not registered on the chain.
+        bittensor.errors.NotDelegateError: If the hotkey is not a delegate on the chain.
     """
     # Decrypt keys,
     wallet.coldkey
@@ -68,31 +65,35 @@ def add_stake_extrinsic(
     own_hotkey: bool
 
     with bittensor.__console__.status(
-        ":satellite: Syncing with chain: [white]{}[/white] ...".format(
-            subtensor.network
-        )
+        f":satellite: Syncing with chain: [white]{subtensor.network}[/white] ..."
     ):
-        old_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
-        # Get hotkey owner
-        hotkey_owner = subtensor.get_hotkey_owner(hotkey_ss58)
+        (
+            old_balance,
+            hotkey_owner,
+            is_hotkey_delegate,
+            hotkey_take,
+            old_stake,
+        ) = await asyncio.gather(
+            subtensor.get_balance(wallet.coldkeypub.ss58_address),
+            subtensor.get_hotkey_owner(hotkey_ss58),
+            subtensor.is_hotkey_delegate(hotkey_ss58),
+            subtensor.get_delegate_take(hotkey_ss58),
+            subtensor.get_stake_for_coldkey_and_hotkey(
+                coldkey_ss58=wallet.coldkeypub.ss58_address, hotkey_ss58=hotkey_ss58
+            ),
+        )
+
         own_hotkey = wallet.coldkeypub.ss58_address == hotkey_owner
+
         if not own_hotkey:
-            # This is not the wallet's own hotkey so we are delegating.
-            if not subtensor.is_hotkey_delegate(hotkey_ss58):
+            # This is not the wallet's own hotkey, so we are delegating.
+            if not is_hotkey_delegate:
                 raise bittensor.errors.NotDelegateError(
-                    "Hotkey: {} is not a delegate.".format(hotkey_ss58)
+                    f"Hotkey: {hotkey_ss58} is not a delegate."
                 )
 
-            # Get hotkey take
-            hotkey_take = subtensor.get_delegate_take(hotkey_ss58)
-
-        # Get current stake
-        old_stake = subtensor.get_stake_for_coldkey_and_hotkey(
-            coldkey_ss58=wallet.coldkeypub.ss58_address, hotkey_ss58=hotkey_ss58
-        )
-
     # Convert to bittensor.Balance
-    if amount == None:
+    if amount is None:
         # Stake it all.
         staking_balance = bittensor.Balance.from_tao(old_balance.tao)
     elif not isinstance(amount, bittensor.Balance):
@@ -109,9 +110,7 @@ def add_stake_extrinsic(
     # Check enough to stake.
     if staking_balance > old_balance:
         bittensor.__console__.print(
-            ":cross_mark: [red]Not enough stake[/red]:[bold white]\n  balance:{}\n  amount: {}\n  coldkey: {}[/bold white]".format(
-                old_balance, staking_balance, wallet.name
-            )
+            f":cross_mark: [red]Not enough stake[/red]:[bold white]\n  balance:{old_balance}\n  amount: {staking_balance}\n  coldkey: {wallet.name}[/bold white]"
         )
         return False
 
@@ -120,26 +119,20 @@ def add_stake_extrinsic(
         if not own_hotkey:
             # We are delegating.
             if not Confirm.ask(
-                "Do you want to delegate:[bold white]\n  amount: {}\n  to: {}\n  take: {}\n  owner: {}[/bold white]".format(
-                    staking_balance, wallet.hotkey_str, hotkey_take, hotkey_owner
-                )
+                f"Do you want to delegate:[bold white]\n  amount: {staking_balance}\n  to: {wallet.hotkey_str}\n  take: {hotkey_take}\n  owner: {hotkey_owner}[/bold white]"
             ):
                 return False
         else:
             if not Confirm.ask(
-                "Do you want to stake:[bold white]\n  amount: {}\n  to: {}[/bold white]".format(
-                    staking_balance, wallet.hotkey_str
-                )
+                f"Do you want to stake:[bold white]\n  amount: {staking_balance}\n  to: {wallet.hotkey_str}[/bold white]"
             ):
                 return False
 
     try:
         with bittensor.__console__.status(
-            ":satellite: Staking to: [bold white]{}[/bold white] ...".format(
-                subtensor.network
-            )
+            f":satellite: Staking to: [bold white]{subtensor.network}[/bold white] ..."
         ):
-            staking_response: bool = __do_add_stake_single(
+            staking_response: bool = await __do_add_stake_single(
                 subtensor=subtensor,
                 wallet=wallet,
                 hotkey_ss58=hotkey_ss58,
@@ -148,7 +141,7 @@ def add_stake_extrinsic(
                 wait_for_finalization=wait_for_finalization,
             )
 
-        if staking_response == True:  # If we successfully staked.
+        if staking_response is True:  # If we successfully staked.
             # We only wait here if we expect finalization.
             if not wait_for_finalization and not wait_for_inclusion:
                 return True
@@ -157,29 +150,23 @@ def add_stake_extrinsic(
                 ":white_heavy_check_mark: [green]Finalized[/green]"
             )
             with bittensor.__console__.status(
-                ":satellite: Checking Balance on: [white]{}[/white] ...".format(
-                    subtensor.network
-                )
+                f":satellite: Checking Balance on: [white]{subtensor.network}[/white] ..."
             ):
-                new_balance = subtensor.get_balance(
-                    address=wallet.coldkeypub.ss58_address
+                new_balance, block = await asyncio.gather(
+                    subtensor.get_balance(address=wallet.coldkeypub.ss58_address),
+                    subtensor.get_current_block(),
                 )
-                block = subtensor.get_current_block()
-                new_stake = subtensor.get_stake_for_coldkey_and_hotkey(
+                new_stake = await subtensor.get_stake_for_coldkey_and_hotkey(
                     coldkey_ss58=wallet.coldkeypub.ss58_address,
                     hotkey_ss58=wallet.hotkey.ss58_address,
                     block=block,
                 )  # Get current stake
 
                 bittensor.__console__.print(
-                    "Balance:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format(
-                        old_balance, new_balance
-                    )
+                    f"Balance:\n  [blue]{old_balance}[/blue] :arrow_right: [green]{new_balance}[/green]"
                 )
                 bittensor.__console__.print(
-                    "Stake:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format(
-                        old_stake, new_stake
-                    )
+                    f"Stake:\n  [blue]{old_stake}[/blue] :arrow_right: [green]{new_stake}[/green]"
                 )
                 return True
         else:
@@ -188,19 +175,18 @@ def add_stake_extrinsic(
             )
             return False
 
-    except bittensor.errors.NotRegisteredError as e:
+    except bittensor.errors.NotRegisteredError:
         bittensor.__console__.print(
-            ":cross_mark: [red]Hotkey: {} is not registered.[/red]".format(
-                wallet.hotkey_str
-            )
+            f":cross_mark: [red]Hotkey: {wallet.hotkey_str} is not registered.[/red]"
         )
         return False
+
     except bittensor.errors.StakeError as e:
-        bittensor.__console__.print(":cross_mark: [red]Stake Error: {}[/red]".format(e))
+        bittensor.__console__.print(f":cross_mark: [red]Stake Error: {e}[/red]")
         return False
 
 
-def add_stake_multiple_extrinsic(
+async def add_stake_multiple_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
     hotkey_ss58s: List[str],
@@ -209,24 +195,19 @@ def add_stake_multiple_extrinsic(
     wait_for_finalization: bool = False,
     prompt: bool = False,
 ) -> bool:
-    r"""Adds stake to each ``hotkey_ss58`` in the list, using each amount, from a common coldkey.
+    """Adds stake to each ``hotkey_ss58`` in the list, using each amount, from a common coldkey.
 
     Args:
-        wallet (bittensor.wallet):
-            Bittensor wallet object for the coldkey.
-        hotkey_ss58s (List[str]):
-            List of hotkeys to stake to.
-        amounts (List[Union[Balance, float]]):
-            List of amounts to stake. If ``None``, stake all to the first hotkey.
-        wait_for_inclusion (bool):
-            If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization (bool):
-            If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
-        prompt (bool):
-            If ``true``, the call waits for confirmation from the user before proceeding.
+        subtensor (bittensor.subtensor): Bittensor subtensor object.
+        wallet (bittensor.wallet): Bittensor wallet object for the coldkey.
+        hotkey_ss58s (List[str]): List of hotkeys to stake to.
+        amounts (List[Union[Balance, float]]): List of amounts to stake. If ``None``, stake all to the first hotkey.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
+        prompt (bool): If ``true``, the call waits for confirmation from the user before proceeding.
+
     Returns:
-        success (bool):
-            Flag is ``true`` if extrinsic was finalized or included in the block. Flag is ``true`` if any wallet was staked. If we did not wait for finalization / inclusion, the response is ``true``.
+        success (bool): Flag is ``true`` if extrinsic was finalized or included in the block. Flag is ``true`` if any wallet was staked. If we did not wait for finalization / inclusion, the response is ``true``.
     """
     if not isinstance(hotkey_ss58s, list) or not all(
         isinstance(hotkey_ss58, str) for hotkey_ss58 in hotkey_ss58s
@@ -262,24 +243,23 @@ def add_stake_multiple_extrinsic(
     # Decrypt coldkey.
     wallet.coldkey
 
-    old_stakes = []
     with bittensor.__console__.status(
-        ":satellite: Syncing with chain: [white]{}[/white] ...".format(
-            subtensor.network
-        )
+        f":satellite: Syncing with chain: [white]{subtensor.network}[/white] ..."
     ):
-        old_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
+        old_balance = await subtensor.get_balance(wallet.coldkeypub.ss58_address)
 
-        # Get the old stakes.
-        for hotkey_ss58 in hotkey_ss58s:
-            old_stakes.append(
+        old_stakes = await asyncio.gather(
+            *[
                 subtensor.get_stake_for_coldkey_and_hotkey(
                     coldkey_ss58=wallet.coldkeypub.ss58_address, hotkey_ss58=hotkey_ss58
                 )
-            )
+                for hotkey_ss58 in hotkey_ss58s
+            ]
+        )
+        # Get the old stakes.
 
     # Remove existential balance to keep key alive.
-    ## Keys must maintain a balance of at least 1000 rao to stay alive.
+    # Keys must maintain a balance of at least 1000 rao to stay alive.
     total_staking_rao = sum(
         [amount.rao if amount is not None else 0 for amount in amounts]
     )
@@ -293,7 +273,7 @@ def add_stake_multiple_extrinsic(
         pass
     else:
         # Staking more than 1000 rao to the wallets.
-        ## Reduce the amount to stake to each wallet to keep the balance above 1000 rao.
+        # Reduce the amount to stake to each wallet to keep the balance above 1000 rao.
         percent_reduction = 1 - (1000 / total_staking_rao)
         amounts = [
             Balance.from_tao(amount.tao * percent_reduction) for amount in amounts
@@ -305,7 +285,7 @@ def add_stake_multiple_extrinsic(
     ):
         staking_all = False
         # Convert to bittensor.Balance
-        if amount == None:
+        if amount is None:
             # Stake it all.
             staking_balance = bittensor.Balance.from_tao(old_balance.tao)
             staking_all = True
@@ -317,23 +297,19 @@ def add_stake_multiple_extrinsic(
         # Check enough to stake
         if staking_balance > old_balance:
             bittensor.__console__.print(
-                ":cross_mark: [red]Not enough balance[/red]: [green]{}[/green] to stake: [blue]{}[/blue] from coldkey: [white]{}[/white]".format(
-                    old_balance, staking_balance, wallet.name
-                )
+                f":cross_mark: [red]Not enough balance[/red]: [green]{old_balance}[/green] to stake: [blue]{staking_balance}[/blue] from coldkey: [white]{wallet.name}[/white]"
             )
             continue
 
         # Ask before moving on.
         if prompt:
             if not Confirm.ask(
-                "Do you want to stake:\n[bold white]  amount: {}\n  hotkey: {}[/bold white ]?".format(
-                    staking_balance, wallet.hotkey_str
-                )
+                f"Do you want to stake:\n[bold white]  amount: {staking_balance}\n  hotkey: {wallet.hotkey_str}[/bold white ]?"
             ):
                 continue
 
         try:
-            staking_response: bool = __do_add_stake_single(
+            staking_response: bool = await __do_add_stake_single(
                 subtensor=subtensor,
                 wallet=wallet,
                 hotkey_ss58=hotkey_ss58,
@@ -342,17 +318,15 @@ def add_stake_multiple_extrinsic(
                 wait_for_finalization=wait_for_finalization,
             )
 
-            if staking_response == True:  # If we successfully staked.
+            if staking_response is True:  # If we successfully staked.
                 # We only wait here if we expect finalization.
 
                 if idx < len(hotkey_ss58s) - 1:
                     # Wait for tx rate limit.
-                    tx_rate_limit_blocks = subtensor.tx_rate_limit()
+                    tx_rate_limit_blocks = await subtensor.tx_rate_limit()
                     if tx_rate_limit_blocks > 0:
                         bittensor.__console__.print(
-                            ":hourglass: [yellow]Waiting for tx rate limit: [white]{}[/white] blocks[/yellow]".format(
-                                tx_rate_limit_blocks
-                            )
+                            f":hourglass: [yellow]Waiting for tx rate limit: [white]{tx_rate_limit_blocks}[/white] blocks[/yellow]"
                         )
                         sleep(tx_rate_limit_blocks * 12)  # 12 seconds per block
 
@@ -369,19 +343,18 @@ def add_stake_multiple_extrinsic(
                     ":white_heavy_check_mark: [green]Finalized[/green]"
                 )
 
-                block = subtensor.get_current_block()
-                new_stake = subtensor.get_stake_for_coldkey_and_hotkey(
-                    coldkey_ss58=wallet.coldkeypub.ss58_address,
-                    hotkey_ss58=hotkey_ss58,
-                    block=block,
+                block = await subtensor.get_current_block()
+                new_stake, new_balance = await asyncio.gather(
+                    subtensor.get_stake_for_coldkey_and_hotkey(
+                        coldkey_ss58=wallet.coldkeypub.ss58_address,
+                        hotkey_ss58=hotkey_ss58,
+                        block=block,
+                    ),
+                    subtensor.get_balance(wallet.coldkeypub.ss58_address, block=block),
                 )
-                new_balance = subtensor.get_balance(
-                    wallet.coldkeypub.ss58_address, block=block
-                )
+
                 bittensor.__console__.print(
-                    "Stake ({}): [blue]{}[/blue] :arrow_right: [green]{}[/green]".format(
-                        hotkey_ss58, old_stake, new_stake
-                    )
+                    f"Stake ({hotkey_ss58}): [blue]{old_stake}[/blue] :arrow_right: [green]{new_stake}[/green]"
                 )
                 old_balance = new_balance
                 successful_stakes += 1
@@ -395,37 +368,30 @@ def add_stake_multiple_extrinsic(
                 )
                 continue
 
-        except bittensor.errors.NotRegisteredError as e:
+        except bittensor.errors.NotRegisteredError:
             bittensor.__console__.print(
-                ":cross_mark: [red]Hotkey: {} is not registered.[/red]".format(
-                    hotkey_ss58
-                )
+                f":cross_mark: [red]Hotkey: {hotkey_ss58} is not registered.[/red]"
             )
             continue
+
         except bittensor.errors.StakeError as e:
-            bittensor.__console__.print(
-                ":cross_mark: [red]Stake Error: {}[/red]".format(e)
-            )
+            bittensor.__console__.print(f":cross_mark: [red]Stake Error: {e}[/red]")
             continue
 
     if successful_stakes != 0:
         with bittensor.__console__.status(
-            ":satellite: Checking Balance on: ([white]{}[/white] ...".format(
-                subtensor.network
-            )
+            f":satellite: Checking Balance on: ([white]{subtensor.network}[/white] ..."
         ):
-            new_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
+            new_balance = await subtensor.get_balance(wallet.coldkeypub.ss58_address)
         bittensor.__console__.print(
-            "Balance: [blue]{}[/blue] :arrow_right: [green]{}[/green]".format(
-                old_balance, new_balance
-            )
+            f"Balance: [blue]{old_balance}[/blue] :arrow_right: [green]{new_balance}[/green]"
         )
         return True
 
     return False
 
 
-def __do_add_stake_single(
+async def __do_add_stake_single(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
     hotkey_ss58: str,
@@ -433,53 +399,46 @@ def __do_add_stake_single(
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
 ) -> bool:
-    r"""
+    """
     Executes a stake call to the chain using the wallet and the amount specified.
 
     Args:
-        wallet (bittensor.wallet):
-            Bittensor wallet object.
-        hotkey_ss58 (str):
-            Hotkey to stake to.
-        amount (bittensor.Balance):
-            Amount to stake as Bittensor balance object.
-        wait_for_inclusion (bool):
-            If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization (bool):
-            If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
-        prompt (bool):
-            If ``true``, the call waits for confirmation from the user before proceeding.
+        subtensor (bittensor.subtensor): Bittensor subtensor object.
+        wallet (bittensor.wallet): Bittensor wallet object.
+        hotkey_ss58 (str): Hotkey to stake to.
+        amount (bittensor.Balance): Amount to stake as Bittensor balance object.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
+
     Returns:
-        success (bool):
-            Flag is ``true`` if extrinsic was finalized or included in the block. If we did not wait for finalization / inclusion, the response is ``true``.
+        success (bool): Flag is ``true`` if extrinsic was finalized or included in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     Raises:
-        bittensor.errors.StakeError:
-            If the extrinsic fails to be finalized or included in the block.
-        bittensor.errors.NotDelegateError:
-            If the hotkey is not a delegate.
-        bittensor.errors.NotRegisteredError:
-            If the hotkey is not registered in any subnets.
+        bittensor.errors.StakeError: If the extrinsic fails to be finalized or included in the block.
+        bittensor.errors.NotDelegateError: If the hotkey is not a delegate.
+        bittensor.errors.NotRegisteredError: If the hotkey is not registered in any subnets.
 
     """
     # Decrypt keys,
     wallet.coldkey
 
-    hotkey_owner = subtensor.get_hotkey_owner(hotkey_ss58)
+    hotkey_owner, is_hotkey_delegate = await asyncio.gather(
+        subtensor.get_hotkey_owner(hotkey_ss58),
+        subtensor.is_hotkey_delegate(hotkey_ss58=hotkey_ss58),
+    )
+
     own_hotkey = wallet.coldkeypub.ss58_address == hotkey_owner
     if not own_hotkey:
-        # We are delegating.
-        # Verify that the hotkey is a delegate.
-        if not subtensor.is_hotkey_delegate(hotkey_ss58=hotkey_ss58):
+        # We are delegating. Verify that the hotkey is a delegate.
+        if not is_hotkey_delegate:
             raise bittensor.errors.NotDelegateError(
                 "Hotkey: {} is not a delegate.".format(hotkey_ss58)
             )
 
-    success = subtensor._do_stake(
+    success = await subtensor.do_stake(
         wallet=wallet,
         hotkey_ss58=hotkey_ss58,
         amount=amount,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
     )
-
     return success
