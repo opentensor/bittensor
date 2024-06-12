@@ -21,7 +21,8 @@ logging.basicConfig(level=logging.INFO)
 
 # Fixture for setting up and tearing down a localnet.sh chain between tests
 @pytest.fixture(scope="function")
-def local_chain():
+def local_chain(request):
+    param = request.param if hasattr(request, "param") else None
     # Get the environment variable for the script path
     script_path = os.getenv("LOCALNET_SH_PATH")
 
@@ -30,8 +31,12 @@ def local_chain():
         logging.warning("LOCALNET_SH_PATH env variable is not set, e2e test skipped.")
         pytest.skip("LOCALNET_SH_PATH environment variable is not set.")
 
+    # Check if param is None, and handle it accordingly
+    args = "" if param is None else f"fast_blocks={param}"
+
+    # compile commands to send to process
+    cmds = shlex.split(f"{script_path} {args}")
     # Start new node process
-    cmds = shlex.split(script_path)
     process = subprocess.Popen(
         cmds, stdout=subprocess.PIPE, text=True, preexec_fn=os.setsid
     )
