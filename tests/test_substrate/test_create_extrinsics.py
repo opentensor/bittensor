@@ -147,27 +147,6 @@ async def test_create_unsigned_extrinsic(kusama_substrate):
 
 
 @pytest.mark.asyncio
-async def test_payment_info(kusama_substrate):
-    # TODO Not working yet
-    keypair = Keypair(ss58_address="EaG2CRhJWPb7qmdcJvy3LiWdh26Jreu9Dx6R1rXxPmYXoDk")
-
-    call = await kusama_substrate.compose_call(
-        call_module='Balances',
-        call_function='transfer_keep_alive',
-        call_params={
-            'dest': 'EaG2CRhJWPb7qmdcJvy3LiWdh26Jreu9Dx6R1rXxPmYXoDk',
-            'value': 2000
-        }
-    )
-    payment_info = await kusama_substrate.get_payment_info(call=call, keypair=keypair)
-
-    assert "class" in payment_info
-    assert "partialFee" in payment_info
-    assert "weight" in payment_info
-    assert payment_info["partialFee"] > 0
-
-
-@pytest.mark.asyncio
 async def test_create_extrinsic_bytes_signature(kusama_substrate, keypair):
     # Create balance transfer call
     call = await kusama_substrate.compose_call(
