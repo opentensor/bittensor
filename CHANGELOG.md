@@ -1,5 +1,12 @@
 # Changelog
 
+## 7.1.1 / 2024-06-11
+
+## What's Changed
+* commit_reveal_weights_enabled argument parsing hotfix by @camfairchild in https://github.com/opentensor/bittensor/pull/2003
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v7.1.0...v7.1.1
+
 ## 7.1.0 / 2024-06-05
 
 ## What's Changed
