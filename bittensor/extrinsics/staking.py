@@ -115,6 +115,9 @@ def add_stake_extrinsic(
             coldkey_ss58=wallet.coldkeypub.ss58_address, hotkey_ss58=hotkey_ss58
         )
 
+        # Grab the existential deposit.
+        existential_deposit = subtensor.get_existential_deposit()
+
     # Convert to bittensor.Balance
     if amount is None:
         # Stake it all.
@@ -124,9 +127,10 @@ def add_stake_extrinsic(
     else:
         staking_balance = amount
 
-    # Remove existential balance to keep key alive.
-    if staking_balance > bittensor.Balance.from_rao(1000):
-        staking_balance = staking_balance - bittensor.Balance.from_rao(1000)
+    # Leave existential balance to keep key alive.
+    if staking_balance > old_balance - existential_deposit:
+        # If we are staking all, we need to leave at least the existential deposit.
+        staking_balance = old_balance - existential_deposit
     else:
         staking_balance = staking_balance
 
