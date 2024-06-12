@@ -31,6 +31,12 @@ from bittensor.utils.balance import Balance
 from bittensor.utils.slippage import (
     Operation, show_slippage_warning_if_needed
 )
+from bittensor.utils.user_io import (
+    user_input_confirmation,
+    print_summary_header,
+    print_summary_footer,
+    print_summary_item,
+)
 from bittensor.btlogging.defines import BITTENSOR_LOGGER_NAME
 
 logger = logging.getLogger(BITTENSOR_LOGGER_NAME)
@@ -164,17 +170,22 @@ def delegate_extrinsic(
         )
         return False
 
-    # Ask before moving on.
+    # Print summary
+    dynamic_info = subtensor.get_dynamic_info_for_netuid(netuid)
+    print_summary_header("Add Subnet Stake")
+    print_summary_item("wallet", wallet.name)
+    print_summary_item("netuid", netuid)
+    print_summary_item("price", dynamic_info.price)
+    amount = staking_balance.__str__()
+    print_summary_item("to delegate", delegate_ss58)
+    print_summary_item("delegate owner", delegate_owner)
+    print_summary_item("amount to stake", amount)
+    print_summary_item("amount received", dynamic_info.tao_to_alpha_with_slippage(staking_balance)[0])
+    print_summary_footer()
+
+    # Ask to continue
     if prompt:
-        if not Confirm.ask(
-            "Do you want to delegate:[bold white]\n"
-            "\tnetuid: {}\n"
-            "\tamount: {}\n"
-            "\tto: {}\n"
-            "\towner: {}[/bold white]".format(
-                netuid, staking_balance, delegate_ss58, delegate_owner
-            )
-        ):
+        if not user_input_confirmation("continue"):
             return False
 
     # Slippage warning
@@ -314,17 +325,22 @@ def undelegate_extrinsic(
         )
         return False
 
-    # Ask before moving on.
+    # Print summary
+    dynamic_info = subtensor.get_dynamic_info_for_netuid(netuid)
+    print_summary_header("Add Subnet Stake")
+    print_summary_item("wallet", wallet.name)
+    print_summary_item("netuid", netuid)
+    print_summary_item("price", dynamic_info.price)
+    amount = unstaking_balance.__str__()
+    print_summary_item("from delegate", delegate_ss58)
+    print_summary_item("delegate owner", delegate_owner)
+    print_summary_item("amount to stake", amount)
+    print_summary_item("amount received", dynamic_info.alpha_to_tao_with_slippage(unstaking_balance)[0])
+    print_summary_footer()
+
+    # Ask to continue
     if prompt:
-        if not Confirm.ask(
-            "Do you want to un-delegate:[bold white]\n"
-            "  netuid: {}\n"
-            "  amount: {}\n"
-            "  from: {}\n"
-            "  owner: {}[/bold white]".format(
-                netuid, unstaking_balance, delegate_ss58, delegate_owner
-            )
-        ):
+        if not user_input_confirmation("continue"):
             return False
 
     # Slippage warning

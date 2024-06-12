@@ -29,8 +29,8 @@ from bittensor.utils.user_io import (
 from enum import Enum
 
 # Maximum slippage percentage
-# MAX_SLIPPAGE_PCT = 5.0
-MAX_SLIPPAGE_PCT = 0.01
+MAX_SLIPPAGE_PCT = 5.0
+# MAX_SLIPPAGE_PCT = 0.01
 
 class Operation(Enum):
     UNSTAKE = 1

@@ -133,14 +133,23 @@ class SubStakeCommand:
         else:
             stake_amount_tao = bittensor.Balance.from_tao(0.0)
 
-        # Ask to stake
+        # Print summary
+        print_summary_header("Add Subnet Stake")
+        print_summary_item("wallet", wallet.name)
+        print_summary_item("netuid", config.netuid)
+        print_summary_item("price", dynamic_info.price)
+        amount = "stake all"
+        if not config.get("stake_all"):
+            amount = stake_amount_tao.__str__()
+        hotkey_str = hotkey_tup[0] if hotkey_tup[0] != None else hotkey_tup[1]
+        print_summary_item("hotkey", hotkey_str)
+        print_summary_item("amount to stake", amount)
+        print_summary_item("amount received", dynamic_info.tao_to_alpha_with_slippage(stake_amount_tao)[0])
+        print_summary_footer()
+
+        # Ask to continue
         if not config.no_prompt:
-            if not Confirm.ask(
-                f"Do you want to stake to the following hotkey on netuid {config.netuid}: \n"
-                f"[bold white] - from   {wallet.name}:{wallet.coldkeypub.ss58_address}\n"
-                f" - to     {hotkey_tup[0] + ':' if hotkey_tup[0] else ''}{hotkey_tup[1]}\n"
-                f" - [blue]{f'{stake_amount_tao}'}[/blue] --> [green]{dynamic_info.tao_to_alpha_with_slippage(stake_amount_tao)[0]}[/green]\n"
-            ):
+            if not user_input_confirmation("continue"):
                 return None
 
         return subtensor.add_substake(
@@ -295,6 +304,7 @@ class RemoveSubStakeCommand:
         r"""Unstake token amount from hotkey(s)."""
         config = cli.config.copy()
         wallet = bittensor.wallet(config=config)
+        dynamic_info = subtensor.get_dynamic_info_for_netuid(config.netuid)
 
         hotkey_tup: Tuple[Optional[str], str]  # (hotkey_name (or None), hotkey_ss58)
 
@@ -309,10 +319,6 @@ class RemoveSubStakeCommand:
             )
             return None
 
-        # Calculate if able to unstake amount desired
-        if config.get("amount"):
-            unstake_amount_alpha: float = config.get("amount")
-
         # Get the current stake of the hotkey from this coldkey.
         hotkey_subnet_balance: Balance = (
             subtensor.get_stake_for_coldkey_and_hotkey_on_netuid(
@@ -322,18 +328,21 @@ class RemoveSubStakeCommand:
             )
         )
 
-        # If we are unstaking all set that value to the amount currently on that account.
-        if config.get("unstake_all"):
-            unstake_amount_alpha = hotkey_subnet_balance.tao
+        # Get amount to unstake
+        if config.get("amount"):
+            unstake_amount_alpha = bittensor.Balance.from_tao(config.get("amount"))
 
-        balance_after_unstake_tao: float = (
-            hotkey_subnet_balance.tao - unstake_amount_alpha
-        )
-        if balance_after_unstake_tao < 0:
+        elif config.get("unstake_all"):
+            unstake_amount_alpha = hotkey_subnet_balance
+
+        else:
+            unstake_amount_alpha = bittensor.Balance.from_tao(0.0)
+
+        if hotkey_subnet_balance < unstake_amount_alpha:
             bittensor.__console__.print(
-                f"Unstake amount {unstake_amount_alpha} is greater than current stake for hotkey [bold]{hotkey_tup[1]}[/bold]. Unstaking all."
+                f"Unstake amount [green][bold]{unstake_amount_alpha}[/bold][/green] is greater than current stake for hotkey [bold]{hotkey_tup[1]}[/bold]. Unstaking all."
             )
-            unstake_amount_alpha = hotkey_subnet_balance.tao
+            unstake_amount_alpha = hotkey_subnet_balance
 
         # Get currently staked on hotkey provided
         currently_staked = subtensor.get_stake_for_coldkey_and_hotkey_on_netuid(
@@ -346,20 +355,18 @@ class RemoveSubStakeCommand:
         print_summary_header("Remove Subnet Stake")
         print_summary_item("wallet", wallet.name)
         print_summary_item("netuid", config.netuid)
+        print_summary_item("price", dynamic_info.price)
         amount = "unstake all"
         if not config.get("unstake_all"):
-            amount = (
-                bittensor.Balance.from_tao(unstake_amount_alpha)
-                .set_unit(config.netuid)
-                .__str__()
-            )
+            amount = unstake_amount_alpha.__str__()
         hotkey_str = hotkey_tup[0] if hotkey_tup[0] != None else hotkey_tup[1]
-        print_summary_item("hotkey", f"[bold white]{hotkey_str}[/bold white]")
-        print_summary_item("amount", f"[bold white]{amount}[/bold white]")
+        print_summary_item("hotkey", hotkey_str)
+        print_summary_item("amount to unstake", amount)
+        print_summary_item("amount received", dynamic_info.alpha_to_tao_with_slippage(unstake_amount_alpha)[0])
         print_summary_item("currently staked", currently_staked)
         print_summary_footer()
 
-        # Ask to stake
+        # Ask to continue
         if not config.no_prompt:
             if not user_input_confirmation("continue"):
                 return None

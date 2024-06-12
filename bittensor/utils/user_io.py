@@ -82,7 +82,7 @@ def print_summary_header(message):
 
 
 def print_summary_item(name, value):
-    bittensor.__console__.print("      {}: {}".format(name, value))
+    bittensor.__console__.print("      {}: [white][bold]{}[/bold][/white]".format(name, value))
 
 
 def print_summary_message(message):
