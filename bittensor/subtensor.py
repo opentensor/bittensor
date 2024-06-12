@@ -43,6 +43,7 @@ import bittensor
 from bittensor.btlogging import logging as _logger
 from bittensor.utils import torch, weight_utils, format_error_message
 from .chain_data import (
+    DelegateInfoLite,
     NeuronInfo,
     DelegateInfo,
     PrometheusInfo,
@@ -3050,7 +3051,9 @@ class Subtensor:
         """
         call_definition = bittensor.__type_registry__["runtime_api"][runtime_api][  # type: ignore
             "methods"  # type: ignore
-        ][method]  # type: ignore
+        ][
+            method
+        ]  # type: ignore
 
         json_result = self.state_call(
             method=f"{runtime_api}_{method}",
@@ -4269,9 +4272,9 @@ class Subtensor:
 
             return self.substrate.rpc_request(
                 method="delegateInfo_getDelegate",  # custom rpc method
-                params=[encoded_hotkey_, block_hash]
-                if block_hash
-                else [encoded_hotkey_],
+                params=(
+                    [encoded_hotkey_, block_hash] if block_hash else [encoded_hotkey_]
+                ),
             )
 
         encoded_hotkey = ss58_to_vec_u8(hotkey_ss58)
@@ -4373,9 +4376,9 @@ class Subtensor:
 
             return self.substrate.rpc_request(
                 method="delegateInfo_getDelegated",
-                params=[block_hash, encoded_coldkey_]
-                if block_hash
-                else [encoded_coldkey_],
+                params=(
+                    [block_hash, encoded_coldkey_] if block_hash else [encoded_coldkey_]
+                ),
             )
 
         encoded_coldkey = ss58_to_vec_u8(coldkey_ss58)
