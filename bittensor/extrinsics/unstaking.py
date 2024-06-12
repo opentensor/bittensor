@@ -163,7 +163,10 @@ def unstake_extrinsic(
     if not check_threshold_amount(
         subtensor=subtensor, stake_balance=(stake_on_uid - unstaking_balance)
     ):
-        return False
+        bittensor.__console__.print(
+            f":warning: [yellow]This action will unstake the entire staked balance![/yellow]"
+        )
+        unstaking_balance = stake_on_uid
 
     # Ask before moving on.
     if prompt:
@@ -339,7 +342,10 @@ def unstake_multiple_extrinsic(
         if not check_threshold_amount(
             subtensor=subtensor, stake_balance=(stake_on_uid - unstaking_balance)
         ):
-            return False
+            bittensor.__console__.print(
+                f":warning: [yellow]This action will unstake the entire staked balance![/yellow]"
+            )
+            unstaking_balance = stake_on_uid
 
         # Ask before moving on.
         if prompt:
