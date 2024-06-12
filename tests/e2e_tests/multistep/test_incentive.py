@@ -50,7 +50,7 @@ async def test_incentive(local_chain):
     assert local_chain.query("SubtensorModule", "NetworksAdded", [1]).serialize()
 
     # Register Bob as miner
-    bob_keypair, bob_exec_command, bob_wallet_path = setup_wallet("//Bob")
+    bob_keypair, bob_exec_command, bob_wallet_path = setup_wallet("//Bob", True)
 
     # Register Alice as neuron to the subnet
     alice_exec_command(
