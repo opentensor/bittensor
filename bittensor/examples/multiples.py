@@ -57,7 +57,7 @@ async def get_balance(
     result = await rpc.query(
         "System", "Account", [address], reuse_block_hash=True
     )
-    return result[0].value["data"]["free"]
+    return result.value["data"]["free"]
 
 
 async def main():

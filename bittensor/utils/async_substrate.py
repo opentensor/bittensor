@@ -995,7 +995,7 @@ class AsyncSubstrateInterface:
         responses = await self._make_rpc_request(
             payload, value_scale_type, storage_item, runtime
         )
-        return responses[preprocessed.queryable]
+        return responses[preprocessed.queryable][0]
 
     async def query_map(
         self,
