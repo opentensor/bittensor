@@ -19,7 +19,6 @@
 """Module that encapsulates the CommitWeightCommand and the RevealWeightCommand. Used to commit and reveal weights
 for a specific subnet on the Bittensor Network."""
 
-
 import argparse
 import os
 import re

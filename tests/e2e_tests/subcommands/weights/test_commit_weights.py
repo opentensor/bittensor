@@ -15,9 +15,23 @@ from bittensor.commands import (
 from tests.e2e_tests.utils import setup_wallet
 
 
+"""
+Test the Commit/Reveal weights mechanism. 
+
+Verify that:
+* Weights are commited
+* weights are hashed with salt 
+--- after an epoch ---
+* weights are un-hashed with salt
+* weights are properly revealed
+
+"""
+
+
 def test_commit_and_reveal_weights(local_chain):
     # Register root as Alice
-    (alice_keypair, exec_command) = setup_wallet("//Alice")
+    keypair, exec_command, wallet_path = setup_wallet("//Alice")
+
     exec_command(RegisterSubnetworkCommand, ["s", "create"])
 
     # define values
@@ -36,9 +50,9 @@ def test_commit_and_reveal_weights(local_chain):
 
     # Create a test wallet and set the coldkey, coldkeypub, and hotkey
     wallet = bittensor.wallet(path="/tmp/btcli-wallet")
-    wallet.set_coldkey(keypair=alice_keypair, encrypt=False, overwrite=True)
-    wallet.set_coldkeypub(keypair=alice_keypair, encrypt=False, overwrite=True)
-    wallet.set_hotkey(keypair=alice_keypair, encrypt=False, overwrite=True)
+    wallet.set_coldkey(keypair=keypair, encrypt=False, overwrite=True)
+    wallet.set_coldkeypub(keypair=keypair, encrypt=False, overwrite=True)
+    wallet.set_hotkey(keypair=keypair, encrypt=False, overwrite=True)
 
     # Stake to become to top neuron after the first epoch
     exec_command(
@@ -49,7 +63,7 @@ def test_commit_and_reveal_weights(local_chain):
             "--wallet.path",
             "/tmp/btcli-wallet2",
             "--amount",
-            "999998998",
+            "100000",
         ],
     )
 
@@ -168,7 +182,9 @@ def test_commit_and_reveal_weights(local_chain):
 
     # Query the Weights storage map
     revealed_weights = subtensor.query_module(
-        module="SubtensorModule", name="Weights", params=[1, uid]  # netuid and uid
+        module="SubtensorModule",
+        name="Weights",
+        params=[1, uid],  # netuid and uid
     )
 
     # Assert that the revealed weights are set correctly
