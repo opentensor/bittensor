@@ -238,7 +238,14 @@ def show_delegate_stakes(
     """
     if len(stakes) == 0:
         return
-    table = Table(show_footer=True, width=width, pad_edge=False, box=None, expand=False)
+    table = Table(
+        title="[bold white italic]My delegated stake",
+        show_footer=True,
+        width=width,
+        pad_edge=False,
+        box=None,
+        expand=False
+    )
     table.add_column(
         "[overline white]Netuid",
         str(len(stakes)),
@@ -253,6 +260,7 @@ def show_delegate_stakes(
             str(netuid),
             "[green]{:s}[/green]".format(str(stake.set_unit(netuid))),
         )
+    bittensor.__console__.print("\n")
     bittensor.__console__.print(table)
 
 class DelegateStakeCommand:

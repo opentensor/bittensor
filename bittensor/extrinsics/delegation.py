@@ -28,6 +28,9 @@ from ..errors import (
 from rich.prompt import Confirm
 from typing import Union, Optional, Tuple, List
 from bittensor.utils.balance import Balance
+from bittensor.utils.slippage import (
+    Operation, show_slippage_warning_if_needed
+)
 from bittensor.btlogging.defines import BITTENSOR_LOGGER_NAME
 
 logger = logging.getLogger(BITTENSOR_LOGGER_NAME)
@@ -174,6 +177,16 @@ def delegate_extrinsic(
         ):
             return False
 
+    # Slippage warning
+    if not show_slippage_warning_if_needed(
+        subtensor,
+        netuid,
+        Operation.STAKE,
+        staking_balance,
+        prompt,
+    ):
+        return False
+
     try:
         with bittensor.__console__.status(
             ":satellite: Staking to: [bold white]{}[/bold white] ...".format(
@@ -313,6 +326,16 @@ def undelegate_extrinsic(
             )
         ):
             return False
+
+    # Slippage warning
+    if not show_slippage_warning_if_needed(
+        subtensor,
+        netuid,
+        Operation.UNSTAKE,
+        unstaking_balance,
+        prompt,
+    ):
+        return False
 
     try:
         with bittensor.__console__.status(
