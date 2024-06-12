@@ -23,6 +23,7 @@ import asyncio
 import uuid
 import time
 import aiohttp
+
 import bittensor
 from typing import Optional, List, Union, AsyncGenerator, Any
 from bittensor.utils.registration import torch, use_torch
@@ -311,7 +312,7 @@ class DendriteMixin:
         try:
             loop = asyncio.get_event_loop()
             result = loop.run_until_complete(self.forward(*args, **kwargs))
-        except:
+        except Exception:
             new_loop = asyncio.new_event_loop()
             asyncio.set_event_loop(new_loop)
             result = loop.run_until_complete(self.forward(*args, **kwargs))
@@ -653,12 +654,10 @@ class DendriteMixin:
         """
         # Set the timeout for the synapse
         synapse.timeout = timeout
-
-        # Build the Dendrite headers using the local system's details
         synapse.dendrite = bittensor.TerminalInfo(
             ip=self.external_ip,
             version=bittensor.__version_as_int__,
-            nonce=time.monotonic_ns(),
+            nonce=time.time_ns(),
             uuid=self.uuid,
             hotkey=self.keypair.ss58_address,
         )
@@ -705,9 +704,18 @@ class DendriteMixin:
                     # Set the attribute in the local synapse from the corresponding
                     # attribute in the server synapse
                     setattr(local_synapse, key, getattr(server_synapse, key))
-                except:
+                except Exception as e:
+                    bittensor.logging.info(
+                        f"Ignoring error when setting attribute: {e}"
+                    )
                     # Ignore errors during attribute setting
                     pass
+        else:
+            # If the server responded with an error, update the local synapse state
+            if local_synapse.axon is None:
+                local_synapse.axon = bittensor.TerminalInfo()
+            local_synapse.axon.status_code = server_response.status
+            local_synapse.axon.status_message = json_response.get("message")
 
         # Extract server headers and overwrite None values in local synapse headers
         server_headers = bittensor.Synapse.from_headers(server_response.headers)  # type: ignore

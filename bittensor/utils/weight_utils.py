@@ -20,6 +20,7 @@ Conversion for weight between chain representation and np.array or torch.Tensor
 # DEALINGS IN THE SOFTWARE.
 
 import hashlib
+import logging
 from typing import Tuple, List, Union
 
 import numpy as np
@@ -29,8 +30,6 @@ from substrateinterface import Keypair
 
 import bittensor
 from bittensor.utils.registration import torch, use_torch, legacy_torch_api_compat
-
-from bittensor.btlogging import logging
 
 U32_MAX = 4294967295
 U16_MAX = 65535

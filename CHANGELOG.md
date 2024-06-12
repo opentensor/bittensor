@@ -1,5 +1,30 @@
 # Changelog
 
+## 7.2.0 / 2024-06-12
+
+## What's Changed
+* less verbose handled synapse exceptions by @mjurbanski-reef in https://github.com/opentensor/bittensor/pull/1928
+* Clean up the imports in commands/stake.py by @thewhaleking in https://github.com/opentensor/bittensor/pull/1951
+* Fix E2E test for Commit/Reveal with Salt flag by @opendansor in https://github.com/opentensor/bittensor/pull/1952
+* `bittensor.chain_data.py` module refactoring. by @RomanCh-OT in https://github.com/opentensor/bittensor/pull/1955
+* ci: e2e tests by @orriin in https://github.com/opentensor/bittensor/pull/1915
+* Dependency cleanup by @mjurbanski-reef in https://github.com/opentensor/bittensor/pull/1967
+* replace `black` with `ruff` by @mjurbanski-reef in https://github.com/opentensor/bittensor/pull/1968
+* post-black to ruff migration cleanup by @mjurbanski-reef in https://github.com/opentensor/bittensor/pull/1979
+* Revert Axon IP decoding changes by @camfairchild in https://github.com/opentensor/bittensor/pull/1981
+* A wrapper for presenting extrinsics errors in a human-readable form. by @RomanCh-OT in https://github.com/opentensor/bittensor/pull/1980
+* Feat: Added normalized hyperparams by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/1891
+* deprecate nest_asyncio use by @mjurbanski-reef in https://github.com/opentensor/bittensor/pull/1974
+* Add e2e test for axon by @opendansor in https://github.com/opentensor/bittensor/pull/1984
+* Dendrite E2E test by @opendansor in https://github.com/opentensor/bittensor/pull/1988
+* fix __version_as_int__ for >10 minor/patch release vers (resolves #1982) by @mjurbanski-reef in https://github.com/opentensor/bittensor/pull/1993
+* Test Incentive E2E by @opendansor in https://github.com/opentensor/bittensor/pull/2002
+* Add E2E faucet test by @opendansor in https://github.com/opentensor/bittensor/pull/1987
+* Allow unstake below network min by @camfairchild in https://github.com/opentensor/bittensor/pull/2016
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v7.1.1...v7.2.0
+
+
 ## 7.1.1 / 2024-06-11
 
 ## What's Changed
@@ -24,16 +49,6 @@
 
 ## New Contributors
 * @renesweet24 made their first contribution in https://github.com/opentensor/bittensor/pull/1960
-
-**Full Changelog**: https://github.com/opentensor/bittensor/compare/v7.0.0...v7.0.1
-
-## 7.0.0 / 2024-05-17
-
-## What's Changed
-* Release/7.0.0 by @gus-opentensor in https://github.com/opentensor/bittensor/pull/1899
-* Fix return of ip version. by @opendansor in https://github.com/opentensor/bittensor/pull/1961
-* Fix trigger use_torch() by @renesweet24 https://github.com/opentensor/bittensor/pull/1960
-
 
 **Full Changelog**: https://github.com/opentensor/bittensor/compare/v7.0.0...v7.0.1
 
@@ -947,5 +962,4 @@ This release refactors the registration code for CPU registration to improve sol
 ### Synapse update
 
 ##
-
 

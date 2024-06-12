@@ -159,8 +159,8 @@ class MetagraphCommand:
             style="yellow",
         )
         table.add_column(
-            "[overline white]STAKE(\u03C4)",
-            "\u03C4{:.5f}".format(total_stake),
+            "[overline white]STAKE(\u03c4)",
+            "\u03c4{:.5f}".format(total_stake),
             footer_style="overline white",
             justify="right",
             style="green",
@@ -207,8 +207,8 @@ class MetagraphCommand:
             no_wrap=True,
         )
         table.add_column(
-            "[overline white]EMISSION(\u03C1)",
-            "\u03C1{}".format(int(total_emission)),
+            "[overline white]EMISSION(\u03c1)",
+            "\u03c1{}".format(int(total_emission)),
             footer_style="overline white",
             justify="right",
             style="green",

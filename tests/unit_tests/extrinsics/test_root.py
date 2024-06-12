@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from bittensor.subtensor import subtensor as Subtensor
+from bittensor.subtensor import Subtensor
 from bittensor.extrinsics.root import (
     root_register_extrinsic,
     set_root_weights_extrinsic,
@@ -191,9 +191,7 @@ def test_set_root_weights_extrinsic(
         return_value=(expected_success, "Mock error"),
     ), patch.object(
         mock_subtensor, "min_allowed_weights", return_value=0
-    ), patch.object(
-        mock_subtensor, "max_weight_limit", return_value=1
-    ), patch(
+    ), patch.object(mock_subtensor, "max_weight_limit", return_value=1), patch(
         "rich.prompt.Confirm.ask", return_value=user_response
     ) as mock_confirm:
         # Act
