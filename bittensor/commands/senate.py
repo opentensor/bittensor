@@ -338,7 +338,7 @@ class ShowVotesCommand:
             return
 
         proposal_vote_data = subtensor.get_vote_data(proposal_hash)
-        if proposal_vote_data == None:
+        if proposal_vote_data is None:
             console.print(":cross_mark: [red]Failed[/red]: Proposal not found.")
             return
 
@@ -606,7 +606,7 @@ class VoteCommand:
         wallet.coldkey
 
         vote_data = subtensor.get_vote_data(proposal_hash)
-        if vote_data == None:
+        if vote_data is None:
             console.print(":cross_mark: [red]Failed[/red]: Proposal not found.")
             return
 

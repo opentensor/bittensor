@@ -377,7 +377,7 @@ class StakeShow:
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""Show all stake accounts."""
-        if cli.config.get("all", d=False) == True:
+        if cli.config.get("all", d=False) is True:
             wallets = _get_coldkey_wallets_for_path(cli.config.wallet.path)
         else:
             wallets = [bittensor.wallet(config=cli.config)]

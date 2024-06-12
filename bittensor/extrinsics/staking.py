@@ -188,7 +188,7 @@ def add_stake_extrinsic(
             )
             return False
 
-    except bittensor.errors.NotRegisteredError as e:
+    except bittensor.errors.NotRegisteredError:
         bittensor.__console__.print(
             ":cross_mark: [red]Hotkey: {} is not registered.[/red]".format(
                 wallet.hotkey_str
@@ -305,7 +305,7 @@ def add_stake_multiple_extrinsic(
     ):
         staking_all = False
         # Convert to bittensor.Balance
-        if amount == None:
+        if amount is None:
             # Stake it all.
             staking_balance = bittensor.Balance.from_tao(old_balance.tao)
             staking_all = True
@@ -342,7 +342,7 @@ def add_stake_multiple_extrinsic(
                 wait_for_finalization=wait_for_finalization,
             )
 
-            if staking_response == True:  # If we successfully staked.
+            if staking_response is True:  # If we successfully staked.
                 # We only wait here if we expect finalization.
 
                 if idx < len(hotkey_ss58s) - 1:
@@ -395,7 +395,7 @@ def add_stake_multiple_extrinsic(
                 )
                 continue
 
-        except bittensor.errors.NotRegisteredError as e:
+        except bittensor.errors.NotRegisteredError:
             bittensor.__console__.print(
                 ":cross_mark: [red]Hotkey: {} is not registered.[/red]".format(
                     hotkey_ss58

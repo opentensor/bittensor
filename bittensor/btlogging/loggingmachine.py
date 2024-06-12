@@ -260,7 +260,7 @@ class LoggingMachine(StateMachine):
     # Default Logging
     def before_enable_default(self):
         """Logs status before enable Default."""
-        self._logger.info(f"Enabling default logging.")
+        self._logger.info("Enabling default logging.")
         self._logger.setLevel(stdlogging.INFO)
         for logger in all_loggers():
             if logger.name in self._primary_loggers:
@@ -284,7 +284,7 @@ class LoggingMachine(StateMachine):
 
     def before_disable_trace(self):
         """Logs status before disable Trace."""
-        self._logger.info(f"Disabling trace.")
+        self._logger.info("Disabling trace.")
         self._stream_formatter.set_trace(False)
         self.enable_default()
 

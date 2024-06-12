@@ -145,7 +145,7 @@ def set_root_weights_extrinsic(
 
     # Get non zero values.
     non_zero_weight_idx = np.argwhere(weights > 0).squeeze(axis=1)
-    non_zero_weight_uids = netuids[non_zero_weight_idx]
+    netuids[non_zero_weight_idx]
     non_zero_weights = weights[non_zero_weight_idx]
     if non_zero_weights.size < min_allowed_weights:
         raise ValueError(

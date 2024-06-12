@@ -168,16 +168,16 @@ class PriorityThreadPoolExecutor(_base.Executor):
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser, prefix: str = None):
         """Accept specific arguments from parser"""
-        prefix_str = "" if prefix == None else prefix + "."
+        prefix_str = "" if prefix is None else prefix + "."
         try:
             default_max_workers = (
                 os.getenv("BT_PRIORITY_MAX_WORKERS")
-                if os.getenv("BT_PRIORITY_MAX_WORKERS") != None
+                if os.getenv("BT_PRIORITY_MAX_WORKERS") is not None
                 else 5
             )
             default_maxsize = (
                 os.getenv("BT_PRIORITY_MAXSIZE")
-                if os.getenv("BT_PRIORITY_MAXSIZE") != None
+                if os.getenv("BT_PRIORITY_MAXSIZE") is not None
                 else 10
             )
             parser.add_argument(

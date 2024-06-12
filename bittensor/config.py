@@ -71,7 +71,7 @@ class config(DefaultMunch):
 
         self["__is_set"] = {}
 
-        if parser == None:
+        if parser is None:
             return None
 
         # Optionally add config specific arguments
@@ -120,7 +120,7 @@ class config(DefaultMunch):
             pass
 
         # Get args from argv if not passed in.
-        if args == None:
+        if args is None:
             args = sys.argv[1:]
 
         # Check for missing required arguments before proceeding
@@ -138,7 +138,7 @@ class config(DefaultMunch):
                 + "/"
                 + vars(parser.parse_known_args(args)[0])["config"]
             )
-        except Exception as e:
+        except Exception:
             config_file_path = None
 
         # Parse args not strict
@@ -148,7 +148,7 @@ class config(DefaultMunch):
         ## strict=True when passed in OR when --strict is set
         strict = config_params.strict or strict
 
-        if config_file_path != None:
+        if config_file_path is not None:
             config_file_path = os.path.expanduser(config_file_path)
             try:
                 with open(config_file_path) as f:
@@ -175,10 +175,10 @@ class config(DefaultMunch):
         # Only command as the arg, else no args
         default_param_args = (
             [_config.get("command")]
-            if _config.get("command") != None and _config.get("subcommand") == None
+            if _config.get("command") is not None and _config.get("subcommand") is None
             else []
         )
-        if _config.get("command") != None and _config.get("subcommand") != None:
+        if _config.get("command") is not None and _config.get("subcommand") is not None:
             default_param_args = [_config.get("command"), _config.get("subcommand")]
 
         ## Get all args by name
@@ -192,7 +192,7 @@ class config(DefaultMunch):
         parser_no_defaults._defaults.clear()  # Needed for quirk of argparse
 
         ### Check for subparsers and do the same
-        if parser_no_defaults._subparsers != None:
+        if parser_no_defaults._subparsers is not None:
             for action in parser_no_defaults._subparsers._actions:
                 # Should only be the "command" subparser action
                 if isinstance(action, argparse._SubParsersAction):
@@ -240,7 +240,7 @@ class config(DefaultMunch):
             keys = split_keys
             while len(keys) > 1:
                 if (
-                    hasattr(head, keys[0]) and head[keys[0]] != None
+                    hasattr(head, keys[0]) and head[keys[0]] is not None
                 ):  # Needs to be Config
                     head = getattr(head, keys[0])
                     keys = keys[1:]

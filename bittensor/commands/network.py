@@ -90,7 +90,7 @@ class RegisterSubnetworkCommand:
         if success and not cli.config.no_prompt:
             # Prompt for user to set identity.
             do_set_identity = Prompt.ask(
-                f"Subnetwork registered successfully. Would you like to set your identity? [y/n]",
+                "Subnetwork registered successfully. Would you like to set your identity? [y/n]",
                 choices=["y", "n"],
             )
 
@@ -167,7 +167,7 @@ class SubnetLockCostCommand:
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""View locking cost of creating a new subnetwork"""
-        config = cli.config.copy()
+        cli.config.copy()
         try:
             bittensor.__console__.print(
                 f"Subnet lock cost: [green]{bittensor.utils.balance.Balance( subtensor.get_subnet_burn_cost() )}[/green]"

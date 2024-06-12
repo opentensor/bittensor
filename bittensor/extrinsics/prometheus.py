@@ -105,8 +105,7 @@ def prometheus_extrinsic(
 
         bittensor.__console__.print(
             ":white_heavy_check_mark: [white]Prometheus already served.[/white]".format(
-                external_ip
-            )
+                )
         )
         return True
 

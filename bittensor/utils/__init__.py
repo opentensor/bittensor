@@ -24,7 +24,6 @@ import scalecodec
 
 import bittensor
 from .registration import torch, use_torch
-from .version import version_checking, check_version, VersionCheckError
 from .wallet_utils import *  # noqa F401
 
 RAOPERTAO = 1e9

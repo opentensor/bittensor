@@ -125,7 +125,7 @@ class InspectCommand:
 
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
-        if cli.config.get("all", d=False) == True:
+        if cli.config.get("all", d=False) is True:
             wallets = _get_coldkey_wallets_for_path(cli.config.wallet.path)
             all_hotkeys = get_all_wallets_for_path(cli.config.wallet.path)
         else:
@@ -150,7 +150,7 @@ class InspectCommand:
         neuron_state_dict = {}
         for netuid in tqdm(netuids):
             neurons = subtensor.neurons_lite(netuid)
-            neuron_state_dict[netuid] = neurons if neurons != None else []
+            neuron_state_dict[netuid] = neurons if neurons is not None else []
 
         table = Table(show_footer=True, pad_edge=False, box=None, expand=True)
         table.add_column(
@@ -249,7 +249,7 @@ class InspectCommand:
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
-        if config.netuids != [] and config.netuids != None:
+        if config.netuids != [] and config.netuids is not None:
             if not isinstance(config.netuids, list):
                 config.netuids = [int(config.netuids)]
             else:

@@ -432,7 +432,7 @@ class OverviewCommand:
                 total_emission += emission
                 total_validator_trust += validator_trust
 
-                if not (nn.hotkey, nn.coldkey) in hotkeys_seen:
+                if (nn.hotkey, nn.coldkey) not in hotkeys_seen:
                     # Don't double count stake on hotkey-coldkey pairs.
                     hotkeys_seen.add((nn.hotkey, nn.coldkey))
                     total_stake += stake
@@ -445,7 +445,7 @@ class OverviewCommand:
 
             # Add subnet header
             if netuid == "-1":
-                grid.add_row(f"Deregistered Neurons")
+                grid.add_row("Deregistered Neurons")
             else:
                 grid.add_row(f"Subnet: [bold white]{netuid}[/bold white]")
 
@@ -771,7 +771,7 @@ class OverviewCommand:
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
-        if config.netuids != [] and config.netuids != None:
+        if config.netuids != [] and config.netuids is not None:
             if not isinstance(config.netuids, list):
                 config.netuids = [int(config.netuids)]
             else:

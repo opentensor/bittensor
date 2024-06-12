@@ -560,7 +560,7 @@ class keyfile:
                     stored_mnemonic = False
                     while not stored_mnemonic:
                         bittensor.__console__.print(
-                            f"\nPlease make sure you have the mnemonic stored in case an error occurs during the transfer.",
+                            "\nPlease make sure you have the mnemonic stored in case an error occurs during the transfer.",
                             style="white on red",
                         )
                         stored_mnemonic = Confirm.ask("Have you stored the mnemonic?")
@@ -571,7 +571,7 @@ class keyfile:
                             break
 
                     decrypted_keyfile_data = None
-                    while decrypted_keyfile_data == None and not terminate:
+                    while decrypted_keyfile_data is None and not terminate:
                         try:
                             password = getpass.getpass(
                                 "\nEnter password to update keyfile: "

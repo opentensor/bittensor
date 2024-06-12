@@ -236,7 +236,7 @@ class UnStakeCommand:
             hotkey_stake: Balance = subtensor.get_stake_for_coldkey_and_hotkey(
                 hotkey_ss58=hotkey[1], coldkey_ss58=wallet.coldkeypub.ss58_address
             )
-            if unstake_amount_tao == None:
+            if unstake_amount_tao is None:
                 unstake_amount_tao = hotkey_stake.tao
             if cli.config.get("max_stake"):
                 # Get the current stake of the hotkey from this coldkey.

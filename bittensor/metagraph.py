@@ -85,7 +85,7 @@ def latest_block_path(dir_path: str) -> str:
             if block_number > latest_block:
                 latest_block = block_number
                 latest_file_full_path = full_path_filename
-        except Exception as e:
+        except Exception:
             pass
     if not latest_file_full_path:
         raise ValueError(f"Metagraph not found at: {dir_path}")

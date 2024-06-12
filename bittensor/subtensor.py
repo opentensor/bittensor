@@ -1080,7 +1080,7 @@ class Subtensor:
         This function allows neurons to create a tamper-proof record of their weight distribution at a specific point in time,
         enhancing transparency and accountability within the Bittensor network.
         """
-        uid = self.get_uid_for_hotkey_on_subnet(wallet.hotkey.ss58_address, netuid)
+        self.get_uid_for_hotkey_on_subnet(wallet.hotkey.ss58_address, netuid)
         retries = 0
         success = False
         message = "No attempt made. Perhaps it is too soon to commit weights!"
@@ -1219,7 +1219,7 @@ class Subtensor:
         This function allows neurons to reveal their previously committed weight distribution, ensuring transparency
         and accountability within the Bittensor network.
         """
-        uid = self.get_uid_for_hotkey_on_subnet(wallet.hotkey.ss58_address, netuid)
+        self.get_uid_for_hotkey_on_subnet(wallet.hotkey.ss58_address, netuid)
 
         retries = 0
         success = False

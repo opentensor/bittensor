@@ -1056,7 +1056,6 @@ class MockSubtensor(Subtensor):
         wait_for_finalization: bool = False,
     ) -> bool:
         hotkey_ss58 = wallet.hotkey.ss58_address
-        coldkey_ss58 = wallet.coldkeypub.ss58_address
 
         subtensor_state = self.chain_state["SubtensorModule"]
         if self.is_hotkey_delegate(hotkey_ss58=hotkey_ss58):
@@ -1184,9 +1183,9 @@ class MockSubtensor(Subtensor):
         stake_state = subtensor_state["Stake"]
 
         # Stake the funds
-        if not hotkey_ss58 in stake_state:
+        if hotkey_ss58 not in stake_state:
             stake_state[hotkey_ss58] = {}
-        if not wallet.coldkeypub.ss58_address in stake_state[hotkey_ss58]:
+        if wallet.coldkeypub.ss58_address not in stake_state[hotkey_ss58]:
             stake_state[hotkey_ss58][wallet.coldkeypub.ss58_address] = {}
 
         stake_state[hotkey_ss58][wallet.coldkeypub.ss58_address][self.block_number] = (
@@ -1199,11 +1198,11 @@ class MockSubtensor(Subtensor):
         )
 
         total_hotkey_stake_state = subtensor_state["TotalHotkeyStake"]
-        if not hotkey_ss58 in total_hotkey_stake_state:
+        if hotkey_ss58 not in total_hotkey_stake_state:
             total_hotkey_stake_state[hotkey_ss58] = {}
 
         total_coldkey_stake_state = subtensor_state["TotalColdkeyStake"]
-        if not wallet.coldkeypub.ss58_address in total_coldkey_stake_state:
+        if wallet.coldkeypub.ss58_address not in total_coldkey_stake_state:
             total_coldkey_stake_state[wallet.coldkeypub.ss58_address] = {}
 
         curr_total_hotkey_stake = self.query_subtensor(
@@ -1273,14 +1272,14 @@ class MockSubtensor(Subtensor):
         )
 
         total_hotkey_stake_state = subtensor_state["TotalHotkeyStake"]
-        if not hotkey_ss58 in total_hotkey_stake_state:
+        if hotkey_ss58 not in total_hotkey_stake_state:
             total_hotkey_stake_state[hotkey_ss58] = {}
             total_hotkey_stake_state[hotkey_ss58][self.block_number] = (
                 0  # Shouldn't happen
             )
 
         total_coldkey_stake_state = subtensor_state["TotalColdkeyStake"]
-        if not wallet.coldkeypub.ss58_address in total_coldkey_stake_state:
+        if wallet.coldkeypub.ss58_address not in total_coldkey_stake_state:
             total_coldkey_stake_state[wallet.coldkeypub.ss58_address] = {}
             total_coldkey_stake_state[wallet.coldkeypub.ss58_address][
                 self.block_number

@@ -82,9 +82,9 @@ class RegenColdkeyCommand:
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
             config.wallet.name = str(wallet_name)
         if (
-            config.mnemonic == None
-            and config.get("seed", d=None) == None
-            and config.get("json", d=None) == None
+            config.mnemonic is None
+            and config.get("seed", d=None) is None
+            and config.get("json", d=None) is None
         ):
             prompt_answer = Prompt.ask("Enter mnemonic, seed, or json file location")
             if prompt_answer.startswith("0x"):
@@ -94,7 +94,7 @@ class RegenColdkeyCommand:
             else:
                 config.json = prompt_answer
 
-        if config.get("json", d=None) and config.get("json_password", d=None) == None:
+        if config.get("json", d=None) and config.get("json_password", d=None) is None:
             config.json_password = Prompt.ask(
                 "Enter json backup password", password=True
             )
@@ -188,7 +188,7 @@ class RegenColdkeypubCommand:
         if not config.is_set("wallet.name") and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
             config.wallet.name = str(wallet_name)
-        if config.ss58_address == None and config.public_key_hex == None:
+        if config.ss58_address is None and config.public_key_hex is None:
             prompt_answer = Prompt.ask(
                 "Enter the ss58_address or the public key in hex"
             )
@@ -300,9 +300,9 @@ class RegenHotkeyCommand:
             hotkey = Prompt.ask("Enter hotkey name", default=defaults.wallet.hotkey)
             config.wallet.hotkey = str(hotkey)
         if (
-            config.mnemonic == None
-            and config.get("seed", d=None) == None
-            and config.get("json", d=None) == None
+            config.mnemonic is None
+            and config.get("seed", d=None) is None
+            and config.get("json", d=None) is None
         ):
             prompt_answer = Prompt.ask("Enter mnemonic, seed, or json file location")
             if prompt_answer.startswith("0x"):
@@ -312,7 +312,7 @@ class RegenHotkeyCommand:
             else:
                 config.json = prompt_answer
 
-        if config.get("json", d=None) and config.get("json_password", d=None) == None:
+        if config.get("json", d=None) and config.get("json_password", d=None) is None:
             config.json_password = Prompt.ask(
                 "Enter json backup password", password=True
             )
@@ -652,7 +652,7 @@ class UpdateWalletCommand:
     def run(cli):
         """Check if any of the wallets needs an update."""
         config = cli.config.copy()
-        if config.get("all", d=False) == True:
+        if config.get("all", d=False) is True:
             wallets = _get_coldkey_wallets_for_path(config.wallet.path)
         else:
             wallets = [bittensor.wallet(config=config)]
@@ -673,14 +673,14 @@ class UpdateWalletCommand:
 
     @staticmethod
     def check_config(config: "bittensor.Config"):
-        if config.get("all", d=False) == False:
+        if config.get("all", d=False) is False:
             if not config.no_prompt:
                 if Confirm.ask("Do you want to update all legacy wallets?"):
                     config["all"] = True
 
         # Ask the user to specify the wallet if the wallet name is not clear.
         if (
-            config.get("all", d=False) == False
+            config.get("all", d=False) is False
             and config.wallet.get("name") == bittensor.defaults.wallet.name
             and not config.no_prompt
         ):
@@ -774,7 +774,7 @@ class WalletBalanceCommand:
 
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
-        wallet = bittensor.wallet(config=cli.config)
+        bittensor.wallet(config=cli.config)
 
         wallet_names = []
         coldkeys = []

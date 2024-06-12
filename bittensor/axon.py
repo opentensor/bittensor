@@ -342,12 +342,12 @@ class axon:
         self.port = self.config.axon.port
         self.external_ip = (
             self.config.axon.external_ip
-            if self.config.axon.external_ip != None
+            if self.config.axon.external_ip is not None
             else bittensor.utils.networking.get_external_ip()
         )
         self.external_port = (
             self.config.axon.external_port
-            if self.config.axon.external_port != None
+            if self.config.axon.external_port is not None
             else self.config.axon.port
         )
         self.full_address = str(self.config.axon.ip) + ":" + str(self.config.axon.port)
@@ -1153,7 +1153,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
 
         try:
             synapse = request_synapse.from_headers(request.headers)  # type: ignore
-        except Exception as e:
+        except Exception:
             raise SynapseParsingError(
                 f"Improperly formatted request. Could not parse headers {request.headers} into synapse of type {request_name}."
             )
