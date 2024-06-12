@@ -14,11 +14,17 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
+"""
+This module contains the metagraph command, its calculation, and table output logic
+"""
 
-import asyncio
 import argparse
-import bittensor
+import asyncio
+
 from rich.table import Table
+
+import bittensor
+
 from .utils import check_netuid_set
 
 console = bittensor.__console__  # type: ignore
@@ -95,13 +101,14 @@ class MetagraphCommand:
             netuid=cli.config.netuid
         )
         metagraph.save()
-        difficulty = await subtensor.difficulty(cli.config.netuid)
-        subnet_emission = bittensor.Balance.from_tao(
-            await subtensor.get_emission_value_by_subnet(cli.config.netuid)
+
+        difficulty, subnet_emission_, total_issuance_ = await asyncio.gather(
+            subtensor.difficulty(cli.config.netuid),
+            subtensor.get_emission_value_by_subnet(cli.config.netuid),
+            subtensor.total_issuance(),
         )
-        total_issuance = bittensor.Balance.from_rao(
-            (await subtensor.total_issuance()).rao
-        )
+        subnet_emission = bittensor.Balance.from_tao(subnet_emission_)
+        total_issuance = bittensor.Balance.from_rao(total_issuance_).rao
 
         TABLE_DATA = []
         total_stake = 0.0

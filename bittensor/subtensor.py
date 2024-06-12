@@ -1545,7 +1545,7 @@ class Subtensor:
     ############
     # Transfer #
     ############
-    def transfer(
+    async def transfer(
         self,
         wallet: "bittensor.wallet",
         dest: str,
@@ -1573,7 +1573,7 @@ class Subtensor:
         This function is essential for the fluid movement of tokens in the network, supporting
         various economic activities such as staking, delegation, and reward distribution.
         """
-        return transfer_extrinsic(
+        return await transfer_extrinsic(
             subtensor=self,
             wallet=wallet,
             dest=dest,
