@@ -19,16 +19,15 @@
 
 import unittest
 from unittest.mock import MagicMock, patch
-from typing import Any, Optional
+from typing import Any
 import pytest
 from copy import deepcopy
 import re
 
-from tests.helpers import _get_mock_coldkey, __mock_wallet_factory__, MockConsole
+from tests.helpers import _get_mock_coldkey, __mock_wallet_factory__
 
 import bittensor
 from bittensor import Balance
-from rich.table import Table
 
 
 class MockException(Exception):
@@ -301,7 +300,7 @@ class TestCLINoNetwork(unittest.TestCase):
             cli.run()
 
     def test_btcli_help(self, _, __):
-        with pytest.raises(SystemExit) as pytest_wrapped_e:
+        with pytest.raises(SystemExit):
             with patch(
                 "argparse.ArgumentParser._print_message", return_value=None
             ) as mock_print_message:

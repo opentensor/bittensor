@@ -77,7 +77,7 @@ def test_run_faucet_extrinsic_happy_path(
     with patch(
         "bittensor.utils.registration._solve_for_difficulty_fast",
         return_value=mock_pow_solution,
-    ) as mock_create_pow, patch("rich.prompt.Confirm.ask", return_value=True):
+    ), patch("rich.prompt.Confirm.ask", return_value=True):
         from bittensor.extrinsics.registration import run_faucet_extrinsic
 
         # Arrange

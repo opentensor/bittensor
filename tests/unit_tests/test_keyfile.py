@@ -36,7 +36,7 @@ def test_generate_mnemonic():
     Test the generation of a mnemonic and its validation.
     """
     mnemonic = Keypair.generate_mnemonic()
-    assert bip39_validate(mnemonic) == True
+    assert bip39_validate(mnemonic) is True
 
 
 def test_invalid_mnemonic():
@@ -44,7 +44,7 @@ def test_invalid_mnemonic():
     Test the validation of an invalid mnemonic.
     """
     mnemonic = "This is an invalid mnemonic"
-    assert bip39_validate(mnemonic) == False
+    assert bip39_validate(mnemonic) is False
 
 
 def test_create_sr25519_keypair():
@@ -114,7 +114,7 @@ def test_sign_and_verify():
     mnemonic = Keypair.generate_mnemonic()
     keypair = Keypair.create_from_mnemonic(mnemonic)
     signature = keypair.sign("Test1231223123123")
-    assert keypair.verify("Test1231223123123", signature) == True
+    assert keypair.verify("Test1231223123123", signature) is True
 
 
 def test_sign_and_verify_hex_data():
@@ -124,7 +124,7 @@ def test_sign_and_verify_hex_data():
     mnemonic = Keypair.generate_mnemonic()
     keypair = Keypair.create_from_mnemonic(mnemonic)
     signature = keypair.sign("0x1234")
-    assert keypair.verify("0x1234", signature) == True
+    assert keypair.verify("0x1234", signature) is True
 
 
 def test_sign_and_verify_scale_bytes():
@@ -135,7 +135,7 @@ def test_sign_and_verify_scale_bytes():
     keypair = Keypair.create_from_mnemonic(mnemonic)
     data = ScaleBytes("0x1234")
     signature = keypair.sign(data)
-    assert keypair.verify(data, signature) == True
+    assert keypair.verify(data, signature) is True
 
 
 def test_sign_missing_private_key():
@@ -180,7 +180,7 @@ def test_sign_and_verify_incorrect_signature():
     mnemonic = Keypair.generate_mnemonic()
     keypair = Keypair.create_from_mnemonic(mnemonic)
     signature = "0x4c291bfb0bb9c1274e86d4b666d13b2ac99a0bacc04a4846fb8ea50bda114677f83c1f164af58fc184451e5140cc8160c4de626163b11451d3bbb208a1889f8a"
-    assert keypair.verify("Test1231223123123", signature) == False
+    assert keypair.verify("Test1231223123123", signature) is False
 
 
 def test_sign_and_verify_invalid_signature():
@@ -201,7 +201,7 @@ def test_sign_and_verify_invalid_message():
     mnemonic = Keypair.generate_mnemonic()
     keypair = Keypair.create_from_mnemonic(mnemonic)
     signature = keypair.sign("Test1231223123123")
-    assert keypair.verify("OtherMessage", signature) == False
+    assert keypair.verify("OtherMessage", signature) is False
 
 
 def test_create_ed25519_keypair():
@@ -222,7 +222,7 @@ def test_sign_and_verify_ed25519():
     mnemonic = Keypair.generate_mnemonic()
     keypair = Keypair.create_from_mnemonic(mnemonic, crypto_type=KeypairType.ED25519)
     signature = keypair.sign("Test1231223123123")
-    assert keypair.verify("Test1231223123123", signature) == True
+    assert keypair.verify("Test1231223123123", signature) is True
 
 
 def test_sign_and_verify_invalid_signature_ed25519():
@@ -232,7 +232,7 @@ def test_sign_and_verify_invalid_signature_ed25519():
     mnemonic = Keypair.generate_mnemonic()
     keypair = Keypair.create_from_mnemonic(mnemonic, crypto_type=KeypairType.ED25519)
     signature = "0x4c291bfb0bb9c1274e86d4b666d13b2ac99a0bacc04a4846fb8ea50bda114677f83c1f164af58fc184451e5140cc8160c4de626163b11451d3bbb208a1889f8a"
-    assert keypair.verify("Test1231223123123", signature) == False
+    assert keypair.verify("Test1231223123123", signature) is False
 
 
 def test_unsupport_crypto_type():
@@ -465,13 +465,13 @@ def test_validate_password():
     """
     from bittensor.keyfile import validate_password
 
-    assert validate_password(None) == False
-    assert validate_password("passw0rd") == False
-    assert validate_password("123456789") == False
+    assert validate_password(None) is False
+    assert validate_password("passw0rd") is False
+    assert validate_password("123456789") is False
     with mock.patch("getpass.getpass", return_value="biTTensor"):
-        assert validate_password("biTTensor") == True
+        assert validate_password("biTTensor") is True
     with mock.patch("getpass.getpass", return_value="biTTenso"):
-        assert validate_password("biTTensor") == False
+        assert validate_password("biTTensor") is False
 
 
 def test_decrypt_keyfile_data_legacy():
@@ -546,7 +546,7 @@ def test_overwriting(keyfile_setup_teardown):
     )
     bob = bittensor.Keypair.create_from_uri("/Bob")
 
-    with pytest.raises(bittensor.KeyFileError) as pytest_wrapped_e:
+    with pytest.raises(bittensor.KeyFileError):
         with mock.patch("builtins.input", return_value="n"):
             keyfile.set_keypair(
                 bob, encrypt=True, overwrite=False, password="thisisafakepassword"

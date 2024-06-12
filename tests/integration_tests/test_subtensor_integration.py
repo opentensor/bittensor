@@ -20,7 +20,6 @@ import random
 import unittest
 from queue import Empty as QueueEmpty
 from unittest.mock import MagicMock, patch
-from types import SimpleNamespace
 import numpy as np
 import pytest
 from substrateinterface import Keypair
@@ -329,7 +328,7 @@ class TestSubtensor(unittest.TestCase):
             uids=[1],
             weights=chain_weights,
         )
-        assert success == True
+        assert success is True
 
     def test_set_weights_inclusion(self):
         chain_weights = [0]
@@ -343,7 +342,7 @@ class TestSubtensor(unittest.TestCase):
             weights=chain_weights,
             wait_for_inclusion=True,
         )
-        assert success == True
+        assert success is True
 
     def test_set_weights_failed(self):
         chain_weights = [0]
@@ -359,7 +358,7 @@ class TestSubtensor(unittest.TestCase):
             weights=chain_weights,
             wait_for_inclusion=True,
         )
-        assert fail == False
+        assert fail is False
 
     def test_commit_weights(self):
         weights = np.array([0.1, 0.2, 0.3, 0.4], dtype=np.float32)
@@ -368,7 +367,7 @@ class TestSubtensor(unittest.TestCase):
         weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(
             uids=uids, weights=weights
         )
-        commit_hash = bittensor.utils.weight_utils.generate_weight_hash(
+        bittensor.utils.weight_utils.generate_weight_hash(
             address=self.wallet.hotkey.ss58_address,
             netuid=3,
             uids=weight_uids,
@@ -397,7 +396,7 @@ class TestSubtensor(unittest.TestCase):
             uids=uids, weights=weights
         )
 
-        commit_hash = bittensor.utils.weight_utils.generate_weight_hash(
+        bittensor.utils.weight_utils.generate_weight_hash(
             address=self.wallet.hotkey.ss58_address,
             netuid=1,
             uids=weight_uids,
@@ -431,7 +430,7 @@ class TestSubtensor(unittest.TestCase):
             uids=uids, weights=weights
         )
 
-        commit_hash = bittensor.utils.weight_utils.generate_weight_hash(
+        bittensor.utils.weight_utils.generate_weight_hash(
             address=self.wallet.hotkey.ss58_address,
             netuid=3,
             uids=weight_uids,
@@ -681,11 +680,11 @@ class TestSubtensor(unittest.TestCase):
         # patch solution queue to return None
         with patch(
             "multiprocessing.queues.Queue.get", return_value=None
-        ) as mock_queue_get:
+        ):
             # patch time queue get to raise Empty exception
             with patch(
                 "multiprocessing.queues.Queue.get_nowait", side_effect=QueueEmpty
-            ) as mock_queue_get_nowait:
+            ):
                 wallet = _get_mock_wallet(
                     hotkey=_get_mock_keypair(0, self.id()),
                     coldkey=_get_mock_keypair(1, self.id()),

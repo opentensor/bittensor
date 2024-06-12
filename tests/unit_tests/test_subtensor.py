@@ -37,7 +37,7 @@ def test_serve_axon_with_external_ip_set():
 
     mock_subtensor = MagicMock(spec=bittensor.subtensor, serve_axon=mock_serve_axon)
 
-    mock_add_insecure_port = mock.MagicMock(return_value=None)
+    mock.MagicMock(return_value=None)
     mock_wallet = MagicMock(
         spec=bittensor.wallet,
         coldkey=MagicMock(),
@@ -1922,7 +1922,7 @@ def test_get_all_subnets_info_success(mocker, subtensor):
     )
 
     # Call
-    result = subtensor.get_all_subnets_info(block)
+    subtensor.get_all_subnets_info(block)
 
     # Asserts
     subtensor.substrate.get_block_hash.assert_called_once_with(block)
@@ -2001,7 +2001,7 @@ def test_get_subnet_info_success(mocker, subtensor):
     )
 
     # Call
-    result = subtensor.get_subnet_info(netuid, block)
+    subtensor.get_subnet_info(netuid, block)
 
     # Asserts
     subtensor.substrate.get_block_hash.assert_called_once_with(block)
@@ -2056,7 +2056,7 @@ def test_get_subnet_info_retry(mocker, subtensor):
     )
 
     # Call
-    result = subtensor.get_subnet_info(netuid, block)
+    subtensor.get_subnet_info(netuid, block)
 
     # Asserts
     subtensor.substrate.get_block_hash.assert_called_with(block)
@@ -2080,7 +2080,7 @@ def test_get_subnet_hyperparameters_success(mocker, subtensor):
     )
 
     # Call
-    result = subtensor.get_subnet_hyperparameters(netuid, block)
+    subtensor.get_subnet_hyperparameters(netuid, block)
 
     # Asserts
     subtensor.query_runtime_api.assert_called_once_with(
@@ -2127,7 +2127,7 @@ def test_get_subnet_hyperparameters_hex_without_prefix(mocker, subtensor):
     mocker.patch.object(subtensor_module.SubnetHyperparameters, "from_vec_u8")
 
     # Call
-    result = subtensor.get_subnet_hyperparameters(netuid, block)
+    subtensor.get_subnet_hyperparameters(netuid, block)
 
     # Asserts
     subtensor.query_runtime_api.assert_called_once_with(
@@ -2256,7 +2256,6 @@ def test_get_delegate_take_no_data(mocker, subtensor):
     # Prep
     hotkey_ss58 = "hotkey_ss58"
     block = 123
-    delegate_take_value = 32768
     mocker.patch.object(subtensor, "query_subtensor", return_value=None)
     spy_u16_normalized_float = mocker.spy(subtensor_module, "U16_NORMALIZED_FLOAT")
 

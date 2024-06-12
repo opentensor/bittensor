@@ -17,7 +17,6 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from pydantic import ValidationError
 import pytest
 import typing
 import bittensor
@@ -101,7 +100,7 @@ async def test_aclose(dendrite_obj, setup_axon):
     axon = setup_axon
     # Use context manager to open an async session
     async with dendrite_obj:
-        resp = await dendrite_obj([axon], SynapseDummy(input=1), deserialize=False)
+        await dendrite_obj([axon], SynapseDummy(input=1), deserialize=False)
     # Close should automatically be called on the session after context manager scope
     assert dendrite_obj._session is None
 
@@ -306,7 +305,7 @@ async def test_dendrite__call__success_response(
         )
     )
     mock_aioresponse.post(
-        f"http://127.0.0.1:666/SynapseDummy",
+        "http://127.0.0.1:666/SynapseDummy",
         body=expected_synapse.json(),
     )
     synapse = await dendrite_obj.call(axon_info, synapse=input_synapse)
@@ -326,7 +325,7 @@ async def test_dendrite__call__handles_http_error_response(
     message = "Custom Error"
 
     mock_aioresponse.post(
-        f"http://127.0.0.1:666/SynapseDummy",
+        "http://127.0.0.1:666/SynapseDummy",
         status=status_code,
         payload={"message": message},
     )

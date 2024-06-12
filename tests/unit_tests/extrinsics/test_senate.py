@@ -66,7 +66,7 @@ def test_register_senate_extrinsic(
             process_events=MagicMock(),
             error_message="error",
         ),
-    ) as mock_submit_extrinsic, patch.object(
+    ), patch.object(
         mock_wallet, "is_senate_member", return_value=is_registered
     ):
         # Act

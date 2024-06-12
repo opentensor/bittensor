@@ -16,15 +16,6 @@
 # DEALINGS IN THE SOFTWARE.
 
 import os
-from .helpers import (
-    _get_mock_coldkey,
-    _get_mock_hotkey,
-    _get_mock_keypair,
-    _get_mock_wallet,
-    CLOSE_IN_VALUE,
-    MockConsole,
-    __mock_wallet_factory__,
-)
 
 
 def is_running_in_circleci():

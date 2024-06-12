@@ -112,7 +112,7 @@ def test_prometheus_extrinsic_edge_cases(
     )
 
     # Assert
-    assert result == True, f"Test ID: {test_id}"
+    assert result is True, f"Test ID: {test_id}"
 
 
 # Error cases
