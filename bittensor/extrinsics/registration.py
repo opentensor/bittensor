@@ -461,6 +461,8 @@ def run_faucet_extrinsic(
                 if attempts == max_allowed_attempts:
                     raise MaxAttemptsException
                 attempts += 1
+                # Wait a bit before trying again
+                time.sleep(1)
 
             # Successful registration
             else:
