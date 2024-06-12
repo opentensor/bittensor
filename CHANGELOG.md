@@ -20,6 +20,7 @@
 * fix __version_as_int__ for >10 minor/patch release vers (resolves #1982) by @mjurbanski-reef in https://github.com/opentensor/bittensor/pull/1993
 * Test Incentive E2E by @opendansor in https://github.com/opentensor/bittensor/pull/2002
 * Add E2E faucet test by @opendansor in https://github.com/opentensor/bittensor/pull/1987
+* Allow unstake below network min by @camfairchild in https://github.com/opentensor/bittensor/pull/2016
 
 **Full Changelog**: https://github.com/opentensor/bittensor/compare/v7.1.1...v7.2.0
 
