@@ -487,7 +487,7 @@ class AsyncSubstrateInterface:
         self, block_hash: Optional[str] = None, block_id: Optional[int] = None
     ) -> Runtime:
         """
-        Not currently working.
+        Not currently working or used. Will be added in the future.
         """
 
         def get_runtime() -> Optional[Runtime]:
