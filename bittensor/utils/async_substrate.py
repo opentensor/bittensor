@@ -1233,7 +1233,7 @@ class AsyncSubstrateInterface:
                 )
             )[
                 "rpc_request"
-            ]  # TODO this may no longer be rpc_request, but I need to test to be sure
+            ][1]
             # Also, this will be a multipart response, so maybe should change to everything after the first response?
             # The following code implies this will be a single response after the initial subscription id.
 
