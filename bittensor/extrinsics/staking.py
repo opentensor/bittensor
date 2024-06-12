@@ -19,8 +19,32 @@
 import bittensor
 from rich.prompt import Confirm
 from time import sleep
-from typing import List, Union, Optional
+from typing import List, Union, Optional, Tuple
 from bittensor.utils.balance import Balance
+
+
+def _check_threshold_amount(
+    subtensor: "bittensor.subtensor", stake_balance: Balance
+) -> Tuple[bool, Balance]:
+    """
+    Checks if the new stake balance will be above the minimum required stake threshold.
+
+    Args:
+        stake_balance (Balance):
+            the balance to check for threshold limits.
+
+    Returns:
+        success, threshold (bool, Balance):
+            ``true`` if the staking balance is above the threshold, or ``false`` if the
+                staking balance is below the threshold.
+            The threshold balance required to stake.
+    """
+    min_req_stake: Balance = subtensor.get_minimum_required_stake()
+
+    if min_req_stake > stake_balance:
+        return False, min_req_stake
+    else:
+        return True, min_req_stake
 
 
 def add_stake_extrinsic(
@@ -114,6 +138,18 @@ def add_stake_extrinsic(
             )
         )
         return False
+
+    # If nominating, we need to check if the new stake balance will be above the minimum required stake threshold.
+    if not own_hotkey:
+        new_stake_balance = old_stake + staking_balance
+        is_above_threshold, threshold = _check_threshold_amount(
+            subtensor, new_stake_balance
+        )
+        if not is_above_threshold:
+            bittensor.__console__.print(
+                f":cross_mark: [red]New stake balance of {new_stake_balance} is below the minimum required nomination stake threshold {threshold}.[/red]"
+            )
+            return False
 
     # Ask before moving on.
     if prompt:
