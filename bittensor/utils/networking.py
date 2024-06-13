@@ -19,10 +19,13 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+# Standard Lib
 import os
 import urllib
 import json
 import netaddr
+
+# 3rd party
 import requests
 
 

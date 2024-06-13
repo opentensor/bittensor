@@ -90,7 +90,7 @@ async def test_dendrite(local_chain):
     metagraph = bittensor.metagraph(netuid=1, network="ws://localhost:9945")
     neuron = metagraph.neurons[0]
     # assert stake is 10000
-    assert neuron.stake.tao == 9999.999999
+    assert neuron.stake.tao == 10_000.0
 
     # assert neuron is not validator
     assert neuron.active is True

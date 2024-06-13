@@ -55,6 +55,7 @@ from bittensor.errors import (
     PostProcessException,
     SynapseException,
 )
+from bittensor.constants import ALLOWED_DELTA, V_7_2_0
 from bittensor.threadpool import PriorityThreadPoolExecutor
 from bittensor.utils import networking
 
@@ -342,12 +343,12 @@ class axon:
         self.port = self.config.axon.port
         self.external_ip = (
             self.config.axon.external_ip
-            if self.config.axon.external_ip != None
+            if self.config.axon.external_ip is not None
             else bittensor.utils.networking.get_external_ip()
         )
         self.external_port = (
             self.config.axon.external_port
-            if self.config.axon.external_port != None
+            if self.config.axon.external_port is not None
             else self.config.axon.port
         )
         self.full_address = str(self.config.axon.ip) + ":" + str(self.config.axon.port)
@@ -888,25 +889,38 @@ class axon:
             # Build the unique endpoint key.
             endpoint_key = f"{synapse.dendrite.hotkey}:{synapse.dendrite.uuid}"
 
-            # Check the nonce from the endpoint key with 4 second delta
-            allowedDelta = 4000000000
-
             # Requests must have nonces to be safe from replays
             if synapse.dendrite.nonce is None:
                 raise Exception("Missing Nonce")
 
             # If we don't have a nonce stored, ensure that the nonce falls within
             # a reasonable delta.
+
+            # Updated nonce using NTP implementated at v7.2
             if (
-                self.nonces.get(endpoint_key) is None
-                and synapse.dendrite.nonce <= time.time_ns() - allowedDelta
+                synapse.dendrite.version is not None
+                and synapse.dendrite.version >= V_7_2_0
             ):
-                raise Exception("Nonce is too old")
-            if (
-                self.nonces.get(endpoint_key) is not None
-                and synapse.dendrite.nonce <= self.nonces[endpoint_key]
-            ):
-                raise Exception("Nonce is too old")
+                # If we don't have a nonce stored, ensure that the nonce falls within
+                # a reasonable delta.
+                if (
+                    self.nonces.get(endpoint_key) is None
+                    and synapse.dendrite.nonce
+                    <= time.time_ns() - ALLOWED_DELTA - (synapse.timeout or 0)
+                ):
+                    raise Exception("Nonce is too old")
+                if (
+                    self.nonces.get(endpoint_key) is not None
+                    and synapse.dendrite.nonce <= self.nonces[endpoint_key]
+                ):
+                    raise Exception("Nonce is too old")
+            else:
+                if (
+                    endpoint_key in self.nonces.keys()
+                    and self.nonces[endpoint_key] is not None
+                    and synapse.dendrite.nonce <= self.nonces[endpoint_key]
+                ):
+                    raise Exception("Nonce is too small")
 
             if not keypair.verify(message, synapse.dendrite.signature):
                 raise Exception(
@@ -1149,7 +1163,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
         # Extracts the request name from the URL path.
         try:
             request_name = request.url.path.split("/")[1]
-        except:
+        except Exception:
             raise InvalidRequestNameError(
                 f"Improperly formatted request. Could not parser request {request.url.path}."
             )
@@ -1164,7 +1178,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
 
         try:
             synapse = request_synapse.from_headers(request.headers)  # type: ignore
-        except Exception as e:
+        except Exception:
             raise SynapseParsingError(
                 f"Improperly formatted request. Could not parse headers {request.headers} into synapse of type {request_name}."
             )
@@ -1175,7 +1189,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
             {
                 "version": str(bittensor.__version_as_int__),
                 "uuid": str(self.axon.uuid),
-                "nonce": f"{time.time_ns()}",
+                "nonce": time.time_ns(),
                 "status_code": 100,
             }
         )
