@@ -32,7 +32,7 @@ are set correctly, and that the miner is currently running
 @pytest.mark.asyncio
 async def test_axon(local_chain):
     # Register root as Alice
-    alice_keypair, exec_command, wallet_path = setup_wallet("//Alice", True)
+    alice_keypair, exec_command, wallet_path = setup_wallet("//Alice")
     exec_command(RegisterSubnetworkCommand, ["s", "create"])
 
     # Verify subnet 1 created successfully
