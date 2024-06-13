@@ -61,7 +61,7 @@ def test_commit_and_reveal_weights(local_chain):
             "--wallet.path",
             "/tmp/btcli-wallet2",
             "--amount",
-            "999998998",
+            "100000",
         ],
     )
 
