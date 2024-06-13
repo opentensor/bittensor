@@ -21,6 +21,7 @@
 This module provides functionality for solving proof of work (PoW) problems for registration on the Bittensor network.
 It includes classes and functions to handle PoW solving using both CPU and CUDA-enabled GPUs.
 """
+
 import asyncio
 
 import binascii
@@ -130,7 +131,7 @@ class CUDAException(Exception):
 
 
 def _hex_bytes_to_u8_list(hex_bytes: bytes):
-    hex_chunks = [int(hex_bytes[i: i + 2], 16) for i in range(0, len(hex_bytes), 2)]
+    hex_chunks = [int(hex_bytes[i : i + 2], 16) for i in range(0, len(hex_bytes), 2)]
     return hex_chunks
 
 
@@ -255,7 +256,9 @@ class _SolverBase(multiprocessing.Process):
         raise NotImplementedError("_SolverBase is an abstract class")
 
     @staticmethod
-    def create_shared_memory() -> Tuple[multiprocessing.Array, multiprocessing.Value, multiprocessing.Array]:
+    def create_shared_memory() -> (
+        Tuple[multiprocessing.Array, multiprocessing.Value, multiprocessing.Array]
+    ):
         """Creates shared memory for the solver processes to use."""
         curr_block = multiprocessing.Array("h", 32, lock=True)  # byte array
         curr_block_num = multiprocessing.Value("i", 0, lock=True)  # int
@@ -520,7 +523,9 @@ class RegistrationStatisticsLogger:
         if self.status is not None:
             self.status.stop()
 
-    def get_status_message(self, stats: RegistrationStatistics, verbose: bool = False) -> str:
+    def get_status_message(
+        self, stats: RegistrationStatistics, verbose: bool = False
+    ) -> str:
         message = (
             "Solving\n"
             + f"Time Spent (total): [bold white]{timedelta(seconds=stats.time_spent_total)}[/bold white]\n"
@@ -976,7 +981,9 @@ async def _solve_for_difficulty_fast_cuda(
 
         block_hash_with_retry, is_hotkey_is_registered = await asyncio.gather(
             _get_block_with_retry(subtensor=subtensor, netuid=netuid),
-            subtensor.is_hotkey_registered(netuid=netuid, hotkey_ss58=wallet.hotkey.ss58_address)
+            subtensor.is_hotkey_registered(
+                netuid=netuid, hotkey_ss58=wallet.hotkey.ss58_address
+            ),
         )
         # Get first block
         block_number, difficulty, block_hash = block_hash_with_retry
