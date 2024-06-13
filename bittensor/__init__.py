@@ -259,10 +259,10 @@ from .utils import (
     get_explorer_root_url_by_network_from_map,
     get_explorer_url_for_network,
     ss58_address_to_bytes,
-    U16_NORMALIZED_FLOAT,
-    U64_NORMALIZED_FLOAT,
+    u16_normalized_float,
+    u64_normalized_float,
     u8_key_to_ss58,
-    hash,
+    get_hash,
     wallet_utils,
 )
 

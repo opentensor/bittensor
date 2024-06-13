@@ -51,7 +51,7 @@ def show_delegates_lite(
     """
     This method is a lite version of the :func:`show_delegates`. This method displays a formatted table of Bittensor network delegates with detailed statistics to the console.
 
-    The table is sorted by total stake in descending order and provides
+    The table is sorted_ by total stake in descending order and provides
     a snapshot of delegate performance and status, helping users make informed decisions for staking or nominating.
 
     This helper function is not intended to be used directly in user code unless specifically required.
@@ -160,7 +160,7 @@ def show_delegates(
     """
     Displays a formatted table of Bittensor network delegates with detailed statistics to the console.
 
-    The table is sorted by total stake in descending order and provides
+    The table is sorted_ by total stake in descending order and provides
     a snapshot of delegate performance and status, helping users make informed decisions for staking or nominating.
 
     This is a helper function that is called by the :func:`list_delegates` and :func:`my_delegates`, and is not intended
@@ -616,7 +616,7 @@ class ListDelegatesLiteCommand:
 
     The table columns include:
 
-    - INDEX: The delegate's index in the sorted list.
+    - INDEX: The delegate's index in the sorted_ list.
     - DELEGATE: The name of the delegate.
     - SS58: The delegate's unique SS58 address (truncated for display).
     - NOMINATORS: The count of nominators backing the delegate.
@@ -691,7 +691,7 @@ class ListDelegatesCommand:
 
     The table columns include:
 
-    - INDEX: The delegate's index in the sorted list.
+    - INDEX: The delegate's index in the sorted_ list.
     - DELEGATE: The name of the delegate.
     - SS58: The delegate's unique SS58 address (truncated for display).
     - NOMINATORS: The count of nominators backing the delegate.
