@@ -72,7 +72,7 @@ def test_unstake_extrinsic(
     mock_current_balance = Balance.from_tao(100)
 
     with patch.object(
-        mock_subtensor, "_do_unstake", return_value=(expected_success)
+        mock_subtensor, "do_unstake", return_value=(expected_success)
     ), patch.object(
         mock_subtensor, "get_balance", return_value=mock_current_balance
     ), patch.object(
@@ -282,7 +282,7 @@ def test_unstake_multiple_extrinsic(
         return unstake_responses[index]
 
     with patch.object(
-        mock_subtensor, "_do_unstake", side_effect=unstake_side_effect
+        mock_subtensor, "do_unstake", side_effect=unstake_side_effect
     ) as mock_unstake, patch.object(
         mock_subtensor,
         "get_minimum_required_stake",

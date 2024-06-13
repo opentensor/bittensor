@@ -43,8 +43,9 @@ async def transfer_extrinsic(
     """Transfers funds from this wallet to the destination public key address.
 
     Args:
+        subtensor (bittensor.subtensor): Bittensor subtensor object.
         wallet (bittensor.wallet): Bittensor wallet object to make transfer from.
-        dest (str, ss58_address or ed25519): Destination public key address of reciever.
+        dest (str, ss58_address or ed25519): Destination public key address of receiver.
         amount (Union[Balance, int]): Amount to stake as Bittensor balance, or ``float`` interpreted as Tao.
         wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
@@ -104,7 +105,7 @@ async def transfer_extrinsic(
             return False
 
     with bittensor.__console__.status(":satellite: Transferring..."):
-        success, block_hash, err_msg = await subtensor._do_transfer(
+        success, block_hash, err_msg = await subtensor.do_transfer(
             wallet,
             dest,
             transfer_balance,
@@ -122,11 +123,13 @@ async def transfer_extrinsic(
                 subtensor.network, block_hash, bittensor.__network_explorer_map__
             )
             if explorer_urls != {}:
+                opentensor_url = explorer_urls.get("opentensor")
+                taostats_url = explorer_urls.get("taostats")
                 bittensor.__console__.print(
-                    f"[green]Opentensor Explorer Link: {explorer_urls.get("opentensor")}[/green]"
+                    f"[green]Opentensor Explorer Link: {opentensor_url}[/green]"
                 )
                 bittensor.__console__.print(
-                    f"[green]Taostats   Explorer Link: {explorer_urls.get("taostats")}[/green]"
+                    f"[green]Taostats   Explorer Link: {taostats_url}[/green]"
                 )
         else:
             bittensor.__console__.print(
