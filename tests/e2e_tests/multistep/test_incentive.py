@@ -44,13 +44,13 @@ are updated with proper values after an epoch has passed.
 @pytest.mark.asyncio
 async def test_incentive(local_chain):
     # Register root as Alice - the subnet owner and validator
-    alice_keypair, alice_exec_command, alice_wallet_path = setup_wallet("//Alice")
+    alice_keypair, alice_exec_command, alice_wallet_path = setup_wallet("//Alice", True)
     alice_exec_command(RegisterSubnetworkCommand, ["s", "create"])
     # Verify subnet 1 created successfully
     assert local_chain.query("SubtensorModule", "NetworksAdded", [1]).serialize()
 
     # Register Bob as miner
-    bob_keypair, bob_exec_command, bob_wallet_path = setup_wallet("//Bob")
+    bob_keypair, bob_exec_command, bob_wallet_path = setup_wallet("//Bob", True)
 
     # Register Alice as neuron to the subnet
     alice_exec_command(

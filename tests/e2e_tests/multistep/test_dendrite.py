@@ -35,13 +35,13 @@ Verify that:
 @pytest.mark.asyncio
 async def test_dendrite(local_chain):
     # Register root as Alice - the subnet owner
-    alice_keypair, exec_command, wallet_path = setup_wallet("//Alice")
+    alice_keypair, exec_command, wallet_path = setup_wallet("//Alice", True)
     exec_command(RegisterSubnetworkCommand, ["s", "create"])
 
     # Verify subnet 1 created successfully
     assert local_chain.query("SubtensorModule", "NetworksAdded", [1]).serialize()
 
-    bob_keypair, exec_command, wallet_path = setup_wallet("//Bob")
+    bob_keypair, exec_command, wallet_path = setup_wallet("//Bob", True)
 
     # Register a neuron to the subnet
     exec_command(
