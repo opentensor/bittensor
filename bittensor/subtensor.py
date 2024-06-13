@@ -874,18 +874,19 @@ class Subtensor:
         def make_substrate_call_with_retry():
             call = self.substrate.compose_call(
                 call_module="SubtensorModule",
-                call_function="set_weights",
+                call_function="set_root_weights",
                 call_params={
+                    "netuid": netuid,
+                    "hotkey": wallet.hotkey.ss58_address,
                     "dests": uids,
                     "weights": vals,
-                    "netuid": netuid,
                     "version_key": version_key,
                 },
             )
             # Period dictates how long the extrinsic will stay as part of waiting pool
             extrinsic = self.substrate.create_signed_extrinsic(
                 call=call,
-                keypair=wallet.hotkey,
+                keypair=wallet.coldkey,
                 era={"period": 5},
             )
             response = self.substrate.submit_extrinsic(
@@ -1461,9 +1462,8 @@ class Subtensor:
             # create extrinsic call
             call = self.substrate.compose_call(
                 call_module="SubtensorModule",
-                call_function="burned_register",
+                call_function="root_register",
                 call_params={
-                    "netuid": netuid,
                     "hotkey": wallet.hotkey.ss58_address,
                 },
             )
@@ -3051,7 +3051,9 @@ class Subtensor:
         """
         call_definition = bittensor.__type_registry__["runtime_api"][runtime_api][  # type: ignore
             "methods"  # type: ignore
-        ][method]  # type: ignore
+        ][
+            method
+        ]  # type: ignore
 
         json_result = self.state_call(
             method=f"{runtime_api}_{method}",

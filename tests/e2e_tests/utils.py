@@ -99,6 +99,31 @@ def sudo_call_set_network_limit(
     return response.is_success
 
 
+def sudo_call_set_weight_limit(
+    substrate: SubstrateInterface, wallet: bittensor.wallet, netuid: int
+) -> bool:
+    inner_call = substrate.compose_call(
+        call_module="AdminUtils",
+        call_function="sudo_set_weights_set_rate_limit",
+        call_params={"netuid": netuid, "weights_set_rate_limit": 1},
+    )
+    call = substrate.compose_call(
+        call_module="Sudo",
+        call_function="sudo",
+        call_params={"call": inner_call},
+    )
+
+    extrinsic = substrate.create_signed_extrinsic(call=call, keypair=wallet.coldkey)
+    response = substrate.submit_extrinsic(
+        extrinsic,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+    response.process_events()
+    return response.is_success
+
+
 def sudo_call_set_target_stakes_per_interval(
     substrate: SubstrateInterface, wallet: bittensor.wallet
 ) -> bool:
