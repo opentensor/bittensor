@@ -16,9 +16,9 @@
 # DEALINGS IN THE SOFTWARE.
 
 import argparse
+import asyncio
 import bittensor
 from tqdm import tqdm
-from concurrent.futures import ProcessPoolExecutor
 from collections import defaultdict
 from fuzzywuzzy import fuzz
 from rich.align import Align
@@ -179,7 +179,7 @@ class OverviewCommand:
                 neurons[str(netuid)] = neurons_result
         return neurons
 
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+    async def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""Prints an overview for the wallet's colkey."""
         console = bittensor.__console__
         wallet = bittensor.wallet(config=cli.config)
@@ -232,23 +232,20 @@ class OverviewCommand:
             )
         ):
             # Create a copy of the config without the parser and formatter_class.
-            ## This is needed to pass to the ProcessPoolExecutor, which cannot pickle the parser.
             copy_config = cli.config.copy()
             copy_config["__parser"] = None
             copy_config["formatter_class"] = None
 
-            # Pull neuron info for all keys.
-            ## Max len(netuids) or 5 threads.
-            with ProcessPoolExecutor(max_workers=max(len(netuids), 5)) as executor:
-                results = executor.map(
-                    OverviewCommand._get_neurons_for_netuid,
-                    [(copy_config, netuid, all_hotkey_addresses) for netuid in netuids],
+            # Pull neuron info for all keys.:
+            coroutines = [
+                OverviewCommand._get_neurons_for_netuid(
+                    subtensor, netuid, all_hotkey_addresses
                 )
-                executor.shutdown(wait=True)  # wait for all complete
+                for netuid in netuids
+            ]
+            results = await asyncio.gather(*coroutines)
 
-                neurons = OverviewCommand._process_neuron_results(
-                    results, neurons, netuids
-                )
+            neurons = OverviewCommand._process_neuron_results(results, neurons, netuids)
 
             total_coldkey_stake_from_metagraph = defaultdict(
                 lambda: bittensor.Balance(0.0)
@@ -258,9 +255,9 @@ class OverviewCommand:
                 for neuron in neuron_list:
                     if neuron.hotkey in checked_hotkeys:
                         continue
-                    total_coldkey_stake_from_metagraph[neuron.coldkey] += (
-                        neuron.stake_dict[neuron.coldkey]
-                    )
+                    total_coldkey_stake_from_metagraph[
+                        neuron.coldkey
+                    ] += neuron.stake_dict[neuron.coldkey]
                     checked_hotkeys.add(neuron.hotkey)
 
             alerts_table = Table(show_header=True, header_style="bold magenta")
@@ -293,18 +290,16 @@ class OverviewCommand:
                 if "-1" not in neurons:
                     neurons["-1"] = []
 
-            # Use process pool to check each coldkey wallet for de-registered stake.
-            with ProcessPoolExecutor(
-                max_workers=max(len(coldkeys_to_check), 5)
-            ) as executor:
-                results = executor.map(
-                    OverviewCommand._get_de_registered_stake_for_coldkey_wallet,
-                    [
-                        (cli.config, all_hotkey_addresses, coldkey_wallet)
-                        for coldkey_wallet in coldkeys_to_check
-                    ],
-                )
-                executor.shutdown(wait=True)  # wait for all complete
+            # Check each coldkey wallet for de-registered stake.
+
+            results = await asyncio.gather(
+                *[
+                    OverviewCommand._get_de_registered_stake_for_coldkey_wallet(
+                        subtensor, all_hotkey_addresses, coldkey_wallet
+                    )
+                    for coldkey_wallet in coldkeys_to_check
+                ]
+            )
 
             for result in results:
                 coldkey_wallet, de_registered_stake, err_msg = result
@@ -432,7 +427,7 @@ class OverviewCommand:
                 total_emission += emission
                 total_validator_trust += validator_trust
 
-                if not (nn.hotkey, nn.coldkey) in hotkeys_seen:
+                if (nn.hotkey, nn.coldkey) not in hotkeys_seen:
                     # Don't double count stake on hotkey-coldkey pairs.
                     hotkeys_seen.add((nn.hotkey, nn.coldkey))
                     total_stake += stake
@@ -445,7 +440,7 @@ class OverviewCommand:
 
             # Add subnet header
             if netuid == "-1":
-                grid.add_row(f"Deregistered Neurons")
+                grid.add_row("Deregistered Neurons")
             else:
                 grid.add_row(f"Subnet: [bold white]{netuid}[/bold white]")
 
@@ -612,81 +607,56 @@ class OverviewCommand:
         console.print(grid, width=cli.config.get("width", None))
 
     @staticmethod
-    def _get_neurons_for_netuid(
-        args_tuple: Tuple["bittensor.Config", int, List[str]],
+    async def _get_neurons_for_netuid(
+        subtensor: "bittensor.subtensor", netuid: int, hot_wallets: List[str]
     ) -> Tuple[int, List["bittensor.NeuronInfoLite"], Optional[str]]:
-        subtensor_config, netuid, hot_wallets = args_tuple
-
         result: List["bittensor.NeuronInfoLite"] = []
 
-        try:
-            subtensor = bittensor.subtensor(config=subtensor_config, log_verbose=False)
-
-            all_neurons: List["bittensor.NeuronInfoLite"] = subtensor.neurons_lite(
-                netuid=netuid
-            )
-            # Map the hotkeys to uids
-            hotkey_to_neurons = {n.hotkey: n.uid for n in all_neurons}
-            for hot_wallet_addr in hot_wallets:
-                uid = hotkey_to_neurons.get(hot_wallet_addr)
-                if uid is not None:
-                    nn = all_neurons[uid]
-                    result.append(nn)
-        except Exception as e:
-            return netuid, [], "Error: {}".format(e)
-        finally:
-            if "subtensor" in locals():
-                subtensor.close()
-                bittensor.logging.debug("closing subtensor connection")
+        all_neurons: List["bittensor.NeuronInfoLite"] = subtensor.neurons_lite(
+            netuid=netuid
+        )
+        # Map the hotkeys to uids
+        hotkey_to_neurons = {n.hotkey: n.uid for n in all_neurons}
+        for hot_wallet_addr in hot_wallets:
+            uid = hotkey_to_neurons.get(hot_wallet_addr)
+            if uid is not None:
+                nn = all_neurons[uid]
+                result.append(nn)
 
         return netuid, result, None
 
     @staticmethod
-    def _get_de_registered_stake_for_coldkey_wallet(
-        args_tuple,
+    async def _get_de_registered_stake_for_coldkey_wallet(
+        subtensor: "bittensor.subtensor", all_hotkey_addresses, coldkey_wallet
     ) -> Tuple[
         "bittensor.Wallet", List[Tuple[str, "bittensor.Balance"]], Optional[str]
     ]:
-        subtensor_config, all_hotkey_addresses, coldkey_wallet = args_tuple
 
         # List of (hotkey_addr, our_stake) tuples.
         result: List[Tuple[str, "bittensor.Balance"]] = []
 
-        try:
-            subtensor = bittensor.subtensor(config=subtensor_config, log_verbose=False)
+        # Pull all stake for our coldkey
+        all_stake_info_for_coldkey = subtensor.get_stake_info_for_coldkey(
+            coldkey_ss58=coldkey_wallet.coldkeypub.ss58_address
+        )
 
-            # Pull all stake for our coldkey
-            all_stake_info_for_coldkey = subtensor.get_stake_info_for_coldkey(
-                coldkey_ss58=coldkey_wallet.coldkeypub.ss58_address
-            )
+        ## Filter out hotkeys that are in our wallets
+        ## Filter out hotkeys that are delegates.
+        def _filter_stake_info(stake_info: "bittensor.StakeInfo") -> bool:
+            if stake_info.stake == 0:
+                return False  # Skip hotkeys that we have no stake with.
+            if stake_info.hotkey_ss58 in all_hotkey_addresses:
+                return False  # Skip hotkeys that are in our wallets.
+            return not subtensor.is_hotkey_delegate(hotkey_ss58=stake_info.hotkey_ss58)
 
-            ## Filter out hotkeys that are in our wallets
-            ## Filter out hotkeys that are delegates.
-            def _filter_stake_info(stake_info: "bittensor.StakeInfo") -> bool:
-                if stake_info.stake == 0:
-                    return False  # Skip hotkeys that we have no stake with.
-                if stake_info.hotkey_ss58 in all_hotkey_addresses:
-                    return False  # Skip hotkeys that are in our wallets.
-                if subtensor.is_hotkey_delegate(hotkey_ss58=stake_info.hotkey_ss58):
-                    return False  # Skip hotkeys that are delegates, they show up in btcli my_delegates table.
-
-                return True
-
-            all_staked_hotkeys = filter(_filter_stake_info, all_stake_info_for_coldkey)
-            result = [
-                (
-                    stake_info.hotkey_ss58,
-                    stake_info.stake.tao,
-                )  # stake is a Balance object
-                for stake_info in all_staked_hotkeys
-            ]
-
-        except Exception as e:
-            return coldkey_wallet, [], "Error: {}".format(e)
-        finally:
-            if "subtensor" in locals():
-                subtensor.close()
-                bittensor.logging.debug("closing subtensor connection")
+        all_staked_hotkeys = filter(_filter_stake_info, all_stake_info_for_coldkey)
+        result = [
+            (
+                stake_info.hotkey_ss58,
+                stake_info.stake.tao,
+            )  # stake is a Balance object
+            for stake_info in all_staked_hotkeys
+        ]
 
         return coldkey_wallet, result, None
 
@@ -771,7 +741,7 @@ class OverviewCommand:
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
-        if config.netuids != [] and config.netuids != None:
+        if config.netuids != [] and config.netuids is not None:
             if not isinstance(config.netuids, list):
                 config.netuids = [int(config.netuids)]
             else:
