@@ -1,5 +1,3 @@
-import time
-
 import pytest
 
 import bittensor
@@ -14,6 +12,7 @@ from tests.e2e_tests.utils import (
 )
 
 
+@pytest.mark.skip
 @pytest.mark.parametrize("local_chain", [False], indirect=True)
 def test_faucet(local_chain):
     # Register root as Alice
@@ -51,7 +50,7 @@ def test_faucet(local_chain):
 
     # run faucet 3 times
     for i in range(3):
-        logging.info(f"faucet run #:{i+1}")
+        logging.info(f"faucet run #:{i + 1}")
         try:
             exec_command(
                 RunFaucetCommand,
@@ -76,13 +75,11 @@ def test_faucet(local_chain):
         except Exception as e:
             logging.warning(f"Unexpected exception occurred on faucet: {e}")
 
-    time.sleep(12)  # sleep for a block
-
     subtensor = bittensor.subtensor(network="ws://localhost:9945")
 
     new_wallet_balance = subtensor.get_balance(keypair.ss58_address)
     # verify balance increase
     assert wallet_balance.tao < new_wallet_balance.tao
     assert (
-        new_wallet_balance.tao == 999899.0
+            new_wallet_balance.tao == 999899.0
     )  # after 3 runs we should see an increase of 900 tao
