@@ -81,5 +81,5 @@ def test_faucet(local_chain):
     # verify balance increase
     assert wallet_balance.tao < new_wallet_balance.tao
     assert (
-        new_wallet_balance.tao == 999899.0
+            new_wallet_balance.tao == 999899.0
     )  # after 3 runs we should see an increase of 900 tao
