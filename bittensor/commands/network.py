@@ -269,9 +269,9 @@ class SubnetListCommand:
             rows.append(
                 (
                     str(subnet.netuid),
-                    sn_symbol,
+                    f"[light_goldenrod1]{sn_symbol}[light_goldenrod1]",
                     f"{subnet.subnetwork_n}/{subnet.max_n}",
-                    "[red]D[/red]" if pool.is_dynamic else "[blue]S[/blue]",
+                    "[indian_red]D[/indian_red]" if pool.is_dynamic else "[light_sky_blue3]sTAO[/light_sky_blue3]",
                     "{:.8}".format( str(bittensor.Balance.from_rao(subnet.emission_value)) ),
                     str( bittensor.Balance.from_tao( tao_locked.tao ) ),
                     "P(" + str( pool.tao_reserve ) + ",",
@@ -315,7 +315,7 @@ class SubnetListCommand:
             "[white]",
             str(len(subnets)),
             footer_style="white",
-            style="bold green",
+            style="grey93",
             justify="center",
         )
         table.add_column(
@@ -344,24 +344,24 @@ class SubnetListCommand:
             "[white]emission",
             f"{bittensor.Balance.from_rao(total_emission)!s:8.8}",
             footer_style="white",
-            style="green",
+            style="dark_sea_green",
             justify="center",
         )
         table.add_column(
             f"[white]{bittensor.Balance.unit}",
             "{:,.4f}".format(total_tao_locked.tao),
             footer_style="white",
-            style="blue",
+            style="light_slate_blue",
             justify="center",
         )
         table.add_column(
-            f"[white]P({bittensor.Balance.unit},", style="cornflower_blue", justify="right"
+            f"[white]P({bittensor.Balance.unit},", style="slate_blue3", justify="right"
         )
         table.add_column(
-            f"[white]{bittensor.Balance.get_unit(1)})", style="green", justify="left"
+            f"[white]{bittensor.Balance.get_unit(1)})", style="dark_sea_green4", justify="left"
         )
         table.add_column(
-            f"[white]{bittensor.Balance.get_unit(1)}", style="aquamarine3", justify="center"
+            f"[white]{bittensor.Balance.get_unit(1)}", style="dark_cyan", justify="center"
         )
         table.add_column(
             "[white]price",

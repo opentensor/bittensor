@@ -377,9 +377,9 @@ class StakeList:
             # Create table structure.
             name = registered_delegate_info[hotkey].name if hotkey in registered_delegate_info else hotkey[:10]
             table = Table(show_footer=True, pad_edge=False, box=None, expand=False, title=f"{name}")
-            table.add_column(f"[white]", footer_style="overline white", style="white")
-            table.add_column(f"[white]", footer_style="white", style="yellow", justify="center", width=5, no_wrap=True)
-            table.add_column(f"[white]({bittensor.Balance.unit}/{bittensor.Balance.get_unit(1)})", footer_style="white", style="yellow", justify="center" )
+            table.add_column(f"[white]", footer_style="overline white", style="grey89")
+            table.add_column(f"[white]", footer_style="white", style="light_goldenrod1", justify="center", width=5, no_wrap=True)
+            table.add_column(f"[white]({bittensor.Balance.unit}/{bittensor.Balance.get_unit(1)})", footer_style="white", style="light_goldenrod2", justify="center" )
             table.add_column(f"[white]{bittensor.Balance.get_unit(1)}", footer_style="overline white", style="green",  justify="center" )
             table.add_column(f"[white]{bittensor.Balance.unit}", footer_style="overline white", style="blue", justify="center" )
             table.add_column(f"[white]Swap({bittensor.Balance.get_unit(1)}) -> {bittensor.Balance.unit}", footer_style="overline white", style="blue", justify="center" )
@@ -407,16 +407,16 @@ class StakeList:
                     str(netuid), # Number
                     symbol, # Symbol
                     price, # Price
-                    str( alpha_value ), # Alpha value
-                    f"[blue]{ tao_value }[/blue]", # Tao equiv
-                    f"[blue]{ swapped_tao_value }[/blue]", # Swap amount.
-                    f"[red]{ slippage_percentage }%[/red]", # Slippage.
+                    f"[dark_sea_green]{ alpha_value }", # Alpha value
+                    f"[light_slate_blue]{ tao_value }[/light_slate_blue]", # Tao equiv
+                    f"[cadet_blue]{ swapped_tao_value }[/cadet_blue]", # Swap amount.
+                    f"[indian_red]{ slippage_percentage }%[/indian_red]", # Slippage.
                     # str( bittensor.Balance.from_tao( tao_locked.tao ) ), # Tao on network
                     # "P(" + str( pool.tao_reserve ) + ",", # Pool tao
                     # str( pool.alpha_reserve ) + ")", # Pool alpha
                     # str( pool.alpha_outstanding if pool.is_dynamic else tao_locked ), # Pool alpha Outstanding.
-                    f"[orange]{alpha_ownership}%[/orange]", # Ownership.
-                    f"[purple]{tao_ownership}[/purple]" # Tao ownership.
+                    f"[light_salmon3]{alpha_ownership}%[/light_salmon3]", # Ownership.
+                    f"[medium_purple]{tao_ownership}[/medium_purple]" # Tao ownership.
                 ]
                 table.add_row(*row)
             bittensor.__console__.print(table)
