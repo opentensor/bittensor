@@ -3,15 +3,14 @@ from bittensor.commands.unstake import UnStakeCommand
 from bittensor.commands.network import RegisterSubnetworkCommand
 from bittensor.commands.register import RegisterCommand
 from ...utils import (
-    new_wallet,
+    setup_wallet,
     sudo_call_set_network_limit,
     sudo_call_set_target_stakes_per_interval,
 )
 
 
-# Example test using the local_chain fixture
 def test_stake_add(local_chain):
-    (wallet, exec_command) = new_wallet("//Alice", "//Bob")
+    alice_keypair, exec_command, wallet = setup_wallet("//Alice")
     assert sudo_call_set_network_limit(local_chain, wallet)
     assert sudo_call_set_target_stakes_per_interval(local_chain, wallet)
 
@@ -53,10 +52,7 @@ def test_stake_add(local_chain):
     withdraw_loss = 1_000_000
     stake_amount_in_rao = stake_amount * 1_000_000_000
 
-    assert (
-        exact_stake > stake_amount_in_rao - withdraw_loss
-        and exact_stake <= stake_amount_in_rao
-    )
+    assert stake_amount_in_rao - withdraw_loss < exact_stake <= stake_amount_in_rao
 
     # we can test remove after set the stake rate limit larger than 1
     remove_amount = 1

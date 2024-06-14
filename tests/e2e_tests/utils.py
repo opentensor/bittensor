@@ -1,18 +1,20 @@
-from substrateinterface import Keypair, SubstrateInterface
+import time
+
+from substrateinterface import SubstrateInterface
 from typing import List
 import os
 import shutil
 import subprocess
 import sys
 
-from bittensor import Keypair
+from bittensor import Keypair, logging
 import bittensor
 
 template_path = os.getcwd() + "/neurons/"
 repo_name = "templates repository"
 
 
-def setup_wallet(uri: str, with_path: bool = False):
+def setup_wallet(uri: str):
     keypair = Keypair.create_from_uri(uri)
     wallet_path = "/tmp/btcli-e2e-wallet-{}".format(uri.strip("/"))
     wallet = bittensor.wallet(path=wallet_path)
@@ -38,40 +40,7 @@ def setup_wallet(uri: str, with_path: bool = False):
         cli_instance = bittensor.cli(config)
         command.run(cli_instance)
 
-    if with_path:
-        return (keypair, exec_command, wallet_path)
-    else:
-        return (keypair, exec_command)
-
-
-def new_wallet(uri: str, uri2: str):
-    keypair_1 = Keypair.create_from_uri(uri)
-    keypair_2 = Keypair.create_from_uri(uri2)
-    wallet_path = "/tmp/btcli-e2e-wallet-{}-{}".format(uri.strip("/"), uri2.strip("/"))
-    wallet = bittensor.wallet(path=wallet_path)
-    wallet.set_coldkey(keypair=keypair_1, encrypt=False, overwrite=True)
-    wallet.set_coldkeypub(keypair=keypair_1, encrypt=False, overwrite=True)
-    wallet.set_hotkey(keypair=keypair_2, encrypt=False, overwrite=True)
-
-    def exec_command(command, extra_args: List[str]):
-        parser = bittensor.cli.__create_parser__()
-        args = extra_args + [
-            "--no_prompt",
-            "--subtensor.network",
-            "local",
-            "--subtensor.chain_endpoint",
-            "ws://localhost:9945",
-            "--wallet.path",
-            wallet_path,
-        ]
-        config = bittensor.config(
-            parser=parser,
-            args=args,
-        )
-        cli_instance = bittensor.cli(config)
-        command.run(cli_instance)
-
-    return (wallet, exec_command)
+    return keypair, exec_command, wallet
 
 
 def sudo_call_set_network_limit(
@@ -124,31 +93,6 @@ def sudo_call_set_target_stakes_per_interval(
     return response.is_success
 
 
-def sudo_call_add_senate_member(
-    substrate: SubstrateInterface, wallet: bittensor.wallet
-) -> bool:
-    inner_call = substrate.compose_call(
-        call_module="SenateMembers",
-        call_function="add_member",
-        call_params={"who": wallet.hotkey.ss58_address},
-    )
-    call = substrate.compose_call(
-        call_module="Sudo",
-        call_function="sudo",
-        call_params={"call": inner_call},
-    )
-
-    extrinsic = substrate.create_signed_extrinsic(call=call, keypair=wallet.coldkey)
-    response = substrate.submit_extrinsic(
-        extrinsic,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
-    )
-
-    response.process_events()
-    return response.is_success
-
-
 def call_add_proposal(substrate: SubstrateInterface, wallet: bittensor.wallet) -> bool:
     proposal_call = substrate.compose_call(
         call_module="System",
@@ -176,34 +120,19 @@ def call_add_proposal(substrate: SubstrateInterface, wallet: bittensor.wallet) -
     return response.is_success
 
 
-def sudo_call_set_triumvirate_members(
-    substrate: SubstrateInterface, wallet: bittensor.wallet
-) -> bool:
-    inner_call = substrate.compose_call(
-        call_module="Triumvirate",
-        call_function="set_members",
-        call_params={
-            "new_members": [wallet.hotkey.ss58_address],
-            "prime": wallet.coldkey.ss58_address,
-            "old_count": 0,
-        },
-    )
-    call = substrate.compose_call(
-        call_module="Sudo",
-        call_function="sudo",
-        call_params={"call": inner_call},
-    )
-
-    extrinsic = substrate.create_signed_extrinsic(call=call, keypair=wallet.coldkey)
-    response = substrate.submit_extrinsic(
-        extrinsic,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
-    )
-
-    response.process_events()
-    return response.is_success
-    return keypair, exec_command, wallet_path
+def wait_epoch(interval, subtensor):
+    current_block = subtensor.get_current_block()
+    next_tempo_block_start = (current_block - (current_block % interval)) + interval
+    while current_block < next_tempo_block_start:
+        time.sleep(1)  # Wait for 1 second before checking the block number again
+        current_block = subtensor.get_current_block()
+        if current_block % 10 == 0:
+            print(
+                f"Current Block: {current_block}  Next tempo at: {next_tempo_block_start}"
+            )
+            logging.info(
+                f"Current Block: {current_block}  Next tempo at: {next_tempo_block_start}"
+            )
 
 
 def clone_or_update_templates():
@@ -238,3 +167,14 @@ def uninstall_templates(install_dir):
     )
     # delete everything in directory
     shutil.rmtree(install_dir)
+
+
+async def write_output_log_to_file(name, stream):
+    log_file = f"{name}.log"
+    with open(log_file, "a") as f:
+        while True:
+            line = await stream.readline()
+            if not line:
+                break
+            f.write(line.decode())
+            f.flush()

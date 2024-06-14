@@ -1,12 +1,10 @@
 from bittensor.commands.delegates import ListDelegatesCommand
-from bittensor.commands.root import RootRegisterCommand
-from bittensor.commands.delegates import SetTakeCommand
-from ...utils import new_wallet
+from ...utils import setup_wallet
 
 
 # delegate seems hard code the network config
 def test_root_delegate_list(local_chain, capsys):
-    (wallet, exec_command) = new_wallet("//Alice", "//Bob")
+    alice_keypair, exec_command, wallet = setup_wallet("//Alice")
 
     # 1200 hardcoded block gap
     exec_command(
