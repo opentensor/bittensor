@@ -16,6 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 import bittensor
 import json
+import typing
 from enum import Enum
 from dataclasses import dataclass, asdict
 from scalecodec.types import GenericCall
@@ -265,19 +266,19 @@ class DynamicPool:
         self,
         is_dynamic: bool,
         netuid: int,
-        alpha_issuance: Balance,
-        alpha_outstanding: Balance,
-        alpha_reserve: Balance,
-        tao_reserve: Balance,
+        alpha_issuance: typing.Union[int, Balance],
+        alpha_outstanding: typing.Union[int, Balance],
+        alpha_reserve: typing.Union[int, Balance],
+        tao_reserve: typing.Union[int, Balance],
         k: int,
     ):
         self.is_dynamic = is_dynamic
         self.netuid = netuid
-        self.alpha_issuance = alpha_issuance
-        self.alpha_outstanding = alpha_outstanding
-        self.alpha_reserve = alpha_reserve
-        self.tao_reserve = tao_reserve
-        self.k = self.tao_reserve.rao * self.alpha_reserve.rao
+        self.alpha_issuance = alpha_issuance if isinstance(alpha_issuance, Balance) else Balance.from_rao(alpha_issuance).set_unit(netuid)
+        self.alpha_outstanding = alpha_outstanding if isinstance(alpha_outstanding, Balance) else Balance.from_rao(alpha_outstanding).set_unit(netuid)
+        self.alpha_reserve = alpha_reserve if isinstance(alpha_reserve, Balance) else Balance.from_rao(alpha_reserve).set_unit(netuid)
+        self.tao_reserve = tao_reserve if isinstance(tao_reserve, Balance) else Balance.from_rao(tao_reserve).set_unit(0)
+        self.k = k
         if is_dynamic:
             if self.alpha_reserve.tao > 0:
                 self.price = Balance.from_tao(self.tao_reserve.tao / self.alpha_reserve.tao)

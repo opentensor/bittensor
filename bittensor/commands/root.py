@@ -201,7 +201,7 @@ class RootList:
             per_subnet_stake = {net: 0 for net in netuids}
             for ss in substake:
                 per_subnet_stake[ss["netuid"]] += ss["stake"]
-                total_stake_tao += ss["stake"].tao * dynamic_info[ss["netuid"]]["price"]
+                total_stake_tao += ss["stake"].tao * dynamic_info[ss["netuid"]].price
                 total_stake_alpha += ss["stake"].tao
 
             row1 = [
@@ -227,7 +227,7 @@ class RootList:
             ]
             for net in netuids:
                 row2.append(
-                    f"[blue]{bittensor.Balance.from_rao(int(per_subnet_stake[net] * dynamic_info[net]['price'] ))}[/blue]"
+                    f"[blue]{bittensor.Balance.from_rao(int(per_subnet_stake[net] * dynamic_info[net].price ))}[/blue]"
                 )
             table.add_row(*row2)
 

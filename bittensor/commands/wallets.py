@@ -923,7 +923,7 @@ class WalletBalanceCommand:
                     "",
                     str(stake["netuid"]), 
                     str(bittensor.Balance.from_rao(stake["stake"]).set_unit(stake["netuid"])),
-                    "{:.4f}".format(dynamic_info[stake["netuid"]]["price"]),
+                    "{:.4f}".format(dynamic_info[stake["netuid"]].price),
                 )
 
         table.add_row()
