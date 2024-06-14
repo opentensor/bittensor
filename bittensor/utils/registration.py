@@ -1,3 +1,29 @@
+# The MIT License (MIT)
+# Copyright © 2021-2022 Yuma Rao
+# Copyright © 2022-2023 Opentensor Foundation
+# Copyright © 2023 Opentensor Technologies
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
+# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+# the Software.
+#
+# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
+
+"""
+This module provides functionality for solving proof of work (PoW) problems for registration on the Bittensor network.
+It includes classes and functions to handle PoW solving using both CPU and CUDA-enabled GPUs.
+"""
+
+import asyncio
+
 import binascii
 import functools
 import hashlib
@@ -498,7 +524,7 @@ class RegistrationStatisticsLogger:
             self.status.stop()
 
     def get_status_message(
-        cls, stats: RegistrationStatistics, verbose: bool = False
+        self, stats: RegistrationStatistics, verbose: bool = False
     ) -> str:
         message = (
             "Solving\n"
@@ -761,10 +787,11 @@ async def _get_block_with_retry(
         Exception: If the block hash is None.
         ValueError: If the difficulty is None.
     """
-    block_number = await subtensor.get_current_block()
-    difficulty = (
-        1_000_000 if netuid == -1 else await subtensor.difficulty(netuid=netuid)
+    block_number, difficulty_ = await asyncio.gather(
+        subtensor.get_current_block(), subtensor.difficulty(netuid=netuid)
     )
+    difficulty = 1_000_000 if netuid == -1 else difficulty_
+
     block_hash = await subtensor.get_block_hash(block_number)
     if block_hash is None:
         raise Exception(
@@ -952,10 +979,14 @@ async def _solve_for_difficulty_fast_cuda(
             for i in range(num_processes)
         ]
 
-        # Get first block
-        block_number, difficulty, block_hash = await _get_block_with_retry(
-            subtensor=subtensor, netuid=netuid
+        block_hash_with_retry, is_hotkey_is_registered = await asyncio.gather(
+            _get_block_with_retry(subtensor=subtensor, netuid=netuid),
+            subtensor.is_hotkey_registered(
+                netuid=netuid, hotkey_ss58=wallet.hotkey.ss58_address
+            ),
         )
+        # Get first block
+        block_number, difficulty, block_hash = block_hash_with_retry
 
         block_bytes = bytes.fromhex(block_hash[2:])
         old_block_number = block_number
@@ -1004,9 +1035,7 @@ async def _solve_for_difficulty_fast_cuda(
         weights = [alpha_**i for i in range(n_samples)]  # weights decay by alpha
 
         solution = None
-        while netuid == -1 or not await subtensor.is_hotkey_registered(
-            netuid=netuid, hotkey_ss58=wallet.hotkey.ss58_address
-        ):
+        while netuid == -1 or not is_hotkey_is_registered:
             # Wait until a solver finds a solution
             try:
                 solution = solution_queue.get(block=True, timeout=0.15)

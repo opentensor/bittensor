@@ -45,7 +45,7 @@ def solve_cuda(
     try:
         import cubit
     except ImportError:
-        raise ImportError("Please install cubit")
+        raise ImportError("Please install cubit. https://pypi.org/project/cubit/")
 
     upper = int(limit // difficulty)
 
@@ -57,20 +57,19 @@ def solve_cuda(
         ]
         return hex_chunks
 
-    def _create_seal_hash(block_and_hotkey_hash_hex: bytes, nonce: int) -> bytes:
+    def _create_seal_hash(block_and_hotkey_hash_hex_: bytes, nonce: int) -> bytes:
         nonce_bytes = binascii.hexlify(nonce.to_bytes(8, "little"))
-        pre_seal = nonce_bytes + block_and_hotkey_hash_hex
+        pre_seal = nonce_bytes + block_and_hotkey_hash_hex_
         seal_sh256 = hashlib.sha256(bytearray(_hex_bytes_to_u8_list(pre_seal))).digest()
         kec = keccak.new(digest_bits=256)
-        seal = kec.update(seal_sh256).digest()
-        return seal
+        seal_ = kec.update(seal_sh256).digest()
+        return seal_
 
-    def _seal_meets_difficulty(seal: bytes, difficulty: int):
-        seal_number = int.from_bytes(seal, "big")
-        product = seal_number * difficulty
-        limit = int(math.pow(2, 256)) - 1
-
-        return product < limit
+    def _seal_meets_difficulty(seal_: bytes, difficulty_: int):
+        seal_number = int.from_bytes(seal_, "big")
+        product = seal_number * difficulty_
+        limit_ = int(math.pow(2, 256)) - 1
+        return product < limit_
 
     # Call cython function
     # int blockSize, uint64 nonce_start, uint64 update_interval, const unsigned char[:] limit,
@@ -103,19 +102,17 @@ def reset_cuda():
     try:
         import cubit
     except ImportError:
-        raise ImportError("Please install cubit")
+        raise ImportError("Please install cubit. https://pypi.org/project/cubit/")
 
     cubit.reset_cuda()
 
 
 def log_cuda_errors() -> str:
-    """
-    Logs any CUDA errors.
-    """
+    """Logs any CUDA errors."""
     try:
         import cubit
     except ImportError:
-        raise ImportError("Please install cubit")
+        raise ImportError("Please install cubit. https://pypi.org/project/cubit/")
 
     f = io.StringIO()
     with redirect_stdout(f):

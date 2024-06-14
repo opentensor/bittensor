@@ -402,8 +402,8 @@ def test_hyper_parameter_success_calls(
     # Prep
     subtensor._get_hyperparameter = mocker.MagicMock(return_value=value)
 
-    spy_u16_normalized_float = mocker.spy(subtensor_module, "U16_NORMALIZED_FLOAT")
-    spy_u64_normalized_float = mocker.spy(subtensor_module, "U64_NORMALIZED_FLOAT")
+    spy_u16_normalized_float = mocker.spy(subtensor_module, "u16_normalized_float")
+    spy_u64_normalized_float = mocker.spy(subtensor_module, "u64_normalized_float")
     spy_balance_from_rao = mocker.spy(Balance, "from_rao")
 
     # Call
@@ -2151,7 +2151,7 @@ def test_get_delegate_take_success(mocker, subtensor):
     delegate_take_value = 32768
     mock_result = mocker.MagicMock(value=delegate_take_value)
     mocker.patch.object(subtensor, "query_subtensor", return_value=mock_result)
-    spy_u16_normalized_float = mocker.spy(subtensor_module, "U16_NORMALIZED_FLOAT")
+    spy_u16_normalized_float = mocker.spy(subtensor_module, "u16_normalized_float")
 
     # Call
     subtensor.get_delegate_take(hotkey_ss58, block)
@@ -2168,7 +2168,7 @@ def test_get_delegate_take_no_data(mocker, subtensor):
     block = 123
     delegate_take_value = 32768
     mocker.patch.object(subtensor, "query_subtensor", return_value=None)
-    spy_u16_normalized_float = mocker.spy(subtensor_module, "U16_NORMALIZED_FLOAT")
+    spy_u16_normalized_float = mocker.spy(subtensor_module, "u16_normalized_float")
 
     # Call
     result = subtensor.get_delegate_take(hotkey_ss58, block)

@@ -104,9 +104,9 @@ from bittensor.extrinsics.transfer import transfer_extrinsic
 from bittensor.extrinsics.unstaking import unstake_extrinsic, unstake_multiple_extrinsic
 from bittensor.types import AxonServeCallParams, PrometheusServeCallParams
 from bittensor.utils import (
-    U16_NORMALIZED_FLOAT,
+    u16_normalized_float,
     ss58_to_vec_u8,
-    U64_NORMALIZED_FLOAT,
+    u64_normalized_float,
     networking,
 )
 from bittensor.utils.balance import Balance
@@ -3204,7 +3204,7 @@ class Subtensor:
         call = await self._get_hyperparameter(
             param_name="Kappa", netuid=netuid, block=block
         )
-        return None if call is None else U16_NORMALIZED_FLOAT(int(call))
+        return None if call is None else u16_normalized_float(int(call))
 
     async def difficulty(
         self, netuid: int, block: Optional[int] = None
@@ -3336,7 +3336,7 @@ class Subtensor:
         call = await self._get_hyperparameter(
             param_name="ValidatorLogitsDivergence", netuid=netuid, block=block
         )
-        return None if call is None else U16_NORMALIZED_FLOAT(int(call))
+        return None if call is None else u16_normalized_float(int(call))
 
     async def validator_sequence_length(
         self, netuid: int, block: Optional[int] = None
@@ -3414,7 +3414,7 @@ class Subtensor:
         call = await self._get_hyperparameter(
             param_name="ValidatorExcludeQuantile", netuid=netuid, block=block
         )
-        return None if call is None else U16_NORMALIZED_FLOAT(int(call))
+        return None if call is None else u16_normalized_float(int(call))
 
     async def max_allowed_validators(
         self, netuid: int, block: Optional[int] = None
@@ -3474,7 +3474,7 @@ class Subtensor:
         call = await self._get_hyperparameter(
             param_name="MaxWeightsLimit", block=block, netuid=netuid
         )
-        return None if call is None else U16_NORMALIZED_FLOAT(int(call))
+        return None if call is None else u16_normalized_float(int(call))
 
     async def adjustment_alpha(
         self, netuid: int, block: Optional[int] = None
@@ -3494,7 +3494,7 @@ class Subtensor:
         call = await self._get_hyperparameter(
             param_name="AdjustmentAlpha", block=block, netuid=netuid
         )
-        return None if call is None else U64_NORMALIZED_FLOAT(int(call))
+        return None if call is None else u64_normalized_float(int(call))
 
     async def bonds_moving_avg(
         self, netuid: int, block: Optional[int] = None
@@ -3514,7 +3514,7 @@ class Subtensor:
         call = await self._get_hyperparameter(
             param_name="BondsMovingAverage", netuid=netuid, block=block
         )
-        return None if call is None else U64_NORMALIZED_FLOAT(int(call))
+        return None if call is None else u64_normalized_float(int(call))
 
     async def scaling_law_power(
         self, netuid: int, block: Optional[int] = None
@@ -4269,7 +4269,7 @@ class Subtensor:
         return (
             None
             if getattr(_result, "value", None) is None
-            else U16_NORMALIZED_FLOAT(_result.value)
+            else u16_normalized_float(_result.value)
         )
 
     async def get_nominators_for_hotkey(
