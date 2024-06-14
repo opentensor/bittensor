@@ -400,13 +400,15 @@ class StakeList:
 
             first_row = True
             for netuid in netuids:
+                sn_symbol = "({})".format(bittensor.Balance.get_unit(netuid))
                 row = [
                     row_name if first_row else "",
                     str(netuid),
-                    str(
+                    "{:.4f}{}".format(
                         bittensor.Balance.from_rao(
                             int(hot_netuid_pairs[hotkey].get(netuid, 0))
-                        ).set_unit(netuid)
+                        ).__float__(),
+                        sn_symbol
                     ),
                     f"[blue]{hot_netuid_pairs[hotkey].get(netuid, 0) * dynamic_info[netuid]['price'] }[/blue]"
                 ]
