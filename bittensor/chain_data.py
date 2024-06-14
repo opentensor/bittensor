@@ -278,7 +278,7 @@ class DynamicPool:
         if self.alpha_reserve.tao > 0:
             self.price = Balance.from_tao(self.tao_reserve.tao / self.alpha_reserve.tao)
         else:
-            self.price = 0
+            self.price = Balance.from_tao(0.)
 
     def __str__(self) -> str:
         return f"DynamicPool( alpha_issuance={self.alpha_issuance}, alpha_outstanding={self.alpha_outstanding}, alpha_reserve={self.alpha_reserve}, tao_reserve={self.tao_reserve}, k={self.k}, price={self.price} )"
