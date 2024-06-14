@@ -16,7 +16,6 @@
 # DEALINGS IN THE SOFTWARE.
 
 
-
 from .delegates import (
     NominateCommand,
     ListDelegatesCommand,
@@ -77,4 +76,3 @@ from .wallets import (
     GetWalletHistoryCommand,
 )
 from .weights import CommitWeightCommand, RevealWeightCommand
-

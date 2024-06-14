@@ -74,7 +74,6 @@ defaults: Munch = munchify(
 )
 
 
-
 class IntListPrompt(PromptBase):
     """Prompt for a list of integers."""
 

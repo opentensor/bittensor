@@ -26,7 +26,7 @@ from .utils import (
     get_hotkey_wallets_for_wallet,
     get_all_wallets_for_path,
     filter_netuids_by_registered_hotkeys,
-    defaults
+    defaults,
 )
 import os
 import bittensor

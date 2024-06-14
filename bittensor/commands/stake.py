@@ -30,7 +30,7 @@ from .utils import (
     get_hotkey_wallets_for_wallet,
     get_delegates_details,
     DelegatesDetails,
-    defaults
+    defaults,
 )
 
 
