@@ -236,7 +236,7 @@ def u64_normalized_float(x: int) -> float:
 
 def u8_key_to_ss58(u8_key: List[int]) -> str:
     """
-    Converts an u8-encoded account key to a ss58 address.
+    Converts a u8-encoded account key to an ss58 address.
 
     Args:
         u8_key (List[int]): The u8-encoded account key.
