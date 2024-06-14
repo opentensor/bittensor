@@ -387,133 +387,15 @@ class StakeList:
                     "({})".format(bittensor.Balance.get_unit(netuid)), # Symbol
                     str( bittensor.Balance.from_rao( int(substake['stake']) ).set_unit(netuid) ), # Alpha value
                     f"[blue]{ bittensor.Balance.from_tao(substake['stake'].tao) * dynamic_info[netuid].price.tao}[/blue]", # Tao equiv
-                    
                 ]
                 table.add_row(*row)
             bittensor.__console__.print(table)
+            
         # Iterate over each hotkey and make a table
         for hotkey in hotkeys_to_substakes.keys():
             table_substakes( hotkey, hotkeys_to_substakes[hotkey] )
         
-        
-        
 
-        # # Build map of hotkeys to netuids to stake
-        # hot_tao_totals = {}
-        # hot_alpha_totals = {}
-        # netuid_totals = {}
-        # hot_netuid_pairs = {}
-        # for substake in substakes:
-        #     netuid = substake["netuid"]
-        #     if substake["hotkey"] not in hot_netuid_pairs:
-        #         hot_netuid_pairs[substake["hotkey"]] = {}
-        #         hot_tao_totals[substake["hotkey"]] = 0.0
-        #         hot_alpha_totals[substake["hotkey"]] = 0.0
-        #     if netuid not in netuid_totals:
-        #         netuid_totals[netuid] = 0.0
-        #     hot_netuid_pairs[substake["hotkey"]][netuid] = substake["stake"]
-        #     hot_tao_totals[substake["hotkey"]] += (
-        #         substake["stake"] * dynamic_info[netuid].price
-        #     )
-        #     hot_alpha_totals[substake["hotkey"]] += substake["stake"]
-        #     netuid_totals[netuid] += substake["stake"] * dynamic_info[netuid].price
-
-        # table = Table(show_footer=True, pad_edge=False, box=None, expand=False)
-        # table.add_column(
-        #     "[white]Hotkey", footer_style="overline white", style="dark_slate_gray3"
-        # )
-        # table.add_column(f"[white]Netuid", footer_style="overline white", style="white")
-        # table.add_column(f"[white]{bittensor.Balance.unit}", footer_style="overline white", style="blue")
-        # table.add_column(f"[white]{bittensor.Balance.get_unit(1)}", footer_style="overline white", style="green")
-
-        # # Fill rows
-        # for hotkey in hot_netuid_pairs.keys():
-        #     # Switch on named hotkeys
-        #     if hotkey in registered_delegate_info:
-        #         row_name = registered_delegate_info[hotkey].name
-        #     else:
-        #         row_name = hotkey[:10]
-
-        #     first_row = True
-        #     for netuid in netuids:
-        #         row = [
-        #             row_name if first_row else "",
-        #             str(netuid),
-        #             f"[blue]{hot_netuid_pairs[hotkey].get(netuid, 0) * dynamic_info[netuid].price }[/blue]",
-        #             str( bittensor.Balance.from_rao( int(hot_netuid_pairs[hotkey].get(netuid, 0)) ).set_unit(netuid) )
-        #         ]
-        #         table.add_row(*row)
-        #         first_row = False
-
-        #     # bottom line
-        #     row = [
-        #         "TOTAL",
-        #         "",
-        #         "",
-        #         f"{hot_tao_totals[hotkey].set_unit(0)}",
-        #     ]    
-        #     table.add_row(*row)
-
-        # table.box = None
-        # table.pad_edge = False
-        # table.width = None
-        # column_descriptions_table = Table(
-        #     title="Stake List",
-        #     box=rich.box.HEAVY_HEAD,
-        #     safe_box=False,
-        #     padding=(0, 1),
-        #     collapse_padding=False,
-        #     pad_edge=False,
-        #     expand=False,
-        #     show_header=True,
-        #     show_footer=False,
-        #     show_edge=False,
-        #     show_lines=False,
-        #     leading=0,
-        #     style="none",
-        #     row_styles=None,
-        #     header_style="table.header",
-        #     footer_style="table.footer",
-        #     border_style=None,
-        #     title_style=None,
-        #     caption_style=None,
-        #     title_justify="center",
-        #     caption_justify="center",
-        #     highlight=False,
-        # )
-        # column_descriptions_table.add_column("No.", justify="left", style="bold")
-        # column_descriptions_table.add_column("Column", justify="left")
-        # column_descriptions_table.add_column("Description", justify="left")
-
-        # column_descriptions = [
-        #     (
-        #         "[bold white]1.[/bold white]",
-        #         "[bold white]Hotkey[/bold white]",
-        #         "The staking account's associated hotkey or delegate name.",
-        #     ),
-        #     (
-        #         "[bold white]2.[/bold white]",
-        #         "[bold white]Netuid[/bold white]",
-        #         "Subnet ID.",
-        #     ),
-        #     (
-        #         "[bold white]3.[/bold white]",
-        #         "[bold white]Alpha[/bold white]",
-        #         "For each subnet, the quantity of staked [green]dynamic TAO (\u03B1)[/green].",
-        #     ),
-        #     (
-        #         "[bold white]4.[/bold white]",
-        #         "[bold white]DTAO[/bold white]",
-        #         "For each subnet, the staked Alpha [blue]TAO[/blue] value calculated using the current subnet exchange rate.",
-        #     ),
-        # ]
-
-        # for no, name, description in column_descriptions:
-        #     column_descriptions_table.add_row(no, name, description)
-        # bittensor.__console__.print(column_descriptions_table)
-        # bittensor.__console__.print("\n")
-        # bittensor.__console__.print("\n")
-        # bittensor.__console__.print(table)
 
     @staticmethod
     def check_config(config: "bittensor.config"):
