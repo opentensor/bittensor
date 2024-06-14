@@ -160,7 +160,7 @@ def show_delegates(
     """
     Displays a formatted table of Bittensor network delegates with detailed statistics to the console.
 
-    The table is sorted_ by total stake in descending order and provides
+    The table is sorted by total stake in descending order and provides
     a snapshot of delegate performance and status, helping users make informed decisions for staking or nominating.
 
     This is a helper function that is called by the :func:`list_delegates` and :func:`my_delegates`, and is not intended
