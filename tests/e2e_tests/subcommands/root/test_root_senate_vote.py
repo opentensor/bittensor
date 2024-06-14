@@ -2,14 +2,13 @@ from bittensor.commands.senate import VoteCommand
 from bittensor.commands.root import RootRegisterCommand
 
 from ...utils import (
-    new_wallet,
+    setup_wallet,
     call_add_proposal,
 )
 
 
-# test case to vote the proposal
 def test_root_senate_vote(local_chain, capsys, monkeypatch):
-    (wallet, exec_command) = new_wallet("//Alice", "//Bob")
+    keypair, exec_command, wallet = setup_wallet("//Alice")
     monkeypatch.setattr("rich.prompt.Confirm.ask", lambda self: True)
 
     exec_command(
