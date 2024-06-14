@@ -562,7 +562,7 @@ async def _solve_for_difficulty_fast(
     log_verbose: bool = False,
 ) -> Optional[POWSolution]:
     """
-    Solves the POW for reg istration using multiprocessing.
+    Solves the POW for registration using multiprocessing.
     Args:
         subtensor
             Subtensor to connect to for block information and to submit.
