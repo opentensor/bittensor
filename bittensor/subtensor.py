@@ -3540,6 +3540,7 @@ class subtensor:
     def get_dynamic_info_for_netuid(
         self, netuid: int, block: Optional[int] = None
     ) -> DynamicPool:
+        is_dynamic = self.query_subtensor("IsDynamic", block, [netuid]).value
         alpha_reserve = Balance.from_rao(
             self.query_subtensor("DynamicAlphaReserve", block, [netuid]).value
         ).set_unit(netuid)
@@ -3554,6 +3555,7 @@ class subtensor:
         )
         k = self.query_subtensor("DynamicK", block, [netuid]).value
         return DynamicPool(
+            is_dynamic=is_dynamic,
             netuid=netuid,
             tao_reserve=tao_reserve,
             alpha_issuance=alpha_issuance,

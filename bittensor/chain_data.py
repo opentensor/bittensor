@@ -252,6 +252,7 @@ def from_scale_encoding_using_type_string(
 
 @dataclass
 class DynamicPool:
+    is_dynamic: bool
     alpha_issuance: Balance
     alpha_outstanding: Balance
     alpha_reserve: Balance
@@ -262,6 +263,7 @@ class DynamicPool:
 
     def __init__(
         self,
+        is_dynamic: bool,
         netuid: int,
         alpha_issuance: Balance,
         alpha_outstanding: Balance,
@@ -269,16 +271,20 @@ class DynamicPool:
         tao_reserve: Balance,
         k: int,
     ):
+        self.is_dynamic = is_dynamic
         self.netuid = netuid
         self.alpha_issuance = alpha_issuance
         self.alpha_outstanding = alpha_outstanding
         self.alpha_reserve = alpha_reserve
         self.tao_reserve = tao_reserve
         self.k = self.tao_reserve.rao * self.alpha_reserve.rao
-        if self.alpha_reserve.tao > 0:
-            self.price = Balance.from_tao(self.tao_reserve.tao / self.alpha_reserve.tao)
+        if is_dynamic:
+            if self.alpha_reserve.tao > 0:
+                self.price = Balance.from_tao(self.tao_reserve.tao / self.alpha_reserve.tao)
+            else:
+                self.price = Balance.from_tao(0.)
         else:
-            self.price = Balance.from_tao(0.)
+            self.price = Balance.from_tao(1.)
 
     def __str__(self) -> str:
         return f"DynamicPool( alpha_issuance={self.alpha_issuance}, alpha_outstanding={self.alpha_outstanding}, alpha_reserve={self.alpha_reserve}, tao_reserve={self.tao_reserve}, k={self.k}, price={self.price} )"
@@ -310,21 +316,25 @@ class DynamicPool:
             second part (slippage) is the difference between the estimated amount and ideal
             amount as if there was no slippage
         """
-        new_tao_in = self.tao_reserve + tao
-        if new_tao_in == 0:
-            return tao, Balance.from_rao(0)
-        new_alpha_in = self.k / new_tao_in
+        if self.is_dynamic:
+            new_tao_in = self.tao_reserve + tao
+            if new_tao_in == 0:
+                return tao, Balance.from_rao(0)
+            new_alpha_in = self.k / new_tao_in
 
-        # Amount of alpha given to the staker
-        alpha_returned = Balance.from_rao(
-            self.alpha_reserve.rao - new_alpha_in.rao
-        ).set_unit(self.netuid)
+            # Amount of alpha given to the staker
+            alpha_returned = Balance.from_rao(
+                self.alpha_reserve.rao - new_alpha_in.rao
+            ).set_unit(self.netuid)
 
-        # Ideal conversion as if there is no slippage, just price
-        alpha_ideal = self.tao_to_alpha(tao)
-        slippage = Balance.from_tao(alpha_ideal.tao - alpha_returned.tao).set_unit(
-            self.netuid
-        )
+            # Ideal conversion as if there is no slippage, just price
+            alpha_ideal = self.tao_to_alpha(tao)
+            slippage = Balance.from_tao(alpha_ideal.tao - alpha_returned.tao).set_unit(
+                self.netuid
+            )
+        else:
+            alpha_returned = tao.set_unit(self.netuid)
+            slippage = Balance.from_tao(0)
         return alpha_returned, slippage
 
     def alpha_to_tao_with_slippage(
@@ -342,16 +352,19 @@ class DynamicPool:
             second part (slippage) is the difference between the estimated amount and ideal
             amount as if there was no slippage
         """
+        if self.is_dynamic:
+            new_alpha_in = self.alpha_reserve + alpha
+            new_tao_reserve = self.k / new_alpha_in
 
-        new_alpha_in = self.alpha_reserve + alpha
-        new_tao_reserve = self.k / new_alpha_in
+            # Amount of TAO given to the unstaker
+            tao_returned = Balance.from_rao(self.tao_reserve - new_tao_reserve)
 
-        # Amount of TAO given to the unstaker
-        tao_returned = Balance.from_rao(self.tao_reserve - new_tao_reserve)
-
-        # Ideal conversion as if there is no slippage, just price
-        tao_ideal = self.alpha_to_tao(alpha)
-        slippage = Balance.from_tao(tao_ideal.tao - tao_returned.tao)
+            # Ideal conversion as if there is no slippage, just price
+            tao_ideal = self.alpha_to_tao(alpha)
+            slippage = Balance.from_tao(tao_ideal.tao - tao_returned.tao)
+        else:
+            tao_returned = alpha.set_unit(0)
+            slippage = Balance.from_tao(0)
         return tao_returned, slippage
 
 class SubstakeElements:

@@ -167,26 +167,36 @@ class SubStakeCommand:
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
-        if (
-            not config.is_set("hotkey")
-            and not config.is_set("wallet.hotkey")
-            and not config.wallet.get("hotkey")
-            and not config.no_prompt
-        ):
-            hotkey = Prompt.ask(
+        # Retrieve hotkey string from cli parameters
+        if config.get("hotkey"):
+            hotkey_str = config.get("hotkey")
+        elif config.get("wallet.hotkey"):
+            hotkey_str = config.get("wallet.hotkey")
+        elif config.wallet.get("hotkey"):
+            hotkey_str = config.wallet.get("hotkey")
+        elif not config.no_prompt:
+            hotkey_str = Prompt.ask(
                 "Enter hotkey name or ss58_address to stake to",
                 default=defaults.wallet.hotkey,
             )
-            if bittensor.utils.is_valid_ss58_address(hotkey):
-                config.hotkey = str(hotkey)
-            else:
-                config.hotkey_name = hotkey
-                wallet_delegate = bittensor.wallet(name=hotkey)
-                config.hotkey = wallet_delegate.hotkey.ss58_address
+        else:
+            print("ERROR: Hotkey is needed to proceed")
+            sys.exit(1)
+
+        # parse hotkey string into config.hotkey and config.hotkey_name if available
+        if bittensor.utils.is_valid_ss58_address(hotkey_str):
+            config.hotkey = str(hotkey_str)
+        else:
+            config.hotkey_name = hotkey_str
+            wallet_delegate = bittensor.wallet(name=hotkey_str)
+            config.hotkey = wallet_delegate.hotkey.ss58_address
 
         if not config.is_set("netuid") and not config.no_prompt:
             netuid = Prompt.ask("Enter netuid", default="0")
             config.netuid = int(netuid)
+        if not config.netuid:
+            print("ERROR: netuid is needed to proceed")
+            sys.exit(1)
 
         # Get amount.
         if not config.get("amount") and not config.get("max_stake"):
