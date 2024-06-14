@@ -91,7 +91,7 @@ class OverviewCommand:
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
-    def _get_total_balance(
+    async def _get_total_balance(
         total_balance: "bittensor.Balance",
         subtensor: "bittensor.subtensor",
         cli: "bittensor.cli",
@@ -103,7 +103,7 @@ class OverviewCommand:
                     cold_wallet.coldkeypub_file.exists_on_device()
                     and not cold_wallet.coldkeypub_file.is_encrypted()
                 ):
-                    total_balance = total_balance + subtensor.get_balance(
+                    total_balance = total_balance + await subtensor.get_balance(
                         cold_wallet.coldkeypub.ss58_address
                     )
             all_hotkeys = get_all_wallets_for_path(cli.config.wallet.path)
@@ -203,9 +203,9 @@ class OverviewCommand:
 
         # Pull neuron info for all keys.
         neurons: Dict[str, List[bittensor.NeuronInfoLite]] = {}
-        block = subtensor.block
+        block = await subtensor.block
 
-        netuids = subtensor.get_all_subnet_netuids()
+        netuids = await subtensor.get_all_subnet_netuids()
         netuids = filter_netuids_by_registered_hotkeys(
             cli, subtensor, netuids, all_hotkeys
         )
@@ -266,8 +266,10 @@ class OverviewCommand:
             coldkeys_to_check = []
             for coldkey_wallet in all_coldkey_wallets:
                 # Check if we have any stake with hotkeys that are not registered.
-                total_coldkey_stake_from_chain = subtensor.get_total_stake_for_coldkey(
-                    ss58_address=coldkey_wallet.coldkeypub.ss58_address
+                total_coldkey_stake_from_chain = (
+                    await subtensor.get_total_stake_for_coldkey(
+                        ss58_address=coldkey_wallet.coldkeypub.ss58_address
+                    )
                 )
                 difference = (
                     total_coldkey_stake_from_chain
@@ -360,7 +362,7 @@ class OverviewCommand:
         total_neurons = 0
         total_stake = 0.0
         for netuid in netuids:
-            subnet_tempo = subtensor.tempo(netuid=netuid)
+            subnet_tempo = await subtensor.tempo(netuid=netuid)
             last_subnet = netuid == netuids[-1]
             TABLE_DATA = []
             total_rank = 0.0
@@ -612,7 +614,7 @@ class OverviewCommand:
     ) -> Tuple[int, List["bittensor.NeuronInfoLite"], Optional[str]]:
         result: List["bittensor.NeuronInfoLite"] = []
 
-        all_neurons: List["bittensor.NeuronInfoLite"] = subtensor.neurons_lite(
+        all_neurons: List["bittensor.NeuronInfoLite"] = await subtensor.neurons_lite(
             netuid=netuid
         )
         # Map the hotkeys to uids
@@ -636,18 +638,20 @@ class OverviewCommand:
         result: List[Tuple[str, "bittensor.Balance"]] = []
 
         # Pull all stake for our coldkey
-        all_stake_info_for_coldkey = subtensor.get_stake_info_for_coldkey(
+        all_stake_info_for_coldkey = await subtensor.get_stake_info_for_coldkey(
             coldkey_ss58=coldkey_wallet.coldkeypub.ss58_address
         )
 
         ## Filter out hotkeys that are in our wallets
         ## Filter out hotkeys that are delegates.
-        def _filter_stake_info(stake_info: "bittensor.StakeInfo") -> bool:
+        async def _filter_stake_info(stake_info: "bittensor.StakeInfo") -> bool:
             if stake_info.stake == 0:
                 return False  # Skip hotkeys that we have no stake with.
             if stake_info.hotkey_ss58 in all_hotkey_addresses:
                 return False  # Skip hotkeys that are in our wallets.
-            return not subtensor.is_hotkey_delegate(hotkey_ss58=stake_info.hotkey_ss58)
+            return not await subtensor.is_hotkey_delegate(
+                hotkey_ss58=stake_info.hotkey_ss58
+            )
 
         all_staked_hotkeys = filter(_filter_stake_info, all_stake_info_for_coldkey)
         result = [
