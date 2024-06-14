@@ -15,8 +15,9 @@ from ...utils import (
 import bittensor
 
 
-# Test case to set weights for root network
 def test_root_get_set_weights(local_chain, capsys):
+    """Test case to set weights for root network"""
+
     (wallet, exec_command) = new_wallet("//Alice", "//Bob")
     assert sudo_call_set_network_limit(local_chain, wallet)
     root_netuid = 0

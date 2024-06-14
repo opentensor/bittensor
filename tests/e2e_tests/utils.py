@@ -102,6 +102,7 @@ def sudo_call_set_network_limit(
 def sudo_call_set_weight_limit(
     substrate: SubstrateInterface, wallet: bittensor.wallet, netuid: int
 ) -> bool:
+    """Set the set weight limit for the network with netuid via sudo call."""
     inner_call = substrate.compose_call(
         call_module="AdminUtils",
         call_function="sudo_set_weights_set_rate_limit",
@@ -127,6 +128,7 @@ def sudo_call_set_weight_limit(
 def sudo_call_set_min_stake(
     substrate: SubstrateInterface, wallet: bittensor.wallet, min_stake: int
 ) -> bool:
+    """Set the minimum stake for the network via sudo call."""
     inner_call = substrate.compose_call(
         call_module="AdminUtils",
         call_function="sudo_set_weights_min_stake",
