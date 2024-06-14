@@ -15,16 +15,17 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from munch import Munch, munchify
-import sys
 import os
-import bittensor
-import requests
-from bittensor.utils.registration import torch
-from typing import List, Dict, Any, Optional
-from rich.prompt import Confirm, PromptBase
+import sys
 from dataclasses import dataclass
+from typing import List, Dict, Any, Optional
 
+import requests
+from munch import Munch, munchify
+from rich.prompt import Confirm, PromptBase
+
+import bittensor
+from bittensor.utils.registration import torch
 
 console = bittensor.__console__
 
