@@ -691,7 +691,7 @@ class ListDelegatesCommand:
 
     The table columns include:
 
-    - INDEX: The delegate's index in the sorted_ list.
+    - INDEX: The delegate's index in the sorted list.
     - DELEGATE: The name of the delegate.
     - SS58: The delegate's unique SS58 address (truncated for display).
     - NOMINATORS: The count of nominators backing the delegate.
