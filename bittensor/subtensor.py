@@ -43,9 +43,9 @@ import bittensor
 from bittensor.btlogging import logging as _logger
 from bittensor.utils import torch, weight_utils, format_error_message
 from .chain_data import (
+    DelegateInfoLite,
     NeuronInfo,
     DelegateInfo,
-    DelegateInfoLite,
     PrometheusInfo,
     SubnetInfo,
     SubnetHyperparameters,
@@ -614,7 +614,6 @@ class Subtensor:
     ) -> bool:
         """
         Set delegate hotkey take
-
         Args:
             wallet (bittensor.wallet): The wallet containing the hotkey to be nominated.
             delegate_ss58 (str, optional): Hotkey
@@ -1083,6 +1082,7 @@ class Subtensor:
         This function allows neurons to reveal their previously committed weight distribution, ensuring transparency
         and accountability within the Bittensor network.
         """
+
         retries = 0
         success = False
         message = "No attempt made. Perhaps it is too soon to reveal weights!"
@@ -2658,6 +2658,73 @@ class Subtensor:
             wait_for_finalization=wait_for_finalization,
             prompt=prompt,
         )
+
+    def _do_set_root_weights(
+        self,
+        wallet: "bittensor.wallet",
+        uids: List[int],
+        vals: List[int],
+        netuid: int = 0,
+        version_key: int = bittensor.__version_as_int__,
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = False,
+    ) -> Tuple[bool, Optional[str]]:  # (success, error_message)
+        """
+        Internal method to send a transaction to the Bittensor blockchain, setting weights
+        for specified neurons on root. This method constructs and submits the transaction, handling
+        retries and blockchain communication.
+
+        Args:
+            wallet (bittensor.wallet): The wallet associated with the neuron setting the weights.
+            uids (List[int]): List of neuron UIDs for which weights are being set.
+            vals (List[int]): List of weight values corresponding to each UID.
+            netuid (int): Unique identifier for the network.
+            version_key (int, optional): Version key for compatibility with the network.
+            wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
+            wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
+
+        Returns:
+            Tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
+
+        This method is vital for the dynamic weighting mechanism in Bittensor, where neurons adjust their
+        trust in other neurons based on observed performance and contributions on the root network.
+        """
+
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=_logger)
+        def make_substrate_call_with_retry():
+            call = self.substrate.compose_call(
+                call_module="SubtensorModule",
+                call_function="set_root_weights",
+                call_params={
+                    "dests": uids,
+                    "weights": vals,
+                    "netuid": netuid,
+                    "version_key": version_key,
+                    "hotkey": wallet.hotkey.ss58_address,
+                },
+            )
+            # Period dictates how long the extrinsic will stay as part of waiting pool
+            extrinsic = self.substrate.create_signed_extrinsic(
+                call=call,
+                keypair=wallet.coldkey,
+                era={"period": 5},
+            )
+            response = self.substrate.submit_extrinsic(
+                extrinsic,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
+            # We only wait here if we expect finalization.
+            if not wait_for_finalization and not wait_for_inclusion:
+                return True, "Not waiting for finalziation or inclusion."
+
+            response.process_events()
+            if response.is_success:
+                return True, "Successfully set weights."
+            else:
+                return False, response.error_message
+
+        return make_substrate_call_with_retry()
 
     ##################
     # Registry Calls #
@@ -4324,8 +4391,6 @@ class Subtensor:
 
         Analyzing the delegate population offers insights into the network's governance dynamics and the distribution of
         trust and responsibility among participating neurons.
-
-        For a lighter version of this function, see :func:`get_delegates_lite`.
 
         Args:
             block (Optional[int], optional): The blockchain block number for the query.

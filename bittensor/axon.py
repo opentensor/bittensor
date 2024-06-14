@@ -896,7 +896,6 @@ class axon:
             # If we don't have a nonce stored, ensure that the nonce falls within
             # a reasonable delta.
 
-            # Updated nonce using NTP implementated at v7.2
             if (
                 synapse.dendrite.version is not None
                 and synapse.dendrite.version >= V_7_2_0
