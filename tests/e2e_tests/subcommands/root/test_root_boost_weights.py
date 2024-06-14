@@ -3,9 +3,15 @@ from bittensor.commands.root import (
     RootSetWeightsCommand,
     RootRegisterCommand,
 )
+from bittensor.commands.stake import StakeCommand
 from bittensor.commands.network import RegisterSubnetworkCommand
 from bittensor.commands.register import RegisterCommand
-from ...utils import new_wallet, sudo_call_set_network_limit, sudo_call_set_weight_limit
+from ...utils import (
+    new_wallet,
+    sudo_call_set_network_limit,
+    sudo_call_set_weight_limit,
+    sudo_call_set_min_stake,
+)
 import bittensor
 
 
@@ -44,6 +50,17 @@ def test_root_get_set_weights(local_chain, capsys):
 
     netuid = "1"
     increase = "0.01"
+
+    exec_command(
+        RootSetBoostCommand,
+        ["root", "boost", "--netuid", netuid, "--increase", increase],
+    )
+
+    stake_amount = 2
+    exec_command(StakeCommand, ["stake", "add", "--amount", str(stake_amount)])
+
+    # set the min stake for the account to set weights
+    assert sudo_call_set_min_stake(local_chain, wallet, stake_amount)
 
     exec_command(
         RootSetBoostCommand,
