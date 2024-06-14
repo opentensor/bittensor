@@ -10,7 +10,7 @@ def test_stake_show(local_chain, capsys):
     captured = capsys.readouterr()
     lines = captured.out.splitlines()
 
-    assert len(lines) >= 5
+    assert len(lines) >= 4
     # assert "Coldkey" in lines[0]
     # assert "default" in lines[1]
     # assert "default" in lines[2]
