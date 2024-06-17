@@ -166,7 +166,7 @@ def loguru_sink():
         (300, "warning_case_block_greater_than_300"),
     ],
 )
-@pytest.mark.skip('Until staging migrated to merge-async')
+@pytest.mark.skip("Until staging migrated to merge-async")
 def test_sync_warning_cases(block, test_id, metagraph_instance, mock_subtensor, caplog):
     metagraph_instance.sync(block=block, lite=True, subtensor=mock_subtensor)
 
