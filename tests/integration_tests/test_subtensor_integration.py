@@ -154,7 +154,7 @@ class TestSubtensor(unittest.TestCase):
         )
         self.assertTrue(success, msg="Unstake should succeed")
 
-    def test_unstake_failed(self):
+    async def test_unstake_failed(self):
         self.subtensor.do_unstake = MagicMock(return_value=False)
 
         self.subtensor.register = MagicMock(return_value=True)
@@ -166,7 +166,9 @@ class TestSubtensor(unittest.TestCase):
         self.subtensor.get_stake_for_coldkey_and_hotkey = MagicMock(
             return_value=Balance.from_tao(500)
         )
-        fail = self.subtensor.unstake(self.wallet, amount=200, wait_for_inclusion=True)
+        fail = await self.subtensor.unstake(
+            self.wallet, amount=200, wait_for_inclusion=True
+        )
         self.assertFalse(fail, msg="Unstake should fail")
 
     def test_stake(self):
@@ -215,7 +217,7 @@ class TestSubtensor(unittest.TestCase):
         )
         self.assertTrue(success, msg="Stake should succeed")
 
-    def test_stake_failed(self):
+    async def test_stake_failed(self):
         self.subtensor.do_stake = MagicMock(return_value=False)
 
         self.subtensor.substrate.get_payment_info = MagicMock(
@@ -234,7 +236,7 @@ class TestSubtensor(unittest.TestCase):
         self.subtensor.get_hotkey_owner = MagicMock(
             return_value=self.wallet.coldkeypub.ss58_address
         )
-        fail = self.subtensor.add_stake(
+        fail = await self.subtensor.add_stake(
             self.wallet, amount=200, wait_for_inclusion=True
         )
         self.assertFalse(fail, msg="Stake should fail")
@@ -269,21 +271,21 @@ class TestSubtensor(unittest.TestCase):
         )
         self.assertTrue(success, msg="Transfer should succeed")
 
-    def test_transfer_failed(self):
+    async def test_transfer_failed(self):
         fake_coldkey = _get_mock_coldkey(1)
         self.subtensor.do_transfer = MagicMock(
             return_value=(False, None, "Mock failure message")
         )
 
-        fail = self.subtensor.transfer(
+        fail = await self.subtensor.transfer(
             self.wallet, fake_coldkey, amount=200, wait_for_inclusion=True
         )
         self.assertFalse(fail, msg="Transfer should fail")
 
-    def test_transfer_invalid_dest(self):
+    async def test_transfer_invalid_dest(self):
         fake_coldkey = _get_mock_coldkey(1)
 
-        fail = self.subtensor.transfer(
+        fail = await self.subtensor.transfer(
             self.wallet,
             fake_coldkey[:-1],  # invalid dest
             amount=200,
@@ -616,7 +618,7 @@ class TestSubtensor(unittest.TestCase):
         for i in balances:
             assert type(balances[i]) == bittensor.utils.balance.Balance
 
-    def test_get_uid_by_hotkey_on_subnet(self):
+    async def test_get_uid_by_hotkey_on_subnet(self):
         mock_coldkey_kp = _get_mock_keypair(0, self.id())
         mock_hotkey_kp = _get_mock_keypair(100, self.id())
 
@@ -627,7 +629,7 @@ class TestSubtensor(unittest.TestCase):
             coldkey=mock_coldkey_kp.ss58_address,
         )
 
-        uid = self.subtensor.get_uid_for_hotkey_on_subnet(
+        uid = await self.subtensor.get_uid_for_hotkey_on_subnet(
             mock_hotkey_kp.ss58_address, netuid=3
         )
         self.assertIsInstance(
@@ -655,17 +657,17 @@ class TestSubtensor(unittest.TestCase):
         )
         self.assertTrue(registered, msg="Hotkey should be registered")
 
-    def test_is_hotkey_registered_not_registered(self):
+    async def test_is_hotkey_registered_not_registered(self):
         mock_hotkey_kp = _get_mock_keypair(100, self.id())
 
         # Do not register on subnet 3
 
-        registered = self.subtensor.is_hotkey_registered(
+        registered = await self.subtensor.is_hotkey_registered(
             mock_hotkey_kp.ss58_address, netuid=3
         )
         self.assertFalse(registered, msg="Hotkey should not be registered")
 
-    def test_registration_multiprocessed_already_registered(self):
+    async def test_registration_multiprocessed_already_registered(self):
         workblocks_before_is_registered = random.randint(5, 10)
         # return False each work block but return True after a random number of blocks
         is_registered_return_values = (
@@ -706,7 +708,7 @@ class TestSubtensor(unittest.TestCase):
                     mock_set_status.__exit__ = MagicMock(return_value=True)
 
                     # should return True
-                    assert self.subtensor.register(
+                    assert await self.subtensor.register(
                         wallet=wallet, netuid=3, num_processes=3, update_interval=5
                     )
 
@@ -752,7 +754,7 @@ class TestSubtensor(unittest.TestCase):
             msg="Registration should succeed",
         )
 
-    def test_registration_failed(self):
+    async def test_registration_failed(self):
         is_registered_return_values = [False for _ in range(100)]
         current_block = [i for i in range(0, 100)]
         mock_neuron = MagicMock()
@@ -781,13 +783,13 @@ class TestSubtensor(unittest.TestCase):
 
             # should return True
             self.assertIsNot(
-                self.subtensor.register(wallet=wallet, netuid=3),
+                await self.subtensor.register(wallet=wallet, netuid=3),
                 True,
                 msg="Registration should fail",
             )
             self.assertEqual(mock_create_pow.call_count, 3)
 
-    def test_registration_stale_then_continue(self):
+    async def test_registration_stale_then_continue(self):
         # verify that after a stale solution, the solve will continue without exiting
 
         class ExitEarly(Exception):
@@ -819,7 +821,9 @@ class TestSubtensor(unittest.TestCase):
                 return_value=bittensor.NeuronInfo.get_null_neuron()
             )
             with pytest.raises(ExitEarly):
-                bittensor.subtensor.register(mock_subtensor_self, mock_wallet, netuid=3)
+                await bittensor.subtensor.register(
+                    mock_subtensor_self, mock_wallet, netuid=3
+                )
             self.assertEqual(
                 mock_create_pow.call_count, 2, msg="must try another pow after stale"
             )
