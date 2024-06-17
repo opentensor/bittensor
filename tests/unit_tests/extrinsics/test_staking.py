@@ -1,12 +1,14 @@
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
+
 import bittensor
-from bittensor.utils.balance import Balance
+from bittensor.errors import NotDelegateError
 from bittensor.extrinsics.staking import (
     add_stake_extrinsic,
     add_stake_multiple_extrinsic,
 )
-from bittensor.errors import NotDelegateError
+from bittensor.utils.balance import Balance
 
 
 # Mocking external dependencies
@@ -38,6 +40,7 @@ def mock_other_owner_wallet():
 
 
 # Parametrized test cases
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "hotkey_ss58, hotkey_owner, hotkey_delegate, amount, wait_for_inclusion, wait_for_finalization, prompt, user_accepts, expected_success, exception",
     [
@@ -89,7 +92,7 @@ def mock_other_owner_wallet():
         "failure-staking",
     ],
 )
-def test_add_stake_extrinsic(
+async def test_add_stake_extrinsic(
     mock_subtensor,
     mock_wallet,
     mock_other_owner_wallet,
@@ -139,7 +142,7 @@ def test_add_stake_extrinsic(
         # Act
         if not hotkey_owner and not hotkey_delegate:
             with pytest.raises(exception):
-                result = add_stake_extrinsic(
+                result = await add_stake_extrinsic(
                     subtensor=mock_subtensor,
                     wallet=mock_wallet,
                     hotkey_ss58=hotkey_ss58,
@@ -149,7 +152,7 @@ def test_add_stake_extrinsic(
                     prompt=prompt,
                 )
         else:
-            result = add_stake_extrinsic(
+            result = await add_stake_extrinsic(
                 subtensor=mock_subtensor,
                 wallet=mock_wallet,
                 hotkey_ss58=hotkey_ss58,
@@ -181,6 +184,7 @@ def test_add_stake_extrinsic(
 
 
 # Parametrized test cases
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "hotkey_ss58s, amounts, hotkey_owner, hotkey_delegates ,wallet_balance, wait_for_inclusion, wait_for_finalization, prompt, prompt_response, stake_responses, expected_success, stake_attempted, exception, exception_msg",
     [
@@ -458,7 +462,7 @@ def test_add_stake_extrinsic(
         "failure-type-error-amount",
     ],
 )
-def test_add_stake_multiple_extrinsic(
+async def test_add_stake_multiple_extrinsic(
     mock_subtensor,
     mock_wallet,
     mock_other_owner_wallet,
@@ -508,7 +512,7 @@ def test_add_stake_multiple_extrinsic(
         # Act
         if exception:
             with pytest.raises(exception) as exc_info:
-                result = add_stake_multiple_extrinsic(
+                result = await add_stake_multiple_extrinsic(
                     subtensor=mock_subtensor,
                     wallet=mock_wallet,
                     hotkey_ss58s=hotkey_ss58s,
@@ -522,7 +526,7 @@ def test_add_stake_multiple_extrinsic(
 
         # Act
         else:
-            result = add_stake_multiple_extrinsic(
+            result = await add_stake_multiple_extrinsic(
                 subtensor=mock_subtensor,
                 wallet=mock_wallet,
                 hotkey_ss58s=hotkey_ss58s,

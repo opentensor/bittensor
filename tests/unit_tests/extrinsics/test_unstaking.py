@@ -1,10 +1,10 @@
-import bittensor
+from unittest.mock import MagicMock, patch
+
 import pytest
 
-from unittest.mock import patch, MagicMock
-
-from bittensor.utils.balance import Balance
+import bittensor
 from bittensor.extrinsics.unstaking import unstake_extrinsic, unstake_multiple_extrinsic
+from bittensor.utils.balance import Balance
 
 
 @pytest.fixture
@@ -28,6 +28,7 @@ def mock_get_minimum_required_stake():
     return Balance.from_rao(100_000_000)
 
 
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "hotkey_ss58, amount, wait_for_inclusion, wait_for_finalization, prompt, user_accepts, expected_success, unstake_attempted",
     [
@@ -56,7 +57,7 @@ def mock_get_minimum_required_stake():
         "failure-unstake-failed",
     ],
 )
-def test_unstake_extrinsic(
+async def test_unstake_extrinsic(
     mock_subtensor,
     mock_wallet,
     hotkey_ss58,
@@ -84,7 +85,7 @@ def test_unstake_extrinsic(
         "get_stake_for_coldkey_and_hotkey",
         return_value=mock_current_stake,
     ), patch("rich.prompt.Confirm.ask", return_value=user_accepts) as mock_confirm:
-        result = unstake_extrinsic(
+        result = await unstake_extrinsic(
             subtensor=mock_subtensor,
             wallet=mock_wallet,
             hotkey_ss58=hotkey_ss58,
@@ -102,7 +103,7 @@ def test_unstake_extrinsic(
             mock_confirm.assert_called_once()
 
         if unstake_attempted:
-            mock_subtensor._do_unstake.assert_called_once_with(
+            mock_subtensor.do_unstake.assert_called_once_with(
                 wallet=mock_wallet,
                 hotkey_ss58=hotkey_ss58 or mock_wallet.hotkey.ss58_address,
                 amount=bittensor.Balance.from_tao(amount)
@@ -112,9 +113,10 @@ def test_unstake_extrinsic(
                 wait_for_finalization=wait_for_finalization,
             )
         else:
-            mock_subtensor._do_unstake.assert_not_called()
+            mock_subtensor.do_unstake.assert_not_called()
 
 
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     # TODO: Write dynamic test to test for amount = None with multiple hotkeys
     "hotkey_ss58s, amounts, wallet_balance, wait_for_inclusion, wait_for_finalization, prompt, prompt_response, unstake_responses, expected_success, unstake_attempted, exception, exception_msg",
@@ -254,7 +256,7 @@ def test_unstake_extrinsic(
         "failure-type-error-amounts",
     ],
 )
-def test_unstake_multiple_extrinsic(
+async def test_unstake_multiple_extrinsic(
     mock_subtensor,
     mock_wallet,
     hotkey_ss58s,
@@ -297,7 +299,7 @@ def test_unstake_multiple_extrinsic(
         # Act
         if exception:
             with pytest.raises(exception) as exc_info:
-                result = unstake_multiple_extrinsic(
+                result = await unstake_multiple_extrinsic(
                     subtensor=mock_subtensor,
                     wallet=mock_wallet,
                     hotkey_ss58s=hotkey_ss58s,
@@ -311,7 +313,7 @@ def test_unstake_multiple_extrinsic(
 
         # Act
         else:
-            result = unstake_multiple_extrinsic(
+            result = await unstake_multiple_extrinsic(
                 subtensor=mock_subtensor,
                 wallet=mock_wallet,
                 hotkey_ss58s=hotkey_ss58s,
