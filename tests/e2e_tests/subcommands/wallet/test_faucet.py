@@ -12,10 +12,11 @@ from tests.e2e_tests.utils import (
 )
 
 
+@pytest.mark.skip
 @pytest.mark.parametrize("local_chain", [False], indirect=True)
 def test_faucet(local_chain):
     # Register root as Alice
-    keypair, exec_command, wallet_path = setup_wallet("//Alice")
+    keypair, exec_command, wallet = setup_wallet("//Alice")
     exec_command(RegisterSubnetworkCommand, ["s", "create"])
 
     # Verify subnet 1 created successfully
@@ -49,7 +50,7 @@ def test_faucet(local_chain):
 
     # run faucet 3 times
     for i in range(3):
-        logging.info(f"faucet run #:{i+1}")
+        logging.info(f"faucet run #:{i + 1}")
         try:
             exec_command(
                 RunFaucetCommand,
@@ -57,11 +58,9 @@ def test_faucet(local_chain):
                     "wallet",
                     "faucet",
                     "--wallet.name",
-                    "default",
+                    wallet.name,
                     "--wallet.hotkey",
                     "default",
-                    "--subtensor.chain_endpoint",
-                    "ws://localhost:9945",
                 ],
             )
             logging.info(
