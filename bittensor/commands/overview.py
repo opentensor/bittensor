@@ -160,7 +160,23 @@ class OverviewCommand:
         return all_hotkey_addresses, hotkey_coldkey_to_hotkey_wallet
 
     @staticmethod
-    def _process_neuron_results(
+    async def _calculate_total_coldkey_stake(
+        neurons: Dict[str, List[bittensor.NeuronInfoLite]],
+    ) -> Dict[str, bittensor.Balance]:
+        total_coldkey_stake_from_metagraph = defaultdict(lambda: bittensor.Balance(0.0))
+        checked_hotkeys = set()
+        for neuron_list in neurons.values():
+            for neuron in neuron_list:
+                if neuron.hotkey in checked_hotkeys:
+                    continue
+                total_coldkey_stake_from_metagraph[neuron.coldkey] += neuron.stake_dict[
+                    neuron.coldkey
+                ]
+                checked_hotkeys.add(neuron.hotkey)
+        return total_coldkey_stake_from_metagraph
+
+    @staticmethod
+    async def _process_neuron_results(
         results: List[Tuple[int, List["bittensor.NeuronInfoLite"], Optional[str]]],
         neurons: Dict[str, List["bittensor.NeuronInfoLite"]],
         netuids: List[int],
@@ -245,20 +261,13 @@ class OverviewCommand:
             ]
             results = await asyncio.gather(*coroutines)
 
-            neurons = OverviewCommand._process_neuron_results(results, neurons, netuids)
-
-            total_coldkey_stake_from_metagraph = defaultdict(
-                lambda: bittensor.Balance(0.0)
+            neurons = await OverviewCommand._process_neuron_results(
+                results, neurons, netuids
             )
-            checked_hotkeys = set()
-            for neuron_list in neurons.values():
-                for neuron in neuron_list:
-                    if neuron.hotkey in checked_hotkeys:
-                        continue
-                    total_coldkey_stake_from_metagraph[
-                        neuron.coldkey
-                    ] += neuron.stake_dict[neuron.coldkey]
-                    checked_hotkeys.add(neuron.hotkey)
+
+            total_coldkey_stake_from_metagraph = (
+                await OverviewCommand._calculate_total_coldkey_stake(neurons)
+            )
 
             alerts_table = Table(show_header=True, header_style="bold magenta")
             alerts_table.add_column("🥩 alert!")
@@ -633,7 +642,6 @@ class OverviewCommand:
     ) -> Tuple[
         "bittensor.Wallet", List[Tuple[str, "bittensor.Balance"]], Optional[str]
     ]:
-
         # List of (hotkey_addr, our_stake) tuples.
         result: List[Tuple[str, "bittensor.Balance"]] = []
 

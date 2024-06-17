@@ -24,6 +24,7 @@ blockchain, facilitating a range of operations essential for the decentralized m
 import argparse
 import asyncio
 import copy
+from concurrent.futures import ProcessPoolExecutor
 import socket
 import time
 from typing import List, Dict, Union, Optional, Tuple, TypedDict, Any
@@ -4319,9 +4320,9 @@ class Subtensor:
 
             return await self.substrate.rpc_request(
                 method="delegateInfo_getDelegate",  # custom rpc method
-                params=[encoded_hotkey_, block_hash]
-                if block_hash
-                else [encoded_hotkey_],
+                params=(
+                    [encoded_hotkey_, block_hash] if block_hash else [encoded_hotkey_]
+                ),
             )
 
         encoded_hotkey = ss58_to_vec_u8(hotkey_ss58)
@@ -4432,9 +4433,9 @@ class Subtensor:
 
             return await self.substrate.rpc_request(
                 method="delegateInfo_getDelegated",
-                params=[block_hash, encoded_coldkey_]
-                if block_hash
-                else [encoded_coldkey_],
+                params=(
+                    [block_hash, encoded_coldkey_] if block_hash else [encoded_coldkey_]
+                ),
             )
 
         encoded_coldkey = ss58_to_vec_u8(coldkey_ss58)
@@ -4933,7 +4934,10 @@ class Subtensor:
         else:
             bytes_result = bytes.fromhex(hex_bytes_result)
 
-        return NeuronInfoLite.list_from_vec_u8(bytes_result)  # type: ignore
+        with ProcessPoolExecutor() as executor:
+            results = list(executor.map(NeuronInfoLite.list_from_vec_u, bytes_result))  # type: ignore
+
+        return results
 
     async def metagraph(
         self,
