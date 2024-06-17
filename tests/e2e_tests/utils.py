@@ -9,6 +9,8 @@ import sys
 
 from bittensor import Keypair, logging
 import bittensor
+import io
+import contextlib
 
 template_path = os.getcwd() + "/neurons/"
 repo_name = "templates repository"
@@ -38,7 +40,21 @@ def setup_wallet(uri: str):
             args=args,
         )
         cli_instance = bittensor.cli(config)
-        command.run(cli_instance)
+
+        stdout_io = io.StringIO()
+        stderr_io = io.StringIO()
+
+        with contextlib.redirect_stdout(stdout_io), contextlib.redirect_stderr(
+            stderr_io
+        ):
+            command.run(cli_instance)
+
+        stdout_lines = stdout_io.getvalue().split("\n")
+        stderr_lines = stderr_io.getvalue().split("\n")
+        print("STDOUT: " + stdout_io.getvalue())
+        print("STDERR: " + stderr_io.getvalue())
+
+        return stdout_lines, stderr_lines
 
     return keypair, exec_command, wallet
 
