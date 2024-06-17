@@ -1231,6 +1231,7 @@ class AsyncSubstrateInterface:
 
         :return: QueryMapResult object
         """
+        params = params or []
         block_hash = (
             block_hash
             if block_hash
@@ -1261,7 +1262,6 @@ class AsyncSubstrateInterface:
         # Check MapType conditions
         if len(param_types) == 0:
             raise ValueError("Given storage function is not a map")
-
         if len(params) > len(param_types) - 1:
             raise ValueError(
                 f"Storage function map can accept max {len(param_types) - 1} parameters, {len(params)} given"
