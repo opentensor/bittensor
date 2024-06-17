@@ -586,7 +586,7 @@ class RootSetWeightsCommand:
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""Set weights for root network."""
         wallet = bittensor.wallet(config=cli.config)
-        subnets: List[bittensor.SubnetInfo] = subtensor.get_all_subnets_info()
+        subnets: List[bittensor.SubnetInfoV2] = subtensor.get_all_subnets_info_v2()
 
         # Get values if not set.
         if not cli.config.is_set("netuids"):

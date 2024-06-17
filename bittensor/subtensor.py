@@ -46,7 +46,7 @@ from .chain_data import (
     NeuronInfo,
     DelegateInfo,
     PrometheusInfo,
-    SubnetInfo,
+    SubnetInfoV2,
     SubnetHyperparameters,
     StakeInfo,
     NeuronInfoLite,
@@ -3785,29 +3785,6 @@ class subtensor:
             return None
         return Balance.from_rao(_result.value)
 
-    def get_subnet_connection_requirements(
-        self, netuid: int, block: Optional[int] = None
-    ) -> Dict[str, int]:
-        """
-        Retrieves the connection requirements for a specific subnet within the Bittensor network. This
-        function provides details on the criteria that must be met for neurons to connect to the subnet.
-
-        Args:
-            netuid (int): The network UID of the subnet to query.
-            block (Optional[int], optional): The blockchain block number for the query.
-
-        Returns:
-            Dict[str, int]: A dictionary detailing the connection requirements for the subnet.
-
-        Understanding these requirements is crucial for neurons looking to participate in or interact
-        with specific subnets, ensuring compliance with their connection standards.
-        """
-        result = self.query_map_subtensor("NetworkConnect", block, [netuid])
-        if result.records:
-            return {str(tuple[0].value): tuple[1].value for tuple in result.records}
-        else:
-            return {}
-
     def get_subnets(self, block: Optional[int] = None) -> List[int]:
         """
         Retrieves a list of all subnets currently active within the Bittensor network. This function
@@ -3831,7 +3808,7 @@ class subtensor:
         else:
             return []
 
-    def get_all_subnets_info(self, block: Optional[int] = None) -> List[SubnetInfo]:
+    def get_all_subnets_info_v2(self, block: Optional[int] = None) -> List[SubnetInfoV2]:
         """
         Retrieves detailed information about all subnets within the Bittensor network. This function
         provides comprehensive data on each subnet, including its characteristics and operational parameters.
@@ -3840,7 +3817,7 @@ class subtensor:
             block (Optional[int], optional): The blockchain block number for the query.
 
         Returns:
-            List[SubnetInfo]: A list of SubnetInfo objects, each containing detailed information about a subnet.
+            List[SubnetInfoV2]: A list of SubnetInfoV2 objects, each containing detailed information about a subnet.
 
         Gaining insights into the subnets' details assists in understanding the network's composition,
         the roles of different subnets, and their unique features.
@@ -3853,7 +3830,7 @@ class subtensor:
             if block_hash:
                 params = params + [block_hash]
             return self.substrate.rpc_request(
-                method="subnetInfo_getSubnetsInfo",  # custom rpc method
+                method="subnetInfo_getSubnetsInfoV2",  # custom rpc method
                 params=params,
             )
 
@@ -3863,11 +3840,11 @@ class subtensor:
         if result in (None, []):
             return []
 
-        return SubnetInfo.list_from_vec_u8(result)
+        return SubnetInfoV2.list_from_vec_u8(result)
 
-    def get_subnet_info(
+    def get_subnet_info_v2(
         self, netuid: int, block: Optional[int] = None
-    ) -> Optional[SubnetInfo]:
+    ) -> Optional[SubnetInfoV2]:
         """
         Retrieves detailed information about a specific subnet within the Bittensor network. This function
         provides key data on the subnet, including its operational parameters and network status.
@@ -3877,7 +3854,7 @@ class subtensor:
             block (Optional[int], optional): The blockchain block number for the query.
 
         Returns:
-            Optional[SubnetInfo]: Detailed information about the subnet, or ``None`` if not found.
+            Optional[SubnetInfoV2]: Detailed information about the subnet, or ``None`` if not found.
 
         This function is essential for neurons and stakeholders interested in the specifics of a particular
         subnet, including its governance, performance, and role within the broader network.
@@ -3890,7 +3867,7 @@ class subtensor:
             if block_hash:
                 params = params + [block_hash]
             return self.substrate.rpc_request(
-                method="subnetInfo_getSubnetInfo",  # custom rpc method
+                method="subnetInfo_getSubnetInfoV2",  # custom rpc method
                 params=params,
             )
 
@@ -3900,7 +3877,7 @@ class subtensor:
         if result in (None, []):
             return None
 
-        return SubnetInfo.from_vec_u8(result)
+        return SubnetInfoV2.from_vec_u8(result)
 
     def get_subnet_hyperparameters(
         self, netuid: int, block: Optional[int] = None

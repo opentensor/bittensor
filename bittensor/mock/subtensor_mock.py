@@ -31,7 +31,7 @@ from ..chain_data import (
     NeuronInfoLite,
     PrometheusInfo,
     DelegateInfo,
-    SubnetInfo,
+    SubnetInfoV2,
     AxonInfo,
 )
 from ..errors import ChainQueryError
@@ -1387,7 +1387,7 @@ class MockSubtensor(subtensor):
 
         return result
 
-    def get_all_subnets_info(self, block: Optional[int] = None) -> List[SubnetInfo]:
+    def get_all_subnets_info(self, block: Optional[int] = None) -> List[SubnetInfoV2]:
         subtensor_state = self.chain_state["SubtensorModule"]
         result = []
         for subnet in subtensor_state["NetworksAdded"]:
@@ -1399,34 +1399,20 @@ class MockSubtensor(subtensor):
 
     def get_subnet_info(
         self, netuid: int, block: Optional[int] = None
-    ) -> Optional[SubnetInfo]:
+    ) -> Optional[SubnetInfoV2]:
         if not self.subnet_exists(netuid=netuid, block=block):
             return None
 
         def query_subnet_info(name: str) -> Optional[object]:
             return self.query_subtensor(name=name, block=block, params=[netuid]).value
 
-        info = SubnetInfo(
+        info = SubnetInfoV2(
             netuid=netuid,
-            rho=query_subnet_info(name="Rho"),
-            kappa=query_subnet_info(name="Kappa"),
-            difficulty=query_subnet_info(name="Difficulty"),
-            immunity_period=query_subnet_info(name="ImmunityPeriod"),
             max_allowed_validators=query_subnet_info(name="MaxAllowedValidators"),
-            min_allowed_weights=query_subnet_info(name="MinAllowedWeights"),
-            max_weight_limit=query_subnet_info(name="MaxWeightLimit"),
             scaling_law_power=query_subnet_info(name="ScalingLawPower"),
             subnetwork_n=query_subnet_info(name="SubnetworkN"),
             max_n=query_subnet_info(name="MaxAllowedUids"),
             blocks_since_epoch=query_subnet_info(name="BlocksSinceLastStep"),
-            tempo=query_subnet_info(name="Tempo"),
-            modality=query_subnet_info(name="NetworkModality"),
-            connection_requirements={
-                str(netuid_.value): percentile.value
-                for netuid_, percentile in self.query_map_subtensor(
-                    name="NetworkConnect", block=block, params=[netuid]
-                ).records
-            },
             emission_value=query_subnet_info(name="EmissionValues"),
             burn=query_subnet_info(name="Burn"),
             owner_ss58=query_subnet_info(name="SubnetOwner"),

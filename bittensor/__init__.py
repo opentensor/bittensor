@@ -310,12 +310,13 @@ from .utils import (
 from .utils.balance import Balance as Balance
 from .chain_data import (
     AxonInfo,
+    DynamicPoolInfoV2,
     NeuronInfo,
     NeuronInfoLite,
     PrometheusInfo,
     DelegateInfo,
     StakeInfo,
-    SubnetInfo,
+    SubnetInfoV2,
     SubnetHyperparameters,
     IPInfo,
     ProposalCallData,

@@ -240,7 +240,7 @@ class SubnetListCommand:
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""List all subnet netuids in the network."""
-        subnets: List[bittensor.SubnetInfo] = subtensor.get_all_subnets_info()
+        subnets: List[bittensor.SubnetInfoV2] = subtensor.get_all_subnets_info_v2()
 
         rows = []
         total_neurons = 0
@@ -254,16 +254,13 @@ class SubnetListCommand:
         )
         total_tao_locked = 0
 
-        # Get reserves.
-        dynamic_info = subtensor.get_dynamic_info()
-
         for subnet in subnets:
-            pool = dynamic_info[subnet.netuid]
+            pool = subnet.dynamic_pool
             total_neurons += subnet.max_n
             total_registered += subnet.subnetwork_n
             total_price += ( pool.price if pool.is_dynamic else 0 )
             total_emission += subnet.emission_value
-            tao_locked = pool.tao_reserve if pool.is_dynamic else subtensor.get_total_subnet_stake(subnet.netuid).set_unit(subnet.netuid)
+            tao_locked = subnet.tao_locked
             total_tao_locked += tao_locked
             sn_symbol = "({})".format(bittensor.Balance.get_unit(subnet.netuid))
             rows.append(
@@ -278,7 +275,7 @@ class SubnetListCommand:
                     str( pool.alpha_reserve ) + ")",
                     str( pool.alpha_outstanding if pool.is_dynamic else tao_locked ),
                     ( "{:.4f}{}".format( pool.price.__float__(), f"τ/{bittensor.Balance.get_unit(subnet.netuid)}\u200E") if pool.is_dynamic else f"{1.0}τ/{sn_symbol}" ),
-                    str(subnet.tempo),
+                    str(subnet.hyperparameters["tempo"]),
                     f"{subnet.burn!s:8.8}",
                     f"{delegate_info[subnet.owner_ss58].name if subnet.owner_ss58 in delegate_info else subnet.owner_ss58[:5] + '...' + subnet.owner_ss58[-5:]}",
                 )
