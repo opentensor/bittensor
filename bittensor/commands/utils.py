@@ -186,7 +186,7 @@ def filter_netuids_by_registered_hotkeys(
         )
         netuids_with_registered_hotkeys.extend(netuids_list)
 
-    if cli.config.netuids is None:
+    if not cli.config.netuids:
         netuids = netuids_with_registered_hotkeys
 
     else:
