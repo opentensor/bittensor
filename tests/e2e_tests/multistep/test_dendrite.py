@@ -15,7 +15,7 @@ from bittensor.commands import (
 from tests.e2e_tests.utils import (
     setup_wallet,
     template_path,
-    repo_name,
+    templates_repo,
     wait_epoch,
     write_output_log_to_file,
 )
@@ -95,7 +95,7 @@ async def test_dendrite(local_chain):
     cmd = " ".join(
         [
             f"{sys.executable}",
-            f'"{template_path}{repo_name}/neurons/validator.py"',
+            f'"{template_path}{templates_repo}/neurons/validator.py"',
             "--no_prompt",
             "--netuid",
             "1",
