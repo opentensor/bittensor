@@ -84,7 +84,8 @@ def mock_axon(mock_wallet):
         "happy-path-wait-for-finalization-and-prompt",
     ],
 )
-def test_serve_extrinsic_happy_path(
+@pytest.mark.asyncio
+async def test_serve_extrinsic_happy_path(
     mock_subtensor,
     mock_wallet,
     ip,
@@ -100,10 +101,10 @@ def test_serve_extrinsic_happy_path(
     test_id,
 ):
     # Arrange
-    mock_subtensor._do_serve_axon.return_value = (True, "")
+    mock_subtensor.do_serve_axon.return_value = (True, "")
     with patch("bittensor.extrinsics.serving.Confirm.ask", return_value=True):
         # Act
-        result = serve_extrinsic(
+        result = await serve_extrinsic(
             mock_subtensor,
             mock_wallet,
             ip,
@@ -141,7 +142,8 @@ def test_serve_extrinsic_happy_path(
     ],
     ids=["edge-case-max-values"],
 )
-def test_serve_extrinsic_edge_cases(
+@pytest.mark.asyncio
+async def test_serve_extrinsic_edge_cases(
     mock_subtensor,
     mock_wallet,
     ip,
@@ -157,10 +159,10 @@ def test_serve_extrinsic_edge_cases(
     test_id,
 ):
     # Arrange
-    mock_subtensor._do_serve_axon.return_value = (True, "")
+    mock_subtensor.do_serve_axon.return_value = (True, "")
     with patch("bittensor.extrinsics.serving.Confirm.ask", return_value=True):
         # Act
-        result = serve_extrinsic(
+        result = await serve_extrinsic(
             mock_subtensor,
             mock_wallet,
             ip,
@@ -198,7 +200,8 @@ def test_serve_extrinsic_edge_cases(
     ],
     ids=["error-case-failed-serve"],
 )
-def test_serve_extrinsic_error_cases(
+@pytest.mark.asyncio
+async def test_serve_extrinsic_error_cases(
     mock_subtensor,
     mock_wallet,
     ip,
@@ -214,10 +217,10 @@ def test_serve_extrinsic_error_cases(
     test_id,
 ):
     # Arrange
-    mock_subtensor._do_serve_axon.return_value = (False, "Error serving axon")
+    mock_subtensor.do_serve_axon.return_value = (False, "Error serving axon")
     with patch("bittensor.extrinsics.serving.Confirm.ask", return_value=True):
         # Act
-        result = serve_extrinsic(
+        result = await serve_extrinsic(
             mock_subtensor,
             mock_wallet,
             ip,
@@ -265,7 +268,8 @@ def test_serve_extrinsic_error_cases(
         "error-serving-axon",
     ],
 )
-def test_serve_axon_extrinsic(
+@pytest.mark.asyncio
+async def test_serve_axon_extrinsic(
     mock_subtensor,
     mock_axon,
     netuid,
@@ -289,7 +293,7 @@ def test_serve_axon_extrinsic(
         # Act
         if not external_ip_success:
             with pytest.raises(RuntimeError):
-                result = serve_axon_extrinsic(
+                result = await serve_axon_extrinsic(
                     mock_subtensor,
                     netuid,
                     mock_axon,
@@ -298,7 +302,7 @@ def test_serve_axon_extrinsic(
                     prompt=prompt,
                 )
         else:
-            result = serve_axon_extrinsic(
+            result = await serve_axon_extrinsic(
                 mock_subtensor,
                 netuid,
                 mock_axon,
@@ -336,7 +340,8 @@ def test_serve_axon_extrinsic(
     ],
     ids=["happy-path-wait", "happy-path-no-wait"],
 )
-def test_publish_metadata(
+@pytest.mark.asyncio
+async def test_publish_metadata(
     mock_subtensor,
     mock_wallet,
     wait_for_inclusion,
@@ -347,25 +352,30 @@ def test_publish_metadata(
     response_success,
     expected_result,
     test_id,
+    mocker,
 ):
     # Arrange
-    with patch.object(mock_subtensor.substrate, "compose_call"), patch.object(
-        mock_subtensor.substrate, "create_signed_extrinsic"
-    ), patch.object(
-        mock_subtensor.substrate,
-        "submit_extrinsic",
-        return_value=MagicMock(
-            is_success=response_success,
-            process_events=MagicMock(),
-            error_message="error",
+    with (
+        patch.object(mock_subtensor.substrate, "compose_call", new=mocker.AsyncMock()),
+        patch.object(
+            mock_subtensor.substrate, "create_signed_extrinsic", new=mocker.AsyncMock()
+        ),
+        patch.object(
+            mock_subtensor.substrate,
+            "submit_extrinsic",
+            new=mocker.AsyncMock(
+                is_success=response_success,
+                process_events=MagicMock(),
+                error_message="error",
+            ),
         ),
     ):
         # Act
-        result = publish_metadata(
+        result = await publish_metadata(
             subtensor=mock_subtensor,
             wallet=mock_wallet,
             netuid=net_uid,
-            type=type_u,
+            type_=type_u,
             data=data,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,

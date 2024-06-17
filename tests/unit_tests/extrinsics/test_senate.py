@@ -6,13 +6,14 @@ from bittensor.extrinsics.senate import (
     register_senate_extrinsic,
     vote_senate_extrinsic,
 )
+import bittensor
 
 
 # Mocking external dependencies
 @pytest.fixture
-def mock_subtensor():
+def mock_subtensor(mocker):
     mock = MagicMock(spec=subtensor)
-    mock.substrate = MagicMock()
+    mock.substrate = mocker.AsyncMock()
     return mock
 
 
@@ -42,7 +43,8 @@ def mock_wallet():
         (False, True, True, True, False, False, "error-prompt-declined"),
     ],
 )
-def test_register_senate_extrinsic(
+@pytest.mark.asyncio
+async def test_register_senate_extrinsic(
     mock_subtensor,
     mock_wallet,
     wait_for_inclusion,
@@ -52,6 +54,7 @@ def test_register_senate_extrinsic(
     is_registered,
     expected_result,
     test_id,
+    mocker,
 ):
     # Arrange
     with patch(
@@ -67,10 +70,10 @@ def test_register_senate_extrinsic(
             error_message="error",
         ),
     ) as mock_submit_extrinsic, patch.object(
-        mock_wallet, "is_senate_member", return_value=is_registered
+        mock_subtensor, "is_senate_member", return_value=is_registered
     ):
         # Act
-        result = register_senate_extrinsic(
+        result = await register_senate_extrinsic(
             subtensor=mock_subtensor,
             wallet=mock_wallet,
             wait_for_inclusion=wait_for_inclusion,
@@ -130,7 +133,8 @@ def test_register_senate_extrinsic(
         ),
     ],
 )
-def test_vote_senate_extrinsic(
+@pytest.mark.asyncio
+async def test_vote_senate_extrinsic(
     mock_subtensor,
     mock_wallet,
     wait_for_inclusion,
@@ -168,7 +172,7 @@ def test_vote_senate_extrinsic(
         },
     ):
         # Act
-        result = vote_senate_extrinsic(
+        result = await vote_senate_extrinsic(
             subtensor=mock_subtensor,
             wallet=mock_wallet,
             proposal_hash=proposal_hash,
@@ -199,7 +203,8 @@ def test_vote_senate_extrinsic(
         (False, True, True, True, False, False, "error-prompt-declined"),
     ],
 )
-def test_leave_senate_extrinsic(
+@pytest.mark.asyncio
+async def test_leave_senate_extrinsic(
     mock_subtensor,
     mock_wallet,
     wait_for_inclusion,
@@ -223,9 +228,9 @@ def test_leave_senate_extrinsic(
             process_events=MagicMock(),
             error_message="error",
         ),
-    ), patch.object(mock_wallet, "is_senate_member", return_value=is_registered):
+    ), patch.object(mock_subtensor, "is_senate_member", return_value=is_registered):
         # Act
-        result = leave_senate_extrinsic(
+        result = await leave_senate_extrinsic(
             subtensor=mock_subtensor,
             wallet=mock_wallet,
             wait_for_inclusion=wait_for_inclusion,
