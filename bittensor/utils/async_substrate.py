@@ -716,7 +716,7 @@ class AsyncSubstrateInterface:
             else "state_getStorage"
         )
         return Preprocessed(
-            query_for[0] if query_for else None,
+            str(query_for),
             method,
             [storage_key.to_hex(), block_hash],
             value_scale_type,
