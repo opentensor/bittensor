@@ -114,7 +114,7 @@ class OverviewCommand:
                 coldkey_wallet.coldkeypub_file.exists_on_device()
                 and not coldkey_wallet.coldkeypub_file.is_encrypted()
             ):
-                total_balance = subtensor.get_balance(
+                total_balance = await subtensor.get_balance(
                     coldkey_wallet.coldkeypub.ss58_address
                 )
             if not coldkey_wallet.coldkeypub_file.exists_on_device():
