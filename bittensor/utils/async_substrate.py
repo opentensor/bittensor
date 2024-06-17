@@ -1156,7 +1156,6 @@ class AsyncSubstrateInterface:
         storage_function: str,
         params: Optional[list] = None,
         block_hash: Optional[str] = None,
-        subscription_handler: callable = None,
         raw_storage_key: bytes = None,
         reuse_block_hash: bool = False,
     ) -> "ScaleType":
