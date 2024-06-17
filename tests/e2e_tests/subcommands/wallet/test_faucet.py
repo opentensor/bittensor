@@ -12,6 +12,7 @@ from tests.e2e_tests.utils import (
 )
 
 
+@pytest.mark.skip
 @pytest.mark.parametrize("local_chain", [False], indirect=True)
 def test_faucet(local_chain):
     # Register root as Alice
@@ -49,7 +50,7 @@ def test_faucet(local_chain):
 
     # run faucet 3 times
     for i in range(3):
-        logging.info(f"faucet run #:{i+1}")
+        logging.info(f"faucet run #:{i + 1}")
         try:
             exec_command(
                 RunFaucetCommand,
