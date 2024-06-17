@@ -129,7 +129,11 @@ async def delegate_extrinsic(
         raise NotDelegateError("Hotkey: {} is not a delegate.".format(delegate_ss58))
 
     # Get state.
-    my_prev_coldkey_balance, delegate_owner, my_prev_delegated_stake = await asyncio.gather(
+    (
+        my_prev_coldkey_balance,
+        delegate_owner,
+        my_prev_delegated_stake,
+    ) = await asyncio.gather(
         subtensor.get_balance(wallet.coldkey.ss58_address),
         subtensor.get_hotkey_owner(delegate_ss58),
         subtensor.get_stake_for_coldkey_and_hotkey(
@@ -270,7 +274,11 @@ async def undelegate_extrinsic(
         raise NotDelegateError("Hotkey: {} is not a delegate.".format(delegate_ss58))
 
     # Get state.
-    my_prev_coldkey_balance, delegate_owner, my_prev_delegated_stake = await asyncio.gather(
+    (
+        my_prev_coldkey_balance,
+        delegate_owner,
+        my_prev_delegated_stake,
+    ) = await asyncio.gather(
         subtensor.get_balance(wallet.coldkey.ss58_address),
         subtensor.get_hotkey_owner(delegate_ss58),
         subtensor.get_stake_for_coldkey_and_hotkey(

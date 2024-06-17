@@ -169,7 +169,6 @@ def test_run_faucet_extrinsic_error_cases(
         "bittensor.utils.registration.create_pow",
         side_effect=[mock_pow_solution, exception],
     ):
-
         # Act
         result = run_faucet_extrinsic(
             subtensor=mock_subtensor, wallet=mock_wallet, max_allowed_attempts=3
@@ -362,7 +361,7 @@ async def test_register_extrinsic_with_pow(
     hotkey_registered,
     expected_result,
     test_id,
-    mocker
+    mocker,
 ):
     # Arrange
     with patch(

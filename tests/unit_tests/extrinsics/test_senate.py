@@ -54,7 +54,7 @@ async def test_register_senate_extrinsic(
     is_registered,
     expected_result,
     test_id,
-    mocker
+    mocker,
 ):
     # Arrange
     with patch(

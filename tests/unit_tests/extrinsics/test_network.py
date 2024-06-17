@@ -92,7 +92,9 @@ async def test_register_subnetwork_extrinsic_edge_cases(
     monkeypatch.setattr("rich.prompt.Confirm.ask", lambda x: prompt_input)
 
     # Act
-    result = await register_subnetwork_extrinsic(mock_subtensor, mock_wallet, prompt=True)
+    result = await register_subnetwork_extrinsic(
+        mock_subtensor, mock_wallet, prompt=True
+    )
 
     # Assert
     assert result == expected
