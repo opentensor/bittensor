@@ -3071,7 +3071,7 @@ class Subtensor:
             "methods"  # type: ignore
         ][method]  # type: ignore
 
-        json_result = self.state_call(
+        json_result = await self.state_call(
             method=f"{runtime_api}_{method}",
             data=(
                 "0x"
