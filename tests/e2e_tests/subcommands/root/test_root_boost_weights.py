@@ -7,7 +7,7 @@ from bittensor.commands.stake import StakeCommand
 from bittensor.commands.network import RegisterSubnetworkCommand
 from bittensor.commands.register import RegisterCommand
 from ...utils import (
-    new_wallet,
+    setup_wallet,
     sudo_call_set_network_limit,
     sudo_call_set_weight_limit,
     sudo_call_set_min_stake,
@@ -18,7 +18,7 @@ import bittensor
 def test_root_get_set_weights(local_chain, capsys):
     """Test case to set weights for root network"""
 
-    (wallet, exec_command) = new_wallet("//Alice", "//Bob")
+    alice_keypair, wallet, exec_command = setup_wallet("//Alice")
     assert sudo_call_set_network_limit(local_chain, wallet)
     root_netuid = 0
     assert sudo_call_set_weight_limit(local_chain, wallet, root_netuid)
