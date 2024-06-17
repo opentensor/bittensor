@@ -11,9 +11,9 @@ from bittensor.commands import (
     RegisterSubnetworkCommand,
     CommitWeightCommand,
     RevealWeightCommand,
+    SubnetSudoCommand,
 )
 from tests.e2e_tests.utils import setup_wallet
-
 
 """
 Test the Commit/Reveal weights mechanism. 
@@ -30,8 +30,7 @@ Verify that:
 
 def test_commit_and_reveal_weights(local_chain):
     # Register root as Alice
-    keypair, exec_command, wallet_path = setup_wallet("//Alice")
-
+    keypair, exec_command, wallet = setup_wallet("//Alice")
     exec_command(RegisterSubnetworkCommand, ["s", "create"])
 
     # define values
@@ -45,14 +44,13 @@ def test_commit_and_reveal_weights(local_chain):
     # Register a neuron to the subnet
     exec_command(
         RegisterCommand,
-        ["s", "register", "--netuid", "1", "--wallet.path", "/tmp/btcli-wallet"],
+        [
+            "s",
+            "register",
+            "--netuid",
+            "1",
+        ],
     )
-
-    # Create a test wallet and set the coldkey, coldkeypub, and hotkey
-    wallet = bittensor.wallet(path="/tmp/btcli-wallet")
-    wallet.set_coldkey(keypair=keypair, encrypt=False, overwrite=True)
-    wallet.set_coldkeypub(keypair=keypair, encrypt=False, overwrite=True)
-    wallet.set_hotkey(keypair=keypair, encrypt=False, overwrite=True)
 
     # Stake to become to top neuron after the first epoch
     exec_command(
@@ -60,50 +58,92 @@ def test_commit_and_reveal_weights(local_chain):
         [
             "stake",
             "add",
-            "--wallet.path",
-            "/tmp/btcli-wallet2",
             "--amount",
             "100000",
         ],
     )
 
-    subtensor = bittensor.subtensor(network="ws://localhost:9945")
-
     # Enable Commit Reveal
-    result = subtensor.set_hyperparameter(
-        wallet=wallet,
-        netuid=1,
-        parameter="commit_reveal_weights_enabled",
-        value=True,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
-        prompt=False,
+    exec_command(
+        SubnetSudoCommand,
+        [
+            "sudo",
+            "set",
+            "hyperparameters",
+            "--netuid",
+            "1",
+            "--wallet.name",
+            wallet.name,
+            "--param",
+            "commit_reveal_weights_enabled",
+            "--value",
+            "True",
+            "--wait_for_inclusion",
+            "True",
+            "--wait_for_finalization",
+            "True",
+        ],
     )
-    assert result, "Failed to enable commit/reveal"
+
+    subtensor = bittensor.subtensor(network="ws://localhost:9945")
+    assert subtensor.get_subnet_hyperparameters(
+        netuid=1
+    ).commit_reveal_weights_enabled, "Failed to enable commit/reveal"
 
     # Lower the interval
-    result = subtensor.set_hyperparameter(
-        wallet=wallet,
-        netuid=1,
-        parameter="commit_reveal_weights_interval",
-        value=370,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
-        prompt=False,
+    exec_command(
+        SubnetSudoCommand,
+        [
+            "sudo",
+            "set",
+            "hyperparameters",
+            "--netuid",
+            "1",
+            "--wallet.name",
+            wallet.name,
+            "--param",
+            "commit_reveal_weights_interval",
+            "--value",
+            "370",
+            "--wait_for_inclusion",
+            "True",
+            "--wait_for_finalization",
+            "True",
+        ],
     )
-    assert result, "Failed to set commit/reveal interval"
 
-    # Lower the rate lmit
-    result = subtensor.set_hyperparameter(
-        wallet=wallet,
-        netuid=1,
-        parameter="weights_rate_limit",
-        value=0,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
-        prompt=False,
+    subtensor = bittensor.subtensor(network="ws://localhost:9945")
+    assert (
+        subtensor.get_subnet_hyperparameters(netuid=1).commit_reveal_weights_interval
+        == 370
+    ), "Failed to set commit/reveal interval"
+
+    # Lower the rate limit
+    exec_command(
+        SubnetSudoCommand,
+        [
+            "sudo",
+            "set",
+            "hyperparameters",
+            "--netuid",
+            "1",
+            "--wallet.name",
+            wallet.name,
+            "--param",
+            "weights_rate_limit",
+            "--value",
+            "0",
+            "--wait_for_inclusion",
+            "True",
+            "--wait_for_finalization",
+            "True",
+        ],
     )
-    assert result, "Failed to set weights rate limit"
+
+    subtensor = bittensor.subtensor(network="ws://localhost:9945")
+    assert (
+        subtensor.get_subnet_hyperparameters(netuid=1).weights_rate_limit == 0
+    ), "Failed to set commit/reveal rate limit"
 
     # Configure the CLI arguments for the CommitWeightCommand
     exec_command(
