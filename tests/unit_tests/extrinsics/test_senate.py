@@ -35,9 +35,9 @@ def mock_wallet():
         (False, True, False, True, True, True, "happy-path-finalization-true"),
         (True, False, False, True, True, True, "happy-path-inclusion-true"),
         (False, False, False, True, True, True, "happy-path-no_wait"),
-        # # Edge cases
+        # Edge cases
         (True, True, False, True, True, True, "edge-both-waits-true"),
-        # # Error cases
+        # Error cases
         (False, True, False, False, False, None, "error-finalization-failed"),
         (True, False, False, False, False, None, "error-inclusion-failed"),
         (False, True, True, True, False, False, "error-prompt-declined"),
