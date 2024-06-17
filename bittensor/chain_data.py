@@ -31,7 +31,7 @@ from scalecodec.types import GenericCall
 from scalecodec.utils.ss58 import ss58_encode
 
 import bittensor
-from .utils import networking as net, RAOPERTAO, U16_NORMALIZED_FLOAT
+from .utils import networking as net, RAOPERTAO, u16_normalized_float
 from .utils.balance import Balance
 from .utils.registration import torch, use_torch
 
@@ -433,21 +433,21 @@ class NeuronInfo:
         neuron_info_decoded["bonds"] = [
             [int(bond[0]), int(bond[1])] for bond in neuron_info_decoded["bonds"]
         ]
-        neuron_info_decoded["rank"] = U16_NORMALIZED_FLOAT(neuron_info_decoded["rank"])
+        neuron_info_decoded["rank"] = u16_normalized_float(neuron_info_decoded["rank"])
         neuron_info_decoded["emission"] = neuron_info_decoded["emission"] / RAOPERTAO
-        neuron_info_decoded["incentive"] = U16_NORMALIZED_FLOAT(
+        neuron_info_decoded["incentive"] = u16_normalized_float(
             neuron_info_decoded["incentive"]
         )
-        neuron_info_decoded["consensus"] = U16_NORMALIZED_FLOAT(
+        neuron_info_decoded["consensus"] = u16_normalized_float(
             neuron_info_decoded["consensus"]
         )
-        neuron_info_decoded["trust"] = U16_NORMALIZED_FLOAT(
+        neuron_info_decoded["trust"] = u16_normalized_float(
             neuron_info_decoded["trust"]
         )
-        neuron_info_decoded["validator_trust"] = U16_NORMALIZED_FLOAT(
+        neuron_info_decoded["validator_trust"] = u16_normalized_float(
             neuron_info_decoded["validator_trust"]
         )
-        neuron_info_decoded["dividends"] = U16_NORMALIZED_FLOAT(
+        neuron_info_decoded["dividends"] = u16_normalized_float(
             neuron_info_decoded["dividends"]
         )
         neuron_info_decoded["prometheus_info"] = PrometheusInfo.fix_decoded_values(
@@ -573,21 +573,21 @@ class NeuronInfoLite:
         neuron_info_decoded["stake_dict"] = stake_dict
         neuron_info_decoded["stake"] = sum(stake_dict.values())
         neuron_info_decoded["total_stake"] = neuron_info_decoded["stake"]
-        neuron_info_decoded["rank"] = U16_NORMALIZED_FLOAT(neuron_info_decoded["rank"])
+        neuron_info_decoded["rank"] = u16_normalized_float(neuron_info_decoded["rank"])
         neuron_info_decoded["emission"] = neuron_info_decoded["emission"] / RAOPERTAO
-        neuron_info_decoded["incentive"] = U16_NORMALIZED_FLOAT(
+        neuron_info_decoded["incentive"] = u16_normalized_float(
             neuron_info_decoded["incentive"]
         )
-        neuron_info_decoded["consensus"] = U16_NORMALIZED_FLOAT(
+        neuron_info_decoded["consensus"] = u16_normalized_float(
             neuron_info_decoded["consensus"]
         )
-        neuron_info_decoded["trust"] = U16_NORMALIZED_FLOAT(
+        neuron_info_decoded["trust"] = u16_normalized_float(
             neuron_info_decoded["trust"]
         )
-        neuron_info_decoded["validator_trust"] = U16_NORMALIZED_FLOAT(
+        neuron_info_decoded["validator_trust"] = u16_normalized_float(
             neuron_info_decoded["validator_trust"]
         )
-        neuron_info_decoded["dividends"] = U16_NORMALIZED_FLOAT(
+        neuron_info_decoded["dividends"] = u16_normalized_float(
             neuron_info_decoded["dividends"]
         )
         neuron_info_decoded["prometheus_info"] = PrometheusInfo.fix_decoded_values(
@@ -742,7 +742,7 @@ class DelegateInfo:
                 decoded["delegate_ss58"], bittensor.__ss58_format__
             ),
             owner_ss58=ss58_encode(decoded["owner_ss58"], bittensor.__ss58_format__),
-            take=U16_NORMALIZED_FLOAT(decoded["take"]),
+            take=u16_normalized_float(decoded["take"]),
             nominators=[
                 (
                     ss58_encode(nom[0], bittensor.__ss58_format__),
@@ -928,7 +928,7 @@ class SubnetInfo:
             tempo=decoded["tempo"],
             modality=decoded["network_modality"],
             connection_requirements={
-                str(int(netuid)): U16_NORMALIZED_FLOAT(int(req))
+                str(int(netuid)): u16_normalized_float(int(req))
                 for netuid, req in decoded["network_connect"]
             },
             emission_value=decoded["emission_values"],

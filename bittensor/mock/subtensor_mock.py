@@ -36,7 +36,7 @@ from ..chain_data import (
 )
 from ..errors import ChainQueryError
 from ..subtensor import Subtensor
-from ..utils import RAOPERTAO, U16_NORMALIZED_FLOAT
+from ..utils import RAOPERTAO, u16_normalized_float
 from ..utils.balance import Balance
 from ..utils.registration import POWSolution
 
@@ -921,13 +921,13 @@ class MockSubtensor(Subtensor):
 
         weights = [[int(weight[0]), int(weight[1])] for weight in weights]
         bonds = [[int(bond[0]), int(bond[1])] for bond in bonds]
-        rank = U16_NORMALIZED_FLOAT(rank)
+        rank = u16_normalized_float(rank)
         emission = emission / RAOPERTAO
-        incentive = U16_NORMALIZED_FLOAT(incentive)
-        consensus = U16_NORMALIZED_FLOAT(consensus)
-        trust = U16_NORMALIZED_FLOAT(trust)
-        validator_trust = U16_NORMALIZED_FLOAT(validator_trust)
-        dividends = U16_NORMALIZED_FLOAT(dividends)
+        incentive = u16_normalized_float(incentive)
+        consensus = u16_normalized_float(consensus)
+        trust = u16_normalized_float(trust)
+        validator_trust = u16_normalized_float(validator_trust)
+        dividends = u16_normalized_float(dividends)
         prometheus_info = PrometheusInfo.fix_decoded_values(prometheus_info)
         axon_info_ = AxonInfo.from_neuron_info(
             {"hotkey": hotkey, "coldkey": coldkey, "axon_info": axon_info_}

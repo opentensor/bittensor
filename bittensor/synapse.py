@@ -717,9 +717,9 @@ class Synapse(BaseModel):
         if required_hash_fields:
             instance_fields = instance_fields or self.model_dump()
             for field in required_hash_fields:
-                hashes.append(bittensor.utils.hash(str(instance_fields[field])))
+                hashes.append(bittensor.utils.get_hash(str(instance_fields[field])))
 
-        return bittensor.utils.hash("".join(hashes))
+        return bittensor.utils.get_hash("".join(hashes))
 
     @classmethod
     def parse_headers_to_inputs(cls, headers: dict) -> dict:
