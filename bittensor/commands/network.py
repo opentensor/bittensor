@@ -330,6 +330,7 @@ HYPERPARAMS = {
     "bonds_moving_avg": "sudo_set_bonds_moving_average",
     "commit_reveal_weights_interval": "sudo_set_commit_reveal_weights_interval",
     "commit_reveal_weights_enabled": "sudo_set_commit_reveal_weights_enabled",
+    "network_rate_limit": "sudo_set_network_rate_limit",
 }
 
 
