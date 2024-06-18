@@ -47,8 +47,8 @@ console = bittensor.__console__
 
 # Uses rich console to pretty print a table of delegates.
 def show_delegates(
-    delegates: List["bittensor.DelegateInfo"],
-    prev_delegates: Optional[List["bittensor.DelegateInfo"]],
+    delegates: List["bittensor.DelegateInfoLight"],
+    prev_delegates: Optional[List["bittensor.DelegateInfoLight"]],
     width: Optional[int] = None,
 ):
     """
@@ -61,8 +61,8 @@ def show_delegates(
     to be used directly in user code unless specifically required.
 
     Args:
-        delegates (List[bittensor.DelegateInfo]): A list of delegate information objects to be displayed.
-        prev_delegates (Optional[List[bittensor.DelegateInfo]]): A list of delegate information objects from a previous state, used to calculate changes in stake. Defaults to ``None``.
+        delegates (List[bittensor.DelegateInfoLight]): A list of delegate information objects to be displayed.
+        prev_delegates (Optional[List[bittensor.DelegateInfoLight]]): A list of delegate information objects from a previous state, used to calculate changes in stake. Defaults to ``None``.
         width (Optional[int]): The width of the console output table. Defaults to ``None``, which will make the table expand to the maximum width of the console.
 
     The output table contains the following columns:
@@ -132,7 +132,7 @@ def show_delegates(
         "[overline white]NOMINATORS", justify="center", style="green", no_wrap=True
     )
     table.add_column(
-        "[overline white]DELEGATE STAKE(\u03C4)", justify="right", no_wrap=True
+        "[overline white]OWNER STAKE(\u03C4)", justify="right", no_wrap=True
     )
     table.add_column(
         "[overline white]TOTAL STAKE(\u03C4)",
@@ -215,7 +215,7 @@ def show_delegates(
             # CHANGE/(4h)
             rate_change_in_stake_str,
             # VPERMIT
-            str(delegate.registrations),
+            str(delegate.validator_permits),
             # TAKE
             "Custom" if custom_take else "18%",
             # NOMINATOR/(24h)/k
@@ -655,10 +655,10 @@ class ListDelegatesCommand:
         List all delegates on the network.
         """
         with bittensor.__console__.status(":satellite: Loading delegates..."):
-            delegates: list[bittensor.DelegateInfo] = subtensor.get_delegates()
+            delegates: list[bittensor.DelegateInfoLight] = subtensor.get_delegates_light()
 
             try:
-                prev_delegates = subtensor.get_delegates(max(0, subtensor.block - 1200))
+                prev_delegates = subtensor.get_delegates_light(max(0, subtensor.block - 1200))
             except SubstrateRequestException:
                 prev_delegates = None
 

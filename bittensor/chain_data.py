@@ -78,6 +78,19 @@ custom_rpc_type_registry = {
                 ["total_daily_return", "Compact<u64>"],
             ],
         },
+        "DelegateInfoLight": {
+            "type": "struct",
+            "type_mapping": [
+                ["delegate_ss58", "AccountId"],
+                ["owner_ss58", "AccountId"],
+                ["take", "Vec<(Compact<u16>, Compact<u16>)>"],
+                ["owner_stake", "Compact<u64>"],
+                ["total_stake", "Compact<u64>"],
+                ["validator_permits", "Vec<Compact<u16>>"],
+                ["return_per_1000", "Compact<u64>"],
+                ["total_daily_return", "Compact<u64>"],
+            ],
+        },
         "NeuronInfo": {
             "type": "struct",
             "type_mapping": [
@@ -217,6 +230,7 @@ class ChainDataType(Enum):
     SubnetHyperparameters = 8
     SubstakeElements = 9
     DynamicPoolInfoV2 = 10
+    DelegateInfoLight = 11
 
 
 def from_scale_encoding(
@@ -982,6 +996,82 @@ class DelegateInfo:
 
         return decoded
 
+@dataclass
+class DelegateInfoLight:
+    r"""
+    Dataclass for light delegate information.
+
+    Args:
+        hotkey_ss58 (str): Hotkey of the delegate for which the information is being fetched.
+        owner_ss58 (str): Coldkey of the owner.
+        total_stake (int): Total stake of the delegate.
+        owner_stake (int): Own stake of the delegate.
+        take (float): Take of the delegate as a percentage.
+        validator_permits (list[int]): List of subnets that the delegate is allowed to validate on.
+        return_per_1000 (int): Return per 1000 TAO, for the delegate over a day.
+        total_daily_return (int): Total daily return of the delegate.
+
+    """
+
+    hotkey_ss58: str  # Hotkey of delegate
+    owner_ss58: str  # Coldkey of owner
+    take: List[Tuple[int, float]]  # Takes of the delegate per subnet
+    total_stake: Balance  # Total stake of the delegate
+    own_stake: Balance  # Own stake of the delegate
+    validator_permits: List[
+        int
+    ]  # List of subnets that the delegate is allowed to validate on
+    return_per_1000: Balance  # Return per 1000 tao of the delegate over a day
+    total_daily_return: Balance  # Total daily return of the delegate
+
+    @classmethod
+    def fix_decoded_values(cls, decoded: Any) -> "DelegateInfoLight":
+        r"""Fixes the decoded values."""
+
+        decoded_takes = decoded["take"]
+        fixed_take_list = []
+        for take_tuple in decoded_takes:
+            fixed_take_list.append((take_tuple[0], U16_NORMALIZED_FLOAT(take_tuple[1])))
+
+        return cls(
+            hotkey_ss58=ss58_encode(
+                decoded["delegate_ss58"], bittensor.__ss58_format__
+            ),
+            owner_ss58=ss58_encode(decoded["owner_ss58"], bittensor.__ss58_format__),
+            take=fixed_take_list,
+            total_stake=Balance.from_rao(decoded["total_stake"]),
+            owner_stake=Balance.from_rao(decoded["owner_stake"]),
+            validator_permits=decoded["validator_permits"],
+            return_per_1000=Balance.from_rao(decoded["return_per_1000"]),
+            total_daily_return=Balance.from_rao(decoded["total_daily_return"]),
+        )
+
+    @classmethod
+    def from_vec_u8(cls, vec_u8: List[int]) -> Optional["DelegateInfoLight"]:
+        r"""Returns a DelegateInfoLight object from a ``vec_u8``."""
+        if len(vec_u8) == 0:
+            return None
+
+        decoded = from_scale_encoding(vec_u8, ChainDataType.DelegateInfoLight)
+
+        if decoded is None:
+            return None
+
+        decoded = DelegateInfoLight.fix_decoded_values(decoded)
+
+        return decoded
+
+    @classmethod
+    def list_from_vec_u8(cls, vec_u8: List[int]) -> List["DelegateInfoLight"]:
+        r"""Returns a list of DelegateInfoLight objects from a ``vec_u8``."""
+        decoded = from_scale_encoding(vec_u8, ChainDataType.DelegateInfoLight, is_vec=True)
+
+        if decoded is None:
+            return []
+
+        decoded = [DelegateInfoLight.fix_decoded_values(d) for d in decoded]
+
+        return decoded
 
 @dataclass
 class StakeInfo:

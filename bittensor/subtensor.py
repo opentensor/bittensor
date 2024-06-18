@@ -45,6 +45,7 @@ from bittensor.btlogging import logging as _logger
 from .chain_data import (
     NeuronInfo,
     DelegateInfo,
+    DelegateInfoLight,
     PrometheusInfo,
     SubnetInfoV2,
     SubnetHyperparameters,
@@ -4086,6 +4087,39 @@ class subtensor:
         return DelegateInfo.from_vec_u8(result)
 
     def get_delegates(self, block: Optional[int] = None) -> List[DelegateInfo]:
+        """
+        Retrieves a list of all delegate neurons within the Bittensor network. This function provides an overview of the neurons that are actively involved in the network's delegation system.
+
+        Analyzing the delegate population offers insights into the network's governance dynamics and the distribution of trust and responsibility among participating neurons.
+
+        Args:
+            block (Optional[int], optional): The blockchain block number for the query.
+
+        Returns:
+            List[DelegateInfo]: A list of DelegateInfo objects detailing each delegate's characteristics.
+
+        """
+
+        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
+        def make_substrate_call_with_retry():
+            block_hash = None if block is None else self.substrate.get_block_hash(block)
+            params = []
+            if block_hash:
+                params.extend([block_hash])
+            return self.substrate.rpc_request(
+                method="delegateInfo_getDelegates",  # custom rpc method
+                params=params,
+            )
+
+        json_body = make_substrate_call_with_retry()
+        result = json_body["result"]
+
+        if result in (None, []):
+            return []
+
+        return DelegateInfo.list_from_vec_u8(result)
+
+    def get_delegates_light(self, block: Optional[int] = None) -> List[DelegateInfoLight]:
         """
         Retrieves a list of all delegate neurons within the Bittensor network. This function provides an overview of the neurons that are actively involved in the network's delegation system.
 
