@@ -16,25 +16,41 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
+import os
+import warnings
 
 from rich.console import Console
 from rich.traceback import install
 
-# Install and apply nest asyncio to allow the async functions
-# to run in a .ipynb
-import nest_asyncio
 
-nest_asyncio.apply()
+if (NEST_ASYNCIO_ENV := os.getenv("NEST_ASYNCIO")) in ("1", None):
+    if NEST_ASYNCIO_ENV is None:
+        warnings.warn(
+            "NEST_ASYNCIO implicitly set to '1'. In the future, the default value will be '0'."
+            "If you use `nest_asyncio` make sure to add it explicitly to your project dependencies,"
+            "as it will be removed from `bittensor` package dependencies in the future."
+            "To silence this warning, explicitly set the environment variable, e.g. `export NEST_ASYNCIO=0`.",
+            DeprecationWarning,
+        )
+    # Install and apply nest asyncio to allow the async functions
+    # to run in a .ipynb
+    import nest_asyncio
+
+    nest_asyncio.apply()
+
 
 # Bittensor code and protocol version.
-__version__ = "7.0.0"
+__version__ = "7.2.0"
 
-version_split = __version__.split(".")
-__version_as_int__: int = (
-    (100 * int(version_split[0]))
-    + (10 * int(version_split[1]))
-    + (1 * int(version_split[2]))
+_version_split = __version__.split(".")
+__version_info__ = tuple(int(part) for part in _version_split)
+_version_int_base = 1000
+assert max(__version_info__) < _version_int_base
+
+__version_as_int__: int = sum(
+    e * (_version_int_base**i) for i, e in enumerate(reversed(__version_info__))
 )
+assert __version_as_int__ < 2**31  # fits in int32
 __new_signature_version__ = 360
 
 # Rich console.
@@ -43,6 +59,16 @@ __use_console__ = True
 
 # Remove overdue locals in debug training.
 install(show_locals=False)
+
+
+def __getattr__(name):
+    if name == "version_split":
+        warnings.warn(
+            "version_split is deprecated and will be removed in future versions. Use __version__ instead.",
+            DeprecationWarning,
+        )
+        return _version_split
+    raise AttributeError(f"module {__name__} has no attribute {name}")
 
 
 def turn_console_off():
@@ -278,7 +304,6 @@ from .chain_data import (
     NeuronInfoLite,
     PrometheusInfo,
     DelegateInfo,
-    DelegateInfoLite,
     StakeInfo,
     SubnetInfo,
     SubnetHyperparameters,

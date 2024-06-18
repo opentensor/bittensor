@@ -618,7 +618,9 @@ class MetagraphMixin(ABC):
         # TODO: Check and test the computation of weights and bonds
         if self.netuid == 0:
             self.weights = self._process_root_weights(
-                [neuron.weights for neuron in self.neurons], "weights", subtensor  # type: ignore
+                [neuron.weights for neuron in self.neurons],
+                "weights",
+                subtensor,  # type: ignore
             )
         else:
             self.weights = self._process_weights_or_bonds(
@@ -659,16 +661,16 @@ class MetagraphMixin(ABC):
                 if attribute == "weights":
                     data_array.append(
                         bittensor.utils.weight_utils.convert_weight_uids_and_vals_to_tensor(
-                            len(self.neurons), list(uids), list(values)  # type: ignore
+                            len(self.neurons),
+                            list(uids),
+                            list(values),  # type: ignore
                         )
                     )
                 else:
                     data_array.append(
                         bittensor.utils.weight_utils.convert_bond_uids_and_vals_to_tensor(  # type: ignore
                             len(self.neurons), list(uids), list(values)
-                        ).astype(
-                            np.float32
-                        )
+                        ).astype(np.float32)
                     )
         tensor_param: Union["torch.nn.Parameter", NDArray] = (
             (
