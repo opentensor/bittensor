@@ -4901,6 +4901,43 @@ class Subtensor:
 
         return NeuronInfoLite.from_vec_u8(bytes_result)  # type: ignore
 
+    def decode_scale_bytes(self, return_type, scale_bytes, custom_rpc_type_registry):
+        rpc_runtime_config = RuntimeConfiguration()
+        rpc_runtime_config.update_type_registry(load_type_registry_preset("legacy"))
+        rpc_runtime_config.update_type_registry(custom_rpc_type_registry)
+        obj = rpc_runtime_config.create_scale_object(return_type, scale_bytes)
+        if obj.data.to_hex() == "0x0400":  # RPC returned None result
+            return None
+        return obj.decode()
+
+    async def neurons_lite_for_uid(self, uid: int) -> List[NeuronInfoLite]:
+        call_definition = bittensor.__type_registry__["runtime_api"][  # type: ignore
+            "NeuronInfoRuntimeApi"
+        ]["methods"]["get_neurons_lite"]
+
+        hex_bytes_result = await self.state_call(
+            method="NeuronInfoRuntimeApi_get_neurons_lite",
+            data=await self._encode_params(
+                call_definition=call_definition, params=[uid]
+            ),
+        )
+
+        if hex_bytes_result is None:
+            return None
+        return_type = call_definition["type"]
+
+        as_scale_bytes = scalecodec.ScaleBytes(hex_bytes_result)  # type: ignore
+
+        with ProcessPoolExecutor as executor:  # type: ignore
+            results = executor.map(
+                self.decode_scale_bytes,
+                return_type,
+                as_scale_bytes,
+                custom_rpc_type_registry,
+            )
+
+        return results
+
     async def neurons_lite(
         self, netuid: int, block: Optional[int] = None
     ) -> List[NeuronInfoLite]:
@@ -4919,7 +4956,7 @@ class Subtensor:
         This function offers a quick overview of the neuron population within a subnet, facilitating
         efficient analysis of the network's decentralized structure and neuron dynamics.
         """
-        hex_bytes_result = await self.query_runtime_api(
+        hex_bytes_result = self.query_runtime_api(
             runtime_api="NeuronInfoRuntimeApi",
             method="get_neurons_lite",
             params=[netuid],
@@ -4934,10 +4971,7 @@ class Subtensor:
         else:
             bytes_result = bytes.fromhex(hex_bytes_result)
 
-        with ProcessPoolExecutor() as executor:
-            results = list(executor.map(NeuronInfoLite.list_from_vec_u, bytes_result))  # type: ignore
-
-        return results
+        return NeuronInfoLite.list_from_vec_u8(bytes_result)  # type: ignore
 
     async def metagraph(
         self,

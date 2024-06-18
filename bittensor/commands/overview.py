@@ -253,13 +253,10 @@ class OverviewCommand:
             copy_config["formatter_class"] = None
 
             # Pull neuron info for all keys.:
-            coroutines = [
-                OverviewCommand._get_neurons_for_netuid(
-                    subtensor, netuid, all_hotkey_addresses
-                )
-                for netuid in netuids
-            ]
-            results = await asyncio.gather(*coroutines)
+
+            results = OverviewCommand._get_neurons_for_netuids(
+                subtensor, netuids, all_hotkey_addresses
+            )
 
             neurons = await OverviewCommand._process_neuron_results(
                 results, neurons, netuids
@@ -618,23 +615,52 @@ class OverviewCommand:
         console.print(grid, width=cli.config.get("width", None))
 
     @staticmethod
-    async def _get_neurons_for_netuid(
-        subtensor: "bittensor.subtensor", netuid: int, hot_wallets: List[str]
-    ) -> Tuple[int, List["bittensor.NeuronInfoLite"], Optional[str]]:
+    def _map_hotkey_to_neurons(
+        all_neurons: List["bittensor.NeuronInfoLite"],
+        hot_wallets: List[str],
+        netuid: int,
+    ):
         result: List["bittensor.NeuronInfoLite"] = []
-
-        all_neurons: List["bittensor.NeuronInfoLite"] = await subtensor.neurons_lite(
-            netuid=netuid
-        )
-        # Map the hotkeys to uids
         hotkey_to_neurons = {n.hotkey: n.uid for n in all_neurons}
-        for hot_wallet_addr in hot_wallets:
-            uid = hotkey_to_neurons.get(hot_wallet_addr)
-            if uid is not None:
-                nn = all_neurons[uid]
-                result.append(nn)
+        try:
+            for hot_wallet_addr in hot_wallets:
+                uid = hotkey_to_neurons.get(hot_wallet_addr)
+                if uid is not None:
+                    nn = all_neurons[uid]
+                    result.append(nn)
+        except Exception as e:
+            return netuid, [], f"Error: {e}"
 
         return netuid, result, None
+
+    @staticmethod
+    async def _fetch_neuron_for_netuid(
+        netuid: int, subtensor: "bittensor.subtensor"
+    ) -> Tuple[int, "bittensor.NeuronInfoLite"]:
+        neurons = await subtensor.neurons_lite_for_uid(uid=netuid)
+        return (netuid, neurons)
+
+    @staticmethod
+    async def _fetch_all_neurons(
+        netuids: List[int], subtensor
+    ) -> List[Tuple[int, List["bittensor.NeuronInfoLite"]]]:
+        return await asyncio.gather(
+            *[
+                OverviewCommand._fetch_neuron_for_netuid(netuid, subtensor)
+                for netuid in netuids
+            ]
+        )
+
+    @staticmethod
+    async def _get_neurons_for_netuids(
+        subtensor: "bittensor.subtensor", netuids: List[int], hot_wallets: List[str]
+    ) -> Tuple[int, List["bittensor.NeuronInfoLite"], Optional[str]]:
+        all_neurons = await OverviewCommand._fetch_all_neurons(netuids, subtensor)
+
+        return [
+            OverviewCommand._map_hotkey_to_neurons(neurons, hot_wallets, netuid)
+            for netuid, neurons in all_neurons
+        ]
 
     @staticmethod
     async def _get_de_registered_stake_for_coldkey_wallet(
