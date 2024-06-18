@@ -61,13 +61,13 @@ def root_register_extrinsic(
     )
     if is_registered:
         bittensor.__console__.print(
-            f":white_heavy_check_mark: [green]Already registered on root network.[/green]"
+            ":white_heavy_check_mark: [green]Already registered on root network.[/green]"
         )
         return True
 
     if prompt:
         # Prompt user for confirmation.
-        if not Confirm.ask(f"Register to root network?"):
+        if not Confirm.ask("Register to root network?"):
             return False
 
     with bittensor.__console__.status(":satellite: Registering to root network..."):
@@ -130,6 +130,9 @@ def set_root_weights_extrinsic(
         success (bool):
             Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
+
+    wallet.coldkey  # unlock coldkey
+
     # First convert types.
     if isinstance(netuids, list):
         netuids = np.array(netuids, dtype=np.int64)
@@ -177,7 +180,7 @@ def set_root_weights_extrinsic(
             weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(
                 netuids, weights
             )
-            success, error_message = subtensor._do_set_weights(
+            success, error_message = subtensor._do_set_root_weights(
                 wallet=wallet,
                 netuid=0,
                 uids=weight_uids,

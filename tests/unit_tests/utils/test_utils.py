@@ -17,6 +17,8 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import logging
+
 import numpy as np
 import bittensor.utils.weight_utils as weight_utils
 import pytest
@@ -230,19 +232,38 @@ def test_convert_root_weight_uids_and_vals_to_tensor_edge_cases(
 @pytest.mark.parametrize(
     "test_id, n, uids, weights, subnets, exception",
     [
-        ("error-1", 3, [1, 3], [100, 200], [1, 2], Exception),  # uid not in subnets
-        ("error-2", 3, [1, 2, 3], [100, 200], [1], Exception),  # More uids than subnets
+        # uid not in subnets
+        (
+            "error-1",
+            3,
+            [1, 3],
+            [100, 200],
+            [1, 2],
+            "The subnet is unavailable at the moment.",
+        ),
+        # More uids than subnets
+        (
+            "error-2",
+            3,
+            [1, 2, 3],
+            [100, 200],
+            [1],
+            "The subnet is unavailable at the moment.",
+        ),
     ],
 )
 def test_convert_root_weight_uids_and_vals_to_tensor_error_cases(
-    test_id, n, uids, weights, subnets, exception
+    test_id, n, uids, weights, subnets, exception, caplog
 ):
-    # Act and Assert
-    with pytest.raises(exception):
+    with caplog.at_level(logging.WARNING):
         weight_utils.convert_root_weight_uids_and_vals_to_tensor(
             n, uids, weights, subnets
         )
-        print(f"Failed {test_id}")
+
+        assert any(
+            exception in record.message and record.levelname == "WARNING"
+            for record in caplog.records
+        )
 
 
 @pytest.mark.parametrize(

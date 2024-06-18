@@ -604,84 +604,9 @@ class DelegateUnstakeCommand:
                 config.unstake_all = True
 
 
-class ListDelegatesLiteCommand:
-    """
-    Displays a formatted table of Bittensor network delegates, providing a lite overview of delegate statistics and information. For a more detailed view, use the :func:`ListDelegatesCommand` class.
-
-    This table helps users make informed decisions on which delegates to allocate their TAO stake.
-
-    Optional Arguments:
-        - ``wallet.name``: The name of the wallet to use for the command.
-        - ``subtensor.network``: The name of the network to use for the command.
-
-    The table columns include:
-
-    - INDEX: The delegate's index in the sorted list.
-    - DELEGATE: The name of the delegate.
-    - SS58: The delegate's unique SS58 address (truncated for display).
-    - NOMINATORS: The count of nominators backing the delegate.
-    - VPERMIT: Indicates the subnets for which the delegate has validator permits.
-    - TAKE: The percentage of the delegate's earnings taken by the network.
-    - DELEGATE/(24h): The total earnings of the delegate in the last 24 hours.
-    - DESCRIPTION: A brief description of the delegate's purpose and operations.
-
-    Sorting is done based on the ``TOTAL STAKE`` column in descending order. Changes in stake are highlighted as follows: Increases are indicated in green and decreases are indicated in red. Entries with no previous data are marked with ``NA``. Each delegate's name is a hyperlink to their respective URL, if available.
-
-    Example usage::
-
-        btcli root list_delegates_lite
-        btcli root list_delegates_lite --wallet.name my_wallet
-        btcli root list_delegates_lite --subtensor.network finney # can also be `test` or `local`
-
-    Note:
-        This function is part of the Bittensor CLI tools and is intended for use within a console application. It prints directly to the console and does not return any value.
-    """
-
-    @staticmethod
-    def run(cli: "bittensor.cli"):
-        r"""
-        List all delegates on the network.
-        """
-        try:
-            cli.config.subtensor.network = "archive"
-            cli.config.subtensor.chain_endpoint = (
-                "wss://archive.chain.opentensor.ai:443"
-            )
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(
-                config=cli.config, log_verbose=False
-            )
-            ListDelegatesLiteCommand._run(cli, subtensor)
-        finally:
-            if "subtensor" in locals():
-                subtensor.close()
-                bittensor.logging.debug("closing subtensor connection")
-
-    @staticmethod
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
-        r"""
-        List all delegates on the network.
-        """
-        with bittensor.__console__.status(":satellite: Loading delegates..."):
-            delegates: list[bittensor.DelegateInfoLite] = subtensor.get_delegates_lite()
-
-        show_delegates_lite(delegates, width=cli.config.get("width", None))
-
-    @staticmethod
-    def add_args(parser: argparse.ArgumentParser):
-        list_delegates_parser = parser.add_parser(
-            "list_delegates_lite",
-            help="""List all delegates on the network (lite version).""",
-        )
-        bittensor.subtensor.add_args(list_delegates_parser)
-
-    @staticmethod
-    def check_config(config: "bittensor.config"):
-        pass
-
-
 class ListDelegatesCommand:
     """
-    Displays a formatted table of Bittensor network delegates, providing a comprehensive overview of delegate statistics and information. Use the :func:`ListDelegatesLiteCommand` class for a lighter version of this class.
+    Displays a formatted table of Bittensor network delegates, providing a comprehensive overview of delegate statistics and information.
 
     This table helps users make informed decisions on which delegates to allocate their TAO stake.
 
