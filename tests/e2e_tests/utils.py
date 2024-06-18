@@ -1,21 +1,17 @@
-import asyncio
-import threading
-import time
-
-from substrateinterface import SubstrateInterface
-from typing import List
 import os
 import shutil
 import subprocess
 import sys
-import pytest
+import time
+from typing import List
 
-from bittensor import Keypair, logging
+from substrateinterface import SubstrateInterface
+
 import bittensor
+from bittensor import Keypair, logging
 
 template_path = os.getcwd() + "/neurons/"
 templates_repo = "templates repository"
-ocr_repo = "ocr"
 
 
 def setup_wallet(uri: str):
@@ -145,7 +141,6 @@ def clone_or_update_templates():
     install_dir = template_path
     repo_mapping = {
         templates_repo: "https://github.com/opentensor/bittensor-subnet-template.git",
-        # ocr_repo: "https://github.com/opentensor/ocr_subnet.git",
     }
     os.makedirs(install_dir, exist_ok=True)
     os.chdir(install_dir)
@@ -160,15 +155,6 @@ def clone_or_update_templates():
             subprocess.run(["git", "pull"], check=True)
             os.chdir("..")
 
-    specific_commit = "e842dc2d25883199a824514e3a7442decd5e99e4"
-    if specific_commit:
-        os.chdir(templates_repo)
-        print(
-            f"\033[94mChecking out commit {specific_commit} in {templates_repo}...\033[0m"
-        )
-        subprocess.run(["git", "checkout", specific_commit], check=True)
-        os.chdir("..")
-
     return install_dir + templates_repo + "/"
 
 
@@ -177,7 +163,6 @@ def install_templates(install_dir):
 
 
 def uninstall_templates(install_dir):
-    # uninstall templates
     subprocess.check_call(
         [sys.executable, "-m", "pip", "uninstall", "bittensor_subnet_template", "-y"]
     )
