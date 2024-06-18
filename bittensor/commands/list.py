@@ -56,7 +56,10 @@ class ListCommand:
         except StopIteration:
             # No wallet files found.
             wallets = []
+        ListCommand._run(cli, wallets)
 
+    @staticmethod
+    def _run(cli: "bittensor.cli", wallets, return_value=False):
         root = Tree("Wallets")
         for w_name in wallets:
             wallet_for_name = bittensor.wallet(path=cli.config.wallet.path, name=w_name)
@@ -100,7 +103,10 @@ class ListCommand:
             root.add("[bold red]No wallets found.")
 
         # Uses rich print to display the tree.
-        print(root)
+        if not return_value:
+            print(root)
+        else:
+            return root
 
     @staticmethod
     def check_config(config: "bittensor.config"):
@@ -111,3 +117,12 @@ class ListCommand:
         list_parser = parser.add_parser("list", help="""List wallets""")
         bittensor.wallet.add_args(list_parser)
         bittensor.subtensor.add_args(list_parser)
+
+    @staticmethod
+    def get_tree(cli):
+        try:
+            wallets = next(os.walk(os.path.expanduser(cli.config.wallet.path)))[1]
+        except StopIteration:
+            # No wallet files found.
+            wallets = []
+        return ListCommand._run(cli=cli, wallets=wallets, return_value=True)

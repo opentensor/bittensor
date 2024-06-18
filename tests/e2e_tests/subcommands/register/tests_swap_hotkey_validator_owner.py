@@ -1,5 +1,6 @@
 import asyncio
 import sys
+import logging
 import uuid
 
 import pytest
@@ -12,12 +13,16 @@ from bittensor.commands import (
     StakeCommand,
     RootRegisterCommand,
     NewHotkeyCommand,
+    ListCommand,
 )
 from tests.e2e_tests.utils import (
     setup_wallet,
     template_path,
     repo_name,
+    wait_epoch,
 )
+
+logging.basicConfig(level=logging.INFO)
 
 """
 Test the swap_hotkey mechanism. 
@@ -170,6 +175,9 @@ async def test_swap_hotkey_validator_owner(local_chain):
     # assert alice has old hotkey
     alice_neuron = metagraph.neurons[0]
 
+    wallet_tree = alice_exec_command(ListCommand, ["w", "list"], "get_tree")
+    num_hotkeys = len(wallet_tree.children[0].children)
+
     assert alice_neuron.coldkey == "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
     assert alice_neuron.hotkey == alice_old_hotkey_address
     assert (
@@ -192,7 +200,8 @@ async def test_swap_hotkey_validator_owner(local_chain):
         )
         == alice_neuron.uid
     )
-    # TODO: assert Alice only has one hotkey
+    if num_hotkeys > 1:
+        logging.info(f"You have {num_hotkeys} hotkeys for Alice.")
 
     # generate new guid name for hotkey
     new_hotkey_name = str(uuid.uuid4())
@@ -213,6 +222,10 @@ async def test_swap_hotkey_validator_owner(local_chain):
             "True",
         ],
     )
+
+    rate_limit = subtensor.tx_rate_limit()
+    curr_block = subtensor.get_current_block()
+    wait_epoch(rate_limit + curr_block + 1, subtensor)
 
     # swap hotkey
     alice_exec_command(
@@ -237,8 +250,10 @@ async def test_swap_hotkey_validator_owner(local_chain):
     metagraph = bittensor.metagraph(netuid=1, network="ws://localhost:9945")
     subtensor = bittensor.subtensor(network="ws://localhost:9945")
 
-    # assert bob has old hotkey
+    # assert Alice has new hotkey
     alice_neuron = metagraph.neurons[0]
+    wallet_tree = alice_exec_command(ListCommand, ["w", "list"], "get_tree")
+    new_num_hotkeys = len(wallet_tree.children[0].children)
 
     assert (
         alice_neuron.coldkey == "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
@@ -275,4 +290,4 @@ async def test_swap_hotkey_validator_owner(local_chain):
         )
         == alice_neuron.uid
     )
-    # TODO: assert alice has 2 hotkeys listed
+    assert new_num_hotkeys == num_hotkeys + 1
