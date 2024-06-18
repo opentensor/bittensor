@@ -97,7 +97,7 @@ async def test_swap_hotkey_validator_owner(local_chain):
         ]
     )
 
-    miner_process = await asyncio.create_subprocess_shell(
+    await asyncio.create_subprocess_shell(
         cmd,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
@@ -130,7 +130,7 @@ async def test_swap_hotkey_validator_owner(local_chain):
     )
     # run validator in the background
 
-    validator_process = await asyncio.create_subprocess_shell(
+    await asyncio.create_subprocess_shell(
         cmd,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
@@ -175,6 +175,7 @@ async def test_swap_hotkey_validator_owner(local_chain):
     # assert alice has old hotkey
     alice_neuron = metagraph.neurons[0]
 
+    # get current number of hotkeys
     wallet_tree = alice_exec_command(ListCommand, ["w", "list"], "get_tree")
     num_hotkeys = len(wallet_tree.children[0].children)
 
@@ -223,6 +224,7 @@ async def test_swap_hotkey_validator_owner(local_chain):
         ],
     )
 
+    # wait rate limit, until we are allowed to change hotkeys
     rate_limit = subtensor.tx_rate_limit()
     curr_block = subtensor.get_current_block()
     wait_epoch(rate_limit + curr_block + 1, subtensor)
