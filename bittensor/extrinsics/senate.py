@@ -26,7 +26,6 @@ import bittensor
 from bittensor.utils import format_error_message
 
 
-
 async def register_senate_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",

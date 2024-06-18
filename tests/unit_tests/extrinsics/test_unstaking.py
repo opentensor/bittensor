@@ -1,4 +1,3 @@
-
 import pytest
 import bittensor
 from unittest.mock import patch, MagicMock
