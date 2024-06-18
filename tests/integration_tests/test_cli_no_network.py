@@ -378,8 +378,8 @@ class TestCLINoNetwork(unittest.TestCase):
         self.assertEqual(cli.config.pow_register.cuda.get("use_cuda"), False)
 
 
-def return_mock_sub_2(*args, **kwargs):
-    return MagicMock(
+def return_mock_sub_2(mocker, *args, **kwargs):
+    return mocker.AsyncMock(
         return_value=MagicMock(
             get_subnet_burn_cost=MagicMock(return_value=0.1),
             get_subnets=MagicMock(return_value=[1]),  # Need to pass check config
@@ -412,7 +412,7 @@ class TestEmptyArgs(unittest.TestCase):
     """
 
     @patch("rich.prompt.PromptBase.ask", side_effect=MockException)
-    def test_command_no_args(self, _, __, patched_prompt_ask):
+    async def test_command_no_args(self, _, __, patched_prompt_ask):
         # Get argparser
         parser = bittensor.cli.__create_parser__()
         # Get all commands from argparser
