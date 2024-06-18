@@ -48,7 +48,6 @@ console = bittensor.__console__
 # Uses rich console to pretty print a table of delegates.
 def show_delegates(
     delegates: List["bittensor.DelegateInfoLight"],
-    prev_delegates: Optional[List["bittensor.DelegateInfoLight"]],
     width: Optional[int] = None,
 ):
     """
@@ -95,10 +94,6 @@ def show_delegates(
     """
 
     delegates.sort(key=lambda delegate: delegate.total_stake, reverse=True)
-    prev_delegates_dict = {}
-    if prev_delegates is not None:
-        for prev_delegate in prev_delegates:
-            prev_delegates_dict[prev_delegate.hotkey_ss58] = prev_delegate
 
     registered_delegate_info: Optional[
         Dict[str, DelegatesDetails]
@@ -128,9 +123,9 @@ def show_delegates(
         footer_style="overline white",
         style="bold yellow",
     )
-    table.add_column(
-        "[overline white]NOMINATORS", justify="center", style="green", no_wrap=True
-    )
+    # table.add_column(
+    #     "[overline white]NOMINATORS", justify="center", style="green", no_wrap=True
+    # )
     table.add_column(
         "[overline white]OWNER STAKE(\u03C4)", justify="right", no_wrap=True
     )
@@ -150,15 +145,7 @@ def show_delegates(
     table.add_column("[overline white]Desc", style="rgb(50,163,219)")
 
     for i, delegate in enumerate(delegates):
-        owner_stake = next(
-            map(
-                lambda x: x[1],  # get stake
-                filter(
-                    lambda x: x[0] == delegate.owner_ss58, delegate.nominators
-                ),  # filter for owner
-            ),
-            bittensor.Balance.from_rao(0),  # default to 0 if no owner stake.
-        )
+        owner_stake = delegate.owner_stake
         if delegate.hotkey_ss58 in registered_delegate_info:
             delegate_name = registered_delegate_info[delegate.hotkey_ss58].name
             delegate_url = registered_delegate_info[delegate.hotkey_ss58].url
@@ -170,10 +157,14 @@ def show_delegates(
             delegate_url = ""
             delegate_description = ""
 
-        if delegate.hotkey_ss58 in prev_delegates_dict:
-            prev_stake = prev_delegates_dict[delegate.hotkey_ss58].total_stake
+        # Previous stake diff
+        if delegate.previous_total_stake:
+            prev_stake = delegate.previous_total_stake
             if prev_stake == 0:
-                rate_change_in_stake_str = "[green]100%[/green]"
+                if delegate.total_stake != 0:
+                    rate_change_in_stake_str = "[green]100%[/green]"
+                else:
+                    rate_change_in_stake_str = "[grey0]0%[/grey0]"
             else:
                 rate_change_in_stake = (
                     100
@@ -194,10 +185,7 @@ def show_delegates(
             rate_change_in_stake_str = "[grey0]NA[/grey0]"
 
         # pre-analyze takes
-        custom_take = True
-        for t in delegate.take:
-            if t[1] != 0.18:
-                custom_take = False
+        custom_take = False if delegate.take else True
 
         table.add_row(
             # INDEX
@@ -207,7 +195,7 @@ def show_delegates(
             # SS58
             f"{delegate.hotkey_ss58:8.8}...",
             # NOMINATORS
-            str(len([nom for nom in delegate.nominators if nom[1].rao > 0])),
+            # str(len([nom for nom in delegate.nominators if nom[1].rao > 0])),
             # DELEGATE STAKE
             f"{owner_stake!s:13.13}",
             # TOTAL STAKE
@@ -353,15 +341,17 @@ class DelegateStakeCommand:
             # Check for delegates.
             with bittensor.__console__.status(":satellite: Loading delegates..."):
                 subtensor = bittensor.subtensor(config=config, log_verbose=False)
-                delegates: List[bittensor.DelegateInfo] = subtensor.get_delegates()
-                try:
-                    prev_delegates = subtensor.get_delegates(
-                        max(0, subtensor.block - 1200)
-                    )
-                except SubstrateRequestException:
-                    prev_delegates = None
+                delegates: list[bittensor.DelegateInfoLight] = subtensor.get_delegates_light()
 
-            if prev_delegates is None:
+            try:
+                hotkey_stakes = subtensor.get_all_hotkey_stakes(
+                    max(0, subtensor.block - 1200)
+                )
+                stake_dict = dict(hotkey_stakes)
+                for delegate in delegates:
+                    if delegate.hotkey_ss58 in stake_dict:
+                        delegate.previous_total_stake = bittensor.Balance.from_rao(stake_dict[delegate.hotkey_ss58])
+            except SubstrateRequestException:
                 bittensor.__console__.print(
                     ":warning: [yellow]Could not fetch delegates history[/yellow]"
                 )
@@ -375,7 +365,8 @@ class DelegateStakeCommand:
                 sys.exit(1)
 
             delegates.sort(key=lambda delegate: delegate.total_stake, reverse=True)
-            show_delegates(delegates, prev_delegates=prev_delegates)
+            show_delegates(delegates)
+
             delegate_index = Prompt.ask("Enter delegate index")
             config.delegate_ss58key = str(delegates[int(delegate_index)].hotkey_ss58)
             console.print(
@@ -524,15 +515,17 @@ class DelegateUnstakeCommand:
             # Check for delegates.
             with bittensor.__console__.status(":satellite: Loading delegates..."):
                 subtensor = bittensor.subtensor(config=config, log_verbose=False)
-                delegates: List[bittensor.DelegateInfo] = subtensor.get_delegates()
-                try:
-                    prev_delegates = subtensor.get_delegates(
-                        max(0, subtensor.block - 1200)
-                    )
-                except SubstrateRequestException:
-                    prev_delegates = None
+                delegates: list[bittensor.DelegateInfoLight] = subtensor.get_delegates_light()
 
-            if prev_delegates is None:
+            try:
+                hotkey_stakes = subtensor.get_all_hotkey_stakes(
+                    max(0, subtensor.block - 1200)
+                )
+                stake_dict = dict(hotkey_stakes)
+                for delegate in delegates:
+                    if delegate.hotkey_ss58 in stake_dict:
+                        delegate.previous_total_stake = bittensor.Balance.from_rao(stake_dict[delegate.hotkey_ss58])
+            except SubstrateRequestException:
                 bittensor.__console__.print(
                     ":warning: [yellow]Could not fetch delegates history[/yellow]"
                 )
@@ -546,7 +539,7 @@ class DelegateUnstakeCommand:
                 sys.exit(1)
 
             delegates.sort(key=lambda delegate: delegate.total_stake, reverse=True)
-            show_delegates(delegates, prev_delegates=prev_delegates)
+            show_delegates(delegates)
             delegate_index = Prompt.ask("Enter delegate index")
             config.delegate_ss58key = str(delegates[int(delegate_index)].hotkey_ss58)
             console.print(
@@ -658,18 +651,20 @@ class ListDelegatesCommand:
             delegates: list[bittensor.DelegateInfoLight] = subtensor.get_delegates_light()
 
             try:
-                prev_delegates = subtensor.get_delegates_light(max(0, subtensor.block - 1200))
+                hotkey_stakes = subtensor.get_all_hotkey_stakes(
+                    max(0, subtensor.block - 1)
+                )
+                stake_dict = dict(hotkey_stakes)
+                for delegate in delegates:
+                    if delegate.hotkey_ss58 in stake_dict:
+                        delegate.previous_total_stake = bittensor.Balance.from_rao(stake_dict[delegate.hotkey_ss58])
             except SubstrateRequestException:
-                prev_delegates = None
-
-        if prev_delegates is None:
-            bittensor.__console__.print(
-                ":warning: [yellow]Could not fetch delegates history[/yellow]"
-            )
+                bittensor.__console__.print(
+                    ":warning: [yellow]Could not fetch delegates history[/yellow]"
+                )
 
         show_delegates(
             delegates,
-            prev_delegates=prev_delegates,
             width=cli.config.get("width", None),
         )
 

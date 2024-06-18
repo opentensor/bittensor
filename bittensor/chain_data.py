@@ -83,7 +83,7 @@ custom_rpc_type_registry = {
             "type_mapping": [
                 ["delegate_ss58", "AccountId"],
                 ["owner_ss58", "AccountId"],
-                ["take", "Vec<(Compact<u16>, Compact<u16>)>"],
+                ["take", "u16"],
                 ["owner_stake", "Compact<u64>"],
                 ["total_stake", "Compact<u64>"],
                 ["validator_permits", "Vec<Compact<u16>>"],
@@ -1006,7 +1006,7 @@ class DelegateInfoLight:
         owner_ss58 (str): Coldkey of the owner.
         total_stake (int): Total stake of the delegate.
         owner_stake (int): Own stake of the delegate.
-        take (float): Take of the delegate as a percentage.
+        take (float): Take of the delegate as a percentage. None if custom
         validator_permits (list[int]): List of subnets that the delegate is allowed to validate on.
         return_per_1000 (int): Return per 1000 TAO, for the delegate over a day.
         total_daily_return (int): Total daily return of the delegate.
@@ -1015,9 +1015,10 @@ class DelegateInfoLight:
 
     hotkey_ss58: str  # Hotkey of delegate
     owner_ss58: str  # Coldkey of owner
-    take: List[Tuple[int, float]]  # Takes of the delegate per subnet
+    take: float
     total_stake: Balance  # Total stake of the delegate
-    own_stake: Balance  # Own stake of the delegate
+    previous_total_stake: Balance  # Total stake of the delegate
+    owner_stake: Balance  # Own stake of the delegate
     validator_permits: List[
         int
     ]  # List of subnets that the delegate is allowed to validate on
@@ -1028,22 +1029,24 @@ class DelegateInfoLight:
     def fix_decoded_values(cls, decoded: Any) -> "DelegateInfoLight":
         r"""Fixes the decoded values."""
 
-        decoded_takes = decoded["take"]
-        fixed_take_list = []
-        for take_tuple in decoded_takes:
-            fixed_take_list.append((take_tuple[0], U16_NORMALIZED_FLOAT(take_tuple[1])))
+        decoded_take = decoded["take"]
+        if decoded_take == 65535:
+            fixed_take = None
+        else:
+            fixed_take = U16_NORMALIZED_FLOAT(decoded_take)
 
         return cls(
             hotkey_ss58=ss58_encode(
                 decoded["delegate_ss58"], bittensor.__ss58_format__
             ),
             owner_ss58=ss58_encode(decoded["owner_ss58"], bittensor.__ss58_format__),
-            take=fixed_take_list,
+            take=fixed_take,
             total_stake=Balance.from_rao(decoded["total_stake"]),
             owner_stake=Balance.from_rao(decoded["owner_stake"]),
             validator_permits=decoded["validator_permits"],
             return_per_1000=Balance.from_rao(decoded["return_per_1000"]),
             total_daily_return=Balance.from_rao(decoded["total_daily_return"]),
+            previous_total_stake=None,
         )
 
     @classmethod

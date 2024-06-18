@@ -35,6 +35,7 @@ from scalecodec.base import RuntimeConfiguration
 from scalecodec.exceptions import RemainingScaleBytesNotEmptyException
 from scalecodec.type_registry import load_type_registry_preset
 from scalecodec.types import GenericCall
+from scalecodec.utils.ss58 import ss58_encode
 from substrateinterface.base import QueryMapResult, SubstrateInterface, ExtrinsicReceipt
 from substrateinterface.exceptions import SubstrateRequestException
 
@@ -4140,7 +4141,7 @@ class subtensor:
             if block_hash:
                 params.extend([block_hash])
             return self.substrate.rpc_request(
-                method="delegateInfo_getDelegates",  # custom rpc method
+                method="delegateInfo_getDelegatesLight",  # custom rpc method
                 params=params,
             )
 
@@ -4150,7 +4151,7 @@ class subtensor:
         if result in (None, []):
             return []
 
-        return DelegateInfo.list_from_vec_u8(result)
+        return DelegateInfoLight.list_from_vec_u8(result)
 
     def get_delegated(
         self, coldkey_ss58: str, block: Optional[int] = None
@@ -4189,6 +4190,48 @@ class subtensor:
             return []
 
         return DelegateInfo.delegated_list_from_vec_u8(result)
+
+    def get_all_hotkey_stakes(
+        self, block: Optional[int] = None
+    ) -> List[Tuple[str, Balance]]:
+        """
+        Retrieves the GDT of all hotkeys
+
+        Args:
+            block (Optional[int], optional): The blockchain block number for the query.
+
+        Returns:
+            List[Tuple[str, Balance]]: The list of tuples (hotkey, GDT balance).
+        """
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=_logger)
+        def make_substrate_call_with_retry():
+            block_hash = None if block == None else self.substrate.get_block_hash(block)
+            params = []
+            if block_hash:
+                params = params + [block_hash]
+            return self.substrate.rpc_request(
+                method="delegateInfo_getAllDelegatesTotalStake",  # custom rpc method
+                params=params,
+            )
+
+        json_body = make_substrate_call_with_retry()
+        result = json_body["result"]
+
+        if result in (None, []):
+            return None
+
+        decoded = from_scale_encoding_using_type_string(result, "Vec<(AccountId, Compact<u64>)>")
+
+        result = []
+        for pubkey, stake in decoded:
+            result.append((
+                ss58_encode(
+                    pubkey, bittensor.__ss58_format__
+                ),
+                stake
+            ))
+
+        return result
 
     ###########################
     #### Stake Information ####
