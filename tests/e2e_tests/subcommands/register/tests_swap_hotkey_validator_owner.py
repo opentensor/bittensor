@@ -263,7 +263,7 @@ async def test_swap_hotkey_validator_owner(local_chain):
     assert alice_neuron.hotkey != alice_old_hotkey_address
     assert alice_neuron.hotkey != alice_neuron.coldkey
     assert (
-        alice_neuron.hotkey == subtensor.get_all_subnets_info()[1].owner_ss58
+        alice_neuron.coldkey == subtensor.get_all_subnets_info()[1].owner_ss58
     )  # new hotkey address is subnet owner
     assert alice_neuron.coldkey != subtensor.get_hotkey_owner(
         alice_old_hotkey_address
