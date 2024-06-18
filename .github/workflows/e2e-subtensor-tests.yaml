@@ -80,5 +80,5 @@ jobs:
 
       - name: Run tests
         run: |
-          python3 -m pip install -e .[dev] pytest
-          LOCALNET_SH_PATH="${{ github.workspace }}/subtensor/scripts/localnet.sh" pytest tests/e2e_tests/ -s
+          python3 -m pip install -e .[dev] pytest pytest-xdist
+          LOCALNET_SH_PATH="${{ github.workspace }}/subtensor/scripts/localnet.sh" pytest tests/e2e_tests/ -s -n auto
