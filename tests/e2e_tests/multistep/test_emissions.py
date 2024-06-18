@@ -12,7 +12,6 @@ from bittensor.commands import (
     RootRegisterCommand,
     RootSetBoostCommand,
     SubnetSudoCommand,
-    CommitWeightCommand,
     RootSetWeightsCommand,
     SetTakeCommand,
 )
@@ -21,7 +20,6 @@ from tests.e2e_tests.utils import (
     template_path,
     templates_repo,
     wait_epoch,
-    write_output_log_to_file,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -47,7 +45,6 @@ are updated with proper values after an epoch has passed.
 """
 
 
-@pytest.mark.skip
 @pytest.mark.asyncio
 async def test_emissions(local_chain):
     # Register root as Alice - the subnet owner and validator
@@ -85,44 +82,6 @@ async def test_emissions(local_chain):
     # assert two neurons are in network
     assert len(subtensor.neurons(netuid=1)) == 2
 
-    # register Bob as miner
-    cmd = " ".join(
-        [
-            f"{sys.executable}",
-            f'"{template_path}{templates_repo}/neurons/miner.py"',
-            "--no_prompt",
-            "--netuid",
-            "1",
-            "--subtensor.network",
-            "local",
-            "--subtensor.chain_endpoint",
-            "ws://localhost:9945",
-            "--wallet.path",
-            bob_wallet.path,
-            "--wallet.name",
-            bob_wallet.name,
-            "--wallet.hotkey",
-            "default",
-            "--logging.trace",
-        ]
-    )
-
-    miner_process = await asyncio.create_subprocess_shell(
-        cmd,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
-    )
-
-    # Create tasks to read stdout and stderr concurrently
-    # ignore, dont await coroutine, just write logs to file
-    asyncio.create_task(write_output_log_to_file("miner_stdout", miner_process.stdout))
-    # ignore, dont await coroutine, just write logs to file
-    asyncio.create_task(write_output_log_to_file("miner_stderr", miner_process.stderr))
-
-    await asyncio.sleep(
-        5
-    )  # wait for 5 seconds for the metagraph and subtensor to refresh with latest data
-
     # Alice to stake to become to top neuron after the first epoch
     alice_exec_command(
         StakeCommand,
@@ -157,20 +116,10 @@ async def test_emissions(local_chain):
     )
     # run validator in the background
 
-    validator_process = await asyncio.create_subprocess_shell(
+    await asyncio.create_subprocess_shell(
         cmd,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
-    )
-
-    # Create tasks to read stdout and stderr concurrently and write output to log file
-    # ignore, dont await coroutine, just write logs to file
-    asyncio.create_task(
-        write_output_log_to_file("validator_stdout", validator_process.stdout)
-    )
-    # ignore, dont await coroutine, just write logs to file
-    asyncio.create_task(
-        write_output_log_to_file("validator_stderr", validator_process.stderr)
     )
     await asyncio.sleep(
         5
@@ -199,6 +148,9 @@ async def test_emissions(local_chain):
         ],
     )
 
+    # wait until 360 blocks pass (subnet tempo)
+    wait_epoch(360, subtensor)
+
     alice_exec_command(
         RootSetWeightsCommand,
         [
@@ -215,7 +167,7 @@ async def test_emissions(local_chain):
         ],
     )
 
-    # Set delegate take for Bob
+    # Set delegate take for Alice
     alice_exec_command(SetTakeCommand, ["r", "set_take", "--take", "0.15"])
 
     # Lower the rate limit
@@ -232,7 +184,7 @@ async def test_emissions(local_chain):
             "--param",
             "weights_rate_limit",
             "--value",
-            "0",
+            "1",
             "--wait_for_inclusion",
             "True",
             "--wait_for_finalization",
@@ -240,26 +192,37 @@ async def test_emissions(local_chain):
         ],
     )
 
-    # get latest metagraph
-    metagraph = bittensor.metagraph(netuid=1, network="ws://localhost:9945")
+    # register Bob as miner
+    cmd = " ".join(
+        [
+            f"{sys.executable}",
+            f'"{template_path}{templates_repo}/neurons/miner.py"',
+            "--no_prompt",
+            "--netuid",
+            "1",
+            "--subtensor.network",
+            "local",
+            "--subtensor.chain_endpoint",
+            "ws://localhost:9945",
+            "--wallet.path",
+            bob_wallet.path,
+            "--wallet.name",
+            bob_wallet.name,
+            "--wallet.hotkey",
+            "default",
+            "--logging.trace",
+        ]
+    )
 
-    # get current emissions
+    await asyncio.create_subprocess_shell(
+        cmd,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
 
-    # wait until 360 blocks pass (subnet tempo)
-    wait_epoch(360, subtensor)
-
-    # # for some reason the weights do not get set through the template. Set weight manually.
-    # alice_wallet = bittensor.wallet()
-    # alice_wallet._hotkey = alice_keypair
-    # subtensor._do_set_weights(
-    #     wallet=alice_wallet,
-    #     uids=[1],
-    #     vals=[65535],
-    #     netuid=1,
-    #     version_key=0,
-    #     wait_for_inclusion=True,
-    #     wait_for_finalization=True,
-    # )
+    await asyncio.sleep(
+        5
+    )  # wait for 5 seconds for the metagraph and subtensor to refresh with latest data
 
     # wait epoch until for emissions to get distributed
     wait_epoch(360, subtensor)
@@ -268,8 +231,27 @@ async def test_emissions(local_chain):
     subtensor = bittensor.subtensor(network="ws://localhost:9945")
 
     # get current emissions and validate that Alice has gotten tao
+    weights = [(0, [(0, 65535), (1, 65535)])]
+    assert subtensor.weights(netuid=1) == weights
 
-    # wait epoch until for emissions to get distributed
-    wait_epoch(360, subtensor)
+    neurons = subtensor.neurons(netuid=1)
+    bob = neurons[1]
+    alice = neurons[0]
 
-    print("Done")
+    assert bob.emission > 0
+    assert bob.consensus == 1
+    assert bob.incentive == 1
+    assert bob.rank == 1
+    assert bob.trust == 1
+
+    assert alice.emission > 0
+    assert alice.bonds == [(1, 65535)]
+    assert alice.dividends == 1
+    assert alice.stake.tao > 10000  # assert an increase in stake
+    assert alice.validator_permit is True
+    assert alice.validator_trust == 1
+    assert alice.weights == [(0, 65535), (1, 65535)]
+
+    assert (
+        subtensor.get_emission_value_by_subnet(netuid=1) > 0
+    )  # emission on this subnet is strictly greater than 0
