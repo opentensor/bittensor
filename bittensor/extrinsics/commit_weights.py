@@ -24,6 +24,8 @@ from rich.prompt import Confirm
 
 import bittensor
 
+from bittensor.utils import format_error_message
+
 
 async def commit_weights_extrinsic(
     subtensor: "bittensor.subtensor",
@@ -67,7 +69,7 @@ async def commit_weights_extrinsic(
         return True, "Successfully committed weights."
     else:
         bittensor.logging.error(f"Failed to commit weights: {error_message}")
-        return False, error_message
+        return False, format_error_message(error_message)
 
 
 async def reveal_weights_extrinsic(

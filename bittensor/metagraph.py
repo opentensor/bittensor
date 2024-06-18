@@ -2,15 +2,15 @@
 # Copyright © 2021 Yuma Rao
 # Copyright © 2023 Opentensor Foundation
 # Copyright © 2023 Opentensor Technologies Inc
-
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
 # the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
+#
 # The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
-
+#
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
 # THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
@@ -366,7 +366,9 @@ class MetagraphMixin(ABC):
         return [axon.ip_str() for axon in self.axons]
 
     @abstractmethod
-    def __init__(self, netuid: int, network: str = "finney", lite: bool = True):
+    def __init__(
+        self, netuid: int, network: str = "finney", lite: bool = True, sync: bool = True
+    ):
         """
         Initializes a new instance of the metagraph object, setting up the basic structure and parameters based on the provided arguments.
         This method is the entry point for creating a metagraph object,
@@ -853,7 +855,9 @@ BaseClass: Union["torch.nn.Module", object] = torch.nn.Module if use_torch() els
 
 
 class TorchMetaGraph(MetagraphMixin, BaseClass):  # type: ignore
-    def __init__(self, netuid: int, network: str = "finney", lite: bool = True):
+    def __init__(
+        self, netuid: int, network: str = "finney", lite: bool = True, sync: bool = True
+    ):
         """
         Initializes a new instance of the metagraph object, setting up the basic structure and parameters based on the provided arguments.
         This method is the entry point for creating a metagraph object,
@@ -868,7 +872,7 @@ class TorchMetaGraph(MetagraphMixin, BaseClass):  # type: ignore
                 metagraph = metagraph(netuid=123, network="finney", lite=True, sync=True)
         """
         torch.nn.Module.__init__(self)
-        MetagraphMixin.__init__(self, netuid, network, lite)
+        MetagraphMixin.__init__(self, netuid, network, lite, sync)
         self.netuid = netuid
         self.network = network
         self.version = torch.nn.Parameter(
@@ -927,6 +931,8 @@ class TorchMetaGraph(MetagraphMixin, BaseClass):  # type: ignore
             torch.tensor([], dtype=torch.int64), requires_grad=False
         )
         self.axons: List[AxonInfo] = []
+        if sync:
+            self.sync(block=None, lite=lite)
 
     def _set_metagraph_attributes(self, block, subtensor):
         """
@@ -1035,9 +1041,11 @@ class TorchMetaGraph(MetagraphMixin, BaseClass):  # type: ignore
 
 
 class NonTorchMetagraph(MetagraphMixin):
-    def __init__(self, netuid: int, network: str = "finney", lite: bool = True):
+    def __init__(
+        self, netuid: int, network: str = "finney", lite: bool = True, sync: bool = True
+    ):
         # super(metagraph, self).__init__()
-        MetagraphMixin.__init__(self, netuid, network, lite)
+        MetagraphMixin.__init__(self, netuid, network, lite, sync)
 
         self.netuid = netuid
         self.network = network
@@ -1060,6 +1068,8 @@ class NonTorchMetagraph(MetagraphMixin):
         self.bonds = np.array([], dtype=np.int64)
         self.uids = np.array([], dtype=np.int64)
         self.axons: List[AxonInfo] = []
+        if sync:
+            self.sync(block=None, lite=lite)
 
     def _set_metagraph_attributes(self, block, subtensor):
         """

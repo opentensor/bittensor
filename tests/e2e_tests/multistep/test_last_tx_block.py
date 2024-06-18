@@ -1,8 +1,8 @@
-# from bittensor.commands.root import RootRegisterCommand
-# from bittensor.commands.delegates import NominateCommand
-# from bittensor.commands.network import RegisterSubnetworkCommand
-# from bittensor.commands.register import RegisterCommand
-# from ..utils import setup_wallet
+from bittensor.commands.root import RootRegisterCommand
+from bittensor.commands.delegates import NominateCommand
+from bittensor.commands.network import RegisterSubnetworkCommand
+from bittensor.commands.register import RegisterCommand
+from ..utils import setup_wallet
 
 
 # Automated testing for take related tests described in
@@ -10,7 +10,7 @@
 # TODO: fix after commands and cli are async migrated
 # def test_takes(local_chain):
 #     # Register root as Alice
-#     (keypair, exec_command) = setup_wallet("//Alice")
+#     keypair, exec_command, wallet = setup_wallet("//Alice")
 #     exec_command(RootRegisterCommand, ["root", "register"])
 #
 #     # Create subnet 1 and verify created successfully
@@ -22,7 +22,7 @@
 #     assert local_chain.query("SubtensorModule", "NetworksAdded", [1]).serialize()
 #
 #     # Register and nominate Bob
-#     (keypair, exec_command) = setup_wallet("//Bob")
+#     keypair, exec_command, wallet = setup_wallet("//Bob")
 #     assert (
 #         local_chain.query(
 #             "SubtensorModule", "LastTxBlock", [keypair.ss58_address]
@@ -36,7 +36,7 @@
 #         ).serialize()
 #         == 0
 #     )
-#     exec_command(RegisterCommand, ["s", "register", "--neduid", "1"])
+#     exec_command(RegisterCommand, ["s", "register", "--netuid", "1"])
 #     exec_command(NominateCommand, ["root", "nominate"])
 #     assert (
 #         local_chain.query(

@@ -1,8 +1,8 @@
-from unittest.mock import MagicMock, patch
 
 import pytest
-
 import bittensor
+from unittest.mock import patch, MagicMock
+
 from bittensor.extrinsics.unstaking import unstake_extrinsic, unstake_multiple_extrinsic
 from bittensor.utils.balance import Balance
 
@@ -28,7 +28,6 @@ def mock_get_minimum_required_stake():
     return Balance.from_rao(100_000_000)
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "hotkey_ss58, amount, wait_for_inclusion, wait_for_finalization, prompt, user_accepts, expected_success, unstake_attempted",
     [
@@ -40,8 +39,8 @@ def mock_get_minimum_required_stake():
         ("5FHneW46...", 10.0, True, True, True, False, False, False),
         # Not enough stake to unstake
         ("5FHneW46...", 1000.0, True, True, False, None, False, False),
-        # Unsuccessful - unstake threshold not reached
-        (None, 0.01, True, True, False, None, False, False),
+        # Successful - unstake threshold not reached
+        (None, 0.01, True, True, False, None, True, True),
         # Successful unstaking all
         (None, None, False, False, False, None, True, True),
         # Failure - unstaking failed
@@ -52,11 +51,12 @@ def mock_get_minimum_required_stake():
         "successful-with-prompt",
         "failure-prompt-declined",
         "failure-not-enough-stake",
-        "failure-threshold-not-reached",
+        "success-threshold-not-reached",
         "success-unstake-all",
         "failure-unstake-failed",
     ],
 )
+@pytest.mark.asyncio
 async def test_unstake_extrinsic(
     mock_subtensor,
     mock_wallet,
@@ -116,7 +116,6 @@ async def test_unstake_extrinsic(
             mock_subtensor.do_unstake.assert_not_called()
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     # TODO: Write dynamic test to test for amount = None with multiple hotkeys
     "hotkey_ss58s, amounts, wallet_balance, wait_for_inclusion, wait_for_finalization, prompt, prompt_response, unstake_responses, expected_success, unstake_attempted, exception, exception_msg",
@@ -168,18 +167,20 @@ async def test_unstake_extrinsic(
             None,
             None,
         ),
-        # Unsuccessful unstake - threshold not reached
+        # Successful unstake - new stake below threshold
         (
             ["5FHneW46..."],
-            [0.01],
+            [
+                100 - mock_get_minimum_required_stake() + 0.01
+            ],  # New stake just below threshold
             100,
             True,
             True,
             False,
             True,
-            [None],
-            False,
-            0,
+            [True],
+            True,  # Successful unstake
+            1,
             None,
             None,
         ),
@@ -249,13 +250,14 @@ async def test_unstake_extrinsic(
         "partial-success-one-fail",
         "success-no-hotkey",
         "failure-not-enough-stake",
-        "failure-threshold-not-reached",
+        "success-threshold-not-reached",
         "failure-prompt-declined",
         "failure-type-error-hotkeys",
         "failure-value-error-amounts",
         "failure-type-error-amounts",
     ],
 )
+@pytest.mark.asyncio
 async def test_unstake_multiple_extrinsic(
     mock_subtensor,
     mock_wallet,

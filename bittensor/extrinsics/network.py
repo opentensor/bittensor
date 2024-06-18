@@ -1,15 +1,15 @@
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 # Copyright © 2023 Opentensor Foundation
-
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
 # the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
+#
 # The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
-
+#
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
 # THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
@@ -23,12 +23,34 @@ and setting hyperparameters.
 
 import asyncio
 import time
-
 from rich.prompt import Confirm
-
+import substrateinterface
 import bittensor
-from bittensor.utils import balance
+from bittensor.utils import balance, format_error_message
 from ..commands.network import HYPERPARAMS
+
+
+async def _find_event_attributes_in_extrinsic_receipt(
+    response: "substrateinterface.base.ExtrinsicReceipt", event_name: str
+) -> list:
+    """
+    Searches for the attributes of a specified event within an extrinsic receipt.
+
+    Args:
+        response (substrateinterface.base.ExtrinsicReceipt): The receipt of the extrinsic to be searched.
+        event_name (str): The name of the event to search for.
+
+    Returns:
+        list: A list of attributes for the specified event. Returns [-1] if the event is not found.
+    """
+    for event in response.triggered_events:
+        # Access the event details
+        event_details = event.value["event"]
+        # Check if the event_id is 'NetworkAdded'
+        if event_details["event_id"] == event_name:
+            # Once found, you can access the attributes of the event_name
+            return event_details["attributes"]
+    return [-1]
 
 
 async def register_subnetwork_extrinsic(
@@ -93,46 +115,22 @@ async def register_subnetwork_extrinsic(
             return True
 
         # process if registration successful
-        # TODO: ? passably have to be awaited after `submit_extrinsic` implemented in `async_substrate.py`
         response.process_events()
         if not response.is_success:
             bittensor.__console__.print(
-                ":cross_mark: [red]Failed[/red]: error:{}".format(
-                    response.error_message
-                )
+                f":cross_mark: [red]Failed[/red]: {format_error_message(response.error_message)}"
             )
             time.sleep(0.5)
 
         # Successful registration, final check for membership
         else:
-            attributes = await find_event_attributes_in_extrinsic_receipt(
+            attributes = await _find_event_attributes_in_extrinsic_receipt(
                 response, "NetworkAdded"
             )
             bittensor.__console__.print(
                 f":white_heavy_check_mark: [green]Registered subnetwork with netuid: {attributes[0]}[/green]"
             )
             return True
-
-
-async def find_event_attributes_in_extrinsic_receipt(response, event_name) -> list:
-    """
-    Searches for the attributes of a specified event within an extrinsic receipt.
-
-    Args:
-        response (substrateinterface.base.ExtrinsicReceipt): The receipt of the extrinsic to be searched.
-        event_name (str): The name of the event to search for.
-
-    Returns:
-        list: A list of attributes for the specified event. Returns [-1] if the event is not found.
-    """
-    for event in response.triggered_events:
-        # Access the event details
-        event_details = event.value["event"]
-        # Check if the event_id is 'NetworkAdded'
-        if event_details["event_id"] == event_name:
-            # Once found, you can access the attributes of the event_name
-            return event_details["attributes"]
-    return [-1]
 
 
 async def set_hyperparameter_extrinsic(
@@ -207,9 +205,7 @@ async def set_hyperparameter_extrinsic(
         response.process_events()
         if not response.is_success:
             bittensor.__console__.print(
-                ":cross_mark: [red]Failed[/red]: error:{}".format(
-                    response.error_message
-                )
+                f":cross_mark: [red]Failed[/red]: {format_error_message(response.error_message)}"
             )
             await asyncio.sleep(0.5)
 

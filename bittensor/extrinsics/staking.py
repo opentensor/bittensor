@@ -20,12 +20,36 @@
 
 import asyncio
 from time import sleep
-from typing import List, Union, Optional
+from typing import List, Union, Optional, Tuple
 
 from rich.prompt import Confirm
 
 import bittensor
 from bittensor.utils.balance import Balance
+
+
+async def _check_threshold_amount(
+    subtensor: "bittensor.subtensor", stake_balance: Balance
+) -> Tuple[bool, Balance]:
+    """
+    Checks if the new stake balance will be above the minimum required stake threshold.
+
+    Args:
+        stake_balance (Balance):
+            the balance to check for threshold limits.
+
+    Returns:
+        success, threshold (bool, Balance):
+            ``true`` if the staking balance is above the threshold, or ``false`` if the
+                staking balance is below the threshold.
+            The threshold balance required to stake.
+    """
+    min_req_stake: Balance = await subtensor.get_minimum_required_stake()
+
+    if min_req_stake > stake_balance:
+        return False, min_req_stake
+    else:
+        return True, min_req_stake
 
 
 async def add_stake_extrinsic(
@@ -93,6 +117,9 @@ async def add_stake_extrinsic(
                     f"Hotkey: {hotkey_ss58} is not a delegate."
                 )
 
+        # Grab the existential deposit.
+        existential_deposit = await subtensor.get_existential_deposit()
+
     # Convert to bittensor.Balance
     if amount is None:
         # Stake it all.
@@ -102,9 +129,10 @@ async def add_stake_extrinsic(
     else:
         staking_balance = amount
 
-    # Remove existential balance to keep key alive.
-    if staking_balance > bittensor.Balance.from_rao(1000):
-        staking_balance = staking_balance - bittensor.Balance.from_rao(1000)
+    # Leave existential balance to keep key alive.
+    if staking_balance > old_balance - existential_deposit:
+        # If we are staking all, we need to leave at least the existential deposit.
+        staking_balance = old_balance - existential_deposit
     else:
         staking_balance = staking_balance
 
@@ -114,6 +142,18 @@ async def add_stake_extrinsic(
             f":cross_mark: [red]Not enough stake[/red]:[bold white]\n  balance:{old_balance}\n  amount: {staking_balance}\n  coldkey: {wallet.name}[/bold white]"
         )
         return False
+
+    # If nominating, we need to check if the new stake balance will be above the minimum required stake threshold.
+    if not own_hotkey:
+        new_stake_balance = old_stake + staking_balance
+        is_above_threshold, threshold = await _check_threshold_amount(
+            subtensor, new_stake_balance
+        )
+        if not is_above_threshold:
+            bittensor.__console__.print(
+                f":cross_mark: [red]New stake balance of {new_stake_balance} is below the minimum required nomination stake threshold {threshold}.[/red]"
+            )
+            return False
 
     # Ask before moving on.
     if prompt:
@@ -159,7 +199,7 @@ async def add_stake_extrinsic(
                 )
                 new_stake = await subtensor.get_stake_for_coldkey_and_hotkey(
                     coldkey_ss58=wallet.coldkeypub.ss58_address,
-                    hotkey_ss58=wallet.hotkey.ss58_address,
+                    hotkey_ss58=hotkey_ss58,
                     block=block,
                 )  # Get current stake
 

@@ -9,7 +9,7 @@
 # TODO: fix after commands and cli are async migrated
 # def test_set_delegate_increase_take(local_chain):
 #     # Register root as Alice
-#     (keypair, exec_command) = setup_wallet("//Alice")
+#     keypair, exec_command, wallet = setup_wallet("//Alice")
 #     exec_command(RootRegisterCommand, ["root", "register"])
 #
 #     # Create subnet 1 and verify created successfully
@@ -21,7 +21,7 @@
 #     assert local_chain.query("SubtensorModule", "NetworksAdded", [1]).serialize()
 #
 #     # Register and nominate Bob
-#     (keypair, exec_command) = setup_wallet("//Bob")
+#     keypair, exec_command, wallet = setup_wallet("//Bob")
 #     assert (
 #         local_chain.query(
 #             "SubtensorModule", "LastTxBlock", [keypair.ss58_address]

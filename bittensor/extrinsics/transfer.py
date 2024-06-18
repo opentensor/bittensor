@@ -122,7 +122,7 @@ async def transfer_extrinsic(
             explorer_urls = bittensor.utils.get_explorer_url_for_network(
                 subtensor.network, block_hash, bittensor.__network_explorer_map__
             )
-            if explorer_urls != {}:
+            if explorer_urls != {} and explorer_urls:
                 opentensor_url = explorer_urls.get("opentensor")
                 taostats_url = explorer_urls.get("taostats")
                 bittensor.__console__.print(
@@ -132,9 +132,7 @@ async def transfer_extrinsic(
                     f"[green]Taostats   Explorer Link: {taostats_url}[/green]"
                 )
         else:
-            bittensor.__console__.print(
-                f":cross_mark: [red]Failed[/red]: error:{err_msg}"
-            )
+            bittensor.__console__.print(f":cross_mark: [red]Failed[/red]: {err_msg}")
 
     if success:
         with bittensor.__console__.status(":satellite: Checking Balance..."):
