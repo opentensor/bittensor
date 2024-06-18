@@ -913,7 +913,7 @@ class Subtensor:
         netuid: int,
         salt: List[int],
         uids: Union[NDArray[np.int64], list],
-        weights: Union[NDArray[np.int64], list],
+        weights: Union[NDArray[np.float32], list],
         version_key: int = bittensor.__version_as_int__,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
@@ -947,9 +947,13 @@ class Subtensor:
         success = False
         message = "No attempt made. Perhaps it is too soon to commit weights!"
 
+        emit_uids, emit_weights = weight_utils.convert_weights_and_uids_for_emit(
+            uids=uids, weights=weights
+        )
+
         _logger.info(
             "Committing weights with params: netuid={}, uids={}, weights={}, version_key={}".format(
-                netuid, uids, weights, version_key
+                netuid, emit_uids, emit_weights, version_key
             )
         )
 
@@ -957,8 +961,8 @@ class Subtensor:
         commit_hash = weight_utils.generate_weight_hash(
             address=wallet.hotkey.ss58_address,
             netuid=netuid,
-            uids=list(uids),
-            values=list(weights),
+            uids=list(emit_uids),
+            values=list(emit_weights),
             salt=salt,
             version_key=version_key,
         )
@@ -1050,7 +1054,7 @@ class Subtensor:
         wallet: "bittensor.wallet",
         netuid: int,
         uids: Union[NDArray[np.int64], list],
-        weights: Union[NDArray[np.int64], list],
+        weights: Union[NDArray[np.float32], list],
         salt: Union[NDArray[np.int64], list],
         version_key: int = bittensor.__version_as_int__,
         wait_for_inclusion: bool = False,
@@ -1086,14 +1090,18 @@ class Subtensor:
         success = False
         message = "No attempt made. Perhaps it is too soon to reveal weights!"
 
+        emit_uids, emit_weights = weight_utils.convert_weights_and_uids_for_emit(
+            uids=uids, weights=weights
+        )
+
         while retries < max_retries:
             try:
                 success, message = reveal_weights_extrinsic(
                     subtensor=self,
                     wallet=wallet,
                     netuid=netuid,
-                    uids=list(uids),
-                    weights=list(weights),
+                    uids=list(emit_uids),
+                    weights=list(emit_weights),
                     salt=list(salt),
                     version_key=version_key,
                     wait_for_inclusion=wait_for_inclusion,
