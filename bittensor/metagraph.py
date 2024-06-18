@@ -17,6 +17,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import asyncio
 from abc import ABC, abstractmethod
 import os
 import pickle
@@ -532,7 +533,7 @@ class MetagraphMixin(ABC):
         if not lite:
             await self._set_weights_and_bonds(subtensor=subtensor)
 
-    def _initialize_subtensor(self, subtensor):
+    def _initialize_subtensor(self, subtensor) -> "bittensor.subtensor":
         """
         Initializes the subtensor to be used for syncing the metagraph.
 
@@ -932,7 +933,8 @@ class TorchMetaGraph(MetagraphMixin, BaseClass):  # type: ignore
         )
         self.axons: List[AxonInfo] = []
         if sync:
-            self.sync(block=None, lite=lite)
+            # TODO: rewrite with async initialization logic
+            asyncio.run(self.sync(block=None, lite=lite))
 
     def _set_metagraph_attributes(self, block, subtensor):
         """
@@ -1069,7 +1071,8 @@ class NonTorchMetagraph(MetagraphMixin):
         self.uids = np.array([], dtype=np.int64)
         self.axons: List[AxonInfo] = []
         if sync:
-            self.sync(block=None, lite=lite)
+            # TODO: rewrite with async initialization logic
+            asyncio.run(self.sync(block=None, lite=lite))
 
     def _set_metagraph_attributes(self, block, subtensor):
         """
