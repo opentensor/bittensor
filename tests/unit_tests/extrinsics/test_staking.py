@@ -144,8 +144,8 @@ async def test_add_stake_extrinsic(
         "get_existential_deposit",
         return_value=bittensor.Balance.from_rao(100_000),
     ):
-        mock_balance = mock_subtensor.get_balance()
-        existential_deposit = mock_subtensor.get_existential_deposit()
+        mock_balance = await mock_subtensor.get_balance()
+        existential_deposit = await mock_subtensor.get_existential_deposit()
         if staking_balance > mock_balance - existential_deposit:
             staking_balance = mock_balance - existential_deposit
 

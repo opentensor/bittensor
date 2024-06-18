@@ -21,7 +21,7 @@ import bittensor
 import requests
 from bittensor.utils.registration import torch
 from bittensor.utils.balance import Balance
-from bittensor.utils import U64_NORMALIZED_FLOAT, U16_NORMALIZED_FLOAT
+from bittensor.utils import u64_normalized_float, u16_normalized_float
 from typing import List, Dict, Any, Optional, Tuple
 from rich.prompt import Confirm, PromptBase
 from dataclasses import dataclass
@@ -209,13 +209,13 @@ def normalize_hyperparameters(
         A list of tuples containing the parameter name, value, and normalized value.
     """
     param_mappings = {
-        "adjustment_alpha": U64_NORMALIZED_FLOAT,
-        "min_difficulty": U64_NORMALIZED_FLOAT,
-        "max_difficulty": U64_NORMALIZED_FLOAT,
-        "difficulty": U64_NORMALIZED_FLOAT,
-        "bonds_moving_avg": U64_NORMALIZED_FLOAT,
-        "max_weight_limit": U16_NORMALIZED_FLOAT,
-        "kappa": U16_NORMALIZED_FLOAT,
+        "adjustment_alpha": u64_normalized_float,
+        "min_difficulty": u64_normalized_float,
+        "max_difficulty": u64_normalized_float,
+        "difficulty": u64_normalized_float,
+        "bonds_moving_avg": u64_normalized_float,
+        "max_weight_limit": u16_normalized_float,
+        "kappa": u16_normalized_float,
         "min_burn": Balance.from_rao,
         "max_burn": Balance.from_rao,
     }

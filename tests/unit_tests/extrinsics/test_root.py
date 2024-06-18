@@ -188,7 +188,7 @@ async def test_set_root_weights_extrinsic(
 ):
     # Arrange
     with patch.object(
-        mock_subtensor, "do_set_weights", return_value=(expected_success, "Mock error")
+        mock_subtensor, "do_set_root_weights", return_value=(expected_success, "Mock error")
     ), patch.object(
         mock_subtensor, "min_allowed_weights", return_value=0
     ), patch.object(mock_subtensor, "max_weight_limit", return_value=1), patch(
