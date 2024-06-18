@@ -148,8 +148,10 @@ async def test_emissions(local_chain):
         ],
     )
 
-    # wait until 360 blocks pass (subnet tempo)
-    wait_epoch(360, subtensor)
+    # wait rate limit, until we are allowed to change hotkeys
+    rate_limit = subtensor.tx_rate_limit()
+    curr_block = subtensor.get_current_block()
+    wait_epoch(rate_limit + curr_block + 1, subtensor)
 
     alice_exec_command(
         RootSetWeightsCommand,
