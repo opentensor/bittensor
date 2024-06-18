@@ -17,7 +17,7 @@ jobs:
           name: Check if PR is a draft
           command: .circleci/check_pr_status.sh
 
-  black:
+  ruff:
     resource_class: small
     parameters:
       python-version:
@@ -29,29 +29,29 @@ jobs:
       - checkout
 
       - restore_cache:
-          name: Restore cached black venv
+          name: Restore cached ruff venv
           keys:
-            - v2-pypi-py-black-<< parameters.python-version >>
+            - v2-pypi-py-ruff-<< parameters.python-version >>
 
       - run:
-          name: Update & Activate black venv
+          name: Update & Activate ruff venv
           command: |
-            python -m venv env/
-            . env/bin/activate
+            python -m venv .venv
+            . .venv/bin/activate
             python -m pip install --upgrade pip
-            pip install black==23.7.0
+            pip install ruff -c requirements/dev.txt
 
       - save_cache:
-          name: Save cached black venv
+          name: Save cached ruff venv
           paths:
-            - "env/"
-          key: v2-pypi-py-black-<< parameters.python-version >>
+            - ".venv/"
+          key: v2-pypi-py-ruff-<< parameters.python-version >>
 
       - run:
-          name: Black format check
+          name: Ruff format check
           command: |
-            . env/bin/activate
-            python -m black --exclude '(env|venv|.eggs)' --check .
+            . .venv/bin/activate
+            ruff format --diff .
 
   check_compatibility:
     parameters:
@@ -96,8 +96,8 @@ jobs:
       - run:
           name: Update & Activate venv
           command: |
-            python -m venv env/
-            . env/bin/activate
+            python -m venv .venv
+            . .venv/bin/activate
             python -m pip install --upgrade pip
             python -m pip install '.[dev]'
 
@@ -110,19 +110,20 @@ jobs:
       - run:
           name: Install Bittensor
           command: |
-            . env/bin/activate
+            . .venv/bin/activate
             pip install -e '.[dev]'
 
       - run:
           name: Instantiate Mock Wallet
           command: |
-            . env/bin/activate
+            . .venv/bin/activate
             ./scripts/create_wallet.sh
 
       - run:
           name: Unit Tests
+          no_output_timeout: 20m
           command: |
-            . env/bin/activate
+            . .venv/bin/activate
             export PYTHONUNBUFFERED=1
             pytest -n2 --reruns 3 --durations=0 --verbose --junitxml=test-results/unit_tests.xml \
             --cov=. --cov-append --cov-config .coveragerc \
@@ -132,8 +133,9 @@ jobs:
 
       - run:
           name: Integration Tests
+          no_output_timeout: 30m
           command: |
-            . env/bin/activate
+            . .venv/bin/activate
             export PYTHONUNBUFFERED=1
             pytest -n2 --reruns 3 --reruns-delay 15 --durations=0 --verbose --junitxml=test-results/integration_tests.xml \
             --cov=. --cov-append --cov-config .coveragerc \
@@ -145,6 +147,24 @@ jobs:
           path: test-results
       - store_artifacts:
           path: test-results
+
+
+      #- when:
+          #condition:
+            #equal: ["3.10.5", << parameters.python-version >> ]
+          #steps:
+            #- run:
+                #name: Upload Coverage
+                #command: |
+                  #. .venv/bin/activate && coveralls
+                #env:
+                  #CI_NAME: circleci
+                  #CI_BUILD_NUMBER: $CIRCLE_BUILD_NUM
+                  #CI_BUILD_URL: $CIRCLE_BUILD_URL
+                  #CI_BRANCH: $CIRCLE_BRANCH
+                  #CI_JOB_ID: $CIRCLE_NODE_INDEX
+                  #COVERALLS_PARALLEL: true
+
 
   lint-and-type-check:
     resource_class: medium
@@ -167,8 +187,8 @@ jobs:
       - run:
           name: Update & Activate venv
           command: |
-            python -m venv env/
-            . env/bin/activate
+            python -m venv .venv
+            . .venv/bin/activate
             python -m pip install --upgrade pip
             python -m pip install '.[dev]'
             pip install flake8
@@ -182,19 +202,19 @@ jobs:
       - run:
           name: Install Bittensor
           command: |
-            . env/bin/activate
+            . .venv/bin/activate
             pip install -e '.[dev]'
 
       - run:
           name: Lint with flake8
           command: |
-            . env/bin/activate
+            . .venv/bin/activate
             python -m flake8 bittensor/ --count
 
       - run:
           name: Type check with mypy
           command: |
-            . env/bin/activate
+            . .venv/bin/activate
             python -m mypy --ignore-missing-imports bittensor/
 
   unit-tests-all-python-versions:
@@ -285,7 +305,7 @@ workflows:
   pr-requirements:
     jobs:
       - check-if-pr-is-draft
-      - black:
+      - ruff:
           python-version: "3.9.13"
           requires:
             - check-if-pr-is-draft

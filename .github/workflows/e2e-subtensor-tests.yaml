@@ -76,9 +76,9 @@ jobs:
 
       - name: Setup subtensor repo
         working-directory: ${{ github.workspace }}/subtensor
-        run: git checkout development
+        run: git checkout testnet
 
       - name: Run tests
         run: |
-          python3 -m pip install -e .[torch] pytest
-          LOCALNET_SH_PATH="./subtensor/scripts/localnet.sh" pytest tests/e2e_tests/ -s
+          python3 -m pip install -e .[dev] pytest
+          LOCALNET_SH_PATH="${{ github.workspace }}/subtensor/scripts/localnet.sh" pytest tests/e2e_tests/ -s

@@ -15,10 +15,38 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
-import time
-import bittensor
 
+import time
+
+import substrateinterface
 from rich.prompt import Confirm
+
+import bittensor
+from bittensor.utils import format_error_message
+from ..commands.network import HYPERPARAMS
+
+
+def _find_event_attributes_in_extrinsic_receipt(
+    response: "substrateinterface.base.ExtrinsicReceipt", event_name: str
+) -> list:
+    """
+    Searches for the attributes of a specified event within an extrinsic receipt.
+
+    Args:
+        response (substrateinterface.base.ExtrinsicReceipt): The receipt of the extrinsic to be searched.
+        event_name (str): The name of the event to search for.
+
+    Returns:
+        list: A list of attributes for the specified event. Returns [-1] if the event is not found.
+    """
+    for event in response.triggered_events:
+        # Access the event details
+        event_details = event.value["event"]
+        # Check if the event_id is 'NetworkAdded'
+        if event_details["event_id"] == event_name:
+            # Once found, you can access the attributes of the event_name
+            return event_details["attributes"]
+    return [-1]
 
 
 def register_subnetwork_extrinsic(
@@ -86,35 +114,19 @@ def register_subnetwork_extrinsic(
             response.process_events()
             if not response.is_success:
                 bittensor.__console__.print(
-                    ":cross_mark: [red]Failed[/red]: error:{}".format(
-                        response.error_message
-                    )
+                    f":cross_mark: [red]Failed[/red]: {format_error_message(response.error_message)}"
                 )
                 time.sleep(0.5)
 
             # Successful registration, final check for membership
             else:
-                attributes = find_event_attributes_in_extrinsic_receipt(
+                attributes = _find_event_attributes_in_extrinsic_receipt(
                     response, "NetworkAdded"
                 )
                 bittensor.__console__.print(
                     f":white_heavy_check_mark: [green]Registered subnetwork with netuid: {attributes[0]}[/green]"
                 )
                 return True
-
-
-def find_event_attributes_in_extrinsic_receipt(response, event_name) -> list:
-    for event in response.triggered_events:
-        # Access the event details
-        event_details = event.value["event"]
-        # Check if the event_id is 'NetworkAdded'
-        if event_details["event_id"] == event_name:
-            # Once found, you can access the attributes of the event_name
-            return event_details["attributes"]
-    return [-1]
-
-
-from ..commands.network import HYPERPARAMS
 
 
 def set_hyperparameter_extrinsic(
@@ -158,7 +170,7 @@ def set_hyperparameter_extrinsic(
     wallet.coldkey  # unlock coldkey
 
     extrinsic = HYPERPARAMS.get(parameter)
-    if extrinsic == None:
+    if extrinsic is None:
         bittensor.__console__.print(
             ":cross_mark: [red]Invalid hyperparameter specified.[/red]"
         )
@@ -198,9 +210,7 @@ def set_hyperparameter_extrinsic(
             response.process_events()
             if not response.is_success:
                 bittensor.__console__.print(
-                    ":cross_mark: [red]Failed[/red]: error:{}".format(
-                        response.error_message
-                    )
+                    f":cross_mark: [red]Failed[/red]: {format_error_message(response.error_message)}"
                 )
                 time.sleep(0.5)
 
