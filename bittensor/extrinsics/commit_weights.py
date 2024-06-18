@@ -23,7 +23,6 @@ from typing import Tuple, List
 from rich.prompt import Confirm
 
 import bittensor
-
 from bittensor.utils import format_error_message
 
 

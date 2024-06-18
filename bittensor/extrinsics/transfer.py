@@ -15,9 +15,8 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
-"""
-This module provides functionality to transfer funds to a public address
-"""
+
+"""This module provides functionality to transfer funds to a public address"""
 
 import asyncio
 from typing import Union
@@ -25,7 +24,6 @@ from typing import Union
 from rich.prompt import Confirm
 
 import bittensor
-
 from ..utils import is_valid_bittensor_address_or_public_key
 from ..utils.balance import Balance
 

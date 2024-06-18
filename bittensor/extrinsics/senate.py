@@ -20,6 +20,7 @@
 
 import asyncio
 import time
+
 from rich.prompt import Confirm
 
 import bittensor

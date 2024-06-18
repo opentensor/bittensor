@@ -35,7 +35,7 @@
 ## 7.1.0 / 2024-06-05
 
 ## What's Changed
-* Added _do_set_root_weights by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/1838
+* Added do_set_root_weights by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/1838
 * Release/7.0.1 by @gus-opentensor in https://github.com/opentensor/bittensor/pull/1963
 
 **Full Changelog**: https://github.com/opentensor/bittensor/compare/v7.0.1...v7.1.0

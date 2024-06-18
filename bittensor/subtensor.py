@@ -1,15 +1,15 @@
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 # Copyright © 2023 Opentensor Foundation
-
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
 # the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
+#
 # The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
-
+#
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
 # THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
@@ -2663,7 +2663,7 @@ class Subtensor:
             prompt=prompt,
         )
 
-    async def _do_set_root_weights(
+    async def do_set_root_weights(
         self,
         wallet: "bittensor.wallet",
         uids: List[int],
@@ -2691,7 +2691,7 @@ class Subtensor:
             Tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
 
         This method is vital for the dynamic weighting mechanism in Bittensor, where neurons adjust their
-        trust in other neurons based on observed performance and contributions on the root network.
+        trust in other neurons based on observed performance and contributions to the root network.
         """
 
         @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
@@ -2720,7 +2720,7 @@ class Subtensor:
             )
             # We only wait here if we expect finalization.
             if not wait_for_finalization and not wait_for_inclusion:
-                return True, "Not waiting for finalziation or inclusion."
+                return True, "Not waiting for finalization or inclusion."
 
             response.process_events()
             if response.is_success:

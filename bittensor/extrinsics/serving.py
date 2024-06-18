@@ -25,11 +25,11 @@ import json
 from typing import Any, Dict, Optional
 
 from retry import retry
+from rich.prompt import Confirm
 
-from bittensor.utils import format_error_message
 import bittensor
 import bittensor.utils.networking as net
-from rich.prompt import Confirm
+from bittensor.utils import format_error_message
 from ..errors import MetadataError
 
 
@@ -247,7 +247,7 @@ async def publish_metadata(
     if response.is_success:
         return True
     else:
-        raise MetadataError(response.error_message)
+        raise MetadataError(format_error_message(response.error_message))
 
 
 async def get_metadata(

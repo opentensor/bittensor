@@ -27,13 +27,13 @@ from typing import List, Union, Optional, Tuple
 from rich.prompt import Confirm
 
 import bittensor
+from bittensor.utils import format_error_message
 from bittensor.utils.registration import (
     POWSolution,
     create_pow,
     torch,
     log_no_torch_error,
 )
-from bittensor.utils import format_error_message
 
 
 class MaxSuccessException(Exception):
