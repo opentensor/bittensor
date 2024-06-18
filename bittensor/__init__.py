@@ -40,7 +40,7 @@ if (NEST_ASYNCIO_ENV := os.getenv("NEST_ASYNCIO")) in ("1", None):
 
 
 # Bittensor code and protocol version.
-__version__ = "7.0.0"
+__version__ = "7.2.0"
 
 _version_split = __version__.split(".")
 __version_info__ = tuple(int(part) for part in _version_split)
@@ -304,7 +304,6 @@ from .chain_data import (
     NeuronInfoLite,
     PrometheusInfo,
     DelegateInfo,
-    DelegateInfoLite,
     StakeInfo,
     SubnetInfo,
     SubnetHyperparameters,

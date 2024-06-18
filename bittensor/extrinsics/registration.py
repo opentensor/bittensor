@@ -23,6 +23,7 @@ from rich.prompt import Confirm
 
 import bittensor
 from bittensor.utils import format_error_message
+
 from bittensor.utils.registration import (
     POWSolution,
     create_pow,
@@ -461,6 +462,8 @@ def run_faucet_extrinsic(
                 if attempts == max_allowed_attempts:
                     raise MaxAttemptsException
                 attempts += 1
+                # Wait a bit before trying again
+                time.sleep(1)
 
             # Successful registration
             else:
@@ -472,6 +475,8 @@ def run_faucet_extrinsic(
 
                 if successes == 3:
                     raise MaxSuccessException
+
+                attempts = 1  # Reset attempts on success
                 successes += 1
 
         except KeyboardInterrupt:

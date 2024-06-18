@@ -1,12 +1,13 @@
+import time
+
+from substrateinterface import SubstrateInterface
+from typing import List
 import os
 import shutil
 import subprocess
 import sys
 
-from typing import List
-
-from bittensor import Keypair
-
+from bittensor import Keypair, logging
 import bittensor
 
 template_path = os.getcwd() + "/neurons/"
@@ -39,7 +40,99 @@ def setup_wallet(uri: str):
         cli_instance = bittensor.cli(config)
         command.run(cli_instance)
 
-    return keypair, exec_command, wallet_path
+    return keypair, exec_command, wallet
+
+
+def sudo_call_set_network_limit(
+    substrate: SubstrateInterface, wallet: bittensor.wallet
+) -> bool:
+    inner_call = substrate.compose_call(
+        call_module="AdminUtils",
+        call_function="sudo_set_network_rate_limit",
+        call_params={"rate_limit": 1},
+    )
+    call = substrate.compose_call(
+        call_module="Sudo",
+        call_function="sudo",
+        call_params={"call": inner_call},
+    )
+
+    extrinsic = substrate.create_signed_extrinsic(call=call, keypair=wallet.coldkey)
+    response = substrate.submit_extrinsic(
+        extrinsic,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+    response.process_events()
+    return response.is_success
+
+
+def sudo_call_set_target_stakes_per_interval(
+    substrate: SubstrateInterface, wallet: bittensor.wallet
+) -> bool:
+    inner_call = substrate.compose_call(
+        call_module="AdminUtils",
+        call_function="sudo_set_target_stakes_per_interval",
+        call_params={"target_stakes_per_interval": 100},
+    )
+    call = substrate.compose_call(
+        call_module="Sudo",
+        call_function="sudo",
+        call_params={"call": inner_call},
+    )
+
+    extrinsic = substrate.create_signed_extrinsic(call=call, keypair=wallet.coldkey)
+    response = substrate.submit_extrinsic(
+        extrinsic,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+    response.process_events()
+    return response.is_success
+
+
+def call_add_proposal(substrate: SubstrateInterface, wallet: bittensor.wallet) -> bool:
+    proposal_call = substrate.compose_call(
+        call_module="System",
+        call_function="remark",
+        call_params={"remark": [0]},
+    )
+    call = substrate.compose_call(
+        call_module="Triumvirate",
+        call_function="propose",
+        call_params={
+            "proposal": proposal_call,
+            "length_bound": 100_000,
+            "duration": 100_000_000,
+        },
+    )
+
+    extrinsic = substrate.create_signed_extrinsic(call=call, keypair=wallet.coldkey)
+    response = substrate.submit_extrinsic(
+        extrinsic,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+    response.process_events()
+    return response.is_success
+
+
+def wait_epoch(interval, subtensor):
+    current_block = subtensor.get_current_block()
+    next_tempo_block_start = (current_block - (current_block % interval)) + interval
+    while current_block < next_tempo_block_start:
+        time.sleep(1)  # Wait for 1 second before checking the block number again
+        current_block = subtensor.get_current_block()
+        if current_block % 10 == 0:
+            print(
+                f"Current Block: {current_block}  Next tempo at: {next_tempo_block_start}"
+            )
+            logging.info(
+                f"Current Block: {current_block}  Next tempo at: {next_tempo_block_start}"
+            )
 
 
 def clone_or_update_templates():
@@ -74,3 +167,14 @@ def uninstall_templates(install_dir):
     )
     # delete everything in directory
     shutil.rmtree(install_dir)
+
+
+async def write_output_log_to_file(name, stream):
+    log_file = f"{name}.log"
+    with open(log_file, "a") as f:
+        while True:
+            line = await stream.readline()
+            if not line:
+                break
+            f.write(line.decode())
+            f.flush()
