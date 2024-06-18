@@ -6,7 +6,6 @@ from bittensor.commands.root import (
 from bittensor.commands.stake import StakeCommand
 from bittensor.commands.network import RegisterSubnetworkCommand
 from bittensor.commands.register import RegisterCommand
-from bittensor.commands import SubnetSudoCommand
 from ...utils import (
     setup_wallet,
     sudo_call_set_network_limit,
@@ -20,28 +19,7 @@ def test_root_get_set_weights(local_chain, capsys):
     """Test case to set weights for root network"""
 
     keypair, exec_command, wallet = setup_wallet("//Alice")
-
-    assert exec_command(
-        SubnetSudoCommand,
-        [
-            "sudo",
-            "set",
-            "hyperparameters",
-            "--netuid",
-            "1",
-            "--wallet.name",
-            wallet.name,
-            "--param",
-            "network_rate_limit",
-            "--value",
-            "1",
-            "--wait_for_inclusion",
-            "True",
-            "--wait_for_finalization",
-            "True",
-        ],
-    )
-
+    assert sudo_call_set_network_limit(local_chain, wallet)
     root_netuid = 0
     assert sudo_call_set_weight_limit(local_chain, wallet, root_netuid)
 
@@ -80,7 +58,7 @@ def test_root_get_set_weights(local_chain, capsys):
 
     first_weight_vec = local_chain.query("SubtensorModule", "Weights", [0, 0])[0]
     assert first_weight_vec[0] == 1
-    first_weight = first_weight_vec[1]
+    first_wight = first_weight_vec[1]
 
     netuid = "1"
     increase = "0.01"
@@ -92,10 +70,10 @@ def test_root_get_set_weights(local_chain, capsys):
 
     first_weight_vec = local_chain.query("SubtensorModule", "Weights", [0, 0])[0]
     assert first_weight_vec[0] == 1
-    new_first_weight = first_weight_vec[1]
+    new_first_wight = first_weight_vec[1]
 
-    assert new_first_weight > first_weight
-    first_weight = new_first_weight
+    assert new_first_wight > first_wight
+    first_wight = new_first_wight
 
     stake_amount = 2
     exec_command(StakeCommand, ["stake", "add", "--amount", str(stake_amount)])
@@ -109,6 +87,6 @@ def test_root_get_set_weights(local_chain, capsys):
     )
     first_weight_vec = local_chain.query("SubtensorModule", "Weights", [0, 0])[0]
     assert first_weight_vec[0] == 1
-    new_first_weight = first_weight_vec[1]
+    new_first_wight = first_weight_vec[1]
 
-    assert new_first_weight > first_weight
+    assert new_first_wight > first_wight
