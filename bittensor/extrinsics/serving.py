@@ -24,8 +24,8 @@ publishing metadata, and performing extrinsics related to network services.
 import json
 from typing import Any, Dict, Optional
 
-from retry import retry
 from rich.prompt import Confirm
+from tenacity import retry, stop_after_attempt, wait_fixed
 
 import bittensor
 import bittensor.utils.networking as net
@@ -256,7 +256,7 @@ async def get_metadata(
     hotkey: str,
     block: Optional[int] = None,
 ) -> str:
-    @retry(delay=2, tries=3, backoff=2, max_delay=4)
+    @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
     async def make_substrate_call_with_retry():
         return await subtensor.substrate.query(
             module="Commitments",
