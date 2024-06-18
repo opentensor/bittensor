@@ -188,6 +188,7 @@ custom_rpc_type_registry = {
                 ["commit_reveal_weights_enabled", "bool"],
                 ["alpha_high", "Compact<u16>"],
                 ["alpha_low", "Compact<u16>"],
+                ["liquid_alpha_enabled", "bool"],
             ],
         },
     }
@@ -985,6 +986,7 @@ class SubnetHyperparameters:
     commit_reveal_weights_enabled: bool
     alpha_high: int
     alpha_low: int
+    liquid_alpha_enabled: bool
 
     @classmethod
     def from_vec_u8(cls, vec_u8: List[int]) -> Optional["SubnetHyperparameters"]:
@@ -1039,6 +1041,7 @@ class SubnetHyperparameters:
             commit_reveal_weights_enabled=decoded["commit_reveal_weights_enabled"],
             alpha_high=decoded["alpha_high"],
             alpha_low=decoded["alpha_low"],
+            liquid_alpha_enabled=decoded["liquid_alpha_enabled"]
         )
 
     def to_parameter_dict(

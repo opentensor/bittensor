@@ -330,6 +330,9 @@ HYPERPARAMS = {
     "bonds_moving_avg": "sudo_set_bonds_moving_average",
     "commit_reveal_weights_interval": "sudo_set_commit_reveal_weights_interval",
     "commit_reveal_weights_enabled": "sudo_set_commit_reveal_weights_enabled",
+    "alpha_high": "sudo_set_alpha_high",
+    "alpha_low": "sudo_set_alpha_low",
+    "liquid_alpha_enabled": "sudo_set_liquid_alpha_enabled",
 }
 
 
@@ -388,6 +391,7 @@ class SubnetSudoCommand:
             cli.config.param == "network_registration_allowed"
             or cli.config.param == "network_pow_registration_allowed"
             or cli.config.param == "commit_reveal_weights_enabled"
+            or cli.config.param == "liquid_alpha_enabled"
         ):
             cli.config.value = (
                 True
