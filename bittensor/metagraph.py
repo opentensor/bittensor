@@ -698,7 +698,9 @@ class MetagraphMixin(ABC):
         return tensor_param
 
     @abstractmethod
-    async def _set_metagraph_attributes(self, subtensor: "bittensor.subtensor", block: Optional[int] = None):
+    async def _set_metagraph_attributes(
+        self, subtensor: "bittensor.subtensor", block: Optional[int] = None
+    ):
         pass
 
     async def _process_root_weights(
