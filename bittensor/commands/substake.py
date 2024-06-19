@@ -21,8 +21,13 @@ import bittensor
 from tqdm import tqdm
 from rich.prompt import Confirm, Prompt
 from bittensor.utils.balance import Balance
+from .delegates import show_delegates
 from typing import List, Union, Optional, Dict, Tuple
-from .utils import get_hotkey_wallets_for_wallet
+from .utils import (
+    get_hotkey_wallets_for_wallet,
+    get_delegates_details, 
+    DelegatesDetails
+)
 from bittensor.utils.user_io import (
     user_input_float,
     user_input_int,
@@ -33,8 +38,167 @@ from bittensor.utils.user_io import (
     print_summary_item,
 )
 from . import defaults
+from substrateinterface.exceptions import SubstrateRequestException
 
 console = bittensor.__console__
+
+def get_wallet(config: bittensor.config):
+    if not config.is_set("wallet.name") and not config.no_prompt:
+        wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
+        config.wallet.name = str(wallet_name)
+
+def get_hotkey(config: bittensor.config):
+    hotkey_tup: Tuple[Optional[str], str]  # (hotkey_name (or None), hotkey_ss58)
+
+    # Delegate or stake to own hotkey?
+    if config.get("delegate") and config.get("own"):
+        bittensor.logging.error("Flags delegate and own should not be used at the same time")
+        sys.exit(1)
+    elif config.get("delegate"):
+        delegate = True
+    elif config.get("own"):
+        delegate = False
+    else:
+        if not config.get("no_prompt"):
+            delegate = Confirm.ask("Delegate stake? (Yes - delegate, No - stake to own hotkey)")
+        else:
+            bittensor.logging.error("Either --delegate or --own flag is required in no_prompt mode")
+            sys.exit(1)
+    config.delegate = delegate
+
+    if config.delegate:
+        # Show delegate list, ask for the index, then retrieve hotkey address and name
+        ########### TODO
+        # убрать команды Delegate и Undelegate
+        # проверить работает ли команда Nominate (должна регистрировать делегата) - спросить Джейка если что
+        #
+        #
+        if not config.get("delegate_ss58key"):
+            # Check for delegates.
+            with bittensor.__console__.status(":satellite: Loading delegates..."):
+                subtensor = bittensor.subtensor(config=config, log_verbose=False)
+                delegates: list[bittensor.DelegateInfoLight] = subtensor.get_delegates_light()
+
+            try:
+                hotkey_stakes = subtensor.get_all_hotkey_stakes(
+                    max(0, subtensor.block - 1200)
+                )
+                stake_dict = dict(hotkey_stakes)
+                for delegate in delegates:
+                    if delegate.hotkey_ss58 in stake_dict:
+                        delegate.previous_total_stake = bittensor.Balance.from_rao(stake_dict[delegate.hotkey_ss58])
+            except SubstrateRequestException:
+                bittensor.__console__.print(
+                    ":warning: [yellow]Could not fetch delegates history[/yellow]"
+                )
+
+            if len(delegates) == 0:
+                console.print(
+                    ":cross_mark: [red]There are no delegates on {}[/red]".format(
+                        subtensor.network
+                    )
+                )
+                sys.exit(1)
+
+            # Get off-chain delegate info
+            registered_delegate_info = get_delegates_details(url=bittensor.__delegates_details_url__)
+            if registered_delegate_info is None:
+                bittensor.__console__.print(
+                    ":warning:[yellow]Could not load delegate info.[/yellow]"
+                )
+                registered_delegate_info = {}
+
+            # Show delegate table
+            show_delegates(delegates, registered_delegate_info)
+
+            # Get the delegate index from the user
+            delegate_index = Prompt.ask("Enter delegate index")
+            config.hotkey = str(delegates[int(delegate_index)].hotkey_ss58)
+            console.print(
+                "Selected: [yellow]{}[/yellow]".format(config.hotkey)
+            )
+            if registered_delegate_info.get(config.hotkey):
+                config.hotkey_name = registered_delegate_info[config.hotkey].name
+
+    else:
+        # Staking to own hotkey
+        if config.get("hotkey"):
+            hotkey_str = config.get("hotkey")
+        elif config.get("wallet.hotkey"):
+            hotkey_str = config.get("wallet.hotkey")
+        elif config.wallet.get("hotkey"):
+            hotkey_str = config.wallet.get("hotkey")
+        elif not config.no_prompt:
+            hotkey_str = Prompt.ask(
+                "Enter hotkey name or ss58_address to stake to",
+                default=defaults.wallet.hotkey,
+            )
+        else:
+            bittensor.logging.error("Hotkey is needed to proceed")
+            sys.exit(1)
+
+        # parse hotkey string into config.hotkey and config.hotkey_name if available
+        if bittensor.utils.is_valid_ss58_address(hotkey_str):
+            config.hotkey = str(hotkey_str)
+        else:
+            config.hotkey_name = hotkey_str
+            wallet_delegate = bittensor.wallet(name=hotkey_str)
+            config.hotkey = wallet_delegate.hotkey.ss58_address
+
+def get_netuid(config: bittensor.config):
+    if not config.is_set("netuid") and not config.no_prompt:
+        netuid = Prompt.ask("Enter netuid", default="0")
+        config.netuid = int(netuid)
+    if not config.netuid:
+        bittensor.logging.error("netuid is needed to proceed")
+        sys.exit(1)
+
+def get_amount(config: bittensor.config, op_name: str, coin_name: str):
+    if not config.get("amount") and not config.get("max_stake"):
+        if not Confirm.ask(
+            "{} all {} from account: [bold]'{}'[/bold]?".format(
+                op_name,
+                coin_name,
+                config.wallet.get("name", defaults.wallet.name)
+            )
+        ):
+            amount = Prompt.ask(f"Enter {coin_name} amount to {op_name.lower()}")
+            try:
+                config.amount = float(amount)
+            except ValueError:
+                console.print(
+                    ":cross_mark:[red]Invalid {} amount[/red] [bold white]{}[/bold white]".format(
+                        coin_name,
+                        amount
+                    )
+                )
+                sys.exit()
+        else:
+            config.stake_all = True
+
+def add_arguments_to_parser(parser):
+    parser.add_argument("--netuid", dest="netuid", type=int, required=False)
+    parser.add_argument("--all", dest="stake_all", action="store_true")
+    parser.add_argument("--amount", dest="amount", type=float, required=False)
+    parser.add_argument(
+        "--hotkey",
+        "--wallet.hotkey",
+        required=False,
+        type=str,
+        help="""Specify the hotkey by name or ss58 address.""",
+    )
+    parser.add_argument(
+        "--delegate",
+        required=False,
+        action='store_true',
+        help="""Specify this flag to delegate stake"""
+    )
+    parser.add_argument(
+        "--own",
+        required=False,
+        action='store_true',
+        help="""Specify this flag to stake to own hotkey"""
+    )
 
 class SubStakeCommand:
     """
@@ -90,7 +254,7 @@ class SubStakeCommand:
 
     @staticmethod
     def run(cli: "bittensor.cli"):
-        r"""Stake token of amount to hotkey on subnet of given netuid."""
+        r"""Stake token of amount to own or delegate hotkey on subnet of given netuid."""
         try:
             config = cli.config.copy()
             subtensor: "bittensor.subtensor" = bittensor.subtensor(
@@ -104,11 +268,10 @@ class SubStakeCommand:
 
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
-        r"""Stake token of amount to hotkey(s)."""
+        r"""Stake token of amount to own or delegate hotkey(s)."""
         config = cli.config.copy()
         wallet = bittensor.wallet(config=config)
         dynamic_info = subtensor.get_dynamic_info_for_netuid(config.netuid)
-        hotkey_tup: Tuple[Optional[str], str]  # (hotkey_name (or None), hotkey_ss58)
 
         assert bittensor.utils.is_valid_ss58_address(config.get("hotkey"))
         hotkey_tup = (config.get("hotkey_name"), config.get("hotkey"))
@@ -163,60 +326,17 @@ class SubStakeCommand:
 
     @classmethod
     def check_config(cls, config: "bittensor.config"):
-        if not config.is_set("wallet.name") and not config.no_prompt:
-            wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
-            config.wallet.name = str(wallet_name)
+        # Wallet to stake from
+        get_wallet(config)
 
         # Retrieve hotkey string from cli parameters
-        if config.get("hotkey"):
-            hotkey_str = config.get("hotkey")
-        elif config.get("wallet.hotkey"):
-            hotkey_str = config.get("wallet.hotkey")
-        elif config.wallet.get("hotkey"):
-            hotkey_str = config.wallet.get("hotkey")
-        elif not config.no_prompt:
-            hotkey_str = Prompt.ask(
-                "Enter hotkey name or ss58_address to stake to",
-                default=defaults.wallet.hotkey,
-            )
-        else:
-            print("ERROR: Hotkey is needed to proceed")
-            sys.exit(1)
+        get_hotkey(config)
 
-        # parse hotkey string into config.hotkey and config.hotkey_name if available
-        if bittensor.utils.is_valid_ss58_address(hotkey_str):
-            config.hotkey = str(hotkey_str)
-        else:
-            config.hotkey_name = hotkey_str
-            wallet_delegate = bittensor.wallet(name=hotkey_str)
-            config.hotkey = wallet_delegate.hotkey.ss58_address
-
-        if not config.is_set("netuid") and not config.no_prompt:
-            netuid = Prompt.ask("Enter netuid", default="0")
-            config.netuid = int(netuid)
-        if not config.netuid:
-            print("ERROR: netuid is needed to proceed")
-            sys.exit(1)
+        # Get netuid to stake to
+        get_netuid(config)
 
         # Get amount.
-        if not config.get("amount") and not config.get("max_stake"):
-            if not Confirm.ask(
-                "Stake all Tao from account: [bold]'{}'[/bold]?".format(
-                    config.wallet.get("name", defaults.wallet.name)
-                )
-            ):
-                amount = Prompt.ask("Enter Tao amount to stake")
-                try:
-                    config.amount = float(amount)
-                except ValueError:
-                    console.print(
-                        ":cross_mark:[red]Invalid Tao amount[/red] [bold white]{}[/bold white]".format(
-                            amount
-                        )
-                    )
-                    sys.exit()
-            else:
-                config.stake_all = True
+        get_amount(config, "Stake", "Tao")
 
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser):
@@ -224,19 +344,9 @@ class SubStakeCommand:
             "add",
             help="""Add stake to a specific hotkey on subnet `netuid` from your coldkey.""",
         )
-        stake_parser.add_argument("--netuid", dest="netuid", type=int, required=False)
-        stake_parser.add_argument("--all", dest="stake_all", action="store_true")
-        stake_parser.add_argument("--amount", dest="amount", type=float, required=False)
-        stake_parser.add_argument(
-            "--hotkey",
-            "--wallet.hotkey",
-            required=False,
-            type=str,
-            help="""Specify the hotkey by name or ss58 address.""",
-        )
+        add_arguments_to_parser(stake_parser)
         bittensor.wallet.add_args(stake_parser)
         bittensor.subtensor.add_args(stake_parser)
-
 
 class RemoveSubStakeCommand:
     """
@@ -316,8 +426,6 @@ class RemoveSubStakeCommand:
         wallet = bittensor.wallet(config=config)
         dynamic_info = subtensor.get_dynamic_info_for_netuid(config.netuid)
 
-        hotkey_tup: Tuple[Optional[str], str]  # (hotkey_name (or None), hotkey_ss58)
-
         assert bittensor.utils.is_valid_ss58_address(config.get("hotkey"))
         hotkey_tup = (config.get("hotkey_name"), config.get("hotkey"))
 
@@ -392,46 +500,17 @@ class RemoveSubStakeCommand:
 
     @classmethod
     def check_config(cls, config: "bittensor.config"):
-        if not config.is_set("wallet.name") and not config.no_prompt:
-            wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
-            config.wallet.name = str(wallet_name)
+        # Wallet to stake from
+        get_wallet(config)
 
-        if (
-            not config.is_set("hotkey")
-            and not config.is_set("wallet.hotkey")
-            and not config.wallet.get("hotkey")
-            and not config.no_prompt
-        ):
-            hotkey = Prompt.ask(
-                "Enter hotkey name or ss58_address to unstake from",
-                default=defaults.wallet.hotkey,
-            )
-            if bittensor.utils.is_valid_ss58_address(hotkey):
-                config.hotkey = str(hotkey)
-            else:
-                config.hotkey_name = hotkey
-                wallet_delegate = bittensor.wallet(name=hotkey)
-                config.hotkey = wallet_delegate.hotkey.ss58_address
+        # Retrieve hotkey string from cli parameters
+        get_hotkey(config)
 
-        if not config.is_set("netuid") and not config.no_prompt:
-            netuid = Prompt.ask("Enter netuid", default="0")
-            config.netuid = int(netuid)
+        # Get netuid to stake to
+        get_netuid(config)
 
         # Get amount.
-        if not config.get("amount") and not config.get("unstake_all"):
-            if not Confirm.ask("Unstake all Alpha"):
-                amount = Prompt.ask("Enter Alpha amount to unstake")
-                try:
-                    config.amount = float(amount)
-                except ValueError:
-                    console.print(
-                        ":cross_mark:[red]Invalid Alpha amount[/red] [bold white]{}[/bold white]".format(
-                            amount
-                        )
-                    )
-                    sys.exit()
-            else:
-                config.unstake_all = True
+        get_amount(config, "Unstake", "Alpha")
 
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser):
@@ -439,15 +518,6 @@ class RemoveSubStakeCommand:
             "remove",
             help="""Remove stake from a specific hotkey on subnet `netuid` from your coldkey.""",
         )
-        stake_parser.add_argument("--netuid", dest="netuid", type=int, required=False)
-        stake_parser.add_argument("--all", dest="unstake_all", action="store_true")
-        stake_parser.add_argument("--amount", dest="amount", type=float, required=False)
-        stake_parser.add_argument(
-            "--hotkey",
-            "--wallet.hotkey",
-            required=False,
-            type=str,
-            help="""Specify the hotkey by name or ss58 address.""",
-        )
+        add_arguments_to_parser(stake_parser)
         bittensor.wallet.add_args(stake_parser)
         bittensor.subtensor.add_args(stake_parser)

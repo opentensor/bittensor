@@ -16,21 +16,19 @@
 # DEALINGS IN THE SOFTWARE.
 
 import os
-import sys
 import argparse
 import bittensor
 import re
 import numpy as np
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 from rich.table import Table
 from rich.prompt import Prompt, IntPrompt, FloatPrompt, Confirm
 from rich.console import Text
 from tqdm import tqdm
 from substrateinterface.exceptions import SubstrateRequestException
-from .utils import get_delegates_details, DelegatesDetails
+from .utils import get_delegates_details, DelegatesDetails 
 from .identity import SetIdentityCommand
 from . import defaults
-import json
 
 def _get_coldkey_wallets_for_path(path: str) -> List["bittensor.wallet"]:
     try:
@@ -48,6 +46,7 @@ console = bittensor.__console__
 # Uses rich console to pretty print a table of delegates.
 def show_delegates(
     delegates: List["bittensor.DelegateInfoLight"],
+    registered_delegate_info: Optional[Dict[str, DelegatesDetails]],
     width: Optional[int] = None,
 ):
     """
@@ -94,15 +93,6 @@ def show_delegates(
     """
 
     delegates.sort(key=lambda delegate: delegate.total_stake, reverse=True)
-
-    registered_delegate_info: Optional[
-        Dict[str, DelegatesDetails]
-    ] = get_delegates_details(url=bittensor.__delegates_details_url__)
-    if registered_delegate_info is None:
-        bittensor.__console__.print(
-            ":warning:[yellow]Could not get delegate info from chain.[/yellow]"
-        )
-        registered_delegate_info = {}
 
     table = Table(show_footer=True, width=width, pad_edge=False, box=None, expand=True)
     table.add_column(
@@ -251,341 +241,6 @@ def show_delegate_stakes(
     bittensor.__console__.print("\n")
     bittensor.__console__.print(table)
 
-class DelegateStakeCommand:
-    """
-    Executes the ``delegate`` command, which stakes Tao to a specified delegate on the Bittensor network.
-
-    This action allocates the user's Tao to support a delegate, potentially earning staking rewards in return.
-
-    Optional Arguments:
-        - ``wallet.name``: The name of the wallet to use for the command.
-        - ``delegate_ss58key``: The ``SS58`` address of the delegate to stake to.
-        - ``amount``: The amount of Tao to stake.
-        - ``all``: If specified, the command stakes all available Tao.
-
-    The command interacts with the user to determine the delegate and the amount of Tao to be staked. If the ``--all``
-    flag is used, it delegates the entire available balance.
-
-    Usage:
-        The user must specify the delegate's SS58 address and the amount of Tao to stake. The function sends a
-        transaction to the subtensor network to delegate the specified amount to the chosen delegate. These values are
-        prompted if not provided.
-
-    Example usage::
-
-        btcli stake delegate --delegate_ss58key <SS58_ADDRESS> --amount <AMOUNT>
-        btcli stake delegate --delegate_ss58key <SS58_ADDRESS> --all
-
-    Note:
-        This command modifies the blockchain state and may incur transaction fees. It requires user confirmation and
-        interaction, and is designed to be used within the Bittensor CLI environment. The user should ensure the
-        delegate's address and the amount to be staked are correct before executing the command.
-    """
-
-    @staticmethod
-    def run(cli: "bittensor.cli"):
-        """Delegates stake to a chain delegate."""
-        try:
-            config = cli.config.copy()
-            wallet = bittensor.wallet(config=config)
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(
-                config=config, log_verbose=False
-            )
-            subtensor.delegate(
-                config.bittensor_wallet_object,
-                delegate_ss58=config.get("delegate_ss58key"),
-                amount=config.get("amount"),
-                netuid=config.get("netuid"),
-                wait_for_inclusion=True,
-                prompt=not config.no_prompt,
-            )
-        finally:
-            if "subtensor" in locals():
-                subtensor.close()
-                bittensor.logging.debug("closing subtensor connection")
-
-    @staticmethod
-    def add_args(parser: argparse.ArgumentParser):
-        delegate_stake_parser = parser.add_parser(
-            "delegate", help="""Delegate stake to a delegate."""
-        )
-        delegate_stake_parser.add_argument(
-            "--delegate_ss58key",
-            "--delegate_ss58",
-            dest="delegate_ss58key",
-            type=str,
-            required=False,
-            help="""The ss58 address of the chosen delegate""",
-        )
-        delegate_stake_parser.add_argument(
-            "--all", dest="stake_all", action="store_true"
-        )
-        delegate_stake_parser.add_argument(
-            "--amount", dest="amount", type=float, required=False
-        )
-        bittensor.wallet.add_args(delegate_stake_parser)
-        bittensor.subtensor.add_args(delegate_stake_parser)
-
-    @staticmethod
-    def check_config(config: "bittensor.config"):
-        if not config.is_set("wallet.name") and not config.no_prompt:
-            wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
-            config.wallet.name = str(wallet_name)
-
-        # unlock the wallet right away
-        wallet = bittensor.wallet(config=config)
-        wallet.coldkey
-        config.bittensor_wallet_object = wallet
-
-        if not config.get("delegate_ss58key"):
-            # Check for delegates.
-            with bittensor.__console__.status(":satellite: Loading delegates..."):
-                subtensor = bittensor.subtensor(config=config, log_verbose=False)
-                delegates: list[bittensor.DelegateInfoLight] = subtensor.get_delegates_light()
-
-            try:
-                hotkey_stakes = subtensor.get_all_hotkey_stakes(
-                    max(0, subtensor.block - 1200)
-                )
-                stake_dict = dict(hotkey_stakes)
-                for delegate in delegates:
-                    if delegate.hotkey_ss58 in stake_dict:
-                        delegate.previous_total_stake = bittensor.Balance.from_rao(stake_dict[delegate.hotkey_ss58])
-            except SubstrateRequestException:
-                bittensor.__console__.print(
-                    ":warning: [yellow]Could not fetch delegates history[/yellow]"
-                )
-
-            if len(delegates) == 0:
-                console.print(
-                    ":cross_mark: [red]There are no delegates on {}[/red]".format(
-                        subtensor.network
-                    )
-                )
-                sys.exit(1)
-
-            delegates.sort(key=lambda delegate: delegate.total_stake, reverse=True)
-            show_delegates(delegates)
-
-            delegate_index = Prompt.ask("Enter delegate index")
-            config.delegate_ss58key = str(delegates[int(delegate_index)].hotkey_ss58)
-            console.print(
-                "Selected: [yellow]{}[/yellow]".format(config.delegate_ss58key)
-            )
-
-        # Get netuid.
-        if not config.get("netuid"):
-            # Get netuids this coldkey has stake in for this delegate
-            stakeList = subtensor.get_stake_list_for_coldkey_and_hotkey(
-                config.delegate_ss58key,
-                wallet.coldkey.ss58_address,
-            )
-            show_delegate_stakes(stakeList)
-
-            netuid = Prompt.ask("Enter subnet ID to stake to")
-            try:
-                config.netuid = int(netuid)
-            except ValueError:
-                console.print(
-                    ":cross_mark: [red]Invalid subnet ID[/red] [bold white]{}[/bold white]".format(
-                        netuid
-                    )
-                )
-                sys.exit()
-
-        # Get amount.
-        if not config.get("amount") and not config.get("stake_all"):
-            if not Confirm.ask(
-                "Stake all Tao from account: [bold]'{}'[/bold]?".format(
-                    config.wallet.get("name", defaults.wallet.name)
-                )
-            ):
-                amount = Prompt.ask("Enter Tao amount to stake")
-                try:
-                    config.amount = float(amount)
-                except ValueError:
-                    console.print(
-                        ":cross_mark: [red]Invalid Tao amount[/red] [bold white]{}[/bold white]".format(
-                            amount
-                        )
-                    )
-                    sys.exit()
-            else:
-                config.stake_all = True
-
-
-class DelegateUnstakeCommand:
-    """
-    Executes the ``undelegate`` command, allowing users to withdraw their staked Tao from a delegate on the Bittensor
-    network.
-
-    This process is known as "undelegating" and it reverses the delegation process, freeing up the staked tokens.
-
-    Optional Arguments:
-        - ``wallet.name``: The name of the wallet to use for the command.
-        - ``delegate_ss58key``: The ``SS58`` address of the delegate to undelegate from.
-        - ``amount``: The amount of Tao to undelegate.
-        - ``netuid``: The subnet ID to undelegate from.
-        - ``all``: If specified, the command undelegates all staked Tao from the delegate.
-
-    The command prompts the user for the amount of Tao to undelegate and the ``SS58`` address of the delegate from which
-    to undelegate. If the ``--all`` flag is used, it will attempt to undelegate the entire staked amount from the
-    specified delegate.
-
-    Usage:
-        The user must provide the delegate's SS58 address and the amount of Tao to undelegate. The function will then
-        send a transaction to the Bittensor network to process the undelegation.
-
-    Example usage::
-
-        btcli stake undelegate --delegate_ss58key <SS58_ADDRESS> --amount <AMOUNT>
-        btcli stake undelegate --delegate_ss58key <SS58_ADDRESS> --all
-
-    Note:
-        This command can result in a change to the blockchain state and may incur transaction fees. It is interactive
-        and requires confirmation from the user before proceeding. It should be used with care as undelegating can
-        affect the delegate's total stake and
-        potentially the user's staking rewards.
-    """
-
-    @staticmethod
-    def run(cli: "bittensor.cli"):
-        """Undelegates stake from a chain delegate."""
-        try:
-            config = cli.config.copy()
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(
-                config=config, log_verbose=False
-            )
-            DelegateUnstakeCommand._run(cli, subtensor)
-        finally:
-            if "subtensor" in locals():
-                subtensor.close()
-                bittensor.logging.debug("closing subtensor connection")
-
-    def _run(self: "bittensor.cli", subtensor: "bittensor.subtensor"):
-        """Undelegates stake from a chain delegate."""
-        config = self.config.copy()
-        wallet = bittensor.wallet(config=config)
-        subtensor.undelegate(
-            wallet=config.bittensor_wallet_object,
-            delegate_ss58=config.get("delegate_ss58key"),
-            amount=config.get("amount"),
-            netuid=config.get("netuid"),
-            wait_for_inclusion=True,
-            prompt=not config.no_prompt,
-        )
-
-    @staticmethod
-    def add_args(parser: argparse.ArgumentParser):
-        undelegate_stake_parser = parser.add_parser(
-            "undelegate", help="""Undelegate stake from a delegate."""
-        )
-        undelegate_stake_parser.add_argument(
-            "--delegate_ss58key",
-            "--delegate_ss58",
-            dest="delegate_ss58key",
-            type=str,
-            required=False,
-            help="""The ss58 address of the choosen delegate""",
-        )
-        undelegate_stake_parser.add_argument(
-            "--all", dest="unstake_all", action="store_true"
-        )
-        undelegate_stake_parser.add_argument(
-            "--amount", dest="amount", type=float, required=False
-        )
-        undelegate_stake_parser.add_argument(
-            "--netuid", dest="netuid", type=int, required=False
-        )
-        bittensor.wallet.add_args(undelegate_stake_parser)
-        bittensor.subtensor.add_args(undelegate_stake_parser)
-
-    @staticmethod
-    def check_config(config: "bittensor.config"):
-        if not config.is_set("wallet.name") and not config.no_prompt:
-            wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
-            config.wallet.name = str(wallet_name)
-
-        # unlock the wallet right away
-        wallet = bittensor.wallet(config=config)
-        wallet.coldkey
-        config.bittensor_wallet_object = wallet
-
-        if not config.get("delegate_ss58key"):
-            # Check for delegates.
-            with bittensor.__console__.status(":satellite: Loading delegates..."):
-                subtensor = bittensor.subtensor(config=config, log_verbose=False)
-                delegates: list[bittensor.DelegateInfoLight] = subtensor.get_delegates_light()
-
-            try:
-                hotkey_stakes = subtensor.get_all_hotkey_stakes(
-                    max(0, subtensor.block - 1200)
-                )
-                stake_dict = dict(hotkey_stakes)
-                for delegate in delegates:
-                    if delegate.hotkey_ss58 in stake_dict:
-                        delegate.previous_total_stake = bittensor.Balance.from_rao(stake_dict[delegate.hotkey_ss58])
-            except SubstrateRequestException:
-                bittensor.__console__.print(
-                    ":warning: [yellow]Could not fetch delegates history[/yellow]"
-                )
-
-            if len(delegates) == 0:
-                console.print(
-                    ":cross_mark: [red]There are no delegates on {}[/red]".format(
-                        subtensor.network
-                    )
-                )
-                sys.exit(1)
-
-            delegates.sort(key=lambda delegate: delegate.total_stake, reverse=True)
-            show_delegates(delegates)
-            delegate_index = Prompt.ask("Enter delegate index")
-            config.delegate_ss58key = str(delegates[int(delegate_index)].hotkey_ss58)
-            console.print(
-                "Selected: [yellow]{}[/yellow]".format(config.delegate_ss58key)
-            )
-
-        # Get netuid.
-        if not config.get("netuid"):
-            # Get netuids this coldkey has stake in for this delegate
-            stakeList = subtensor.get_stake_list_for_coldkey_and_hotkey(
-                config.delegate_ss58key,
-                wallet.coldkey.ss58_address,
-            )
-            show_delegate_stakes(stakeList)
-
-            netuid = Prompt.ask("Enter subnet ID to unstake from")
-            try:
-                config.netuid = int(netuid)
-            except ValueError:
-                console.print(
-                    ":cross_mark: [red]Invalid subnet ID[/red] [bold white]{}[/bold white]".format(
-                        netuid
-                    )
-                )
-                sys.exit()
-
-        # Get amount.
-        if not config.get("amount") and not config.get("unstake_all"):
-            if not Confirm.ask(
-                "Unstake all Tao to account: [bold]'{}'[/bold]?".format(
-                    config.wallet.get("name", defaults.wallet.name)
-                )
-            ):
-                amount = Prompt.ask("Enter Tao amount to unstake")
-                try:
-                    config.amount = float(amount)
-                except ValueError:
-                    console.print(
-                        ":cross_mark: [red]Invalid Tao amount[/red] [bold white]{}[/bold white]".format(
-                            amount
-                        )
-                    )
-                    sys.exit()
-            else:
-                config.unstake_all = True
-
 
 class ListDelegatesCommand:
     """
@@ -652,7 +307,7 @@ class ListDelegatesCommand:
 
             try:
                 hotkey_stakes = subtensor.get_all_hotkey_stakes(
-                    max(0, subtensor.block - 1)
+                    max(0, subtensor.block - 1200)
                 )
                 stake_dict = dict(hotkey_stakes)
                 for delegate in delegates:

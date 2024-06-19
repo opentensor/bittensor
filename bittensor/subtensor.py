@@ -62,9 +62,7 @@ from .chain_data import (
 )
 from .errors import IdentityError, NominationError, StakeError, TakeError
 from .extrinsics.delegation import (
-    delegate_extrinsic,
     nominate_extrinsic,
-    undelegate_extrinsic,
     increase_take_extrinsic,
     decrease_take_extrinsic,
 )
@@ -564,88 +562,6 @@ class subtensor:
             wallet=wallet,
             wait_for_finalization=wait_for_finalization,
             wait_for_inclusion=wait_for_inclusion,
-        )
-
-    def delegate(
-        self,
-        wallet: bittensor.wallet,
-        delegate_ss58: Optional[str] = None,
-        amount: Optional[Union[Balance, float]] = None,
-        netuid: int = 0,
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = False,
-        prompt: bool = False,
-    ) -> bool:
-        """
-        Becomes a delegate for the hotkey associated with the given wallet. This method is used to nominate
-        a neuron (identified by the hotkey in the wallet) as a delegate on the Bittensor network, allowing it
-        to participate in consensus and validation processes.
-
-        Args:
-            wallet (bittensor.wallet): The wallet containing the hotkey to be nominated.
-            delegate_ss58 (Optional[str]): The ``SS58`` address of the delegate neuron.
-            amount (Union[Balance, float]): The amount of TAO to undelegate.
-            netuid (int): Subnet ID.
-            wait_for_finalization (bool, optional): If ``True``, waits until the transaction is finalized on the
-                blockchain.
-            wait_for_inclusion (bool, optional): If ``True``, waits until the transaction is included in a block.
-            prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
-
-        Returns:
-            bool: ``True`` if the nomination process is successful, False otherwise.
-
-        This function is a key part of the decentralized governance mechanism of Bittensor, allowing for the
-        dynamic selection and participation of validators in the network's consensus process.
-        """
-        return delegate_extrinsic(
-            subtensor=self,
-            wallet=wallet,
-            delegate_ss58=delegate_ss58,
-            amount=amount,
-            netuid=netuid,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-            prompt=prompt,
-        )
-
-    def undelegate(
-        self,
-        wallet: bittensor.wallet,
-        delegate_ss58: Optional[str] = None,
-        amount: Optional[Union[Balance, float]] = None,
-        netuid: int = 0,
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = False,
-        prompt: bool = False,
-    ) -> bool:
-        """
-        Removes a specified amount of stake from a delegate neuron using the provided wallet. This action
-        reduces the staked amount on another neuron, effectively withdrawing support or speculation.
-
-        Args:
-            wallet (bittensor.wallet): The wallet used for the undelegation process.
-            delegate_ss58 (Optional[str]): The ``SS58`` address of the delegate neuron.
-            amount (Union[Balance, float]): The amount of TAO to undelegate.
-            netuid (int): Subnet ID.
-            wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
-            wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
-            prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
-
-        Returns:
-            bool: ``True`` if the undelegation is successful, False otherwise.
-
-        This function reflects the dynamic and speculative nature of the Bittensor network, allowing neurons
-        to adjust their stakes and investments based on changing perceptions and performances within the network.
-        """
-        return undelegate_extrinsic(
-            subtensor=self,
-            wallet=wallet,
-            delegate_ss58=delegate_ss58,
-            amount=amount,
-            netuid=netuid,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-            prompt=prompt,
         )
 
     def set_take(
@@ -4892,85 +4808,6 @@ class subtensor:
     ################
     ## Extrinsics ##
     ################
-
-    def _do_delegation(
-        self,
-        wallet: "bittensor.wallet",
-        delegate_ss58: str,
-        amount: "Balance",
-        netuid: int,
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = False,
-    ) -> bool:
-        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=_logger)
-        def make_substrate_call_with_retry():
-            call = self.substrate.compose_call(
-                call_module="SubtensorModule",
-                call_function="add_subnet_stake",
-                call_params={
-                    "hotkey": delegate_ss58,
-                    "netuid": netuid,
-                    "amount_staked": amount.rao
-                },
-            )
-            extrinsic = self.substrate.create_signed_extrinsic(
-                call=call, keypair=wallet.coldkey
-            )
-            response = self.substrate.submit_extrinsic(
-                extrinsic,
-                wait_for_inclusion=wait_for_inclusion,
-                wait_for_finalization=wait_for_finalization,
-            )
-            # We only wait here if we expect finalization.
-            if not wait_for_finalization and not wait_for_inclusion:
-                return True
-            response.process_events()
-            if response.is_success:
-                return True
-            else:
-                raise StakeError(response.error_message)
-
-        return make_substrate_call_with_retry()
-
-    def _do_undelegation(
-        self,
-        wallet: "bittensor.wallet",
-        delegate_ss58: str,
-        amount: "Balance",
-        netuid: int,
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = False,
-    ) -> bool:
-        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=_logger)
-        def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                call = substrate.compose_call(
-                    call_module="SubtensorModule",
-                    call_function="remove_subnet_stake",
-                    call_params={
-                        "hotkey": delegate_ss58,
-                        "netuid": netuid,
-                        "amount_unstaked": amount.rao,
-                    },
-                )
-                extrinsic = substrate.create_signed_extrinsic(
-                    call=call, keypair=wallet.coldkey
-                )
-                response = substrate.submit_extrinsic(
-                    extrinsic,
-                    wait_for_inclusion=wait_for_inclusion,
-                    wait_for_finalization=wait_for_finalization,
-                )
-                # We only wait here if we expect finalization.
-                if not wait_for_finalization and not wait_for_inclusion:
-                    return True
-                response.process_events()
-                if response.is_success:
-                    return True
-                else:
-                    raise StakeError(response.error_message)
-
-        return make_substrate_call_with_retry()
 
     def _do_nominate(
         self,

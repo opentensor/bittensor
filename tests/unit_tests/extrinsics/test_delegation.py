@@ -5,8 +5,6 @@ from bittensor.wallet import wallet as Wallet
 from bittensor.utils.balance import Balance
 from bittensor.extrinsics.delegation import (
     nominate_extrinsic,
-    delegate_extrinsic,
-    undelegate_extrinsic,
 )
 from bittensor.errors import (
     NominationError,
@@ -222,82 +220,6 @@ def test_nominate_extrinsic(
         "failure-StakeError",
     ],
 )
-def test_delegate_extrinsic(
-    mock_subtensor,
-    mock_wallet,
-    wait_for_inclusion,
-    wait_for_finalization,
-    is_delegate,
-    prompt_response,
-    stake_amount,
-    balance_sufficient,
-    transaction_success,
-    raises_error,
-    expected_result,
-    delegate_called,
-):
-    # Arrange
-    wallet_balance = Balance.from_tao(500)
-    wallet_insufficient_balance = Balance.from_tao(0.002)
-
-    with patch("rich.prompt.Confirm.ask", return_value=prompt_response), patch.object(
-        mock_subtensor,
-        "get_balance",
-        return_value=wallet_balance
-        if balance_sufficient
-        else wallet_insufficient_balance,
-    ), patch.object(
-        mock_subtensor, "is_hotkey_delegate", return_value=is_delegate
-    ), patch.object(
-        mock_subtensor, "_do_delegation", return_value=transaction_success
-    ) as mock_delegate:
-        if raises_error:
-            mock_delegate.side_effect = raises_error
-
-        # Act
-        if raises_error == NotDelegateError:
-            with pytest.raises(raises_error):
-                result = delegate_extrinsic(
-                    subtensor=mock_subtensor,
-                    wallet=mock_wallet,
-                    delegate_ss58=mock_wallet.hotkey.ss58_address,
-                    amount=stake_amount,
-                    wait_for_inclusion=wait_for_inclusion,
-                    wait_for_finalization=wait_for_finalization,
-                    prompt=True,
-                )
-        else:
-            result = delegate_extrinsic(
-                subtensor=mock_subtensor,
-                wallet=mock_wallet,
-                delegate_ss58=mock_wallet.hotkey.ss58_address,
-                amount=stake_amount,
-                wait_for_inclusion=wait_for_inclusion,
-                wait_for_finalization=wait_for_finalization,
-                prompt=True,
-            )
-            # Assert
-            assert result == expected_result
-
-        if delegate_called:
-            if stake_amount is None:
-                called_stake_amount = wallet_balance
-            elif isinstance(stake_amount, Balance):
-                called_stake_amount = stake_amount
-            else:
-                called_stake_amount = Balance.from_tao(stake_amount)
-
-            if called_stake_amount > Balance.from_rao(1000):
-                called_stake_amount -= Balance.from_rao(1000)
-
-            mock_delegate.assert_called_once_with(
-                wallet=mock_wallet,
-                delegate_ss58=mock_wallet.hotkey.ss58_address,
-                amount=called_stake_amount,
-                wait_for_inclusion=wait_for_inclusion,
-                wait_for_finalization=wait_for_finalization,
-            )
-
 
 @pytest.mark.parametrize(
     "wait_for_inclusion, wait_for_finalization, is_delegate, prompt_response, unstake_amount, current_stake, transaction_success, raises_error, expected_result",
@@ -386,74 +308,3 @@ def test_delegate_extrinsic(
         "failure-NotRegisteredError",
     ],
 )
-def test_undelegate_extrinsic(
-    mock_subtensor,
-    mock_wallet,
-    wait_for_inclusion,
-    wait_for_finalization,
-    is_delegate,
-    prompt_response,
-    unstake_amount,
-    current_stake,
-    transaction_success,
-    raises_error,
-    expected_result,
-):
-    # Arrange
-    wallet_balance = Balance.from_tao(500)
-
-    with patch("rich.prompt.Confirm.ask", return_value=prompt_response), patch.object(
-        mock_subtensor, "is_hotkey_delegate", return_value=is_delegate
-    ), patch.object(
-        mock_subtensor, "get_balance", return_value=wallet_balance
-    ), patch.object(
-        mock_subtensor,
-        "get_stake_for_coldkey_and_hotkey",
-        return_value=Balance.from_tao(current_stake),
-    ), patch.object(
-        mock_subtensor, "_do_undelegation", return_value=transaction_success
-    ) as mock_undelegate:
-        if raises_error:
-            mock_undelegate.side_effect = raises_error
-
-        # Act
-        if raises_error == NotDelegateError:
-            with pytest.raises(raises_error):
-                result = undelegate_extrinsic(
-                    subtensor=mock_subtensor,
-                    wallet=mock_wallet,
-                    delegate_ss58=mock_wallet.hotkey.ss58_address,
-                    amount=unstake_amount,
-                    wait_for_inclusion=wait_for_inclusion,
-                    wait_for_finalization=wait_for_finalization,
-                    prompt=True,
-                )
-        else:
-            result = undelegate_extrinsic(
-                subtensor=mock_subtensor,
-                wallet=mock_wallet,
-                delegate_ss58=mock_wallet.hotkey.ss58_address,
-                amount=unstake_amount,
-                wait_for_inclusion=wait_for_inclusion,
-                wait_for_finalization=wait_for_finalization,
-                prompt=True,
-            )
-
-            # Assert
-            assert result == expected_result
-
-        if expected_result and prompt_response:
-            if unstake_amount is None:
-                called_unstake_amount = Balance.from_tao(current_stake)
-            elif isinstance(unstake_amount, Balance):
-                called_unstake_amount = unstake_amount
-            else:
-                called_unstake_amount = Balance.from_tao(unstake_amount)
-
-            mock_undelegate.assert_called_once_with(
-                wallet=mock_wallet,
-                delegate_ss58=mock_wallet.hotkey.ss58_address,
-                amount=called_unstake_amount,
-                wait_for_inclusion=wait_for_inclusion,
-                wait_for_finalization=wait_for_finalization,
-            )

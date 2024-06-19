@@ -22,8 +22,6 @@ import bittensor
 from typing import List, Optional
 from .commands import (
     AutocompleteCommand,
-    DelegateStakeCommand,
-    DelegateUnstakeCommand,
     GetIdentityCommand,
     GetWalletHistoryCommand,
     InspectCommand,
@@ -120,8 +118,6 @@ COMMANDS = {
             "register": RootRegisterCommand,
             "proposals": ProposalsCommand,
             "set_take": SetTakeCommand,
-            "delegate": DelegateStakeCommand,
-            "undelegate": DelegateUnstakeCommand,
             "my_delegates": MyDelegatesCommand,
             "list_delegates": ListDelegatesCommand,
             "set_delegate_takes": SetDelegateTakesCommand,
@@ -158,15 +154,8 @@ COMMANDS = {
         "commands": {
             # TODO: Should Show all my stakes across subnets.
             "list": StakeList,
-            # "add": StakeCommand,
-            # "remove": UnStakeCommand,
             "add": SubStakeCommand,
             "remove": RemoveSubStakeCommand,
-            # Delegate to a specific root member.
-            "delegate": DelegateStakeCommand,
-            # Remove stake from a root member
-            # TODO(greg): Should unstake from all associated subnets also.
-            "undelegate": DelegateUnstakeCommand,
             # Lists all of my delegates on the root network.
             "my_delegates": MyDelegatesCommand,
         },

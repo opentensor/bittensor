@@ -82,8 +82,6 @@ from .register import (
 from .delegates import (
     NominateCommand,
     ListDelegatesCommand,
-    DelegateStakeCommand,
-    DelegateUnstakeCommand,
     MyDelegatesCommand,
     SetTakeCommand,
     SetDelegateTakesCommand,
