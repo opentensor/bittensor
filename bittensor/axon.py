@@ -847,7 +847,7 @@ class axon:
                 The method checks for increasing nonce values, which is a vital
                 step in preventing replay attacks. A replay attack involves an adversary reusing or
                 delaying the transmission of a valid data transmission to deceive the receiver.
-                The first time a nonce is seen, it is checked for freshness by ensuring it is 
+                The first time a nonce is seen, it is checked for freshness by ensuring it is
                 within an acceptable delta time range.
 
             Authenticity and Integrity Checks
