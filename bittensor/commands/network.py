@@ -263,6 +263,7 @@ class SubnetListCommand:
             tao_locked = subnet.tao_locked
             total_tao_locked += tao_locked
             sn_symbol = "({})".format(bittensor.Balance.get_unit(subnet.netuid))
+            alpha_out_str = "{}{:,.4f}".format(sn_symbol, pool.alpha_outstanding.__float__())
             rows.append(
                 (
                     str(subnet.netuid),
@@ -273,8 +274,8 @@ class SubnetListCommand:
                     str( bittensor.Balance.from_tao( tao_locked.tao ) ),
                     "P(" + str( pool.tao_reserve ) + ",",
                     str( pool.alpha_reserve ) + ")",
-                    str( pool.alpha_outstanding if pool.is_dynamic else tao_locked ),
-                    ( "{:.4f}{}".format( pool.price.__float__(), f"τ/{bittensor.Balance.get_unit(subnet.netuid)}\u200E") if pool.is_dynamic else f"{1.0}τ/{sn_symbol}" ),
+                    str( alpha_out_str if pool.is_dynamic else tao_locked ),
+                    "{:.4f}{}".format( pool.price.__float__(), f"τ/{sn_symbol}") if pool.is_dynamic else f"{1.0}τ/{sn_symbol}",
                     str(subnet.hyperparameters["tempo"]),
                     f"{subnet.burn!s:8.8}",
                     f"{delegate_info[subnet.owner_ss58].name if subnet.owner_ss58 in delegate_info else subnet.owner_ss58[:5] + '...' + subnet.owner_ss58[-5:]}",
