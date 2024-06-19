@@ -16,5 +16,6 @@
 # DEALINGS IN THE SOFTWARE.
 
 
-ALLOWED_DELTA = 4000000000  # Delta of 4 seconds for nonce validation
+ALLOWED_DELTA = 4_000_000_000  # Delta of 4 seconds for nonce validation
 V_7_2_0 = 7002000
+NANOSECONDS_IN_SECOND = 1_000_000_000

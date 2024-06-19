@@ -31,11 +31,11 @@ import time
 import traceback
 import typing
 import uuid
-from inspect import signature, Signature, Parameter
-from typing import List, Optional, Tuple, Callable, Any, Dict, Awaitable
+from inspect import Parameter, Signature, signature
+from typing import Any, Awaitable, Callable, Dict, List, Optional, Tuple
 
 import uvicorn
-from fastapi import FastAPI, APIRouter, Depends
+from fastapi import APIRouter, Depends, FastAPI
 from fastapi.responses import JSONResponse
 from fastapi.routing import serialize_response
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
@@ -44,18 +44,18 @@ from starlette.responses import Response
 from substrateinterface import Keypair
 
 import bittensor
+from bittensor.constants import ALLOWED_DELTA, NANOSECONDS_IN_SECOND, V_7_2_0
 from bittensor.errors import (
+    BlacklistedException,
     InvalidRequestNameError,
+    NotVerifiedException,
+    PostProcessException,
+    PriorityException,
     SynapseDendriteNoneException,
+    SynapseException,
     SynapseParsingError,
     UnknownSynapseError,
-    NotVerifiedException,
-    BlacklistedException,
-    PriorityException,
-    PostProcessException,
-    SynapseException,
 )
-from bittensor.constants import ALLOWED_DELTA, V_7_2_0
 from bittensor.threadpool import PriorityThreadPoolExecutor
 from bittensor.utils import networking
 
@@ -847,6 +847,8 @@ class axon:
                 The method checks for increasing nonce values, which is a vital
                 step in preventing replay attacks. A replay attack involves an adversary reusing or
                 delaying the transmission of a valid data transmission to deceive the receiver.
+                The first time a nonce is seen, it is checked for freshness by ensuring it is 
+                within an acceptable delta time range.
 
             Authenticity and Integrity Checks
                 By verifying that the message's digital signature matches
@@ -893,33 +895,44 @@ class axon:
             if synapse.dendrite.nonce is None:
                 raise Exception("Missing Nonce")
 
-            # If we don't have a nonce stored, ensure that the nonce falls within
-            # a reasonable delta.
-
+            # Newer nonce structure post v7.2
             if (
                 synapse.dendrite.version is not None
                 and synapse.dendrite.version >= V_7_2_0
             ):
                 # If we don't have a nonce stored, ensure that the nonce falls within
                 # a reasonable delta.
+                current_time_ns = time.time_ns()
+                synapse_timeout_ns = (synapse.timeout or 0) * NANOSECONDS_IN_SECOND
+                allowed_window_ns = current_time_ns - ALLOWED_DELTA - synapse_timeout_ns
                 if (
                     self.nonces.get(endpoint_key) is None
-                    and synapse.dendrite.nonce
-                    <= time.time_ns() - ALLOWED_DELTA - (synapse.timeout or 0)
+                    and synapse.dendrite.nonce <= allowed_window_ns
                 ):
-                    raise Exception("Nonce is too old")
+                    diff_seconds = (
+                        current_time_ns - synapse.dendrite.nonce
+                    ) / NANOSECONDS_IN_SECOND
+                    allowed_delta_seconds = (
+                        ALLOWED_DELTA + synapse_timeout_ns
+                    ) / NANOSECONDS_IN_SECOND
+                    raise Exception(
+                        f"Nonce is too old: acceptable delta is {allowed_delta_seconds:.2f} seconds but request was {diff_seconds:.2f} seconds old"
+                    )
+
+                # If a nonce is stored, ensure the new nonce
+                # is greater than the previous nonce
                 if (
                     self.nonces.get(endpoint_key) is not None
                     and synapse.dendrite.nonce <= self.nonces[endpoint_key]
                 ):
-                    raise Exception("Nonce is too old")
+                    raise Exception("Nonce is too old, a newer one was last processed")
+            # Older nonce structure pre v7.2
             else:
                 if (
-                    endpoint_key in self.nonces.keys()
-                    and self.nonces[endpoint_key] is not None
+                    self.nonces.get(endpoint_key) is not None
                     and synapse.dendrite.nonce <= self.nonces[endpoint_key]
                 ):
-                    raise Exception("Nonce is too small")
+                    raise Exception("Nonce is too old, a newer one was last processed")
 
             if not keypair.verify(message, synapse.dendrite.signature):
                 raise Exception(
