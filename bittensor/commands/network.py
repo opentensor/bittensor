@@ -275,7 +275,7 @@ class SubnetListCommand:
                     "P(" + str( pool.tao_reserve ) + ",",
                     str( pool.alpha_reserve ) + ")",
                     str( alpha_out_str if pool.is_dynamic else tao_locked ),
-                    "{:.4f}{}".format( pool.price.__float__(), f"τ/{sn_symbol}") if pool.is_dynamic else f"{1.0}τ/{sn_symbol}",
+                    "{:.4f}{}".format( pool.price.__float__(), f"τ/{sn_symbol}") if pool.is_dynamic else "[grey0]NA[/grey0]",
                     str(subnet.hyperparameters["tempo"]),
                     f"{subnet.burn!s:8.8}",
                     f"{delegate_info[subnet.owner_ss58].name if subnet.owner_ss58 in delegate_info else subnet.owner_ss58[:5] + '...' + subnet.owner_ss58[-5:]}",
@@ -363,7 +363,7 @@ class SubnetListCommand:
         )
         table.add_column(
             "[white]price",
-            f"{bittensor.Balance.from_tao(total_price)!s:8.8}",
+            "{}{:,.8f}".format(bittensor.Balance.get_unit(0), total_price.__float__()),
             footer_style="white",
             style="yellow",
             justify="center",
