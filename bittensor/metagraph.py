@@ -18,17 +18,19 @@
 # DEALINGS IN THE SOFTWARE.
 
 import asyncio
-from abc import ABC, abstractmethod
 import os
 import pickle
-import numpy as np
-from numpy.typing import NDArray
-import bittensor
+from abc import ABC, abstractmethod
 from os import listdir
 from os.path import join
-from typing import List, Optional, Union, Tuple
+from typing import List, Optional, Union, Tuple, Any
 
+import numpy as np
+from numpy.typing import NDArray
+
+import bittensor
 from bittensor.chain_data import AxonInfo
+from bittensor.utils import weight_utils
 from bittensor.utils.registration import torch, use_torch
 
 METAGRAPH_STATE_DICT_NDARRAY_KEYS = [
@@ -86,7 +88,7 @@ def latest_block_path(dir_path: str) -> str:
             if block_number > latest_block:
                 latest_block = block_number
                 latest_file_full_path = full_path_filename
-        except Exception as e:
+        except Exception:
             pass
     if not latest_file_full_path:
         raise ValueError(f"Metagraph not found at: {dir_path}")
@@ -398,9 +400,7 @@ class MetagraphMixin(ABC):
 
                 print(metagraph)  # Output: "metagraph(netuid:1, n:100, block:500, network:finney)"
         """
-        return "metagraph(netuid:{}, n:{}, block:{}, network:{})".format(
-            self.netuid, self.n.item(), self.block.item(), self.network
-        )
+        return f"metagraph(netuid:{self.netuid}, n:{self.n.item()}, block:{self.block.item()}, network:{self.network})"
 
     def __repr__(self) -> str:
         """
@@ -520,14 +520,15 @@ class MetagraphMixin(ABC):
             cur_block = await subtensor.get_current_block()  # type: ignore
             if block and block < (cur_block - 300):
                 bittensor.logging.warning(
-                    "Attempting to sync longer than 300 blocks ago on a non-archive node. Please use the 'archive' network for subtensor and retry."
+                    "Attempting to sync longer than 300 blocks ago on a non-archive node. Please use the 'archive' "
+                    "network for subtensor and retry."
                 )
 
         # Assign neurons based on 'lite' flag
-        await self._assign_neurons(block, lite, subtensor)
+        await self._assign_neurons(subtensor, lite, block)
 
         # Set attributes for metagraph
-        self._set_metagraph_attributes(block, subtensor)
+        await self._set_metagraph_attributes(subtensor, block)
 
         # If not a 'lite' version, compute and set weights and bonds for each neuron
         if not lite:
@@ -557,16 +558,18 @@ class MetagraphMixin(ABC):
             subtensor = bittensor.subtensor(network=self.network)
         return subtensor
 
-    async def _assign_neurons(self, block, lite, subtensor):
+    async def _assign_neurons(
+        self, subtensor: "bittensor.subtensor", lite: bool, block: Optional[int] = None
+    ):
         """
         Assigns neurons to the metagraph based on the provided block number and the lite flag.
 
         This method is responsible for fetching and setting the neuron data in the metagraph, which includes neuron attributes like UID, stake, trust, and other relevant information.
 
         Args:
-            block: The block number for which the neuron data needs to be fetched. If ``None``, the latest block data is used.
-            lite: A boolean flag indicating whether to use a lite version of the neuron data. The lite version typically includes essential information and is quicker to fetch and process.
             subtensor: The subtensor instance used for fetching neuron data from the network.
+            lite: A boolean flag indicating whether to use a lite version of the neuron data. The lite version typically includes essential information and is quicker to fetch and process.
+            block: The block number for which the neuron data needs to be fetched. If ``None``, the latest block data is used.
 
         Internal Usage:
             Used internally during the sync process to fetch and set neuron data::
@@ -574,14 +577,14 @@ class MetagraphMixin(ABC):
                 self._assign_neurons(block, lite, subtensor)
         """
         # TODO: Check and test the conditions for assigning neurons
-        if lite:
+        if lite is True:
             self.neurons = await subtensor.neurons_lite(block=block, netuid=self.netuid)
         else:
-            self.neurons = await subtensor.neurons(block=block, netuid=self.netuid)
+            self.neurons = await subtensor.neurons(block=block, netuid=self.netuid)  # type: ignore
         self.lite = lite
 
     @staticmethod
-    def _create_tensor(data, dtype) -> Union[NDArray, "torch.nn.Parameter"]:
+    def _create_tensor(data, dtype: Any) -> Any:
         """
         Creates a numpy array with the given data and data type. This method is a utility function used internally to encapsulate data into a np.array, making it compatible with the metagraph's numpy model structure.
 
@@ -604,9 +607,7 @@ class MetagraphMixin(ABC):
             else np.array(data, dtype=dtype)
         )
 
-    async def _set_weights_and_bonds(
-        self, subtensor: Optional[bittensor.subtensor] = None
-    ):
+    async def _set_weights_and_bonds(self, subtensor: "bittensor.subtensor"):
         """
         Computes and sets the weights and bonds for each neuron in the metagraph. This method is responsible for processing the raw weight and bond data obtained from the network and converting it into a structured format suitable for the metagraph model.
 
@@ -621,16 +622,18 @@ class MetagraphMixin(ABC):
         # TODO: Check and test the computation of weights and bonds
         if self.netuid == 0:
             self.weights = await self._process_root_weights(
-                [neuron.weights for neuron in self.neurons],
+                [neuron.weights for neuron in self.neurons],  # type: ignore
                 "weights",
-                subtensor,  # type: ignore
+                subtensor,
             )
         else:
             self.weights = self._process_weights_or_bonds(
-                [neuron.weights for neuron in self.neurons], "weights"
+                [neuron.weights for neuron in self.neurons],  # type: ignore
+                "weights",
             )
             self.bonds = self._process_weights_or_bonds(
-                [neuron.bonds for neuron in self.neurons], "bonds"
+                [neuron.bonds for neuron in self.neurons],  # type: ignore
+                "bonds",
             )
 
     def _process_weights_or_bonds(
@@ -663,7 +666,7 @@ class MetagraphMixin(ABC):
                 # TODO: Validate and test the conversion of uids and values to tensor
                 if attribute == "weights":
                     data_array.append(
-                        bittensor.utils.weight_utils.convert_weight_uids_and_vals_to_tensor(
+                        weight_utils.convert_weight_uids_and_vals_to_tensor(
                             len(self.neurons),
                             list(uids),
                             list(values),  # type: ignore
@@ -671,7 +674,7 @@ class MetagraphMixin(ABC):
                     )
                 else:
                     data_array.append(
-                        bittensor.utils.weight_utils.convert_bond_uids_and_vals_to_tensor(  # type: ignore
+                        weight_utils.convert_bond_uids_and_vals_to_tensor(  # type: ignore
                             len(self.neurons), list(uids), list(values)
                         ).astype(np.float32)
                     )
@@ -695,7 +698,7 @@ class MetagraphMixin(ABC):
         return tensor_param
 
     @abstractmethod
-    def _set_metagraph_attributes(self, block, subtensor):
+    async def _set_metagraph_attributes(self, subtensor: "bittensor.subtensor", block: Optional[int] = None):
         pass
 
     async def _process_root_weights(
@@ -721,8 +724,11 @@ class MetagraphMixin(ABC):
 
         """
         data_array = []
-        n_subnets = await subtensor.get_total_subnets() or 0
-        subnets = await subtensor.get_subnets()
+        n_subnets, subnets = await asyncio.gather(
+            subtensor.get_total_subnets(), subtensor.get_subnets()
+        )
+        n_subnets = n_subnets or 0
+
         for item in data:
             if len(item) == 0:
                 if use_torch():
@@ -733,7 +739,7 @@ class MetagraphMixin(ABC):
                 uids, values = zip(*item)
                 # TODO: Validate and test the conversion of uids and values to tensor
                 data_array.append(
-                    bittensor.utils.weight_utils.convert_root_weight_uids_and_vals_to_tensor(  # type: ignore
+                    weight_utils.convert_root_weight_uids_and_vals_to_tensor(  # type: ignore
                         n_subnets, list(uids), list(values), subnets
                     )
                 )
@@ -936,7 +942,9 @@ class TorchMetaGraph(MetagraphMixin, BaseClass):  # type: ignore
             # TODO: rewrite with async initialization logic
             asyncio.run(self.sync(block=None, lite=lite))
 
-    def _set_metagraph_attributes(self, block, subtensor):
+    async def _set_metagraph_attributes(
+        self, subtensor: "bittensor.subtensor", block: Optional[int] = None
+    ):
         """
         Sets various attributes of the metagraph based on the latest network data fetched from the subtensor.
 
@@ -949,14 +957,14 @@ class TorchMetaGraph(MetagraphMixin, BaseClass):  # type: ignore
         Internal Usage:
             Used internally during the sync process to update the metagraph's attributes::
 
-                self._set_metagraph_attributes(block, subtensor)
+                self._set_metagraph_attributes(subtensor, block)
         """
         self.n = self._create_tensor(len(self.neurons), dtype=torch.int64)
         self.version = self._create_tensor(
             [bittensor.__version_as_int__], dtype=torch.int64
         )
         self.block = self._create_tensor(
-            block if block else subtensor.block, dtype=torch.int64
+            block if block else await subtensor.block, dtype=torch.int64
         )
         self.uids = self._create_tensor(
             [neuron.uid for neuron in self.neurons], dtype=torch.int64
@@ -1074,7 +1082,9 @@ class NonTorchMetagraph(MetagraphMixin):
             # TODO: rewrite with async initialization logic
             asyncio.run(self.sync(block=None, lite=lite))
 
-    def _set_metagraph_attributes(self, block, subtensor):
+    async def _set_metagraph_attributes(
+        self, subtensor: "bittensor.subtensor", block: Optional[int] = None
+    ):
         """
         Sets various attributes of the metagraph based on the latest network data fetched from the subtensor.
 
@@ -1091,11 +1101,11 @@ class NonTorchMetagraph(MetagraphMixin):
         """
         # TODO: Check and test the setting of each attribute
         self.n = self._create_tensor(len(self.neurons), dtype=np.int64)
-        self.version = self._create_tensor(
+        self.version = self._create_tensor(  # type: ignore
             [bittensor.__version_as_int__], dtype=np.int64
         )
         self.block = self._create_tensor(
-            block if block else subtensor.block, dtype=np.int64
+            block if block else await subtensor.block, dtype=np.int64
         )
         self.uids = self._create_tensor(
             [neuron.uid for neuron in self.neurons], dtype=np.int64
