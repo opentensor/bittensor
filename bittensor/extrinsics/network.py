@@ -161,7 +161,11 @@ def set_hyperparameter_extrinsic(
             Flag is ``true`` if extrinsic was finalized or included in the block.
             If we did not wait for finalization / inclusion, the response is ``true``.
     """
-    if subtensor.get_subnet_owner(netuid) != wallet.coldkeypub.ss58_address:
+    if (
+        netuid is not None
+        and subtensor.get_subnet_owner(netuid) != wallet.coldkeypub.ss58_address
+    ):
+        bittensor.logging.info("netuid is set and retrun false")
         bittensor.__console__.print(
             ":cross_mark: [red]This wallet doesn't own the specified subnet.[/red]"
         )
@@ -188,11 +192,25 @@ def set_hyperparameter_extrinsic(
             ]
 
             # create extrinsic call
-            call = substrate.compose_call(
-                call_module="AdminUtils",
-                call_function=extrinsic,
-                call_params={"netuid": netuid, str(value_argument["name"]): value},
-            )
+            if netuid is not None:
+                bittensor.logging.info("netuid set compose call")
+                call = substrate.compose_call(
+                    call_module="AdminUtils",
+                    call_function=extrinsic,
+                    call_params={"netuid": netuid, str(value_argument["name"]): value},
+                )
+            else:
+                inner_call = substrate.compose_call(
+                    call_module="AdminUtils",
+                    call_function=extrinsic,
+                    call_params={str(value_argument["name"]): value},
+                )
+                call = substrate.compose_call(
+                    call_module="Sudo",
+                    call_function="sudo",
+                    call_params={"call": inner_call},
+                )
+
             extrinsic = substrate.create_signed_extrinsic(
                 call=call, keypair=wallet.coldkey
             )

@@ -396,13 +396,22 @@ class SubnetSudoCommand:
                 else False
             )
 
-        subtensor.set_hyperparameter(
-            wallet,
-            netuid=cli.config.netuid,
-            parameter=cli.config.param,
-            value=cli.config.value,
-            prompt=not cli.config.no_prompt,
-        )
+        if cli.config.is_set("netuid"):
+            subtensor.set_hyperparameter(
+                wallet,
+                netuid=cli.config.netuid,
+                parameter=cli.config.param,
+                value=cli.config.value,
+                prompt=not cli.config.no_prompt,
+            )
+        else:
+            subtensor.set_hyperparameter(
+                wallet,
+                netuid=None,
+                parameter=cli.config.param,
+                value=cli.config.value,
+                prompt=not cli.config.no_prompt,
+            )
 
     @staticmethod
     def check_config(config: "bittensor.config"):
