@@ -55,9 +55,12 @@ from bittensor.errors import (
     PostProcessException,
     SynapseException,
 )
-from bittensor.constants import ALLOWED_DELTA, V_7_2_0
 from bittensor.threadpool import PriorityThreadPoolExecutor
 from bittensor.utils import networking
+
+
+ALLOWED_DELTA = 4000000000  # Delta of 4 seconds for nonce validation
+V_7_2_0 = 7002000
 
 
 class FastAPIThreadedServer(uvicorn.Server):
