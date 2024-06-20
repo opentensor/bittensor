@@ -619,7 +619,7 @@ class OverviewCommand:
         all_neurons: List["bittensor.NeuronInfoLite"],
         hot_wallets: List[str],
         netuid: int,
-    ):
+    ) -> Tuple[int, List["bittensor.NeuronInfoLite"], Optional[str]]:
         result: List["bittensor.NeuronInfoLite"] = []
         hotkey_to_neurons = {n.hotkey: n.uid for n in all_neurons}
         try:
