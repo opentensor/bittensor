@@ -18,17 +18,19 @@
 # DEALINGS IN THE SOFTWARE.
 
 
+from typing import Optional
+
 from bittensor.constants import ALLOWED_DELTA, NANOSECONDS_IN_SECOND
 
 
-def allowed_nonce_window_ns(current_time_ns: int, synapse_timeout: float):
+def allowed_nonce_window_ns(current_time_ns: int, synapse_timeout: Optional[float]):
     synapse_timeout_ns = (synapse_timeout or 0) * NANOSECONDS_IN_SECOND
     allowed_window_ns = current_time_ns - ALLOWED_DELTA - synapse_timeout_ns
     return allowed_window_ns
 
 
 def calculate_diff_seconds(
-    current_time: int, synapse_timeout: float, synapse_nonce: int
+    current_time: int, synapse_timeout: Optional[float], synapse_nonce: int
 ):
     synapse_timeout_ns = (synapse_timeout or 0) * NANOSECONDS_IN_SECOND
     diff_seconds = (current_time - synapse_nonce) / NANOSECONDS_IN_SECOND
