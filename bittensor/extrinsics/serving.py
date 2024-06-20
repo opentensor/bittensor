@@ -24,11 +24,12 @@ publishing metadata, and performing extrinsics related to network services.
 import json
 from typing import Any, Dict, Optional
 
-from retry import retry
 from rich.prompt import Confirm
+from tenacity import retry, stop_after_attempt, wait_fixed
 
 import bittensor
 import bittensor.utils.networking as net
+from bittensor.utils import format_error_message
 from ..errors import MetadataError
 
 
@@ -133,9 +134,7 @@ async def serve_extrinsic(
             )
             return True
         else:
-            bittensor.logging.debug(
-                f"Axon failed to served with error: {error_message} "
-            )
+            bittensor.logging.error(f"Failed: {error_message}")
             return False
     else:
         return True
@@ -200,7 +199,7 @@ async def publish_metadata(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
     netuid: int,
-    type_: str,
+    data_type: str,
     data: bytes,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = True,
@@ -212,7 +211,7 @@ async def publish_metadata(
         subtensor (bittensor.subtensor): The subtensor instance representing the Bittensor blockchain connection.
         wallet (bittensor.wallet): The wallet object used for authentication in the transaction.
         netuid (int): Network UID on which the metadata is to be published.
-        type_ (str): The data type of the information being submitted. It should be one of the following: ``'Sha256'``, ``'Blake256'``, ``'Keccak256'``, or ``'Raw0-128'``. This specifies the format or hashing algorithm used for the data.
+        data_type (str): The data type of the information being submitted. It should be one of the following: ``'Sha256'``, ``'Blake256'``, ``'Keccak256'``, or ``'Raw0-128'``. This specifies the format or hashing algorithm used for the data.
         data (str): The actual metadata content to be published. This should be formatted or hashed according to the ``type`` specified. (Note: max ``str`` length is 128 bytes)
         wait_for_inclusion (bool, optional): If ``True``, the function will wait for the extrinsic to be included in a block before returning. Defaults to ``False``.
         wait_for_finalization (bool, optional): If ``True``, the function will wait for the extrinsic to be finalized on the chain before returning. Defaults to ``True``.
@@ -229,7 +228,7 @@ async def publish_metadata(
     call = await subtensor.substrate.compose_call(
         call_module="Commitments",
         call_function="set_commitment",
-        call_params={"netuid": netuid, "info": {"fields": [[{f"{type_}": data}]]}},
+        call_params={"netuid": netuid, "info": {"fields": [[{f"{data_type}": data}]]}},
     )
 
     extrinsic = await subtensor.substrate.create_signed_extrinsic(
@@ -248,7 +247,7 @@ async def publish_metadata(
     if response.is_success:
         return True
     else:
-        raise MetadataError(response.error_message)
+        raise MetadataError(format_error_message(response.error_message))
 
 
 async def get_metadata(
@@ -257,7 +256,7 @@ async def get_metadata(
     hotkey: str,
     block: Optional[int] = None,
 ) -> str:
-    @retry(delay=2, tries=3, backoff=2, max_delay=4)
+    @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
     async def make_substrate_call_with_retry():
         return await subtensor.substrate.query(
             module="Commitments",

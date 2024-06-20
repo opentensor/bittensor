@@ -1,15 +1,15 @@
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 # Copyright © 2023 Opentensor Foundation
-
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
 # the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
+#
 # The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
-
+#
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
 # THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
@@ -22,12 +22,12 @@ stake delegation, and hotkey swaps.
 """
 
 import asyncio
-import time
 from typing import List, Union, Optional, Tuple
 
 from rich.prompt import Confirm
 
 import bittensor
+from bittensor.utils import format_error_message
 from bittensor.utils.registration import (
     POWSolution,
     create_pow,
@@ -180,16 +180,17 @@ async def register_extrinsic(
                     )
                     success, err_msg = result
 
-                    if success is not True or success is False:
-                        if "key is already registered" in err_msg:
-                            # Error meant that the key is already registered.
+                    if not success:
+                        # Look error here
+                        # https://github.com/opentensor/subtensor/blob/development/pallets/subtensor/src/errors.rs
+                        if "HotKeyAlreadyRegisteredInSubNet" in err_msg:
                             bittensor.__console__.print(
                                 f":white_heavy_check_mark: [green]Already Registered on [bold]subnet:{netuid}[/bold][/green]"
                             )
                             return True
 
                         bittensor.__console__.print(
-                            ":cross_mark: [red]Failed[/red]: error:{}".format(err_msg)
+                            f":cross_mark: [red]Failed[/red]: {err_msg}"
                         )
                         await asyncio.sleep(0.5)
 
@@ -297,10 +298,8 @@ async def burned_register_extrinsic(
             wait_for_finalization=wait_for_finalization,
         )
 
-        if success is not True or success is False:
-            bittensor.__console__.print(
-                ":cross_mark: [red]Failed[/red]: error:{}".format(err_msg)
-            )
+        if not success:
+            bittensor.__console__.print(f":cross_mark: [red]Failed[/red]: {err_msg}")
             await asyncio.sleep(0.5)
             return False
         # Successful registration, final check for neuron and pubkey
@@ -444,11 +443,13 @@ async def run_faucet_extrinsic(
             response.process_events()
             if not response.is_success:
                 bittensor.__console__.print(
-                    f":cross_mark: [red]Failed[/red]: Error: {response.error_message}"
+                    f":cross_mark: [red]Failed[/red]: {format_error_message(response.error_message)}"
                 )
                 if attempts == max_allowed_attempts:
                     raise MaxAttemptsException
                 attempts += 1
+                # Wait a bit before trying again
+                await asyncio.sleep(1)
 
             # Successful registration
             else:
@@ -462,6 +463,8 @@ async def run_faucet_extrinsic(
 
                 if successes == 3:
                     raise MaxSuccessException
+
+                attempts = 1  # Reset attempts on success
                 successes += 1
 
         except KeyboardInterrupt:
@@ -521,11 +524,9 @@ async def swap_hotkey_extrinsic(
             wait_for_finalization=wait_for_finalization,
         )
 
-        if success is not True or success is False:
-            bittensor.__console__.print(
-                ":cross_mark: [red]Failed[/red]: error:{}".format(err_msg)
-            )
-            time.sleep(0.5)
+        if not success:
+            bittensor.__console__.print(f":cross_mark: [red]Failed[/red]: {err_msg}")
+            await asyncio.sleep(0.5)
             return False
 
         else:

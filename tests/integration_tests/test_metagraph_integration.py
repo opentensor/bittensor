@@ -98,17 +98,17 @@ class TestMetagraph:
 
     def test_properties(self):
         metagraph = self.metagraph
-        metagraph.hotkeys
-        metagraph.coldkeys
-        metagraph.addresses
-        metagraph.validator_trust
-        metagraph.S
-        metagraph.R
-        metagraph.I
-        metagraph.E
-        metagraph.C
-        metagraph.T
-        metagraph.Tv
-        metagraph.D
-        metagraph.B
-        metagraph.W
+        assert hasattr(metagraph, "hotkeys")
+        assert hasattr(metagraph, "coldkeys")
+        assert hasattr(metagraph, "addresses")
+        assert hasattr(metagraph, "validator_trust")
+        assert hasattr(metagraph, "S")
+        assert hasattr(metagraph, "R")
+        assert hasattr(metagraph, "I")
+        assert hasattr(metagraph, "E")
+        assert hasattr(metagraph, "C")
+        assert hasattr(metagraph, "T")
+        assert hasattr(metagraph, "Tv")
+        assert hasattr(metagraph, "D")
+        assert hasattr(metagraph, "B")
+        assert hasattr(metagraph, "W")

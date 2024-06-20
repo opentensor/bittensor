@@ -2,27 +2,24 @@
 # Copyright © 2022 Yuma Rao
 # Copyright © 2022-2023 Opentensor Foundation
 # Copyright © 2023 Opentensor Technologies Inc
-
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
 # the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
+#
 # The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
-
+#
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
 # THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-
-import contextlib
 from copy import deepcopy
 import os
 import random
-import shutil
 from types import SimpleNamespace
 from typing import Dict
 import unittest
@@ -783,72 +780,123 @@ def return_mock_sub(*args, **kwargs):
 #         config.no_prompt = True
 #         # as the minimum required stake may change, this method allows us to dynamically
 #         # update the amount in the mock without updating the tests
-#         config.amount = Balance.from_rao(_subtensor_mock.min_required_stake() - 1)
-#         config.wallet.name = "fake_wallet"
-#         config.hotkeys = ["hk0", "hk1", "hk2"]
+#         min_stake: Balance = _subtensor_mock.get_minimum_required_stake()
+#         # Must be a float
+#         config.amount = min_stake.tao  # Unstake below the minimum required stake
+#         wallet_names = ["w0", "w1", "w2"]
 #         config.all_hotkeys = False
 #         # Notice no max_stake specified
 #
 #         mock_stakes: Dict[str, Balance] = {
-#             "hk0": Balance.from_float(10.0),
-#             "hk1": Balance.from_float(11.1),
-#             "hk2": Balance.from_float(12.2),
+#             "w0": 2 * min_stake - 1,  # remaining stake will be below the threshold
+#             "w1": 2 * min_stake - 2,
+#             "w2": 2 * min_stake - 5,
 #         }
-#
-#         mock_coldkey_kp = _get_mock_keypair(0, self.id())
 #
 #         mock_wallets = [
 #             SimpleNamespace(
-#                 name=config.wallet.name,
-#                 coldkey=mock_coldkey_kp,
-#                 coldkeypub=mock_coldkey_kp,
-#                 hotkey_str=hk,
-#                 hotkey=_get_mock_keypair(idx + 100, self.id()),
+#                 name=wallet_name,
+#                 coldkey=_get_mock_keypair(idx, self.id()),
+#                 coldkeypub=_get_mock_keypair(idx, self.id()),
+#                 hotkey_str="hk{}".format(idx),  # doesn't matter
+#                 hotkey=_get_mock_keypair(idx + 100, self.id()),  # doesn't matter
 #             )
-#             for idx, hk in enumerate(config.hotkeys)
+#             for idx, wallet_name in enumerate(wallet_names)
 #         ]
 #
-#         # Register mock wallets and give them stakes
+#         delegate_hotkey = mock_wallets[0].hotkey.ss58_address
 #
-#         for wallet in mock_wallets:
-#             _ = _subtensor_mock.force_register_neuron(
-#                 netuid=1,
-#                 hotkey=wallet.hotkey.ss58_address,
-#                 coldkey=wallet.coldkey.ss58_address,
-#                 stake=mock_stakes[wallet.hotkey_str].rao,
+#         # Register mock neuron, only for w0
+#         _ = _subtensor_mock.force_register_neuron(
+#             netuid=1,
+#             hotkey=delegate_hotkey,
+#             coldkey=mock_wallets[0].coldkey.ss58_address,
+#             stake=mock_stakes["w0"],
+#         )
+#
+#         # Become a delegate
+#         _ = _subtensor_mock.nominate(
+#             wallet=mock_wallets[0],
+#         )
+#
+#         # Stake to the delegate with the other coldkeys
+#         for wallet in mock_wallets[1:]:
+#             # Give balance
+#             _ = _subtensor_mock.force_set_balance(
+#                 ss58_address=wallet.coldkeypub.ss58_address,
+#                 balance=(
+#                     mock_stakes[wallet.name] + _subtensor_mock.get_existential_deposit()
+#                 ).tao
+#                 + 1.0,
+#             )
+#             _ = _subtensor_mock.add_stake(
+#                 wallet=wallet,
+#                 hotkey_ss58=delegate_hotkey,
+#                 amount=mock_stakes[wallet.name],
 #             )
 #
-#         cli = bittensor.cli(config)
-#
 #         def mock_get_wallet(*args, **kwargs):
-#             if kwargs.get("hotkey"):
+#             if kwargs.get("config") and kwargs["config"].get("wallet"):
 #                 for wallet in mock_wallets:
-#                     if wallet.hotkey_str == kwargs.get("hotkey"):
+#                     if wallet.name == kwargs["config"].wallet.name:
 #                         return wallet
-#             else:
-#                 return mock_wallets[0]
 #
 #         with patch("bittensor.wallet") as mock_create_wallet:
 #             mock_create_wallet.side_effect = mock_get_wallet
 #
-#             # Check stakes before unstaking
 #             for wallet in mock_wallets:
+#                 # Check stakes before unstaking
 #                 stake = _subtensor_mock.get_stake_for_coldkey_and_hotkey(
-#                     hotkey_ss58=wallet.hotkey.ss58_address,
+#                     hotkey_ss58=delegate_hotkey,
 #                     coldkey_ss58=wallet.coldkey.ss58_address,
 #                 )
-#                 self.assertEqual(stake.rao, mock_stakes[wallet.hotkey_str].rao)
+#                 self.assertEqual(stake.rao, mock_stakes[wallet.name].rao)
 #
-#             cli.run()
+#                 config.wallet.name = wallet.name
+#                 config.hotkey_ss58address = delegate_hotkey  # Single unstake
 #
-#             # Check stakes after unstaking
-#             for wallet in mock_wallets:
-#                 stake = _subtensor_mock.get_stake_for_coldkey_and_hotkey(
-#                     hotkey_ss58=wallet.hotkey.ss58_address,
-#                     coldkey_ss58=wallet.coldkey.ss58_address,
-#                 )
-#                 # because the amount is less than the threshold, none of these should unstake
-#                 self.assertEqual(stake.tao, mock_stakes[wallet.hotkey_str].tao)
+#                 cli = bittensor.cli(config)
+#                 with patch.object(_subtensor_mock, "_do_unstake") as mock_unstake:
+#                     with patch(
+#                         "bittensor.__console__.print"
+#                     ) as mock_print:  # Catch console print
+#                         cli.run()
+#
+#                         # Filter for console print calls
+#                         console_prints = [
+#                             call[0][0] for call in mock_print.call_args_list
+#                         ]
+#                         minimum_print = filter(
+#                             lambda x: "less than minimum of" in x, console_prints
+#                         )
+#
+#                         unstake_calls = mock_unstake.call_args_list
+#                         self.assertEqual(len(unstake_calls), 1)  # Only one unstake call
+#
+#                         _, kwargs = unstake_calls[0]
+#                         # Verify delegate was unstaked
+#                         self.assertEqual(kwargs["hotkey_ss58"], delegate_hotkey)
+#                         self.assertEqual(kwargs["wallet"].name, wallet.name)
+#
+#                         if wallet.name == "w0":
+#                             # This wallet owns the delegate
+#                             # Should unstake specified amount
+#                             self.assertEqual(
+#                                 kwargs["amount"], bittensor.Balance(config.amount)
+#                             )
+#                             # No warning for w0
+#                             self.assertRaises(
+#                                 StopIteration, next, minimum_print
+#                             )  # No warning for w0
+#                         else:
+#                             # Should unstake *all* the stake
+#                             staked = mock_stakes[wallet.name]
+#                             self.assertEqual(kwargs["amount"], staked)
+#
+#                             # Check warning was printed
+#                             _ = next(
+#                                 minimum_print
+#                             )  # Doesn't raise, so the warning was printed
 #
 #     def test_unstake_all(self, _):
 #         config = self.config
@@ -1672,6 +1720,129 @@ def return_mock_sub(*args, **kwargs):
 #             )
 #             self.assertAlmostEqual(balance.tao, mock_balance.tao, places=4)
 #
+#     def test_stake_with_thresholds(self, _):
+#         config = self.config
+#         config.command = "stake"
+#         config.subcommand = "add"
+#         config.no_prompt = True
+#
+#         min_stake: Balance = _subtensor_mock.get_minimum_required_stake()
+#         # Must be a float
+#         wallet_names = ["w0", "w1", "w2"]
+#         config.all_hotkeys = False
+#         # Notice no max_stake specified
+#
+#         mock_stakes: Dict[str, Balance] = {
+#             "w0": min_stake - 1,  # new stake will be below the threshold
+#             "w1": min_stake - 2,
+#             "w2": min_stake - 5,
+#         }
+#
+#         mock_wallets = [
+#             SimpleNamespace(
+#                 name=wallet_name,
+#                 coldkey=_get_mock_keypair(idx, self.id()),
+#                 coldkeypub=_get_mock_keypair(idx, self.id()),
+#                 hotkey_str="hk{}".format(idx),  # doesn't matter
+#                 hotkey=_get_mock_keypair(idx + 100, self.id()),  # doesn't matter
+#             )
+#             for idx, wallet_name in enumerate(wallet_names)
+#         ]
+#
+#         delegate_hotkey = mock_wallets[0].hotkey.ss58_address
+#
+#         # Register mock neuron, only for w0
+#         _ = _subtensor_mock.force_register_neuron(
+#             netuid=1,
+#             hotkey=delegate_hotkey,
+#             coldkey=mock_wallets[0].coldkey.ss58_address,
+#             balance=(mock_stakes["w0"] + _subtensor_mock.get_existential_deposit()).tao
+#             + 1.0,
+#         )  # No stake, but enough balance
+#
+#         # Become a delegate
+#         _ = _subtensor_mock.nominate(
+#             wallet=mock_wallets[0],
+#         )
+#
+#         # Give enough balance
+#         for wallet in mock_wallets[1:]:
+#             # Give balance
+#             _ = _subtensor_mock.force_set_balance(
+#                 ss58_address=wallet.coldkeypub.ss58_address,
+#                 balance=(
+#                     mock_stakes[wallet.name] + _subtensor_mock.get_existential_deposit()
+#                 ).tao
+#                 + 1.0,
+#             )
+#
+#         def mock_get_wallet(*args, **kwargs):
+#             if kwargs.get("config") and kwargs["config"].get("wallet"):
+#                 for wallet in mock_wallets:
+#                     if wallet.name == kwargs["config"].wallet.name:
+#                         return wallet
+#
+#         with patch("bittensor.wallet") as mock_create_wallet:
+#             mock_create_wallet.side_effect = mock_get_wallet
+#
+#             for wallet in mock_wallets:
+#                 # Check balances and stakes before staking
+#                 stake = _subtensor_mock.get_stake_for_coldkey_and_hotkey(
+#                     hotkey_ss58=delegate_hotkey,
+#                     coldkey_ss58=wallet.coldkey.ss58_address,
+#                 )
+#                 self.assertEqual(stake.rao, 0)  # No stake
+#
+#                 balance = _subtensor_mock.get_balance(
+#                     address=wallet.coldkeypub.ss58_address
+#                 )
+#                 self.assertGreaterEqual(
+#                     balance, mock_stakes[wallet.name]
+#                 )  # Enough balance
+#
+#                 config.wallet.name = wallet.name
+#                 config.wallet.hotkey = delegate_hotkey  # Single stake
+#                 config.amount = mock_stakes[
+#                     wallet.name
+#                 ].tao  # Stake an amount below the threshold
+#
+#                 cli = bittensor.cli(config)
+#                 with patch.object(_subtensor_mock, "_do_stake") as mock_stake:
+#                     with patch(
+#                         "bittensor.__console__.print"
+#                     ) as mock_print:  # Catch console print
+#                         cli.run()
+#
+#                         # Filter for console print calls
+#                         console_prints = [
+#                             call[0][0] for call in mock_print.call_args_list
+#                         ]
+#                         minimum_print = filter(
+#                             lambda x: "below the minimum required" in x, console_prints
+#                         )
+#
+#                         if wallet.name == "w0":
+#                             # This wallet owns the delegate
+#                             stake_calls = mock_stake.call_args_list
+#                             # Can stake below the threshold
+#                             self.assertEqual(len(stake_calls), 1)
+#
+#                             _, kwargs = stake_calls[0]
+#
+#                             # Should stake specified amount
+#                             self.assertEqual(
+#                                 kwargs["amount"], bittensor.Balance(config.amount)
+#                             )
+#                             # No error for w0
+#                             self.assertRaises(
+#                                 StopIteration, next, minimum_print
+#                             )  # No warning for w0
+#                         else:
+#                             # Should not call stake
+#                             self.assertEqual(len(mock_stake.call_args_list), 0)
+#                             # Should print error
+#                             self.assertIsNotNone(next(minimum_print))
+#
 #     def test_nominate(self, _):
 #         config = self.config
 #         config.command = "root"
@@ -2250,7 +2421,6 @@ def return_mock_sub(*args, **kwargs):
 #         cli.config = config
 #         cli.run()
 
-
 # TODO: fix after commands and cli are async migrated
 # @patch("bittensor.subtensor", new_callable=return_mock_sub)
 # class TestCLIWithNetworkUsingArgs(unittest.TestCase):
@@ -2367,7 +2537,6 @@ def return_mock_sub(*args, **kwargs):
 #
 #         new_balance = _subtensor_mock.get_balance(mock_wallet.coldkey.ss58_address)
 #         self.assertAlmostEqual(new_balance.tao, old_balance.tao - 10.0, delta=1e-6)
-#
 
 
 @pytest.fixture(scope="function")

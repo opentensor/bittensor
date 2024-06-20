@@ -15,9 +15,8 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
-"""
-This module provides functionality to transfer funds to a public address
-"""
+
+"""This module provides functionality to transfer funds to a public address"""
 
 import asyncio
 from typing import Union
@@ -25,7 +24,6 @@ from typing import Union
 from rich.prompt import Confirm
 
 import bittensor
-
 from ..utils import is_valid_bittensor_address_or_public_key
 from ..utils.balance import Balance
 
@@ -122,7 +120,7 @@ async def transfer_extrinsic(
             explorer_urls = bittensor.utils.get_explorer_url_for_network(
                 subtensor.network, block_hash, bittensor.__network_explorer_map__
             )
-            if explorer_urls != {}:
+            if explorer_urls != {} and explorer_urls:
                 opentensor_url = explorer_urls.get("opentensor")
                 taostats_url = explorer_urls.get("taostats")
                 bittensor.__console__.print(
@@ -132,9 +130,7 @@ async def transfer_extrinsic(
                     f"[green]Taostats   Explorer Link: {taostats_url}[/green]"
                 )
         else:
-            bittensor.__console__.print(
-                f":cross_mark: [red]Failed[/red]: error:{err_msg}"
-            )
+            bittensor.__console__.print(f":cross_mark: [red]Failed[/red]: {err_msg}")
 
     if success:
         with bittensor.__console__.status(":satellite: Checking Balance..."):

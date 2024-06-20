@@ -375,7 +375,7 @@ async def test_publish_metadata(
             subtensor=mock_subtensor,
             wallet=mock_wallet,
             netuid=net_uid,
-            type_=type_u,
+            data_type=type_u,
             data=data,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
