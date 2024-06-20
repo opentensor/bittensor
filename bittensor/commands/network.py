@@ -17,7 +17,7 @@
 
 import argparse
 import bittensor
-from . import defaults
+from . import defaults  # type: ignore
 from rich.prompt import Prompt
 from rich.table import Table
 from typing import List, Optional, Dict
@@ -399,6 +399,10 @@ class SubnetSudoCommand:
                 else False
             )
 
+        is_allowed_value, error_message = allowed_value(cli.config.param, cli.config.value)
+        if not is_allowed_value:
+            raise ValueError(f"Hyperparameter {cli.config.param} value is not within bounds. Value is {cli.config.value} but must be {error_message}")
+
         subtensor.set_hyperparameter(
             wallet,
             netuid=cli.config.netuid,
@@ -642,3 +646,25 @@ class SubnetGetHyperparamsCommand:
             default=False,
         )
         bittensor.subtensor.add_args(parser)
+
+
+def allowed_value(param, value):
+    """
+    Check the allowed values on hyperparameters. Return False if value is out of bounds.
+    """
+    # Reminder error message ends like:  Value is {value} but must be {error_message}. (the second part of return statement)
+    # Check if value is a boolean, only allow boolean and floats
+    if not isinstance(value, bool):
+        try:
+            value = float(value)
+        except ValueError:
+            return False, "a number or a boolean"
+    if param == "alpha_high":
+        if value <= 0.8 or value >= 1 or not isinstance(value, float):
+            return False, "between 0.8 and 1"
+    if param == "alpha_low":
+        if value < 0 or value > 0.8 or not isinstance(value, float):
+            return False, "between 0 and 0.8"
+
+    return True, ""
+
