@@ -318,8 +318,17 @@ class ListDelegatesCommand:
                     ":warning: [yellow]Could not fetch delegates history[/yellow]"
                 )
 
+        # Get off-chain delegate info
+        registered_delegate_info = get_delegates_details(url=bittensor.__delegates_details_url__)
+        if registered_delegate_info is None:
+            bittensor.__console__.print(
+                ":warning:[yellow]Could not load delegate info.[/yellow]"
+            )
+            registered_delegate_info = {}
+
         show_delegates(
             delegates,
+            registered_delegate_info,
             width=cli.config.get("width", None),
         )
 
