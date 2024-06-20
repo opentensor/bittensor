@@ -50,7 +50,8 @@ def mock_wallet():
         "failure-value-error",
     ],
 )
-def test_nominate_extrinsic(
+@pytest.mark.asyncio
+async def test_nominate_extrinsic(
     mock_subtensor,
     mock_wallet,
     already_delegate,
@@ -65,10 +66,10 @@ def test_nominate_extrinsic(
         mock_subtensor, "do_nominate", return_value=nomination_success
     ) as mock_nominate:
         if raises_exception:
-            mock_subtensor._do_nominate.side_effect = raises_exception
+            mock_subtensor.do_nominate.side_effect = raises_exception
 
         # Act
-        result = nominate_extrinsic(
+        result = await nominate_extrinsic(
             subtensor=mock_subtensor,
             wallet=mock_wallet,
             wait_for_finalization=False,
@@ -222,7 +223,8 @@ def test_nominate_extrinsic(
         "failure-StakeError",
     ],
 )
-def test_delegate_extrinsic(
+@pytest.mark.asyncio
+async def test_delegate_extrinsic(
     mock_subtensor,
     mock_wallet,
     wait_for_inclusion,
@@ -257,7 +259,7 @@ def test_delegate_extrinsic(
         # Act
         if raises_error == NotDelegateError:
             with pytest.raises(raises_error):
-                result = delegate_extrinsic(
+                result = await delegate_extrinsic(
                     subtensor=mock_subtensor,
                     wallet=mock_wallet,
                     delegate_ss58=mock_wallet.hotkey.ss58_address,
@@ -267,7 +269,7 @@ def test_delegate_extrinsic(
                     prompt=True,
                 )
         else:
-            result = delegate_extrinsic(
+            result = await delegate_extrinsic(
                 subtensor=mock_subtensor,
                 wallet=mock_wallet,
                 delegate_ss58=mock_wallet.hotkey.ss58_address,
@@ -386,7 +388,8 @@ def test_delegate_extrinsic(
         "failure-NotRegisteredError",
     ],
 )
-def test_undelegate_extrinsic(
+@pytest.mark.asyncio
+async def test_undelegate_extrinsic(
     mock_subtensor,
     mock_wallet,
     wait_for_inclusion,
@@ -419,7 +422,7 @@ def test_undelegate_extrinsic(
         # Act
         if raises_error == NotDelegateError:
             with pytest.raises(raises_error):
-                result = undelegate_extrinsic(
+                result = await undelegate_extrinsic(
                     subtensor=mock_subtensor,
                     wallet=mock_wallet,
                     delegate_ss58=mock_wallet.hotkey.ss58_address,
@@ -429,7 +432,7 @@ def test_undelegate_extrinsic(
                     prompt=True,
                 )
         else:
-            result = undelegate_extrinsic(
+            result = await undelegate_extrinsic(
                 subtensor=mock_subtensor,
                 wallet=mock_wallet,
                 delegate_ss58=mock_wallet.hotkey.ss58_address,

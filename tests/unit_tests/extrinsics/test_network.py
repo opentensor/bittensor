@@ -10,26 +10,26 @@ from bittensor.extrinsics.network import (
 
 # Mock the bittensor and related modules to avoid real network calls and wallet operations
 @pytest.fixture
-def mock_subtensor():
-    subtensor = MagicMock(spec=Subtensor)
+def mock_subtensor(mocker):
+    subtensor = mocker.MagicMock(spec=Subtensor)
     subtensor.get_balance.return_value = 100
     subtensor.get_subnet_burn_cost.return_value = 10
-    subtensor.substrate = MagicMock()
-    subtensor.substrate.get_block_hash = MagicMock(return_value="0x" + "0" * 64)
+    subtensor.substrate = mocker.AsyncMock()
+    subtensor.substrate.get_block_hash = mocker.MagicMock(return_value="0x" + "0" * 64)
     return subtensor
 
 
 @pytest.fixture
-def mock_wallet():
-    wallet = MagicMock(spec=Wallet)
+def mock_wallet(mocker):
+    wallet = mocker.MagicMock(spec=Wallet)
     wallet.coldkeypub.ss58_address = "fake_address"
     wallet.coldkey = MagicMock()
     return wallet
 
 
 @pytest.fixture
-def mock_other_owner_wallet():
-    wallet = MagicMock(spec=Wallet)
+def mock_other_owner_wallet(mocker):
+    wallet = mocker.MagicMock(spec=Wallet)
     wallet.coldkeypub.ss58_address = "fake_other_owner"
     return wallet
 
@@ -43,7 +43,8 @@ def mock_other_owner_wallet():
         ("happy-path-04", True, True, False, True),
     ],
 )
-def test_register_subnetwork_extrinsic_happy_path(
+@pytest.mark.asyncio
+async def test_register_subnetwork_extrinsic_happy_path(
     mock_subtensor,
     mock_wallet,
     test_id,
@@ -56,7 +57,7 @@ def test_register_subnetwork_extrinsic_happy_path(
     mock_subtensor.substrate.submit_extrinsic.return_value.is_success = True
 
     # Act
-    result = register_subnetwork_extrinsic(
+    result = await register_subnetwork_extrinsic(
         mock_subtensor, mock_wallet, wait_for_inclusion, wait_for_finalization, prompt
     )
 
@@ -74,7 +75,8 @@ def test_register_subnetwork_extrinsic_happy_path(
         ("edge-case-04", 100, 10, True, True),  # User declines prompt
     ],
 )
-def test_register_subnetwork_extrinsic_edge_cases(
+@pytest.mark.asyncio
+async def test_register_subnetwork_extrinsic_edge_cases(
     mock_subtensor,
     mock_wallet,
     test_id,
@@ -90,7 +92,9 @@ def test_register_subnetwork_extrinsic_edge_cases(
     monkeypatch.setattr("rich.prompt.Confirm.ask", lambda x: prompt_input)
 
     # Act
-    result = register_subnetwork_extrinsic(mock_subtensor, mock_wallet, prompt=True)
+    result = await register_subnetwork_extrinsic(
+        mock_subtensor, mock_wallet, prompt=True
+    )
 
     # Assert
     assert result == expected
@@ -115,7 +119,8 @@ def test_register_subnetwork_extrinsic_edge_cases(
         "failure-invalid-hyperparameter",
     ],
 )
-def test_set_hyperparameter_extrinsic(
+@pytest.mark.asyncio
+async def test_set_hyperparameter_extrinsic(
     mock_subtensor,
     mock_wallet,
     mock_other_owner_wallet,
@@ -142,7 +147,7 @@ def test_set_hyperparameter_extrinsic(
         return_value=MagicMock(is_success=extrinsic_success),
     ):
         # Act
-        result = set_hyperparameter_extrinsic(
+        result = await set_hyperparameter_extrinsic(
             subtensor=mock_subtensor,
             wallet=mock_wallet,
             netuid=netuid,

@@ -70,7 +70,8 @@ def mock_wallet():
         "failure-prompt-declined",
     ],
 )
-def test_root_register_extrinsic(
+@pytest.mark.asyncio
+async def test_root_register_extrinsic(
     mock_subtensor,
     mock_wallet,
     wait_for_inclusion,
@@ -90,7 +91,7 @@ def test_root_register_extrinsic(
         return_value=(registration_success, "Error registering"),
     ) as mock_register, patch("rich.prompt.Confirm.ask", return_value=user_response):
         # Act
-        result = root_register_extrinsic(
+        result = await root_register_extrinsic(
             subtensor=mock_subtensor,
             wallet=mock_wallet,
             wait_for_inclusion=wait_for_inclusion,
@@ -173,7 +174,8 @@ def test_root_register_extrinsic(
         "failure-value-error-exception",
     ],
 )
-def test_set_root_weights_extrinsic(
+@pytest.mark.asyncio
+async def test_set_root_weights_extrinsic(
     mock_subtensor,
     mock_wallet,
     wait_for_inclusion,
@@ -193,7 +195,7 @@ def test_set_root_weights_extrinsic(
         "rich.prompt.Confirm.ask", return_value=user_response
     ) as mock_confirm:
         # Act
-        result = set_root_weights_extrinsic(
+        result = await set_root_weights_extrinsic(
             subtensor=mock_subtensor,
             wallet=mock_wallet,
             netuids=netuids,
