@@ -68,11 +68,6 @@ def get_hotkey(config: bittensor.config):
 
     if config.delegate:
         # Show delegate list, ask for the index, then retrieve hotkey address and name
-        ########### TODO
-        # убрать команды Delegate и Undelegate
-        # проверить работает ли команда Nominate (должна регистрировать делегата) - спросить Джейка если что
-        #
-        #
         if not config.get("delegate_ss58key"):
             # Check for delegates.
             with bittensor.__console__.status(":satellite: Loading delegates..."):

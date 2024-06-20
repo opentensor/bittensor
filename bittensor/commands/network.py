@@ -264,6 +264,11 @@ class SubnetListCommand:
             total_tao_locked += tao_locked
             sn_symbol = "({})".format(bittensor.Balance.get_unit(subnet.netuid))
             alpha_out_str = "{}{:,.4f}".format(sn_symbol, pool.alpha_outstanding.__float__())
+            if pool.is_dynamic:
+                n_dtao += 1
+            else:
+                n_stao += 1
+
             rows.append(
                 (
                     str(subnet.netuid),
