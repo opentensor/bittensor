@@ -57,6 +57,7 @@ from bittensor.chain_data import (
     IPInfo,
     custom_rpc_type_registry,
 )
+from bittensor.commands.utils import decode_scale_bytes
 from bittensor.errors import IdentityError, NominationError, StakeError, TakeError
 from bittensor.extrinsics.commit_weights import (
     commit_weights_extrinsic,
@@ -4901,15 +4902,6 @@ class Subtensor:
 
         return NeuronInfoLite.from_vec_u8(bytes_result)  # type: ignore
 
-    def decode_scale_bytes(self, return_type, scale_bytes, custom_rpc_type_registry):
-        rpc_runtime_config = RuntimeConfiguration()
-        rpc_runtime_config.update_type_registry(load_type_registry_preset("legacy"))
-        rpc_runtime_config.update_type_registry(custom_rpc_type_registry)
-        obj = rpc_runtime_config.create_scale_object(return_type, scale_bytes)
-        if obj.data.to_hex() == "0x0400":  # RPC returned None result
-            return None
-        return obj.decode()
-
     async def neurons_lite_for_uid(self, uid: int) -> List[NeuronInfoLite]:
         call_definition = bittensor.__type_registry__["runtime_api"][  # type: ignore
             "NeuronInfoRuntimeApi"
@@ -4930,7 +4922,7 @@ class Subtensor:
 
         with ProcessPoolExecutor as executor:  # type: ignore
             results = executor.map(
-                self.decode_scale_bytes,
+                decode_scale_bytes,
                 return_type,
                 as_scale_bytes,
                 custom_rpc_type_registry,
