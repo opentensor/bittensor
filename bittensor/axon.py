@@ -44,7 +44,7 @@ from starlette.responses import Response
 from substrateinterface import Keypair
 
 import bittensor
-from bittensor.utils.axon import allowed_nonce_window_ns, calculate_diff_seconds
+from bittensor.utils.axon_utils import allowed_nonce_window_ns, calculate_diff_seconds
 from bittensor.constants import V_7_2_0
 from bittensor.errors import (
     BlacklistedException,

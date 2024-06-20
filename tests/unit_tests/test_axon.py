@@ -39,7 +39,7 @@ import bittensor
 from bittensor import Synapse, RunException
 from bittensor.axon import AxonMiddleware
 from bittensor.axon import axon as Axon
-from bittensor.utils.axon import allowed_nonce_window_ns, calculate_diff_seconds
+from bittensor.utils.axon_utils import allowed_nonce_window_ns, calculate_diff_seconds
 from bittensor.constants import ALLOWED_DELTA, NANOSECONDS_IN_SECOND
 
 
