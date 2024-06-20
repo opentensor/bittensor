@@ -15,7 +15,6 @@ Verify that:
 * liquid alpha values cannot be set before the feature flag is set
 * after feature flag, you can set alpha_high
 * after feature flag, you can set alpha_low
-* TODO: verify low cannot be greater than high
 """
 
 
