@@ -77,7 +77,7 @@ def test_root_get_set_weights(local_chain, capsys):
 
     first_weight_vec = local_chain.query("SubtensorModule", "Weights", [0, 0])[0]
     assert first_weight_vec[0] == 1
-    first_wight = first_weight_vec[1]
+    first_weight = first_weight_vec[1]
 
     netuid = "1"
     increase = "0.01"
@@ -89,10 +89,10 @@ def test_root_get_set_weights(local_chain, capsys):
 
     first_weight_vec = local_chain.query("SubtensorModule", "Weights", [0, 0])[0]
     assert first_weight_vec[0] == 1
-    new_first_wight = first_weight_vec[1]
+    new_first_weight = first_weight_vec[1]
 
-    assert new_first_wight > first_wight
-    first_wight = new_first_wight
+    assert new_first_weight > first_weight
+    first_weight = new_first_weight
 
     stake_amount = 2
     exec_command(StakeCommand, ["stake", "add", "--amount", str(stake_amount)])
@@ -106,6 +106,6 @@ def test_root_get_set_weights(local_chain, capsys):
     )
     first_weight_vec = local_chain.query("SubtensorModule", "Weights", [0, 0])[0]
     assert first_weight_vec[0] == 1
-    new_first_wight = first_weight_vec[1]
+    new_first_weight = first_weight_vec[1]
 
-    assert new_first_wight > first_wight
+    assert new_first_weight > first_weight
