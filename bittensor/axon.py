@@ -44,7 +44,8 @@ from starlette.responses import Response
 from substrateinterface import Keypair
 
 import bittensor
-from bittensor.constants import ALLOWED_DELTA, NANOSECONDS_IN_SECOND, V_7_2_0
+from bittensor.utils.axon import allowed_nonce_window_ns, calculate_diff_seconds
+from bittensor.constants import V_7_2_0
 from bittensor.errors import (
     BlacklistedException,
     InvalidRequestNameError,
@@ -903,18 +904,17 @@ class axon:
                 # If we don't have a nonce stored, ensure that the nonce falls within
                 # a reasonable delta.
                 current_time_ns = time.time_ns()
-                synapse_timeout_ns = (synapse.timeout or 0) * NANOSECONDS_IN_SECOND
-                allowed_window_ns = current_time_ns - ALLOWED_DELTA - synapse_timeout_ns
+                allowed_window_ns = allowed_nonce_window_ns(
+                    current_time_ns, synapse.timeout
+                )
+
                 if (
                     self.nonces.get(endpoint_key) is None
                     and synapse.dendrite.nonce <= allowed_window_ns
                 ):
-                    diff_seconds = (
-                        current_time_ns - synapse.dendrite.nonce
-                    ) / NANOSECONDS_IN_SECOND
-                    allowed_delta_seconds = (
-                        ALLOWED_DELTA + synapse_timeout_ns
-                    ) / NANOSECONDS_IN_SECOND
+                    diff_seconds, allowed_delta_seconds = calculate_diff_seconds(
+                        current_time_ns, synapse.timeout, synapse.dendrite.nonce
+                    )
                     raise Exception(
                         f"Nonce is too old: acceptable delta is {allowed_delta_seconds:.2f} seconds but request was {diff_seconds:.2f} seconds old"
                     )
