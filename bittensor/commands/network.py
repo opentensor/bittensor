@@ -660,11 +660,11 @@ def allowed_value(param, value):
         except ValueError:
             return False, "a number or a boolean"
     if param == "alpha_high":
-        if value <= 0.8 or value >= 1 or not isinstance(value, float):
-            return False, "between 0.8 and 1"
+        if value <= 52428 or value >= 65535 or not isinstance(value, float):
+            return False, "between 52428 and 65535"
     if param == "alpha_low":
-        if value < 0 or value > 0.8 or not isinstance(value, float):
-            return False, "between 0 and 0.8"
+        if value < 0 or value > 52428 or not isinstance(value, float):
+            return False, "between 0 and 52428"
 
     return True, ""
 

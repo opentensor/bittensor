@@ -5,7 +5,7 @@ from bittensor.commands import (
     RegisterSubnetworkCommand,
     SubnetSudoCommand,
 )
-from tests.e2e_tests.utils import setup_wallet, wait_epoch
+from tests.e2e_tests.utils import setup_wallet
 
 """
 Test the liquid alpha weights mechanism. 
@@ -101,9 +101,6 @@ def test_liquid_alpha_enabled(local_chain, capsys):
     output = capsys.readouterr().out
     assert "✅ Hyper parameter liquid_alpha_enabled changed to True" in output
 
-    # wait epoch after enabling liquid alpha (is this needed? Test without this)
-    wait_epoch(360, subtensor)
-
     # set high value
     exec_command(
         SubnetSudoCommand,
@@ -118,7 +115,7 @@ def test_liquid_alpha_enabled(local_chain, capsys):
             "--param",
             "alpha_high",
             "--value",
-            "0.3",
+            "53083",
             "--wait_for_inclusion",
             "True",
             "--wait_for_finalization",
@@ -128,11 +125,11 @@ def test_liquid_alpha_enabled(local_chain, capsys):
 
     subtensor = bittensor.subtensor(network="ws://localhost:9945")
     assert (
-        subtensor.get_subnet_hyperparameters(netuid=1).alpha_high == 0.3
+        subtensor.get_subnet_hyperparameters(netuid=1).alpha_high == 53083
     ), "Failed to set alpha high"
 
     output = capsys.readouterr().out
-    assert "✅ Hyper parameter liquid_alpha_enabled changed to True" in output
+    assert "✅ Hyper parameter alpha_high changed to 53083" in output
 
     # Set low value
     exec_command(
@@ -148,7 +145,7 @@ def test_liquid_alpha_enabled(local_chain, capsys):
             "--param",
             "alpha_low",
             "--value",
-            "0.1",
+            "6553",
             "--wait_for_inclusion",
             "True",
             "--wait_for_finalization",
@@ -158,8 +155,8 @@ def test_liquid_alpha_enabled(local_chain, capsys):
 
     subtensor = bittensor.subtensor(network="ws://localhost:9945")
     assert (
-        subtensor.get_subnet_hyperparameters(netuid=1).alpha_low == 0.1
+        subtensor.get_subnet_hyperparameters(netuid=1).alpha_low == 6553
     ), "Failed to set alpha low"
 
     output = capsys.readouterr().out
-    assert "✅ Hyper parameter liquid_alpha_enabled changed to True" in output
+    assert "✅ Hyper parameter alpha_low changed to 6553" in output
