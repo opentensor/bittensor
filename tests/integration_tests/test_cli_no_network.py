@@ -1372,6 +1372,71 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
             _test_value_parsing(boolean_value, as_str.lower())
 
     @patch("bittensor.wallet", new_callable=return_mock_wallet_factory)
+    def test_hyperparameter_allowed_values(self, mock_sub, __):
+        params = ["alpha_high", "alpha_low"]
+
+        def _test_value_parsing(param: str, value: str):
+            cli = bittensor.cli(
+                args=[
+                    "sudo",
+                    "set",
+                    "hyperparameters",
+                    "--netuid",
+                    "1",
+                    "--param",
+                    param,
+                    "--value",
+                    value,
+                    "--wallet.name",
+                    "mock",
+                ]
+            )
+            should_raise_error = False
+            error_message = ""
+
+            try:
+                float_value = float(value)
+                if param == "alpha_high" and (float_value <= 0.8 or float_value >= 1):
+                    should_raise_error = True
+                    error_message = "between 0.8 and 1"
+                elif param == "alpha_low" and (float_value < 0 or float_value > 0.8):
+                    should_raise_error = True
+                    error_message = "between 0 and 0.8"
+            except ValueError:
+                should_raise_error = True
+                error_message = "a number or a boolean"
+            except TypeError:
+                should_raise_error = True
+                error_message = "a number or a boolean"
+
+            if isinstance(value, bool):
+                should_raise_error = True
+                error_message = "a number or a boolean"
+
+            if should_raise_error:
+                with pytest.raises(ValueError) as exc_info:
+                    cli.run()
+                assert (
+                    f"Hyperparameter {param} value is not within bounds. Value is {value} but must be {error_message}"
+                    in str(exc_info.value)
+                )
+            else:
+                cli.run()
+                _, kwargs = mock_sub.call_args
+                passed_config = kwargs["config"]
+                self.assertEqual(passed_config.param, param, msg="Incorrect param")
+                self.assertEqual(
+                    passed_config.value,
+                    value,
+                    msg=f"Value argument not set correctly for {param}",
+                )
+
+        for param in params:
+            for value in [0.8, 11, 0.7, 0.9, 1, 0, True, "Some string"]:
+                as_str = str(value)
+                _test_value_parsing(param, as_str)
+
+    @patch("bittensor.wallet", new_callable=return_mock_wallet_factory)
     def test_network_registration_allowed_parse_boolean_argument(self, mock_sub, __):
         param = "network_registration_allowed"
 
