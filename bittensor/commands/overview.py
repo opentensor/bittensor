@@ -220,7 +220,7 @@ class OverviewCommand:
         # Pull neuron info for all keys.
         neurons: Dict[str, List[bittensor.NeuronInfoLite]] = {}
         block, netuids = await asyncio.gather(
-            subtensor.block(), subtensor.get_all_subnet_netuids()
+            subtensor.block, subtensor.get_all_subnet_netuids()
         )
         netuids = filter_netuids_by_registered_hotkeys(
             cli, subtensor, netuids, all_hotkeys
@@ -254,7 +254,7 @@ class OverviewCommand:
 
             # Pull neuron info for all keys.:
 
-            results = OverviewCommand._get_neurons_for_netuids(
+            results = await OverviewCommand._get_neurons_for_netuids(
                 subtensor, netuids, all_hotkey_addresses
             )
 
@@ -636,25 +636,27 @@ class OverviewCommand:
     @staticmethod
     async def _fetch_neuron_for_netuid(
         netuid: int, subtensor: "bittensor.subtensor"
-    ) -> Tuple[int, "bittensor.NeuronInfoLite"]:
+    ) -> Tuple[int, List["bittensor.NeuronInfoLite"]]:
         neurons = await subtensor.neurons_lite_for_uid(uid=netuid)
-        return (netuid, neurons)
+        return netuid, neurons
 
     @staticmethod
     async def _fetch_all_neurons(
         netuids: List[int], subtensor
     ) -> List[Tuple[int, List["bittensor.NeuronInfoLite"]]]:
-        return await asyncio.gather(
-            *[
-                OverviewCommand._fetch_neuron_for_netuid(netuid, subtensor)
-                for netuid in netuids
-            ]
+        return list(
+            await asyncio.gather(
+                *[
+                    OverviewCommand._fetch_neuron_for_netuid(netuid, subtensor)
+                    for netuid in netuids
+                ]
+            )
         )
 
     @staticmethod
     async def _get_neurons_for_netuids(
         subtensor: "bittensor.subtensor", netuids: List[int], hot_wallets: List[str]
-    ) -> Tuple[int, List["bittensor.NeuronInfoLite"], Optional[str]]:
+    ) -> List[Tuple[int, List["bittensor.NeuronInfoLite"], Optional[str]]]:
         all_neurons = await OverviewCommand._fetch_all_neurons(netuids, subtensor)
 
         return [

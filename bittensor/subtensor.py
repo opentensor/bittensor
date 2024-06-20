@@ -4956,7 +4956,7 @@ class Subtensor:
         This function offers a quick overview of the neuron population within a subnet, facilitating
         efficient analysis of the network's decentralized structure and neuron dynamics.
         """
-        hex_bytes_result = self.query_runtime_api(
+        hex_bytes_result = await self.query_runtime_api(
             runtime_api="NeuronInfoRuntimeApi",
             method="get_neurons_lite",
             params=[netuid],
