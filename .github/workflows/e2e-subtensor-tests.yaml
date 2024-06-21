@@ -85,6 +85,9 @@ jobs:
       - name: Setup subtensor repo
         working-directory: ${{ github.workspace }}/subtensor
         run: git checkout testnet
+      
+      - name: List tests
+        run: ls -l tests/e2e_tests/${{ matrix.test-folder }}/
 
       - name: Run tests in ${{ matrix.test-folder }}
         run: |
