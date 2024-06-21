@@ -149,7 +149,9 @@ class SetIdentityCommand:
 
             console.print(":white_heavy_check_mark: Success!")
 
-        identity = await subtensor.query_identity(identified or wallet.coldkey.ss58_address)
+        identity = await subtensor.query_identity(
+            identified or wallet.coldkey.ss58_address
+        )
 
         table = Table(title="[bold white italic]Updated On-Chain Identity")
         table.add_column("Key", justify="right", style="cyan", no_wrap=True)
