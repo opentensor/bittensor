@@ -243,6 +243,7 @@ class Cli:
         """
         self._initialized = False
         self._lock = asyncio.Lock()
+
         # Turns on console for cli.
         bittensor.turn_console_on()
 
@@ -259,6 +260,16 @@ class Cli:
             )
             sys.exit()
 
+    async def __aenter__(self):
+        async with self._lock:
+            if not self._initialized:
+                self._initialized = True
+                await self._init_check_config(self.config)
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        pass
+
     @staticmethod
     async def _init_check_config(config):
         # Check if the config is valid.
@@ -273,16 +284,6 @@ class Cli:
                 raise RuntimeError(
                     "To avoid internet-based version checking, pass --no_version_checking while running the CLI."
                 )
-
-    async def __aenter__(self):
-        async with self._lock:
-            if not self._initialized:
-                self._initialized = True
-                await self._init_check_config(self.config)
-        return self
-
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        pass
 
     @staticmethod
     def __create_parser__() -> "argparse.ArgumentParser":

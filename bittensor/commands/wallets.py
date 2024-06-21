@@ -104,7 +104,7 @@ class RegenColdkeyCommand:
             )
 
     @staticmethod
-    async def add_args(parser: argparse.ArgumentParser):
+    def add_args(parser: argparse.ArgumentParser):
         regen_coldkey_parser = parser.add_parser(
             "regen_coldkey", help="""Regenerates a coldkey from a passed value"""
         )

@@ -671,9 +671,7 @@ class ListDelegatesCommand:
             delegates: list[bittensor.DelegateInfo] = await subtensor.get_delegates()
 
             try:
-                prev_delegates = subtensor.get_delegates(
-                    max(0, await subtensor.block - 1200)
-                )
+                prev_delegates = await subtensor.get_delegates(max(0, await subtensor.block - 1200))
             except SubstrateRequestException:
                 prev_delegates = None
 
@@ -753,7 +751,7 @@ class NominateCommand:
 
         # Unlock the wallet.
         wallet.hotkey
-        wallet.coldkeya
+        wallet.coldkey
 
         # Check if the hotkey is already a delegate.
         if await subtensor.is_hotkey_delegate(wallet.hotkey.ss58_address):

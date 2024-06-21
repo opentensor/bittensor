@@ -89,7 +89,7 @@ class RegisterCommand:
             sys.exit(1)
 
         # Check current recycle amount
-        current_recycle, balance = asyncio.gather(
+        current_recycle, balance = await asyncio.gather(
             subtensor.recycle(netuid=cli.config.netuid),
             subtensor.get_balance(address=wallet.coldkeypub.ss58_address),
         )

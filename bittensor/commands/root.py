@@ -144,7 +144,7 @@ class RootList:
             )
         )
 
-        senate_members, root_neurons = asyncio.gather(
+        senate_members, root_neurons = await asyncio.gather(
             subtensor.get_senate_members(), subtensor.neurons_lite(netuid=0)
         )
         delegate_info: Optional[Dict[str, DelegatesDetails]] = get_delegates_details(
