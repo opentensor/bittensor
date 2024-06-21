@@ -30,7 +30,7 @@ env:
 
 jobs:
   run:
-    runs-on: SubtensorCI
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         rust-branch:
