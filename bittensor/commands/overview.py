@@ -20,18 +20,25 @@ import asyncio
 import bittensor
 from tqdm import tqdm
 from collections import defaultdict
+from concurrent.futures import ProcessPoolExecutor
 from fuzzywuzzy import fuzz
 from rich.align import Align
 from rich.table import Table
 from rich.prompt import Prompt
 from typing import List, Optional, Dict, Tuple
+
+
+import scalecodec
+from bittensor.chain_data import custom_rpc_type_registry
+
+from . import defaults
 from .utils import (
+    decode_scale_bytes,
     get_hotkey_wallets_for_wallet,
     get_coldkey_wallets_for_path,
     get_all_wallets_for_path,
     filter_netuids_by_registered_hotkeys,
 )
-from . import defaults
 
 console = bittensor.__console__
 
@@ -654,14 +661,46 @@ class OverviewCommand:
         )
 
     @staticmethod
+    def _process_neurons_for_netuids(netuids_with_all_neurons_hex_bytes):
+        call_definition = bittensor.__type_registry__["runtime_api"][  # type: ignore
+            "NeuronInfoRuntimeApi"
+        ]["methods"]["get_neurons_lite"]
+        return_type = call_definition["type"]
+
+        all_results = []
+        for netuid, hex_bytes_result in netuids_with_all_neurons_hex_bytes:
+            as_scale_bytes = scalecodec.ScaleBytes(hex_bytes_result)  # type: ignore
+
+            with ProcessPoolExecutor() as executor:
+                results = executor.map(
+                    decode_scale_bytes,
+                    return_type,
+                    as_scale_bytes,
+                    custom_rpc_type_registry,
+                )
+                all_results.append(
+                    (
+                        netuid,
+                        list(results),
+                    )
+                )
+
+        return all_results
+
+    @staticmethod
     async def _get_neurons_for_netuids(
         subtensor: "bittensor.subtensor", netuids: List[int], hot_wallets: List[str]
     ) -> List[Tuple[int, List["bittensor.NeuronInfoLite"], Optional[str]]]:
-        all_neurons = await OverviewCommand._fetch_all_neurons(netuids, subtensor)
+        all_neurons_hex_bytes = await OverviewCommand._fetch_all_neurons(
+            netuids, subtensor
+        )
 
+        all_processed_neurons = OverviewCommand._process_neurons_for_netuids(
+            all_neurons_hex_bytes
+        )
         return [
             OverviewCommand._map_hotkey_to_neurons(neurons, hot_wallets, netuid)
-            for netuid, neurons in all_neurons
+            for netuid, neurons in all_processed_neurons
         ]
 
     @staticmethod

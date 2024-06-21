@@ -24,7 +24,7 @@ blockchain, facilitating a range of operations essential for the decentralized m
 import argparse
 import asyncio
 import copy
-from concurrent.futures import ProcessPoolExecutor
+
 import socket
 import time
 from typing import List, Dict, Union, Optional, Tuple, TypedDict, Any
@@ -57,7 +57,7 @@ from bittensor.chain_data import (
     IPInfo,
     custom_rpc_type_registry,
 )
-from bittensor.commands.utils import decode_scale_bytes
+
 from bittensor.errors import IdentityError, NominationError, StakeError, TakeError
 from bittensor.extrinsics.commit_weights import (
     commit_weights_extrinsic,
@@ -4902,7 +4902,7 @@ class Subtensor:
 
         return NeuronInfoLite.from_vec_u8(bytes_result)  # type: ignore
 
-    async def neurons_lite_for_uid(self, uid: int) -> List[NeuronInfoLite]:
+    async def neurons_lite_for_uid(self, uid: int) -> Dict[Any, Any]:
         call_definition = bittensor.__type_registry__["runtime_api"][  # type: ignore
             "NeuronInfoRuntimeApi"
         ]["methods"]["get_neurons_lite"]
@@ -4914,21 +4914,7 @@ class Subtensor:
             ),
         )
 
-        if hex_bytes_result is None:
-            return None
-        return_type = call_definition["type"]
-
-        as_scale_bytes = scalecodec.ScaleBytes(hex_bytes_result)  # type: ignore
-
-        with ProcessPoolExecutor as executor:  # type: ignore
-            results = executor.map(
-                decode_scale_bytes,
-                return_type,
-                as_scale_bytes,
-                custom_rpc_type_registry,
-            )
-
-        return results
+        return hex_bytes_result
 
     async def neurons_lite(
         self, netuid: int, block: Optional[int] = None
