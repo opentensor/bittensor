@@ -528,7 +528,7 @@ class RunFaucetCommand:
 class SwapHotkeyCommand:
     @staticmethod
     async def run(cli: "bittensor.cli"):
-        r"""Swap your hotkey for all registered axons on the network."""
+        """Swap your hotkey for all registered axons on the network."""
         try:
             subtensor: "bittensor.subtensor" = bittensor.subtensor(
                 config=cli.config, log_verbose=False
@@ -541,7 +541,7 @@ class SwapHotkeyCommand:
 
     @staticmethod
     async def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
-        r"""Swap your hotkey for all registered axons on the network."""
+        """Swap your hotkey for all registered axons on the network."""
         wallet = bittensor.wallet(config=cli.config)
 
         # This creates an unnecessary amount of extra data, but simplifies implementation.

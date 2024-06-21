@@ -76,12 +76,12 @@ class MetagraphCommand:
 
     @staticmethod
     async def run(cli: "bittensor.cli"):
-        r"""Prints an entire metagraph."""
+        """Prints an entire metagraph."""
         try:
             subtensor: "bittensor.subtensor" = bittensor.subtensor(
                 config=cli.config, log_verbose=False
             )
-            asyncio.run(MetagraphCommand._run(cli, subtensor))
+            await MetagraphCommand._run(cli, subtensor)
         finally:
             if "subtensor" in locals():
                 await subtensor.close()
@@ -89,7 +89,7 @@ class MetagraphCommand:
 
     @staticmethod
     async def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
-        r"""Prints an entire metagraph."""
+        """Prints an entire metagraph."""
         console = bittensor.__console__
         console.print(
             ":satellite: Syncing with chain: [white]{}[/white] ...".format(

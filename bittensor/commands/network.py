@@ -91,7 +91,7 @@ class RegisterSubnetworkCommand:
 
     @staticmethod
     async def run(cli: "bittensor.cli"):
-        r"""Register a subnetwork"""
+        """Register a subnetwork"""
         try:
             config = cli.config.copy()
             subtensor: "bittensor.subtensor" = bittensor.subtensor(
@@ -105,7 +105,7 @@ class RegisterSubnetworkCommand:
 
     @staticmethod
     async def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
-        r"""Register a subnetwork"""
+        """Register a subnetwork"""
         wallet = bittensor.wallet(config=cli.config)
 
         # Call register command.
@@ -178,7 +178,7 @@ class SubnetLockCostCommand:
 
     @staticmethod
     async def run(cli: "bittensor.cli"):
-        r"""View locking cost of creating a new subnetwork"""
+        """View locking cost of creating a new subnetwork"""
         try:
             config = cli.config.copy()
             subtensor: "bittensor.subtensor" = bittensor.subtensor(
@@ -192,7 +192,7 @@ class SubnetLockCostCommand:
 
     @staticmethod
     async def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
-        r"""View locking cost of creating a new subnetwork"""
+        """View locking cost of creating a new subnetwork"""
         config = cli.config.copy()
         try:
             bittensor.__console__.print(
@@ -255,7 +255,7 @@ class SubnetListCommand:
 
     @staticmethod
     async def run(cli: "bittensor.cli"):
-        r"""List all subnet netuids in the network."""
+        """List all subnet netuids in the network."""
         try:
             subtensor: "bittensor.subtensor" = bittensor.subtensor(
                 config=cli.config, log_verbose=False
@@ -268,7 +268,7 @@ class SubnetListCommand:
 
     @staticmethod
     async def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
-        r"""List all subnet netuids in the network."""
+        """List all subnet netuids in the network."""
         subnets: List[bittensor.SubnetInfo] = await subtensor.get_all_subnets_info()
 
         rows = []
@@ -372,7 +372,7 @@ class SubnetSudoCommand:
 
     @staticmethod
     async def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
-        r"""Set subnet hyperparameters."""
+        """Set subnet hyperparameters."""
         wallet = bittensor.wallet(config=cli.config)
         print("\n")
         await SubnetHyperparamsCommand.run(cli)
@@ -470,7 +470,7 @@ class SubnetHyperparamsCommand:
 
     @staticmethod
     async def run(cli: "bittensor.cli"):
-        r"""View hyperparameters of a subnetwork."""
+        """View hyperparameters of a subnetwork."""
         try:
             subtensor: "bittensor.subtensor" = bittensor.subtensor(
                 config=cli.config, log_verbose=False
@@ -483,7 +483,7 @@ class SubnetHyperparamsCommand:
 
     @staticmethod
     async def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
-        r"""View hyperparameters of a subnetwork."""
+        """View hyperparameters of a subnetwork."""
         subnet: bittensor.SubnetHyperparameters = (
             await subtensor.get_subnet_hyperparameters(cli.config.netuid)
         )
@@ -577,7 +577,7 @@ class SubnetGetHyperparamsCommand:
 
     @staticmethod
     async def run(cli: "bittensor.cli"):
-        r"""View hyperparameters of a subnetwork."""
+        """View hyperparameters of a subnetwork."""
         try:
             subtensor: "bittensor.subtensor" = bittensor.subtensor(
                 config=cli.config, log_verbose=False
@@ -590,7 +590,7 @@ class SubnetGetHyperparamsCommand:
 
     @staticmethod
     async def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
-        r"""View hyperparameters of a subnetwork."""
+        """View hyperparameters of a subnetwork."""
         subnet: bittensor.SubnetHyperparameters = (
             await subtensor.get_subnet_hyperparameters(cli.config.netuid)
         )

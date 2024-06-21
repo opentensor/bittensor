@@ -183,7 +183,7 @@ class RevealWeightCommand:
 
     @staticmethod
     async def run(cli: "bittensor.cli"):
-        r"""Reveal weights for a specific subnet."""
+        """Reveal weights for a specific subnet."""
         try:
             subtensor: "bittensor.subtensor" = bittensor.subtensor(
                 config=cli.config, log_verbose=False

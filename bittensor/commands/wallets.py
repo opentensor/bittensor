@@ -482,7 +482,7 @@ class NewColdkeyCommand:
 
     @staticmethod
     async def run(cli):
-        r"""Creates a new coldkey under this wallet."""
+        """Creates a new coldkey under this wallet."""
         wallet = bittensor.wallet(config=cli.config)
         wallet.create_new_coldkey(
             n_words=cli.config.n_words,
@@ -775,10 +775,10 @@ class WalletBalanceCommand:
             subtensor: "bittensor.subtensor" = bittensor.subtensor(
                 config=cli.config, log_verbose=False
             )
-            WalletBalanceCommand._run(cli, subtensor)
+            await WalletBalanceCommand._run(cli, subtensor)
         finally:
             if "subtensor" in locals():
-                subtensor.close()
+                await subtensor.close()
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
