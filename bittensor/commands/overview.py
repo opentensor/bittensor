@@ -202,6 +202,7 @@ class OverviewCommand:
                 neurons[str(netuid)] = neurons_result
         return neurons
 
+    @staticmethod
     async def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""Prints an overview for the wallet's colkey."""
         console = bittensor.__console__
