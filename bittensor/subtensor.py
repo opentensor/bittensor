@@ -24,6 +24,7 @@ blockchain, facilitating a range of operations essential for the decentralized m
 import argparse
 import asyncio
 import copy
+
 import socket
 import time
 from typing import List, Dict, Union, Optional, Tuple, TypedDict, Any
@@ -56,6 +57,7 @@ from bittensor.chain_data import (
     IPInfo,
     custom_rpc_type_registry,
 )
+
 from bittensor.errors import IdentityError, NominationError, StakeError, TakeError
 from bittensor.extrinsics.commit_weights import (
     commit_weights_extrinsic,
@@ -4965,6 +4967,20 @@ class Subtensor:
             bytes_result = bytes.fromhex(hex_bytes_result)
 
         return NeuronInfoLite.from_vec_u8(bytes_result)  # type: ignore
+
+    async def neurons_lite_for_uid(self, uid: int) -> Dict[Any, Any]:
+        call_definition = bittensor.__type_registry__["runtime_api"][  # type: ignore
+            "NeuronInfoRuntimeApi"
+        ]["methods"]["get_neurons_lite"]
+
+        hex_bytes_result = await self.state_call(
+            method="NeuronInfoRuntimeApi_get_neurons_lite",
+            data=await self._encode_params(
+                call_definition=call_definition, params=[uid]
+            ),
+        )
+
+        return hex_bytes_result
 
     async def neurons_lite(
         self, netuid: int, block: Optional[int] = None
