@@ -2651,7 +2651,8 @@ def test_get_coldkey_wallets_for_path_errors(
         ),
     ],
 )
-def test_set_identity_command(
+@pytest.mark.asynio
+async def test_set_identity_command(
     test_id,
     display,
     legal,
@@ -2695,11 +2696,11 @@ def test_set_identity_command(
         # Act
         if expected_exception:
             with pytest.raises(expected_exception) as exc_info:
-                SetIdentityCommand._run(mock_cli, mock_subtensor)
+                await SetIdentityCommand._run(mock_cli, mock_subtensor)
             # Assert
             assert str(exc_info.value) == expected_message
         else:
-            SetIdentityCommand._run(mock_cli, mock_subtensor)
+            await SetIdentityCommand._run(mock_cli, mock_subtensor)
             # Assert
             mock_subtensor.update_identity.assert_called_once()
             assert mock_exit.call_count == 0

@@ -37,8 +37,9 @@ async def setup_wallet(uri: str):
             parser=parser,
             args=args,
         )
-        cli_instance = bittensor.cli(config)
-        await command.run(cli_instance)
+        # cli_instance = bittensor.cli(config)
+        async with bittensor.cli(config) as cli_instance:
+            await command.run(cli_instance)
 
     return keypair, exec_command, wallet
 
