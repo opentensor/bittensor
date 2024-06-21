@@ -44,7 +44,7 @@ jobs:
         include:
           - os: ubuntu-latest
           # - os: macos-latest
-         test-folder:
+        test-folder:
           - multistep
           - subcommands
     env:
