@@ -23,7 +23,6 @@ import asyncio
 from rich.table import Table
 
 import bittensor
-
 from .utils import check_netuid_set
 
 console = bittensor.__console__  # type: ignore
@@ -76,7 +75,7 @@ class MetagraphCommand:
     """
 
     @staticmethod
-    def run(cli: "bittensor.cli"):
+    async def run(cli: "bittensor.cli"):
         r"""Prints an entire metagraph."""
         try:
             subtensor: "bittensor.subtensor" = bittensor.subtensor(
@@ -85,9 +84,10 @@ class MetagraphCommand:
             asyncio.run(MetagraphCommand._run(cli, subtensor))
         finally:
             if "subtensor" in locals():
-                subtensor.close()
+                await subtensor.close()
                 bittensor.logging.debug("closing subtensor connection")
 
+    @staticmethod
     async def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""Prints an entire metagraph."""
         console = bittensor.__console__
@@ -101,13 +101,11 @@ class MetagraphCommand:
         )
         metagraph.save()
 
-        difficulty, subnet_emission_, total_issuance_ = await asyncio.gather(
+        difficulty, total_issuance_ = await asyncio.gather(
             subtensor.difficulty(cli.config.netuid),
-            subtensor.get_emission_value_by_subnet(cli.config.netuid),
             subtensor.total_issuance(),
         )
-        subnet_emission = bittensor.Balance.from_tao(subnet_emission_)
-        total_issuance = bittensor.Balance.from_rao(total_issuance_).rao
+        total_issuance = bittensor.Balance.from_rao(total_issuance_.rao).rao
 
         TABLE_DATA = []
         total_stake = 0.0
