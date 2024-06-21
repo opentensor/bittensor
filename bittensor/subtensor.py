@@ -480,9 +480,9 @@ class Subtensor:
             evaluated_network,
         )
 
-    def close(self):
+    async def close(self):
         """Cleans up resources for this subtensor instance like active websocket connection and active extensions."""
-        self.substrate.close()
+        await self.substrate.close()
 
     ##############
     # Delegation #

@@ -16,7 +16,6 @@
 # DEALINGS IN THE SOFTWARE.
 
 import argparse
-import asyncio
 import os
 import sys
 from typing import List, Dict, Optional
@@ -379,7 +378,7 @@ class DelegateStakeCommand:
             )
         finally:
             if "subtensor" in locals():
-                subtensor.close()
+                await subtensor.close()
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
@@ -510,7 +509,7 @@ class DelegateUnstakeCommand:
             await DelegateUnstakeCommand._run(cli, subtensor)
         finally:
             if "subtensor" in locals():
-                subtensor.close()
+                await subtensor.close()
                 bittensor.logging.debug("closing subtensor connection")
 
     async def _run(self: "bittensor.cli", subtensor: "bittensor.subtensor"):
@@ -672,7 +671,9 @@ class ListDelegatesCommand:
             delegates: list[bittensor.DelegateInfo] = await subtensor.get_delegates()
 
             try:
-                prev_delegates = subtensor.get_delegates(max(0, await subtensor.block - 1200))
+                prev_delegates = subtensor.get_delegates(
+                    max(0, await subtensor.block - 1200)
+                )
             except SubstrateRequestException:
                 prev_delegates = None
 
@@ -742,7 +743,7 @@ class NominateCommand:
             await NominateCommand._run(cli, subtensor)
         finally:
             if "subtensor" in locals():
-                subtensor.close()
+                await subtensor.close()
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
@@ -796,7 +797,7 @@ class NominateCommand:
                 )
 
                 if do_set_identity.lower() == "y":
-                    subtensor.close()
+                    await subtensor.close()
                     config = cli.config.copy()
                     SetIdentityCommand.check_config(config)
                     cli.config = config
@@ -876,7 +877,7 @@ class MyDelegatesCommand:
             await MyDelegatesCommand._run(cli, subtensor)
         finally:
             if "subtensor" in locals():
-                subtensor.close()
+                await subtensor.close()
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
@@ -1069,7 +1070,7 @@ class SetTakeCommand:
             await SetTakeCommand._run(cli, subtensor)
         finally:
             if "subtensor" in locals():
-                subtensor.close()
+                await subtensor.close()
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
