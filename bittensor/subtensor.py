@@ -1,15 +1,15 @@
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 # Copyright © 2023 Opentensor Foundation
-
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
 # the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
+#
 # The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
-
+#
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
 # THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
@@ -42,11 +42,11 @@ from substrateinterface.exceptions import SubstrateRequestException
 from bittensor.utils.async_substrate import AsyncSubstrateInterface
 
 import bittensor
-from bittensor.utils import torch, weight_utils
+from bittensor.utils import torch, weight_utils, format_error_message
 from bittensor.chain_data import (
+    DelegateInfoLite,
     NeuronInfo,
     DelegateInfo,
-    DelegateInfoLite,
     PrometheusInfo,
     SubnetInfo,
     SubnetHyperparameters,
@@ -895,7 +895,7 @@ class Subtensor:
             if response.is_success:
                 return True, "Successfully set weights."
             else:
-                return False, response.error_message
+                return False, format_error_message(response.error_message)
 
         return await make_substrate_call_with_retry()
 
@@ -1076,6 +1076,7 @@ class Subtensor:
         This function allows neurons to reveal their previously committed weight distribution, ensuring transparency
         and accountability within the Bittensor network.
         """
+
         retries = 0
         success = False
         message = "No attempt made. Perhaps it is too soon to reveal weights!"
@@ -1165,7 +1166,7 @@ class Subtensor:
             if response.is_success:
                 return True, None
             else:
-                return False, response.error_message
+                return False, format_error_message(response.error_message)
 
         return await make_substrate_call_with_retry()
 
@@ -1420,7 +1421,7 @@ class Subtensor:
             # process if registration successful, try again if pow is still valid
             response.process_events()
             if not response.is_success:
-                return False, response.error_message
+                return False, format_error_message(response.error_message)
             # Successful registration
             else:
                 return True, None
@@ -1477,7 +1478,7 @@ class Subtensor:
             # process if registration successful, try again if pow is still valid
             response.process_events()
             if not response.is_success:
-                return False, response.error_message
+                return False, format_error_message(response.error_message)
             # Successful registration
             else:
                 return True, None
@@ -1533,7 +1534,7 @@ class Subtensor:
             # process if registration successful, try again if pow is still valid
             response.process_events()
             if not response.is_success:
-                return False, response.error_message
+                return False, format_error_message(response.error_message)
             # Successful registration
             else:
                 return True, None
@@ -1686,7 +1687,7 @@ class Subtensor:
                 block_hash = response.block_hash
                 return True, block_hash, None
             else:
-                return False, None, response.error_message
+                return False, None, format_error_message(response.error_message)
 
         return await make_substrate_call_with_retry()
 
@@ -1917,7 +1918,7 @@ class Subtensor:
                 if response.is_success:
                     return True, None
                 else:
-                    return False, response.error_message
+                    return False, format_error_message(response.error_message)
             else:
                 return True, None
 
@@ -1980,7 +1981,7 @@ class Subtensor:
                 if response.is_success:
                     return True, None
                 else:
-                    return False, response.error_message
+                    return False, format_error_message(response.error_message)
             else:
                 return True, None
 
@@ -2161,7 +2162,7 @@ class Subtensor:
             if response.is_success:
                 return True
             else:
-                raise StakeError(response.error_message)
+                raise StakeError(format_error_message(response.error_message))
 
         return await make_substrate_call_with_retry()
 
@@ -2288,7 +2289,7 @@ class Subtensor:
             if response.is_success:
                 return True
             else:
-                raise StakeError(response.error_message)
+                raise StakeError(format_error_message(response.error_message))
 
         return await make_substrate_call_with_retry()
 
@@ -2614,7 +2615,7 @@ class Subtensor:
             # process if registration successful, try again if pow is still valid
             response.process_events()
             if not response.is_success:
-                return False, response.error_message
+                return False, format_error_message(response.error_message)
             # Successful registration
             else:
                 return True, None
@@ -2663,6 +2664,73 @@ class Subtensor:
             wait_for_finalization=wait_for_finalization,
             prompt=prompt,
         )
+
+    async def do_set_root_weights(
+        self,
+        wallet: "bittensor.wallet",
+        uids: List[int],
+        vals: List[int],
+        netuid: int = 0,
+        version_key: int = bittensor.__version_as_int__,
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = False,
+    ) -> Tuple[bool, Optional[str]]:  # (success, error_message)
+        """
+        Internal method to send a transaction to the Bittensor blockchain, setting weights
+        for specified neurons on root. This method constructs and submits the transaction, handling
+        retries and blockchain communication.
+
+        Args:
+            wallet (bittensor.wallet): The wallet associated with the neuron setting the weights.
+            uids (List[int]): List of neuron UIDs for which weights are being set.
+            vals (List[int]): List of weight values corresponding to each UID.
+            netuid (int): Unique identifier for the network.
+            version_key (int, optional): Version key for compatibility with the network.
+            wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
+            wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
+
+        Returns:
+            Tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
+
+        This method is vital for the dynamic weighting mechanism in Bittensor, where neurons adjust their
+        trust in other neurons based on observed performance and contributions to the root network.
+        """
+
+        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
+        async def make_substrate_call_with_retry():
+            call = await self.substrate.compose_call(
+                call_module="SubtensorModule",
+                call_function="set_root_weights",
+                call_params={
+                    "dests": uids,
+                    "weights": vals,
+                    "netuid": netuid,
+                    "version_key": version_key,
+                    "hotkey": wallet.hotkey.ss58_address,
+                },
+            )
+            # Period dictates how long the extrinsic will stay as part of waiting pool
+            extrinsic = await self.substrate.create_signed_extrinsic(
+                call=call,
+                keypair=wallet.coldkey,
+                era={"period": 5},
+            )
+            response = await self.substrate.submit_extrinsic(
+                extrinsic,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
+            # We only wait here if we expect finalization.
+            if not wait_for_finalization and not wait_for_inclusion:
+                return True, "Not waiting for finalization or inclusion."
+
+            response.process_events()
+            if response.is_success:
+                return True, "Successfully set weights."
+            else:
+                return False, response.error_message
+
+        return await make_substrate_call_with_retry()
 
     ##################
     # Registry Calls #
@@ -4380,8 +4448,6 @@ class Subtensor:
         Analyzing the delegate population offers insights into the network's governance dynamics and the distribution of
         trust and responsibility among participating neurons.
 
-        For a lighter version of this function, see :func:`get_delegates_lite`.
-
         Args:
             block (Optional[int], optional): The blockchain block number for the query.
 
@@ -5175,7 +5241,7 @@ class Subtensor:
             if response.is_success:
                 return True
             else:
-                raise StakeError(response.error_message)
+                raise StakeError(format_error_message(response.error_message))
 
         return await make_substrate_call_with_retry()
 
@@ -5229,7 +5295,7 @@ class Subtensor:
             if response.is_success:
                 return True
             else:
-                raise StakeError(response.error_message)
+                raise StakeError(format_error_message(response.error_message))
 
         return await make_substrate_call_with_retry()
 
@@ -5276,7 +5342,7 @@ class Subtensor:
             if response.is_success:
                 return True
             else:
-                raise NominationError(response.error_message)
+                raise NominationError(format_error_message(response.error_message))
 
         return await make_substrate_call_with_retry()
 
@@ -5330,7 +5396,7 @@ class Subtensor:
             if response.is_success:
                 return True
             else:
-                raise TakeError(response.error_message)
+                raise TakeError(format_error_message(response.error_message))
 
         return await make_substrate_call_with_retry()
 
@@ -5384,7 +5450,7 @@ class Subtensor:
             if response.is_success:
                 return True
             else:
-                raise TakeError(response.error_message)
+                raise TakeError(format_error_message(response.error_message))
 
         return await make_substrate_call_with_retry()
 

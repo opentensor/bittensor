@@ -27,7 +27,6 @@ from .registration import torch, use_torch
 from .version import version_checking, check_version, VersionCheckError
 from .wallet_utils import *  # noqa F401
 
-
 RAOPERTAO = 1e9
 U16_MAX = 65535
 U64_MAX = 18446744073709551615
@@ -263,3 +262,25 @@ def get_hash(content, encoding="utf-8"):
 
     # Produce the hash
     return sha3.hexdigest()
+
+
+def format_error_message(error_message: dict) -> str:
+    """
+    Formats an error message from the Subtensor error information to using in extrinsics.
+
+    Args:
+        error_message (dict): A dictionary containing the error information from Subtensor.
+
+    Returns:
+        str: A formatted error message string.
+    """
+    err_type = "UnknownType"
+    err_name = "UnknownError"
+    err_description = "Unknown Description"
+
+    if isinstance(error_message, dict):
+        err_type = error_message.get("type", err_type)
+        err_name = error_message.get("name", err_name)
+        err_docs = error_message.get("docs", [])
+        err_description = err_docs[0] if len(err_docs) > 0 else err_description
+    return f"Subtensor returned `{err_name} ({err_type})` error. This means: `{err_description}`"

@@ -1,14 +1,14 @@
 # The MIT License (MIT)
 # Copyright © 2022 Opentensor Foundation
-
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
 # the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
+#
 # The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
-
+#
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
 # THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
@@ -25,13 +25,19 @@ import pytest
 
 # Application
 import bittensor
+from bittensor.subtensor import Subtensor
+from bittensor.chain_data import SubnetHyperparameters
+from bittensor.commands.utils import normalize_hyperparameters
 from bittensor import subtensor_module
-from bittensor.subtensor import Subtensor, Balance
+from bittensor.utils.balance import Balance
+
+U16_MAX = 65535
+U64_MAX = 18446744073709551615
 
 
 def test_serve_axon_with_external_ip_set():
-    internal_ip: str = "this is an internal ip"
-    external_ip: str = "this is an external ip"
+    internal_ip: str = "192.0.2.146"
+    external_ip: str = "2001:0db8:85a3:0000:0000:8a2e:0370:7334"
 
     mock_serve_axon = MagicMock(return_value=True)
 
@@ -71,7 +77,7 @@ def test_serve_axon_with_external_ip_set():
 
 
 def test_serve_axon_with_external_port_set():
-    external_ip: str = "this is an external ip"
+    external_ip: str = "2001:0db8:85a3:0000:0000:8a2e:0370:7334"
 
     internal_port: int = 1234
     external_port: int = 5678
@@ -420,6 +426,91 @@ async def test_weights_rate_limit_success_calls(subtensor, mocker):
     assert isinstance(result, int)
 
 
+@pytest.fixture
+def sample_hyperparameters():
+    return MagicMock(spec=SubnetHyperparameters)
+
+
+def get_normalized_value(normalized_data, param_name):
+    return next(
+        (
+            norm_value
+            for p_name, _, norm_value in normalized_data
+            if p_name == param_name
+        ),
+        None,
+    )
+
+
+@pytest.mark.parametrize(
+    "param_name, max_value, mid_value, zero_value, is_balance",
+    [
+        ("adjustment_alpha", U64_MAX, U64_MAX / 2, 0, False),
+        ("max_weight_limit", U16_MAX, U16_MAX / 2, 0, False),
+        ("difficulty", U64_MAX, U64_MAX / 2, 0, False),
+        ("min_difficulty", U64_MAX, U64_MAX / 2, 0, False),
+        ("max_difficulty", U64_MAX, U64_MAX / 2, 0, False),
+        ("bonds_moving_avg", U64_MAX, U64_MAX / 2, 0, False),
+        ("min_burn", 10000000000, 5000000000, 0, True),  # These are in rao
+        ("max_burn", 20000000000, 10000000000, 0, True),
+    ],
+    ids=[
+        "adjustment-alpha",
+        "max_weight_limit",
+        "difficulty",
+        "min_difficulty",
+        "max_difficulty",
+        "bonds_moving_avg",
+        "min_burn",
+        "max_burn",
+    ],
+)
+def test_hyperparameter_normalization(
+    sample_hyperparameters, param_name, max_value, mid_value, zero_value, is_balance
+):
+    setattr(sample_hyperparameters, param_name, mid_value)
+    normalized = normalize_hyperparameters(sample_hyperparameters)
+    norm_value = get_normalized_value(normalized, param_name)
+
+    # Mid-value test
+    if is_balance:
+        numeric_value = float(str(norm_value).lstrip(bittensor.__tao_symbol__))
+        expected_tao = mid_value / 1e9
+        assert (
+            numeric_value == expected_tao
+        ), f"Mismatch in tao value for {param_name} at mid value"
+    else:
+        assert float(norm_value) == 0.5, f"Failed mid-point test for {param_name}"
+
+    # Max-value test
+    setattr(sample_hyperparameters, param_name, max_value)
+    normalized = normalize_hyperparameters(sample_hyperparameters)
+    norm_value = get_normalized_value(normalized, param_name)
+
+    if is_balance:
+        numeric_value = float(str(norm_value).lstrip(bittensor.__tao_symbol__))
+        expected_tao = max_value / 1e9
+        assert (
+            numeric_value == expected_tao
+        ), f"Mismatch in tao value for {param_name} at max value"
+    else:
+        assert float(norm_value) == 1.0, f"Failed max value test for {param_name}"
+
+    # Zero-value test
+    setattr(sample_hyperparameters, param_name, zero_value)
+    normalized = normalize_hyperparameters(sample_hyperparameters)
+    norm_value = get_normalized_value(normalized, param_name)
+
+    if is_balance:
+        numeric_value = float(str(norm_value).lstrip(bittensor.__tao_symbol__))
+        expected_tao = zero_value / 1e9
+        assert (
+            numeric_value == expected_tao
+        ), f"Mismatch in tao value for {param_name} at zero value"
+    else:
+        assert float(norm_value) == 0.0, f"Failed zero value test for {param_name}"
+
+
 ###########################
 # Account functions tests #
 ###########################
@@ -592,7 +683,7 @@ async def test_get_stake_no_block(mocker, subtensor):
 
     # Assertion
     assert result == [("coldkey1", Balance.from_rao(100))]
-    # subtensor.query_map_subtensor.assert_called_once_with("Stake", None, [hotkey_ss58])
+    subtensor.query_map_subtensor.assert_called_once_with("Stake", None, [hotkey_ss58])
 
 
 @pytest.mark.asyncio

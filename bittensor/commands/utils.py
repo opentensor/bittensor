@@ -17,18 +17,20 @@
 
 from dataclasses import dataclass
 import os
+import requests
 import sys
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 
+from rich.prompt import Confirm, PromptBase
 from scalecodec.base import RuntimeConfiguration
 from scalecodec.type_registry import load_type_registry_preset
-import requests
-from rich.prompt import Confirm, PromptBase
 
 import bittensor
 from bittensor.utils.registration import torch
-
+from bittensor.utils.balance import Balance
+from bittensor.utils import u64_normalized_float, u16_normalized_float
 from . import defaults
+
 
 console = bittensor.__console__
 
@@ -197,6 +199,50 @@ def filter_netuids_by_registered_hotkeys(
         netuids.extend(netuids_with_registered_hotkeys)
 
     return list(set(netuids))
+
+
+def normalize_hyperparameters(
+    subnet: bittensor.SubnetHyperparameters,
+) -> List[Tuple[str, str, str]]:
+    """
+    Normalizes the hyperparameters of a subnet.
+
+    Args:
+        subnet: The subnet hyperparameters object.
+
+    Returns:
+        A list of tuples containing the parameter name, value, and normalized value.
+    """
+    param_mappings = {
+        "adjustment_alpha": u64_normalized_float,
+        "min_difficulty": u64_normalized_float,
+        "max_difficulty": u64_normalized_float,
+        "difficulty": u64_normalized_float,
+        "bonds_moving_avg": u64_normalized_float,
+        "max_weight_limit": u16_normalized_float,
+        "kappa": u16_normalized_float,
+        "min_burn": Balance.from_rao,
+        "max_burn": Balance.from_rao,
+    }
+
+    normalized_values: List[Tuple[str, str, str]] = []
+    subnet_dict = subnet.__dict__
+
+    for param, value in subnet_dict.items():
+        try:
+            if param in param_mappings:
+                norm_value = param_mappings[param](value)
+                if isinstance(norm_value, float):
+                    norm_value = f"{norm_value:.{10}g}"
+            else:
+                norm_value = value
+        except Exception as e:
+            bittensor.logging.warning(f"Error normalizing parameter '{param}': {e}")
+            norm_value = "-"
+
+        normalized_values.append((param, str(value), str(norm_value)))
+
+    return normalized_values
 
 
 @dataclass

@@ -1,15 +1,15 @@
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 # Copyright © 2023 Opentensor Foundation
-
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
 # the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
+#
 # The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
-
+#
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
 # THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
@@ -27,7 +27,6 @@ from rich.prompt import Confirm
 import bittensor
 import bittensor.utils.weight_utils as weight_utils
 from bittensor.utils.registration import torch, use_torch
-
 
 bittensor.logging.on()
 
@@ -112,10 +111,7 @@ async def set_weights_extrinsic(
                 )
                 return True, "Successfully set weights and Finalized."
             else:
-                bittensor.__console__.print(
-                    f":cross_mark: [red]Failed[/red]: error:{error_message}"
-                )
-                bittensor.logging.warning(
+                bittensor.logging.error(
                     prefix="Set weights",
                     suffix="<red>Failed: </red>" + str(error_message),
                 )

@@ -24,6 +24,7 @@ import time
 from rich.prompt import Confirm
 
 import bittensor
+from bittensor.utils import format_error_message
 
 
 async def register_senate_extrinsic(
@@ -77,7 +78,7 @@ async def register_senate_extrinsic(
         response.process_events()
         if not response.is_success:
             bittensor.__console__.print(
-                f":cross_mark: [red]Failed[/red]: error:{response.error_message}"
+                f":cross_mark: [red]Failed[/red]:{format_error_message(response.error_message)}"
             )
             await asyncio.sleep(0.5)
 
@@ -148,9 +149,9 @@ async def leave_senate_extrinsic(
         response.process_events()
         if not response.is_success:
             bittensor.__console__.print(
-                f":cross_mark: [red]Failed[/red]: error:{response.error_message}"
+                f":cross_mark: [red]Failed[/red]: {format_error_message(response.error_message)}"
             )
-            time.sleep(0.5)
+            await asyncio.sleep(0.5)
 
         # Successful registration, final check for membership
         else:
@@ -230,7 +231,7 @@ async def vote_senate_extrinsic(
         response.process_events()
         if not response.is_success:
             bittensor.__console__.print(
-                f":cross_mark: [red]Failed[/red]: error:{response.error_message}"
+                f":cross_mark: [red]Failed[/red]: error: {format_error_message(response.error_message)}"
             )
             time.sleep(0.5)
 
