@@ -361,7 +361,9 @@ class Cli:
 
             if isinstance(command_data, dict):
                 if config["subcommand"] is not None:
-                    await command_data["commands"][config["subcommand"]].check_config(config)
+                    await command_data["commands"][config["subcommand"]].check_config(
+                        config
+                    )
                 else:
                     console.print(
                         f":cross_mark:[red]Missing subcommand for: {config.command}[/red]"

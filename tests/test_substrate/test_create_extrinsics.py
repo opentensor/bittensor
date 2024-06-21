@@ -99,6 +99,7 @@ async def test_create_extrinsic_metadata_v14(kusama_substrate, keypair):
 #             pass
 #
 
+
 @pytest.mark.asyncio
 async def test_create_batch_extrinsic(polkadot_substrate, keypair):
     balance_call = await polkadot_substrate.compose_call(
