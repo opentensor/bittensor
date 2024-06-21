@@ -17,13 +17,15 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import os
-import copy
 import argparse
-import bittensor
-from termcolor import colored
+import copy
+import os
+from typing import Dict, Optional, Tuple, Union, overload
+
 from substrateinterface import Keypair
-from typing import Optional, Union, Tuple, Dict, overload
+from termcolor import colored
+
+import bittensor
 from bittensor.utils import is_valid_bittensor_address_or_public_key
 
 

@@ -44,6 +44,9 @@ jobs:
         include:
           - os: ubuntu-latest
           # - os: macos-latest
+         test-folder:
+          - multistep
+          - subcommands
     env:
       RELEASE_NAME: development
       RUSTV: ${{ matrix.rust-branch }}
@@ -78,7 +81,7 @@ jobs:
         working-directory: ${{ github.workspace }}/subtensor
         run: git checkout testnet
 
-      - name: Run tests
+      - name: Run tests in ${{ matrix.test-folder }}
         run: |
           python3 -m pip install -e .[dev] pytest
-          LOCALNET_SH_PATH="${{ github.workspace }}/subtensor/scripts/localnet.sh" pytest tests/e2e_tests/ -s
+          LOCALNET_SH_PATH="${{ github.workspace }}/subtensor/scripts/localnet.sh" pytest tests/e2e_tests/${{ matrix.test-folder }}/ -s
