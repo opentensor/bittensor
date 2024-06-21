@@ -46,12 +46,7 @@ jobs:
           # - os: macos-latest
         test-folder:
           - multistep
-          - subcommands/delegation
-          - subcommands/register
-          - subcommands/root
-          - subcommands/stake
-          - subcommands/wallet
-          - subcommands/weights
+          - subcommands
     env:
       RELEASE_NAME: development
       RUSTV: ${{ matrix.rust-branch }}
