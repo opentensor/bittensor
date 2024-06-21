@@ -387,8 +387,13 @@ class SubnetSudoCommand:
         if (
             cli.config.param == "network_registration_allowed"
             or cli.config.param == "network_pow_registration_allowed"
+            or cli.config.param == "commit_reveal_weights_enabled"
         ):
-            cli.config.value = True if cli.config.value.lower() == "true" else False
+            cli.config.value = (
+                True
+                if (cli.config.value.lower() == "true" or cli.config.value == "1")
+                else False
+            )
 
         subtensor.set_hyperparameter(
             wallet,

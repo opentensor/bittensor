@@ -13,6 +13,7 @@ from tests.e2e_tests.utils import (
     setup_wallet,
     template_path,
     repo_name,
+    write_output_log_to_file,
 )
 
 """
@@ -32,7 +33,7 @@ are set correctly, and that the miner is currently running
 @pytest.mark.asyncio
 async def test_axon(local_chain):
     # Register root as Alice
-    alice_keypair, exec_command, wallet_path = setup_wallet("//Alice", True)
+    alice_keypair, exec_command, wallet = setup_wallet("//Alice")
     exec_command(RegisterSubnetworkCommand, ["s", "create"])
 
     # Verify subnet 1 created successfully
@@ -46,17 +47,6 @@ async def test_axon(local_chain):
             "register",
             "--netuid",
             "1",
-            "--wallet.name",
-            "default",
-            "--wallet.hotkey",
-            "default",
-            "--wallet.path",
-            wallet_path,
-            "--subtensor.network",
-            "local",
-            "--subtensor.chain_endpoint",
-            "ws://localhost:9945",
-            "--no_prompt",
         ],
     )
 
@@ -86,19 +76,27 @@ async def test_axon(local_chain):
             "--subtensor.chain_endpoint",
             "ws://localhost:9945",
             "--wallet.path",
-            wallet_path,
+            wallet.path,
             "--wallet.name",
-            "default",
+            wallet.name,
             "--wallet.hotkey",
             "default",
         ]
     )
 
-    await asyncio.create_subprocess_shell(
+    axon_process = await asyncio.create_subprocess_shell(
         cmd,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
+
+    # record logs of process
+    # Create tasks to read stdout and stderr concurrently
+    # ignore, dont await coroutine, just write logs to file
+    asyncio.create_task(write_output_log_to_file("axon_stdout", axon_process.stdout))
+    # ignore, dont await coroutine, just write logs to file
+    asyncio.create_task(write_output_log_to_file("axon_stderr", axon_process.stderr))
+
     await asyncio.sleep(
         5
     )  # wait for 5 seconds for the metagraph to refresh with latest data
