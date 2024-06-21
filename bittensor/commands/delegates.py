@@ -16,6 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import argparse
+import asyncio
 import os
 import sys
 from typing import List, Dict, Optional
@@ -659,6 +660,7 @@ class ListDelegatesCommand:
                 config=cli.config, log_verbose=False
             )
             await ListDelegatesCommand._run(cli, subtensor)
+
         finally:
             if "subtensor" in locals():
                 await subtensor.close()
@@ -668,14 +670,20 @@ class ListDelegatesCommand:
     async def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         """List all delegates on the network."""
         with bittensor.__console__.status(":satellite: Loading delegates..."):
-            delegates: list[bittensor.DelegateInfo] = await subtensor.get_delegates()
+            prev_block = await subtensor.block - 1200
 
-            try:
-                prev_delegates = await subtensor.get_delegates(max(0, await subtensor.block - 1200))
-            except SubstrateRequestException:
-                prev_delegates = None
+            async def get_prev_delegates(prev_block_: int):
+                """Try/except async wrapper for subtensor.get_delegates."""
+                try:
+                    return await subtensor.get_delegates(block=max(0, prev_block_))
+                except SubstrateRequestException:
+                    return None
 
-        if prev_delegates is None:
+            delegates, prev_delegates = await asyncio.gather(
+                subtensor.get_delegates(), get_prev_delegates(prev_block)
+            )
+
+        if not prev_delegates:
             bittensor.__console__.print(
                 ":warning: [yellow]Could not fetch delegates history[/yellow]"
             )
@@ -733,7 +741,7 @@ class NominateCommand:
 
     @staticmethod
     async def run(cli: "bittensor.cli"):
-        r"""Nominate wallet."""
+        """Nominate wallet."""
         try:
             subtensor: "bittensor.subtensor" = bittensor.subtensor(
                 config=cli.config, log_verbose=False
@@ -746,7 +754,7 @@ class NominateCommand:
 
     @staticmethod
     async def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
-        r"""Nominate wallet."""
+        """Nominate wallet."""
         wallet = bittensor.wallet(config=cli.config)
 
         # Unlock the wallet.
@@ -797,9 +805,9 @@ class NominateCommand:
                 if do_set_identity.lower() == "y":
                     await subtensor.close()
                     config = cli.config.copy()
-                    SetIdentityCommand.check_config(config)
+                    await SetIdentityCommand.check_config(config)
                     cli.config = config
-                    SetIdentityCommand.run(cli)
+                    await SetIdentityCommand.run(cli)
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
@@ -1060,7 +1068,7 @@ class SetTakeCommand:
 
     @staticmethod
     async def run(cli: "bittensor.cli"):
-        r"""Set delegate take."""
+        """Set delegate take."""
         try:
             subtensor: "bittensor.subtensor" = bittensor.subtensor(
                 config=cli.config, log_verbose=False

@@ -113,7 +113,13 @@ from bittensor.utils import (
 from bittensor.utils.balance import Balance
 from bittensor.utils.registration import POWSolution
 from bittensor.utils.registration import legacy_torch_api_compat
-from tenacity import retry, stop_after_attempt, wait_fixed
+from tenacity import (
+    retry,
+    stop_after_attempt,
+    wait_fixed,
+    retry_if_exception_type,
+    RetryCallState,
+)
 
 
 KEY_NONCE: Dict[str, int] = {}
@@ -122,6 +128,14 @@ KEY_NONCE: Dict[str, int] = {}
 class ParamWithTypes(TypedDict):
     name: str  # Name of the parameter.
     type: str  # ScaleType string of the parameter.
+
+
+def on_retry_error(retry_state: RetryCallState):
+    """Retry call error call back."""
+    bittensor.logging.error(
+        f"Function `{retry_state.fn}` failed after {retry_state.attempt_number} attempts."
+    )
+    return {}
 
 
 class Subtensor:
@@ -3925,10 +3939,10 @@ class Subtensor:
 
     @property
     async def block(self) -> int:
-        r"""Returns current chain block.
+        """Returns current chain block.
+
         Returns:
-            block (int):
-                Current chain block.
+            block (int): Current chain block.
         """
         return await self.get_current_block()
 
@@ -4456,10 +4470,17 @@ class Subtensor:
 
         """
 
-        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
+        @retry(
+            stop=stop_after_attempt(3),
+            wait=wait_fixed(1),
+            retry=retry_if_exception_type(SubstrateRequestException),
+            retry_error_callback=on_retry_error,
+        )
         async def make_substrate_call_with_retry():
             block_hash = (
-                None if block is None else await self.substrate.get_block_hash(block)
+                None
+                if block is None
+                else await self.substrate.get_block_hash(block_id=block)
             )
 
             return await self.substrate.rpc_request(

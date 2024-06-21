@@ -32,8 +32,6 @@ import bittensor
 import bittensor.utils.weight_utils as weight_utils
 from bittensor.utils.registration import torch, legacy_torch_api_compat
 
-bittensor.logging.on()
-
 
 async def root_register_extrinsic(
     subtensor: "bittensor.subtensor",

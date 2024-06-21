@@ -28,8 +28,6 @@ import bittensor
 import bittensor.utils.weight_utils as weight_utils
 from bittensor.utils.registration import torch, use_torch
 
-bittensor.logging.on()
-
 
 async def set_weights_extrinsic(
     subtensor: "bittensor.subtensor",

@@ -30,6 +30,9 @@ import bittensor
 from bittensor import cli as btcli
 
 
+bittensor.logging.on()
+
+
 async def main():
     # Create the parser with shtab support
     parser = btcli.__create_parser__()
