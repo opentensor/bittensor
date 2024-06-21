@@ -47,6 +47,7 @@ jobs:
         test-folder:
           - multistep
           - subcommands
+          - incentive
     env:
       RELEASE_NAME: development
       RUSTV: ${{ matrix.rust-branch }}
