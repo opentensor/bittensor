@@ -716,7 +716,7 @@ class AsyncSubstrateInterface:
             else "state_getStorage"
         )
         return Preprocessed(
-            query_for[0] if query_for else None,
+            str(query_for),
             method,
             [storage_key.to_hex(), block_hash],
             value_scale_type,
@@ -726,11 +726,14 @@ class AsyncSubstrateInterface:
     async def _process_response(
         self,
         response: dict,
+        subscription_id: Union[int, str],
         value_scale_type: str,
         storage_item: Optional[ScaleType] = None,
         runtime: Optional[Runtime] = None,
         result_handler: Optional[ResultHandler] = None,
     ) -> tuple[Union[ScaleType, dict], bool]:
+        obj = response
+
         if value_scale_type:
             if not runtime:
                 async with self._lock:
@@ -756,11 +759,12 @@ class AsyncSubstrateInterface:
             )
             obj.decode(check_remaining=True)
             obj.meta_info = {"result_found": response.get("result") is not None}
-            return obj, True
-        elif asyncio.iscoroutinefunction(result_handler):
+        if asyncio.iscoroutinefunction(result_handler):
             # For multipart responses as a result of subscriptions.
-            return await result_handler(response)
-        return response, True
+            message, bool_result = await result_handler(obj, subscription_id)
+            if bool_result:
+                return message, bool_result
+        return obj, True
 
     async def _make_rpc_request(
         self,
@@ -771,6 +775,8 @@ class AsyncSubstrateInterface:
         result_handler: Optional[ResultHandler] = None,
     ) -> RequestManager.RequestResults:
         request_manager = RequestManager(payloads)
+
+        subscription_added = False
 
         async with self.ws as ws:
             for item in payloads:
@@ -784,7 +790,10 @@ class AsyncSubstrateInterface:
                         or asyncio.iscoroutinefunction(result_handler)
                     ):
                         if response := await ws.retrieve(item_id):
-                            if asyncio.iscoroutinefunction(result_handler):
+                            if (
+                                asyncio.iscoroutinefunction(result_handler)
+                                and not subscription_added
+                            ):
                                 # handles subscriptions, overwrites the previous mapping of {item_id : payload_id}
                                 # with {subscription_id : payload_id}
                                 item_id = request_manager.overwrite_request(
@@ -792,6 +801,7 @@ class AsyncSubstrateInterface:
                                 )
                             decoded_response, complete = await self._process_response(
                                 response,
+                                item_id,
                                 value_scale_type,
                                 storage_item,
                                 runtime,
@@ -800,6 +810,12 @@ class AsyncSubstrateInterface:
                             request_manager.add_response(
                                 item_id, decoded_response, complete
                             )
+                    if (
+                        asyncio.iscoroutinefunction(result_handler)
+                        and not subscription_added
+                    ):
+                        subscription_added = True
+                        break
 
                 if request_manager.is_complete:
                     break
@@ -1156,8 +1172,8 @@ class AsyncSubstrateInterface:
         storage_function: str,
         params: Optional[list] = None,
         block_hash: Optional[str] = None,
-        subscription_handler: callable = None,
         raw_storage_key: bytes = None,
+        subscription_handler=None,
         reuse_block_hash: bool = False,
     ) -> "ScaleType":
         """
@@ -1187,7 +1203,11 @@ class AsyncSubstrateInterface:
         storage_item = preprocessed.storage_item
 
         responses = await self._make_rpc_request(
-            payload, value_scale_type, storage_item, runtime
+            payload,
+            value_scale_type,
+            storage_item,
+            runtime,
+            result_handler=subscription_handler,
         )
         return responses[preprocessed.queryable][0]
 
@@ -1231,6 +1251,7 @@ class AsyncSubstrateInterface:
 
         :return: QueryMapResult object
         """
+        params = params or []
         block_hash = (
             block_hash
             if block_hash
@@ -1261,7 +1282,6 @@ class AsyncSubstrateInterface:
         # Check MapType conditions
         if len(param_types) == 0:
             raise ValueError("Given storage function is not a map")
-
         if len(params) > len(param_types) - 1:
             raise ValueError(
                 f"Storage function map can accept max {len(param_types) - 1} parameters, {len(params)} given"
