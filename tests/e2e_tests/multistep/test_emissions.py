@@ -232,9 +232,10 @@ async def test_emissions(local_chain):
     # refresh metagraph
     subtensor = bittensor.subtensor(network="ws://localhost:9945")
 
+    # TODO: turn on weight check
     # get current emissions and validate that Alice has gotten tao
-    weights = [(0, [(0, 65535), (1, 65535)])]
-    assert subtensor.weights(netuid=1) == weights
+    # weights = [(0, [(0, 65535), (1, 65535)])]
+    # assert subtensor.weights(netuid=1) == weights
 
     neurons = subtensor.neurons(netuid=1)
     bob = neurons[1]
@@ -252,8 +253,8 @@ async def test_emissions(local_chain):
     assert alice.stake.tao > 10000  # assert an increase in stake
     assert alice.validator_permit is True
     assert alice.validator_trust == 1
-    # TODO: turn on weight check
-    # assert alice.weights == [(0, 65535), (1, 65535)]
+
+    assert alice.weights == [(0, 65535), (1, 65535)]
 
     assert (
         subtensor.get_emission_value_by_subnet(netuid=1) > 0
