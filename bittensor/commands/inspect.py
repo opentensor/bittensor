@@ -133,7 +133,7 @@ class InspectCommand:
             all_hotkeys = get_hotkey_wallets_for_wallet(wallets[0])
 
         netuids = await subtensor.get_all_subnet_netuids()
-        netuids = filter_netuids_by_registered_hotkeys(
+        netuids = await filter_netuids_by_registered_hotkeys(
             cli, subtensor, netuids, all_hotkeys
         )
         bittensor.logging.debug(f"Netuids to check: {netuids}")
