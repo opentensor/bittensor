@@ -15,17 +15,22 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import sys
+from dataclasses import dataclass
 import os
-import bittensor
 import requests
+import sys
+from typing import List, Dict, Any, Optional, Tuple
+
+from rich.prompt import Confirm, PromptBase
+from scalecodec.base import RuntimeConfiguration
+from scalecodec.type_registry import load_type_registry_preset
+
+import bittensor
 from bittensor.utils.registration import torch
 from bittensor.utils.balance import Balance
 from bittensor.utils import u64_normalized_float, u16_normalized_float
-from typing import List, Dict, Any, Optional, Tuple
-from rich.prompt import Confirm, PromptBase
-from dataclasses import dataclass
 from . import defaults
+
 
 console = bittensor.__console__
 
@@ -281,3 +286,13 @@ def get_delegates_details(url: str) -> Optional[Dict[str, DelegatesDetails]]:
         return _get_delegates_details_from_github(requests.get, url)
     except Exception:
         return None  # Fail silently
+
+
+def decode_scale_bytes(return_type, scale_bytes, custom_rpc_type_registry):
+    rpc_runtime_config = RuntimeConfiguration()
+    rpc_runtime_config.update_type_registry(load_type_registry_preset("legacy"))
+    rpc_runtime_config.update_type_registry(custom_rpc_type_registry)
+    obj = rpc_runtime_config.create_scale_object(return_type, scale_bytes)
+    if obj.data.to_hex() == "0x0400":  # RPC returned None result
+        return None
+    return obj.decode()
