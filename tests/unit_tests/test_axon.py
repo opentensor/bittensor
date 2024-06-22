@@ -282,6 +282,7 @@ async def test_priority_pass(middleware):
         ),
     ],
 )
+@pytest.mark.asyncio
 async def test_verify_body_integrity_happy_path(
     mock_request, axon_instance, body, expected
 ):
@@ -298,11 +299,12 @@ async def test_verify_body_integrity_happy_path(
 @pytest.mark.parametrize(
     "body, expected_exception_message",
     [
-        (b"", "EOFError"),  # Empty body
-        (b"not_json", "JSONDecodeError"),  # Non-JSON body
+        (b"", "Expecting value: line 1 column 1 (char 0)"),  # Empty body
+        (b"not_json", "Expecting value: line 1 column 1 (char 0)"),  # Non-JSON body
     ],
     ids=["empty_body", "non_json_body"],
 )
+@pytest.mark.asyncio
 async def test_verify_body_integrity_edge_cases(
     mock_request, axon_instance, body, expected_exception_message
 ):
@@ -312,9 +314,7 @@ async def test_verify_body_integrity_edge_cases(
     # Act & Assert
     with pytest.raises(Exception) as exc_info:
         await axon_instance.verify_body_integrity(mock_request)
-    assert expected_exception_message in str(
-        exc_info.value
-    ), "Expected specific exception message."
+    assert expected_exception_message in str(exc_info.value), "Expected specific exception message."
 
 
 @pytest.mark.parametrize(
@@ -323,6 +323,7 @@ async def test_verify_body_integrity_edge_cases(
         ("incorrect_hash", ValueError),
     ],
 )
+@pytest.mark.asyncio
 async def test_verify_body_integrity_error_cases(
     mock_request, axon_instance, computed_hash, expected_error
 ):
