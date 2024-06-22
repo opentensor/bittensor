@@ -393,9 +393,9 @@ class StakeList:
             for substake in substakes:
                 netuid = substake['netuid']
                 pool = dynamic_info[netuid]
-                symbol = "({})".format(bittensor.Balance.get_unit(netuid))
+                symbol = f"{bittensor.Balance.get_unit(netuid)}\u200E"
                 price = "{:.4f}{}".format( pool.price.__float__(), f"τ/{bittensor.Balance.get_unit(netuid)}\u200E") if pool.is_dynamic else f"{1.0}τ/{symbol}"
-                alpha_value = bittensor.Balance.from_rao( int(substake['stake']) ).set_unit(netuid) 
+                alpha_value = bittensor.Balance.from_rao( int(substake['stake']) ).set_unit(netuid)
                 tao_value = bittensor.Balance.from_tao( substake['stake'].tao * dynamic_info[netuid].price.tao )
                 swapped_tao_value, _ = pool.alpha_to_tao_with_slippage( substake['stake'] )
                 slippage_percentage = (100 - (swapped_tao_value.tao / tao_value) * 100) if tao_value != 0 else 0

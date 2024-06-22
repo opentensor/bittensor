@@ -68,7 +68,7 @@ class Balance:
         """
         Returns the Balance object as a string in the format "symbolvalue", where the value is in tao.
         """
-        return f"{self.unit}{float(self.tao):,.4f}"
+        return f"{float(self.tao):,.4f}{self.unit}\u200E"
 
     def __rich__(self):
         return "[green]{}[/green][green]{}[/green][green].[/green][dim green]{}[/dim green]".format(
@@ -81,7 +81,11 @@ class Balance:
         return f"{self.rao_unit}{int(self.rao)}"
 
     def __rich_rao__(self):
-        return f"[green]{self.rao_unit}{int(self.rao)}[/green]"
+        if bittensor.units.index(self.unit) != 0:
+            return f"[green]{int(self.rao)}{self.unit}[/green]"
+        else:
+            return f"[green]{self.unit}\u200E{int(self.rao)}[/green]"
+
 
     def __repr__(self):
         return self.__str__()
