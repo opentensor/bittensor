@@ -878,7 +878,12 @@ class Subtensor:
         trust in other neurons based on observed performance and contributions.
         """
 
-        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), retry=retry_if_exception_type(SubstrateRequestException), retry_error_callback=on_retry_error)
+        @retry(
+            stop=stop_after_attempt(3),
+            wait=wait_fixed(1),
+            retry=retry_if_exception_type(SubstrateRequestException),
+            retry_error_callback=on_retry_error,
+        )
         async def make_substrate_call_with_retry():
             call = await self.substrate.compose_call(
                 call_module="SubtensorModule",
@@ -1020,7 +1025,12 @@ class Subtensor:
         verifiable record of the neuron's weight distribution at a specific point in time.
         """
 
-        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), retry=retry_if_exception_type(SubstrateRequestException), retry_error_callback=on_retry_error)
+        @retry(
+            stop=stop_after_attempt(3),
+            wait=wait_fixed(1),
+            retry=retry_if_exception_type(SubstrateRequestException),
+            retry_error_callback=on_retry_error,
+        )
         async def make_substrate_call_with_retry():
             call = await self.substrate.compose_call(
                 call_module="SubtensorModule",
@@ -1150,7 +1160,12 @@ class Subtensor:
         transparency and accountability for the neuron's weight distribution.
         """
 
-        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), retry=retry_if_exception_type(SubstrateRequestException), retry_error_callback=on_retry_error)
+        @retry(
+            stop=stop_after_attempt(3),
+            wait=wait_fixed(1),
+            retry=retry_if_exception_type(SubstrateRequestException),
+            retry_error_callback=on_retry_error,
+        )
         async def make_substrate_call_with_retry():
             call = await self.substrate.compose_call(
                 call_module="SubtensorModule",
@@ -1404,7 +1419,12 @@ class Subtensor:
                 message.
         """
 
-        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), retry=retry_if_exception_type(SubstrateRequestException), retry_error_callback=on_retry_error)
+        @retry(
+            stop=stop_after_attempt(3),
+            wait=wait_fixed(1),
+            retry=retry_if_exception_type(SubstrateRequestException),
+            retry_error_callback=on_retry_error,
+        )
         async def make_substrate_call_with_retry():
             # create extrinsic call
             call = await self.substrate.compose_call(
@@ -1465,7 +1485,12 @@ class Subtensor:
             Tuple[bool, Optional[str]]: A tuple containing a boolean indicating success or failure, and an optional error message.
         """
 
-        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), retry=retry_if_exception_type(SubstrateRequestException), retry_error_callback=on_retry_error)
+        @retry(
+            stop=stop_after_attempt(3),
+            wait=wait_fixed(1),
+            retry=retry_if_exception_type(SubstrateRequestException),
+            retry_error_callback=on_retry_error,
+        )
         async def make_substrate_call_with_retry():
             # create extrinsic call
             call = await self.substrate.compose_call(
@@ -1521,7 +1546,12 @@ class Subtensor:
                 error message.
         """
 
-        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), retry=retry_if_exception_type(SubstrateRequestException), retry_error_callback=on_retry_error)
+        @retry(
+            stop=stop_after_attempt(3),
+            wait=wait_fixed(1),
+            retry=retry_if_exception_type(SubstrateRequestException),
+            retry_error_callback=on_retry_error,
+        )
         async def make_substrate_call_with_retry():
             # create extrinsic call
             call = await self.substrate.compose_call(
@@ -1676,7 +1706,12 @@ class Subtensor:
             error (str): Error message if transfer failed.
         """
 
-        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), retry=retry_if_exception_type(SubstrateRequestException), retry_error_callback=on_retry_error)
+        @retry(
+            stop=stop_after_attempt(3),
+            wait=wait_fixed(1),
+            retry=retry_if_exception_type(SubstrateRequestException),
+            retry_error_callback=on_retry_error,
+        )
         async def make_substrate_call_with_retry():
             call = await self.substrate.compose_call(
                 call_module="Balances",
@@ -1912,7 +1947,12 @@ class Subtensor:
         enhancing the decentralized computation capabilities of Bittensor.
         """
 
-        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), retry=retry_if_exception_type(SubstrateRequestException), retry_error_callback=on_retry_error)
+        @retry(
+            stop=stop_after_attempt(3),
+            wait=wait_fixed(1),
+            retry=retry_if_exception_type(SubstrateRequestException),
+            retry_error_callback=on_retry_error,
+        )
         async def make_substrate_call_with_retry():
             call = await self.substrate.compose_call(
                 call_module="SubtensorModule",
@@ -1975,7 +2015,12 @@ class Subtensor:
             error (:func:`Optional[str]`): Error message if serve prometheus failed, ``None`` otherwise.
         """
 
-        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), retry=retry_if_exception_type(SubstrateRequestException), retry_error_callback=on_retry_error)
+        @retry(
+            stop=stop_after_attempt(3),
+            wait=wait_fixed(1),
+            retry=retry_if_exception_type(SubstrateRequestException),
+            retry_error_callback=on_retry_error,
+        )
         async def make_substrate_call_with_retry():
             call = await self.substrate.compose_call(
                 call_module="SubtensorModule",
@@ -2024,7 +2069,12 @@ class Subtensor:
             error (:func:`Optional[str]`): Error message if associate IPs failed, None otherwise.
         """
 
-        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), retry=retry_if_exception_type(SubstrateRequestException), retry_error_callback=on_retry_error)
+        @retry(
+            stop=stop_after_attempt(3),
+            wait=wait_fixed(1),
+            retry=retry_if_exception_type(SubstrateRequestException),
+            retry_error_callback=on_retry_error,
+        )
         async def make_substrate_call_with_retry():
             call = await self.substrate.compose_call(
                 call_module="SubtensorModule",
@@ -2153,7 +2203,12 @@ class Subtensor:
             StakeError: If the extrinsic failed.
         """
 
-        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), retry=retry_if_exception_type(SubstrateRequestException), retry_error_callback=on_retry_error)
+        @retry(
+            stop=stop_after_attempt(3),
+            wait=wait_fixed(1),
+            retry=retry_if_exception_type(SubstrateRequestException),
+            retry_error_callback=on_retry_error,
+        )
         async def make_substrate_call_with_retry():
             call = await self.substrate.compose_call(
                 call_module="SubtensorModule",
@@ -2280,7 +2335,12 @@ class Subtensor:
             StakeError: If the extrinsic failed.
         """
 
-        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), retry=retry_if_exception_type(SubstrateRequestException), retry_error_callback=on_retry_error)
+        @retry(
+            stop=stop_after_attempt(3),
+            wait=wait_fixed(1),
+            retry=retry_if_exception_type(SubstrateRequestException),
+            retry_error_callback=on_retry_error,
+        )
         async def make_substrate_call_with_retry():
             call = await self.substrate.compose_call(
                 call_module="SubtensorModule",
@@ -2605,7 +2665,12 @@ class Subtensor:
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
     ) -> Tuple[bool, Optional[str]]:
-        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), retry=retry_if_exception_type(SubstrateRequestException), retry_error_callback=on_retry_error)
+        @retry(
+            stop=stop_after_attempt(3),
+            wait=wait_fixed(1),
+            retry=retry_if_exception_type(SubstrateRequestException),
+            retry_error_callback=on_retry_error,
+        )
         async def make_substrate_call_with_retry():
             # create extrinsic call
             call = await self.substrate.compose_call(
@@ -2710,7 +2775,12 @@ class Subtensor:
         trust in other neurons based on observed performance and contributions to the root network.
         """
 
-        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), retry=retry_if_exception_type(SubstrateRequestException), retry_error_callback=on_retry_error)
+        @retry(
+            stop=stop_after_attempt(3),
+            wait=wait_fixed(1),
+            retry=retry_if_exception_type(SubstrateRequestException),
+            retry_error_callback=on_retry_error,
+        )
         async def make_substrate_call_with_retry():
             call = await self.substrate.compose_call(
                 call_module="SubtensorModule",
@@ -2776,7 +2846,12 @@ class Subtensor:
         network-specific details, providing insights into the neuron's role and status within the Bittensor network.
         """
 
-        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), retry=retry_if_exception_type(SubstrateRequestException), retry_error_callback=on_retry_error)
+        @retry(
+            stop=stop_after_attempt(3),
+            wait=wait_fixed(1),
+            retry=retry_if_exception_type(SubstrateRequestException),
+            retry_error_callback=on_retry_error,
+        )
         async def make_substrate_call_with_retry() -> "ScaleType":
             return await self.substrate.query(
                 module="Registry",
@@ -2833,7 +2908,12 @@ class Subtensor:
         call_params = bittensor.utils.wallet_utils.create_identity_dict(**params)
         call_params["identified"] = identified
 
-        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), retry=retry_if_exception_type(SubstrateRequestException), retry_error_callback=on_retry_error)
+        @retry(
+            stop=stop_after_attempt(3),
+            wait=wait_fixed(1),
+            retry=retry_if_exception_type(SubstrateRequestException),
+            retry_error_callback=on_retry_error,
+        )
         async def make_substrate_call_with_retry() -> bool:
             call = await self.substrate.compose_call(
                 call_module="Registry",
@@ -2923,7 +3003,12 @@ class Subtensor:
         providing valuable insights into the state and dynamics of the Bittensor ecosystem.
         """
 
-        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), retry=retry_if_exception_type(SubstrateRequestException), retry_error_callback=on_retry_error)
+        @retry(
+            stop=stop_after_attempt(3),
+            wait=wait_fixed(1),
+            retry=retry_if_exception_type(SubstrateRequestException),
+            retry_error_callback=on_retry_error,
+        )
         async def make_substrate_call_with_retry() -> "ScaleType":
             return await self.substrate.query(
                 module="SubtensorModule",
@@ -2962,7 +3047,12 @@ class Subtensor:
         relationships within the Bittensor ecosystem, such as inter-neuronal connections and stake distributions.
         """
 
-        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), retry=retry_if_exception_type(SubstrateRequestException), retry_error_callback=on_retry_error)
+        @retry(
+            stop=stop_after_attempt(3),
+            wait=wait_fixed(1),
+            retry=retry_if_exception_type(SubstrateRequestException),
+            retry_error_callback=on_retry_error,
+        )
         async def make_substrate_call_with_retry():
             return await self.substrate.query_map(
                 module="SubtensorModule",
@@ -2996,7 +3086,12 @@ class Subtensor:
         operational parameters.
         """
 
-        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), retry=retry_if_exception_type(SubstrateRequestException), retry_error_callback=on_retry_error)
+        @retry(
+            stop=stop_after_attempt(3),
+            wait=wait_fixed(1),
+            retry=retry_if_exception_type(SubstrateRequestException),
+            retry_error_callback=on_retry_error,
+        )
         async def make_substrate_call_with_retry():
             return await self.substrate.get_constant(
                 module_name=module_name,
@@ -3036,7 +3131,12 @@ class Subtensor:
         parts of the Bittensor blockchain, enhancing the understanding and analysis of the network's state and dynamics.
         """
 
-        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), retry=retry_if_exception_type(SubstrateRequestException), retry_error_callback=on_retry_error)
+        @retry(
+            stop=stop_after_attempt(3),
+            wait=wait_fixed(1),
+            retry=retry_if_exception_type(SubstrateRequestException),
+            retry_error_callback=on_retry_error,
+        )
         async def make_substrate_call_with_retry() -> "ScaleType":
             return await self.substrate.query(
                 module=module,
@@ -3077,7 +3177,12 @@ class Subtensor:
         modules, offering insights into the network's state and the relationships between its different components.
         """
 
-        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), retry=retry_if_exception_type(SubstrateRequestException), retry_error_callback=on_retry_error)
+        @retry(
+            stop=stop_after_attempt(3),
+            wait=wait_fixed(1),
+            retry=retry_if_exception_type(SubstrateRequestException),
+            retry_error_callback=on_retry_error,
+        )
         async def make_substrate_call_with_retry() -> "QueryMapResult":
             return await self.substrate.query_map(
                 module=module,
@@ -3114,7 +3219,12 @@ class Subtensor:
         useful for specific use cases where standard queries are insufficient.
         """
 
-        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), retry=retry_if_exception_type(SubstrateRequestException), retry_error_callback=on_retry_error)
+        @retry(
+            stop=stop_after_attempt(3),
+            wait=wait_fixed(1),
+            retry=retry_if_exception_type(SubstrateRequestException),
+            retry_error_callback=on_retry_error,
+        )
         async def make_substrate_call_with_retry() -> Dict[Any, Any]:
             block_hash = (
                 None if block is None else await self.substrate.get_block_hash(block)
@@ -4200,7 +4310,12 @@ class Subtensor:
         the roles of different subnets, and their unique features.
         """
 
-        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), retry=retry_if_exception_type(SubstrateRequestException), retry_error_callback=on_retry_error)
+        @retry(
+            stop=stop_after_attempt(3),
+            wait=wait_fixed(1),
+            retry=retry_if_exception_type(SubstrateRequestException),
+            retry_error_callback=on_retry_error,
+        )
         async def make_substrate_call_with_retry():
             block_hash = (
                 None if block is None else await self.substrate.get_block_hash(block)
@@ -4236,7 +4351,12 @@ class Subtensor:
         subnet, including its governance, performance, and role within the broader network.
         """
 
-        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), retry=retry_if_exception_type(SubstrateRequestException), retry_error_callback=on_retry_error)
+        @retry(
+            stop=stop_after_attempt(3),
+            wait=wait_fixed(1),
+            retry=retry_if_exception_type(SubstrateRequestException),
+            retry_error_callback=on_retry_error,
+        )
         async def make_substrate_call_with_retry():
             block_hash = (
                 None if block is None else await self.substrate.get_block_hash(block)
@@ -4397,7 +4517,12 @@ class Subtensor:
         the Bittensor network's consensus and governance structures.
         """
 
-        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), retry=retry_if_exception_type(SubstrateRequestException), retry_error_callback=on_retry_error)
+        @retry(
+            stop=stop_after_attempt(3),
+            wait=wait_fixed(1),
+            retry=retry_if_exception_type(SubstrateRequestException),
+            retry_error_callback=on_retry_error,
+        )
         async def make_substrate_call_with_retry(encoded_hotkey_: List[int]):
             block_hash = None if block is None else self.substrate.get_block_hash(block)
 
@@ -4436,7 +4561,12 @@ class Subtensor:
 
         """
 
-        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), retry=retry_if_exception_type(SubstrateRequestException), retry_error_callback=on_retry_error)
+        @retry(
+            stop=stop_after_attempt(3),
+            wait=wait_fixed(1),
+            retry=retry_if_exception_type(SubstrateRequestException),
+            retry_error_callback=on_retry_error,
+        )
         async def make_substrate_call_with_retry():
             block_hash = (
                 None if block is None else await self.substrate.get_block_hash(block)
@@ -4470,7 +4600,12 @@ class Subtensor:
 
         """
 
-        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), retry=retry_if_exception_type(SubstrateRequestException), retry_error_callback=on_retry_error)
+        @retry(
+            stop=stop_after_attempt(3),
+            wait=wait_fixed(1),
+            retry=retry_if_exception_type(SubstrateRequestException),
+            retry_error_callback=on_retry_error,
+        )
         async def make_substrate_call_with_retry():
             block_hash = (
                 None
@@ -4508,7 +4643,12 @@ class Subtensor:
         involvement in the network's delegation and consensus mechanisms.
         """
 
-        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), retry=retry_if_exception_type(SubstrateRequestException), retry_error_callback=on_retry_error)
+        @retry(
+            stop=stop_after_attempt(3),
+            wait=wait_fixed(1),
+            retry=retry_if_exception_type(SubstrateRequestException),
+            retry_error_callback=on_retry_error,
+        )
         async def make_substrate_call_with_retry(encoded_coldkey_: List[int]):
             block_hash = (
                 None if block is None else await self.substrate.get_block_hash(block)
@@ -4623,7 +4763,12 @@ class Subtensor:
             Exception: If the substrate call fails after the maximum number of retries.
         """
 
-        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), retry=retry_if_exception_type(SubstrateRequestException), retry_error_callback=on_retry_error)
+        @retry(
+            stop=stop_after_attempt(3),
+            wait=wait_fixed(1),
+            retry=retry_if_exception_type(SubstrateRequestException),
+            retry_error_callback=on_retry_error,
+        )
         async def make_substrate_call_with_retry():
             return await self.substrate.query(
                 module="SubtensorModule", storage_function="NominatorMinRequiredStake"
@@ -4889,7 +5034,12 @@ class Subtensor:
         if uid is None:
             return NeuronInfo.get_null_neuron()
 
-        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), retry=retry_if_exception_type(SubstrateRequestException), retry_error_callback=on_retry_error)
+        @retry(
+            stop=stop_after_attempt(3),
+            wait=wait_fixed(1),
+            retry=retry_if_exception_type(SubstrateRequestException),
+            retry_error_callback=on_retry_error,
+        )
         async def make_substrate_call_with_retry():
             block_hash = (
                 None if block is None else await self.substrate.get_block_hash(block)
@@ -5234,7 +5384,12 @@ class Subtensor:
             bool: ``True`` if the delegation is successful, ``False`` otherwise.
         """
 
-        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), retry=retry_if_exception_type(SubstrateRequestException), retry_error_callback=on_retry_error)
+        @retry(
+            stop=stop_after_attempt(3),
+            wait=wait_fixed(1),
+            retry=retry_if_exception_type(SubstrateRequestException),
+            retry_error_callback=on_retry_error,
+        )
         async def make_substrate_call_with_retry():
             call = await self.substrate.compose_call(
                 call_module="SubtensorModule",
@@ -5285,7 +5440,12 @@ class Subtensor:
             bool: ``True`` if the undelegation is successful, ``False`` otherwise.
         """
 
-        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), retry=retry_if_exception_type(SubstrateRequestException), retry_error_callback=on_retry_error)
+        @retry(
+            stop=stop_after_attempt(3),
+            wait=wait_fixed(1),
+            retry=retry_if_exception_type(SubstrateRequestException),
+            retry_error_callback=on_retry_error,
+        )
         async def make_substrate_call_with_retry():
             call = await self.substrate.compose_call(
                 call_module="SubtensorModule",
@@ -5335,7 +5495,12 @@ class Subtensor:
             bool: ``True`` if the nomination is successful, ``False`` otherwise.
         """
 
-        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), retry=retry_if_exception_type(SubstrateRequestException), retry_error_callback=on_retry_error)
+        @retry(
+            stop=stop_after_attempt(3),
+            wait=wait_fixed(1),
+            retry=retry_if_exception_type(SubstrateRequestException),
+            retry_error_callback=on_retry_error,
+        )
         async def make_substrate_call_with_retry():
             call = await self.substrate.compose_call(
                 call_module="SubtensorModule",
@@ -5386,7 +5551,12 @@ class Subtensor:
             bool: ``True`` if the take rate increase is successful, ``False`` otherwise.
         """
 
-        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), retry=retry_if_exception_type(SubstrateRequestException), retry_error_callback=on_retry_error)
+        @retry(
+            stop=stop_after_attempt(3),
+            wait=wait_fixed(1),
+            retry=retry_if_exception_type(SubstrateRequestException),
+            retry_error_callback=on_retry_error,
+        )
         async def make_substrate_call_with_retry():
             call = await self.substrate.compose_call(
                 call_module="SubtensorModule",
@@ -5440,7 +5610,12 @@ class Subtensor:
             bool: ``True`` if the take rate decrease is successful, ``False`` otherwise.
         """
 
-        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), retry=retry_if_exception_type(SubstrateRequestException), retry_error_callback=on_retry_error)
+        @retry(
+            stop=stop_after_attempt(3),
+            wait=wait_fixed(1),
+            retry=retry_if_exception_type(SubstrateRequestException),
+            retry_error_callback=on_retry_error,
+        )
         async def make_substrate_call_with_retry():
             call = await self.substrate.compose_call(
                 call_module="SubtensorModule",
@@ -5490,7 +5665,12 @@ class Subtensor:
         """
         try:
 
-            @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), retry=retry_if_exception_type(SubstrateRequestException), retry_error_callback=on_retry_error)
+            @retry(
+                stop=stop_after_attempt(3),
+                wait=wait_fixed(1),
+                retry=retry_if_exception_type(SubstrateRequestException),
+                retry_error_callback=on_retry_error,
+            )
             async def make_substrate_call_with_retry():
                 return await self.substrate.query(
                     module="System",
@@ -5523,7 +5703,12 @@ class Subtensor:
         operations on the blockchain. It serves as a reference point for network activities and data synchronization.
         """
 
-        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), retry=retry_if_exception_type(SubstrateRequestException), retry_error_callback=on_retry_error)
+        @retry(
+            stop=stop_after_attempt(3),
+            wait=wait_fixed(1),
+            retry=retry_if_exception_type(SubstrateRequestException),
+            retry_error_callback=on_retry_error,
+        )
         async def make_substrate_call_with_retry():
             return await self.substrate.get_block_number(None)  # type: ignore
 
@@ -5544,7 +5729,12 @@ class Subtensor:
         including the distribution of financial resources and the financial status of network participants.
         """
 
-        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), retry=retry_if_exception_type(SubstrateRequestException), retry_error_callback=on_retry_error)
+        @retry(
+            stop=stop_after_attempt(3),
+            wait=wait_fixed(1),
+            retry=retry_if_exception_type(SubstrateRequestException),
+            retry_error_callback=on_retry_error,
+        )
         async def make_substrate_call_with_retry():
             return await self.substrate.query_map(
                 module="System",
