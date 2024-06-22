@@ -15,6 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import unicodedata
 import rich
 import argparse
 import bittensor
@@ -262,7 +263,8 @@ class SubnetListCommand:
             total_emission += subnet.emission_value
             tao_locked = subnet.tao_locked
             total_tao_locked += tao_locked
-            sn_symbol = "({})".format(bittensor.Balance.get_unit(subnet.netuid))
+
+            sn_symbol = f"{bittensor.Balance.get_unit(subnet.netuid)}\u200E"
             alpha_out_str = "{}{:,.4f}".format(sn_symbol, pool.alpha_outstanding.__float__())
             if pool.is_dynamic:
                 n_dtao += 1
@@ -277,8 +279,8 @@ class SubnetListCommand:
                     "[indian_red]D[/indian_red]" if pool.is_dynamic else "[light_sky_blue3]sTAO[/light_sky_blue3]",
                     "{:.8}".format( str(bittensor.Balance.from_rao(subnet.emission_value)) ),
                     str( bittensor.Balance.from_tao( tao_locked.tao ) ),
-                    "P(" + str( pool.tao_reserve ) + ",",
-                    str( pool.alpha_reserve ) + ")",
+                    "P({},".format(pool.tao_reserve.__str__()),
+                    "{:.4f}{})".format(pool.alpha_reserve.__float__(), sn_symbol),
                     str( alpha_out_str if pool.is_dynamic else tao_locked ),
                     "{:.4f}{}".format( pool.price.__float__(), f"τ/{sn_symbol}") if pool.is_dynamic else "[grey0]NA[/grey0]",
                     str(subnet.hyperparameters["tempo"]),
@@ -286,7 +288,7 @@ class SubnetListCommand:
                     f"{delegate_info[subnet.owner_ss58].name if subnet.owner_ss58 in delegate_info else subnet.owner_ss58[:5] + '...' + subnet.owner_ss58[-5:]}",
                 )
             )
-        console_width = bittensor.__console__.width
+        console_width = bittensor.__console__.width-5
 
         table = Table(
             title="Subnet Info",
