@@ -288,7 +288,7 @@ class SubnetListCommand:
                     f"{delegate_info[subnet.owner_ss58].name if subnet.owner_ss58 in delegate_info else subnet.owner_ss58[:5] + '...' + subnet.owner_ss58[-5:]}",
                 )
             )
-        console_width = bittensor.__console__.width - 10
+        console_width = bittensor.__console__.width - 5
 
         table = Table(
             title="Subnet Info",
