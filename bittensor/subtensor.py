@@ -4464,7 +4464,8 @@ class Subtensor:
 
             return await self.substrate.rpc_request(
                 method="delegateInfo_getDelegates",  # custom rpc method
-                params=[block_hash] if block_hash else [],
+                params=[],
+                block_hash=block_hash
             )
 
         json_body = await make_substrate_call_with_retry()
