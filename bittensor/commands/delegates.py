@@ -798,7 +798,7 @@ class NominateCommand:
             # Prompt use to set identity on chain.
             if not cli.config.no_prompt:
                 do_set_identity = Prompt.ask(
-                    f"Subnetwork registered successfully. Would you like to set your identity? [y/n]",
+                    "Subnetwork registered successfully. Would you like to set your identity? [y/n]",
                     choices=["y", "n"],
                 )
 
@@ -1101,7 +1101,7 @@ class SetTakeCommand:
         # Prompt user for take value.
         new_take_str = config.get("take")
         if new_take_str is None:
-            new_take = FloatPrompt.ask(f"Enter take value (0.18 for 18%)")
+            new_take = FloatPrompt.ask("Enter take value (0.18 for 18%)")
         else:
             new_take = float(new_take_str)
 

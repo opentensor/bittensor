@@ -52,7 +52,7 @@ async def commit_weights_extrinsic(
     This function provides a user-friendly interface for committing weights to the Bittensor blockchain, ensuring proper
     error handling and user interaction when required.
     """
-    if prompt and not Confirm.ask(f"Would you like to commit weights?"):
+    if prompt and not Confirm.ask("Would you like to commit weights?"):
         return False, "User cancelled the operation."
 
     success, error_message = await subtensor.do_commit_weights(
@@ -104,7 +104,7 @@ async def reveal_weights_extrinsic(
     error handling and user interaction when required.
     """
 
-    if prompt and not Confirm.ask(f"Would you like to reveal weights?"):
+    if prompt and not Confirm.ask("Would you like to reveal weights?"):
         return False, "User cancelled the operation."
 
     success, error_message = await subtensor.do_reveal_weights(

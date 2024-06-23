@@ -19,7 +19,6 @@
 """This module provides functionality for interacting with the senate features of the Bittensor blockchain."""
 
 import asyncio
-import time
 
 from rich.prompt import Confirm
 
@@ -51,7 +50,7 @@ async def register_senate_extrinsic(
 
     if prompt:
         # Prompt user for confirmation.
-        if not Confirm.ask(f"Register delegate hotkey to senate?"):
+        if not Confirm.ask("Register delegate hotkey to senate?"):
             return False
 
     with bittensor.__console__.status(":satellite: Registering with senate..."):
@@ -122,7 +121,7 @@ async def leave_senate_extrinsic(
 
     if prompt:
         # Prompt user for confirmation.
-        if not Confirm.ask(f"Remove delegate hotkey from senate?"):
+        if not Confirm.ask("Remove delegate hotkey from senate?"):
             return False
 
     with bittensor.__console__.status(":satellite: Leaving senate..."):
@@ -233,7 +232,7 @@ async def vote_senate_extrinsic(
             bittensor.__console__.print(
                 f":cross_mark: [red]Failed[/red]: error: {format_error_message(response.error_message)}"
             )
-            time.sleep(0.5)
+            await asyncio.sleep(0.5)
 
         # Successful vote, final check for data
         else:

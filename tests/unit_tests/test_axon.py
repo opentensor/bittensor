@@ -314,7 +314,9 @@ async def test_verify_body_integrity_edge_cases(
     # Act & Assert
     with pytest.raises(Exception) as exc_info:
         await axon_instance.verify_body_integrity(mock_request)
-    assert expected_exception_message in str(exc_info.value), "Expected specific exception message."
+    assert expected_exception_message in str(
+        exc_info.value
+    ), "Expected specific exception message."
 
 
 @pytest.mark.parametrize(

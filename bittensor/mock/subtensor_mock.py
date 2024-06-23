@@ -17,7 +17,6 @@
 
 import asyncio
 import unittest.mock
-from abc import abstractclassmethod
 from collections.abc import Mapping
 from dataclasses import dataclass
 from hashlib import sha256
@@ -73,7 +72,7 @@ BlockNumber = int
 
 
 class InfoDict(Mapping):
-    @abstractclassmethod
+    @classmethod
     def default(cls):
         raise NotImplementedError
 
@@ -280,7 +279,7 @@ class MockSubtensor(Subtensor):
             self.substrate = unittest.mock.AsyncMock()
 
     def __init__(self, *args, **kwargs) -> None:
-        super().__init__()
+        super().__init__(*args, **kwargs)
         self.__dict__ = __GLOBAL_MOCK_STATE__
 
         if not hasattr(self, "chain_state") or getattr(self, "chain_state") is None:
@@ -1017,11 +1016,11 @@ class MockSubtensor(Subtensor):
         wait_for_finalization: bool = False,
     ) -> bool:
         # Check if delegate
-        if not self.is_hotkey_delegate(hotkey_ss58=delegate_ss58):
+        if not await self.is_hotkey_delegate(hotkey_ss58=delegate_ss58):
             raise Exception("Not a delegate")
 
         # do stake
-        success = self.do_stake(
+        success = await self.do_stake(
             wallet=wallet,
             hotkey_ss58=delegate_ss58,
             amount=amount,
@@ -1040,11 +1039,11 @@ class MockSubtensor(Subtensor):
         wait_for_finalization: bool = False,
     ) -> bool:
         # Check if delegate
-        if not self.is_hotkey_delegate(hotkey_ss58=delegate_ss58):
+        if not await self.is_hotkey_delegate(hotkey_ss58=delegate_ss58):
             raise Exception("Not a delegate")
 
         # do unstake
-        await self.do_unstake(
+        return await self.do_unstake(
             wallet=wallet,
             hotkey_ss58=delegate_ss58,
             amount=amount,
@@ -1059,10 +1058,9 @@ class MockSubtensor(Subtensor):
         wait_for_finalization: bool = False,
     ) -> bool:
         hotkey_ss58 = wallet.hotkey.ss58_address
-        coldkey_ss58 = wallet.coldkeypub.ss58_address
 
         subtensor_state = self.chain_state["SubtensorModule"]
-        if self.is_hotkey_delegate(hotkey_ss58=hotkey_ss58):
+        if await self.is_hotkey_delegate(hotkey_ss58=hotkey_ss58):
             return True
 
         else:
@@ -1088,8 +1086,7 @@ class MockSubtensor(Subtensor):
     ) -> Tuple[bool, Optional[str], Optional[str]]:
         bal = await self.get_balance(wallet.coldkeypub.ss58_address)
         dest_bal = await self.get_balance(dest)
-        transfer_fee = self.get_transfer_fee(wallet, dest, transfer_balance)
-
+        transfer_fee = await self.get_transfer_fee(wallet, dest, transfer_balance)
         existential_deposit = await self.get_existential_deposit()
 
         if bal < transfer_balance + existential_deposit + transfer_fee:
@@ -1143,9 +1140,9 @@ class MockSubtensor(Subtensor):
         if netuid not in subtensor_state["NetworksAdded"]:
             raise Exception("Subnet does not exist")
 
-        bal = self.get_balance(wallet.coldkeypub.ss58_address)
-        burn = self.recycle(netuid=netuid)
-        existential_deposit = self.get_existential_deposit()
+        bal = await self.get_balance(wallet.coldkeypub.ss58_address)
+        burn = await self.recycle(netuid=netuid)
+        existential_deposit = await self.get_existential_deposit()
 
         if bal < burn + existential_deposit:
             raise Exception("Insufficient funds")
@@ -1173,13 +1170,13 @@ class MockSubtensor(Subtensor):
     ) -> bool:
         subtensor_state = self.chain_state["SubtensorModule"]
 
-        bal = self.get_balance(wallet.coldkeypub.ss58_address)
-        curr_stake = self.get_stake_for_coldkey_and_hotkey(
+        bal = await self.get_balance(wallet.coldkeypub.ss58_address)
+        curr_stake = await self.get_stake_for_coldkey_and_hotkey(
             hotkey_ss58=hotkey_ss58, coldkey_ss58=wallet.coldkeypub.ss58_address
         )
         if curr_stake is None:
             curr_stake = Balance(0)
-        existential_deposit = self.get_existential_deposit()
+        existential_deposit = await self.get_existential_deposit()
 
         if bal < amount + existential_deposit:
             raise Exception("Insufficient funds")
@@ -1187,9 +1184,9 @@ class MockSubtensor(Subtensor):
         stake_state = subtensor_state["Stake"]
 
         # Stake the funds
-        if not hotkey_ss58 in stake_state:
+        if hotkey_ss58 not in stake_state:
             stake_state[hotkey_ss58] = {}
-        if not wallet.coldkeypub.ss58_address in stake_state[hotkey_ss58]:
+        if wallet.coldkeypub.ss58_address not in stake_state[hotkey_ss58]:
             stake_state[hotkey_ss58][wallet.coldkeypub.ss58_address] = {}
 
         stake_state[hotkey_ss58][wallet.coldkeypub.ss58_address][self.block_number] = (
@@ -1202,19 +1199,19 @@ class MockSubtensor(Subtensor):
         )
 
         total_hotkey_stake_state = subtensor_state["TotalHotkeyStake"]
-        if not hotkey_ss58 in total_hotkey_stake_state:
+        if hotkey_ss58 not in total_hotkey_stake_state:
             total_hotkey_stake_state[hotkey_ss58] = {}
 
         total_coldkey_stake_state = subtensor_state["TotalColdkeyStake"]
-        if not wallet.coldkeypub.ss58_address in total_coldkey_stake_state:
+        if wallet.coldkeypub.ss58_address not in total_coldkey_stake_state:
             total_coldkey_stake_state[wallet.coldkeypub.ss58_address] = {}
 
-        curr_total_hotkey_stake = self.query_subtensor(
+        curr_total_hotkey_stake = await self.query_subtensor(
             name="TotalHotkeyStake",
             params=[hotkey_ss58],
             block=min(self.block_number - 1, 0),
         )
-        curr_total_coldkey_stake = self.query_subtensor(
+        curr_total_coldkey_stake = await self.query_subtensor(
             name="TotalColdkeyStake",
             params=[wallet.coldkeypub.ss58_address],
             block=min(self.block_number - 1, 0),
@@ -1276,14 +1273,14 @@ class MockSubtensor(Subtensor):
         )
 
         total_hotkey_stake_state = subtensor_state["TotalHotkeyStake"]
-        if not hotkey_ss58 in total_hotkey_stake_state:
+        if hotkey_ss58 not in total_hotkey_stake_state:
             total_hotkey_stake_state[hotkey_ss58] = {}
             total_hotkey_stake_state[hotkey_ss58][self.block_number] = (
                 0  # Shouldn't happen
             )
 
         total_coldkey_stake_state = subtensor_state["TotalColdkeyStake"]
-        if not wallet.coldkeypub.ss58_address in total_coldkey_stake_state:
+        if wallet.coldkeypub.ss58_address in total_coldkey_stake_state:
             total_coldkey_stake_state[wallet.coldkeypub.ss58_address] = {}
             total_coldkey_stake_state[wallet.coldkeypub.ss58_address][
                 self.block_number
@@ -1317,7 +1314,7 @@ class MockSubtensor(Subtensor):
         # valid minimum threshold as of 2024/05/01
         return 100_000_000  # RAO
 
-    async def get_minimum_required_stake(self):
+    async def get_minimum_required_stake(self) -> "Balance":
         return Balance.from_rao(self.min_required_stake())
 
     async def get_delegate_by_hotkey(
@@ -1354,7 +1351,7 @@ class MockSubtensor(Subtensor):
 
         info = DelegateInfo(
             hotkey_ss58=hotkey_ss58,
-            total_stake=self.get_total_stake_for_hotkey(ss58_address=hotkey_ss58)
+            total_stake=await self.get_total_stake_for_hotkey(ss58_address=hotkey_ss58)
             or Balance(0),
             nominators=nom_result,
             owner_ss58=await self.get_hotkey_owner(
@@ -1364,7 +1361,9 @@ class MockSubtensor(Subtensor):
             validator_permits=[
                 subnet
                 for subnet, uid in registered_subnets
-                if self.neuron_has_validator_permit(uid=uid, netuid=subnet, block=block)
+                if await self.neuron_has_validator_permit(
+                    uid=uid, netuid=subnet, block=block
+                )
             ],
             registrations=[subnet for subnet, _ in registered_subnets],
             return_per_1000=Balance.from_tao(1234567),  # Doesn't matter for mock?
@@ -1456,6 +1455,7 @@ class MockSubtensor(Subtensor):
             query_subnet_info(name="Burn"),
             query_subnet_info(name="SubnetOwner"),
         )
+
         info = SubnetInfo(
             netuid=netuid,
             rho=rho,
@@ -1473,8 +1473,10 @@ class MockSubtensor(Subtensor):
             modality=modality,
             connection_requirements={
                 str(netuid_.value): percentile.value
-                for netuid_, percentile in self.query_map_subtensor(
-                    name="NetworkConnect", block=block, params=[netuid]
+                for netuid_, percentile in (
+                    await self.query_map_subtensor(
+                        name="NetworkConnect", block=block, params=[netuid]
+                    )
                 ).records
             },
             emission_value=emission_value,
@@ -1496,9 +1498,9 @@ class MockSubtensor(Subtensor):
     async def do_set_weights(
         self,
         wallet: "wallet",
-        netuid: int,
-        uids: int,
+        uids: List[int],
         vals: List[int],
+        netuid: int,
         version_key: int,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
