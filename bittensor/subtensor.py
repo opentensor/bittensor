@@ -3108,7 +3108,8 @@ class Subtensor:
 
             return await self.substrate.rpc_request(
                 method="state_call",
-                params=[method, data, block_hash] if block_hash else [method, data],
+                params=[method, data],
+                block_hash=block_hash
             )
 
         return await make_substrate_call_with_retry()
@@ -4194,7 +4195,8 @@ class Subtensor:
 
             return await self.substrate.rpc_request(
                 method="subnetInfo_getSubnetsInfo",  # custom rpc method
-                params=[block_hash] if block_hash else [],
+                params=[],
+                block_hash=block_hash
             )
 
         json_body = await make_substrate_call_with_retry()
@@ -4229,7 +4231,8 @@ class Subtensor:
             )
             return await self.substrate.rpc_request(
                 method="subnetInfo_getSubnetInfo",  # custom rpc method
-                params=[netuid, block_hash] if block_hash else [netuid],
+                params=[netuid],
+                block_hash=block_hash
             )
 
         json_body = await make_substrate_call_with_retry()
@@ -4389,9 +4392,8 @@ class Subtensor:
 
             return await self.substrate.rpc_request(
                 method="delegateInfo_getDelegate",  # custom rpc method
-                params=(
-                    [encoded_hotkey_, block_hash] if block_hash else [encoded_hotkey_]
-                ),
+                params=[encoded_hotkey_],
+                block_hash=block_hash
             )
 
         encoded_hotkey = ss58_to_vec_u8(hotkey_ss58)
@@ -4430,7 +4432,8 @@ class Subtensor:
 
             return await self.substrate.rpc_request(
                 method="delegateInfo_getDelegatesLite",  # custom rpc method
-                params=[block_hash] if block_hash else [],
+                params=[],
+                block_hash=block_hash
             )
 
         json_body = await make_substrate_call_with_retry()
@@ -4501,9 +4504,8 @@ class Subtensor:
 
             return await self.substrate.rpc_request(
                 method="delegateInfo_getDelegated",
-                params=(
-                    [block_hash, encoded_coldkey_] if block_hash else [encoded_coldkey_]
-                ),
+                params=[encoded_coldkey_],
+                block_hash=block_hash
             )
 
         encoded_coldkey = ss58_to_vec_u8(coldkey_ss58)
@@ -4880,11 +4882,10 @@ class Subtensor:
                 None if block is None else await self.substrate.get_block_hash(block)
             )
             params = [netuid, uid]
-            if block_hash:
-                params = params + [block_hash]
             return await self.substrate.rpc_request(
                 method="neuronInfo_getNeuron",
                 params=params,  # custom rpc method
+                block_hash=block_hash
             )
 
         json_body = await make_substrate_call_with_retry()
