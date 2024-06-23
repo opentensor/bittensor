@@ -248,7 +248,7 @@ class Subtensor:
 
         # Attempt to connect to chosen endpoint. Fallback to finney if local unavailable.
         try:
-            self.substrate = AsyncSubstrateInterface(bittensor.__finney_entrypoint__)
+            self.substrate = AsyncSubstrateInterface(chain_endpoint=self.chain_endpoint)
         except ConnectionRefusedError:
             bittensor.logging.error(
                 f"Could not connect to {self.network} network with {self.chain_endpoint} chain endpoint. Exiting...",
