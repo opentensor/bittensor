@@ -59,7 +59,7 @@ async def test_register_senate_extrinsic(
     # Arrange
     with patch(
         "bittensor.extrinsics.senate.Confirm.ask", return_value=not prompt
-    ), patch("bittensor.extrinsics.senate.time.sleep"), patch.object(
+    ), patch("bittensor.extrinsics.senate.asyncio.sleep"), patch.object(
         mock_subtensor.substrate, "compose_call"
     ), patch.object(mock_subtensor.substrate, "create_signed_extrinsic"), patch.object(
         mock_subtensor.substrate,
@@ -153,7 +153,7 @@ async def test_vote_senate_extrinsic(
 
     with patch(
         "bittensor.extrinsics.senate.Confirm.ask", return_value=not prompt
-    ), patch("bittensor.extrinsics.senate.time.sleep"), patch.object(
+    ), patch("bittensor.extrinsics.senate.asyncio.sleep"), patch.object(
         mock_subtensor.substrate, "compose_call"
     ), patch.object(mock_subtensor.substrate, "create_signed_extrinsic"), patch.object(
         mock_subtensor.substrate,
@@ -218,7 +218,7 @@ async def test_leave_senate_extrinsic(
     # Arrange
     with patch(
         "bittensor.extrinsics.senate.Confirm.ask", return_value=not prompt
-    ), patch("bittensor.extrinsics.senate.time.sleep"), patch.object(
+    ), patch("bittensor.extrinsics.senate.asyncio.sleep"), patch.object(
         mock_subtensor.substrate, "compose_call"
     ), patch.object(mock_subtensor.substrate, "create_signed_extrinsic"), patch.object(
         mock_subtensor.substrate,
