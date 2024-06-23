@@ -1,3 +1,21 @@
+# The MIT License (MIT)
+# Copyright © 2021 Yuma Rao
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
+# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+# the Software.
+#
+# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
+
+
 import argparse
 from rich.table import Table
 from rich.prompt import Prompt
@@ -55,19 +73,21 @@ class SetIdentityCommand:
         part of other scripts or applications.
     """
 
-    def run(cli: "bittensor.cli"):
+    @staticmethod
+    async def run(cli: "bittensor.cli"):
         r"""Create a new or update existing identity on-chain."""
         try:
             subtensor: "bittensor.subtensor" = bittensor.subtensor(
                 config=cli.config, log_verbose=False
             )
-            SetIdentityCommand._run(cli, subtensor)
+            await SetIdentityCommand._run(cli, subtensor)
         finally:
             if "subtensor" in locals():
-                subtensor.close()
+                await subtensor.close()
                 bittensor.logging.debug("closing subtensor connection")
 
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+    @staticmethod
+    async def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""Create a new or update existing identity on-chain."""
         console = bittensor.__console__
 
@@ -118,7 +138,7 @@ class SetIdentityCommand:
         wallet.coldkey  # unlock coldkey
         with console.status(":satellite: [bold green]Updating identity on-chain..."):
             try:
-                subtensor.update_identity(
+                await subtensor.update_identity(
                     identified=identified,
                     wallet=wallet,
                     params=id_dict,
@@ -129,7 +149,9 @@ class SetIdentityCommand:
 
             console.print(":white_heavy_check_mark: Success!")
 
-        identity = subtensor.query_identity(identified or wallet.coldkey.ss58_address)
+        identity = await subtensor.query_identity(
+            identified or wallet.coldkey.ss58_address
+        )
 
         table = Table(title="[bold white italic]Updated On-Chain Identity")
         table.add_column("Key", justify="right", style="cyan", no_wrap=True)
@@ -142,7 +164,7 @@ class SetIdentityCommand:
         console.print(table)
 
     @staticmethod
-    def check_config(config: "bittensor.config"):
+    async def check_config(config: "bittensor.config"):
         if not config.is_set("wallet.name") and not config.no_prompt:
             config.wallet.name = Prompt.ask(
                 "Enter wallet name", default=bittensor.defaults.wallet.name
@@ -272,23 +294,25 @@ class GetIdentityCommand:
         primarily used for informational purposes and has no side effects on the network state.
     """
 
-    def run(cli: "bittensor.cli"):
+    @staticmethod
+    async def run(cli: "bittensor.cli"):
         r"""Queries the subtensor chain for user identity."""
         try:
             subtensor: "bittensor.subtensor" = bittensor.subtensor(
                 config=cli.config, log_verbose=False
             )
-            GetIdentityCommand._run(cli, subtensor)
+            await GetIdentityCommand._run(cli, subtensor)
         finally:
             if "subtensor" in locals():
-                subtensor.close()
+                await subtensor.close()
                 bittensor.logging.debug("closing subtensor connection")
 
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+    @staticmethod
+    async def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         console = bittensor.__console__
 
         with console.status(":satellite: [bold green]Querying chain identity..."):
-            identity = subtensor.query_identity(cli.config.key)
+            identity = await subtensor.query_identity(cli.config.key)
 
         table = Table(title="[bold white italic]On-Chain Identity")
         table.add_column("Item", justify="right", style="cyan", no_wrap=True)
@@ -301,7 +325,7 @@ class GetIdentityCommand:
         console.print(table)
 
     @staticmethod
-    def check_config(config: "bittensor.config"):
+    async def check_config(config: "bittensor.config"):
         if not config.is_set("key") and not config.no_prompt:
             config.key = Prompt.ask(
                 "Enter coldkey or hotkey ss58 address", default=None

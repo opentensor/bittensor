@@ -1,22 +1,21 @@
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
-
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
 # the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
+#
 # The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
-
+#
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
 # THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
-"""
-This module contains the metagraph command, its calculation, and table output logic
-"""
+
+"""This module contains the metagraph command, its calculation, and table output logic."""
 
 import argparse
 import asyncio
@@ -24,7 +23,6 @@ import asyncio
 from rich.table import Table
 
 import bittensor
-
 from .utils import check_netuid_set
 
 console = bittensor.__console__  # type: ignore
@@ -77,20 +75,21 @@ class MetagraphCommand:
     """
 
     @staticmethod
-    def run(cli: "bittensor.cli"):
-        r"""Prints an entire metagraph."""
+    async def run(cli: "bittensor.cli"):
+        """Prints an entire metagraph."""
         try:
             subtensor: "bittensor.subtensor" = bittensor.subtensor(
                 config=cli.config, log_verbose=False
             )
-            asyncio.run(MetagraphCommand._run(cli, subtensor))
+            await MetagraphCommand._run(cli, subtensor)
         finally:
             if "subtensor" in locals():
-                subtensor.close()
+                await subtensor.close()
                 bittensor.logging.debug("closing subtensor connection")
 
+    @staticmethod
     async def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
-        r"""Prints an entire metagraph."""
+        """Prints an entire metagraph."""
         console = bittensor.__console__
         console.print(
             ":satellite: Syncing with chain: [white]{}[/white] ...".format(
@@ -102,13 +101,11 @@ class MetagraphCommand:
         )
         metagraph.save()
 
-        difficulty, subnet_emission_, total_issuance_ = await asyncio.gather(
+        difficulty, total_issuance_ = await asyncio.gather(
             subtensor.difficulty(cli.config.netuid),
-            subtensor.get_emission_value_by_subnet(cli.config.netuid),
             subtensor.total_issuance(),
         )
-        subnet_emission = bittensor.Balance.from_tao(subnet_emission_)
-        total_issuance = bittensor.Balance.from_rao(total_issuance_).rao
+        total_issuance = bittensor.Balance.from_rao(total_issuance_.rao).rao
 
         TABLE_DATA = []
         total_stake = 0.0

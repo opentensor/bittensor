@@ -1,5 +1,26 @@
 #!/usr/bin/env python
 
+# The MIT License (MIT)
+# Copyright © 2021 Yuma Rao
+# Copyright © 2022 Opentensor Foundation
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
+# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+# the Software.
+#
+# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
+
+"""This module provides the command-line interface (CLI) entry point for Bittensor."""
+
+import asyncio
 import sys
 
 import shtab
@@ -9,7 +30,10 @@ import bittensor
 from bittensor import cli as btcli
 
 
-def main():
+bittensor.logging.on()
+
+
+async def main():
     # Create the parser with shtab support
     parser = btcli.__create_parser__()
     args, unknown = parser.parse_known_args()
@@ -19,8 +43,8 @@ def main():
         return
 
     try:
-        cli_instance = btcli(args=sys.argv[1:])
-        cli_instance.run()
+        async with btcli(args=sys.argv[1:]) as cli_instance:
+            await cli_instance.run()
     except KeyboardInterrupt:
         print('KeyboardInterrupt')
     except RuntimeError as e:
@@ -30,22 +54,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
-
-# The MIT License (MIT)
-# Copyright © 2021 Yuma Rao
-# Copyright © 2022 Opentensor Foundation
-
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation 
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, 
-# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of 
-# the Software.
-
-# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
-# DEALINGS IN THE SOFTWARE.
+    asyncio.run(main())

@@ -14,7 +14,7 @@ template_path = os.getcwd() + "/neurons/"
 repo_name = "templates repository"
 
 
-def setup_wallet(uri: str):
+async def setup_wallet(uri: str):
     keypair = Keypair.create_from_uri(uri)
     wallet_path = "/tmp/btcli-e2e-wallet-{}".format(uri.strip("/"))
     wallet = bittensor.wallet(path=wallet_path)
@@ -22,7 +22,7 @@ def setup_wallet(uri: str):
     wallet.set_coldkeypub(keypair=keypair, encrypt=False, overwrite=True)
     wallet.set_hotkey(keypair=keypair, encrypt=False, overwrite=True)
 
-    def exec_command(command, extra_args: List[str]):
+    async def exec_command(command, extra_args: List[str]):
         parser = bittensor.cli.__create_parser__()
         args = extra_args + [
             "--no_prompt",
@@ -37,8 +37,9 @@ def setup_wallet(uri: str):
             parser=parser,
             args=args,
         )
-        cli_instance = bittensor.cli(config)
-        command.run(cli_instance)
+        # cli_instance = bittensor.cli(config)
+        async with bittensor.cli(config) as cli_instance:
+            await command.run(cli_instance)
 
     return keypair, exec_command, wallet
 

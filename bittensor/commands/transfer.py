@@ -1,15 +1,15 @@
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 # Copyright © 2022 Opentensor Foundation
-
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
 # the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
+#
 # The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
-
+#
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
 # THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
@@ -50,23 +50,23 @@ class TransferCommand:
     """
 
     @staticmethod
-    def run(cli: "bittensor.cli"):
-        r"""Transfer token of amount to destination."""
+    async def run(cli: "bittensor.cli"):
+        """Transfer token of amount to destination."""
         try:
             subtensor: "bittensor.subtensor" = bittensor.subtensor(
                 config=cli.config, log_verbose=False
             )
-            TransferCommand._run(cli, subtensor)
+            await TransferCommand._run(cli, subtensor)
         finally:
             if "subtensor" in locals():
-                subtensor.close()
+                await subtensor.close()
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+    async def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""Transfer token of amount to destination."""
         wallet = bittensor.wallet(config=cli.config)
-        subtensor.transfer(
+        await subtensor.transfer(
             wallet=wallet,
             dest=cli.config.dest,
             amount=cli.config.amount,
@@ -75,7 +75,7 @@ class TransferCommand:
         )
 
     @staticmethod
-    def check_config(config: "bittensor.config"):
+    async def check_config(config: "bittensor.config"):
         if not config.is_set("wallet.name") and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
             config.wallet.name = str(wallet_name)
@@ -93,7 +93,9 @@ class TransferCommand:
             wallet = bittensor.wallet(config=config)
             subtensor = bittensor.subtensor(config=config, log_verbose=False)
             with bittensor.__console__.status(":satellite: Checking Balance..."):
-                account_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
+                account_balance = await subtensor.get_balance(
+                    wallet.coldkeypub.ss58_address
+                )
                 bittensor.__console__.print(
                     "Balance: [green]{}[/green]".format(account_balance)
                 )
@@ -112,11 +114,7 @@ class TransferCommand:
                     )
                     sys.exit()
             else:
-                console.print(
-                    ":cross_mark:[red] Invalid TAO amount[/red] [bold white]{}[/bold white]".format(
-                        amount
-                    )
-                )
+                console.print(":cross_mark:[red] Invalid TAO amount[/red]")
                 sys.exit(1)
 
     @staticmethod

@@ -1,15 +1,15 @@
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 # Copyright © 2023 Opentensor Foundation
-
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
 # the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
+#
 # The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
-
+#
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
 # THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
@@ -51,21 +51,21 @@ class CommitWeightCommand:
     """
 
     @staticmethod
-    def run(cli: "bittensor.cli"):
-        r"""Commit weights for a specific subnet."""
+    async def run(cli: "bittensor.cli"):
+        """Commit weights for a specific subnet."""
         try:
             subtensor: "bittensor.subtensor" = bittensor.subtensor(
                 config=cli.config, log_verbose=False
             )
-            CommitWeightCommand._run(cli, subtensor)
+            await CommitWeightCommand._run(cli, subtensor)
         finally:
             if "subtensor" in locals():
-                subtensor.close()
+                await subtensor.close()
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
-        r"""Commit weights for a specific subnet"""
+    async def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+        """Commit weights for a specific subnet"""
         wallet = bittensor.wallet(config=cli.config)
 
         # Get values if not set
@@ -182,20 +182,20 @@ class RevealWeightCommand:
     """
 
     @staticmethod
-    def run(cli: "bittensor.cli"):
-        r"""Reveal weights for a specific subnet."""
+    async def run(cli: "bittensor.cli"):
+        """Reveal weights for a specific subnet."""
         try:
             subtensor: "bittensor.subtensor" = bittensor.subtensor(
                 config=cli.config, log_verbose=False
             )
-            RevealWeightCommand._run(cli, subtensor)
+            await RevealWeightCommand._run(cli, subtensor)
         finally:
             if "subtensor" in locals():
-                subtensor.close()
+                await subtensor.close()
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+    async def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""Reveal weights for a specific subnet."""
         wallet = bittensor.wallet(config=cli.config)
 
@@ -232,7 +232,7 @@ class RevealWeightCommand:
         )
 
         # Run the reveal weights operation.
-        success, message = subtensor.reveal_weights(
+        success, message = await subtensor.reveal_weights(
             wallet=wallet,
             netuid=netuid,
             uids=weight_uids,
@@ -281,7 +281,7 @@ class RevealWeightCommand:
         bittensor.subtensor.add_args(parser)
 
     @staticmethod
-    def check_config(config: "bittensor.config"):
+    async def check_config(config: "bittensor.config"):
         if not config.is_set("wallet.name") and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
             config.wallet.name = str(wallet_name)

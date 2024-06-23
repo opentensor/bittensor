@@ -1,25 +1,27 @@
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
-
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
 # the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
+#
 # The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
-
+#
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
 # THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import os
 import argparse
-import bittensor
+import os
+
 from rich.prompt import Prompt
 from rich.table import Table
+
+import bittensor
 
 console = bittensor.__console__
 
@@ -49,7 +51,7 @@ class UpdateCommand:
     """
 
     @staticmethod
-    def run(cli):
+    async def run(cli):
         if cli.config.no_prompt or cli.config.answer == "Y":
             os.system(
                 " (cd ~/.bittensor/bittensor/ ; git checkout master ; git pull --ff-only )"
@@ -57,7 +59,7 @@ class UpdateCommand:
             os.system("pip install -e ~/.bittensor/bittensor/")
 
     @staticmethod
-    def check_config(config: "bittensor.config"):
+    async def check_config(config: "bittensor.config"):
         if not config.no_prompt:
             answer = Prompt.ask(
                 "This will update the local bittensor package",
@@ -79,7 +81,7 @@ class AutocompleteCommand:
     """Show users how to install and run autocompletion for Bittensor CLI."""
 
     @staticmethod
-    def run(cli):
+    async def run(cli):
         console = bittensor.__console__
         shell_commands = {
             "Bash": "btcli --print-completion bash >> ~/.bashrc",
@@ -113,5 +115,5 @@ class AutocompleteCommand:
         )
 
     @staticmethod
-    def check_config(config):
+    async def check_config(config):
         pass

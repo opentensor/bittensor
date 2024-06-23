@@ -482,9 +482,9 @@ class Subtensor:
             evaluated_network,
         )
 
-    def close(self):
+    async def close(self):
         """Cleans up resources for this subtensor instance like active websocket connection and active extensions."""
-        self.substrate.close()
+        await self.substrate.close()
 
     ##############
     # Delegation #
@@ -3925,10 +3925,10 @@ class Subtensor:
 
     @property
     async def block(self) -> int:
-        r"""Returns current chain block.
+        """Returns current chain block.
+
         Returns:
-            block (int):
-                Current chain block.
+            block (int): Current chain block.
         """
         return await self.get_current_block()
 
@@ -4459,7 +4459,9 @@ class Subtensor:
         @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
         async def make_substrate_call_with_retry():
             block_hash = (
-                None if block is None else await self.substrate.get_block_hash(block)
+                None
+                if block is None
+                else await self.substrate.get_block_hash(block_id=block)
             )
 
             return await self.substrate.rpc_request(
@@ -5040,7 +5042,6 @@ class Subtensor:
             processes.
         """
         metagraph_ = bittensor.metagraph(network=self.network, netuid=netuid, lite=lite)
-        await metagraph_.sync(block=block, lite=lite, subtensor=self)
 
         return metagraph_
 

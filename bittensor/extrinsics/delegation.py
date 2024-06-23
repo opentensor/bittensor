@@ -32,9 +32,6 @@ from ..errors import (
 )
 
 
-bittensor.logging.on()
-
-
 async def nominate_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",

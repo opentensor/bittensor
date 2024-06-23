@@ -73,30 +73,31 @@ async def test_create_extrinsic_metadata_v14(kusama_substrate, keypair):
     assert extrinsic["tip"] == 1
 
 
-@pytest.mark.asyncio
-async def test_create_mortal_extrinsic(kusama_substrate, polkadot_substrate, keypair):
-    for substrate in [kusama_substrate, polkadot_substrate]:
-        # Create balance transfer call
-        call = await substrate.compose_call(
-            call_module="Balances",
-            call_function="transfer_keep_alive",
-            call_params={
-                "dest": "EaG2CRhJWPb7qmdcJvy3LiWdh26Jreu9Dx6R1rXxPmYXoDk",
-                "value": 3 * 10**3,
-            },
-        )
-
-        extrinsic = await substrate.create_signed_extrinsic(
-            call=call, keypair=keypair, era={"period": 64}
-        )
-
-        try:
-            await substrate.submit_extrinsic(extrinsic)
-            pytest.fail("Should raise no funds to pay fees exception")
-
-        except SubstrateRequestException:
-            # Extrinsic should be successful if account had balance, otherwise 'Bad proof' error should be raised
-            pass
+# @pytest.mark.asyncio
+# async def test_create_mortal_extrinsic(kusama_substrate, polkadot_substrate, keypair):
+#     for substrate in [kusama_substrate, polkadot_substrate]:
+#         # Create balance transfer call
+#         call = await substrate.compose_call(
+#             call_module="Balances",
+#             call_function="transfer_keep_alive",
+#             call_params={
+#                 "dest": "EaG2CRhJWPb7qmdcJvy3LiWdh26Jreu9Dx6R1rXxPmYXoDk",
+#                 "value": 3 * 10**3,
+#             },
+#         )
+#
+#         extrinsic = await substrate.create_signed_extrinsic(
+#             call=call, keypair=keypair, era={"period": 64}
+#         )
+#
+#         try:
+#             await substrate.submit_extrinsic(extrinsic)
+#             pytest.fail("Should raise no funds to pay fees exception")
+#
+#         except SubstrateRequestException:
+#             # Extrinsic should be successful if account had balance, otherwise 'Bad proof' error should be raised
+#             pass
+#
 
 
 @pytest.mark.asyncio

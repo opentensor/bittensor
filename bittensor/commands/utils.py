@@ -1,14 +1,14 @@
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
-
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
 # the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
+#
 # The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
-
+#
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
 # THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
@@ -79,7 +79,7 @@ async def check_netuid_set(
                 netuid = netuid[0]
             try:
                 config.netuid = int(netuid)
-            except:
+            except BaseException:
                 raise ValueError('netuid must be an integer or "None" (if applicable)')
 
 
@@ -153,7 +153,7 @@ def get_hotkey_wallets_for_wallet(wallet) -> List["bittensor.wallet"]:
                 and not hotkey_for_name.hotkey_file.is_encrypted()
             ):
                 hotkey_wallets.append(hotkey_for_name)
-        except Exception:
+        except BaseException:
             pass
     return hotkey_wallets
 
@@ -180,18 +180,20 @@ def get_all_wallets_for_path(path: str) -> List["bittensor.wallet"]:
     return all_wallets
 
 
-def filter_netuids_by_registered_hotkeys(
-    cli, subtensor, netuids, all_hotkeys
+async def filter_netuids_by_registered_hotkeys(
+    cli, subtensor: "bittensor.subtensor", netuids, all_hotkeys
 ) -> List[int]:
     netuids_with_registered_hotkeys = []
     for wallet in all_hotkeys:
-        netuids_list = subtensor.get_netuids_for_hotkey(wallet.hotkey.ss58_address)
+        netuids_list = await subtensor.get_netuids_for_hotkey(
+            wallet.hotkey.ss58_address
+        )
         bittensor.logging.debug(
             f"Hotkey {wallet.hotkey.ss58_address} registered in netuids: {netuids_list}"
         )
         netuids_with_registered_hotkeys.extend(netuids_list)
 
-    if cli.config.netuids == None or cli.config.netuids == []:
+    if cli.config.netuids is None or cli.config.netuids == []:
         netuids = netuids_with_registered_hotkeys
 
     elif cli.config.netuids != []:

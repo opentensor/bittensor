@@ -1,14 +1,14 @@
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
-
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
 # the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
+#
 # The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
-
+#
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
 # THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
@@ -16,10 +16,15 @@
 # DEALINGS IN THE SOFTWARE.
 
 import argparse
-import bittensor
-from tqdm import tqdm
-from rich.table import Table
+import os
+from typing import List, Tuple, Optional, Dict
+
 from rich.prompt import Prompt
+from rich.table import Table
+from tqdm import tqdm
+
+import bittensor
+from . import defaults
 from .utils import (
     get_delegates_details,
     DelegatesDetails,
@@ -27,13 +32,8 @@ from .utils import (
     get_all_wallets_for_path,
     filter_netuids_by_registered_hotkeys,
 )
-from . import defaults
 
 console = bittensor.__console__
-
-import os
-import bittensor
-from typing import List, Tuple, Optional, Dict
 
 
 def _get_coldkey_wallets_for_path(path: str) -> List["bittensor.wallet"]:
@@ -111,29 +111,29 @@ class InspectCommand:
     """
 
     @staticmethod
-    def run(cli: "bittensor.cli"):
-        r"""Inspect a cold, hot pair."""
+    async def run(cli: "bittensor.cli"):
+        """Inspect a cold, hot pair."""
         try:
             subtensor: "bittensor.subtensor" = bittensor.subtensor(
                 config=cli.config, log_verbose=False
             )
-            InspectCommand._run(cli, subtensor)
+            await InspectCommand._run(cli, subtensor)
         finally:
             if "subtensor" in locals():
-                subtensor.close()
+                await subtensor.close()
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
-        if cli.config.get("all", d=False) == True:
+    async def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+        if cli.config.get("all", d=False) is True:
             wallets = _get_coldkey_wallets_for_path(cli.config.wallet.path)
             all_hotkeys = get_all_wallets_for_path(cli.config.wallet.path)
         else:
             wallets = [bittensor.wallet(config=cli.config)]
             all_hotkeys = get_hotkey_wallets_for_wallet(wallets[0])
 
-        netuids = subtensor.get_all_subnet_netuids()
-        netuids = filter_netuids_by_registered_hotkeys(
+        netuids = await subtensor.get_all_subnet_netuids()
+        netuids = await filter_netuids_by_registered_hotkeys(
             cli, subtensor, netuids, all_hotkeys
         )
         bittensor.logging.debug(f"Netuids to check: {netuids}")
@@ -150,7 +150,7 @@ class InspectCommand:
         neuron_state_dict = {}
         for netuid in tqdm(netuids):
             neurons = subtensor.neurons_lite(netuid)
-            neuron_state_dict[netuid] = neurons if neurons != None else []
+            neuron_state_dict[netuid] = neurons if neurons is not None else []
 
         table = Table(show_footer=True, pad_edge=False, box=None, expand=True)
         table.add_column(
@@ -181,26 +181,28 @@ class InspectCommand:
             "[overline white]Emission", footer_style="overline white", style="green"
         )
         for wallet in tqdm(wallets):
-            delegates: List[Tuple[bittensor.DelegateInfo, bittensor.Balance]] = (
-                subtensor.get_delegated(coldkey_ss58=wallet.coldkeypub.ss58_address)
+            delegates: List[
+                Tuple[bittensor.DelegateInfo, bittensor.Balance]
+            ] = await subtensor.get_delegated(
+                coldkey_ss58=wallet.coldkeypub.ss58_address
             )
             if not wallet.coldkeypub_file.exists_on_device():
                 continue
-            cold_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
+            cold_balance = await subtensor.get_balance(wallet.coldkeypub.ss58_address)
             table.add_row(wallet.name, str(cold_balance), "", "", "", "", "", "", "")
-            for dele, staked in delegates:
-                if dele.hotkey_ss58 in registered_delegate_info:
-                    delegate_name = registered_delegate_info[dele.hotkey_ss58].name
+            for delegate, staked in delegates:
+                if delegate.hotkey_ss58 in registered_delegate_info:
+                    delegate_name = registered_delegate_info[delegate.hotkey_ss58].name
                 else:
-                    delegate_name = dele.hotkey_ss58
+                    delegate_name = delegate.hotkey_ss58
                 table.add_row(
                     "",
                     "",
                     str(delegate_name),
                     str(staked),
                     str(
-                        dele.total_daily_return.tao
-                        * (staked.tao / dele.total_stake.tao)
+                        delegate.total_daily_return.tao
+                        * (staked.tao / delegate.total_stake.tao)
                     ),
                     "",
                     "",
@@ -240,7 +242,7 @@ class InspectCommand:
         bittensor.__console__.print(table)
 
     @staticmethod
-    def check_config(config: "bittensor.config"):
+    async def check_config(config: "bittensor.config"):
         if (
             not config.is_set("wallet.name")
             and not config.no_prompt
@@ -249,7 +251,7 @@ class InspectCommand:
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
-        if config.netuids != [] and config.netuids != None:
+        if config.netuids != [] and config.netuids is not None:
             if not isinstance(config.netuids, list):
                 config.netuids = [int(config.netuids)]
             else:

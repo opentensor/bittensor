@@ -15,6 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import asyncio
 import sys
 import shtab
 import argparse
@@ -222,7 +223,7 @@ class CLIErrorParser(argparse.ArgumentParser):
         sys.exit(2)
 
 
-class cli:
+class Cli:
     """
     Implementation of the Command Line Interface (CLI) class for the Bittensor protocol.
     This class handles operations like key management (hotkey and coldkey) and token transfer.
@@ -240,12 +241,15 @@ class cli:
             config (bittensor.config, optional): The configuration settings for the CLI.
             args (List[str], optional): List of command line arguments.
         """
+        self._initialized = False
+        self._lock = asyncio.Lock()
+
         # Turns on console for cli.
         bittensor.turn_console_on()
 
         # If no config is provided, create a new one from args.
         if config is None:
-            config = cli.create_config(args)
+            config = Cli.create_config(args)
 
         self.config = config
         if self.config.command in ALIAS_TO_COMMAND:
@@ -256,11 +260,23 @@ class cli:
             )
             sys.exit()
 
+    async def __aenter__(self):
+        async with self._lock:
+            if not self._initialized:
+                self._initialized = True
+                await self._init_check_config(self.config)
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        pass
+
+    @staticmethod
+    async def _init_check_config(config):
         # Check if the config is valid.
-        cli.check_config(self.config)
+        await Cli.check_config(config)
 
         # If no_version_checking is not set or set as False in the config, version checking is done.
-        if not self.config.get("no_version_checking", d=True):
+        if not config.get("no_version_checking", d=True):
             try:
                 bittensor.utils.check_version()
             except bittensor.utils.VersionCheckError:
@@ -321,7 +337,7 @@ class cli:
         Returns:
             bittensor.config: The configuration object for Bittensor CLI.
         """
-        parser = cli.__create_parser__()
+        parser = Cli.__create_parser__()
 
         # If no arguments are passed, print help text and exit the program.
         if len(args) == 0:
@@ -331,7 +347,7 @@ class cli:
         return bittensor.config(parser, args=args)
 
     @staticmethod
-    def check_config(config: "bittensor.config"):
+    async def check_config(config: "bittensor.config"):
         """
         Checks if the essential configuration exists under different command
 
@@ -346,25 +362,27 @@ class cli:
 
             if isinstance(command_data, dict):
                 if config["subcommand"] is not None:
-                    command_data["commands"][config["subcommand"]].check_config(config)
+                    await command_data["commands"][config["subcommand"]].check_config(
+                        config
+                    )
                 else:
                     console.print(
                         f":cross_mark:[red]Missing subcommand for: {config.command}[/red]"
                     )
                     sys.exit(1)
             else:
-                command_data.check_config(config)
+                await command_data.check_config(config)
         else:
             console.print(f":cross_mark:[red]Unknown command: {config.command}[/red]")
             sys.exit(1)
 
-    def run(self):
+    async def run(self):
         """
         Executes the command from the configuration.
         """
         # Check for print-completion argument
         if self.config.print_completion:
-            parser = cli.__create_parser__()
+            parser = Cli.__create_parser__()
             shell = self.config.print_completion
             print(shtab.complete(parser, shell))
             return
@@ -376,9 +394,9 @@ class cli:
             command_data = COMMANDS[command]
 
             if isinstance(command_data, dict):
-                command_data["commands"][self.config["subcommand"]].run(self)
+                await command_data["commands"][self.config["subcommand"]].run(self)
             else:
-                command_data.run(self)
+                await command_data.run(self)
         else:
             console.print(
                 f":cross_mark:[red]Unknown command: {self.config.command}[/red]"
