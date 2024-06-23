@@ -2077,7 +2077,7 @@ async def test_get_all_subnets_info_success(mocker, subtensor):
     assert result == subtensor_module.SubnetInfo.list_from_vec_u8.return_value
     subtensor.substrate.get_block_hash.assert_called_once_with(block)
     subtensor.substrate.rpc_request.assert_called_once_with(
-        method="subnetInfo_getSubnetsInfo", params=["mock_block_hash"]
+        method="subnetInfo_getSubnetsInfo", params=[], block_hash="mock_block_hash"
     )
     subtensor_module.SubnetInfo.list_from_vec_u8.assert_called_once_with(subnet_data)
 
@@ -2106,7 +2106,7 @@ async def test_get_all_subnets_info_no_data(mocker, subtensor, result_):
     assert result == []
     subtensor.substrate.get_block_hash.assert_called_once_with(block)
     subtensor.substrate.rpc_request.assert_called_once_with(
-        method="subnetInfo_getSubnetsInfo", params=["mock_block_hash"]
+        method="subnetInfo_getSubnetsInfo", params=[], block_hash="mock_block_hash"
     )
     subtensor_module.SubnetInfo.list_from_vec_u8.assert_not_called()
 
@@ -2172,7 +2172,7 @@ async def test_get_subnet_info_success(mocker, subtensor):
     assert result == subtensor_module.SubnetInfo.from_vec_u8.return_value
     subtensor.substrate.get_block_hash.assert_called_once_with(block)
     subtensor.substrate.rpc_request.assert_called_once_with(
-        method="subnetInfo_getSubnetInfo", params=[netuid, "mock_block_hash"]
+        method="subnetInfo_getSubnetInfo", params=[netuid], block_hash="mock_block_hash"
     )
     subtensor_module.SubnetInfo.from_vec_u8.assert_called_once_with(subnet_data)
 
@@ -2204,7 +2204,7 @@ async def test_get_subnet_info_no_data(mocker, subtensor, result_):
     assert result is None
     subtensor.substrate.get_block_hash.assert_called_once_with(block)
     subtensor.substrate.rpc_request.assert_called_once_with(
-        method="subnetInfo_getSubnetInfo", params=[netuid, "mock_block_hash"]
+        method="subnetInfo_getSubnetInfo", params=[netuid], block_hash="mock_block_hash"
     )
     subtensor_module.SubnetInfo.from_vec_u8.assert_not_called()
 

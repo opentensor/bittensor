@@ -78,7 +78,7 @@ class MockCli:
         (True, True, True, 0, "edge_case_encrypted_wallet"),
     ],
 )
-def test_get_total_balance(
+async def test_get_total_balance(
     mock_subtensor,
     mock_wallet,
     config_all,
@@ -105,7 +105,7 @@ def test_get_total_balance(
         return_value=[mock_wallet],
     ):
         # Act
-        result_hotkeys, result_balance = OverviewCommand._get_total_balance(
+        result_hotkeys, result_balance = await OverviewCommand._get_total_balance(
             0, mock_subtensor, cli
         )
 
@@ -208,6 +208,7 @@ def netuids_list():
 
 
 # Test cases
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "test_id, results, expected_neurons, expected_netuids",
     [
@@ -253,11 +254,11 @@ def netuids_list():
         ),
     ],
 )
-def test_process_neuron_results(
+async def test_process_neuron_results(
     test_id, results, expected_neurons, expected_netuids, neurons_dict, netuids_list
 ):
     # Act
-    actual_neurons = OverviewCommand._process_neuron_results(
+    actual_neurons = await OverviewCommand._process_neuron_results(
         results, neurons_dict, netuids_list
     )
 

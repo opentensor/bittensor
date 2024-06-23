@@ -269,6 +269,7 @@ async def test_priority_pass(middleware):
     assert synapse.axon.status_code != 408
 
 
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "body, expected",
     [
@@ -295,6 +296,7 @@ async def test_verify_body_integrity_happy_path(
     assert result == expected, "The parsed body should match the expected dictionary."
 
 
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "body, expected_exception_message",
     [
@@ -317,6 +319,7 @@ async def test_verify_body_integrity_edge_cases(
     ), "Expected specific exception message."
 
 
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "computed_hash, expected_error",
     [
