@@ -291,7 +291,6 @@ class MockSubtensor(Subtensor):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.chain_state = None
         self.reset()
 
     async def get_block_hash(self, block_id: int) -> str:
