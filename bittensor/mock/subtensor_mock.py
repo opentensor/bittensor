@@ -275,7 +275,7 @@ class MockSubtensor(Subtensor):
             self.block_number = 0
 
             self.network = "mock"
-            self.chain_endpoint = "mock_endpoint"
+            self.chain_endpoint = "ws://mock_endpoint"
             self.substrate = unittest.mock.AsyncMock()
 
     def __init__(self, *args, **kwargs) -> None:
