@@ -286,8 +286,6 @@ class MockSubtensor(Subtensor):
             self.setup()
 
     def __enter__(self):
-        self.chain_state = None
-        self.setup()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
