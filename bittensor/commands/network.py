@@ -400,7 +400,9 @@ class SubnetSudoCommand:
 
         is_allowed_value, value = allowed_value(cli.config.param, cli.config.value)
         if not is_allowed_value:
-            raise ValueError(f"Hyperparameter {cli.config.param} value is not within bounds. Value is {cli.config.value} but must be {value}")
+            raise ValueError(
+                f"Hyperparameter {cli.config.param} value is not within bounds. Value is {cli.config.value} but must be {value}"
+            )
 
         subtensor.set_hyperparameter(
             wallet,
@@ -647,7 +649,9 @@ class SubnetGetHyperparamsCommand:
         bittensor.subtensor.add_args(parser)
 
 
-def allowed_value(param: str, value: Union[str, bool, float]) -> Tuple[bool, Union[str, list[float], float]]:
+def allowed_value(
+    param: str, value: Union[str, bool, float]
+) -> Tuple[bool, Union[str, list[float], float]]:
     """
     Check the allowed values on hyperparameters. Return False if value is out of bounds.
     """
@@ -663,15 +667,20 @@ def allowed_value(param: str, value: Union[str, bool, float]) -> Tuple[bool, Uni
 
                 # Check alpha_high value
                 if alpha_high <= 52428 or alpha_high >= 65535:
-                    return False, f"between 52428 and 65535 for alpha_high (but is {alpha_high})"
+                    return (
+                        False,
+                        f"between 52428 and 65535 for alpha_high (but is {alpha_high})",
+                    )
 
                 # Check alpha_low value
                 if alpha_low < 0 or alpha_low > 52428:
-                    return False, f"between 0 and 52428 for alpha_low (but is {alpha_low})"
+                    return (
+                        False,
+                        f"between 0 and 52428 for alpha_low (but is {alpha_low})",
+                    )
 
                 return True, [alpha_low, alpha_high]
     except ValueError:
         return False, "a number or a boolean"
 
     return True, value
-
