@@ -848,6 +848,15 @@ class AsyncSubstrateInterface:
         """
         Makes an RPC request to the subtensor. Use this only if ``self.query`` and ``self.query_multiple`` and
         ``self.query_map`` do not meet your needs.
+        
+        :param method: str the method in the RPC request
+        :param params: list of the params in the RPC request
+        :param block_hash: optional str, the hash of the block — only supply this if not supplying the block
+                           hash in the params, and not reusing the block hash
+        :param reuse_block_hash: optional bool, whether to reuse the block hash in the params — only mark as True
+                                 if not supplying the block hash in the params, or via the `block_hash` parameter
+                                 
+        :return: the response from the RPC request
         """
         block_hash = self._get_current_block_hash(block_hash, reuse_block_hash)
         payloads = [
