@@ -66,6 +66,8 @@ defaults: Munch = munchify(
     }
 )
 
+from .subnets.list_subnets import ListSubnetsCommand
+
 from .stake import (
     StakeCommand,
     StakeList,

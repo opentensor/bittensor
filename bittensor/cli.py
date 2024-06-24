@@ -62,6 +62,7 @@ from .commands import (
     VoteCommand,
     WalletBalanceCommand,
     WalletCreateCommand,
+    ListSubnetsCommand,
 )
 
 # Create a console instance for CLI display.
@@ -96,7 +97,7 @@ COMMANDS = {
         "aliases": ["s", "subnet"],
         "help": "Commands for managing and viewing subnetworks.",
         "commands": {
-            "list": SubnetListCommand,
+            "list": ListSubnetsCommand,
             "metagraph": MetagraphCommand,
             "lock_cost": SubnetLockCostCommand,
             "create": RegisterSubnetworkCommand,
