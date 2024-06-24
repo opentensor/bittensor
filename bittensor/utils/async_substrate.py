@@ -309,26 +309,32 @@ class Websocket:
                 self._open_subscriptions = 0
                 self._exit_task = asyncio.create_task(self._exit_with_timer())
 
-    async def _exit_with_timer(self):
+    async def _exit_with_timer(self, timer=None):
         """
         Allows for graceful shutdown of websocket connection after specified number of seconds, allowing
         for reuse of the websocket connection.
         """
+        shutdown_timer = timer if timer is not None else self.shutdown_timer
         try:
-            await asyncio.sleep(self.shutdown_timer)
+            await asyncio.sleep(shutdown_timer)
             async with self._lock:
-                self._receiving_task.cancel()
-                try:
-                    await self._receiving_task
-                except asyncio.CancelledError:
-                    pass
-                await self.ws.close()
-                self.ws = None
+                if self._receiving_task:
+                    self._receiving_task.cancel()
+                    try:
+                        await self._receiving_task
+                    except asyncio.CancelledError:
+                        pass
+                if self.ws:
+                    await self.ws.close()
+                    self.ws = None
                 self._initialized = False
                 self._receiving_task = None
                 self.id = 0
         except asyncio.CancelledError:
             pass
+        
+    async def close(self):
+        await self._exit_with_timer(0)
 
     async def _recv(self) -> None:
         try:
@@ -468,7 +474,7 @@ class AsyncSubstrateInterface:
             self.initialized = True
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        pass
+        await self.ws.close()
 
     @property
     def chain(self):
@@ -903,14 +909,17 @@ class AsyncSubstrateInterface:
 
         :return: A composed call
         """
-        return await asyncio.get_event_loop().run_in_executor(
-            None,
-            self.substrate.compose_call,
-            call_module,
-            call_function,
-            call_params,
-            block_hash,
+        runtime = await self.init_runtime(block_hash=block_hash)
+        call = runtime.runtime_config.create_scale_object(
+            type_string='Call', metadata=runtime.metadata
         )
+        call.encode({
+            'call_module': call_module,
+            'call_function': call_function,
+            'call_args': call_params or {}
+        })
+
+        return call
 
     async def query_multiple(
         self,
