@@ -1,15 +1,15 @@
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 # Copyright © 2023 Opentensor Foundation
-
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
 # the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
+#
 # The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
-
+#
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
 # THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
@@ -24,6 +24,7 @@ blockchain, facilitating a range of operations essential for the decentralized m
 import argparse
 import asyncio
 import copy
+
 import socket
 import time
 from typing import List, Dict, Union, Optional, Tuple, TypedDict, Any
@@ -31,7 +32,6 @@ from typing import List, Dict, Union, Optional, Tuple, TypedDict, Any
 import numpy as np
 import scalecodec
 from numpy.typing import NDArray
-from retry import retry
 from scalecodec.base import RuntimeConfiguration
 from scalecodec.exceptions import RemainingScaleBytesNotEmptyException
 from scalecodec.type_registry import load_type_registry_preset
@@ -42,11 +42,11 @@ from substrateinterface.exceptions import SubstrateRequestException
 from bittensor.utils.async_substrate import AsyncSubstrateInterface
 
 import bittensor
-from bittensor.utils import torch, weight_utils
+from bittensor.utils import torch, weight_utils, format_error_message
 from bittensor.chain_data import (
+    DelegateInfoLite,
     NeuronInfo,
     DelegateInfo,
-    DelegateInfoLite,
     PrometheusInfo,
     SubnetInfo,
     SubnetHyperparameters,
@@ -57,6 +57,7 @@ from bittensor.chain_data import (
     IPInfo,
     custom_rpc_type_registry,
 )
+
 from bittensor.errors import IdentityError, NominationError, StakeError, TakeError
 from bittensor.extrinsics.commit_weights import (
     commit_weights_extrinsic,
@@ -104,14 +105,15 @@ from bittensor.extrinsics.transfer import transfer_extrinsic
 from bittensor.extrinsics.unstaking import unstake_extrinsic, unstake_multiple_extrinsic
 from bittensor.types import AxonServeCallParams, PrometheusServeCallParams
 from bittensor.utils import (
-    U16_NORMALIZED_FLOAT,
+    u16_normalized_float,
     ss58_to_vec_u8,
-    U64_NORMALIZED_FLOAT,
+    u64_normalized_float,
     networking,
 )
 from bittensor.utils.balance import Balance
 from bittensor.utils.registration import POWSolution
 from bittensor.utils.registration import legacy_torch_api_compat
+from tenacity import retry, stop_after_attempt, wait_fixed
 
 
 KEY_NONCE: Dict[str, int] = {}
@@ -480,9 +482,9 @@ class Subtensor:
             evaluated_network,
         )
 
-    def close(self):
+    async def close(self):
         """Cleans up resources for this subtensor instance like active websocket connection and active extensions."""
-        self.substrate.close()
+        await self.substrate.close()
 
     ##############
     # Delegation #
@@ -862,7 +864,7 @@ class Subtensor:
         trust in other neurons based on observed performance and contributions.
         """
 
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=bittensor.logging)
+        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), reraise=True)
         async def make_substrate_call_with_retry():
             call = await self.substrate.compose_call(
                 call_module="SubtensorModule",
@@ -893,7 +895,7 @@ class Subtensor:
             if response.is_success:
                 return True, "Successfully set weights."
             else:
-                return False, response.error_message
+                return False, format_error_message(response.error_message)
 
         return await make_substrate_call_with_retry()
 
@@ -1004,7 +1006,7 @@ class Subtensor:
         verifiable record of the neuron's weight distribution at a specific point in time.
         """
 
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=bittensor.logging)
+        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), reraise=True)
         async def make_substrate_call_with_retry():
             call = await self.substrate.compose_call(
                 call_module="SubtensorModule",
@@ -1074,6 +1076,7 @@ class Subtensor:
         This function allows neurons to reveal their previously committed weight distribution, ensuring transparency
         and accountability within the Bittensor network.
         """
+
         retries = 0
         success = False
         message = "No attempt made. Perhaps it is too soon to reveal weights!"
@@ -1133,7 +1136,7 @@ class Subtensor:
         transparency and accountability for the neuron's weight distribution.
         """
 
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=bittensor.logging)
+        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), reraise=True)
         async def make_substrate_call_with_retry():
             call = await self.substrate.compose_call(
                 call_module="SubtensorModule",
@@ -1163,7 +1166,7 @@ class Subtensor:
             if response.is_success:
                 return True, None
             else:
-                return False, response.error_message
+                return False, format_error_message(response.error_message)
 
         return await make_substrate_call_with_retry()
 
@@ -1387,7 +1390,7 @@ class Subtensor:
                 message.
         """
 
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=bittensor.logging)
+        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), reraise=True)
         async def make_substrate_call_with_retry():
             # create extrinsic call
             call = await self.substrate.compose_call(
@@ -1418,7 +1421,7 @@ class Subtensor:
             # process if registration successful, try again if pow is still valid
             response.process_events()
             if not response.is_success:
-                return False, response.error_message
+                return False, format_error_message(response.error_message)
             # Successful registration
             else:
                 return True, None
@@ -1448,7 +1451,7 @@ class Subtensor:
             Tuple[bool, Optional[str]]: A tuple containing a boolean indicating success or failure, and an optional error message.
         """
 
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=bittensor.logging)
+        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), reraise=True)
         async def make_substrate_call_with_retry():
             # create extrinsic call
             call = await self.substrate.compose_call(
@@ -1475,7 +1478,7 @@ class Subtensor:
             # process if registration successful, try again if pow is still valid
             response.process_events()
             if not response.is_success:
-                return False, response.error_message
+                return False, format_error_message(response.error_message)
             # Successful registration
             else:
                 return True, None
@@ -1504,7 +1507,7 @@ class Subtensor:
                 error message.
         """
 
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=bittensor.logging)
+        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), reraise=True)
         async def make_substrate_call_with_retry():
             # create extrinsic call
             call = await self.substrate.compose_call(
@@ -1531,7 +1534,7 @@ class Subtensor:
             # process if registration successful, try again if pow is still valid
             response.process_events()
             if not response.is_success:
-                return False, response.error_message
+                return False, format_error_message(response.error_message)
             # Successful registration
             else:
                 return True, None
@@ -1659,7 +1662,7 @@ class Subtensor:
             error (str): Error message if transfer failed.
         """
 
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=bittensor.logging)
+        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), reraise=True)
         async def make_substrate_call_with_retry():
             call = await self.substrate.compose_call(
                 call_module="Balances",
@@ -1684,7 +1687,7 @@ class Subtensor:
                 block_hash = response.block_hash
                 return True, block_hash, None
             else:
-                return False, None, response.error_message
+                return False, None, format_error_message(response.error_message)
 
         return await make_substrate_call_with_retry()
 
@@ -1895,7 +1898,7 @@ class Subtensor:
         enhancing the decentralized computation capabilities of Bittensor.
         """
 
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=bittensor.logging)
+        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), reraise=True)
         async def make_substrate_call_with_retry():
             call = await self.substrate.compose_call(
                 call_module="SubtensorModule",
@@ -1915,7 +1918,7 @@ class Subtensor:
                 if response.is_success:
                     return True, None
                 else:
-                    return False, response.error_message
+                    return False, format_error_message(response.error_message)
             else:
                 return True, None
 
@@ -1958,7 +1961,7 @@ class Subtensor:
             error (:func:`Optional[str]`): Error message if serve prometheus failed, ``None`` otherwise.
         """
 
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=bittensor.logging)
+        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), reraise=True)
         async def make_substrate_call_with_retry():
             call = await self.substrate.compose_call(
                 call_module="SubtensorModule",
@@ -1978,7 +1981,7 @@ class Subtensor:
                 if response.is_success:
                     return True, None
                 else:
-                    return False, response.error_message
+                    return False, format_error_message(response.error_message)
             else:
                 return True, None
 
@@ -2007,7 +2010,7 @@ class Subtensor:
             error (:func:`Optional[str]`): Error message if associate IPs failed, None otherwise.
         """
 
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=bittensor.logging)
+        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), reraise=True)
         async def make_substrate_call_with_retry():
             call = await self.substrate.compose_call(
                 call_module="SubtensorModule",
@@ -2136,7 +2139,7 @@ class Subtensor:
             StakeError: If the extrinsic failed.
         """
 
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=bittensor.logging)
+        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), reraise=True)
         async def make_substrate_call_with_retry():
             call = await self.substrate.compose_call(
                 call_module="SubtensorModule",
@@ -2159,7 +2162,7 @@ class Subtensor:
             if response.is_success:
                 return True
             else:
-                raise StakeError(response.error_message)
+                raise StakeError(format_error_message(response.error_message))
 
         return await make_substrate_call_with_retry()
 
@@ -2263,7 +2266,7 @@ class Subtensor:
             StakeError: If the extrinsic failed.
         """
 
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=bittensor.logging)
+        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), reraise=True)
         async def make_substrate_call_with_retry():
             call = await self.substrate.compose_call(
                 call_module="SubtensorModule",
@@ -2286,7 +2289,7 @@ class Subtensor:
             if response.is_success:
                 return True
             else:
-                raise StakeError(response.error_message)
+                raise StakeError(format_error_message(response.error_message))
 
         return await make_substrate_call_with_retry()
 
@@ -2588,7 +2591,7 @@ class Subtensor:
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
     ) -> Tuple[bool, Optional[str]]:
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=bittensor.logging)
+        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), reraise=True)
         async def make_substrate_call_with_retry():
             # create extrinsic call
             call = await self.substrate.compose_call(
@@ -2612,7 +2615,7 @@ class Subtensor:
             # process if registration successful, try again if pow is still valid
             response.process_events()
             if not response.is_success:
-                return False, response.error_message
+                return False, format_error_message(response.error_message)
             # Successful registration
             else:
                 return True, None
@@ -2662,6 +2665,73 @@ class Subtensor:
             prompt=prompt,
         )
 
+    async def do_set_root_weights(
+        self,
+        wallet: "bittensor.wallet",
+        uids: List[int],
+        vals: List[int],
+        netuid: int = 0,
+        version_key: int = bittensor.__version_as_int__,
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = False,
+    ) -> Tuple[bool, Optional[str]]:  # (success, error_message)
+        """
+        Internal method to send a transaction to the Bittensor blockchain, setting weights
+        for specified neurons on root. This method constructs and submits the transaction, handling
+        retries and blockchain communication.
+
+        Args:
+            wallet (bittensor.wallet): The wallet associated with the neuron setting the weights.
+            uids (List[int]): List of neuron UIDs for which weights are being set.
+            vals (List[int]): List of weight values corresponding to each UID.
+            netuid (int): Unique identifier for the network.
+            version_key (int, optional): Version key for compatibility with the network.
+            wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
+            wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
+
+        Returns:
+            Tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
+
+        This method is vital for the dynamic weighting mechanism in Bittensor, where neurons adjust their
+        trust in other neurons based on observed performance and contributions to the root network.
+        """
+
+        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), reraise=True)
+        async def make_substrate_call_with_retry():
+            call = await self.substrate.compose_call(
+                call_module="SubtensorModule",
+                call_function="set_root_weights",
+                call_params={
+                    "dests": uids,
+                    "weights": vals,
+                    "netuid": netuid,
+                    "version_key": version_key,
+                    "hotkey": wallet.hotkey.ss58_address,
+                },
+            )
+            # Period dictates how long the extrinsic will stay as part of waiting pool
+            extrinsic = await self.substrate.create_signed_extrinsic(
+                call=call,
+                keypair=wallet.coldkey,
+                era={"period": 5},
+            )
+            response = await self.substrate.submit_extrinsic(
+                extrinsic,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
+            # We only wait here if we expect finalization.
+            if not wait_for_finalization and not wait_for_inclusion:
+                return True, "Not waiting for finalization or inclusion."
+
+            response.process_events()
+            if response.is_success:
+                return True, "Successfully set weights."
+            else:
+                return False, response.error_message
+
+        return await make_substrate_call_with_retry()
+
     ##################
     # Registry Calls #
     ##################
@@ -2692,7 +2762,7 @@ class Subtensor:
         network-specific details, providing insights into the neuron's role and status within the Bittensor network.
         """
 
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=bittensor.logging)
+        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), reraise=True)
         async def make_substrate_call_with_retry() -> "ScaleType":
             return await self.substrate.query(
                 module="Registry",
@@ -2749,7 +2819,7 @@ class Subtensor:
         call_params = bittensor.utils.wallet_utils.create_identity_dict(**params)
         call_params["identified"] = identified
 
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=bittensor.logging)
+        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), reraise=True)
         async def make_substrate_call_with_retry() -> bool:
             call = await self.substrate.compose_call(
                 call_module="Registry",
@@ -2839,7 +2909,7 @@ class Subtensor:
         providing valuable insights into the state and dynamics of the Bittensor ecosystem.
         """
 
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=bittensor.logging)
+        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), reraise=True)
         async def make_substrate_call_with_retry() -> "ScaleType":
             return await self.substrate.query(
                 module="SubtensorModule",
@@ -2878,7 +2948,7 @@ class Subtensor:
         relationships within the Bittensor ecosystem, such as inter-neuronal connections and stake distributions.
         """
 
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=bittensor.logging)
+        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), reraise=True)
         async def make_substrate_call_with_retry():
             return await self.substrate.query_map(
                 module="SubtensorModule",
@@ -2912,7 +2982,7 @@ class Subtensor:
         operational parameters.
         """
 
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=bittensor.logging)
+        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), reraise=True)
         async def make_substrate_call_with_retry():
             return await self.substrate.get_constant(
                 module_name=module_name,
@@ -2952,7 +3022,7 @@ class Subtensor:
         parts of the Bittensor blockchain, enhancing the understanding and analysis of the network's state and dynamics.
         """
 
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=bittensor.logging)
+        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), reraise=True)
         async def make_substrate_call_with_retry() -> "ScaleType":
             return await self.substrate.query(
                 module=module,
@@ -2993,7 +3063,7 @@ class Subtensor:
         modules, offering insights into the network's state and the relationships between its different components.
         """
 
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=bittensor.logging)
+        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), reraise=True)
         async def make_substrate_call_with_retry() -> "QueryMapResult":
             return await self.substrate.query_map(
                 module=module,
@@ -3030,7 +3100,7 @@ class Subtensor:
         useful for specific use cases where standard queries are insufficient.
         """
 
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=bittensor.logging)
+        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), reraise=True)
         async def make_substrate_call_with_retry() -> Dict[Any, Any]:
             block_hash = (
                 None if block is None else await self.substrate.get_block_hash(block)
@@ -3071,7 +3141,7 @@ class Subtensor:
             "methods"  # type: ignore
         ][method]  # type: ignore
 
-        json_result = self.state_call(
+        json_result = await self.state_call(
             method=f"{runtime_api}_{method}",
             data=(
                 "0x"
@@ -3139,7 +3209,7 @@ class Subtensor:
             Optional[Union[int, float]]: The value of the specified hyperparameter if the subnet exists, ``None``
                 otherwise.
         """
-        if not self.subnet_exists(netuid, block):
+        if not await self.subnet_exists(netuid, block):
             return None
 
         result = await self.query_subtensor(param_name, block, [netuid])
@@ -3204,7 +3274,7 @@ class Subtensor:
         call = await self._get_hyperparameter(
             param_name="Kappa", netuid=netuid, block=block
         )
-        return None if call is None else U16_NORMALIZED_FLOAT(int(call))
+        return None if call is None else u16_normalized_float(int(call))
 
     async def difficulty(
         self, netuid: int, block: Optional[int] = None
@@ -3336,7 +3406,7 @@ class Subtensor:
         call = await self._get_hyperparameter(
             param_name="ValidatorLogitsDivergence", netuid=netuid, block=block
         )
-        return None if call is None else U16_NORMALIZED_FLOAT(int(call))
+        return None if call is None else u16_normalized_float(int(call))
 
     async def validator_sequence_length(
         self, netuid: int, block: Optional[int] = None
@@ -3414,7 +3484,7 @@ class Subtensor:
         call = await self._get_hyperparameter(
             param_name="ValidatorExcludeQuantile", netuid=netuid, block=block
         )
-        return None if call is None else U16_NORMALIZED_FLOAT(int(call))
+        return None if call is None else u16_normalized_float(int(call))
 
     async def max_allowed_validators(
         self, netuid: int, block: Optional[int] = None
@@ -3474,7 +3544,7 @@ class Subtensor:
         call = await self._get_hyperparameter(
             param_name="MaxWeightsLimit", block=block, netuid=netuid
         )
-        return None if call is None else U16_NORMALIZED_FLOAT(int(call))
+        return None if call is None else u16_normalized_float(int(call))
 
     async def adjustment_alpha(
         self, netuid: int, block: Optional[int] = None
@@ -3494,7 +3564,7 @@ class Subtensor:
         call = await self._get_hyperparameter(
             param_name="AdjustmentAlpha", block=block, netuid=netuid
         )
-        return None if call is None else U64_NORMALIZED_FLOAT(int(call))
+        return None if call is None else u64_normalized_float(int(call))
 
     async def bonds_moving_avg(
         self, netuid: int, block: Optional[int] = None
@@ -3514,7 +3584,7 @@ class Subtensor:
         call = await self._get_hyperparameter(
             param_name="BondsMovingAverage", netuid=netuid, block=block
         )
-        return None if call is None else U64_NORMALIZED_FLOAT(int(call))
+        return None if call is None else u64_normalized_float(int(call))
 
     async def scaling_law_power(
         self, netuid: int, block: Optional[int] = None
@@ -3855,10 +3925,10 @@ class Subtensor:
 
     @property
     async def block(self) -> int:
-        r"""Returns current chain block.
+        """Returns current chain block.
+
         Returns:
-            block (int):
-                Current chain block.
+            block (int): Current chain block.
         """
         return await self.get_current_block()
 
@@ -4116,7 +4186,7 @@ class Subtensor:
         the roles of different subnets, and their unique features.
         """
 
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=bittensor.logging)
+        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), reraise=True)
         async def make_substrate_call_with_retry():
             block_hash = (
                 None if block is None else await self.substrate.get_block_hash(block)
@@ -4152,12 +4222,11 @@ class Subtensor:
         subnet, including its governance, performance, and role within the broader network.
         """
 
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=bittensor.logging)
+        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), reraise=True)
         async def make_substrate_call_with_retry():
             block_hash = (
                 None if block is None else await self.substrate.get_block_hash(block)
             )
-
             return await self.substrate.rpc_request(
                 method="subnetInfo_getSubnetInfo",  # custom rpc method
                 params=[netuid, block_hash] if block_hash else [netuid],
@@ -4269,7 +4338,7 @@ class Subtensor:
         return (
             None
             if getattr(_result, "value", None) is None
-            else U16_NORMALIZED_FLOAT(_result.value)
+            else u16_normalized_float(_result.value)
         )
 
     async def get_nominators_for_hotkey(
@@ -4314,15 +4383,15 @@ class Subtensor:
         the Bittensor network's consensus and governance structures.
         """
 
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=bittensor.logging)
+        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), reraise=True)
         async def make_substrate_call_with_retry(encoded_hotkey_: List[int]):
             block_hash = None if block is None else self.substrate.get_block_hash(block)
 
             return await self.substrate.rpc_request(
                 method="delegateInfo_getDelegate",  # custom rpc method
-                params=[encoded_hotkey_, block_hash]
-                if block_hash
-                else [encoded_hotkey_],
+                params=(
+                    [encoded_hotkey_, block_hash] if block_hash else [encoded_hotkey_]
+                ),
             )
 
         encoded_hotkey = ss58_to_vec_u8(hotkey_ss58)
@@ -4353,7 +4422,7 @@ class Subtensor:
 
         """
 
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=bittensor.logging)
+        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), reraise=True)
         async def make_substrate_call_with_retry():
             block_hash = (
                 None if block is None else await self.substrate.get_block_hash(block)
@@ -4379,8 +4448,6 @@ class Subtensor:
         Analyzing the delegate population offers insights into the network's governance dynamics and the distribution of
         trust and responsibility among participating neurons.
 
-        For a lighter version of this function, see :func:`get_delegates_lite`.
-
         Args:
             block (Optional[int], optional): The blockchain block number for the query.
 
@@ -4389,10 +4456,12 @@ class Subtensor:
 
         """
 
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=bittensor.logging)
+        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), reraise=True)
         async def make_substrate_call_with_retry():
             block_hash = (
-                None if block is None else await self.substrate.get_block_hash(block)
+                None
+                if block is None
+                else await self.substrate.get_block_hash(block_id=block)
             )
 
             return await self.substrate.rpc_request(
@@ -4425,7 +4494,7 @@ class Subtensor:
         involvement in the network's delegation and consensus mechanisms.
         """
 
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=bittensor.logging)
+        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), reraise=True)
         async def make_substrate_call_with_retry(encoded_coldkey_: List[int]):
             block_hash = (
                 None if block is None else await self.substrate.get_block_hash(block)
@@ -4433,9 +4502,9 @@ class Subtensor:
 
             return await self.substrate.rpc_request(
                 method="delegateInfo_getDelegated",
-                params=[block_hash, encoded_coldkey_]
-                if block_hash
-                else [encoded_coldkey_],
+                params=(
+                    [block_hash, encoded_coldkey_] if block_hash else [encoded_coldkey_]
+                ),
             )
 
         encoded_coldkey = ss58_to_vec_u8(coldkey_ss58)
@@ -4540,7 +4609,7 @@ class Subtensor:
             Exception: If the substrate call fails after the maximum number of retries.
         """
 
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=bittensor.logging)
+        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), reraise=True)
         async def make_substrate_call_with_retry():
             return await self.substrate.query(
                 module="SubtensorModule", storage_function="NominatorMinRequiredStake"
@@ -4806,7 +4875,7 @@ class Subtensor:
         if uid is None:
             return NeuronInfo.get_null_neuron()
 
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=bittensor.logging)
+        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), reraise=True)
         async def make_substrate_call_with_retry():
             block_hash = (
                 None if block is None else await self.substrate.get_block_hash(block)
@@ -4901,6 +4970,20 @@ class Subtensor:
 
         return NeuronInfoLite.from_vec_u8(bytes_result)  # type: ignore
 
+    async def neurons_lite_for_uid(self, uid: int) -> Dict[Any, Any]:
+        call_definition = bittensor.__type_registry__["runtime_api"][  # type: ignore
+            "NeuronInfoRuntimeApi"
+        ]["methods"]["get_neurons_lite"]
+
+        hex_bytes_result = await self.state_call(
+            method="NeuronInfoRuntimeApi_get_neurons_lite",
+            data=await self._encode_params(
+                call_definition=call_definition, params=[uid]
+            ),
+        )
+
+        return hex_bytes_result
+
     async def neurons_lite(
         self, netuid: int, block: Optional[int] = None
     ) -> List[NeuronInfoLite]:
@@ -4959,7 +5042,6 @@ class Subtensor:
             processes.
         """
         metagraph_ = bittensor.metagraph(network=self.network, netuid=netuid, lite=lite)
-        await metagraph_.sync(block=block, lite=lite, subtensor=self)
 
         return metagraph_
 
@@ -5138,7 +5220,7 @@ class Subtensor:
             bool: ``True`` if the delegation is successful, ``False`` otherwise.
         """
 
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=bittensor.logging)
+        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), reraise=True)
         async def make_substrate_call_with_retry():
             call = await self.substrate.compose_call(
                 call_module="SubtensorModule",
@@ -5160,7 +5242,7 @@ class Subtensor:
             if response.is_success:
                 return True
             else:
-                raise StakeError(response.error_message)
+                raise StakeError(format_error_message(response.error_message))
 
         return await make_substrate_call_with_retry()
 
@@ -5189,7 +5271,7 @@ class Subtensor:
             bool: ``True`` if the undelegation is successful, ``False`` otherwise.
         """
 
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=bittensor.logging)
+        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), reraise=True)
         async def make_substrate_call_with_retry():
             call = await self.substrate.compose_call(
                 call_module="SubtensorModule",
@@ -5214,7 +5296,7 @@ class Subtensor:
             if response.is_success:
                 return True
             else:
-                raise StakeError(response.error_message)
+                raise StakeError(format_error_message(response.error_message))
 
         return await make_substrate_call_with_retry()
 
@@ -5239,7 +5321,7 @@ class Subtensor:
             bool: ``True`` if the nomination is successful, ``False`` otherwise.
         """
 
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=bittensor.logging)
+        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), reraise=True)
         async def make_substrate_call_with_retry():
             call = await self.substrate.compose_call(
                 call_module="SubtensorModule",
@@ -5261,7 +5343,7 @@ class Subtensor:
             if response.is_success:
                 return True
             else:
-                raise NominationError(response.error_message)
+                raise NominationError(format_error_message(response.error_message))
 
         return await make_substrate_call_with_retry()
 
@@ -5290,7 +5372,7 @@ class Subtensor:
             bool: ``True`` if the take rate increase is successful, ``False`` otherwise.
         """
 
-        @retry(delay=1, tries=3, backoff=2, max_delay=4)
+        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), reraise=True)
         async def make_substrate_call_with_retry():
             call = await self.substrate.compose_call(
                 call_module="SubtensorModule",
@@ -5315,7 +5397,7 @@ class Subtensor:
             if response.is_success:
                 return True
             else:
-                raise TakeError(response.error_message)
+                raise TakeError(format_error_message(response.error_message))
 
         return await make_substrate_call_with_retry()
 
@@ -5344,7 +5426,7 @@ class Subtensor:
             bool: ``True`` if the take rate decrease is successful, ``False`` otherwise.
         """
 
-        @retry(delay=1, tries=3, backoff=2, max_delay=4)
+        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), reraise=True)
         async def make_substrate_call_with_retry():
             call = await self.substrate.compose_call(
                 call_module="SubtensorModule",
@@ -5369,7 +5451,7 @@ class Subtensor:
             if response.is_success:
                 return True
             else:
-                raise TakeError(response.error_message)
+                raise TakeError(format_error_message(response.error_message))
 
         return await make_substrate_call_with_retry()
 
@@ -5394,7 +5476,7 @@ class Subtensor:
         """
         try:
 
-            @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=bittensor.logging)
+            @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), reraise=True)
             async def make_substrate_call_with_retry():
                 return await self.substrate.query(
                     module="System",
@@ -5427,7 +5509,7 @@ class Subtensor:
         operations on the blockchain. It serves as a reference point for network activities and data synchronization.
         """
 
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=bittensor.logging)
+        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), reraise=True)
         async def make_substrate_call_with_retry():
             return await self.substrate.get_block_number(None)  # type: ignore
 
@@ -5448,7 +5530,7 @@ class Subtensor:
         including the distribution of financial resources and the financial status of network participants.
         """
 
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=bittensor.logging)
+        @retry(stop=stop_after_attempt(3), wait=wait_fixed(1), reraise=True)
         async def make_substrate_call_with_retry():
             return await self.substrate.query_map(
                 module="System",

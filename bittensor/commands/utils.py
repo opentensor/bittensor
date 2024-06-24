@@ -1,14 +1,14 @@
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
-
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
 # the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
+#
 # The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
-
+#
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
 # THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
@@ -18,13 +18,17 @@
 import os
 import sys
 from dataclasses import dataclass
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 
 import requests
 from munch import Munch, munchify
 from rich.prompt import Confirm, PromptBase
+from scalecodec.base import RuntimeConfiguration
+from scalecodec.type_registry import load_type_registry_preset
 
 import bittensor
+from bittensor.utils import u64_normalized_float, u16_normalized_float
+from bittensor.utils.balance import Balance
 from bittensor.utils.registration import torch
 
 console = bittensor.__console__
@@ -119,7 +123,7 @@ async def check_netuid_set(
                 netuid = netuid[0]
             try:
                 config.netuid = int(netuid)
-            except:
+            except BaseException:
                 raise ValueError('netuid must be an integer or "None" (if applicable)')
 
 
@@ -193,7 +197,7 @@ def get_hotkey_wallets_for_wallet(wallet) -> List["bittensor.wallet"]:
                 and not hotkey_for_name.hotkey_file.is_encrypted()
             ):
                 hotkey_wallets.append(hotkey_for_name)
-        except Exception:
+        except BaseException:
             pass
     return hotkey_wallets
 
@@ -220,18 +224,20 @@ def get_all_wallets_for_path(path: str) -> List["bittensor.wallet"]:
     return all_wallets
 
 
-def filter_netuids_by_registered_hotkeys(
-    cli, subtensor, netuids, all_hotkeys
+async def filter_netuids_by_registered_hotkeys(
+    cli, subtensor: "bittensor.subtensor", netuids, all_hotkeys
 ) -> List[int]:
     netuids_with_registered_hotkeys = []
     for wallet in all_hotkeys:
-        netuids_list = subtensor.get_netuids_for_hotkey(wallet.hotkey.ss58_address)
+        netuids_list = await subtensor.get_netuids_for_hotkey(
+            wallet.hotkey.ss58_address
+        )
         bittensor.logging.debug(
             f"Hotkey {wallet.hotkey.ss58_address} registered in netuids: {netuids_list}"
         )
         netuids_with_registered_hotkeys.extend(netuids_list)
 
-    if cli.config.netuids == None or cli.config.netuids == []:
+    if cli.config.netuids is None or cli.config.netuids == []:
         netuids = netuids_with_registered_hotkeys
 
     elif cli.config.netuids != []:
@@ -239,6 +245,50 @@ def filter_netuids_by_registered_hotkeys(
         netuids.extend(netuids_with_registered_hotkeys)
 
     return list(set(netuids))
+
+
+def normalize_hyperparameters(
+    subnet: bittensor.SubnetHyperparameters,
+) -> List[Tuple[str, str, str]]:
+    """
+    Normalizes the hyperparameters of a subnet.
+
+    Args:
+        subnet: The subnet hyperparameters object.
+
+    Returns:
+        A list of tuples containing the parameter name, value, and normalized value.
+    """
+    param_mappings = {
+        "adjustment_alpha": u64_normalized_float,
+        "min_difficulty": u64_normalized_float,
+        "max_difficulty": u64_normalized_float,
+        "difficulty": u64_normalized_float,
+        "bonds_moving_avg": u64_normalized_float,
+        "max_weight_limit": u16_normalized_float,
+        "kappa": u16_normalized_float,
+        "min_burn": Balance.from_rao,
+        "max_burn": Balance.from_rao,
+    }
+
+    normalized_values: List[Tuple[str, str, str]] = []
+    subnet_dict = subnet.__dict__
+
+    for param, value in subnet_dict.items():
+        try:
+            if param in param_mappings:
+                norm_value = param_mappings[param](value)
+                if isinstance(norm_value, float):
+                    norm_value = f"{norm_value:.{10}g}"
+            else:
+                norm_value = value
+        except Exception as e:
+            bittensor.logging.warning(f"Error normalizing parameter '{param}': {e}")
+            norm_value = "-"
+
+        normalized_values.append((param, str(value), str(norm_value)))
+
+    return normalized_values
 
 
 @dataclass
@@ -280,3 +330,13 @@ def get_delegates_details(url: str) -> Optional[Dict[str, DelegatesDetails]]:
         return _get_delegates_details_from_github(requests.get, url)
     except Exception:
         return None  # Fail silently
+
+
+def decode_scale_bytes(return_type, scale_bytes, custom_rpc_type_registry):
+    rpc_runtime_config = RuntimeConfiguration()
+    rpc_runtime_config.update_type_registry(load_type_registry_preset("legacy"))
+    rpc_runtime_config.update_type_registry(custom_rpc_type_registry)
+    obj = rpc_runtime_config.create_scale_object(return_type, scale_bytes)
+    if obj.data.to_hex() == "0x0400":  # RPC returned None result
+        return None
+    return obj.decode()

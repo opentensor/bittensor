@@ -1,6 +1,8 @@
-import torch
-import pytest
 from unittest.mock import MagicMock, patch
+
+import pytest
+import torch
+
 from bittensor import subtensor, wallet
 from bittensor.extrinsics.set_weights import set_weights_extrinsic
 
@@ -18,6 +20,7 @@ def mock_wallet():
     return mock
 
 
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "uids, weights, version_key, wait_for_inclusion, wait_for_finalization, prompt, user_accepts, expected_success, expected_message",
     [
@@ -53,7 +56,7 @@ def mock_wallet():
         "prompt-refused",
     ],
 )
-def test_set_weights_extrinsic(
+async def test_set_weights_extrinsic(
     mock_subtensor,
     mock_wallet,
     uids,
@@ -76,7 +79,7 @@ def test_set_weights_extrinsic(
         "do_set_weights",
         return_value=(expected_success, "Mock error message"),
     ) as mock_do_set_weights:
-        result, message = set_weights_extrinsic(
+        result, message = await set_weights_extrinsic(
             subtensor=mock_subtensor,
             wallet=mock_wallet,
             netuid=123,

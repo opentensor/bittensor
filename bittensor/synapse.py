@@ -120,7 +120,7 @@ class TerminalInfo(BaseModel):
         ip (str): IP address of the terminal, crucial for network routing and data transmission.
         port (int): Network port used by the terminal, key for establishing network connections.
         version (int): Bittensor version running on the terminal, ensuring compatibility between different nodes in the network.
-        nonce (int): Unix timestamp that linearly increases for each request, ensuring requests cannot be duplicated or repeated
+        nonce (int): Unique, monotonically increasing number for each terminal, aiding in identifying and ordering network interactions.
         uuid (str): Unique identifier for the terminal, fundamental for network security and identification.
         hotkey (str): Encoded hotkey string of the terminal wallet, important for transaction and identity verification in the network.
         signature (str): Digital signature verifying the tuple of nonce, axon_hotkey, dendrite_hotkey, and uuid, critical for ensuring data authenticity and security.
@@ -717,9 +717,9 @@ class Synapse(BaseModel):
         if required_hash_fields:
             instance_fields = instance_fields or self.model_dump()
             for field in required_hash_fields:
-                hashes.append(bittensor.utils.hash(str(instance_fields[field])))
+                hashes.append(bittensor.utils.get_hash(str(instance_fields[field])))
 
-        return bittensor.utils.hash("".join(hashes))
+        return bittensor.utils.get_hash("".join(hashes))
 
     @classmethod
     def parse_headers_to_inputs(cls, headers: dict) -> dict:

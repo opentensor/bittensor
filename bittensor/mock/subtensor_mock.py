@@ -1,30 +1,30 @@
 # The MIT License (MIT)
 # Copyright © 2022-2023 Opentensor Foundation
-
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
 # the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
+#
 # The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
-
+#
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
 # THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from random import randint
-from types import SimpleNamespace
-from typing import Any, Dict, List, Optional, Tuple, TypedDict, Union
-from unittest.mock import MagicMock
-from dataclasses import dataclass
+import asyncio
+import unittest.mock
 from abc import abstractclassmethod
 from collections.abc import Mapping
-
+from dataclasses import dataclass
 from hashlib import sha256
-from ..wallet import wallet
+from random import randint
+from types import SimpleNamespace
+from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import TypedDict
 
 from ..chain_data import (
     NeuronInfo,
@@ -36,12 +36,10 @@ from ..chain_data import (
 )
 from ..errors import ChainQueryError
 from ..subtensor import Subtensor
-from ..utils import RAOPERTAO, U16_NORMALIZED_FLOAT
+from ..utils import RAOPERTAO, u16_normalized_float
 from ..utils.balance import Balance
 from ..utils.registration import POWSolution
-
-from typing import TypedDict
-
+from ..wallet import wallet
 
 # Mock Testing Constant
 __GLOBAL_MOCK_STATE__ = {}
@@ -279,15 +277,16 @@ class MockSubtensor(Subtensor):
 
             self.network = "mock"
             self.chain_endpoint = "mock_endpoint"
-            self.substrate = MagicMock()
+            self.substrate = unittest.mock.AsyncMock()
 
     def __init__(self, *args, **kwargs) -> None:
+        super().__init__()
         self.__dict__ = __GLOBAL_MOCK_STATE__
 
         if not hasattr(self, "chain_state") or getattr(self, "chain_state") is None:
             self.setup()
 
-    def get_block_hash(self, block_id: int) -> str:
+    async def get_block_hash(self, block_id: int) -> str:
         return "0x" + sha256(str(block_id).encode()).hexdigest()[:64]
 
     def create_subnet(self, netuid: int) -> None:
@@ -490,7 +489,7 @@ class MockSubtensor(Subtensor):
 
         return balance
 
-    def force_register_neuron(
+    async def force_register_neuron(
         self,
         netuid: int,
         hotkey: str,
@@ -516,12 +515,12 @@ class MockSubtensor(Subtensor):
         subtensor_state["Stake"][hotkey][coldkey][self.block_number] = stake.rao
 
         if balance.rao > 0:
-            self.force_set_balance(coldkey, balance)
-        self.force_set_balance(coldkey, balance)
+            await self.force_set_balance(coldkey, balance)
+        await self.force_set_balance(coldkey, balance)
 
         return uid
 
-    def force_set_balance(
+    async def force_set_balance(
         self, ss58_address: str, balance: Union["Balance", float, int] = Balance(0)
     ) -> Tuple[bool, Optional[str]]:
         """
@@ -535,7 +534,7 @@ class MockSubtensor(Subtensor):
                 "data": {"free": {0: 0}}
             }
 
-        old_balance = self.get_balance(ss58_address, self.block_number)
+        old_balance = await self.get_balance(ss58_address, self.block_number)
         diff = balance.rao - old_balance.rao
 
         # Update total issuance
@@ -578,8 +577,8 @@ class MockSubtensor(Subtensor):
 
         return defaults_mapping.get(name, None)
 
-    def commit(self, wallet: "wallet", netuid: int, data: str) -> None:
-        uid = self.get_uid_for_hotkey_on_subnet(
+    async def commit(self, wallet: "wallet", netuid: int, data: str) -> None:
+        uid = await self.get_uid_for_hotkey_on_subnet(
             hotkey_ss58=wallet.hotkey.ss58_address,
             netuid=netuid,
         )
@@ -588,7 +587,9 @@ class MockSubtensor(Subtensor):
         subtensor_state = self.chain_state["SubtensorModule"]
         subtensor_state["Commits"][netuid].setdefault(self.block_number, {})[uid] = data
 
-    def get_commitment(self, netuid: int, uid: int, block: Optional[int] = None) -> str:
+    async def get_commitment(
+        self, netuid: int, uid: int, block: Optional[int] = None
+    ) -> str:
         if block and self.block_number < block:
             raise Exception("Cannot query block in the future")
         block = block or self.block_number
@@ -596,7 +597,7 @@ class MockSubtensor(Subtensor):
         subtensor_state = self.chain_state["SubtensorModule"]
         return subtensor_state["Commits"][netuid][block][uid]
 
-    def query_subtensor(
+    async def query_subtensor(
         self,
         name: str,
         block: Optional[int] = None,
@@ -632,7 +633,7 @@ class MockSubtensor(Subtensor):
         else:
             return SimpleNamespace(value=self._handle_type_default(name, params))
 
-    def query_map_subtensor(
+    async def query_map_subtensor(
         self,
         name: str,
         block: Optional[int] = None,
@@ -684,7 +685,7 @@ class MockSubtensor(Subtensor):
         else:
             return MockMapResult([])
 
-    def query_constant(
+    async def query_constant(
         self, module_name: str, constant_name: str, block: Optional[int] = None
     ) -> Optional[object]:
         if block:
@@ -710,12 +711,12 @@ class MockSubtensor(Subtensor):
         else:
             return None
 
-    def get_current_block(self) -> int:
+    async def get_current_block(self) -> int:
         return self.block_number
 
     # ==== Balance RPC methods ====
 
-    def get_balance(self, address: str, block: int = None) -> "Balance":
+    async def get_balance(self, address: str, block: int = None) -> "Balance":
         if block:
             if self.block_number < block:
                 raise Exception("Cannot query block in the future")
@@ -743,16 +744,16 @@ class MockSubtensor(Subtensor):
         else:
             return Balance(0)
 
-    def get_balances(self, block: int = None) -> Dict[str, "Balance"]:
+    async def get_balances(self, block: int = None) -> Dict[str, "Balance"]:
         balances = {}
         for address in self.chain_state["System"]["Account"]:
-            balances[address] = self.get_balance(address, block)
+            balances[address] = await self.get_balance(address, block)
 
         return balances
 
     # ==== Neuron RPC methods ====
 
-    def neuron_for_uid(
+    async def neuron_for_uid(
         self, uid: int, netuid: int, block: Optional[int] = None
     ) -> Optional[NeuronInfo]:
         if uid is None:
@@ -775,7 +776,9 @@ class MockSubtensor(Subtensor):
         else:
             return neuron_info
 
-    def neurons(self, netuid: int, block: Optional[int] = None) -> List[NeuronInfo]:
+    async def neurons(
+        self, netuid: int, block: Optional[int] = None
+    ) -> List[NeuronInfo]:
         if netuid not in self.chain_state["SubtensorModule"]["NetworksAdded"]:
             raise Exception("Subnet does not exist")
 
@@ -784,7 +787,7 @@ class MockSubtensor(Subtensor):
             self.chain_state["SubtensorModule"]["SubnetworkN"][netuid], block
         )
         for uid in range(subnet_n):
-            neuron_info = self.neuron_for_uid(uid, netuid, block)
+            neuron_info = await self.neuron_for_uid(uid, netuid, block)
             if neuron_info is not None:
                 neurons.append(neuron_info)
 
@@ -921,13 +924,13 @@ class MockSubtensor(Subtensor):
 
         weights = [[int(weight[0]), int(weight[1])] for weight in weights]
         bonds = [[int(bond[0]), int(bond[1])] for bond in bonds]
-        rank = U16_NORMALIZED_FLOAT(rank)
+        rank = u16_normalized_float(rank)
         emission = emission / RAOPERTAO
-        incentive = U16_NORMALIZED_FLOAT(incentive)
-        consensus = U16_NORMALIZED_FLOAT(consensus)
-        trust = U16_NORMALIZED_FLOAT(trust)
-        validator_trust = U16_NORMALIZED_FLOAT(validator_trust)
-        dividends = U16_NORMALIZED_FLOAT(dividends)
+        incentive = u16_normalized_float(incentive)
+        consensus = u16_normalized_float(consensus)
+        trust = u16_normalized_float(trust)
+        validator_trust = u16_normalized_float(validator_trust)
+        dividends = u16_normalized_float(dividends)
         prometheus_info = PrometheusInfo.fix_decoded_values(prometheus_info)
         axon_info_ = AxonInfo.from_neuron_info(
             {"hotkey": hotkey, "coldkey": coldkey, "axon_info": axon_info_}
@@ -961,7 +964,7 @@ class MockSubtensor(Subtensor):
 
         return neuron_info
 
-    def neuron_for_uid_lite(
+    async def neuron_for_uid_lite(
         self, uid: int, netuid: int, block: Optional[int] = None
     ) -> Optional[NeuronInfoLite]:
         if block:
@@ -987,7 +990,7 @@ class MockSubtensor(Subtensor):
             neuron_info_lite = NeuronInfoLite(**neuron_info_dict)
             return neuron_info_lite
 
-    def neurons_lite(
+    async def neurons_lite(
         self, netuid: int, block: Optional[int] = None
     ) -> List[NeuronInfoLite]:
         if netuid not in self.chain_state["SubtensorModule"]["NetworksAdded"]:
@@ -998,14 +1001,14 @@ class MockSubtensor(Subtensor):
             self.chain_state["SubtensorModule"]["SubnetworkN"][netuid]
         )
         for uid in range(subnet_n):
-            neuron_info = self.neuron_for_uid_lite(uid, netuid, block)
+            neuron_info = await self.neuron_for_uid_lite(uid, netuid, block)
             if neuron_info is not None:
                 neurons.append(neuron_info)
 
         return neurons
 
     # Extrinsics
-    def do_delegation(
+    async def do_delegation(
         self,
         wallet: "wallet",
         delegate_ss58: str,
@@ -1028,7 +1031,7 @@ class MockSubtensor(Subtensor):
 
         return success
 
-    def do_undelegation(
+    async def do_undelegation(
         self,
         wallet: "wallet",
         delegate_ss58: str,
@@ -1041,7 +1044,7 @@ class MockSubtensor(Subtensor):
             raise Exception("Not a delegate")
 
         # do unstake
-        self.do_unstake(
+        await self.do_unstake(
             wallet=wallet,
             hotkey_ss58=delegate_ss58,
             amount=amount,
@@ -1049,7 +1052,7 @@ class MockSubtensor(Subtensor):
             wait_for_finalization=wait_for_finalization,
         )
 
-    def do_nominate(
+    async def do_nominate(
         self,
         wallet: "wallet",
         wait_for_inclusion: bool = True,
@@ -1070,12 +1073,12 @@ class MockSubtensor(Subtensor):
 
             return True
 
-    def get_transfer_fee(
+    async def get_transfer_fee(
         self, wallet: "wallet", dest: str, value: Union["Balance", float, int]
     ) -> "Balance":
         return Balance(700)
 
-    def do_transfer(
+    async def do_transfer(
         self,
         wallet: "wallet",
         dest: str,
@@ -1083,11 +1086,11 @@ class MockSubtensor(Subtensor):
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
     ) -> Tuple[bool, Optional[str], Optional[str]]:
-        bal = self.get_balance(wallet.coldkeypub.ss58_address)
-        dest_bal = self.get_balance(dest)
+        bal = await self.get_balance(wallet.coldkeypub.ss58_address)
+        dest_bal = await self.get_balance(dest)
         transfer_fee = self.get_transfer_fee(wallet, dest, transfer_balance)
 
-        existential_deposit = self.get_existential_deposit()
+        existential_deposit = await self.get_existential_deposit()
 
         if bal < transfer_balance + existential_deposit + transfer_fee:
             raise Exception("Insufficient balance")
@@ -1107,7 +1110,7 @@ class MockSubtensor(Subtensor):
 
         return True, None, None
 
-    def do_pow_register(
+    async def do_pow_register(
         self,
         netuid: int,
         wallet: "wallet",
@@ -1129,7 +1132,7 @@ class MockSubtensor(Subtensor):
 
         return True, None
 
-    def do_burned_register(
+    async def do_burned_register(
         self,
         netuid: int,
         wallet: "wallet",
@@ -1160,7 +1163,7 @@ class MockSubtensor(Subtensor):
 
         return True, None
 
-    def do_stake(
+    async def do_stake(
         self,
         wallet: "wallet",
         hotkey_ss58: str,
@@ -1231,7 +1234,7 @@ class MockSubtensor(Subtensor):
 
         return True
 
-    def do_unstake(
+    async def do_unstake(
         self,
         wallet: "wallet",
         hotkey_ss58: str,
@@ -1241,8 +1244,8 @@ class MockSubtensor(Subtensor):
     ) -> bool:
         subtensor_state = self.chain_state["SubtensorModule"]
 
-        bal = self.get_balance(wallet.coldkeypub.ss58_address)
-        curr_stake = self.get_stake_for_coldkey_and_hotkey(
+        bal = await self.get_balance(wallet.coldkeypub.ss58_address)
+        curr_stake = await self.get_stake_for_coldkey_and_hotkey(
             hotkey_ss58=hotkey_ss58, coldkey_ss58=wallet.coldkeypub.ss58_address
         )
         if curr_stake is None:
@@ -1314,10 +1317,10 @@ class MockSubtensor(Subtensor):
         # valid minimum threshold as of 2024/05/01
         return 100_000_000  # RAO
 
-    def get_minimum_required_stake(self):
+    async def get_minimum_required_stake(self):
         return Balance.from_rao(self.min_required_stake())
 
-    def get_delegate_by_hotkey(
+    async def get_delegate_by_hotkey(
         self, hotkey_ss58: str, block: Optional[int] = None
     ) -> Optional["DelegateInfo"]:
         subtensor_state = self.chain_state["SubtensorModule"]
@@ -1334,15 +1337,15 @@ class MockSubtensor(Subtensor):
         nom_result = []
         nominators = subtensor_state["Stake"][hotkey_ss58]
         for nominator in nominators:
-            nom_amount = self.get_stake_for_coldkey_and_hotkey(
+            nom_amount = await self.get_stake_for_coldkey_and_hotkey(
                 hotkey_ss58=hotkey_ss58, coldkey_ss58=nominator, block=block
             )
             if nom_amount is not None and nom_amount.rao > 0:
                 nom_result.append((nominator, nom_amount))
 
         registered_subnets = []
-        for subnet in self.get_all_subnet_netuids(block=block):
-            uid = self.get_uid_for_hotkey_on_subnet(
+        for subnet in await self.get_all_subnet_netuids(block=block):
+            uid = await self.get_uid_for_hotkey_on_subnet(
                 hotkey_ss58=hotkey_ss58, netuid=subnet, block=block
             )
 
@@ -1354,7 +1357,9 @@ class MockSubtensor(Subtensor):
             total_stake=self.get_total_stake_for_hotkey(ss58_address=hotkey_ss58)
             or Balance(0),
             nominators=nom_result,
-            owner_ss58=self.get_hotkey_owner(hotkey_ss58=hotkey_ss58, block=block),
+            owner_ss58=await self.get_hotkey_owner(
+                hotkey_ss58=hotkey_ss58, block=block
+            ),
             take=0.18,
             validator_permits=[
                 subnet
@@ -1368,21 +1373,21 @@ class MockSubtensor(Subtensor):
 
         return info
 
-    def get_delegates(self, block: Optional[int] = None) -> List["DelegateInfo"]:
+    async def get_delegates(self, block: Optional[int] = None) -> List["DelegateInfo"]:
         subtensor_state = self.chain_state["SubtensorModule"]
         delegates_info = []
         for hotkey in subtensor_state["Delegates"]:
-            info = self.get_delegate_by_hotkey(hotkey_ss58=hotkey, block=block)
+            info = await self.get_delegate_by_hotkey(hotkey_ss58=hotkey, block=block)
             if info is not None:
                 delegates_info.append(info)
 
         return delegates_info
 
-    def get_delegated(
+    async def get_delegated(
         self, coldkey_ss58: str, block: Optional[int] = None
     ) -> List[Tuple["DelegateInfo", "Balance"]]:
         """Returns the list of delegates that a given coldkey is staked to."""
-        delegates = self.get_delegates(block=block)
+        delegates = await self.get_delegates(block=block)
 
         result = []
         for delegate in delegates:
@@ -1391,54 +1396,95 @@ class MockSubtensor(Subtensor):
 
         return result
 
-    def get_all_subnets_info(self, block: Optional[int] = None) -> List[SubnetInfo]:
+    async def get_all_subnets_info(
+        self, block: Optional[int] = None
+    ) -> List[SubnetInfo]:
         subtensor_state = self.chain_state["SubtensorModule"]
         result = []
         for subnet in subtensor_state["NetworksAdded"]:
-            info = self.get_subnet_info(netuid=subnet, block=block)
+            info = await self.get_subnet_info(netuid=subnet, block=block)
             if info is not None:
                 result.append(info)
 
         return result
 
-    def get_subnet_info(
+    async def get_subnet_info(
         self, netuid: int, block: Optional[int] = None
     ) -> Optional[SubnetInfo]:
-        if not self.subnet_exists(netuid=netuid, block=block):
+        if not await self.subnet_exists(netuid=netuid, block=block):
             return None
 
-        def query_subnet_info(name: str) -> Optional[object]:
-            return self.query_subtensor(name=name, block=block, params=[netuid]).value
+        async def query_subnet_info(name: str) -> Optional[object]:
+            query_subnet_info_ = await self.query_subtensor(
+                name=name, block=block, params=[netuid]
+            )
+            return query_subnet_info_.value
 
+        (
+            rho,
+            kappa,
+            difficulty,
+            immunity_period,
+            max_allowed_validators,
+            min_allowed_weights,
+            max_weight_limit,
+            scaling_law_power,
+            subnetwork_n,
+            max_n,
+            blocks_since_epoch,
+            tempo,
+            modality,
+            connection_requirements,
+            emission_value,
+            burn,
+            owner_ss58,
+        ) = await asyncio.gather(
+            query_subnet_info(name="Rho"),
+            query_subnet_info(name="Kappa"),
+            query_subnet_info(name="Difficulty"),
+            query_subnet_info(name="ImmunityPeriod"),
+            query_subnet_info(name="MaxAllowedValidators"),
+            query_subnet_info(name="MinAllowedWeights"),
+            query_subnet_info(name="MaxWeightLimit"),
+            query_subnet_info(name="ScalingLawPower"),
+            query_subnet_info(name="SubnetworkN"),
+            query_subnet_info(name="MaxAllowedUids"),
+            query_subnet_info(name="BlocksSinceLastStep"),
+            query_subnet_info(name="Tempo"),
+            query_subnet_info(name="NetworkModality"),
+            query_subnet_info(name="EmissionValues"),
+            query_subnet_info(name="Burn"),
+            query_subnet_info(name="SubnetOwner"),
+        )
         info = SubnetInfo(
             netuid=netuid,
-            rho=query_subnet_info(name="Rho"),
-            kappa=query_subnet_info(name="Kappa"),
-            difficulty=query_subnet_info(name="Difficulty"),
-            immunity_period=query_subnet_info(name="ImmunityPeriod"),
-            max_allowed_validators=query_subnet_info(name="MaxAllowedValidators"),
-            min_allowed_weights=query_subnet_info(name="MinAllowedWeights"),
-            max_weight_limit=query_subnet_info(name="MaxWeightLimit"),
-            scaling_law_power=query_subnet_info(name="ScalingLawPower"),
-            subnetwork_n=query_subnet_info(name="SubnetworkN"),
-            max_n=query_subnet_info(name="MaxAllowedUids"),
-            blocks_since_epoch=query_subnet_info(name="BlocksSinceLastStep"),
-            tempo=query_subnet_info(name="Tempo"),
-            modality=query_subnet_info(name="NetworkModality"),
+            rho=rho,
+            kappa=kappa,
+            difficulty=difficulty,
+            immunity_period=immunity_period,
+            max_allowed_validators=max_allowed_validators,
+            min_allowed_weights=min_allowed_weights,
+            max_weight_limit=max_weight_limit,
+            scaling_law_power=scaling_law_power,
+            subnetwork_n=subnetwork_n,
+            max_n=max_n,
+            blocks_since_epoch=blocks_since_epoch,
+            tempo=tempo,
+            modality=modality,
             connection_requirements={
                 str(netuid_.value): percentile.value
                 for netuid_, percentile in self.query_map_subtensor(
                     name="NetworkConnect", block=block, params=[netuid]
                 ).records
             },
-            emission_value=query_subnet_info(name="EmissionValues"),
-            burn=query_subnet_info(name="Burn"),
-            owner_ss58=query_subnet_info(name="SubnetOwner"),
+            emission_value=emission_value,
+            burn=burn,
+            owner_ss58=owner_ss58,
         )
 
         return info
 
-    def do_serve_prometheus(
+    async def do_serve_prometheus(
         self,
         wallet: "wallet",
         call_params: "PrometheusServeCallParams",
@@ -1447,7 +1493,7 @@ class MockSubtensor(Subtensor):
     ) -> Tuple[bool, Optional[str]]:
         return True, None
 
-    def do_set_weights(
+    async def do_set_weights(
         self,
         wallet: "wallet",
         netuid: int,
@@ -1459,7 +1505,7 @@ class MockSubtensor(Subtensor):
     ) -> Tuple[bool, Optional[str]]:
         return True, None
 
-    def do_serve_axon(
+    async def do_serve_axon(
         self,
         wallet: "wallet",
         call_params: "AxonServeCallParams",

@@ -33,7 +33,16 @@ U64_MAX = 18446744073709551615
 
 
 def ss58_to_vec_u8(ss58_address: str) -> List[int]:
-    ss58_bytes: bytes = bittensor.utils.ss58_address_to_bytes(ss58_address)
+    """
+    Converts an SS58 address to a list of integers (vector of u8).
+
+    Args:
+        ss58_address (str): The SS58 address to be converted.
+
+    Returns:
+        List[int]: A list of integers representing the byte values of the SS58 address.
+    """
+    ss58_bytes: bytes = ss58_address_to_bytes(ss58_address)
     encoded_address: List[int] = [int(byte) for byte in ss58_bytes]
     return encoded_address
 
@@ -42,39 +51,31 @@ def _unbiased_topk(
     values: Union[np.ndarray, "torch.Tensor"],
     k: int,
     dim=0,
-    sorted=True,
+    sorted_=True,
     largest=True,
     axis=0,
     return_type: str = "numpy",
 ) -> Union[Tuple[np.ndarray, np.ndarray], Tuple["torch.Tensor", "torch.LongTensor"]]:
     """Selects topk as in torch.topk but does not bias lower indices when values are equal.
+
     Args:
-        values: (np.ndarray) if using numpy, (torch.Tensor) if using torch:
-            Values to index into.
-        k: (int):
-            Number to take.
-        dim: (int):
-            Dimension to index into (used by Torch)
-        sorted: (bool):
-            Whether to sort indices.
-        largest: (bool):
-            Whether to take the largest value.
-        axis: (int):
-            Axis along which to index into (used by Numpy)
-        return_type: (str):
-            Whether or use torch or numpy approach
+        values: (np.ndarray) if using numpy, (torch.Tensor) if using torch: Values to index into.
+        k: (int): Number to take.
+        dim: (int): Dimension to index into (used by Torch)
+        sorted_: (bool): Whether to sort indices.
+        largest: (bool): Whether to take the largest value.
+        axis: (int): Axis along which to index into (used by Numpy)
+        return_type: (str): Whether or use torch or numpy approach
 
     Return:
-        topk: (np.ndarray) if using numpy, (torch.Tensor) if using torch:
-            topk k values.
-        indices: (np.ndarray) if using numpy, (torch.LongTensor) if using torch:
-            indices of the topk values.
+        topk: (np.ndarray) if using numpy, (torch.Tensor) if using torch: topk k values.
+        indices: (np.ndarray) if using numpy, (torch.LongTensor) if using torch: indices of the topk values.
     """
     if return_type == "torch":
         permutation = torch.randperm(values.shape[dim])
         permuted_values = values[permutation]
         topk, indices = torch.topk(
-            permuted_values, k, dim=dim, sorted=sorted, largest=largest
+            permuted_values, k, dim=dim, sorted=sorted_, largest=largest
         )
         return topk, permutation[indices]
     else:
@@ -85,7 +86,7 @@ def _unbiased_topk(
         permutation = np.random.permutation(values.shape[axis])
         permuted_values = np.take(values, permutation, axis=axis)
         indices = np.argpartition(permuted_values, -k, axis=axis)[-k:]
-        if not sorted:
+        if not sorted_:
             indices = np.sort(indices, axis=axis)
         if not largest:
             indices = indices[::-1]
@@ -97,38 +98,31 @@ def unbiased_topk(
     values: Union[np.ndarray, "torch.Tensor"],
     k: int,
     dim: int = 0,
-    sorted: bool = True,
+    sorted_: bool = True,
     largest: bool = True,
     axis: int = 0,
 ) -> Union[Tuple[np.ndarray, np.ndarray], Tuple["torch.Tensor", "torch.LongTensor"]]:
     """Selects topk as in torch.topk but does not bias lower indices when values are equal.
+
     Args:
-        values: (np.ndarray) if using numpy, (torch.Tensor) if using torch:
-            Values to index into.
-        k: (int):
-            Number to take.
-        dim: (int):
-            Dimension to index into (used by Torch)
-        sorted: (bool):
-            Whether to sort indices.
-        largest: (bool):
-            Whether to take the largest value.
-        axis: (int):
-            Axis along which to index into (used by Numpy)
+        values: (np.ndarray) if using numpy, (torch.Tensor) if using torch: Values to index into.
+        k: (int): Number to take.
+        dim: (int): Dimension to index into (used by Torch)
+        sorted_: (bool):  Whether to sort indices.
+        largest: (bool): Whether to take the largest value.
+        axis: (int): Axis along which to index into (used by Numpy)
 
     Return:
-        topk: (np.ndarray) if using numpy, (torch.Tensor) if using torch:
-            topk k values.
-        indices: (np.ndarray) if using numpy, (torch.LongTensor) if using torch:
-            indices of the topk values.
+        topk: (np.ndarray) if using numpy, (torch.Tensor) if using torch: topk k values.
+        indices: (np.ndarray) if using numpy, (torch.LongTensor) if using torch: indices of the topk values.
     """
     if use_torch():
         return _unbiased_topk(
-            values, k, dim, sorted, largest, axis, return_type="torch"
+            values, k, dim, sorted_, largest, axis, return_type="torch"
         )
     else:
         return _unbiased_topk(
-            values, k, dim, sorted, largest, axis, return_type="numpy"
+            values, k, dim, sorted_, largest, axis, return_type="numpy"
         )
 
 
@@ -168,7 +162,7 @@ def strtobool(val: str) -> Union[bool, Literal["==SUPRESS=="]]:
 def get_explorer_root_url_by_network_from_map(
     network: str, network_map: Dict[str, Dict[str, str]]
 ) -> Optional[Dict[str, str]]:
-    r"""
+    """
     Returns the explorer root url for the given network name from the given network map.
 
     Args:
@@ -190,7 +184,7 @@ def get_explorer_root_url_by_network_from_map(
 def get_explorer_url_for_network(
     network: str, block_hash: str, network_map: Dict[str, Dict[str, str]]
 ) -> Optional[Dict[str, str]]:
-    r"""
+    """
     Returns the explorer url for the given block hash and network.
 
     Args:
@@ -231,16 +225,16 @@ def ss58_address_to_bytes(ss58_address: str) -> bytes:
     return bytes.fromhex(account_id_hex)
 
 
-def U16_NORMALIZED_FLOAT(x: int) -> float:
+def u16_normalized_float(x: int) -> float:
     return float(x) / float(U16_MAX)
 
 
-def U64_NORMALIZED_FLOAT(x: int) -> float:
+def u64_normalized_float(x: int) -> float:
     return float(x) / float(U64_MAX)
 
 
 def u8_key_to_ss58(u8_key: List[int]) -> str:
-    r"""
+    """
     Converts a u8-encoded account key to an ss58 address.
 
     Args:
@@ -250,7 +244,17 @@ def u8_key_to_ss58(u8_key: List[int]) -> str:
     return scalecodec.ss58_encode(bytes(u8_key).hex(), bittensor.__ss58_format__)
 
 
-def hash(content, encoding="utf-8"):
+def get_hash(content, encoding="utf-8"):
+    """
+    Generates a SHA3-256 hash for the given content.
+
+    Args:
+        content (str): The content to be hashed.
+        encoding (str, optional): The encoding used to convert the content to bytes. Default is ``utf-8``.
+
+    Returns:
+        str: The hexadecimal representation of the SHA3-256 hash of the content.
+    """
     sha3 = hashlib.sha3_256()
 
     # Update the hash object with the concatenated string
@@ -258,3 +262,25 @@ def hash(content, encoding="utf-8"):
 
     # Produce the hash
     return sha3.hexdigest()
+
+
+def format_error_message(error_message: dict) -> str:
+    """
+    Formats an error message from the Subtensor error information to using in extrinsics.
+
+    Args:
+        error_message (dict): A dictionary containing the error information from Subtensor.
+
+    Returns:
+        str: A formatted error message string.
+    """
+    err_type = "UnknownType"
+    err_name = "UnknownError"
+    err_description = "Unknown Description"
+
+    if isinstance(error_message, dict):
+        err_type = error_message.get("type", err_type)
+        err_name = error_message.get("name", err_name)
+        err_docs = error_message.get("docs", [])
+        err_description = err_docs[0] if len(err_docs) > 0 else err_description
+    return f"Subtensor returned `{err_name} ({err_type})` error. This means: `{err_description}`"

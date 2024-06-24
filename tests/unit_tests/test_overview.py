@@ -12,9 +12,9 @@ from tests.unit_tests.factories.neuron_factory import NeuronInfoLiteFactory
 
 
 @pytest.fixture
-def mock_subtensor():
-    mock = MagicMock()
-    mock.get_balance = MagicMock(return_value=100)
+def mock_subtensor(mocker):
+    mock = mocker.MagicMock()
+    mock.get_balance = mocker.AsyncMock(return_value=100)
     return mock
 
 
@@ -78,7 +78,8 @@ class MockCli:
         (True, True, True, 0, "edge_case_encrypted_wallet"),
     ],
 )
-def test_get_total_balance(
+@pytest.mark.asyncio
+async def test_get_total_balance(
     mock_subtensor,
     mock_wallet,
     config_all,
@@ -105,7 +106,7 @@ def test_get_total_balance(
         return_value=[mock_wallet],
     ):
         # Act
-        result_hotkeys, result_balance = OverviewCommand._get_total_balance(
+        result_hotkeys, result_balance = await OverviewCommand._get_total_balance(
             0, mock_subtensor, cli
         )
 
@@ -253,11 +254,12 @@ def netuids_list():
         ),
     ],
 )
-def test_process_neuron_results(
+@pytest.mark.asyncio
+async def test_process_neuron_results(
     test_id, results, expected_neurons, expected_netuids, neurons_dict, netuids_list
 ):
     # Act
-    actual_neurons = OverviewCommand._process_neuron_results(
+    actual_neurons = await OverviewCommand._process_neuron_results(
         results, neurons_dict, netuids_list
     )
 

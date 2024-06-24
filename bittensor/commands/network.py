@@ -16,12 +16,44 @@
 # DEALINGS IN THE SOFTWARE.
 
 import argparse
-import bittensor
+from typing import List, Optional, Dict
+
 from rich.prompt import Prompt
 from rich.table import Table
-from typing import List, Optional, Dict
-from .utils import get_delegates_details, DelegatesDetails, check_netuid_set, defaults
+
+import bittensor
+from bittensor.utils import balance, formatting
 from .identity import SetIdentityCommand
+from .utils import (
+    get_delegates_details,
+    DelegatesDetails,
+    check_netuid_set,
+    normalize_hyperparameters,
+    defaults
+)
+
+HYPERPARAMS = {
+    "serving_rate_limit": "sudo_set_serving_rate_limit",
+    "min_difficulty": "sudo_set_min_difficulty",
+    "max_difficulty": "sudo_set_max_difficulty",
+    "weights_version": "sudo_set_weights_version_key",
+    "weights_rate_limit": "sudo_set_weights_set_rate_limit",
+    "max_weight_limit": "sudo_set_max_weight_limit",
+    "immunity_period": "sudo_set_immunity_period",
+    "min_allowed_weights": "sudo_set_min_allowed_weights",
+    "activity_cutoff": "sudo_set_activity_cutoff",
+    "network_registration_allowed": "sudo_set_network_registration_allowed",
+    "network_pow_registration_allowed": "sudo_set_network_pow_registration_allowed",
+    "min_burn": "sudo_set_min_burn",
+    "max_burn": "sudo_set_max_burn",
+    "adjustment_alpha": "sudo_set_adjustment_alpha",
+    "rho": "sudo_set_rho",
+    "kappa": "sudo_set_kappa",
+    "difficulty": "sudo_set_difficulty",
+    "bonds_moving_avg": "sudo_set_bonds_moving_average",
+    "commit_reveal_weights_interval": "sudo_set_commit_reveal_weights_interval",
+    "commit_reveal_weights_enabled": "sudo_set_commit_reveal_weights_enabled",
+}
 
 console = bittensor.__console__
 
@@ -58,26 +90,26 @@ class RegisterSubnetworkCommand:
     """
 
     @staticmethod
-    def run(cli: "bittensor.cli"):
-        r"""Register a subnetwork"""
+    async def run(cli: "bittensor.cli"):
+        """Register a subnetwork"""
         try:
             config = cli.config.copy()
             subtensor: "bittensor.subtensor" = bittensor.subtensor(
                 config=config, log_verbose=False
             )
-            RegisterSubnetworkCommand._run(cli, subtensor)
+            await RegisterSubnetworkCommand._run(cli, subtensor)
         finally:
             if "subtensor" in locals():
-                subtensor.close()
+                await subtensor.close()
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
-        r"""Register a subnetwork"""
+    async def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+        """Register a subnetwork"""
         wallet = bittensor.wallet(config=cli.config)
 
         # Call register command.
-        success = subtensor.register_subnetwork(
+        success = await subtensor.register_subnetwork(
             wallet=wallet,
             prompt=not cli.config.no_prompt,
         )
@@ -89,14 +121,14 @@ class RegisterSubnetworkCommand:
             )
 
             if do_set_identity.lower() == "y":
-                subtensor.close()
+                await subtensor.close()
                 config = cli.config.copy()
-                SetIdentityCommand.check_config(config)
+                await SetIdentityCommand.check_config(config)
                 cli.config = config
-                SetIdentityCommand.run(cli)
+                await SetIdentityCommand.run(cli)
 
     @classmethod
-    def check_config(cls, config: "bittensor.config"):
+    async def check_config(cls, config: "bittensor.config"):
         if not config.is_set("wallet.name") and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
             config.wallet.name = str(wallet_name)
@@ -145,26 +177,26 @@ class SubnetLockCostCommand:
     """
 
     @staticmethod
-    def run(cli: "bittensor.cli"):
-        r"""View locking cost of creating a new subnetwork"""
+    async def run(cli: "bittensor.cli"):
+        """View locking cost of creating a new subnetwork"""
         try:
             config = cli.config.copy()
             subtensor: "bittensor.subtensor" = bittensor.subtensor(
                 config=config, log_verbose=False
             )
-            SubnetLockCostCommand._run(cli, subtensor)
+            await SubnetLockCostCommand._run(cli, subtensor)
         finally:
             if "subtensor" in locals():
-                subtensor.close()
+                await subtensor.close()
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
-        r"""View locking cost of creating a new subnetwork"""
+    async def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+        """View locking cost of creating a new subnetwork"""
         config = cli.config.copy()
         try:
             bittensor.__console__.print(
-                f"Subnet lock cost: [green]{bittensor.utils.balance.Balance( subtensor.get_subnet_burn_cost() )}[/green]"
+                f"Subnet lock cost: [green]{balance.Balance( await subtensor.get_subnet_burn_cost() )}[/green]"
             )
         except Exception as e:
             bittensor.__console__.print(
@@ -173,7 +205,7 @@ class SubnetLockCostCommand:
             )
 
     @classmethod
-    def check_config(cls, config: "bittensor.config"):
+    async def check_config(cls, config: "bittensor.config"):
         pass
 
     @classmethod
@@ -222,22 +254,22 @@ class SubnetListCommand:
     """
 
     @staticmethod
-    def run(cli: "bittensor.cli"):
-        r"""List all subnet netuids in the network."""
+    async def run(cli: "bittensor.cli"):
+        """List all subnet netuids in the network."""
         try:
             subtensor: "bittensor.subtensor" = bittensor.subtensor(
                 config=cli.config, log_verbose=False
             )
-            SubnetListCommand._run(cli, subtensor)
+            await SubnetListCommand._run(cli, subtensor)
         finally:
             if "subtensor" in locals():
-                subtensor.close()
+                await subtensor.close()
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
-        r"""List all subnet netuids in the network."""
-        subnets: List[bittensor.SubnetInfo] = subtensor.get_all_subnets_info()
+    async def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+        """List all subnet netuids in the network."""
+        subnets: List[bittensor.SubnetInfo] = await subtensor.get_all_subnets_info()
 
         rows = []
         total_neurons = 0
@@ -251,11 +283,11 @@ class SubnetListCommand:
                 (
                     str(subnet.netuid),
                     str(subnet.subnetwork_n),
-                    str(bittensor.utils.formatting.millify(subnet.max_n)),
+                    str(formatting.millify(subnet.max_n)),
                     f"{subnet.emission_value / bittensor.utils.RAOPERTAO * 100:0.2f}%",
                     str(subnet.tempo),
                     f"{subnet.burn!s:8.8}",
-                    str(bittensor.utils.formatting.millify(subnet.difficulty)),
+                    str(formatting.millify(subnet.difficulty)),
                     f"{delegate_info[subnet.owner_ss58].name if subnet.owner_ss58 in delegate_info else subnet.owner_ss58}",
                 )
             )
@@ -292,7 +324,7 @@ class SubnetListCommand:
         bittensor.__console__.print(table)
 
     @staticmethod
-    def check_config(config: "bittensor.config"):
+    async def check_config(config: "bittensor.config"):
         pass
 
     @staticmethod
@@ -301,30 +333,6 @@ class SubnetListCommand:
             "list", help="""List all subnets on the network"""
         )
         bittensor.subtensor.add_args(list_subnets_parser)
-
-
-HYPERPARAMS = {
-    "serving_rate_limit": "sudo_set_serving_rate_limit",
-    "min_difficulty": "sudo_set_min_difficulty",
-    "max_difficulty": "sudo_set_max_difficulty",
-    "weights_version": "sudo_set_weights_version_key",
-    "weights_rate_limit": "sudo_set_weights_set_rate_limit",
-    "max_weight_limit": "sudo_set_max_weight_limit",
-    "immunity_period": "sudo_set_immunity_period",
-    "min_allowed_weights": "sudo_set_min_allowed_weights",
-    "activity_cutoff": "sudo_set_activity_cutoff",
-    "network_registration_allowed": "sudo_set_network_registration_allowed",
-    "network_pow_registration_allowed": "sudo_set_network_pow_registration_allowed",
-    "min_burn": "sudo_set_min_burn",
-    "max_burn": "sudo_set_max_burn",
-    "adjustment_alpha": "sudo_set_adjustment_alpha",
-    "rho": "sudo_set_rho",
-    "kappa": "sudo_set_kappa",
-    "difficulty": "sudo_set_difficulty",
-    "bonds_moving_avg": "sudo_set_bonds_moving_average",
-    "commit_reveal_weights_interval": "sudo_set_commit_reveal_weights_interval",
-    "commit_reveal_weights_enabled": "sudo_set_commit_reveal_weights_enabled",
-}
 
 
 class SubnetSudoCommand:
@@ -350,27 +358,24 @@ class SubnetSudoCommand:
     """
 
     @staticmethod
-    def run(cli: "bittensor.cli"):
-        r"""Set subnet hyperparameters."""
+    async def run(cli: "bittensor.cli"):
+        """Set subnet hyperparameters."""
         try:
             subtensor: "bittensor.subtensor" = bittensor.subtensor(
                 config=cli.config, log_verbose=False
             )
-            SubnetSudoCommand._run(cli, subtensor)
+            await SubnetSudoCommand._run(cli, subtensor)
         finally:
             if "subtensor" in locals():
-                subtensor.close()
+                await subtensor.close()
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
-    def _run(
-        cli: "bittensor.cli",
-        subtensor: "bittensor.subtensor",
-    ):
-        r"""Set subnet hyperparameters."""
+    async def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+        """Set subnet hyperparameters."""
         wallet = bittensor.wallet(config=cli.config)
         print("\n")
-        SubnetHyperparamsCommand.run(cli)
+        await SubnetHyperparamsCommand.run(cli)
         if not cli.config.is_set("param") and not cli.config.no_prompt:
             param = Prompt.ask("Enter hyperparameter", choices=HYPERPARAMS)
             cli.config.param = str(param)
@@ -381,10 +386,15 @@ class SubnetSudoCommand:
         if (
             cli.config.param == "network_registration_allowed"
             or cli.config.param == "network_pow_registration_allowed"
+            or cli.config.param == "commit_reveal_weights_enabled"
         ):
-            cli.config.value = True if cli.config.value.lower() == "true" else False
+            cli.config.value = (
+                True
+                if (cli.config.value.lower() == "true" or cli.config.value == "1")
+                else False
+            )
 
-        subtensor.set_hyperparameter(
+        await subtensor.set_hyperparameter(
             wallet,
             netuid=cli.config.netuid,
             parameter=cli.config.param,
@@ -393,13 +403,13 @@ class SubnetSudoCommand:
         )
 
     @staticmethod
-    def check_config(config: "bittensor.config"):
+    async def check_config(config: "bittensor.config"):
         if not config.is_set("wallet.name") and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
         if not config.is_set("netuid") and not config.no_prompt:
-            check_netuid_set(
+            await check_netuid_set(
                 config, bittensor.subtensor(config=config, log_verbose=False)
             )
 
@@ -459,23 +469,23 @@ class SubnetHyperparamsCommand:
     """
 
     @staticmethod
-    def run(cli: "bittensor.cli"):
-        r"""View hyperparameters of a subnetwork."""
+    async def run(cli: "bittensor.cli"):
+        """View hyperparameters of a subnetwork."""
         try:
             subtensor: "bittensor.subtensor" = bittensor.subtensor(
                 config=cli.config, log_verbose=False
             )
-            SubnetHyperparamsCommand._run(cli, subtensor)
+            await SubnetHyperparamsCommand._run(cli, subtensor)
         finally:
             if "subtensor" in locals():
-                subtensor.close()
+                await subtensor.close()
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
-        r"""View hyperparameters of a subnetwork."""
-        subnet: bittensor.SubnetHyperparameters = subtensor.get_subnet_hyperparameters(
-            cli.config.netuid
+    async def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+        """View hyperparameters of a subnetwork."""
+        subnet: bittensor.SubnetHyperparameters = (
+            await subtensor.get_subnet_hyperparameters(cli.config.netuid)
         )
 
         table = Table(
@@ -488,18 +498,21 @@ class SubnetHyperparamsCommand:
         table.title = "[white]Subnet Hyperparameters - NETUID: {} - {}".format(
             cli.config.netuid, subtensor.network
         )
-        table.add_column("[overline white]HYPERPARAMETER", style="bold white")
+        table.add_column("[overline white]HYPERPARAMETER", style="white")
         table.add_column("[overline white]VALUE", style="green")
+        table.add_column("[overline white]NORMALIZED", style="cyan")
 
-        for param in subnet.__dict__:
-            table.add_row("  " + param, str(subnet.__dict__[param]))
+        normalized_values = normalize_hyperparameters(subnet)
+
+        for param, value, norm_value in normalized_values:
+            table.add_row("  " + param, value, norm_value)
 
         bittensor.__console__.print(table)
 
     @staticmethod
-    def check_config(config: "bittensor.config"):
+    async def check_config(config: "bittensor.config"):
         if not config.is_set("netuid") and not config.no_prompt:
-            check_netuid_set(
+            await check_netuid_set(
                 config, bittensor.subtensor(config=config, log_verbose=False)
             )
 
@@ -563,23 +576,23 @@ class SubnetGetHyperparamsCommand:
     """
 
     @staticmethod
-    def run(cli: "bittensor.cli"):
-        r"""View hyperparameters of a subnetwork."""
+    async def run(cli: "bittensor.cli"):
+        """View hyperparameters of a subnetwork."""
         try:
             subtensor: "bittensor.subtensor" = bittensor.subtensor(
                 config=cli.config, log_verbose=False
             )
-            SubnetGetHyperparamsCommand._run(cli, subtensor)
+            await SubnetGetHyperparamsCommand._run(cli, subtensor)
         finally:
             if "subtensor" in locals():
-                subtensor.close()
+                await subtensor.close()
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
-        r"""View hyperparameters of a subnetwork."""
-        subnet: bittensor.SubnetHyperparameters = subtensor.get_subnet_hyperparameters(
-            cli.config.netuid
+    async def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+        """View hyperparameters of a subnetwork."""
+        subnet: bittensor.SubnetHyperparameters = (
+            await subtensor.get_subnet_hyperparameters(cli.config.netuid)
         )
 
         table = Table(
@@ -594,16 +607,19 @@ class SubnetGetHyperparamsCommand:
         )
         table.add_column("[overline white]HYPERPARAMETER", style="white")
         table.add_column("[overline white]VALUE", style="green")
+        table.add_column("[overline white]NORMALIZED", style="cyan")
 
-        for param in subnet.__dict__:
-            table.add_row(param, str(subnet.__dict__[param]))
+        normalized_values = normalize_hyperparameters(subnet)
+
+        for param, value, norm_value in normalized_values:
+            table.add_row("  " + param, value, norm_value)
 
         bittensor.__console__.print(table)
 
     @staticmethod
-    def check_config(config: "bittensor.config"):
+    async def check_config(config: "bittensor.config"):
         if not config.is_set("netuid") and not config.no_prompt:
-            check_netuid_set(
+            await check_netuid_set(
                 config, bittensor.subtensor(config=config, log_verbose=False)
             )
 

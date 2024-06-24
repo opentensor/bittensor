@@ -15,11 +15,13 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import os
 import argparse
-import bittensor
+import os
+
 from rich.prompt import Prompt
 from rich.table import Table
+
+import bittensor
 
 console = bittensor.__console__
 
@@ -49,7 +51,7 @@ class UpdateCommand:
     """
 
     @staticmethod
-    def run(cli):
+    async def run(cli):
         if cli.config.no_prompt or cli.config.answer == "Y":
             os.system(
                 " (cd ~/.bittensor/bittensor/ ; git checkout master ; git pull --ff-only )"
@@ -57,7 +59,7 @@ class UpdateCommand:
             os.system("pip install -e ~/.bittensor/bittensor/")
 
     @staticmethod
-    def check_config(config: "bittensor.config"):
+    async def check_config(config: "bittensor.config"):
         if not config.no_prompt:
             answer = Prompt.ask(
                 "This will update the local bittensor package",
@@ -79,7 +81,7 @@ class AutocompleteCommand:
     """Show users how to install and run autocompletion for Bittensor CLI."""
 
     @staticmethod
-    def run(cli):
+    async def run(cli):
         console = bittensor.__console__
         shell_commands = {
             "Bash": "btcli --print-completion bash >> ~/.bashrc",
@@ -113,5 +115,5 @@ class AutocompleteCommand:
         )
 
     @staticmethod
-    def check_config(config):
+    async def check_config(config):
         pass

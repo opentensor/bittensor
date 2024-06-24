@@ -1,10 +1,9 @@
-import bittensor
 import pytest
-
+import bittensor
 from unittest.mock import patch, MagicMock
 
-from bittensor.utils.balance import Balance
 from bittensor.extrinsics.unstaking import unstake_extrinsic, unstake_multiple_extrinsic
+from bittensor.utils.balance import Balance
 
 
 @pytest.fixture
@@ -39,8 +38,8 @@ def mock_get_minimum_required_stake():
         ("5FHneW46...", 10.0, True, True, True, False, False, False),
         # Not enough stake to unstake
         ("5FHneW46...", 1000.0, True, True, False, None, False, False),
-        # Unsuccessful - unstake threshold not reached
-        (None, 0.01, True, True, False, None, False, False),
+        # Successful - unstake threshold not reached
+        (None, 0.01, True, True, False, None, True, True),
         # Successful unstaking all
         (None, None, False, False, False, None, True, True),
         # Failure - unstaking failed
@@ -51,12 +50,13 @@ def mock_get_minimum_required_stake():
         "successful-with-prompt",
         "failure-prompt-declined",
         "failure-not-enough-stake",
-        "failure-threshold-not-reached",
+        "success-threshold-not-reached",
         "success-unstake-all",
         "failure-unstake-failed",
     ],
 )
-def test_unstake_extrinsic(
+@pytest.mark.asyncio
+async def test_unstake_extrinsic(
     mock_subtensor,
     mock_wallet,
     hotkey_ss58,
@@ -84,7 +84,7 @@ def test_unstake_extrinsic(
         "get_stake_for_coldkey_and_hotkey",
         return_value=mock_current_stake,
     ), patch("rich.prompt.Confirm.ask", return_value=user_accepts) as mock_confirm:
-        result = unstake_extrinsic(
+        result = await unstake_extrinsic(
             subtensor=mock_subtensor,
             wallet=mock_wallet,
             hotkey_ss58=hotkey_ss58,
@@ -102,7 +102,7 @@ def test_unstake_extrinsic(
             mock_confirm.assert_called_once()
 
         if unstake_attempted:
-            mock_subtensor._do_unstake.assert_called_once_with(
+            mock_subtensor.do_unstake.assert_called_once_with(
                 wallet=mock_wallet,
                 hotkey_ss58=hotkey_ss58 or mock_wallet.hotkey.ss58_address,
                 amount=bittensor.Balance.from_tao(amount)
@@ -112,7 +112,7 @@ def test_unstake_extrinsic(
                 wait_for_finalization=wait_for_finalization,
             )
         else:
-            mock_subtensor._do_unstake.assert_not_called()
+            mock_subtensor.do_unstake.assert_not_called()
 
 
 @pytest.mark.parametrize(
@@ -166,18 +166,20 @@ def test_unstake_extrinsic(
             None,
             None,
         ),
-        # Unsuccessful unstake - threshold not reached
+        # Successful unstake - new stake below threshold
         (
             ["5FHneW46..."],
-            [0.01],
+            [
+                100 - mock_get_minimum_required_stake() + 0.01
+            ],  # New stake just below threshold
             100,
             True,
             True,
             False,
             True,
-            [None],
-            False,
-            0,
+            [True],
+            True,  # Successful unstake
+            1,
             None,
             None,
         ),
@@ -247,14 +249,15 @@ def test_unstake_extrinsic(
         "partial-success-one-fail",
         "success-no-hotkey",
         "failure-not-enough-stake",
-        "failure-threshold-not-reached",
+        "success-threshold-not-reached",
         "failure-prompt-declined",
         "failure-type-error-hotkeys",
         "failure-value-error-amounts",
         "failure-type-error-amounts",
     ],
 )
-def test_unstake_multiple_extrinsic(
+@pytest.mark.asyncio
+async def test_unstake_multiple_extrinsic(
     mock_subtensor,
     mock_wallet,
     hotkey_ss58s,
@@ -297,7 +300,7 @@ def test_unstake_multiple_extrinsic(
         # Act
         if exception:
             with pytest.raises(exception) as exc_info:
-                result = unstake_multiple_extrinsic(
+                result = await unstake_multiple_extrinsic(
                     subtensor=mock_subtensor,
                     wallet=mock_wallet,
                     hotkey_ss58s=hotkey_ss58s,
@@ -311,7 +314,7 @@ def test_unstake_multiple_extrinsic(
 
         # Act
         else:
-            result = unstake_multiple_extrinsic(
+            result = await unstake_multiple_extrinsic(
                 subtensor=mock_subtensor,
                 wallet=mock_wallet,
                 hotkey_ss58s=hotkey_ss58s,
