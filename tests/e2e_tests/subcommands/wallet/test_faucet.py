@@ -60,6 +60,10 @@ def test_faucet(local_chain):
                     wallet.name,
                     "--wallet.hotkey",
                     "default",
+                    "--wait_for_inclusion",
+                    "True",
+                    "--wait_for_finalization",
+                    "True",
                 ],
             )
             logging.info(
