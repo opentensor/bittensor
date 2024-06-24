@@ -647,7 +647,7 @@ class SubnetGetHyperparamsCommand:
         bittensor.subtensor.add_args(parser)
 
 
-def allowed_value(param, value):
+def allowed_value(param: str, value: Union[str, bool, float]) -> Tuple[bool, Union[str, list[float], float]]:
     """
     Check the allowed values on hyperparameters. Return False if value is out of bounds.
     """
