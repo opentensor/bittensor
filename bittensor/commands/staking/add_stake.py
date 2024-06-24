@@ -5,6 +5,7 @@ import argparse
 import bittensor as bt
 from . import select_delegate
 from rich.prompt import Confirm, Prompt
+from bittensor.utils.slippage import (Operation, show_slippage_warning_if_needed)
 
 class AddStakeCommand:
     
@@ -106,17 +107,25 @@ class AddStakeCommand:
             sys.exit(1)
 
         # Slippage warning
-        if not show_slippage_warning_if_needed(
-            subtensor,
-            netuid,
-            Operation.STAKE,
-            staking_balance,
-            prompt,
-        ):
-            sys.exit(1)
-
+        if not config.no_prompt:
+            dynamic_info = subtensor.get_dynamic_info_for_netuid( netuid )
+            received_amount, slippage = dynamic_info.tao_to_alpha_with_slippage( amount_to_stake_as_balance )
+            slippage_pct = 100 * float(slippage) / float(slippage + received_amount) if slippage + received_amount != 0 else 0
+            message = (
+                f"Would you like to continue?\n\n"
+                f"     [rgb(133,153,0)]netuid:[/rgb(133,153,0)] {netuid}\n"
+                f"     [rgb(38,139,210)]tao staked:[/rgb(38,139,210)] {amount_to_stake_as_balance}\n"
+                f"     [rgb(220,50,47)]stake received:[/rgb(220,50,47)] {received_amount.set_unit(netuid)}\n"
+                f"     [rgb(181,137,0)]slippage:[/rgb(181,137,0)] {slippage_pct}%\n"
+                f"     [rgb(181,137,0)]account:[/rgb(181,137,0)] {staking_address_name}%\n"
+            )
+            if slippage_pct > 0.05:
+                bt.__console__.warning(f"[rgb(181,137,0)]Slippage is high: {slippage_pct}%, this may result in a loss of funds.[/rgb(181,137,0)]")
+            if not Confirm.ask(message):
+                sys.exit(1)
+                                             
         # Perform staking operation.
-        with bt.__console__.status(f":satellite: Staking netuid:{netuid} on network: [bold white]{subtensor.network}[/bold white] ..."):
+        with bt.__console__.status(f"\n:satellite:"):
             call = subtensor.substrate.compose_call(
                 call_module="SubtensorModule",
                 call_function="add_subnet_stake",
@@ -126,8 +135,8 @@ class AddStakeCommand:
                     "amount_staked": amount_to_stake_as_balance.rao,
                 },
             )
-            extrinsic = substrate.create_signed_extrinsic(call=call, keypair=wallet.coldkey)
-            response = substrate.submit_extrinsic(extrinsic, wait_for_finalization=not config.no_prompt)
+            extrinsic = subtensor.substrate.create_signed_extrinsic(call=call, keypair=wallet.coldkey)
+            response = subtensor.substrate.submit_extrinsic(extrinsic, wait_for_finalization=not config.no_prompt)
             if config.no_prompt:
                 bt.__console__.print(":white_heavy_check_mark: [green]Sent[/green]")
                 return
