@@ -1273,14 +1273,14 @@ class MockSubtensor(Subtensor):
         )
 
         total_hotkey_stake_state = subtensor_state["TotalHotkeyStake"]
-        if hotkey_ss58 not in total_hotkey_stake_state:
+        if not hotkey_ss58 in total_hotkey_stake_state:
             total_hotkey_stake_state[hotkey_ss58] = {}
             total_hotkey_stake_state[hotkey_ss58][self.block_number] = (
                 0  # Shouldn't happen
             )
 
         total_coldkey_stake_state = subtensor_state["TotalColdkeyStake"]
-        if wallet.coldkeypub.ss58_address in total_coldkey_stake_state:
+        if not wallet.coldkeypub.ss58_address in total_coldkey_stake_state:
             total_coldkey_stake_state[wallet.coldkeypub.ss58_address] = {}
             total_coldkey_stake_state[wallet.coldkeypub.ss58_address][
                 self.block_number
@@ -1433,7 +1433,6 @@ class MockSubtensor(Subtensor):
             blocks_since_epoch,
             tempo,
             modality,
-            connection_requirements,
             emission_value,
             burn,
             owner_ss58,
