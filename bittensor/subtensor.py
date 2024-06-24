@@ -3396,12 +3396,14 @@ class subtensor:
         block: Optional[int] = None,
     ) -> Optional["Balance"]:
         """Returns the stake under a coldkey - hotkey - netuid pairing"""
+        if not isinstance(netuid, int):
+            raise ValueError(f"netuid must be an int, got {type(netuid)}")
         _result = self.query_subtensor(
             "SubStake", block, [coldkey_ss58, hotkey_ss58, netuid]
         )
         if not hasattr(_result, "value") or _result is None:
             return None
-        return Balance.from_rao(_result.value).set_unit(netuid)
+        return Balance.from_rao(_result.value).set_unit(int(netuid))
 
     def get_dynamic_info(self):
         netuids = self.get_all_subnet_netuids()

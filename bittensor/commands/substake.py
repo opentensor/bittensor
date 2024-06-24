@@ -137,7 +137,7 @@ def get_hotkey(config: bittensor.config):
             config.hotkey = str(hotkey_str)
         else:
             config.hotkey_name = hotkey_str
-            wallet_delegate = bittensor.wallet(name=hotkey_str)
+            wallet_delegate = bittensor.wallet(name=config.wallet.name, hotkey=hotkey_str)
             config.hotkey = wallet_delegate.hotkey.ss58_address
 
 def get_netuid(config: bittensor.config):
@@ -423,6 +423,7 @@ class RemoveSubStakeCommand:
 
         assert bittensor.utils.is_valid_ss58_address(config.get("hotkey"))
         hotkey_tup = (config.get("hotkey_name"), config.get("hotkey"))
+        print(hotkey_tup)
 
         # Get coldkey balance
         if not subtensor.is_hotkey_registered_any(hotkey_ss58=hotkey_tup[1]):
