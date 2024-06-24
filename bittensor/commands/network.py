@@ -29,7 +29,7 @@ from .utils import (
     DelegatesDetails,
     check_netuid_set,
     normalize_hyperparameters,
-    defaults
+    defaults,
 )
 
 HYPERPARAMS = {
