@@ -82,34 +82,6 @@ async def test_emissions(local_chain):
     # assert two neurons are in network
     assert len(subtensor.neurons(netuid=1)) == 2
 
-    # register Bob as miner
-    cmd = " ".join(
-        [
-            f"{sys.executable}",
-            f'"{template_path}{templates_repo}/neurons/miner.py"',
-            "--no_prompt",
-            "--netuid",
-            "1",
-            "--subtensor.network",
-            "local",
-            "--subtensor.chain_endpoint",
-            "ws://localhost:9945",
-            "--wallet.path",
-            bob_wallet.path,
-            "--wallet.name",
-            bob_wallet.name,
-            "--wallet.hotkey",
-            "default",
-            "--logging.trace",
-        ]
-    )
-
-    await asyncio.create_subprocess_shell(
-        cmd,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
-    )
-
     # Alice to stake to become to top neuron after the first epoch
     alice_exec_command(
         StakeCommand,
@@ -165,6 +137,8 @@ async def test_emissions(local_chain):
         ],
     )
 
+    wait_interval(360, subtensor)
+
     alice_exec_command(
         RootSetBoostCommand,
         [
@@ -177,11 +151,37 @@ async def test_emissions(local_chain):
         ],
     )
 
-    # wait rate limit, until we are allowed to change hotkeys
-    rate_limit = subtensor.tx_rate_limit()
-    curr_block = subtensor.get_current_block()
-    wait_interval(rate_limit + curr_block + 1, subtensor)
+    # register Bob as miner
+    cmd = " ".join(
+        [
+            f"{sys.executable}",
+            f'"{template_path}{templates_repo}/neurons/miner.py"',
+            "--no_prompt",
+            "--netuid",
+            "1",
+            "--subtensor.network",
+            "local",
+            "--subtensor.chain_endpoint",
+            "ws://localhost:9945",
+            "--wallet.path",
+            bob_wallet.path,
+            "--wallet.name",
+            bob_wallet.name,
+            "--wallet.hotkey",
+            "default",
+            "--logging.trace",
+        ]
+    )
 
+    await asyncio.create_subprocess_shell(
+        cmd,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+
+    wait_interval(360, subtensor)
+
+    logging.warning("Setting root set weights")
     alice_exec_command(
         RootSetWeightsCommand,
         [
@@ -227,7 +227,7 @@ async def test_emissions(local_chain):
     wait_interval(360, subtensor)
 
     await asyncio.sleep(
-        15
+        5
     )  # wait for 5 seconds for the metagraph and subtensor to refresh with latest data
 
     # refresh metagraph
