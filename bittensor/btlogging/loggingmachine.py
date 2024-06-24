@@ -31,18 +31,18 @@ import sys
 from logging.handlers import QueueHandler, QueueListener, RotatingFileHandler
 from typing import NamedTuple
 
-from statemachine import StateMachine, State
+from statemachine import State, StateMachine
 
 import bittensor.config
 from bittensor.btlogging.defines import (
-    TRACE_LOG_FORMAT,
-    DATE_FORMAT,
     BITTENSOR_LOGGER_NAME,
+    DATE_FORMAT,
+    DEFAULT_LOG_BACKUP_COUNT,
     DEFAULT_LOG_FILE_NAME,
     DEFAULT_MAX_ROTATING_LOG_FILE_SIZE,
-    DEFAULT_LOG_BACKUP_COUNT,
+    TRACE_LOG_FORMAT,
 )
-from bittensor.btlogging.format import BtStreamFormatter, BtFileFormatter
+from bittensor.btlogging.format import BtFileFormatter, BtStreamFormatter
 from bittensor.btlogging.helpers import all_loggers
 
 
@@ -115,6 +115,14 @@ class LoggingMachine(StateMachine):
         # set up all the loggers
         self._logger = self._initialize_bt_logger(name)
         self.disable_third_party_loggers()
+
+        # Check for logging levels in configs
+        if self._config.logging.trace:
+            self.enable_trace()
+        elif self._config.logging.debug:
+            self.enable_debug()
+        else:
+            self.enable_default()
 
     def _configure_handlers(self, config) -> list[stdlogging.Handler]:
         handlers = list()
@@ -424,7 +432,9 @@ class LoggingMachine(StateMachine):
         prefix_str = "" if prefix is None else prefix + "."
         try:
             default_logging_debug = os.getenv("BT_LOGGING_DEBUG") or False
+            print(f"BT_LOGGING_TRACE {os.getenv('BT_LOGGING_TRACE')}")
             default_logging_trace = os.getenv("BT_LOGGING_TRACE") or False
+            print(default_logging_trace)
             default_logging_record_log = os.getenv("BT_LOGGING_RECORD_LOG") or False
             default_logging_logging_dir = (
                 os.getenv("BT_LOGGING_LOGGING_DIR") or "~/.bittensor/miners"
