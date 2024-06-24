@@ -27,7 +27,7 @@ from .commands import (
     InspectCommand,
     ListCommand,
     ListDelegatesCommand,
-    MetagraphCommand,
+    ShowMetagraph,
     MyDelegatesCommand,
     NewColdkeyCommand,
     NewHotkeyCommand,
@@ -63,6 +63,7 @@ from .commands import (
     WalletBalanceCommand,
     WalletCreateCommand,
     ListSubnetsCommand,
+    AddStakeCommand,
 )
 
 # Create a console instance for CLI display.
@@ -98,7 +99,7 @@ COMMANDS = {
         "help": "Commands for managing and viewing subnetworks.",
         "commands": {
             "list": ListSubnetsCommand,
-            "metagraph": MetagraphCommand,
+            "metagraph": ShowMetagraph,
             "lock_cost": SubnetLockCostCommand,
             "create": RegisterSubnetworkCommand,
             "pow_register": PowRegisterCommand,
@@ -155,7 +156,7 @@ COMMANDS = {
         "commands": {
             # TODO: Should Show all my stakes across subnets.
             "list": StakeList,
-            "add": SubStakeCommand,
+            "add": AddStakeCommand,
             "remove": RemoveSubStakeCommand,
             # Lists all of my delegates on the root network.
             "my_delegates": MyDelegatesCommand,
