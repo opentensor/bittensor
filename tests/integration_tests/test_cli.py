@@ -41,7 +41,15 @@ from tests.helpers import (
     _get_mock_wallet as generate_wallet,
 )
 
-_subtensor_mock: MockSubtensor = MockSubtensor()
+
+# Commented for test
+# _subtensor_mock: MockSubtensor = MockSubtensor()
+def _subtensor_mock_():
+    with MockSubtensor() as subtensor_mock:
+        return subtensor_mock
+
+
+_subtensor_mock = _subtensor_mock_()
 
 
 def setUpModule():

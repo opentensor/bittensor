@@ -285,6 +285,12 @@ class MockSubtensor(Subtensor):
         if not hasattr(self, "chain_state") or getattr(self, "chain_state") is None:
             self.setup()
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.reset()
+
     async def get_block_hash(self, block_id: int) -> str:
         return "0x" + sha256(str(block_id).encode()).hexdigest()[:64]
 
