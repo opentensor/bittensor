@@ -20,7 +20,7 @@ import bittensor
 from . import defaults  # type: ignore
 from rich.prompt import Prompt
 from rich.table import Table
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Union, Tuple
 from .utils import (
     get_delegates_details,
     DelegatesDetails,
