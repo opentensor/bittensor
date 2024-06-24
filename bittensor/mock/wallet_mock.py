@@ -100,7 +100,7 @@ def get_mock_wallet(
 
 def get_mock_keypair(uid: int, test_name: Optional[str] = None) -> bittensor.Keypair:
     """
-    Returns a mock keypair from an uid and optional test_name.
+    Returns a mock keypair from a uid and optional test_name.
     If test_name is not provided, the uid is the only seed.
     If test_name is provided, the uid is hashed with the test_name to create a unique seed for the test.
     """
