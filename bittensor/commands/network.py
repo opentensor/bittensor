@@ -330,8 +330,7 @@ HYPERPARAMS = {
     "bonds_moving_avg": "sudo_set_bonds_moving_average",
     "commit_reveal_weights_interval": "sudo_set_commit_reveal_weights_interval",
     "commit_reveal_weights_enabled": "sudo_set_commit_reveal_weights_enabled",
-    "alpha_high": "sudo_set_alpha_high",
-    "alpha_low": "sudo_set_alpha_low",
+    "alpha_values": "sudo_set_alpha_values",
     "liquid_alpha_enabled": "sudo_set_liquid_alpha_enabled",
 }
 
@@ -399,15 +398,15 @@ class SubnetSudoCommand:
                 else False
             )
 
-        is_allowed_value, error_message = allowed_value(cli.config.param, cli.config.value)
+        is_allowed_value, value = allowed_value(cli.config.param, cli.config.value)
         if not is_allowed_value:
-            raise ValueError(f"Hyperparameter {cli.config.param} value is not within bounds. Value is {cli.config.value} but must be {error_message}")
+            raise ValueError(f"Hyperparameter {cli.config.param} value is not within bounds. Value is {cli.config.value} but must be {value}")
 
         subtensor.set_hyperparameter(
             wallet,
             netuid=cli.config.netuid,
             parameter=cli.config.param,
-            value=cli.config.value,
+            value=value,
             prompt=not cli.config.no_prompt,
         )
 
@@ -654,17 +653,25 @@ def allowed_value(param, value):
     """
     # Reminder error message ends like:  Value is {value} but must be {error_message}. (the second part of return statement)
     # Check if value is a boolean, only allow boolean and floats
-    if not isinstance(value, bool):
-        try:
-            value = float(value)
-        except ValueError:
-            return False, "a number or a boolean"
-    if param == "alpha_high":
-        if value <= 52428 or value >= 65535 or not isinstance(value, float):
-            return False, "between 52428 and 65535"
-    if param == "alpha_low":
-        if value < 0 or value > 52428 or not isinstance(value, float):
-            return False, "between 0 and 52428"
+    try:
+        if not isinstance(value, bool):
+            if param == "alpha_values":
+                # Split the string into individual values
+                alpha_low_str, alpha_high_str = value.split(",")
+                alpha_high = float(alpha_high_str)
+                alpha_low = float(alpha_low_str)
 
-    return True, ""
+                # Check alpha_high value
+                if alpha_high <= 52428 or alpha_high >= 65535:
+                    return False, f"between 52428 and 65535 for alpha_high (but is {alpha_high})"
+
+                # Check alpha_low value
+                if alpha_low < 0 or alpha_low > 52428:
+                    return False, f"between 0 and 52428 for alpha_low (but is {alpha_low})"
+
+                return True, [alpha_low, alpha_high]
+    except ValueError:
+        return False, "a number or a boolean"
+
+    return True, value
 

@@ -836,10 +836,10 @@ class StakeInfo:
         cls, vec_u8: List[int]
     ) -> Dict[str, List["StakeInfo"]]:
         """Returns a list of StakeInfo objects from a ``vec_u8``."""
-        decoded: Optional[list[tuple[str, list[object]]]] = (
-            from_scale_encoding_using_type_string(
-                input_=vec_u8, type_string="Vec<(AccountId, Vec<StakeInfo>)>"
-            )
+        decoded: Optional[
+            list[tuple[str, list[object]]]
+        ] = from_scale_encoding_using_type_string(
+            input_=vec_u8, type_string="Vec<(AccountId, Vec<StakeInfo>)>"
         )
 
         if decoded is None:
@@ -1041,7 +1041,7 @@ class SubnetHyperparameters:
             commit_reveal_weights_enabled=decoded["commit_reveal_weights_enabled"],
             alpha_high=decoded["alpha_high"],
             alpha_low=decoded["alpha_low"],
-            liquid_alpha_enabled=decoded["liquid_alpha_enabled"]
+            liquid_alpha_enabled=decoded["liquid_alpha_enabled"],
         )
 
     def to_parameter_dict(

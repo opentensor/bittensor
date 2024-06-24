@@ -1372,8 +1372,12 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
             _test_value_parsing(boolean_value, as_str.lower())
 
     @patch("bittensor.wallet", new_callable=return_mock_wallet_factory)
-    def test_hyperparameter_allowed_values(self, mock_sub, __):
-        params = ["alpha_high", "alpha_low"]
+    def test_hyperparameter_allowed_values(
+        self,
+        mock_sub,
+        __,
+    ):
+        params = ["alpha_values"]
 
         def _test_value_parsing(param: str, value: str):
             cli = bittensor.cli(
@@ -1395,13 +1399,13 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
             error_message = ""
 
             try:
-                float_value = float(value)
-                if param == "alpha_high" and (
-                    float_value <= 52428 or float_value >= 65535
-                ):
+                alpha_low_str, alpha_high_str = value.strip("[]").split(",")
+                alpha_high = float(alpha_high_str)
+                alpha_low = float(alpha_low_str)
+                if alpha_high <= 52428 or alpha_high >= 65535:
                     should_raise_error = True
                     error_message = "between 52428 and 65535"
-                elif param == "alpha_low" and (float_value < 0 or float_value > 52428):
+                elif alpha_low < 0 or alpha_low > 52428:
                     should_raise_error = True
                     error_message = "between 0 and 52428"
             except ValueError:
@@ -1435,18 +1439,15 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
 
         for param in params:
             for value in [
-                0.8,
-                11,
-                52429,
-                52428,
-                52427,
-                -123,
-                1,
-                0,
-                True,
-                "Some string",
+                [0.8, 11],
+                [52429, 52428],
+                [52427, 53083],
+                [6553, 53083],
+                [-123, None],
+                [1, 0],
+                [True, "Some string"],
             ]:
-                as_str = str(value)
+                as_str = str(value).strip("[]")
                 _test_value_parsing(param, as_str)
 
     @patch("bittensor.wallet", new_callable=return_mock_wallet_factory)
