@@ -72,7 +72,7 @@ def get_hotkey(config: bittensor.config):
             # Check for delegates.
             with bittensor.__console__.status(":satellite: Loading delegates..."):
                 subtensor = bittensor.subtensor(config=config, log_verbose=False)
-                delegates: list[bittensor.DelegateInfoLight] = subtensor.get_delegates_light()
+                delegates: list[bittensor.DelegateInfoLight] = subtensor.get_delegates_by_netuid_light(config.netuid)
 
             try:
                 hotkey_stakes = subtensor.get_all_hotkey_stakes(
@@ -324,11 +324,11 @@ class SubStakeCommand:
         # Wallet to stake from
         get_wallet(config)
 
-        # Retrieve hotkey string from cli parameters
-        get_hotkey(config)
-
         # Get netuid to stake to
         get_netuid(config)
+
+        # Retrieve hotkey string from cli parameters
+        get_hotkey(config)
 
         # Get amount.
         get_amount(config, "Stake", "Tao")
@@ -499,11 +499,11 @@ class RemoveSubStakeCommand:
         # Wallet to stake from
         get_wallet(config)
 
-        # Retrieve hotkey string from cli parameters
-        get_hotkey(config)
-
         # Get netuid to stake to
         get_netuid(config)
+
+        # Retrieve hotkey string from cli parameters
+        get_hotkey(config)
 
         # Get amount.
         get_amount(config, "Unstake", "Alpha")
