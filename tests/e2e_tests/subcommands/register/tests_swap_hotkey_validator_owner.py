@@ -18,8 +18,8 @@ from bittensor.commands import (
 from tests.e2e_tests.utils import (
     setup_wallet,
     template_path,
-    repo_name,
-    wait_epoch,
+    templates_repo,
+    wait_interval,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -79,7 +79,7 @@ async def test_swap_hotkey_validator_owner(local_chain):
     cmd = " ".join(
         [
             f"{sys.executable}",
-            f'"{template_path}{repo_name}/neurons/miner.py"',
+            f'"{template_path}{templates_repo}/neurons/miner.py"',
             "--no_prompt",
             "--netuid",
             "1",
@@ -111,7 +111,7 @@ async def test_swap_hotkey_validator_owner(local_chain):
     cmd = " ".join(
         [
             f"{sys.executable}",
-            f'"{template_path}{repo_name}/neurons/validator.py"',
+            f'"{template_path}{templates_repo}/neurons/validator.py"',
             "--no_prompt",
             "--netuid",
             "1",
@@ -227,7 +227,7 @@ async def test_swap_hotkey_validator_owner(local_chain):
     # wait rate limit, until we are allowed to change hotkeys
     rate_limit = subtensor.tx_rate_limit()
     curr_block = subtensor.get_current_block()
-    wait_epoch(rate_limit + curr_block + 1, subtensor)
+    wait_interval(rate_limit + curr_block + 1, subtensor)
 
     # swap hotkey
     alice_exec_command(

@@ -12,7 +12,7 @@ from bittensor.commands import (
     RevealWeightCommand,
     SubnetSudoCommand,
 )
-from tests.e2e_tests.utils import setup_wallet, wait_epoch
+from tests.e2e_tests.utils import setup_wallet, wait_interval
 
 """
 Test the Commit/Reveal weights mechanism. 
@@ -187,7 +187,7 @@ def test_commit_and_reveal_weights(local_chain):
     assert interval > 0, "Invalid WeightCommitRevealInterval"
 
     # Wait until the reveal block range
-    wait_epoch(interval, subtensor)
+    wait_interval(interval, subtensor)
 
     # Configure the CLI arguments for the RevealWeightCommand
     exec_command(
