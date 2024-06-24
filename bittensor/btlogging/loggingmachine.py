@@ -432,9 +432,7 @@ class LoggingMachine(StateMachine):
         prefix_str = "" if prefix is None else prefix + "."
         try:
             default_logging_debug = os.getenv("BT_LOGGING_DEBUG") or False
-            print(f"BT_LOGGING_TRACE {os.getenv('BT_LOGGING_TRACE')}")
             default_logging_trace = os.getenv("BT_LOGGING_TRACE") or False
-            print(default_logging_trace)
             default_logging_record_log = os.getenv("BT_LOGGING_RECORD_LOG") or False
             default_logging_logging_dir = (
                 os.getenv("BT_LOGGING_LOGGING_DIR") or "~/.bittensor/miners"
