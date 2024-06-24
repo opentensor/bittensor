@@ -59,14 +59,14 @@ async def test_create_extrinsic_metadata_v14(kusama_substrate, keypair):
                 "value": 3 * 10**3,
             },
         )
-    
+
         extrinsic = await kusama_substrate.create_signed_extrinsic(
             call=call, keypair=keypair, tip=1
         )
-    
+
         decoded_extrinsic = await kusama_substrate.create_scale_object("Extrinsic")
         decoded_extrinsic.decode(extrinsic.data)
-    
+
         assert decoded_extrinsic["call"]["call_module"].name == "Balances"
         assert decoded_extrinsic["call"]["call_function"].name == "transfer_keep_alive"
         assert extrinsic["nonce"] == 0
@@ -111,17 +111,17 @@ async def test_create_batch_extrinsic(polkadot_substrate, keypair):
                 "value": 3 * 10**3,
             },
         )
-    
+
         call = await polkadot_substrate.compose_call(
             call_module="Utility",
             call_function="batch",
             call_params={"calls": [balance_call, balance_call]},
         )
-    
+
         extrinsic = await polkadot_substrate.create_signed_extrinsic(
             call=call, keypair=keypair, era={"period": 64}
         )
-    
+
         # Decode extrinsic again as test
         extrinsic.decode(extrinsic.data)
 
@@ -139,7 +139,7 @@ async def test_create_unsigned_extrinsic(kusama_substrate):
                 "now": 1602857508000,
             },
         )
-    
+
     extrinsic = kusama_substrate.substrate.create_unsigned_extrinsic(call)
     assert str(extrinsic.data) == "0x280402000ba09cc0317501"
 
@@ -156,20 +156,20 @@ async def test_create_extrinsic_bytes_signature(kusama_substrate, keypair):
                 "value": 3 * 10**3,
             },
         )
-    
+
         signature_hex = (
             "01741d037f6ea0c5269c6d78cde9505178ee928bb1077db49c684f9d1cad430e767e09808bc556ea2962a7b21a"
             "ada78b3aaf63a8b41e035acfdb0f650634863f83"
         )
-    
+
         extrinsic = await kusama_substrate.create_signed_extrinsic(
             call=call, keypair=keypair, signature=f"0x{signature_hex}"
         )
 
         assert extrinsic.value["signature"]["Sr25519"] == f"0x{signature_hex[2:]}"
-    
+
         extrinsic = await kusama_substrate.create_signed_extrinsic(
             call=call, keypair=keypair, signature=bytes.fromhex(signature_hex)
         )
-    
+
     assert extrinsic.value["signature"]["Sr25519"] == f"0x{signature_hex[2:]}"

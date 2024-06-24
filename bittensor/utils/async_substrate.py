@@ -332,7 +332,7 @@ class Websocket:
                 self.id = 0
         except asyncio.CancelledError:
             pass
-        
+
     async def close(self):
         await self._exit_with_timer(0)
 
@@ -911,13 +911,15 @@ class AsyncSubstrateInterface:
         """
         runtime = await self.init_runtime(block_hash=block_hash)
         call = runtime.runtime_config.create_scale_object(
-            type_string='Call', metadata=runtime.metadata
+            type_string="Call", metadata=runtime.metadata
         )
-        call.encode({
-            'call_module': call_module,
-            'call_function': call_function,
-            'call_args': call_params or {}
-        })
+        call.encode(
+            {
+                "call_module": call_module,
+                "call_function": call_function,
+                "call_args": call_params or {},
+            }
+        )
 
         return call
 
