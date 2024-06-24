@@ -19,7 +19,7 @@ from tests.e2e_tests.utils import (
     setup_wallet,
     template_path,
     templates_repo,
-    wait_epoch,
+    wait_interval,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -82,6 +82,34 @@ async def test_emissions(local_chain):
     # assert two neurons are in network
     assert len(subtensor.neurons(netuid=1)) == 2
 
+    # register Bob as miner
+    cmd = " ".join(
+        [
+            f"{sys.executable}",
+            f'"{template_path}{templates_repo}/neurons/miner.py"',
+            "--no_prompt",
+            "--netuid",
+            "1",
+            "--subtensor.network",
+            "local",
+            "--subtensor.chain_endpoint",
+            "ws://localhost:9945",
+            "--wallet.path",
+            bob_wallet.path,
+            "--wallet.name",
+            bob_wallet.name,
+            "--wallet.hotkey",
+            "default",
+            "--logging.trace",
+        ]
+    )
+
+    await asyncio.create_subprocess_shell(
+        cmd,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+
     # Alice to stake to become to top neuron after the first epoch
     alice_exec_command(
         StakeCommand,
@@ -121,6 +149,7 @@ async def test_emissions(local_chain):
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
+
     await asyncio.sleep(
         5
     )  # wait for 5 seconds for the metagraph and subtensor to refresh with latest data
@@ -151,7 +180,7 @@ async def test_emissions(local_chain):
     # wait rate limit, until we are allowed to change hotkeys
     rate_limit = subtensor.tx_rate_limit()
     curr_block = subtensor.get_current_block()
-    wait_epoch(rate_limit + curr_block + 1, subtensor)
+    wait_interval(rate_limit + curr_block + 1, subtensor)
 
     alice_exec_command(
         RootSetWeightsCommand,
@@ -194,48 +223,19 @@ async def test_emissions(local_chain):
         ],
     )
 
-    # register Bob as miner
-    cmd = " ".join(
-        [
-            f"{sys.executable}",
-            f'"{template_path}{templates_repo}/neurons/miner.py"',
-            "--no_prompt",
-            "--netuid",
-            "1",
-            "--subtensor.network",
-            "local",
-            "--subtensor.chain_endpoint",
-            "ws://localhost:9945",
-            "--wallet.path",
-            bob_wallet.path,
-            "--wallet.name",
-            bob_wallet.name,
-            "--wallet.hotkey",
-            "default",
-            "--logging.trace",
-        ]
-    )
-
-    await asyncio.create_subprocess_shell(
-        cmd,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
-    )
+    # wait epoch until for emissions to get distributed
+    wait_interval(360, subtensor)
 
     await asyncio.sleep(
-        5
+        15
     )  # wait for 5 seconds for the metagraph and subtensor to refresh with latest data
-
-    # wait epoch until for emissions to get distributed
-    wait_epoch(360, subtensor)
 
     # refresh metagraph
     subtensor = bittensor.subtensor(network="ws://localhost:9945")
 
-    # TODO: turn on weight check
     # get current emissions and validate that Alice has gotten tao
-    # weights = [(0, [(0, 65535), (1, 65535)])]
-    # assert subtensor.weights(netuid=1) == weights
+    weights = [(0, [(0, 65535), (1, 65535)])]
+    assert subtensor.weights(netuid=1) == weights
 
     neurons = subtensor.neurons(netuid=1)
     bob = neurons[1]
