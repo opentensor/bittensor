@@ -122,9 +122,7 @@ async def test_emissions(local_chain):
         stderr=asyncio.subprocess.PIPE,
     )
 
-    await asyncio.sleep(
-        5
-    )  # wait for 5 seconds for the metagraph and subtensor to refresh with latest data
+    await asyncio.sleep(10)
 
     # register validator with root network
     alice_exec_command(
@@ -137,7 +135,7 @@ async def test_emissions(local_chain):
         ],
     )
 
-    wait_interval(360, subtensor)
+    wait_interval(600, subtensor)
 
     alice_exec_command(
         RootSetBoostCommand,
@@ -179,7 +177,7 @@ async def test_emissions(local_chain):
         stderr=asyncio.subprocess.PIPE,
     )
 
-    wait_interval(360, subtensor)
+    wait_interval(600, subtensor)
 
     logging.warning("Setting root set weights")
     alice_exec_command(
@@ -224,10 +222,10 @@ async def test_emissions(local_chain):
     )
 
     # wait epoch until for emissions to get distributed
-    wait_interval(360, subtensor)
+    wait_interval(600, subtensor)
 
     await asyncio.sleep(
-        5
+        10
     )  # wait for 5 seconds for the metagraph and subtensor to refresh with latest data
 
     # refresh metagraph
