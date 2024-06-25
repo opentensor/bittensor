@@ -40,11 +40,12 @@ jobs:
         shell: bash
 
   # Job to run tests in parallel
-  run:
+  run-tests:
     needs: find-tests
     runs-on: SubtensorCI
     strategy:
-      max-parallel: 10  # Set the maximum number of parallel jobs
+      fail-fast: false  # Allow other matrix jobs to run even if this job fails
+      max-parallel: 5  # Set the maximum number of parallel jobs to 5
       matrix:
         rust-branch:
           - nightly-2024-03-05
@@ -88,6 +89,28 @@ jobs:
         run: git checkout testnet
 
       - name: Run tests
+        run: |
+          python3 -m pip install -e .[dev] pytest
+          LOCALNET_SH_PATH="${{ github.workspace }}/subtensor/scripts/localnet.sh" pytest ${{ matrix.test-file }} -s
+
+  # Job to retry failed tests
+  retry-failed-tests:
+    needs: run-tests
+    runs-on: ubuntu-latest
+    if: failure()
+    strategy:
+      fail-fast: false  # Allow other matrix jobs to run even if this job fails
+      matrix:
+        test-file: ${{ fromJson(needs.find-tests.outputs.test-files) }}
+    steps:
+      - name: Check-out repository under $GITHUB_WORKSPACE
+        uses: actions/checkout@v2
+
+      - name: Retry failed tests
+        uses: actions/steps/retry@v2
+        with:
+          max-tries: 3  # Number of automatic retries
+          delay: 10   # Delay in seconds before each retry
         run: |
           python3 -m pip install -e .[dev] pytest
           LOCALNET_SH_PATH="${{ github.workspace }}/subtensor/scripts/localnet.sh" pytest ${{ matrix.test-file }} -s
