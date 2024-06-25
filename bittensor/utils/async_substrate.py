@@ -335,9 +335,17 @@ class Websocket:
             response = json.loads(await self.ws.recv())
             async with self._lock:
                 self._open_subscriptions -= 1
-                self._received[response["id"]] = response
+                if "id" in response:
+                    self._received[response["id"]] = response
+                elif "params" in response:
+                    self._received[response["params"]["subscription"]] = response
+                else:
+                    raise KeyError(response)
         except websockets.ConnectionClosed:
             raise
+        except KeyError as e:
+            print(f"Unhandled websocket response: {e}")
+            raise e
 
     async def _start_receiving(self):
         try:
@@ -762,8 +770,7 @@ class AsyncSubstrateInterface:
         if asyncio.iscoroutinefunction(result_handler):
             # For multipart responses as a result of subscriptions.
             message, bool_result = await result_handler(obj, subscription_id)
-            if bool_result:
-                return message, bool_result
+            return message, bool_result
         return obj, True
 
     async def _make_rpc_request(
@@ -1485,7 +1492,7 @@ class AsyncSubstrateInterface:
             return message, False
 
         if wait_for_inclusion or wait_for_finalization:
-            response = (
+            responses = (
                 await self._make_rpc_request(
                     [
                         self.make_payload(
@@ -1496,10 +1503,17 @@ class AsyncSubstrateInterface:
                     ],
                     result_handler=result_handler,
                 )
-            )["rpc_request"][1]
+            )["rpc_request"]
+            response = next(
+                (r for r in responses if "block_hash" in r and "extrinsic_hash" in r),
+                None,
+            )
+
+            if not response:
+                raise SubstrateRequestException(responses)
+
             # Also, this will be a multipart response, so maybe should change to everything after the first response?
             # The following code implies this will be a single response after the initial subscription id.
-
             result = ExtrinsicReceipt(
                 substrate=self.substrate,
                 extrinsic_hash=response["extrinsic_hash"],
