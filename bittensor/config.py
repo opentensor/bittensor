@@ -74,6 +74,17 @@ class config(DefaultMunch):
         if parser == None:
             return None
 
+        try:
+            parser.add_argument(
+                "--wc.adjust_timing",
+                action="store_true",
+                help="""If set, the commit-reveal timing is set by default""",
+                default=False,
+            )
+        except:
+            # this can fail if --no_version_checking has already been added.
+            pass
+        
         # Optionally add config specific arguments
         try:
             parser.add_argument(
