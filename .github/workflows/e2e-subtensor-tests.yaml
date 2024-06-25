@@ -36,7 +36,7 @@ jobs:
         id: get-tests
         run: |
           test_files=$(find tests/e2e_tests -name "test*.py" | jq -R -s -c 'split("\n") | map(select(. != ""))')
-          echo "test-files=$test_files" >> $GITHUB_ENV
+          echo "::set-output name=test-files::$test_files"
         shell: bash
 
   # Job to run tests in parallel
@@ -51,7 +51,7 @@ jobs:
           - x86_64-unknown-linux-gnu
         os:
           - ubuntu-latest
-        test-file: ${{ fromJson(needs.find-tests.outputs['test-files']) }}
+        test-file: ${{ fromJson(needs.find-tests.outputs.test-files) }}
     env:
       RELEASE_NAME: development
       RUSTV: ${{ matrix.rust-branch }}
