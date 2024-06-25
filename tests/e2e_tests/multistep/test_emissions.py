@@ -90,6 +90,10 @@ async def test_emissions(local_chain):
             "add",
             "--amount",
             "10000",
+            "--wait_for_inclusion",
+            "True",
+            "--wait_for_finalization",
+            "True",
         ],
     )
 
@@ -122,7 +126,7 @@ async def test_emissions(local_chain):
         stderr=asyncio.subprocess.PIPE,
     )
 
-    await asyncio.sleep(10)
+    await asyncio.sleep(5)
 
     # register validator with root network
     alice_exec_command(
@@ -132,10 +136,14 @@ async def test_emissions(local_chain):
             "register",
             "--netuid",
             "1",
+            "--wait_for_inclusion",
+            "True",
+            "--wait_for_finalization",
+            "True",
         ],
     )
 
-    wait_interval(600, subtensor)
+    wait_interval(360, subtensor)
 
     alice_exec_command(
         RootSetBoostCommand,
@@ -146,6 +154,10 @@ async def test_emissions(local_chain):
             "1",
             "--increase",
             "1000",
+            "--wait_for_inclusion",
+            "True",
+            "--wait_for_finalization",
+            "True",
         ],
     )
 
@@ -177,7 +189,7 @@ async def test_emissions(local_chain):
         stderr=asyncio.subprocess.PIPE,
     )
 
-    wait_interval(600, subtensor)
+    wait_interval(360, subtensor)
 
     logging.warning("Setting root set weights")
     alice_exec_command(
@@ -193,6 +205,10 @@ async def test_emissions(local_chain):
             "default",
             "--wallet.hotkey",
             "default",
+            "--wait_for_inclusion",
+            "True",
+            "--wait_for_finalization",
+            "True",
         ],
     )
 
@@ -222,10 +238,10 @@ async def test_emissions(local_chain):
     )
 
     # wait epoch until for emissions to get distributed
-    wait_interval(600, subtensor)
+    wait_interval(360, subtensor)
 
     await asyncio.sleep(
-        10
+        5
     )  # wait for 5 seconds for the metagraph and subtensor to refresh with latest data
 
     # refresh metagraph
