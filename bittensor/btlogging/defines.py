@@ -19,7 +19,7 @@
 
 BASE_LOG_FORMAT = "%(asctime)s | %(levelname)s | %(message)s"
 TRACE_LOG_FORMAT = (
-    f"%(asctime)s | %(levelname)s | %(name)s:%(filename)s:%(lineno)s | %(message)s"
+    "%(asctime)s | %(levelname)s | %(name)s:%(filename)s:%(lineno)s | %(message)s"
 )
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 BITTENSOR_LOGGER_NAME = "bittensor"

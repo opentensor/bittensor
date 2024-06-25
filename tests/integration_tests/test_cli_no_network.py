@@ -67,6 +67,7 @@ def return_mock_wallet_factory(*args, **kwargs):
     )
 
 
+# TODO: fix after commands and cli are async migrated
 # @patch(
 #     "bittensor.subtensor",
 #     new_callable=return_mock_sub_1,

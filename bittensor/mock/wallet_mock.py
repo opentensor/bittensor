@@ -46,7 +46,7 @@ class MockWallet(bittensor.wallet):
     @property
     def hotkey_file(self) -> "bittensor.keyfile":
         if self._is_mock:
-            if self._mocked_hotkey_keyfile == None:
+            if self._mocked_hotkey_keyfile is None:
                 self._mocked_hotkey_keyfile = MockKeyfile(path="MockedHotkey")
             return self._mocked_hotkey_keyfile
         else:
@@ -57,7 +57,7 @@ class MockWallet(bittensor.wallet):
     @property
     def coldkey_file(self) -> "bittensor.keyfile":
         if self._is_mock:
-            if self._mocked_coldkey_keyfile == None:
+            if self._mocked_coldkey_keyfile is None:
                 self._mocked_coldkey_keyfile = MockKeyfile(path="MockedColdkey")
             return self._mocked_coldkey_keyfile
         else:
@@ -68,7 +68,7 @@ class MockWallet(bittensor.wallet):
     @property
     def coldkeypub_file(self) -> "bittensor.keyfile":
         if self._is_mock:
-            if self._mocked_coldkey_keyfile == None:
+            if self._mocked_coldkey_keyfile is None:
                 self._mocked_coldkey_keyfile = MockKeyfile(path="MockedColdkeyPub")
             return self._mocked_coldkey_keyfile
         else:

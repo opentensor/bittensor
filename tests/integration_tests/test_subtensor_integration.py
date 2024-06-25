@@ -37,6 +37,7 @@ from tests.helpers import (
 )
 
 
+# TODO: fix after commands and cli are async migrated
 # class TestSubtensor(unittest.IsolatedAsyncioTestCase):
 #     _mock_console_patcher = None
 #     _mock_subtensor: MockSubtensor

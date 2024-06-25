@@ -26,7 +26,7 @@ import asyncio
 import copy
 
 import socket
-import time
+
 from typing import List, Dict, Union, Optional, Tuple, TypedDict, Any
 
 import numpy as np
@@ -248,7 +248,7 @@ class Subtensor:
 
         # Attempt to connect to chosen endpoint. Fallback to finney if local unavailable.
         try:
-            self.substrate = AsyncSubstrateInterface(bittensor.__finney_entrypoint__)
+            self.substrate = AsyncSubstrateInterface(chain_endpoint=self.chain_endpoint)
         except ConnectionRefusedError:
             bittensor.logging.error(
                 f"Could not connect to {self.network} network with {self.chain_endpoint} chain endpoint. Exiting...",
@@ -742,7 +742,7 @@ class Subtensor:
                 else:
                     # Wait for a while
                     wait = min(wait_time * attempt, max_wait)
-                    time.sleep(wait)
+                    await asyncio.sleep(wait)
                     # Incr the nonce and try again
                     nonce = nonce + 1
                     continue
@@ -755,7 +755,7 @@ class Subtensor:
                         f"Priority is too low, retrying with new nonce: {nonce} in {wait} seconds."
                     )
                     nonce = nonce + 1
-                    time.sleep(wait)
+                    await asyncio.sleep(wait)
                     continue
                 else:
                     bittensor.logging.error(f"Error sending extrinsic: {e}")
@@ -987,7 +987,7 @@ class Subtensor:
         commit_hash: str,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
-    ) -> Tuple[bool, Optional[str]]:
+    ) -> Tuple[bool, Optional[Dict[str, str]]]:
         """
         Internal method to send a transaction to the Bittensor blockchain, committing the hash of a neuron's weights.
         This method constructs and submits the transaction, handling retries and blockchain communication.
@@ -1000,7 +1000,7 @@ class Subtensor:
             wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
 
         Returns:
-            Tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
+            Tuple[bool, Optional[Dict[str, str]]]: A tuple containing a success flag and an optional error message.
 
         This method ensures that the weight commitment is securely recorded on the Bittensor blockchain, providing a
         verifiable record of the neuron's weight distribution at a specific point in time.

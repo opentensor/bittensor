@@ -22,7 +22,6 @@ and setting hyperparameters.
 """
 
 import asyncio
-import time
 
 import substrateinterface
 from rich.prompt import Confirm
@@ -122,7 +121,7 @@ async def register_subnetwork_extrinsic(
             bittensor.__console__.print(
                 f":cross_mark: [red]Failed[/red]: {format_error_message(response.error_message)}"
             )
-            time.sleep(0.5)
+            await asyncio.sleep(0.5)
 
         # Successful registration, final check for membership
         else:

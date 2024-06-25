@@ -116,7 +116,7 @@ class RegisterSubnetworkCommand:
         if success and not cli.config.no_prompt:
             # Prompt for user to set identity.
             do_set_identity = Prompt.ask(
-                f"Subnetwork registered successfully. Would you like to set your identity? [y/n]",
+                "Subnetwork registered successfully. Would you like to set your identity? [y/n]",
                 choices=["y", "n"],
             )
 
