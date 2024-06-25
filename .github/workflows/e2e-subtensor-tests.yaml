@@ -44,6 +44,7 @@ jobs:
     needs: find-tests
     runs-on: SubtensorCI
     strategy:
+      max-parallel: 10  # Set the maximum number of parallel jobs
       matrix:
         rust-branch:
           - nightly-2024-03-05
