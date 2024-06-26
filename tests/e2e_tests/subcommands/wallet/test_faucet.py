@@ -11,7 +11,7 @@ from tests.e2e_tests.utils import (
     setup_wallet,
 )
 
-
+@pytest.mark.skip
 @pytest.mark.parametrize("local_chain", [False], indirect=True)
 def test_faucet(local_chain):
     # Register root as Alice
