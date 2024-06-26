@@ -1491,7 +1491,7 @@ class AsyncSubstrateInterface:
                 ):
                     # Created as a task because we don't actually care about the result
                     self._forgettable_task = asyncio.create_task(
-                        await self.rpc_request(
+                        self.rpc_request(
                             "author_unwatchExtrinsic", [subscription_id]
                         )
                     )
