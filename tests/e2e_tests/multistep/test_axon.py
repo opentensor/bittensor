@@ -2,7 +2,7 @@ import asyncio
 import sys
 
 import pytest
-
+import time
 import bittensor
 from bittensor.utils import networking
 from bittensor.commands import (
@@ -93,17 +93,19 @@ async def test_axon(local_chain):
     # record logs of process
     # Create tasks to read stdout and stderr concurrently
     # ignore, dont await coroutine, just write logs to file
-    await asyncio.create_task(write_output_log_to_file("axon_stdout", axon_process.stdout))
+    asyncio.create_task(write_output_log_to_file("axon_stdout", axon_process.stdout))
     # ignore, dont await coroutine, just write logs to file
-    await asyncio.create_task(write_output_log_to_file("axon_stderr", axon_process.stderr))
+    asyncio.create_task(write_output_log_to_file("axon_stderr", axon_process.stderr))
 
     # wait for 5 seconds for the metagraph to refresh with latest data
     await asyncio.sleep(5)
 
     # refresh metagraph
-    metagraph = bittensor.metagraph(netuid=1, network="ws://localhost:9945")
+    metagraph = bittensor.metagraph(netuid=1, network="ws://localhost:9945", sync=True)
     updated_axon = metagraph.axons[0]
     external_ip = networking.get_external_ip()
+
+    await asyncio.sleep(5)
 
     assert len(metagraph.axons) == 1
     assert updated_axon.ip == external_ip
