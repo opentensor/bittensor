@@ -10,6 +10,8 @@ from bittensor.commands import SubnetSudoCommand
 
 from ...utils import (
     setup_wallet,
+    sudo_call_set_network_limit,
+    sudo_call_set_weights_set_rate_limit,
 )
 
 """
@@ -29,42 +31,12 @@ def test_root_get_set_weights(local_chain, capsys):
 
     keypair, exec_command, wallet = setup_wallet("//Alice")
 
-    exec_command(
-        SubnetSudoCommand,
-        [
-            "sudo",
-            "set",
-            "hyperparameters",
-            "--param",
-            "network_rate_limit",
-            "--value",
-            "1",
-            "--wait_for_inclusion",
-            "True",
-            "--wait_for_finalization",
-            "True",
-        ],
-    )
+    assert sudo_call_set_network_limit(local_chain, wallet)
+
+    assert sudo_call_set_weights_set_rate_limit(local_chain, wallet, 0)
 
     output = capsys.readouterr().out
     assert "" in output  # assert the correct output is returned to user
-
-    exec_command(
-        SubnetSudoCommand,
-        [
-            "sudo",
-            "set",
-            "hyperparameters",
-            "--param",
-            "weights_set_rate_limit",
-            "--value",
-            "1",
-            "--wait_for_inclusion",
-            "True",
-            "--wait_for_finalization",
-            "True",
-        ],
-    )
 
     output = capsys.readouterr().out
     assert "" in output  # assert the correct output is returned to user
