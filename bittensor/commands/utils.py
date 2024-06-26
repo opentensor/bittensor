@@ -186,10 +186,10 @@ def filter_netuids_by_registered_hotkeys(
         )
         netuids_with_registered_hotkeys.extend(netuids_list)
 
-    if cli.config.netuids == None or cli.config.netuids == []:
+    if not cli.config.netuids:
         netuids = netuids_with_registered_hotkeys
 
-    elif cli.config.netuids != []:
+    else:
         netuids = [netuid for netuid in netuids if netuid in cli.config.netuids]
         netuids.extend(netuids_with_registered_hotkeys)
 
@@ -216,6 +216,8 @@ def normalize_hyperparameters(
         "bonds_moving_avg": U64_NORMALIZED_FLOAT,
         "max_weight_limit": U16_NORMALIZED_FLOAT,
         "kappa": U16_NORMALIZED_FLOAT,
+        "alpha_high": U16_NORMALIZED_FLOAT,
+        "alpha_low": U16_NORMALIZED_FLOAT,
         "min_burn": Balance.from_rao,
         "max_burn": Balance.from_rao,
     }
