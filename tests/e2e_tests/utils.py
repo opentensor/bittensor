@@ -1,17 +1,17 @@
-import time
-
-from substrateinterface import SubstrateInterface
-from typing import List
 import os
 import shutil
 import subprocess
 import sys
+import time
+from typing import List
 
-from bittensor import Keypair, logging
+from substrateinterface import SubstrateInterface
+
 import bittensor
+from bittensor import Keypair, logging
 
 template_path = os.getcwd() + "/neurons/"
-repo_name = "templates repository"
+templates_repo = "templates repository"
 
 
 def setup_wallet(uri: str):
@@ -122,7 +122,7 @@ def call_add_proposal(substrate: SubstrateInterface, wallet: bittensor.wallet) -
     return response.is_success
 
 
-def wait_epoch(interval, subtensor):
+def wait_interval(interval, subtensor):
     current_block = subtensor.get_current_block()
     next_tempo_block_start = (current_block - (current_block % interval)) + interval
     while current_block < next_tempo_block_start:
@@ -138,9 +138,10 @@ def wait_epoch(interval, subtensor):
 
 
 def clone_or_update_templates():
+    specific_commit = None
     install_dir = template_path
     repo_mapping = {
-        repo_name: "https://github.com/opentensor/bittensor-subnet-template.git",
+        templates_repo: "https://github.com/opentensor/bittensor-subnet-template.git",
     }
     os.makedirs(install_dir, exist_ok=True)
     os.chdir(install_dir)
@@ -155,7 +156,16 @@ def clone_or_update_templates():
             subprocess.run(["git", "pull"], check=True)
             os.chdir("..")
 
-    return install_dir + repo_name + "/"
+    # here for pulling specific commit versions of repo
+    if specific_commit:
+        os.chdir(templates_repo)
+        print(
+            f"\033[94mChecking out commit {specific_commit} in {templates_repo}...\033[0m"
+        )
+        subprocess.run(["git", "checkout", specific_commit], check=True)
+        os.chdir("..")
+
+    return install_dir + templates_repo + "/"
 
 
 def install_templates(install_dir):
@@ -163,7 +173,6 @@ def install_templates(install_dir):
 
 
 def uninstall_templates(install_dir):
-    # uninstall templates
     subprocess.check_call(
         [sys.executable, "-m", "pip", "uninstall", "bittensor_subnet_template", "-y"]
     )
