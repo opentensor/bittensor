@@ -121,12 +121,12 @@ def call_add_proposal(substrate: SubstrateInterface, wallet: bittensor.wallet) -
     return response.is_success
 
 
-def wait_epoch(interval, subtensor):
-    current_block = subtensor.get_current_block()
+async def wait_epoch(interval: int, subtensor: "bittensor.subtensor"):
+    current_block = await subtensor.get_current_block()
     next_tempo_block_start = (current_block - (current_block % interval)) + interval
     while current_block < next_tempo_block_start:
         time.sleep(1)  # Wait for 1 second before checking the block number again
-        current_block = subtensor.get_current_block()
+        current_block = await subtensor.get_current_block()
         if current_block % 10 == 0:
             print(
                 f"Current Block: {current_block}  Next tempo at: {next_tempo_block_start}"
