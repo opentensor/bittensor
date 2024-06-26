@@ -30,14 +30,26 @@ class RemoveStakeCommand:
         # Get config and subtensor connection.
         config = cli.config.copy()
         subtensor = bt.subtensor(config=config, log_verbose=False)
-        wallet = bt.wallet( config = config )
-
+        
         # Get netuid
         netuid = config.get('netuid') 
-        if not config.is_set("netuid") and not config.no_prompt:
+        if config.is_set("netuid"):
+            netuid = config.get('netuid')
+        elif not config.no_prompt:
             netuid = int( Prompt.ask("Enter netuid", default="0") )
         else:
             bt.logging.error("netuid is needed to proceed")
+            sys.exit(1)
+            
+        # Get wallet.
+        wallet = bt.wallet( config = config )
+        if config.is_set("--wallet.name"):
+            wallet = bt.wallet( config = config )
+        elif not config.no_prompt:
+            wallet_name = Prompt.ask("Enter wallet name", default=bt.defaults.wallet.name)
+            config.wallet.name = str(wallet_name)
+        else:
+            bt.logging.error("--wallet.name is needed to proceed")
             sys.exit(1)
 
         # Get which hotkey we are staking to.
@@ -69,10 +81,10 @@ class RemoveStakeCommand:
             sys.exit(1)
 
         # Check to see if the hotkey is a delegate.
-        if wallet.coldkeypub.ss58_address != subtensor.get_hotkey_owner(staking_address_ss58):
-            if not subtensor.is_hotkey_delegate(staking_address_ss58):
-                bt.__console__.print(f"[red]Hotkey [bold]{staking_address_ss58}[/bold] is not a delegate. Aborting.[/red]")
-                sys.exit(1)
+        # if wallet.coldkeypub.ss58_address != subtensor.get_hotkey_owner(staking_address_ss58):
+        #     if not subtensor.is_hotkey_delegate(staking_address_ss58):
+        #         bt.__console__.print(f"[red]Hotkey [bold]{staking_address_ss58}[/bold] is not a delegate. Aborting.[/red]")
+        #         sys.exit(1)
 
         # Get old staking balance.
         current_stake_balance: bt.Balance = subtensor.get_stake_for_coldkey_and_hotkey_on_netuid(
@@ -90,12 +102,12 @@ class RemoveStakeCommand:
         elif config.get("un_stake_all"):
             amount_to_unstake_as_balance = current_stake_balance
         elif not config.get("amount") and not config.get("max_stake"):
-            if Confirm.ask(f"Un stake all: [bold]{current_stake_balance}[/bold]?"):
+            if Confirm.ask(f"Unstake all: [bold]{current_stake_balance}[/bold] from [bold]{staking_address_name}[/bold] on netuid: {netuid}?"):
                 amount_to_unstake_as_balance = current_stake_balance
             else:
                 try:
                     # TODO add unit.
-                    amount = float(Prompt.ask("Enter amount to unstake in unit TODO"))
+                    amount = float(Prompt.ask(f"Enter amount to unstake in {bt.Balance.get_unit(netuid)}"))
                     amount_to_unstake_as_balance = bt.Balance.from_tao(amount)
                 except ValueError:
                     bt.__console__.print(f":cross_mark:[red]Invalid amount: {amount}[/red]")
@@ -110,25 +122,35 @@ class RemoveStakeCommand:
         if not config.no_prompt:
             dynamic_info = subtensor.get_dynamic_info_for_netuid( netuid )
             received_amount, slippage = dynamic_info.alpha_to_tao_with_slippage( amount_to_unstake_as_balance )
-            slippage_pct = 100 * float(slippage) / float(slippage + received_amount) if slippage + received_amount != 0 else 0
+            if dynamic_info.is_dynamic:
+                slippage_pct = 100 * float(slippage) / float(slippage + received_amount) if slippage + received_amount != 0 else 0
+            else:
+                slippage_pct = 'N/A'
             message = (
-                f"Would you like to continue?\n\n"
+                f"Remove Stake:\n\n"
                 f"     [rgb(133,153,0)]netuid:[/rgb(133,153,0)] {netuid}\n"
-                f"     [rgb(220,50,47)]stake removed:[/rgb(220,50,47)] { amount_to_unstake_as_balance }\n"
-                f"     [rgb(38,139,210)]tao recieved:[/rgb(38,139,210)] { received_amount}\n"
-                f"     [rgb(181,137,0)]slippage:[/rgb(181,137,0)] {slippage_pct}%\n"
-                f"     [rgb(181,137,0)]account:[/rgb(181,137,0)] {staking_address_name}%\n"
+                f"     [rgb(42,161,152)]current exchange rate:[/rgb(42,161,152)] { dynamic_info.price }\n"
+                f"     [rgb(220,50,47)]stake to be removed:[/rgb(220,50,47)] { amount_to_unstake_as_balance }\n"
+                f"     [rgb(42,161,152)]tao received after unstake:[/rgb(42,161,152)] { received_amount }\n"
+                f"     [rgb(220,50,47)]slippage:[/rgb(220,50,47)] {slippage_pct}%\n"
+                f"     [rgb(38,139,210)]staking hotkey account:[/rgb(38,139,210)] {staking_address_name}\n"
+                f"     [rgb(133,153,0)]wallet coldkey account:[/rgb(133,153,0)] {wallet.coldkeypub.ss58_address}\n"
+                f"\n"
             )
-            if slippage_pct > 0.05:
-                bt.__console__.warning(f"[rgb(181,137,0)]Slippage is high: {slippage_pct}%, this may result in a loss of funds.[/rgb(181,137,0)]")
-            if not Confirm.ask(message):
+            if not isinstance(slippage_pct, str) and slippage_pct > 5:
+                message += f"\t-------------------------------------------------------------------------------------------------------------------\n"
+                message += f"\t[bold][yellow]WARNING:[/yellow]\tSlippage is high: {slippage_pct}%, this may result in a loss of funds.[/bold] \n"
+                message += f"\t-------------------------------------------------------------------------------------------------------------------\n"
+            if not Confirm.ask("Would you like to continue?"):
                 sys.exit(1)
+
                                             
         # Perform staking operation.
-        with bt.__console__.status(f"\n:satellite:"):
+        wallet.coldkey# decrypt key.
+        with bt.__console__.status(f"\n:satellite: Unstaking {amount_to_unstake_as_balance} from {staking_address_name} on netuid: {netuid} ..."):
             call = subtensor.substrate.compose_call(
                 call_module="SubtensorModule",
-                call_function="remove_stake",
+                call_function="remove_subnet_stake",
                 call_params={
                     "hotkey": staking_address_ss58,
                     "netuid": netuid,
@@ -136,7 +158,7 @@ class RemoveStakeCommand:
                 },
             )
             extrinsic = subtensor.substrate.create_signed_extrinsic(call=call, keypair=wallet.coldkey)
-            response = subtensor.substrate.submit_extrinsic(extrinsic, wait_for_finalization=not config.no_prompt)
+            response = subtensor.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=True, wait_for_finalization=False)
             if config.no_prompt:
                 bt.__console__.print(":white_heavy_check_mark: [green]Sent[/green]")
                 return

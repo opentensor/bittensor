@@ -3873,6 +3873,7 @@ class subtensor:
         Being a delegate is a significant status within the Bittensor network, indicating a neuron's
         involvement in consensus and governance processes.
         """
+        # TODO: this is really slow.
         return hotkey_ss58 in [
             info.hotkey_ss58 for info in self.get_delegates(block=block)
         ]

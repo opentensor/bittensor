@@ -106,15 +106,15 @@ def select_delegate( subtensor, netuid:int ):
                 try:
                     # Try to convert user input to integer (delegate index)
                     selected_idx = int(user_input)
-                    if 0 <= selected_idx < len(visible_delegates):
+                    if 0 <= selected_idx < len(delegates):
                         break  # Exit loop if valid index is selected
                     else:
-                        console.print(f"[red]Invalid index. Please enter a number between 0 and {len(visible_delegates) - 1}.[/red]")
+                        console.print(f"[red]Invalid index. Please enter a number between 0 and {len(delegates) - 1}.[/red]")
                         continue
                 except ValueError:
                     console.print("[red]Invalid input. Please enter a valid number.[/red]")
                 except IndexError:
-                    console.print(f"[red]Invalid index. Please enter a number between 0 and {len(visible_delegates) - 1}.[/red]")
+                    console.print(f"[red]Invalid index. Please enter a number between 0 and {len(delegates) - 1}.[/red]")
                 except Exception as e:
                     console.print(f"[red]An error occurred: {str(e)}[/red]")
                     continue  # If input is invalid, continue to next delegate
@@ -133,6 +133,6 @@ def select_delegate( subtensor, netuid:int ):
     #     return select_delegate( subtensor, netuid )
     
     # Return the selected delegate
-    return visible_delegates[selected_idx]
+    return delegates[selected_idx]
 
 
