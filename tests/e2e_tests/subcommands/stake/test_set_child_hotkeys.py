@@ -4,7 +4,7 @@ from bittensor.commands import (
     StakeCommand,
     RegisterSubnetworkCommand,
     SetChildCommand,
-    SetChildrenCommand
+    SetChildrenCommand,
 )
 from tests.e2e_tests.utils import setup_wallet
 
@@ -66,7 +66,7 @@ def test_set_child(local_chain, capsys):
     # Assert no child hotkeys on subnet
     subtensor = bittensor.subtensor(network="ws://localhost:9945")
     assert (
-        subtensor.get_children(hotkey=alice_keypair.ss58_address ,netuid=1) == 0
+        subtensor.get_children(hotkey=alice_keypair.ss58_address, netuid=1) == 0
     ), "Child hotkeys are already set on new subnet. "
 
     # Run set child
@@ -92,7 +92,7 @@ def test_set_child(local_chain, capsys):
     )
 
     assert (
-        subtensor.get_children(hotkey=alice_keypair.ss58_address ,netuid=1) == 1
+        subtensor.get_children(hotkey=alice_keypair.ss58_address, netuid=1) == 1
     ), "failed to set child hotkey"
 
     output = capsys.readouterr().out

@@ -2227,21 +2227,18 @@ class Subtensor:
     ):
         """Sends a child hotkey extrinsic on the chain.
 
-        Args:
-            wallet (:func:`bittensor.wallet`): Wallet object that can sign the extrinsic.
-            hotkey: (str): Hotkey ``ss58`` address of the parent.
-            child: (str): Hotkey ``ss58`` address of the child.
-<<<<<<< HEAD
-            netuid (int): Unique identifier for the network.
-            proportion (int): Proportion allocated to the child in u16 format.
-=======
-            netuid (int): Unique identifier for the network in u64 format.
-            proportion (int): Proportion allocated to the child in u64 format.
->>>>>>> origin/feature/opendansor/child_hotkeys
-            wait_for_inclusion (bool): If ``true``, waits for inclusion before returning.
-            wait_for_finalization (bool): If ``true``, waits for finalization before returning.
-        Returns:
-            success (bool): ``True`` if the extrinsic was successful.
+                Args:
+                    wallet (:func:`bittensor.wallet`): Wallet object that can sign the extrinsic.
+                    hotkey: (str): Hotkey ``ss58`` address of the parent.
+                    child: (str): Hotkey ``ss58`` address of the child.
+                    netuid (int): Unique identifier for the network.
+                    proportion (int): Proportion allocated to the child in u16 format.
+                    netuid (int): Unique identifier for the network in u64 format.
+                    proportion (int): Proportion allocated to the child in u64 format.
+                    wait_for_inclusion (bool): If ``true``, waits for inclusion before returning.
+                    wait_for_finalization (bool): If ``true``, waits for finalization before returning.
+                Returns:
+                    success (bool): ``True`` if the extrinsic was successful.
         """
 
         @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
