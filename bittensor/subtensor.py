@@ -2170,6 +2170,35 @@ class Subtensor:
 
         return make_substrate_call_with_retry()
 
+    def set_child_singular(
+        self,
+        wallet: "bittensor.wallet",
+        hotkey: str,
+        child: str,
+        netuid: int,
+        proportion: float,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+    ) -> bool:
+        """Sets a child hotkey extrinsic on the subnet.
+
+        Args:
+            wallet (:func:`bittensor.wallet`): Wallet object that can sign the extrinsic.
+            hotkey: (str): Hotkey ``ss58`` address of the parent.
+            child: (str): Hotkey ``ss58`` address of the child.
+            netuid (int): Unique identifier for the network.
+            proportion (int): Proportion allocated to the child.
+            wait_for_inclusion (bool): If ``true``, waits for inclusion before returning.
+            wait_for_finalization (bool): If ``true``, waits for finalization before returning.
+        Returns:
+            success (bool): ``True`` if the extrinsic was successful.
+        Raises:
+            ChildHotkeyError: If the extrinsic failed.
+        """
+        pass
+
+    # Implementation here
+
     #############
     # Unstaking #
     #############
@@ -3118,7 +3147,9 @@ class Subtensor:
         """
         call_definition = bittensor.__type_registry__["runtime_api"][runtime_api][  # type: ignore
             "methods"  # type: ignore
-        ][method]  # type: ignore
+        ][
+            method
+        ]  # type: ignore
 
         json_result = self.state_call(
             method=f"{runtime_api}_{method}",
