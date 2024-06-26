@@ -653,7 +653,7 @@ class SetChildCommand:
             )
         else:
             console.print(
-                ":cross_mark:[red] Unable to set child hotkey.[/red]"
+                f":cross_mark:[red] Unable to set child hotkey.[/red] {message}"
             )
 
     @staticmethod
