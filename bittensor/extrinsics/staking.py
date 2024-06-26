@@ -20,6 +20,8 @@ import bittensor
 from rich.prompt import Confirm
 from time import sleep
 from typing import List, Union, Optional, Tuple
+
+from bittensor.utils import weight_utils
 from bittensor.utils.balance import Balance
 
 
@@ -525,24 +527,31 @@ def __do_add_stake_single(
     return success
 
 
-def __do_set_child_singular(
+def do_set_child_singular_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
-    hotkey_ss58: str,
-    amount: "bittensor.Balance",
+    hotkey: str,
+    child: str,
+    netuid: int,
+    proportion: float,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
+    prompt: bool = False,
 ) -> bool:
     r"""
-    Executes a stake call to the chain using the wallet and the amount specified.
+    Sets child hotkey with a proportion assigned from the parent.
 
     Args:
         wallet (bittensor.wallet):
             Bittensor wallet object.
-        hotkey_ss58 (str):
-            Hotkey to stake to.
-        amount (bittensor.Balance):
-            Amount to stake as Bittensor balance object.
+        hotkey (str):
+            Parent hotkey.
+        child (str):
+            Child hotkey.
+        netuid (int):
+            Unique identifier of for the subnet.
+        proportion (float):
+            Proportion assigned to child hotkey.
         wait_for_inclusion (bool):
             If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool):
@@ -551,35 +560,72 @@ def __do_set_child_singular(
             If ``true``, the call waits for confirmation from the user before proceeding.
     Returns:
         success (bool):
-            Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
+            Flag is ``true`` if extrinsic was finalized or included in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     Raises:
-        bittensor.errors.StakeError:
+        bittensor.errors.ChildHotkeyError:
             If the extrinsic fails to be finalized or included in the block.
-        bittensor.errors.NotDelegateError:
-            If the hotkey is not a delegate.
         bittensor.errors.NotRegisteredError:
             If the hotkey is not registered in any subnets.
 
     """
-    # Decrypt keys,
-    wallet.coldkey
+    # Ask before moving on.
+    if prompt:
+        if not Confirm.ask(
+            "Do you want to add child hotkey:\n[bold white]  child: {}\n  proportion: {}[/bold white ]?".format(
+                child, proportion
+            )
+        ):
+            return False
 
-    hotkey_owner = subtensor.get_hotkey_owner(hotkey_ss58)
-    own_hotkey = wallet.coldkeypub.ss58_address == hotkey_owner
-    if not own_hotkey:
-        # We are delegating.
-        # Verify that the hotkey is a delegate.
-        if not subtensor.is_hotkey_delegate(hotkey_ss58=hotkey_ss58):
-            raise bittensor.errors.NotDelegateError(
-                "Hotkey: {} is not a delegate.".format(hotkey_ss58)
+    with bittensor.__console__.status(
+        ":satellite: Setting child hotkey on [white]{}[/white] ...".format(
+            subtensor.network
+        )
+    ):
+        try:
+            uid_val, proportion_val = weight_utils.convert_weights_and_uids_for_emit(
+                netuid, proportion
             )
 
-    success = subtensor._do_stake(
-        wallet=wallet,
-        hotkey_ss58=hotkey_ss58,
-        amount=amount,
-        wait_for_inclusion=wait_for_inclusion,
-        wait_for_finalization=wait_for_finalization,
-    )
+            success, error_message = subtensor._do_set_child_singular(
+                wallet=wallet,
+                hotkey=hotkey,
+                child=child,
+                netuid=uid_val[0],
+                proportion=proportion_val[0],
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
 
-    return success
+            bittensor.__console__.print(success, error_message)
+
+            if not wait_for_finalization and not wait_for_inclusion:
+                return True
+
+            if success is True:
+                bittensor.__console__.print(
+                    ":white_heavy_check_mark: [green]Finalized[/green]"
+                )
+                bittensor.logging.success(
+                    prefix="Set child hotkey",
+                    suffix="<green>Finalized: </green>" + str(success),
+                )
+                return True
+            else:
+                bittensor.__console__.print(
+                    f":cross_mark: [red]Failed[/red]: {error_message}"
+                )
+                bittensor.logging.warning(
+                    prefix="Set child hotkey",
+                    suffix="<red>Failed: </red>" + str(error_message),
+                )
+                return False
+
+        except Exception as e:
+            bittensor.__console__.print(
+                ":cross_mark: [red]Failed[/red]: error:{}".format(e)
+            )
+            bittensor.logging.warning(
+                prefix="Set child hotkey", suffix="<red>Failed: </red>" + str(e)
+            )
+            return False
