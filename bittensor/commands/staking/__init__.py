@@ -36,7 +36,7 @@ Example usage:
 
 def select_delegate( subtensor, netuid:int ): 
     # Get a list of delegates and sort them by total stake in descending order
-    delegates: typing.List[bt.DelegateInfoLight] = subtensor.get_delegates_light()
+    delegates: typing.List[bt.DelegateInfoLight] = subtensor.get_delegates_by_netuid_light( netuid )
     delegates.sort(key=lambda x: x.total_stake, reverse=True)
     
     # Initialize Rich console for pretty printing

@@ -3351,7 +3351,7 @@ class subtensor:
     ) -> Optional["Balance"]:
         """Returns the total stake held on a hotkey including delegative"""
         return self.get_total_stake_for_key(
-            ss58_address, "delegateInfo_getTotalStakeForColdkey", block
+            ss58_address, "delegateInfo_getTotalStakeForHotkey", block
         )
 
     def get_total_stake_for_coldkey(

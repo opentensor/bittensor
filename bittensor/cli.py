@@ -39,7 +39,6 @@ from .commands import (
     RegenHotkeyCommand,
     RegisterCommand,
     RegisterSubnetworkCommand,
-    RemoveSubStakeCommand,
     RootList,
     RootRegisterCommand,
     RunFaucetCommand,
@@ -54,7 +53,6 @@ from .commands import (
     SubnetListCommand,
     SubnetLockCostCommand,
     SubnetSudoCommand,
-    SubStakeCommand,
     SwapHotkeyCommand,
     TransferCommand,
     UpdateCommand,
@@ -64,6 +62,7 @@ from .commands import (
     WalletCreateCommand,
     ListSubnetsCommand,
     AddStakeCommand,
+    RemoveStakeCommand,
 )
 
 # Create a console instance for CLI display.
@@ -157,7 +156,7 @@ COMMANDS = {
             # TODO: Should Show all my stakes across subnets.
             "list": StakeList,
             "add": AddStakeCommand,
-            "remove": RemoveSubStakeCommand,
+            "remove": RemoveStakeCommand,
             # Lists all of my delegates on the root network.
             "my_delegates": MyDelegatesCommand,
         },

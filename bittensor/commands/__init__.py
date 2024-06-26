@@ -69,6 +69,7 @@ defaults: Munch = munchify(
 from .subnets.list_subnets import ListSubnetsCommand
 from .subnets.metagraph import ShowMetagraph
 from .staking.add_stake import AddStakeCommand
+from .staking.remove_stake import RemoveStakeCommand
 
 from .stake import (
     StakeCommand,

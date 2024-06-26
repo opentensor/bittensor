@@ -7,19 +7,19 @@ from . import select_delegate
 from rich.prompt import Confirm, Prompt
 from bittensor.utils.slippage import (Operation, show_slippage_warning_if_needed)
 
-class AddStakeCommand:
+class RemoveStakeCommand:
     
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser):
-        stake_parser = parser.add_parser("add", help="""Add stake to a specific hotkey on subnet `netuid` from your coldkey.""")
-        stake_parser.add_argument("--netuid", dest="netuid", type=int, required=False)
-        stake_parser.add_argument("--all", dest="stake_all", action="store_true")
-        stake_parser.add_argument("--amount", dest="amount", type=float, required=False)
-        stake_parser.add_argument("--hotkey_ss58", required=False, type=str, help="""Specify the hotkey by name or ss58 address.""")
-        stake_parser.add_argument("--delegate", required=False, action='store_true', help="""Specify this flag to delegate stake""" )
-        stake_parser.add_argument("--no_prompt", "--y", "-y", dest = 'no_prompt', required=False, action='store_true', help="""Specify this flag to delegate stake""" )
-        bt.wallet.add_args(stake_parser)
-        bt.subtensor.add_args(stake_parser)
+        unstake_parser = parser.add_parser("remove", help="""Remove stake from a specific hotkey on subnet `netuid` from your coldkey.""")
+        unstake_parser.add_argument("--netuid", dest="netuid", type=int, required=False)
+        unstake_parser.add_argument("--all", dest="un_stake_all", action="store_true")
+        unstake_parser.add_argument("--amount", dest="amount", type=float, required=False)
+        unstake_parser.add_argument("--hotkey_ss58", required=False, type=str, help="""Specify the hotkey by name or ss58 address.""")
+        unstake_parser.add_argument("--delegate", required=False, action='store_true', help="""Specify this flag to delegate stake""" )
+        unstake_parser.add_argument("--no_prompt", "--y", "-y", dest = 'no_prompt', required=False, action='store_true', help="""Specify this flag to delegate stake""" )
+        bt.wallet.add_args(unstake_parser)
+        bt.subtensor.add_args(unstake_parser)
         
     @staticmethod
     def check_config(config: "bt.config"): pass
@@ -74,48 +74,48 @@ class AddStakeCommand:
                 bt.__console__.print(f"[red]Hotkey [bold]{staking_address_ss58}[/bold] is not a delegate. Aborting.[/red]")
                 sys.exit(1)
 
-        # Get the current wallet balance.
-        current_wallet_balance: bt.Balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
-
-        # Determine the amount we are staking.
-        amount_to_stake_as_balance = None
-        if config.get("amount"):
-            amount_to_stake_as_balance = bt.Balance.from_tao(config.amount)
-        elif config.get("stake_all"):
-            amount_to_stake_as_balance = current_wallet_balance
-        elif not config.get("amount") and not config.get("max_stake"):
-            if Confirm.ask(f"Stake all: [bold]{current_wallet_balance}[/bold]?"):
-                amount_to_stake_as_balance = current_wallet_balance
-            else:
-                try:
-                    amount = float(Prompt.ask("Enter amount to stake in TAO"))
-                    amount_to_stake_as_balance = bt.Balance.from_tao(amount)
-                except ValueError:
-                    bt.__console__.print(f":cross_mark:[red]Invalid amount: {amount}[/red]")
-                    sys.exit(1)
-
         # Get old staking balance.
         current_stake_balance: bt.Balance = subtensor.get_stake_for_coldkey_and_hotkey_on_netuid(
             coldkey_ss58=wallet.coldkeypub.ss58_address,
             hotkey_ss58=staking_address_ss58,
             netuid=netuid,
         )
+        # Get current wallet balance
+        current_wallet_balance: bt.Balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
+
+        # Determine the amount we are staking.
+        amount_to_unstake_as_balance = None
+        if config.get("amount"):
+            amount_to_unstake_as_balance = bt.Balance.from_tao(config.amount)
+        elif config.get("un_stake_all"):
+            amount_to_unstake_as_balance = current_stake_balance
+        elif not config.get("amount") and not config.get("max_stake"):
+            if Confirm.ask(f"Un stake all: [bold]{current_stake_balance}[/bold]?"):
+                amount_to_unstake_as_balance = current_stake_balance
+            else:
+                try:
+                    # TODO add unit.
+                    amount = float(Prompt.ask("Enter amount to unstake in unit TODO"))
+                    amount_to_unstake_as_balance = bt.Balance.from_tao(amount)
+                except ValueError:
+                    bt.__console__.print(f":cross_mark:[red]Invalid amount: {amount}[/red]")
+                    sys.exit(1)
 
         # Check enough to stake.
-        if amount_to_stake_as_balance > current_wallet_balance:
-            bt.__console__.print(f"[red]Not enough stake[/red]:[bold white]\n wallet balance:{current_wallet_balance} < staking amount: {amount_to_stake_as_balance}[/bold white]")
+        if amount_to_unstake_as_balance > current_stake_balance:
+            bt.__console__.print(f"[red]Not enough stake to remove[/red]:[bold white]\n stake balance:{current_stake_balance} < unstaking amount: {amount_to_unstake_as_balance}[/bold white]")
             sys.exit(1)
 
         # Slippage warning
         if not config.no_prompt:
             dynamic_info = subtensor.get_dynamic_info_for_netuid( netuid )
-            received_amount, slippage = dynamic_info.tao_to_alpha_with_slippage( amount_to_stake_as_balance )
+            received_amount, slippage = dynamic_info.alpha_to_tao_with_slippage( amount_to_unstake_as_balance )
             slippage_pct = 100 * float(slippage) / float(slippage + received_amount) if slippage + received_amount != 0 else 0
             message = (
                 f"Would you like to continue?\n\n"
                 f"     [rgb(133,153,0)]netuid:[/rgb(133,153,0)] {netuid}\n"
-                f"     [rgb(38,139,210)]tao staked:[/rgb(38,139,210)] {amount_to_stake_as_balance}\n"
-                f"     [rgb(220,50,47)]stake received:[/rgb(220,50,47)] {received_amount.set_unit(netuid)}\n"
+                f"     [rgb(220,50,47)]stake removed:[/rgb(220,50,47)] { amount_to_unstake_as_balance }\n"
+                f"     [rgb(38,139,210)]tao recieved:[/rgb(38,139,210)] { received_amount}\n"
                 f"     [rgb(181,137,0)]slippage:[/rgb(181,137,0)] {slippage_pct}%\n"
                 f"     [rgb(181,137,0)]account:[/rgb(181,137,0)] {staking_address_name}%\n"
             )
@@ -123,16 +123,16 @@ class AddStakeCommand:
                 bt.__console__.warning(f"[rgb(181,137,0)]Slippage is high: {slippage_pct}%, this may result in a loss of funds.[/rgb(181,137,0)]")
             if not Confirm.ask(message):
                 sys.exit(1)
-                                             
+                                            
         # Perform staking operation.
         with bt.__console__.status(f"\n:satellite:"):
             call = subtensor.substrate.compose_call(
                 call_module="SubtensorModule",
-                call_function="add_subnet_stake",
+                call_function="remove_stake",
                 call_params={
                     "hotkey": staking_address_ss58,
                     "netuid": netuid,
-                    "amount_staked": amount_to_stake_as_balance.rao,
+                    "amount_unstaked": amount_to_unstake_as_balance.rao,
                 },
             )
             extrinsic = subtensor.substrate.create_signed_extrinsic(call=call, keypair=wallet.coldkey)
