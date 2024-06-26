@@ -90,7 +90,7 @@ class RegisterSubnetworkCommand:
         if success and not cli.config.no_prompt:
             # Prompt for user to set identity.
             do_set_identity = Prompt.ask(
-                "Subnetwork registered successfully. Would you like to set your identity? [y/n]",
+                f"Subnetwork registered successfully. Would you like to set your identity? [y/n]",
                 choices=["y", "n"],
             )
 
@@ -315,7 +315,6 @@ HYPERPARAMS = {
     "max_difficulty": "sudo_set_max_difficulty",
     "weights_version": "sudo_set_weights_version_key",
     "weights_rate_limit": "sudo_set_weights_set_rate_limit",
-    "weights_min_stake": "sudo_set_weights_min_stake",
     "max_weight_limit": "sudo_set_max_weight_limit",
     "immunity_period": "sudo_set_immunity_period",
     "min_allowed_weights": "sudo_set_min_allowed_weights",
@@ -331,7 +330,6 @@ HYPERPARAMS = {
     "bonds_moving_avg": "sudo_set_bonds_moving_average",
     "commit_reveal_weights_interval": "sudo_set_commit_reveal_weights_interval",
     "commit_reveal_weights_enabled": "sudo_set_commit_reveal_weights_enabled",
-    "network_rate_limit": "sudo_set_network_rate_limit",
 }
 
 
@@ -399,7 +397,7 @@ class SubnetSudoCommand:
 
         subtensor.set_hyperparameter(
             wallet,
-            netuid=cli.config.netuid if cli.config.is_set("netuid") else None,
+            netuid=cli.config.netuid,
             parameter=cli.config.param,
             value=cli.config.value,
             prompt=not cli.config.no_prompt,
