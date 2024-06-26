@@ -22,10 +22,12 @@ env:
   CARGO_TERM_COLOR: always
   VERBOSE: ${{ github.event.inputs.verbose }}
 
+# job to run tests in parallel
 jobs:
   # Job to find all test files
   find-tests:
     runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false && github.event_name != 'pull_request'
     outputs:
       test-files: ${{ steps.get-tests.outputs.test-files }}
     steps:
