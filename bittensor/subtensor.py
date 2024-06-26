@@ -5041,10 +5041,7 @@ class Subtensor:
         network's decentralized architecture, particularly in relation to neuron interconnectivity and consensus
             processes.
         """
-        # This line:
-        print("starting metagraph with", self.network)
-        metagraph_ = bittensor.metagraph(network=self.network, netuid=netuid, lite=lite)
-
+        metagraph_ = await bittensor.metagraph(network=self.network, netuid=netuid, lite=lite, subtensor=self)
         return metagraph_
 
     async def incentive(self, netuid: int, block: Optional[int] = None) -> List[int]:
