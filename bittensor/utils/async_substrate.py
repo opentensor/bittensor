@@ -429,7 +429,7 @@ class AsyncSubstrateInterface:
 
     def __init__(
         self,
-        chain_endpoint: str,
+        url: str,
         use_remote_preset=False,
         auto_discover=True,
         auto_reconnect=True,
@@ -437,10 +437,10 @@ class AsyncSubstrateInterface:
         """
         The asyncio-compatible version of the subtensor interface commands we use in bittensor
         """
-        self.chain_endpoint = chain_endpoint
+        self.chain_endpoint = url
         self.__chain = None
         self.ws = Websocket(
-            chain_endpoint,
+            url,
             options={
                 "max_size": 2**32,
                 "read_limit": 2**32,
