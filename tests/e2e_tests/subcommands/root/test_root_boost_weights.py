@@ -33,10 +33,10 @@ def test_root_get_set_weights(local_chain, capsys):
 
     assert sudo_call_set_network_limit(local_chain, wallet)
 
-    assert sudo_call_set_weights_set_rate_limit(local_chain, wallet, 0)
-
     output = capsys.readouterr().out
     assert "" in output  # assert the correct output is returned to user
+
+    assert sudo_call_set_weights_set_rate_limit(local_chain, wallet, 0)
 
     output = capsys.readouterr().out
     assert "" in output  # assert the correct output is returned to user
