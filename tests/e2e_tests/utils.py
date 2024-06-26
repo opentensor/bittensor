@@ -1,20 +1,20 @@
-import time
-
-from substrateinterface import SubstrateInterface
-from typing import List
 import os
 import shutil
 import subprocess
 import sys
-import asyncio
-from bittensor import Keypair, logging
+import time
+from typing import List
+
+from substrateinterface import SubstrateInterface
+
 import bittensor
+from bittensor import Keypair, logging
 
 template_path = os.getcwd() + "/neurons/"
 repo_name = "templates repository"
 
 
-def setup_wallet(uri: str):
+async def setup_wallet(uri: str):
     keypair = Keypair.create_from_uri(uri)
     wallet_path = "/tmp/btcli-e2e-wallet-{}".format(uri.strip("/"))
     wallet = bittensor.wallet(path=wallet_path)
@@ -22,7 +22,7 @@ def setup_wallet(uri: str):
     wallet.set_coldkeypub(keypair=keypair, encrypt=False, overwrite=True)
     wallet.set_hotkey(keypair=keypair, encrypt=False, overwrite=True)
 
-    def exec_command(command, extra_args: List[str]):
+    async def exec_command(command, extra_args: List[str], function: str = "run"):
         parser = bittensor.cli.__create_parser__()
         args = extra_args + [
             "--no_prompt",
@@ -37,9 +37,10 @@ def setup_wallet(uri: str):
             parser=parser,
             args=args,
         )
-
-        cli = bittensor.cli(config)
-        asyncio.run(cli._init_check_config(config))
+        async with bittensor.cli(config) as cli_instance:
+            # Dynamically call the specified function on the command
+            result = await getattr(command, function)(cli_instance)
+            return result
 
     return keypair, exec_command, wallet
 
