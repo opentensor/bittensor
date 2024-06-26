@@ -69,7 +69,8 @@ def test_liquid_alpha_enabled(local_chain, capsys):
     assert result is None
     output = capsys.readouterr().out
     assert (
-        "❌ Failed: Subtensor returned `LiquidAlphaDisabled (Module)` error. This means: `Attempting to set alpha high/low while disabled`" in output
+        "❌ Failed: Subtensor returned `LiquidAlphaDisabled (Module)` error. This means: `Attempting to set alpha high/low while disabled`"
+        in output
     )
 
     # Enable Liquid Alpha
@@ -130,7 +131,9 @@ def test_liquid_alpha_enabled(local_chain, capsys):
 
     u16_max = 65535
     # Set alpha high too low
-    alpha_high_too_low = (u16_max * 4 // 5) - 1  # One less than the minimum acceptable value
+    alpha_high_too_low = (
+        u16_max * 4 // 5
+    ) - 1  # One less than the minimum acceptable value
     result = subtensor.set_hyperparameter(
         wallet=wallet,
         netuid=1,
@@ -142,7 +145,8 @@ def test_liquid_alpha_enabled(local_chain, capsys):
     assert result is None
     output = capsys.readouterr().out
     assert (
-        "❌ Failed: Subtensor returned `AlphaHighTooLow (Module)` error. This means: `Alpha high is too low: alpha_high > 0.8`" in output
+        "❌ Failed: Subtensor returned `AlphaHighTooLow (Module)` error. This means: `Alpha high is too low: alpha_high > 0.8`"
+        in output
     )
 
     alpha_high_too_high = u16_max + 1  # One more than the max acceptable value
@@ -172,11 +176,14 @@ def test_liquid_alpha_enabled(local_chain, capsys):
     assert result is None
     output = capsys.readouterr().out
     assert (
-        "❌ Failed: Subtensor returned `AlphaLowOutOfRange (Module)` error. This means: `Alpha low is out of range: alpha_low > 0 && alpha_low < 0.8`" in output
+        "❌ Failed: Subtensor returned `AlphaLowOutOfRange (Module)` error. This means: `Alpha low is out of range: alpha_low > 0 && alpha_low < 0.8`"
+        in output
     )
 
     # Set alpha low too high
-    alpha_low_too_high = (u16_max * 4 // 5) + 1  # One more than the maximum acceptable value
+    alpha_low_too_high = (
+        u16_max * 4 // 5
+    ) + 1  # One more than the maximum acceptable value
     result = subtensor.set_hyperparameter(
         wallet=wallet,
         netuid=1,
@@ -188,7 +195,8 @@ def test_liquid_alpha_enabled(local_chain, capsys):
     assert result is None
     output = capsys.readouterr().out
     assert (
-        "❌ Failed: Subtensor returned `AlphaLowOutOfRange (Module)` error. This means: `Alpha low is out of range: alpha_low > 0 && alpha_low < 0.8`" in output
+        "❌ Failed: Subtensor returned `AlphaLowOutOfRange (Module)` error. This means: `Alpha low is out of range: alpha_low > 0 && alpha_low < 0.8`"
+        in output
     )
 
     exec_command(
@@ -244,9 +252,9 @@ def test_liquid_alpha_enabled(local_chain, capsys):
         ],
     )
 
-    assert subtensor.get_subnet_hyperparameters(
-        netuid=1
-    ).liquid_alpha_enabled is False, "Failed to disable liquid alpha"
+    assert (
+        subtensor.get_subnet_hyperparameters(netuid=1).liquid_alpha_enabled is False
+    ), "Failed to disable liquid alpha"
 
     output = capsys.readouterr().out
     assert "✅ Hyper parameter liquid_alpha_enabled changed to False" in output
@@ -262,6 +270,6 @@ def test_liquid_alpha_enabled(local_chain, capsys):
     assert result is None
     output = capsys.readouterr().out
     assert (
-        "❌ Failed: Subtensor returned `LiquidAlphaDisabled (Module)` error. This means: `Attempting to set alpha high/low while disabled`" in output
+        "❌ Failed: Subtensor returned `LiquidAlphaDisabled (Module)` error. This means: `Attempting to set alpha high/low while disabled`"
+        in output
     )
-
