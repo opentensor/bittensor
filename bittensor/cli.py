@@ -167,6 +167,11 @@ COMMANDS = {
             "show": StakeShow,
             "add": StakeCommand,
             "remove": UnStakeCommand,
+            # "get_children": GetChildrenCommand,
+            "set_child": SetChildCommand,
+            # "revoke_child": RemoveChildCommand,
+            # "set_children": SetChildrenCommand,
+            # "revoke_children": RevokeChildrenCommand
         },
     },
     "weights": {
