@@ -38,6 +38,9 @@ from .commands import (
     ProfileCommand,
     ProfileListCommand,
     ProfileShowCommand,
+    ProfileDeleteCommand,
+    ProfileSetValueCommand,
+    ProfileDeleteValueCommand,
     PowRegisterCommand,
     ProposalsCommand,
     RegenColdkeyCommand,
@@ -202,7 +205,9 @@ COMMANDS = {
             "list": ProfileListCommand,
             "show": ProfileShowCommand,
             # "set": ProfileSet,
-            # "delete": ProfileDelete,
+            "set_value": ProfileSetValueCommand,
+            "delete_value": ProfileDeleteValueCommand,
+            "delete": ProfileDeleteCommand,
         },
     },
 }
@@ -229,9 +234,9 @@ class cli:
     """
 
     def __init__(
-        self,
-        config: Optional["bittensor.config"] = None,
-        args: Optional[List[str]] = None,
+            self,
+            config: Optional["bittensor.config"] = None,
+            args: Optional[List[str]] = None,
     ):
         """
         Initializes a bittensor.CLI object.
