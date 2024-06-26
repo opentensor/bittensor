@@ -183,16 +183,38 @@ def set_hyperparameter_extrinsic(
             extrinsic_params = substrate.get_metadata_call_function(
                 "AdminUtils", extrinsic
             )
-            value_argument = extrinsic_params["fields"][
-                len(extrinsic_params["fields"]) - 1
-            ]
+            call_params = {"netuid": netuid}
+
+            # if input value is a list, iterate through the list and assign values
+            if isinstance(value, list):
+                # Create an iterator for the list of values
+                value_iterator = iter(value)
+                # Iterate over all value arguments and add them to the call_params dictionary
+                for value_argument in extrinsic_params["fields"]:
+                    if "netuid" not in str(value_argument["name"]):
+                        # Assign the next value from the iterator
+                        try:
+                            call_params[str(value_argument["name"])] = next(
+                                value_iterator
+                            )
+                        except StopIteration:
+                            raise ValueError(
+                                "Not enough values provided in the list for all parameters"
+                            )
+
+            else:
+                value_argument = extrinsic_params["fields"][
+                    len(extrinsic_params["fields"]) - 1
+                ]
+                call_params[str(value_argument["name"])] = value
 
             # create extrinsic call
             call = substrate.compose_call(
                 call_module="AdminUtils",
                 call_function=extrinsic,
-                call_params={"netuid": netuid, str(value_argument["name"]): value},
+                call_params=call_params,
             )
+
             extrinsic = substrate.create_signed_extrinsic(
                 call=call, keypair=wallet.coldkey
             )
