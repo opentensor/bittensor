@@ -2,7 +2,6 @@ import asyncio
 import sys
 
 import pytest
-import time
 import bittensor
 from bittensor.utils import networking
 from bittensor.commands import (

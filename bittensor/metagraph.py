@@ -511,8 +511,6 @@ class MetagraphMixin(ABC):
         """
 
         # Initialize subtensor
-        if subtensor is not None:
-            print("Syncc", subtensor.chain_endpoint)
         subtensor = self._initialize_subtensor(subtensor)
         if (
             subtensor.chain_endpoint != bittensor.__archive_entrypoint__  # type: ignore
@@ -557,7 +555,6 @@ class MetagraphMixin(ABC):
         if not subtensor:
             # TODO: Check and test the initialization of the new subtensor
             subtensor = bittensor.subtensor(network=self.network)
-        print("Subtensor Initialized", subtensor.chain_endpoint)
         return subtensor
 
     async def _assign_neurons(
@@ -578,7 +575,6 @@ class MetagraphMixin(ABC):
 
                 self._assign_neurons(block, lite, subtensor)
         """
-        print("Assigning Neurons")
         # TODO: Check and test the conditions for assigning neurons
         if lite is True:
             self.neurons = await subtensor.neurons_lite(block=block, netuid=self.netuid)
