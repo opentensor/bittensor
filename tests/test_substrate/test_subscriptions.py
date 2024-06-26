@@ -6,7 +6,7 @@ import settings
 @pytest.fixture
 def substrate():
     return AsyncSubstrateInterface(
-        chain_endpoint=settings.POLKADOT_NODE_URL,
+        url=settings.POLKADOT_NODE_URL,
     )
 
 

@@ -6,14 +6,14 @@ import settings
 @pytest.fixture
 def kusama_substrate():
     return AsyncSubstrateInterface(
-        chain_endpoint=settings.KUSAMA_NODE_URL,
+        url=settings.KUSAMA_NODE_URL,
     )
 
 
 @pytest.fixture
 def polkadot_substrate():
     return AsyncSubstrateInterface(
-        chain_endpoint=settings.POLKADOT_NODE_URL,
+        url=settings.POLKADOT_NODE_URL,
     )
 
 
