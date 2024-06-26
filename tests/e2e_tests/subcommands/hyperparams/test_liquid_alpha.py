@@ -69,7 +69,7 @@ def test_liquid_alpha_enabled(local_chain, capsys):
     assert result is None
     output = capsys.readouterr().out
     assert (
-        "❌ Failed: Subtensor returned `LiquidAlphaDisabled (Module)` error. This means: `Attempting to set alpha high/low while disabled`"
+        "❌ Failed: Subtensor returned `LiquidAlphaDisabled (Module)` error. This means: \n`Attempting to set alpha high/low while disabled`"
         in output
     )
 
@@ -145,7 +145,7 @@ def test_liquid_alpha_enabled(local_chain, capsys):
     assert result is None
     output = capsys.readouterr().out
     assert (
-        "❌ Failed: Subtensor returned `AlphaHighTooLow (Module)` error. This means: `Alpha high is too low: alpha_high > 0.8`"
+        "❌ Failed: Subtensor returned `AlphaHighTooLow (Module)` error. This means: \n`Alpha high is too low: alpha_high > 0.8`"
         in output
     )
 
@@ -176,7 +176,7 @@ def test_liquid_alpha_enabled(local_chain, capsys):
     assert result is None
     output = capsys.readouterr().out
     assert (
-        "❌ Failed: Subtensor returned `AlphaLowOutOfRange (Module)` error. This means: `Alpha low is out of range: alpha_low > 0 && alpha_low < 0.8`"
+        "❌ Failed: Subtensor returned `AlphaLowOutOfRange (Module)` error. This means: \n`Alpha low is out of range: alpha_low > 0 && alpha_low < 0.8`"
         in output
     )
 
@@ -195,7 +195,7 @@ def test_liquid_alpha_enabled(local_chain, capsys):
     assert result is None
     output = capsys.readouterr().out
     assert (
-        "❌ Failed: Subtensor returned `AlphaLowOutOfRange (Module)` error. This means: `Alpha low is out of range: alpha_low > 0 && alpha_low < 0.8`"
+        "❌ Failed: Subtensor returned `AlphaLowOutOfRange (Module)` error. This means: \n`Alpha low is out of range: alpha_low > 0 && alpha_low < 0.8`"
         in output
     )
 
@@ -270,6 +270,6 @@ def test_liquid_alpha_enabled(local_chain, capsys):
     assert result is None
     output = capsys.readouterr().out
     assert (
-        "❌ Failed: Subtensor returned `LiquidAlphaDisabled (Module)` error. This means: `Attempting to set alpha high/low while disabled`"
+        "❌ Failed: Subtensor returned `LiquidAlphaDisabled (Module)` error. This means: \n`Attempting to set alpha high/low while disabled`"
         in output
     )
