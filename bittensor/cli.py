@@ -69,6 +69,8 @@ from .commands import (
     WalletCreateCommand,
     CommitWeightCommand,
     RevealWeightCommand,
+    SetChildCommand,
+    SetChildrenCommand,
 )
 
 # Create a console instance for CLI display.
@@ -170,6 +172,7 @@ COMMANDS = {
             # "get_children": GetChildrenCommand,
             "set_child": SetChildCommand,
             # "revoke_child": RemoveChildCommand,
+            "set_children": SetChildrenCommand,
             # "set_children": SetChildrenCommand,
             # "revoke_children": RevokeChildrenCommand
         },

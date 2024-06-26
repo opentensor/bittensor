@@ -62,7 +62,12 @@ defaults: Munch = munchify(
     }
 )
 
-from .stake import StakeCommand, StakeShow
+from .stake import ( 
+    StakeCommand, 
+    StakeShow,  
+    SetChildCommand,  
+    SetChildrenCommand, 
+)
 from .unstake import UnStakeCommand
 from .overview import OverviewCommand
 from .register import (

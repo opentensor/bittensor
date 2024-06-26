@@ -79,7 +79,7 @@ def set_weights_extrinsic(
             weights = np.array(weights, dtype=np.float32)
 
     # Reformat and normalize.
-    weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(
+    weight_uids, weight_vals = weight_utils.convert_values_and_ids_for_emit(
         uids, weights
     )
 
