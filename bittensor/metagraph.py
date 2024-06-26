@@ -511,8 +511,9 @@ class MetagraphMixin(ABC):
         """
 
         # Initialize subtensor
+        if subtensor is not None:
+            print("Syncc", subtensor.chain_endpoint)
         subtensor = self._initialize_subtensor(subtensor)
-
         if (
             subtensor.chain_endpoint != bittensor.__archive_entrypoint__  # type: ignore
             or subtensor.network != "archive"  # type: ignore
@@ -556,6 +557,7 @@ class MetagraphMixin(ABC):
         if not subtensor:
             # TODO: Check and test the initialization of the new subtensor
             subtensor = bittensor.subtensor(network=self.network)
+        print("Subtensor Initialized", subtensor.chain_endpoint)
         return subtensor
 
     async def _assign_neurons(
@@ -576,6 +578,7 @@ class MetagraphMixin(ABC):
 
                 self._assign_neurons(block, lite, subtensor)
         """
+        print("Assigning Neurons")
         # TODO: Check and test the conditions for assigning neurons
         if lite is True:
             self.neurons = await subtensor.neurons_lite(block=block, netuid=self.netuid)
@@ -865,7 +868,7 @@ BaseClass: Union["torch.nn.Module", object] = torch.nn.Module if use_torch() els
 
 class TorchMetaGraph(MetagraphMixin, BaseClass):  # type: ignore
     def __init__(
-        self, netuid: int, network: str = "finney", lite: bool = True, sync: bool = True
+        self, netuid: int, network: str = "finney", lite: bool = True, sync: bool = True, subtensor: Optional["bittensor.Subtensor"] = None
     ):
         """
         Initializes a new instance of the metagraph object, setting up the basic structure and parameters based on the provided arguments.
@@ -940,9 +943,17 @@ class TorchMetaGraph(MetagraphMixin, BaseClass):  # type: ignore
             torch.tensor([], dtype=torch.int64), requires_grad=False
         )
         self.axons: List[AxonInfo] = []
-        if sync:
-            # TODO: rewrite with async initialization logic
-            asyncio.run(self.sync(block=None, lite=lite))
+        self.should_sync = sync
+        self.lite = lite
+        self.subtensor = subtensor
+
+    async def __aenter__(self):
+        if self.should_sync:
+            await self.sync(block=None, lite=self.lite, subtensor=self.subtensor)
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        pass
 
     async def _set_metagraph_attributes(
         self, subtensor: "bittensor.subtensor", block: Optional[int] = None
@@ -1054,7 +1065,7 @@ class TorchMetaGraph(MetagraphMixin, BaseClass):  # type: ignore
 
 class NonTorchMetagraph(MetagraphMixin):
     def __init__(
-        self, netuid: int, network: str = "finney", lite: bool = True, sync: bool = True
+        self, netuid: int, network: str = "finney", lite: bool = True, sync: bool = True, subtensor: Optional["bittensor.Subtensor"] = None
     ):
         # super(metagraph, self).__init__()
         MetagraphMixin.__init__(self, netuid, network, lite, sync)
@@ -1080,9 +1091,17 @@ class NonTorchMetagraph(MetagraphMixin):
         self.bonds = np.array([], dtype=np.int64)
         self.uids = np.array([], dtype=np.int64)
         self.axons: List[AxonInfo] = []
-        if sync:
-            # TODO: rewrite with async initialization logic
-            asyncio.run(self.sync(block=None, lite=lite))
+        self.should_sync = sync
+        self.lite = lite
+        self.subtensor = subtensor
+
+    async def __aenter__(self):
+        if self.should_sync:
+            await self.sync(block=None, lite=self.lite, subtensor=self.subtensor)
+        return self
+            
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        pass
 
     async def _set_metagraph_attributes(
         self, subtensor: "bittensor.subtensor", block: Optional[int] = None
