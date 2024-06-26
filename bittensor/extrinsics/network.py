@@ -165,7 +165,6 @@ def set_hyperparameter_extrinsic(
         netuid is not None
         and subtensor.get_subnet_owner(netuid) != wallet.coldkeypub.ss58_address
     ):
-        bittensor.logging.info("netuid is set and retrun false")
         bittensor.__console__.print(
             ":cross_mark: [red]This wallet doesn't own the specified subnet.[/red]"
         )

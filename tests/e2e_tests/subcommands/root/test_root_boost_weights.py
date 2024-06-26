@@ -10,11 +10,18 @@ from bittensor.commands import SubnetSudoCommand
 
 from ...utils import (
     setup_wallet,
-    sudo_call_set_network_limit,
-    sudo_call_set_weight_limit,
-    sudo_call_set_min_stake,
 )
-import bittensor
+
+"""
+Test the root set/get weights mechanism. 
+
+Verify that:
+* Fill in the test parameters here
+* 
+* 
+* 
+
+"""
 
 
 def test_root_get_set_weights(local_chain, capsys):
@@ -39,19 +46,44 @@ def test_root_get_set_weights(local_chain, capsys):
         ],
     )
 
-    root_netuid = 0
-    assert sudo_call_set_weight_limit(local_chain, wallet, root_netuid)
+    output = capsys.readouterr().out
+    assert "" in output  # assert the correct output is returned to user
+
+    exec_command(
+        SubnetSudoCommand,
+        [
+            "sudo",
+            "set",
+            "hyperparameters",
+            "--param",
+            "weights_set_rate_limit",
+            "--value",
+            "1",
+            "--wait_for_inclusion",
+            "True",
+            "--wait_for_finalization",
+            "True",
+        ],
+    )
+
+    output = capsys.readouterr().out
+    assert "" in output  # assert the correct output is returned to user
 
     assert not local_chain.query("SubtensorModule", "NetworksAdded", [1]).serialize()
 
     exec_command(RegisterSubnetworkCommand, ["s", "create"])
     exec_command(RegisterSubnetworkCommand, ["s", "create"])
     exec_command(RegisterSubnetworkCommand, ["s", "create"])
-    assert local_chain.query("SubtensorModule", "NetworksAdded", [1]).serialize()
 
+    output = capsys.readouterr().out
+    assert "" in output  # assert no errors or failures after creating networks
+
+    assert local_chain.query("SubtensorModule", "NetworksAdded", [1]).serialize()
     assert (
-        local_chain.query("SubtensorModule", "Uids", [0, wallet.hotkey.ss58_address])
-        == None
+        local_chain.query(
+            "SubtensorModule", "Uids", [0, wallet.hotkey.ss58_address]
+        ).value
+        is None
     )
 
     exec_command(
@@ -59,7 +91,13 @@ def test_root_get_set_weights(local_chain, capsys):
         ["root", "register"],
     )
 
+    output = capsys.readouterr().out
+    assert "" in output  # assert the correct output is returned to user
+
     exec_command(RegisterCommand, ["subnets", "register", "--netuid", "0"])
+
+    output = capsys.readouterr().out
+    assert "" in output  # assert the correct output is returned to user
 
     assert (
         local_chain.query("SubtensorModule", "Uids", [0, wallet.hotkey.ss58_address])
@@ -75,6 +113,9 @@ def test_root_get_set_weights(local_chain, capsys):
         ["root", "weights", "--netuids", netuids, "--weights", weights],
     )
 
+    output = capsys.readouterr().out
+    assert "" in output  # assert the correct output is returned to user
+
     first_weight_vec = local_chain.query("SubtensorModule", "Weights", [0, 0])[0]
     assert first_weight_vec[0] == 1
     first_weight = first_weight_vec[1]
@@ -87,6 +128,9 @@ def test_root_get_set_weights(local_chain, capsys):
         ["root", "boost", "--netuid", netuid, "--increase", increase],
     )
 
+    output = capsys.readouterr().out
+    assert "" in output  # assert the correct output is returned to user
+
     first_weight_vec = local_chain.query("SubtensorModule", "Weights", [0, 0])[0]
     assert first_weight_vec[0] == 1
     new_first_weight = first_weight_vec[1]
@@ -97,13 +141,38 @@ def test_root_get_set_weights(local_chain, capsys):
     stake_amount = 2
     exec_command(StakeCommand, ["stake", "add", "--amount", str(stake_amount)])
 
+    output = capsys.readouterr().out
+    assert "" in output  # assert the correct output is returned to user
+
     # set the min stake for the account to set weights
-    assert sudo_call_set_min_stake(local_chain, wallet, stake_amount)
+    exec_command(
+        SubnetSudoCommand,
+        [
+            "sudo",
+            "set",
+            "hyperparameters",
+            "--param",
+            "weights_min_stake",
+            "--value",
+            str(stake_amount),
+            "--wait_for_inclusion",
+            "True",
+            "--wait_for_finalization",
+            "True",
+        ],
+    )
+
+    output = capsys.readouterr().out
+    assert "" in output  # assert the correct output is returned to user
 
     exec_command(
         RootSetBoostCommand,
         ["root", "boost", "--netuid", netuid, "--increase", increase],
     )
+
+    output = capsys.readouterr().out
+    assert "" in output
+
     first_weight_vec = local_chain.query("SubtensorModule", "Weights", [0, 0])[0]
     assert first_weight_vec[0] == 1
     new_first_weight = first_weight_vec[1]

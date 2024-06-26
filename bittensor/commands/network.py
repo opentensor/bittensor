@@ -90,7 +90,7 @@ class RegisterSubnetworkCommand:
         if success and not cli.config.no_prompt:
             # Prompt for user to set identity.
             do_set_identity = Prompt.ask(
-                f"Subnetwork registered successfully. Would you like to set your identity? [y/n]",
+                "Subnetwork registered successfully. Would you like to set your identity? [y/n]",
                 choices=["y", "n"],
             )
 
@@ -315,6 +315,7 @@ HYPERPARAMS = {
     "max_difficulty": "sudo_set_max_difficulty",
     "weights_version": "sudo_set_weights_version_key",
     "weights_rate_limit": "sudo_set_weights_set_rate_limit",
+    "weights_min_stake": "sudo_set_weights_min_stake",
     "max_weight_limit": "sudo_set_max_weight_limit",
     "immunity_period": "sudo_set_immunity_period",
     "min_allowed_weights": "sudo_set_min_allowed_weights",
@@ -396,22 +397,13 @@ class SubnetSudoCommand:
                 else False
             )
 
-        if cli.config.is_set("netuid"):
-            subtensor.set_hyperparameter(
-                wallet,
-                netuid=cli.config.netuid,
-                parameter=cli.config.param,
-                value=cli.config.value,
-                prompt=not cli.config.no_prompt,
-            )
-        else:
-            subtensor.set_hyperparameter(
-                wallet,
-                netuid=None,
-                parameter=cli.config.param,
-                value=cli.config.value,
-                prompt=not cli.config.no_prompt,
-            )
+        subtensor.set_hyperparameter(
+            wallet,
+            netuid=cli.config.netuid if cli.config.is_set("netuid") else None,
+            parameter=cli.config.param,
+            value=cli.config.value,
+            prompt=not cli.config.no_prompt,
+        )
 
     @staticmethod
     def check_config(config: "bittensor.config"):
