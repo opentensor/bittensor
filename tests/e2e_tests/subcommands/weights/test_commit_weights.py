@@ -227,7 +227,7 @@ def test_commit_and_reveal_weights(local_chain):
     uids = np.array(uid_list, dtype=np.int64)
     weight_list = [float(x) for x in re.split(r"[ ,]+", str(weights))]
     weights_array = np.array(weight_list, dtype=np.float32)
-    weight_uids, expected_weights = weight_utils.convert_weights_and_uids_for_emit(
+    weight_uids, expected_weights = weight_utils.convert_values_and_ids_for_emit(
         uids, weights_array
     )
     assert (

@@ -365,7 +365,7 @@ class TestSubtensor(unittest.TestCase):
         weights = np.array([0.1, 0.2, 0.3, 0.4], dtype=np.float32)
         uids = np.array([1, 2, 3, 4], dtype=np.int64)
         salt = np.array([1, 2, 3, 4, 5, 6, 7, 8], dtype=np.int64)
-        weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(
+        weight_uids, weight_vals = weight_utils.convert_values_and_ids_for_emit(
             uids=uids, weights=weights
         )
         commit_hash = bittensor.utils.weight_utils.generate_weight_hash(
@@ -393,7 +393,7 @@ class TestSubtensor(unittest.TestCase):
         uids = np.array([1, 2, 3, 4], dtype=np.int64)
         salt = np.array([1, 2, 3, 4, 5, 6, 7, 8], dtype=np.int64)
 
-        weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(
+        weight_uids, weight_vals = weight_utils.convert_values_and_ids_for_emit(
             uids=uids, weights=weights
         )
 
@@ -427,7 +427,7 @@ class TestSubtensor(unittest.TestCase):
         uids = np.array([1, 2, 3, 4], dtype=np.int64)
         salt = np.array([1, 2, 3, 4, 5, 6, 7, 8], dtype=np.int64)
 
-        weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(
+        weight_uids, weight_vals = weight_utils.convert_values_and_ids_for_emit(
             uids=uids, weights=weights
         )
 
