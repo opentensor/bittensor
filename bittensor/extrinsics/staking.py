@@ -228,7 +228,7 @@ def add_stake_extrinsic(
             )
             return False
 
-    except bittensor.errors.NotRegisteredError as e:
+    except bittensor.errors.NotRegisteredError:
         bittensor.__console__.print(
             ":cross_mark: [red]Hotkey: {} is not registered.[/red]".format(
                 wallet.hotkey_str
@@ -435,7 +435,7 @@ def add_stake_multiple_extrinsic(
                 )
                 continue
 
-        except bittensor.errors.NotRegisteredError as e:
+        except bittensor.errors.NotRegisteredError:
             bittensor.__console__.print(
                 ":cross_mark: [red]Hotkey: {} is not registered.[/red]".format(
                     hotkey_ss58
@@ -466,6 +466,66 @@ def add_stake_multiple_extrinsic(
 
 
 def __do_add_stake_single(
+    subtensor: "bittensor.subtensor",
+    wallet: "bittensor.wallet",
+    hotkey_ss58: str,
+    amount: "bittensor.Balance",
+    wait_for_inclusion: bool = True,
+    wait_for_finalization: bool = False,
+) -> bool:
+    r"""
+    Executes a stake call to the chain using the wallet and the amount specified.
+
+    Args:
+        wallet (bittensor.wallet):
+            Bittensor wallet object.
+        hotkey_ss58 (str):
+            Hotkey to stake to.
+        amount (bittensor.Balance):
+            Amount to stake as Bittensor balance object.
+        wait_for_inclusion (bool):
+            If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool):
+            If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
+        prompt (bool):
+            If ``true``, the call waits for confirmation from the user before proceeding.
+    Returns:
+        success (bool):
+            Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
+    Raises:
+        bittensor.errors.StakeError:
+            If the extrinsic fails to be finalized or included in the block.
+        bittensor.errors.NotDelegateError:
+            If the hotkey is not a delegate.
+        bittensor.errors.NotRegisteredError:
+            If the hotkey is not registered in any subnets.
+
+    """
+    # Decrypt keys,
+    wallet.coldkey
+
+    hotkey_owner = subtensor.get_hotkey_owner(hotkey_ss58)
+    own_hotkey = wallet.coldkeypub.ss58_address == hotkey_owner
+    if not own_hotkey:
+        # We are delegating.
+        # Verify that the hotkey is a delegate.
+        if not subtensor.is_hotkey_delegate(hotkey_ss58=hotkey_ss58):
+            raise bittensor.errors.NotDelegateError(
+                "Hotkey: {} is not a delegate.".format(hotkey_ss58)
+            )
+
+    success = subtensor._do_stake(
+        wallet=wallet,
+        hotkey_ss58=hotkey_ss58,
+        amount=amount,
+        wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization,
+    )
+
+    return success
+
+
+def __do_set_child_singular(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
     hotkey_ss58: str,
