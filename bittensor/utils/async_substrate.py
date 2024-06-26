@@ -1491,9 +1491,7 @@ class AsyncSubstrateInterface:
                 ):
                     # Created as a task because we don't actually care about the result
                     self._forgettable_task = asyncio.create_task(
-                        self.rpc_request(
-                            "author_unwatchExtrinsic", [subscription_id]
-                        )
+                        self.rpc_request("author_unwatchExtrinsic", [subscription_id])
                     )
                     return {
                         "block_hash": message_result["inblock"],
