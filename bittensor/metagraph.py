@@ -864,7 +864,12 @@ BaseClass: Union["torch.nn.Module", object] = torch.nn.Module if use_torch() els
 
 class TorchMetaGraph(MetagraphMixin, BaseClass):  # type: ignore
     def __init__(
-        self, netuid: int, network: str = "finney", lite: bool = True, sync: bool = True, subtensor: Optional["bittensor.Subtensor"] = None
+        self,
+        netuid: int,
+        network: str = "finney",
+        lite: bool = True,
+        sync: bool = True,
+        subtensor: Optional["bittensor.Subtensor"] = None,
     ):
         """
         Initializes a new instance of the metagraph object, setting up the basic structure and parameters based on the provided arguments.
@@ -1061,7 +1066,12 @@ class TorchMetaGraph(MetagraphMixin, BaseClass):  # type: ignore
 
 class NonTorchMetagraph(MetagraphMixin):
     def __init__(
-        self, netuid: int, network: str = "finney", lite: bool = True, sync: bool = True, subtensor: Optional["bittensor.Subtensor"] = None
+        self,
+        netuid: int,
+        network: str = "finney",
+        lite: bool = True,
+        sync: bool = True,
+        subtensor: Optional["bittensor.Subtensor"] = None,
     ):
         # super(metagraph, self).__init__()
         MetagraphMixin.__init__(self, netuid, network, lite, sync)
@@ -1095,7 +1105,7 @@ class NonTorchMetagraph(MetagraphMixin):
         if self.should_sync:
             await self.sync(block=None, lite=self.lite, subtensor=self.subtensor)
         return self
-            
+
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         pass
 

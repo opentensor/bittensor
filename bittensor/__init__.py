@@ -349,7 +349,12 @@ configs = [
 defaults = config.merge_all(configs)
 
 
-async def metagraph(netuid: int, network: str = "finney", lite: bool = True, sync: bool = True, subtensor: Optional["Subtensor"] = None):
+async def metagraph(
+    netuid: int,
+    network: str = "finney",
+    lite: bool = True,
+    sync: bool = True,
+    subtensor: Optional["Subtensor"] = None,
+):
     async with metagraph_class(netuid, network, lite, sync, subtensor) as m:
         return m
-    
