@@ -185,7 +185,7 @@ class UnStakeCommand:
 
         if len(final_hotkeys) == 1:
             # do regular unstake
-            return subtensor.unstake(
+            return await subtensor.unstake(
                 wallet=wallet,
                 hotkey_ss58=final_hotkeys[0][1],
                 amount=None if cli.config.get("unstake_all") else final_amounts[0],
@@ -193,7 +193,7 @@ class UnStakeCommand:
                 prompt=not cli.config.no_prompt,
             )
 
-        await subtensor.unstake_multiple(
+        return await subtensor.unstake_multiple(
             wallet=wallet,
             hotkey_ss58s=[hotkey_ss58 for _, hotkey_ss58 in final_hotkeys],
             amounts=None if cli.config.get("unstake_all") else final_amounts,

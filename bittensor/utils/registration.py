@@ -681,7 +681,7 @@ async def _solve_for_difficulty_fast(
     hash_rates = [0] * n_samples  # The last n true hash_rates
     weights = [alpha_**i for i in range(n_samples)]  # weights decay by alpha
 
-    while netuid == -1 or not subtensor.is_hotkey_registered(
+    while netuid == -1 or not await subtensor.is_hotkey_registered(
         netuid=netuid, hotkey_ss58=wallet.hotkey.ss58_address
     ):
         # Wait until a solver finds a solution

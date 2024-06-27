@@ -58,7 +58,7 @@ def mock_environment():
 @pytest.mark.asyncio
 async def test_set_metagraph_attributes(mock_environment):
     subtensor, neurons = mock_environment
-    metagraph = bittensor.metagraph(1)
+    metagraph = await bittensor.metagraph(1)
     metagraph.neurons = neurons
     await metagraph._set_metagraph_attributes(subtensor=subtensor, block=5)
 
@@ -94,9 +94,10 @@ async def test_set_metagraph_attributes(mock_environment):
     assert metagraph.axons == [n.axon_info for n in neurons]
 
 
-def test_process_weights_or_bonds(mock_environment):
+@pytest.mark.asyncio
+async def test_process_weights_or_bonds(mock_environment):
     _, neurons = mock_environment
-    metagraph = bittensor.metagraph(1)
+    metagraph = await bittensor.metagraph(1)
     metagraph.neurons = neurons
 
     # Test weights processing

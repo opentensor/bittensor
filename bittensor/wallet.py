@@ -138,7 +138,7 @@ class wallet:
             parser (argparse.ArgumentParser): Argument parser object.
             prefix (str): Argument prefix.
         """
-        prefix_str = "" if prefix == None else prefix + "."
+        prefix_str = "" if prefix is None else prefix + "."
         try:
             default_name = os.getenv("BT_WALLET_NAME") or "default"
             default_hotkey = os.getenv("BT_WALLET_NAME") or "default"
@@ -169,7 +169,7 @@ class wallet:
                 default=default_path,
                 help="The path to your bittensor wallets",
             )
-        except argparse.ArgumentError as e:
+        except argparse.ArgumentError:
             pass
 
     def __init__(
@@ -431,7 +431,7 @@ class wallet:
             KeyFileError: Raised if the file is corrupt of non-existent.
             CryptoKeyError: Raised if the user enters an incorrec password for an encrypted keyfile.
         """
-        if self._hotkey == None:
+        if self._hotkey is None:
             self._hotkey = self.hotkey_file.keypair
         return self._hotkey
 
@@ -445,7 +445,7 @@ class wallet:
             KeyFileError: Raised if the file is corrupt of non-existent.
             CryptoKeyError: Raised if the user enters an incorrec password for an encrypted keyfile.
         """
-        if self._coldkey == None:
+        if self._coldkey is None:
             self._coldkey = self.coldkey_file.keypair
         return self._coldkey
 
@@ -459,7 +459,7 @@ class wallet:
             KeyFileError: Raised if the file is corrupt of non-existent.
             CryptoKeyError: Raised if the user enters an incorrect password for an encrypted keyfile.
         """
-        if self._coldkeypub == None:
+        if self._coldkeypub is None:
             self._coldkeypub = self.coldkeypub_file.keypair
         return self._coldkeypub
 

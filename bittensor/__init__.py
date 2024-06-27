@@ -17,6 +17,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 import os
+from typing import Optional
 import warnings
 
 from rich.console import Console
@@ -287,7 +288,6 @@ from .utils import (
     strtobool,
     strtobool_with_default,
     get_explorer_root_url_by_network_from_map,
-    get_explorer_root_url_by_network_from_map,
     get_explorer_url_for_network,
     ss58_address_to_bytes,
     u16_normalized_float,
@@ -324,7 +324,7 @@ from .subtensor import Subtensor
 from .subtensor import Subtensor as subtensor
 
 from .cli import Cli as cli, COMMANDS as ALL_COMMANDS
-from .metagraph import metagraph as metagraph
+from .metagraph import metagraph as metagraph_class
 from .threadpool import PriorityThreadPoolExecutor as PriorityThreadPoolExecutor
 
 from .synapse import TerminalInfo, Synapse
@@ -347,3 +347,14 @@ configs = [
     logging.get_config(),
 ]
 defaults = config.merge_all(configs)
+
+
+async def metagraph(
+    netuid: int,
+    network: str = "finney",
+    lite: bool = True,
+    sync: bool = True,
+    subtensor: Optional["Subtensor"] = None,
+):
+    async with metagraph_class(netuid, network, lite, sync, subtensor) as m:
+        return m

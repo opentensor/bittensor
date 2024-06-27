@@ -309,35 +309,49 @@ class Websocket:
                 self._open_subscriptions = 0
                 self._exit_task = asyncio.create_task(self._exit_with_timer())
 
-    async def _exit_with_timer(self):
+    async def _exit_with_timer(self, timer=None):
         """
         Allows for graceful shutdown of websocket connection after specified number of seconds, allowing
         for reuse of the websocket connection.
         """
+        shutdown_timer = timer if timer is not None else self.shutdown_timer
         try:
-            await asyncio.sleep(self.shutdown_timer)
+            await asyncio.sleep(shutdown_timer)
             async with self._lock:
-                self._receiving_task.cancel()
-                try:
-                    await self._receiving_task
-                except asyncio.CancelledError:
-                    pass
-                await self.ws.close()
-                self.ws = None
+                if self._receiving_task:
+                    self._receiving_task.cancel()
+                    try:
+                        await self._receiving_task
+                    except asyncio.CancelledError:
+                        pass
+                if self.ws:
+                    await self.ws.close()
+                    self.ws = None
                 self._initialized = False
                 self._receiving_task = None
                 self.id = 0
         except asyncio.CancelledError:
             pass
 
+    async def close(self):
+        await self._exit_with_timer(0)
+
     async def _recv(self) -> None:
         try:
             response = json.loads(await self.ws.recv())
             async with self._lock:
                 self._open_subscriptions -= 1
-                self._received[response["id"]] = response
+                if "id" in response:
+                    self._received[response["id"]] = response
+                elif "params" in response:
+                    self._received[response["params"]["subscription"]] = response
+                else:
+                    raise KeyError(response)
         except websockets.ConnectionClosed:
             raise
+        except KeyError as e:
+            print(f"Unhandled websocket response: {e}")
+            raise e
 
     async def _start_receiving(self):
         try:
@@ -415,7 +429,7 @@ class AsyncSubstrateInterface:
 
     def __init__(
         self,
-        chain_endpoint: str,
+        url: str,
         use_remote_preset=False,
         auto_discover=True,
         auto_reconnect=True,
@@ -423,10 +437,10 @@ class AsyncSubstrateInterface:
         """
         The asyncio-compatible version of the subtensor interface commands we use in bittensor
         """
-        self.chain_endpoint = chain_endpoint
+        self.chain_endpoint = url
         self.__chain = None
         self.ws = Websocket(
-            chain_endpoint,
+            url,
             options={
                 "max_size": 2**32,
                 "read_limit": 2**32,
@@ -468,7 +482,7 @@ class AsyncSubstrateInterface:
             self.initialized = True
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        pass
+        await self.ws.close()
 
     @property
     def chain(self):
@@ -762,8 +776,7 @@ class AsyncSubstrateInterface:
         if asyncio.iscoroutinefunction(result_handler):
             # For multipart responses as a result of subscriptions.
             message, bool_result = await result_handler(obj, subscription_id)
-            if bool_result:
-                return message, bool_result
+            return message, bool_result
         return obj, True
 
     async def _make_rpc_request(
@@ -848,6 +861,15 @@ class AsyncSubstrateInterface:
         """
         Makes an RPC request to the subtensor. Use this only if ``self.query`` and ``self.query_multiple`` and
         ``self.query_map`` do not meet your needs.
+
+        :param method: str the method in the RPC request
+        :param params: list of the params in the RPC request
+        :param block_hash: optional str, the hash of the block — only supply this if not supplying the block
+                           hash in the params, and not reusing the block hash
+        :param reuse_block_hash: optional bool, whether to reuse the block hash in the params — only mark as True
+                                 if not supplying the block hash in the params, or via the `block_hash` parameter
+
+        :return: the response from the RPC request
         """
         block_hash = self._get_current_block_hash(block_hash, reuse_block_hash)
         payloads = [
@@ -894,14 +916,19 @@ class AsyncSubstrateInterface:
 
         :return: A composed call
         """
-        return await asyncio.get_event_loop().run_in_executor(
-            None,
-            self.substrate.compose_call,
-            call_module,
-            call_function,
-            call_params,
-            block_hash,
+        runtime = await self.init_runtime(block_hash=block_hash)
+        call = runtime.runtime_config.create_scale_object(
+            type_string="Call", metadata=runtime.metadata
         )
+        call.encode(
+            {
+                "call_module": call_module,
+                "call_function": call_function,
+                "call_args": call_params or {},
+            }
+        )
+
+        return call
 
     async def query_multiple(
         self,
@@ -1464,9 +1491,7 @@ class AsyncSubstrateInterface:
                 ):
                     # Created as a task because we don't actually care about the result
                     self._forgettable_task = asyncio.create_task(
-                        await self.rpc_request(
-                            "author_unwatchExtrinsic", [subscription_id]
-                        )
+                        self.rpc_request("author_unwatchExtrinsic", [subscription_id])
                     )
                     return {
                         "block_hash": message_result["inblock"],
@@ -1476,7 +1501,7 @@ class AsyncSubstrateInterface:
             return message, False
 
         if wait_for_inclusion or wait_for_finalization:
-            response = (
+            responses = (
                 await self._make_rpc_request(
                     [
                         self.make_payload(
@@ -1487,10 +1512,17 @@ class AsyncSubstrateInterface:
                     ],
                     result_handler=result_handler,
                 )
-            )["rpc_request"][1]
+            )["rpc_request"]
+            response = next(
+                (r for r in responses if "block_hash" in r and "extrinsic_hash" in r),
+                None,
+            )
+
+            if not response:
+                raise SubstrateRequestException(responses)
+
             # Also, this will be a multipart response, so maybe should change to everything after the first response?
             # The following code implies this will be a single response after the initial subscription id.
-
             result = ExtrinsicReceipt(
                 substrate=self.substrate,
                 extrinsic_hash=response["extrinsic_hash"],

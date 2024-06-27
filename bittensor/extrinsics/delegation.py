@@ -268,6 +268,7 @@ async def undelegate_extrinsic(
     """
     # Decrypt keys,
     wallet.coldkey
+
     if not await subtensor.is_hotkey_delegate(delegate_ss58):
         raise NotDelegateError("Hotkey: {} is not a delegate.".format(delegate_ss58))
 

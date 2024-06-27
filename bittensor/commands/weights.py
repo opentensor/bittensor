@@ -70,13 +70,13 @@ class CommitWeightCommand:
 
         # Get values if not set
         if not cli.config.is_set("netuid"):
-            cli.config.netuid = int(Prompt.ask(f"Enter netuid"))
+            cli.config.netuid = int(Prompt.ask("Enter netuid"))
 
         if not cli.config.is_set("uids"):
-            cli.config.uids = Prompt.ask(f"Enter UIDs (comma-separated)")
+            cli.config.uids = Prompt.ask("Enter UIDs (comma-separated)")
 
         if not cli.config.is_set("weights"):
-            cli.config.weights = Prompt.ask(f"Enter weights (comma-separated)")
+            cli.config.weights = Prompt.ask("Enter weights (comma-separated)")
 
         # Parse from string
         netuid = cli.config.netuid
@@ -107,7 +107,7 @@ class CommitWeightCommand:
             ).tolist()
 
         # Run the commit weights operation
-        success, message = subtensor.commit_weights(
+        success, message = await subtensor.commit_weights(
             wallet=wallet,
             netuid=netuid,
             uids=weight_uids,
@@ -120,7 +120,7 @@ class CommitWeightCommand:
 
         # Result
         if success:
-            bittensor.__console__.print(f"Weights committed successfully")
+            bittensor.__console__.print("Weights committed successfully")
         else:
             bittensor.__console__.print(f"Failed to commit weights: {message}")
 
@@ -156,7 +156,7 @@ class CommitWeightCommand:
         bittensor.subtensor.add_args(parser)
 
     @staticmethod
-    def check_config(config: "bittensor.config"):
+    async def check_config(config: "bittensor.config"):
         if not config.no_prompt and not config.is_set("wallet.name"):
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
             config.wallet.name = str(wallet_name)
@@ -201,16 +201,16 @@ class RevealWeightCommand:
 
         # Get values if not set.
         if not cli.config.is_set("netuid"):
-            cli.config.netuid = int(Prompt.ask(f"Enter netuid"))
+            cli.config.netuid = int(Prompt.ask("Enter netuid"))
 
         if not cli.config.is_set("uids"):
-            cli.config.uids = Prompt.ask(f"Enter UIDs (comma-separated)")
+            cli.config.uids = Prompt.ask("Enter UIDs (comma-separated)")
 
         if not cli.config.is_set("weights"):
-            cli.config.weights = Prompt.ask(f"Enter weights (comma-separated)")
+            cli.config.weights = Prompt.ask("Enter weights (comma-separated)")
 
         if not cli.config.is_set("salt"):
-            cli.config.salt = Prompt.ask(f"Enter salt (comma-separated)")
+            cli.config.salt = Prompt.ask("Enter salt (comma-separated)")
 
         # Parse from string
         netuid = cli.config.netuid
@@ -245,7 +245,7 @@ class RevealWeightCommand:
         )
 
         if success:
-            bittensor.__console__.print(f"Weights revealed successfully")
+            bittensor.__console__.print("Weights revealed successfully")
         else:
             bittensor.__console__.print(f"Failed to reveal weights: {message}")
 

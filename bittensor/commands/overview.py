@@ -124,7 +124,7 @@ class OverviewCommand:
         # Pull neuron info for all keys.
         neurons: Dict[str, List[bittensor.NeuronInfoLite]] = {}
         block, netuids = await asyncio.gather(
-            subtensor.block, subtensor.get_all_subnet_netuids()
+            subtensor.block(), subtensor.get_all_subnet_netuids()
         )
         netuids = await filter_netuids_by_registered_hotkeys(
             cli, subtensor, netuids, all_hotkeys

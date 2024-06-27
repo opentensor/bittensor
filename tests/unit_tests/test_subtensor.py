@@ -1135,7 +1135,7 @@ async def test_block_property(mocker, subtensor):
         new=mocker.AsyncMock(return_value=expected_block),
     )
 
-    result = await subtensor.block
+    result = await subtensor.block()
 
     assert result == expected_block
     subtensor.get_current_block.assert_called_once()
