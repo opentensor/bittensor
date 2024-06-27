@@ -546,4 +546,3 @@ def do_revoke_child_singular_extrinsic(
                 prefix="Revoked child hotkey", suffix="<red>Failed: </red>" + str(e)
             )
             return False
-        
