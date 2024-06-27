@@ -9,8 +9,6 @@ from ..utils import setup_wallet
 
 # Automated testing for take related tests described in
 # https://discord.com/channels/799672011265015819/1176889736636407808/1236057424134144152
-
-
 @pytest.mark.asyncio
 async def test_takes(local_chain):
     # Register root as Alice

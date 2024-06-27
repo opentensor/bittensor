@@ -3923,7 +3923,6 @@ class Subtensor:
     # Global Parameters #
     #####################
 
-    @property
     async def block(self) -> int:
         """Returns current chain block.
 

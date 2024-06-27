@@ -414,8 +414,8 @@ class DelegateStakeCommand:
                     bittensor.DelegateInfo
                 ] = await subtensor.get_delegates()
                 try:
-                    prev_delegates = subtensor.get_delegates(
-                        max(0, await subtensor.block - 1200)
+                    prev_delegates = await subtensor.get_delegates(
+                        max(0, await subtensor.block() - 1200)
                     )
                 except SubstrateRequestException:
                     prev_delegates = None
@@ -562,7 +562,7 @@ class DelegateUnstakeCommand:
                 ] = await subtensor.get_delegates()
                 try:
                     prev_delegates = await subtensor.get_delegates(
-                        max(0, await subtensor.block - 1200)
+                        max(0, await subtensor.block() - 1200)
                     )
                 except SubstrateRequestException:
                     prev_delegates = None
@@ -670,7 +670,7 @@ class ListDelegatesCommand:
     async def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         """List all delegates on the network."""
         with bittensor.__console__.status(":satellite: Loading delegates..."):
-            prev_block = await subtensor.block - 1200
+            prev_block = await subtensor.block() - 1200
 
             async def get_prev_delegates(prev_block_: int):
                 """Try/except async wrapper for subtensor.get_delegates."""

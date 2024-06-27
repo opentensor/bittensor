@@ -34,7 +34,6 @@ Verify that:
 """
 
 
-# TODO: fix after commands and cli are async migrated
 @pytest.mark.parametrize("local_chain", [False], indirect=True)
 @pytest.mark.asyncio
 async def test_dendrite(local_chain):

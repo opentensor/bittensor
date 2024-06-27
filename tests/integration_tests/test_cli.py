@@ -2417,30 +2417,30 @@ class TestCLIWithNetworkAndConfig(unittest.IsolatedAsyncioTestCase):
         config.subcommand = "new_coldkey"
 
         async with bittensor.cli(config) as cli:
-            cli.run()
+            await cli.run()
 
             # Now let's give it a hotkey
             config.command = "wallet"
             config.subcommand = "new_hotkey"
             cli.config = config
-            cli.run()
+            await cli.run()
 
             # Now inspect it
             config.command = "wallet"
             cli.config.subcommand = "inspect"
             cli.config = config
-            cli.run()
+            await cli.run()
 
             config.command = "wallet"
             cli.config.subcommand = "list"
             cli.config = config
-            cli.run()
+            await cli.run()
 
             # Run History Command to get list of transfers
             config.command = "wallet"
             cli.config.subcommand = "history"
             cli.config = config
-            cli.run()
+            await cli.run()
 
 
 @patch("bittensor.subtensor", new_callable=return_mock_sub)
