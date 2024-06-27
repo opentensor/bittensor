@@ -649,7 +649,7 @@ def do_set_children_multiple_extrinsic(
     prompt: bool = False,
 ) -> bool:
     r"""
-    Sets child hotkey with a proportion assigned from the parent.
+    Sets children hotkeys with a proportion assigned from the parent.
 
     Args:
         wallet (bittensor.wallet):
@@ -708,8 +708,8 @@ def do_set_children_multiple_extrinsic(
             success, error_message = subtensor._do_set_children_multiple(
                 wallet=wallet,
                 hotkey=hotkey,
-                children_with_propotions=children_with_proportions,
-                netuid=uid_val[0],
+                children_with_proportions=children_with_proportions,
+                netuid=netuid,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
             )
