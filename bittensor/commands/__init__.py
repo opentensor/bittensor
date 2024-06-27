@@ -74,7 +74,6 @@ from .staking.remove_stake import RemoveStakeCommand
 from .stake import (
     StakeCommand,
     StakeList,
-    StakeShow,
 )
 from .unstake import UnStakeCommand
 from .overview import OverviewCommand
@@ -85,9 +84,6 @@ from .register import (
     SwapHotkeyCommand,
 )
 from .delegates import (
-    NominateCommand,
-    ListDelegatesCommand,
-    MyDelegatesCommand,
     SetTakeCommand,
     SetDelegateTakesCommand,
 )
@@ -108,7 +104,6 @@ from .list import ListCommand
 from .misc import UpdateCommand, AutocompleteCommand
 from .senate import (
     SenateCommand,
-    ProposalsCommand,
     ShowVotesCommand,
     SenateRegisterCommand,
     SenateLeaveCommand,
@@ -116,19 +111,13 @@ from .senate import (
 )
 from .network import (
     RegisterSubnetworkCommand,
-    SubnetLockCostCommand,
-    SubnetListCommand,
     SubnetSudoCommand,
     SubnetHyperparamsCommand,
-    SubnetGetHyperparamsCommand,
 )
 from .root import (
-    RootRegisterCommand,
-    RootList,
     RootSetWeightsCommand,
     RootGetWeightsCommand,
     RootSetBoostCommand,
     RootSetSlashCommand,
 )
 from .identity import GetIdentityCommand, SetIdentityCommand
-from .substake import SubStakeCommand, RemoveSubStakeCommand

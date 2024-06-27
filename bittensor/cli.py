@@ -21,37 +21,31 @@ import argparse
 import bittensor
 from typing import List, Optional
 from .commands import (
+    AddStakeCommand,
     AutocompleteCommand,
     GetIdentityCommand,
     GetWalletHistoryCommand,
     InspectCommand,
     ListCommand,
-    ListDelegatesCommand,
+    ListSubnetsCommand,
     ShowMetagraph,
-    MyDelegatesCommand,
     NewColdkeyCommand,
     NewHotkeyCommand,
     OverviewCommand,
     PowRegisterCommand,
-    ProposalsCommand,
     RegenColdkeyCommand,
     RegenColdkeypubCommand,
     RegenHotkeyCommand,
     RegisterCommand,
     RegisterSubnetworkCommand,
-    RootList,
-    RootRegisterCommand,
+    RemoveStakeCommand,
     RunFaucetCommand,
     SenateCommand,
     SetDelegateTakesCommand,
     SetIdentityCommand,
     SetTakeCommand,
     StakeList,
-    StakeShow,
-    SubnetGetHyperparamsCommand,
     SubnetHyperparamsCommand,
-    SubnetListCommand,
-    SubnetLockCostCommand,
     SubnetSudoCommand,
     SwapHotkeyCommand,
     TransferCommand,
@@ -60,9 +54,6 @@ from .commands import (
     VoteCommand,
     WalletBalanceCommand,
     WalletCreateCommand,
-    ListSubnetsCommand,
-    AddStakeCommand,
-    RemoveStakeCommand,
 )
 
 # Create a console instance for CLI display.
@@ -99,29 +90,9 @@ COMMANDS = {
         "commands": {
             "list": ListSubnetsCommand,
             "metagraph": ShowMetagraph,
-            "lock_cost": SubnetLockCostCommand,
             "create": RegisterSubnetworkCommand,
             "pow_register": PowRegisterCommand,
             "register": RegisterCommand,
-            "hyperparameters": SubnetHyperparamsCommand,
-        },
-    },
-    "root": {
-        "name": "root",
-        "aliases": ["r", "roots"],
-        "help": "Commands for managing and viewing the root network.",
-        "commands": {
-            "list": RootList,
-            # For root participants to vote on the root network.
-            "vote": VoteCommand,
-            # For root participants to vote on the root network.
-            "senate": SenateCommand,
-            "register": RootRegisterCommand,
-            "proposals": ProposalsCommand,
-            "set_take": SetTakeCommand,
-            "my_delegates": MyDelegatesCommand,
-            "list_delegates": ListDelegatesCommand,
-            "set_delegate_takes": SetDelegateTakesCommand,
         },
     },
     "wallet": {
@@ -153,12 +124,9 @@ COMMANDS = {
         "aliases": ["st", "stakes"],
         "help": "Commands for staking and removing stake from hotkey accounts.",
         "commands": {
-            # TODO: Should Show all my stakes across subnets.
             "list": StakeList,
             "add": AddStakeCommand,
             "remove": RemoveStakeCommand,
-            # Lists all of my delegates on the root network.
-            "my_delegates": MyDelegatesCommand,
         },
     },
     "sudo": {
@@ -166,30 +134,24 @@ COMMANDS = {
         "aliases": ["su", "sudos"],
         "help": "Commands for subnet management",
         "commands": {
-            # "dissolve": None,
-            "set": SubnetSudoCommand,
-            "get": SubnetGetHyperparamsCommand,
+            "vote": VoteCommand,
+            "senate": SenateCommand,
+            "set_take": SetTakeCommand,
+            "set_hparam": SubnetSudoCommand,
+            "hyperparameters": SubnetHyperparamsCommand,
         },
     },
-    "legacy": {
-        "name": "legacy",
-        "aliases": ["l"],
+    "misc": {
+        "name": "misc",
+        "aliases": ["m"],
         "help": "Miscellaneous commands.",
         "commands": {
             "update": UpdateCommand,
             "faucet": RunFaucetCommand,
-        },
-    },
-    "info": {
-        "name": "info",
-        "aliases": ["i"],
-        "help": "Instructions for enabling autocompletion for the CLI.",
-        "commands": {
             "autocomplete": AutocompleteCommand,
         },
-    },
+    }
 }
-
 
 class CLIErrorParser(argparse.ArgumentParser):
     """

@@ -60,9 +60,8 @@ from .chain_data import (
     from_scale_encoding_using_type_string,
     custom_rpc_type_registry,
 )
-from .errors import IdentityError, NominationError, StakeError, TakeError
+from .errors import IdentityError, StakeError, TakeError
 from .extrinsics.delegation import (
-    nominate_extrinsic,
     increase_take_extrinsic,
     decrease_take_extrinsic,
 )
@@ -94,7 +93,7 @@ from .extrinsics.registration import (
     run_faucet_extrinsic,
     swap_hotkey_extrinsic,
 )
-from .extrinsics.root import root_register_extrinsic, set_root_weights_extrinsic
+from .extrinsics.root import set_root_weights_extrinsic
 from .extrinsics.senate import (
     register_senate_extrinsic,
     leave_senate_extrinsic,
@@ -2358,153 +2357,9 @@ class subtensor:
             return None
         return senate_members.serialize() if senate_members != None else None
 
-    def get_proposal_call_data(
-        self, proposal_hash: str, block: Optional[int] = None
-    ) -> Optional[GenericCall]:
-        """
-        Retrieves the call data of a specific proposal on the Bittensor blockchain. This data provides
-        detailed information about the proposal, including its purpose and specifications.
-
-        Args:
-            proposal_hash (str): The hash of the proposal.
-            block (Optional[int], optional): The blockchain block number at which to query the proposal call data.
-
-        Returns:
-            Optional[bittensor.ProposalCallData]: An object containing the proposal's call data, or ``None`` if not found.
-
-        This function is crucial for analyzing the types of proposals made within the network and the
-        specific changes or actions they intend to implement or address.
-        """
-        proposal_data = self.query_module(
-            module="Triumvirate", name="ProposalOf", block=block, params=[proposal_hash]
-        )
-        if not hasattr(proposal_data, "serialize"):
-            return None
-
-        return proposal_data.serialize() if proposal_data != None else None
-
-    def get_proposal_hashes(self, block: Optional[int] = None) -> Optional[List[str]]:
-        """
-        Retrieves the list of proposal hashes currently present on the Bittensor blockchain. Each hash
-        uniquely identifies a proposal made within the network.
-
-        Args:
-            block (Optional[int], optional): The blockchain block number to query the proposal hashes.
-
-        Returns:
-            Optional[List[str]]: A list of proposal hashes, or ``None`` if not available.
-
-        This function enables tracking and reviewing the proposals made in the network, offering insights
-        into the active governance and decision-making processes.
-        """
-        proposal_hashes = self.query_module(
-            module="Triumvirate", name="Proposals", block=block
-        )
-        if not hasattr(proposal_hashes, "serialize"):
-            return None
-
-        return proposal_hashes.serialize() if proposal_hashes != None else None
-
-    def get_proposals(
-        self, block: Optional[int] = None
-    ) -> Optional[Dict[str, Tuple[GenericCall, ProposalVoteData]]]:
-        """
-        Retrieves all active proposals on the Bittensor blockchain, along with their call and voting data.
-        This comprehensive view allows for a thorough understanding of the proposals and their reception
-        by the senate.
-
-        Args:
-            block (Optional[int], optional): The blockchain block number to query the proposals.
-
-        Returns:
-            Optional[Dict[str, Tuple[bittensor.ProposalCallData, bittensor.ProposalVoteData]]]:
-                A dictionary mapping proposal hashes to their corresponding call and vote data, or ``None`` if not available.
-
-        This function is integral for analyzing the governance activity on the Bittensor network,
-        providing a holistic view of the proposals and their impact or potential changes within the network.
-        """
-        proposal_hashes: Optional[List[str]] = self.get_proposal_hashes(block=block)
-        if proposal_hashes is None:
-            return None
-        return {
-            proposal_hash: (  # type: ignore
-                self.get_proposal_call_data(proposal_hash, block=block),
-                self.get_proposal_vote_data(proposal_hash, block=block),
-            )
-            for proposal_hash in proposal_hashes
-        }
-
     ##############
     #### Root ####
     ##############
-
-    def root_register(
-        self,
-        wallet: "bittensor.wallet",
-        wait_for_inclusion: bool = False,
-        wait_for_finalization: bool = True,
-        prompt: bool = False,
-    ) -> bool:
-        """
-        Registers the neuron associated with the wallet on the root network. This process is integral for
-        participating in the highest layer of decision-making and governance within the Bittensor network.
-
-        Args:
-            wallet (bittensor.wallet): The wallet associated with the neuron to be registered on the root network.
-            wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
-            wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
-            prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
-
-        Returns:
-            bool: ``True`` if the registration on the root network is successful, False otherwise.
-
-        This function enables neurons to engage in the most critical and influential aspects of the network's
-        governance, signifying a high level of commitment and responsibility in the Bittensor ecosystem.
-        """
-        return root_register_extrinsic(
-            subtensor=self,
-            wallet=wallet,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-            prompt=prompt,
-        )
-
-    def _do_root_register(
-        self,
-        wallet: "bittensor.wallet",
-        wait_for_inclusion: bool = False,
-        wait_for_finalization: bool = True,
-    ) -> Tuple[bool, Optional[str]]:
-        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=_logger)
-        def make_substrate_call_with_retry():
-            # create extrinsic call
-            call = self.substrate.compose_call(
-                call_module="SubtensorModule",
-                call_function="root_register",
-                call_params={"hotkey": wallet.hotkey.ss58_address},
-            )
-            extrinsic = self.substrate.create_signed_extrinsic(
-                call=call, keypair=wallet.coldkey
-            )
-            response = self.substrate.submit_extrinsic(
-                extrinsic,
-                wait_for_inclusion=wait_for_inclusion,
-                wait_for_finalization=wait_for_finalization,
-            )
-
-            # We only wait here if we expect finalization.
-            if not wait_for_finalization and not wait_for_inclusion:
-                return True
-
-            # process if registration successful, try again if pow is still valid
-            response.process_events()
-            if not response.is_success:
-                return False, response.error_message
-            # Successful registration
-            else:
-                return True, None
-
-        return make_substrate_call_with_retry()
 
     @legacy_torch_api_compat
     def root_set_weights(
@@ -4039,39 +3894,6 @@ class subtensor:
 
         return DelegateInfo.list_from_vec_u8(result)
 
-    def get_delegates_light(self, block: Optional[int] = None) -> List[DelegateInfoLight]:
-        """
-        Retrieves a list of all delegate neurons within the Bittensor network. This function provides an overview of the neurons that are actively involved in the network's delegation system.
-
-        Analyzing the delegate population offers insights into the network's governance dynamics and the distribution of trust and responsibility among participating neurons.
-
-        Args:
-            block (Optional[int], optional): The blockchain block number for the query.
-
-        Returns:
-            List[DelegateInfo]: A list of DelegateInfo objects detailing each delegate's characteristics.
-
-        """
-
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
-        def make_substrate_call_with_retry():
-            block_hash = None if block is None else self.substrate.get_block_hash(block)
-            params = []
-            if block_hash:
-                params.extend([block_hash])
-            return self.substrate.rpc_request(
-                method="delegateInfo_getDelegatesLight",  # custom rpc method
-                params=params,
-            )
-
-        json_body = make_substrate_call_with_retry()
-        result = json_body["result"]
-
-        if result in (None, []):
-            return []
-
-        return DelegateInfoLight.list_from_vec_u8(result)
-
     def get_delegates_by_netuid_light(self, netuid, block: Optional[int] = None) -> List[DelegateInfoLight]:
         """
         Retrieves a list of all delegate neurons within the Bittensor network. This function provides an overview of the neurons that are actively involved in the network's delegation system.
@@ -4844,38 +4666,6 @@ class subtensor:
     ################
     ## Extrinsics ##
     ################
-
-    def _do_nominate(
-        self,
-        wallet: "bittensor.wallet",
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = False,
-    ) -> bool:
-        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=_logger)
-        def make_substrate_call_with_retry():
-            call = self.substrate.compose_call(
-                call_module="SubtensorModule",
-                call_function="become_delegate",
-                call_params={"hotkey": wallet.hotkey.ss58_address},
-            )
-            extrinsic = self.substrate.create_signed_extrinsic(
-                call=call, keypair=wallet.coldkey
-            )  # sign with coldkey
-            response = self.substrate.submit_extrinsic(
-                extrinsic,
-                wait_for_inclusion=wait_for_inclusion,
-                wait_for_finalization=wait_for_finalization,
-            )
-            # We only wait here if we expect finalization.
-            if not wait_for_finalization and not wait_for_inclusion:
-                return True
-            response.process_events()
-            if response.is_success:
-                return True
-            else:
-                raise NominationError(response.error_message)
-
-        return make_substrate_call_with_retry()
 
     def _do_increase_take(
         self,
