@@ -3915,7 +3915,7 @@ class subtensor:
             if block_hash:
                 params.extend([block_hash])
             return self.substrate.rpc_request(
-                method="delegateInfo_getDelegatesByNetuidLight",  # custom rpc method
+                method="delegateInfo_getDelegatesLight",  # custom rpc method
                 params=params,
             )
 

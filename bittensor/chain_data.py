@@ -86,9 +86,6 @@ custom_rpc_type_registry = {
                 ["take", "u16"],
                 ["owner_stake", "Compact<u64>"],
                 ["total_stake", "Compact<u64>"],
-                ["validator_permits", "Vec<Compact<u16>>"],
-                ["return_per_1000", "Compact<u64>"],
-                ["total_daily_return", "Compact<u64>"],
             ],
         },
         "NeuronInfo": {
@@ -1019,11 +1016,6 @@ class DelegateInfoLight:
     total_stake: Balance  # Total stake of the delegate
     previous_total_stake: Balance  # Total stake of the delegate
     owner_stake: Balance  # Own stake of the delegate
-    validator_permits: List[
-        int
-    ]  # List of subnets that the delegate is allowed to validate on
-    return_per_1000: Balance  # Return per 1000 tao of the delegate over a day
-    total_daily_return: Balance  # Total daily return of the delegate
 
     @classmethod
     def fix_decoded_values(cls, decoded: Any) -> "DelegateInfoLight":
@@ -1043,9 +1035,6 @@ class DelegateInfoLight:
             take=fixed_take,
             total_stake=Balance.from_rao(decoded["total_stake"]),
             owner_stake=Balance.from_rao(decoded["owner_stake"]),
-            validator_permits=decoded["validator_permits"],
-            return_per_1000=Balance.from_rao(decoded["return_per_1000"]),
-            total_daily_return=Balance.from_rao(decoded["total_daily_return"]),
             previous_total_stake=None,
         )
 

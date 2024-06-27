@@ -38,13 +38,13 @@ def select_delegate( subtensor, netuid:int ):
     # Get a list of delegates and sort them by total stake in descending order
     delegates: typing.List[bt.DelegateInfoLight] = subtensor.get_delegates_by_netuid_light( netuid )
     delegates.sort(key=lambda x: x.total_stake, reverse=True)
-    
+
     # Initialize Rich console for pretty printing
     console = Console()
-    
+
     # Create a table to display delegate information
     table = Table(show_header=True, header_style="bold", border_style="rgb(7,54,66)", style="rgb(0,43,54)")
-    
+
     # Add columns to the table with specific styles
     table.add_column("Index", style="rgb(253,246,227)", no_wrap=True)
     table.add_column("Hotkey SS58", style="rgb(211,54,130)", no_wrap=True)
@@ -52,12 +52,12 @@ def select_delegate( subtensor, netuid:int ):
     table.add_column("Take", style="rgb(181,137,0)", no_wrap=True)
     table.add_column("Total Stake", style="rgb(38,139,210)", no_wrap=True, justify="right")
     table.add_column("Owner Stake", style="rgb(220,50,47)", no_wrap=True, justify="right")
-    table.add_column("Return per 1000", style="rgb(108,113,196)", no_wrap=True, justify="right")
-    table.add_column("Total Daily Return", style="rgb(42,161,152)", no_wrap=True, justify="right")
-    
+    # table.add_column("Return per 1000", style="rgb(108,113,196)", no_wrap=True, justify="right")
+    # table.add_column("Total Daily Return", style="rgb(42,161,152)", no_wrap=True, justify="right")
+
     # List to store visible delegates
     visible_delegates = []
-    
+
     # TODO: Add pagination to handle large number of delegates more efficiently
     # Iterate through delegates and display their information
     for idx, delegate in enumerate(delegates):
@@ -74,8 +74,8 @@ def select_delegate( subtensor, netuid:int ):
                 f"{delegate.take:.6f}",
                 f"τ{delegate.total_stake.tao:,.4f}",
                 f"τ{delegate.owner_stake.tao:,.4f}",
-                f"τ{delegate.return_per_1000.tao:,.4f}",
-                f"τ{delegate.total_daily_return.tao:,.4f}",
+                # f"τ{delegate.return_per_1000.tao:,.4f}",
+                # f"τ{delegate.total_daily_return.tao:,.4f}",
             )
             
             # Clear console and print updated table
