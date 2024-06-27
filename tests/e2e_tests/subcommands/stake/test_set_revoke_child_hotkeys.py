@@ -6,7 +6,7 @@ from bittensor.commands import (
     SetChildCommand,
     SetChildrenCommand,
     RevokeChildCommand,
-    RevokeChildrenCommand
+    RevokeChildrenCommand,
 )
 from tests.e2e_tests.utils import setup_wallet
 
