@@ -59,7 +59,7 @@ class ListSubnetsCommand:
             pool = subnet.dynamic_pool
             total_neurons += subnet.max_n
             total_registered += subnet.subnetwork_n
-            total_price += pool.price if pool.is_dynamic else 0
+            total_price += pool.price if pool.is_dynamic else bt.Balance.from_rao(0)
             total_emission += subnet.emission_value
             tao_locked = subnet.tao_locked
             total_tao_locked += tao_locked
