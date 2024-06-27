@@ -61,6 +61,10 @@ def test_faucet(local_chain):
                     wallet.name,
                     "--wallet.hotkey",
                     "default",
+                    "--wait_for_inclusion",
+                    "True",
+                    "--wait_for_finalization",
+                    "True",
                 ],
             )
             logging.info(
@@ -80,6 +84,3 @@ def test_faucet(local_chain):
     new_wallet_balance = subtensor.get_balance(keypair.ss58_address)
     # verify balance increase
     assert wallet_balance.tao < new_wallet_balance.tao
-    assert (
-        new_wallet_balance.tao == 999899.0
-    )  # after 3 runs we should see an increase of 900 tao

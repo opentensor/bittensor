@@ -15,22 +15,21 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from dataclasses import dataclass
 import os
-import requests
 import sys
+from dataclasses import dataclass
 from typing import List, Dict, Any, Optional, Tuple
 
+import requests
 from rich.prompt import Confirm, PromptBase
 from scalecodec.base import RuntimeConfiguration
 from scalecodec.type_registry import load_type_registry_preset
 
 import bittensor
-from bittensor.utils.registration import torch
-from bittensor.utils.balance import Balance
 from bittensor.utils import u64_normalized_float, u16_normalized_float
+from bittensor.utils.balance import Balance
+from bittensor.utils.registration import torch
 from . import defaults
-
 
 console = bittensor.__console__
 
@@ -193,10 +192,10 @@ async def filter_netuids_by_registered_hotkeys(
         )
         netuids_with_registered_hotkeys.extend(netuids_list)
 
-    if cli.config.netuids is None or cli.config.netuids == []:
+    if not cli.config.netuids:
         netuids = netuids_with_registered_hotkeys
 
-    elif cli.config.netuids != []:
+    else:
         netuids = [netuid for netuid in netuids if netuid in cli.config.netuids]
         netuids.extend(netuids_with_registered_hotkeys)
 
@@ -223,6 +222,8 @@ def normalize_hyperparameters(
         "bonds_moving_avg": u64_normalized_float,
         "max_weight_limit": u16_normalized_float,
         "kappa": u16_normalized_float,
+        "alpha_high": u16_normalized_float,
+        "alpha_low": u16_normalized_float,
         "min_burn": Balance.from_rao,
         "max_burn": Balance.from_rao,
     }
@@ -284,7 +285,7 @@ def _get_delegates_details_from_github(
 def get_delegates_details(url: str) -> Optional[Dict[str, DelegatesDetails]]:
     try:
         return _get_delegates_details_from_github(requests.get, url)
-    except Exception:
+    except Exception:  # type: ignore
         return None  # Fail silently
 
 

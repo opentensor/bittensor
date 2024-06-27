@@ -15,8 +15,8 @@ from bittensor.commands import (
 from tests.e2e_tests.utils import (
     setup_wallet,
     template_path,
-    repo_name,
-    wait_epoch,
+    templates_repo,
+    wait_interval,
     write_output_log_to_file,
 )
 
@@ -94,7 +94,7 @@ async def test_incentive(local_chain):
     cmd = " ".join(
         [
             f"{sys.executable}",
-            f'"{template_path}{repo_name}/neurons/miner.py"',
+            f'"{template_path}{templates_repo}/neurons/miner.py"',
             "--no_prompt",
             "--netuid",
             "1",
@@ -136,7 +136,7 @@ async def test_incentive(local_chain):
     cmd = " ".join(
         [
             f"{sys.executable}",
-            f'"{template_path}{repo_name}/neurons/validator.py"',
+            f'"{template_path}{templates_repo}/neurons/validator.py"',
             "--no_prompt",
             "--netuid",
             "1",
@@ -227,7 +227,7 @@ async def test_incentive(local_chain):
     assert alice_neuron.validator_trust == 0
 
     # wait until 360 blocks pass (subnet tempo)
-    await wait_epoch(360, subtensor)
+    await wait_interval(360, subtensor)
 
     # for some reason the weights do not get set through the template. Set weight manually.
     alice_wallet = bittensor.wallet()
@@ -243,7 +243,7 @@ async def test_incentive(local_chain):
     )
 
     # wait epoch until weight go into effect
-    await wait_epoch(360, subtensor)
+    await wait_interval(360, subtensor)
 
     # refresh metagraph
     metagraph = await bittensor.metagraph(netuid=1, network="ws://localhost:9945")
