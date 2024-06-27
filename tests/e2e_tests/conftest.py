@@ -14,6 +14,7 @@ from tests.e2e_tests.utils import (
     install_templates,
     uninstall_templates,
     template_path,
+    get_latest_commit_hash
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -47,9 +48,7 @@ def local_chain(request):
     # install neuron templates
     logging.info("downloading and installing neuron templates from github")
     # last commit of https://github.com/opentensor/bittensor-subnet-template/commits/async-metagraph-for-async-e2e-tests-only/
-    templates_dir = clone_or_update_templates(
-        specific_commit="02e4aa5f26014751244be6ea4ee6f6fd5c038e07"
-    )
+    templates_dir = clone_or_update_templates(specific_commit=get_latest_commit_hash())
     install_templates(templates_dir)
 
     def wait_for_node_start(process, pattern):

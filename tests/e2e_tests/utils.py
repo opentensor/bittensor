@@ -1,4 +1,5 @@
 import os
+import requests
 import shutil
 import subprocess
 import sys
@@ -12,6 +13,7 @@ from bittensor import Keypair, logging
 
 template_path = os.getcwd() + "/neurons/"
 templates_repo = "templates repository"
+ASYNC_TEMPL_URL = "https://api.github.com/repos/opentensor/bittensor-subnet-template/commits/async-metagraph-for-async-e2e-tests-only"
 
 
 async def setup_wallet(uri: str):
@@ -46,7 +48,7 @@ async def setup_wallet(uri: str):
 
 
 def sudo_call_set_network_limit(
-    substrate: SubstrateInterface, wallet: bittensor.wallet
+        substrate: SubstrateInterface, wallet: bittensor.wallet
 ) -> bool:
     inner_call = substrate.compose_call(
         call_module="AdminUtils",
@@ -71,7 +73,7 @@ def sudo_call_set_network_limit(
 
 
 def sudo_call_set_target_stakes_per_interval(
-    substrate: SubstrateInterface, wallet: bittensor.wallet
+        substrate: SubstrateInterface, wallet: bittensor.wallet
 ) -> bool:
     inner_call = substrate.compose_call(
         call_module="AdminUtils",
@@ -188,3 +190,17 @@ async def write_output_log_to_file(name, stream):
                 break
             f.write(line.decode())
             f.flush()
+
+
+def get_latest_commit_hash(repo_url: str = ASYNC_TEMPL_URL) -> Optional[str]:
+    response = requests.get(repo_url)
+
+    if response.status_code == 200:
+        commits = response.json()
+        if commits:
+            return commits['sha']
+        else:
+            return None
+    else:
+        print(f"Error: Unable to fetch commits (status code {response.status_code})")
+        return None
