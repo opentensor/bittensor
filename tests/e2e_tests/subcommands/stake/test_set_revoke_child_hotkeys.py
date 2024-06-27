@@ -100,7 +100,7 @@ def test_set_revoke_child(local_chain, capsys):
 
     output = capsys.readouterr().out
     assert "✅ Set child hotkey." in output
-    
+
     # Run revoke child
     # btcli stake revoke_child --child <child_hotkey> --hotkey <parent_hotkey> --netuid 1
     alice_exec_command(
@@ -120,7 +120,7 @@ def test_set_revoke_child(local_chain, capsys):
             "True",
         ],
     )
-    
+
     assert (
         subtensor.get_children(hotkey=alice_keypair.ss58_address, netuid=1) == 0
     ), "failed to revoke child hotkey"
