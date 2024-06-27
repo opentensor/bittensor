@@ -11,6 +11,9 @@ on:
   pull_request:
     branches: [main, development, staging]
 
+  pull_request_target:
+    types: [ opened, synchronize, reopened, ready_for_review ]
+
   workflow_dispatch:
     inputs:
       verbose:
@@ -45,6 +48,7 @@ jobs:
   run:
     needs: find-tests
     runs-on: SubtensorCI
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == 'false' }}
     strategy:
       fail-fast: false  # Allow other matrix jobs to run even if this job fails
       max-parallel: 8  # Set the maximum number of parallel jobs
