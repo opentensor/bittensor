@@ -107,7 +107,7 @@ class CommitWeightCommand:
             ).tolist()
 
         # Run the commit weights operation
-        success, message = subtensor.commit_weights(
+        success, message = await subtensor.commit_weights(
             wallet=wallet,
             netuid=netuid,
             uids=weight_uids,
