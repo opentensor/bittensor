@@ -8,7 +8,6 @@ from bittensor.commands.root import RootRegisterCommand
 from tests.e2e_tests.utils import setup_wallet
 
 
-# TODO: fix after commands and cli are async migrated
 @pytest.mark.asyncio
 async def test_set_delegate_increase_take(local_chain):
     # Register root as Alice

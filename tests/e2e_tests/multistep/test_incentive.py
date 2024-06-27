@@ -42,7 +42,6 @@ are updated with proper values after an epoch has passed.
 """
 
 
-# TODO: fix after commands and cli are async migrated
 @pytest.mark.asyncio
 async def test_incentive(local_chain):
     # Register root as Alice - the subnet owner and validator
