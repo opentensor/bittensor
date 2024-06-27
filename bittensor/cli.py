@@ -175,7 +175,7 @@ COMMANDS = {
             "set_child": SetChildCommand,
             "revoke_child": RevokeChildCommand,
             "set_children": SetChildrenCommand,
-            "revoke_children": RevokeChildrenCommand
+            "revoke_children": RevokeChildrenCommand,
         },
     },
     "weights": {
