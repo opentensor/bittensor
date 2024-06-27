@@ -11,7 +11,7 @@ from rich.table import Table
 import bittensor
 
 # Local
-from . import defaults
+from ..defaults import defaults
 
 SAVED_ATTRIBUTES = {
     "profile": ["name"],
@@ -455,3 +455,52 @@ class ProfileDeleteValueCommand:
         profile_parser.add_argument("--profile.path", type=str, default=defaults.profile.path,
                                     help="The path to the profile directory")
         profile_parser.add_argument("args", nargs=argparse.REMAINDER, help="The keys to delete")
+
+
+class ProfileSetCommand:
+    @staticmethod
+    def run(cli):
+        config, profile_path, contents = open_profile(cli, "set")
+
+        if profile_path is None:
+            return
+
+        # Load generic config file and write active profile to it
+        config_path = defaults.config.path
+        config_file_yaml = os.path.expanduser(os.path.join(config_path, "btcliconfig.yaml"))
+        config_file_yml = os.path.expanduser(os.path.join(config_path, "btcliconfig.yml"))
+
+        try:
+            if os.path.exists(config_file_yaml):
+                with open(config_file_yaml, 'r') as file:
+                    generic_config = yaml.safe_load(file)
+                    generic_config_path = config_file_yaml
+            elif os.path.exists(config_file_yml):
+                with open(config_file_yml, 'r') as file:
+                    generic_config = yaml.safe_load(file)
+                    generic_config_path = config_file_yml
+
+            if generic_config is None:
+                handle_error("Failed to read generic config", None)
+                return
+
+            generic_config['profile']['active'] = config.profile.name.replace('.yml', '').replace('.yaml', '')
+
+            with open(generic_config_path, 'w+') as file:
+                yaml.safe_dump(generic_config, file)
+
+            log_info(f"Profile {config.profile.name} set as active.")
+        except Exception as e:
+            handle_error("Failed to set active profile", e)
+
+    @staticmethod
+    def check_config(config: "bittensor.config"):
+        return config is not None
+
+    @staticmethod
+    def add_args(parser: argparse.ArgumentParser):
+        profile_parser = parser.add_parser("set", help="""Set active profile""")
+        profile_parser.set_defaults(func=ProfileSetCommand.run)
+        profile_parser.add_argument("--profile.name", type=str, help="The name of the profile to set as active")
+        profile_parser.add_argument("--profile.path", type=str, default=defaults.profile.path,
+                                    help="The path to the profile directory")

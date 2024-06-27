@@ -23,7 +23,7 @@ from typing import List, Dict, Any, Optional
 from rich.prompt import Confirm, PromptBase
 import requests
 from dataclasses import dataclass
-from . import defaults
+from ..defaults import defaults
 
 console = bittensor.__console__
 

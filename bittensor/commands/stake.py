@@ -23,7 +23,7 @@ from rich.prompt import Confirm, Prompt
 from bittensor.utils.balance import Balance
 from typing import List, Union, Optional, Dict, Tuple
 from .utils import get_hotkey_wallets_for_wallet
-from . import defaults
+from ..defaults import defaults
 
 console = bittensor.__console__
 
@@ -299,7 +299,6 @@ from rich.table import Table
 from rich.prompt import Prompt
 from typing import Dict, Union, List, Tuple
 from .utils import get_delegates_details, DelegatesDetails
-from . import defaults
 
 console = bittensor.__console__
 

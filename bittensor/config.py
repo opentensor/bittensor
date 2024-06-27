@@ -28,11 +28,11 @@ from copy import deepcopy
 from munch import DefaultMunch
 from typing import List, Optional, Dict, Any, TypeVar, Type
 import argparse
+from .defaults import defaults
 
 
 class InvalidConfigFile(Exception):
     """In place of YAMLError"""
-
     pass
 
 
@@ -42,6 +42,10 @@ class config(DefaultMunch):
     """
 
     __is_set: Dict[str, bool]
+    env_config: Dict[str, Any] = {}
+    generic_config: Dict[str, Any] = {}
+    params_config: Dict[str, Any] = {}
+    profile_config: Dict[str, Any] = {}
 
     r""" Translates the passed parser into a nested Bittensor config.
     
@@ -61,11 +65,11 @@ class config(DefaultMunch):
     """
 
     def __init__(
-        self,
-        parser: argparse.ArgumentParser = None,
-        args: Optional[List[str]] = None,
-        strict: bool = False,
-        default: Optional[Any] = None,
+            self,
+            parser: argparse.ArgumentParser = None,
+            args: Optional[List[str]] = None,
+            strict: bool = False,
+            default: Optional[Any] = None,
     ) -> None:
         super().__init__(default)
 
@@ -134,15 +138,15 @@ class config(DefaultMunch):
         # 1.1 Optionally load defaults if the --config is set.
         try:
             config_file_path = (
-                str(os.getcwd())
-                + "/"
-                + vars(parser.parse_known_args(args)[0])["config"]
+                    str(os.getcwd())
+                    + "/"
+                    + vars(parser.parse_known_args(args)[0])["config"]
             )
         except Exception as e:
             config_file_path = None
 
         # Parse args not strict
-        config_params = config.__parse_args__(args=args, parser=parser, strict=False)
+        config_params = self.__parse_args__(args=args, parser=parser, strict=False)
 
         # 2. Optionally check for --strict
         ## strict=True when passed in OR when --strict is set
@@ -159,7 +163,7 @@ class config(DefaultMunch):
                 print("Error in loading: {} using default parser settings".format(e))
 
         # 2. Continue with loading in params.
-        params = config.__parse_args__(args=args, parser=parser, strict=strict)
+        params = self.__parse_args__(args=args, parser=parser, strict=strict)
 
         _config = self
 
@@ -215,7 +219,7 @@ class config(DefaultMunch):
                             cmd_parser._defaults.clear()  # Needed for quirk of argparse
 
         ## Reparse the args, but this time with the defaults as argparse.SUPPRESS
-        params_no_defaults = config.__parse_args__(
+        params_no_defaults = self.__parse_args__(
             args=args, parser=parser_no_defaults, strict=strict
         )
 
@@ -231,6 +235,18 @@ class config(DefaultMunch):
             ]
         }
 
+        # Load or create generic config
+        self.load_or_create_generic_config()
+        # Load config from environment variables
+        self.load_config_from_env_vars()
+        # Load active profile if we have one
+        self.load_active_profile()
+
+        # Merge all configs together and update self
+        merged_config = {**self.generic_config, **self.profile_config, **self.env_config, **self.params_config}
+        merged_config = self._merge(config.unflatten_dict(merged_config), self.__dict__)
+        self.merge(merged_config)
+
     @staticmethod
     def __split_params__(params: argparse.Namespace, _config: "config"):
         # Splits params on dot syntax i.e neuron.axon_port and adds to _config
@@ -240,7 +256,7 @@ class config(DefaultMunch):
             keys = split_keys
             while len(keys) > 1:
                 if (
-                    hasattr(head, keys[0]) and head[keys[0]] != None
+                        hasattr(head, keys[0]) and head[keys[0]] != None
                 ):  # Needs to be Config
                     head = getattr(head, keys[0])
                     keys = keys[1:]
@@ -252,9 +268,24 @@ class config(DefaultMunch):
                 head[keys[0]] = arg_val
 
     @staticmethod
-    def __parse_args__(
-        args: List[str], parser: argparse.ArgumentParser = None, strict: bool = False
-    ) -> argparse.Namespace:
+    def unflatten_dict(flat_dict):
+        """Convert a flat dictionary with dot-separated keys to a nested dictionary."""
+        nested_dict = {}
+
+        for key, value in flat_dict.items():
+            keys = key.split('.')
+            d = nested_dict
+            for part in keys[:-1]:
+                if part not in d:
+                    d[part] = {}
+                d = d[part]
+            d[keys[-1]] = value
+
+        return nested_dict
+
+    def __parse_args__(self,
+                       args: List[str], parser: argparse.ArgumentParser = None, strict: bool = False
+                       ) -> argparse.Namespace:
         """Parses the passed args use the passed parser.
 
         Args:
@@ -268,6 +299,7 @@ class config(DefaultMunch):
             Namespace:
                 Namespace object created from parser arguments.
         """
+
         if not strict:
             params, unrecognized = parser.parse_known_args(args=args)
             params_list = list(params.__dict__)
@@ -276,6 +308,16 @@ class config(DefaultMunch):
                 if unrec.startswith("--") and unrec[2:] in params_list:
                     # Set the missing boolean value to true
                     setattr(params, unrec[2:], True)
+                else:
+                    # Add unrecognized arguments to the config
+                    # maybe we should think about a better way to handle this for now we can override every config
+                    if unrec.startswith("--"):
+                        if '=' in unrec[2:]:
+                            key, value = unrec[2:].split('=')
+                        else:
+                            key = unrec[2:]
+                            value = True
+                        self.params_config[key] = value
         else:
             params = parser.parse_args(args=args)
 
@@ -382,7 +424,7 @@ class config(DefaultMunch):
             return self.get("__is_set")[param_name]
 
     def __check_for_missing_required_args(
-        self, parser: argparse.ArgumentParser, args: List[str]
+            self, parser: argparse.ArgumentParser, args: List[str]
     ) -> List[str]:
         required_args = self.__get_required_args_from_parser(parser)
         missing_args = [arg for arg in required_args if not any(arg in s for s in args)]
@@ -397,6 +439,88 @@ class config(DefaultMunch):
                 prefix = "--" if len(action.dest) > 1 else "-"
                 required_args.append(prefix + action.dest)
         return required_args
+
+    def load_config_from_env_vars(self):
+        """
+        Store the key-value pairs from environment variables starting with BTCLI_ in env_config.
+        The environment variable names are converted to nested dictionary keys.
+        """
+        env_vars = {k: v for k, v in os.environ.items() if k.startswith("BTCLI_")}
+        for var, value in env_vars.items():
+            key = var[6:].lower()
+            key = key.replace('_', '.')
+            self.env_config[key] = value
+
+    def load_or_create_generic_config(self):
+        config_path = defaults.config.path
+        config_file_yaml = os.path.expanduser(os.path.join(config_path, "btcliconfig.yaml"))
+        config_file_yml = os.path.expanduser(os.path.join(config_path, "btcliconfig.yml"))
+
+        config_file = None
+        if os.path.exists(config_file_yaml):
+            config_file = config_file_yaml
+        elif os.path.exists(config_file_yml):
+            config_file = config_file_yml
+
+        if config_file:
+            with open(config_file, 'r') as file:
+                config_data = yaml.safe_load(file)
+        else:
+            config_data = defaults.toDict()
+            # Remove config from config data we don't want to save
+            config_data.pop("config", None)
+            os.makedirs(config_path, exist_ok=True)
+            with open(config_file_yml, 'w+') as file:
+                yaml.safe_dump(config_data, file)
+
+        def flatten_dict(d, parent_key=''):
+            for k, v in d.items():
+                new_key = f"{parent_key}.{k}" if parent_key else k
+                if isinstance(v, dict):
+                    flatten_dict(v, new_key)
+                else:
+                    self.generic_config[new_key] = v
+
+        flatten_dict(config_data)
+
+    def load_active_profile(self):
+
+        profile_name = (self.params_config.get('profile.active') or
+                        self.env_config.get("profile.active") or
+                        self.generic_config.get("profile.active"))
+
+        profile_path = (self.params_config.get('profile.path') or
+                        self.env_config.get('profile.path') or
+                        self.generic_config.get('profile.path'))
+
+        if not profile_name or not profile_path:
+            return
+
+        profile_file_yaml = os.path.expanduser(os.path.join(profile_path, f"{profile_name}.yaml"))
+        profile_file_yml = os.path.expanduser(os.path.join(profile_path, f"{profile_name}.yml"))
+
+        if os.path.exists(profile_file_yaml):
+            profile_file = profile_file_yaml
+        elif os.path.exists(profile_file_yml):
+            profile_file = profile_file_yml
+        else:
+            # Maybe we should raise an error here, but for now, I think it's ok if we skip
+            # the loading and just print a message
+            print(f"Profile file for profile {profile_name} not found.")
+            return
+
+        with open(profile_file, 'r') as file:
+            profile_data = yaml.safe_load(file)
+
+        def flatten_dict(d, parent_key=''):
+            for k, v in d.items():
+                new_key = f"{parent_key}.{k}" if parent_key else k
+                if isinstance(v, dict):
+                    flatten_dict(v, new_key)
+                else:
+                    self.profile_config[new_key] = v
+
+        flatten_dict(profile_data)
 
 
 T = TypeVar("T", bound="DefaultConfig")

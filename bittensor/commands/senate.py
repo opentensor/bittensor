@@ -22,7 +22,7 @@ from rich.prompt import Prompt, Confirm
 from rich.table import Table
 from typing import Optional, Dict
 from .utils import get_delegates_details, DelegatesDetails
-from . import defaults
+from ..defaults import defaults
 
 console = bittensor.__console__
 

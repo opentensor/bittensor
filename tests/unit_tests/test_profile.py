@@ -1,5 +1,6 @@
 # Standard Library
 import os
+from unittest import mock
 from unittest.mock import patch, MagicMock, mock_open
 
 # 3rd Party
@@ -14,6 +15,7 @@ from bittensor.commands.profile import (
     ProfileDeleteCommand,
     ProfileSetValueCommand,
     ProfileDeleteValueCommand,
+    ProfileSetCommand,
     list_profiles,
     get_profile_file_path,
     open_profile,
@@ -249,3 +251,32 @@ def test_profile_list_command_format(mock_prompt, mock_cli):
         ]
         assert rows == expected_rows
 
+
+@patch("bittensor.commands.profile.Prompt.ask", return_value="test_profile")
+def test_profile_set_command(mock_prompt, mock_cli):
+    mock_cli.config.profile.name = "test_profile"
+    with patch(
+            "builtins.open", mock_open(read_data="profile:\n  name: test_profile")
+    ), patch("os.listdir", return_value=["test_profile.yaml"]), patch(
+        "bittensor.__console__.print"
+    ), patch(
+        "os.path.exists", return_value=True
+    ), patch(
+        "yaml.safe_load", return_value={"profile": {"active": "old_profile"}}
+    ), patch(
+        "yaml.safe_dump"
+    ) as mock_safe_dump:
+        ProfileSetCommand.run(mock_cli)
+
+        expected_config = {"profile": {"active": "test_profile"}}
+        mock_safe_dump.assert_called_once_with(expected_config, mock.ANY)
+
+
+@patch("bittensor.commands.profile.Prompt.ask", return_value="test_profile")
+def test_profile_set_command_no_profile(mock_prompt, mock_cli):
+    mock_cli.config.profile.name = "test_profile"
+    with patch(
+            "os.listdir", return_value=[]
+    ), patch("bittensor.__console__.print") as mock_print:
+        ProfileSetCommand.run(mock_cli)
+        mock_print.assert_called_once()

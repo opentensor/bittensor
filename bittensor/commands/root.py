@@ -26,7 +26,7 @@ from rich.prompt import Prompt
 from rich.table import Table
 from .utils import get_delegates_details, DelegatesDetails
 
-from . import defaults
+from ..defaults import defaults
 
 console = bittensor.__console__
 

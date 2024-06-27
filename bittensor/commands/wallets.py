@@ -22,7 +22,7 @@ import sys
 from rich.prompt import Prompt, Confirm
 from rich.table import Table
 from typing import Optional, List, Tuple
-from . import defaults
+from ..defaults import defaults
 import requests
 from ..utils import RAOPERTAO
 

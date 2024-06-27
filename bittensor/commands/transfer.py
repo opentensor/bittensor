@@ -20,7 +20,7 @@ import sys
 import argparse
 import bittensor
 from rich.prompt import Prompt
-from . import defaults
+from ..defaults import defaults
 
 console = bittensor.__console__
 
