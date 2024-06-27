@@ -67,7 +67,8 @@ async def test_root_register_add_member_senate(local_chain, capsys):
             "--wait_for_inclusion",
             "True",
             "--wait_for_finalization",
-            "True",],
+            "True",
+        ],
     )
 
     captured = capsys.readouterr()

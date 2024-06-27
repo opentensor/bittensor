@@ -56,9 +56,7 @@ mock_delegate_info = {
 def return_mock_sub_1(*_, **__):
     return MagicMock(
         return_value=MagicMock(
-            get_subnets=AsyncMock(
-                return_value=[1]
-            ),  # Mock subnet 1 ONLY.
+            get_subnets=AsyncMock(return_value=[1]),  # Mock subnet 1 ONLY.
             block=AsyncMock(return_value=10_000),
             get_delegates=AsyncMock(
                 return_value=[bittensor.DelegateInfo(**mock_delegate_info)],

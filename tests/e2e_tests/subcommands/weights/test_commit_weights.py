@@ -89,7 +89,9 @@ async def test_commit_and_reveal_weights(local_chain):
 
     subtensor = bittensor.subtensor(network="ws://localhost:9945")
     subnet_hyperparameters = await subtensor.get_subnet_hyperparameters(netuid=1)
-    assert subnet_hyperparameters.commit_reveal_weights_enabled, "Failed to enable commit/reveal"
+    assert (
+        subnet_hyperparameters.commit_reveal_weights_enabled
+    ), "Failed to enable commit/reveal"
 
     # Lower the interval
     await exec_command(
@@ -115,7 +117,9 @@ async def test_commit_and_reveal_weights(local_chain):
 
     subtensor = bittensor.subtensor(network="ws://localhost:9945")
     subnet_hyperparameters = await subtensor.get_subnet_hyperparameters(netuid=1)
-    assert (subnet_hyperparameters.commit_reveal_weights_interval == 370), "Failed to set commit/reveal interval"
+    assert (
+        subnet_hyperparameters.commit_reveal_weights_interval == 370
+    ), "Failed to set commit/reveal interval"
 
     # Lower the rate limit
     await exec_command(
@@ -141,7 +145,9 @@ async def test_commit_and_reveal_weights(local_chain):
 
     subtensor = bittensor.subtensor(network="ws://localhost:9945")
     subnet_hyperparameters = await subtensor.get_subnet_hyperparameters(netuid=1)
-    assert (subnet_hyperparameters.weights_rate_limit == 0), "Failed to set commit/reveal rate limit"
+    assert (
+        subnet_hyperparameters.weights_rate_limit == 0
+    ), "Failed to set commit/reveal rate limit"
 
     # Configure the CLI arguments for the CommitWeightCommand
     await exec_command(

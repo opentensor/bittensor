@@ -59,7 +59,9 @@ async def test_stake_add(local_chain):
 
     # we can test remove after set the stake rate limit larger than 1
     remove_amount = 1
-    await exec_command(UnStakeCommand, ["stake", "remove", "--amount", str(remove_amount)])
+    await exec_command(
+        UnStakeCommand, ["stake", "remove", "--amount", str(remove_amount)]
+    )
     assert (
         local_chain.query(
             "SubtensorModule", "TotalHotkeyStake", [wallet.hotkey.ss58_address]

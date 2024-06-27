@@ -679,9 +679,7 @@ class TestSubtensor(unittest.IsolatedAsyncioTestCase):
         mock_neuron = MagicMock(is_null=True)
 
         # patch solution queue to return None
-        with patch(
-            "multiprocessing.queues.Queue.get", return_value=None
-        ):
+        with patch("multiprocessing.queues.Queue.get", return_value=None):
             # patch time queue get to raise Empty exception
             with patch(
                 "multiprocessing.queues.Queue.get_nowait", side_effect=QueueEmpty
@@ -812,7 +810,7 @@ class TestSubtensor(unittest.IsolatedAsyncioTestCase):
                 get_block_hash=AsyncMock(return_value="0x" + "0" * 64),
             ),
             subnet_exists=AsyncMock(return_value=True),
-            get_neuron_for_pubkey_and_subnet=AsyncMock()
+            get_neuron_for_pubkey_and_subnet=AsyncMock(),
         )
 
         mock_wallet = MagicMock()
