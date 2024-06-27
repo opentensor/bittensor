@@ -73,7 +73,7 @@ from .commands import (
     SetChildrenCommand,
     GetChildrenCommand,
 )
-from .commands.unstake import RevokeChildCommand
+from .commands.unstake import RevokeChildCommand, RevokeChildrenCommand
 
 # Create a console instance for CLI display.
 console = bittensor.__console__
@@ -175,7 +175,7 @@ COMMANDS = {
             "set_child": SetChildCommand,
             "revoke_child": RevokeChildCommand,
             "set_children": SetChildrenCommand,
-            # "revoke_children": RevokeChildrenCommand
+            "revoke_children": RevokeChildrenCommand
         },
     },
     "weights": {

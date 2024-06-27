@@ -17,6 +17,8 @@ import argparse
 
 import sys
 import bittensor
+import re
+import numpy as np
 from tqdm import tqdm
 from rich.prompt import Confirm, Prompt
 from bittensor.utils.balance import Balance
@@ -385,6 +387,122 @@ class RevokeChildCommand:
         )
         parser.add_argument("--netuid", dest="netuid", type=int, required=False)
         parser.add_argument("--child", dest="child", type=str, required=False)
+        parser.add_argument("--hotkey", dest="hotkey", type=str, required=False)
+        parser.add_argument(
+            "--wait-for-inclusion",
+            dest="wait_for_inclusion",
+            action="store_true",
+            default=False,
+        )
+        parser.add_argument(
+            "--wait-for-finalization",
+            dest="wait_for_finalization",
+            action="store_true",
+            default=True,
+        )
+        parser.add_argument(
+            "--prompt",
+            dest="prompt",
+            action="store_true",
+            default=False,
+        )
+        bittensor.wallet.add_args(parser)
+        bittensor.subtensor.add_args(parser)
+
+
+class RevokeChildrenCommand:
+    """
+    Executes the ``revoke_children`` command to remove children hotkeys on a specified subnet on the Bittensor network.
+
+    This command is used to remove delegated authority to child hotkeys, removing their position and influence on the subnet.
+
+    Usage:
+        Users can specify the child hotkeys (either by name or ``SS58`` address),
+        the user needs to have sufficient authority to make this call.
+
+    The command prompts for confirmation before executing the revoke_children operation.
+
+    Example usage::
+
+        btcli stake revoke_children --children <child_hotkey>,<child_hotkey> --hotkey <parent_hotkey> --netuid 1
+
+    Note:
+        This command is critical for users who wish to remove children hotkeys among different neurons (hotkeys) on the network.
+        It allows for a strategic removal of authority to enhance network participation and influence.
+    """
+
+    @staticmethod
+    def run(cli: "bittensor.cli"):
+        r"""Revokes children hotkeys."""
+        try:
+            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+                config=cli.config, log_verbose=False
+            )
+            RevokeChildrenCommand._run(cli, subtensor)
+        finally:
+            if "subtensor" in locals():
+                subtensor.close()
+                bittensor.logging.debug("closing subtensor connection")
+
+    @staticmethod
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+        wallet = bittensor.wallet(config=cli.config)
+
+        current_proportions = GetChildrenCommand.run(cli)
+
+        # Get values if not set.
+        if not cli.config.is_set("netuid"):
+            cli.config.netuid = int(Prompt.ask("Enter netuid"))
+
+        if not cli.config.is_set("children"):
+            cli.config.children = Prompt.ask("Enter children hotkey (ss58) as comma-separated values")
+
+        if not cli.config.is_set("hotkey"):
+            cli.config.hotkey = Prompt.ask("Enter parent hotkey (ss58)")
+
+        # Parse from strings
+        netuid = cli.config.netuid
+
+        children = np.array(
+            [str(x) for x in re.split(r"[ ,]+", cli.config.children)], dtype=str
+        )
+
+        success, message = subtensor.revoke_children_multiple(
+            wallet=wallet,
+            netuid=netuid,
+            children=children,
+            hotkey=cli.config.hotkey,
+            wait_for_inclusion=cli.config.wait_for_inclusion,
+            wait_for_finalization=cli.config.wait_for_finalization,
+            prompt=cli.config.prompt,
+        )
+
+        # Result
+        if success:
+            console.print(
+                ":white_heavy_check_mark: [green]Revoked children hotkeys.[/green]"
+            )
+        else:
+            console.print(
+                f":cross_mark:[red] Unable to revoke children hotkeys.[/red] {message}"
+            )
+
+    @staticmethod
+    def check_config(config: "bittensor.config"):
+        if not config.is_set("wallet.name") and not config.no_prompt:
+            wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
+            config.wallet.name = str(wallet_name)
+        if not config.is_set("wallet.hotkey") and not config.no_prompt:
+            hotkey = Prompt.ask("Enter hotkey name", default=defaults.wallet.hotkey)
+            config.wallet.hotkey = str(hotkey)
+
+    @staticmethod
+    def add_args(parser: argparse.ArgumentParser):
+        parser = parser.add_parser(
+            "set_child", help="""Set a child hotkey."""
+        )
+        parser.add_argument("--netuid", dest="netuid", type=int, required=False)
+        parser.add_argument("--children", dest="children", type=str, required=False)
         parser.add_argument("--hotkey", dest="hotkey", type=str, required=False)
         parser.add_argument(
             "--wait-for-inclusion",
