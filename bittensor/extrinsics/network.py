@@ -192,9 +192,7 @@ async def set_hyperparameter_extrinsic(
                 if "netuid" not in str(value_argument["name"]):
                     # Assign the next value from the iterator
                     try:
-                        call_params[str(value_argument["name"])] = next(
-                            value_iterator
-                        )
+                        call_params[str(value_argument["name"])] = next(value_iterator)
                     except StopIteration:
                         raise ValueError(
                             "Not enough values provided in the list for all parameters"
@@ -203,7 +201,7 @@ async def set_hyperparameter_extrinsic(
         else:
             value_argument = extrinsic_params["fields"][
                 len(extrinsic_params["fields"]) - 1
-                ]
+            ]
             call_params[str(value_argument["name"])] = value
 
         # create extrinsic call

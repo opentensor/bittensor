@@ -46,7 +46,10 @@ def local_chain(request):
 
     # install neuron templates
     logging.info("downloading and installing neuron templates from github")
-    templates_dir = clone_or_update_templates()
+    # last commit of https://github.com/opentensor/bittensor-subnet-template/commits/async-metagraph-for-async-e2e-tests-only/
+    templates_dir = clone_or_update_templates(
+        specific_commit="02e4aa5f26014751244be6ea4ee6f6fd5c038e07"
+    )
     install_templates(templates_dir)
 
     def wait_for_node_start(process, pattern):

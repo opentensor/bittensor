@@ -138,7 +138,6 @@ async def wait_interval(interval: int, subtensor: "bittensor.subtensor"):
 
 
 def clone_or_update_templates(specific_commit: Optional[str] = None):
-
     install_dir = template_path
     repo_mapping = {
         templates_repo: "https://github.com/opentensor/bittensor-subnet-template.git",
