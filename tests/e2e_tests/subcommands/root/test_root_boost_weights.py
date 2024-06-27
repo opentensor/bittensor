@@ -18,9 +18,8 @@ from ...utils import (
 Test the root set/get weights mechanism. 
 
 Verify that:
-* Fill in the test parameters here
-* 
-* 
+*  weights_min_stake
+*  weights
 * 
 
 """
