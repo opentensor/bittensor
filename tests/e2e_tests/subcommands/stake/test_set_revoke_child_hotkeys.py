@@ -139,7 +139,7 @@ Verify that:
 """
 
 
-def test_set_children(local_chain, capsys):
+def test_set_revoke_children(local_chain, capsys):
     # Register root as Alice
     alice_keypair, alice_exec_command, alice_wallet = setup_wallet("//Alice")
     alice_exec_command(RegisterSubnetworkCommand, ["s", "create"])
@@ -201,8 +201,8 @@ def test_set_children(local_chain, capsys):
         subtensor.get_children(hotkey=alice_keypair.ss58_address, netuid=1) == 0
     ), "Child hotkeys are already set on new subnet. "
 
-    # Run set child
-    # btcli stake set_child --child <child_hotkey> --hotkey <parent_hotkey> --netuid 1 --proportion 0.3
+    # Run set children
+    # btcli stake set_children --child <child_hotkey>,<child_hotkey> --hotkey <parent_hotkey> --netuid 1 --proportion 0.3,0.3
     alice_exec_command(
         SetChildrenCommand,
         [
@@ -229,3 +229,30 @@ def test_set_children(local_chain, capsys):
 
     output = capsys.readouterr().out
     assert "✅ Set children hotkeys." in output
+
+    # Run revoke children
+    # btcli stake revoke_children --child <child_hotkey>,<child_hotkey> --hotkey <parent_hotkey> --netuid 1
+    alice_exec_command(
+        SetChildrenCommand,
+        [
+            "stake",
+            "revoke_children",
+            "--netuid",
+            "1",
+            "--children",
+            bob_wallet.hotkey_str + ", " + dan_wallet.hotkey_str,
+            "--hotkey",
+            alice_wallet.hotkey_str,
+            "--wait_for_inclusion",
+            "True",
+            "--wait_for_finalization",
+            "True",
+        ],
+    )
+
+    assert (
+        subtensor.get_children(hotkey=alice_keypair.ss58_address, netuid=1) == 0
+    ), "failed to revoke children hotkeys"
+
+    output = capsys.readouterr().out
+    assert "✅ Revoked children hotkeys." in output
