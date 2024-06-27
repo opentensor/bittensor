@@ -30,7 +30,9 @@ are set correctly, and that the miner is currently running
 
 
 # TODO: fix metagraph definition on https://github.com/opentensor/bittensor-subnet-template/blob/main/template/base/neuron.py#L82-L93
-@pytest.mark.skip('metagraph have to be fixed here https://github.com/opentensor/bittensor-subnet-template/blob/main/template/base/neuron.py#L82-L93')
+@pytest.mark.skip(
+    "metagraph have to be fixed here https://github.com/opentensor/bittensor-subnet-template/blob/main/template/base/neuron.py#L82-L93"
+)
 @pytest.mark.asyncio
 async def test_axon(local_chain):
     # Register root as Alice
@@ -94,15 +96,21 @@ async def test_axon(local_chain):
     # record logs of process
     # Create tasks to read stdout and stderr concurrently
     # ignore, don't await coroutine, just write logs to file
-    await asyncio.create_task(write_output_log_to_file("axon_stdout", axon_process.stdout))
+    await asyncio.create_task(
+        write_output_log_to_file("axon_stdout", axon_process.stdout)
+    )
     # ignore, dont await coroutine, just write logs to file
-    await asyncio.create_task(write_output_log_to_file("axon_stderr", axon_process.stderr))
+    await asyncio.create_task(
+        write_output_log_to_file("axon_stderr", axon_process.stderr)
+    )
 
     # wait for 5 seconds for the metagraph to refresh with latest data
     await asyncio.sleep(5)
 
     # refresh metagraph
-    metagraph = await bittensor.metagraph(netuid=1, network="ws://localhost:9945", sync=True)
+    metagraph = await bittensor.metagraph(
+        netuid=1, network="ws://localhost:9945", sync=True
+    )
     updated_axon = metagraph.axons[0]
     external_ip = networking.get_external_ip()
 
