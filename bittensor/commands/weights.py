@@ -156,7 +156,7 @@ class CommitWeightCommand:
         bittensor.subtensor.add_args(parser)
 
     @staticmethod
-    def check_config(config: "bittensor.config"):
+    async def check_config(config: "bittensor.config"):
         if not config.no_prompt and not config.is_set("wallet.name"):
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
             config.wallet.name = str(wallet_name)

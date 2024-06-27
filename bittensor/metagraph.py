@@ -978,7 +978,7 @@ class TorchMetaGraph(MetagraphMixin, BaseClass):  # type: ignore
             [bittensor.__version_as_int__], dtype=torch.int64
         )
         self.block = self._create_tensor(
-            block if block else await subtensor.block, dtype=torch.int64
+            block if block else await subtensor.block(), dtype=torch.int64
         )
         self.uids = self._create_tensor(
             [neuron.uid for neuron in self.neurons], dtype=torch.int64
@@ -1132,7 +1132,7 @@ class NonTorchMetagraph(MetagraphMixin):
             [bittensor.__version_as_int__], dtype=np.int64
         )
         self.block = self._create_tensor(
-            block if block else await subtensor.block, dtype=np.int64
+            block if block else await subtensor.block(), dtype=np.int64
         )
         self.uids = self._create_tensor(
             [neuron.uid for neuron in self.neurons], dtype=np.int64
