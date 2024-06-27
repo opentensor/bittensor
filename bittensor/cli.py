@@ -73,6 +73,7 @@ from .commands import (
     SetChildrenCommand,
     GetChildrenCommand,
 )
+from .commands.unstake import RevokeChildCommand
 
 # Create a console instance for CLI display.
 console = bittensor.__console__
@@ -165,16 +166,15 @@ COMMANDS = {
     "stake": {
         "name": "stake",
         "aliases": ["st", "stakes"],
-        "help": "Commands for staking and removing stake from hotkey accounts.",
+        "help": "Commands for staking and removing stake and setting child hotkey accounts.",
         "commands": {
             "show": StakeShow,
             "add": StakeCommand,
             "remove": UnStakeCommand,
             "get_children": GetChildrenCommand,
             "set_child": SetChildCommand,
-            # "revoke_child": RemoveChildCommand,
+            "revoke_child": RevokeChildCommand,
             "set_children": SetChildrenCommand,
-            # "set_children": SetChildrenCommand,
             # "revoke_children": RevokeChildrenCommand
         },
     },

@@ -6,6 +6,7 @@ from bittensor.commands import (
     SetChildCommand,
     SetChildrenCommand,
 )
+from bittensor.commands.unstake import RevokeChildCommand
 from tests.e2e_tests.utils import setup_wallet
 
 """
@@ -15,10 +16,12 @@ Verify that:
 * No children hotkeys at subnet creation
 * Subnet owner an set a child hotkey
 * Child hotkey is set properly with proportion
+* Subnet owner can revoke child hotkey
+* Child hotkey is properly removed from subnet
 """
 
 
-def test_set_child(local_chain, capsys):
+def test_set_revoke_child(local_chain, capsys):
     # Register root as Alice
     alice_keypair, alice_exec_command, alice_wallet = setup_wallet("//Alice")
     alice_exec_command(RegisterSubnetworkCommand, ["s", "create"])
@@ -97,6 +100,33 @@ def test_set_child(local_chain, capsys):
 
     output = capsys.readouterr().out
     assert "✅ Set child hotkey." in output
+    
+    # Run revoke child
+    # btcli stake revoke_child --child <child_hotkey> --hotkey <parent_hotkey> --netuid 1
+    alice_exec_command(
+        RevokeChildCommand,
+        [
+            "stake",
+            "revoke_child",
+            "--netuid",
+            "1",
+            "--child",
+            bob_wallet.hotkey_str,
+            "--hotkey",
+            alice_wallet.hotkey_str,
+            "--wait_for_inclusion",
+            "True",
+            "--wait_for_finalization",
+            "True",
+        ],
+    )
+    
+    assert (
+        subtensor.get_children(hotkey=alice_keypair.ss58_address, netuid=1) == 0
+    ), "failed to revoke child hotkey"
+
+    output = capsys.readouterr().out
+    assert "✅ Revoked child hotkey." in output
 
 
 """
