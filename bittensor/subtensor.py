@@ -101,8 +101,12 @@ from .extrinsics.staking import (
     do_set_children_multiple_extrinsic,
 )
 from .extrinsics.transfer import transfer_extrinsic
-from .extrinsics.unstaking import unstake_extrinsic, unstake_multiple_extrinsic, do_revoke_child_singular_extrinsic, \
-    do_revoke_children_multiple_extrinsic
+from .extrinsics.unstaking import (
+    unstake_extrinsic,
+    unstake_multiple_extrinsic,
+    do_revoke_child_singular_extrinsic,
+    do_revoke_children_multiple_extrinsic,
+)
 from .types import AxonServeCallParams, PrometheusServeCallParams
 from .utils import (
     U16_NORMALIZED_FLOAT,
@@ -2310,9 +2314,9 @@ class Subtensor:
     ###################
 
     def get_children(
-            self,
-            netuid: int,
-            wallet: "bittensor.wallet",
+        self,
+        netuid: int,
+        wallet: "bittensor.wallet",
     ) -> tuple[bool, str] | tuple[bool, ExtrinsicReceipt]:  # TODO: get Child object
         """
         Retrieves the hyperparameters for a specific subnet within the Bittensor network. These hyperparameters
@@ -2356,15 +2360,15 @@ class Subtensor:
         return make_substrate_call_with_retry()
 
     def set_child_singular(
-            self,
-            wallet: "bittensor.wallet",
-            hotkey: str,
-            child: str,
-            netuid: int,
-            proportion: float,
-            wait_for_inclusion: bool = True,
-            wait_for_finalization: bool = False,
-            prompt: bool = False,
+        self,
+        wallet: "bittensor.wallet",
+        hotkey: str,
+        child: str,
+        netuid: int,
+        proportion: float,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+        prompt: bool = False,
     ) -> bool:
         """Sets a child hotkey extrinsic on the subnet.
 
@@ -2396,14 +2400,14 @@ class Subtensor:
         )
 
     def _do_set_child_singular(
-            self,
-            wallet: "bittensor.wallet",
-            hotkey: str,
-            child: str,
-            netuid: int,
-            proportion: int,
-            wait_for_inclusion: bool = True,
-            wait_for_finalization: bool = False,
+        self,
+        wallet: "bittensor.wallet",
+        hotkey: str,
+        child: str,
+        netuid: int,
+        proportion: int,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
     ):
         """Sends a child hotkey extrinsic on the chain.
 
@@ -2456,15 +2460,15 @@ class Subtensor:
         return make_substrate_call_with_retry()
 
     def set_children_multiple(
-            self,
-            wallet: "bittensor.wallet",
-            hotkey: str,
-            children: Union[np.ndarray, list],
-            netuid: int,
-            proportions: Union[NDArray[np.float32], list],
-            wait_for_inclusion: bool = True,
-            wait_for_finalization: bool = False,
-            prompt: bool = False,
+        self,
+        wallet: "bittensor.wallet",
+        hotkey: str,
+        children: Union[np.ndarray, list],
+        netuid: int,
+        proportions: Union[NDArray[np.float32], list],
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+        prompt: bool = False,
     ) -> bool:
         """Sets a children hotkeys extrinsic on the subnet.
 
@@ -2496,13 +2500,13 @@ class Subtensor:
         )
 
     def _do_set_children_multiple(
-            self,
-            wallet: "bittensor.wallet",
-            hotkey: str,
-            children_with_proportions: List[Tuple[str, int]],
-            netuid: int,
-            wait_for_inclusion: bool = True,
-            wait_for_finalization: bool = False,
+        self,
+        wallet: "bittensor.wallet",
+        hotkey: str,
+        children_with_proportions: List[Tuple[str, int]],
+        netuid: int,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
     ):
         """Sends a child hotkey extrinsic on the chain.
 
@@ -2557,14 +2561,14 @@ class Subtensor:
     ####################
 
     def revoke_child_singular(
-            self,
-            wallet: "bittensor.wallet",
-            hotkey: str,
-            child: str,
-            netuid: int,
-            wait_for_inclusion: bool = True,
-            wait_for_finalization: bool = False,
-            prompt: bool = False,
+        self,
+        wallet: "bittensor.wallet",
+        hotkey: str,
+        child: str,
+        netuid: int,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+        prompt: bool = False,
     ) -> bool:
         """Sets a child hotkey extrinsic on the subnet.
 
@@ -2594,13 +2598,13 @@ class Subtensor:
         )
 
     def _do_revoke_child_singular(
-            self,
-            wallet: "bittensor.wallet",
-            hotkey: str,
-            child: str,
-            netuid: int,
-            wait_for_inclusion: bool = True,
-            wait_for_finalization: bool = False,
+        self,
+        wallet: "bittensor.wallet",
+        hotkey: str,
+        child: str,
+        netuid: int,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
     ):
         """Sends a child hotkey extrinsic on the chain.
 
@@ -2652,14 +2656,14 @@ class Subtensor:
         return make_substrate_call_with_retry()
 
     def revoke_children_multiple(
-            self,
-            wallet: "bittensor.wallet",
-            hotkey: str,
-            children: Union[np.ndarray, list],
-            netuid: int,
-            wait_for_inclusion: bool = True,
-            wait_for_finalization: bool = False,
-            prompt: bool = False,
+        self,
+        wallet: "bittensor.wallet",
+        hotkey: str,
+        children: Union[np.ndarray, list],
+        netuid: int,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+        prompt: bool = False,
     ) -> bool:
         """Sets a children hotkeys extrinsic on the subnet.
 
@@ -2689,13 +2693,13 @@ class Subtensor:
         )
 
     def _do_revoke_children_multiple(
-            self,
-            wallet: "bittensor.wallet",
-            hotkey: str,
-            children: List[str],
-            netuid: int,
-            wait_for_inclusion: bool = True,
-            wait_for_finalization: bool = False,
+        self,
+        wallet: "bittensor.wallet",
+        hotkey: str,
+        children: List[str],
+        netuid: int,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
     ):
         """Revokes a children hotkeys extrinsic on the chain.
 
