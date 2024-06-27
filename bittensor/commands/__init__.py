@@ -17,6 +17,73 @@
 
 from munch import Munch, munchify
 
+
+from .stake import ( 
+    StakeCommand,   # noqa: F401
+    StakeShow,    # noqa: F401
+    SetChildCommand,    # noqa: F401
+    SetChildrenCommand,     # noqa: F401
+    GetChildrenCommand,     # noqa: F401
+)
+from .unstake import UnStakeCommand    # noqa: F401
+from .overview import OverviewCommand    # noqa: F401
+from .register import (
+    PowRegisterCommand,    # noqa: F401
+    RegisterCommand,    # noqa: F401
+    RunFaucetCommand,    # noqa: F401
+    SwapHotkeyCommand,    # noqa: F401
+)
+from .delegates import (
+    NominateCommand,    # noqa: F401
+    ListDelegatesCommand,    # noqa: F401
+    DelegateStakeCommand,    # noqa: F401
+    DelegateUnstakeCommand,    # noqa: F401
+    MyDelegatesCommand,    # noqa: F401
+    SetTakeCommand,    # noqa: F401
+)
+from .wallets import (
+    NewColdkeyCommand,    # noqa: F401
+    NewHotkeyCommand,    # noqa: F401
+    RegenColdkeyCommand,    # noqa: F401
+    RegenColdkeypubCommand,    # noqa: F401
+    RegenHotkeyCommand,    # noqa: F401
+    UpdateWalletCommand,    # noqa: F401
+    WalletCreateCommand,    # noqa: F401
+    WalletBalanceCommand,    # noqa: F401
+    GetWalletHistoryCommand,    # noqa: F401
+)
+from .weights import CommitWeightCommand, RevealWeightCommand    # noqa: F401
+from .transfer import TransferCommand    # noqa: F401
+from .inspect import InspectCommand    # noqa: F401
+from .metagraph import MetagraphCommand    # noqa: F401
+from .list import ListCommand    # noqa: F401
+from .misc import UpdateCommand, AutocompleteCommand    # noqa: F401
+from .senate import (
+    SenateCommand,    # noqa: F401
+    ProposalsCommand,    # noqa: F401
+    ShowVotesCommand,    # noqa: F401
+    SenateRegisterCommand,    # noqa: F401
+    SenateLeaveCommand,    # noqa: F401
+    VoteCommand,    # noqa: F401
+)
+from .network import (
+    RegisterSubnetworkCommand,    # noqa: F401
+    SubnetLockCostCommand,    # noqa: F401
+    SubnetListCommand,    # noqa: F401
+    SubnetSudoCommand,    # noqa: F401
+    SubnetHyperparamsCommand,    # noqa: F401
+    SubnetGetHyperparamsCommand,    # noqa: F401
+)
+from .root import (
+    RootRegisterCommand,    # noqa: F401
+    RootList,    # noqa: F401
+    RootSetWeightsCommand,    # noqa: F401
+    RootGetWeightsCommand,    # noqa: F401
+    RootSetBoostCommand,    # noqa: F401
+    RootSetSlashCommand,    # noqa: F401
+)
+from .identity import GetIdentityCommand, SetIdentityCommand    # noqa: F401
+
 defaults: Munch = munchify(
     {
         "netuid": 1,
@@ -62,67 +129,3 @@ defaults: Munch = munchify(
     }
 )
 
-from .stake import ( 
-    StakeCommand, 
-    StakeShow,  
-    SetChildCommand,  
-    SetChildrenCommand, 
-)
-from .unstake import UnStakeCommand
-from .overview import OverviewCommand
-from .register import (
-    PowRegisterCommand,
-    RegisterCommand,
-    RunFaucetCommand,
-    SwapHotkeyCommand,
-)
-from .delegates import (
-    NominateCommand,
-    ListDelegatesCommand,
-    DelegateStakeCommand,
-    DelegateUnstakeCommand,
-    MyDelegatesCommand,
-    SetTakeCommand,
-)
-from .wallets import (
-    NewColdkeyCommand,
-    NewHotkeyCommand,
-    RegenColdkeyCommand,
-    RegenColdkeypubCommand,
-    RegenHotkeyCommand,
-    UpdateWalletCommand,
-    WalletCreateCommand,
-    WalletBalanceCommand,
-    GetWalletHistoryCommand,
-)
-from .weights import CommitWeightCommand, RevealWeightCommand
-from .transfer import TransferCommand
-from .inspect import InspectCommand
-from .metagraph import MetagraphCommand
-from .list import ListCommand
-from .misc import UpdateCommand, AutocompleteCommand
-from .senate import (
-    SenateCommand,
-    ProposalsCommand,
-    ShowVotesCommand,
-    SenateRegisterCommand,
-    SenateLeaveCommand,
-    VoteCommand,
-)
-from .network import (
-    RegisterSubnetworkCommand,
-    SubnetLockCostCommand,
-    SubnetListCommand,
-    SubnetSudoCommand,
-    SubnetHyperparamsCommand,
-    SubnetGetHyperparamsCommand,
-)
-from .root import (
-    RootRegisterCommand,
-    RootList,
-    RootSetWeightsCommand,
-    RootGetWeightsCommand,
-    RootSetBoostCommand,
-    RootSetSlashCommand,
-)
-from .identity import GetIdentityCommand, SetIdentityCommand

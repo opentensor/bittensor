@@ -608,8 +608,7 @@ class SetChildCommand:
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         wallet = bittensor.wallet(config=cli.config)
 
-        # TODO: Print table here showing all child hotkeys -> parent hotkeys and proportions
-        total_proportions = 0  # TODO: get total proportions from the table
+        current_proportions = GetChildrenCommand.run(cli)
 
         # Get values if not set.
         if not cli.config.is_set("netuid"):
@@ -636,6 +635,10 @@ class SetChildCommand:
                 )
             )
             sys.exit()
+            
+        total_proposed = proportion + current_proportions
+        if total_proposed > 1:
+            raise ValueError(f":cross_mark:[red] The sum of all proportions cannot be greater than 1. Proposed sum of proportions is {total_proposed}[/red]")
 
         success, message = subtensor.set_child_singular(
             wallet=wallet,
@@ -736,8 +739,7 @@ class SetChildrenCommand:
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         wallet = bittensor.wallet(config=cli.config)
 
-        # TODO: Print table here showing all child hotkeys -> parent hotkeys and proportions
-        total_proportions = 0  # TODO: get total proportions from the table
+        current_proportions = GetChildrenCommand.run(cli)
 
         # Get values if not set.
         if not cli.config.is_set("netuid"):
@@ -761,6 +763,10 @@ class SetChildrenCommand:
         children = np.array(
             [str(x) for x in re.split(r"[ ,]+", cli.config.children)], dtype=str
         )
+        
+        total_proposed = np.sum(proportions) + current_proportions
+        if total_proposed > 1:
+            raise ValueError(f":cross_mark:[red] The sum of all proportions cannot be greater than 1. Proposed sum of proportions is {total_proposed}[/red]")
 
         success, message = subtensor.set_children_multiple(
             wallet=wallet,
@@ -819,5 +825,91 @@ class SetChildrenCommand:
             action="store_true",
             default=False,
         )
+        bittensor.wallet.add_args(parser)
+        bittensor.subtensor.add_args(parser)
+
+
+class GetChildrenCommand:
+    """
+    Executes the ``get_children`` command to get all child hotkeys on a specified subnet on the Bittensor network.
+
+    This command is used to view delegated authority to different hotkeys on the subnet.
+
+    Usage:
+        Users can specify the subnet and see the children and the proportion that is given to them.
+
+        The command compiles a table showing:
+
+    - ChildHotkey: The hotkey associated with the child.
+    - ParentHotKey: The hotkey associated with the parent.
+    - Proportion: The proportion that is assigned to them.
+    - Expiration: The expiration of the hotkey.    
+    
+    Example usage::
+
+        btcli stake get_children --netuid 1 
+
+    Note:
+        This command is for users who wish to see child hotkeys among different neurons (hotkeys) on the network.
+    """
+
+    @staticmethod
+    def run(cli: "bittensor.cli"):
+        r"""Set child hotkey."""
+        try:
+            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+                config=cli.config, log_verbose=False
+            )
+            return GetChildrenCommand._run(cli, subtensor)
+        finally:
+            if "subtensor" in locals():
+                subtensor.close()
+                bittensor.logging.debug("closing subtensor connection")
+
+    @staticmethod
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+        wallet = bittensor.wallet(config=cli.config)
+
+        # Get values if not set.
+        if not cli.config.is_set("netuid"):
+            cli.config.netuid = int(Prompt.ask("Enter netuid"))
+
+        # Parse from strings
+        netuid = cli.config.netuid
+
+        success, children = subtensor.get_children(
+            wallet=wallet,
+            netuid=netuid,
+        )
+
+        def get_total_proportions(children):
+            return 0.5
+        
+        total_proportions = get_total_proportions(children)
+        
+        # TODO: Create table object
+        # print
+
+        # Result
+        if success:
+            return total_proportions
+        else:
+            console.print(
+                ":cross_mark:[red] Unable to query child hotkeys.[/red]"
+            )
+            
+    @staticmethod
+    def check_config(config: "bittensor.config"):
+        if not config.is_set("wallet.name") and not config.no_prompt:
+            wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
+            config.wallet.name = str(wallet_name)
+        if not config.is_set("wallet.hotkey") and not config.no_prompt:
+            hotkey = Prompt.ask("Enter hotkey name", default=defaults.wallet.hotkey)
+            config.wallet.hotkey = str(hotkey)
+
+    @staticmethod
+    def add_args(parser: argparse.ArgumentParser):
+        parser.add_argument("--netuid", dest="netuid", type=int, required=False)
+
         bittensor.wallet.add_args(parser)
         bittensor.subtensor.add_args(parser)
