@@ -71,6 +71,7 @@ from .commands import (
     RevealWeightCommand,
     SetChildCommand,
     SetChildrenCommand,
+    GetChildrenCommand,
 )
 
 # Create a console instance for CLI display.
@@ -169,7 +170,7 @@ COMMANDS = {
             "show": StakeShow,
             "add": StakeCommand,
             "remove": UnStakeCommand,
-            # "get_children": GetChildrenCommand,
+            "get_children": GetChildrenCommand,
             "set_child": SetChildCommand,
             # "revoke_child": RemoveChildCommand,
             "set_children": SetChildrenCommand,

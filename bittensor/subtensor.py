@@ -20,6 +20,7 @@
 The ``bittensor.subtensor`` module in Bittensor serves as a crucial interface for interacting with the Bittensor
 blockchain, facilitating a range of operations essential for the decentralized machine learning network.
 """
+from __future__ import annotations
 
 import argparse
 import copy
@@ -36,6 +37,7 @@ from scalecodec.base import RuntimeConfiguration
 from scalecodec.exceptions import RemainingScaleBytesNotEmptyException
 from scalecodec.type_registry import load_type_registry_preset
 from scalecodec.types import GenericCall, ScaleType
+from substrateinterface import ExtrinsicReceipt
 from substrateinterface.base import QueryMapResult, SubstrateInterface, ExtrinsicReceipt
 from substrateinterface.exceptions import SubstrateRequestException
 
@@ -2175,6 +2177,52 @@ class Subtensor:
 
         return make_substrate_call_with_retry()
 
+    def get_children(
+        self,
+        netuid: int,
+        wallet: "bittensor.wallet",
+    ) -> tuple[bool, str] | tuple[bool, ExtrinsicReceipt]:  # TODO: get Child object
+        """
+        Retrieves the hyperparameters for a specific subnet within the Bittensor network. These hyperparameters
+        define the operational settings and rules governing the subnet's behavior.
+
+        Args:
+            netuid (int): The network UID of the subnet to query.
+            wallet (:func:`bittensor.wallet`): Wallet object that can sign the extrinsic.
+
+        Returns:
+            Optional[List[Children]]: The subnet's list of children with hotkeys, or ``None`` if not available.
+
+        Understanding the hyperparameters is crucial for comprehending how subnets are configured and
+        managed, and how they interact with the network's consensus and incentive mechanisms.
+        """
+
+        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
+        def make_substrate_call_with_retry():
+            # create extrinsic call
+            call = self.substrate.compose_call(
+                call_module="SubtensorModule",
+                call_function="get_children",
+                call_params={
+                    "netuid": netuid,
+                },
+            )
+            extrinsic = self.substrate.create_signed_extrinsic(
+                call=call, keypair=wallet.coldkey
+            )
+            response = self.substrate.submit_extrinsic(
+                extrinsic,
+            )
+
+            # process if registration successful, try again if pow is still valid
+            response.process_events()
+            if not response.is_success:
+                return False, format_error_message(response.error_message)
+            else:
+                return True, response
+
+        return make_substrate_call_with_retry()
+
     def set_child_singular(
         self,
         wallet: "bittensor.wallet",
@@ -2227,18 +2275,18 @@ class Subtensor:
     ):
         """Sends a child hotkey extrinsic on the chain.
 
-                Args:
-                    wallet (:func:`bittensor.wallet`): Wallet object that can sign the extrinsic.
-                    hotkey: (str): Hotkey ``ss58`` address of the parent.
-                    child: (str): Hotkey ``ss58`` address of the child.
-                    netuid (int): Unique identifier for the network.
-                    proportion (int): Proportion allocated to the child in u16 format.
-                    netuid (int): Unique identifier for the network in u64 format.
-                    proportion (int): Proportion allocated to the child in u64 format.
-                    wait_for_inclusion (bool): If ``true``, waits for inclusion before returning.
-                    wait_for_finalization (bool): If ``true``, waits for finalization before returning.
-                Returns:
-                    success (bool): ``True`` if the extrinsic was successful.
+        Args:
+            wallet (:func:`bittensor.wallet`): Wallet object that can sign the extrinsic.
+            hotkey: (str): Hotkey ``ss58`` address of the parent.
+            child: (str): Hotkey ``ss58`` address of the child.
+            netuid (int): Unique identifier for the network.
+            proportion (int): Proportion allocated to the child in u16 format.
+            netuid (int): Unique identifier for the network in u64 format.
+            proportion (int): Proportion allocated to the child in u64 format.
+            wait_for_inclusion (bool): If ``true``, waits for inclusion before returning.
+            wait_for_finalization (bool): If ``true``, waits for finalization before returning.
+        Returns:
+            success (bool): ``True`` if the extrinsic was successful.
         """
 
         @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
@@ -2281,7 +2329,7 @@ class Subtensor:
         self,
         wallet: "bittensor.wallet",
         hotkey: str,
-        children: Union[NDArray[str], list],
+        children: Union[np.ndarray, list],
         netuid: int,
         proportions: Union[NDArray[np.float32], list],
         wait_for_inclusion: bool = True,
