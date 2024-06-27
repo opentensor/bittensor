@@ -1,13 +1,16 @@
+import pytest
+
 from bittensor.commands.delegates import ListDelegatesCommand
 from ...utils import setup_wallet
 
 
 # delegate seems hard code the network config
-def test_root_delegate_list(local_chain, capsys):
-    alice_keypair, exec_command, wallet = setup_wallet("//Alice")
+@pytest.mark.asyncio
+async def test_root_delegate_list(local_chain, capsys):
+    alice_keypair, exec_command, wallet = await setup_wallet("//Alice")
 
     # 1200 hardcoded block gap
-    exec_command(
+    await exec_command(
         ListDelegatesCommand,
         ["root", "list_delegates"],
     )
