@@ -5,8 +5,9 @@ from bittensor.commands import (
     RegisterSubnetworkCommand,
     SetChildCommand,
     SetChildrenCommand,
+    RevokeChildCommand,
+    RevokeChildrenCommand
 )
-from bittensor.commands.unstake import RevokeChildCommand
 from tests.e2e_tests.utils import setup_wallet
 
 """
@@ -233,7 +234,7 @@ def test_set_revoke_children(local_chain, capsys):
     # Run revoke children
     # btcli stake revoke_children --child <child_hotkey>,<child_hotkey> --hotkey <parent_hotkey> --netuid 1
     alice_exec_command(
-        SetChildrenCommand,
+        RevokeChildrenCommand,
         [
             "stake",
             "revoke_children",

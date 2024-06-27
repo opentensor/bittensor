@@ -72,8 +72,9 @@ from .commands import (
     SetChildCommand,
     SetChildrenCommand,
     GetChildrenCommand,
+    RevokeChildCommand,
+    RevokeChildrenCommand,
 )
-from .commands.unstake import RevokeChildCommand, RevokeChildrenCommand
 
 # Create a console instance for CLI display.
 console = bittensor.__console__
