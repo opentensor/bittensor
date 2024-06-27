@@ -1367,15 +1367,16 @@ class TestCLIDefaultsNoNetwork(unittest.IsolatedAsyncioTestCase):
             await _test_value_parsing(boolean_value, as_str.lower())
 
     @patch("bittensor.wallet", new_callable=return_mock_wallet_factory)
-    def test_hyperparameter_allowed_values(
+    @pytest.mark.asyncio
+    async def test_hyperparameter_allowed_values(
         self,
         mock_sub,
         __,
     ):
         params = ["alpha_values"]
 
-        def _test_value_parsing(param: str, value: str):
-            cli = bittensor.cli(
+        async def _test_value_parsing(param: str, value: str):
+            async with bittensor.cli(
                 args=[
                     "sudo",
                     "set",
@@ -1389,48 +1390,48 @@ class TestCLIDefaultsNoNetwork(unittest.IsolatedAsyncioTestCase):
                     "--wallet.name",
                     "mock",
                 ]
-            )
-            should_raise_error = False
-            error_message = ""
+            ) as cli:
+                should_raise_error = False
+                error_message = ""
 
-            try:
-                alpha_low_str, alpha_high_str = value.strip("[]").split(",")
-                alpha_high = float(alpha_high_str)
-                alpha_low = float(alpha_low_str)
-                if alpha_high <= 52428 or alpha_high >= 65535:
+                try:
+                    alpha_low_str, alpha_high_str = value.strip("[]").split(",")
+                    alpha_high = float(alpha_high_str)
+                    alpha_low = float(alpha_low_str)
+                    if alpha_high <= 52428 or alpha_high >= 65535:
+                        should_raise_error = True
+                        error_message = "between 52428 and 65535"
+                    elif alpha_low < 0 or alpha_low > 52428:
+                        should_raise_error = True
+                        error_message = "between 0 and 52428"
+                except ValueError:
                     should_raise_error = True
-                    error_message = "between 52428 and 65535"
-                elif alpha_low < 0 or alpha_low > 52428:
+                    error_message = "a number or a boolean"
+                except TypeError:
                     should_raise_error = True
-                    error_message = "between 0 and 52428"
-            except ValueError:
-                should_raise_error = True
-                error_message = "a number or a boolean"
-            except TypeError:
-                should_raise_error = True
-                error_message = "a number or a boolean"
+                    error_message = "a number or a boolean"
 
-            if isinstance(value, bool):
-                should_raise_error = True
-                error_message = "a number or a boolean"
+                if isinstance(value, bool):
+                    should_raise_error = True
+                    error_message = "a number or a boolean"
 
-            if should_raise_error:
-                with pytest.raises(ValueError) as exc_info:
-                    cli.run()
-                assert (
-                    f"Hyperparameter {param} value is not within bounds. Value is {value} but must be {error_message}"
-                    in str(exc_info.value)
-                )
-            else:
-                cli.run()
-                _, kwargs = mock_sub.call_args
-                passed_config = kwargs["config"]
-                self.assertEqual(passed_config.param, param, msg="Incorrect param")
-                self.assertEqual(
-                    passed_config.value,
-                    value,
-                    msg=f"Value argument not set correctly for {param}",
-                )
+                if should_raise_error:
+                    with pytest.raises(ValueError) as exc_info:
+                        await cli.run()
+                    assert (
+                        f"Hyperparameter {param} value is not within bounds. Value is {value} but must be {error_message}"
+                        in str(exc_info.value)
+                    )
+                else:
+                    await cli.run()
+                    _, kwargs = mock_sub.call_args
+                    passed_config = kwargs["config"]
+                    self.assertEqual(passed_config.param, param, msg="Incorrect param")
+                    self.assertEqual(
+                        passed_config.value,
+                        value,
+                        msg=f"Value argument not set correctly for {param}",
+                    )
 
         for param in params:
             for value in [
@@ -1443,7 +1444,7 @@ class TestCLIDefaultsNoNetwork(unittest.IsolatedAsyncioTestCase):
                 [True, "Some string"],
             ]:
                 as_str = str(value).strip("[]")
-                _test_value_parsing(param, as_str)
+                await _test_value_parsing(param, as_str)
 
     @patch("bittensor.wallet", new_callable=return_mock_wallet_factory)
     async def test_network_registration_allowed_parse_boolean_argument(
