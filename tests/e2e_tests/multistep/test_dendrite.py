@@ -15,8 +15,8 @@ from bittensor.commands import (
 from tests.e2e_tests.utils import (
     setup_wallet,
     template_path,
-    repo_name,
-    wait_epoch,
+    templates_repo,
+    wait_interval,
     write_output_log_to_file,
 )
 
@@ -95,7 +95,7 @@ async def test_dendrite(local_chain):
     cmd = " ".join(
         [
             f"{sys.executable}",
-            f'"{template_path}{repo_name}/neurons/validator.py"',
+            f'"{template_path}{templates_repo}/neurons/validator.py"',
             "--no_prompt",
             "--netuid",
             "1",
@@ -157,7 +157,7 @@ async def test_dendrite(local_chain):
         ],
     )
     # get current block, wait until 360 blocks pass (subnet tempo)
-    wait_epoch(360, subtensor)
+    wait_interval(360, subtensor)
 
     # refresh metagraph
     metagraph = bittensor.metagraph(netuid=1, network="ws://localhost:9945")
