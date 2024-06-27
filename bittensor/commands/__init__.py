@@ -25,7 +25,7 @@ from .stake import (
     SetChildrenCommand,     # noqa: F401
     GetChildrenCommand,     # noqa: F401
 )
-from .unstake import UnStakeCommand    # noqa: F401
+from .unstake import UnStakeCommand, RevokeChildCommand, RevokeChildrenCommand    # noqa: F401
 from .overview import OverviewCommand    # noqa: F401
 from .register import (
     PowRegisterCommand,    # noqa: F401
@@ -128,4 +128,3 @@ defaults: Munch = munchify(
         },
     }
 )
-
