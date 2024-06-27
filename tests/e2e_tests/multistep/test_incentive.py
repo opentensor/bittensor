@@ -120,10 +120,10 @@ async def test_incentive(local_chain):
     )
 
     # Create tasks to read stdout and stderr concurrently
+    # ignore, don't await coroutine, just write logs to file
+    await asyncio.create_task(write_output_log_to_file("miner_stdout", miner_process.stdout))
     # ignore, dont await coroutine, just write logs to file
-    asyncio.create_task(write_output_log_to_file("miner_stdout", miner_process.stdout))
-    # ignore, dont await coroutine, just write logs to file
-    asyncio.create_task(write_output_log_to_file("miner_stderr", miner_process.stderr))
+    await asyncio.create_task(write_output_log_to_file("miner_stderr", miner_process.stderr))
 
     await asyncio.sleep(
         5
@@ -159,12 +159,12 @@ async def test_incentive(local_chain):
     )
 
     # Create tasks to read stdout and stderr concurrently and write output to log file
-    # ignore, dont await coroutine, just write logs to file
-    asyncio.create_task(
+    # ignore, don't await coroutine, just write logs to file
+    await asyncio.create_task(
         write_output_log_to_file("validator_stdout", validator_process.stdout)
     )
     # ignore, dont await coroutine, just write logs to file
-    asyncio.create_task(
+    await asyncio.create_task(
         write_output_log_to_file("validator_stderr", validator_process.stderr)
     )
 
@@ -208,7 +208,7 @@ async def test_incentive(local_chain):
     )
 
     # get latest metagraph
-    metagraph = bittensor.metagraph(netuid=1, network="ws://localhost:9945")
+    metagraph = await bittensor.metagraph(netuid=1, network="ws://localhost:9945")
 
     # get current emissions
     bob_neuron = metagraph.neurons[1]
@@ -224,7 +224,7 @@ async def test_incentive(local_chain):
     assert alice_neuron.validator_trust == 0
 
     # wait until 360 blocks pass (subnet tempo)
-    wait_epoch(360, subtensor)
+    await wait_epoch(360, subtensor)
 
     # for some reason the weights do not get set through the template. Set weight manually.
     alice_wallet = bittensor.wallet()
@@ -240,10 +240,10 @@ async def test_incentive(local_chain):
     )
 
     # wait epoch until weight go into effect
-    wait_epoch(360, subtensor)
+    await wait_epoch(360, subtensor)
 
     # refresh metagraph
-    metagraph = bittensor.metagraph(netuid=1, network="ws://localhost:9945")
+    metagraph = await bittensor.metagraph(netuid=1, network="ws://localhost:9945")
 
     # get current emissions and validate that Alice has gotten tao
     bob_neuron = metagraph.neurons[1]
