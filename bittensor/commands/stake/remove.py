@@ -48,6 +48,7 @@ class RemoveStakeCommand:
         elif not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default=bt.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
+            wallet = bt.wallet( config = config )
         else:
             bt.logging.error("--wallet.name is needed to proceed")
             sys.exit(1)
