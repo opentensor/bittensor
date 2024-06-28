@@ -48,16 +48,16 @@ are updated with proper values after an epoch has passed.
 @pytest.mark.asyncio
 async def test_emissions(local_chain):
     # Register root as Alice - the subnet owner and validator
-    alice_keypair, alice_exec_command, alice_wallet = setup_wallet("//Alice")
-    alice_exec_command(RegisterSubnetworkCommand, ["s", "create"])
+    alice_keypair, alice_exec_command, alice_wallet = await setup_wallet("//Alice")
+    await alice_exec_command(RegisterSubnetworkCommand, ["s", "create"])
     # Verify subnet 1 created successfully
     assert local_chain.query("SubtensorModule", "NetworksAdded", [1]).serialize()
 
     # Register Bob as miner
-    bob_keypair, bob_exec_command, bob_wallet = setup_wallet("//Bob")
+    bob_keypair, bob_exec_command, bob_wallet = await setup_wallet("//Bob")
 
     # Register Alice as neuron to the subnet
-    alice_exec_command(
+    await alice_exec_command(
         RegisterCommand,
         [
             "s",
@@ -68,7 +68,7 @@ async def test_emissions(local_chain):
     )
 
     # Register Bob as neuron to the subnet
-    bob_exec_command(
+    await bob_exec_command(
         RegisterCommand,
         [
             "s",
@@ -80,10 +80,10 @@ async def test_emissions(local_chain):
 
     subtensor = bittensor.subtensor(network="ws://localhost:9945")
     # assert two neurons are in network
-    assert len(subtensor.neurons(netuid=1)) == 2
+    assert len(await subtensor.neurons(netuid=1)) == 2
 
     # Alice to stake to become to top neuron after the first epoch
-    alice_exec_command(
+    await alice_exec_command(
         StakeCommand,
         [
             "stake",
@@ -129,7 +129,7 @@ async def test_emissions(local_chain):
     await asyncio.sleep(5)
 
     # register validator with root network
-    alice_exec_command(
+    await alice_exec_command(
         RootRegisterCommand,
         [
             "root",
@@ -143,9 +143,9 @@ async def test_emissions(local_chain):
         ],
     )
 
-    wait_interval(360, subtensor)
+    await wait_interval(360, subtensor)
 
-    alice_exec_command(
+    await alice_exec_command(
         RootSetBoostCommand,
         [
             "root",
@@ -189,10 +189,10 @@ async def test_emissions(local_chain):
         stderr=asyncio.subprocess.PIPE,
     )
 
-    wait_interval(360, subtensor)
+    await wait_interval(360, subtensor)
 
     logging.warning("Setting root set weights")
-    alice_exec_command(
+    await alice_exec_command(
         RootSetWeightsCommand,
         [
             "root",
@@ -213,10 +213,10 @@ async def test_emissions(local_chain):
     )
 
     # Set delegate take for Alice
-    alice_exec_command(SetTakeCommand, ["r", "set_take", "--take", "0.15"])
+    await alice_exec_command(SetTakeCommand, ["r", "set_take", "--take", "0.15"])
 
     # Lower the rate limit
-    alice_exec_command(
+    await alice_exec_command(
         SubnetSudoCommand,
         [
             "sudo",
@@ -238,7 +238,7 @@ async def test_emissions(local_chain):
     )
 
     # wait epoch until for emissions to get distributed
-    wait_interval(360, subtensor)
+    await wait_interval(360, subtensor)
 
     await asyncio.sleep(
         5
@@ -251,7 +251,7 @@ async def test_emissions(local_chain):
     weights = [(0, [(0, 65535), (1, 65535)])]
     assert subtensor.weights(netuid=1) == weights
 
-    neurons = subtensor.neurons(netuid=1)
+    neurons = await subtensor.neurons(netuid=1)
     bob = neurons[1]
     alice = neurons[0]
 
@@ -271,5 +271,5 @@ async def test_emissions(local_chain):
     assert alice.weights == [(0, 65535), (1, 65535)]
 
     assert (
-        subtensor.get_emission_value_by_subnet(netuid=1) > 0
+        await subtensor.get_emission_value_by_subnet(netuid=1) > 0
     )  # emission on this subnet is strictly greater than 0

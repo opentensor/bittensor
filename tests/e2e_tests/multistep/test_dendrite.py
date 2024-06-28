@@ -125,13 +125,9 @@ async def test_dendrite(local_chain):
     # record logs of process
     # Create tasks to read stdout and stderr concurrently
     # ignore, dont await coroutine, just write logs to file
-    await asyncio.create_task(
-        write_output_log_to_file("dendrite_stdout", dendrite_process.stdout)
-    )
+    asyncio.create_task(write_output_log_to_file("dendrite_stdout", dendrite_process.stdout))
     # ignore, dont await coroutine, just write logs to file
-    await asyncio.create_task(
-        write_output_log_to_file("dendrite_stderr", dendrite_process.stderr)
-    )
+    asyncio.create_task(write_output_log_to_file("dendrite_stderr", dendrite_process.stderr))
 
     await asyncio.sleep(
         5

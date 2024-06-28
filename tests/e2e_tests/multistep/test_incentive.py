@@ -120,13 +120,9 @@ async def test_incentive(local_chain):
 
     # Create tasks to read stdout and stderr concurrently
     # ignore, don't await coroutine, just write logs to file
-    await asyncio.create_task(
-        write_output_log_to_file("miner_stdout", miner_process.stdout)
-    )
+    asyncio.create_task(write_output_log_to_file("miner_stdout", miner_process.stdout))
     # ignore, dont await coroutine, just write logs to file
-    await asyncio.create_task(
-        write_output_log_to_file("miner_stderr", miner_process.stderr)
-    )
+    asyncio.create_task(write_output_log_to_file("miner_stderr", miner_process.stderr))
 
     await asyncio.sleep(
         5
@@ -163,13 +159,9 @@ async def test_incentive(local_chain):
 
     # Create tasks to read stdout and stderr concurrently and write output to log file
     # ignore, don't await coroutine, just write logs to file
-    await asyncio.create_task(
-        write_output_log_to_file("validator_stdout", validator_process.stdout)
-    )
+    asyncio.create_task(write_output_log_to_file("validator_stdout", validator_process.stdout))
     # ignore, dont await coroutine, just write logs to file
-    await asyncio.create_task(
-        write_output_log_to_file("validator_stderr", validator_process.stderr)
-    )
+    asyncio.create_task(write_output_log_to_file("validator_stderr", validator_process.stderr))
 
     await asyncio.sleep(
         5

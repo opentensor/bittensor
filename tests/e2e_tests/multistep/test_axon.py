@@ -96,13 +96,9 @@ async def test_axon(local_chain):
     # record logs of process
     # Create tasks to read stdout and stderr concurrently
     # ignore, don't await coroutine, just write logs to file
-    await asyncio.create_task(
-        write_output_log_to_file("axon_stdout", axon_process.stdout)
-    )
+    asyncio.create_task(write_output_log_to_file("axon_stdout", axon_process.stdout))
     # ignore, dont await coroutine, just write logs to file
-    await asyncio.create_task(
-        write_output_log_to_file("axon_stderr", axon_process.stderr)
-    )
+    asyncio.create_task(write_output_log_to_file("axon_stderr", axon_process.stderr))
 
     # wait for 5 seconds for the metagraph to refresh with latest data
     await asyncio.sleep(5)
