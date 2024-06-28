@@ -39,18 +39,18 @@ Verify that:
 @pytest.mark.asyncio
 async def test_swap_hotkey_validator_owner(local_chain):
     # Register root as Alice - the subnet owner and validator
-    alice_keypair, alice_exec_command, alice_wallet = setup_wallet("//Alice")
-    alice_exec_command(RegisterSubnetworkCommand, ["s", "create"])
+    alice_keypair, alice_exec_command, alice_wallet = await setup_wallet("//Alice")
+    await alice_exec_command(RegisterSubnetworkCommand, ["s", "create"])
     # Verify subnet 1 created successfully
     assert local_chain.query("SubtensorModule", "NetworksAdded", [1]).serialize()
 
     # Register Bob as miner
-    bob_keypair, bob_exec_command, bob_wallet = setup_wallet("//Bob")
+    bob_keypair, bob_exec_command, bob_wallet = await setup_wallet("//Bob")
 
     alice_old_hotkey_address = alice_wallet.hotkey.ss58_address
 
     # Register Alice as neuron to the subnet
-    alice_exec_command(
+    await alice_exec_command(
         RegisterCommand,
         [
             "s",
@@ -61,7 +61,7 @@ async def test_swap_hotkey_validator_owner(local_chain):
     )
 
     # Register Bob as neuron to the subnet
-    bob_exec_command(
+    await bob_exec_command(
         RegisterCommand,
         [
             "s",
@@ -73,7 +73,7 @@ async def test_swap_hotkey_validator_owner(local_chain):
 
     subtensor = bittensor.subtensor(network="ws://localhost:9945")
     # assert two neurons are in network
-    assert len(subtensor.neurons(netuid=1)) == 2
+    assert len(await subtensor.neurons(netuid=1)) == 2
 
     # register Bob as miner
     cmd = " ".join(
@@ -141,7 +141,7 @@ async def test_swap_hotkey_validator_owner(local_chain):
     )  # wait for 5 seconds for the metagraph and subtensor to refresh with latest data
 
     # register validator with root network
-    alice_exec_command(
+    await alice_exec_command(
         RootRegisterCommand,
         [
             "root",
@@ -158,7 +158,7 @@ async def test_swap_hotkey_validator_owner(local_chain):
     )
 
     # Alice to stake to become to top neuron after the first epoch
-    alice_exec_command(
+    await alice_exec_command(
         StakeCommand,
         [
             "stake",
@@ -169,14 +169,14 @@ async def test_swap_hotkey_validator_owner(local_chain):
     )
 
     # get latest metagraph
-    metagraph = bittensor.metagraph(netuid=1, network="ws://localhost:9945")
+    metagraph = await bittensor.metagraph(netuid=1, network="ws://localhost:9945")
     subtensor = bittensor.subtensor(network="ws://localhost:9945")
 
     # assert alice has old hotkey
     alice_neuron = metagraph.neurons[0]
 
     # get current number of hotkeys
-    wallet_tree = alice_exec_command(ListCommand, ["w", "list"], "get_tree")
+    wallet_tree = await alice_exec_command(ListCommand, ["w", "list"], "get_tree")
     num_hotkeys = len(wallet_tree.children[0].children)
 
     assert alice_neuron.coldkey == "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
@@ -186,17 +186,17 @@ async def test_swap_hotkey_validator_owner(local_chain):
         == 10000.0
     )
     assert alice_neuron.hotkey == alice_neuron.coldkey
-    assert alice_neuron.hotkey == subtensor.get_all_subnets_info()[1].owner_ss58
-    assert alice_neuron.coldkey == subtensor.get_hotkey_owner(alice_old_hotkey_address)
+    assert alice_neuron.hotkey == (await subtensor.get_all_subnets_info())[1].owner_ss58
+    assert alice_neuron.coldkey == await subtensor.get_hotkey_owner(alice_old_hotkey_address)
     assert subtensor.is_hotkey_delegate(alice_neuron.hotkey) is True
     assert (
-        subtensor.is_hotkey_registered_on_subnet(
+        await subtensor.is_hotkey_registered_on_subnet(
             hotkey_ss58=alice_neuron.hotkey, netuid=1
         )
         is True
     )
     assert (
-        subtensor.get_uid_for_hotkey_on_subnet(
+        await subtensor.get_uid_for_hotkey_on_subnet(
             hotkey_ss58=alice_neuron.hotkey, netuid=1
         )
         == alice_neuron.uid
@@ -208,7 +208,7 @@ async def test_swap_hotkey_validator_owner(local_chain):
     new_hotkey_name = str(uuid.uuid4())
 
     # create a new hotkey
-    alice_exec_command(
+    await alice_exec_command(
         NewHotkeyCommand,
         [
             "w",
@@ -225,12 +225,12 @@ async def test_swap_hotkey_validator_owner(local_chain):
     )
 
     # wait rate limit, until we are allowed to change hotkeys
-    rate_limit = subtensor.tx_rate_limit()
-    curr_block = subtensor.get_current_block()
-    wait_interval(rate_limit + curr_block + 1, subtensor)
+    rate_limit = await subtensor.tx_rate_limit()
+    curr_block = await subtensor.get_current_block()
+    await wait_interval(rate_limit + curr_block + 1, subtensor)
 
     # swap hotkey
-    alice_exec_command(
+    await alice_exec_command(
         SwapHotkeyCommand,
         [
             "w",
@@ -249,12 +249,12 @@ async def test_swap_hotkey_validator_owner(local_chain):
     )
 
     # get latest metagraph
-    metagraph = bittensor.metagraph(netuid=1, network="ws://localhost:9945")
+    metagraph = await bittensor.metagraph(netuid=1, network="ws://localhost:9945")
     subtensor = bittensor.subtensor(network="ws://localhost:9945")
 
     # assert Alice has new hotkey
     alice_neuron = metagraph.neurons[0]
-    wallet_tree = alice_exec_command(ListCommand, ["w", "list"], "get_tree")
+    wallet_tree = await alice_exec_command(ListCommand, ["w", "list"], "get_tree")
     new_num_hotkeys = len(wallet_tree.children[0].children)
 
     assert (
@@ -263,31 +263,31 @@ async def test_swap_hotkey_validator_owner(local_chain):
     assert alice_neuron.hotkey != alice_old_hotkey_address
     assert alice_neuron.hotkey != alice_neuron.coldkey
     assert (
-        alice_neuron.coldkey == subtensor.get_all_subnets_info()[1].owner_ss58
+        alice_neuron.coldkey == (await subtensor.get_all_subnets_info())[1].owner_ss58
     )  # new hotkey address is subnet owner
-    assert alice_neuron.coldkey != subtensor.get_hotkey_owner(
+    assert alice_neuron.coldkey != await subtensor.get_hotkey_owner(
         alice_old_hotkey_address
     )  # old key is NOT owner
-    assert alice_neuron.coldkey == subtensor.get_hotkey_owner(
+    assert alice_neuron.coldkey == await subtensor.get_hotkey_owner(
         alice_neuron.hotkey
     )  # new key is owner
     assert (
-        subtensor.is_hotkey_delegate(alice_neuron.hotkey) is True
+        await subtensor.is_hotkey_delegate(alice_neuron.hotkey) is True
     )  # new key is delegate
     assert (  # new key is registered on subnet
-        subtensor.is_hotkey_registered_on_subnet(
+        await subtensor.is_hotkey_registered_on_subnet(
             hotkey_ss58=alice_neuron.hotkey, netuid=1
         )
         is True
     )
     assert (  # old key is NOT registered on subnet
-        subtensor.is_hotkey_registered_on_subnet(
+        await subtensor.is_hotkey_registered_on_subnet(
             hotkey_ss58=alice_old_hotkey_address, netuid=1
         )
         is False
     )
     assert (  # uid is unchanged
-        subtensor.get_uid_for_hotkey_on_subnet(
+        await subtensor.get_uid_for_hotkey_on_subnet(
             hotkey_ss58=alice_neuron.hotkey, netuid=1
         )
         == alice_neuron.uid
@@ -310,18 +310,18 @@ Verify that:
 @pytest.mark.asyncio
 async def test_swap_hotkey_miner(local_chain):
     # Register root as Alice - the subnet owner and validator
-    alice_keypair, alice_exec_command, alice_wallet = setup_wallet("//Alice")
-    alice_exec_command(RegisterSubnetworkCommand, ["s", "create"])
+    alice_keypair, alice_exec_command, alice_wallet = await setup_wallet("//Alice")
+    await alice_exec_command(RegisterSubnetworkCommand, ["s", "create"])
     # Verify subnet 1 created successfully
     assert local_chain.query("SubtensorModule", "NetworksAdded", [1]).serialize()
 
     # Register Bob as miner
-    bob_keypair, bob_exec_command, bob_wallet = setup_wallet("//Bob")
+    bob_keypair, bob_exec_command, bob_wallet = await setup_wallet("//Bob")
 
     bob_old_hotkey_address = bob_wallet.hotkey.ss58_address
 
     # Register Alice as neuron to the subnet
-    alice_exec_command(
+    await alice_exec_command(
         RegisterCommand,
         [
             "s",
@@ -332,7 +332,7 @@ async def test_swap_hotkey_miner(local_chain):
     )
 
     # Register Bob as neuron to the subnet
-    bob_exec_command(
+    await bob_exec_command(
         RegisterCommand,
         [
             "s",
@@ -344,7 +344,7 @@ async def test_swap_hotkey_miner(local_chain):
 
     subtensor = bittensor.subtensor(network="ws://localhost:9945")
     # assert two neurons are in network
-    assert len(subtensor.neurons(netuid=1)) == 2
+    assert len(await subtensor.neurons(netuid=1)) == 2
 
     # register Bob as miner
     cmd = " ".join(
@@ -408,7 +408,7 @@ async def test_swap_hotkey_miner(local_chain):
     )  # wait for 5 seconds for the metagraph and subtensor to refresh with latest data
 
     # register validator with root network
-    alice_exec_command(
+    await alice_exec_command(
         RootRegisterCommand,
         [
             "root",
@@ -419,7 +419,7 @@ async def test_swap_hotkey_miner(local_chain):
     )
 
     # Alice to stake to become to top neuron after the first epoch
-    alice_exec_command(
+    await alice_exec_command(
         StakeCommand,
         [
             "stake",
@@ -430,7 +430,7 @@ async def test_swap_hotkey_miner(local_chain):
     )
 
     # get latest metagraph
-    metagraph = bittensor.metagraph(netuid=1, network="ws://localhost:9945")
+    metagraph = await bittensor.metagraph(netuid=1, network="ws://localhost:9945")
     subtensor = bittensor.subtensor(network="ws://localhost:9945")
 
     # assert bob has old hotkey
@@ -444,15 +444,15 @@ async def test_swap_hotkey_miner(local_chain):
     assert bob_neuron.hotkey == bob_old_hotkey_address
     assert bob_neuron.hotkey == bob_neuron.coldkey
     assert bob_neuron.coldkey == subtensor.get_hotkey_owner(bob_old_hotkey_address)
-    assert subtensor.is_hotkey_delegate(bob_neuron.hotkey) is False
+    assert await subtensor.is_hotkey_delegate(bob_neuron.hotkey) is False
     assert (
-        subtensor.is_hotkey_registered_on_subnet(
+        await subtensor.is_hotkey_registered_on_subnet(
             hotkey_ss58=bob_neuron.hotkey, netuid=1
         )
         is True
     )
     assert (
-        subtensor.get_uid_for_hotkey_on_subnet(hotkey_ss58=bob_neuron.hotkey, netuid=1)
+        await subtensor.get_uid_for_hotkey_on_subnet(hotkey_ss58=bob_neuron.hotkey, netuid=1)
         == bob_neuron.uid
     )
     if num_hotkeys > 1:
@@ -462,7 +462,7 @@ async def test_swap_hotkey_miner(local_chain):
     new_hotkey_name = str(uuid.uuid4())
 
     # create a new hotkey
-    bob_exec_command(
+    await bob_exec_command(
         NewHotkeyCommand,
         [
             "w",
@@ -479,12 +479,12 @@ async def test_swap_hotkey_miner(local_chain):
     )
 
     # wait rate limit, until we are allowed to change hotkeys
-    rate_limit = subtensor.tx_rate_limit()
-    curr_block = subtensor.get_current_block()
-    wait_interval(rate_limit + curr_block + 1, subtensor)
+    rate_limit = await subtensor.tx_rate_limit()
+    curr_block = await subtensor.get_current_block()
+    await wait_interval(rate_limit + curr_block + 1, subtensor)
 
     # swap hotkey
-    bob_exec_command(
+    await bob_exec_command(
         SwapHotkeyCommand,
         [
             "w",
@@ -503,7 +503,7 @@ async def test_swap_hotkey_miner(local_chain):
     )
 
     # get latest metagraph
-    metagraph = bittensor.metagraph(netuid=1, network="ws://localhost:9945")
+    metagraph = await bittensor.metagraph(netuid=1, network="ws://localhost:9945")
     subtensor = bittensor.subtensor(network="ws://localhost:9945")
 
     # assert bob has new hotkey
@@ -520,22 +520,22 @@ async def test_swap_hotkey_miner(local_chain):
         bob_neuron.hotkey
     )  # new key is owner
     assert (
-        subtensor.is_hotkey_delegate(bob_neuron.hotkey) is False
+        await subtensor.is_hotkey_delegate(bob_neuron.hotkey) is False
     )  # new key is delegate ??
     assert (  # new key is registered on subnet
-        subtensor.is_hotkey_registered_on_subnet(
+        await subtensor.is_hotkey_registered_on_subnet(
             hotkey_ss58=bob_neuron.hotkey, netuid=1
         )
         is True
     )
     assert (  # old key is NOT registered on subnet
-        subtensor.is_hotkey_registered_on_subnet(
+        await subtensor.is_hotkey_registered_on_subnet(
             hotkey_ss58=bob_old_hotkey_address, netuid=1
         )
         is False
     )
     assert (  # uid is unchanged
-        subtensor.get_uid_for_hotkey_on_subnet(hotkey_ss58=bob_neuron.hotkey, netuid=1)
+        await subtensor.get_uid_for_hotkey_on_subnet(hotkey_ss58=bob_neuron.hotkey, netuid=1)
         == bob_neuron.uid
     )
     assert new_num_hotkeys == num_hotkeys + 1
