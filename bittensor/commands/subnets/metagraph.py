@@ -16,9 +16,10 @@
 # DEALINGS IN THE SOFTWARE.
 
 import argparse
+import typing
 import bittensor
 from rich.table import Table
-from ..utils import check_netuid_set
+from ..utils import DelegatesDetails, check_netuid_set, get_delegates_details
 
 console = bittensor.__console__  # type: ignore
 
@@ -98,6 +99,11 @@ class ShowMetagraph:
         )
         total_issuance = bittensor.Balance.from_rao(subtensor.total_issuance().rao)
 
+        # Get registered delegates details.
+        registered_delegate_info: typing.Optional[DelegatesDetails] = get_delegates_details(
+            url=bittensor.__delegates_details_url__
+        )
+
         TABLE_DATA = []
         total_stake = 0.0
         total_rank = 0.0
@@ -110,9 +116,10 @@ class ShowMetagraph:
         for uid in metagraph.uids:
             neuron = metagraph.neurons[uid]
             ep = metagraph.axons[uid]
+            upgate_blocks_ago = metagraph.block.item() - metagraph.last_update[uid].item() if metagraph.block.item() >= metagraph.last_update[uid].item() else 0
             row = [
                 str(neuron.uid),
-                "{:.5f}".format(metagraph.total_stake[uid]),
+                "{:.5f}".format(metagraph.stake[uid]),
                 "{:.5f}".format(metagraph.ranks[uid]),
                 "{:.5f}".format(metagraph.trust[uid]),
                 "{:.5f}".format(metagraph.consensus[uid]),
@@ -121,7 +128,7 @@ class ShowMetagraph:
                 "{}".format(int(metagraph.emission[uid] * 1000000000)),
                 "{:.5f}".format(metagraph.validator_trust[uid]),
                 "*" if metagraph.validator_permit[uid] else "",
-                str((metagraph.block.item() - metagraph.last_update[uid].item())),
+                str(upgate_blocks_ago),
                 str(metagraph.active[uid].item()),
                 (
                     ep.ip + ":" + str(ep.port)
@@ -130,8 +137,9 @@ class ShowMetagraph:
                 ),
                 ep.hotkey[:10],
                 ep.coldkey[:10],
+                registered_delegate_info[ep.hotkey].name if ep.hotkey in registered_delegate_info else "",
             ]
-            total_stake += metagraph.total_stake[uid]
+            total_stake += metagraph.stake[uid]
             total_rank += metagraph.ranks[uid]
             total_validator_trust += metagraph.validator_trust[uid]
             total_trust += metagraph.trust[uid]
@@ -139,7 +147,14 @@ class ShowMetagraph:
             total_incentive += metagraph.incentive[uid]
             total_dividends += metagraph.dividends[uid]
             total_emission += int(metagraph.emission[uid] * 1000000000)
-            TABLE_DATA.append(row)
+            TABLE_DATA.append({
+                "stake": metagraph.stake[uid],
+                "row": row
+            })
+
+        # sort table by stake weight
+        TABLE_DATA.sort(key=lambda x: x["stake"], reverse=True)
+
         total_neurons = len(metagraph.uids)
         table = Table(show_footer=False)
         table.title = "[white]Metagraph: net: {}:{}, block: {}, N: {}/{}, stake: {}, issuance: {}, difficulty: {}".format(
@@ -234,10 +249,11 @@ class ShowMetagraph:
         )
         table.add_column("[overline white]HOTKEY", style="dim blue", no_wrap=False)
         table.add_column("[overline white]COLDKEY", style="dim purple", no_wrap=False)
+        table.add_column("[overline white]Hotkey Name", style="white", no_wrap=False)
         table.show_footer = True
 
         for row in TABLE_DATA:
-            table.add_row(*row)
+            table.add_row(*row["row"])
         table.box = None
         table.pad_edge = False
         table.width = None

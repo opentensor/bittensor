@@ -452,7 +452,6 @@ class MetagraphMixin(ABC):
             "n": self.n,
             "block": self.block,
             "stake": self.stake,
-            "total_stake": self.total_stake,
             "ranks": self.ranks,
             "trust": self.trust,
             "consensus": self.consensus,
@@ -1049,7 +1048,6 @@ class NonTorchMetagraph(MetagraphMixin):
         self.n = np.array([0], dtype=np.int64)
         self.block = np.array([0], dtype=np.int64)
         self.stake = np.array([], dtype=np.float32)
-        self.total_stake = np.array([], dtype=np.float32)
         self.ranks = np.array([], dtype=np.float32)
         self.trust = np.array([], dtype=np.float32)
         self.consensus = np.array([], dtype=np.float32)
@@ -1122,9 +1120,6 @@ class NonTorchMetagraph(MetagraphMixin):
         )
         self.validator_trust = self._create_tensor(
             [neuron.validator_trust for neuron in self.neurons], dtype=np.float32
-        )
-        self.total_stake = self._create_tensor(
-            [neuron.total_stake.tao for neuron in self.neurons], dtype=np.float32
         )
         self.stake = self._create_tensor(
             [neuron.stake for neuron in self.neurons], dtype=np.float32

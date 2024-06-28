@@ -715,6 +715,8 @@ class NeuronInfo:
 class NeuronInfoLite:
     r"""
     Dataclass for neuron metadata, but without the weights and bonds.
+
+    stake and total_stake are in fact stake weights
     """
 
     hotkey: str
@@ -722,10 +724,7 @@ class NeuronInfoLite:
     uid: int
     netuid: int
     active: int
-    stake: Balance
-    # mapping of coldkey to amount staked to this Neuron
-    stake_dict: Dict[str, Balance]
-    total_stake: Balance
+    stake: float
     rank: float
     emission: float
     incentive: float
@@ -751,15 +750,8 @@ class NeuronInfoLite:
         neuron_info_decoded["coldkey"] = ss58_encode(
             neuron_info_decoded["coldkey"], bittensor.__ss58_format__
         )
-        stake_dict = {
-            ss58_encode(coldkey, bittensor.__ss58_format__): Balance.from_rao(
-                int(stake)
-            )
-            for coldkey, stake in neuron_info_decoded["stake"]
-        }
-        neuron_info_decoded["stake_dict"] = stake_dict
-        neuron_info_decoded["stake"] = sum(stake_dict.values())
-        neuron_info_decoded["total_stake"] = neuron_info_decoded["stake"]
+        (_, stake) = neuron_info_decoded["stake"][0]
+        neuron_info_decoded["stake"] = float(stake) / 65535.
         # Don't need weights and bonds in lite version
         # neuron_info_decoded['weights'] = [[int(weight[0]), int(weight[1])] for weight in neuron_info_decoded['weights']]
         # neuron_info_decoded['bonds'] = [[int(bond[0]), int(bond[1])] for bond in neuron_info_decoded['bonds']]
