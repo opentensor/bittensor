@@ -1,3 +1,5 @@
+import pytest
+
 import bittensor
 from bittensor.commands import (
     RegisterCommand,
@@ -18,10 +20,11 @@ Verify that:
 """
 
 
-def test_liquid_alpha_enabled(local_chain, capsys):
+@pytest.mark.asyncio
+async def test_liquid_alpha_enabled(local_chain, capsys):
     # Register root as Alice
-    keypair, exec_command, wallet = setup_wallet("//Alice")
-    exec_command(RegisterSubnetworkCommand, ["s", "create"])
+    keypair, exec_command, wallet = await setup_wallet("//Alice")
+    await exec_command(RegisterSubnetworkCommand, ["s", "create"])
 
     # hyperparameter values
     alpha_values = "6553, 53083"
@@ -30,7 +33,7 @@ def test_liquid_alpha_enabled(local_chain, capsys):
     assert local_chain.query("SubtensorModule", "NetworksAdded", [1]).serialize()
 
     # Register a neuron to the subnet
-    exec_command(
+    await exec_command(
         RegisterCommand,
         [
             "s",
@@ -41,7 +44,7 @@ def test_liquid_alpha_enabled(local_chain, capsys):
     )
 
     # Stake to become to top neuron after the first epoch
-    exec_command(
+    await exec_command(
         StakeCommand,
         [
             "stake",
@@ -53,12 +56,10 @@ def test_liquid_alpha_enabled(local_chain, capsys):
 
     # Assert liquid alpha disabled
     subtensor = bittensor.subtensor(network="ws://localhost:9945")
-    assert (
-        subtensor.get_subnet_hyperparameters(netuid=1).liquid_alpha_enabled is False
-    ), "Liquid alpha is enabled by default"
+    assert ((await subtensor.get_subnet_hyperparameters(netuid=1)).liquid_alpha_enabled is False), "Liquid alpha is enabled by default"
 
     # Attempt to set alpha high/low while disabled (should fail)
-    result = subtensor.set_hyperparameter(
+    result = await subtensor.set_hyperparameter(
         wallet=wallet,
         netuid=1,
         parameter="alpha_values",
@@ -74,7 +75,7 @@ def test_liquid_alpha_enabled(local_chain, capsys):
     )
 
     # Enable Liquid Alpha
-    exec_command(
+    await exec_command(
         SubnetSudoCommand,
         [
             "sudo",
@@ -95,14 +96,12 @@ def test_liquid_alpha_enabled(local_chain, capsys):
         ],
     )
 
-    assert subtensor.get_subnet_hyperparameters(
-        netuid=1
-    ).liquid_alpha_enabled, "Failed to enable liquid alpha"
+    assert (await subtensor.get_subnet_hyperparameters(netuid=1)).liquid_alpha_enabled, "Failed to enable liquid alpha"
 
     output = capsys.readouterr().out
     assert "✅ Hyper parameter liquid_alpha_enabled changed to True" in output
 
-    exec_command(
+    await exec_command(
         SubnetSudoCommand,
         [
             "sudo",
@@ -123,10 +122,10 @@ def test_liquid_alpha_enabled(local_chain, capsys):
         ],
     )
     assert (
-        subtensor.get_subnet_hyperparameters(netuid=1).alpha_high == 54099
+            (await subtensor.get_subnet_hyperparameters(netuid=1)).alpha_high == 54099
     ), "Failed to set alpha high"
     assert (
-        subtensor.get_subnet_hyperparameters(netuid=1).alpha_low == 87
+            (await subtensor.get_subnet_hyperparameters(netuid=1)).alpha_low == 87
     ), "Failed to set alpha low"
 
     u16_max = 65535
@@ -134,7 +133,7 @@ def test_liquid_alpha_enabled(local_chain, capsys):
     alpha_high_too_low = (
         u16_max * 4 // 5
     ) - 1  # One less than the minimum acceptable value
-    result = subtensor.set_hyperparameter(
+    result = await subtensor.set_hyperparameter(
         wallet=wallet,
         netuid=1,
         parameter="alpha_values",
@@ -151,7 +150,7 @@ def test_liquid_alpha_enabled(local_chain, capsys):
 
     alpha_high_too_high = u16_max + 1  # One more than the max acceptable value
     try:
-        result = subtensor.set_hyperparameter(
+        result = await subtensor.set_hyperparameter(
             wallet=wallet,
             netuid=1,
             parameter="alpha_values",
@@ -165,7 +164,7 @@ def test_liquid_alpha_enabled(local_chain, capsys):
 
     # Set alpha low too low
     alpha_low_too_low = 0
-    result = subtensor.set_hyperparameter(
+    result = await subtensor.set_hyperparameter(
         wallet=wallet,
         netuid=1,
         parameter="alpha_values",
@@ -184,7 +183,7 @@ def test_liquid_alpha_enabled(local_chain, capsys):
     alpha_low_too_high = (
         u16_max * 4 // 5
     ) + 1  # One more than the maximum acceptable value
-    result = subtensor.set_hyperparameter(
+    result = await subtensor.set_hyperparameter(
         wallet=wallet,
         netuid=1,
         parameter="alpha_values",
@@ -199,7 +198,7 @@ def test_liquid_alpha_enabled(local_chain, capsys):
         in output
     )
 
-    exec_command(
+    await exec_command(
         SubnetSudoCommand,
         [
             "sudo",
@@ -221,17 +220,17 @@ def test_liquid_alpha_enabled(local_chain, capsys):
     )
 
     assert (
-        subtensor.get_subnet_hyperparameters(netuid=1).alpha_high == 53083
+            (await subtensor.get_subnet_hyperparameters(netuid=1)).alpha_high == 53083
     ), "Failed to set alpha high"
     assert (
-        subtensor.get_subnet_hyperparameters(netuid=1).alpha_low == 6553
+            (await subtensor.get_subnet_hyperparameters(netuid=1)).alpha_low == 6553
     ), "Failed to set alpha low"
 
     output = capsys.readouterr().out
     assert "✅ Hyper parameter alpha_values changed to [6553.0, 53083.0]" in output
 
     # Disable Liquid Alpha
-    exec_command(
+    await exec_command(
         SubnetSudoCommand,
         [
             "sudo",
@@ -253,13 +252,13 @@ def test_liquid_alpha_enabled(local_chain, capsys):
     )
 
     assert (
-        subtensor.get_subnet_hyperparameters(netuid=1).liquid_alpha_enabled is False
+        (await subtensor.get_subnet_hyperparameters(netuid=1)).liquid_alpha_enabled is False
     ), "Failed to disable liquid alpha"
 
     output = capsys.readouterr().out
     assert "✅ Hyper parameter liquid_alpha_enabled changed to False" in output
 
-    result = subtensor.set_hyperparameter(
+    result = await subtensor.set_hyperparameter(
         wallet=wallet,
         netuid=1,
         parameter="alpha_values",
