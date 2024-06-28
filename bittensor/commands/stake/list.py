@@ -72,7 +72,7 @@ class StakeList:
             
         def table_substakes( hotkey:str, substakes: typing.List[typing.Dict] ):
             # Create table structure.
-            name = registered_delegate_info[hotkey].name if hotkey in registered_delegate_info else hotkey[:10]
+            name = registered_delegate_info[hotkey].name + f" ({hotkey})" if hotkey in registered_delegate_info else hotkey
             table = Table(show_footer=True, pad_edge=False, box=None, expand=False, title=f"{name}")
             table.add_column(f"[white]", footer_style="overline white", style="grey89")
             table.add_column(f"[white]", footer_style="white", style="light_goldenrod1", justify="center", width=5, no_wrap=True)
