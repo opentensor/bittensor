@@ -3,9 +3,6 @@ from unittest.mock import MagicMock, patch
 from bittensor.subtensor import subtensor as Subtensor
 from bittensor.wallet import wallet as Wallet
 from bittensor.utils.balance import Balance
-from bittensor.extrinsics.delegation import (
-    nominate_extrinsic,
-)
 from bittensor.errors import (
     NominationError,
     NotDelegateError,
@@ -48,38 +45,6 @@ def mock_wallet():
         "failure-value-error",
     ],
 )
-def test_nominate_extrinsic(
-    mock_subtensor,
-    mock_wallet,
-    already_delegate,
-    nomination_success,
-    raises_exception,
-    expected_result,
-):
-    # Arrange
-    with patch.object(
-        mock_subtensor, "is_hotkey_delegate", return_value=already_delegate
-    ), patch.object(
-        mock_subtensor, "_do_nominate", return_value=nomination_success
-    ) as mock_nominate:
-        if raises_exception:
-            mock_subtensor._do_nominate.side_effect = raises_exception
-
-        # Act
-        result = nominate_extrinsic(
-            subtensor=mock_subtensor,
-            wallet=mock_wallet,
-            wait_for_finalization=False,
-            wait_for_inclusion=True,
-        )
-        # Assert
-        assert result == expected_result
-
-        if not already_delegate and nomination_success is not None:
-            mock_nominate.assert_called_once_with(
-                wallet=mock_wallet, wait_for_inclusion=True, wait_for_finalization=False
-            )
-
 
 @pytest.mark.parametrize(
     "wait_for_inclusion, wait_for_finalization, is_delegate, prompt_response, stake_amount, balance_sufficient, transaction_success, raises_error, expected_result, delegate_called",

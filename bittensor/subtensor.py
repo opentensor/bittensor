@@ -72,7 +72,6 @@ from .extrinsics.network import (
 from .extrinsics.delegation import (
     decrease_take_extrinsic,
     increase_take_extrinsic,
-    set_delegates_takes_extrinsic,
 )
 from .extrinsics.serving import (
     serve_extrinsic,
@@ -525,36 +524,6 @@ class subtensor:
     ##############
     # Delegation #
     ##############
-    def nominate(
-        self,
-        wallet: bittensor.wallet,
-        wait_for_finalization: bool = False,
-        wait_for_inclusion: bool = True,
-    ) -> bool:
-        """
-        Becomes a delegate for the hotkey associated with the given wallet. This method is used to nominate
-        a neuron (identified by the hotkey in the wallet) as a delegate on the Bittensor network, allowing it
-        to participate in consensus and validation processes.
-
-        Args:
-            wallet (bittensor.wallet): The wallet containing the hotkey to be nominated.
-            wait_for_finalization (bool, optional): If ``True``, waits until the transaction is finalized on the
-                blockchain.
-            wait_for_inclusion (bool, optional): If ``True``, waits until the transaction is included in a block.
-
-        Returns:
-            bool: ``True`` if the nomination process is successful, ``False`` otherwise.
-
-        This function is a key part of the decentralized governance mechanism of Bittensor, allowing for the
-        dynamic selection and participation of validators in the network's consensus process.
-        """
-        return nominate_extrinsic(
-            subtensor=self,
-            wallet=wallet,
-            wait_for_finalization=wait_for_finalization,
-            wait_for_inclusion=wait_for_inclusion,
-        )
-
     def set_take(
         self,
         wallet: "bittensor.wallet",
@@ -621,147 +590,6 @@ class subtensor:
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
             )
-
-    def set_delegates_takes(
-        self,
-        wallet: "bittensor.wallet",
-        takes: List[Tuple[int, float]],
-        delegate_ss58: Optional[str] = None,
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = False,
-    ) -> bool:
-        """
-        Set multiple delegate takes for the hotkey across different subnets.
-
-        Args:
-            wallet (bittensor.wallet): The wallet containing the hotkey to be nominated.
-            takes (List[Tuple[int, float]]): A list of tuples where each tuple contains a subnet ID (`netuid`) and the new take (`take`) for that subnet.
-            wait_for_finalization (bool, optional): If ``True``, waits until the transaction is finalized on the blockchain.
-            wait_for_inclusion (bool, optional): If ``True``, waits until the transaction is included in a block.
-
-        Returns:
-            bool: ``True`` if the process is successful, False otherwise.
-
-        """
-        # Convert takes to u16 representation
-        takes_u16 = [(netuid, int(take * 0xFFFF)) for netuid, take in takes]
-
-        logger.info(
-            f"Setting delegate takes for {wallet.name} on subnets {takes_u16}, and hotkey {delegate_ss58}"
-        )
-
-        # Call the extrinsic to set multiple takes
-        success = set_delegates_takes_extrinsic(
-            subtensor=self,
-            wallet=wallet,
-            takes=takes_u16,
-            hotkey_ss58=delegate_ss58,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-        )
-
-        return success
-
-    def send_extrinsic(
-        self,
-        wallet: bittensor.wallet,
-        module: str,
-        function: str,
-        params: dict,
-        period: int = 5,
-        wait_for_inclusion: bool = False,
-        wait_for_finalization: bool = False,
-        max_retries: int = 3,
-        wait_time: int = 3,
-        max_wait: int = 20,
-    ) -> Optional[ExtrinsicReceipt]:
-        """
-        Sends an extrinsic to the Bittensor blockchain using the provided wallet and parameters. This method
-        constructs and submits the extrinsic, handling retries and blockchain communication.
-
-        Args:
-            wallet (bittensor.wallet): The wallet associated with the extrinsic.
-            module (str): The module name for the extrinsic.
-            function (str): The function name for the extrinsic.
-            params (dict): The parameters for the extrinsic.
-            period (int, optional): The number of blocks for the extrinsic to live in the mempool. Defaults to 5.
-            wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
-            wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
-            max_retries (int, optional): The maximum number of retries for the extrinsic. Defaults to 3.
-            wait_time (int, optional): The wait time between retries. Defaults to 3.
-            max_wait (int, optional): The maximum wait time for the extrinsic. Defaults to 20.
-
-        Returns:
-            Optional[ExtrinsicReceipt]: The receipt of the extrinsic if successful, None otherwise.
-        """
-        call = self.substrate.compose_call(
-            call_module=module,
-            call_function=function,
-            call_params=params,
-        )
-
-        hotkey = wallet.get_hotkey().ss58_address
-        # Periodically update the nonce cache
-        if hotkey not in KEY_NONCE or self.get_current_block() % 5 == 0:
-            KEY_NONCE[hotkey] = self.substrate.get_account_nonce(hotkey)
-
-        nonce = KEY_NONCE[hotkey]
-
-        # <3 parity tech
-        old_init_runtime = self.substrate.init_runtime
-        self.substrate.init_runtime = lambda: None
-        self.substrate.init_runtime = old_init_runtime
-        response = None
-
-        for attempt in range(1, max_retries + 1):
-            try:
-                # Create the extrinsic with new nonce
-                extrinsic = self.substrate.create_signed_extrinsic(
-                    call=call,
-                    keypair=wallet.hotkey,
-                    era={"period": period},
-                    nonce=nonce,
-                )
-
-                # Submit the extrinsic
-                response = self.substrate.submit_extrinsic(
-                    extrinsic,
-                    wait_for_inclusion=wait_for_inclusion,
-                    wait_for_finalization=wait_for_finalization,
-                )
-
-                # Return immediately if we don't wait
-                if not wait_for_inclusion and not wait_for_finalization:
-                    KEY_NONCE[hotkey] = nonce + 1  # update the nonce cache
-                    return response
-
-                # If we wait for finalization or inclusion, check if it is successful
-                if response.is_success:
-                    KEY_NONCE[hotkey] = nonce + 1  # update the nonce cache
-                    return response
-                else:
-                    # Wait for a while
-                    wait = min(wait_time * attempt, max_wait)
-                    time.sleep(wait)
-                    # Incr the nonce and try again
-                    nonce = nonce + 1
-                    continue
-
-            # This dies because user is spamming... incr and try again
-            except SubstrateRequestException as e:
-                if "Priority is too low" in e.args[0]["message"]:
-                    wait = min(wait_time * attempt, max_wait)
-                    _logger.warning(
-                        f"Priority is too low, retrying with new nonce: {nonce} in {wait} seconds."
-                    )
-                    nonce = nonce + 1
-                    time.sleep(wait)
-                    continue
-                else:
-                    _logger.error(f"Error sending extrinsic: {e}")
-                    response = None
-
-        return response
 
     ###############
     # Set Weights #

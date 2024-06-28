@@ -118,6 +118,7 @@ class AddStakeCommand:
             received_amount, slippage = dynamic_info.tao_to_alpha_with_slippage( amount_to_stake_as_balance )
             if dynamic_info.is_dynamic:
                 slippage_pct = 100 * float(slippage) / float(slippage + received_amount) if slippage + received_amount != 0 else 0
+                slippage_pct = f"{slippage_pct:.4f} %"
             else:
                 slippage_pct = 'N/A'
             message = (
@@ -126,7 +127,7 @@ class AddStakeCommand:
                 f"     [rgb(42,161,152)]current exchange rate:[/rgb(42,161,152)] { dynamic_info.price }\n"
                 f"     [rgb(38,139,210)]tao to be staked:[/rgb(38,139,210)] {amount_to_stake_as_balance}\n"
                 f"     [rgb(220,50,47)]stake received after staking:[/rgb(220,50,47)] {received_amount.set_unit(netuid)}\n"
-                f"     [rgb(181,137,0)]slippage:[/rgb(181,137,0)] {slippage_pct}%\n"
+                f"     [rgb(181,137,0)]slippage:[/rgb(181,137,0)] {slippage_pct}\n"
                 f"     [rgb(38,139,210)]staking hotkey account:[/rgb(38,139,210)] {staking_address_name}\n"
                 f"     [rgb(220,50,47)]wallet coldkey account:[/rgb(220,50,47)] {wallet.coldkeypub.ss58_address}\n"
                 f"\n" 
