@@ -60,28 +60,32 @@ def select_delegate( subtensor, netuid:int ):
 
     # TODO: Add pagination to handle large number of delegates more efficiently
     # Iterate through delegates and display their information
-    for idx, delegate in enumerate(delegates):
+    idx = 0
+    done = False
+    while not done:
         try:
-            # Add delegate to visible list
-            visible_delegates.append( delegate )
-            
-            
-            # Add a row to the table with delegate information
-            table.add_row(
-                str(idx),
-                delegate.hotkey_ss58[:5] + "..." + delegate.hotkey_ss58[-5:],  # Show truncated hotkey
-                delegate.owner_ss58[:5] + "..." + delegate.owner_ss58[-5:],    # Show truncated owner address
-                f"{delegate.take:.6f}",
-                f"τ{delegate.total_stake.tao:,.4f}",
-                f"τ{delegate.owner_stake.tao:,.4f}",
-                # f"τ{delegate.return_per_1000.tao:,.4f}",
-                # f"τ{delegate.total_daily_return.tao:,.4f}",
-            )
-            
+            if idx < len(delegates):
+                delegate = delegates[idx]
+
+                # Add delegate to visible list
+                visible_delegates.append( delegate )
+
+                # Add a row to the table with delegate information
+                table.add_row(
+                    str(idx),
+                    delegate.hotkey_ss58[:5] + "..." + delegate.hotkey_ss58[-5:],  # Show truncated hotkey
+                    delegate.owner_ss58[:5] + "..." + delegate.owner_ss58[-5:],    # Show truncated owner address
+                    f"{delegate.take:.6f}",
+                    f"τ{delegate.total_stake.tao:,.4f}",
+                    f"τ{delegate.owner_stake.tao:,.4f}",
+                    # f"τ{delegate.return_per_1000.tao:,.4f}",
+                    # f"τ{delegate.total_daily_return.tao:,.4f}",
+                )
+
             # Clear console and print updated table
             console.clear()
             console.print(table)
-            
+
             # Prompt user for input
             user_input = input('Press Enter to scroll, enter a number (1-N) to select, or type "h" for help: ')
             
@@ -99,15 +103,15 @@ def select_delegate( subtensor, netuid:int ):
                 console.print("\nPress Enter to continue...")
                 input()
                 continue
-                        
-            if not user_input: 
-                continue  # If user presses Enter, continue to next delegate
-            else:
+
+            # If user presses Enter, continue to next delegate
+            if user_input: 
                 try:
                     # Try to convert user input to integer (delegate index)
                     selected_idx = int(user_input)
                     if 0 <= selected_idx < len(delegates):
-                        break  # Exit loop if valid index is selected
+                        # Exit loop if valid index is selected
+                        done = True
                     else:
                         console.print(f"[red]Invalid index. Please enter a number between 0 and {len(delegates) - 1}.[/red]")
                         continue
@@ -121,7 +125,10 @@ def select_delegate( subtensor, netuid:int ):
         except KeyboardInterrupt:
             # Allow user to exit the selection process
             raise KeyboardInterrupt
-        
+
+        if idx < len(delegates):
+            idx += 1
+
     # TODO( const ): uncomment for check
     # Add a confirmation step before returning the selected delegate
     # console.print(f"\nSelected delegate: [rgb(211,54,130)]{visible_delegates[selected_idx].hotkey_ss58}[/rgb(211,54,130)]")
