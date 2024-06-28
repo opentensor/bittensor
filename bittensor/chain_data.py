@@ -350,9 +350,13 @@ class DynamicPool:
 
             # Ideal conversion as if there is no slippage, just price
             alpha_ideal = self.tao_to_alpha(tao)
-            slippage = Balance.from_tao(alpha_ideal.tao - alpha_returned.tao).set_unit(
-                self.netuid
-            )
+
+            if alpha_ideal.tao > alpha_returned.tao:
+                slippage = Balance.from_tao(alpha_ideal.tao - alpha_returned.tao).set_unit(
+                    self.netuid
+                )
+            else:
+                slippage = Balance.from_tao(0)
         else:
             alpha_returned = tao.set_unit(self.netuid)
             slippage = Balance.from_tao(0)
@@ -382,7 +386,11 @@ class DynamicPool:
 
             # Ideal conversion as if there is no slippage, just price
             tao_ideal = self.alpha_to_tao(alpha)
-            slippage = Balance.from_tao(tao_ideal.tao - tao_returned.tao)
+
+            if tao_ideal > tao_returned:
+                slippage = Balance.from_tao(tao_ideal.tao - tao_returned.tao)
+            else:
+                slippage = Balance.from_tao(0)
         else:
             tao_returned = alpha.set_unit(0)
             slippage = Balance.from_tao(0)

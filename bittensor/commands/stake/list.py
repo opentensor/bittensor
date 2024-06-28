@@ -93,9 +93,13 @@ class StakeList:
                 symbol = f"{bittensor.Balance.get_unit(netuid)}\u200E"
                 price = "{:.4f}{}".format( pool.price.__float__(), f"τ/{bittensor.Balance.get_unit(netuid)}\u200E") if pool.is_dynamic else f"{1.0}τ/{symbol}"
                 alpha_value = bittensor.Balance.from_rao( int(substake['stake']) ).set_unit(netuid)
-                tao_value = bittensor.Balance.from_tao( substake['stake'].tao * dynamic_info[netuid].price.tao )
-                swapped_tao_value, _ = pool.alpha_to_tao_with_slippage( substake['stake'] )
-                slippage_percentage = (100 - (swapped_tao_value.tao / tao_value) * 100) if tao_value != 0 else 0
+                tao_value = pool.alpha_to_tao(alpha_value)
+                swapped_tao_value, slippage = pool.alpha_to_tao_with_slippage( substake['stake'] )
+                if pool.is_dynamic:
+                    slippage_percentage = 100 * float(slippage) / float(slippage + swapped_tao_value) if slippage + swapped_tao_value != 0 else 0
+                    slippage_percentage = f"{slippage_percentage:.4f}%"
+                else:
+                    slippage_percentage = 'N/A'                
                 tao_locked = pool.tao_reserve if pool.is_dynamic else subtensor.get_total_subnet_stake(netuid).set_unit(netuid)
                 issuance = pool.alpha_outstanding if pool.is_dynamic else tao_locked
                 alpha_ownership = "{:.4f}".format((alpha_value.tao / issuance.tao) * 100)
@@ -107,7 +111,7 @@ class StakeList:
                     f"[dark_sea_green]{ alpha_value }", # Alpha value
                     f"[light_slate_blue]{ tao_value }[/light_slate_blue]", # Tao equiv
                     f"[cadet_blue]{ swapped_tao_value }[/cadet_blue]", # Swap amount.
-                    f"[indian_red]{ slippage_percentage }%[/indian_red]", # Slippage.
+                    f"[indian_red]{ slippage_percentage }[/indian_red]", # Slippage.
                     # str( bittensor.Balance.from_tao( tao_locked.tao ) ), # Tao on network
                     # "P(" + str( pool.tao_reserve ) + ",", # Pool tao
                     # str( pool.alpha_reserve ) + ")", # Pool alpha
