@@ -17,6 +17,7 @@
 
 import typing
 import bittensor as bt
+from bittensor.commands.utils import DelegatesDetails, get_delegates_details
 from rich.table import Table
 from rich.console import Console
 from rich.prompt import Prompt
@@ -39,6 +40,11 @@ def select_delegate( subtensor, netuid:int ):
     delegates: typing.List[bt.DelegateInfoLight] = subtensor.get_delegates_by_netuid_light( netuid )
     delegates.sort(key=lambda x: x.total_stake, reverse=True)
 
+    # Get registered delegates details.
+    registered_delegate_info: typing.Optional[DelegatesDetails] = get_delegates_details(
+        url=bt.__delegates_details_url__
+    )
+
     # Initialize Rich console for pretty printing
     console = Console()
 
@@ -47,6 +53,7 @@ def select_delegate( subtensor, netuid:int ):
 
     # Add columns to the table with specific styles
     table.add_column("Index", style="rgb(253,246,227)", no_wrap=True)
+    table.add_column("Delegate Name", no_wrap=True)
     table.add_column("Hotkey SS58", style="rgb(211,54,130)", no_wrap=True)
     table.add_column("Owner SS58", style="rgb(133,153,0)", no_wrap=True)
     table.add_column("Take", style="rgb(181,137,0)", no_wrap=True)
@@ -73,6 +80,7 @@ def select_delegate( subtensor, netuid:int ):
                 # Add a row to the table with delegate information
                 table.add_row(
                     str(idx),
+                    registered_delegate_info[delegate.hotkey_ss58].name if delegate.hotkey_ss58 in registered_delegate_info else "",
                     delegate.hotkey_ss58[:5] + "..." + delegate.hotkey_ss58[-5:],  # Show truncated hotkey
                     delegate.owner_ss58[:5] + "..." + delegate.owner_ss58[-5:],    # Show truncated owner address
                     f"{delegate.take:.6f}",
