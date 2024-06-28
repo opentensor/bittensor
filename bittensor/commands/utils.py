@@ -21,7 +21,7 @@ import bittensor
 import requests
 from bittensor.utils.registration import torch
 from typing import List, Dict, Any, Optional
-from rich.prompt import Confirm, PromptBase
+from rich.prompt import Confirm, PromptBase, Prompt
 from dataclasses import dataclass
 from . import defaults
 
@@ -49,17 +49,22 @@ def check_netuid_set(
     allow_none: bool = False,
 ):
     if subtensor.network != "nakamoto":
-        all_netuids = [str(netuid) for netuid in subtensor.get_subnets()]
-        if len(all_netuids) == 0:
+        netuids = subtensor.get_subnets()
+        if len(netuids) == 0:
             console.print(":cross_mark:[red]There are no open networks.[/red]")
             sys.exit()
+        elif len(netuids) == 1:
+            config.netuid = netuids[0]
+        else:
+            all_netuids = f"{netuids[0]} .. {netuids[len(netuids)-1]}"
 
         # Make sure netuid is set.
         if not config.is_set("netuid"):
             if not config.no_prompt:
-                netuid = IntListPrompt.ask(
-                    "Enter netuid", choices=all_netuids, default=str(all_netuids[0])
+                netuid = Prompt.ask(
+                    f"Enter netuid ({all_netuids})", default=str(all_netuids[0])
                 )
+                netuid = int(netuid)
             else:
                 netuid = str(defaults.netuid) if not allow_none else "None"
         else:
