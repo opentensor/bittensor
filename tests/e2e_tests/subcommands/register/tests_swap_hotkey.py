@@ -187,7 +187,9 @@ async def test_swap_hotkey_validator_owner(local_chain):
     )
     assert alice_neuron.hotkey == alice_neuron.coldkey
     assert alice_neuron.hotkey == (await subtensor.get_all_subnets_info())[1].owner_ss58
-    assert alice_neuron.coldkey == await subtensor.get_hotkey_owner(alice_old_hotkey_address)
+    assert alice_neuron.coldkey == await subtensor.get_hotkey_owner(
+        alice_old_hotkey_address
+    )
     assert subtensor.is_hotkey_delegate(alice_neuron.hotkey) is True
     assert (
         await subtensor.is_hotkey_registered_on_subnet(
@@ -452,7 +454,9 @@ async def test_swap_hotkey_miner(local_chain):
         is True
     )
     assert (
-        await subtensor.get_uid_for_hotkey_on_subnet(hotkey_ss58=bob_neuron.hotkey, netuid=1)
+        await subtensor.get_uid_for_hotkey_on_subnet(
+            hotkey_ss58=bob_neuron.hotkey, netuid=1
+        )
         == bob_neuron.uid
     )
     if num_hotkeys > 1:
@@ -535,7 +539,9 @@ async def test_swap_hotkey_miner(local_chain):
         is False
     )
     assert (  # uid is unchanged
-        await subtensor.get_uid_for_hotkey_on_subnet(hotkey_ss58=bob_neuron.hotkey, netuid=1)
+        await subtensor.get_uid_for_hotkey_on_subnet(
+            hotkey_ss58=bob_neuron.hotkey, netuid=1
+        )
         == bob_neuron.uid
     )
     assert new_num_hotkeys == num_hotkeys + 1

@@ -48,7 +48,7 @@ async def setup_wallet(uri: str):
 
 
 def sudo_call_set_network_limit(
-        substrate: SubstrateInterface, wallet: bittensor.wallet
+    substrate: SubstrateInterface, wallet: bittensor.wallet
 ) -> bool:
     inner_call = substrate.compose_call(
         call_module="AdminUtils",
@@ -73,7 +73,7 @@ def sudo_call_set_network_limit(
 
 
 def sudo_call_set_target_stakes_per_interval(
-        substrate: SubstrateInterface, wallet: bittensor.wallet
+    substrate: SubstrateInterface, wallet: bittensor.wallet
 ) -> bool:
     inner_call = substrate.compose_call(
         call_module="AdminUtils",
@@ -198,7 +198,7 @@ def get_latest_commit_hash(repo_url: str = ASYNC_TEMPL_URL) -> Optional[str]:
     if response.status_code == 200:
         commits = response.json()
         if commits:
-            return commits['sha']
+            return commits["sha"]
         else:
             return None
     else:

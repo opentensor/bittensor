@@ -249,7 +249,7 @@ async def test_emissions(local_chain):
 
     # get current emissions and validate that Alice has gotten tao
     weights = [(0, [(0, 65535), (1, 65535)])]
-    assert subtensor.weights(netuid=1) == weights
+    assert await subtensor.weights(netuid=1) == weights
 
     neurons = await subtensor.neurons(netuid=1)
     bob = neurons[1]

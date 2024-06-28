@@ -14,7 +14,7 @@ from tests.e2e_tests.utils import (
     install_templates,
     uninstall_templates,
     template_path,
-    get_latest_commit_hash
+    get_latest_commit_hash,
 )
 
 logging.basicConfig(level=logging.INFO)
