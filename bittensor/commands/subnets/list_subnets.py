@@ -14,7 +14,6 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
-import rich
 import argparse
 import bittensor as bt
 from rich.table import Table
@@ -47,6 +46,7 @@ class ListSubnetsCommand:
         total_registered = 0
         total_price = 0
         total_emission = 0
+        dynamic_emission = 0
         n_dtao = 0
         n_stao = 0
         total_tao_locked = 0
@@ -61,6 +61,7 @@ class ListSubnetsCommand:
             total_registered += subnet.subnetwork_n
             total_price += pool.price if pool.is_dynamic else bt.Balance.from_rao(0)
             total_emission += subnet.emission_value
+            dynamic_emission += subnet.emission_value if pool.is_dynamic else 0
             tao_locked = subnet.tao_locked
             total_tao_locked += tao_locked
 
@@ -121,6 +122,8 @@ class ListSubnetsCommand:
         table.title = f"[white]Subnets - {subtensor.network}\n"
 
         # Add columns to the table
+        price_total = f"τ{total_price.tao:.2f}/{bt.Balance.from_rao(dynamic_emission).tao:.2f}"
+
         table.add_column("Index", style="rgb(253,246,227)", no_wrap=True, justify="center")
         table.add_column("Symbol", style="rgb(211,54,130)", no_wrap=True, justify="center")
         table.add_column("n", style="rgb(108,113,196)", no_wrap=True, justify="center")
@@ -130,7 +133,7 @@ class ListSubnetsCommand:
         table.add_column(f"P({bt.Balance.unit},", style="rgb(108,113,196)", no_wrap=True, justify="right")
         table.add_column(f"{bt.Balance.get_unit(1)})", style="rgb(42,161,152)", no_wrap=True, justify="left")
         table.add_column(f"{bt.Balance.get_unit(1)}", style="rgb(133,153,0)", no_wrap=True, justify="right")
-        table.add_column("Price", style="rgb(181,137,0)", no_wrap=True, justify="center", footer=f"[red]↓ τ{total_price.tao:.4f}[/red]" if total_price > 1 else f"[green]↑ τ{total_price.tao:.4f}[/green]")
+        table.add_column("Price", style="rgb(181,137,0)", no_wrap=True, justify="center", footer=f"[red]↓ {price_total}[/red]" if total_price > 1 else f"[green]↑ {price_total}[/green]")
         table.add_column("Tempo", style="rgb(38,139,210)", no_wrap=True, justify="center")
         table.add_column("Burn", style="rgb(220,50,47)", no_wrap=True, justify="center")
         table.add_column("Owner", style="rgb(108,113,196)", no_wrap=True)
