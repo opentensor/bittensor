@@ -589,11 +589,8 @@ class subtensor:
         takeu16 = int(take * 0xFFFF)
 
         # Check if the new take is greater or lower than existing take or if existing is set
-        delegate = self.get_delegate_by_hotkey(delegate_ss58)
-        current_take = None
-        for take in delegate.take:
-            if int(take[0]) == int(netuid):
-                current_take = int(float(take[1]) * 65535.0)
+        current_take = self.get_delegate_take(delegate_ss58, netuid)
+        current_take = int(float(current_take) * 65535.0)
 
         if takeu16 == current_take:
             bittensor.__console__.print("Nothing to do, take hasn't changed")
@@ -4232,82 +4229,6 @@ class subtensor:
         self,
         wallet: "bittensor.wallet",
         hotkey_ss58: str,
-        take: int,
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = False,
-    ) -> bool:
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
-        def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                call = substrate.compose_call(
-                    call_module="SubtensorModule",
-                    call_function="increase_take",
-                    call_params={
-                        "hotkey": hotkey_ss58,
-                        "take": take,
-                    },
-                )
-                extrinsic = substrate.create_signed_extrinsic(
-                    call=call, keypair=wallet.coldkey
-                )  # sign with coldkey
-                response = substrate.submit_extrinsic(
-                    extrinsic,
-                    wait_for_inclusion=wait_for_inclusion,
-                    wait_for_finalization=wait_for_finalization,
-                )
-                # We only wait here if we expect finalization.
-                if not wait_for_finalization and not wait_for_inclusion:
-                    return True
-                response.process_events()
-                if response.is_success:
-                    return True
-                else:
-                    raise TakeError(response.error_message)
-
-        return make_substrate_call_with_retry()
-
-    def _do_decrease_take(
-        self,
-        wallet: "bittensor.wallet",
-        hotkey_ss58: str,
-        take: int,
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = False,
-    ) -> bool:
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
-        def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                call = substrate.compose_call(
-                    call_module="SubtensorModule",
-                    call_function="decrease_take",
-                    call_params={
-                        "hotkey": hotkey_ss58,
-                        "take": take,
-                    },
-                )
-                extrinsic = substrate.create_signed_extrinsic(
-                    call=call, keypair=wallet.coldkey
-                )  # sign with coldkey
-                response = substrate.submit_extrinsic(
-                    extrinsic,
-                    wait_for_inclusion=wait_for_inclusion,
-                    wait_for_finalization=wait_for_finalization,
-                )
-                # We only wait here if we expect finalization.
-                if not wait_for_finalization and not wait_for_inclusion:
-                    return True
-                response.process_events()
-                if response.is_success:
-                    return True
-                else:
-                    raise TakeError(response.error_message)
-
-        return make_substrate_call_with_retry()
-
-    def _do_increase_take(
-        self,
-        wallet: "bittensor.wallet",
-        hotkey_ss58: str,
         netuid: int,
         take: int,
         wait_for_inclusion: bool = True,
@@ -4384,60 +4305,6 @@ class subtensor:
 
         return make_substrate_call_with_retry()
 
-    def _set_delegate_takes(
-        self,
-        wallet: "bittensor.wallet",
-        hotkey_ss58: str,
-        takes: List[Tuple[int, int]],
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = False,
-    ) -> bool:
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
-        def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                logger.debug(f"Hotkey SS58: {hotkey_ss58}")
-                logger.debug(f"Takes: {takes}")
-
-                call = substrate.compose_call(
-                    call_module="SubtensorModule",
-                    call_function="set_delegate_takes",
-                    call_params={
-                        "hotkey": hotkey_ss58,
-                        "takes": takes,
-                    },
-                )
-                logger.debug(f"Composed call: {call}")
-
-                extrinsic = substrate.create_signed_extrinsic(
-                    call=call, keypair=wallet.coldkey
-                )  # sign with coldkey
-                logger.debug(f"Created signed extrinsic: {extrinsic}")
-
-                response = substrate.submit_extrinsic(
-                    extrinsic,
-                    wait_for_inclusion=wait_for_inclusion,
-                    wait_for_finalization=wait_for_finalization,
-                )
-                logger.debug(f"Submitted extrinsic. Response: {response}")
-
-                # We only wait here if we expect finalization.
-                if not wait_for_finalization and not wait_for_inclusion:
-                    logger.debug("Not waiting for finalization or inclusion")
-                    return True
-
-                response.process_events()
-                logger.debug(f"Processed events. Response: {response}")
-
-                if response.is_success:
-                    logger.info("Extrinsic succeeded")
-                    return True
-                else:
-                    error_message = response.error_message
-                    logger.error(f"Extrinsic failed. Error message: {error_message}")
-                    raise TakeError(error_message)
-
-        logger.info("Calling make_substrate_call_with_retry")
-        return make_substrate_call_with_retry()
 
     ################
     #### Legacy ####

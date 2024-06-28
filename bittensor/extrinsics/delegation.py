@@ -89,7 +89,7 @@ def decrease_take_extrinsic(
                 )
                 bittensor.logging.success(
                     prefix="Decrease Delegate Take",
-                    sufix="<green>Finalized: </green>" + str(success),
+                    suffix="<green>Finalized: </green>" + str(success),
                 )
 
             return success
@@ -99,7 +99,7 @@ def decrease_take_extrinsic(
                 ":cross_mark: [red]Failed[/red]: error:{}".format(e)
             )
             bittensor.logging.warning(
-                prefix="Set weights", sufix="<red>Failed: </red>" + str(e)
+                prefix="Set weights", suffix="<red>Failed: </red>" + str(e)
             )
 
     return False
@@ -153,7 +153,7 @@ def increase_take_extrinsic(
                 )
                 bittensor.logging.success(
                     prefix="Increase Delegate Take",
-                    sufix="<green>Finalized: </green>" + str(success),
+                    suffix="<green>Finalized: </green>" + str(success),
                 )
 
             return success
@@ -163,14 +163,14 @@ def increase_take_extrinsic(
                 ":cross_mark: [red]Failed[/red]: error:{}".format(e)
             )
             bittensor.logging.warning(
-                prefix="Set weights", sufix="<red>Failed: </red>" + str(e)
+                prefix="Set weights", suffix="<red>Failed: </red>" + str(e)
             )
         except TakeError as e:
             bittensor.__console__.print(
                 ":cross_mark: [red]Failed[/red]: error:{}".format(e)
             )
             bittensor.logging.warning(
-                prefix="Set weights", sufix="<red>Failed: </red>" + str(e)
+                prefix="Set weights", suffix="<red>Failed: </red>" + str(e)
             )
 
     return False
@@ -220,7 +220,7 @@ def set_delegates_takes_extrinsic(
                 )
                 bittensor.logging.success(
                     prefix="Set Delegate Takes",
-                    sufix="<green>Finalized: </green>" + str(success),
+                    suffix="<green>Finalized: </green>" + str(success),
                 )
 
                 return True
@@ -230,14 +230,14 @@ def set_delegates_takes_extrinsic(
                 ":cross_mark: [red]Failed[/red]: error:{}".format(e)
             )
             bittensor.logging.warning(
-                prefix="Set Delegate Takes", sufix="<red>Failed: </red>" + str(e)
+                prefix="Set Delegate Takes", suffix="<red>Failed: </red>" + str(e)
             )
         except TakeError as e:
             bittensor.__console__.print(
                 ":cross_mark: [red]Failed[/red]: error:{}".format(e)
             )
             bittensor.logging.warning(
-                prefix="Set Delegate Takes", sufix="<red>Failed: </red>" + str(e)
+                prefix="Set Delegate Takes", suffix="<red>Failed: </red>" + str(e)
             )
 
             return False

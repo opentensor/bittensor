@@ -70,17 +70,13 @@ class SetTakeCommand:
         config = cli.config.copy()
         wallet = bittensor.wallet(config=cli.config)
 
-        # Unlock the wallet.
-        wallet.hotkey
-        wallet.coldkey
-
         # Get available netuids
         netuids = subtensor.get_all_subnet_netuids()
 
         # Prompt user for netuid and take value.
         netuid = config.get("netuid")
         if netuid == None:
-            netuid = IntPrompt.ask(f"Enter subnet ID")
+            netuid = IntPrompt.ask(f"Enter subnet ID ({netuids[0]}..{netuids[len(netuids)-1]})")
         else:
             netuid = int(netuid)
         # Check if netuid exists
@@ -89,17 +85,25 @@ class SetTakeCommand:
                 "ERROR: This netuid ({}) doesn't exist on the network".format(netuid)
             )
             return
+        
+        # Print current take
+        current_take = subtensor.get_delegate_take(wallet.hotkey.ss58_address, netuid)
+        bittensor.__console__.print(f"Current take: {current_take * 100.:.2f} %")
 
         # Prompt user for take value.
         new_take_str = config.get("take")
         if new_take_str == None:
-            new_take = FloatPrompt.ask(f"Enter take value (0.18 for 18%)")
+            new_take = FloatPrompt.ask(f"Enter new take value (0.18 for 18%)")
         else:
             new_take = float(new_take_str)
 
         if new_take > 0.18:
             bittensor.__console__.print("ERROR: Take value should not exceed 18%")
             return
+
+        # Unlock the wallet.
+        wallet.hotkey
+        wallet.coldkey
 
         result: bool = subtensor.set_take(
             wallet=wallet,
