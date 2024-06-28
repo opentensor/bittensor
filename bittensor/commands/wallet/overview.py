@@ -25,13 +25,13 @@ from rich.align import Align
 from rich.table import Table
 from rich.prompt import Prompt
 from typing import List, Optional, Dict, Tuple
-from .utils import (
+from ..utils import (
     get_hotkey_wallets_for_wallet,
     get_coldkey_wallets_for_path,
     get_all_wallets_for_path,
     filter_netuids_by_registered_hotkeys,
 )
-from . import defaults
+from .. import defaults
 
 console = bittensor.__console__
 
@@ -663,8 +663,9 @@ class OverviewCommand:
                     return False  # Skip hotkeys that we have no stake with.
                 if stake_info.hotkey_ss58 in all_hotkey_addresses:
                     return False  # Skip hotkeys that are in our wallets.
-                if subtensor.is_hotkey_delegate(hotkey_ss58=stake_info.hotkey_ss58):
-                    return False  # Skip hotkeys that are delegates, they show up in btcli my_delegates table.
+
+                # TODO: All hotkeys are delegates now, so they show up in btcli my_delegates table.
+                # Do we need this?
 
                 return True
 

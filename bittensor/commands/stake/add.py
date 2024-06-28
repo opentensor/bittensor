@@ -80,14 +80,6 @@ class AddStakeCommand:
             bt.__console__.print(f"[red]Hotkey [bold]{staking_address_ss58}[/bold] is not registered on any subnets. Aborting.[/red]")
             sys.exit(1)
 
-
-        # DEPRECATED.
-        # # Check to see if the hotkey is a delegate.
-        # if wallet.coldkeypub.ss58_address != subtensor.get_hotkey_owner(staking_address_ss58):
-        #     if not subtensor.is_hotkey_delegate(staking_address_ss58):
-        #         bt.__console__.print(f"[red]Hotkey [bold]{staking_address_ss58}[/bold] is not a delegate. Aborting.[/red]")
-        #         sys.exit(1)
-
         # Get the current wallet balance.
         current_wallet_balance: bt.Balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
 

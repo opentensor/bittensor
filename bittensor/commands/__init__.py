@@ -66,58 +66,56 @@ defaults: Munch = munchify(
     }
 )
 
-from .subnets.list_subnets import ListSubnetsCommand
+# Subnets
+from .subnets.list import ListSubnetsCommand
 from .subnets.metagraph import ShowMetagraph
-from .staking.add_stake import AddStakeCommand
-from .staking.remove_stake import RemoveStakeCommand
+from .subnets.create import RegisterSubnetworkCommand
+from .subnets.pow_register import PowRegisterCommand
+from .subnets.register import RegisterCommand
 
-from .stake import (
-    StakeCommand,
-    StakeList,
-)
-from .unstake import UnStakeCommand
-from .overview import OverviewCommand
-from .register import (
-    PowRegisterCommand,
-    RegisterCommand,
-    RunFaucetCommand,
-    SwapHotkeyCommand,
-)
-from .delegates import (
-    SetTakeCommand,
-    SetDelegateTakesCommand,
-)
-from .wallets import (
-    NewColdkeyCommand,
-    NewHotkeyCommand,
-    RegenColdkeyCommand,
-    RegenColdkeypubCommand,
-    RegenHotkeyCommand,
-    UpdateWalletCommand,
-    WalletCreateCommand,
-    WalletBalanceCommand,
-    GetWalletHistoryCommand,
-)
-from .transfer import TransferCommand
-from .inspect import InspectCommand
-from .list import ListCommand
-from .misc import UpdateCommand, AutocompleteCommand
-from .senate import (
-    SenateCommand,
-    ShowVotesCommand,
-    SenateRegisterCommand,
-    SenateLeaveCommand,
-    VoteCommand,
-)
-from .network import (
-    RegisterSubnetworkCommand,
-    SubnetSudoCommand,
-    SubnetHyperparamsCommand,
-)
-from .root import (
-    RootSetWeightsCommand,
-    RootGetWeightsCommand,
-    RootSetBoostCommand,
-    RootSetSlashCommand,
-)
-from .identity import GetIdentityCommand, SetIdentityCommand
+# Wallet
+from .wallet.list import ListCommand
+from .wallet.overview import OverviewCommand
+from .wallet.transfer import TransferCommand
+from .wallet.inspect import InspectCommand
+from .wallet.balance import WalletBalanceCommand
+from .wallet.create import WalletCreateCommand
+from .wallet.new_hotkey import NewHotkeyCommand
+from .wallet.new_coldkey import NewColdkeyCommand
+from .wallet.regen_coldkey import RegenColdkeyCommand
+from .wallet.regen_coldkeypub import RegenColdkeypubCommand
+from .wallet.regen_hotkey import RegenHotkeyCommand
+from .wallet.faucet import RunFaucetCommand
+from .wallet.update import UpdateWalletCommand
+from .wallet.swap_hotkey import SwapHotkeyCommand
+from .wallet.set_identity import SetIdentityCommand
+from .wallet.get_identity import GetIdentityCommand
+from .wallet.history import GetWalletHistoryCommand
+
+# Staking 
+from .stake.add import AddStakeCommand
+from .stake.remove import RemoveStakeCommand
+from .stake.list import StakeList
+
+# Sudo 
+from .sudo.vote import VoteCommand
+from .sudo.senate import SenateCommand
+from .sudo.set_take import SetTakeCommand
+from .sudo.set_hparam import SubnetSudoCommand
+from .sudo.hyperparameters import SubnetHyperparamsCommand
+
+# Misc
+from .misc.misc import UpdateCommand, AutocompleteCommand
+
+# TODO: Unused command, either remove or use
+# from .senate import (
+#     ShowVotesCommand,
+#     SenateRegisterCommand,
+#     SenateLeaveCommand,
+# )
+# from .root import (
+#     RootSetWeightsCommand,
+#     RootGetWeightsCommand,
+#     RootSetBoostCommand,
+#     RootSetSlashCommand,
+# )

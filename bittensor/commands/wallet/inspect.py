@@ -20,14 +20,14 @@ import bittensor
 from tqdm import tqdm
 from rich.table import Table
 from rich.prompt import Prompt
-from .utils import (
+from ..utils import (
     get_delegates_details,
     DelegatesDetails,
     get_hotkey_wallets_for_wallet,
     get_all_wallets_for_path,
     filter_netuids_by_registered_hotkeys,
 )
-from . import defaults
+from .. import defaults
 
 console = bittensor.__console__
 

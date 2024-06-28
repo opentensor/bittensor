@@ -41,7 +41,6 @@ from .commands import (
     RemoveStakeCommand,
     RunFaucetCommand,
     SenateCommand,
-    SetDelegateTakesCommand,
     SetIdentityCommand,
     SetTakeCommand,
     StakeList,
