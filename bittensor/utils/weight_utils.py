@@ -180,7 +180,7 @@ def convert_bond_uids_and_vals_to_tensor(
     return row_bonds
 
 
-def convert_values_and_ids_for_emit(
+def convert_weights_and_uids_for_emit(
     uids: Union[NDArray[np.int64], "torch.LongTensor"],
     weights: Union[NDArray[np.float32], "torch.FloatTensor"],
 ) -> Tuple[List[int], List[int]]:

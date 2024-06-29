@@ -44,6 +44,7 @@ from substrateinterface.exceptions import SubstrateRequestException
 import bittensor
 from bittensor.btlogging import logging as _logger
 from bittensor.utils import torch, weight_utils, format_error_message
+from . import ChildInfo
 from .chain_data import (
     DelegateInfoLite,
     NeuronInfo,
@@ -57,8 +58,15 @@ from .chain_data import (
     ProposalVoteData,
     IPInfo,
     custom_rpc_type_registry,
+    ChildInfo,
 )
-from .errors import IdentityError, NominationError, StakeError, TakeError
+from .errors import (
+    IdentityError,
+    NominationError,
+    StakeError,
+    TakeError,
+    ChildrenInfoError,
+)
 from .extrinsics.commit_weights import (
     commit_weights_extrinsic,
     reveal_weights_extrinsic,
@@ -97,15 +105,11 @@ from .extrinsics.set_weights import set_weights_extrinsic
 from .extrinsics.staking import (
     add_stake_extrinsic,
     add_stake_multiple_extrinsic,
-    do_set_child_singular_extrinsic,
-    do_set_children_multiple_extrinsic,
 )
 from .extrinsics.transfer import transfer_extrinsic
 from .extrinsics.unstaking import (
     unstake_extrinsic,
     unstake_multiple_extrinsic,
-    do_revoke_child_singular_extrinsic,
-    do_revoke_children_multiple_extrinsic,
 )
 from .types import AxonServeCallParams, PrometheusServeCallParams
 from .utils import (
@@ -2313,128 +2317,35 @@ class Subtensor:
     # Setting hotkeys #
     ###################
 
-    def get_children(
+    def call(
         self,
-        netuid: int,
-        wallet: "bittensor.wallet",
-    ) -> tuple[bool, str] | tuple[bool, ExtrinsicReceipt]:  # TODO: get Child object
-        """
-        Retrieves the hyperparameters for a specific subnet within the Bittensor network. These hyperparameters
-        define the operational settings and rules governing the subnet's behavior.
+        call_module,
+        call_function,
+        call_params,
+        wallet,
+        wait_for_inclusion,
+        wait_for_finalization,
+    ) -> Tuple[bool, Optional[str]]:
+        """Sends a substrate call to the chain.
 
         Args:
-            netuid (int): The network UID of the subnet to query.
             wallet (:func:`bittensor.wallet`): Wallet object that can sign the extrinsic.
-
+            call_module: (str): Module being called on the substrate.
+            call_function: (str): The function being called within the module.
+            call_params (dict): Call parameters.
+            wait_for_inclusion (bool): If ``true``, waits for inclusion before returning.
+            wait_for_finalization (bool): If ``true``, waits for finalization before returning.
         Returns:
-            Optional[List[Children]]: The subnet's list of children with hotkeys, or ``None`` if not available.
-
-        Understanding the hyperparameters is crucial for comprehending how subnets are configured and
-        managed, and how they interact with the network's consensus and incentive mechanisms.
+            Tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
         """
 
         @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
         def make_substrate_call_with_retry():
             # create extrinsic call
             call = self.substrate.compose_call(
-                call_module="SubtensorModule",
-                call_function="get_children",
-                call_params={
-                    "netuid": netuid,
-                },
-            )
-            extrinsic = self.substrate.create_signed_extrinsic(
-                call=call, keypair=wallet.coldkey
-            )
-            response = self.substrate.submit_extrinsic(
-                extrinsic,
-            )
-
-            # process if registration successful, try again if pow is still valid
-            response.process_events()
-            if not response.is_success:
-                return False, format_error_message(response.error_message)
-            else:
-                return True, response
-
-        return make_substrate_call_with_retry()
-
-    def set_child_singular(
-        self,
-        wallet: "bittensor.wallet",
-        hotkey: str,
-        child: str,
-        netuid: int,
-        proportion: float,
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = False,
-        prompt: bool = False,
-    ) -> bool:
-        """Sets a child hotkey extrinsic on the subnet.
-
-        Args:
-            wallet (:func:`bittensor.wallet`): Wallet object that can sign the extrinsic.
-            hotkey: (str): Hotkey ``ss58`` address of the parent.
-            child: (str): Hotkey ``ss58`` address of the child.
-            netuid (int): Unique identifier for the network.
-            proportion (float): Proportion allocated to the child.
-            wait_for_inclusion (bool): If ``true``, waits for inclusion before returning.
-            wait_for_finalization (bool): If ``true``, waits for finalization before returning.
-            prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
-        Returns:
-            success (bool): ``True`` if the extrinsic was successful.
-        Raises:
-            ChildHotkeyError: If the extrinsic failed.
-        """
-
-        return do_set_child_singular_extrinsic(
-            self,
-            wallet=wallet,
-            hotkey=hotkey,
-            child=child,
-            netuid=netuid,
-            proportion=proportion,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-            prompt=prompt,
-        )
-
-    def _do_set_child_singular(
-        self,
-        wallet: "bittensor.wallet",
-        hotkey: str,
-        child: str,
-        netuid: int,
-        proportion: int,
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = False,
-    ):
-        """Sends a child hotkey extrinsic on the chain.
-
-        Args:
-            wallet (:func:`bittensor.wallet`): Wallet object that can sign the extrinsic.
-            hotkey: (str): Hotkey ``ss58`` address of the parent.
-            child: (str): Hotkey ``ss58`` address of the child.
-            netuid (int): Unique identifier for the network.
-            proportion (int): Proportion allocated to the child in u16 format.
-            wait_for_inclusion (bool): If ``true``, waits for inclusion before returning.
-            wait_for_finalization (bool): If ``true``, waits for finalization before returning.
-        Returns:
-            success (bool): ``True`` if the extrinsic was successful.
-        """
-
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
-        def make_substrate_call_with_retry():
-            # create extrinsic call
-            call = self.substrate.compose_call(
-                call_module="SubtensorModule",
-                call_function="set_child_singular",
-                call_params={
-                    "hotkey": hotkey,
-                    "child": child,
-                    "netuid": netuid,
-                    "proportion": proportion,
-                },
+                call_module=call_module,
+                call_function=call_function,
+                call_params=call_params,
             )
             extrinsic = self.substrate.create_signed_extrinsic(
                 call=call, keypair=wallet.coldkey
@@ -2447,104 +2358,7 @@ class Subtensor:
 
             # We only wait here if we expect finalization.
             if not wait_for_finalization and not wait_for_inclusion:
-                return True
-
-            # process if registration successful, try again if pow is still valid
-            response.process_events()
-            if not response.is_success:
-                return False, format_error_message(response.error_message)
-            # Successful registration
-            else:
                 return True, None
-
-        return make_substrate_call_with_retry()
-
-    def set_children_multiple(
-        self,
-        wallet: "bittensor.wallet",
-        hotkey: str,
-        children: Union[np.ndarray, list],
-        netuid: int,
-        proportions: Union[NDArray[np.float32], list],
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = False,
-        prompt: bool = False,
-    ) -> bool:
-        """Sets a children hotkeys extrinsic on the subnet.
-
-        Args:
-            wallet (:func:`bittensor.wallet`): Wallet object that can sign the extrinsic.
-            hotkey: (str): Hotkey ``ss58`` address of the parent.
-            children: (np.ndarray): Hotkey ``ss58`` addresses of the children.
-            netuid (int): Unique identifier for the network.
-            proportions (np.ndarray): The corresponding proportions allocated to the children.
-            wait_for_inclusion (bool): If ``true``, waits for inclusion before returning.
-            wait_for_finalization (bool): If ``true``, waits for finalization before returning.
-            prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
-        Returns:
-            success (bool): ``True`` if the extrinsic was successful.
-        Raises:
-            ChildHotkeyError: If the extrinsic failed.
-        """
-
-        return do_set_children_multiple_extrinsic(
-            self,
-            wallet=wallet,
-            hotkey=hotkey,
-            children=children,
-            netuid=netuid,
-            proportions=proportions,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-            prompt=prompt,
-        )
-
-    def _do_set_children_multiple(
-        self,
-        wallet: "bittensor.wallet",
-        hotkey: str,
-        children_with_proportions: List[Tuple[str, int]],
-        netuid: int,
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = False,
-    ):
-        """Sends a child hotkey extrinsic on the chain.
-
-        Args:
-            wallet (:func:`bittensor.wallet`): Wallet object that can sign the extrinsic.
-            hotkey: (str): Hotkey ``ss58`` address of the parent.
-            children_with_proportions: (List[Tuple[str, int]]): A list of tuples containing the hotkey ``ss58`` addresses of the children and their proportions as u16 MAX standardized values.
-            netuid (int): Unique identifier for the network.
-            wait_for_inclusion (bool): If ``true``, waits for inclusion before returning.
-            wait_for_finalization (bool): If ``true``, waits for finalization before returning.
-        Returns:
-            success (bool): ``True`` if the extrinsic was successful.
-        """
-
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
-        def make_substrate_call_with_retry():
-            # create extrinsic call
-            call = self.substrate.compose_call(
-                call_module="SubtensorModule",
-                call_function="set_children_multiple",
-                call_params={
-                    "hotkey": hotkey,
-                    "children_with_proportions": children_with_proportions,
-                    "netuid": netuid,
-                },
-            )
-            extrinsic = self.substrate.create_signed_extrinsic(
-                call=call, keypair=wallet.coldkey
-            )
-            response = self.substrate.submit_extrinsic(
-                extrinsic,
-                wait_for_inclusion=wait_for_inclusion,
-                wait_for_finalization=wait_for_finalization,
-            )
-
-            # We only wait here if we expect finalization.
-            if not wait_for_finalization and not wait_for_inclusion:
-                return True
 
             # process if registration successful, try again if pow is still valid
             response.process_events()
@@ -2559,43 +2373,6 @@ class Subtensor:
     ####################
     # Revoking hotkeys #
     ####################
-
-    def revoke_child_singular(
-        self,
-        wallet: "bittensor.wallet",
-        hotkey: str,
-        child: str,
-        netuid: int,
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = False,
-        prompt: bool = False,
-    ) -> bool:
-        """Sets a child hotkey extrinsic on the subnet.
-
-        Args:
-            wallet (:func:`bittensor.wallet`): Wallet object that can sign the extrinsic.
-            hotkey: (str): Hotkey ``ss58`` address of the parent.
-            child: (str): Hotkey ``ss58`` address of the child.
-            netuid (int): Unique identifier for the network.
-            wait_for_inclusion (bool): If ``true``, waits for inclusion before returning.
-            wait_for_finalization (bool): If ``true``, waits for finalization before returning.
-            prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
-        Returns:
-            success (bool): ``True`` if the extrinsic was successful.
-        Raises:
-            ChildHotkeyError: If the extrinsic failed.
-        """
-
-        return do_revoke_child_singular_extrinsic(
-            self,
-            wallet=wallet,
-            hotkey=hotkey,
-            child=child,
-            netuid=netuid,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-            prompt=prompt,
-        )
 
     def _do_revoke_child_singular(
         self,
@@ -4908,6 +4685,82 @@ class Subtensor:
 
         return DelegateInfo.delegated_list_from_vec_u8(result)
 
+    ############################
+    # Child Hotkey Information #
+    ############################
+
+    def get_child_info(
+        self, netuid: int, child: str, proportion: int, block: Optional[int] = None
+    ) -> list[ChildInfo]:
+        """
+        Retrieves the child hotkey information for a specific subnet within the Bittensor network. These child hotkeys
+        define show delegated authority to neurons on the subnet.
+
+        Args:
+            netuid (int): The network UID of the subnet to query.
+            child (str): The AccountId of the child neuron
+            proportion (int): The proportion of stake allocated to this child
+            block (Optional[int], optional): The blockchain block number for the query.
+
+        Returns:
+            Optional[ChildInfo]: A ChildInfo objects detailing its hotkey allocations for the subnet.
+
+        Understanding child hotkey allocation is crucial for delegating authority to neurons within subnets.
+        """
+
+        child_encoded = ss58_to_vec_u8(child)
+
+        hex_bytes_result = self.query_runtime_api(
+            runtime_api="ChildrenInfoRuntimeApi",
+            method="get_child_info",
+            params={"netuid": netuid, "child": child_encoded, "proportion": proportion},
+            block=block,
+        )
+
+        if hex_bytes_result is None:
+            raise ChildrenInfoError("Could not find child.")
+
+        if hex_bytes_result.startswith("0x"):
+            bytes_result = bytes.fromhex(hex_bytes_result[2:])
+        else:
+            bytes_result = bytes.fromhex(hex_bytes_result)
+
+        return ChildInfo.list_from_vec_u8(bytes_result)  # type: ignore
+
+    def get_children_info(
+        self, netuid: int, block: Optional[int] = None
+    ) -> Optional[List[ChildInfo]]:
+        """
+        Retrieves the child hotkey information for a specific subnet within the Bittensor network. These child hotkeys
+        define show delegated authority to neurons on the subnet.
+
+        Args:
+            netuid (int): The network UID of the subnet to query.
+            block (Optional[int], optional): The blockchain block number for the query.
+
+        Returns:
+            Optional[List[ChildInfo]]: A list of ChildInfo objects detailing the hotkey allocations for the subnet.
+
+        Understanding child hotkey allocation is crucial for delegating authority to neurons within subnets.
+        """
+
+        hex_bytes_result = self.query_runtime_api(
+            runtime_api="ChildrenInfoRuntimeApi",
+            method="get_children_info",
+            params={"netuid": netuid},
+            block=block,
+        )
+
+        if hex_bytes_result is None:
+            return []
+
+        if hex_bytes_result.startswith("0x"):
+            bytes_result = bytes.fromhex(hex_bytes_result[2:])
+        else:
+            bytes_result = bytes.fromhex(hex_bytes_result)
+
+        return ChildInfo.list_of_tuple_from_vec_u8(bytes_result)  # type: ignore
+
     #####################
     # Stake Information #
     #####################
@@ -5500,41 +5353,6 @@ class Subtensor:
                 b_map.append((uid.serialize(), b.serialize()))
 
         return b_map
-
-    def associated_validator_ip_info(
-        self, netuid: int, block: Optional[int] = None
-    ) -> Optional[List["IPInfo"]]:
-        """
-        Retrieves the list of all validator IP addresses associated with a specific subnet in the Bittensor
-        network. This information is crucial for network communication and the identification of validator nodes.
-
-        Args:
-            netuid (int): The network UID of the subnet to query.
-            block (Optional[int]): The blockchain block number for the query.
-
-        Returns:
-            Optional[List[IPInfo]]: A list of IPInfo objects for validator nodes in the subnet, or ``None`` if no
-                validators are associated.
-
-        Validator IP information is key for establishing secure and reliable connections within the network,
-        facilitating consensus and validation processes critical for the network's integrity and performance.
-        """
-        hex_bytes_result = self.query_runtime_api(
-            runtime_api="ValidatorIPRuntimeApi",
-            method="get_associated_validator_ip_info_for_subnet",
-            params=[netuid],  # type: ignore
-            block=block,
-        )
-
-        if hex_bytes_result is None:
-            return None
-
-        if hex_bytes_result.startswith("0x"):
-            bytes_result = bytes.fromhex(hex_bytes_result[2:])
-        else:
-            bytes_result = bytes.fromhex(hex_bytes_result)
-
-        return IPInfo.list_from_vec_u8(bytes_result)  # type: ignore
 
     def get_subnet_burn_cost(self, block: Optional[int] = None) -> Optional[str]:
         """

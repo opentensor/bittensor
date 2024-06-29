@@ -12,13 +12,12 @@ from tests.e2e_tests.utils import setup_wallet
 Test the view child hotkeys on a subnet mechanism. 
 
 Verify that:
-* No children hotkeys at subnet creation
-* Subnet owner an set a child hotkey
-* Child hotkey is set properly with proportion
+* Call GetChildren without any children returns empty list
+* Call GetChildren with children returns a table with children
 """
 
 
-def test_set_child(local_chain, capsys):
+def test_get_children_info(local_chain, capsys):
     # Register root as Alice
     alice_keypair, alice_exec_command, alice_wallet = setup_wallet("//Alice")
     alice_exec_command(RegisterSubnetworkCommand, ["s", "create"])
@@ -76,12 +75,12 @@ def test_set_child(local_chain, capsys):
     )
 
     output = capsys.readouterr().out
-    assert "0 children" in output
+    assert "There are currently no child hotkeys on subnet 1" in output
 
     # Assert no child hotkeys on subnet
     subtensor = bittensor.subtensor(network="ws://localhost:9945")
     assert (
-        subtensor.get_children(hotkey=alice_keypair.ss58_address, netuid=1) == 0
+        subtensor.get_children_info(netuid=1) == []
     ), "Child hotkeys are already set on new subnet. "
 
     # Run set child
@@ -94,9 +93,9 @@ def test_set_child(local_chain, capsys):
             "--netuid",
             "1",
             "--child",
-            bob_wallet.hotkey_str,
+            str(bob_keypair.ss58_address),
             "--hotkey",
-            alice_wallet.hotkey_str,
+            str(alice_keypair.ss58_address),
             "--proportion",
             "0.3",
             "--wait_for_inclusion",
@@ -106,25 +105,22 @@ def test_set_child(local_chain, capsys):
         ],
     )
 
-    assert (
-        subtensor.get_children(hotkey=alice_keypair.ss58_address, netuid=1) == 1
-    ), "failed to set child hotkey"
+    subtensor = bittensor.subtensor(network="ws://localhost:9945")
+    assert len(subtensor.get_children_info(netuid=1)) == 1, "failed to set child hotkey"
 
     output = capsys.readouterr().out
-    assert "✅ Set child hotkey." in output
+    assert "✅ Finalized" in output
 
     # Run get children with a child
     # btcli stake get_children --netuid 1
     alice_exec_command(
         GetChildrenCommand,
-        [
-            "stake",
-            "get_children",
-            "--netuid",
-            "1",
-        ],
+        ["stake", "get_children", "--netuid", "1"],
     )
 
     output = capsys.readouterr().out
-    assert "1 children" in output
-    assert "0.3 proportion" in output
+    # Assert table shows 1 child key with its data
+    assert (
+        "Total (  1) | Total (  1) | Total (  0.299992) | Total (    0.0000) | Avg (    \n0.0000) | Avg (    0.0000) | Total (  0.179995)"
+        in output
+    )

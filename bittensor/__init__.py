@@ -205,13 +205,30 @@ __type_registry__ = {
                 },
             },
         },
-        "ValidatorIPRuntimeApi": {
+        "ChildrenInfoRuntimeApi": {
             "methods": {
-                "get_associated_validator_ip_info_for_subnet": {
+                "get_children_info": {
                     "params": [
                         {
                             "name": "netuid",
                             "type": "u16",
+                        },
+                    ],
+                    "type": "Vec<u8>",
+                },
+                "get_child_info": {
+                    "params": [
+                        {
+                            "name": "netuid",
+                            "type": "u16",
+                        },
+                        {
+                            "name": "child",
+                            "type": "Vec<u8>",
+                        },
+                        {
+                            "name": "proportion",
+                            "type": "u64",
                         },
                     ],
                     "type": "Vec<u8>",
@@ -292,7 +309,6 @@ from .utils import (
     strtobool,
     strtobool_with_default,
     get_explorer_root_url_by_network_from_map,
-    get_explorer_root_url_by_network_from_map,
     get_explorer_url_for_network,
     ss58_address_to_bytes,
     U16_NORMALIZED_FLOAT,
@@ -310,6 +326,7 @@ from .chain_data import (
     PrometheusInfo,
     DelegateInfo,
     StakeInfo,
+    ChildInfo,
     SubnetInfo,
     SubnetHyperparameters,
     IPInfo,
