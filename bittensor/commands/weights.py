@@ -86,7 +86,7 @@ class CommitWeightCommand:
         weights = np.array(
             [float(x) for x in re.split(r"[ ,]+", cli.config.weights)], dtype=np.float32
         )
-        weight_uids, weight_vals = weight_utils.convert_values_and_ids_for_emit(
+        weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(
             uids=uids, weights=weights
         )
 
@@ -227,7 +227,7 @@ class RevealWeightCommand:
             [int(x) for x in re.split(r"[ ,]+", cli.config.salt)],
             dtype=np.int64,
         )
-        weight_uids, weight_vals = weight_utils.convert_values_and_ids_for_emit(
+        weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(
             uids=uids, weights=weights
         )
 

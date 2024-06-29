@@ -58,7 +58,7 @@ class UnstakeError(ChainTransactionError):
     pass
 
 
-class ChildHotkeyError(ChainTransactionError):
+class ChildrenInfoError(ChainTransactionError):
     r"""Error raised when a setting a child hotkey transaction fails."""
 
     pass
