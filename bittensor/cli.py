@@ -252,9 +252,9 @@ class cli:
     """
 
     def __init__(
-            self,
-            config: Optional["bittensor.config"] = None,
-            args: Optional[List[str]] = None,
+        self,
+        config: Optional["bittensor.config"] = None,
+        args: Optional[List[str]] = None,
     ):
         """
         Initializes a bittensor.CLI object.
