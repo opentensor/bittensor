@@ -16,7 +16,6 @@
 # DEALINGS IN THE SOFTWARE.
 
 import re
-import torch
 import typing
 import argparse
 import numpy as np
@@ -174,7 +173,7 @@ class RootList:
             no_wrap=True,
         )
         table.add_column(
-            "[overline white]STAKE(\u03C4)",
+            "[overline white]STAKE(\u03c4)",
             footer_style="overline white",
             justify="right",
             style="green",
@@ -283,7 +282,6 @@ class RootSetBoostCommand:
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""Set weights for root network."""
         wallet = bittensor.wallet(config=cli.config)
-        subnets: List[bittensor.SubnetInfo] = subtensor.get_all_subnets_info()
 
         root = subtensor.metagraph(0, lite=False)
         try:
@@ -301,7 +299,7 @@ class RootSetBoostCommand:
             f"Boosting weight for netuid {cli.config.netuid} from {prev_weight} -> {new_weight}"
         )
         my_weights[cli.config.netuid] = new_weight
-        all_netuids = torch.tensor(list(range(len(my_weights))))
+        all_netuids = np.arange(len(my_weights))
 
         bittensor.__console__.print("Setting root weights...")
         subtensor.root_set_weights(
@@ -401,7 +399,6 @@ class RootSetSlashCommand:
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         wallet = bittensor.wallet(config=cli.config)
-        subnets: List[bittensor.SubnetInfo] = subtensor.get_all_subnets_info()
 
         bittensor.__console__.print(
             "Slashing weight for subnet: {} by amount: {}".format(
@@ -419,7 +416,7 @@ class RootSetSlashCommand:
         my_weights = root.weights[my_uid]
         my_weights[cli.config.netuid] -= cli.config.amount
         my_weights[my_weights < 0] = 0  # Ensure weights don't go negative
-        all_netuids = torch.tensor(list(range(len(my_weights))))
+        all_netuids = np.arange(len(my_weights))
 
         subtensor.root_set_weights(
             wallet=wallet,
@@ -520,13 +517,13 @@ class RootSetWeightsCommand:
             cli.config.weights = Prompt.ask(f"Enter weights (e.g. {example})")
 
         # Parse from string
-        netuids = torch.tensor(
-            list(map(int, re.split(r"[ ,]+", cli.config.netuids))), dtype=torch.long
-        )
-        weights = torch.tensor(
-            list(map(float, re.split(r"[ ,]+", cli.config.weights))),
-            dtype=torch.float32,
-        )
+        matched_netuids = list(map(int, re.split(r"[ ,]+", cli.config.netuids)))
+        netuids = np.array(matched_netuids, dtype=np.int64)
+
+        matched_weights = [
+            float(weight) for weight in re.split(r"[ ,]+", cli.config.weights)
+        ]
+        weights = np.array(matched_weights, dtype=np.float32)
 
         # Run the set weights operation.
         subtensor.root_set_weights(

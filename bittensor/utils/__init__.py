@@ -16,14 +16,15 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from typing import Callable, Union, List, Optional, Dict, Literal
-
-import bittensor
 import hashlib
-import requests
-import torch
+from typing import Callable, List, Dict, Literal, Tuple
+
+import numpy as np
 import scalecodec
 
+import bittensor
+from .registration import torch, use_torch
+from .version import version_checking, check_version, VersionCheckError
 from .wallet_utils import *  # noqa F401
 
 RAOPERTAO = 1e9
@@ -37,54 +38,98 @@ def ss58_to_vec_u8(ss58_address: str) -> List[int]:
     return encoded_address
 
 
-def unbiased_topk(values, k, dim=0, sorted=True, largest=True):
-    r"""Selects topk as in torch.topk but does not bias lower indices when values are equal.
+def _unbiased_topk(
+    values: Union[np.ndarray, "torch.Tensor"],
+    k: int,
+    dim=0,
+    sorted=True,
+    largest=True,
+    axis=0,
+    return_type: str = "numpy",
+) -> Union[Tuple[np.ndarray, np.ndarray], Tuple["torch.Tensor", "torch.LongTensor"]]:
+    """Selects topk as in torch.topk but does not bias lower indices when values are equal.
     Args:
-        values: (torch.Tensor)
+        values: (np.ndarray) if using numpy, (torch.Tensor) if using torch:
             Values to index into.
         k: (int):
             Number to take.
+        dim: (int):
+            Dimension to index into (used by Torch)
+        sorted: (bool):
+            Whether to sort indices.
+        largest: (bool):
+            Whether to take the largest value.
+        axis: (int):
+            Axis along which to index into (used by Numpy)
+        return_type: (str):
+            Whether or use torch or numpy approach
 
     Return:
-        topk: (torch.Tensor):
+        topk: (np.ndarray) if using numpy, (torch.Tensor) if using torch:
             topk k values.
-        indices: (torch.LongTensor)
+        indices: (np.ndarray) if using numpy, (torch.LongTensor) if using torch:
             indices of the topk values.
     """
-    permutation = torch.randperm(values.shape[dim])
-    permuted_values = values[permutation]
-    topk, indices = torch.topk(
-        permuted_values, k, dim=dim, sorted=sorted, largest=largest
-    )
-    return topk, permutation[indices]
-
-
-def version_checking(timeout: int = 15):
-    try:
-        bittensor.logging.debug(
-            f"Checking latest Bittensor version at: {bittensor.__pipaddress__}"
+    if return_type == "torch":
+        permutation = torch.randperm(values.shape[dim])
+        permuted_values = values[permutation]
+        topk, indices = torch.topk(
+            permuted_values, k, dim=dim, sorted=sorted, largest=largest
         )
-        response = requests.get(bittensor.__pipaddress__, timeout=timeout)
-        latest_version = response.json()["info"]["version"]
-        version_split = latest_version.split(".")
-        latest_version_as_int = (
-            (100 * int(version_split[0]))
-            + (10 * int(version_split[1]))
-            + (1 * int(version_split[2]))
+        return topk, permutation[indices]
+    else:
+        if dim != 0 and axis == 0:
+            # Ensures a seamless transition for calls made to this function that specified args by keyword
+            axis = dim
+
+        permutation = np.random.permutation(values.shape[axis])
+        permuted_values = np.take(values, permutation, axis=axis)
+        indices = np.argpartition(permuted_values, -k, axis=axis)[-k:]
+        if not sorted:
+            indices = np.sort(indices, axis=axis)
+        if not largest:
+            indices = indices[::-1]
+        topk = np.take(permuted_values, indices, axis=axis)
+        return topk, permutation[indices]
+
+
+def unbiased_topk(
+    values: Union[np.ndarray, "torch.Tensor"],
+    k: int,
+    dim: int = 0,
+    sorted: bool = True,
+    largest: bool = True,
+    axis: int = 0,
+) -> Union[Tuple[np.ndarray, np.ndarray], Tuple["torch.Tensor", "torch.LongTensor"]]:
+    """Selects topk as in torch.topk but does not bias lower indices when values are equal.
+    Args:
+        values: (np.ndarray) if using numpy, (torch.Tensor) if using torch:
+            Values to index into.
+        k: (int):
+            Number to take.
+        dim: (int):
+            Dimension to index into (used by Torch)
+        sorted: (bool):
+            Whether to sort indices.
+        largest: (bool):
+            Whether to take the largest value.
+        axis: (int):
+            Axis along which to index into (used by Numpy)
+
+    Return:
+        topk: (np.ndarray) if using numpy, (torch.Tensor) if using torch:
+            topk k values.
+        indices: (np.ndarray) if using numpy, (torch.LongTensor) if using torch:
+            indices of the topk values.
+    """
+    if use_torch():
+        return _unbiased_topk(
+            values, k, dim, sorted, largest, axis, return_type="torch"
         )
-
-        if latest_version_as_int > bittensor.__version_as_int__:
-            print(
-                "\u001b[33mBittensor Version: Current {}/Latest {}\nPlease update to the latest version at your earliest convenience. "
-                "Run the following command to upgrade:\n\n\u001b[0mpython -m pip install --upgrade bittensor".format(
-                    bittensor.__version__, latest_version
-                )
-            )
-
-    except requests.exceptions.Timeout:
-        bittensor.logging.error("Version check failed due to timeout")
-    except requests.exceptions.RequestException as e:
-        bittensor.logging.error(f"Version check failed due to request failure: {e}")
+    else:
+        return _unbiased_topk(
+            values, k, dim, sorted, largest, axis, return_type="numpy"
+        )
 
 
 def strtobool_with_default(
@@ -160,9 +205,9 @@ def get_explorer_url_for_network(
 
     explorer_urls: Optional[Dict[str, str]] = {}
     # Will be None if the network is not known. i.e. not in network_map
-    explorer_root_urls: Optional[
-        Dict[str, str]
-    ] = get_explorer_root_url_by_network_from_map(network, network_map)
+    explorer_root_urls: Optional[Dict[str, str]] = (
+        get_explorer_root_url_by_network_from_map(network, network_map)
+    )
 
     if explorer_root_urls != {}:
         # We are on a known network.
@@ -213,3 +258,25 @@ def hash(content, encoding="utf-8"):
 
     # Produce the hash
     return sha3.hexdigest()
+
+
+def format_error_message(error_message: dict) -> str:
+    """
+    Formats an error message from the Subtensor error information to using in extrinsics.
+
+    Args:
+        error_message (dict): A dictionary containing the error information from Subtensor.
+
+    Returns:
+        str: A formatted error message string.
+    """
+    err_type = "UnknownType"
+    err_name = "UnknownError"
+    err_description = "Unknown Description"
+
+    if isinstance(error_message, dict):
+        err_type = error_message.get("type", err_type)
+        err_name = error_message.get("name", err_name)
+        err_docs = error_message.get("docs", [])
+        err_description = err_docs[0] if len(err_docs) > 0 else err_description
+    return f"Subtensor returned `{err_name} ({err_type})` error. This means: `{err_description}`"

@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from bittensor.subtensor import subtensor as Subtensor
+from bittensor.subtensor import Subtensor
 from bittensor.wallet import wallet as Wallet
 from bittensor.utils.registration import POWSolution
 from bittensor.extrinsics.registration import (
@@ -102,7 +102,9 @@ def test_run_faucet_extrinsic_happy_path(
         # Assert
         if isinstance(result, tuple):
             assert result[0] == expected
-            mock_subtensor.substrate.submit_extrinsic.assert_called()
+            if result[0] is True:
+                # Checks only if successful
+                mock_subtensor.substrate.submit_extrinsic.assert_called()
         else:
             assert result == expected
         mock_subtensor.get_balance.assert_called_with("mock_address")
@@ -140,7 +142,7 @@ def test_run_faucet_extrinsic_edge_cases(
         )
 
         # Assert
-        assert result == expected
+        assert result[0] == expected
 
 
 @pytest.mark.parametrize(
@@ -267,9 +269,7 @@ def test_burned_register_extrinsic(
         return_value=(recycle_success, "Mock error message"),
     ), patch.object(
         mock_subtensor, "is_hotkey_registered", return_value=is_registered
-    ), patch(
-        "rich.prompt.Confirm.ask", return_value=prompt_response
-    ) as mock_confirm:
+    ), patch("rich.prompt.Confirm.ask", return_value=prompt_response) as mock_confirm:
         # Act
         result = burned_register_extrinsic(
             subtensor=mock_subtensor, wallet=mock_wallet, netuid=123, prompt=True
@@ -311,9 +311,7 @@ def test_register_extrinsic_without_pow(
         mock_subtensor,
         "get_neuron_for_pubkey_and_subnet",
         return_value=MagicMock(is_null=neuron_is_null),
-    ), patch(
-        "rich.prompt.Confirm.ask", return_value=prompt_response
-    ), patch(
+    ), patch("rich.prompt.Confirm.ask", return_value=prompt_response), patch(
         "torch.cuda.is_available", return_value=cuda_available
     ):
         # Act
@@ -371,10 +369,8 @@ def test_register_extrinsic_with_pow(
     ), patch.object(
         mock_subtensor,
         "_do_pow_register",
-        return_value=(registration_success, "key is already registered"),
-    ), patch(
-        "torch.cuda.is_available", return_value=cuda
-    ):
+        return_value=(registration_success, "HotKeyAlreadyRegisteredInSubNet"),
+    ), patch("torch.cuda.is_available", return_value=cuda):
         # Act
         if pow_success:
             mock_pow_solution.is_stale.return_value = pow_stale

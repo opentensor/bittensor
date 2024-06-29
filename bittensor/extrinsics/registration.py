@@ -16,13 +16,20 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import bittensor
-
-import torch
 import time
-from rich.prompt import Confirm
 from typing import List, Union, Optional, Tuple
-from bittensor.utils.registration import POWSolution, create_pow
+
+from rich.prompt import Confirm
+
+import bittensor
+from bittensor.utils import format_error_message
+
+from bittensor.utils.registration import (
+    POWSolution,
+    create_pow,
+    torch,
+    log_no_torch_error,
+)
 
 
 def register_extrinsic(
@@ -102,6 +109,10 @@ def register_extrinsic(
         ):
             return False
 
+    if not torch:
+        log_no_torch_error()
+        return False
+
     # Attempt rolling registration.
     attempts = 1
     while True:
@@ -112,7 +123,7 @@ def register_extrinsic(
         if cuda:
             if not torch.cuda.is_available():
                 if prompt:
-                    bittensor.__console__.error("CUDA is not available.")
+                    bittensor.__console__.print("CUDA is not available.")
                 return False
             pow_result: Optional[POWSolution] = create_pow(
                 subtensor,
@@ -164,16 +175,17 @@ def register_extrinsic(
                     )
                     success, err_msg = result
 
-                    if success != True or success == False:
-                        if "key is already registered" in err_msg:
-                            # Error meant that the key is already registered.
+                    if not success:
+                        # Look error here
+                        # https://github.com/opentensor/subtensor/blob/development/pallets/subtensor/src/errors.rs
+                        if "HotKeyAlreadyRegisteredInSubNet" in err_msg:
                             bittensor.__console__.print(
                                 f":white_heavy_check_mark: [green]Already Registered on [bold]subnet:{netuid}[/bold][/green]"
                             )
                             return True
 
                         bittensor.__console__.print(
-                            ":cross_mark: [red]Failed[/red]: error:{}".format(err_msg)
+                            f":cross_mark: [red]Failed[/red]: {err_msg}"
                         )
                         time.sleep(0.5)
 
@@ -283,10 +295,8 @@ def burned_register_extrinsic(
             wait_for_finalization=wait_for_finalization,
         )
 
-        if success != True or success == False:
-            bittensor.__console__.print(
-                ":cross_mark: [red]Failed[/red]: error:{}".format(err_msg)
-            )
+        if not success:
+            bittensor.__console__.print(f":cross_mark: [red]Failed[/red]: {err_msg}")
             time.sleep(0.5)
             return False
         # Successful registration, final check for neuron and pubkey
@@ -340,7 +350,7 @@ def run_faucet_extrinsic(
     num_processes: Optional[int] = None,
     update_interval: Optional[int] = None,
     log_verbose: bool = False,
-) -> bool:
+) -> Tuple[bool, str]:
     r"""Runs a continual POW to get a faucet of TAO on the test net.
 
     Args:
@@ -377,7 +387,11 @@ def run_faucet_extrinsic(
                 subtensor.network,
             )
         ):
-            return False
+            return False, ""
+
+    if not torch:
+        log_no_torch_error()
+        return False, "Requires torch"
 
     # Unlock coldkey
     wallet.coldkey
@@ -391,13 +405,13 @@ def run_faucet_extrinsic(
     while True:
         try:
             pow_result = None
-            while pow_result == None or pow_result.is_stale(subtensor=subtensor):
+            while pow_result is None or pow_result.is_stale(subtensor=subtensor):
                 # Solve latest POW.
                 if cuda:
                     if not torch.cuda.is_available():
                         if prompt:
-                            bittensor.__console__.error("CUDA is not available.")
-                        return False
+                            bittensor.__console__.print("CUDA is not available.")
+                        return False, "CUDA is not available."
                     pow_result: Optional[POWSolution] = create_pow(
                         subtensor,
                         wallet,
@@ -443,11 +457,13 @@ def run_faucet_extrinsic(
             response.process_events()
             if not response.is_success:
                 bittensor.__console__.print(
-                    f":cross_mark: [red]Failed[/red]: Error: {response.error_message}"
+                    f":cross_mark: [red]Failed[/red]: {format_error_message(response.error_message)}"
                 )
                 if attempts == max_allowed_attempts:
                     raise MaxAttemptsException
                 attempts += 1
+                # Wait a bit before trying again
+                time.sleep(1)
 
             # Successful registration
             else:
@@ -459,6 +475,8 @@ def run_faucet_extrinsic(
 
                 if successes == 3:
                     raise MaxSuccessException
+
+                attempts = 1  # Reset attempts on success
                 successes += 1
 
         except KeyboardInterrupt:
@@ -495,10 +513,8 @@ def swap_hotkey_extrinsic(
             wait_for_finalization=wait_for_finalization,
         )
 
-        if success != True or success == False:
-            bittensor.__console__.print(
-                ":cross_mark: [red]Failed[/red]: error:{}".format(err_msg)
-            )
+        if not success:
+            bittensor.__console__.print(f":cross_mark: [red]Failed[/red]: {err_msg}")
             time.sleep(0.5)
             return False
 

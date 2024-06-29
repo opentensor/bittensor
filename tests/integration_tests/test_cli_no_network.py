@@ -427,7 +427,9 @@ class TestEmptyArgs(unittest.TestCase):
                 "stakes",
                 "roots",
                 "wallets",
+                "weight",
                 "st",
+                "wt",
                 "su",
             ]  # Skip duplicate aliases
         ]
@@ -1099,7 +1101,7 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
         delegate_ss58 = _get_mock_coldkey(0)
         with patch("bittensor.commands.delegates.show_delegates"):
             with patch(
-                "bittensor.subtensor.subtensor.get_delegates",
+                "bittensor.subtensor.Subtensor.get_delegates",
                 return_value=[
                     bittensor.DelegateInfo(
                         hotkey_ss58=delegate_ss58,  # return delegate with mock coldkey
@@ -1186,7 +1188,7 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
         delegate_ss58 = _get_mock_coldkey(0)
         with patch("bittensor.commands.delegates.show_delegates"):
             with patch(
-                "bittensor.subtensor.subtensor.get_delegates",
+                "bittensor.subtensor.Subtensor.get_delegates",
                 return_value=[
                     bittensor.DelegateInfo(
                         hotkey_ss58=delegate_ss58,  # return delegate with mock coldkey
@@ -1271,9 +1273,9 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
 
         mock_proposal_hash = "mock_proposal_hash"
 
-        with patch("bittensor.subtensor.subtensor.is_senate_member", return_value=True):
+        with patch("bittensor.subtensor.Subtensor.is_senate_member", return_value=True):
             with patch(
-                "bittensor.subtensor.subtensor.get_vote_data",
+                "bittensor.subtensor.Subtensor.get_vote_data",
                 return_value={"index": 1},
             ):
                 # Patch command to exit early
@@ -1330,6 +1332,122 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
 
                         # NO prompt happened
                         mock_ask_prompt.assert_not_called()
+
+    @patch("bittensor.wallet", new_callable=return_mock_wallet_factory)
+    def test_commit_reveal_weights_enabled_parse_boolean_argument(self, mock_sub, __):
+        param = "commit_reveal_weights_enabled"
+
+        def _test_value_parsing(parsed_value: bool, modified: str):
+            cli = bittensor.cli(
+                args=[
+                    "sudo",
+                    "set",
+                    "--netuid",
+                    "1",
+                    "--param",
+                    param,
+                    "--value",
+                    modified,
+                    "--wallet.name",
+                    "mock",
+                ]
+            )
+            cli.run()
+
+            _, kwargs = mock_sub.call_args
+            passed_config = kwargs["config"]
+            self.assertEqual(passed_config.param, param, msg="Incorrect param")
+            self.assertEqual(
+                passed_config.value,
+                parsed_value,
+                msg=f"Boolean argument not correctly for {modified}",
+            )
+
+        for boolean_value in [True, False, 1, 0]:
+            as_str = str(boolean_value)
+
+            _test_value_parsing(boolean_value, as_str)
+            _test_value_parsing(boolean_value, as_str.capitalize())
+            _test_value_parsing(boolean_value, as_str.upper())
+            _test_value_parsing(boolean_value, as_str.lower())
+
+    @patch("bittensor.wallet", new_callable=return_mock_wallet_factory)
+    def test_network_registration_allowed_parse_boolean_argument(self, mock_sub, __):
+        param = "network_registration_allowed"
+
+        def _test_value_parsing(parsed_value: bool, modified: str):
+            cli = bittensor.cli(
+                args=[
+                    "sudo",
+                    "set",
+                    "--netuid",
+                    "1",
+                    "--param",
+                    param,
+                    "--value",
+                    modified,
+                    "--wallet.name",
+                    "mock",
+                ]
+            )
+            cli.run()
+
+            _, kwargs = mock_sub.call_args
+            passed_config = kwargs["config"]
+            self.assertEqual(passed_config.param, param, msg="Incorrect param")
+            self.assertEqual(
+                passed_config.value,
+                parsed_value,
+                msg=f"Boolean argument not correctly for {modified}",
+            )
+
+        for boolean_value in [True, False, 1, 0]:
+            as_str = str(boolean_value)
+
+            _test_value_parsing(boolean_value, as_str)
+            _test_value_parsing(boolean_value, as_str.capitalize())
+            _test_value_parsing(boolean_value, as_str.upper())
+            _test_value_parsing(boolean_value, as_str.lower())
+
+    @patch("bittensor.wallet", new_callable=return_mock_wallet_factory)
+    def test_network_pow_registration_allowed_parse_boolean_argument(
+        self, mock_sub, __
+    ):
+        param = "network_pow_registration_allowed"
+
+        def _test_value_parsing(parsed_value: bool, modified: str):
+            cli = bittensor.cli(
+                args=[
+                    "sudo",
+                    "set",
+                    "--netuid",
+                    "1",
+                    "--param",
+                    param,
+                    "--value",
+                    modified,
+                    "--wallet.name",
+                    "mock",
+                ]
+            )
+            cli.run()
+
+            _, kwargs = mock_sub.call_args
+            passed_config = kwargs["config"]
+            self.assertEqual(passed_config.param, param, msg="Incorrect param")
+            self.assertEqual(
+                passed_config.value,
+                parsed_value,
+                msg=f"Boolean argument not correctly for {modified}",
+            )
+
+        for boolean_value in [True, False, 1, 0]:
+            as_str = str(boolean_value)
+
+            _test_value_parsing(boolean_value, as_str)
+            _test_value_parsing(boolean_value, as_str.capitalize())
+            _test_value_parsing(boolean_value, as_str.upper())
+            _test_value_parsing(boolean_value, as_str.lower())
 
 
 if __name__ == "__main__":

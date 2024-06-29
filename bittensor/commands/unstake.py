@@ -85,22 +85,23 @@ class UnStakeCommand:
                 hotkeys = str(config.hotkeys).replace("[", "").replace("]", "")
             else:
                 hotkeys = str(config.wallet.hotkey)
-            if not Confirm.ask(
-                "Unstake all Tao from: [bold]'{}'[/bold]?".format(hotkeys)
-            ):
-                amount = Prompt.ask("Enter Tao amount to unstake")
-                config.unstake_all = False
-                try:
-                    config.amount = float(amount)
-                except ValueError:
-                    console.print(
-                        ":cross_mark:[red] Invalid Tao amount[/red] [bold white]{}[/bold white]".format(
-                            amount
-                        )
-                    )
-                    sys.exit()
-            else:
+            if config.no_prompt:
                 config.unstake_all = True
+            else:
+                # I really don't like this logic flow. It can be a bit confusing to read for something
+                # as serious as unstaking all.
+                if Confirm.ask(f"Unstake all Tao from: [bold]'{hotkeys}'[/bold]?"):
+                    config.unstake_all = True
+                else:
+                    config.unstake_all = False
+                    amount = Prompt.ask("Enter Tao amount to unstake")
+                    try:
+                        config.amount = float(amount)
+                    except ValueError:
+                        console.print(
+                            f":cross_mark:[red] Invalid Tao amount[/red] [bold white]{amount}[/bold white]"
+                        )
+                        sys.exit()
 
     @staticmethod
     def add_args(command_parser):

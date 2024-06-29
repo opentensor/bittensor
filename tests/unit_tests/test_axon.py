@@ -17,18 +17,25 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+
 # Standard Lib
-import pytest
-import unittest
+import re
+from dataclasses import dataclass
+
 from typing import Any
 from unittest import IsolatedAsyncioTestCase
 from unittest.mock import AsyncMock, MagicMock, patch
 
 # Third Party
+import netaddr
+
+import pytest
 from starlette.requests import Request
+from fastapi.testclient import TestClient
 
 # Bittensor
 import bittensor
+from bittensor import Synapse, RunException
 from bittensor.axon import AxonMiddleware
 from bittensor.axon import axon as Axon
 
@@ -117,7 +124,7 @@ def test_log_and_handle_error():
 
     synapse = log_and_handle_error(synapse, Exception("Error"), 500, 100)
     assert synapse.axon.status_code == 500
-    assert synapse.axon.status_message == "Error"
+    assert re.match(r"Internal Server Error #[\da-f\-]+", synapse.axon.status_message)
     assert synapse.axon.process_time is not None
 
 
@@ -161,14 +168,19 @@ def axon_instance():
 
 
 # Mocks
+@dataclass
 class MockWallet:
-    def __init__(self, hotkey):
-        self.hotkey = hotkey
+    hotkey: Any
+    coldkey: Any = None
+    coldkeypub: Any = None
 
 
 class MockHotkey:
     def __init__(self, ss58_address):
         self.ss58_address = ss58_address
+
+    def sign(self, *args, **kwargs):
+        return f"Signed: {args!r} {kwargs!r}".encode()
 
 
 class MockInfo:
@@ -342,6 +354,55 @@ def test_to_string(info_return, expected_output, test_id):
 
 
 @pytest.mark.parametrize(
+    "ip, port, expected_ip_type, test_id",
+    [
+        # Happy path
+        (
+            "127.0.0.1",
+            8080,
+            4,
+            "valid_ipv4",
+        ),
+        (
+            "2001:0db8:85a3:0000:0000:8a2e:0370:7334",
+            3030,
+            6,
+            "valid_ipv6",
+        ),
+    ],
+)
+def test_valid_ipv4_and_ipv6_address(ip, port, expected_ip_type, test_id):
+    # Arrange
+    axon = Axon()
+    axon.ip = ip
+    axon.external_ip = ip
+    axon.port = port
+
+    # Act
+    ip_type = axon.info().ip_type
+
+    # Assert
+    assert ip_type == expected_ip_type, f"Test ID: {test_id}"
+
+
+@pytest.mark.parametrize(
+    "ip, port, expected_exception",
+    [
+        (
+            "This Is not a valid address",
+            65534,
+            netaddr.core.AddrFormatError,
+        ),
+    ],
+    ids=["failed to detect a valid IP " "address from %r"],
+)
+def test_invalid_ip_address(ip, port, expected_exception):
+    # Assert
+    with pytest.raises(expected_exception):
+        Axon(ip=ip, external_ip=ip, port=port).info()
+
+
+@pytest.mark.parametrize(
     "ip, port, ss58_address, started, forward_fns, expected_str, test_id",
     [
         # Happy path
@@ -428,8 +489,8 @@ class TestAxonMiddleware(IsolatedAsyncioTestCase):
         assert synapse.axon.version == str(bittensor.__version_as_int__)
         assert synapse.axon.uuid == "1234"
         assert synapse.axon.nonce is not None
-        assert synapse.axon.status_message == "Success"
-        assert synapse.axon.status_code == "100"
+        assert synapse.axon.status_message is None
+        assert synapse.axon.status_code == 100
         assert synapse.axon.signature == "0xaabbccdd"
 
         # Check if the preprocess function fills the dendrite information into the synapse
@@ -440,5 +501,115 @@ class TestAxonMiddleware(IsolatedAsyncioTestCase):
         assert synapse.name == "request_name"
 
 
-if __name__ == "__main__":
-    unittest.main()
+class SynapseHTTPClient(TestClient):
+    def post_synapse(self, synapse: Synapse):
+        return self.post(
+            f"/{synapse.__class__.__name__}",
+            json=synapse.model_dump(),
+            headers={"computed_body_hash": synapse.body_hash},
+        )
+
+
+@pytest.mark.asyncio
+class TestAxonHTTPAPIResponses:
+    @pytest.fixture
+    def axon(self):
+        return Axon(
+            ip="192.0.2.1",
+            external_ip="192.0.2.1",
+            wallet=MockWallet(MockHotkey("A"), MockHotkey("B"), MockHotkey("PUB")),
+        )
+
+    @pytest.fixture
+    def no_verify_axon(self, axon):
+        axon.default_verify = self.no_verify_fn
+        return axon
+
+    @pytest.fixture
+    def http_client(self, axon):
+        return SynapseHTTPClient(axon.app)
+
+    async def no_verify_fn(self, synapse):
+        return
+
+    async def test_unknown_path(self, http_client):
+        response = http_client.get("/no_such_path")
+        assert (response.status_code, response.json()) == (
+            404,
+            {
+                "message": "Synapse name 'no_such_path' not found. Available synapses ['Synapse']"
+            },
+        )
+
+    async def test_ping__no_dendrite(self, http_client):
+        response = http_client.post_synapse(bittensor.Synapse())
+        assert (response.status_code, response.json()) == (
+            401,
+            {
+                "message": "Not Verified with error: No SS58 formatted address or public key provided"
+            },
+        )
+
+    async def test_ping__without_verification(self, http_client, axon):
+        axon.verify_fns["Synapse"] = self.no_verify_fn
+        request_synapse = Synapse()
+        response = http_client.post_synapse(request_synapse)
+        assert response.status_code == 200
+        response_synapse = Synapse(**response.json())
+        assert response_synapse.axon.status_code == 200
+
+    @pytest.fixture
+    def custom_synapse_cls(self):
+        class CustomSynapse(Synapse):
+            pass
+
+        return CustomSynapse
+
+    async def test_synapse__explicitly_set_status_code(
+        self, http_client, axon, custom_synapse_cls, no_verify_axon
+    ):
+        error_message = "Essential resource for CustomSynapse not found"
+
+        async def forward_fn(synapse: custom_synapse_cls):
+            synapse.axon.status_code = 404
+            synapse.axon.status_message = error_message
+            return synapse
+
+        axon.attach(forward_fn)
+
+        response = http_client.post_synapse(custom_synapse_cls())
+        assert response.status_code == 404
+        response_synapse = custom_synapse_cls(**response.json())
+        assert (
+            response_synapse.axon.status_code,
+            response_synapse.axon.status_message,
+        ) == (404, error_message)
+
+    async def test_synapse__exception_with_set_status_code(
+        self, http_client, axon, custom_synapse_cls, no_verify_axon
+    ):
+        error_message = "Conflicting request"
+
+        async def forward_fn(synapse: custom_synapse_cls):
+            synapse.axon.status_code = 409
+            raise RunException(message=error_message, synapse=synapse)
+
+        axon.attach(forward_fn)
+
+        response = http_client.post_synapse(custom_synapse_cls())
+        assert response.status_code == 409
+        assert response.json() == {"message": error_message}
+
+    async def test_synapse__internal_error(
+        self, http_client, axon, custom_synapse_cls, no_verify_axon
+    ):
+        async def forward_fn(synapse: custom_synapse_cls):
+            raise ValueError("error with potentially sensitive information")
+
+        axon.attach(forward_fn)
+
+        response = http_client.post_synapse(custom_synapse_cls())
+        assert response.status_code == 500
+        response_data = response.json()
+        assert sorted(response_data.keys()) == ["message"]
+        assert re.match(r"Internal Server Error #[\da-f\-]+", response_data["message"])
