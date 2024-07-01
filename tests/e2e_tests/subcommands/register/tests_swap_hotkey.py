@@ -190,7 +190,7 @@ async def test_swap_hotkey_validator_owner(local_chain):
     assert alice_neuron.coldkey == await subtensor.get_hotkey_owner(
         alice_old_hotkey_address
     )
-    assert subtensor.is_hotkey_delegate(alice_neuron.hotkey) is True
+    assert await subtensor.is_hotkey_delegate(alice_neuron.hotkey) is True
     assert (
         await subtensor.is_hotkey_registered_on_subnet(
             hotkey_ss58=alice_neuron.hotkey, netuid=1
@@ -439,13 +439,13 @@ async def test_swap_hotkey_miner(local_chain):
     bob_neuron = metagraph.neurons[1]
 
     # get current number of hotkeys
-    wallet_tree = bob_exec_command(ListCommand, ["w", "list"], "get_tree")
+    wallet_tree = await bob_exec_command(ListCommand, ["w", "list"], "get_tree")
     num_hotkeys = len(wallet_tree.children[0].children)
 
     assert bob_neuron.coldkey == "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty"
     assert bob_neuron.hotkey == bob_old_hotkey_address
     assert bob_neuron.hotkey == bob_neuron.coldkey
-    assert bob_neuron.coldkey == subtensor.get_hotkey_owner(bob_old_hotkey_address)
+    assert bob_neuron.coldkey == await subtensor.get_hotkey_owner(bob_old_hotkey_address)
     assert await subtensor.is_hotkey_delegate(bob_neuron.hotkey) is False
     assert (
         await subtensor.is_hotkey_registered_on_subnet(
@@ -512,7 +512,7 @@ async def test_swap_hotkey_miner(local_chain):
 
     # assert bob has new hotkey
     bob_neuron = metagraph.neurons[1]
-    wallet_tree = alice_exec_command(ListCommand, ["w", "list"], "get_tree")
+    wallet_tree = await alice_exec_command(ListCommand, ["w", "list"], "get_tree")
     new_num_hotkeys = len(wallet_tree.children[0].children)
 
     assert (
@@ -520,7 +520,7 @@ async def test_swap_hotkey_miner(local_chain):
     )  # cold key didn't change
     assert bob_neuron.hotkey != bob_old_hotkey_address
     assert bob_neuron.hotkey != bob_neuron.coldkey
-    assert bob_neuron.coldkey == subtensor.get_hotkey_owner(
+    assert bob_neuron.coldkey == await subtensor.get_hotkey_owner(
         bob_neuron.hotkey
     )  # new key is owner
     assert (
