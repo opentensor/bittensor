@@ -47,6 +47,7 @@ def local_chain(request):
 
     # install neuron templates
     logging.info("downloading and installing neuron templates from github")
+    # TODO: remove `specific_commit=get_latest_commit_hash()` logging after async migration done
     # last commit of https://github.com/opentensor/bittensor-subnet-template/commits/async-metagraph-for-async-e2e-tests-only/
     templates_dir = clone_or_update_templates(specific_commit=get_latest_commit_hash())
     install_templates(templates_dir)

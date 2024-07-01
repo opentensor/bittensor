@@ -118,6 +118,7 @@ async def test_incentive(local_chain):
         stderr=asyncio.subprocess.PIPE,
     )
 
+    # TODO: remove `write_output_log_to_file` logging after async migration done
     # Create tasks to read stdout and stderr concurrently
     # ignore, don't await coroutine, just write logs to file
     asyncio.create_task(write_output_log_to_file("miner_stdout", miner_process.stdout))
@@ -157,6 +158,7 @@ async def test_incentive(local_chain):
         stderr=asyncio.subprocess.PIPE,
     )
 
+    # TODO: remove `write_output_log_to_file` logging after async migration done
     # Create tasks to read stdout and stderr concurrently and write output to log file
     # ignore, don't await coroutine, just write logs to file
     asyncio.create_task(

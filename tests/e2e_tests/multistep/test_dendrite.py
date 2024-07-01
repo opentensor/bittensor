@@ -122,6 +122,7 @@ async def test_dendrite(local_chain):
         stderr=asyncio.subprocess.PIPE,
     )
 
+    # TODO: remove `write_output_log_to_file` logging after async migration done
     # record logs of process
     # Create tasks to read stdout and stderr concurrently
     # ignore, dont await coroutine, just write logs to file

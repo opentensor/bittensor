@@ -29,10 +29,10 @@ are set correctly, and that the miner is currently running
 """
 
 
-# TODO: fix metagraph definition on https://github.com/opentensor/bittensor-subnet-template/blob/main/template/base/neuron.py#L82-L93
-@pytest.mark.skip(
-    "metagraph have to be fixed here https://github.com/opentensor/bittensor-subnet-template/blob/main/template/base/neuron.py#L82-L93"
-)
+# # TODO: fix metagraph definition on https://github.com/opentensor/bittensor-subnet-template/blob/main/template/base/neuron.py#L82-L93
+# @pytest.mark.skip(
+#     "metagraph have to be fixed here https://github.com/opentensor/bittensor-subnet-template/blob/main/template/base/neuron.py#L82-L93"
+# )
 @pytest.mark.asyncio
 async def test_axon(local_chain):
     # Register root as Alice
@@ -52,8 +52,8 @@ async def test_axon(local_chain):
             "1",
         ],
     )
-
-    metagraph = await bittensor.metagraph(netuid=1, network="ws://localhost:9945")
+    subtensor = bittensor.subtensor(network="ws://localhost:9945")
+    metagraph = await bittensor.metagraph(netuid=1, network="ws://localhost:9945", subtensor=subtensor)
 
     # validate one miner with ip of none
     old_axon = metagraph.axons[0]
@@ -93,6 +93,7 @@ async def test_axon(local_chain):
         stderr=asyncio.subprocess.PIPE,
     )
 
+    # TODO: remove `write_output_log_to_file` logging after async migration done
     # record logs of process
     # Create tasks to read stdout and stderr concurrently
     # ignore, don't await coroutine, just write logs to file
@@ -104,8 +105,9 @@ async def test_axon(local_chain):
     await asyncio.sleep(5)
 
     # refresh metagraph
+    subtensor = bittensor.subtensor(network="ws://localhost:9945")
     metagraph = await bittensor.metagraph(
-        netuid=1, network="ws://localhost:9945", sync=True
+        netuid=1, network="ws://localhost:9945", sync=True, subtensor=subtensor
     )
     updated_axon = metagraph.axons[0]
     external_ip = networking.get_external_ip()
