@@ -11,6 +11,12 @@ The release manager will need the right permissions for:
 
 If you are new in this role, ask for the proper setup you need to run this process manually.
 
+## Pre-requisites for macOS
+Releasing through macOS will require these additional packages:
+  - jq `brew install jq`
+  - gnu-sed `brew install gnu-sed`
+Use `add_notes_changelog_macos.sh` instead of `add_notes_changelog.sh` when using macOS
+
 ## Process of release
 
 1. Create a branch called `release/VERSION`, having VERSION with the version to release.
@@ -19,6 +25,7 @@ If you are new in this role, ask for the proper setup you need to run this proce
   1. Update the version executing:`./scripts/release/versioning.sh --update UPDATE_TYPE`
     1. **UPDATE_TYPE** could be *major*, *minor* or *patch*.
   1. Add release notes to CHANGELOG executing: `./scripts/release/add_notes_changelog.sh -A -V NEW_VERSION -P PREVIOUS_TAG -T GH_ACCESS_TOKEN`
+  For macOS, execute: `./scripts/release/add_notes_changelog_macos.sh -A -V NEW_VERSION -P PREVIOUS_TAG -T GH_ACCESS_TOKEN`
     1. **NEW_VERSION**: e.g.: 3.6.4
     1. **PREVIOUS_TAG**: e.g.: v3.6.3
     1. **GH_ACCESS_TOKEN**: A github [personal access token](https://docs.github.com/en/enterprise-server@3.4/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token) you need. 
