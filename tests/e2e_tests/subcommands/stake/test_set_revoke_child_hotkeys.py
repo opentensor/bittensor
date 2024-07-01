@@ -147,7 +147,7 @@ def test_set_revoke_children(local_chain, capsys):
 
     # Register Bob
     bob_keypair, bob_exec_command, bob_wallet = setup_wallet("//Bob")
-    dan_keypair, dan_exec_command, dan_wallet = setup_wallet("//Dan")
+    eve_keypair, eve_exec_command, eve_wallet = setup_wallet("//Eve")
 
     # Register Alice neuron to the subnet
     alice_exec_command(
@@ -183,7 +183,7 @@ def test_set_revoke_children(local_chain, capsys):
         ],
     )
 
-    dan_exec_command(
+    eve_exec_command(
         RegisterCommand,
         [
             "s",
@@ -209,11 +209,11 @@ def test_set_revoke_children(local_chain, capsys):
             "--netuid",
             "1",
             "--children",
-            str(bob_keypair.ss58_address) + ", " + str(dan_keypair.ss58_address),
+            str(bob_keypair.ss58_address) + "," + str(eve_keypair.ss58_address),
             "--hotkey",
-            alice_wallet.hotkey_str,
+            str(alice_keypair.ss58_address),
             "--proportion",
-            "0.3, 0.5",
+            "0.3, 0.4",
             "--wait_for_inclusion",
             "True",
             "--wait_for_finalization",
@@ -221,6 +221,7 @@ def test_set_revoke_children(local_chain, capsys):
         ],
     )
 
+    subtensor = bittensor.subtensor(network="ws://localhost:9945")
     assert (
         len(subtensor.get_children_info(netuid=1)) == 2
     ), "failed to set children hotkeys"
@@ -238,9 +239,9 @@ def test_set_revoke_children(local_chain, capsys):
             "--netuid",
             "1",
             "--children",
-            str(bob_keypair.ss58_address) + ", " + str(dan_keypair.ss58_address),
+            str(bob_keypair.ss58_address) + "," + str(eve_keypair.ss58_address),
             "--hotkey",
-            alice_wallet.hotkey_str,
+            str(alice_keypair.ss58_address),
             "--wait_for_inclusion",
             "True",
             "--wait_for_finalization",
@@ -248,6 +249,7 @@ def test_set_revoke_children(local_chain, capsys):
         ],
     )
 
+    subtensor = bittensor.subtensor(network="ws://localhost:9945")
     assert (
         subtensor.get_children_info(netuid=1) == []
     ), "failed to revoke children hotkeys"

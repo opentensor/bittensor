@@ -25,7 +25,7 @@ from rich.text import Text
 import bittensor
 from .. import defaults  # type: ignore
 from ... import ChildInfo
-from ...utils.formatting import u16_to_float
+from ...utils.formatting import u64_to_float
 
 console = bittensor.__console__
 
@@ -167,7 +167,7 @@ class GetChildrenCommand:
                     str(index),
                     child_info.child_ss58[:5] + "..." + child_info.child_ss58[-5:],
                     str(len(child_info.parents)),
-                    str(u16_to_float(child_info.proportion)),
+                    str(u64_to_float(child_info.proportion)),
                     str(child_info.total_stake),
                     str(child_info.emissions_per_day),
                     str(child_info.return_per_1000),
@@ -199,7 +199,7 @@ class GetChildrenCommand:
         # Add a summary row with fixed-width fields
         summary = Text(
             f"Total ({total_child_hotkeys:3}) | Total ({total_parent_hotkeys:3}) | "
-            f"Total ({u16_to_float(sum_proportion):10.6f}) | Total ({sum_total_stake:10.4f}) | "
+            f"Total ({u64_to_float(sum_proportion):10.6f}) | Total ({sum_total_stake:10.4f}) | "
             f"Avg ({avg_emissions_per_day:10.4f}) | Avg ({avg_return_per_1000:10.4f}) | "
             f"Total ({sum_take:10.6f})",
             style="dim",
