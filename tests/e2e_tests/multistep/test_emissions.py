@@ -45,6 +45,9 @@ are updated with proper values after an epoch has passed.
 """
 
 
+@pytest.mark.skip(
+    "an investigation into the behavior of the async implementation of `wait_interval` is required"
+)
 @pytest.mark.asyncio
 async def test_emissions(local_chain):
     # Register root as Alice - the subnet owner and validator
