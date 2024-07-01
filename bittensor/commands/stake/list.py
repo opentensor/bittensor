@@ -102,24 +102,29 @@ class StakeList:
                     slippage_percentage = 'N/A'                
                 tao_locked = pool.tao_reserve if pool.is_dynamic else subtensor.get_total_subnet_stake(netuid).set_unit(netuid)
                 issuance = pool.alpha_outstanding if pool.is_dynamic else tao_locked
-                alpha_ownership = "{:.4f}".format((alpha_value.tao / issuance.tao) * 100)
-                tao_ownership = bittensor.Balance.from_tao((alpha_value.tao / issuance.tao) * tao_locked.tao)
-                row = [
-                    str(netuid), # Number
-                    symbol, # Symbol
-                    price, # Price
-                    f"[dark_sea_green]{ alpha_value }", # Alpha value
-                    f"[light_slate_blue]{ tao_value }[/light_slate_blue]", # Tao equiv
-                    f"[cadet_blue]{ swapped_tao_value }[/cadet_blue]", # Swap amount.
-                    f"[indian_red]{ slippage_percentage }[/indian_red]", # Slippage.
-                    # str( bittensor.Balance.from_tao( tao_locked.tao ) ), # Tao on network
-                    # "P(" + str( pool.tao_reserve ) + ",", # Pool tao
-                    # str( pool.alpha_reserve ) + ")", # Pool alpha
-                    # str( pool.alpha_outstanding if pool.is_dynamic else tao_locked ), # Pool alpha Outstanding.
-                    f"[light_salmon3]{alpha_ownership}%[/light_salmon3]", # Ownership.
-                    f"[medium_purple]{tao_ownership}[/medium_purple]" # Tao ownership.
-                ]
-                table.add_row(*row)
+                if alpha_value.tao > 0.00009:
+                    if issuance.tao != 0:
+                        alpha_ownership = "{:.4f}".format((alpha_value.tao / issuance.tao) * 100)
+                        tao_ownership = bittensor.Balance.from_tao((alpha_value.tao / issuance.tao) * tao_locked.tao)
+                    else:
+                        alpha_ownership = "0.0000"
+                        tao_ownership = "0.0000"
+                    row = [
+                        str(netuid), # Number
+                        symbol, # Symbol
+                        price, # Price
+                        f"[dark_sea_green]{ alpha_value }", # Alpha value
+                        f"[light_slate_blue]{ tao_value }[/light_slate_blue]", # Tao equiv
+                        f"[cadet_blue]{ swapped_tao_value }[/cadet_blue]", # Swap amount.
+                        f"[indian_red]{ slippage_percentage }[/indian_red]", # Slippage.
+                        # str( bittensor.Balance.from_tao( tao_locked.tao ) ), # Tao on network
+                        # "P(" + str( pool.tao_reserve ) + ",", # Pool tao
+                        # str( pool.alpha_reserve ) + ")", # Pool alpha
+                        # str( pool.alpha_outstanding if pool.is_dynamic else tao_locked ), # Pool alpha Outstanding.
+                        f"[light_salmon3]{alpha_ownership}%[/light_salmon3]", # Ownership.
+                        f"[medium_purple]{tao_ownership}[/medium_purple]" # Tao ownership.
+                    ]
+                    table.add_row(*row)
             bittensor.__console__.print(table)
 
         # Print help table
