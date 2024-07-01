@@ -29,10 +29,10 @@ are set correctly, and that the miner is currently running
 """
 
 
-# # TODO: fix metagraph definition on https://github.com/opentensor/bittensor-subnet-template/blob/main/template/base/neuron.py#L82-L93
-# @pytest.mark.skip(
-#     "metagraph have to be fixed here https://github.com/opentensor/bittensor-subnet-template/blob/main/template/base/neuron.py#L82-L93"
-# )
+# TODO: fix metagraph definition on https://github.com/opentensor/bittensor-subnet-template/blob/main/template/base/neuron.py#L82-L93
+@pytest.mark.skip(
+    "metagraph have to be fixed here https://github.com/opentensor/bittensor-subnet-template/blob/main/template/base/neuron.py#L82-L93"
+)
 @pytest.mark.asyncio
 async def test_axon(local_chain):
     # Register root as Alice
