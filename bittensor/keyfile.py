@@ -281,7 +281,7 @@ def get_coldkey_password_from_environment(coldkey_name: str) -> Optional[str]:
         for env_name, env_value in os.environ.items()
         if (normalized_env_name := env_name.upper()).startswith("BT_COLD_PW_")
     }
-    return envs.get(f"BT_COLD_PW_{coldkey_name.upper()}")
+    return envs.get(f"BT_COLD_PW_{coldkey_name.replace('-', '_').upper()}")
 
 
 def decrypt_keyfile_data(
