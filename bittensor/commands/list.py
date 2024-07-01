@@ -49,17 +49,17 @@ class ListCommand:
     """
 
     @staticmethod
-    async def run(cli):
+    async def run(cli: "bittensor.cli"):
         """Lists wallets."""
         try:
             wallets = next(os.walk(os.path.expanduser(cli.config.wallet.path)))[1]
         except StopIteration:
             # No wallet files found.
             wallets = []
-        ListCommand._run(cli, wallets)
+        await ListCommand._run(cli, wallets)
 
     @staticmethod
-    def _run(cli: "bittensor.cli", wallets, return_value=False):
+    async def _run(cli: "bittensor.cli", wallets, return_value=False):
         root = Tree("Wallets")
         for w_name in wallets:
             wallet_for_name = bittensor.wallet(path=cli.config.wallet.path, name=w_name)
@@ -119,10 +119,10 @@ class ListCommand:
         bittensor.subtensor.add_args(list_parser)
 
     @staticmethod
-    def get_tree(cli):
+    async def get_tree(cli):
         try:
             wallets = next(os.walk(os.path.expanduser(cli.config.wallet.path)))[1]
         except StopIteration:
             # No wallet files found.
             wallets = []
-        return ListCommand._run(cli=cli, wallets=wallets, return_value=True)
+        return await ListCommand._run(cli=cli, wallets=wallets, return_value=True)
