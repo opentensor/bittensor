@@ -27,7 +27,6 @@ import numpy as np
 from rich.prompt import Prompt, Confirm
 
 import bittensor
-import bittensor.utils.weight_utils as weight_utils
 from . import defaults  # type: ignore
 
 
@@ -86,9 +85,6 @@ class CommitWeightCommand:
         weights = np.array(
             [float(x) for x in re.split(r"[ ,]+", cli.config.weights)], dtype=np.float32
         )
-        weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(
-            uids=uids, weights=weights
-        )
 
         if not cli.config.is_set("salt"):
             # Generate random salt
@@ -110,8 +106,8 @@ class CommitWeightCommand:
         success, message = subtensor.commit_weights(
             wallet=wallet,
             netuid=netuid,
-            uids=weight_uids,
-            weights=weight_vals,
+            uids=uids,
+            weights=weights,
             salt=salt,
             wait_for_inclusion=cli.config.wait_for_inclusion,
             wait_for_finalization=cli.config.wait_for_finalization,
@@ -227,16 +223,13 @@ class RevealWeightCommand:
             [int(x) for x in re.split(r"[ ,]+", cli.config.salt)],
             dtype=np.int64,
         )
-        weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(
-            uids=uids, weights=weights
-        )
 
         # Run the reveal weights operation.
         success, message = subtensor.reveal_weights(
             wallet=wallet,
             netuid=netuid,
-            uids=weight_uids,
-            weights=weight_vals,
+            uids=uids,
+            weights=weights,
             salt=salt,
             version_key=version,
             wait_for_inclusion=cli.config.wait_for_inclusion,
