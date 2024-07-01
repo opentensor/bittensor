@@ -207,7 +207,9 @@ async def test_incentive(local_chain):
     )
 
     # get latest metagraph
-    metagraph = await bittensor.metagraph(netuid=1, network="ws://localhost:9945", subtensor=subtensor)
+    metagraph = await bittensor.metagraph(
+        netuid=1, network="ws://localhost:9945", subtensor=subtensor
+    )
 
     # get current emissions
     bob_neuron = metagraph.neurons[1]
@@ -242,7 +244,9 @@ async def test_incentive(local_chain):
     await wait_interval(360, subtensor)
 
     # refresh metagraph
-    metagraph = await bittensor.metagraph(netuid=1, network="ws://localhost:9945", subtensor=subtensor)
+    metagraph = await bittensor.metagraph(
+        netuid=1, network="ws://localhost:9945", subtensor=subtensor
+    )
 
     # get current emissions and validate that Alice has gotten tao
     bob_neuron = metagraph.neurons[1]
