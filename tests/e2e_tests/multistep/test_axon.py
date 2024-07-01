@@ -53,7 +53,9 @@ async def test_axon(local_chain):
         ],
     )
     subtensor = bittensor.subtensor(network="ws://localhost:9945")
-    metagraph = await bittensor.metagraph(netuid=1, network="ws://localhost:9945", subtensor=subtensor)
+    metagraph = await bittensor.metagraph(
+        netuid=1, network="ws://localhost:9945", subtensor=subtensor
+    )
 
     # validate one miner with ip of none
     old_axon = metagraph.axons[0]
