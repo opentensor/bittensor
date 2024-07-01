@@ -16,13 +16,15 @@
 # DEALINGS IN THE SOFTWARE.
 
 import sys
-import bittensor
-from tqdm import tqdm
-from rich.prompt import Confirm, Prompt
-from bittensor.utils.balance import Balance
 from typing import List, Union, Optional, Tuple
-from .utils import get_hotkey_wallets_for_wallet
+
+from rich.prompt import Confirm, Prompt
+from tqdm import tqdm
+
+import bittensor
+from bittensor.utils.balance import Balance
 from . import defaults
+from .utils import get_hotkey_wallets_for_wallet
 
 console = bittensor.__console__
 

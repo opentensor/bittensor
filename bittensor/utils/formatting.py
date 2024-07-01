@@ -20,3 +20,45 @@ def millify(n: int):
     )
 
     return "{:.2f}{}".format(n / 10 ** (3 * millidx), millnames[millidx])
+
+
+def float_to_u16(value):
+    # Ensure the input is within the expected range
+    if not (0 <= value <= 1):
+        raise ValueError("Input value must be between 0 and 1")
+
+    # Calculate the u16 representation
+    u16_max = 65535
+    return int(value * u16_max)
+
+
+def u16_to_float(value):
+    # Ensure the input is within the expected range
+    if not (0 <= value <= 65535):
+        raise ValueError("Input value must be between 0 and 65535")
+
+    # Calculate the float representation
+    u16_max = 65535
+    return value / u16_max
+
+
+def float_to_u64(value):
+    # Ensure the input is within the expected range
+    if not (0 <= value < 1):
+        raise ValueError("Input value must be between 0 and 1")
+
+    # Calculate the u64 representation
+    u64_max = 18446744073709551615  # 2^64 - 1
+    return int(value * u64_max)
+
+
+def u64_to_float(value):
+    # Ensure the input is within the expected range
+    if not (0 <= value < 18446744073709551615):
+        raise ValueError(
+            "Input value must be between 0 and 18446744073709551615 (2^64 - 1)"
+        )
+
+    # Calculate the float representation
+    u64_max = 18446744073709551615
+    return value / u64_max

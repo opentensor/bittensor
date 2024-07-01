@@ -62,62 +62,128 @@ defaults: Munch = munchify(
     }
 )
 
-from .stake import StakeCommand, StakeShow
-from .unstake import UnStakeCommand
-from .overview import OverviewCommand
+
+from .stake.add import StakeCommand
+from .stake.get_children_info import GetChildrenCommand
+from .stake.set_child import SetChildCommand
+from .stake.set_children import SetChildrenCommand
+from .stake.show import StakeShow
+from .stake.revoke_child import RevokeChildCommand
+from .stake.revoke_children import RevokeChildrenCommand
+from .unstake import UnStakeCommand 
+from .overview import OverviewCommand     
 from .register import (
-    PowRegisterCommand,
-    RegisterCommand,
-    RunFaucetCommand,
-    SwapHotkeyCommand,
+    PowRegisterCommand,     
+    RegisterCommand,     
+    RunFaucetCommand,     
+    SwapHotkeyCommand,     
 )
 from .delegates import (
-    NominateCommand,
-    ListDelegatesCommand,
-    DelegateStakeCommand,
-    DelegateUnstakeCommand,
-    MyDelegatesCommand,
-    SetTakeCommand,
+    NominateCommand,     
+    ListDelegatesCommand,     
+    DelegateStakeCommand,     
+    DelegateUnstakeCommand,     
+    MyDelegatesCommand,     
+    SetTakeCommand,     
 )
 from .wallets import (
-    NewColdkeyCommand,
-    NewHotkeyCommand,
-    RegenColdkeyCommand,
-    RegenColdkeypubCommand,
-    RegenHotkeyCommand,
-    UpdateWalletCommand,
-    WalletCreateCommand,
-    WalletBalanceCommand,
-    GetWalletHistoryCommand,
+    NewColdkeyCommand,     
+    NewHotkeyCommand,     
+    RegenColdkeyCommand,     
+    RegenColdkeypubCommand,     
+    RegenHotkeyCommand,     
+    UpdateWalletCommand,     
+    WalletCreateCommand,     
+    WalletBalanceCommand,     
+    GetWalletHistoryCommand,     
 )
-from .weights import CommitWeightCommand, RevealWeightCommand
-from .transfer import TransferCommand
-from .inspect import InspectCommand
-from .metagraph import MetagraphCommand
-from .list import ListCommand
-from .misc import UpdateCommand, AutocompleteCommand
+from .weights import CommitWeightCommand, RevealWeightCommand     
+from .transfer import TransferCommand     
+from .inspect import InspectCommand     
+from .metagraph import MetagraphCommand     
+from .list import ListCommand     
+from .misc import UpdateCommand, AutocompleteCommand     
 from .senate import (
-    SenateCommand,
-    ProposalsCommand,
-    ShowVotesCommand,
-    SenateRegisterCommand,
-    SenateLeaveCommand,
-    VoteCommand,
+    SenateCommand,     
+    ProposalsCommand,     
+    ShowVotesCommand,     
+    SenateRegisterCommand,     
+    SenateLeaveCommand,     
+    VoteCommand,     
 )
 from .network import (
-    RegisterSubnetworkCommand,
-    SubnetLockCostCommand,
-    SubnetListCommand,
-    SubnetSudoCommand,
-    SubnetHyperparamsCommand,
-    SubnetGetHyperparamsCommand,
+    RegisterSubnetworkCommand,     
+    SubnetLockCostCommand,     
+    SubnetListCommand,     
+    SubnetSudoCommand,     
+    SubnetHyperparamsCommand,     
+    SubnetGetHyperparamsCommand,     
 )
 from .root import (
-    RootRegisterCommand,
-    RootList,
-    RootSetWeightsCommand,
-    RootGetWeightsCommand,
-    RootSetBoostCommand,
-    RootSetSlashCommand,
+    RootRegisterCommand,     
+    RootList,     
+    RootSetWeightsCommand,     
+    RootGetWeightsCommand,     
+    RootSetBoostCommand,     
+    RootSetSlashCommand,     
 )
-from .identity import GetIdentityCommand, SetIdentityCommand
+from .identity import GetIdentityCommand, SetIdentityCommand   
+
+__all__ = [
+    "StakeCommand", 
+    "StakeShow", 
+    "SetChildCommand", 
+    "SetChildrenCommand", 
+    "GetChildrenCommand", 
+    "UnStakeCommand",
+    "RevokeChildCommand", 
+    "RevokeChildrenCommand", 
+    "OverviewCommand",
+    "PowRegisterCommand",
+    "RegisterCommand",
+    "RunFaucetCommand",
+    "SwapHotkeyCommand",
+    "NominateCommand",
+    "ListDelegatesCommand",
+    "DelegateStakeCommand",
+    "DelegateUnstakeCommand",
+    "MyDelegatesCommand",
+    "SetTakeCommand",
+    "NewColdkeyCommand",
+    "NewHotkeyCommand",
+    "RegenColdkeyCommand",
+    "RegenColdkeypubCommand",
+    "RegenHotkeyCommand",
+    "UpdateWalletCommand",
+    "WalletCreateCommand",
+    "WalletBalanceCommand",
+    "GetWalletHistoryCommand",
+    "CommitWeightCommand",
+    "RevealWeightCommand",
+    "TransferCommand",
+    "InspectCommand",
+    "MetagraphCommand",
+    "ListCommand",
+    "UpdateCommand",
+    "AutocompleteCommand",
+    "SenateCommand",
+    "ProposalsCommand",
+    "ShowVotesCommand",
+    "SenateRegisterCommand",
+    "SenateLeaveCommand",
+    "VoteCommand",
+    "RegisterSubnetworkCommand",
+    "SubnetLockCostCommand",
+    "SubnetListCommand",
+    "SubnetSudoCommand",
+    "SubnetHyperparamsCommand",
+    "SubnetGetHyperparamsCommand",
+    "RootRegisterCommand",
+    "RootList",
+    "RootSetWeightsCommand",
+    "RootGetWeightsCommand",
+    "RootSetBoostCommand",
+    "RootSetSlashCommand",
+    "GetIdentityCommand",
+    "SetIdentityCommand",
+]
