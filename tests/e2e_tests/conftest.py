@@ -32,7 +32,7 @@ def local_chain(request):
         pytest.skip("LOCALNET_SH_PATH environment variable is not set.")
 
     # Check if param is None, and handle it accordingly
-    args = "" if param is None else f"fast_blocks={param}"
+    args = "" if param is None else f"{param}"
 
     # compile commands to send to process
     cmds = shlex.split(f"{script_path} {args}")
