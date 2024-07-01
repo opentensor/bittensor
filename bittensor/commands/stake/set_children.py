@@ -25,7 +25,7 @@ from rich.prompt import Prompt
 from typing import Tuple
 import bittensor
 from .. import defaults, GetChildrenCommand  # type: ignore
-from ...utils.formatting import float_to_u16
+from ...utils.formatting import float_to_u64
 
 console = bittensor.__console__
 
@@ -243,7 +243,7 @@ class SetChildrenCommand:
 
                 # Convert each proportion value to u16
                 proportions_val = [
-                    float_to_u16(proportion) for proportion in proportions_val
+                    float_to_u64(proportion) for proportion in proportions_val
                 ]
 
                 children_with_proportions = list(zip(children, proportions_val))
