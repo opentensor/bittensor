@@ -15,8 +15,8 @@ from bittensor.commands import (
 from tests.e2e_tests.utils import (
     setup_wallet,
     template_path,
-    repo_name,
-    wait_epoch,
+    templates_repo,
+    wait_interval,
     write_output_log_to_file,
 )
 
@@ -34,7 +34,6 @@ Verify that:
 """
 
 
-@pytest.mark.parametrize("local_chain", [False], indirect=True)
 @pytest.mark.asyncio
 async def test_dendrite(local_chain):
     # Register root as Alice - the subnet owner
@@ -99,7 +98,7 @@ async def test_dendrite(local_chain):
     cmd = " ".join(
         [
             f"{sys.executable}",
-            f'"{template_path}{repo_name}/neurons/validator.py"',
+            f'"{template_path}{templates_repo}/neurons/validator.py"',
             "--no_prompt",
             "--netuid",
             "1",
@@ -123,14 +122,15 @@ async def test_dendrite(local_chain):
         stderr=asyncio.subprocess.PIPE,
     )
 
+    # TODO: remove `write_output_log_to_file` logging after async migration done
     # record logs of process
     # Create tasks to read stdout and stderr concurrently
     # ignore, dont await coroutine, just write logs to file
-    await asyncio.create_task(
+    asyncio.create_task(
         write_output_log_to_file("dendrite_stdout", dendrite_process.stdout)
     )
     # ignore, dont await coroutine, just write logs to file
-    await asyncio.create_task(
+    asyncio.create_task(
         write_output_log_to_file("dendrite_stderr", dendrite_process.stderr)
     )
 
@@ -161,7 +161,7 @@ async def test_dendrite(local_chain):
         ],
     )
     # get current block, wait until 360 blocks pass (subnet tempo)
-    await wait_epoch(360, subtensor)
+    await wait_interval(360, subtensor)
 
     # refresh metagraph
     metagraph = await bittensor.metagraph(

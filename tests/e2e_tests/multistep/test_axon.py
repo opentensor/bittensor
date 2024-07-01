@@ -11,7 +11,7 @@ from bittensor.commands import (
 from tests.e2e_tests.utils import (
     setup_wallet,
     template_path,
-    repo_name,
+    templates_repo,
     write_output_log_to_file,
 )
 
@@ -52,8 +52,10 @@ async def test_axon(local_chain):
             "1",
         ],
     )
-
-    metagraph = await bittensor.metagraph(netuid=1, network="ws://localhost:9945")
+    subtensor = bittensor.subtensor(network="ws://localhost:9945")
+    metagraph = await bittensor.metagraph(
+        netuid=1, network="ws://localhost:9945", subtensor=subtensor
+    )
 
     # validate one miner with ip of none
     old_axon = metagraph.axons[0]
@@ -70,7 +72,7 @@ async def test_axon(local_chain):
     cmd = " ".join(
         [
             f"{sys.executable}",
-            f'"{template_path}{repo_name}/neurons/miner.py"',
+            f'"{template_path}{templates_repo}/neurons/miner.py"',
             "--no_prompt",
             "--netuid",
             "1",
@@ -93,23 +95,21 @@ async def test_axon(local_chain):
         stderr=asyncio.subprocess.PIPE,
     )
 
+    # TODO: remove `write_output_log_to_file` logging after async migration done
     # record logs of process
     # Create tasks to read stdout and stderr concurrently
     # ignore, don't await coroutine, just write logs to file
-    await asyncio.create_task(
-        write_output_log_to_file("axon_stdout", axon_process.stdout)
-    )
+    asyncio.create_task(write_output_log_to_file("axon_stdout", axon_process.stdout))
     # ignore, dont await coroutine, just write logs to file
-    await asyncio.create_task(
-        write_output_log_to_file("axon_stderr", axon_process.stderr)
-    )
+    asyncio.create_task(write_output_log_to_file("axon_stderr", axon_process.stderr))
 
     # wait for 5 seconds for the metagraph to refresh with latest data
     await asyncio.sleep(5)
 
     # refresh metagraph
+    subtensor = bittensor.subtensor(network="ws://localhost:9945")
     metagraph = await bittensor.metagraph(
-        netuid=1, network="ws://localhost:9945", sync=True
+        netuid=1, network="ws://localhost:9945", sync=True, subtensor=subtensor
     )
     updated_axon = metagraph.axons[0]
     external_ip = networking.get_external_ip()

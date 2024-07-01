@@ -1,5 +1,4 @@
 import re
-import time
 
 import numpy as np
 import pytest
@@ -14,7 +13,7 @@ from bittensor.commands import (
     RevealWeightCommand,
     SubnetSudoCommand,
 )
-from tests.e2e_tests.utils import setup_wallet
+from tests.e2e_tests.utils import setup_wallet, wait_interval
 
 """
 Test the Commit/Reveal weights mechanism.
@@ -192,13 +191,7 @@ async def test_commit_and_reveal_weights(local_chain):
     assert interval > 0, "Invalid WeightCommitRevealInterval"
 
     # Wait until the reveal block range
-    current_block = await subtensor.get_current_block()
-    reveal_block_start = (commit_block - (commit_block % interval)) + interval
-    while current_block < reveal_block_start:
-        time.sleep(1)  # Wait for 1 second before checking the block number again
-        current_block = await subtensor.get_current_block()
-        if current_block % 10 == 0:
-            print(f"Current Block: {current_block}  Revealing at: {reveal_block_start}")
+    await wait_interval(interval, subtensor)
 
     # Configure the CLI arguments for the RevealWeightCommand
     await exec_command(

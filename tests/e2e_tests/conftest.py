@@ -14,6 +14,7 @@ from tests.e2e_tests.utils import (
     install_templates,
     uninstall_templates,
     template_path,
+    get_latest_commit_hash,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -32,7 +33,7 @@ def local_chain(request):
         pytest.skip("LOCALNET_SH_PATH environment variable is not set.")
 
     # Check if param is None, and handle it accordingly
-    args = "" if param is None else f"fast_blocks={param}"
+    args = "" if param is None else f"{param}"
 
     # compile commands to send to process
     cmds = shlex.split(f"{script_path} {args}")
@@ -46,7 +47,9 @@ def local_chain(request):
 
     # install neuron templates
     logging.info("downloading and installing neuron templates from github")
-    templates_dir = clone_or_update_templates()
+    # TODO: remove `specific_commit=get_latest_commit_hash()` logging after async migration done
+    # last commit of https://github.com/opentensor/bittensor-subnet-template/commits/async-metagraph-for-async-e2e-tests-only/
+    templates_dir = clone_or_update_templates(specific_commit=get_latest_commit_hash())
     install_templates(templates_dir)
 
     def wait_for_node_start(process, pattern):

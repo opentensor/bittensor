@@ -2487,7 +2487,9 @@ class TestCLIWithNetworkUsingArgs(unittest.IsolatedAsyncioTestCase):
         # make the delegate a delegate
         await _subtensor_mock.nominate(delegate_wallet, wait_for_finalization=True)
         self.assertTrue(
-            _subtensor_mock.is_hotkey_delegate(delegate_wallet.hotkey.ss58_address)
+            await _subtensor_mock.is_hotkey_delegate(
+                delegate_wallet.hotkey.ss58_address
+            )
         )
 
         # Give the wallet some TAO

@@ -274,20 +274,20 @@ class PowRegisterCommand:
             "--pow_register.no_output_in_place",
             "--no_output_in_place",
             dest="pow_register.output_in_place",
-            help="Whether to not ouput the registration statistics in-place. Set flag to disable output in-place.",
+            help="Whether to not output the registration statistics in-place. Set flag to disable output in-place.",
             action="store_false",
             required=False,
             default=defaults.pow_register.output_in_place,
         )
         register_parser.add_argument(
             "--pow_register.verbose",
-            help="Whether to ouput the registration statistics verbosely.",
+            help="Whether to output the registration statistics verbosely.",
             action="store_true",
             required=False,
             default=defaults.pow_register.verbose,
         )
 
-        ## Registration args for CUDA registration.
+        # Registration args for CUDA registration.
         register_parser.add_argument(
             "--pow_register.cuda.use_cuda",
             "--cuda",
@@ -439,7 +439,7 @@ class RunFaucetCommand:
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
         run_faucet_parser = parser.add_parser(
-            "faucet", help="""Perform PoW to receieve test TAO in your wallet."""
+            "faucet", help="""Perform PoW to receive test TAO in your wallet."""
         )
         run_faucet_parser.add_argument(
             "--faucet.num_processes",
@@ -462,20 +462,20 @@ class RunFaucetCommand:
             "--faucet.no_output_in_place",
             "--no_output_in_place",
             dest="pow_register.output_in_place",
-            help="Whether to not ouput the registration statistics in-place. Set flag to disable output in-place.",
+            help="Whether to not output the registration statistics in-place. Set flag to disable output in-place.",
             action="store_false",
             required=False,
             default=defaults.pow_register.output_in_place,
         )
         run_faucet_parser.add_argument(
             "--faucet.verbose",
-            help="Whether to ouput the registration statistics verbosely.",
+            help="Whether to output the registration statistics verbosely.",
             action="store_true",
             required=False,
             default=defaults.pow_register.verbose,
         )
 
-        ## Registration args for CUDA registration.
+        # Registration args for CUDA registration.
         run_faucet_parser.add_argument(
             "--faucet.cuda.use_cuda",
             "--cuda",
@@ -528,7 +528,21 @@ class RunFaucetCommand:
 class SwapHotkeyCommand:
     @staticmethod
     async def run(cli: "bittensor.cli"):
-        """Swap your hotkey for all registered axons on the network."""
+        """
+        Executes the ``swap_hotkey`` command to swap the hotkeys for a neuron on the network.
+
+        Usage:
+            The command is used to swap the hotkey of a wallet for another hotkey on that same wallet.
+
+        Optional arguments:
+            - ``--wallet.name`` (str): Specifies the wallet for which the hotkey is to be swapped.
+            - ``--wallet.hotkey`` (str): The original hotkey name that is getting swapped out.
+            - ``--wallet.hotkey_b`` (str): The new hotkey name for which the old is getting swapped out for.
+
+        Example usage::
+
+            btcli wallet swap_hotkey --wallet.name your_wallet_name --wallet.hotkey original_hotkey --wallet.hotkey_b new_hotkey
+        """
         try:
             subtensor: "bittensor.subtensor" = bittensor.subtensor(
                 config=cli.config, log_verbose=False
