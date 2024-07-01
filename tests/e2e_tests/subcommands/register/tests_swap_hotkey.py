@@ -445,7 +445,9 @@ async def test_swap_hotkey_miner(local_chain):
     assert bob_neuron.coldkey == "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty"
     assert bob_neuron.hotkey == bob_old_hotkey_address
     assert bob_neuron.hotkey == bob_neuron.coldkey
-    assert bob_neuron.coldkey == await subtensor.get_hotkey_owner(bob_old_hotkey_address)
+    assert bob_neuron.coldkey == await subtensor.get_hotkey_owner(
+        bob_old_hotkey_address
+    )
     assert await subtensor.is_hotkey_delegate(bob_neuron.hotkey) is False
     assert (
         await subtensor.is_hotkey_registered_on_subnet(

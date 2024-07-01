@@ -12,7 +12,9 @@ from tests.e2e_tests.utils import (
 )
 
 
-@pytest.mark.skip("error appears here https://github.com/opentensor/bittensor/blob/merge-async/bittensor/utils/async_substrate.py#L637")
+@pytest.mark.skip(
+    "error appears here https://github.com/opentensor/bittensor/blob/merge-async/bittensor/utils/async_substrate.py#L637"
+)
 @pytest.mark.parametrize("local_chain", [False], indirect=True)
 @pytest.mark.asyncio
 async def test_faucet(local_chain):
@@ -70,9 +72,7 @@ async def test_faucet(local_chain):
             )
             balance = await subtensor.get_balance(keypair.ss58_address)
             tao = balance.tao
-            logging.info(
-                f"wallet balance is {tao} tao"
-            )
+            logging.info(f"wallet balance is {tao} tao")
         except SystemExit as e:
             logging.warning(
                 "Block not generated fast enough to be within 3 block seconds window."
