@@ -123,6 +123,7 @@ class ListSubnetsCommand:
 
         # Add columns to the table
         price_total = f"τ{total_price.tao:.2f}/{bt.Balance.from_rao(dynamic_emission).tao:.2f}"
+        above_price_threshold = total_price.tao > bt.Balance.from_rao(dynamic_emission).tao
 
         table.add_column("Index", style="rgb(253,246,227)", no_wrap=True, justify="center")
         table.add_column("Symbol", style="rgb(211,54,130)", no_wrap=True, justify="center")
@@ -133,7 +134,7 @@ class ListSubnetsCommand:
         table.add_column(f"P({bt.Balance.unit},", style="rgb(108,113,196)", no_wrap=True, justify="right")
         table.add_column(f"{bt.Balance.get_unit(1)})", style="rgb(42,161,152)", no_wrap=True, justify="left")
         table.add_column(f"{bt.Balance.get_unit(1)}", style="rgb(133,153,0)", no_wrap=True, justify="right")
-        table.add_column("Price", style="rgb(181,137,0)", no_wrap=True, justify="center", footer=f"[red]↓ {price_total}[/red]" if total_price > 1 else f"[green]↑ {price_total}[/green]")
+        table.add_column("Price", style="rgb(181,137,0)", no_wrap=True, justify="center", footer=f"[red]↓ {price_total}[/red]" if above_price_threshold else f"[green]↑ {price_total}[/green]")
         table.add_column("Tempo", style="rgb(38,139,210)", no_wrap=True, justify="center")
         table.add_column("Burn", style="rgb(220,50,47)", no_wrap=True, justify="center")
         table.add_column("Owner", style="rgb(108,113,196)", no_wrap=True)
