@@ -8,8 +8,8 @@ from typing import List, Optional
 
 from substrateinterface import SubstrateInterface
 
-import bittensor
-from bittensor import Keypair, logging
+import bittensor.v2 as bittensor
+from bittensor.v2 import Keypair, logging
 
 template_path = os.getcwd() + "/neurons/"
 templates_repo = "templates repository"

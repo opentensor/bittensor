@@ -1,13 +1,13 @@
 import pytest
 
-import bittensor
-from bittensor.commands import (
+import bittensor.v2 as bittensor
+from bittensor.v2.commands import (
     RegisterCommand,
     StakeCommand,
     RegisterSubnetworkCommand,
     SubnetSudoCommand,
 )
-from tests.e2e_tests.utils import setup_wallet
+from tests.v2.e2e_tests.utils import setup_wallet
 
 """
 Test the liquid alpha weights mechanism. 

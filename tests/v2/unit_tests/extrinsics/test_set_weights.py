@@ -3,8 +3,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 import torch
 
-from bittensor import subtensor, wallet
-from bittensor.extrinsics.set_weights import set_weights_extrinsic
+from bittensor.v2 import subtensor, wallet
+from bittensor.v2.extrinsics.set_weights import set_weights_extrinsic
 
 
 @pytest.fixture

@@ -16,10 +16,11 @@
 # DEALINGS IN THE SOFTWARE.
 import json
 import base64
-import pytest
-import bittensor
-from typing import Optional, ClassVar
 
+from typing import Optional, ClassVar
+import pytest
+
+import bittensor.v2 as bittensor
 
 def test_parse_headers_to_inputs():
     class Test(bittensor.Synapse):

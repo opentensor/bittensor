@@ -1,5 +1,5 @@
 import pytest
-from bittensor.utils.async_substrate import AsyncSubstrateInterface
+from bittensor.v2.utils.async_substrate import AsyncSubstrateInterface
 import settings
 
 

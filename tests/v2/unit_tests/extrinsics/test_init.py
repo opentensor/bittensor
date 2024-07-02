@@ -1,6 +1,6 @@
 """Tests for bittensor/extrinsics/__ini__ module."""
 
-from bittensor.utils import format_error_message
+from bittensor.v2.utils import format_error_message
 
 
 def test_format_error_message_with_right_error_message():

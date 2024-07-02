@@ -27,14 +27,14 @@ from unittest.mock import patch, AsyncMock, MagicMock
 
 import pytest
 
-import bittensor
-from bittensor import Balance
-from bittensor.commands.delegates import _get_coldkey_wallets_for_path
-from bittensor.commands.identity import SetIdentityCommand
-from bittensor.commands.wallets import _get_coldkey_ss58_addresses_for_path
-from bittensor.mock import MockSubtensor
-from bittensor.core.wallet import wallet as Wallet
-from tests.helpers import (
+import bittensor.v2
+from bittensor.v2 import Balance
+from bittensor.v2.commands.delegates import _get_coldkey_wallets_for_path
+from bittensor.v2.commands.identity import SetIdentityCommand
+from bittensor.v2.commands.wallets import _get_coldkey_ss58_addresses_for_path
+from bittensor.v2.mock import MockSubtensor
+from bittensor.v2.core.wallet import Wallet
+from tests.v2.helpers.helpers import (
     MockConsole,
     _get_mock_keypair,
     _get_mock_wallet as generate_wallet,

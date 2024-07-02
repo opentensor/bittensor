@@ -3,9 +3,9 @@ import re
 import numpy as np
 import pytest
 
-import bittensor
-import bittensor.utils.weight_utils as weight_utils
-from bittensor.commands import (
+import bittensor.v2 as bittensor
+import bittensor.v2.utils.weight_utils as weight_utils
+from bittensor.v2.commands import (
     RegisterCommand,
     StakeCommand,
     RegisterSubnetworkCommand,
@@ -13,7 +13,7 @@ from bittensor.commands import (
     RevealWeightCommand,
     SubnetSudoCommand,
 )
-from tests.e2e_tests.utils import setup_wallet, wait_interval
+from tests.v2.e2e_tests.utils import setup_wallet, wait_interval
 
 """
 Test the Commit/Reveal weights mechanism.

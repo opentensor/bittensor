@@ -16,11 +16,12 @@
 # DEALINGS IN THE SOFTWARE.
 
 from unittest.mock import Mock
+
 import pytest
 import numpy as np
-import bittensor
 
-from bittensor.metagraph import metagraph as Metagraph
+import bittensor.v2 as bittensor
+from bittensor.v2.core.metagraph import Metagraph
 from unittest.mock import MagicMock
 
 

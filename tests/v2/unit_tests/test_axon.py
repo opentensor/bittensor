@@ -22,25 +22,23 @@
 import re
 import time
 from dataclasses import dataclass
-
 from typing import Any
 from unittest import IsolatedAsyncioTestCase
 from unittest.mock import AsyncMock, MagicMock, patch
 
 # Third Party
+from fastapi.testclient import TestClient
 import netaddr
-
 import pytest
 from starlette.requests import Request
-from fastapi.testclient import TestClient
 
 # Bittensor
-import bittensor
-from bittensor import Synapse, RunException
-from bittensor.axon import AxonMiddleware
-from bittensor.axon import axon as Axon
-from bittensor.utils.axon_utils import allowed_nonce_window_ns, calculate_diff_seconds
-from bittensor.constants import ALLOWED_DELTA, NANOSECONDS_IN_SECOND
+import bittensor.v2 as bittensor
+from bittensor.v2 import Synapse, RunException
+from bittensor.v2.core.axon import AxonMiddleware
+from bittensor.v2.core.axon import Axon
+from bittensor.v2.utils.axon_utils import allowed_nonce_window_ns, calculate_diff_seconds
+from bittensor.v2.constants import ALLOWED_DELTA, NANOSECONDS_IN_SECOND
 
 
 def test_attach():

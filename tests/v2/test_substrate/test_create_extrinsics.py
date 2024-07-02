@@ -4,7 +4,7 @@ import pytest
 from scalecodec.type_registry import load_type_registry_file
 from substrateinterface import SubstrateInterface, Keypair
 
-from bittensor.utils.async_substrate import (
+from bittensor.v2.utils.async_substrate import (
     AsyncSubstrateInterface,
     SubstrateRequestException,
 )

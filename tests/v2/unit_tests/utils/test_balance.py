@@ -3,8 +3,8 @@ from hypothesis import given
 from hypothesis import strategies as st
 from typing import Union
 
-from bittensor import Balance
-from tests.helpers import CLOSE_IN_VALUE
+from bittensor.v2 import Balance
+from tests.v2.helpers.helpers import CLOSE_IN_VALUE
 
 """
 Test the Balance class

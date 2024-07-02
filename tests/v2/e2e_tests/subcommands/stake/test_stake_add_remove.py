@@ -1,9 +1,9 @@
 import pytest
 
-from bittensor.commands.stake import StakeCommand
-from bittensor.commands.unstake import UnStakeCommand
-from bittensor.commands.network import RegisterSubnetworkCommand
-from bittensor.commands.register import RegisterCommand
+from bittensor.v2.commands.stake import StakeCommand
+from bittensor.v2.commands.unstake import UnStakeCommand
+from bittensor.v2.commands.network import RegisterSubnetworkCommand
+from bittensor.v2.commands.register import RegisterCommand
 from ...utils import (
     setup_wallet,
     sudo_call_set_network_limit,

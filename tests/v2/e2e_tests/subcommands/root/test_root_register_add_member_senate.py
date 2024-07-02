@@ -1,7 +1,7 @@
 import pytest
 
-import bittensor
-from bittensor.commands import (
+import bittensor.v2 as bittensor
+from bittensor.v2.commands import (
     RegisterSubnetworkCommand,
     RegisterCommand,
     StakeCommand,
@@ -9,7 +9,7 @@ from bittensor.commands import (
     SetTakeCommand,
     RootRegisterCommand,
 )
-from bittensor.commands.senate import SenateCommand
+from bittensor.v2.commands.senate import SenateCommand
 from ...utils import setup_wallet
 
 

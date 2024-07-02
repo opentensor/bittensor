@@ -6,9 +6,9 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 # Bittensor
-import bittensor
-from bittensor.commands.overview import OverviewCommand
-from tests.unit_tests.factories.neuron_factory import NeuronInfoLiteFactory
+import bittensor.v2 as bittensor
+from bittensor.v2.commands.overview import OverviewCommand
+from tests.v2.unit_tests.factories.neuron_factory import NeuronInfoLiteFactory
 
 
 @pytest.fixture

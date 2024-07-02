@@ -1,9 +1,9 @@
 import pytest
 
-from bittensor.commands.root import RootRegisterCommand
-from bittensor.commands.delegates import NominateCommand
-from bittensor.commands.network import RegisterSubnetworkCommand
-from bittensor.commands.register import RegisterCommand
+from bittensor.v2.commands.root import RootRegisterCommand
+from bittensor.v2.commands.delegates import NominateCommand
+from bittensor.v2.commands.network import RegisterSubnetworkCommand
+from bittensor.v2.commands.register import RegisterCommand
 from ..utils import setup_wallet
 
 

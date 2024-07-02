@@ -2,13 +2,13 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-import bittensor
-from bittensor.errors import NotDelegateError
-from bittensor.extrinsics.staking import (
+import bittensor.v2 as bittensor
+from bittensor.v2.errors import NotDelegateError
+from bittensor.v2.extrinsics.staking import (
     add_stake_extrinsic,
     add_stake_multiple_extrinsic,
 )
-from bittensor.utils.balance import Balance
+from bittensor.v2.utils.balance import Balance
 
 
 # Mocking external dependencies

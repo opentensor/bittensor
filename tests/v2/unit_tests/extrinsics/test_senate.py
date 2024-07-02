@@ -1,12 +1,11 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from bittensor import subtensor, wallet
-from bittensor.extrinsics.senate import (
+from bittensor.v2 import subtensor, wallet
+from bittensor.v2.extrinsics.senate import (
     leave_senate_extrinsic,
     register_senate_extrinsic,
     vote_senate_extrinsic,
 )
-import bittensor
 
 
 # Mocking external dependencies

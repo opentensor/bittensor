@@ -23,10 +23,10 @@ import pytest
 from copy import deepcopy
 import re
 
-from tests.helpers import _get_mock_coldkey, __mock_wallet_factory__
+from tests.v2.helpers.helpers import _get_mock_coldkey, __mock_wallet_factory__
 
-import bittensor
-from bittensor import Balance
+import bittensor.v2 as bittensor
+from bittensor.v2 import Balance
 
 
 class MockException(Exception):

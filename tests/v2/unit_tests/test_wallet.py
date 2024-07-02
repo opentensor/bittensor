@@ -16,15 +16,17 @@
 # DEALINGS IN THE SOFTWARE.
 
 import json
-import time
-import pytest
 import random
 import re
-import bittensor
-from bittensor.errors import KeyFileError
-from rich.prompt import Confirm
-from ansible_vault import Vault
+import time
 from unittest.mock import patch
+
+from ansible_vault import Vault
+import pytest
+from rich.prompt import Confirm
+
+import bittensor.v2 as bittensor
+from bittensor.v2.errors import KeyFileError
 
 
 def legacy_encrypt_keyfile_data(keyfile_data: bytes, password: str = None) -> bytes:

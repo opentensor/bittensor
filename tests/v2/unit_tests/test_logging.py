@@ -1,7 +1,9 @@
-import pytest
 import multiprocessing
 import logging as stdlogging
 from unittest.mock import MagicMock, patch
+
+import pytest
+
 from bittensor.btlogging import LoggingMachine
 from bittensor.btlogging.defines import DEFAULT_LOG_FILE_NAME, BITTENSOR_LOGGER_NAME
 from bittensor.btlogging.loggingmachine import LoggingConfig

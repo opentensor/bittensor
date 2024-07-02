@@ -1,7 +1,7 @@
 import pytest
 
-from bittensor.commands.senate import VoteCommand
-from bittensor.commands.root import RootRegisterCommand
+from bittensor.v2.commands.senate import VoteCommand
+from bittensor.v2.commands.root import RootRegisterCommand
 
 from ...utils import (
     setup_wallet,

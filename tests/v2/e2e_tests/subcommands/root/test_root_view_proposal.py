@@ -1,12 +1,12 @@
 import pytest
 
-from bittensor.commands.senate import ProposalsCommand
-
+import bittensor.v2 as bittensor
+from bittensor.v2.commands.senate import ProposalsCommand
 from ...utils import (
     setup_wallet,
     call_add_proposal,
 )
-import bittensor
+
 
 
 @pytest.mark.asyncio

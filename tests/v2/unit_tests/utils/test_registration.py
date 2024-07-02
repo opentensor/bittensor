@@ -1,6 +1,6 @@
 import pytest
 
-from bittensor.utils.registration import LazyLoadedTorch
+from bittensor.v2.utils.registration import LazyLoadedTorch
 
 
 class MockBittensorLogging:

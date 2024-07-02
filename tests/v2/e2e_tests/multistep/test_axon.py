@@ -3,12 +3,12 @@ import sys
 
 import pytest
 import bittensor
-from bittensor.utils import networking
-from bittensor.commands import (
+from bittensor.v2.utils import networking
+from bittensor.v2.commands import (
     RegisterCommand,
     RegisterSubnetworkCommand,
 )
-from tests.e2e_tests.utils import (
+from tests.v2.e2e_tests.utils import (
     setup_wallet,
     template_path,
     templates_repo,

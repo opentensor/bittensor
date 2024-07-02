@@ -5,8 +5,8 @@ import uuid
 
 import pytest
 
-import bittensor
-from bittensor.commands import (
+import bittensor.v2 as bittensor
+from bittensor.v2.commands import (
     RegisterCommand,
     RegisterSubnetworkCommand,
     SwapHotkeyCommand,
@@ -15,7 +15,7 @@ from bittensor.commands import (
     NewHotkeyCommand,
     ListCommand,
 )
-from tests.e2e_tests.utils import (
+from tests.v2.e2e_tests.utils import (
     setup_wallet,
     template_path,
     templates_repo,

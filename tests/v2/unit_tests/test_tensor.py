@@ -14,11 +14,12 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
+
 import pytest
 import numpy as np
-import bittensor
-import numpy
 import torch
+
+import bittensor.v2 as bittensor
 
 
 # This is a fixture that creates an example tensor for testing
@@ -72,7 +73,7 @@ def test_serialize(example_tensor):
     assert example_tensor.dtype == example_tensor.dtype
     assert example_tensor.shape == example_tensor.shape
 
-    assert isinstance(example_tensor.numpy(), numpy.ndarray)
+    assert isinstance(example_tensor.numpy(), np.ndarray)
 
     # Check that the Tensor instance has the correct buffer, dtype, and shape
     assert example_tensor.buffer == example_tensor.buffer
@@ -103,7 +104,7 @@ def test_serialize_torch(example_tensor_torch, force_legacy_torch_compat_api):
     assert example_tensor_torch.dtype == example_tensor_torch.dtype
     assert example_tensor_torch.shape == example_tensor_torch.shape
 
-    assert isinstance(example_tensor_torch.numpy(), numpy.ndarray)
+    assert isinstance(example_tensor_torch.numpy(), np.ndarray)
 
     # Check that the Tensor instance has the correct buffer, dtype, and shape
     assert example_tensor_torch.buffer == example_tensor_torch.buffer

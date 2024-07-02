@@ -1,9 +1,9 @@
 import pytest
 from unittest.mock import MagicMock, patch
-import bittensor
-from bittensor.subtensor import Subtensor
-from bittensor.core.wallet import wallet as Wallet
-from bittensor.extrinsics.prometheus import prometheus_extrinsic
+import bittensor.v2 as bittensor
+from bittensor.v2.core.subtensor import Subtensor
+from bittensor.v2.core.wallet import Wallet
+from bittensor.v2.extrinsics.prometheus import prometheus_extrinsic
 
 
 # Mocking the bittensor and networking modules

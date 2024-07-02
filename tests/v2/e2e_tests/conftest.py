@@ -9,7 +9,7 @@ import time
 import pytest
 from substrateinterface import SubstrateInterface
 
-from tests.e2e_tests.utils import (
+from tests.v2.e2e_tests.utils import (
     clone_or_update_templates,
     install_templates,
     uninstall_templates,

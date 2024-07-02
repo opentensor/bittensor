@@ -18,17 +18,18 @@
 import os
 import json
 import time
-import pytest
 import shutil
-import bittensor
 import unittest.mock as mock
+
+from bip39 import bip39_validate
+import pytest
 from scalecodec import ScaleBytes
 from substrateinterface import Keypair, KeypairType
 from substrateinterface.constants import DEV_PHRASE
 from substrateinterface.exceptions import ConfigurationError
-from bip39 import bip39_validate
 
-from bittensor import get_coldkey_password_from_environment
+import bittensor.v2 as bittensor
+from bittensor.v2 import get_coldkey_password_from_environment
 
 
 def test_generate_mnemonic():

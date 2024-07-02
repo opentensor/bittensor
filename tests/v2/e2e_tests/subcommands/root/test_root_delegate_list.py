@@ -1,6 +1,6 @@
 import pytest
 
-from bittensor.commands.delegates import ListDelegatesCommand
+from bittensor.v2.commands.delegates import ListDelegatesCommand
 from ...utils import setup_wallet
 
 

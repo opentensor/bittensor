@@ -1,10 +1,12 @@
 import os
 import urllib
+import unittest.mock as mock
+from unittest.mock import MagicMock
+
 import pytest
 import requests
-import unittest.mock as mock
-from bittensor import utils
-from unittest.mock import MagicMock
+
+from bittensor.v2 import utils
 
 
 # Test conversion functions for IPv4

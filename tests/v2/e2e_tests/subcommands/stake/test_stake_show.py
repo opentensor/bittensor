@@ -1,6 +1,6 @@
 import pytest
 
-from bittensor.commands.stake import StakeShow
+from bittensor.v2.commands.stake import StakeShow
 from ...utils import setup_wallet
 
 

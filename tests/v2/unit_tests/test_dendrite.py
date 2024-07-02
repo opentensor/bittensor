@@ -17,14 +17,14 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from pydantic import ValidationError
-import pytest
 import typing
-import bittensor
 from unittest.mock import MagicMock, Mock
-from tests.helpers import _get_mock_wallet
 
-from bittensor.synapse import TerminalInfo
+import pytest
+
+import bittensor.v2 as bittensor
+from bittensor.v2.synapse import TerminalInfo
+from tests.v2.helpers.helpers import _get_mock_wallet
 
 
 class SynapseDummy(bittensor.Synapse):
@@ -306,7 +306,7 @@ async def test_dendrite__call__success_response(
         )
     )
     mock_aioresponse.post(
-        f"http://127.0.0.1:666/SynapseDummy",
+        "http://127.0.0.1:666/SynapseDummy",
         body=expected_synapse.json(),
     )
     synapse = await dendrite_obj.call(axon_info, synapse=input_synapse)
@@ -326,7 +326,7 @@ async def test_dendrite__call__handles_http_error_response(
     message = "Custom Error"
 
     mock_aioresponse.post(
-        f"http://127.0.0.1:666/SynapseDummy",
+        "http://127.0.0.1:666/SynapseDummy",
         status=status_code,
         payload={"message": message},
     )

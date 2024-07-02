@@ -1,13 +1,13 @@
 import pytest
 
-import bittensor
-from bittensor import logging
-from bittensor.commands import (
+import bittensor.v2 as bittensor
+from bittensor.v2 import logging
+from bittensor.v2.commands import (
     RegisterCommand,
     RegisterSubnetworkCommand,
     RunFaucetCommand,
 )
-from tests.e2e_tests.utils import (
+from tests.v2.e2e_tests.utils import (
     setup_wallet,
 )
 

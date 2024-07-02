@@ -19,10 +19,10 @@
 
 import logging
 import numpy as np
-import bittensor.utils.weight_utils as weight_utils
 import pytest
 
-from bittensor.utils import torch
+import bittensor.v2.utils.weight_utils as weight_utils
+from bittensor.v2.utils import torch
 
 
 def test_convert_weight_and_uids():

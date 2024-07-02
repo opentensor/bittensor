@@ -1,9 +1,9 @@
 import pytest
-import bittensor
 from unittest.mock import patch, MagicMock
 
-from bittensor.extrinsics.unstaking import unstake_extrinsic, unstake_multiple_extrinsic
-from bittensor.utils.balance import Balance
+import bittensor.v2 as bittensor
+from bittensor.v2.extrinsics.unstaking import unstake_extrinsic, unstake_multiple_extrinsic
+from bittensor.v2.utils.balance import Balance
 
 
 @pytest.fixture
