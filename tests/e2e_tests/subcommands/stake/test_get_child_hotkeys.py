@@ -121,6 +121,6 @@ def test_get_children_info(local_chain, capsys):
     output = capsys.readouterr().out
     # Assert table shows 1 child key with its data
     assert (
-        "Total (  1) | Total (  1) | Total (  0.299992) | Total (    0.0000) | Avg (    \n0.0000) | Avg (    0.0000) | Total (  0.179995)"
+        "Total (  1) | Total (  1) | Total (  1.000000) | Total (2147483648.0000) | Avg (\n0.0000) | Avg (    0.0000) | Total (  0.179995)"
         in output
     )

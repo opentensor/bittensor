@@ -37,13 +37,13 @@ class SetChildCommand:
 
     Usage:
         Users can specify the amount or 'proportion' to delegate to a child hotkey (either by name or ``SS58`` address),
-        the user needs to have sufficient authority to make this call, and the sum of proportions cannot be greater than 1.
+        the user needs to have sufficient authority to make this call, and the sum of proportions cannot be greater than u16::MAX.
 
     The command prompts for confirmation before executing the set_child operation.
 
     Example usage::
 
-        btcli stake set_child --child <child_hotkey> --hotkey <parent_hotkey> --netuid 1 --proportion 0.3
+        btcli stake set_child --child <child_hotkey> --hotkey <parent_hotkey> --netuid 1 --proportion 19660
 
     Note:
         This command is critical for users who wish to delegate child hotkeys among different neurons (hotkeys) on the network.
