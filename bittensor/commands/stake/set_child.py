@@ -23,7 +23,7 @@ from rich.prompt import Prompt, Confirm
 
 import bittensor
 from .. import defaults, GetChildrenCommand  # type: ignore
-from ...utils.formatting import float_to_u64
+from ...utils.formatting import float_to_u64, normalize_u64_values
 
 console = bittensor.__console__
 
@@ -221,6 +221,7 @@ class SetChildCommand:
             try:
                 # prepare values for emmit
                 proportion = float_to_u64(proportion)
+                proportion = normalize_u64_values([proportion])[0]
 
                 call_module = "SubtensorModule"
                 call_function = "set_child_singular"
