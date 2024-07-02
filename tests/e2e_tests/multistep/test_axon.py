@@ -12,7 +12,6 @@ from tests.e2e_tests.utils import (
     setup_wallet,
     template_path,
     templates_repo,
-    write_output_log_to_file,
 )
 
 """
@@ -90,14 +89,6 @@ async def test_axon(local_chain):
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
-
-    # TODO: remove `write_output_log_to_file` logging after async migration done
-    # record logs of process
-    # Create tasks to read stdout and stderr concurrently
-    # ignore, don't await coroutine, just write logs to file
-    asyncio.create_task(write_output_log_to_file("axon_stdout", axon_process.stdout))
-    # ignore, dont await coroutine, just write logs to file
-    asyncio.create_task(write_output_log_to_file("axon_stderr", axon_process.stderr))
 
     # wait for 5 seconds for the metagraph to refresh with latest data
     await asyncio.sleep(5)
