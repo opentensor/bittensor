@@ -1,4 +1,7 @@
 import math
+from typing import List
+
+import bittensor
 
 
 def get_human_readable(num, suffix="H"):
@@ -42,23 +45,71 @@ def u16_to_float(value):
     return value / u16_max
 
 
-def float_to_u64(value):
+def float_to_u64(value: float) -> int:
     # Ensure the input is within the expected range
     if not (0 <= value < 1):
         raise ValueError("Input value must be between 0 and 1")
 
-    # Calculate the u64 representation
-    u64_max = 18446744073709551615  # 2^64 - 1
-    return int(value * u64_max)
+    # Convert the float to a u64 value
+    return int(value * (2**64 - 1))
 
 
 def u64_to_float(value):
-    # Ensure the input is within the expected range
-    if not (0 <= value < 18446744073709551615):
+    u64_max = 2**64 - 1
+    # Allow for a small margin of error (e.g., 1) to account for potential rounding issues
+    if not (0 <= value <= u64_max + 1):
         raise ValueError(
-            "Input value must be between 0 and 18446744073709551615 (2^64 - 1)"
+            f"Input value ({value}) must be between 0 and {u64_max} (2^64 - 1)"
         )
+    return min(value / u64_max, 1.0)  # Ensure the result is never greater than 1.0
 
-    # Calculate the float representation
-    u64_max = 18446744073709551615
-    return value / u64_max
+
+def normalize_u64_values(values: List[int]) -> List[int]:
+    """
+    Normalize a list of u64 values so that their sum equals u64::MAX (2^64 - 1).
+    """
+    if not values:
+        raise ValueError("Input list cannot be empty")
+
+    if any(v < 0 for v in values):
+        raise ValueError("Input values must be non-negative")
+
+    total = sum(values)
+    if total == 0:
+        raise ValueError("Sum of input values cannot be zero")
+
+    u64_max = 2**64 - 1
+    normalized = [int((v / total) * u64_max) for v in values]
+
+    # Adjust values to ensure sum is exactly u64::MAX
+    current_sum = sum(normalized)
+    diff = u64_max - current_sum
+
+    for i in range(abs(diff)):
+        if diff > 0:
+            normalized[i % len(normalized)] += 1
+        else:
+            normalized[i % len(normalized)] = max(
+                0, normalized[i % len(normalized)] - 1
+            )
+
+    # Final check and adjustment
+    final_sum = sum(normalized)
+    if final_sum > u64_max:
+        normalized[-1] -= final_sum - u64_max
+
+    assert (
+        sum(normalized) == u64_max
+    ), f"Sum of normalized values ({sum(normalized)}) is not equal to u64::MAX ({u64_max})"
+
+    return normalized
+
+
+def is_valid_ss58_address(address: str) -> bool:
+    """
+    Validate that the hotkey address input str is a valid ss58 address.
+    """
+    try:
+        return bittensor.utils.ss58.is_valid_ss58_address(address)
+    except:
+        return False

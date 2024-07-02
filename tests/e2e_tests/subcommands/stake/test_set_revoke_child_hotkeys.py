@@ -96,7 +96,9 @@ def test_set_revoke_child(local_chain, capsys):
     )
 
     subtensor = bittensor.subtensor(network="ws://localhost:9945")
-    assert len(subtensor.get_children_info(netuid=1)) == 1, "failed to set child hotkey"
+    assert (
+        len(subtensor.get_children_info(netuid=1)[alice_keypair.ss58_address]) == 1
+    ), "failed to set child hotkey"
 
     output = capsys.readouterr().out
     assert "✅ Finalized" in output
@@ -223,7 +225,7 @@ def test_set_revoke_children(local_chain, capsys):
 
     subtensor = bittensor.subtensor(network="ws://localhost:9945")
     assert (
-        len(subtensor.get_children_info(netuid=1)) == 2
+        len(subtensor.get_children_info(netuid=1)[alice_keypair.ss58_address]) == 2
     ), "failed to set children hotkeys"
 
     output = capsys.readouterr().out

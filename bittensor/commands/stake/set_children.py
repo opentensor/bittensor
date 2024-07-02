@@ -17,7 +17,7 @@
 
 import argparse
 import re
-from typing import Union
+from typing import Union, List
 from rich.prompt import Confirm
 from numpy.typing import NDArray
 import numpy as np
@@ -25,7 +25,11 @@ from rich.prompt import Prompt
 from typing import Tuple
 import bittensor
 from .. import defaults, GetChildrenCommand  # type: ignore
-from ...utils.formatting import float_to_u64
+from ...utils.formatting import (
+    float_to_u64,
+    normalize_u64_values,
+    is_valid_ss58_address,
+)
 
 console = bittensor.__console__
 
@@ -93,15 +97,16 @@ class SetChildrenCommand:
         # Parse from strings
         netuid = cli.config.netuid
 
-        proportions = np.array(
-            [float(x) for x in re.split(r"[ ,]+", cli.config.proportions)],
-            dtype=np.float32,
-        )
-        children = np.array(
-            [str(x) for x in re.split(r"[ ,]+", cli.config.children)], dtype=str
-        )
+        proportions = [float(x) for x in re.split(r"[ ,]+", cli.config.proportions)]
+        children = [str(x) for x in re.split(r"[ ,]+", cli.config.children)]
 
-        total_proposed = np.sum(proportions) + current_proportions
+        # Validate children SS58 addresses
+        for child in children:
+            if not is_valid_ss58_address(child):
+                console.print(f":cross_mark:[red] Invalid SS58 address: {child}[/red]")
+                return
+
+        total_proposed = sum(proportions) + current_proportions
         if total_proposed > 1:
             raise ValueError(
                 f":cross_mark:[red] The sum of all proportions cannot be greater than 1. Proposed sum of proportions is {total_proposed}[/red]"
@@ -181,7 +186,7 @@ class SetChildrenCommand:
         subtensor: "bittensor.subtensor",
         wallet: "bittensor.wallet",
         hotkey: str,
-        children: Union[NDArray[str], list],
+        children: List[str],
         netuid: int,
         proportions: Union[NDArray[np.float32], list],
         wait_for_inclusion: bool = True,
@@ -198,7 +203,7 @@ class SetChildrenCommand:
                 Bittensor wallet object.
             hotkey (str):
                 Parent hotkey.
-            children (np.ndarray):
+            children (List[str]):
                 Children hotkeys.
             netuid (int):
                 Unique identifier of for the subnet.
@@ -241,10 +246,13 @@ class SetChildrenCommand:
                     else proportions
                 )
 
-                # Convert each proportion value to u16
+                # Convert each proportion value to u64
                 proportions_val = [
                     float_to_u64(proportion) for proportion in proportions_val
                 ]
+
+                # Normalize the u64 values to ensure their sum equals u64::MAX
+                proportions_val = normalize_u64_values(proportions_val)
 
                 children_with_proportions = list(zip(children, proportions_val))
 
