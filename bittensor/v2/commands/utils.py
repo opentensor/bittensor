@@ -25,10 +25,10 @@ from rich.prompt import Confirm, PromptBase
 from scalecodec.base import RuntimeConfiguration
 from scalecodec.type_registry import load_type_registry_preset
 
-import bittensor
-from bittensor.utils import u64_normalized_float, u16_normalized_float
-from bittensor.utils.balance import Balance
-from bittensor.utils.registration import torch
+import bittensor.v2 as bittensor
+from bittensor.v2.utils import u64_normalized_float, u16_normalized_float
+from bittensor.v2.utils.balance import Balance
+from bittensor.v2.utils.registration import torch
 from . import defaults
 
 console = bittensor.__console__

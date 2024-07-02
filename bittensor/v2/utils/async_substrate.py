@@ -26,7 +26,6 @@ from collections import defaultdict
 from dataclasses import dataclass
 from typing import Optional, Any, Union, Callable, Awaitable
 
-import websockets
 from scalecodec import GenericExtrinsic
 from scalecodec.base import ScaleBytes, ScaleType, RuntimeConfigurationObject
 from scalecodec.type_registry import load_type_registry_preset
@@ -35,8 +34,9 @@ from substrateinterface import Keypair, ExtrinsicReceipt
 from substrateinterface.base import SubstrateInterface, QueryMapResult
 from substrateinterface.exceptions import SubstrateRequestException, BlockNotFound
 from substrateinterface.storage import StorageKey
+import websockets
 
-import bittensor
+import bittensor.v2 as bittensor
 
 TEST_CHAIN_ENDPOINT = "wss://test.finney.opentensor.ai:443"
 

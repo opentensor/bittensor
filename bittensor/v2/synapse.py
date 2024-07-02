@@ -29,7 +29,7 @@ from pydantic import (
     field_validator,
     model_validator,
 )
-import bittensor
+import bittensor.v2 as bittensor
 from typing import Optional, Any, Dict, ClassVar, Tuple
 
 

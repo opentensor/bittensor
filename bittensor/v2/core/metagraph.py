@@ -28,10 +28,10 @@ from typing import List, Optional, Union, Tuple, Any
 import numpy as np
 from numpy.typing import NDArray
 
-import bittensor
-from bittensor.chain_data import AxonInfo
-from bittensor.utils import weight_utils
-from bittensor.utils.registration import torch, use_torch
+import bittensor.v2 as bittensor
+from bittensor.v2.chain_data import AxonInfo
+from bittensor.v2.utils import weight_utils
+from bittensor.v2.utils.registration import torch, use_torch
 
 METAGRAPH_STATE_DICT_NDARRAY_KEYS = [
     "version",

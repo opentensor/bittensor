@@ -16,10 +16,11 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import sys
 import argparse
-import bittensor
+import sys
 from rich.prompt import Prompt
+
+import bittensor.v2 as bittensor
 from . import defaults
 
 console = bittensor.__console__

@@ -27,7 +27,7 @@ from rich.table import Table
 from substrateinterface.exceptions import SubstrateRequestException
 from tqdm import tqdm
 
-import bittensor
+import bittensor.v2 as bittensor
 from . import defaults
 from .identity import SetIdentityCommand
 from .utils import get_delegates_details, DelegatesDetails

@@ -1,1 +1,1 @@
-from bittensor.core.axon import *
+from bittensor.v2.core.axon import *

@@ -38,7 +38,7 @@ from ..core.subtensor import Subtensor
 from ..utils import RAOPERTAO, u16_normalized_float
 from ..utils.balance import Balance
 from ..utils.registration import POWSolution
-from bittensor.core.wallet import wallet
+from bittensor.v2.core.wallet import Wallet as wallet
 
 # Mock Testing Constant
 __GLOBAL_MOCK_STATE__ = {}

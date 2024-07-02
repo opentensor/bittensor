@@ -18,7 +18,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from bittensor import serialized_keypair_to_keyfile_data, keyfile, Keypair
+from bittensor.v2 import serialized_keypair_to_keyfile_data, keyfile, Keypair
 
 
 class MockKeyfile(keyfile):

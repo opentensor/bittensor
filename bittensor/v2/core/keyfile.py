@@ -15,15 +15,13 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import os
 import base64
-import json
-import stat
 import getpass
-import bittensor
-from bittensor.errors import KeyFileError
-from typing import Optional
+import json
+import os
 from pathlib import Path
+import stat
+from typing import Optional
 
 from ansible_vault import Vault
 from ansible.parsing.vault import AnsibleVaultError
@@ -37,6 +35,9 @@ from password_strength import PasswordPolicy
 from substrateinterface.utils.ss58 import ss58_encode
 from termcolor import colored
 from rich.prompt import Confirm
+
+import bittensor.v2 as bittensor
+from bittensor.v2.errors import KeyFileError
 
 
 NACL_SALT = b"\x13q\x83\xdf\xf1Z\t\xbc\x9c\x90\xb5Q\x879\xe9\xb1"

@@ -21,8 +21,8 @@ from typing import Union, Optional
 
 from rich.prompt import Confirm
 
-import bittensor
-from bittensor.utils.balance import Balance
+import bittensor.v2 as bittensor
+from bittensor.v2.utils.balance import Balance
 from ..errors import (
     NominationError,
     NotDelegateError,

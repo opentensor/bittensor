@@ -21,7 +21,7 @@ from rich.table import Table
 from rich.prompt import Prompt
 from sys import getsizeof
 
-import bittensor
+import bittensor.v2 as bittensor
 
 
 class SetIdentityCommand:

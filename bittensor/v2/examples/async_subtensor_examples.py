@@ -3,7 +3,7 @@
 import asyncio
 import time
 
-from bittensor import subtensor
+from bittensor.v2 import subtensor
 
 sub = subtensor()
 

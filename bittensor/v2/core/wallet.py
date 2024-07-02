@@ -17,14 +17,15 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import os
-import copy
 import argparse
-import bittensor
-from termcolor import colored
+import copy
+import os
 from substrateinterface import Keypair
+from termcolor import colored
 from typing import Optional, Union, Tuple, Dict, overload
-from bittensor.utils import is_valid_bittensor_address_or_public_key
+
+import bittensor.v2 as bittensor
+from bittensor.v2.utils import is_valid_bittensor_address_or_public_key
 
 
 def display_mnemonic_msg(keypair: Keypair, key_type: str):

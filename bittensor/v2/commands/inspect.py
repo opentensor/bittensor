@@ -23,7 +23,7 @@ from rich.prompt import Prompt
 from rich.table import Table
 from tqdm import tqdm
 
-import bittensor
+import bittensor.v2 as bittensor
 from . import defaults
 from .utils import (
     get_delegates_details,

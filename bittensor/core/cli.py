@@ -1,1 +1,1 @@
-from bittensor.cli import *
+from bittensor.v2.core.cli import *

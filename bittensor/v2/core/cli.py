@@ -19,9 +19,9 @@ import asyncio
 import sys
 import shtab
 import argparse
-import bittensor
+import bittensor.v2 as bittensor
 from typing import List, Optional
-from bittensor.commands import (
+from bittensor.v2.commands import (
     AutocompleteCommand,
     DelegateStakeCommand,
     DelegateUnstakeCommand,

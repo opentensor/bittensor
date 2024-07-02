@@ -21,7 +21,7 @@ import os
 from rich.prompt import Prompt
 from rich.table import Table
 
-import bittensor
+import bittensor.v2 as bittensor
 
 console = bittensor.__console__
 

@@ -24,9 +24,9 @@ import numpy as np
 from numpy.typing import NDArray
 from rich.prompt import Confirm
 
-import bittensor
-import bittensor.utils.weight_utils as weight_utils
-from bittensor.utils.registration import torch, use_torch
+import bittensor.v2 as bittensor
+import bittensor.v2.utils.weight_utils as weight_utils
+from bittensor.v2.utils.registration import torch, use_torch
 
 
 async def set_weights_extrinsic(

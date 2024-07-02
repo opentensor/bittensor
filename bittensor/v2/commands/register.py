@@ -22,7 +22,7 @@ from copy import deepcopy
 
 from rich.prompt import Prompt, Confirm
 
-import bittensor
+import bittensor.v2 as bittensor
 from . import defaults
 from .utils import check_netuid_set, check_for_cuda_reg_config
 

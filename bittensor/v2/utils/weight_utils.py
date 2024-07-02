@@ -28,8 +28,8 @@ from numpy.typing import NDArray
 from scalecodec import ScaleBytes, U16, Vec
 from substrateinterface import Keypair
 
-import bittensor
-from bittensor.utils.registration import torch, use_torch, legacy_torch_api_compat
+import bittensor.v2 as bittensor
+from bittensor.v2.utils.registration import torch, use_torch, legacy_torch_api_compat
 
 U32_MAX = 4294967295
 U16_MAX = 65535

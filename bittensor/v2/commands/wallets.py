@@ -25,7 +25,7 @@ import requests
 from rich.prompt import Prompt, Confirm
 from rich.table import Table
 
-import bittensor
+import bittensor.v2 as bittensor
 from . import defaults
 from ..utils import RAOPERTAO
 

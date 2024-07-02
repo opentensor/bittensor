@@ -23,9 +23,9 @@ metrics.
 
 import json
 
-import bittensor
-import bittensor.utils.networking as net
-from bittensor.types import PrometheusServeCallParams
+import bittensor.v2 as bittensor
+import bittensor.v2.utils.networking as net
+from bittensor.v2.types import PrometheusServeCallParams
 
 
 async def prometheus_extrinsic(
@@ -103,8 +103,7 @@ async def prometheus_extrinsic(
 
         bittensor.__console__.print(
             ":white_heavy_check_mark: [white]Prometheus already served.[/white]".format(
-                external_ip
-            )
+                )
         )
         return True
 

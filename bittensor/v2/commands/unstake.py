@@ -21,8 +21,8 @@ from typing import List, Union, Optional, Tuple
 from rich.prompt import Confirm, Prompt
 from tqdm import tqdm
 
-import bittensor
-from bittensor.utils.balance import Balance
+import bittensor.v2 as bittensor
+from bittensor.v2.utils.balance import Balance
 from . import defaults
 from .utils import get_hotkey_wallets_for_wallet
 

@@ -16,12 +16,13 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
-
-from substrateinterface.utils import ss58
 from typing import Union, Optional
 
-from .. import __ss58_format__
 from substrateinterface import Keypair as Keypair
+from substrateinterface.utils import ss58
+
+from .. import __ss58_format__
+
 
 
 def get_ss58_format(ss58_address: str) -> int:

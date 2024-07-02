@@ -23,8 +23,6 @@ import warnings
 from rich.console import Console
 from rich.traceback import install
 
-import bittensor
-
 if (NEST_ASYNCIO_ENV := os.getenv("NEST_ASYNCIO")) in ("1", None):
     if NEST_ASYNCIO_ENV is None:
         warnings.warn(
@@ -267,7 +265,8 @@ from .errors import (
 )
 
 from substrateinterface import Keypair  # noqa: F401
-from .config import InvalidConfigFile, DefaultConfig, config, T
+from .core.config import InvalidConfigFile, DefaultConfig, T
+from .core.config import Config as config
 from .core.keyfile import (
     serialized_keypair_to_keyfile_data,
     deserialize_keypair_from_keyfile_data,
@@ -320,7 +319,7 @@ from .chain_data import (
 )
 
 # should be imported before `subtensor_module`
-from .btlogging import logging
+from ..btlogging import logging
 
 # Allows avoiding name spacing conflicts and continue access to the `subtensor` module with `subtensor_module` name
 from .core import subtensor as subtensor_module

@@ -24,9 +24,9 @@ import uuid
 import time
 import aiohttp
 
-import bittensor
+import bittensor.v2 as bittensor
 from typing import Optional, List, Union, AsyncGenerator, Any
-from bittensor.utils.registration import torch, use_torch
+from bittensor.v2.utils.registration import torch, use_torch
 
 
 class DendriteMixin:

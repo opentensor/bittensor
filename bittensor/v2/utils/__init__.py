@@ -22,7 +22,7 @@ from typing import Callable, List, Dict, Literal, Tuple
 import numpy as np
 import scalecodec
 
-import bittensor
+import bittensor.v2 as bittensor
 from .registration import torch, use_torch
 from .version import version_checking, check_version, VersionCheckError
 from .wallet_utils import *  # noqa F401

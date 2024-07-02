@@ -28,9 +28,9 @@ import numpy as np
 from numpy.typing import NDArray
 from rich.prompt import Confirm
 
-import bittensor
-import bittensor.utils.weight_utils as weight_utils
-from bittensor.utils.registration import torch, legacy_torch_api_compat
+import bittensor.v2 as bittensor
+import bittensor.v2.utils.weight_utils as weight_utils
+from bittensor.v2.utils.registration import torch, legacy_torch_api_compat
 
 
 async def root_register_extrinsic(

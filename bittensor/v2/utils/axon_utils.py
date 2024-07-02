@@ -20,7 +20,7 @@
 
 from typing import Optional
 
-from bittensor.constants import ALLOWED_DELTA, NANOSECONDS_IN_SECOND
+from bittensor.v2.constants import ALLOWED_DELTA, NANOSECONDS_IN_SECOND
 
 
 def allowed_nonce_window_ns(current_time_ns: int, synapse_timeout: Optional[float]):

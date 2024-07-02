@@ -15,11 +15,14 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import os
 import argparse
-import bittensor
+import os
+
 from rich import print
 from rich.tree import Tree
+
+import bittensor.v2 as bittensor 
+
 
 console = bittensor.__console__
 

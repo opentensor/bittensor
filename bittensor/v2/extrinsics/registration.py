@@ -26,9 +26,9 @@ from typing import List, Union, Optional, Tuple
 
 from rich.prompt import Confirm
 
-import bittensor
-from bittensor.utils import format_error_message
-from bittensor.utils.registration import (
+import bittensor.v2 as bittensor
+from bittensor.v2.utils import format_error_message
+from bittensor.v2.utils.registration import (
     POWSolution,
     create_pow,
     torch,

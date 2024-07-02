@@ -28,9 +28,9 @@ from rich.prompt import Prompt
 from rich.table import Table
 from tqdm import tqdm
 
-import bittensor
-from bittensor.chain_data import custom_rpc_type_registry
-from bittensor.utils import networking
+import bittensor.v2 as bittensor
+from bittensor.v2.chain_data import custom_rpc_type_registry
+from bittensor.v2.utils import networking
 from . import defaults
 from .utils import (
     decode_scale_bytes,

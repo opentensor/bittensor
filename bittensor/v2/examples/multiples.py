@@ -6,10 +6,10 @@ import scalecodec
 from scalecodec.base import RuntimeConfiguration
 from scalecodec.type_registry import load_type_registry_preset
 
-import bittensor
-from bittensor import subtensor_module
-from bittensor.utils import async_substrate
-from bittensor.chain_data import custom_rpc_type_registry
+import bittensor.v2 as bittensor
+from bittensor.v2 import subtensor_module
+from bittensor.v2.utils import async_substrate
+from bittensor.v2.chain_data import custom_rpc_type_registry
 
 pp = PrettyPrinter(indent=4).pprint
 

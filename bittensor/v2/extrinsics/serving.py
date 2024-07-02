@@ -27,9 +27,9 @@ from typing import Any, Dict, Optional
 from rich.prompt import Confirm
 from tenacity import retry, stop_after_attempt, wait_fixed
 
-import bittensor
-import bittensor.utils.networking as net
-from bittensor.utils import format_error_message
+import bittensor.v2 as bittensor
+import bittensor.v2.utils.networking as net
+from bittensor.v2.utils import format_error_message
 from ..errors import MetadataError
 
 

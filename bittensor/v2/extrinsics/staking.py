@@ -24,8 +24,8 @@ from typing import List, Union, Optional, Tuple
 
 from rich.prompt import Confirm
 
-import bittensor
-from bittensor.utils.balance import Balance
+import bittensor.v2 as bittensor
+from bittensor.v2.utils.balance import Balance
 
 
 async def _check_threshold_amount(

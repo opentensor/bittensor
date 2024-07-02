@@ -19,7 +19,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import os
-import bittensor
+import bittensor.v2 as bittensor
 from typing import Optional
 from Crypto.Hash import keccak
 

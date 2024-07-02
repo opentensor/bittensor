@@ -26,8 +26,8 @@ import re
 import numpy as np
 from rich.prompt import Prompt, Confirm
 
-import bittensor
-import bittensor.utils.weight_utils as weight_utils
+import bittensor.v2 as bittensor
+import bittensor.v2.utils.weight_utils as weight_utils
 from . import defaults  # type: ignore
 
 

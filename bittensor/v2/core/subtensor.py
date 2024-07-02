@@ -24,9 +24,7 @@ blockchain, facilitating a range of operations essential for the decentralized m
 import argparse
 import asyncio
 import copy
-
 import socket
-
 from typing import List, Dict, Union, Optional, Tuple, TypedDict, Any
 
 import numpy as np
@@ -38,12 +36,10 @@ from scalecodec.type_registry import load_type_registry_preset
 from scalecodec.types import GenericCall, ScaleType
 from substrateinterface.base import QueryMapResult, ExtrinsicReceipt
 from substrateinterface.exceptions import SubstrateRequestException
+from tenacity import retry, stop_after_attempt, wait_fixed
 
-from bittensor.utils.async_substrate import AsyncSubstrateInterface
-
-import bittensor
-from bittensor.utils import torch, weight_utils, format_error_message
-from bittensor.chain_data import (
+import bittensor.v2 as bittensor
+from bittensor.v2.chain_data import (
     DelegateInfoLite,
     NeuronInfo,
     DelegateInfo,
@@ -57,63 +53,63 @@ from bittensor.chain_data import (
     IPInfo,
     custom_rpc_type_registry,
 )
-
-from bittensor.errors import IdentityError, NominationError, StakeError, TakeError
-from bittensor.extrinsics.commit_weights import (
+from bittensor.v2.errors import IdentityError, NominationError, StakeError, TakeError
+from bittensor.v2.extrinsics.commit_weights import (
     commit_weights_extrinsic,
     reveal_weights_extrinsic,
 )
-from bittensor.extrinsics.delegation import (
+from bittensor.v2.extrinsics.delegation import (
     delegate_extrinsic,
     nominate_extrinsic,
     undelegate_extrinsic,
     increase_take_extrinsic,
     decrease_take_extrinsic,
 )
-from bittensor.extrinsics.network import (
+from bittensor.v2.extrinsics.network import (
     register_subnetwork_extrinsic,
     set_hyperparameter_extrinsic,
 )
-from bittensor.extrinsics.prometheus import prometheus_extrinsic
-from bittensor.extrinsics.registration import (
+from bittensor.v2.extrinsics.prometheus import prometheus_extrinsic
+from bittensor.v2.extrinsics.registration import (
     register_extrinsic,
     burned_register_extrinsic,
     run_faucet_extrinsic,
     swap_hotkey_extrinsic,
 )
-from bittensor.extrinsics.root import (
+from bittensor.v2.extrinsics.root import (
     root_register_extrinsic,
     set_root_weights_extrinsic,
 )
-from bittensor.extrinsics.senate import (
+from bittensor.v2.extrinsics.senate import (
     register_senate_extrinsic,
     leave_senate_extrinsic,
     vote_senate_extrinsic,
 )
-from bittensor.extrinsics.serving import (
+from bittensor.v2.extrinsics.serving import (
     serve_extrinsic,
     serve_axon_extrinsic,
     publish_metadata,
     get_metadata,
 )
-from bittensor.extrinsics.set_weights import set_weights_extrinsic
-from bittensor.extrinsics.staking import (
+from bittensor.v2.extrinsics.set_weights import set_weights_extrinsic
+from bittensor.v2.extrinsics.staking import (
     add_stake_extrinsic,
     add_stake_multiple_extrinsic,
 )
-from bittensor.extrinsics.transfer import transfer_extrinsic
-from bittensor.extrinsics.unstaking import unstake_extrinsic, unstake_multiple_extrinsic
-from bittensor.types import AxonServeCallParams, PrometheusServeCallParams
-from bittensor.utils import (
+from bittensor.v2.extrinsics.transfer import transfer_extrinsic
+from bittensor.v2.extrinsics.unstaking import unstake_extrinsic, unstake_multiple_extrinsic
+from bittensor.v2.types import AxonServeCallParams, PrometheusServeCallParams
+from bittensor.v2.utils import (
     u16_normalized_float,
     ss58_to_vec_u8,
     u64_normalized_float,
     networking,
 )
-from bittensor.utils.balance import Balance
-from bittensor.utils.registration import POWSolution
-from bittensor.utils.registration import legacy_torch_api_compat
-from tenacity import retry, stop_after_attempt, wait_fixed
+from bittensor.v2.utils import torch, weight_utils, format_error_message
+from bittensor.v2.utils.balance import Balance
+from bittensor.v2.utils.async_substrate import AsyncSubstrateInterface
+from bittensor.v2.utils.registration import POWSolution
+from bittensor.v2.utils.registration import legacy_torch_api_compat
 
 
 KEY_NONCE: Dict[str, int] = {}

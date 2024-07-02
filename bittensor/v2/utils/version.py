@@ -1,10 +1,12 @@
-from typing import Optional
+from packaging.version import Version
 from pathlib import Path
 import time
-from packaging.version import Version
+from typing import Optional
 
-import bittensor
 import requests
+
+import bittensor.v2 as bittensor
+
 
 VERSION_CHECK_THRESHOLD = 86400
 

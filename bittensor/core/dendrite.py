@@ -1,1 +1,1 @@
-from bittensor.dendrite import *
+from bittensor.v2.core.dendrite import *

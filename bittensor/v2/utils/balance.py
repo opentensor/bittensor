@@ -21,7 +21,7 @@
 
 from typing import Union
 
-import bittensor
+import bittensor.v2 as bittensor
 
 
 class Balance:

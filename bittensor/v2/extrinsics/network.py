@@ -26,8 +26,8 @@ import asyncio
 import substrateinterface
 from rich.prompt import Confirm
 
-import bittensor
-from bittensor.utils import balance, format_error_message
+import bittensor.v2 as bittensor
+from bittensor.v2.utils import balance, format_error_message
 from ..commands.network import HYPERPARAMS
 
 

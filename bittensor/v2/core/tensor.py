@@ -20,9 +20,10 @@ import numpy as np
 import base64
 import msgpack
 import msgpack_numpy
-from typing import Optional, Union, List
-from bittensor.utils.registration import torch, use_torch
 from pydantic import ConfigDict, BaseModel, Field, field_validator
+from typing import Optional, Union, List
+
+from bittensor.v2.utils.registration import torch, use_torch
 
 
 class DTypes(dict):

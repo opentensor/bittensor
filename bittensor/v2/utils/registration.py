@@ -39,13 +39,12 @@ from queue import Empty, Full
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import backoff
-import numpy
-
-import bittensor
 from Crypto.Hash import keccak
+import numpy
 from rich import console as rich_console
 from rich import status as rich_status
 
+import bittensor.v2 as bittensor
 from .formatting import get_human_readable, millify
 from ._register_cuda import solve_cuda
 

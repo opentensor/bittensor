@@ -17,7 +17,7 @@ import weakref
 from concurrent.futures import _base
 from typing import Callable
 
-import bittensor
+import bittensor.v2 as bittensor
 
 
 # Workers are created as daemon threads. This is done to allow the interpreter

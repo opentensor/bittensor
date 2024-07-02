@@ -21,8 +21,8 @@ from typing import List, Optional, Dict, Union, Tuple
 from rich.prompt import Prompt
 from rich.table import Table
 
-import bittensor
-from bittensor.utils import balance, formatting
+import bittensor.v2 as bittensor
+from bittensor.v2.utils import balance, formatting
 from . import defaults
 from .identity import SetIdentityCommand
 from .utils import (

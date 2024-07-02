@@ -1,5 +1,5 @@
 from aiohttp import ClientResponse
-import bittensor
+import bittensor.v2 as bittensor
 
 from starlette.responses import StreamingResponse as _StreamingResponse
 from starlette.types import Send, Receive, Scope

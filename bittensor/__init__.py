@@ -18,8 +18,8 @@
 # DEALINGS IN THE SOFTWARE.
 import asyncio
 
-import bittensor
-from bittensor import *
+from . import v2 as bittensor
+from .v2 import *
 
 # Bittensor code and protocol version.
 __version__ = "7.2.0"

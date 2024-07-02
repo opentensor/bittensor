@@ -22,8 +22,8 @@ import asyncio
 
 from rich.prompt import Confirm
 
-import bittensor
-from bittensor.utils import format_error_message
+import bittensor.v2 as bittensor
+from bittensor.v2.utils import format_error_message
 
 
 async def register_senate_extrinsic(

@@ -1,1 +1,1 @@
-from bittensor.core.wallet import *
+from bittensor.v2.core.wallet import *

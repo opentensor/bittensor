@@ -23,7 +23,7 @@ from typing import Union
 
 from rich.prompt import Confirm
 
-import bittensor
+import bittensor.v2 as bittensor
 from ..utils import is_valid_bittensor_address_or_public_key
 from ..utils.balance import Balance
 

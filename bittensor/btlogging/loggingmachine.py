@@ -33,7 +33,7 @@ from typing import NamedTuple
 
 from statemachine import State, StateMachine
 
-import bittensor.config
+import bittensor.v2 as bittensor
 from bittensor.btlogging.defines import (
     BITTENSOR_LOGGER_NAME,
     DATE_FORMAT,

@@ -43,10 +43,10 @@ from starlette.requests import Request
 from starlette.responses import Response
 from substrateinterface import Keypair
 
-import bittensor
-from bittensor.utils.axon_utils import allowed_nonce_window_ns, calculate_diff_seconds
-from bittensor.constants import V_7_2_0
-from bittensor.errors import (
+import bittensor.v2 as bittensor
+from bittensor.v2.utils.axon_utils import allowed_nonce_window_ns, calculate_diff_seconds
+from bittensor.v2.constants import V_7_2_0
+from bittensor.v2.errors import (
     BlacklistedException,
     InvalidRequestNameError,
     NotVerifiedException,
@@ -57,8 +57,8 @@ from bittensor.errors import (
     SynapseParsingError,
     UnknownSynapseError,
 )
-from bittensor.threadpool import PriorityThreadPoolExecutor
-from bittensor.utils import networking
+from bittensor.v2.threadpool import PriorityThreadPoolExecutor
+from bittensor.v2.utils import networking
 
 
 ALLOWED_DELTA = 4000000000  # Delta of 4 seconds for nonce validation
