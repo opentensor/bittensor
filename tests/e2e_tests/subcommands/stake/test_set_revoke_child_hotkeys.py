@@ -222,10 +222,13 @@ def test_set_revoke_children(local_chain, capsys):
     )
 
     subtensor = bittensor.subtensor(network="ws://localhost:9945")
-    assert (
-        len(subtensor.get_children_info(netuid=1)) == 2
-    ), "failed to set children hotkeys"
+    children_info = subtensor.get_children_info(netuid=1)
+    print("subtensor.get_children_info(netuid=1)", children_info)
 
+    # Get the first (and only) key in the dictionary
+    parent_key = next(iter(children_info))
+
+    assert len(children_info[parent_key]) == 2, "failed to set children hotkeys"
     output = capsys.readouterr().out
     assert "✅ Finalized" in output
 
