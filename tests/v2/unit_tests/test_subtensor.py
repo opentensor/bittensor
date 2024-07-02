@@ -28,7 +28,7 @@ import bittensor.v2 as bittensor
 from bittensor.v2.core.subtensor import Subtensor
 from bittensor.v2.chain_data import SubnetHyperparameters
 from bittensor.v2.commands.utils import normalize_hyperparameters
-from bittensor.v2.core import subtensor
+from bittensor.v2.core import subtensor as subtensor_module
 from bittensor.v2.utils.balance import Balance
 
 U16_MAX = 65535
@@ -114,7 +114,7 @@ def test_serve_axon_with_external_port_set():
     )
 
     with mock.patch(
-        "bittensor.utils.networking.get_external_ip", return_value=external_ip
+        "bittensor.v2.utils.networking.get_external_ip", return_value=external_ip
     ):
         # mock the get_external_ip function to return the external ip
         mock_subtensor.serve_axon(
@@ -139,7 +139,7 @@ class ExitEarly(Exception):
 async def test_stake_multiple(mocker):
     """Test add_stake_multiple function returns proper extrinsic."""
     # Prep
-    subtensor.add_stake_multiple_extrinsic = mocker.AsyncMock()
+    subtensor_module.add_stake_multiple_extrinsic = mocker.AsyncMock()
 
     mock_subtensor = mocker.MagicMock()
     mock_wallet = mocker.MagicMock()
@@ -156,8 +156,8 @@ async def test_stake_multiple(mocker):
     )
 
     # Assertions
-    assert result == subtensor.add_stake_multiple_extrinsic.return_value
-    subtensor.add_stake_multiple_extrinsic.assert_called_once_with(
+    assert result == subtensor_module.add_stake_multiple_extrinsic.return_value
+    subtensor_module.add_stake_multiple_extrinsic.assert_called_once_with(
         mock_subtensor, mock_wallet, mock_hotkey_ss58s, mock_amounts, True, False, False
     )
 
@@ -355,8 +355,8 @@ async def test_hyper_parameter_success_calls(
     # Prep
     subtensor._get_hyperparameter = mocker.AsyncMock(return_value=value)
 
-    spy_u16_normalized_float = mocker.spy(subtensor, "u16_normalized_float")
-    spy_u64_normalized_float = mocker.spy(subtensor, "u64_normalized_float")
+    spy_u16_normalized_float = mocker.spy(subtensor_module, "u16_normalized_float")
+    spy_u64_normalized_float = mocker.spy(subtensor_module, "u64_normalized_float")
     spy_balance_from_rao = mocker.spy(Balance, "from_rao")
 
     # Call
@@ -2065,7 +2065,7 @@ async def test_get_all_subnets_info_success(mocker, subtensor):
         new=mocker.AsyncMock(return_value=mock_response),
     )
     mocker.patch.object(
-        subtensor.SubnetInfo,
+        subtensor_module.SubnetInfo,
         "list_from_vec_u8",
         return_value="list_from_vec_u80",
     )
@@ -2074,12 +2074,12 @@ async def test_get_all_subnets_info_success(mocker, subtensor):
     result = await subtensor.get_all_subnets_info(block)
 
     # Asserts
-    assert result == subtensor.SubnetInfo.list_from_vec_u8.return_value
+    assert result == subtensor_module.SubnetInfo.list_from_vec_u8.return_value
     subtensor.substrate.get_block_hash.assert_called_once_with(block)
     subtensor.substrate.rpc_request.assert_called_once_with(
         method="subnetInfo_getSubnetsInfo", params=["mock_block_hash"]
     )
-    subtensor.SubnetInfo.list_from_vec_u8.assert_called_once_with(subnet_data)
+    subtensor_module.SubnetInfo.list_from_vec_u8.assert_called_once_with(subnet_data)
 
 
 @pytest.mark.asyncio
@@ -2097,7 +2097,7 @@ async def test_get_all_subnets_info_no_data(mocker, subtensor, result_):
         "rpc_request",
         new=mocker.AsyncMock(return_value=mock_response),
     )
-    mocker.patch.object(subtensor.SubnetInfo, "list_from_vec_u8")
+    mocker.patch.object(subtensor_module.SubnetInfo, "list_from_vec_u8")
 
     # Call
     result = await subtensor.get_all_subnets_info(block)
@@ -2108,7 +2108,7 @@ async def test_get_all_subnets_info_no_data(mocker, subtensor, result_):
     subtensor.substrate.rpc_request.assert_called_once_with(
         method="subnetInfo_getSubnetsInfo", params=["mock_block_hash"]
     )
-    subtensor.SubnetInfo.list_from_vec_u8.assert_not_called()
+    subtensor_module.SubnetInfo.list_from_vec_u8.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -2129,17 +2129,17 @@ async def test_get_all_subnets_info_retry(mocker, subtensor):
         new=mocker.AsyncMock(side_effect=[Exception, Exception, mock_response]),
     )
     mocker.patch.object(
-        subtensor.SubnetInfo, "list_from_vec_u8", new=mocker.MagicMock()
+        subtensor_module.SubnetInfo, "list_from_vec_u8", new=mocker.MagicMock()
     )
 
     # Call
     result = await subtensor.get_all_subnets_info(block)
 
     # Asserts
-    assert result == subtensor.SubnetInfo.list_from_vec_u8.return_value
+    assert result == subtensor_module.SubnetInfo.list_from_vec_u8.return_value
     subtensor.substrate.get_block_hash.assert_called_with(block)
     assert mock_rpc_request.call_count == 3
-    subtensor.SubnetInfo.list_from_vec_u8.assert_called_once_with(subnet_data)
+    subtensor_module.SubnetInfo.list_from_vec_u8.assert_called_once_with(subnet_data)
 
 
 # `get_subnet_info` tests
@@ -2162,19 +2162,19 @@ async def test_get_subnet_info_success(mocker, subtensor):
         new=mocker.AsyncMock(return_value=mock_response),
     )
     mocker.patch.object(
-        subtensor.SubnetInfo, "from_vec_u8", return_value=["from_vec_u8"]
+        subtensor_module.SubnetInfo, "from_vec_u8", return_value=["from_vec_u8"]
     )
 
     # Call
     result = await subtensor.get_subnet_info(netuid, block)
 
     # Asserts
-    assert result == subtensor.SubnetInfo.from_vec_u8.return_value
+    assert result == subtensor_module.SubnetInfo.from_vec_u8.return_value
     subtensor.substrate.get_block_hash.assert_called_once_with(block)
     subtensor.substrate.rpc_request.assert_called_once_with(
         method="subnetInfo_getSubnetInfo", params=[netuid, "mock_block_hash"]
     )
-    subtensor.SubnetInfo.from_vec_u8.assert_called_once_with(subnet_data)
+    subtensor_module.SubnetInfo.from_vec_u8.assert_called_once_with(subnet_data)
 
 
 @pytest.mark.parametrize("result_", [None, {}])
@@ -2195,7 +2195,7 @@ async def test_get_subnet_info_no_data(mocker, subtensor, result_):
         "rpc_request",
         new=mocker.AsyncMock(return_value=mock_response),
     )
-    mocker.patch.object(subtensor.SubnetInfo, "from_vec_u8")
+    mocker.patch.object(subtensor_module.SubnetInfo, "from_vec_u8")
 
     # Call
     result = await subtensor.get_subnet_info(netuid, block)
@@ -2206,7 +2206,7 @@ async def test_get_subnet_info_no_data(mocker, subtensor, result_):
     subtensor.substrate.rpc_request.assert_called_once_with(
         method="subnetInfo_getSubnetInfo", params=[netuid, "mock_block_hash"]
     )
-    subtensor.SubnetInfo.from_vec_u8.assert_not_called()
+    subtensor_module.SubnetInfo.from_vec_u8.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -2229,7 +2229,7 @@ async def test_get_subnet_info_retry(mocker, subtensor):
     subtensor.substrate.rpc_request = mocker.AsyncMock(return_value=expected_rpc_result)
 
     mocker.patch.object(
-        subtensor.SubnetInfo, "from_vec_u8", return_value=["from_vec_u8"]
+        subtensor_module.SubnetInfo, "from_vec_u8", return_value=["from_vec_u8"]
     )
 
     # Call
@@ -2239,7 +2239,7 @@ async def test_get_subnet_info_retry(mocker, subtensor):
     subtensor.substrate.get_block_hash.assert_called_with(block)
     assert subtensor.substrate.get_block_hash.call_count == 3
     assert subtensor.substrate.rpc_request.call_count == 1
-    subtensor.SubnetInfo.from_vec_u8.assert_called_once_with([1, 2, 3])
+    subtensor_module.SubnetInfo.from_vec_u8.assert_called_once_with([1, 2, 3])
 
 
 # `get_subnet_hyperparameters` tests
@@ -2255,7 +2255,7 @@ async def test_get_subnet_hyperparameters_success(mocker, subtensor):
 
     subtensor.query_runtime_api = mocker.AsyncMock(return_value=hex_bytes_result)
     mocker.patch.object(
-        subtensor.SubnetHyperparameters,
+        subtensor_module.SubnetHyperparameters,
         "from_vec_u8",
         return_value=[from_vec_u8_result],
     )
@@ -2271,7 +2271,7 @@ async def test_get_subnet_hyperparameters_success(mocker, subtensor):
         params=[netuid],
         block=block,
     )
-    subtensor.SubnetHyperparameters.from_vec_u8.assert_called_once_with(
+    subtensor_module.SubnetHyperparameters.from_vec_u8.assert_called_once_with(
         bytes_result
     )
 
@@ -2284,7 +2284,7 @@ async def test_get_subnet_hyperparameters_no_data(mocker, subtensor):
     block = 123
 
     subtensor.query_runtime_api = mocker.AsyncMock(return_value=None)
-    mocker.patch.object(subtensor.SubnetHyperparameters, "from_vec_u8")
+    mocker.patch.object(subtensor_module.SubnetHyperparameters, "from_vec_u8")
 
     # Call
     result = await subtensor.get_subnet_hyperparameters(netuid, block)
@@ -2297,7 +2297,7 @@ async def test_get_subnet_hyperparameters_no_data(mocker, subtensor):
         params=[netuid],
         block=block,
     )
-    subtensor.SubnetHyperparameters.from_vec_u8.assert_not_called()
+    subtensor_module.SubnetHyperparameters.from_vec_u8.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -2310,20 +2310,20 @@ async def test_get_subnet_hyperparameters_hex_without_prefix(mocker, subtensor):
     bytes_result = bytes.fromhex(hex_bytes_result)
     subtensor.query_runtime_api = mocker.AsyncMock(return_value=hex_bytes_result)
 
-    mocker.patch.object(subtensor.SubnetHyperparameters, "from_vec_u8")
+    mocker.patch.object(subtensor_module.SubnetHyperparameters, "from_vec_u8")
 
     # Call
     result = await subtensor.get_subnet_hyperparameters(netuid, block)
 
     # Asserts
-    assert result == subtensor.SubnetHyperparameters.from_vec_u8.return_value
+    assert result == subtensor_module.SubnetHyperparameters.from_vec_u8.return_value
     subtensor.query_runtime_api.assert_called_once_with(
         runtime_api="SubnetInfoRuntimeApi",
         method="get_subnet_hyperparams",
         params=[netuid],
         block=block,
     )
-    subtensor.SubnetHyperparameters.from_vec_u8.assert_called_once_with(
+    subtensor_module.SubnetHyperparameters.from_vec_u8.assert_called_once_with(
         bytes_result
     )
 
@@ -2439,7 +2439,7 @@ async def test_get_delegate_take_success(mocker, subtensor):
     subtensor.query_subtensor = mocker.AsyncMock(
         return_value=mocker.MagicMock(value=delegate_take_value)
     )
-    spy_u16_normalized_float = mocker.spy(subtensor, "u16_normalized_float")
+    spy_u16_normalized_float = mocker.spy(subtensor_module, "u16_normalized_float")
 
     # Call
     await subtensor.get_delegate_take(hotkey_ss58, block)
@@ -2456,7 +2456,7 @@ async def test_get_delegate_take_no_data(mocker, subtensor):
     hotkey_ss58 = "hotkey_ss58"
     block = 123
     subtensor.query_subtensor = mocker.AsyncMock(return_value=None)
-    spy_u16_normalized_float = mocker.spy(subtensor, "u16_normalized_float")
+    spy_u16_normalized_float = mocker.spy(subtensor_module, "u16_normalized_float")
 
     # Call
     result = await subtensor.get_delegate_take(hotkey_ss58, block)
