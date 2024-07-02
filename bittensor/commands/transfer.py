@@ -36,7 +36,7 @@ class TransferCommand:
         It checks for sufficient balance and prompts for confirmation before proceeding with the transaction.
 
     Optional arguments:
-        - ``--dest`` (str): The destination address for the transfer. This can be in the form of an SS58 or ed2519 public key.
+        - ``--dest`` (str): The destination address for the transfer. This can be in the form of an SS58 or ed25519 public key.
         - ``--amount`` (float): The amount of TAO tokens to transfer.
 
     The command displays the user's current balance before prompting for the amount to transfer, ensuring transparency and accuracy in the transaction.
@@ -82,7 +82,7 @@ class TransferCommand:
 
         # Get destination.
         if not config.dest and not config.no_prompt:
-            dest = Prompt.ask("Enter destination public key: (ss58 or ed2519)")
+            dest = Prompt.ask("Enter destination public key: (ss58 or ed25519)")
             if not bittensor.utils.is_valid_bittensor_address_or_public_key(dest):
                 sys.exit()
             else:
