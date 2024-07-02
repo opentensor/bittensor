@@ -1222,4 +1222,4 @@ class NonTorchMetagraph(MetagraphMixin):
         return self
 
 
-metagraph = TorchMetaGraph if use_torch() else NonTorchMetagraph
+Metagraph = TorchMetaGraph if use_torch() else NonTorchMetagraph

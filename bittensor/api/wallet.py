@@ -52,7 +52,7 @@ def display_mnemonic_msg(keypair: Keypair, key_type: str):
     print("")
 
 
-class wallet:
+class Wallet:
     """
     The wallet class in the Bittensor framework handles wallet functionality, crucial for participating in the Bittensor network.
 

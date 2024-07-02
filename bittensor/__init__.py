@@ -285,7 +285,8 @@ from .api.keyfile import (
     Mockkeyfile,
 )
 from .api.keyfile import Keyfile as keyfile
-from bittensor.api.wallet import display_mnemonic_msg, wallet
+from .api.wallet import display_mnemonic_msg
+from .api.wallet import Wallet as wallet
 
 from .utils import (
     ss58_to_vec_u8,
@@ -330,20 +331,20 @@ from .api.subtensor import Subtensor
 from .api.subtensor import Subtensor as subtensor
 
 from .api.cli import Cli as cli, COMMANDS as ALL_COMMANDS
-from .api.metagraph import metagraph as metagraph_class
+from .api.metagraph import Metagraph
 from .threadpool import PriorityThreadPoolExecutor as PriorityThreadPoolExecutor
 
 from .synapse import TerminalInfo, Synapse
 from .stream import StreamingSynapse
 from .api.tensor import tensor, Tensor
 from .api.axon import Axon as axon
-from .api.dendrite import dendrite as dendrite
+from .api.dendrite import Dendrite as dendrite
 
 from .mock.keyfile_mock import MockKeyfile as MockKeyfile
 from .mock.subtensor_mock import MockSubtensor as MockSubtensor
 from .mock.wallet_mock import MockWallet as MockWallet
 
-from .api.subnets import SubnetsAPI as SubnetsAPI
+from .subnets import SubnetsAPI as SubnetsAPI
 
 configs = [
     axon.config(),
@@ -362,5 +363,5 @@ async def metagraph(
     sync: bool = True,
     subtensor: Optional["Subtensor"] = None,
 ):
-    async with metagraph_class(netuid, network, lite, sync, subtensor) as m:
+    async with Metagraph(netuid, network, lite, sync, subtensor) as m:
         return m

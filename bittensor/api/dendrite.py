@@ -817,7 +817,7 @@ class DendriteMixin:
 BaseModel: Union["torch.nn.Module", object] = torch.nn.Module if use_torch() else object
 
 
-class dendrite(DendriteMixin, BaseModel):  # type: ignore
+class Dendrite(DendriteMixin, BaseModel):  # type: ignore
     def __init__(
         self, wallet: Optional[Union[bittensor.wallet, bittensor.Keypair]] = None
     ):
@@ -831,4 +831,4 @@ if not use_torch():
     async def call(self, *args, **kwargs):
         return await self.forward(*args, **kwargs)
 
-    dendrite.__call__ = call
+    Dendrite.__call__ = call
