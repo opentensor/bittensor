@@ -84,7 +84,7 @@ def deserialize_keypair_from_keyfile_data(keyfile_data: bytes) -> "bittensor.Key
     keyfile_data = keyfile_data.decode()
     try:
         keyfile_dict = dict(json.loads(keyfile_data))
-    except:
+    except BaseException:
         string_value = str(keyfile_data)
         if string_value[:2] == "0x":
             string_value = ss58_encode(string_value)
@@ -292,7 +292,8 @@ def decrypt_keyfile_data(
     Args:
         keyfile_data (bytes): The bytes to decrypt.
         password (str, optional): The password used to decrypt the data. If ``None``, asks for user input.
-        coldkey_name (str, optional): The name of the cold key. If provided, retrieves the password from environment variables.
+        coldkey_name (str, optional): The name of the cold key. If provided, retrieves the password from environment 
+                                      variables.
     Returns:
         decrypted_data (bytes): The decrypted data.
     Raises:
@@ -358,7 +359,7 @@ def decrypt_keyfile_data(
     return decrypted_keyfile_data
 
 
-class keyfile:
+class Keyfile:
     """Defines an interface for a substrate interface keypair stored on device."""
 
     def __init__(self, path: str):
@@ -560,7 +561,7 @@ class keyfile:
                     stored_mnemonic = False
                     while not stored_mnemonic:
                         bittensor.__console__.print(
-                            f"\nPlease make sure you have the mnemonic stored in case an error occurs during the transfer.",
+                            "\nPlease make sure you have the mnemonic stored in case an error occurs during the transfer.",
                             style="white on red",
                         )
                         stored_mnemonic = Confirm.ask("Have you stored the mnemonic?")
@@ -797,13 +798,15 @@ class Mockkeyfile:
 
     def make_dirs(self):
         """
-        Creates the directories for the mock keyfile. Does nothing in this class, since no actual filesystem operations are needed.
+        Creates the directories for the mock keyfile. Does nothing in this class, since no actual filesystem operations
+        are needed.
         """
         pass
 
     def exists_on_device(self):
         """
-        Returns ``True`` indicating that the mock keyfile exists on the device (although it is not created on the actual file system).
+        Returns ``True`` indicating that the mock keyfile exists on the device (although it is not created on the actual
+                         file system).
 
         Returns:
             bool: Always returns ``True`` for Mockkeyfile.
@@ -812,7 +815,8 @@ class Mockkeyfile:
 
     def is_readable(self):
         """
-        Returns ``True`` indicating that the mock keyfile is readable (although it is not read from the actual file system).
+        Returns ``True`` indicating that the mock keyfile is readable (although it is not read from the actual file 
+                         system).
 
         Returns:
             bool: Always returns ``True`` for Mockkeyfile.

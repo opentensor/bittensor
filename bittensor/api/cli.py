@@ -21,7 +21,7 @@ import shtab
 import argparse
 import bittensor
 from typing import List, Optional
-from .commands import (
+from bittensor.commands import (
     AutocompleteCommand,
     DelegateStakeCommand,
     DelegateUnstakeCommand,

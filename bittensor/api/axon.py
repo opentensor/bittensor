@@ -158,7 +158,7 @@ class FastAPIThreadedServer(uvicorn.Server):
             self.should_exit = True
 
 
-class axon:
+class Axon:
     """
     The ``axon`` class in Bittensor is a fundamental component that serves as the server-side interface for a neuron within the Bittensor network.
 
@@ -323,7 +323,7 @@ class axon:
         """
         # Build and check config.
         if config is None:
-            config = axon.config()
+            config = self.config()
         config = copy.deepcopy(config)
         config.axon.ip = ip or config.axon.get("ip", bittensor.defaults.axon.ip)
         config.axon.port = port or config.axon.get("port", bittensor.defaults.axon.port)
@@ -336,7 +336,7 @@ class axon:
         config.axon.max_workers = max_workers or config.axon.get(
             "max_workers", bittensor.defaults.axon.max_workers
         )
-        axon.check_config(config)
+        self.check_config(config)
         self.config = config  # type: ignore [method-assign]
 
         # Get wallet or use default.
@@ -565,7 +565,7 @@ class axon:
             bittensor.config: Configuration object with settings from command-line arguments.
         """
         parser = argparse.ArgumentParser()
-        axon.add_args(parser)  # Add specific axon-related arguments
+        cls.add_args(parser)  # Add specific axon-related arguments
         return bittensor.config(parser, args=[])
 
     @classmethod
@@ -574,7 +574,7 @@ class axon:
         Prints the help text (list of command-line arguments and their descriptions) to stdout.
         """
         parser = argparse.ArgumentParser()
-        axon.add_args(parser)  # Add specific axon-related arguments
+        cls.add_args(parser)  # Add specific axon-related arguments
         print(cls.__new__.__doc__)  # Print docstring of the class
         parser.print_help()  # Print parser's help text
 

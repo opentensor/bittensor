@@ -585,7 +585,7 @@ class OverviewCommand:
 
     @staticmethod
     async def _calculate_total_coldkey_stake(
-        neurons: Dict[str, List[bittensor.NeuronInfoLite]],
+        neurons: Dict[str, List["bittensor.NeuronInfoLite"]],
     ) -> Dict[str, bittensor.Balance]:
         total_coldkey_stake_from_metagraph = defaultdict(lambda: bittensor.Balance(0.0))
         checked_hotkeys = set()

@@ -203,7 +203,7 @@ async def filter_netuids_by_registered_hotkeys(
 
 
 def normalize_hyperparameters(
-    subnet: bittensor.SubnetHyperparameters,
+    subnet: "bittensor.SubnetHyperparameters",
 ) -> List[Tuple[str, str, str]]:
     """
     Normalizes the hyperparameters of a subnet.
