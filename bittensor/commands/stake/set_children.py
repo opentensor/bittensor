@@ -25,7 +25,7 @@ from rich.prompt import Prompt
 from typing import Tuple
 import bittensor
 from .. import defaults, GetChildrenCommand  # type: ignore
-from ...utils.formatting import float_to_u64
+from ...utils.formatting import float_to_u64, normalize_u64_values
 
 console = bittensor.__console__
 
@@ -241,10 +241,33 @@ class SetChildrenCommand:
                     else proportions
                 )
 
-                # Convert each proportion value to u16
+                # Log initial proportions
+                bittensor.logging.info(f"Initial proportions: {proportions_val}")
+                bittensor.logging.info(
+                    f"Sum of initial proportions: {sum(proportions_val)}"
+                )
+
+                # Convert each proportion value to u64
                 proportions_val = [
                     float_to_u64(proportion) for proportion in proportions_val
                 ]
+
+                # Log after float_to_u64 conversion
+                bittensor.logging.info(
+                    f"Proportions after float_to_u64: {proportions_val}"
+                )
+                bittensor.logging.info(
+                    f"Sum after float_to_u64: {sum(proportions_val)}"
+                )
+
+                # Normalize the u64 values to ensure their sum equals u64::MAX
+                proportions_val = normalize_u64_values(proportions_val)
+
+                # Log after normalization
+                bittensor.logging.info(f"Normalized proportions: {proportions_val}")
+                bittensor.logging.info(
+                    f"Sum of normalized proportions: {sum(proportions_val)}"
+                )
 
                 children_with_proportions = list(zip(children, proportions_val))
 
