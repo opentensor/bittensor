@@ -18,13 +18,12 @@
 
 import argparse
 import re
-from typing import Union, Tuple
-import numpy as np
-from numpy.typing import NDArray
+from typing import Tuple, List
 from rich.prompt import Confirm, Prompt
 
 import bittensor
 from .. import defaults, GetChildrenCommand
+from ...utils import is_valid_ss58_address
 
 console = bittensor.__console__
 
@@ -84,9 +83,13 @@ class RevokeChildrenCommand:
         # Parse from strings
         netuid = cli.config.netuid
 
-        children = np.array(
-            [str(x) for x in re.split(r"[ ,]+", cli.config.children)], dtype=str
-        )
+        children = re.split(r"[ ,]+", cli.config.children.strip())
+
+        # Validate children SS58 addresses
+        for child in children:
+            if not is_valid_ss58_address(child):
+                console.print(f":cross_mark:[red] Invalid SS58 address: {child}[/red]")
+                return
 
         success, message = RevokeChildrenCommand.do_revoke_children_multiple(
             subtensor=subtensor,
@@ -152,7 +155,7 @@ class RevokeChildrenCommand:
         subtensor: "bittensor.subtensor",
         wallet: "bittensor.wallet",
         hotkey: str,
-        children: Union[NDArray[str], list],
+        children: List[str],
         netuid: int,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
@@ -168,7 +171,7 @@ class RevokeChildrenCommand:
                 Bittensor wallet object.
             hotkey (str):
                 Parent hotkey.
-            children (np.ndarray):
+            children (List[str]):
                 Children hotkeys.
             netuid (int):
                 Unique identifier of for the subnet.
