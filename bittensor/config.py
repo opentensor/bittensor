@@ -452,9 +452,9 @@ class config(DefaultMunch):
             self.env_config[key] = value
 
     def load_or_create_generic_config(self):
-        config_path = defaults.config.path
-        config_file_yaml = os.path.expanduser(os.path.join(config_path, "btcliconfig.yaml"))
-        config_file_yml = os.path.expanduser(os.path.join(config_path, "btcliconfig.yml"))
+        config_path = os.path.expanduser(defaults.config.path)
+        config_file_yaml = os.path.join(config_path, "btcliconfig.yaml")
+        config_file_yml = os.path.join(config_path, "btcliconfig.yml")
 
         config_file = None
         if os.path.exists(config_file_yaml):
@@ -467,8 +467,11 @@ class config(DefaultMunch):
                 config_data = yaml.safe_load(file)
         else:
             config_data = defaults.toDict()
-            # Remove config from config data we don't want to save
+            # Remove data we don't want to save in the default config, maybe
+            # it's better to use a second define for it and not defaults
             config_data.pop("config", None)
+            config_data.pop("profile", None)
+            config_data.pop("wallet", None)
             os.makedirs(config_path, exist_ok=True)
             with open(config_file_yml, 'w+') as file:
                 yaml.safe_dump(config_data, file)
@@ -480,6 +483,9 @@ class config(DefaultMunch):
                     flatten_dict(v, new_key)
                 else:
                     self.generic_config[new_key] = v
+
+        if not config_data:
+            config_data = {}
 
         flatten_dict(config_data)
 
