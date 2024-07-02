@@ -72,6 +72,7 @@ from .commands import (
     SetChildCommand,
     SetChildrenCommand,
     GetChildrenCommand,
+    ChildHotkeysCommand,
     RevokeChildCommand,
     RevokeChildrenCommand,
 )
@@ -177,6 +178,7 @@ COMMANDS = {
             "revoke_child": RevokeChildCommand,
             "set_children": SetChildrenCommand,
             "revoke_children": RevokeChildrenCommand,
+            "child_hotkeys": ChildHotkeysCommand,
         },
     },
     "weights": {
