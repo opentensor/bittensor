@@ -42,7 +42,7 @@ def pypi_version():
 @pytest.fixture
 def mock_get_version_from_pypi(mocker: MockerFixture, pypi_version: str):
     return mocker.patch(
-        "bittensor.utils.version._get_version_from_pypi",
+        "bittensor.v2.utils.version._get_version_from_pypi",
         return_value=pypi_version,
         autospec=True,
     )
@@ -53,7 +53,7 @@ def version_file_path(mocker: MockerFixture, tmp_path: Path):
     file_path = tmp_path / ".version"
 
     mocker.patch(
-        "bittensor.utils.version._get_version_file_path", return_value=file_path
+        "bittensor.v2.utils.version._get_version_file_path", return_value=file_path
     )
     return file_path
 
@@ -112,9 +112,9 @@ def test_get_and_save_latest_version_file_expired_check(
 def test_check_version_newer_available(
     mocker: MockerFixture, current_version: str, latest_version: str, capsys
 ):
-    mocker.patch("bittensor.utils.version.bittensor.__version__", current_version)
+    mocker.patch("bittensor.v2.utils.version.bittensor.__version__", current_version)
     mocker.patch(
-        "bittensor.utils.version.get_and_save_latest_version",
+        "bittensor.v2.utils.version.get_and_save_latest_version",
         return_value=latest_version,
     )
 
@@ -138,9 +138,9 @@ def test_check_version_newer_available(
 def test_check_version_up_to_date(
     mocker: MockerFixture, current_version: str, latest_version: str, capsys
 ):
-    mocker.patch("bittensor.utils.version.bittensor.__version__", current_version)
+    mocker.patch("bittensor.v2.utils.version.bittensor.__version__", current_version)
     mocker.patch(
-        "bittensor.utils.version.get_and_save_latest_version",
+        "bittensor.v2.utils.version.get_and_save_latest_version",
         return_value=latest_version,
     )
 
@@ -152,7 +152,7 @@ def test_check_version_up_to_date(
 
 
 def test_version_checking(mocker: MockerFixture):
-    mock = mocker.patch("bittensor.utils.version.check_version")
+    mock = mocker.patch("bittensor.v2.utils.version.check_version")
 
     version_checking()
 
@@ -161,7 +161,7 @@ def test_version_checking(mocker: MockerFixture):
 
 def test_version_checking_exception(mocker: MockerFixture):
     mock = mocker.patch(
-        "bittensor.utils.version.check_version", side_effect=VersionCheckError
+        "bittensor.v2.utils.version.check_version", side_effect=VersionCheckError
     )
 
     version_checking()

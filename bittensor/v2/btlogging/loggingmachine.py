@@ -34,7 +34,7 @@ from typing import NamedTuple
 from statemachine import State, StateMachine
 
 import bittensor.v2 as bittensor
-from bittensor.btlogging.defines import (
+from ..btlogging.defines import (
     BITTENSOR_LOGGER_NAME,
     DATE_FORMAT,
     DEFAULT_LOG_BACKUP_COUNT,
@@ -42,8 +42,8 @@ from bittensor.btlogging.defines import (
     DEFAULT_MAX_ROTATING_LOG_FILE_SIZE,
     TRACE_LOG_FORMAT,
 )
-from bittensor.btlogging.format import BtFileFormatter, BtStreamFormatter
-from bittensor.btlogging.helpers import all_loggers
+from bittensor.v2.btlogging.format import BtFileFormatter, BtStreamFormatter
+from bittensor.v2.btlogging.helpers import all_loggers
 
 
 class LoggingConfig(NamedTuple):

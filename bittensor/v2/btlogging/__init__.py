@@ -22,7 +22,7 @@ This module provides logging functionality for the Bittensor package. It include
 formatters to ensure consistent logging throughout the project.
 """
 
-from bittensor.btlogging.loggingmachine import LoggingMachine
+from .loggingmachine import LoggingMachine
 
 
 logging = LoggingMachine(LoggingMachine.config())

@@ -31,7 +31,7 @@ def test_lazy_loaded_torch__torch_installed(monkeypatch, mock_bittensor_logging)
 
 
 def test_lazy_loaded_torch__no_torch(monkeypatch, mock_bittensor_logging):
-    monkeypatch.setattr("bittensor.utils.registration._get_real_torch", lambda: None)
+    monkeypatch.setattr("bittensor.v2.utils.registration._get_real_torch", lambda: None)
 
     torch = LazyLoadedTorch()
 

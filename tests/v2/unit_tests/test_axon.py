@@ -119,7 +119,7 @@ def test_attach():
 
 
 def test_log_and_handle_error():
-    from bittensor.axon import log_and_handle_error
+    from bittensor.v2.core.axon import log_and_handle_error
 
     synapse = SynapseMock()
 
@@ -130,7 +130,7 @@ def test_log_and_handle_error():
 
 
 def test_create_error_response():
-    from bittensor.axon import create_error_response
+    from bittensor.v2.core.axon import create_error_response
 
     synapse = SynapseMock()
     synapse.axon.status_code = 500

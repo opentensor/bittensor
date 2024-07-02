@@ -304,7 +304,8 @@ from .chain_data import (
 )
 
 # should be imported before `subtensor_module`
-from ..btlogging import logging
+from .btlogging import logging
+from . import btlogging
 
 # Allows avoiding name spacing conflicts and continue access to the `subtensor` module with `subtensor_module` name
 from .core import subtensor as subtensor_module

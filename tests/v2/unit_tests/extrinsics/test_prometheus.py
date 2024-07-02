@@ -21,7 +21,7 @@ def mock_wallet():
 
 @pytest.fixture
 def mock_net():
-    with patch("bittensor.utils.networking") as mock:
+    with patch("bittensor.v2.utils.networking") as mock:
         yield mock
 
 

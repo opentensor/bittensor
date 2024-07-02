@@ -77,10 +77,10 @@ async def test_run_faucet_extrinsic_happy_path(
     expected,
 ):
     with patch(
-        "bittensor.utils.registration._solve_for_difficulty_fast",
+        "bittensor.v2.utils.registration._solve_for_difficulty_fast",
         return_value=mock_pow_solution,
     ) as mock_create_pow, patch("rich.prompt.Confirm.ask", return_value=True):
-        from bittensor.extrinsics.registration import run_faucet_extrinsic
+        from bittensor.v2.extrinsics.registration import run_faucet_extrinsic
 
         # Arrange
         mock_subtensor.get_balance.return_value = 100
@@ -365,10 +365,10 @@ async def test_register_extrinsic_with_pow(
 ):
     # Arrange
     with patch(
-        "bittensor.utils.registration._solve_for_difficulty_fast",
+        "bittensor.v2.utils.registration._solve_for_difficulty_fast",
         return_value=mock_pow_solution if pow_success else None,
     ), patch(
-        "bittensor.utils.registration._solve_for_difficulty_fast_cuda",
+        "bittensor.v2.utils.registration._solve_for_difficulty_fast_cuda",
         return_value=mock_pow_solution if pow_success else None,
     ), patch.object(
         mock_subtensor,

@@ -285,7 +285,7 @@ async def test_serve_axon_extrinsic(
     mock_axon.external_ip = external_ip
     # Arrange
     with patch(
-        "bittensor.utils.networking.get_external_ip",
+        "bittensor.v2.utils.networking.get_external_ip",
         side_effect=Exception("Failed to fetch IP")
         if not external_ip_success
         else MagicMock(return_value="192.168.1.1"),

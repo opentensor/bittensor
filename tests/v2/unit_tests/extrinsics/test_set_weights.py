@@ -72,7 +72,7 @@ async def test_set_weights_extrinsic(
     uids_tensor = torch.tensor(uids, dtype=torch.int64)
     weights_tensor = torch.tensor(weights, dtype=torch.float32)
     with patch(
-        "bittensor.utils.weight_utils.convert_weights_and_uids_for_emit",
+        "bittensor.v2.utils.weight_utils.convert_weights_and_uids_for_emit",
         return_value=(uids_tensor, weights_tensor),
     ), patch("rich.prompt.Confirm.ask", return_value=user_accepts), patch.object(
         mock_subtensor,
