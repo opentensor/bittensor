@@ -4,8 +4,6 @@ from bittensor.commands.stake import StakeShow
 from ...utils import setup_wallet
 
 
-# TODO: fix test after merge
-@pytest.mark.skip("debugging of the result by log lines is required")
 @pytest.mark.asyncio
 async def test_stake_show(local_chain, capsys):
     keypair, exec_command, wallet = await setup_wallet("//Alice")
@@ -42,10 +40,10 @@ async def test_stake_show(local_chain, capsys):
     assert values2[2] == "0/d", f"Expected '0/d', got {values2[2]}."
 
     # Check the third line of data
-    values3 = lines[3].strip().split()
+    values3 = lines[4].strip().split()
     assert (
         values3[0].replace("τ", "") == "1000000.00000"
-    ), f"Expected '1000000.00000', got {values3[0]}."
+    ), f"Expected '1000000.00000', got {values3[1]}."
     assert (
         values3[1].replace("τ", "") == "0.00000"
     ), f"Expected '0.00000', got {values3[1]}."
