@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
 from bittensor.subtensor import Subtensor
-from bittensor.wallet import wallet as Wallet
+from bittensor.api.wallet import wallet as Wallet
 from bittensor.extrinsics.network import (
     set_hyperparameter_extrinsic,
     register_subnetwork_extrinsic,

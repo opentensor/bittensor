@@ -23,6 +23,7 @@ import warnings
 from rich.console import Console
 from rich.traceback import install
 
+import bittensor
 
 if (NEST_ASYNCIO_ENV := os.getenv("NEST_ASYNCIO")) in ("1", None):
     if NEST_ASYNCIO_ENV is None:
@@ -267,7 +268,7 @@ from .errors import (
 
 from substrateinterface import Keypair  # noqa: F401
 from .config import InvalidConfigFile, DefaultConfig, config, T
-from .keyfile import (
+from .api.keyfile import (
     serialized_keypair_to_keyfile_data,
     deserialize_keypair_from_keyfile_data,
     validate_password,
@@ -281,10 +282,10 @@ from .keyfile import (
     encrypt_keyfile_data,
     get_coldkey_password_from_environment,
     decrypt_keyfile_data,
-    keyfile,
     Mockkeyfile,
 )
-from .wallet import display_mnemonic_msg, wallet
+from .api.keyfile import Keyfile as keyfile
+from bittensor.api.wallet import display_mnemonic_msg, wallet
 
 from .utils import (
     ss58_to_vec_u8,
@@ -321,28 +322,28 @@ from .chain_data import (
 from .btlogging import logging
 
 # Allows avoiding name spacing conflicts and continue access to the `subtensor` module with `subtensor_module` name
-from . import subtensor as subtensor_module
+from .api import subtensor as subtensor_module
 
 # Double import allows using class `Subtensor` by referencing `bittensor.Subtensor` and `bittensor.subtensor`.
 # This will be available for a while until we remove reference `bittensor.subtensor`
-from .subtensor import Subtensor
-from .subtensor import Subtensor as subtensor
+from .api.subtensor import Subtensor
+from .api.subtensor import Subtensor as subtensor
 
-from .cli import Cli as cli, COMMANDS as ALL_COMMANDS
-from .metagraph import metagraph as metagraph_class
+from .api.cli import Cli as cli, COMMANDS as ALL_COMMANDS
+from .api.metagraph import metagraph as metagraph_class
 from .threadpool import PriorityThreadPoolExecutor as PriorityThreadPoolExecutor
 
 from .synapse import TerminalInfo, Synapse
 from .stream import StreamingSynapse
-from .tensor import tensor, Tensor
-from .axon import axon as axon
-from .dendrite import dendrite as dendrite
+from .api.tensor import tensor, Tensor
+from .api.axon import Axon as axon
+from .api.dendrite import dendrite as dendrite
 
 from .mock.keyfile_mock import MockKeyfile as MockKeyfile
 from .mock.subtensor_mock import MockSubtensor as MockSubtensor
 from .mock.wallet_mock import MockWallet as MockWallet
 
-from .subnets import SubnetsAPI as SubnetsAPI
+from .api.subnets import SubnetsAPI as SubnetsAPI
 
 configs = [
     axon.config(),

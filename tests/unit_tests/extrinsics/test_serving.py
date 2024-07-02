@@ -2,7 +2,7 @@ import pytest
 
 from unittest.mock import MagicMock, patch
 from bittensor.subtensor import Subtensor
-from bittensor.wallet import wallet as Wallet
+from bittensor.api.wallet import wallet as Wallet
 from bittensor.axon import axon as Axon
 from bittensor.extrinsics.serving import (
     serve_extrinsic,

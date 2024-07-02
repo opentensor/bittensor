@@ -34,11 +34,11 @@ from ..chain_data import (
     AxonInfo,
 )
 from ..errors import ChainQueryError
-from ..subtensor import Subtensor
+from ..api.subtensor import Subtensor
 from ..utils import RAOPERTAO, u16_normalized_float
 from ..utils.balance import Balance
 from ..utils.registration import POWSolution
-from ..wallet import wallet
+from bittensor.api.wallet import wallet
 
 # Mock Testing Constant
 __GLOBAL_MOCK_STATE__ = {}
@@ -1273,14 +1273,14 @@ class MockSubtensor(Subtensor):
         )
 
         total_hotkey_stake_state = subtensor_state["TotalHotkeyStake"]
-        if not hotkey_ss58 in total_hotkey_stake_state:
+        if hotkey_ss58 not in total_hotkey_stake_state:
             total_hotkey_stake_state[hotkey_ss58] = {}
             total_hotkey_stake_state[hotkey_ss58][self.block_number] = (
                 0  # Shouldn't happen
             )
 
         total_coldkey_stake_state = subtensor_state["TotalColdkeyStake"]
-        if not wallet.coldkeypub.ss58_address in total_coldkey_stake_state:
+        if wallet.coldkeypub.ss58_address not in total_coldkey_stake_state:
             total_coldkey_stake_state[wallet.coldkeypub.ss58_address] = {}
             total_coldkey_stake_state[wallet.coldkeypub.ss58_address][
                 self.block_number

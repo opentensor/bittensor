@@ -20,7 +20,6 @@ import asyncio
 
 import bittensor
 from bittensor import *
-from bittensor.axon import axon as axon_axon
 
 # Bittensor code and protocol version.
 __version__ = "7.2.0"
@@ -204,4 +203,3 @@ class Subtensor:
 
 
 subtensor = Subtensor
-axon = axon_axon
