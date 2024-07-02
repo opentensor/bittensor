@@ -34,11 +34,11 @@ from ..chain_data import (
     AxonInfo,
 )
 from ..errors import ChainQueryError
-from ..api.subtensor import Subtensor
+from ..core.subtensor import Subtensor
 from ..utils import RAOPERTAO, u16_normalized_float
 from ..utils.balance import Balance
 from ..utils.registration import POWSolution
-from bittensor.api.wallet import wallet
+from bittensor.core.wallet import wallet
 
 # Mock Testing Constant
 __GLOBAL_MOCK_STATE__ = {}

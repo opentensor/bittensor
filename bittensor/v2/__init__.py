@@ -16,10 +16,30 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
-import asyncio
+import os
+from typing import Optional
+import warnings
+
+from rich.console import Console
+from rich.traceback import install
 
 import bittensor
-from bittensor import *
+
+if (NEST_ASYNCIO_ENV := os.getenv("NEST_ASYNCIO")) in ("1", None):
+    if NEST_ASYNCIO_ENV is None:
+        warnings.warn(
+            "NEST_ASYNCIO implicitly set to '1'. In the future, the default value will be '0'."
+            "If you use `nest_asyncio` make sure to add it explicitly to your project dependencies,"
+            "as it will be removed from `bittensor` package dependencies in the future."
+            "To silence this warning, explicitly set the environment variable, e.g. `export NEST_ASYNCIO=0`.",
+            DeprecationWarning,
+        )
+    # Install and apply nest asyncio to allow the async functions
+    # to run in a .ipynb
+    import nest_asyncio
+
+    nest_asyncio.apply()
+
 
 # Bittensor code and protocol version.
 __version__ = "7.2.0"
@@ -38,6 +58,48 @@ __new_signature_version__ = 360
 # Rich console.
 __console__ = Console()
 __use_console__ = True
+
+# Remove overdue locals in debug training.
+install(show_locals=False)
+
+
+def __getattr__(name):
+    if name == "version_split":
+        warnings.warn(
+            "version_split is deprecated and will be removed in future versions. Use __version__ instead.",
+            DeprecationWarning,
+        )
+        return _version_split
+    raise AttributeError(f"module {__name__} has no attribute {name}")
+
+
+def turn_console_off():
+    global __use_console__
+    global __console__
+    from io import StringIO
+
+    __use_console__ = False
+    __console__ = Console(file=StringIO(), stderr=False)
+
+
+def turn_console_on():
+    global __use_console__
+    global __console__
+    __use_console__ = True
+    __console__ = Console()
+
+
+turn_console_off()
+
+
+# Logging helpers.
+def trace(on: bool = True):
+    logging.set_trace(on)
+
+
+def debug(on: bool = True):
+    logging.set_debug(on)
+
 
 # Substrate chain block time (seconds).
 __blocktime__ = 12
@@ -177,29 +239,129 @@ __type_registry__ = {
     },
 }
 
+from .errors import (
+    BlacklistedException,
+    ChainConnectionError,
+    ChainError,
+    ChainQueryError,
+    ChainTransactionError,
+    IdentityError,
+    InternalServerError,
+    InvalidRequestNameError,
+    KeyFileError,
+    MetadataError,
+    NominationError,
+    NotDelegateError,
+    NotRegisteredError,
+    NotVerifiedException,
+    PostProcessException,
+    PriorityException,
+    RegistrationError,
+    RunException,
+    StakeError,
+    SynapseDendriteNoneException,
+    SynapseParsingError,
+    TransferError,
+    UnknownSynapseError,
+    UnstakeError,
+)
 
-def metagraph(
-        netuid: int,
-        network: str = "finney",
-        lite: bool = True,
-        sync: bool = True,
-        subtensor: Optional["Subtensor"] = None,
+from substrateinterface import Keypair  # noqa: F401
+from .config import InvalidConfigFile, DefaultConfig, config, T
+from .core.keyfile import (
+    serialized_keypair_to_keyfile_data,
+    deserialize_keypair_from_keyfile_data,
+    validate_password,
+    ask_password_to_encrypt,
+    keyfile_data_is_encrypted_nacl,
+    keyfile_data_is_encrypted_ansible,
+    keyfile_data_is_encrypted_legacy,
+    keyfile_data_is_encrypted,
+    keyfile_data_encryption_method,
+    legacy_encrypt_keyfile_data,
+    encrypt_keyfile_data,
+    get_coldkey_password_from_environment,
+    decrypt_keyfile_data,
+    Mockkeyfile,
+)
+from .core.keyfile import Keyfile as keyfile
+from .core.wallet import display_mnemonic_msg
+from .core.wallet import Wallet as wallet
+
+from .utils import (
+    ss58_to_vec_u8,
+    unbiased_topk,
+    version_checking,
+    strtobool,
+    strtobool_with_default,
+    get_explorer_root_url_by_network_from_map,
+    get_explorer_url_for_network,
+    ss58_address_to_bytes,
+    u16_normalized_float,
+    u64_normalized_float,
+    u8_key_to_ss58,
+    get_hash,
+    wallet_utils,
+)
+
+from .utils.balance import Balance as Balance
+from .chain_data import (
+    AxonInfo,
+    NeuronInfo,
+    NeuronInfoLite,
+    PrometheusInfo,
+    DelegateInfo,
+    StakeInfo,
+    SubnetInfo,
+    SubnetHyperparameters,
+    IPInfo,
+    ProposalCallData,
+    ProposalVoteData,
+)
+
+# should be imported before `subtensor_module`
+from .btlogging import logging
+
+# Allows avoiding name spacing conflicts and continue access to the `subtensor` module with `subtensor_module` name
+from .core import subtensor as subtensor_module
+
+# Double import allows using class `Subtensor` by referencing `bittensor.Subtensor` and `bittensor.subtensor`.
+# This will be available for a while until we remove reference `bittensor.subtensor`
+from .core.subtensor import Subtensor
+from .core.subtensor import Subtensor as subtensor
+
+from .core.cli import Cli as cli, COMMANDS as ALL_COMMANDS
+from .core.metagraph import Metagraph
+from .threadpool import PriorityThreadPoolExecutor as PriorityThreadPoolExecutor
+
+from .synapse import TerminalInfo, Synapse
+from .stream import StreamingSynapse
+from .core.tensor import tensor, Tensor
+from .core.axon import Axon as axon
+from .core.dendrite import Dendrite as dendrite
+
+from .mock.keyfile_mock import MockKeyfile as MockKeyfile
+from .mock.subtensor_mock import MockSubtensor as MockSubtensor
+from .mock.wallet_mock import MockWallet as MockWallet
+
+from .subnets import SubnetsAPI as SubnetsAPI
+
+configs = [
+    axon.config(),
+    subtensor.config(),
+    PriorityThreadPoolExecutor.config(),
+    wallet.config(),
+    logging.get_config(),
+]
+defaults = config.merge_all(configs)
+
+
+async def metagraph(
+    netuid: int,
+    network: str = "finney",
+    lite: bool = True,
+    sync: bool = True,
+    subtensor: Optional["Subtensor"] = None,
 ):
-    return asyncio.run(bittensor.metagraph(netuid, network, lite, sync, subtensor))
-
-
-class Subtensor:
-    def __init__(self, *args, **kwargs):
-        self._async_instance = bittensor.Subtensor(*args, **kwargs)
-
-    def __getattr__(self, item):
-        attr = getattr(self._async_instance, item)
-        if asyncio.iscoroutinefunction(attr):
-            def sync_wrapper(*args, **kwargs):
-                return asyncio.run(attr(*args, **kwargs))
-
-            return sync_wrapper
-        return attr
-
-
-subtensor = Subtensor
+    async with Metagraph(netuid, network, lite, sync, subtensor) as m:
+        return m

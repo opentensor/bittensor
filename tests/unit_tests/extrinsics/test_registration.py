@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
 from bittensor.subtensor import Subtensor
-from bittensor.api.wallet import wallet as Wallet
+from bittensor.core.wallet import wallet as Wallet
 from bittensor.utils.registration import POWSolution
 from bittensor.extrinsics.registration import (
     MaxSuccessException,

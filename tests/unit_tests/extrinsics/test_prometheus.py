@@ -2,7 +2,7 @@ import pytest
 from unittest.mock import MagicMock, patch
 import bittensor
 from bittensor.subtensor import Subtensor
-from bittensor.api.wallet import wallet as Wallet
+from bittensor.core.wallet import wallet as Wallet
 from bittensor.extrinsics.prometheus import prometheus_extrinsic
 
 

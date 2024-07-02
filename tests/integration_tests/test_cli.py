@@ -33,7 +33,7 @@ from bittensor.commands.delegates import _get_coldkey_wallets_for_path
 from bittensor.commands.identity import SetIdentityCommand
 from bittensor.commands.wallets import _get_coldkey_ss58_addresses_for_path
 from bittensor.mock import MockSubtensor
-from bittensor.api.wallet import wallet as Wallet
+from bittensor.core.wallet import wallet as Wallet
 from tests.helpers import (
     MockConsole,
     _get_mock_keypair,
