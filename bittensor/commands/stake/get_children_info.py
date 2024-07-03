@@ -205,3 +205,23 @@ class GetChildrenCommand:
             style="dim",
         )
         console.print(summary)
+
+    @staticmethod
+    def render_help_details():
+        console = Console()
+        console.print("\nColumn Information:")
+        console.print(
+            "[cyan]ChildHotkey:[/cyan] Truncated child hotkey associated with the child"
+        )
+        console.print(
+            "[cyan]ParentHotKeys:[/cyan] The number of parent hotkeys associated with the child"
+        )
+        console.print(
+            "[cyan]Proportion:[/cyan] Proportion of stake allocated to this child"
+        )
+        console.print("[cyan]Total Stake:[/cyan] Total stake of the child")
+        console.print("[cyan]Emissions/Day:[/cyan] Emissions per day for this child")
+        console.print(
+            "[cyan]Return per 1000 TAO:[/cyan] Return per 1000 TAO staked for this child"
+        )
+        console.print("[cyan]Take:[/cyan] Commission taken by the child")

@@ -70,6 +70,7 @@ from .stake.set_children import SetChildrenCommand
 from .stake.show import StakeShow
 from .stake.revoke_child import RevokeChildCommand
 from .stake.revoke_children import RevokeChildrenCommand
+from .stake.child_hotkeys import ChildHotkeysCommand
 from .unstake import UnStakeCommand 
 from .overview import OverviewCommand     
 from .register import (
