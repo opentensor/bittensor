@@ -18,6 +18,7 @@
 # DEALINGS IN THE SOFTWARE.
 import os
 import warnings
+from typing import Optional
 
 
 if (NEST_ASYNCIO_ENV := os.getenv("NEST_ASYNCIO")) in ("1", None):
@@ -38,8 +39,125 @@ if (NEST_ASYNCIO_ENV := os.getenv("NEST_ASYNCIO")) in ("1", None):
 
 import asyncio
 
-from . import v2 as bittensor
-from .v2 import *
+# from . import v2 as bittensor
+from .v2 import (
+    turn_console_off, turn_console_on, trace, debug, BlacklistedException, ChainConnectionError, ChainError,
+    ChainQueryError, ChainTransactionError, IdentityError, InternalServerError, InvalidRequestNameError, KeyFileError, 
+    MetadataError, NominationError, NotDelegateError, NotRegisteredError, NotVerifiedException, PostProcessException,
+    PriorityException, RegistrationError, RunException, StakeError, SynapseDendriteNoneException, SynapseParsingError, 
+    TransferError, UnknownSynapseError, UnstakeError,
+    Keypair, InvalidConfigFile, DefaultConfig, T, config, serialized_keypair_to_keyfile_data, 
+    deserialize_keypair_from_keyfile_data, validate_password, ask_password_to_encrypt, keyfile_data_is_encrypted_nacl,
+    keyfile_data_is_encrypted_ansible, keyfile_data_is_encrypted_legacy, keyfile_data_is_encrypted, 
+    keyfile_data_encryption_method, legacy_encrypt_keyfile_data, encrypt_keyfile_data, 
+    get_coldkey_password_from_environment, decrypt_keyfile_data, Mockkeyfile,
+    keyfile, display_mnemonic_msg, wallet, ss58_to_vec_u8, unbiased_topk, version_checking, strtobool, 
+    strtobool_with_default, get_explorer_root_url_by_network_from_map, get_explorer_url_for_network, 
+    ss58_address_to_bytes, u16_normalized_float, u64_normalized_float, u8_key_to_ss58, get_hash, wallet_utils,
+    Balance, AxonInfo,NeuronInfo, NeuronInfoLite,PrometheusInfo,DelegateInfo,StakeInfo,SubnetInfo,SubnetHyperparameters,
+    IPInfo,ProposalCallData,ProposalVoteData,
+    logging, btlogging, subtensor_module, ALL_COMMANDS, Metagraph, PriorityThreadPoolExecutor,
+    TerminalInfo, Synapse, StreamingSynapse, tensor, Tensor, axon, dendrite, MockKeyfile, MockSubtensor, MockWallet, 
+    SubnetsAPI, configs, defaults, Console
+)
+from .core.cli import Cli as cli
+
+turn_console_off = turn_console_off
+turn_console_on = turn_console_on
+trace = trace
+debug = debug
+BlacklistedException = BlacklistedException
+ChainConnectionError = ChainConnectionError
+ChainError = ChainError
+ChainQueryError = ChainQueryError
+ChainTransactionError = ChainTransactionError
+IdentityError = IdentityError
+InternalServerError = InternalServerError
+InvalidRequestNameError = InvalidRequestNameError
+KeyFileError = KeyFileError
+MetadataError = MetadataError
+NominationError = NominationError
+NotDelegateError = NotDelegateError
+NotRegisteredError = NotRegisteredError
+NotVerifiedException = NotVerifiedException
+PostProcessException = PostProcessException
+PriorityException = PriorityException
+RegistrationError = RegistrationError
+RunException = RunException
+StakeError = StakeError
+SynapseDendriteNoneException = SynapseDendriteNoneException
+SynapseParsingError = SynapseParsingError
+TransferError = TransferError
+UnknownSynapseError = UnknownSynapseError
+UnstakeError = UnstakeError
+Keypair = Keypair
+InvalidConfigFile = InvalidConfigFile
+DefaultConfig = DefaultConfig
+T = T
+config = config
+serialized_keypair_to_keyfile_data = serialized_keypair_to_keyfile_data
+deserialize_keypair_from_keyfile_data = deserialize_keypair_from_keyfile_data
+validate_password = validate_password
+ask_password_to_encrypt = ask_password_to_encrypt
+keyfile_data_is_encrypted_nacl = keyfile_data_is_encrypted_nacl
+keyfile_data_is_encrypted_ansible = keyfile_data_is_encrypted_ansible
+keyfile_data_is_encrypted_legacy = keyfile_data_is_encrypted_legacy
+keyfile_data_is_encrypted = keyfile_data_is_encrypted
+keyfile_data_encryption_method = keyfile_data_encryption_method
+legacy_encrypt_keyfile_data = legacy_encrypt_keyfile_data
+encrypt_keyfile_data = encrypt_keyfile_data
+get_coldkey_password_from_environment = get_coldkey_password_from_environment
+decrypt_keyfile_data = decrypt_keyfile_data
+Mockkeyfile = Mockkeyfile
+keyfile = keyfile
+display_mnemonic_msg = display_mnemonic_msg
+wallet = wallet
+ss58_to_vec_u8 = ss58_to_vec_u8
+unbiased_topk = unbiased_topk
+version_checking = version_checking
+strtobool = strtobool
+strtobool_with_default = strtobool_with_default
+get_explorer_root_url_by_network_from_map = get_explorer_root_url_by_network_from_map
+get_explorer_url_for_network = get_explorer_url_for_network
+ss58_address_to_bytes = ss58_address_to_bytes
+u16_normalized_float = u16_normalized_float
+u64_normalized_float = u64_normalized_float
+u8_key_to_ss58 = u8_key_to_ss58
+get_hash = get_hash
+wallet_utils = wallet_utils
+Balance = Balance
+AxonInfo = AxonInfo
+NeuronInfo = NeuronInfo
+NeuronInfoLite = NeuronInfoLite
+PrometheusInfo = PrometheusInfo
+DelegateInfo = DelegateInfo
+StakeInfo = StakeInfo
+SubnetInfo = SubnetInfo
+SubnetHyperparameters = SubnetHyperparameters
+IPInfo = IPInfo
+ProposalCallData = ProposalCallData
+ProposalVoteData = ProposalVoteData
+logging = logging
+btlogging = btlogging
+subtensor_module = subtensor_module
+cli = cli
+ALL_COMMANDS = ALL_COMMANDS
+Metagraph = Metagraph
+PriorityThreadPoolExecutor = PriorityThreadPoolExecutor
+TerminalInfo = TerminalInfo
+Synapse = Synapse
+StreamingSynapse = StreamingSynapse
+tensor = tensor
+Tensor = Tensor
+axon = axon
+dendrite = dendrite
+MockKeyfile = MockKeyfile
+MockSubtensor = MockSubtensor
+MockWallet = MockWallet
+SubnetsAPI = SubnetsAPI
+configs = configs
+defaults = defaults
+
 
 # Bittensor code and protocol version.
 __version__ = "7.2.0"

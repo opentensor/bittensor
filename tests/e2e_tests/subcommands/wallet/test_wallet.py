@@ -1,10 +1,10 @@
 from bittensor.commands.list import ListCommand
-from bittensor.subtensor import subtensor
+from bittensor.core.subtensor import Subtensor
 
 from ...utils import setup_wallet
 
 
-def test_wallet_list(local_chain: subtensor, capsys):
+def test_wallet_list(local_chain: Subtensor, capsys):
     keypair, exec_command, wallet = setup_wallet("//Alice")
 
     exec_command(

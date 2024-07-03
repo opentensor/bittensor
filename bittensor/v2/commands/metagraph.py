@@ -81,6 +81,7 @@ class MetagraphCommand:
             subtensor: "bittensor.subtensor" = bittensor.subtensor(
                 config=cli.config, log_verbose=False
             )
+            print("Fired")
             await MetagraphCommand._run(cli, subtensor)
         finally:
             if "subtensor" in locals():
