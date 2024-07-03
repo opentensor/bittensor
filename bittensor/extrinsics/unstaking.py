@@ -19,7 +19,7 @@
 import bittensor
 from rich.prompt import Confirm
 from time import sleep
-from typing import List, Union, Optional
+from typing import List, Union, Optional, Tuple
 from bittensor.utils.balance import Balance
 
 
@@ -450,3 +450,215 @@ def unstake_multiple_extrinsic(
         return True
 
     return False
+
+
+def do_revoke_child_singular_extrinsic(
+    subtensor: "bittensor.subtensor",
+    wallet: "bittensor.wallet",
+    hotkey: str,
+    child: str,
+    netuid: int,
+    wait_for_inclusion: bool = True,
+    wait_for_finalization: bool = False,
+    prompt: bool = False,
+) -> Tuple[bool, str]:
+    r"""
+    Revokes child hotkey from subnet.
+
+    Args:
+        subtensor (bittensor.subtensor):
+            Subtensor endpoint to use.
+        wallet (bittensor.wallet):
+            Bittensor wallet object.
+        hotkey (str):
+            Parent hotkey.
+        child (str):
+            Child hotkey.
+        netuid (int):
+            Unique identifier of for the subnet.
+        wait_for_inclusion (bool):
+            If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool):
+            If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
+        prompt (bool):
+            If ``true``, the call waits for confirmation from the user before proceeding.
+    Returns:
+        Tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
+    Raises:
+        bittensor.errors.ChildHotkeyError:
+            If the extrinsic fails to be finalized or included in the block.
+        bittensor.errors.NotRegisteredError:
+            If the hotkey is not registered in any subnets.
+
+    """
+    # Ask before moving on.
+    if prompt:
+        if not Confirm.ask(
+            "Do you want to revoke the child hotkey:\n[bold white]  child: {}\n [/bold white ]?".format(
+                child
+            )
+        ):
+            return False, "Operation Cancelled"
+
+    with bittensor.__console__.status(
+        ":satellite: Revoking child hotkey on [white]{}[/white] ...".format(
+            subtensor.network
+        )
+    ):
+        try:
+            # call_module = "SubtensorModule"
+            # call_function = "revoke_child_singular"
+            # call_params = {
+            #     "hotkey": hotkey,
+            #     "child": child,
+            #     "netuid": netuid,
+            # }
+
+            success, error_message = subtensor._do_revoke_child_singular(
+                hotkey=hotkey,
+                child=child,
+                netuid=netuid,
+                wallet=wallet,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
+
+            bittensor.__console__.print(success, error_message)
+
+            if not wait_for_finalization and not wait_for_inclusion:
+                return True, "Not waiting for finalization or inclusion."
+
+            if success is True:
+                bittensor.__console__.print(
+                    ":white_heavy_check_mark: [green]Finalized[/green]"
+                )
+                bittensor.logging.success(
+                    prefix="Revoked child hotkey",
+                    suffix="<green>Finalized: </green>" + str(success),
+                )
+                return True, "Successfully revoked child hotkey and Finalized."
+            else:
+                bittensor.__console__.print(
+                    f":cross_mark: [red]Failed[/red]: {error_message}"
+                )
+                bittensor.logging.warning(
+                    prefix="Revoked child hotkey",
+                    suffix="<red>Failed: </red>" + str(error_message),
+                )
+                return False, error_message
+
+        except Exception as e:
+            bittensor.__console__.print(
+                ":cross_mark: [red]Failed[/red]: error:{}".format(e)
+            )
+            bittensor.logging.warning(
+                prefix="Revoked child hotkey", suffix="<red>Failed: </red>" + str(e)
+            )
+            return False, "Exception Occurred while revoking child hotkey."
+
+
+def do_revoke_children_multiple_extrinsic(
+    subtensor: "bittensor.subtensor",
+    wallet: "bittensor.wallet",
+    hotkey: str,
+    children: List[str],
+    netuid: int,
+    wait_for_inclusion: bool = True,
+    wait_for_finalization: bool = False,
+    prompt: bool = False,
+) -> Tuple[bool, str]:
+    r"""
+    Revokes children hotkeys from subnet.
+
+    Args:
+        subtensor (bittensor.subtensor):
+            Subtensor endpoint to use.
+        wallet (bittensor.wallet):
+            Bittensor wallet object.
+        hotkey (str):
+            Parent hotkey.
+        children (List[str]):
+            Children hotkeys.
+        netuid (int):
+            Unique identifier of for the subnet.
+        wait_for_inclusion (bool):
+            If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool):
+            If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
+        prompt (bool):
+            If ``true``, the call waits for confirmation from the user before proceeding.
+    Returns:
+        success (bool):
+            Flag is ``true`` if extrinsic was finalized or included in the block. If we did not wait for finalization / inclusion, the response is ``true``.
+    Raises:
+        bittensor.errors.ChildHotkeyError:
+            If the extrinsic fails to be finalized or included in the block.
+        bittensor.errors.NotRegisteredError:
+            If the hotkey is not registered in any subnets.
+
+    """
+    # Ask before moving on.
+    if prompt:
+        if not Confirm.ask(
+            "Do you want to revoke the children hotkeys:\n[bold white]  children: {}[/bold white ]?".format(
+                children
+            )
+        ):
+            return False, "Operation Cancelled"
+
+    with bittensor.__console__.status(
+        ":satellite: Revoking children hotkeys on [white]{}[/white] ...".format(
+            subtensor.network
+        )
+    ):
+        try:
+            # call_module = "SubtensorModule"
+            # call_function = "revoke_children_multiple"
+            # call_params = {
+            #     "hotkey": hotkey,
+            #     "children": children,
+            #     "netuid": netuid,
+            # }
+
+            success, error_message = subtensor._do_revoke_children_multiple(
+                hotkey=hotkey,
+                children=children,
+                netuid=netuid,
+                wallet=wallet,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
+
+            bittensor.__console__.print(success, error_message)
+
+            if not wait_for_finalization and not wait_for_inclusion:
+                return True, "Not waiting for finalization or inclusion."
+
+            if success is True:
+                bittensor.__console__.print(
+                    ":white_heavy_check_mark: [green]Finalized[/green]"
+                )
+                bittensor.logging.success(
+                    prefix="Revoked children hotkeys",
+                    suffix="<green>Finalized: </green>" + str(success),
+                )
+                return True, "Successfully revoked children hotkeys and Finalized."
+            else:
+                bittensor.__console__.print(
+                    f":cross_mark: [red]Failed[/red]: {error_message}"
+                )
+                bittensor.logging.warning(
+                    prefix="Revoked children hotkeys",
+                    suffix="<red>Failed: </red>" + str(error_message),
+                )
+                return False, error_message
+
+        except Exception as e:
+            bittensor.__console__.print(
+                ":cross_mark: [red]Failed[/red]: error:{}".format(e)
+            )
+            bittensor.logging.warning(
+                prefix="Revoked children hotkeys",
+                suffix="<red>Failed: </red>" + str(e),
+            )
+            return False, "Exception Occurred while revoking children hotkeys."

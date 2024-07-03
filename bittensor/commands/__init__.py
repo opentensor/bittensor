@@ -62,15 +62,8 @@ defaults: Munch = munchify(
     }
 )
 
-
-from .stake.add import StakeCommand
-from .stake.get_children_info import GetChildrenCommand
-from .stake.set_child import SetChildCommand
-from .stake.set_children import SetChildrenCommand
-from .stake.show import StakeShow
-from .stake.revoke_child import RevokeChildCommand
-from .stake.revoke_children import RevokeChildrenCommand
-from .unstake import UnStakeCommand 
+from .stake import GetChildrenCommand, SetChildrenCommand, StakeCommand, StakeShow, SetChildCommand
+from .unstake import UnStakeCommand, RevokeChildrenCommand, RevokeChildCommand
 from .overview import OverviewCommand     
 from .register import (
     PowRegisterCommand,     

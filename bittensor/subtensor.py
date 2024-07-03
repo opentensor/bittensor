@@ -105,11 +105,15 @@ from .extrinsics.set_weights import set_weights_extrinsic
 from .extrinsics.staking import (
     add_stake_extrinsic,
     add_stake_multiple_extrinsic,
+    do_set_children_multiple_extrinsic,
+    do_set_child_singular_extrinsic,
 )
 from .extrinsics.transfer import transfer_extrinsic
 from .extrinsics.unstaking import (
     unstake_extrinsic,
     unstake_multiple_extrinsic,
+    do_revoke_child_singular_extrinsic,
+    do_revoke_children_multiple_extrinsic,
 )
 from .types import AxonServeCallParams, PrometheusServeCallParams
 from .utils import (
@@ -136,6 +140,8 @@ if hasattr(RuntimeConfiguration, "convert_type_string"):
         return original_convert_type_string(name)
 
     RuntimeConfiguration.convert_type_string = convert_type_string
+
+
 #######
 
 
@@ -2317,35 +2323,82 @@ class Subtensor:
     # Setting hotkeys #
     ###################
 
-    def call(
+    def set_child_singular(
         self,
-        call_module,
-        call_function,
-        call_params,
-        wallet,
-        wait_for_inclusion,
-        wait_for_finalization,
-    ) -> Tuple[bool, Optional[str]]:
-        """Sends a substrate call to the chain.
+        wallet: "bittensor.wallet",
+        hotkey: str,
+        child: str,
+        netuid: int,
+        proportion: float,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+        prompt: bool = False,
+    ) -> tuple[bool, str]:
+        """Sets a child hotkey extrinsic on the subnet.
 
         Args:
             wallet (:func:`bittensor.wallet`): Wallet object that can sign the extrinsic.
-            call_module: (str): Module being called on the substrate.
-            call_function: (str): The function being called within the module.
-            call_params (dict): Call parameters.
+            hotkey: (str): Hotkey ``ss58`` address of the parent.
+            child: (str): Hotkey ``ss58`` address of the child.
+            netuid (int): Unique identifier for the network.
+            proportion (float): Proportion allocated to the child.
+            wait_for_inclusion (bool): If ``true``, waits for inclusion before returning.
+            wait_for_finalization (bool): If ``true``, waits for finalization before returning.
+            prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
+        Returns:
+            success (bool): ``True`` if the extrinsic was successful.
+        Raises:
+            ChildHotkeyError: If the extrinsic failed.
+        """
+
+        return do_set_child_singular_extrinsic(
+            self,
+            wallet=wallet,
+            hotkey=hotkey,
+            child=child,
+            netuid=netuid,
+            proportion=proportion,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            prompt=prompt,
+        )
+
+    def _do_set_child_singular(
+        self,
+        wallet: "bittensor.wallet",
+        hotkey: str,
+        child: str,
+        netuid: int,
+        proportion: int,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+    ):
+        """Sends a child hotkey extrinsic on the chain.
+
+        Args:
+            wallet (:func:`bittensor.wallet`): Wallet object that can sign the extrinsic.
+            hotkey: (str): Hotkey ``ss58`` address of the parent.
+            child: (str): Hotkey ``ss58`` address of the child.
+            netuid (int): Unique identifier for the network.
+            proportion (int): Proportion allocated to the child in u16 format.
             wait_for_inclusion (bool): If ``true``, waits for inclusion before returning.
             wait_for_finalization (bool): If ``true``, waits for finalization before returning.
         Returns:
-            Tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
+            success (bool): ``True`` if the extrinsic was successful.
         """
 
         @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
         def make_substrate_call_with_retry():
             # create extrinsic call
             call = self.substrate.compose_call(
-                call_module=call_module,
-                call_function=call_function,
-                call_params=call_params,
+                call_module="SubtensorModule",
+                call_function="set_child_singular",
+                call_params={
+                    "hotkey": hotkey,
+                    "child": child,
+                    "netuid": netuid,
+                    "proportion": proportion,
+                },
             )
             extrinsic = self.substrate.create_signed_extrinsic(
                 call=call, keypair=wallet.coldkey
@@ -2358,7 +2411,104 @@ class Subtensor:
 
             # We only wait here if we expect finalization.
             if not wait_for_finalization and not wait_for_inclusion:
+                return True
+
+            # process if registration successful, try again if pow is still valid
+            response.process_events()
+            if not response.is_success:
+                return False, format_error_message(response.error_message)
+            # Successful registration
+            else:
                 return True, None
+
+        return make_substrate_call_with_retry()
+
+    def set_children_multiple(
+        self,
+        wallet: "bittensor.wallet",
+        hotkey: str,
+        children: Union[np.ndarray, list],
+        netuid: int,
+        proportions: Union[NDArray[np.float32], list],
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+        prompt: bool = False,
+    ) -> tuple[bool, str]:
+        """Sets a children hotkeys extrinsic on the subnet.
+
+        Args:
+            wallet (:func:`bittensor.wallet`): Wallet object that can sign the extrinsic.
+            hotkey: (str): Hotkey ``ss58`` address of the parent.
+            children: (np.ndarray): Hotkey ``ss58`` addresses of the children.
+            netuid (int): Unique identifier for the network.
+            proportions (np.ndarray): The corresponding proportions allocated to the children.
+            wait_for_inclusion (bool): If ``true``, waits for inclusion before returning.
+            wait_for_finalization (bool): If ``true``, waits for finalization before returning.
+            prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
+        Returns:
+            success (bool): ``True`` if the extrinsic was successful.
+        Raises:
+            ChildHotkeyError: If the extrinsic failed.
+        """
+
+        return do_set_children_multiple_extrinsic(
+            self,
+            wallet=wallet,
+            hotkey=hotkey,
+            children=children,
+            netuid=netuid,
+            proportions=proportions,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            prompt=prompt,
+        )
+
+    def _do_set_children_multiple(
+        self,
+        wallet: "bittensor.wallet",
+        hotkey: str,
+        children_with_proportions: List[Tuple[str, int]],
+        netuid: int,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+    ):
+        """Sends a child hotkey extrinsic on the chain.
+
+        Args:
+            wallet (:func:`bittensor.wallet`): Wallet object that can sign the extrinsic.
+            hotkey: (str): Hotkey ``ss58`` address of the parent.
+            children_with_proportions: (List[Tuple[str, int]]): A list of tuples containing the hotkey ``ss58`` addresses of the children and their proportions as u16 MAX standardized values.
+            netuid (int): Unique identifier for the network.
+            wait_for_inclusion (bool): If ``true``, waits for inclusion before returning.
+            wait_for_finalization (bool): If ``true``, waits for finalization before returning.
+        Returns:
+            success (bool): ``True`` if the extrinsic was successful.
+        """
+
+        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
+        def make_substrate_call_with_retry():
+            # create extrinsic call
+            call = self.substrate.compose_call(
+                call_module="SubtensorModule",
+                call_function="set_children_multiple",
+                call_params={
+                    "hotkey": hotkey,
+                    "children_with_proportions": children_with_proportions,
+                    "netuid": netuid,
+                },
+            )
+            extrinsic = self.substrate.create_signed_extrinsic(
+                call=call, keypair=wallet.coldkey
+            )
+            response = self.substrate.submit_extrinsic(
+                extrinsic,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
+
+            # We only wait here if we expect finalization.
+            if not wait_for_finalization and not wait_for_inclusion:
+                return True
 
             # process if registration successful, try again if pow is still valid
             response.process_events()
@@ -2373,6 +2523,43 @@ class Subtensor:
     ####################
     # Revoking hotkeys #
     ####################
+
+    def revoke_child_singular(
+        self,
+        wallet: "bittensor.wallet",
+        hotkey: str,
+        child: str,
+        netuid: int,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+        prompt: bool = False,
+    ) -> tuple[bool, str]:
+        """Sets a child hotkey extrinsic on the subnet.
+
+        Args:
+            wallet (:func:`bittensor.wallet`): Wallet object that can sign the extrinsic.
+            hotkey: (str): Hotkey ``ss58`` address of the parent.
+            child: (str): Hotkey ``ss58`` address of the child.
+            netuid (int): Unique identifier for the network.
+            wait_for_inclusion (bool): If ``true``, waits for inclusion before returning.
+            wait_for_finalization (bool): If ``true``, waits for finalization before returning.
+            prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
+        Returns:
+            success (bool): ``True`` if the extrinsic was successful.
+        Raises:
+            ChildHotkeyError: If the extrinsic failed.
+        """
+
+        return do_revoke_child_singular_extrinsic(
+            self,
+            wallet=wallet,
+            hotkey=hotkey,
+            child=child,
+            netuid=netuid,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            prompt=prompt,
+        )
 
     def _do_revoke_child_singular(
         self,
@@ -2441,7 +2628,7 @@ class Subtensor:
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
         prompt: bool = False,
-    ) -> bool:
+    ) -> tuple[bool, str]:
         """Sets a children hotkeys extrinsic on the subnet.
 
         Args:
