@@ -25,7 +25,7 @@ from rich.text import Text
 import bittensor
 from .. import defaults, SetChildCommand, RevokeChildCommand  # type: ignore
 from ... import ChildInfo
-from ...utils.formatting import u16_to_float
+from ...utils.formatting import u64_to_float
 
 console = bittensor.__console__
 
@@ -190,7 +190,7 @@ class ChildHotkeysCommand:
         table.add_row(
             child_info.child_ss58,
             str(len(child_info.parents)),
-            str(u16_to_float(child_info.proportion)),
+            str(u64_to_float(child_info.proportion)),
             str(child_info.total_stake),
             str(child_info.emissions_per_day),
             str(child_info.return_per_1000),
@@ -279,7 +279,7 @@ class ChildHotkeysCommand:
                 str(index),
                 child_ss58[:5] + "..." + child_ss58[-5:],
                 str(len(child_info.parents)),
-                str(u16_to_float(child_info.proportion)),
+                str(u64_to_float(child_info.proportion)),
                 str(child_info.total_stake),
                 str(child_info.emissions_per_day),
                 str(child_info.return_per_1000),
@@ -310,7 +310,7 @@ class ChildHotkeysCommand:
         # Add a summary row with fixed-width fields
         summary = Text(
             f"Total ({total_child_hotkeys:3}) | Total ({total_parent_hotkeys:3}) | "
-            f"Total ({u16_to_float(sum_proportion):10.6f}) | Total ({sum_total_stake:10.4f}) | "
+            f"Total ({u64_to_float(sum_proportion):10.6f}) | Total ({sum_total_stake:10.4f}) | "
             f"Avg ({avg_emissions_per_day:10.4f}) | Avg ({avg_return_per_1000:10.4f}) | "
             f"Total ({sum_take:10.6f})",
             style="dim",
@@ -336,9 +336,9 @@ class ChildHotkeysCommand:
                     selected_child_ss58, selected_child_info = flattened_children[
                         selected_index
                     ]
-                    # console.print(
-                    #     selected_child_info
-                    # )  # Print or process selected child info
+                    console.print(
+                        selected_child_info
+                    )  # Print or process selected child info
                     ChildHotkeysCommand.render_child_details(
                         cli, subtensor, selected_child_info, netuid, wallet
                     )
