@@ -317,6 +317,8 @@ from .chain_data import (
     ProposalVoteData,
 )
 
+from bittensor import v1
+
 # should be imported before `subtensor_module`
 from .btlogging import logging
 
