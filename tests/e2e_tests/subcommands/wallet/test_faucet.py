@@ -12,10 +12,6 @@ from tests.e2e_tests.utils import (
 )
 
 
-# @pytest.mark.skip(
-#     "error appears here https://github.com/opentensor/bittensor/blob/merge-async/bittensor/utils/async_substrate.py#L637"
-# )
-# @pytest.mark.parametrize("local_chain", [False], indirect=True)
 @pytest.mark.asyncio
 async def test_faucet(local_chain):
     # Register root as Alice
