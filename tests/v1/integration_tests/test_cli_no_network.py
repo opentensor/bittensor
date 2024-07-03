@@ -485,7 +485,9 @@ def return_mock_sub_3(*args, **kwargs):
 class TestCLIDefaultsNoNetwork(unittest.TestCase):
     def test_inspect_prompt_wallet_name(self, _):
         # Patch command to exit early
-        with patch("bittensor.v1.commands.inspect.InspectCommand.run", return_value=None):
+        with patch(
+            "bittensor.v1.commands.inspect.InspectCommand.run", return_value=None
+        ):
             # Test prompt happens when no wallet name is passed
             with patch("rich.prompt.Prompt.ask") as mock_ask_prompt:
                 cli = bittensor.cli(
@@ -753,7 +755,9 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
             "--all",
         ]
         # Patch command to exit early
-        with patch("bittensor.v1.commands.unstake.UnStakeCommand.run", return_value=None):
+        with patch(
+            "bittensor.v1.commands.unstake.UnStakeCommand.run", return_value=None
+        ):
             # Test prompt happens when
             # - wallet name IS NOT passed, AND
             # - hotkey name IS NOT passed
@@ -916,7 +920,8 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
         ]
         # Patch command to exit early
         with patch(
-            "bittensor.v1.commands.delegates.DelegateStakeCommand.run", return_value=None
+            "bittensor.v1.commands.delegates.DelegateStakeCommand.run",
+            return_value=None,
         ):
             # Test prompt happens when
             # - wallet name IS NOT passed
@@ -977,7 +982,8 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
         ]
         # Patch command to exit early
         with patch(
-            "bittensor.v1.commands.delegates.DelegateUnstakeCommand.run", return_value=None
+            "bittensor.v1.commands.delegates.DelegateUnstakeCommand.run",
+            return_value=None,
         ):
             # Test prompt happens when
             # - wallet name IS NOT passed
@@ -1035,7 +1041,8 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
         ]
         # Patch command to exit early
         with patch(
-            "bittensor.v1.commands.wallets.GetWalletHistoryCommand.run", return_value=None
+            "bittensor.v1.commands.wallets.GetWalletHistoryCommand.run",
+            return_value=None,
         ):
             # Test prompt happens when
             # - wallet name IS NOT passed
@@ -1273,7 +1280,9 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
 
         mock_proposal_hash = "mock_proposal_hash"
 
-        with patch("bittensor.v1.subtensor.Subtensor.is_senate_member", return_value=True):
+        with patch(
+            "bittensor.v1.subtensor.Subtensor.is_senate_member", return_value=True
+        ):
             with patch(
                 "bittensor.v1.subtensor.Subtensor.get_vote_data",
                 return_value={"index": 1},

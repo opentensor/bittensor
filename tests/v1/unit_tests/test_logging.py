@@ -75,7 +75,9 @@ def test_state_transitions(logging_machine, mock_config):
     Test state transitions and the associated logging level changes.
     """
     config, log_file_path = mock_config
-    with patch("bittensor.v1.btlogging.loggingmachine.all_loggers") as mocked_all_loggers:
+    with patch(
+        "bittensor.v1.btlogging.loggingmachine.all_loggers"
+    ) as mocked_all_loggers:
         # mock the main bittensor logger, identified by its `name` field
         mocked_bt_logger = MagicMock()
         mocked_bt_logger.name = BITTENSOR_LOGGER_NAME

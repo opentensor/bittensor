@@ -91,7 +91,9 @@ def test_get_errors_from_cache(tmp_path):
 
 def test_get_errors_no_cache(mocker, empty_pallet):
     """Test get_errors function when no cache is available."""
-    mocker.patch("bittensor.v1.utils.subtensor._get_errors_from_cache", return_value=None)
+    mocker.patch(
+        "bittensor.v1.utils.subtensor._get_errors_from_cache", return_value=None
+    )
     mocker.patch("bittensor.v1.utils.subtensor.SubstrateInterface")
     substrate_mock = mocker.MagicMock()
     substrate_mock.metadata.get_metadata_pallet.return_value = empty_pallet

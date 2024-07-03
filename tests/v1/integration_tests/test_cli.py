@@ -2248,7 +2248,9 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             balance=Balance.from_float(200.0),
         )
 
-        with patch("bittensor.v1.wallet", return_value=mock_wallet) as mock_create_wallet:
+        with patch(
+            "bittensor.v1.wallet", return_value=mock_wallet
+        ) as mock_create_wallet:
             cli = bittensor.cli(config)
             cli.run()
             mock_create_wallet.assert_called_once()
@@ -2276,7 +2278,9 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         class MockException(Exception):
             pass
 
-        with patch("bittensor.v1.wallet", return_value=mock_wallet) as mock_create_wallet:
+        with patch(
+            "bittensor.v1.wallet", return_value=mock_wallet
+        ) as mock_create_wallet:
             with patch(
                 "bittensor.v1.extrinsics.registration.POWSolution.is_stale",
                 side_effect=MockException,
@@ -2314,7 +2318,9 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             ).rao,  # 1.0 tao extra for fees, etc
         )
 
-        with patch("bittensor.v1.wallet", return_value=mock_wallet) as mock_create_wallet:
+        with patch(
+            "bittensor.v1.wallet", return_value=mock_wallet
+        ) as mock_create_wallet:
             old_stake = subtensor.get_stake_for_coldkey_and_hotkey(
                 hotkey_ss58=mock_wallet.hotkey.ss58_address,
                 coldkey_ss58=mock_wallet.coldkey.ss58_address,
