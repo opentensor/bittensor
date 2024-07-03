@@ -1,8 +1,6 @@
 import math
 from typing import List
 
-import bittensor
-
 
 def get_human_readable(num, suffix="H"):
     for unit in ["", "K", "M", "G", "T", "P", "E", "Z"]:
@@ -103,13 +101,3 @@ def normalize_u64_values(values: List[int]) -> List[int]:
     ), f"Sum of normalized values ({sum(normalized)}) is not equal to u64::MAX ({u64_max})"
 
     return normalized
-
-
-def is_valid_ss58_address(address: str) -> bool:
-    """
-    Validate that the hotkey address input str is a valid ss58 address.
-    """
-    try:
-        return bittensor.utils.ss58.is_valid_ss58_address(address)
-    except:
-        return False

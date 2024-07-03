@@ -25,10 +25,10 @@ from rich.prompt import Prompt
 from typing import Tuple
 import bittensor
 from .. import defaults, GetChildrenCommand  # type: ignore
+from ...utils import wallet_utils
 from ...utils.formatting import (
     float_to_u64,
     normalize_u64_values,
-    is_valid_ss58_address,
 )
 
 console = bittensor.__console__
@@ -75,7 +75,7 @@ class SetChildrenCommand:
         children = GetChildrenCommand.run(cli)
 
         # Calculate the sum of all 'proportion' values
-        current_proportions = sum(child["proportion"] for child in children)
+        # current_proportions = sum(child["proportion"] for child in children)
 
         # Get values if not set.
         if not cli.config.is_set("netuid"):
@@ -91,25 +91,25 @@ class SetChildrenCommand:
 
         if not cli.config.is_set("proportions"):
             cli.config.proportions = Prompt.ask(
-                "Enter proportions for children as comma-separated values"
+                "Enter proportions for children (u16) as comma-separated values"
             )
 
         # Parse from strings
         netuid = cli.config.netuid
 
-        proportions = [float(x) for x in re.split(r"[ ,]+", cli.config.proportions)]
+        proportions = [int(x) for x in re.split(r"[ ,]+", cli.config.proportions)]
         children = [str(x) for x in re.split(r"[ ,]+", cli.config.children)]
 
         # Validate children SS58 addresses
         for child in children:
-            if not is_valid_ss58_address(child):
+            if not wallet_utils.is_valid_ss58_address(child):
                 console.print(f":cross_mark:[red] Invalid SS58 address: {child}[/red]")
                 return
 
-        total_proposed = sum(proportions) + current_proportions
-        if total_proposed > 1:
+        total_proposed = sum(proportions)  # + current_proportions
+        if total_proposed > 65535:
             raise ValueError(
-                f":cross_mark:[red] The sum of all proportions cannot be greater than 1. Proposed sum of proportions is {total_proposed}[/red]"
+                f":cross_mark:[red] The sum of all proportions cannot be greater than 65535. Proposed sum of proportions is {total_proposed}[/red]"
             )
 
         success, message = SetChildrenCommand.do_set_children_multiple(
