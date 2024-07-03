@@ -23,12 +23,11 @@ from rich.prompt import Prompt, Confirm
 
 import bittensor
 from .. import defaults, GetChildrenCommand  # type: ignore
-from ...utils.formatting import float_to_u64, normalize_u64_values
+from ...utils import wallet_utils
 
 console = bittensor.__console__
 
 
-# noinspection PyUnreachableCode
 class SetChildCommand:
     """
     Executes the ``set_child`` command to add a child hotkey on a specified subnet on the Bittensor network.
@@ -69,8 +68,8 @@ class SetChildCommand:
 
         children = GetChildrenCommand.run(cli)
 
-        # Calculate the sum of all 'proportion' values
-        current_proportions = sum(child["proportion"] for child in children)
+        # Calculate the sum of all 'proportion' values - should always be 1
+        # current_proportions = sum(child["proportion"] for child in children)
 
         # Get values if not set.
         if not cli.config.is_set("netuid"):
@@ -83,7 +82,7 @@ class SetChildCommand:
             cli.config.hotkey = Prompt.ask("Enter parent hotkey (ss58)")
 
         if not cli.config.is_set("proportion"):
-            cli.config.proportion = Prompt.ask("Enter proportion")
+            cli.config.proportion = Prompt.ask("Enter proportion (u16)")
 
         # Parse from strings
         netuid = cli.config.netuid
@@ -98,10 +97,15 @@ class SetChildCommand:
             )
             sys.exit()
 
-        total_proposed = proportion + current_proportions
-        if total_proposed > 1:
+        # total_proposed = proportion + current_proportions
+        if proportion > 65535:
             raise ValueError(
-                f":cross_mark:[red] The sum of all proportions cannot be greater than 1. Proposed sum of proportions is {total_proposed}[/red]"
+                f":cross_mark:[red] The sum of all proportions cannot be greater than 65535. Proposed proportion is {proportion}[/red]"
+            )
+
+        if not wallet_utils.is_valid_ss58_address(cli.config.child):
+            raise ValueError(
+                f":cross_mark:[red] Child ss58 address: {cli.config.child} unrecognizable. Please check child address and try again.[/red]"
             )
 
         success, message = SetChildCommand.do_set_child_singular(
@@ -220,8 +224,8 @@ class SetChildCommand:
         ):
             try:
                 # prepare values for emmit
-                proportion = float_to_u64(proportion)
-                proportion = normalize_u64_values([proportion])[0]
+                # proportion = float_to_u64(proportion)
+                # proportion = normalize_u64_values([proportion])[0]
 
                 call_module = "SubtensorModule"
                 call_function = "set_child_singular"
