@@ -201,6 +201,7 @@ class wallet:
         self.config.wallet.path = path or self.config.wallet.get(
             "path", bittensor.defaults.wallet.path
         )
+        self.config.wallet.path = self.config.wallet.path.strip("'")
 
         self.name = self.config.wallet.name
         self.path = self.config.wallet.path
