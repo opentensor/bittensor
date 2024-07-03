@@ -787,10 +787,8 @@ async def _get_block_with_retry(
         Exception: If the block hash is None.
         ValueError: If the difficulty is None.
     """
-    block_number, difficulty_ = await asyncio.gather(
-        subtensor.get_current_block(), subtensor.difficulty(netuid=netuid)
-    )
-    difficulty = 1_000_000 if netuid == -1 else difficulty_
+    block_number = await subtensor.get_current_block()
+    difficulty = 1_000_000 if netuid == -1 else await subtensor.difficulty(netuid=netuid)
 
     block_hash = await subtensor.get_block_hash(block_number)
     if block_hash is None:
