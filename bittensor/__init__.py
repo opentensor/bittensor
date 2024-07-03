@@ -344,4 +344,9 @@ configs = [
     wallet.config(),
     logging.get_config(),
 ]
-defaults = config.merge_all(configs)
+
+from .defaults import defaults as bittensor_defaults
+# TODO: Check single configs with the defaults
+# Do we still need the merged config?
+defaults = bittensor_defaults
+#defaults = config.merge_all(configs)

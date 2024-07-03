@@ -187,7 +187,6 @@ class config(DefaultMunch):
 
         ## Get all args by name
         default_params = parser.parse_args(args=default_param_args)
-
         all_default_args = default_params.__dict__.keys() | []
         ## Make a dict with keys as args and values as argparse.SUPPRESS
         defaults_as_suppress = {key: argparse.SUPPRESS for key in all_default_args}
@@ -244,7 +243,10 @@ class config(DefaultMunch):
 
         # Merge all configs together and update self
         merged_config = {**self.generic_config, **self.profile_config, **self.env_config, **self.params_config}
-        merged_config = self._merge(config.unflatten_dict(merged_config), self.__dict__)
+        # TODO: we need a clean process for this
+        # The param defaults override the profile and generic config this is not what we want
+        # merged_config = self._merge(config.unflatten_dict(merged_config), self.__dict__)
+        merged_config = self._merge(self.__dict__, config.unflatten_dict(merged_config))
         self.merge(merged_config)
 
     @staticmethod
@@ -418,10 +420,18 @@ class config(DefaultMunch):
         """
         Returns a boolean indicating whether the parameter has been set or is still the default.
         """
-        if param_name not in self.get("__is_set"):
-            return False
-        else:
-            return self.get("__is_set")[param_name]
+        # TODO: Do we really need to check if the value is same as default?
+        # For now, we are just checking if the value is set or not
+
+        keys = param_name.split(".")
+        current_dict = self.__dict__
+        for key in keys:
+            if key in current_dict:
+                current_dict = current_dict[key]
+            else:
+                return False
+
+        return True
 
     def __check_for_missing_required_args(
             self, parser: argparse.ArgumentParser, args: List[str]
@@ -497,7 +507,8 @@ class config(DefaultMunch):
 
         profile_path = (self.params_config.get('profile.path') or
                         self.env_config.get('profile.path') or
-                        self.generic_config.get('profile.path'))
+                        self.generic_config.get('profile.path') or
+                        defaults.profile.path)
 
         if not profile_name or not profile_path:
             return

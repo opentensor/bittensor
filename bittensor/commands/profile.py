@@ -471,6 +471,8 @@ class ProfileSetCommand:
         config_file_yml = os.path.expanduser(os.path.join(config_path, "btcliconfig.yml"))
 
         try:
+            generic_config = None
+            generic_config_path = None
             if os.path.exists(config_file_yaml):
                 with open(config_file_yaml, 'r') as file:
                     generic_config = yaml.safe_load(file)
@@ -480,9 +482,12 @@ class ProfileSetCommand:
                     generic_config = yaml.safe_load(file)
                     generic_config_path = config_file_yml
 
-            if generic_config is None:
+            if not generic_config_path:
                 handle_error("Failed to read generic config", None)
                 return
+
+            if not generic_config:
+                generic_config = {'profile': {'active': ''}}
 
             generic_config['profile']['active'] = config.profile.name.replace('.yml', '').replace('.yaml', '')
 
