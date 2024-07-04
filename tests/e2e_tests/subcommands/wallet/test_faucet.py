@@ -1,3 +1,5 @@
+import asyncio
+
 import pytest
 
 import bittensor
@@ -77,6 +79,8 @@ async def test_faucet(local_chain):
             assert e.code == 1  # Assert that the exit code is 1
         except Exception as e:
             logging.warning(f"Unexpected exception occurred on faucet: {e}")
+
+    await asyncio.sleep(10)
 
     subtensor = bittensor.subtensor(network="ws://localhost:9945")
     new_wallet_balance = await subtensor.get_balance(keypair.ss58_address)
