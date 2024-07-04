@@ -523,3 +523,62 @@ def swap_hotkey_extrinsic(
                 f"Hotkey {wallet.hotkey} swapped for new hotkey: {new_wallet.hotkey}"
             )
             return True
+
+
+def swap_coldkey_extrinsic(
+    subtensor: "bittensor.subtensor",
+    wallet: "bittensor.wallet",
+    new_wallet: "bittensor.wallet",
+    wait_for_inclusion: bool = False,
+    wait_for_finalization: bool = True,
+    prompt: bool = False,
+) -> bool:
+    """
+    Executes a coldkey swap extrinsic on the Bittensor network.
+
+    This function swaps the coldkey associated with a wallet for a new coldkey. It can optionally prompt
+    for user confirmation before proceeding with the swap.
+
+    Args:
+        subtensor (bittensor.subtensor): The Subtensor object for blockchain interaction.
+        wallet (bittensor.wallet): The wallet containing the current coldkey to be swapped.
+        new_wallet (bittensor.wallet): The wallet containing the new coldkey to be set.
+        wait_for_inclusion (bool, optional): If True, waits for the transaction to be included in a block. 
+                                             Defaults to False.
+        wait_for_finalization (bool, optional): If True, waits for the transaction to be finalized. 
+                                                Defaults to True.
+        prompt (bool, optional): If True, prompts the user for confirmation before proceeding. 
+                                 Defaults to False.
+
+    Returns:
+        bool: True if the coldkey swap was successful, False otherwise.
+
+    Note:
+        This function unlocks the coldkey before proceeding with the swap operation.
+    """
+    wallet.coldkey  # unlock coldkey
+    if prompt:
+        # Prompt user for confirmation.
+        if not Confirm.ask(
+            f"Swap coldkey {wallet.coldkey.ss58_address} for new coldkey: {new_wallet.coldkey.ss58_address}?"
+        ):
+            return False
+
+    with bittensor.__console__.status(":satellite: Swapping coldkeys..."):
+        success, err_msg = subtensor._do_swap_coldkey(
+            wallet=wallet,
+            new_wallet=new_wallet,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+
+        if not success:
+            bittensor.__console__.print(f":cross_mark: [red]Failed[/red]: {err_msg}")
+            time.sleep(0.5)
+            return False
+
+        else:
+            bittensor.__console__.print(
+                f"Coldkey {wallet.coldkey.ss58_address} swapped for new coldkey: {new_wallet.coldkey.ss58_address}"
+            )
+            return True

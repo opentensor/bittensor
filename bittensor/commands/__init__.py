@@ -70,6 +70,7 @@ from .register import (
     RegisterCommand,
     RunFaucetCommand,
     SwapHotkeyCommand,
+    SwapColdkeyCommand,
 )
 from .delegates import (
     NominateCommand,

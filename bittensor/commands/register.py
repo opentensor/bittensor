@@ -611,3 +611,99 @@ class SwapHotkeyCommand:
         if not config.is_set("wallet.hotkey_b") and not config.no_prompt:
             hotkey = Prompt.ask("Enter new hotkey name", default=defaults.wallet.hotkey)
             config.wallet.hotkey_b = str(hotkey)
+
+
+class SwapColdkeyCommand:
+    """
+    Executes the `swap_coldkey` command to swap the coldkeys for a neuron on the network.
+
+    This command allows users to change the coldkey associated with their wallet.
+
+    Usage:
+        The command is used to swap the coldkey of a wallet for another coldkey.
+
+    Optional arguments:
+        - `--wallet.name` (str): Specifies the wallet for which the coldkey is to be swapped.
+        - `--wallet.coldkey` (str): The original coldkey name that is getting swapped out.
+        - `--wallet.coldkey_b` (str): The new coldkey name for which the old is getting swapped out.
+
+    Example usage:
+        btcli wallet swap_coldkey --wallet.name your_wallet_name --wallet.coldkey original_coldkey --wallet.coldkey_b new_coldkey
+    """
+
+    @staticmethod
+    def run(cli: "bittensor.cli"):
+        try:
+            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+                config=cli.config, log_verbose=False
+            )
+            SwapColdkeyCommand._run(cli, subtensor)
+        finally:
+            if "subtensor" in locals():
+                subtensor.close()
+                bittensor.logging.debug("closing subtensor connection")
+
+    @staticmethod
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+        """Swap your coldkey for all registered neurons on the network."""
+        wallet = bittensor.wallet(config=cli.config)
+
+        # Create a new wallet with the new coldkey
+        new_config = deepcopy(cli.config)
+        new_config.wallet.coldkey = new_config.wallet.coldkey_b
+        new_wallet = bittensor.wallet(config=new_config)
+
+        # Perform the coldkey swap
+        subtensor.swap_coldkey(
+            wallet=wallet,
+            new_wallet=new_wallet,
+            wait_for_finalization=False,
+            wait_for_inclusion=True,
+            prompt=False,
+        )
+
+    @staticmethod
+    def add_args(parser: argparse.ArgumentParser):
+        swap_coldkey_parser = parser.add_parser(
+            "swap_coldkey", help="""Swap your associated coldkey."""
+        )
+
+        swap_coldkey_parser.add_argument(
+            "--wallet.coldkey_b",
+            type=str,
+            default=defaults.wallet.coldkey,
+            help="""Name of the new coldkey""",
+            required=False,
+        )
+
+        bittensor.wallet.add_args(swap_coldkey_parser)
+        bittensor.subtensor.add_args(swap_coldkey_parser)
+
+    @staticmethod
+    def check_config(config: "bittensor.config"):
+        if (
+            not config.is_set("subtensor.network")
+            and not config.is_set("subtensor.chain_endpoint")
+            and not config.no_prompt
+        ):
+            config.subtensor.network = Prompt.ask(
+                "Enter subtensor network",
+                choices=bittensor.__networks__,
+                default=defaults.subtensor.network,
+            )
+            _, endpoint = bittensor.subtensor.determine_chain_endpoint_and_network(
+                config.subtensor.network
+            )
+            config.subtensor.chain_endpoint = endpoint
+
+        if not config.is_set("wallet.name") and not config.no_prompt:
+            wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
+            config.wallet.name = str(wallet_name)
+
+        if not config.is_set("wallet.coldkey") and not config.no_prompt:
+            coldkey = Prompt.ask("Enter old coldkey name", default=defaults.wallet.coldkey)
+            config.wallet.coldkey = str(coldkey)
+
+        if not config.is_set("wallet.coldkey_b") and not config.no_prompt:
+            coldkey = Prompt.ask("Enter new coldkey name", default=defaults.wallet.coldkey)
+            config.wallet.coldkey_b = str(coldkey)

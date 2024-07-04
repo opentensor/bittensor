@@ -1274,6 +1274,40 @@ class Subtensor:
             prompt=prompt,
         )
 
+    def swap_coldkey(
+        self,
+        wallet: "bittensor.wallet",
+        new_wallet: "bittensor.wallet",
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = True,
+        prompt: bool = False,
+    ) -> bool:
+        """
+        Swaps an old coldkey with a new coldkey for the specified wallet.
+
+        This method initiates an extrinsic to change the coldkey associated with a wallet to a new coldkey. It provides
+        options to wait for inclusion and finalization of the transaction, and to prompt the user for confirmation.
+
+        Args:
+            wallet (bittensor.wallet): The wallet whose coldkey is to be swapped.
+            new_wallet (bittensor.wallet): The new wallet with the coldkey to be set.
+            wait_for_inclusion (bool): Whether to wait for the transaction to be included in a block.
+                Default is `False`.
+            wait_for_finalization (bool): Whether to wait for the transaction to be finalized. Default is `True`.
+            prompt (bool): Whether to prompt the user for confirmation before proceeding. Default is `False`.
+
+        Returns:
+            bool: True if the coldkey swap was successful, False otherwise.
+        """
+        return swap_coldkey_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            new_wallet=new_wallet,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            prompt=prompt,
+        )
+
     def run_faucet(
         self,
         wallet: "bittensor.wallet",
@@ -1541,6 +1575,62 @@ class Subtensor:
             if not response.is_success:
                 return False, format_error_message(response.error_message)
             # Successful registration
+            else:
+                return True, None
+
+        return make_substrate_call_with_retry()
+
+    def _do_swap_coldkey(
+        self,
+        wallet: "bittensor.wallet",
+        new_wallet: "bittensor.wallet",
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = True,
+    ) -> Tuple[bool, Optional[str]]:
+        """
+        Performs a coldkey swap extrinsic call to the Subtensor chain.
+
+        Args:
+            wallet (bittensor.wallet): The wallet whose coldkey is to be swapped.
+            new_wallet (bittensor.wallet): The wallet with the new coldkey to be set.
+            wait_for_inclusion (bool): Whether to wait for the transaction to be included in a block. Default is
+            `False`.
+            wait_for_finalization (bool): Whether to wait for the transaction to be finalized. Default is `True`.
+
+        Returns:
+            Tuple[bool, Optional[str]]: A tuple containing a boolean indicating success or failure, and an optional
+                error message.
+        """
+
+        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
+        def make_substrate_call_with_retry():
+            # create extrinsic call
+            call = self.substrate.compose_call(
+                call_module="SubtensorModule",
+                call_function="swap_coldkey",
+                call_params={
+                    "coldkey": wallet.coldkey.ss58_address,
+                    "new_coldkey": new_wallet.coldkey.ss58_address,
+                },
+            )
+            extrinsic = self.substrate.create_signed_extrinsic(
+                call=call, keypair=wallet.coldkey
+            )
+            response = self.substrate.submit_extrinsic(
+                extrinsic,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
+
+            # We only wait here if we expect finalization.
+            if not wait_for_finalization and not wait_for_inclusion:
+                return True, None
+
+            # process if swap successful, try again if still valid
+            response.process_events()
+            if not response.is_success:
+                return False, format_error_message(response.error_message)
+            # Successful swap
             else:
                 return True, None
 
