@@ -20,7 +20,7 @@ import json
 import time
 import pytest
 import shutil
-import bittensor
+import bittensor.v1 as bittensor
 import unittest.mock as mock
 from scalecodec import ScaleBytes
 from substrateinterface import Keypair, KeypairType
@@ -28,7 +28,7 @@ from substrateinterface.constants import DEV_PHRASE
 from substrateinterface.exceptions import ConfigurationError
 from bip39 import bip39_validate
 
-from bittensor import get_coldkey_password_from_environment
+from bittensor.v1 import get_coldkey_password_from_environment
 
 
 def test_generate_mnemonic():
@@ -463,7 +463,7 @@ def test_validate_password():
     This function tests the behavior of the validate_password function from the bittensor.keyfile module.
     It checks various scenarios to ensure that the function correctly validates passwords.
     """
-    from bittensor.keyfile import validate_password
+    from bittensor.v1.core.keyfile import validate_password
 
     assert validate_password(None) == False
     assert validate_password("passw0rd") == False
@@ -492,7 +492,7 @@ def test_decrypt_keyfile_data_legacy():
     from cryptography.hazmat.primitives import hashes
     from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
-    from bittensor.keyfile import decrypt_keyfile_data
+    from bittensor.v1.core.keyfile import decrypt_keyfile_data
 
     __SALT = b"Iguesscyborgslikemyselfhaveatendencytobeparanoidaboutourorigins"
 
@@ -525,7 +525,7 @@ def test_user_interface():
     It mocks the `getpass.getpass` function to simulate user input of passwords.
     The expected result is that the `ask_password_to_encrypt` function returns the correct password.
     """
-    from bittensor.keyfile import ask_password_to_encrypt
+    from bittensor.v1.core.keyfile import ask_password_to_encrypt
 
     with mock.patch(
         "getpass.getpass",
@@ -561,7 +561,7 @@ def test_serialized_keypair_to_keyfile_data(keyfile_setup_teardown):
     serializes a keypair to keyfile data. It then deserializes the keyfile data and asserts
     that the deserialized keypair matches the original keypair.
     """
-    from bittensor.keyfile import serialized_keypair_to_keyfile_data
+    from bittensor.v1.core.keyfile import serialized_keypair_to_keyfile_data
 
     root_path = keyfile_setup_teardown
     keyfile = bittensor.keyfile(path=os.path.join(root_path, "keyfile"))
@@ -590,8 +590,8 @@ def test_deserialize_keypair_from_keyfile_data(keyfile_setup_teardown):
     then deserializes the keyfile data to a keypair. It then asserts that the deserialized keypair
     matches the original keypair.
     """
-    from bittensor.keyfile import serialized_keypair_to_keyfile_data
-    from bittensor.keyfile import deserialize_keypair_from_keyfile_data
+    from bittensor.v1.core.keyfile import serialized_keypair_to_keyfile_data
+    from bittensor.v1.core.keyfile import deserialize_keypair_from_keyfile_data
 
     root_path = keyfile_setup_teardown
     keyfile = bittensor.keyfile(path=os.path.join(root_path, "keyfile"))

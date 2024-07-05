@@ -1,9 +1,9 @@
 import pytest
 import bittensor
 import torch
-from bittensor.chain_data import AxonInfo, ChainDataType, DelegateInfo, NeuronInfo
+from bittensor.v1.chain_data import AxonInfo, ChainDataType, DelegateInfo, NeuronInfo
 
-SS58_FORMAT = bittensor.__ss58_format__
+SS58_FORMAT = bittensor.v1.__ss58_format__
 RAOPERTAO = 10**18
 
 

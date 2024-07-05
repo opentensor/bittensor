@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
 from bittensor.subtensor import Subtensor
-from bittensor.wallet import wallet as Wallet
+from bittensor.core.wallet import wallet as Wallet
 from bittensor.utils.registration import POWSolution
 from bittensor.extrinsics.registration import (
     MaxSuccessException,
@@ -9,16 +9,15 @@ from bittensor.extrinsics.registration import (
     swap_hotkey_extrinsic,
     burned_register_extrinsic,
     register_extrinsic,
-    run_faucet_extrinsic,
 )
 
 
 # Mocking external dependencies
 @pytest.fixture
-def mock_subtensor(mocker):
-    mock = mocker.MagicMock(spec=Subtensor)
+def mock_subtensor():
+    mock = MagicMock(spec=Subtensor)
     mock.network = "mock_network"
-    mock.substrate = mocker.AsyncMock()
+    mock.substrate = MagicMock()
     return mock
 
 
@@ -33,8 +32,8 @@ def mock_wallet():
 
 
 @pytest.fixture
-def mock_pow_solution(mocker):
-    mock = mocker.MagicMock(spec=POWSolution)
+def mock_pow_solution():
+    mock = MagicMock(spec=POWSolution)
     mock.block_number = 123
     mock.nonce = 456
     mock.seal = [0, 1, 2, 3]
@@ -60,8 +59,7 @@ def mock_new_wallet():
     ],
     ids=["happy-path-1", "happy-path-2", "happy-path-3"],
 )
-@pytest.mark.asyncio
-async def test_run_faucet_extrinsic_happy_path(
+def test_run_faucet_extrinsic_happy_path(
     mock_subtensor,
     mock_wallet,
     mock_pow_solution,
@@ -87,7 +85,7 @@ async def test_run_faucet_extrinsic_happy_path(
         mock_subtensor.substrate.submit_extrinsic.return_value.is_success = True
 
         # Act
-        result = await run_faucet_extrinsic(
+        result = run_faucet_extrinsic(
             subtensor=mock_subtensor,
             wallet=mock_wallet,
             wait_for_inclusion=wait_for_inclusion,
@@ -130,15 +128,16 @@ async def test_run_faucet_extrinsic_happy_path(
     ],
     ids=["edge-case-1", "edge-case-2"],
 )
-@pytest.mark.asyncio
-async def test_run_faucet_extrinsic_edge_cases(
+def test_run_faucet_extrinsic_edge_cases(
     mock_subtensor, mock_wallet, cuda, torch_cuda_available, prompt_response, expected
 ):
     with patch("torch.cuda.is_available", return_value=torch_cuda_available), patch(
         "rich.prompt.Confirm.ask", return_value=prompt_response
     ):
+        from bittensor.extrinsics.registration import run_faucet_extrinsic
+
         # Act
-        result = await run_faucet_extrinsic(
+        result = run_faucet_extrinsic(
             subtensor=mock_subtensor, wallet=mock_wallet, cuda=cuda
         )
 
@@ -169,6 +168,8 @@ def test_run_faucet_extrinsic_error_cases(
         "bittensor.utils.registration.create_pow",
         side_effect=[mock_pow_solution, exception],
     ):
+        from bittensor.extrinsics.registration import run_faucet_extrinsic
+
         # Act
         result = run_faucet_extrinsic(
             subtensor=mock_subtensor, wallet=mock_wallet, max_allowed_attempts=3
@@ -190,8 +191,7 @@ def test_run_faucet_extrinsic_error_cases(
         (False, True, True, True, False, False, "error-prompt-declined"),
     ],
 )
-@pytest.mark.asyncio
-async def test_swap_hotkey_extrinsic(
+def test_swap_hotkey_extrinsic(
     mock_subtensor,
     mock_wallet,
     mock_new_wallet,
@@ -206,14 +206,14 @@ async def test_swap_hotkey_extrinsic(
     # Arrange
     with patch.object(
         mock_subtensor,
-        "do_swap_hotkey",
+        "_do_swap_hotkey",
         return_value=(swap_success, "Mock error message"),
     ):
         with patch(
             "rich.prompt.Confirm.ask", return_value=prompt_response
         ) as mock_confirm:
             # Act
-            result = await swap_hotkey_extrinsic(
+            result = swap_hotkey_extrinsic(
                 subtensor=mock_subtensor,
                 wallet=mock_wallet,
                 new_wallet=mock_new_wallet,
@@ -244,8 +244,7 @@ async def test_swap_hotkey_extrinsic(
         (True, True, True, True, True, False, False, "error-path-not-registered"),
     ],
 )
-@pytest.mark.asyncio
-async def test_burned_register_extrinsic(
+def test_burned_register_extrinsic(
     mock_subtensor,
     mock_wallet,
     subnet_exists,
@@ -266,13 +265,13 @@ async def test_burned_register_extrinsic(
         return_value=MagicMock(is_null=neuron_is_null),
     ), patch.object(
         mock_subtensor,
-        "do_burned_register",
+        "_do_burned_register",
         return_value=(recycle_success, "Mock error message"),
     ), patch.object(
         mock_subtensor, "is_hotkey_registered", return_value=is_registered
     ), patch("rich.prompt.Confirm.ask", return_value=prompt_response) as mock_confirm:
         # Act
-        result = await burned_register_extrinsic(
+        result = burned_register_extrinsic(
             subtensor=mock_subtensor, wallet=mock_wallet, netuid=123, prompt=True
         )
 
@@ -294,8 +293,7 @@ async def test_burned_register_extrinsic(
         (True, True, False, None, False, False, "cuda-unavailable"),
     ],
 )
-@pytest.mark.asyncio
-async def test_register_extrinsic_without_pow(
+def test_register_extrinsic_without_pow(
     mock_subtensor,
     mock_wallet,
     subnet_exists,
@@ -317,7 +315,7 @@ async def test_register_extrinsic_without_pow(
         "torch.cuda.is_available", return_value=cuda_available
     ):
         # Act
-        result = await register_extrinsic(
+        result = register_extrinsic(
             subtensor=mock_subtensor,
             wallet=mock_wallet,
             netuid=123,
@@ -349,8 +347,7 @@ async def test_register_extrinsic_without_pow(
         (True, False, False, False, False, True, "registration-fail-key-registered"),
     ],
 )
-@pytest.mark.asyncio
-async def test_register_extrinsic_with_pow(
+def test_register_extrinsic_with_pow(
     mock_subtensor,
     mock_wallet,
     mock_pow_solution,
@@ -361,7 +358,6 @@ async def test_register_extrinsic_with_pow(
     hotkey_registered,
     expected_result,
     test_id,
-    mocker,
 ):
     # Arrange
     with patch(
@@ -372,7 +368,7 @@ async def test_register_extrinsic_with_pow(
         return_value=mock_pow_solution if pow_success else None,
     ), patch.object(
         mock_subtensor,
-        "do_pow_register",
+        "_do_pow_register",
         return_value=(registration_success, "HotKeyAlreadyRegisteredInSubNet"),
     ), patch("torch.cuda.is_available", return_value=cuda):
         # Act
@@ -380,11 +376,11 @@ async def test_register_extrinsic_with_pow(
             mock_pow_solution.is_stale.return_value = pow_stale
 
         if not pow_success and hotkey_registered:
-            mock_subtensor.is_hotkey_registered = mocker.AsyncMock(
+            mock_subtensor.is_hotkey_registered = MagicMock(
                 return_value=hotkey_registered
             )
 
-        result = await register_extrinsic(
+        result = register_extrinsic(
             subtensor=mock_subtensor,
             wallet=mock_wallet,
             netuid=123,

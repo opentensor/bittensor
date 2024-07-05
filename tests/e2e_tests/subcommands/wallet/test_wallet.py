@@ -1,16 +1,13 @@
-import pytest
-
 from bittensor.commands.list import ListCommand
-from bittensor.subtensor import subtensor
+from bittensor.core.subtensor import Subtensor
 
 from ...utils import setup_wallet
 
 
-@pytest.mark.asyncio
-async def test_wallet_list(local_chain: subtensor, capsys):
-    keypair, exec_command, wallet = await setup_wallet("//Alice")
+def test_wallet_list(local_chain: Subtensor, capsys):
+    keypair, exec_command, wallet = setup_wallet("//Alice")
 
-    await exec_command(
+    exec_command(
         ListCommand,
         [
             "wallet",

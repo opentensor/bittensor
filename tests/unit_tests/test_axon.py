@@ -35,12 +35,12 @@ from starlette.requests import Request
 from fastapi.testclient import TestClient
 
 # Bittensor
-import bittensor
-from bittensor import Synapse, RunException
-from bittensor.axon import AxonMiddleware
-from bittensor.axon import axon as Axon
-from bittensor.utils.axon_utils import allowed_nonce_window_ns, calculate_diff_seconds
-from bittensor.constants import ALLOWED_DELTA, NANOSECONDS_IN_SECOND
+from bittensor.v1 import Synapse, RunException
+from bittensor.v1.core.axon import AxonMiddleware
+from bittensor.v1.core.axon import Axon
+from bittensor.v1.utils.axon_utils import allowed_nonce_window_ns, calculate_diff_seconds
+from bittensor.v1.constants import ALLOWED_DELTA, NANOSECONDS_IN_SECOND
+import bittensor.v1 as bittensor
 
 
 def test_attach():
@@ -121,7 +121,7 @@ def test_attach():
 
 
 def test_log_and_handle_error():
-    from bittensor.axon import log_and_handle_error
+    from bittensor.v1.core.axon import log_and_handle_error
 
     synapse = SynapseMock()
 
@@ -132,7 +132,7 @@ def test_log_and_handle_error():
 
 
 def test_create_error_response():
-    from bittensor.axon import create_error_response
+    from bittensor.v1.core.axon import create_error_response
 
     synapse = SynapseMock()
     synapse.axon.status_code = 500
@@ -285,7 +285,6 @@ async def test_priority_pass(middleware):
         ),
     ],
 )
-@pytest.mark.asyncio
 async def test_verify_body_integrity_happy_path(
     mock_request, axon_instance, body, expected
 ):
@@ -302,12 +301,11 @@ async def test_verify_body_integrity_happy_path(
 @pytest.mark.parametrize(
     "body, expected_exception_message",
     [
-        (b"", "Expecting value: line 1 column 1 (char 0)"),  # Empty body
-        (b"not_json", "Expecting value: line 1 column 1 (char 0)"),  # Non-JSON body
+        (b"", "EOFError"),  # Empty body
+        (b"not_json", "JSONDecodeError"),  # Non-JSON body
     ],
     ids=["empty_body", "non_json_body"],
 )
-@pytest.mark.asyncio
 async def test_verify_body_integrity_edge_cases(
     mock_request, axon_instance, body, expected_exception_message
 ):
@@ -328,7 +326,6 @@ async def test_verify_body_integrity_edge_cases(
         ("incorrect_hash", ValueError),
     ],
 )
-@pytest.mark.asyncio
 async def test_verify_body_integrity_error_cases(
     mock_request, axon_instance, computed_hash, expected_error
 ):

@@ -1,17 +1,13 @@
-import pytest
-
 from bittensor.commands.transfer import TransferCommand
 from ...utils import setup_wallet
-import bittensor
 
 
 # Example test using the local_chain fixture
-@pytest.mark.asyncio
-async def test_transfer(local_chain):
-    keypair, exec_command, _ = await setup_wallet("//Alice")
+def test_transfer(local_chain):
+    keypair, exec_command, wallet = setup_wallet("//Alice")
 
     acc_before = local_chain.query("System", "Account", [keypair.ss58_address])
-    await exec_command(
+    exec_command(
         TransferCommand,
         [
             "wallet",

@@ -17,26 +17,27 @@ from tests.e2e_tests.utils import (
     template_path,
     templates_repo,
     wait_interval,
+    write_output_log_to_file,
 )
 
 logging.basicConfig(level=logging.INFO)
 
 """
-Test the incentive mechanism.
+Test the incentive mechanism. 
 
 Verify that for the miner:
 * trust
 * rank
 * consensus
 * incentive
-are updated with proper values after an epoch has passed.
+are updated with proper values after an epoch has passed. 
 
 For the validator verify that:
 * validator_permit
 * validator_trust
 * dividends
 * stake
-are updated with proper values after an epoch has passed.
+are updated with proper values after an epoch has passed. 
 
 """
 
@@ -44,16 +45,16 @@ are updated with proper values after an epoch has passed.
 @pytest.mark.asyncio
 async def test_incentive(local_chain):
     # Register root as Alice - the subnet owner and validator
-    alice_keypair, alice_exec_command, alice_wallet = await setup_wallet("//Alice")
-    await alice_exec_command(RegisterSubnetworkCommand, ["s", "create"])
+    alice_keypair, alice_exec_command, alice_wallet = setup_wallet("//Alice")
+    alice_exec_command(RegisterSubnetworkCommand, ["s", "create"])
     # Verify subnet 1 created successfully
     assert local_chain.query("SubtensorModule", "NetworksAdded", [1]).serialize()
 
     # Register Bob as miner
-    bob_keypair, bob_exec_command, bob_wallet = await setup_wallet("//Bob")
+    bob_keypair, bob_exec_command, bob_wallet = setup_wallet("//Bob")
 
     # Register Alice as neuron to the subnet
-    await alice_exec_command(
+    alice_exec_command(
         RegisterCommand,
         [
             "s",
@@ -64,7 +65,7 @@ async def test_incentive(local_chain):
     )
 
     # Register Bob as neuron to the subnet
-    await bob_exec_command(
+    bob_exec_command(
         RegisterCommand,
         [
             "s",
@@ -76,10 +77,10 @@ async def test_incentive(local_chain):
 
     subtensor = bittensor.subtensor(network="ws://localhost:9945")
     # assert two neurons are in network
-    assert len(await subtensor.neurons(netuid=1)) == 2
+    assert len(subtensor.neurons(netuid=1)) == 2
 
     # Alice to stake to become to top neuron after the first epoch
-    await alice_exec_command(
+    alice_exec_command(
         StakeCommand,
         [
             "stake",
@@ -117,6 +118,12 @@ async def test_incentive(local_chain):
         stderr=asyncio.subprocess.PIPE,
     )
 
+    # Create tasks to read stdout and stderr concurrently
+    # ignore, dont await coroutine, just write logs to file
+    asyncio.create_task(write_output_log_to_file("miner_stdout", miner_process.stdout))
+    # ignore, dont await coroutine, just write logs to file
+    asyncio.create_task(write_output_log_to_file("miner_stderr", miner_process.stderr))
+
     await asyncio.sleep(
         5
     )  # wait for 5 seconds for the metagraph to refresh with latest data
@@ -150,12 +157,22 @@ async def test_incentive(local_chain):
         stderr=asyncio.subprocess.PIPE,
     )
 
+    # Create tasks to read stdout and stderr concurrently and write output to log file
+    # ignore, dont await coroutine, just write logs to file
+    asyncio.create_task(
+        write_output_log_to_file("validator_stdout", validator_process.stdout)
+    )
+    # ignore, dont await coroutine, just write logs to file
+    asyncio.create_task(
+        write_output_log_to_file("validator_stderr", validator_process.stderr)
+    )
+
     await asyncio.sleep(
         5
     )  # wait for 5 seconds for the metagraph and subtensor to refresh with latest data
 
     # register validator with root network
-    await alice_exec_command(
+    alice_exec_command(
         RootRegisterCommand,
         [
             "root",
@@ -171,7 +188,7 @@ async def test_incentive(local_chain):
         ],
     )
 
-    await alice_exec_command(
+    alice_exec_command(
         RootSetBoostCommand,
         [
             "root",
@@ -190,9 +207,7 @@ async def test_incentive(local_chain):
     )
 
     # get latest metagraph
-    metagraph = await bittensor.metagraph(
-        netuid=1, network="ws://localhost:9945", subtensor=subtensor
-    )
+    metagraph = bittensor.metagraph(netuid=1, network="ws://localhost:9945")
 
     # get current emissions
     bob_neuron = metagraph.neurons[1]
@@ -208,12 +223,12 @@ async def test_incentive(local_chain):
     assert alice_neuron.validator_trust == 0
 
     # wait until 360 blocks pass (subnet tempo)
-    await wait_interval(360, subtensor)
+    wait_interval(360, subtensor)
 
     # for some reason the weights do not get set through the template. Set weight manually.
     alice_wallet = bittensor.wallet()
     alice_wallet._hotkey = alice_keypair
-    await subtensor.do_set_weights(
+    subtensor._do_set_weights(
         wallet=alice_wallet,
         uids=[1],
         vals=[65535],
@@ -224,12 +239,10 @@ async def test_incentive(local_chain):
     )
 
     # wait epoch until weight go into effect
-    await wait_interval(360, subtensor)
+    wait_interval(360, subtensor)
 
     # refresh metagraph
-    metagraph = await bittensor.metagraph(
-        netuid=1, network="ws://localhost:9945", subtensor=subtensor
-    )
+    metagraph = bittensor.metagraph(netuid=1, network="ws://localhost:9945")
 
     # get current emissions and validate that Alice has gotten tao
     bob_neuron = metagraph.neurons[1]

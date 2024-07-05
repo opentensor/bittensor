@@ -17,17 +17,18 @@ from tests.e2e_tests.utils import (
     template_path,
     templates_repo,
     wait_interval,
+    write_output_log_to_file,
 )
 
 
 logging.basicConfig(level=logging.INFO)
 
 """
-Test the dendrites mechanism.
+Test the dendrites mechanism. 
 
 Verify that:
 * dendrite is registered on network as a validator
-* stake successfully
+* stake successfully 
 * validator permit is set
 
 """
@@ -36,16 +37,16 @@ Verify that:
 @pytest.mark.asyncio
 async def test_dendrite(local_chain):
     # Register root as Alice - the subnet owner
-    alice_keypair, exec_command, wallet = await setup_wallet("//Alice")
-    await exec_command(RegisterSubnetworkCommand, ["s", "create"])
+    alice_keypair, exec_command, wallet = setup_wallet("//Alice")
+    exec_command(RegisterSubnetworkCommand, ["s", "create"])
 
     # Verify subnet 1 created successfully
     assert local_chain.query("SubtensorModule", "NetworksAdded", [1]).serialize()
 
-    bob_keypair, exec_command, wallet_path = await setup_wallet("//Bob")
+    bob_keypair, exec_command, wallet_path = setup_wallet("//Bob")
 
     # Register a neuron to the subnet
-    await exec_command(
+    exec_command(
         RegisterCommand,
         [
             "s",
@@ -54,14 +55,13 @@ async def test_dendrite(local_chain):
             "1",
         ],
     )
-    metagraph = await bittensor.metagraph(netuid=1, network="ws://localhost:9945")
-    neuron = metagraph.neurons[0]
 
+    metagraph = bittensor.metagraph(netuid=1, network="ws://localhost:9945")
     subtensor = bittensor.subtensor(network="ws://localhost:9945")
 
     # assert one neuron is Bob
-    assert len(await subtensor.neurons(netuid=1)) == 1
-
+    assert len(subtensor.neurons(netuid=1)) == 1
+    neuron = metagraph.neurons[0]
     assert neuron.hotkey == bob_keypair.ss58_address
     assert neuron.coldkey == bob_keypair.ss58_address
 
@@ -69,7 +69,7 @@ async def test_dendrite(local_chain):
     assert neuron.stake.tao == 0
 
     # Stake to become to top neuron after the first epoch
-    await exec_command(
+    exec_command(
         StakeCommand,
         [
             "stake",
@@ -80,9 +80,7 @@ async def test_dendrite(local_chain):
     )
 
     # refresh metagraph
-    metagraph = await bittensor.metagraph(
-        netuid=1, network="ws://localhost:9945", sync=True
-    )
+    metagraph = bittensor.metagraph(netuid=1, network="ws://localhost:9945")
     neuron = metagraph.neurons[0]
     # assert stake is 10000
     assert neuron.stake.tao == 10_000.0
@@ -121,12 +119,23 @@ async def test_dendrite(local_chain):
         stderr=asyncio.subprocess.PIPE,
     )
 
+    # record logs of process
+    # Create tasks to read stdout and stderr concurrently
+    # ignore, dont await coroutine, just write logs to file
+    asyncio.create_task(
+        write_output_log_to_file("dendrite_stdout", dendrite_process.stdout)
+    )
+    # ignore, dont await coroutine, just write logs to file
+    asyncio.create_task(
+        write_output_log_to_file("dendrite_stderr", dendrite_process.stderr)
+    )
+
     await asyncio.sleep(
         5
     )  # wait for 5 seconds for the metagraph and subtensor to refresh with latest data
 
     # register validator with root network
-    await exec_command(
+    exec_command(
         RootRegisterCommand,
         [
             "root",
@@ -136,7 +145,7 @@ async def test_dendrite(local_chain):
         ],
     )
 
-    await exec_command(
+    exec_command(
         RootSetBoostCommand,
         [
             "root",
@@ -148,14 +157,14 @@ async def test_dendrite(local_chain):
         ],
     )
     # get current block, wait until 360 blocks pass (subnet tempo)
-    await wait_interval(360, subtensor)
+    wait_interval(360, subtensor)
 
     # refresh metagraph
-    metagraph = await bittensor.metagraph(
-        netuid=1, network="ws://localhost:9945", sync=True
-    )
+    metagraph = bittensor.metagraph(netuid=1, network="ws://localhost:9945")
+
     # refresh validator neuron
     neuron = metagraph.neurons[0]
+
     assert len(metagraph.neurons) == 1
     assert neuron.active is True
     assert neuron.validator_permit is True

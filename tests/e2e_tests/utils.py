@@ -1,10 +1,9 @@
 import os
-import requests
 import shutil
 import subprocess
 import sys
 import time
-from typing import List, Optional
+from typing import List
 
 from substrateinterface import SubstrateInterface
 
@@ -14,11 +13,8 @@ from bittensor import Keypair, logging
 template_path = os.getcwd() + "/neurons/"
 templates_repo = "templates repository"
 
-# TODO: remove `ASYNC_TEMPL_URL` logging after async migration done
-ASYNC_TEMPL_URL = "https://api.github.com/repos/opentensor/bittensor-subnet-template/commits/for-async-e2e-tests-only-do-not-use-for-cloning"
 
-
-async def setup_wallet(uri: str):
+def setup_wallet(uri: str):
     keypair = Keypair.create_from_uri(uri)
     wallet_path = "/tmp/btcli-e2e-wallet-{}".format(uri.strip("/"))
     wallet = bittensor.wallet(path=wallet_path)
@@ -26,7 +22,7 @@ async def setup_wallet(uri: str):
     wallet.set_coldkeypub(keypair=keypair, encrypt=False, overwrite=True)
     wallet.set_hotkey(keypair=keypair, encrypt=False, overwrite=True)
 
-    async def exec_command(command, extra_args: List[str], function: str = "run"):
+    def exec_command(command, extra_args: List[str], function: str = "run"):
         parser = bittensor.cli.__create_parser__()
         args = extra_args + [
             "--no_prompt",
@@ -41,10 +37,10 @@ async def setup_wallet(uri: str):
             parser=parser,
             args=args,
         )
-        async with bittensor.cli(config) as cli_instance:
-            # Dynamically call the specified function on the command
-            result = await getattr(command, function)(cli_instance)
-            return result
+        cli_instance = bittensor.cli(config)
+        # Dynamically call the specified function on the command
+        result = getattr(command, function)(cli_instance)
+        return result
 
     return keypair, exec_command, wallet
 
@@ -126,12 +122,12 @@ def call_add_proposal(substrate: SubstrateInterface, wallet: bittensor.wallet) -
     return response.is_success
 
 
-async def wait_interval(interval: int, subtensor: "bittensor.subtensor"):
-    current_block = await subtensor.get_current_block()
+def wait_interval(interval, subtensor):
+    current_block = subtensor.get_current_block()
     next_tempo_block_start = (current_block - (current_block % interval)) + interval
     while current_block < next_tempo_block_start:
         time.sleep(1)  # Wait for 1 second before checking the block number again
-        current_block = await subtensor.get_current_block()
+        current_block = subtensor.get_current_block()
         if current_block % 10 == 0:
             print(
                 f"Current Block: {current_block}  Next tempo at: {next_tempo_block_start}"
@@ -141,7 +137,8 @@ async def wait_interval(interval: int, subtensor: "bittensor.subtensor"):
             )
 
 
-def clone_or_update_templates(specific_commit: Optional[str] = None):
+def clone_or_update_templates():
+    specific_commit = None
     install_dir = template_path
     repo_mapping = {
         templates_repo: "https://github.com/opentensor/bittensor-subnet-template.git",
@@ -192,17 +189,3 @@ async def write_output_log_to_file(name, stream):
                 break
             f.write(line.decode())
             f.flush()
-
-
-def get_latest_commit_hash(repo_url: str = ASYNC_TEMPL_URL) -> Optional[str]:
-    response = requests.get(repo_url)
-
-    if response.status_code == 200:
-        commits = response.json()
-        if commits:
-            return commits["sha"]
-        else:
-            return None
-    else:
-        print(f"Error: Unable to fetch commits (status code {response.status_code})")
-        return None

@@ -1,15 +1,12 @@
-import pytest
-
 from bittensor.commands.stake import StakeShow
 from ...utils import setup_wallet
 
 
-@pytest.mark.asyncio
-async def test_stake_show(local_chain, capsys):
-    keypair, exec_command, wallet = await setup_wallet("//Alice")
+def test_stake_show(local_chain, capsys):
+    keypair, exec_command, wallet = setup_wallet("//Alice")
 
     # Execute the command
-    await exec_command(StakeShow, ["stake", "show"])
+    exec_command(StakeShow, ["stake", "show"])
     captured = capsys.readouterr()
     lines = captured.out.split("\n")
 
@@ -40,10 +37,10 @@ async def test_stake_show(local_chain, capsys):
     assert values2[2] == "0/d", f"Expected '0/d', got {values2[2]}."
 
     # Check the third line of data
-    values3 = lines[4].strip().split()
+    values3 = lines[3].strip().split()
     assert (
         values3[0].replace("τ", "") == "1000000.00000"
-    ), f"Expected '1000000.00000', got {values3[1]}."
+    ), f"Expected '1000000.00000', got {values3[0]}."
     assert (
         values3[1].replace("τ", "") == "0.00000"
     ), f"Expected '0.00000', got {values3[1]}."

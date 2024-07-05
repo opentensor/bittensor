@@ -1,5 +1,3 @@
-import pytest
-
 from bittensor.commands.senate import VoteCommand
 from bittensor.commands.root import RootRegisterCommand
 
@@ -9,12 +7,11 @@ from ...utils import (
 )
 
 
-@pytest.mark.asyncio
-async def test_root_senate_vote(local_chain, capsys, monkeypatch):
-    keypair, exec_command, wallet = await setup_wallet("//Alice")
+def test_root_senate_vote(local_chain, capsys, monkeypatch):
+    keypair, exec_command, wallet = setup_wallet("//Alice")
     monkeypatch.setattr("rich.prompt.Confirm.ask", lambda self: True)
 
-    await exec_command(
+    exec_command(
         RootRegisterCommand,
         ["root", "register"],
     )
@@ -32,7 +29,7 @@ async def test_root_senate_vote(local_chain, capsys, monkeypatch):
     assert len(proposals) == 1
     proposal_hash = proposals[0]
 
-    await exec_command(
+    exec_command(
         VoteCommand,
         ["root", "senate_vote", "--proposal", proposal_hash],
     )

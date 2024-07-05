@@ -1,9 +1,10 @@
-import pytest
 import bittensor
+import pytest
+
 from unittest.mock import patch, MagicMock
 
-from bittensor.extrinsics.unstaking import unstake_extrinsic, unstake_multiple_extrinsic
 from bittensor.utils.balance import Balance
+from bittensor.extrinsics.unstaking import unstake_extrinsic, unstake_multiple_extrinsic
 
 
 @pytest.fixture
@@ -55,8 +56,7 @@ def mock_get_minimum_required_stake():
         "failure-unstake-failed",
     ],
 )
-@pytest.mark.asyncio
-async def test_unstake_extrinsic(
+def test_unstake_extrinsic(
     mock_subtensor,
     mock_wallet,
     hotkey_ss58,
@@ -72,7 +72,7 @@ async def test_unstake_extrinsic(
     mock_current_balance = Balance.from_tao(100)
 
     with patch.object(
-        mock_subtensor, "do_unstake", return_value=(expected_success)
+        mock_subtensor, "_do_unstake", return_value=(expected_success)
     ), patch.object(
         mock_subtensor, "get_balance", return_value=mock_current_balance
     ), patch.object(
@@ -84,7 +84,7 @@ async def test_unstake_extrinsic(
         "get_stake_for_coldkey_and_hotkey",
         return_value=mock_current_stake,
     ), patch("rich.prompt.Confirm.ask", return_value=user_accepts) as mock_confirm:
-        result = await unstake_extrinsic(
+        result = unstake_extrinsic(
             subtensor=mock_subtensor,
             wallet=mock_wallet,
             hotkey_ss58=hotkey_ss58,
@@ -102,7 +102,7 @@ async def test_unstake_extrinsic(
             mock_confirm.assert_called_once()
 
         if unstake_attempted:
-            mock_subtensor.do_unstake.assert_called_once_with(
+            mock_subtensor._do_unstake.assert_called_once_with(
                 wallet=mock_wallet,
                 hotkey_ss58=hotkey_ss58 or mock_wallet.hotkey.ss58_address,
                 amount=bittensor.Balance.from_tao(amount)
@@ -112,7 +112,7 @@ async def test_unstake_extrinsic(
                 wait_for_finalization=wait_for_finalization,
             )
         else:
-            mock_subtensor.do_unstake.assert_not_called()
+            mock_subtensor._do_unstake.assert_not_called()
 
 
 @pytest.mark.parametrize(
@@ -178,7 +178,7 @@ async def test_unstake_extrinsic(
             False,
             True,
             [True],
-            True,  # Successful unstake
+            True,  # Sucessful unstake
             1,
             None,
             None,
@@ -256,8 +256,7 @@ async def test_unstake_extrinsic(
         "failure-type-error-amounts",
     ],
 )
-@pytest.mark.asyncio
-async def test_unstake_multiple_extrinsic(
+def test_unstake_multiple_extrinsic(
     mock_subtensor,
     mock_wallet,
     hotkey_ss58s,
@@ -285,7 +284,7 @@ async def test_unstake_multiple_extrinsic(
         return unstake_responses[index]
 
     with patch.object(
-        mock_subtensor, "do_unstake", side_effect=unstake_side_effect
+        mock_subtensor, "_do_unstake", side_effect=unstake_side_effect
     ) as mock_unstake, patch.object(
         mock_subtensor,
         "get_minimum_required_stake",
@@ -300,7 +299,7 @@ async def test_unstake_multiple_extrinsic(
         # Act
         if exception:
             with pytest.raises(exception) as exc_info:
-                result = await unstake_multiple_extrinsic(
+                result = unstake_multiple_extrinsic(
                     subtensor=mock_subtensor,
                     wallet=mock_wallet,
                     hotkey_ss58s=hotkey_ss58s,
@@ -314,7 +313,7 @@ async def test_unstake_multiple_extrinsic(
 
         # Act
         else:
-            result = await unstake_multiple_extrinsic(
+            result = unstake_multiple_extrinsic(
                 subtensor=mock_subtensor,
                 wallet=mock_wallet,
                 hotkey_ss58s=hotkey_ss58s,

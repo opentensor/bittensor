@@ -1,5 +1,3 @@
-import asyncio
-
 import pytest
 
 import bittensor
@@ -14,17 +12,17 @@ from tests.e2e_tests.utils import (
 )
 
 
-@pytest.mark.asyncio
-async def test_faucet(local_chain):
+@pytest.mark.parametrize("local_chain", [False], indirect=True)
+def test_faucet(local_chain):
     # Register root as Alice
-    keypair, exec_command, wallet = await setup_wallet("//Alice")
-    await exec_command(RegisterSubnetworkCommand, ["s", "create"])
+    keypair, exec_command, wallet = setup_wallet("//Alice")
+    exec_command(RegisterSubnetworkCommand, ["s", "create"])
 
     # Verify subnet 1 created successfully
     assert local_chain.query("SubtensorModule", "NetworksAdded", [1]).serialize()
 
     # Register a neuron to the subnet
-    await exec_command(
+    exec_command(
         RegisterCommand,
         [
             "s",
@@ -46,14 +44,14 @@ async def test_faucet(local_chain):
     subtensor = bittensor.subtensor(network="ws://localhost:9945")
 
     # verify current balance
-    wallet_balance = await subtensor.get_balance(keypair.ss58_address)
+    wallet_balance = subtensor.get_balance(keypair.ss58_address)
     assert wallet_balance.tao == 998999.0
 
     # run faucet 3 times
     for i in range(3):
         logging.info(f"faucet run #:{i + 1}")
         try:
-            await exec_command(
+            exec_command(
                 RunFaucetCommand,
                 [
                     "wallet",
@@ -68,9 +66,9 @@ async def test_faucet(local_chain):
                     "True",
                 ],
             )
-            balance = await subtensor.get_balance(keypair.ss58_address)
-            tao = balance.tao
-            logging.info(f"wallet balance is {tao} tao")
+            logging.info(
+                f"wallet balance is {subtensor.get_balance(keypair.ss58_address).tao} tao"
+            )
         except SystemExit as e:
             logging.warning(
                 "Block not generated fast enough to be within 3 block seconds window."
@@ -80,9 +78,8 @@ async def test_faucet(local_chain):
         except Exception as e:
             logging.warning(f"Unexpected exception occurred on faucet: {e}")
 
-    await asyncio.sleep(10)
-
     subtensor = bittensor.subtensor(network="ws://localhost:9945")
-    new_wallet_balance = await subtensor.get_balance(keypair.ss58_address)
+
+    new_wallet_balance = subtensor.get_balance(keypair.ss58_address)
     # verify balance increase
     assert wallet_balance.tao < new_wallet_balance.tao

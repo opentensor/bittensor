@@ -6,14 +6,13 @@ from bittensor.extrinsics.senate import (
     register_senate_extrinsic,
     vote_senate_extrinsic,
 )
-import bittensor
 
 
 # Mocking external dependencies
 @pytest.fixture
-def mock_subtensor(mocker):
+def mock_subtensor():
     mock = MagicMock(spec=subtensor)
-    mock.substrate = mocker.AsyncMock()
+    mock.substrate = MagicMock()
     return mock
 
 
@@ -43,8 +42,7 @@ def mock_wallet():
         (False, True, True, True, False, False, "error-prompt-declined"),
     ],
 )
-@pytest.mark.asyncio
-async def test_register_senate_extrinsic(
+def test_register_senate_extrinsic(
     mock_subtensor,
     mock_wallet,
     wait_for_inclusion,
@@ -54,12 +52,11 @@ async def test_register_senate_extrinsic(
     is_registered,
     expected_result,
     test_id,
-    mocker,
 ):
     # Arrange
     with patch(
         "bittensor.extrinsics.senate.Confirm.ask", return_value=not prompt
-    ), patch("bittensor.extrinsics.senate.asyncio.sleep"), patch.object(
+    ), patch("bittensor.extrinsics.senate.time.sleep"), patch.object(
         mock_subtensor.substrate, "compose_call"
     ), patch.object(mock_subtensor.substrate, "create_signed_extrinsic"), patch.object(
         mock_subtensor.substrate,
@@ -70,10 +67,10 @@ async def test_register_senate_extrinsic(
             error_message="error",
         ),
     ) as mock_submit_extrinsic, patch.object(
-        mock_subtensor, "is_senate_member", return_value=is_registered
+        mock_wallet, "is_senate_member", return_value=is_registered
     ):
         # Act
-        result = await register_senate_extrinsic(
+        result = register_senate_extrinsic(
             subtensor=mock_subtensor,
             wallet=mock_wallet,
             wait_for_inclusion=wait_for_inclusion,
@@ -133,8 +130,7 @@ async def test_register_senate_extrinsic(
         ),
     ],
 )
-@pytest.mark.asyncio
-async def test_vote_senate_extrinsic(
+def test_vote_senate_extrinsic(
     mock_subtensor,
     mock_wallet,
     wait_for_inclusion,
@@ -153,7 +149,7 @@ async def test_vote_senate_extrinsic(
 
     with patch(
         "bittensor.extrinsics.senate.Confirm.ask", return_value=not prompt
-    ), patch("bittensor.extrinsics.senate.asyncio.sleep"), patch.object(
+    ), patch("bittensor.extrinsics.senate.time.sleep"), patch.object(
         mock_subtensor.substrate, "compose_call"
     ), patch.object(mock_subtensor.substrate, "create_signed_extrinsic"), patch.object(
         mock_subtensor.substrate,
@@ -172,7 +168,7 @@ async def test_vote_senate_extrinsic(
         },
     ):
         # Act
-        result = await vote_senate_extrinsic(
+        result = vote_senate_extrinsic(
             subtensor=mock_subtensor,
             wallet=mock_wallet,
             proposal_hash=proposal_hash,
@@ -203,8 +199,7 @@ async def test_vote_senate_extrinsic(
         (False, True, True, True, False, False, "error-prompt-declined"),
     ],
 )
-@pytest.mark.asyncio
-async def test_leave_senate_extrinsic(
+def test_leave_senate_extrinsic(
     mock_subtensor,
     mock_wallet,
     wait_for_inclusion,
@@ -218,7 +213,7 @@ async def test_leave_senate_extrinsic(
     # Arrange
     with patch(
         "bittensor.extrinsics.senate.Confirm.ask", return_value=not prompt
-    ), patch("bittensor.extrinsics.senate.asyncio.sleep"), patch.object(
+    ), patch("bittensor.extrinsics.senate.time.sleep"), patch.object(
         mock_subtensor.substrate, "compose_call"
     ), patch.object(mock_subtensor.substrate, "create_signed_extrinsic"), patch.object(
         mock_subtensor.substrate,
@@ -228,9 +223,9 @@ async def test_leave_senate_extrinsic(
             process_events=MagicMock(),
             error_message="error",
         ),
-    ), patch.object(mock_subtensor, "is_senate_member", return_value=is_registered):
+    ), patch.object(mock_wallet, "is_senate_member", return_value=is_registered):
         # Act
-        result = await leave_senate_extrinsic(
+        result = leave_senate_extrinsic(
             subtensor=mock_subtensor,
             wallet=mock_wallet,
             wait_for_inclusion=wait_for_inclusion,

@@ -1,14 +1,12 @@
-from unittest.mock import MagicMock, patch
-
 import pytest
-
+from unittest.mock import patch, MagicMock
 import bittensor
-from bittensor.errors import NotDelegateError
+from bittensor.utils.balance import Balance
 from bittensor.extrinsics.staking import (
     add_stake_extrinsic,
     add_stake_multiple_extrinsic,
 )
-from bittensor.utils.balance import Balance
+from bittensor.errors import NotDelegateError
 
 
 # Mocking external dependencies
@@ -40,7 +38,6 @@ def mock_other_owner_wallet():
 
 
 # Parametrized test cases
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "hotkey_ss58, hotkey_owner, hotkey_delegate, amount, wait_for_inclusion, wait_for_finalization, prompt, user_accepts, expected_success, exception",
     [
@@ -92,7 +89,7 @@ def mock_other_owner_wallet():
         "failure-staking",
     ],
 )
-async def test_add_stake_extrinsic(
+def test_add_stake_extrinsic(
     mock_subtensor,
     mock_wallet,
     mock_other_owner_wallet,
@@ -118,7 +115,7 @@ async def test_add_stake_extrinsic(
         )
 
     with patch.object(
-        mock_subtensor, "do_stake", return_value=expected_success
+        mock_subtensor, "_do_stake", return_value=expected_success
     ) as mock_add_stake, patch.object(
         mock_subtensor, "get_balance", return_value=Balance.from_tao(100)
     ), patch.object(
@@ -144,15 +141,15 @@ async def test_add_stake_extrinsic(
         "get_existential_deposit",
         return_value=bittensor.Balance.from_rao(100_000),
     ):
-        mock_balance = await mock_subtensor.get_balance()
-        existential_deposit = await mock_subtensor.get_existential_deposit()
+        mock_balance = mock_subtensor.get_balance()
+        existential_deposit = mock_subtensor.get_existential_deposit()
         if staking_balance > mock_balance - existential_deposit:
             staking_balance = mock_balance - existential_deposit
 
         # Act
         if not hotkey_owner and not hotkey_delegate:
             with pytest.raises(exception):
-                result = await add_stake_extrinsic(
+                result = add_stake_extrinsic(
                     subtensor=mock_subtensor,
                     wallet=mock_wallet,
                     hotkey_ss58=hotkey_ss58,
@@ -162,7 +159,7 @@ async def test_add_stake_extrinsic(
                     prompt=prompt,
                 )
         else:
-            result = await add_stake_extrinsic(
+            result = add_stake_extrinsic(
                 subtensor=mock_subtensor,
                 wallet=mock_wallet,
                 hotkey_ss58=hotkey_ss58,
@@ -194,7 +191,6 @@ async def test_add_stake_extrinsic(
 
 
 # Parametrized test cases
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "hotkey_ss58s, amounts, hotkey_owner, hotkey_delegates ,wallet_balance, wait_for_inclusion, wait_for_finalization, prompt, prompt_response, stake_responses, expected_success, stake_attempted, exception, exception_msg",
     [
@@ -472,7 +468,7 @@ async def test_add_stake_extrinsic(
         "failure-type-error-amount",
     ],
 )
-async def test_add_stake_multiple_extrinsic(
+def test_add_stake_multiple_extrinsic(
     mock_subtensor,
     mock_wallet,
     mock_other_owner_wallet,
@@ -515,14 +511,14 @@ async def test_add_stake_multiple_extrinsic(
     ), patch.object(
         mock_subtensor, "get_hotkey_owner", side_effect=owner_side_effect
     ), patch.object(
-        mock_subtensor, "do_stake", side_effect=stake_side_effect
+        mock_subtensor, "_do_stake", side_effect=stake_side_effect
     ) as mock_do_stake, patch.object(
         mock_subtensor, "tx_rate_limit", return_value=0
     ), patch("rich.prompt.Confirm.ask", return_value=prompt_response) as mock_confirm:
         # Act
         if exception:
             with pytest.raises(exception) as exc_info:
-                result = await add_stake_multiple_extrinsic(
+                result = add_stake_multiple_extrinsic(
                     subtensor=mock_subtensor,
                     wallet=mock_wallet,
                     hotkey_ss58s=hotkey_ss58s,
@@ -536,7 +532,7 @@ async def test_add_stake_multiple_extrinsic(
 
         # Act
         else:
-            result = await add_stake_multiple_extrinsic(
+            result = add_stake_multiple_extrinsic(
                 subtensor=mock_subtensor,
                 wallet=mock_wallet,
                 hotkey_ss58s=hotkey_ss58s,

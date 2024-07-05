@@ -1,5 +1,3 @@
-import pytest
-
 from bittensor.commands.stake import StakeCommand
 from bittensor.commands.unstake import UnStakeCommand
 from bittensor.commands.network import RegisterSubnetworkCommand
@@ -11,15 +9,14 @@ from ...utils import (
 )
 
 
-@pytest.mark.asyncio
-async def test_stake_add(local_chain):
-    alice_keypair, exec_command, wallet = await setup_wallet("//Alice")
+def test_stake_add(local_chain):
+    alice_keypair, exec_command, wallet = setup_wallet("//Alice")
     assert sudo_call_set_network_limit(local_chain, wallet)
     assert sudo_call_set_target_stakes_per_interval(local_chain, wallet)
 
     assert not (local_chain.query("SubtensorModule", "NetworksAdded", [1]).serialize())
 
-    await exec_command(RegisterSubnetworkCommand, ["s", "create"])
+    exec_command(RegisterSubnetworkCommand, ["s", "create"])
     assert local_chain.query("SubtensorModule", "NetworksAdded", [1])
 
     assert local_chain.query("SubtensorModule", "NetworksAdded", [1]).serialize()
@@ -38,7 +35,7 @@ async def test_stake_add(local_chain):
         == 0
     )
 
-    await exec_command(RegisterCommand, ["s", "register", "--neduid", "1"])
+    exec_command(RegisterCommand, ["s", "register", "--neduid", "1"])
 
     assert (
         local_chain.query(
@@ -48,7 +45,7 @@ async def test_stake_add(local_chain):
     )
 
     stake_amount = 2
-    await exec_command(StakeCommand, ["stake", "add", "--amount", str(stake_amount)])
+    exec_command(StakeCommand, ["stake", "add", "--amount", str(stake_amount)])
     exact_stake = local_chain.query(
         "SubtensorModule", "TotalHotkeyStake", [wallet.hotkey.ss58_address]
     ).serialize()
@@ -59,9 +56,7 @@ async def test_stake_add(local_chain):
 
     # we can test remove after set the stake rate limit larger than 1
     remove_amount = 1
-    await exec_command(
-        UnStakeCommand, ["stake", "remove", "--amount", str(remove_amount)]
-    )
+    exec_command(UnStakeCommand, ["stake", "remove", "--amount", str(remove_amount)])
     assert (
         local_chain.query(
             "SubtensorModule", "TotalHotkeyStake", [wallet.hotkey.ss58_address]

@@ -1,5 +1,3 @@
-import pytest
-
 from bittensor.commands.senate import ProposalsCommand
 
 from ...utils import (
@@ -9,9 +7,8 @@ from ...utils import (
 import bittensor
 
 
-@pytest.mark.asyncio
-async def test_root_view_proposal(local_chain, capsys):
-    keypair, exec_command, wallet = await setup_wallet("//Alice")
+def test_root_view_proposal(local_chain, capsys):
+    keypair, exec_command, wallet = setup_wallet("//Alice")
 
     proposals = local_chain.query("Triumvirate", "Proposals").serialize()
 
@@ -23,13 +20,12 @@ async def test_root_view_proposal(local_chain, capsys):
 
     assert len(proposals) == 1
 
-    await exec_command(
+    exec_command(
         ProposalsCommand,
         ["root", "proposals"],
     )
 
-    """simulated_output
-    [
+    simulated_output = [
         "📡 Syncing with chain: local ...",
         "     Proposals               Active Proposals: 1             Senate Size: 3     ",
         "HASH                                                                          C…",
@@ -37,7 +33,6 @@ async def test_root_view_proposal(local_chain, capsys):
         "                                                                              \x00) ",
         "                                                                                ",
     ]
-    """
 
     captured = capsys.readouterr()
     lines = captured.out.splitlines()

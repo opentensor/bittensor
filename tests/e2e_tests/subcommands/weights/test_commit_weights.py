@@ -1,7 +1,6 @@
 import re
 
 import numpy as np
-import pytest
 
 import bittensor
 import bittensor.utils.weight_utils as weight_utils
@@ -16,11 +15,11 @@ from bittensor.commands import (
 from tests.e2e_tests.utils import setup_wallet, wait_interval
 
 """
-Test the Commit/Reveal weights mechanism.
+Test the Commit/Reveal weights mechanism. 
 
 Verify that:
 * Weights are commited
-* weights are hashed with salt
+* weights are hashed with salt 
 --- after an epoch ---
 * weights are un-hashed with salt
 * weights are properly revealed
@@ -28,11 +27,10 @@ Verify that:
 """
 
 
-@pytest.mark.asyncio
-async def test_commit_and_reveal_weights(local_chain):
+def test_commit_and_reveal_weights(local_chain):
     # Register root as Alice
-    keypair, exec_command, wallet = await setup_wallet("//Alice")
-    await exec_command(RegisterSubnetworkCommand, ["s", "create"])
+    keypair, exec_command, wallet = setup_wallet("//Alice")
+    exec_command(RegisterSubnetworkCommand, ["s", "create"])
 
     # define values
     weights = 0.1
@@ -43,7 +41,7 @@ async def test_commit_and_reveal_weights(local_chain):
     assert local_chain.query("SubtensorModule", "NetworksAdded", [1]).serialize()
 
     # Register a neuron to the subnet
-    await exec_command(
+    exec_command(
         RegisterCommand,
         [
             "s",
@@ -54,7 +52,7 @@ async def test_commit_and_reveal_weights(local_chain):
     )
 
     # Stake to become to top neuron after the first epoch
-    await exec_command(
+    exec_command(
         StakeCommand,
         [
             "stake",
@@ -65,7 +63,7 @@ async def test_commit_and_reveal_weights(local_chain):
     )
 
     # Enable Commit Reveal
-    await exec_command(
+    exec_command(
         SubnetSudoCommand,
         [
             "sudo",
@@ -87,13 +85,12 @@ async def test_commit_and_reveal_weights(local_chain):
     )
 
     subtensor = bittensor.subtensor(network="ws://localhost:9945")
-    subnet_hyperparameters = await subtensor.get_subnet_hyperparameters(netuid=1)
-    assert (
-        subnet_hyperparameters.commit_reveal_weights_enabled
-    ), "Failed to enable commit/reveal"
+    assert subtensor.get_subnet_hyperparameters(
+        netuid=1
+    ).commit_reveal_weights_enabled, "Failed to enable commit/reveal"
 
     # Lower the interval
-    await exec_command(
+    exec_command(
         SubnetSudoCommand,
         [
             "sudo",
@@ -115,13 +112,13 @@ async def test_commit_and_reveal_weights(local_chain):
     )
 
     subtensor = bittensor.subtensor(network="ws://localhost:9945")
-    subnet_hyperparameters = await subtensor.get_subnet_hyperparameters(netuid=1)
     assert (
-        subnet_hyperparameters.commit_reveal_weights_interval == 370
+        subtensor.get_subnet_hyperparameters(netuid=1).commit_reveal_weights_interval
+        == 370
     ), "Failed to set commit/reveal interval"
 
     # Lower the rate limit
-    await exec_command(
+    exec_command(
         SubnetSudoCommand,
         [
             "sudo",
@@ -143,13 +140,12 @@ async def test_commit_and_reveal_weights(local_chain):
     )
 
     subtensor = bittensor.subtensor(network="ws://localhost:9945")
-    subnet_hyperparameters = await subtensor.get_subnet_hyperparameters(netuid=1)
     assert (
-        subnet_hyperparameters.weights_rate_limit == 0
+        subtensor.get_subnet_hyperparameters(netuid=1).weights_rate_limit == 0
     ), "Failed to set commit/reveal rate limit"
 
     # Configure the CLI arguments for the CommitWeightCommand
-    await exec_command(
+    exec_command(
         CommitWeightCommand,
         [
             "wt",
@@ -172,7 +168,7 @@ async def test_commit_and_reveal_weights(local_chain):
         ],
     )
 
-    weight_commits = await subtensor.query_module(
+    weight_commits = subtensor.query_module(
         module="SubtensorModule",
         name="WeightCommits",
         params=[1, wallet.hotkey.ss58_address],
@@ -184,17 +180,17 @@ async def test_commit_and_reveal_weights(local_chain):
     assert commit_block > 0, f"Invalid block number: {commit_block}"
 
     # Query the WeightCommitRevealInterval storage map
-    weight_commit_reveal_interval = await subtensor.query_module(
+    weight_commit_reveal_interval = subtensor.query_module(
         module="SubtensorModule", name="WeightCommitRevealInterval", params=[1]
     )
     interval = weight_commit_reveal_interval.value
     assert interval > 0, "Invalid WeightCommitRevealInterval"
 
     # Wait until the reveal block range
-    await wait_interval(interval, subtensor)
+    wait_interval(interval, subtensor)
 
     # Configure the CLI arguments for the RevealWeightCommand
-    await exec_command(
+    exec_command(
         RevealWeightCommand,
         [
             "wt",
@@ -218,7 +214,7 @@ async def test_commit_and_reveal_weights(local_chain):
     )
 
     # Query the Weights storage map
-    revealed_weights = await subtensor.query_module(
+    revealed_weights = subtensor.query_module(
         module="SubtensorModule",
         name="Weights",
         params=[1, uid],  # netuid and uid

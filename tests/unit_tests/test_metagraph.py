@@ -55,12 +55,11 @@ def mock_environment():
     return subtensor, neurons
 
 
-@pytest.mark.asyncio
-async def test_set_metagraph_attributes(mock_environment):
+def test_set_metagraph_attributes(mock_environment):
     subtensor, neurons = mock_environment
-    metagraph = await bittensor.metagraph(1)
+    metagraph = bittensor.metagraph(1, sync=False)
     metagraph.neurons = neurons
-    await metagraph._set_metagraph_attributes(subtensor=subtensor, block=5)
+    metagraph._set_metagraph_attributes(block=5, subtensor=subtensor)
 
     # Check the attributes are set as expected
     assert metagraph.n.item() == len(neurons)
@@ -94,10 +93,9 @@ async def test_set_metagraph_attributes(mock_environment):
     assert metagraph.axons == [n.axon_info for n in neurons]
 
 
-@pytest.mark.asyncio
-async def test_process_weights_or_bonds(mock_environment):
+def test_process_weights_or_bonds(mock_environment):
     _, neurons = mock_environment
-    metagraph = await bittensor.metagraph(1)
+    metagraph = bittensor.metagraph(1, sync=False)
     metagraph.neurons = neurons
 
     # Test weights processing
@@ -128,23 +126,21 @@ async def test_process_weights_or_bonds(mock_environment):
 
 # Mocking the bittensor.subtensor class for testing purposes
 @pytest.fixture
-def mock_subtensor(mocker):
+def mock_subtensor():
     subtensor = MagicMock()
     subtensor.chain_endpoint = bittensor.__finney_entrypoint__
     subtensor.network = "finney"
-    subtensor.get_current_block = mocker.AsyncMock(return_value=601)
-    subtensor.neurons_lite = mocker.AsyncMock(return_value=[])
-    subtensor.neurons = mocker.AsyncMock(return_value=[])
+    subtensor.get_current_block.return_value = 601
     return subtensor
 
 
 # Mocking the metagraph instance for testing purposes
 @pytest.fixture
-def metagraph_instance(mocker):
+def metagraph_instance():
     metagraph = Metagraph(netuid=1337, sync=False)
-    metagraph._assign_neurons = mocker.AsyncMock()
-    metagraph._set_metagraph_attributes = mocker.AsyncMock()
-    metagraph._set_weights_and_bonds = mocker.AsyncMock()
+    metagraph._assign_neurons = MagicMock()
+    metagraph._set_metagraph_attributes = MagicMock()
+    metagraph._set_weights_and_bonds = MagicMock()
     return metagraph
 
 
@@ -170,11 +166,8 @@ def loguru_sink():
         (300, "warning_case_block_greater_than_300"),
     ],
 )
-@pytest.mark.asyncio
-async def test_sync_warning_cases(
-    block, test_id, metagraph_instance, mock_subtensor, caplog
-):
-    await metagraph_instance.sync(subtensor=mock_subtensor, lite=True, block=block)
+def test_sync_warning_cases(block, test_id, metagraph_instance, mock_subtensor, caplog):
+    metagraph_instance.sync(block=block, lite=True, subtensor=mock_subtensor)
 
     expected_message = "Attempting to sync longer than 300 blocks ago on a non-archive node. Please use the 'archive' network for subtensor and retry."
     assert (

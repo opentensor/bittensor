@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
 from bittensor.subtensor import Subtensor
-from bittensor.wallet import wallet as Wallet
+from bittensor.core.wallet import wallet as Wallet
 from bittensor.utils.balance import Balance
 from bittensor.extrinsics.delegation import (
     nominate_extrinsic,
@@ -50,8 +50,7 @@ def mock_wallet():
         "failure-value-error",
     ],
 )
-@pytest.mark.asyncio
-async def test_nominate_extrinsic(
+def test_nominate_extrinsic(
     mock_subtensor,
     mock_wallet,
     already_delegate,
@@ -63,13 +62,13 @@ async def test_nominate_extrinsic(
     with patch.object(
         mock_subtensor, "is_hotkey_delegate", return_value=already_delegate
     ), patch.object(
-        mock_subtensor, "do_nominate", return_value=nomination_success
+        mock_subtensor, "_do_nominate", return_value=nomination_success
     ) as mock_nominate:
         if raises_exception:
-            mock_subtensor.do_nominate.side_effect = raises_exception
+            mock_subtensor._do_nominate.side_effect = raises_exception
 
         # Act
-        result = await nominate_extrinsic(
+        result = nominate_extrinsic(
             subtensor=mock_subtensor,
             wallet=mock_wallet,
             wait_for_finalization=False,
@@ -223,8 +222,7 @@ async def test_nominate_extrinsic(
         "failure-StakeError",
     ],
 )
-@pytest.mark.asyncio
-async def test_delegate_extrinsic(
+def test_delegate_extrinsic(
     mock_subtensor,
     mock_wallet,
     wait_for_inclusion,
@@ -251,7 +249,7 @@ async def test_delegate_extrinsic(
     ), patch.object(
         mock_subtensor, "is_hotkey_delegate", return_value=is_delegate
     ), patch.object(
-        mock_subtensor, "do_delegation", return_value=transaction_success
+        mock_subtensor, "_do_delegation", return_value=transaction_success
     ) as mock_delegate:
         if raises_error:
             mock_delegate.side_effect = raises_error
@@ -259,7 +257,7 @@ async def test_delegate_extrinsic(
         # Act
         if raises_error == NotDelegateError:
             with pytest.raises(raises_error):
-                result = await delegate_extrinsic(
+                result = delegate_extrinsic(
                     subtensor=mock_subtensor,
                     wallet=mock_wallet,
                     delegate_ss58=mock_wallet.hotkey.ss58_address,
@@ -269,7 +267,7 @@ async def test_delegate_extrinsic(
                     prompt=True,
                 )
         else:
-            result = await delegate_extrinsic(
+            result = delegate_extrinsic(
                 subtensor=mock_subtensor,
                 wallet=mock_wallet,
                 delegate_ss58=mock_wallet.hotkey.ss58_address,
@@ -388,8 +386,7 @@ async def test_delegate_extrinsic(
         "failure-NotRegisteredError",
     ],
 )
-@pytest.mark.asyncio
-async def test_undelegate_extrinsic(
+def test_undelegate_extrinsic(
     mock_subtensor,
     mock_wallet,
     wait_for_inclusion,
@@ -414,7 +411,7 @@ async def test_undelegate_extrinsic(
         "get_stake_for_coldkey_and_hotkey",
         return_value=Balance.from_tao(current_stake),
     ), patch.object(
-        mock_subtensor, "do_undelegation", return_value=transaction_success
+        mock_subtensor, "_do_undelegation", return_value=transaction_success
     ) as mock_undelegate:
         if raises_error:
             mock_undelegate.side_effect = raises_error
@@ -422,7 +419,7 @@ async def test_undelegate_extrinsic(
         # Act
         if raises_error == NotDelegateError:
             with pytest.raises(raises_error):
-                result = await undelegate_extrinsic(
+                result = undelegate_extrinsic(
                     subtensor=mock_subtensor,
                     wallet=mock_wallet,
                     delegate_ss58=mock_wallet.hotkey.ss58_address,
@@ -432,7 +429,7 @@ async def test_undelegate_extrinsic(
                     prompt=True,
                 )
         else:
-            result = await undelegate_extrinsic(
+            result = undelegate_extrinsic(
                 subtensor=mock_subtensor,
                 wallet=mock_wallet,
                 delegate_ss58=mock_wallet.hotkey.ss58_address,
