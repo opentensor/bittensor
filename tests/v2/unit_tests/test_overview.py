@@ -94,15 +94,15 @@ async def test_get_total_balance(
     mock_wallet.coldkeypub_file.is_encrypted.return_value = is_encrypted
 
     with patch(
-        "bittensor.wallet", return_value=mock_wallet
+        "bittensor.v2.wallet", return_value=mock_wallet
     ) as mock_wallet_constructor, patch(
-        "bittensor.commands.overview.get_coldkey_wallets_for_path",
+        "bittensor.v2.commands.overview.get_coldkey_wallets_for_path",
         return_value=[mock_wallet] if config_all else [],
     ), patch(
-        "bittensor.commands.overview.get_all_wallets_for_path",
+        "bittensor.v2.commands.overview.get_all_wallets_for_path",
         return_value=[mock_wallet],
     ), patch(
-        "bittensor.commands.overview.get_hotkey_wallets_for_wallet",
+        "bittensor.v2.commands.overview.get_hotkey_wallets_for_wallet",
         return_value=[mock_wallet],
     ):
         # Act

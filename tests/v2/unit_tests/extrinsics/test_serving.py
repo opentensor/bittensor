@@ -102,7 +102,7 @@ async def test_serve_extrinsic_happy_path(
 ):
     # Arrange
     mock_subtensor.do_serve_axon.return_value = (True, "")
-    with patch("bittensor.extrinsics.serving.Confirm.ask", return_value=True):
+    with patch("bittensor.v2.extrinsics.serving.Confirm.ask", return_value=True):
         # Act
         result = await serve_extrinsic(
             mock_subtensor,
@@ -160,7 +160,7 @@ async def test_serve_extrinsic_edge_cases(
 ):
     # Arrange
     mock_subtensor.do_serve_axon.return_value = (True, "")
-    with patch("bittensor.extrinsics.serving.Confirm.ask", return_value=True):
+    with patch("bittensor.v2.extrinsics.serving.Confirm.ask", return_value=True):
         # Act
         result = await serve_extrinsic(
             mock_subtensor,
@@ -218,7 +218,7 @@ async def test_serve_extrinsic_error_cases(
 ):
     # Arrange
     mock_subtensor.do_serve_axon.return_value = (False, "Error serving axon")
-    with patch("bittensor.extrinsics.serving.Confirm.ask", return_value=True):
+    with patch("bittensor.v2.extrinsics.serving.Confirm.ask", return_value=True):
         # Act
         result = await serve_extrinsic(
             mock_subtensor,

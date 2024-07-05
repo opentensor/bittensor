@@ -57,8 +57,8 @@ async def test_register_senate_extrinsic(
 ):
     # Arrange
     with patch(
-        "bittensor.extrinsics.senate.Confirm.ask", return_value=not prompt
-    ), patch("bittensor.extrinsics.senate.asyncio.sleep"), patch.object(
+        "bittensor.v2.extrinsics.senate.Confirm.ask", return_value=not prompt
+    ), patch("bittensor.v2.extrinsics.senate.asyncio.sleep"), patch.object(
         mock_subtensor.substrate, "compose_call"
     ), patch.object(mock_subtensor.substrate, "create_signed_extrinsic"), patch.object(
         mock_subtensor.substrate,
@@ -151,8 +151,8 @@ async def test_vote_senate_extrinsic(
     proposal_idx = 123
 
     with patch(
-        "bittensor.extrinsics.senate.Confirm.ask", return_value=not prompt
-    ), patch("bittensor.extrinsics.senate.asyncio.sleep"), patch.object(
+        "bittensor.v2.extrinsics.senate.Confirm.ask", return_value=not prompt
+    ), patch("bittensor.v2.extrinsics.senate.asyncio.sleep"), patch.object(
         mock_subtensor.substrate, "compose_call"
     ), patch.object(mock_subtensor.substrate, "create_signed_extrinsic"), patch.object(
         mock_subtensor.substrate,
@@ -216,8 +216,8 @@ async def test_leave_senate_extrinsic(
 ):
     # Arrange
     with patch(
-        "bittensor.extrinsics.senate.Confirm.ask", return_value=not prompt
-    ), patch("bittensor.extrinsics.senate.asyncio.sleep"), patch.object(
+        "bittensor.v2.extrinsics.senate.Confirm.ask", return_value=not prompt
+    ), patch("bittensor.v2.extrinsics.senate.asyncio.sleep"), patch.object(
         mock_subtensor.substrate, "compose_call"
     ), patch.object(mock_subtensor.substrate, "create_signed_extrinsic"), patch.object(
         mock_subtensor.substrate,
