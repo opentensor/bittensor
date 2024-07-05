@@ -45,9 +45,6 @@ are updated with proper values after an epoch has passed.
 """
 
 
-@pytest.mark.skip(
-    "an investigation into the behavior of the async implementation of `wait_interval` is required"
-)
 @pytest.mark.asyncio
 async def test_emissions(local_chain):
     # Register root as Alice - the subnet owner and validator
@@ -69,6 +66,10 @@ async def test_emissions(local_chain):
             "1",
         ],
     )
+
+    subtensor = bittensor.subtensor(network="ws://localhost:9945")
+    # assert 1 neuron are in network
+    assert len(await subtensor.neurons(netuid=1)) == 1
 
     # Register Bob as neuron to the subnet
     await bob_exec_command(
