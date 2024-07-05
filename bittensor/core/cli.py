@@ -1,7 +1,11 @@
 import asyncio
 
 from bittensor.v2.core.cli import (
-console, ALIAS_TO_COMMAND, COMMANDS, CLIErrorParser, Cli as CLI_CLASS
+    console,
+    ALIAS_TO_COMMAND,
+    COMMANDS,
+    CLIErrorParser,
+    Cli as CLI_CLASS,
 )
 
 console = console
@@ -17,6 +21,7 @@ class Cli:
     def __getattr__(self, item):
         attr = getattr(self._async_instance, item)
         if asyncio.iscoroutinefunction(attr):
+
             def sync_wrapper(*args, **kwargs):
                 return asyncio.run(attr(*args, **kwargs))
 

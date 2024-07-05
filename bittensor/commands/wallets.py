@@ -1,8 +1,20 @@
 from bittensor.v2.commands.wallets import (
-    RegenColdkeyCommand, RegenColdkeypubCommand, RegenHotkeyCommand, NewHotkeyCommand, NewColdkeyCommand,
-    WalletCreateCommand, _get_coldkey_wallets_for_path, UpdateWalletCommand, _get_coldkey_ss58_addresses_for_path,
-    WalletBalanceCommand, API_URL, MAX_TXN, GRAPHQL_QUERY, GetWalletHistoryCommand, get_wallet_transfers,
-    create_transfer_history_table
+    RegenColdkeyCommand,
+    RegenColdkeypubCommand,
+    RegenHotkeyCommand,
+    NewHotkeyCommand,
+    NewColdkeyCommand,
+    WalletCreateCommand,
+    _get_coldkey_wallets_for_path,
+    UpdateWalletCommand,
+    _get_coldkey_ss58_addresses_for_path,
+    WalletBalanceCommand,
+    API_URL,
+    MAX_TXN,
+    GRAPHQL_QUERY,
+    GetWalletHistoryCommand,
+    get_wallet_transfers,
+    create_transfer_history_table,
 )
 
 RegenColdkeyCommand = RegenColdkeyCommand

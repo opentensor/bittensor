@@ -17,7 +17,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import hashlib
-from typing import Callable, List, Dict, Literal, Tuple
+from typing import Callable, List, Dict, Literal, Tuple, Optional, Union
 
 import numpy as np
 import scalecodec

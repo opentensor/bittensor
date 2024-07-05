@@ -97,7 +97,10 @@ from bittensor.v2.extrinsics.staking import (
     add_stake_multiple_extrinsic,
 )
 from bittensor.v2.extrinsics.transfer import transfer_extrinsic
-from bittensor.v2.extrinsics.unstaking import unstake_extrinsic, unstake_multiple_extrinsic
+from bittensor.v2.extrinsics.unstaking import (
+    unstake_extrinsic,
+    unstake_multiple_extrinsic,
+)
 from bittensor.v2.types import AxonServeCallParams, PrometheusServeCallParams
 from bittensor.v2.utils import (
     u16_normalized_float,
@@ -3176,7 +3179,7 @@ class Subtensor:
 
         for i, param in enumerate(call_definition["params"]):  # type: ignore
             scale_obj = await self.substrate.create_scale_object(param["type"])
-            if type(params) is list:
+            if isinstance(params, list):
                 param_data += scale_obj.encode(params[i])
             else:
                 if param["name"] not in params:

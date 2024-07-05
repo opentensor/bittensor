@@ -764,7 +764,7 @@ class MetagraphMixin(ABC):
             )
         return tensor_param
 
-    def save(self) -> "metagraph":  # type: ignore
+    def save(self) -> "Metagraph":  # type: ignore
         """
         Saves the current state of the metagraph to a file on disk. This function is crucial for persisting the current state of the network's metagraph, which can later be reloaded or analyzed. The save operation includes all neuron attributes and parameters, ensuring a complete snapshot of the metagraph's state.
 
@@ -829,7 +829,7 @@ class MetagraphMixin(ABC):
         self.load_from_path(get_save_dir(self.network, self.netuid))
 
     @abstractmethod
-    def load_from_path(self, dir_path: str) -> "metagraph":  # type: ignore
+    def load_from_path(self, dir_path: str) -> "Metagraph":  # type: ignore
         """
         Loads the state of the metagraph from a specified directory path. This method is crucial for restoring the metagraph to a specific state based on saved data. It locates the latest block file in the given
         directory and loads all metagraph parameters from it. This is particularly useful for analyses that require historical states of the network or for restoring previous states of the metagraph in different
@@ -1021,7 +1021,7 @@ class TorchMetaGraph(MetagraphMixin, BaseClass):  # type: ignore
         )
         self.axons = [n.axon_info for n in self.neurons]
 
-    def load_from_path(self, dir_path: str) -> "metagraph":  # type: ignore
+    def load_from_path(self, dir_path: str) -> "Metagraph":  # type: ignore
         graph_file = latest_block_path(dir_path)
         state_dict = torch.load(graph_file)
         self.n = torch.nn.Parameter(state_dict["n"], requires_grad=False)
@@ -1175,7 +1175,7 @@ class NonTorchMetagraph(MetagraphMixin):
         )
         self.axons = [n.axon_info for n in self.neurons]
 
-    def load_from_path(self, dir_path: str) -> "metagraph":  # type: ignore
+    def load_from_path(self, dir_path: str) -> "Metagraph":  # type: ignore
         graph_filename = latest_block_path(dir_path)
         try:
             with open(graph_filename, "rb") as graph_file:

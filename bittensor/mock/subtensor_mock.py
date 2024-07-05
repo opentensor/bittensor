@@ -1,9 +1,19 @@
 import asyncio
 
 from bittensor.v2.mock.subtensor_mock import (
-    __GLOBAL_MOCK_STATE__, AxonServeCallParams, PrometheusServeCallParams, BlockNumber,
-    InfoDict, AxonInfoDict, PrometheusInfoDict, MockSubtensorValue, MockMapResult, 
-    MockSystemState, MockSubtensorState, MockChainState, MockSubtensor as ms
+    __GLOBAL_MOCK_STATE__,
+    AxonServeCallParams,
+    PrometheusServeCallParams,
+    BlockNumber,
+    InfoDict,
+    AxonInfoDict,
+    PrometheusInfoDict,
+    MockSubtensorValue,
+    MockMapResult,
+    MockSystemState,
+    MockSubtensorState,
+    MockChainState,
+    MockSubtensor as ms,
 )
 
 __GLOBAL_MOCK_STATE__ = __GLOBAL_MOCK_STATE__
@@ -27,6 +37,7 @@ class MockSubtensor:
     def __getattr__(self, item):
         attr = getattr(self._async_instance, item)
         if asyncio.iscoroutinefunction(attr):
+
             def sync_wrapper(*args, **kwargs):
                 return asyncio.run(attr(*args, **kwargs))
 

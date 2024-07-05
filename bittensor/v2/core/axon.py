@@ -44,7 +44,10 @@ from starlette.responses import Response
 from substrateinterface import Keypair
 
 import bittensor.v2 as bittensor
-from bittensor.v2.utils.axon_utils import allowed_nonce_window_ns, calculate_diff_seconds
+from bittensor.v2.utils.axon_utils import (
+    allowed_nonce_window_ns,
+    calculate_diff_seconds,
+)
 from bittensor.v2.constants import V_7_2_0
 from bittensor.v2.errors import (
     BlacklistedException,
@@ -62,7 +65,6 @@ from bittensor.v2.utils import networking
 
 
 ALLOWED_DELTA = 4000000000  # Delta of 4 seconds for nonce validation
-V_7_2_0 = 7002000
 
 
 class FastAPIThreadedServer(uvicorn.Server):

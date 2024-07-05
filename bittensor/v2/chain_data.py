@@ -554,7 +554,7 @@ class NeuronInfoLite:
     last_update: int
     validator_permit: bool
     prometheus_info: Optional["PrometheusInfo"]
-    axon_info: "axon_info"
+    axon_info: "AxonInfo"
     pruning_score: int
     is_null: bool = False
 

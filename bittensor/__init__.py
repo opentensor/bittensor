@@ -35,30 +35,107 @@ if (NEST_ASYNCIO_ENV := os.getenv("NEST_ASYNCIO")) in ("1", None):
     import nest_asyncio
 
     nest_asyncio.apply()
-    
+
 
 import asyncio
 
 # from . import v2 as bittensor
 from .v2 import (
-    turn_console_off, turn_console_on, trace, debug, BlacklistedException, ChainConnectionError, ChainError,
-    ChainQueryError, ChainTransactionError, IdentityError, InternalServerError, InvalidRequestNameError, KeyFileError, 
-    MetadataError, NominationError, NotDelegateError, NotRegisteredError, NotVerifiedException, PostProcessException,
-    PriorityException, RegistrationError, RunException, StakeError, SynapseDendriteNoneException, SynapseParsingError, 
-    TransferError, UnknownSynapseError, UnstakeError,
-    Keypair, InvalidConfigFile, DefaultConfig, T, config, serialized_keypair_to_keyfile_data, 
-    deserialize_keypair_from_keyfile_data, validate_password, ask_password_to_encrypt, keyfile_data_is_encrypted_nacl,
-    keyfile_data_is_encrypted_ansible, keyfile_data_is_encrypted_legacy, keyfile_data_is_encrypted, 
-    keyfile_data_encryption_method, legacy_encrypt_keyfile_data, encrypt_keyfile_data, 
-    get_coldkey_password_from_environment, decrypt_keyfile_data, Mockkeyfile,
-    keyfile, display_mnemonic_msg, wallet, ss58_to_vec_u8, unbiased_topk, version_checking, strtobool, 
-    strtobool_with_default, get_explorer_root_url_by_network_from_map, get_explorer_url_for_network, 
-    ss58_address_to_bytes, u16_normalized_float, u64_normalized_float, u8_key_to_ss58, get_hash, wallet_utils,
-    Balance, AxonInfo,NeuronInfo, NeuronInfoLite,PrometheusInfo,DelegateInfo,StakeInfo,SubnetInfo,SubnetHyperparameters,
-    IPInfo,ProposalCallData,ProposalVoteData,
-    logging, btlogging, subtensor_module, ALL_COMMANDS, Metagraph, PriorityThreadPoolExecutor,
-    TerminalInfo, Synapse, StreamingSynapse, tensor, Tensor, axon, dendrite, MockKeyfile, MockSubtensor, MockWallet, 
-    SubnetsAPI, configs, defaults, Console
+    turn_console_off,
+    turn_console_on,
+    trace,
+    debug,
+    BlacklistedException,
+    ChainConnectionError,
+    ChainError,
+    ChainQueryError,
+    ChainTransactionError,
+    IdentityError,
+    InternalServerError,
+    InvalidRequestNameError,
+    KeyFileError,
+    MetadataError,
+    NominationError,
+    NotDelegateError,
+    NotRegisteredError,
+    NotVerifiedException,
+    PostProcessException,
+    PriorityException,
+    RegistrationError,
+    RunException,
+    StakeError,
+    SynapseDendriteNoneException,
+    SynapseParsingError,
+    TransferError,
+    UnknownSynapseError,
+    UnstakeError,
+    Keypair,
+    InvalidConfigFile,
+    DefaultConfig,
+    T,
+    config,
+    serialized_keypair_to_keyfile_data,
+    deserialize_keypair_from_keyfile_data,
+    validate_password,
+    ask_password_to_encrypt,
+    keyfile_data_is_encrypted_nacl,
+    keyfile_data_is_encrypted_ansible,
+    keyfile_data_is_encrypted_legacy,
+    keyfile_data_is_encrypted,
+    keyfile_data_encryption_method,
+    legacy_encrypt_keyfile_data,
+    encrypt_keyfile_data,
+    get_coldkey_password_from_environment,
+    decrypt_keyfile_data,
+    Mockkeyfile,
+    keyfile,
+    display_mnemonic_msg,
+    wallet,
+    ss58_to_vec_u8,
+    unbiased_topk,
+    version_checking,
+    strtobool,
+    strtobool_with_default,
+    get_explorer_root_url_by_network_from_map,
+    get_explorer_url_for_network,
+    ss58_address_to_bytes,
+    u16_normalized_float,
+    u64_normalized_float,
+    u8_key_to_ss58,
+    get_hash,
+    wallet_utils,
+    Balance,
+    AxonInfo,
+    NeuronInfo,
+    NeuronInfoLite,
+    PrometheusInfo,
+    DelegateInfo,
+    StakeInfo,
+    SubnetInfo,
+    SubnetHyperparameters,
+    IPInfo,
+    ProposalCallData,
+    ProposalVoteData,
+    logging,
+    btlogging,
+    subtensor_module,
+    ALL_COMMANDS,
+    Metagraph,
+    PriorityThreadPoolExecutor,
+    TerminalInfo,
+    Synapse,
+    StreamingSynapse,
+    tensor,
+    Tensor,
+    axon,
+    dendrite,
+    MockKeyfile,
+    MockSubtensor,
+    MockWallet,
+    SubnetsAPI,
+    configs,
+    defaults,
+    Console,
 )
 from .core.cli import Cli as cli
 
@@ -317,11 +394,11 @@ __type_registry__ = {
 
 
 def metagraph(
-        netuid: int,
-        network: str = "finney",
-        lite: bool = True,
-        sync: bool = True,
-        subtensor: Optional["Subtensor"] = None,
+    netuid: int,
+    network: str = "finney",
+    lite: bool = True,
+    sync: bool = True,
+    subtensor: Optional["Subtensor"] = None,
 ):
     return asyncio.run(Metagraph(netuid, network, lite, sync, subtensor))
 
@@ -333,6 +410,7 @@ class Subtensor:
     def __getattr__(self, item):
         attr = getattr(self._async_instance, item)
         if asyncio.iscoroutinefunction(attr):
+
             def sync_wrapper(*args, **kwargs):
                 return asyncio.run(attr(*args, **kwargs))
 

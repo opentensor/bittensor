@@ -24,7 +24,6 @@ from substrateinterface.utils import ss58
 from .. import __ss58_format__
 
 
-
 def get_ss58_format(ss58_address: str) -> int:
     """Returns the ss58 format of the given ss58 address."""
     return ss58.get_ss58_format(ss58_address)

@@ -21,7 +21,7 @@ import os
 from rich import print
 from rich.tree import Tree
 
-import bittensor.v2 as bittensor 
+import bittensor.v2 as bittensor
 
 
 console = bittensor.__console__

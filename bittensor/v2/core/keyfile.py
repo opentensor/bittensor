@@ -293,7 +293,7 @@ def decrypt_keyfile_data(
     Args:
         keyfile_data (bytes): The bytes to decrypt.
         password (str, optional): The password used to decrypt the data. If ``None``, asks for user input.
-        coldkey_name (str, optional): The name of the cold key. If provided, retrieves the password from environment 
+        coldkey_name (str, optional): The name of the cold key. If provided, retrieves the password from environment
                                       variables.
     Returns:
         decrypted_data (bytes): The decrypted data.
@@ -816,7 +816,7 @@ class Mockkeyfile:
 
     def is_readable(self):
         """
-        Returns ``True`` indicating that the mock keyfile is readable (although it is not read from the actual file 
+        Returns ``True`` indicating that the mock keyfile is readable (although it is not read from the actual file
                          system).
 
         Returns:
