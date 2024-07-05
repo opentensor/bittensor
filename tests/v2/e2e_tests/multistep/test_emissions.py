@@ -69,6 +69,10 @@ async def test_emissions(local_chain):
             "1",
         ],
     )
+    
+    subtensor = bittensor.subtensor(network="ws://localhost:9945")
+    # assert 1 neuron are in network
+    assert len(await subtensor.neurons(netuid=1)) == 1
 
     # Register Bob as neuron to the subnet
     await bob_exec_command(
