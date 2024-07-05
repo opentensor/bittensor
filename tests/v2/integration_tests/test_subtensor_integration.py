@@ -58,7 +58,7 @@ class TestSubtensor(unittest.IsolatedAsyncioTestCase):
     def setUpClass(cls) -> None:
         # mock rich console status
         mock_console = MockConsole()
-        cls._mock_console_patcher = patch("bittensor.__console__", mock_console)
+        cls._mock_console_patcher = patch("bittensor.v2.__console__", mock_console)
         cls._mock_console_patcher.start()
 
         # Keeps the same mock network for all tests. This stops the network from being re-setup for each test.
@@ -698,7 +698,7 @@ class TestSubtensor(unittest.IsolatedAsyncioTestCase):
                 )
                 self.subtensor.do_pow_register = AsyncMock(return_value=(True, None))
 
-                with patch("bittensor.__console__.status") as mock_set_status:
+                with patch("bittensor.v2.__console__.status") as mock_set_status:
                     # Need to patch the console status to avoid opening a parallel live display
                     mock_set_status.__enter__ = MagicMock(return_value=True)
                     mock_set_status.__exit__ = MagicMock(return_value=True)
@@ -762,7 +762,7 @@ class TestSubtensor(unittest.IsolatedAsyncioTestCase):
         mock_neuron.is_null = True
 
         with patch(
-            "bittensor.extrinsics.registration.create_pow",
+            "bittensor.v2.extrinsics.registration.create_pow",
             new=AsyncMock(return_value=None),
         ) as mock_create_pow:
             wallet = _get_mock_wallet(
@@ -817,7 +817,7 @@ class TestSubtensor(unittest.IsolatedAsyncioTestCase):
 
         mock_create_pow = AsyncMock(return_value=MagicMock(is_stale=mock_is_stale))
 
-        with patch("bittensor.extrinsics.registration.create_pow", new=mock_create_pow):
+        with patch("bittensor.v2.extrinsics.registration.create_pow", new=mock_create_pow):
             # should create a pow and check if it is stale
             # then should create a new pow and check if it is stale
             # then should enter substrate and exit early because of test

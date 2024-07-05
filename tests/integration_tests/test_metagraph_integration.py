@@ -16,11 +16,11 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import bittensor
+import bittensor.v2 as bittensor
 import torch
 import os
-from bittensor.mock import MockSubtensor
-from bittensor.metagraph import METAGRAPH_STATE_DICT_NDARRAY_KEYS, get_save_dir
+from bittensor.v2.mock import MockSubtensor
+from bittensor.v2.core.metagraph import METAGRAPH_STATE_DICT_NDARRAY_KEYS, get_save_dir
 
 _subtensor_mock: MockSubtensor = MockSubtensor()
 

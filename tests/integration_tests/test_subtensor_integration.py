@@ -25,11 +25,11 @@ import numpy as np
 import pytest
 from substrateinterface import Keypair
 
-import bittensor
-from bittensor.mock import MockSubtensor
-from bittensor.utils import weight_utils
-from bittensor.utils.balance import Balance
-from tests.helpers import (
+import bittensor.v2 as bittensor
+from bittensor.v2.mock import MockSubtensor
+from bittensor.v2.utils import weight_utils
+from bittensor.v2.utils.balance import Balance
+from tests.v2.helpers import (
     _get_mock_coldkey,
     MockConsole,
     _get_mock_keypair,
