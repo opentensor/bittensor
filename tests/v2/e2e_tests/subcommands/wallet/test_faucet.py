@@ -1,3 +1,5 @@
+import asyncio
+
 import pytest
 
 import bittensor.v2 as bittensor
@@ -12,10 +14,6 @@ from tests.v2.e2e_tests.utils import (
 )
 
 
-@pytest.mark.skip(
-    "error appears here https://github.com/opentensor/bittensor/blob/merge-async/bittensor/utils/async_substrate.py#L637"
-)
-@pytest.mark.parametrize("local_chain", [False], indirect=True)
 @pytest.mark.asyncio
 async def test_faucet(local_chain):
     # Register root as Alice
@@ -81,6 +79,8 @@ async def test_faucet(local_chain):
             assert e.code == 1  # Assert that the exit code is 1
         except Exception as e:
             logging.warning(f"Unexpected exception occurred on faucet: {e}")
+
+    await asyncio.sleep(10)
 
     subtensor = bittensor.subtensor(network="ws://localhost:9945")
     new_wallet_balance = await subtensor.get_balance(keypair.ss58_address)

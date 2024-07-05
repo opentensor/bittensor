@@ -1,3 +1,5 @@
+import asyncio
+
 import pytest
 
 import bittensor.v2 as bittensor
@@ -70,6 +72,9 @@ async def test_liquid_alpha_enabled(local_chain, capsys):
         wait_for_finalization=True,
     )
     assert result is False
+
+    await asyncio.sleep(10)
+
     output = capsys.readouterr().out
     assert (
         "❌ Failed: Subtensor returned `LiquidAlphaDisabled (Module)` error. This means: \n`Attempting to set alpha high/low while disabled`"
