@@ -2,7 +2,7 @@ import asyncio
 import sys
 
 import pytest
-import bittensor
+import bittensor.v2 as bittensor
 from bittensor.v2.utils import networking
 from bittensor.v2.commands import (
     RegisterCommand,
