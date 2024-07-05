@@ -323,12 +323,12 @@ def metagraph(
         sync: bool = True,
         subtensor: Optional["Subtensor"] = None,
 ):
-    return asyncio.run(bittensor.metagraph(netuid, network, lite, sync, subtensor))
+    return asyncio.run(Metagraph(netuid, network, lite, sync, subtensor))
 
 
 class Subtensor:
     def __init__(self, *args, **kwargs):
-        self._async_instance = bittensor.Subtensor(*args, **kwargs)
+        self._async_instance = subtensor_module.Subtensor(*args, **kwargs)
 
     def __getattr__(self, item):
         attr = getattr(self._async_instance, item)
