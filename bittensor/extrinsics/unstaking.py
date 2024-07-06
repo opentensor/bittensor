@@ -17,7 +17,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 from time import sleep
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Tuple
 
 from rich.prompt import Confirm
 
@@ -463,7 +463,7 @@ def unstake_all_and_transfer_to_new_coldkey(
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
     prompt: bool = False,
-) -> bool:
+) -> Tuple[bool, str]:
     """
     Unstakes from all hotkeys from the wallet and moves funds to the new coldkey using the provided address.
 
