@@ -517,21 +517,6 @@ def unstake_all_and_transfer_to_new_coldkey_extrinsic(
             bittensor.__console__.print(
                 "[green]Block Hash: {}[/green]".format(block_hash)
             )
-
-            explorer_urls = bittensor.utils.get_explorer_url_for_network(
-                subtensor.network, block_hash, bittensor.__network_explorer_map__
-            )
-            if explorer_urls != {} and explorer_urls:
-                bittensor.__console__.print(
-                    "[green]Opentensor Explorer Link: {}[/green]".format(
-                        explorer_urls.get("opentensor")
-                    )
-                )
-                bittensor.__console__.print(
-                    "[green]Taostats Explorer Link: {}[/green]".format(
-                        explorer_urls.get("taostats")
-                    )
-                )
             return True, "Successfully scheduled unstaking and transfer of all Tao!"
         else:
             bittensor.__console__.print(f":cross_mark: [red]Failed[/red]: {err_msg}")
