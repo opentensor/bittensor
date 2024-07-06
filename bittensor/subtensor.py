@@ -97,7 +97,7 @@ from .extrinsics.transfer import transfer_extrinsic
 from .extrinsics.unstaking import (
     unstake_extrinsic,
     unstake_multiple_extrinsic,
-    unstake_all_and_transfer_to_new_coldkey,
+    unstake_all_and_transfer_to_new_coldkey_extrinsic,
 )
 from .types import AxonServeCallParams, PrometheusServeCallParams
 from .utils import (
@@ -1724,7 +1724,7 @@ class Subtensor:
             Tuple[bool, str]: ``True`` if the unstake & transfer request was successful, False otherwise. And `msg`, a string
             value describing the success or potential error.
         """
-        return unstake_all_and_transfer_to_new_coldkey(
+        return unstake_all_and_transfer_to_new_coldkey_extrinsic(
             subtensor=self,
             wallet=wallet,
             new_coldkey=new_coldkey,

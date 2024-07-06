@@ -456,7 +456,7 @@ def unstake_multiple_extrinsic(
     return False
 
 
-def unstake_all_and_transfer_to_new_coldkey(
+def unstake_all_and_transfer_to_new_coldkey_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
     new_coldkey: str,
