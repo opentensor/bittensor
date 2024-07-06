@@ -69,6 +69,7 @@ from .commands import (
     WalletCreateCommand,
     CommitWeightCommand,
     RevealWeightCommand,
+    UnstakeTransferCommand
 )
 
 # Create a console instance for CLI display.
@@ -157,6 +158,7 @@ COMMANDS = {
             "set_identity": SetIdentityCommand,
             "get_identity": GetIdentityCommand,
             "history": GetWalletHistoryCommand,
+            "swap": UnstakeTransferCommand,
         },
     },
     "stake": {

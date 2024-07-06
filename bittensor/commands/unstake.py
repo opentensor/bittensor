@@ -15,14 +15,18 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import argparse
 import sys
-import bittensor
-from tqdm import tqdm
+from typing import List, Optional, Tuple, Union
+
 from rich.prompt import Confirm, Prompt
+from tqdm import tqdm
+
+import bittensor
 from bittensor.utils.balance import Balance
-from typing import List, Union, Optional, Tuple
-from .utils import get_hotkey_wallets_for_wallet
+
 from . import defaults
+from .utils import get_hotkey_wallets_for_wallet
 
 console = bittensor.__console__
 
@@ -294,3 +298,74 @@ class UnStakeCommand:
             wait_for_inclusion=True,
             prompt=False,
         )
+
+
+class UnstakeTransferCommand:
+    """
+    Executes the ``swap`` command to unstake TAO tokens from all hotkeys and transfer them to the user's new coldkey on the Bittensor network.
+
+    Usage: Users need to specify the wallet from which to transfer from and provide the new coldkey address
+
+    Args:
+        wallet (bittensor.wallet): Bittensor wallet object to make transfer from.
+        dest (str, ss58_address or ed25519): Destination public key address of the new wallet.
+
+    Example usage::
+        btcli wallet swap --wallet.name test_wallet --new_wallet_address test_wallet_address
+
+    Note:
+        This command is important for users who wish to withdraw their stakes from their wallets and transfer them to a new wallet.
+    """
+
+    @staticmethod
+    def run(cli: "bittensor.cli"):
+        try:
+            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+                config=cli.config, log_verbose=False
+            )
+            UnstakeTransferCommand._run(cli, subtensor)
+        finally:
+            if "subtensor" in locals():
+                subtensor.close()
+                bittensor.logging.debug("Closing Subtensor Connection")
+
+    @staticmethod
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+        wallet = bittensor.wallet(config=cli.config)
+
+        subtensor.unstake_all_and_transfer(
+            wallet=wallet,
+            new_coldkey=cli.config.new_wallet_address,
+            wait_for_inclusion=True,
+            prompt=not cli.config.no_prompt,
+        )
+
+    @staticmethod
+    def check_config(config: "bittensor.config"):
+        if not config.is_set("wallet.name") and not config.no_prompt:
+            wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
+            config.wallet.name = str(wallet_name)
+
+        # Get destination wallet address.
+        if not config.new_wallet_address and not config.no_prompt:
+            new_wallet_address = Prompt.ask(
+                "Enter coldkey public key: (ss58 or ed2519)"
+            )
+            if not bittensor.utils.is_valid_bittensor_address_or_public_key(
+                new_wallet_address
+            ):
+                sys.exit()
+            else:
+                config.new_wallet_address = str(new_wallet_address)
+
+    @staticmethod
+    def add_args(parser: argparse.ArgumentParser):
+        new_wallet_parser = parser.add_parser(
+            "swap", help="""Unstake from all hotkeys and move tokens to new coldkey"""
+        )
+        new_wallet_parser.add_argument(
+            "--new_wallet_address", dest="new_wallet_address", type=str, required=False
+        )
+
+        bittensor.wallet.add_args(new_wallet_parser)
+        bittensor.subtensor.add_args(new_wallet_parser)

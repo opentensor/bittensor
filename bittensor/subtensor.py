@@ -94,7 +94,11 @@ from .extrinsics.serving import (
 from .extrinsics.set_weights import set_weights_extrinsic
 from .extrinsics.staking import add_stake_extrinsic, add_stake_multiple_extrinsic
 from .extrinsics.transfer import transfer_extrinsic
-from .extrinsics.unstaking import unstake_extrinsic, unstake_multiple_extrinsic
+from .extrinsics.unstaking import (
+    unstake_extrinsic,
+    unstake_multiple_extrinsic,
+    unstake_all_and_transfer_to_new_coldkey,
+)
 from .types import AxonServeCallParams, PrometheusServeCallParams
 from .utils import (
     U16_NORMALIZED_FLOAT,
@@ -1696,6 +1700,39 @@ class Subtensor:
 
         return make_substrate_call_with_retry()
 
+    def unstake_all_and_transfer(
+        self,
+        wallet: "bittensor.wallet",
+        new_coldkey: str,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+        prompt: bool = False,
+    ) -> Tuple[bool, str]:
+        """
+        Unstakes all Tao from all hotkeys from the provided wallet and transfers them to the
+        new coldkey address.
+        This function is used to move TAO tokens between different wallets, facilitating transfer of funds.
+
+        Args:
+            wallet (bittensor.wallet): The wallet from which funds are being transferred.
+            new_coldkey (str): The destination public key address of the coldkey.
+            wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
+            wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
+            prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
+
+        Returns:
+            Tuple[bool, str]: ``True`` if the unstake & transfer request was successful, False otherwise. And `msg`, a string
+            value describing the success or potential error.
+        """
+        return unstake_all_and_transfer_to_new_coldkey(
+            subtensor=self,
+            wallet=wallet,
+            new_coldkey=new_coldkey,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            prompt=prompt,
+        )
+
     def _do_unstake_all_and_transfer_to_new_coldkey(
         self,
         wallet: "bittensor.wallet",
@@ -1745,7 +1782,6 @@ class Subtensor:
                 return False, None, format_error_message(response.error_message)
 
         return make_substrate_call_with_retry()
-
 
     def get_existential_deposit(
         self, block: Optional[int] = None
