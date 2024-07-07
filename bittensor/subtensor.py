@@ -99,6 +99,7 @@ from .extrinsics.unstaking import (
     unstake_multiple_extrinsic,
     unstake_all_and_transfer_to_new_coldkey_extrinsic,
 )
+from .extrinsics.schedule_coldkey_swap import schedule_coldkey_swap_extrinsic
 from .types import AxonServeCallParams, PrometheusServeCallParams
 from .utils import (
     U16_NORMALIZED_FLOAT,
@@ -2384,6 +2385,38 @@ class Subtensor:
 
         return make_substrate_call_with_retry()
 
+    def schedule_coldkey_swap(
+        self,
+        wallet: "bittensor.wallet",
+        new_coldkey: str,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+        prompt: bool = False,
+    ) -> bool:
+        """
+        Schedules a coldkey swap on the Bittensor network. This function is used to change the coldkey to a new one.
+
+        Args:
+            wallet (bittensor.wallet): The wallet associated with the current coldkey.
+            new_coldkey (str): The SS58 address of the new coldkey.
+            wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
+            wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
+            prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
+
+        Returns:
+            bool: ``True`` if the scheduling of the coldkey swap is successful, False otherwise.
+
+        This function is essential for users who wish to change their coldkey on the network.
+        """
+        return schedule_coldkey_swap_extrinsic(
+            self,
+            wallet,
+            new_coldkey,
+            wait_for_inclusion,
+            wait_for_finalization,
+            prompt,
+        )
+
     ##########
     # Senate #
     ##########
@@ -3205,7 +3238,9 @@ class Subtensor:
         """
         call_definition = bittensor.__type_registry__["runtime_api"][runtime_api][  # type: ignore
             "methods"  # type: ignore
-        ][method]  # type: ignore
+        ][
+            method
+        ]  # type: ignore
 
         json_result = self.state_call(
             method=f"{runtime_api}_{method}",

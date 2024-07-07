@@ -121,3 +121,4 @@ from .root import (
     RootSetSlashCommand,
 )
 from .identity import GetIdentityCommand, SetIdentityCommand
+from .schedule_coldkey_swap import ScheduleColdKeySwapCommand
