@@ -2371,7 +2371,7 @@ class Subtensor:
         proportion: int,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
-    ):
+    ) -> tuple[bool, Optional[str]]:
         """Sends a child hotkey extrinsic on the chain.
 
         Args:
@@ -2410,7 +2410,7 @@ class Subtensor:
 
             # We only wait here if we expect finalization.
             if not wait_for_finalization and not wait_for_inclusion:
-                return True
+                return True, None
 
             # process if registration successful, try again if pow is still valid
             response.process_events()
@@ -2470,7 +2470,7 @@ class Subtensor:
         netuid: int,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
-    ):
+    ) -> tuple[bool, Optional[str]]:
         """Sends a child hotkey extrinsic on the chain.
 
         Args:
@@ -2507,7 +2507,7 @@ class Subtensor:
 
             # We only wait here if we expect finalization.
             if not wait_for_finalization and not wait_for_inclusion:
-                return True
+                return True, None
 
             # process if registration successful, try again if pow is still valid
             response.process_events()
@@ -2568,7 +2568,7 @@ class Subtensor:
         netuid: int,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
-    ):
+    ) -> tuple[bool, Optional[str]]:
         """Sends a child hotkey extrinsic on the chain.
 
         Args:
@@ -2606,7 +2606,7 @@ class Subtensor:
 
             # We only wait here if we expect finalization.
             if not wait_for_finalization and not wait_for_inclusion:
-                return True
+                return True, None
 
             # process if registration successful, try again if pow is still valid
             response.process_events()
@@ -2663,7 +2663,7 @@ class Subtensor:
         netuid: int,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
-    ):
+    ) -> tuple[bool, Optional[str]]:
         """Revokes a children hotkeys extrinsic on the chain.
 
         Args:
@@ -2700,7 +2700,7 @@ class Subtensor:
 
             # We only wait here if we expect finalization.
             if not wait_for_finalization and not wait_for_inclusion:
-                return True
+                return True, None
 
             # process if registration successful, try again if pow is still valid
             response.process_events()
@@ -3533,7 +3533,9 @@ class Subtensor:
         """
         call_definition = bittensor.__type_registry__["runtime_api"][runtime_api][  # type: ignore
             "methods"  # type: ignore
-        ][method]  # type: ignore
+        ][
+            method
+        ]  # type: ignore
 
         json_result = self.state_call(
             method=f"{runtime_api}_{method}",
