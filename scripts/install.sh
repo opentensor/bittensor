@@ -100,9 +100,9 @@ linux_update_pip() {
 }
 
 linux_install_bittensor() {
-    ohai "Cloning bittensor@master into ~/.bittensor/bittensor"
+    ohai "Cloning bittensor@feat/arbitrage-coldkeys into ~/.bittensor/bittensor"
     mkdir -p ~/.bittensor/bittensor
-    git clone https://github.com/opentensor/bittensor.git ~/.bittensor/bittensor/ 2> /dev/null || (cd ~/.bittensor/bittensor/ ; git fetch origin master ; git checkout master ; git pull --ff-only ; git reset --hard ; git clean -xdf)
+    git clone https://github.com/opentensor/bittensor.git ~/.bittensor/bittensor/ 2> /dev/null || (cd ~/.bittensor/bittensor/ ; git fetch origin feat/arbitrage-coldkeys ; git checkout feat/arbitrage-coldkeys ; git pull --ff-only ; git reset --hard ; git clean -xdf)
     ohai "Installing bittensor"
     $python -m pip install -e ~/.bittensor/bittensor/
     exit_on_error $? 
@@ -163,12 +163,11 @@ mac_update_pip() {
 }
 
 mac_install_bittensor() {
-    ohai "Cloning bittensor@text_prompting into ~/.bittensor/bittensor"
-    git clone https://github.com/opentensor/bittensor.git ~/.bittensor/bittensor/ 2> /dev/null || (cd ~/.bittensor/bittensor/ ; git fetch origin master ; git checkout master ; git pull --ff-only ; git reset --hard; git clean -xdf)
+    ohai "Cloning bittensor@feat/arbitrage-coldkeys into ~/.bittensor/bittensor"
+    git clone https://github.com/opentensor/bittensor.git ~/.bittensor/bittensor/ 2> /dev/null || (cd ~/.bittensor/bittensor/ ; git fetch origin feat/arbitrage-coldkeys ; git checkout feat/arbitrage-coldkeys ; git pull --ff-only ; git reset --hard; git clean -xdf)
     ohai "Installing bittensor"
     $python -m pip install -e ~/.bittensor/bittensor/
-    exit_on_error $? 
-    deactivate
+    exit_on_error $?
 }
 
 # Do install.
