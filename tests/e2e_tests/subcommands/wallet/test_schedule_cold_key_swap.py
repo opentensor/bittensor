@@ -30,7 +30,10 @@ def test_schedule_coldkey_swap(local_chain, capsys):
         ],
     )
     output = capsys.readouterr().out
-    assert "Good news. There has been no previous key swap initiated for your coldkey swap." in output
+    assert (
+        "Good news. There has been no previous key swap initiated for your coldkey swap."
+        in output
+    )
 
     block = local_chain.query(
         "SubtensorModule", "ColdkeyArbitrationBlock", [keypair.ss58_address]
@@ -53,7 +56,7 @@ def test_schedule_coldkey_swap(local_chain, capsys):
     block = local_chain.query(
         "SubtensorModule", "ColdkeyArbitrationBlock", [keypair.ss58_address]
     )
-    
+
     assert block == 2
 
     exec_command(
@@ -65,7 +68,6 @@ def test_schedule_coldkey_swap(local_chain, capsys):
             keypair_bob.ss58_address,
         ],
     )
-    
+
     output = capsys.readouterr().out
     assert "This key is currently in arbitration." in output
-
