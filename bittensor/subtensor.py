@@ -44,7 +44,6 @@ from bittensor.btlogging import logging as _logger
 from bittensor.utils import torch, weight_utils, format_error_message
 from bittensor.utils.registration import (
     POWSolution,
-    create_pow,
     torch,
 )
 
@@ -2312,16 +2311,8 @@ class Subtensor:
         wallet: "bittensor.wallet",
         new_coldkey: str,
         wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = False,
-        prompt: bool = False,
-        max_allowed_attempts: int = 3,
-        output_in_place: bool = True,
-        cuda: bool = False,
-        dev_id: Union[List[int], int] = 0,
-        tpb: int = 256,
-        num_processes: Optional[int] = None,
-        update_interval: Optional[int] = None,
-        log_verbose: bool = False,
+        wait_for_finalization: bool = True,
+        prompt: bool = True,
     ) -> tuple[bool, str]:
         """
         Schedules a coldkey swap on the Bittensor network. This function is used to change the coldkey to a new one.
@@ -2339,65 +2330,78 @@ class Subtensor:
         This function is essential for users who wish to change their coldkey on the network.
         """
 
-        attempts = 1
-        # it is not related to any netuid
-        netuid = -1
-        while True:
-            bittensor.__console__.print(
-                ":satellite: Schedule coldkey swap...({}/{})".format(
-                    attempts, max_allowed_attempts
-                )
-            )
-            # Solve latest POW.
-            pow_result: Optional[POWSolution]
-            if cuda:
-                if not torch.cuda.is_available():
-                    bittensor.__console__.print(
-                        "CUDA use requested, but not available."
-                    )
-                    return False, "CUDA use requested, but not available."
-                pow_result = create_pow(
-                    self,
-                    wallet,
-                    netuid,
-                    output_in_place,
-                    cuda=cuda,
-                    dev_id=dev_id,
-                    tpb=tpb,
-                    num_processes=num_processes,
-                    update_interval=update_interval,
-                    log_verbose=log_verbose,
-                )
-            else:
-                pow_result = create_pow(
-                    self,
-                    wallet,
-                    netuid,
-                    output_in_place,
-                    cuda=cuda,
-                    num_processes=num_processes,
-                    update_interval=update_interval,
-                    log_verbose=log_verbose,
-                )
-            if pow_result or attempts >= max_allowed_attempts:
-                break
-            attempts += 1
+        return schedule_coldkey_swap_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            new_coldkey=new_coldkey,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            prompt=prompt,
+        )
 
-        if pow_result:
-            return schedule_coldkey_swap_extrinsic(
-                self,
-                wallet,
-                new_coldkey,
-                pow_result.seal,
-                pow_result.block_number,
-                pow_result.nonce,
-                wait_for_inclusion,
-                wait_for_finalization,
-                prompt=False,
+    def _do_schedule_coldkey_swap(
+        self,
+        wallet: "bittensor.wallet",
+        new_coldkey: str,
+        pow_result: POWSolution,
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = False,
+    ) -> Tuple[bool, Optional[str]]:  # (success, error_message)
+        """
+        Internal method to send a transaction to the Bittensor blockchain, setting weights
+        for specified neurons on root. This method constructs and submits the transaction, handling
+        retries and blockchain communication.
+
+        Args:
+            wallet (bittensor.wallet): The wallet associated with the neuron setting the weights.
+            uids (List[int]): List of neuron UIDs for which weights are being set.
+            vals (List[int]): List of weight values corresponding to each UID.
+            netuid (int): Unique identifier for the network.
+            version_key (int, optional): Version key for compatibility with the network.
+            wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
+            wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
+
+        Returns:
+            Tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
+
+        This method is vital for the dynamic weighting mechanism in Bittensor, where neurons adjust their
+        trust in other neurons based on observed performance and contributions on the root network.
+        """
+
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=_logger)
+        def make_substrate_call_with_retry():
+            call = self.substrate.compose_call(
+                call_module="SubtensorModule",
+                call_function="schedule_coldkey_swap",
+                call_params={
+                    "new_coldkey": new_coldkey,
+                    "block_number": pow_result.block_number,
+                    "nonce": pow_result.nonce,
+                    "work": [int(byte_) for byte_ in pow_result.seal],
+                },
             )
-        else:
-            bittensor.__console__.print("Unable to solve POW.")
-            return False, "Unable to solve POW."
+            extrinsic = self.substrate.create_signed_extrinsic(
+                call=call, keypair=wallet.coldkey
+            )
+            response = self.substrate.submit_extrinsic(
+                extrinsic,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
+            # We only wait here if we expect finalization.
+            if not wait_for_finalization and not wait_for_inclusion:
+                return (
+                    True,
+                    "Scheduled coldkey swap without waiting for inclusion or finalization.",
+                )
+
+            response.process_events()
+            if response.is_success:
+                return True, "Successfully scheduled coldkey swap."
+            else:
+                return False, response.error_message
+
+        return make_substrate_call_with_retry()
 
     def check_in_arbitration(self, ss58_address: str) -> int:
         """
@@ -3233,7 +3237,9 @@ class Subtensor:
         """
         call_definition = bittensor.__type_registry__["runtime_api"][runtime_api][  # type: ignore
             "methods"  # type: ignore
-        ][method]  # type: ignore
+        ][
+            method
+        ]  # type: ignore
 
         json_result = self.state_call(
             method=f"{runtime_api}_{method}",

@@ -1,5 +1,4 @@
 import argparse
-import sys
 
 from rich.prompt import Confirm, Prompt
 
@@ -12,7 +11,6 @@ console = bittensor.__console__
 class ScheduleColdKeySwapCommand:
     """
     Executes the ``schedule_coldkey_swap`` command to schedule a coldkey swap on the Bittensor network.
-
     This command is used to schedule a swap of the user's coldkey to a new coldkey.
 
     Usage:
@@ -30,51 +28,6 @@ class ScheduleColdKeySwapCommand:
     Note:
         This command is important for users who wish to change their coldkey on the network.
     """
-
-    @classmethod
-    def check_config(cls, config: "bittensor.config"):
-        """
-        Checks and prompts for necessary configuration settings.
-
-        Args:
-            config (bittensor.config): The configuration object.
-
-        Prompts the user for wallet name and new coldkey SS58 address if not set in the config.
-        """
-        if not config.is_set("wallet.name") and not config.no_prompt:
-            wallet_name: str = Prompt.ask(
-                "Enter wallet name", default=defaults.wallet.name
-            )
-            config.wallet.name = str(wallet_name)
-
-        if not config.get("new_coldkey") and not config.no_prompt:
-            new_coldkey: str = Prompt.ask("Enter new coldkey SS58 address")
-            config.new_coldkey = str(new_coldkey)
-
-    @staticmethod
-    def add_args(command_parser: argparse.ArgumentParser):
-        """
-        Adds arguments to the command parser.
-
-        Args:
-            command_parser (argparse.ArgumentParser): The command parser to add arguments to.
-        """
-        swap_parser = command_parser.add_parser(
-            "schedule_coldkey_swap",
-            help="""Schedule a swap of the coldkey on the Bittensor network. There is a 72-hour delay on this. 
-            If there is another call to schedule_coldkey_swap , this key goes into arbitration to determine 
-            on which key the swap will occur. This is a free transaction. Coldkeys require a balance of at least τ1 to 
-            initiate a coldkey swap.""",
-        )
-        swap_parser.add_argument(
-            "--new_coldkey",
-            dest="new_coldkey",
-            type=str,
-            required=False,  # Make this argument optional
-            help="""Specify the new coldkey SS58 address.""",
-        )
-        bittensor.wallet.add_args(swap_parser)
-        bittensor.subtensor.add_args(swap_parser)
 
     @staticmethod
     def run(cli: "bittensor.cli"):
@@ -106,12 +59,45 @@ class ScheduleColdKeySwapCommand:
             cli (bittensor.cli): The CLI object containing configuration and command-line interface utilities.
             subtensor (bittensor.subtensor): The subtensor object for blockchain interactions.
         """
+        config = cli.config.copy()
+        wallet = bittensor.wallet(config=config)
+        
         bittensor.__console__.print(
             ":warning:[yellow]If you call this on the same key multiple times, the key will enter arbitration.[/yellow]"
         )
-        config = cli.config.copy()
-        wallet = bittensor.wallet(config=config)
 
+        ScheduleColdKeySwapCommand.check_arbitration_status(subtensor, wallet)
+        
+        # Get the values for the command
+        if not cli.config.is_set("new_coldkey"):
+            cli.config.new_coldkey = Prompt.ask("Enter new coldkey SS58 address")
+
+        # Validate the new coldkey SS58 address
+        if not bittensor.utils.is_valid_ss58_address(cli.config.new_coldkey):
+            raise ValueError(f":cross_mark:[red] Invalid new coldkey SS58 address[/red] [bold white]{cli.config.new_coldkey}[/bold white]")
+        
+        # Prompt for confirmation if no_prompt is not set
+        if not cli.config.no_prompt:
+            if not Confirm.ask(
+                f"Do you want to schedule a coldkey swap to: [bold white]{cli.config.new_coldkey}[/bold white]?"
+            ):
+                return None
+            
+        success, message = subtensor.schedule_coldkey_swap(
+            wallet=wallet,
+            new_coldkey=cli.config.new_coldkey,
+            wait_for_inclusion=cli.config.wait_for_inclusion,
+            wait_for_finalization=cli.config.wait_for_finalization,
+            prompt=cli.config.prompt,
+        )
+
+        if success:
+            bittensor.__console__.print("Scheduled Cold Key Swap Successfully.")
+        else:
+            bittensor.__console__.print(f"Failed to Scheduled Cold Key Swap: {message}")
+
+    @staticmethod
+    def check_arbitration_status(subtensor, wallet):
         arbitration_check = subtensor.check_in_arbitration(wallet.coldkey.ss58_address)
         if arbitration_check == 0:
             bittensor.__console__.print(
@@ -128,28 +114,64 @@ class ScheduleColdKeySwapCommand:
                 " for you coldkey, but you understand that the key is already in arbitration.[/yellow]"
             )
 
-        new_coldkey_ss58: str = config.get("new_coldkey")
-        # Prompt for new_coldkey if not provided
-        if not new_coldkey_ss58:
-            new_coldkey_ss58 = Prompt.ask("Enter new coldkey SS58 address")
-            config.new_coldkey = str(new_coldkey_ss58)
-        # Validate the new coldkey SS58 address
-        if not bittensor.utils.is_valid_ss58_address(new_coldkey_ss58):
-            bittensor.__console__.print(
-                f":cross_mark:[red] Invalid new coldkey SS58 address[/red] [bold white]{new_coldkey_ss58}[/bold white]"
+    @staticmethod
+    def check_config(config: "bittensor.config"):
+        """
+        Checks and prompts for necessary configuration settings.
+
+        Args:
+            config (bittensor.config): The configuration object.
+
+        Prompts the user for wallet name if not set in the config.
+        """
+        if not config.is_set("wallet.name") and not config.no_prompt:
+            wallet_name: str = Prompt.ask(
+                "Enter wallet name", default=defaults.wallet.name
             )
-            sys.exit()
-        # Prompt for confirmation if no_prompt is not set
-        if not cli.config.no_prompt:
-            if not Confirm.ask(
-                f"Do you want to schedule a coldkey swap to: [bold white]{new_coldkey_ss58}[/bold white]?"
-            ):
-                return None
-        # Schedule the coldkey swap
-        success, msg = subtensor.schedule_coldkey_swap(
-            wallet=wallet,
-            new_coldkey=new_coldkey_ss58,
-            wait_for_inclusion=True,
-            prompt=not cli.config.no_prompt,
+            config.wallet.name = str(wallet_name)
+
+    @staticmethod
+    def add_args(command_parser: argparse.ArgumentParser):
+        """
+        Adds arguments to the command parser.
+
+        Args:
+            command_parser (argparse.ArgumentParser): The command parser to add arguments to.
+        """
+        schedule_coldkey_swap_parser = command_parser.add_parser(
+            "schedule_coldkey_swap",
+            help="""Schedule a swap of the coldkey on the Bittensor network. There is a 72-hour delay on this. 
+            If there is another call to schedule_coldkey_swap , this key goes into arbitration to determine 
+            on which key the swap will occur. This is a free transaction. Coldkeys require a balance of at least τ0.5 to 
+            initiate a coldkey swap.""",
         )
-        bittensor.__console__.print(msg)
+        schedule_coldkey_swap_parser.add_argument(
+            "--new_coldkey",
+            dest="new_coldkey",
+            type=str,
+            required=False,  # Make this argument optional
+            help="""Specify the new coldkey SS58 address.""",
+        )
+        
+        schedule_coldkey_swap_parser.add_argument(
+            "--wait-for-inclusion",
+            dest="wait_for_inclusion",
+            action="store_true",
+            default=True,
+        )
+        schedule_coldkey_swap_parser.add_argument(
+            "--wait-for-finalization",
+            dest="wait_for_finalization",
+            action="store_true",
+            default=True,
+        )
+        schedule_coldkey_swap_parser.add_argument(
+            "--prompt",
+            dest="prompt",
+            action="store_true",
+            default=True,
+        )
+        
+        bittensor.wallet.add_args(schedule_coldkey_swap_parser)
+        bittensor.subtensor.add_args(schedule_coldkey_swap_parser)
+        
