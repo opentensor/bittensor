@@ -63,7 +63,8 @@ class ScheduleColdKeySwapCommand:
             "schedule_coldkey_swap",
             help="""Schedule a swap of the coldkey on the Bittensor network. There is a 72-hour delay on this. 
             If there is another call to schedule_coldkey_swap , this key goes into arbitration to determine 
-            on which key the swap will occur. This is a free transaction.""",
+            on which key the swap will occur. This is a free transaction. Coldkeys require a balance of at least τ1 to 
+            initiate a coldkey swap.""",
         )
         swap_parser.add_argument(
             "--new_coldkey",
