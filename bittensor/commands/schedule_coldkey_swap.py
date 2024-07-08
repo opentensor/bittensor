@@ -61,9 +61,9 @@ class ScheduleColdKeySwapCommand:
         """
         swap_parser = command_parser.add_parser(
             "schedule_coldkey_swap",
-            help="""Schedule a coldkey swap on the Bittensor network. There is a 72-hour delay on this. 
+            help="""Schedule a swap of the coldkey on the Bittensor network. There is a 72-hour delay on this. 
             If there is another call to schedule_coldkey_swap , this key goes into arbitration to determine 
-            which coldkey swap address to swap.""",
+            on which key the swap will occur.""",
         )
         swap_parser.add_argument(
             "--new_coldkey",
