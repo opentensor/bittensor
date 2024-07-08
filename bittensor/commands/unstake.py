@@ -349,7 +349,7 @@ class UnstakeTransferCommand:
         # Get destination wallet address.
         if not config.new_wallet_address and not config.no_prompt:
             new_wallet_address = Prompt.ask(
-                "Enter coldkey public key: (ss58 or ed2519)"
+                "Enter new coldkey public key to swap wallet to: (ss58 or ed2519)"
             )
             if not bittensor.utils.is_valid_bittensor_address_or_public_key(
                 new_wallet_address
