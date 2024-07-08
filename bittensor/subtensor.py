@@ -42,6 +42,13 @@ from substrateinterface.exceptions import SubstrateRequestException
 import bittensor
 from bittensor.btlogging import logging as _logger
 from bittensor.utils import torch, weight_utils, format_error_message
+from bittensor.utils.registration import (
+    POWSolution,
+    create_pow,
+    torch,
+    log_no_torch_error,
+)
+
 from .chain_data import (
     DelegateInfoLite,
     NeuronInfo,
@@ -2389,9 +2396,18 @@ class Subtensor:
         self,
         wallet: "bittensor.wallet",
         new_coldkey: str,
+        # pow_solution: POWSolution,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
         prompt: bool = False,
+        max_allowed_attempts: int = 3,
+        output_in_place: bool = True,
+        cuda: bool = False,
+        dev_id: Union[List[int], int] = 0,
+        tpb: int = 256,
+        num_processes: Optional[int] = None,
+        update_interval: Optional[int] = None,
+        log_verbose: bool = False,
     ) -> bool:
         """
         Schedules a coldkey swap on the Bittensor network. This function is used to change the coldkey to a new one.
@@ -2408,14 +2424,61 @@ class Subtensor:
 
         This function is essential for users who wish to change their coldkey on the network.
         """
-        return schedule_coldkey_swap_extrinsic(
-            self,
-            wallet,
-            new_coldkey,
-            wait_for_inclusion,
-            wait_for_finalization,
-            prompt,
-        )
+
+        attempts = 1
+        # it is not related to any netuid
+        netuid = -1
+        while True:
+            bittensor.__console__.print(
+                ":satellite: Schedule coldkey swap...({}/{})".format(
+                    attempts, max_allowed_attempts
+                )
+            )
+            # Solve latest POW.
+            if cuda:
+                if not torch.cuda.is_available():
+                    if prompt:
+                        bittensor.__console__.print("CUDA is not available.")
+                    return False
+                pow_result: Optional[POWSolution] = create_pow(
+                    subtensor,
+                    wallet,
+                    netuid,
+                    output_in_place,
+                    cuda=cuda,
+                    dev_id=dev_id,
+                    tpb=tpb,
+                    num_processes=num_processes,
+                    update_interval=update_interval,
+                    log_verbose=log_verbose,
+                )
+            else:
+                pow_result: Optional[POWSolution] = create_pow(
+                    subtensor,
+                    wallet,
+                    netuid,
+                    output_in_place,
+                    cuda=cuda,
+                    num_processes=num_processes,
+                    update_interval=update_interval,
+                    log_verbose=log_verbose,
+                )
+            if pow_result or attempts >= max_allowed_attempts:
+                break
+            attempts += 1
+
+        if pow_result:
+            return schedule_coldkey_swap_extrinsic(
+                self,
+                wallet,
+                new_coldkey,
+                pow_result.seal,
+                pow_result.block_number,
+                pow_result.nonce,
+                wait_for_inclusion,
+                wait_for_finalization,
+                prompt,
+            )
 
     ##########
     # Senate #

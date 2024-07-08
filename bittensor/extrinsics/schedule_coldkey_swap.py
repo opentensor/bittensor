@@ -7,6 +7,9 @@ def schedule_coldkey_swap_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
     new_coldkey: str,
+    work: bytes,
+    block_number: int,
+    nonce: int,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
     prompt: bool = False,
@@ -39,7 +42,12 @@ def schedule_coldkey_swap_extrinsic(
             call = subtensor.substrate.compose_call(
                 call_module="SubtensorModule",
                 call_function="schedule_coldkey_swap",
-                call_params={"new_coldkey": new_coldkey},
+                call_params={
+                    "new_coldkey": new_coldkey,
+                    "work": [int(byte_) for byte_ in work],
+                    "block_number": block_number,
+                    "nonce": nonce,
+                },
             )
             extrinsic = subtensor.substrate.create_signed_extrinsic(
                 call=call, keypair=wallet.coldkey

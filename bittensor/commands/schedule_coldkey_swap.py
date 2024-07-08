@@ -30,7 +30,7 @@ class ScheduleColdKeySwapCommand:
 
     Example usage::
 
-        btcli schedule_coldkey_swap --new_coldkey <new_coldkey_ss58_address>
+        btcli wallet schedule_coldkey_swap --new_coldkey <new_coldkey_ss58_address>
 
     Note:
         This command is important for users who wish to change their coldkey on the network.
