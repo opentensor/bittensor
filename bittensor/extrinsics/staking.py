@@ -1,7 +1,6 @@
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 # Copyright © 2023 Opentensor Foundation
-import numpy as np
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
@@ -21,6 +20,7 @@ from rich.prompt import Confirm
 from time import sleep
 from typing import List, Union, Optional, Tuple
 from numpy.typing import NDArray
+import numpy as np
 
 import bittensor
 from ..utils.formatting import float_to_u64, normalize_u64_values
@@ -591,15 +591,6 @@ def do_set_child_singular_extrinsic(
             proportion = float_to_u64(proportion)
             proportion = normalize_u64_values([proportion])[0]
 
-            # call_module = "SubtensorModule"
-            # call_function = "set_child_singular"
-            # call_params = {
-            #     "hotkey": hotkey,
-            #     "child": child,
-            #     "netuid": netuid,
-            #     "proportion": proportion,
-            # }
-
             success, error_message = subtensor._do_set_child_singular(
                 wallet=wallet,
                 hotkey=hotkey,
@@ -717,14 +708,6 @@ def do_set_children_multiple_extrinsic(
             proportions_val = normalize_u64_values(proportions_val)
 
             children_with_proportions = list(zip(children, proportions_val))
-
-            # call_module = "SubtensorModule"
-            # call_function = "set_children_multiple"
-            # call_params = {
-            #     "hotkey": hotkey,
-            #     "children_with_proportions": children_with_proportions,
-            #     "netuid": netuid,
-            # }
 
             success, error_message = subtensor._do_set_children_multiple(
                 children_with_proportions=children_with_proportions,

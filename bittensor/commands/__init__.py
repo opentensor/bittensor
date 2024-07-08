@@ -62,47 +62,47 @@ defaults: Munch = munchify(
     }
 )
 
-from .stake import GetChildrenCommand, SetChildrenCommand, StakeCommand, StakeShow, SetChildCommand
+from .stake import StakeCommand, StakeShow, SetChildCommand, SetChildrenCommand, GetChildrenCommand
 from .unstake import UnStakeCommand, RevokeChildrenCommand, RevokeChildCommand
-from .overview import OverviewCommand     
+from .overview import OverviewCommand
 from .register import (
-    PowRegisterCommand,     
-    RegisterCommand,     
-    RunFaucetCommand,     
-    SwapHotkeyCommand,     
+    PowRegisterCommand,
+    RegisterCommand,
+    RunFaucetCommand,
+    SwapHotkeyCommand,
 )
 from .delegates import (
-    NominateCommand,     
-    ListDelegatesCommand,     
-    DelegateStakeCommand,     
-    DelegateUnstakeCommand,     
-    MyDelegatesCommand,     
-    SetTakeCommand,     
+    NominateCommand,
+    ListDelegatesCommand,
+    DelegateStakeCommand,
+    DelegateUnstakeCommand,
+    MyDelegatesCommand,
+    SetTakeCommand,
 )
 from .wallets import (
-    NewColdkeyCommand,     
-    NewHotkeyCommand,     
-    RegenColdkeyCommand,     
-    RegenColdkeypubCommand,     
-    RegenHotkeyCommand,     
-    UpdateWalletCommand,     
-    WalletCreateCommand,     
-    WalletBalanceCommand,     
-    GetWalletHistoryCommand,     
+    NewColdkeyCommand,
+    NewHotkeyCommand,
+    RegenColdkeyCommand,
+    RegenColdkeypubCommand,
+    RegenHotkeyCommand,
+    UpdateWalletCommand,
+    WalletCreateCommand,
+    WalletBalanceCommand,
+    GetWalletHistoryCommand,
 )
-from .weights import CommitWeightCommand, RevealWeightCommand     
-from .transfer import TransferCommand     
-from .inspect import InspectCommand     
-from .metagraph import MetagraphCommand     
-from .list import ListCommand     
-from .misc import UpdateCommand, AutocompleteCommand     
+from .weights import CommitWeightCommand, RevealWeightCommand
+from .transfer import TransferCommand
+from .inspect import InspectCommand
+from .metagraph import MetagraphCommand
+from .list import ListCommand
+from .misc import UpdateCommand, AutocompleteCommand
 from .senate import (
-    SenateCommand,     
-    ProposalsCommand,     
-    ShowVotesCommand,     
-    SenateRegisterCommand,     
-    SenateLeaveCommand,     
-    VoteCommand,     
+    SenateCommand,
+    ProposalsCommand,
+    ShowVotesCommand,
+    SenateRegisterCommand,
+    SenateLeaveCommand,
+    VoteCommand,
 )
 from .network import (
     RegisterSubnetworkCommand,     
@@ -120,63 +120,4 @@ from .root import (
     RootSetBoostCommand,     
     RootSetSlashCommand,     
 )
-from .identity import GetIdentityCommand, SetIdentityCommand   
-
-__all__ = [
-    "StakeCommand", 
-    "StakeShow", 
-    "SetChildCommand", 
-    "SetChildrenCommand", 
-    "GetChildrenCommand", 
-    "UnStakeCommand",
-    "RevokeChildCommand", 
-    "RevokeChildrenCommand", 
-    "OverviewCommand",
-    "PowRegisterCommand",
-    "RegisterCommand",
-    "RunFaucetCommand",
-    "SwapHotkeyCommand",
-    "NominateCommand",
-    "ListDelegatesCommand",
-    "DelegateStakeCommand",
-    "DelegateUnstakeCommand",
-    "MyDelegatesCommand",
-    "SetTakeCommand",
-    "NewColdkeyCommand",
-    "NewHotkeyCommand",
-    "RegenColdkeyCommand",
-    "RegenColdkeypubCommand",
-    "RegenHotkeyCommand",
-    "UpdateWalletCommand",
-    "WalletCreateCommand",
-    "WalletBalanceCommand",
-    "GetWalletHistoryCommand",
-    "CommitWeightCommand",
-    "RevealWeightCommand",
-    "TransferCommand",
-    "InspectCommand",
-    "MetagraphCommand",
-    "ListCommand",
-    "UpdateCommand",
-    "AutocompleteCommand",
-    "SenateCommand",
-    "ProposalsCommand",
-    "ShowVotesCommand",
-    "SenateRegisterCommand",
-    "SenateLeaveCommand",
-    "VoteCommand",
-    "RegisterSubnetworkCommand",
-    "SubnetLockCostCommand",
-    "SubnetListCommand",
-    "SubnetSudoCommand",
-    "SubnetHyperparamsCommand",
-    "SubnetGetHyperparamsCommand",
-    "RootRegisterCommand",
-    "RootList",
-    "RootSetWeightsCommand",
-    "RootGetWeightsCommand",
-    "RootSetBoostCommand",
-    "RootSetSlashCommand",
-    "GetIdentityCommand",
-    "SetIdentityCommand",
-]
+from .identity import GetIdentityCommand, SetIdentityCommand

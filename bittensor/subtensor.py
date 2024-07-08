@@ -37,14 +37,12 @@ from scalecodec.base import RuntimeConfiguration
 from scalecodec.exceptions import RemainingScaleBytesNotEmptyException
 from scalecodec.type_registry import load_type_registry_preset
 from scalecodec.types import GenericCall, ScaleType
-from substrateinterface import ExtrinsicReceipt
 from substrateinterface.base import QueryMapResult, SubstrateInterface, ExtrinsicReceipt
 from substrateinterface.exceptions import SubstrateRequestException
 
 import bittensor
 from bittensor.btlogging import logging as _logger
 from bittensor.utils import torch, weight_utils, format_error_message
-from . import ChildInfo
 from .chain_data import (
     DelegateInfoLite,
     NeuronInfo,
@@ -57,8 +55,8 @@ from .chain_data import (
     AxonInfo,
     ProposalVoteData,
     IPInfo,
-    custom_rpc_type_registry,
     ChildInfo,
+    custom_rpc_type_registry,
 )
 from .errors import (
     IdentityError,
@@ -2427,9 +2425,9 @@ class Subtensor:
         self,
         wallet: "bittensor.wallet",
         hotkey: str,
-        children: Union[np.ndarray, list],
+        children: List[str],
         netuid: int,
-        proportions: Union[NDArray[np.float32], list],
+        proportions: List[float],
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
         prompt: bool = False,
@@ -2439,9 +2437,9 @@ class Subtensor:
         Args:
             wallet (:func:`bittensor.wallet`): Wallet object that can sign the extrinsic.
             hotkey: (str): Hotkey ``ss58`` address of the parent.
-            children: (np.ndarray): Hotkey ``ss58`` addresses of the children.
-            netuid (int): Unique identifier for the network.
-            proportions (np.ndarray): The corresponding proportions allocated to the children.
+            children (List[str]): Children hotkeys.
+            netuid (int): Unique identifier of for the subnet.
+            proportions (List[float]): Proportions assigned to children hotkeys.
             wait_for_inclusion (bool): If ``true``, waits for inclusion before returning.
             wait_for_finalization (bool): If ``true``, waits for finalization before returning.
             prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
@@ -2623,7 +2621,7 @@ class Subtensor:
         self,
         wallet: "bittensor.wallet",
         hotkey: str,
-        children: Union[np.ndarray, list],
+        children: list[str],
         netuid: int,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
@@ -2634,7 +2632,7 @@ class Subtensor:
         Args:
             wallet (:func:`bittensor.wallet`): Wallet object that can sign the extrinsic.
             hotkey: (str): Hotkey ``ss58`` address of the parent.
-            children: (np.ndarray): Hotkey ``ss58`` addresses of the children.
+            children: (list[str]): Hotkey ``ss58`` addresses of the children.
             netuid (int): Unique identifier for the network.
             wait_for_inclusion (bool): If ``true``, waits for inclusion before returning.
             wait_for_finalization (bool): If ``true``, waits for finalization before returning.
