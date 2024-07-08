@@ -2406,16 +2406,7 @@ class Subtensor:
         the key is not in arbitration. If >1, `swap` has been called with multiple destinations, and 
         the key is thus in arbitration.
         """
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
-        def make_substrate_call_with_retry() -> "ScaleType":
-            return self.substrate.query(
-                module="SubtensorModule",
-                storage_function="ColdkeyArbitrationBlock",
-                params=[ss58_address]
-            )
-        
-        block = make_substrate_call_with_retry()
-        return block
+        return len(self.query_module("SubtensorModule", "ColdkeySwapDestinations", params = [ss58_address]))
 
     ##########
     # Senate #

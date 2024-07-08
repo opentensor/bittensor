@@ -761,7 +761,7 @@ def _get_block_with_retry(
         ValueError: If the difficulty is None.
     """
     block_number = subtensor.get_current_block()
-    difficulty = 30_000_000
+    difficulty = 400_000_000
     block_hash = subtensor.get_block_hash(block_number)
     if block_hash is None:
         raise Exception(
