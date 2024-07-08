@@ -20,6 +20,7 @@
 The ``bittensor.subtensor`` module in Bittensor serves as a crucial interface for interacting with the Bittensor
 blockchain, facilitating a range of operations essential for the decentralized machine learning network.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -4893,7 +4894,7 @@ class Subtensor:
         Understanding child hotkey allocation is crucial for delegating authority to neurons within subnets.
         """
 
-        child_encoded = ss58_to_vec_u8(child)
+        child_encoded = ss58_to_vec_u8(child)[0]
 
         hex_bytes_result = self.query_runtime_api(
             runtime_api="ChildrenInfoRuntimeApi",

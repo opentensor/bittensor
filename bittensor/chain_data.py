@@ -834,7 +834,9 @@ class ChildInfo:
 
     child_ss58: str  # The AccountId of the child neuron
     proportion: int  # The proportion of stake allocated to this child
-    total_stake: int  # The total stake of the child (including its own children and parents)
+    total_stake: (
+        int  # The total stake of the child (including its own children and parents)
+    )
     emissions_per_day: int  # The emissions per day for this child
     return_per_1000: int  # The return per 1000 TAO staked for this child
     take: float  # The take (commission) of the child
@@ -887,10 +889,10 @@ class ChildInfo:
         cls, vec_u8: List[int]
     ) -> Dict[str, List["ChildInfo"]]:
         """Returns a list of ChildInfo objects from a ``vec_u8``."""
-        decoded: Optional[
-            list[tuple[str, list[object]]]
-        ] = from_scale_encoding_using_type_string(
-            input_=vec_u8, type_string="Vec<(AccountId, Vec<ChildInfo>)>"
+        decoded: Optional[list[tuple[str, list[object]]]] = (
+            from_scale_encoding_using_type_string(
+                input_=vec_u8, type_string="Vec<(AccountId, Vec<ChildInfo>)>"
+            )
         )
 
         if decoded is None:
@@ -947,10 +949,10 @@ class StakeInfo:
         cls, vec_u8: List[int]
     ) -> Dict[str, List["StakeInfo"]]:
         """Returns a list of StakeInfo objects from a ``vec_u8``."""
-        decoded: Optional[
-            list[tuple[str, list[object]]]
-        ] = from_scale_encoding_using_type_string(
-            input_=vec_u8, type_string="Vec<(AccountId, Vec<StakeInfo>)>"
+        decoded: Optional[list[tuple[str, list[object]]]] = (
+            from_scale_encoding_using_type_string(
+                input_=vec_u8, type_string="Vec<(AccountId, Vec<StakeInfo>)>"
+            )
         )
 
         if decoded is None:
