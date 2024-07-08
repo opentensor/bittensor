@@ -506,14 +506,6 @@ def do_revoke_child_singular_extrinsic(
         )
     ):
         try:
-            # call_module = "SubtensorModule"
-            # call_function = "revoke_child_singular"
-            # call_params = {
-            #     "hotkey": hotkey,
-            #     "child": child,
-            #     "netuid": netuid,
-            # }
-
             success, error_message = subtensor._do_revoke_child_singular(
                 hotkey=hotkey,
                 child=child,
@@ -612,14 +604,6 @@ def do_revoke_children_multiple_extrinsic(
         )
     ):
         try:
-            # call_module = "SubtensorModule"
-            # call_function = "revoke_children_multiple"
-            # call_params = {
-            #     "hotkey": hotkey,
-            #     "children": children,
-            #     "netuid": netuid,
-            # }
-
             success, error_message = subtensor._do_revoke_children_multiple(
                 hotkey=hotkey,
                 children=children,

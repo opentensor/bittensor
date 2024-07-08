@@ -67,21 +67,21 @@ class UnStakeCommand:
             config.wallet.name = str(wallet_name)
 
         if (
-            not config.get("hotkey_ss58address", d=None)
-            and not config.is_set("wallet.hotkey")
-            and not config.no_prompt
-            and not config.get("all_hotkeys")
-            and not config.get("hotkeys")
+                not config.get("hotkey_ss58address", d=None)
+                and not config.is_set("wallet.hotkey")
+                and not config.no_prompt
+                and not config.get("all_hotkeys")
+                and not config.get("hotkeys")
         ):
             hotkey = Prompt.ask("Enter hotkey name", default=defaults.wallet.hotkey)
             config.wallet.hotkey = str(hotkey)
 
         # Get amount.
         if (
-            not config.get("hotkey_ss58address")
-            and not config.get("amount")
-            and not config.get("unstake_all")
-            and not config.get("max_stake")
+                not config.get("hotkey_ss58address")
+                and not config.get("amount")
+                and not config.get("unstake_all")
+                and not config.get("max_stake")
         ):
             hotkeys: str = ""
             if config.get("all_hotkeys"):
@@ -272,13 +272,13 @@ class UnStakeCommand:
         # Ask to unstake
         if not cli.config.no_prompt:
             if not Confirm.ask(
-                f"Do you want to unstake from the following keys to {wallet.name}:\n"
-                + "".join(
-                    [
-                        f"    [bold white]- {hotkey[0] + ':' if hotkey[0] else ''}{hotkey[1]}: {f'{amount} {bittensor.__tao_symbol__}' if amount else 'All'}[/bold white]\n"
-                        for hotkey, amount in zip(final_hotkeys, final_amounts)
-                    ]
-                )
+                    f"Do you want to unstake from the following keys to {wallet.name}:\n"
+                    + "".join(
+                        [
+                            f"    [bold white]- {hotkey[0] + ':' if hotkey[0] else ''}{hotkey[1]}: {f'{amount} {bittensor.__tao_symbol__}' if amount else 'All'}[/bold white]\n"
+                            for hotkey, amount in zip(final_hotkeys, final_amounts)
+                        ]
+                    )
             ):
                 return None
 
@@ -299,6 +299,7 @@ class UnStakeCommand:
             wait_for_inclusion=True,
             prompt=False,
         )
+
 
 class RevokeChildCommand:
     """
@@ -408,7 +409,7 @@ class RevokeChildCommand:
         )
         bittensor.wallet.add_args(parser)
         bittensor.subtensor.add_args(parser)
-        
+
 
 class RevokeChildrenCommand:
     """

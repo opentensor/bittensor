@@ -582,13 +582,13 @@ class SetChildCommand:
 
     Usage:
         Users can specify the amount or 'proportion' to delegate to a child hotkey (either by name or ``SS58`` address),
-        the user needs to have sufficient authority to make this call, and the sum of proportions cannot be greater than u16::MAX.
+        the user needs to have sufficient authority to make this call, and the sum of proportions cannot be greater than 1.
 
     The command prompts for confirmation before executing the set_child operation.
 
     Example usage::
 
-        btcli stake set_child --child <child_hotkey> --hotkey <parent_hotkey> --netuid 1 --proportion 19660
+        btcli stake set_child --child <child_hotkey> --hotkey <parent_hotkey> --netuid 1 --proportion 0.5
 
     Note:
         This command is critical for users who wish to delegate child hotkeys among different neurons (hotkeys) on the network.
@@ -612,10 +612,7 @@ class SetChildCommand:
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         wallet = bittensor.wallet(config=cli.config)
 
-        children = GetChildrenCommand.run(cli)
-
-        # Calculate the sum of all 'proportion' values - should always be 1
-        # current_proportions = sum(child["proportion"] for child in children)
+        GetChildrenCommand.run(cli)
 
         # Get values if not set.
         if not cli.config.is_set("netuid"):
@@ -628,7 +625,7 @@ class SetChildCommand:
             cli.config.hotkey = Prompt.ask("Enter parent hotkey (ss58)")
 
         if not cli.config.is_set("proportion"):
-            cli.config.proportion = Prompt.ask("Enter proportion (u16)")
+            cli.config.proportion = Prompt.ask("Enter proportion")
 
         # Parse from strings
         netuid = cli.config.netuid
@@ -643,10 +640,9 @@ class SetChildCommand:
             )
             sys.exit()
 
-        # total_proposed = proportion + current_proportions
-        if proportion > 65535:
+        if proportion > 1:
             raise ValueError(
-                f":cross_mark:[red] The sum of all proportions cannot be greater than 65535. Proposed proportion is {proportion}[/red]"
+                f":cross_mark:[red] The sum of all proportions cannot be greater than 1. Proposed proportion is {proportion}[/red]"
             )
 
         if not wallet_utils.is_valid_ss58_address(cli.config.child):
@@ -749,10 +745,7 @@ class SetChildrenCommand:
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         wallet = bittensor.wallet(config=cli.config)
 
-        children = GetChildrenCommand.run(cli)
-
-        # Calculate the sum of all 'proportion' values
-        # current_proportions = sum(child["proportion"] for child in children)
+        GetChildrenCommand.run(cli)
 
         # Get values if not set.
         if not cli.config.is_set("netuid"):
@@ -768,7 +761,7 @@ class SetChildrenCommand:
 
         if not cli.config.is_set("proportions"):
             cli.config.proportions = Prompt.ask(
-                "Enter proportions for children (u16) as comma-separated values"
+                "Enter proportions for children as comma-separated values (sum less than 1)"
             )
 
         # Parse from strings
@@ -783,10 +776,10 @@ class SetChildrenCommand:
                 console.print(f":cross_mark:[red] Invalid SS58 address: {child}[/red]")
                 return
 
-        total_proposed = sum(proportions)  # + current_proportions
-        if total_proposed > 65535:
+        total_proposed = sum(proportions)
+        if total_proposed > 1:
             raise ValueError(
-                f":cross_mark:[red] The sum of all proportions cannot be greater than 65535. Proposed sum of proportions is {total_proposed}[/red]"
+                f":cross_mark:[red] The sum of all proportions cannot be greater than 1. Proposed sum of proportions is {total_proposed}[/red]"
             )
 
         success, message = subtensor.set_children_multiple(
@@ -953,7 +946,7 @@ class GetChildrenCommand:
         table.add_column("Total Stake", style="cyan", no_wrap=True, justify="right")
         table.add_column("Emissions/Day", style="cyan", no_wrap=True, justify="right")
         table.add_column(
-            "Return per 1000 TAO", style="cyan", no_wrap=True, justify="right"
+            "APY", style="cyan", no_wrap=True, justify="right"
         )
         table.add_column("Take", style="cyan", no_wrap=True, justify="right")
 
@@ -998,7 +991,7 @@ class GetChildrenCommand:
                     str(u64_to_float(child_info.proportion)),
                     str(child_info.total_stake),
                     str(child_info.emissions_per_day),
-                    str(child_info.return_per_1000),
+                    str(GetChildrenCommand.calculate_apy(child_info.return_per_1000.tao)),
                     str(child_info.take),
                 )
 
@@ -1017,8 +1010,8 @@ class GetChildrenCommand:
         avg_emissions_per_day = (
             sum_emissions_per_day / total_child_hotkeys if total_child_hotkeys else 0
         )
-        avg_return_per_1000 = (
-            sum_return_per_1000 / total_child_hotkeys if total_child_hotkeys else 0
+        avg_apy = (
+            GetChildrenCommand.calculate_apy(sum_return_per_1000) / total_child_hotkeys if total_child_hotkeys else 0
         )
 
         # Print table to console
@@ -1028,8 +1021,25 @@ class GetChildrenCommand:
         summary = Text(
             f"Total ({total_child_hotkeys:3}) | Total ({total_parent_hotkeys:3}) | "
             f"Total ({u64_to_float(sum_proportion):10.6f}) | Total ({sum_total_stake:10.4f}) | "
-            f"Avg ({avg_emissions_per_day:10.4f}) | Avg ({avg_return_per_1000:10.4f}) | "
+            f"Avg ({avg_emissions_per_day:10.4f}) | Avg ({avg_apy:10.4f}) | "
             f"Total ({sum_take:10.6f})",
             style="dim",
         )
         console.print(summary)
+
+    @staticmethod
+    def calculate_apy(daily_return_per_1000_tao):
+        """
+        Calculate the Annual Percentage Yield (APY) from the daily return per 1000 TAO.
+
+        Args:
+        daily_return_per_1000_tao (float): The daily return per 1000 TAO.
+
+        Returns:
+        float: The annual percentage yield (APY).
+        """
+        daily_return_rate = daily_return_per_1000_tao / 1000
+        # Compounding periods per year considering 12 seconds interval generation
+        compounding_periods_per_year = (365 * 24 * 60 * 60) / 12
+        apy = (1 + daily_return_rate) ** compounding_periods_per_year - 1
+        return apy
