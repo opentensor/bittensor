@@ -111,7 +111,7 @@ class ScheduleColdKeySwapCommand:
         )
         config = cli.config.copy()
         wallet = bittensor.wallet(config=config)
-        
+
         arbitration_check = subtensor.check_in_arbitration(wallet.coldkey.ss58_address)
         if arbitration_check == 0:
             bittensor.__console__.print(
@@ -120,7 +120,8 @@ class ScheduleColdKeySwapCommand:
         if arbitration_check == 1:
             bittensor.__console__.print(
                 ":warning:[yellow]There has been a swap request made for this key previously."
-                " By proceeding, you understand this will initiate arbitration for your key.[/yellow]")
+                " By proceeding, you understand this will initiate arbitration for your key.[/yellow]"
+            )
         if arbitration_check > 1:
             bittensor.__console__.print(
                 ":warning:[yellow]This key is currently in arbitration. You can submit an additional swap request"

@@ -2398,15 +2398,19 @@ class Subtensor:
         else:
             bittensor.__console__.print("Unable to solve POW.")
             return False, "Unable to solve POW."
-        
+
     def check_in_arbitration(self, ss58_address: str) -> int:
         """
         Checks storage function to see if the provided coldkey is in arbitration.
         If 0, `swap` has not been called on this key. If 1, swap has been called once, so
-        the key is not in arbitration. If >1, `swap` has been called with multiple destinations, and 
+        the key is not in arbitration. If >1, `swap` has been called with multiple destinations, and
         the key is thus in arbitration.
         """
-        return len(self.query_module("SubtensorModule", "ColdkeySwapDestinations", params = [ss58_address]))
+        return len(
+            self.query_module(
+                "SubtensorModule", "ColdkeySwapDestinations", params=[ss58_address]
+            )
+        )
 
     ##########
     # Senate #
