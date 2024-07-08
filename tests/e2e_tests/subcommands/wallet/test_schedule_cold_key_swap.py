@@ -19,6 +19,12 @@ def test_faucet(local_chain):
     keypair, exec_command, wallet_path = setup_wallet("//Alice")
     keypair_bob, _, _ = setup_wallet("//Bob")
 
+    block = local_chain.query(
+        "SubtensorModule", "ColdkeyArbitrationBlock", [keypair.ss58_address]
+    )
+
+    assert block == 0
+
     exec_command(
         ScheduleColdKeySwapCommand,
         [
@@ -28,3 +34,9 @@ def test_faucet(local_chain):
             keypair_bob.ss58_address,
         ],
     )
+
+    block = local_chain.query(
+        "SubtensorModule", "ColdkeyArbitrationBlock", [keypair.ss58_address]
+    )
+
+    assert block > 0
