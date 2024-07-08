@@ -69,7 +69,6 @@ from .commands import (
     WalletCreateCommand,
     CommitWeightCommand,
     RevealWeightCommand,
-    UnstakeTransferCommand,
     ScheduleColdKeySwapCommand,
 )
 
@@ -160,7 +159,6 @@ COMMANDS = {
             "set_identity": SetIdentityCommand,
             "get_identity": GetIdentityCommand,
             "history": GetWalletHistoryCommand,
-            "swap": UnstakeTransferCommand,
             "schedule_coldkey_swap": ScheduleColdKeySwapCommand,
         },
     },

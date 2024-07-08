@@ -17,14 +17,13 @@
 # DEALINGS IN THE SOFTWARE.
 
 from time import sleep
-from typing import List, Optional, Union, Tuple
+from typing import List, Optional, Union
 
 from rich.prompt import Confirm
 
 import bittensor
 from bittensor.utils.balance import Balance
 
-from ..utils import is_valid_bittensor_address_or_public_key
 
 
 def __do_remove_stake_single(
@@ -172,7 +171,7 @@ def unstake_extrinsic(
         subtensor=subtensor, stake_balance=(stake_on_uid - unstaking_balance)
     ):
         bittensor.__console__.print(
-            f":warning: [yellow]This action will unstake the entire staked balance![/yellow]"
+            ":warning: [yellow]This action will unstake the entire staked balance![/yellow]"
         )
         unstaking_balance = stake_on_uid
 
@@ -236,7 +235,7 @@ def unstake_extrinsic(
             )
             return False
 
-    except bittensor.errors.NotRegisteredError as e:
+    except bittensor.errors.NotRegisteredError:
         bittensor.__console__.print(
             ":cross_mark: [red]Hotkey: {} is not registered.[/red]".format(
                 wallet.hotkey_str
@@ -356,7 +355,7 @@ def unstake_multiple_extrinsic(
             subtensor=subtensor, stake_balance=(stake_on_uid - unstaking_balance)
         ):
             bittensor.__console__.print(
-                f":warning: [yellow]This action will unstake the entire staked balance![/yellow]"
+                ":warning: [yellow]This action will unstake the entire staked balance![/yellow]"
             )
             unstaking_balance = stake_on_uid
 
@@ -428,7 +427,7 @@ def unstake_multiple_extrinsic(
                 )
                 continue
 
-        except bittensor.errors.NotRegisteredError as e:
+        except bittensor.errors.NotRegisteredError:
             bittensor.__console__.print(
                 ":cross_mark: [red]{} is not registered.[/red]".format(hotkey_ss58)
             )
@@ -454,70 +453,3 @@ def unstake_multiple_extrinsic(
         return True
 
     return False
-
-
-def unstake_all_and_transfer_to_new_coldkey_extrinsic(
-    subtensor: "bittensor.subtensor",
-    wallet: "bittensor.wallet",
-    new_coldkey: str,
-    wait_for_inclusion: bool = True,
-    wait_for_finalization: bool = False,
-    prompt: bool = False,
-) -> Tuple[bool, str]:
-    """
-    Unstakes from all hotkeys from the wallet and moves funds to the new coldkey using the provided address.
-
-    Args:
-        subtensor (bittensor.subtensor): The subtensor instance used for blockchain interaction.
-        wallet (bittensor.wallet): Bittensor wallet object to make transfer from.
-        new_coldkey (str): Destination public address of the new cold key.
-        wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
-        wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
-        prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
-    Returns:
-        Tuple[bool, str]: ``True`` if the operation was successful, False otherwise. And `msg`, a string
-        value describing the success or potential error.
-    """
-
-    # Validate destination coldkey address.
-    if not is_valid_bittensor_address_or_public_key(new_coldkey):
-        bittensor.__console__.print(
-            ":cross_mark: [red]Invalid destination coldkey address[/red]:[bold white]\n  {}[/bold white]".format(
-                new_coldkey
-            )
-        )
-        return False, "Invalid destination coldkey address"
-
-    if isinstance(new_coldkey, bytes):
-        # Convert bytes to hex string.
-        new_coldkey = "0x" + new_coldkey.hex()
-
-    # Unlock wallet coldkey.
-    wallet.coldkey
-
-    if prompt and not Confirm.ask(f"Would you like to unstake and transfer all Tao?"):
-        return False, "User cancelled the operation."
-
-    with bittensor.__console__.status(
-        ":satellite: Requesting to Unstake and Transfer..."
-    ):
-        success, block_hash, err_msg = (
-            subtensor._do_unstake_all_and_transfer_to_new_coldkey(
-                wallet,
-                new_coldkey,
-                wait_for_finalization=wait_for_finalization,
-                wait_for_inclusion=wait_for_inclusion,
-            )
-        )
-
-        if success:
-            bittensor.__console__.print(
-                ":white_heavy_check_mark: [green]Finalized[/green]"
-            )
-            bittensor.__console__.print(
-                "[green]Block Hash: {}[/green]".format(block_hash)
-            )
-            return True, "Successfully scheduled unstaking and transfer of all Tao!"
-        else:
-            bittensor.__console__.print(f":cross_mark: [red]Failed[/red]: {err_msg}")
-            return False, err_msg

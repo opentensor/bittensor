@@ -46,7 +46,6 @@ from bittensor.utils.registration import (
     POWSolution,
     create_pow,
     torch,
-    log_no_torch_error,
 )
 
 from .chain_data import (
@@ -104,7 +103,6 @@ from .extrinsics.transfer import transfer_extrinsic
 from .extrinsics.unstaking import (
     unstake_extrinsic,
     unstake_multiple_extrinsic,
-    unstake_all_and_transfer_to_new_coldkey_extrinsic,
 )
 from .extrinsics.schedule_coldkey_swap import schedule_coldkey_swap_extrinsic
 from .types import AxonServeCallParams, PrometheusServeCallParams
@@ -1708,89 +1706,6 @@ class Subtensor:
 
         return make_substrate_call_with_retry()
 
-    def unstake_all_and_transfer(
-        self,
-        wallet: "bittensor.wallet",
-        new_coldkey: str,
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = False,
-        prompt: bool = False,
-    ) -> Tuple[bool, str]:
-        """
-        Unstakes all Tao from all hotkeys from the provided wallet and transfers them to the
-        new coldkey address.
-        This function is used to move TAO tokens between different wallets, facilitating transfer of funds.
-
-        Args:
-            wallet (bittensor.wallet): The wallet from which funds are being transferred.
-            new_coldkey (str): The destination public key address of the coldkey.
-            wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
-            wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
-            prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
-
-        Returns:
-            Tuple[bool, str]: ``True`` if the unstake & transfer request was successful, False otherwise. And `msg`, a string
-            value describing the success or potential error.
-        """
-        return unstake_all_and_transfer_to_new_coldkey_extrinsic(
-            subtensor=self,
-            wallet=wallet,
-            new_coldkey=new_coldkey,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-            prompt=prompt,
-        )
-
-    def _do_unstake_all_and_transfer_to_new_coldkey(
-        self,
-        wallet: "bittensor.wallet",
-        new_coldkey: str,
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = False,
-    ) -> Tuple[bool, Optional[str], Optional[str]]:
-        """Sends a arbitage unstake extrinsic to the chain.
-
-        Args:
-            wallet (:func:`bittensor.wallet`): Wallet object.
-            new_coldkey (str): New coldkey public key address.
-            wait_for_inclusion (bool): If ``true``, waits for inclusion.
-            wait_for_finalization (bool): If ``true``, waits for finalization.
-        Returns:
-            success (bool): ``True`` if extrinsic was successful.
-            block_hash (str): Block hash of the extrinsic. On success and if wait_for_ finalization/inclusion is
-                ``True``.
-            error (str): Error message if extrinsic failed.
-        """
-
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
-        def make_substrate_call_with_retry():
-            call = self.substrate.compose_call(
-                call_module="SubtensorModule",
-                call_function="unstake_all_and_transfer_to_new_coldkey",
-                call_params={"new_coldkey": new_coldkey},
-            )
-            extrinsic = self.substrate.create_signed_extrinsic(
-                call=call, keypair=wallet.coldkey
-            )
-            response = self.substrate.submit_extrinsic(
-                extrinsic,
-                wait_for_inclusion=wait_for_inclusion,
-                wait_for_finalization=wait_for_finalization,
-            )
-            # We only wait here if we expect finalization.
-            if not wait_for_finalization and not wait_for_inclusion:
-                return True, None, None
-
-            # Otherwise continue with finalization.
-            response.process_events()
-            if response.is_success:
-                block_hash = response.block_hash
-                return True, block_hash, None
-            else:
-                return False, None, format_error_message(response.error_message)
-
-        return make_substrate_call_with_retry()
-
     def get_existential_deposit(
         self, block: Optional[int] = None
     ) -> Optional["Balance"]:
@@ -2407,7 +2322,7 @@ class Subtensor:
         num_processes: Optional[int] = None,
         update_interval: Optional[int] = None,
         log_verbose: bool = False,
-    ) -> bool:
+    ) -> tuple[bool, str]:
         """
         Schedules a coldkey swap on the Bittensor network. This function is used to change the coldkey to a new one.
 
@@ -2434,12 +2349,12 @@ class Subtensor:
                 )
             )
             # Solve latest POW.
+            pow_result: Optional[POWSolution]
             if cuda:
                 if not torch.cuda.is_available():
-                    if prompt:
-                        bittensor.__console__.print("CUDA is not available.")
+                    bittensor.__console__.print("CUDA use requested, but not available.")
                     return False
-                pow_result: Optional[POWSolution] = create_pow(
+                pow_result = create_pow(
                     self,
                     wallet,
                     netuid,
@@ -2452,7 +2367,7 @@ class Subtensor:
                     log_verbose=log_verbose,
                 )
             else:
-                pow_result: Optional[POWSolution] = create_pow(
+                pow_result = create_pow(
                     self,
                     wallet,
                     netuid,
@@ -2478,6 +2393,9 @@ class Subtensor:
                 wait_for_finalization,
                 prompt,
             )
+        else:
+            bittensor.__console__.print("Unable to solve POW.")
+            return False, "Unable to solve POW."
 
     ##########
     # Senate #

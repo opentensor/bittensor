@@ -26,7 +26,7 @@ def schedule_coldkey_swap_extrinsic(
         prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
 
     Returns:
-        Tuple[bool, str]: ``True`` if the operation was successful, False otherwise. And `msg`, a string
+        Tuple[bool, str]: ``True`` if the operation was successful, ``False`` otherwise. And ``msg``, a string
         value describing the success or potential error.
     """
     # Decrypt keys
