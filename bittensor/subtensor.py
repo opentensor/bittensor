@@ -2348,7 +2348,7 @@ class Subtensor:
         wait_for_finalization: bool = False,
     ) -> Tuple[bool, Optional[str]]:  # (success, error_message)
         """
-        Internal method to schedule a coldkey swap on the bittensor network. 
+        Internal method to schedule a coldkey swap on the bittensor network.
 
         Args:
             wallet (bittensor.wallet): The wallet associated with the neuron setting the weights.

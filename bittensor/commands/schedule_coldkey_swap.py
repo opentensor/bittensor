@@ -101,7 +101,7 @@ class ScheduleColdKeySwapCommand:
         arbitration_check = subtensor.check_in_arbitration(wallet.coldkey.ss58_address)
         if arbitration_check == 0:
             bittensor.__console__.print(
-                "Good news. There has been no previous key swap initiated for your coldkey swap."
+                "[green] Good news. There has been no previous key swap initiated for your coldkey swap.[/green]"
             )
         if arbitration_check == 1:
             bittensor.__console__.print(
