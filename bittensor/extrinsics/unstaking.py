@@ -25,7 +25,6 @@ import bittensor
 from bittensor.utils.balance import Balance
 
 
-
 def __do_remove_stake_single(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",

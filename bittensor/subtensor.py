@@ -2352,7 +2352,9 @@ class Subtensor:
             pow_result: Optional[POWSolution]
             if cuda:
                 if not torch.cuda.is_available():
-                    bittensor.__console__.print("CUDA use requested, but not available.")
+                    bittensor.__console__.print(
+                        "CUDA use requested, but not available."
+                    )
                     return False
                 pow_result = create_pow(
                     self,
@@ -3218,9 +3220,7 @@ class Subtensor:
         """
         call_definition = bittensor.__type_registry__["runtime_api"][runtime_api][  # type: ignore
             "methods"  # type: ignore
-        ][
-            method
-        ]  # type: ignore
+        ][method]  # type: ignore
 
         json_result = self.state_call(
             method=f"{runtime_api}_{method}",
