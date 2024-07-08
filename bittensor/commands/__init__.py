@@ -62,7 +62,13 @@ defaults: Munch = munchify(
     }
 )
 
-from .stake import StakeCommand, StakeShow, SetChildCommand, SetChildrenCommand, GetChildrenCommand
+from .stake import (
+    StakeCommand,
+    StakeShow,
+    SetChildCommand,
+    SetChildrenCommand,
+    GetChildrenCommand,
+)
 from .unstake import UnStakeCommand, RevokeChildrenCommand, RevokeChildCommand
 from .overview import OverviewCommand
 from .register import (
@@ -105,19 +111,19 @@ from .senate import (
     VoteCommand,
 )
 from .network import (
-    RegisterSubnetworkCommand,     
-    SubnetLockCostCommand,     
-    SubnetListCommand,     
-    SubnetSudoCommand,     
-    SubnetHyperparamsCommand,     
-    SubnetGetHyperparamsCommand,     
+    RegisterSubnetworkCommand,
+    SubnetLockCostCommand,
+    SubnetListCommand,
+    SubnetSudoCommand,
+    SubnetHyperparamsCommand,
+    SubnetGetHyperparamsCommand,
 )
 from .root import (
-    RootRegisterCommand,     
-    RootList,     
-    RootSetWeightsCommand,     
-    RootGetWeightsCommand,     
-    RootSetBoostCommand,     
-    RootSetSlashCommand,     
+    RootRegisterCommand,
+    RootList,
+    RootSetWeightsCommand,
+    RootGetWeightsCommand,
+    RootSetBoostCommand,
+    RootSetSlashCommand,
 )
 from .identity import GetIdentityCommand, SetIdentityCommand
