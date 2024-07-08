@@ -91,7 +91,7 @@ class ScheduleColdKeySwapCommand:
             )
             ScheduleColdKeySwapCommand._run(cli, subtensor)
         except Exception as e:
-            print("Oh no! ", e)
+            bittensor.logging.warning(f"failed to call cold_key_swap: {e}")
         finally:
             if "subtensor" in locals():
                 subtensor.close()
