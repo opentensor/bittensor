@@ -2348,24 +2348,17 @@ class Subtensor:
         wait_for_finalization: bool = False,
     ) -> Tuple[bool, Optional[str]]:  # (success, error_message)
         """
-        Internal method to send a transaction to the Bittensor blockchain, setting weights
-        for specified neurons on root. This method constructs and submits the transaction, handling
-        retries and blockchain communication.
+        Internal method to schedule a coldkey swap on the bittensor network. 
 
         Args:
             wallet (bittensor.wallet): The wallet associated with the neuron setting the weights.
-            uids (List[int]): List of neuron UIDs for which weights are being set.
-            vals (List[int]): List of weight values corresponding to each UID.
-            netuid (int): Unique identifier for the network.
-            version_key (int, optional): Version key for compatibility with the network.
+            new_coldkey str: The coldkey to schedule the transfer to.
+            pow_result POWSolution: The Proof of Work object.
             wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
             wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
 
         Returns:
             Tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
-
-        This method is vital for the dynamic weighting mechanism in Bittensor, where neurons adjust their
-        trust in other neurons based on observed performance and contributions on the root network.
         """
 
         @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=_logger)
