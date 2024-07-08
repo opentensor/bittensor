@@ -2393,7 +2393,7 @@ class Subtensor:
                 pow_result.nonce,
                 wait_for_inclusion,
                 wait_for_finalization,
-                prompt,
+                prompt=False,
             )
         else:
             bittensor.__console__.print("Unable to solve POW.")

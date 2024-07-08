@@ -145,9 +145,10 @@ class ScheduleColdKeySwapCommand:
             ):
                 return None
         # Schedule the coldkey swap
-        subtensor.schedule_coldkey_swap(
+        success, msg = subtensor.schedule_coldkey_swap(
             wallet=wallet,
             new_coldkey=new_coldkey_ss58,
             wait_for_inclusion=True,
             prompt=not cli.config.no_prompt,
         )
+        bittensor.__console__.print(msg)
