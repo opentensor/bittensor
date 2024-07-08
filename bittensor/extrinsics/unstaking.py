@@ -520,24 +520,7 @@ def do_revoke_child_singular_extrinsic(
             if not wait_for_finalization and not wait_for_inclusion:
                 return True, "Not waiting for finalization or inclusion."
 
-            if success is True:
-                bittensor.__console__.print(
-                    ":white_heavy_check_mark: [green]Finalized[/green]"
-                )
-                bittensor.logging.success(
-                    prefix="Revoked child hotkey",
-                    suffix="<green>Finalized: </green>" + str(success),
-                )
-                return True, "Successfully revoked child hotkey and Finalized."
-            else:
-                bittensor.__console__.print(
-                    f":cross_mark: [red]Failed[/red]: {error_message}"
-                )
-                bittensor.logging.warning(
-                    prefix="Revoked child hotkey",
-                    suffix="<red>Failed: </red>" + str(error_message),
-                )
-                return False, error_message
+            return subtensor_result(error_message, success)
 
         except Exception as e:
             bittensor.__console__.print(
@@ -618,24 +601,7 @@ def do_revoke_children_multiple_extrinsic(
             if not wait_for_finalization and not wait_for_inclusion:
                 return True, "Not waiting for finalization or inclusion."
 
-            if success is True:
-                bittensor.__console__.print(
-                    ":white_heavy_check_mark: [green]Finalized[/green]"
-                )
-                bittensor.logging.success(
-                    prefix="Revoked children hotkeys",
-                    suffix="<green>Finalized: </green>" + str(success),
-                )
-                return True, "Successfully revoked children hotkeys and Finalized."
-            else:
-                bittensor.__console__.print(
-                    f":cross_mark: [red]Failed[/red]: {error_message}"
-                )
-                bittensor.logging.warning(
-                    prefix="Revoked children hotkeys",
-                    suffix="<red>Failed: </red>" + str(error_message),
-                )
-                return False, error_message
+            return subtensor_result(error_message, success)
 
         except Exception as e:
             bittensor.__console__.print(
@@ -646,3 +612,20 @@ def do_revoke_children_multiple_extrinsic(
                 suffix="<red>Failed: </red>" + str(e),
             )
             return False, "Exception Occurred while revoking children hotkeys."
+
+
+def subtensor_result(error_message, success):
+    if success is True:
+        bittensor.__console__.print(":white_heavy_check_mark: [green]Finalized[/green]")
+        bittensor.logging.success(
+            prefix="Revoked child(ren) hotkey",
+            suffix="<green>Finalized: </green>" + str(success),
+        )
+        return True, "Successfully revoked child(ren) hotkey and Finalized."
+    else:
+        bittensor.__console__.print(f":cross_mark: [red]Failed[/red]: {error_message}")
+        bittensor.logging.warning(
+            prefix="Revoked child(ren) hotkey",
+            suffix="<red>Failed: </red>" + str(error_message),
+        )
+        return False, error_message

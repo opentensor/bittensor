@@ -606,24 +606,7 @@ def do_set_child_singular_extrinsic(
             if not wait_for_finalization and not wait_for_inclusion:
                 return True, "Not waiting for finalization or inclusion."
 
-            if success is True:
-                bittensor.__console__.print(
-                    ":white_heavy_check_mark: [green]Finalized[/green]"
-                )
-                bittensor.logging.success(
-                    prefix="Set child hotkey",
-                    suffix="<green>Finalized: </green>" + str(success),
-                )
-                return True, "Successfully set child hotkey and Finalized."
-            else:
-                bittensor.__console__.print(
-                    f":cross_mark: [red]Failed[/red]: {error_message}"
-                )
-                bittensor.logging.warning(
-                    prefix="Set child hotkey",
-                    suffix="<red>Failed: </red>" + str(error_message),
-                )
-                return False, error_message
+            return subtensor_result(error_message, success)
 
         except Exception as e:
             bittensor.__console__.print(
@@ -723,24 +706,7 @@ def do_set_children_multiple_extrinsic(
             if not wait_for_finalization and not wait_for_inclusion:
                 return True, "Not waiting for finalization or inclusion."
 
-            if success is True:
-                bittensor.__console__.print(
-                    ":white_heavy_check_mark: [green]Finalized[/green]"
-                )
-                bittensor.logging.success(
-                    prefix="Set children hotkeys",
-                    suffix="<green>Finalized: </green>" + str(success),
-                )
-                return True, "Successfully set children hotkeys and Finalized."
-            else:
-                bittensor.__console__.print(
-                    f":cross_mark: [red]Failed[/red]: {error_message}"
-                )
-                bittensor.logging.warning(
-                    prefix="Set children hotkeys",
-                    suffix="<red>Failed: </red>" + str(error_message),
-                )
-                return False, error_message
+            return subtensor_result(error_message, success)
 
         except Exception as e:
             bittensor.__console__.print(
@@ -750,3 +716,20 @@ def do_set_children_multiple_extrinsic(
                 prefix="Set children hotkeys", suffix="<red>Failed: </red>" + str(e)
             )
             return False, "Exception Occurred while setting children hotkeys."
+
+
+def subtensor_result(error_message, success):
+    if success is True:
+        bittensor.__console__.print(":white_heavy_check_mark: [green]Finalized[/green]")
+        bittensor.logging.success(
+            prefix="Set child(ren) hotkeys",
+            suffix="<green>Finalized: </green>" + str(success),
+        )
+        return True, "Successfully set child(ren) hotkeys and Finalized."
+    else:
+        bittensor.__console__.print(f":cross_mark: [red]Failed[/red]: {error_message}")
+        bittensor.logging.warning(
+            prefix="Set child(ren) hotkeys",
+            suffix="<red>Failed: </red>" + str(error_message),
+        )
+        return False, error_message
