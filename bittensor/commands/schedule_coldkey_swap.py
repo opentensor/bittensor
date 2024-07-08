@@ -90,6 +90,8 @@ class ScheduleColdKeySwapCommand:
                 config=config, log_verbose=False
             )
             ScheduleColdKeySwapCommand._run(cli, subtensor)
+        except Exception as e:
+            print("Oh no! ", e)
         finally:
             if "subtensor" in locals():
                 subtensor.close()
@@ -109,28 +111,39 @@ class ScheduleColdKeySwapCommand:
         )
         config = cli.config.copy()
         wallet = bittensor.wallet(config=config)
+        
+        arbitration_check = subtensor.check_in_arbitration(wallet.coldkey.ss58_address)
+        if arbitration_check == 0:
+            bittensor.__console__.print(
+                "Good news. There has been no previous key swap initiated for your coldkey swap."
+            )
+        if arbitration_check == 1:
+            bittensor.__console__.print(
+                ":warning:[yellow]There has been a swap request made for this key previously."
+                " By proceeding, you understand this will initiate arbitration for your key.[/yellow]")
+        if arbitration_check > 1:
+            bittensor.__console__.print(
+                ":warning:[yellow]This key is currently in arbitration. You can submit an additional swap request"
+                " for you coldkey, but you understand that the key is already in arbitration.[/yellow]"
+            )
 
         new_coldkey_ss58: str = config.get("new_coldkey")
-
         # Prompt for new_coldkey if not provided
         if not new_coldkey_ss58:
             new_coldkey_ss58 = Prompt.ask("Enter new coldkey SS58 address")
             config.new_coldkey = str(new_coldkey_ss58)
-
         # Validate the new coldkey SS58 address
         if not bittensor.utils.is_valid_ss58_address(new_coldkey_ss58):
-            console.print(
+            bittensor.__console__.print(
                 f":cross_mark:[red] Invalid new coldkey SS58 address[/red] [bold white]{new_coldkey_ss58}[/bold white]"
             )
             sys.exit()
-
         # Prompt for confirmation if no_prompt is not set
         if not cli.config.no_prompt:
             if not Confirm.ask(
                 f"Do you want to schedule a coldkey swap to: [bold white]{new_coldkey_ss58}[/bold white]?"
             ):
                 return None
-
         # Schedule the coldkey swap
         subtensor.schedule_coldkey_swap(
             wallet=wallet,
