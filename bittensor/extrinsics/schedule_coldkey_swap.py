@@ -87,7 +87,7 @@ def schedule_coldkey_swap_extrinsic(
                 new_coldkey=new_coldkey,
                 pow_result=pow_result,
                 wait_for_inclusion=wait_for_inclusion,
-                wait_for_finalization=wait_for_finalization
+                wait_for_finalization=wait_for_finalization,
             )
             if not wait_for_finalization and not wait_for_inclusion:
                 return (
