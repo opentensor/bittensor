@@ -2396,7 +2396,6 @@ class Subtensor:
         self,
         wallet: "bittensor.wallet",
         new_coldkey: str,
-        # pow_solution: POWSolution,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
         prompt: bool = False,
@@ -2441,7 +2440,7 @@ class Subtensor:
                         bittensor.__console__.print("CUDA is not available.")
                     return False
                 pow_result: Optional[POWSolution] = create_pow(
-                    subtensor,
+                    self,
                     wallet,
                     netuid,
                     output_in_place,
@@ -2454,7 +2453,7 @@ class Subtensor:
                 )
             else:
                 pow_result: Optional[POWSolution] = create_pow(
-                    subtensor,
+                    self,
                     wallet,
                     netuid,
                     output_in_place,
