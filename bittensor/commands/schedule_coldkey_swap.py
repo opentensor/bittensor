@@ -104,6 +104,9 @@ class ScheduleColdKeySwapCommand:
             cli (bittensor.cli): The CLI object containing configuration and command-line interface utilities.
             subtensor (bittensor.subtensor): The subtensor object for blockchain interactions.
         """
+        bittensor.__console__.print(
+            ":warning:[yellow]If you call this on the same key multiple times, the key will enter arbitration.[/yellow]"
+        )
         config = cli.config.copy()
         wallet = bittensor.wallet(config=config)
 
