@@ -2355,7 +2355,7 @@ class Subtensor:
                     bittensor.__console__.print(
                         "CUDA use requested, but not available."
                     )
-                    return False
+                    return False, "CUDA use requested, but not available."
                 pow_result = create_pow(
                     self,
                     wallet,

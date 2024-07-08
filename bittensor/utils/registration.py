@@ -10,7 +10,7 @@ import typing
 from dataclasses import dataclass
 from datetime import timedelta
 from queue import Empty, Full
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Callable, List, Optional, Tuple, Union
 
 import backoff
 import numpy
@@ -1097,10 +1097,10 @@ def create_pow(
     cuda: bool = False,
     dev_id: Union[List[int], int] = 0,
     tpb: int = 256,
-    num_processes: int = None,
-    update_interval: int = None,
+    num_processes: Optional[int] = None,
+    update_interval: Optional[int] = None,
     log_verbose: bool = False,
-) -> Optional[Dict[str, Any]]:
+) -> Optional[POWSolution]:
     """
     Creates a proof of work for the given subtensor and wallet.
     Args:
