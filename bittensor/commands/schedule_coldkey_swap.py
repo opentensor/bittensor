@@ -78,13 +78,6 @@ class ScheduleColdKeySwapCommand:
                 f":cross_mark:[red] Invalid new coldkey SS58 address[/red] [bold white]{cli.config.new_coldkey}[/bold white]"
             )
 
-        # Prompt for confirmation if no_prompt is not set
-        if not cli.config.no_prompt:
-            if not Confirm.ask(
-                f"Do you want to schedule a coldkey swap to: [bold white]{cli.config.new_coldkey}[/bold white]?"
-            ):
-                return None
-
         success, message = subtensor.schedule_coldkey_swap(
             wallet=wallet,
             new_coldkey=cli.config.new_coldkey,
