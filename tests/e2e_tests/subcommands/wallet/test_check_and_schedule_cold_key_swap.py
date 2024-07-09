@@ -7,7 +7,7 @@ from tests.e2e_tests.utils import (
 )
 
 
-def test_schedule_coldkey_swap(local_chain, capsys):
+def test_check_and_schedule_coldkey_swap(local_chain, capsys):
     # Register root as Alice
     alice_keypair, alice_exec_command, alice_wallet_path = setup_wallet("//Alice")
     bob_keypair, bob_exec_command, bob_wallet_path = setup_wallet("//Bob")
