@@ -592,6 +592,7 @@ def _solve_for_coldkey_swap_difficulty_cpu(
         # BUT, we should check for new difficulty, as it can change
         old_difficulty = _check_for_newest_difficulty_and_update(
             subtensor=subtensor,
+            old_coldkey=old_coldkey,
             old_difficulty = old_difficulty,
             curr_diff=curr_diff,
             curr_block=curr_block,
@@ -716,7 +717,7 @@ class _UsingSpawnStartMethod:
 
 def _check_for_newest_difficulty_and_update(
     subtensor,
-    coldkey_bytes,
+    old_coldkey,
     old_difficulty,
     curr_diff,
     curr_block,
@@ -726,11 +727,13 @@ def _check_for_newest_difficulty_and_update(
     check_block,
     solvers,
 ):
-    base_difficulty, swap_attempts = _get_swap_difficulty_with_retry(subtensor, coldkey_bytes)
+    base_difficulty, swap_attempts = _get_swap_difficulty_with_retry(subtensor, old_coldkey)
     difficulty = _calculate_difficulty(base_difficulty, swap_attempts)
     if difficulty != old_difficulty:
         block_number, block_hash = _get_block_with_retry(subtensor)
         block_bytes = bytes.fromhex(block_hash[2:])
+
+        coldkey_bytes = ss58_address_to_bytes(old_coldkey)
         update_curr_block(
             curr_diff,
             curr_block,
@@ -904,6 +907,7 @@ def _solve_for_coldkey_swap_difficulty_cuda(
             # BUT, we should check for new difficulty, as it can change
             old_difficulty = _check_for_newest_difficulty_and_update(
                 subtensor=subtensor,
+                old_coldkey=old_coldkey,
                 old_difficulty = old_difficulty,
                 curr_diff=curr_diff,
                 curr_block=curr_block,
