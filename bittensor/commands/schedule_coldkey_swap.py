@@ -119,7 +119,9 @@ class ScheduleColdKeySwapCommand:
                 "Good news. There has been no previous key swap initiated for your coldkey swap."
             )
         if arbitration_check == 1:
-            arbitration_remaining = subtensor.get_remaining_arbitration_period(wallet.coldkey.ss58_address)
+            arbitration_remaining = subtensor.get_remaining_arbitration_period(
+                wallet.coldkey.ss58_address
+            )
             hours, minutes, seconds = convert_blocks_to_time(arbitration_remaining)
             bittensor.__console__.print(
                 ":warning:[yellow]There has been a swap request made for this key previously."
