@@ -307,10 +307,8 @@ class CheckColdKeySwapCommand:
             hours, minutes, seconds = convert_blocks_to_time(arbitration_remaining)
             bittensor.__console__.print(
                 "[yellow]There has been 1 swap request made for this coldkey already."
-                " By adding another swap request, the key will enter arbitration.[/yellow]"
-            )
-            bittensor.__console__.print(
-                f"[yellow]Your key swap is scheduled for {hours} hours, {minutes} minutes, {seconds} seconds"
+                " By adding another swap request, the key will enter arbitration."
+                f" Your key swap is scheduled for {hours} hours, {minutes} minutes, {seconds} seconds"
                 f" from now.[/yellow]"
             )
         if arbitration_check > 1:
