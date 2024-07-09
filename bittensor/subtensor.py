@@ -42,11 +42,7 @@ from substrateinterface.exceptions import SubstrateRequestException
 import bittensor
 from bittensor.btlogging import logging as _logger
 from bittensor.utils import torch, weight_utils, format_error_message
-from bittensor.utils.registration import (
-    POWSolution,
-    create_pow,
-    torch,
-)
+from bittensor.utils.registration import POWSolution, create_pow
 
 from .chain_data import (
     DelegateInfoLite,
@@ -113,7 +109,6 @@ from .utils import (
     networking,
 )
 from .utils.balance import Balance
-from .utils.registration import POWSolution
 from .utils.registration import legacy_torch_api_compat
 from .utils.subtensor import get_subtensor_errors
 
@@ -2411,6 +2406,33 @@ class Subtensor:
                 "SubtensorModule", "ColdkeySwapDestinations", params=[ss58_address]
             )
         )
+
+    def get_remaining_arbitration_period(
+        self, coldkey_ss58: str, block: Optional[int] = None
+    ) -> Optional[int]:
+        """
+        Retrieves the remaining arbitration period for a given coldkey.
+
+        Args:
+            coldkey_ss58 (str): The SS58 address of the coldkey.
+            block (Optional[int], optional): The block number to query. If None, uses the latest block.
+
+        Returns:
+            Optional[int]: The remaining arbitration period in blocks, or 0 if not found.
+        """
+        arbitration_block = self.query_subtensor(
+            name="ColdkeyArbitrationBlock",
+            block=block,
+            params=[coldkey_ss58],
+        )
+
+        if block is None:
+            block = self.block
+
+        if arbitration_block.value > block:
+            return arbitration_block.value - block
+        else:
+            return 0
 
     ##########
     # Senate #
