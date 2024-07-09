@@ -807,6 +807,7 @@ def _solve_for_coldkey_swap_difficulty_cuda(
         dev_id = [0]
 
     if update_interval is None:
+        # Can be high because we have no age requirements
         update_interval = 1_000_000
 
     if not torch.cuda.is_available():
