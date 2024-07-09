@@ -20,7 +20,6 @@ import argparse
 from rich.prompt import Prompt
 
 import bittensor
-from bittensor.utils.formatting import convert_blocks_to_time
 from .utils import check_for_cuda_config
 from . import defaults
 
@@ -296,7 +295,6 @@ class CheckColdKeySwapCommand:
         arbitration_check = len(
             subtensor.check_in_arbitration(wallet.coldkey.ss58_address)
         )
-        hours, minutes, seconds = convert_blocks_to_time(arbitration_remaining)
         if arbitration_check == 0:
             bittensor.__console__.print(
                 "[green]There has been no previous key swap initiated for your coldkey.[/green]"
@@ -305,8 +303,6 @@ class CheckColdKeySwapCommand:
             bittensor.__console__.print(
                 "[yellow]There has been 1 swap request made for this coldkey already."
                 " By adding another swap request, the key will enter arbitration."
-                f" Your key swap is scheduled for {hours} hours, {minutes} minutes, {seconds} seconds"
-                f" from now.[/yellow]"
             )
         if arbitration_check > 1:
             bittensor.__console__.print(
