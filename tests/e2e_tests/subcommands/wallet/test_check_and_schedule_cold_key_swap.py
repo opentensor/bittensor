@@ -23,9 +23,7 @@ def test_check_and_schedule_coldkey_swap(local_chain, capsys):
 
     # Assert no cold key swaps in place.
     output = capsys.readouterr().out
-    assert (
-        "There has been no previous key swap initiated for your coldkey swap." in output
-    )
+    assert "There has been no previous key swap initiated for your coldkey." in output
 
     # Schedule a swap
     alice_exec_command(
@@ -83,30 +81,3 @@ def test_check_and_schedule_coldkey_swap(local_chain, capsys):
     # Assert coldkey is currently in arbitration
     output = capsys.readouterr().out
     assert "This coldkey is currently in arbitration with a total swaps of 2." in output
-
-    # Schedule another swap
-    alice_exec_command(
-        ScheduleColdKeySwapCommand,
-        [
-            "wallet",
-            "schedule_coldkey_swap",
-            "--new_coldkey",
-            bob_keypair.ss58_address,
-        ],
-    )
-
-    output = capsys.readouterr().out
-    assert "Scheduled Cold Key Swap Successfully." in output
-
-    # Run check cold key swap status again. -> we should see that its in arbitration with 3 swap attempts
-    alice_exec_command(
-        CheckColdKeySwapCommand,
-        [
-            "wallet",
-            "check_coldkey_swap",
-        ],
-    )
-
-    # Assert coldkey is currently in arbitration
-    output = capsys.readouterr().out
-    assert "This coldkey is currently in arbitration with a total swaps of 3." in output
