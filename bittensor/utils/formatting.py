@@ -23,6 +23,14 @@ def millify(n: int):
 
 
 def convert_blocks_to_time(blocks: int, block_time: int = 12) -> tuple[int, int, int]:
+    """
+    Converts number of blocks into number of hours, minutes, seconds.
+
+    :param blocks: number of blocks
+    :param block_time: time per block, by default this is 12
+
+    :return: tuple containing number of hours, number of minutes, number of seconds
+    """
     seconds = blocks * block_time
     hours = seconds // 3600
     minutes = (seconds % 3600) // 60
