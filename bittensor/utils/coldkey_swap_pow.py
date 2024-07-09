@@ -17,32 +17,17 @@ from datetime import timedelta
 from .formatting import get_human_readable, millify
 
 # import cubit
-
-
+@dataclass
 class ColdkeySwapStatistics:
-    def __init__(self, difficulty: int, block_number: int, block_hash: str):
-        self.time_spent_total = 0.0
-        self.time_average = 0.0
-        self.rounds_total = 0
-        self.time_spent = 0.0
-        self.hash_rate_perpetual = 0.0
-        self.hash_rate = 0.0
-        self.difficulty = difficulty
-        self.block_number = block_number
-        self.block_hash = block_hash
-
-
-class ColdkeySwapStatistics:
-    def __init__(self, difficulty: int, block_number: int, block_hash: str):
-        self.time_spent_total = 0.0
-        self.rounds_total = 0
-        self.time_average = 0.0
-        self.time_spent = 0.0
-        self.hash_rate_perpetual = 0.0
-        self.hash_rate = 0.0
-        self.difficulty = difficulty
-        self.block_number = block_number
-        self.block_hash = block_hash
+    difficulty: int
+    block_number: int
+    block_hash: str
+    time_spent_total: float = 0.0
+    rounds_total: int = 0
+    time_average: float = 0.0
+    time_spent: float = 0.0
+    hash_rate_perpetual: float = 0.0
+    hash_rate: float = 0.0
 
 
 class ColdkeySwapStatisticsLogger:

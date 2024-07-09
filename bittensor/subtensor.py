@@ -2308,6 +2308,11 @@ class Subtensor:
 
         return make_substrate_call_with_retry()
 
+
+    ##################
+    # Coldkey Swap   #
+    ##################
+
     def schedule_coldkey_swap(
         self,
         wallet: "bittensor.wallet",
