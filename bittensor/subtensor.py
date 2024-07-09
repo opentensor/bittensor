@@ -28,6 +28,7 @@ import socket
 import time
 from typing import List, Dict, Union, Optional, Tuple, TypedDict, Any
 
+import base58
 import numpy as np
 import scalecodec
 from numpy.typing import NDArray
@@ -2409,6 +2410,25 @@ class Subtensor:
                 "SubtensorModule", "ColdkeySwapDestinations", params=[ss58_address]
             )
         )
+    
+    def check_remaining_arbitration_period(self, ss58_address: str) -> int:
+        """
+        Checks
+        """
+        params = [
+            {
+                "name": "coldkey",
+                "type": "u64"
+            }
+        ]
+        decoded_bytes = base58.b58decode(ss58_address)
+        u64_value = int.from_bytes(decoded_bytes, byteorder='little')
+        encoded = scalecodec.ss58_encode(decoded_bytes, 32)
+        print(encoded)
+        result = self.state_call(
+            "get_remaining_arbitration_period", encoded
+        )
+        return result
 
     ##########
     # Senate #
