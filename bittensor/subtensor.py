@@ -3232,9 +3232,7 @@ class Subtensor:
         """
         call_definition = bittensor.__type_registry__["runtime_api"][runtime_api][  # type: ignore
             "methods"  # type: ignore
-        ][
-            method
-        ]  # type: ignore
+        ][method]  # type: ignore
 
         json_result = self.state_call(
             method=f"{runtime_api}_{method}",
