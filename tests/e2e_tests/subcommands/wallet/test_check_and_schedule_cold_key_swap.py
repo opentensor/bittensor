@@ -55,6 +55,9 @@ def test_check_and_schedule_coldkey_swap(local_chain, capsys):
     output = capsys.readouterr().out
     assert "There has been 1 swap request made for this coldkey already." in output
 
+    # Generate new wallet to transfer to
+    dave_keypair, dave_exec_command, dave_wallet_path = setup_wallet("//Dave")
+
     # Schedule another swap.
     alice_exec_command(
         ScheduleColdKeySwapCommand,
@@ -62,7 +65,7 @@ def test_check_and_schedule_coldkey_swap(local_chain, capsys):
             "wallet",
             "schedule_coldkey_swap",
             "--new_coldkey",
-            bob_keypair.ss58_address,
+            dave_keypair.ss58_address,
         ],
     )
 
