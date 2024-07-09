@@ -19,7 +19,7 @@ import sys
 import argparse
 import bittensor
 from rich.prompt import Prompt, Confirm
-from .utils import check_netuid_set, check_for_cuda_reg_config
+from .utils import check_netuid_set, check_for_cuda_config
 from copy import deepcopy
 
 from . import defaults
@@ -355,7 +355,7 @@ class PowRegisterCommand:
             config.wallet.hotkey = str(hotkey)
 
         if not config.no_prompt:
-            check_for_cuda_reg_config(config)
+            check_for_cuda_config(config, config.pow_register.cuda)
 
 
 class RunFaucetCommand:
@@ -517,7 +517,7 @@ class RunFaucetCommand:
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
             config.wallet.name = str(wallet_name)
         if not config.no_prompt:
-            check_for_cuda_reg_config(config)
+            check_for_cuda_config(config, config.pow_register.cuda)
 
 
 class SwapHotkeyCommand:

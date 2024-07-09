@@ -2318,6 +2318,11 @@ class Subtensor:
         self,
         wallet: "bittensor.wallet",
         new_coldkey: str,
+        cuda: bool = False,
+        dev_id: Union[List[int], int] = 0,
+        tpb: int = 256,
+        num_processes: Optional[int] = None,
+        update_interval: Optional[int] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
         prompt: bool = True,
@@ -2328,6 +2333,7 @@ class Subtensor:
         Args:
             wallet (bittensor.wallet): The wallet associated with the current coldkey.
             new_coldkey (str): The SS58 address of the new coldkey.
+            cuda (bool, optional): If ``True``, uses a CUDA device to solve the POW.
             wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
             wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
             prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
@@ -2345,6 +2351,11 @@ class Subtensor:
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
             prompt=prompt,
+            cuda=cuda,
+            dev_id=dev_id,
+            tpb=tpb,
+            num_processes=num_processes,
+            update_interval=update_interval,
         )
 
     def _do_schedule_coldkey_swap(
