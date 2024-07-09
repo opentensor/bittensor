@@ -84,7 +84,6 @@ def schedule_coldkey_swap_extrinsic(
     ):
         return False, "User cancelled the operation."
 
-    
     try:
         # Generate the POW
         pow_result = _generate_pow_for_coldkey_swap(
@@ -134,6 +133,10 @@ def schedule_coldkey_swap_extrinsic(
                 return False, error_message
 
     except Exception as e:
+        import traceback
+
+        # Print the full stack trace
+        traceback.print_exc()
         bittensor.__console__.print(
             ":cross_mark: [red]Failed[/red]: error:{}".format(e)
         )

@@ -30,6 +30,7 @@ if typing.TYPE_CHECKING:
 else:
     torch = LazyLoadedTorch()
 
+
 @dataclass
 class ColdkeySwapStatistics:
     difficulty: int
@@ -42,15 +43,16 @@ class ColdkeySwapStatistics:
     hash_rate_perpetual: float = 0.0
     hash_rate: float = 0.0
 
+
 class SwapPOWSolution(POWSolution):
     """A solution to the Coldkey Swap PoW problem."""
 
     def is_stale(self, _: "bittensor.subtensor") -> bool:
         """Returns True if the POW is stale.
-        This means the block the POW is solved for is 
+        This means the block the POW is solved for is
         too old and/or no longer valid.
         """
-        False # No age criteria for coldkey swap POW
+        False  # No age criteria for coldkey swap POW
 
 
 class ColdkeySwapStatisticsLogger:
@@ -102,6 +104,7 @@ class ColdkeySwapStatisticsLogger:
             self.status.update(self.get_status_message(stats, verbose=verbose))
         else:
             self.console.log(self.get_status_message(stats, verbose=verbose))
+
 
 def _calculate_difficulty(
     base_difficulty: int,
@@ -433,7 +436,9 @@ def _update_curr_block(
     with lock:
         curr_block_num.value = block_number
         # Hash the block with the hotkey
-        block_and_hotkey_hash_bytes = _hash_block_with_coldkey(block_bytes, coldkey_bytes)
+        block_and_hotkey_hash_bytes = _hash_block_with_coldkey(
+            block_bytes, coldkey_bytes
+        )
         for i in range(32):
             curr_block[i] = block_and_hotkey_hash_bytes[i]
         _registration_diff_pack(diff, curr_diff)
@@ -445,6 +450,7 @@ def get_cpu_count() -> int:
     except AttributeError:
         # OSX does not have sched_getaffinity
         return os.cpu_count()
+
 
 def _solve_for_coldkey_swap_difficulty_cpu(
     subtensor,
@@ -479,24 +485,19 @@ def _solve_for_coldkey_swap_difficulty_cpu(
         log_verbose: bool
             If true, prints more verbose logging of the POW metrics.
     Note: The hash rate is calculated as an exponentially weighted moving average in order to make the measure more robust.
-    Note:
-    - We can also modify the update interval to do smaller blocks of work,
-        while still updating the block information after a different number of nonces,
-        to increase the transparency of the process while still keeping the speed.
     """
     if num_processes == None:
         # get the number of allowed processes for this process
         num_processes = min(1, get_cpu_count())
 
     if update_interval is None:
-        update_interval = 1_000_000 # Should be high because we have no age criteria
+        update_interval = 1_000_000  # Should be high because we have no age criteria
 
     limit = int(math.pow(2, 256)) - 1
 
     curr_block, curr_block_num, curr_diff = _Solver.create_shared_memory()
 
     # Establish communication queues
-    ## See the _Solver class for more information on the queues.
     stopEvent = multiprocessing.Event()
     stopEvent.clear()
 
@@ -526,8 +527,10 @@ def _solve_for_coldkey_swap_difficulty_cpu(
 
     # Get first block
     block_number, block_hash = _get_block_with_retry(subtensor)
-    base_difficulty, swap_attempts = _get_swap_difficulty_with_retry(subtensor, old_coldkey)
-    
+    base_difficulty, swap_attempts = _get_swap_difficulty_with_retry(
+        subtensor, old_coldkey
+    )
+
     # Calculate the (current) actual difficulty
     difficulty = _calculate_difficulty(base_difficulty, swap_attempts)
     old_difficulty = difficulty
@@ -576,7 +579,9 @@ def _solve_for_coldkey_swap_difficulty_cpu(
     solution = None
 
     hash_rates = [0] * n_samples  # The last n true hash_rates
-    weights = [alpha_**i for i in range(n_samples)]  # weights decay by alpha
+    weights = [
+        alpha_**i + alpha_ for i in range(n_samples)
+    ]  # weights decay by alpha, but never reach zero
 
     while True:
         # Wait until a solver finds a solution
@@ -593,7 +598,7 @@ def _solve_for_coldkey_swap_difficulty_cpu(
         old_difficulty = _check_for_newest_difficulty_and_update(
             subtensor=subtensor,
             old_coldkey=old_coldkey,
-            old_difficulty = old_difficulty,
+            old_difficulty=old_difficulty,
             curr_diff=curr_diff,
             curr_block=curr_block,
             curr_block_num=curr_block_num,
@@ -620,9 +625,11 @@ def _solve_for_coldkey_swap_difficulty_cpu(
             hash_rate_ = (num_time * update_interval) / time_since_last
             hash_rates.append(hash_rate_)
             hash_rates.pop(0)  # remove the 0th data point
-            curr_stats.hash_rate = sum(
-                [hash_rates[i] * weights[i] for i in range(n_samples)]
-            ) / (sum(weights))
+
+            # Calculate weighted average, avoiding division by zero
+            weighted_sum = sum([hash_rates[i] * weights[i] for i in range(n_samples)])
+            weight_sum = sum(weights)
+            curr_stats.hash_rate = weighted_sum / weight_sum if weight_sum > 0 else 0
 
             # update time last to now
             time_last = time_now
@@ -655,9 +662,7 @@ def _solve_for_coldkey_swap_difficulty_cpu(
 
 
 @backoff.on_exception(backoff.constant, Exception, interval=1, max_tries=3)
-def _get_block_with_retry(
-    subtensor: "bittensor.subtensor"
-) -> Tuple[int, bytes]:
+def _get_block_with_retry(subtensor: "bittensor.subtensor") -> Tuple[int, bytes]:
     """
     Gets the current block number, and block hash from the substrate node.
 
@@ -691,7 +696,9 @@ def _get_swap_difficulty_with_retry(subtensor, coldkey_address) -> Tuple[int, in
     for _ in range(max_retries):
         try:
             base_difficulty = subtensor.get_base_difficulty()
-            swap_attempts = len(subtensor.get_coldkey_swap_destinations(coldkey_address))
+            swap_attempts = len(
+                subtensor.get_coldkey_swap_destinations(coldkey_address)
+            )
             return base_difficulty, swap_attempts
         except Exception as e:
             bittensor.logging.warning(f"Failed to get swap difficulty: {e}")
@@ -715,6 +722,7 @@ class _UsingSpawnStartMethod:
         # restore the old start method
         multiprocessing.set_start_method(self._old_start_method, force=True)
 
+
 def _check_for_newest_difficulty_and_update(
     subtensor,
     old_coldkey,
@@ -727,7 +735,9 @@ def _check_for_newest_difficulty_and_update(
     check_block,
     solvers,
 ):
-    base_difficulty, swap_attempts = _get_swap_difficulty_with_retry(subtensor, old_coldkey)
+    base_difficulty, swap_attempts = _get_swap_difficulty_with_retry(
+        subtensor, old_coldkey
+    )
     difficulty = _calculate_difficulty(base_difficulty, swap_attempts)
     if difficulty != old_difficulty:
         block_number, block_hash = _get_block_with_retry(subtensor)
@@ -742,7 +752,7 @@ def _check_for_newest_difficulty_and_update(
             block_bytes,
             coldkey_bytes,
             check_block,
-            difficulty
+            difficulty,
         )
         curr_stats.block_number = block_number
         curr_stats.block_hash = block_hash
@@ -841,8 +851,10 @@ def _solve_for_coldkey_swap_difficulty_cuda(
 
         # Get first block
         block_number, block_hash = _get_block_with_retry(subtensor)
-        base_difficulty, swap_attempts = _get_swap_difficulty_with_retry(subtensor, old_coldkey)
-        
+        base_difficulty, swap_attempts = _get_swap_difficulty_with_retry(
+            subtensor, old_coldkey
+        )
+
         # Calculate the (current) actual difficulty
         difficulty = _calculate_difficulty(base_difficulty, swap_attempts)
         old_difficulty = difficulty
@@ -893,7 +905,7 @@ def _solve_for_coldkey_swap_difficulty_cuda(
         weights = [alpha_**i for i in range(n_samples)]  # weights decay by alpha
 
         solution = None
-        while True: # loop until solution is found
+        while True:  # loop until solution is found
             # Wait until a solver finds a solution
             try:
                 solution = solution_queue.get(block=True, timeout=0.15)
@@ -908,7 +920,7 @@ def _solve_for_coldkey_swap_difficulty_cuda(
             old_difficulty = _check_for_newest_difficulty_and_update(
                 subtensor=subtensor,
                 old_coldkey=old_coldkey,
-                old_difficulty = old_difficulty,
+                old_difficulty=old_difficulty,
                 curr_diff=curr_diff,
                 curr_block=curr_block,
                 curr_block_num=curr_block_num,
@@ -977,7 +989,6 @@ def _terminate_workers_and_wait_for_exit(
     for worker in workers:
         worker.terminate()
         worker.join()
-
 
 
 def create_pow_for_coldkey_swap(
