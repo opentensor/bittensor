@@ -524,9 +524,9 @@ def _solve_for_coldkey_swap_difficulty_cpu(
     
     # Calculate the (current) actual difficulty
     difficulty = _calculate_difficulty(base_difficulty, swap_attempts)
+    old_difficulty = difficulty
 
     block_bytes = bytes.fromhex(block_hash[2:])
-    old_block_number = block_number
     # Set to current block
     _update_curr_block(
         curr_diff,
