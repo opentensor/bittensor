@@ -17,32 +17,27 @@ from datetime import timedelta
 from .formatting import get_human_readable, millify
 
 # import cubit
-
-
+@dataclass
 class ColdkeySwapStatistics:
-    def __init__(self, difficulty: int, block_number: int, block_hash: str):
-        self.time_spent_total = 0.0
-        self.time_average = 0.0
-        self.rounds_total = 0
-        self.time_spent = 0.0
-        self.hash_rate_perpetual = 0.0
-        self.hash_rate = 0.0
-        self.difficulty = difficulty
-        self.block_number = block_number
-        self.block_hash = block_hash
+    difficulty: int
+    block_number: int
+    block_hash: str
+    time_spent_total: float = 0.0
+    rounds_total: int = 0
+    time_average: float = 0.0
+    time_spent: float = 0.0
+    hash_rate_perpetual: float = 0.0
+    hash_rate: float = 0.0
 
+class SwapPOWSolution(POWSolution):
+    """A solution to the Coldkey Swap PoW problem."""
 
-class ColdkeySwapStatistics:
-    def __init__(self, difficulty: int, block_number: int, block_hash: str):
-        self.time_spent_total = 0.0
-        self.rounds_total = 0
-        self.time_average = 0.0
-        self.time_spent = 0.0
-        self.hash_rate_perpetual = 0.0
-        self.hash_rate = 0.0
-        self.difficulty = difficulty
-        self.block_number = block_number
-        self.block_hash = block_hash
+    def is_stale(self, _: "bittensor.subtensor") -> bool:
+        """Returns True if the POW is stale.
+        This means the block the POW is solved for is 
+        too old and/or no longer valid.
+        """
+        False # No age criteria for coldkey swap POW
 
 
 class ColdkeySwapStatisticsLogger:
@@ -95,6 +90,12 @@ class ColdkeySwapStatisticsLogger:
         else:
             self.console.log(self.get_status_message(stats, verbose=verbose))
 
+def _calculate_difficulty(
+    base_difficulty: int,
+    swap_attempts: int,
+) -> int:
+    return base_difficulty * (2**swap_attempts)
+
 
 def _solve_for_coldkey_swap_difficulty_cpu(
     subtensor,
@@ -105,7 +106,7 @@ def _solve_for_coldkey_swap_difficulty_cpu(
     num_processes: Optional[int] = None,
     update_interval: Optional[int] = None,
     log_verbose: bool = False,
-) -> Optional[POWSolution]:
+) -> Optional[SwapPOWSolution]:
     if num_processes is None:
         num_processes = min(1, multiprocessing.cpu_count())
 
@@ -126,7 +127,7 @@ def _solve_for_coldkey_swap_difficulty_cpu(
     hotkey_bytes = wallet.hotkey.public_key
 
     # Calculate the actual difficulty
-    difficulty = base_difficulty * (2**swap_attempts)
+    difficulty = _calculate_difficulty(base_difficulty, swap_attempts)
 
     solvers = [
         _ColdkeySwapSolver(
@@ -145,10 +146,11 @@ def _solve_for_coldkey_swap_difficulty_cpu(
         for i in range(num_processes)
     ]
 
+    # Get latest block
     block_number, block_hash = _get_block_with_retry(subtensor)
 
     block_bytes = bytes.fromhex(block_hash[2:])
-    old_block_number = block_number
+    # Load the block into workers
     _update_curr_block(
         curr_block,
         curr_block_num,
@@ -181,17 +183,7 @@ def _solve_for_coldkey_swap_difficulty_cpu(
         except Empty:
             pass
 
-        old_block_number = _check_for_newest_block_and_update(
-            subtensor=subtensor,
-            hotkey_bytes=hotkey_bytes,
-            old_block_number=old_block_number,
-            curr_block=curr_block,
-            curr_block_num=curr_block_num,
-            curr_stats=curr_stats,
-            update_curr_block=_update_curr_block,
-            check_block=check_block,
-            solvers=solvers,
-        )
+        # No need to check for new blocks, we don't have any age criteria
 
         num_time = sum(1 for q in finished_queues if not q.empty())
 
@@ -238,7 +230,7 @@ def _solve_for_coldkey_swap_difficulty_cuda(
     update_interval: Optional[int],
     log_verbose: bool,
     max_iterations: int = 1000000,  # Add a maximum number of iterations
-) -> Optional[POWSolution]:
+) -> Optional[SwapPOWSolution]:
     if not torch.cuda.is_available():
         raise RuntimeError("CUDA is not available")
 
@@ -250,7 +242,7 @@ def _solve_for_coldkey_swap_difficulty_cuda(
     hotkey_bytes = wallet.hotkey.public_key
 
     # Calculate the actual difficulty
-    difficulty = base_difficulty * (2**swap_attempts)
+    difficulty = _calculate_difficulty(base_difficulty, swap_attempts)
 
     block_number, block_hash = _get_block_with_retry(subtensor)
     block_bytes = bytes.fromhex(block_hash[2:])
@@ -472,7 +464,7 @@ def create_pow_for_coldkey_swap(
     update_interval: Optional[int] = None,
     log_verbose: bool = False,
     max_iterations: int = 1000000,
-) -> Optional[POWSolution]:
+) -> Optional[SwapPOWSolution]:
     """
     Creates a proof of work for coldkey swap.
 
@@ -491,7 +483,7 @@ def create_pow_for_coldkey_swap(
         max_iterations (int, optional): Maximum number of iterations for CUDA solver. Defaults to 1000000.
 
     Returns:
-        Optional[POWSolution]: The solved PoW solution, or None if not found.
+        Optional[SwapPOWSolution]: The solved PoW solution, or None if not found.
 
     Raises:
         RuntimeError: If CUDA is not available when cuda=True.
