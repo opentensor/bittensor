@@ -101,7 +101,6 @@ class ScheduleColdKeySwapCommand:
             wait_for_inclusion=cli.config.wait_for_inclusion,
             wait_for_finalization=cli.config.wait_for_finalization,
             prompt=not cli.config.no_prompt,
-            cuda=not cli.config.cuda
         )
 
         if success:
@@ -166,13 +165,6 @@ class ScheduleColdKeySwapCommand:
             action="store_true",
             required=False,  # Make this argument optional
             default=True,
-        )
-        schedule_coldkey_swap_parser.add_argument(
-            "--cuda",
-            dest="cuda",
-            action="store_true",
-            required=False,  # Make this argument optional
-            default=False,
         )
 
         bittensor.wallet.add_args(schedule_coldkey_swap_parser)
