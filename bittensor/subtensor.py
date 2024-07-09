@@ -42,7 +42,7 @@ from substrateinterface.exceptions import SubstrateRequestException
 import bittensor
 from bittensor.btlogging import logging as _logger
 from bittensor.utils import torch, weight_utils, format_error_message
-from bittensor.utils.registration import POWSolution, create_pow
+from bittensor.utils.registration import POWSolution
 
 from .chain_data import (
     DelegateInfoLite,
@@ -4641,33 +4641,6 @@ class Subtensor:
             bytes_result = bytes.fromhex(hex_bytes_result)
 
         return ScheduledColdkeySwapInfo.from_vec_u8(bytes_result)
-
-    def get_remaining_arbitration_period(
-        self, coldkey_ss58: str, block: Optional[int] = None
-    ) -> Optional[int]:
-        """
-        Retrieves the remaining arbitration period for a given coldkey.
-
-        Args:
-            coldkey_ss58 (str): The SS58 address of the coldkey.
-            block (Optional[int], optional): The block number to query. If None, uses the latest block.
-
-        Returns:
-            Optional[int]: The remaining arbitration period in blocks, or None if not found.
-        """
-        arbitration_block = self.query_subtensor(
-            name="ColdkeyArbitrationBlock",
-            block=block,
-            params=[coldkey_ss58],
-        )
-
-        if block is None:
-            block = self.block
-
-        if arbitration_block > block:
-            return arbitration_block - block
-        else:
-            return 0
 
     def get_coldkey_swap_destinations(
         self, coldkey_ss58: str, block: Optional[int] = None

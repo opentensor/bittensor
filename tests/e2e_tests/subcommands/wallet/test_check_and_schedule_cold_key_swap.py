@@ -33,8 +33,6 @@ def test_check_and_schedule_coldkey_swap(local_chain, capsys):
             "schedule_coldkey_swap",
             "--new_coldkey",
             bob_keypair.ss58_address,
-            "--prompt",
-            "False",
         ],
     )
 
