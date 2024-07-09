@@ -70,6 +70,7 @@ from .commands import (
     CommitWeightCommand,
     RevealWeightCommand,
     ScheduleColdKeySwapCommand,
+    CheckColdKeySwapCommand,
 )
 
 # Create a console instance for CLI display.
@@ -160,6 +161,7 @@ COMMANDS = {
             "get_identity": GetIdentityCommand,
             "history": GetWalletHistoryCommand,
             "schedule_coldkey_swap": ScheduleColdKeySwapCommand,
+            "check_coldkey_swap": CheckColdKeySwapCommand,
         },
     },
     "stake": {
