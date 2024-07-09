@@ -2321,6 +2321,7 @@ class Subtensor:
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
         prompt: bool = True,
+        cuda: bool = False
     ) -> tuple[bool, str]:
         """
         Schedules a coldkey swap on the Bittensor network. This function is used to change the coldkey to a new one.
@@ -2345,6 +2346,7 @@ class Subtensor:
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
             prompt=prompt,
+            cuda=cuda
         )
 
     def _do_schedule_coldkey_swap(
