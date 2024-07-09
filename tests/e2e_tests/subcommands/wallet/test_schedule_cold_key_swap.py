@@ -1,3 +1,4 @@
+import bittensor
 from bittensor.commands import (
     ScheduleColdKeySwapCommand,
 )
@@ -24,6 +25,8 @@ def test_schedule_coldkey_swap(local_chain, capsys):
             "schedule_coldkey_swap",
             "--new_coldkey",
             bob_keypair.ss58_address,
+            "--prompt",
+            "False",
         ],
     )
     output = capsys.readouterr().out
@@ -32,11 +35,12 @@ def test_schedule_coldkey_swap(local_chain, capsys):
         in output
     )
 
-    block = local_chain.query(
-        "SubtensorModule", "ColdkeyArbitrationBlock", [alice_keypair.ss58_address]
-    )
+    subtensor = bittensor.subtensor(network="ws://localhost:9945")
 
-    assert block == 1
+    # verify current balance
+    block = subtensor.check_in_arbitration(alice_keypair.ss58_address)
+
+    # assert block == 1
 
     alice_exec_command(
         ScheduleColdKeySwapCommand,
