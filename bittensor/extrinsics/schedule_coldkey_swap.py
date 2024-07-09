@@ -100,7 +100,6 @@ def schedule_coldkey_swap_extrinsic(
             log_verbose=log_verbose,
         )
         with bittensor.__console__.status(":satellite: Scheduling coldkey swap..."):
-
             # Call Subtensor with POW
             success, error_message = subtensor._do_schedule_coldkey_swap(
                 wallet=wallet,

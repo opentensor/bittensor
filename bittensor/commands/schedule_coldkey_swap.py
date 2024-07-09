@@ -96,22 +96,18 @@ class ScheduleColdKeySwapCommand:
             raise ValueError(
                 f":cross_mark:[red] Invalid new coldkey SS58 address[/red] [bold white]{cli.config.new_coldkey}[/bold white]"
             )
-        
+
         if not config.no_prompt:
             check_for_cuda_config(config, config.cuda)
 
         success, message = subtensor.schedule_coldkey_swap(
             wallet=wallet,
             new_coldkey=cli.config.new_coldkey,
-
             tpb=cli.config.cuda.get("tpb", None),
             update_interval=cli.config.get("update_interval", None),
             num_processes=cli.config.get("num_processes", None),
-            cuda=cli.config.cuda.get(
-                "use_cuda", defaults.pow_register.cuda.use_cuda
-            ),
+            cuda=cli.config.cuda.get("use_cuda", defaults.pow_register.cuda.use_cuda),
             dev_id=cli.config.cuda.get("dev_id", None),
-
             wait_for_inclusion=cli.config.wait_for_inclusion,
             wait_for_finalization=cli.config.wait_for_finalization,
             prompt=not cli.config.no_prompt,
@@ -181,7 +177,7 @@ class ScheduleColdKeySwapCommand:
             default=True,
         )
 
-         ## CUDA acceleration args.
+        ## CUDA acceleration args.
         schedule_coldkey_swap_parser.add_argument(
             "--swap.cuda.use_cuda",
             "--cuda",
@@ -223,10 +219,12 @@ class ScheduleColdKeySwapCommand:
         )
         bittensor.wallet.add_args(schedule_coldkey_swap_parser)
         bittensor.subtensor.add_args(schedule_coldkey_swap_parser)
-        
+
     @staticmethod
     def fetch_arbitration_stats(subtensor, wallet):
-        arbitration_check = len(subtensor.check_in_arbitration(wallet.coldkey.ss58_address))
+        arbitration_check = len(
+            subtensor.check_in_arbitration(wallet.coldkey.ss58_address)
+        )
         if arbitration_check == 0:
             bittensor.__console__.print(
                 "[green]There has been no previous key swap initiated for your coldkey.[/green]"
@@ -294,7 +292,9 @@ class CheckColdKeySwapCommand:
 
     @staticmethod
     def fetch_arbitration_stats(subtensor, wallet):
-        arbitration_check = len(subtensor.check_in_arbitration(wallet.coldkey.ss58_address))
+        arbitration_check = len(
+            subtensor.check_in_arbitration(wallet.coldkey.ss58_address)
+        )
         if arbitration_check == 0:
             bittensor.__console__.print(
                 "[green]There has been no previous key swap initiated for your coldkey.[/green]"
