@@ -83,7 +83,7 @@ class ScheduleColdKeySwapCommand:
             "[yellow]If you call this on the same key multiple times, the key will enter arbitration.[/yellow]"
         )
 
-        ScheduleColdKeySwapCommand.check_arbitration_status(subtensor, wallet)
+        CheckColdKeySwapCommand.run(cli=cli)
 
         # Get the values for the command
         if not cli.config.is_set("new_coldkey"):
@@ -107,31 +107,13 @@ class ScheduleColdKeySwapCommand:
             new_coldkey=cli.config.new_coldkey,
             wait_for_inclusion=cli.config.wait_for_inclusion,
             wait_for_finalization=cli.config.wait_for_finalization,
-            prompt=cli.config.prompt,
+            prompt=not cli.config.no_prompt,
         )
 
         if success:
             bittensor.__console__.print("Scheduled Cold Key Swap Successfully.")
         else:
             bittensor.__console__.print(f"Failed to Scheduled Cold Key Swap: {message}")
-
-    @staticmethod
-    def check_arbitration_status(subtensor, wallet):
-        arbitration_check = len(subtensor.check_in_arbitration(wallet.coldkey.ss58_address))
-        if arbitration_check == 0:
-            bittensor.__console__.print(
-                "[green]Good news. There has been no previous key swap initiated for your coldkey swap.[/green]"
-            )
-        if arbitration_check == 1:
-            bittensor.__console__.print(
-                "[yellow]A previous swap request has been made for this key."
-                " Proceeding will initiate the arbitration process for your key.[/yellow]"
-            )
-        if arbitration_check > 1:
-            bittensor.__console__.print(
-                "[red]This key is currently undergoing arbitration due to multiple swap requests. You can submit an additional swap request,"
-                " but be aware it won't cancel the ongoing arbitration process.[/red]"
-            )
 
     @staticmethod
     def check_config(config: "bittensor.config"):
