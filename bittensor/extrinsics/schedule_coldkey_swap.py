@@ -162,10 +162,9 @@ def _generate_pow_for_coldkey_swap(
             If true, prints the progress of the proof of work more verbosely.
     """
 
-    attempts = 1
     # it is not related to any netuid
     netuid = -1
-    while True:
+    for attempts in range(1, max_allowed_attempts + 1):
         bittensor.__console__.print(
             ":satellite: Generating POW for coldkey swap...({}/{})".format(
                 attempts, max_allowed_attempts
@@ -201,12 +200,8 @@ def _generate_pow_for_coldkey_swap(
                 update_interval=update_interval,
                 log_verbose=log_verbose,
             )
-        if pow_result or attempts >= max_allowed_attempts:
-            break
-        attempts += 1
+        if pow_result:
+            return pow_result
 
-    if pow_result:
-        return pow_result
-    else:
-        bittensor.__console__.print("Unable to solve POW.")
-        raise ValueError("Unable to solve POW required to schedule a coldkey swap.")
+    bittensor.__console__.print("Unable to solve POW.")
+    raise ValueError("Unable to solve POW required to schedule a coldkey swap.")
