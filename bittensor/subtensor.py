@@ -28,7 +28,6 @@ import socket
 import time
 from typing import List, Dict, Union, Optional, Tuple, TypedDict, Any
 
-import base58
 import numpy as np
 import scalecodec
 from numpy.typing import NDArray
@@ -2410,25 +2409,33 @@ class Subtensor:
                 "SubtensorModule", "ColdkeySwapDestinations", params=[ss58_address]
             )
         )
-    
-    def check_remaining_arbitration_period(self, ss58_address: str) -> int:
+
+    def get_remaining_arbitration_period(
+            self, coldkey_ss58: str, block: Optional[int] = None
+    ) -> Optional[int]:
         """
-        Checks
+        Retrieves the remaining arbitration period for a given coldkey.
+
+        Args:
+            coldkey_ss58 (str): The SS58 address of the coldkey.
+            block (Optional[int], optional): The block number to query. If None, uses the latest block.
+
+        Returns:
+            Optional[int]: The remaining arbitration period in blocks, or 0 if not found.
         """
-        params = [
-            {
-                "name": "coldkey",
-                "type": "u64"
-            }
-        ]
-        decoded_bytes = base58.b58decode(ss58_address)
-        u64_value = int.from_bytes(decoded_bytes, byteorder='little')
-        encoded = scalecodec.ss58_encode(decoded_bytes, 32)
-        print(encoded)
-        result = self.state_call(
-            "get_remaining_arbitration_period", encoded
+        arbitration_block = self.query_subtensor(
+            name="ColdkeyArbitrationBlock",
+            block=block,
+            params=[coldkey_ss58],
         )
-        return result
+
+        if block is None:
+            block = self.block
+        
+        if arbitration_block.value > block:
+            return arbitration_block.value - block
+        else:
+            return 0
 
     ##########
     # Senate #
