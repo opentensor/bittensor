@@ -42,10 +42,7 @@ from substrateinterface.exceptions import SubstrateRequestException
 import bittensor
 from bittensor.btlogging import logging as _logger
 from bittensor.utils import torch, weight_utils, format_error_message
-from bittensor.utils.registration import (
-    POWSolution,
-    create_pow
-)
+from bittensor.utils.registration import POWSolution, create_pow
 
 from .chain_data import (
     DelegateInfoLite,
@@ -2411,7 +2408,7 @@ class Subtensor:
         )
 
     def get_remaining_arbitration_period(
-            self, coldkey_ss58: str, block: Optional[int] = None
+        self, coldkey_ss58: str, block: Optional[int] = None
     ) -> Optional[int]:
         """
         Retrieves the remaining arbitration period for a given coldkey.
@@ -2431,7 +2428,7 @@ class Subtensor:
 
         if block is None:
             block = self.block
-        
+
         if arbitration_block.value > block:
             return arbitration_block.value - block
         else:
