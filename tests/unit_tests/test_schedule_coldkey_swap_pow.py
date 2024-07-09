@@ -1,6 +1,5 @@
 import pytest
 from unittest.mock import MagicMock, patch
-import bittensor
 from bittensor.utils.coldkey_swap_pow import create_pow_for_coldkey_swap
 from bittensor.utils.registration import POWSolution
 

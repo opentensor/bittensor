@@ -60,7 +60,6 @@ from .chain_data import (
     ProposalVoteData,
     IPInfo,
     ScheduledColdkeySwapInfo,
-    ChainDataType,
     custom_rpc_type_registry,
 )
 from .errors import IdentityError, NominationError, StakeError, TakeError

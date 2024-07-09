@@ -2,7 +2,6 @@ import bittensor
 from typing import Tuple, Optional, Union, List
 from rich.prompt import Confirm
 
-from bittensor.utils import torch
 from bittensor.utils.registration import POWSolution
 from bittensor.utils.coldkey_swap_pow import create_pow_for_coldkey_swap
 
