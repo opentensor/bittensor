@@ -10,6 +10,12 @@ import math
 from typing import Optional, Union, List
 from queue import Empty
 import torch
+
+from rich import console as rich_console
+from rich import status as rich_status
+from datetime import timedelta
+from .formatting import get_human_readable, millify
+
 # import cubit
 
 
@@ -24,12 +30,6 @@ class ColdkeySwapStatistics:
         self.difficulty = difficulty
         self.block_number = block_number
         self.block_hash = block_hash
-
-
-from rich import console as rich_console
-from rich import status as rich_status
-from datetime import timedelta
-from .formatting import get_human_readable, millify
 
 
 class ColdkeySwapStatistics:

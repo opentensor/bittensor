@@ -163,11 +163,8 @@ def _generate_pow_for_coldkey_swap(
             )
         )
 
-
-        # TODO : Add these 
-        # Get the current number of swap attempts
-        swap_attempts = subtensor.get_coldkey_swap_attempts(
-            wallet.coldkeypub.ss58_address
+        swap_attempts = len(
+            subtensor.get_coldkey_swap_destinations(wallet.coldkeypub.ss58_address)
         )
 
         # Get the base difficulty from the chain
