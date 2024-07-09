@@ -3,7 +3,8 @@ from typing import Tuple, Optional, Union, List
 from rich.prompt import Confirm
 
 from bittensor.utils import torch
-from bittensor.utils.registration import POWSolution, create_pow
+from bittensor.utils.registration import POWSolution
+from bittensor.utils.coldkey_swap_pow import create_pow_for_coldkey_swap
 
 
 def schedule_coldkey_swap_extrinsic(
@@ -141,47 +142,44 @@ def _generate_pow_for_coldkey_swap(
         subtensor (bittensor.subtensor): The subtensor instance used for blockchain interaction.
         wallet (bittensor.wallet): The wallet associated with the current coldkey.
         max_allowed_attempts (int, optional): Maximum attempts to generate POW
-        output_in_place (:obj:`bool`, `optional`, defaults to :obj:`True`):
-            If true, prints the progress of the proof of work to the console
-                in-place. Meaning the progress is printed on the same lines.
-        cuda (:obj:`bool`, `optional`, defaults to :obj:`False`):
-            If true, uses CUDA to solve the proof of work.
-        dev_id (:obj:`Union[List[int], int]`, `optional`, defaults to :obj:`0`):
-            The CUDA device id(s) to use. If cuda is true and dev_id is a list,
-                then multiple CUDA devices will be used to solve the proof of work.
-        tpb (:obj:`int`, `optional`, defaults to :obj:`256`):
-            The number of threads per block to use when solving the proof of work.
-            Should be a multiple of 32.
-        num_processes (:obj:`int`, `optional`, defaults to :obj:`None`):
-            The number of processes to use when solving the proof of work.
-            If None, then the number of processes is equal to the number of
-                CPU cores.
-        update_interval (:obj:`int`, `optional`, defaults to :obj:`None`):
-            The number of nonces to run before checking for a new block.
-        log_verbose (:obj:`bool`, `optional`, defaults to :obj:`False`):
-            If true, prints the progress of the proof of work more verbosely.
-    """
+        output_in_place (bool, optional): If true, prints the progress of the proof of work to the console in-place.
+        cuda (bool, optional): If true, uses CUDA to solve the proof of work.
+        dev_id (Union[List[int], int], optional): The CUDA device id(s) to use.
+        tpb (int, optional): The number of threads per block to use when solving the proof of work.
+        num_processes (int, optional): The number of processes to use when solving the proof of work.
+        update_interval (int, optional): The number of nonces to run before checking for a new block.
+        log_verbose (bool, optional): If true, prints the progress of the proof of work more verbosely.
 
-    # it is not related to any netuid
-    netuid = -1
+    Returns:
+        Optional[POWSolution]: The proof of work solution if found, None otherwise.
+
+    Raises:
+        ValueError: If unable to solve POW after maximum attempts.
+    """
     for attempts in range(1, max_allowed_attempts + 1):
         bittensor.__console__.print(
             ":satellite: Generating POW for coldkey swap...({}/{})".format(
                 attempts, max_allowed_attempts
             )
         )
-        # Solve latest POW.
-        pow_result: Optional[POWSolution]
-        if cuda:
-            if not torch.cuda.is_available():
-                bittensor.__console__.print("CUDA use requested, but not available.")
-                raise EnvironmentError("CUDA use requested, but not available.")
 
-            pow_result = create_pow(
-                subtensor,
-                wallet,
-                netuid,
-                output_in_place,
+
+        # TODO : Add these 
+        # Get the current number of swap attempts
+        swap_attempts = subtensor.get_coldkey_swap_attempts(
+            wallet.coldkeypub.ss58_address
+        )
+
+        # Get the base difficulty from the chain
+        base_difficulty = subtensor.get_base_difficulty()
+
+        try:
+            pow_result = create_pow_for_coldkey_swap(
+                subtensor=subtensor,
+                wallet=wallet,
+                base_difficulty=base_difficulty,
+                swap_attempts=swap_attempts,
+                output_in_place=output_in_place,
                 cuda=cuda,
                 dev_id=dev_id,
                 tpb=tpb,
@@ -189,19 +187,15 @@ def _generate_pow_for_coldkey_swap(
                 update_interval=update_interval,
                 log_verbose=log_verbose,
             )
-        else:
-            pow_result = create_pow(
-                subtensor,
-                wallet,
-                netuid,
-                output_in_place,
-                cuda=cuda,
-                num_processes=num_processes,
-                update_interval=update_interval,
-                log_verbose=log_verbose,
-            )
-        if pow_result:
-            return pow_result
+            if pow_result:
+                return pow_result
+        except RuntimeError as e:
+            bittensor.__console__.print(f"Error during PoW generation: {str(e)}")
+            if "CUDA is not available" in str(e):
+                bittensor.__console__.print("Falling back to CPU...")
+                cuda = False
+            else:
+                raise
 
     bittensor.__console__.print("Unable to solve POW.")
     raise ValueError("Unable to solve POW required to schedule a coldkey swap.")
