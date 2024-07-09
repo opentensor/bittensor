@@ -10,28 +10,13 @@ import math
 from typing import Optional, Union, List
 from queue import Empty
 import torch
-# import cubit
-from dataclasses import dataclass
+
 from rich import console as rich_console
 from rich import status as rich_status
 from datetime import timedelta
 from .formatting import get_human_readable, millify
 
-
-
-@dataclass
-class ColdkeySwapStatistics:
-    difficulty: int
-    block_number: int
-    block_hash: str
-    time_spent_total: float = 0.0
-    time_average: float = 0.0
-    rounds_total: int = 0
-    time_spent: float = 0.0
-    hash_rate_perpetual: float = 0.0
-    hash_rate: float = 0.0
-
-
+# import cubit
 @dataclass
 class ColdkeySwapStatistics:
     difficulty: int

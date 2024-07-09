@@ -59,6 +59,8 @@ from .chain_data import (
     AxonInfo,
     ProposalVoteData,
     IPInfo,
+    ScheduledColdkeySwapInfo,
+    ChainDataType,
     custom_rpc_type_registry,
 )
 from .errors import IdentityError, NominationError, StakeError, TakeError
@@ -3235,7 +3237,9 @@ class Subtensor:
         """
         call_definition = bittensor.__type_registry__["runtime_api"][runtime_api][  # type: ignore
             "methods"  # type: ignore
-        ][method]  # type: ignore
+        ][
+            method
+        ]  # type: ignore
 
         json_result = self.state_call(
             method=f"{runtime_api}_{method}",
@@ -4570,6 +4574,131 @@ class Subtensor:
             return []
 
         return DelegateInfo.delegated_list_from_vec_u8(result)
+
+    ######################################
+    # Scheduled Coldkey Swap Information
+    ######################################
+
+    def get_scheduled_coldkey_swap(
+        self, coldkey_ss58: str, block: Optional[int] = None
+    ) -> Optional[ScheduledColdkeySwapInfo]:
+        """
+        Retrieves the scheduled coldkey swap information for a given coldkey.
+
+        Args:
+            coldkey_ss58 (str): The SS58 address of the coldkey.
+            block (Optional[int], optional): The block number to query. If None, uses the latest block.
+
+        Returns:
+            Optional[ScheduledColdkeySwapInfo]: The scheduled coldkey swap information, or None if not found.
+        """
+        encoded_coldkey = ss58_to_vec_u8(coldkey_ss58)
+
+        hex_bytes_result = self.query_runtime_api(
+            runtime_api="ColdkeySwapRuntimeApi",
+            method="get_scheduled_coldkey_swap",
+            params=[encoded_coldkey],
+            block=block,
+        )
+
+        if hex_bytes_result is None:
+            return None
+
+        if hex_bytes_result.startswith("0x"):
+            bytes_result = bytes.fromhex(hex_bytes_result[2:])
+        else:
+            bytes_result = bytes.fromhex(hex_bytes_result)
+
+        return ScheduledColdkeySwapInfo.from_vec_u8(bytes_result)
+
+    def get_remaining_arbitration_period(
+        self, coldkey_ss58: str, block: Optional[int] = None
+    ) -> Optional[int]:
+        """
+        Retrieves the remaining arbitration period for a given coldkey.
+
+        Args:
+            coldkey_ss58 (str): The SS58 address of the coldkey.
+            block (Optional[int], optional): The block number to query. If None, uses the latest block.
+
+        Returns:
+            Optional[int]: The remaining arbitration period in blocks, or None if not found.
+        """
+        encoded_coldkey = ss58_to_vec_u8(coldkey_ss58)
+
+        hex_bytes_result = self.query_runtime_api(
+            runtime_api="ColdkeySwapRuntimeApi",
+            method="get_remaining_arbitration_period",
+            params=[encoded_coldkey],
+            block=block,
+        )
+
+        if hex_bytes_result is None:
+            return None
+
+        if hex_bytes_result.startswith("0x"):
+            bytes_result = bytes.fromhex(hex_bytes_result[2:])
+        else:
+            bytes_result = bytes.fromhex(hex_bytes_result)
+
+        # Assuming the result is a u64 encoded as little-endian
+        return int.from_bytes(bytes_result, byteorder="little")
+
+    def get_coldkey_swap_destinations(
+        self, coldkey_ss58: str, block: Optional[int] = None
+    ) -> Optional[List[str]]:
+        """
+        Retrieves the coldkey swap destinations for a given coldkey.
+
+        Args:
+            coldkey_ss58 (str): The SS58 address of the coldkey.
+            block (Optional[int], optional): The block number to query. If None, uses the latest block.
+
+        Returns:
+            Optional[List[str]]: A list of SS58 addresses of the swap destinations, or None if not found.
+        """
+        encoded_coldkey = ss58_to_vec_u8(coldkey_ss58)
+
+        hex_bytes_result = self.query_runtime_api(
+            runtime_api="ColdkeySwapRuntimeApi",
+            method="get_coldkey_swap_destinations",
+            params=[encoded_coldkey],
+            block=block,
+        )
+
+        if hex_bytes_result is None:
+            return None
+
+        if hex_bytes_result.startswith("0x"):
+            bytes_result = bytes.fromhex(hex_bytes_result[2:])
+        else:
+            bytes_result = bytes.fromhex(hex_bytes_result)
+
+        # Decode the list of AccountId
+        return ScheduledColdkeySwapInfo.decode_account_id_list(bytes_result)
+
+    def get_base_difficulty(self) -> int:
+        """
+        Returns the base difficulty for the Subtensor network.
+
+        This method retrieves the base difficulty value from the blockchain storage.
+        It uses a retry mechanism to handle potential network issues.
+
+        Returns:
+            int: The base difficulty value.
+
+        Raises:
+            Exception: If the substrate call fails after the maximum number of retries.
+        """
+
+        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
+        def make_substrate_call_with_retry():
+            return self.substrate.query(
+                module="SubtensorModule", storage_function="BaseDifficulty"
+            )
+
+        result = make_substrate_call_with_retry()
+        return result.value
 
     #####################
     # Stake Information #
