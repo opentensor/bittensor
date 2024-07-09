@@ -12,7 +12,6 @@ def test_schedule_coldkey_swap(local_chain, capsys):
     alice_keypair, alice_exec_command, alice_wallet_path = setup_wallet("//Alice")
     bob_keypair, bob_exec_command, bob_wallet_path = setup_wallet("//Bob")
 
-
     # Get status for cold keys
     alice_exec_command(
         CheckColdKeySwapCommand,
