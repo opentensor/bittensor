@@ -4657,25 +4657,14 @@ class Subtensor:
         Returns:
             Optional[List[str]]: A list of SS58 addresses of the swap destinations, or None if not found.
         """
-        encoded_coldkey = ss58_to_vec_u8(coldkey_ss58)
-
-        hex_bytes_result = self.query_runtime_api(
-            runtime_api="ColdkeySwapRuntimeApi",
-            method="get_coldkey_swap_destinations",
-            params=[encoded_coldkey],
+        result = self.query_subtensor(
+            name="ColdkeySwapDestinations",
             block=block,
+            params=[coldkey_ss58],
         )
 
-        if hex_bytes_result is None:
-            return None
+        return result.decode() if result is not None else None
 
-        if hex_bytes_result.startswith("0x"):
-            bytes_result = bytes.fromhex(hex_bytes_result[2:])
-        else:
-            bytes_result = bytes.fromhex(hex_bytes_result)
-
-        # Decode the list of AccountId
-        return ScheduledColdkeySwapInfo.decode_account_id_list(bytes_result)
 
     def get_base_difficulty(self) -> int:
         """
