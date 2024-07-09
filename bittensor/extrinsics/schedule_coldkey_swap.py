@@ -185,25 +185,22 @@ def _generate_pow_for_coldkey_swap(
             )
         )
 
-        # Being TODO: Wrap this in a try-except block
-        pow_result = create_pow_for_coldkey_swap(
-            subtensor=subtensor,
-            wallet=wallet,
-            old_coldkey=old_coldkey,
-            output_in_place=output_in_place,
-            cuda=cuda,
-            dev_id=dev_id,
-            tpb=tpb,
-            num_processes=num_processes,
-            update_interval=update_interval,
-            log_verbose=log_verbose,
-        )
-        if pow_result:
-            return pow_result
-
         try:
-            # TODO: Wrap above
-            pass
+            pow_result = create_pow_for_coldkey_swap(
+                subtensor=subtensor,
+                wallet=wallet,
+                old_coldkey=old_coldkey,
+                output_in_place=output_in_place,
+                cuda=cuda,
+                dev_id=dev_id,
+                tpb=tpb,
+                num_processes=num_processes,
+                update_interval=update_interval,
+                log_verbose=log_verbose,
+            )
+            if pow_result:
+                return pow_result
+
         except RuntimeError as e:
             bittensor.__console__.print(f"Error during PoW generation: {str(e)}")
             if "CUDA is not available" in str(e):
