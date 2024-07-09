@@ -44,8 +44,7 @@ from bittensor.btlogging import logging as _logger
 from bittensor.utils import torch, weight_utils, format_error_message
 from bittensor.utils.registration import (
     POWSolution,
-    create_pow,
-    torch,
+    create_pow
 )
 
 from .chain_data import (
@@ -113,7 +112,6 @@ from .utils import (
     networking,
 )
 from .utils.balance import Balance
-from .utils.registration import POWSolution
 from .utils.registration import legacy_torch_api_compat
 from .utils.subtensor import get_subtensor_errors
 
