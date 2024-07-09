@@ -104,7 +104,10 @@ from .extrinsics.unstaking import (
     unstake_extrinsic,
     unstake_multiple_extrinsic,
 )
-from .extrinsics.schedule_coldkey_swap import schedule_coldkey_swap_extrinsic, SwapPOWSolution
+from .extrinsics.schedule_coldkey_swap import (
+    schedule_coldkey_swap_extrinsic,
+    SwapPOWSolution,
+)
 from .types import AxonServeCallParams, PrometheusServeCallParams
 from .utils import (
     U16_NORMALIZED_FLOAT,
@@ -2307,7 +2310,6 @@ class Subtensor:
 
         return make_substrate_call_with_retry()
 
-
     ##################
     # Coldkey Swap   #
     ##################
@@ -2409,11 +2411,9 @@ class Subtensor:
         the key is not in arbitration. If >1, `swap` has been called with multiple destinations, and
         the key is thus in arbitration.
         """
-        return len(
-            self.query_module(
-                "SubtensorModule", "ColdkeySwapDestinations", params=[ss58_address]
-            )
-        )
+        return self.query_module(
+            "SubtensorModule", "ColdkeySwapDestinations", params=[ss58_address]
+        ).decode()
 
     ##########
     # Senate #
@@ -4655,7 +4655,6 @@ class Subtensor:
         )
 
         return result.decode() if result is not None else None
-
 
     def get_base_difficulty(self) -> int:
         """

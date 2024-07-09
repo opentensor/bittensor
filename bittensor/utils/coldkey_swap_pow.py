@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 import bittensor
 from bittensor.utils.registration import (
     POWSolution,
@@ -8,7 +10,6 @@ from bittensor.utils import ss58_address_to_bytes
 import multiprocessing
 import time
 import math
-from dataclasses import dataclass
 from typing import Optional, Union, List
 from queue import Empty
 import torch
@@ -17,6 +18,7 @@ from rich import console as rich_console
 from rich import status as rich_status
 from datetime import timedelta
 from .formatting import get_human_readable, millify
+
 
 # import cubit
 @dataclass
@@ -31,15 +33,16 @@ class ColdkeySwapStatistics:
     hash_rate_perpetual: float = 0.0
     hash_rate: float = 0.0
 
+
 class SwapPOWSolution(POWSolution):
     """A solution to the Coldkey Swap PoW problem."""
 
     def is_stale(self, _: "bittensor.subtensor") -> bool:
         """Returns True if the POW is stale.
-        This means the block the POW is solved for is 
+        This means the block the POW is solved for is
         too old and/or no longer valid.
         """
-        False # No age criteria for coldkey swap POW
+        False  # No age criteria for coldkey swap POW
 
 
 class ColdkeySwapStatisticsLogger:
@@ -91,6 +94,7 @@ class ColdkeySwapStatisticsLogger:
             self.status.update(self.get_status_message(stats, verbose=verbose))
         else:
             self.console.log(self.get_status_message(stats, verbose=verbose))
+
 
 def _calculate_difficulty(
     base_difficulty: int,

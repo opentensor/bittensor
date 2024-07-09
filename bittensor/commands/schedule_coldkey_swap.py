@@ -1,3 +1,20 @@
+# The MIT License (MIT)
+# Copyright © 2021 Yuma Rao
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
+# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+# the Software.
+
+# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
+
 import argparse
 
 from rich.prompt import Confirm, Prompt
@@ -100,7 +117,7 @@ class ScheduleColdKeySwapCommand:
 
     @staticmethod
     def check_arbitration_status(subtensor, wallet):
-        arbitration_check = subtensor.check_in_arbitration(wallet.coldkey.ss58_address)
+        arbitration_check = len(subtensor.check_in_arbitration(wallet.coldkey.ss58_address))
         if arbitration_check == 0:
             bittensor.__console__.print(
                 "[green]Good news. There has been no previous key swap initiated for your coldkey swap.[/green]"
@@ -171,6 +188,7 @@ class ScheduleColdKeySwapCommand:
             "--prompt",
             dest="prompt",
             action="store_true",
+            required=False,  # Make this argument optional
             default=True,
         )
 
@@ -230,7 +248,7 @@ class CheckColdKeySwapCommand:
 
     @staticmethod
     def fetch_arbitration_stats(subtensor, wallet):
-        arbitration_check = subtensor.check_in_arbitration(wallet.coldkey.ss58_address)
+        arbitration_check = len(subtensor.check_in_arbitration(wallet.coldkey.ss58_address))
         if arbitration_check == 0:
             bittensor.__console__.print(
                 "[green]There has been no previous key swap initiated for your coldkey.[/green]"
