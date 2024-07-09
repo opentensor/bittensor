@@ -296,6 +296,7 @@ class CheckColdKeySwapCommand:
         arbitration_check = len(
             subtensor.check_in_arbitration(wallet.coldkey.ss58_address)
         )
+        hours, minutes, seconds = convert_blocks_to_time(arbitration_remaining)
         if arbitration_check == 0:
             bittensor.__console__.print(
                 "[green]There has been no previous key swap initiated for your coldkey.[/green]"
