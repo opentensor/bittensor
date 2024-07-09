@@ -71,6 +71,7 @@ def schedule_coldkey_swap_extrinsic(
             pow_result = _generate_pow_for_coldkey_swap(
                 subtensor=subtensor,
                 wallet=wallet,
+                old_coldkey=wallet.coldkeypub.ss58_address, # swapping from the signer coldkey
                 max_allowed_attempts=max_allowed_attempts,
                 output_in_place=output_in_place,
                 cuda=cuda,
@@ -125,6 +126,7 @@ def schedule_coldkey_swap_extrinsic(
 def _generate_pow_for_coldkey_swap(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
+    old_coldkey: str,
     max_allowed_attempts: int = 3,
     output_in_place: bool = True,
     cuda: bool = False,
@@ -140,6 +142,7 @@ def _generate_pow_for_coldkey_swap(
     Args:
         subtensor (bittensor.subtensor): The subtensor instance used for blockchain interaction.
         wallet (bittensor.wallet): The wallet associated with the current coldkey.
+        old_coldkey (str): The SS58 address of the old coldkey.
         max_allowed_attempts (int, optional): Maximum attempts to generate POW
         output_in_place (bool, optional): If true, prints the progress of the proof of work to the console in-place.
         cuda (bool, optional): If true, uses CUDA to solve the proof of work.
@@ -162,29 +165,26 @@ def _generate_pow_for_coldkey_swap(
             )
         )
 
-        swap_attempts = len(
-            subtensor.get_coldkey_swap_destinations(wallet.coldkeypub.ss58_address)
+
+        # Being TODO: Wrap this in a try-except block
+        pow_result = create_pow_for_coldkey_swap(
+            subtensor=subtensor,
+            wallet=wallet,
+            old_coldkey=old_coldkey,
+            output_in_place=output_in_place,
+            cuda=cuda,
+            dev_id=dev_id,
+            tpb=tpb,
+            num_processes=num_processes,
+            update_interval=update_interval,
+            log_verbose=log_verbose,
         )
-
-        # Get the base difficulty from the chain
-        base_difficulty = subtensor.get_base_difficulty()
-
+        if pow_result:
+            return pow_result
+        
         try:
-            pow_result = create_pow_for_coldkey_swap(
-                subtensor=subtensor,
-                wallet=wallet,
-                base_difficulty=base_difficulty,
-                swap_attempts=swap_attempts,
-                output_in_place=output_in_place,
-                cuda=cuda,
-                dev_id=dev_id,
-                tpb=tpb,
-                num_processes=num_processes,
-                update_interval=update_interval,
-                log_verbose=log_verbose,
-            )
-            if pow_result:
-                return pow_result
+            # TODO: Wrap above
+            pass
         except RuntimeError as e:
             bittensor.__console__.print(f"Error during PoW generation: {str(e)}")
             if "CUDA is not available" in str(e):
