@@ -831,12 +831,14 @@ def _solve_for_coldkey_swap_difficulty_cuda(
         ]
 
         # Get first block
-        block_number, difficulty, block_hash = _get_block_with_retry(
-            subtensor=subtensor
-        )
+        block_number, block_hash = _get_block_with_retry(subtensor)
+        base_difficulty, swap_attempts = _get_swap_difficulty_with_retry(subtensor, old_coldkey)
+        
+        # Calculate the (current) actual difficulty
+        difficulty = _calculate_difficulty(base_difficulty, swap_attempts)
+        old_difficulty = difficulty
 
         block_bytes = bytes.fromhex(block_hash[2:])
-        old_block_number = block_number
 
         # Set to current block
         _update_curr_block(
