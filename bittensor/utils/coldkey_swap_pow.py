@@ -9,6 +9,7 @@ import random
 import time
 from datetime import timedelta
 from queue import Empty, Full
+import typing
 from typing import Callable, List, Optional, Tuple, Union
 
 import backoff
@@ -17,12 +18,17 @@ import bittensor
 from Crypto.Hash import keccak
 from rich import console as rich_console
 from rich import status as rich_status
-import torch
 
 from . import ss58_address_to_bytes
 from .formatting import get_human_readable, millify
 from ._register_cuda import solve_cuda
-from .registration import CUDAException, POWSolution
+from .registration import CUDAException, POWSolution, LazyLoadedTorch
+
+
+if typing.TYPE_CHECKING:
+    import torch
+else:
+    torch = LazyLoadedTorch()
 
 @dataclass
 class ColdkeySwapStatistics:
