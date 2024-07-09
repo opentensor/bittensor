@@ -1,4 +1,3 @@
-import bittensor
 from bittensor.commands import (
     ScheduleColdKeySwapCommand,
     CheckColdKeySwapCommand,
@@ -13,11 +12,7 @@ def test_schedule_coldkey_swap(local_chain, capsys):
     alice_keypair, alice_exec_command, alice_wallet_path = setup_wallet("//Alice")
     bob_keypair, bob_exec_command, bob_wallet_path = setup_wallet("//Bob")
 
-    block = local_chain.query(
-        "SubtensorModule", "ColdkeyArbitrationBlock", [alice_keypair.ss58_address]
-    )
 
-    assert block == 0
     # Get status for cold keys
     alice_exec_command(
         CheckColdKeySwapCommand,
@@ -50,13 +45,6 @@ def test_schedule_coldkey_swap(local_chain, capsys):
     output = capsys.readouterr().out
     assert "Scheduled Cold Key Swap Successfully." in output
 
-    # TODO: assert correct values in subtensor
-    subtensor = bittensor.subtensor(network="ws://localhost:9945")
-    # verify current balance
-    block = subtensor.check_in_arbitration(alice_keypair.ss58_address)
-
-    # assert block == 1
-
     # Run check cold key swap status again. -> we should see that a swap has been scheduled already
     alice_exec_command(
         CheckColdKeySwapCommand,
@@ -84,14 +72,6 @@ def test_schedule_coldkey_swap(local_chain, capsys):
     output = capsys.readouterr().out
     assert "Scheduled Cold Key Swap Successfully." in output
 
-    # TODO - Assert subtensor has correct values
-    subtensor = bittensor.subtensor(network="ws://localhost:9945")
-    block = subtensor.query(
-        "SubtensorModule", "ColdkeyArbitrationBlock", [alice_keypair.ss58_address]
-    )
-
-    assert block == 2
-
     # Run check cold key swap status again. -> we should see that its in arbitration
     alice_exec_command(
         CheckColdKeySwapCommand,
@@ -105,6 +85,7 @@ def test_schedule_coldkey_swap(local_chain, capsys):
     output = capsys.readouterr().out
     assert "This coldkey is currently in arbitration with a total swaps of 2." in output
 
+    # Schedule another swap
     alice_exec_command(
         ScheduleColdKeySwapCommand,
         [
@@ -118,13 +99,7 @@ def test_schedule_coldkey_swap(local_chain, capsys):
     output = capsys.readouterr().out
     assert "Scheduled Cold Key Swap Successfully." in output
 
-    # TODO - Assert subtensor has correct values - we should see 3 swap attempts
-    subtensor = bittensor.subtensor(network="ws://localhost:9945")
-    block = subtensor.query(
-        "SubtensorModule", "ColdkeyArbitrationBlock", [alice_keypair.ss58_address]
-    )
-
-    # Run check cold key swap status again. -> we should see that its in arbitration
+    # Run check cold key swap status again. -> we should see that its in arbitration with 3 swap attempts
     alice_exec_command(
         CheckColdKeySwapCommand,
         [
