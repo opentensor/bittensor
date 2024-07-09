@@ -42,7 +42,7 @@ def local_chain(request):
     )
 
     # Pattern match indicates node is compiled and ready
-    pattern = re.compile(r"Successfully ran block step\.")
+    pattern = re.compile(r"📦 Highest known block at #0    \n")
 
     # install neuron templates
     logging.info("downloading and installing neuron templates from github")
