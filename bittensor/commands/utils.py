@@ -78,20 +78,21 @@ def check_netuid_set(
                 raise ValueError('netuid must be an integer or "None" (if applicable)')
 
 
-def check_for_cuda_reg_config(config: "bittensor.config") -> None:
-    """Checks, when CUDA is available, if the user would like to register with their CUDA device."""
+def check_for_cuda_config(
+    config: "bittensor.config", cuda_config: "bittensor.config"
+) -> None:
+    """Checks, when CUDA is available, if the user would like to accelerate the POW solving with their CUDA device."""
     if torch and torch.cuda.is_available():
         if not config.no_prompt:
-            if config.pow_register.cuda.get("use_cuda") is None:  # flag not set
-                # Ask about cuda registration only if a CUDA device is available.
-                cuda = Confirm.ask("Detected CUDA device, use CUDA for registration?\n")
-                config.pow_register.cuda.use_cuda = cuda
+            if cuda_config.get("use_cuda") is None:  # flag not set
+                # Ask about cuda acceleration only if a CUDA device is available.
+                cuda = Confirm.ask(
+                    "Detected CUDA device, use CUDA to accelerate POW?\n"
+                )
+                cuda_config.use_cuda = cuda
 
             # Only ask about which CUDA device if the user has more than one CUDA device.
-            if (
-                config.pow_register.cuda.use_cuda
-                and config.pow_register.cuda.get("dev_id") is None
-            ):
+            if cuda_config.use_cuda and cuda_config.get("dev_id") is None:
                 devices: List[str] = [str(x) for x in range(torch.cuda.device_count())]
                 device_names: List[str] = [
                     torch.cuda.get_device_name(x)
@@ -124,11 +125,11 @@ def check_for_cuda_reg_config(config: "bittensor.config") -> None:
                             )
                         )
                         sys.exit(1)
-                config.pow_register.cuda.dev_id = dev_id
+                cuda_config.dev_id = dev_id
         else:
             # flag was not set, use default value.
-            if config.pow_register.cuda.get("use_cuda") is None:
-                config.pow_register.cuda.use_cuda = defaults.pow_register.cuda.use_cuda
+            if cuda_config.get("use_cuda") is None:
+                cuda_config.use_cuda = defaults.pow_register.cuda.use_cuda
 
 
 def get_hotkey_wallets_for_wallet(wallet) -> List["bittensor.wallet"]:

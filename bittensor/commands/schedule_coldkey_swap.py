@@ -1,8 +1,27 @@
+# The MIT License (MIT)
+# Copyright © 2021 Yuma Rao
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
+# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+# the Software.
+
+# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
+
 import argparse
 
-from rich.prompt import Confirm, Prompt
+from rich.prompt import Prompt
 
 import bittensor
+from bittensor.utils.formatting import convert_blocks_to_time
+from .utils import check_for_cuda_config
 from . import defaults
 
 console = bittensor.__console__
@@ -37,12 +56,13 @@ class ScheduleColdKeySwapCommand:
         Args:
             cli (bittensor.cli): The CLI object containing configuration and command-line interface utilities.
         """
+        config = cli.config.copy()
+        subtensor: "bittensor.subtensor" = bittensor.subtensor(
+            config=config, log_verbose=False
+        )
+        ScheduleColdKeySwapCommand._run(cli, subtensor)
         try:
-            config = cli.config.copy()
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(
-                config=config, log_verbose=False
-            )
-            ScheduleColdKeySwapCommand._run(cli, subtensor)
+            pass
         except Exception as e:
             bittensor.logging.warning(f"failed to call cold_key_swap: {e}")
         finally:
@@ -66,7 +86,7 @@ class ScheduleColdKeySwapCommand:
             "[yellow]If you call this on the same key multiple times, the key will enter arbitration.[/yellow]"
         )
 
-        ScheduleColdKeySwapCommand.check_arbitration_status(subtensor, wallet)
+        ScheduleColdKeySwapCommand.fetch_arbitration_stats(subtensor, wallet)
 
         # Get the values for the command
         if not cli.config.is_set("new_coldkey"):
@@ -78,36 +98,26 @@ class ScheduleColdKeySwapCommand:
                 f":cross_mark:[red] Invalid new coldkey SS58 address[/red] [bold white]{cli.config.new_coldkey}[/bold white]"
             )
 
+        if not config.no_prompt:
+            check_for_cuda_config(config, config.cuda)
+
         success, message = subtensor.schedule_coldkey_swap(
             wallet=wallet,
             new_coldkey=cli.config.new_coldkey,
+            tpb=cli.config.cuda.get("tpb", None),
+            update_interval=cli.config.get("update_interval", None),
+            num_processes=cli.config.get("num_processes", None),
+            cuda=cli.config.cuda.get("use_cuda", defaults.pow_register.cuda.use_cuda),
+            dev_id=cli.config.cuda.get("dev_id", None),
             wait_for_inclusion=cli.config.wait_for_inclusion,
             wait_for_finalization=cli.config.wait_for_finalization,
-            prompt=cli.config.prompt,
+            prompt=not cli.config.no_prompt,
         )
 
         if success:
             bittensor.__console__.print("Scheduled Cold Key Swap Successfully.")
         else:
             bittensor.__console__.print(f"Failed to Scheduled Cold Key Swap: {message}")
-
-    @staticmethod
-    def check_arbitration_status(subtensor, wallet):
-        arbitration_check = subtensor.check_in_arbitration(wallet.coldkey.ss58_address)
-        if arbitration_check == 0:
-            bittensor.__console__.print(
-                "[green]Good news. There has been no previous key swap initiated for your coldkey swap.[/green]"
-            )
-        if arbitration_check == 1:
-            bittensor.__console__.print(
-                "[yellow]A previous swap request has been made for this key."
-                " Proceeding will initiate the arbitration process for your key.[/yellow]"
-            )
-        if arbitration_check > 1:
-            bittensor.__console__.print(
-                "[red]This key is currently undergoing arbitration due to multiple swap requests. You can submit an additional swap request,"
-                " but be aware it won't cancel the ongoing arbitration process.[/red]"
-            )
 
     @staticmethod
     def check_config(config: "bittensor.config"):
@@ -164,11 +174,71 @@ class ScheduleColdKeySwapCommand:
             "--prompt",
             dest="prompt",
             action="store_true",
+            required=False,  # Make this argument optional
             default=True,
         )
 
+        ## CUDA acceleration args.
+        schedule_coldkey_swap_parser.add_argument(
+            "--swap.cuda.use_cuda",
+            "--cuda",
+            "--cuda.use_cuda",
+            dest="cuda.use_cuda",
+            default=defaults.pow_register.cuda.use_cuda,
+            help="""Set flag to use CUDA to pow_register.""",
+            action="store_true",
+            required=False,
+        )
+        schedule_coldkey_swap_parser.add_argument(
+            "--swap.cuda.no_cuda",
+            "--no_cuda",
+            "--cuda.no_cuda",
+            dest="cuda.use_cuda",
+            default=not defaults.pow_register.cuda.use_cuda,
+            help="""Set flag to not use CUDA for registration""",
+            action="store_false",
+            required=False,
+        )
+        schedule_coldkey_swap_parser.add_argument(
+            "--swap.cuda.dev_id",
+            "--cuda.dev_id",
+            dest="cuda.dev_id",
+            type=int,
+            nargs="+",
+            default=defaults.pow_register.cuda.dev_id,
+            help="""Set the CUDA device id(s). Goes by the order of speed. (i.e. 0 is the fastest).""",
+            required=False,
+        )
+        schedule_coldkey_swap_parser.add_argument(
+            "--swap.cuda.tpb",
+            "--cuda.tpb",
+            dest="cuda.tpb",
+            type=int,
+            default=defaults.pow_register.cuda.tpb,
+            help="""Set the number of Threads Per Block for CUDA.""",
+            required=False,
+        )
         bittensor.wallet.add_args(schedule_coldkey_swap_parser)
         bittensor.subtensor.add_args(schedule_coldkey_swap_parser)
+
+    @staticmethod
+    def fetch_arbitration_stats(subtensor, wallet):
+        arbitration_check = len(
+            subtensor.check_in_arbitration(wallet.coldkey.ss58_address)
+        )
+        if arbitration_check == 0:
+            bittensor.__console__.print(
+                "[green]There has been no previous key swap initiated for your coldkey.[/green]"
+            )
+        if arbitration_check == 1:
+            bittensor.__console__.print(
+                "[yellow]There has been 1 swap request made for this coldkey already."
+                " By adding another swap request, the key will enter arbitration.[/yellow]"
+            )
+        if arbitration_check > 1:
+            bittensor.__console__.print(
+                f"[red]This coldkey is currently in arbitration with a total swaps of {arbitration_check}.[/red]"
+            )
 
 
 class CheckColdKeySwapCommand:
@@ -223,15 +293,23 @@ class CheckColdKeySwapCommand:
 
     @staticmethod
     def fetch_arbitration_stats(subtensor, wallet):
-        arbitration_check = subtensor.check_in_arbitration(wallet.coldkey.ss58_address)
+        arbitration_check = len(
+            subtensor.check_in_arbitration(wallet.coldkey.ss58_address)
+        )
         if arbitration_check == 0:
             bittensor.__console__.print(
                 "[green]There has been no previous key swap initiated for your coldkey.[/green]"
             )
         if arbitration_check == 1:
+            arbitration_remaining = subtensor.get_remaining_arbitration_period(
+                wallet.coldkey.ss58_address
+            )
+            hours, minutes, seconds = convert_blocks_to_time(arbitration_remaining)
             bittensor.__console__.print(
                 "[yellow]There has been 1 swap request made for this coldkey already."
-                " By adding another swap request, the key will enter arbitration.[/yellow]"
+                " By adding another swap request, the key will enter arbitration."
+                f" Your key swap is scheduled for {hours} hours, {minutes} minutes, {seconds} seconds"
+                f" from now.[/yellow]"
             )
         if arbitration_check > 1:
             bittensor.__console__.print(

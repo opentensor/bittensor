@@ -1,95 +1,28 @@
+from dataclasses import dataclass
+
 import binascii
-import functools
 import hashlib
 import math
 import multiprocessing
 import os
 import random
 import time
-import typing
-from dataclasses import dataclass
 from datetime import timedelta
 from queue import Empty, Full
+import typing
 from typing import Callable, List, Optional, Tuple, Union
 
 import backoff
-import numpy
 
 import bittensor
 from Crypto.Hash import keccak
 from rich import console as rich_console
 from rich import status as rich_status
 
+from . import ss58_address_to_bytes
 from .formatting import get_human_readable, millify
 from ._register_cuda import solve_cuda
-
-
-def use_torch() -> bool:
-    """Force the use of torch over numpy for certain operations."""
-    return True if os.getenv("USE_TORCH") == "1" else False
-
-
-def legacy_torch_api_compat(func):
-    """
-    Convert function operating on numpy Input&Output to legacy torch Input&Output API if `use_torch()` is True.
-
-    Args:
-        func (function):
-            Function with numpy Input/Output to be decorated.
-    Returns:
-        decorated (function):
-            Decorated function.
-    """
-
-    @functools.wraps(func)
-    def decorated(*args, **kwargs):
-        if use_torch():
-            # if argument is a Torch tensor, convert it to numpy
-            args = [
-                arg.cpu().numpy() if isinstance(arg, torch.Tensor) else arg
-                for arg in args
-            ]
-            kwargs = {
-                key: value.cpu().numpy() if isinstance(value, torch.Tensor) else value
-                for key, value in kwargs.items()
-            }
-        ret = func(*args, **kwargs)
-        if use_torch():
-            # if return value is a numpy array, convert it to Torch tensor
-            if isinstance(ret, numpy.ndarray):
-                ret = torch.from_numpy(ret)
-        return ret
-
-    return decorated
-
-
-@functools.cache
-def _get_real_torch():
-    try:
-        import torch as _real_torch
-    except ImportError:
-        _real_torch = None
-    return _real_torch
-
-
-def log_no_torch_error():
-    bittensor.btlogging.error(
-        "This command requires torch. You can install torch for bittensor"
-        ' with `pip install bittensor[torch]` or `pip install ".[torch]"`'
-        " if installing from source, and then run the command with USE_TORCH=1 {command}"
-    )
-
-
-class LazyLoadedTorch:
-    def __bool__(self):
-        return bool(_get_real_torch())
-
-    def __getattr__(self, name):
-        if real_torch := _get_real_torch():
-            return getattr(real_torch, name)
-        else:
-            log_no_torch_error()
-            raise ImportError("torch not installed")
+from .registration import CUDAException, POWSolution, LazyLoadedTorch
 
 
 if typing.TYPE_CHECKING:
@@ -98,10 +31,86 @@ else:
     torch = LazyLoadedTorch()
 
 
-class CUDAException(Exception):
-    """An exception raised when an error occurs in the CUDA environment."""
+@dataclass
+class ColdkeySwapStatistics:
+    difficulty: int
+    block_number: int
+    block_hash: str
+    time_spent_total: float = 0.0
+    rounds_total: int = 0
+    time_average: float = 0.0
+    time_spent: float = 0.0
+    hash_rate_perpetual: float = 0.0
+    hash_rate: float = 0.0
 
-    pass
+
+class SwapPOWSolution(POWSolution):
+    """A solution to the Coldkey Swap PoW problem."""
+
+    def is_stale(self, _: "bittensor.subtensor") -> bool:
+        """Returns True if the POW is stale.
+        This means the block the POW is solved for is
+        too old and/or no longer valid.
+        """
+        False  # No age criteria for coldkey swap POW
+
+
+class ColdkeySwapStatisticsLogger:
+    """Logs statistics for a coldkey swap."""
+
+    console: rich_console.Console
+    status: Optional[rich_status.Status]
+
+    def __init__(
+        self, console: rich_console.Console, output_in_place: bool = True
+    ) -> None:
+        self.console = console
+
+        if output_in_place:
+            self.status = self.console.status("Solving")
+        else:
+            self.status = None
+
+    def start(self) -> None:
+        if self.status is not None:
+            self.status.start()
+
+    def stop(self) -> None:
+        if self.status is not None:
+            self.status.stop()
+
+    def get_status_message(
+        self, stats: ColdkeySwapStatistics, verbose: bool = False
+    ) -> str:
+        message = (
+            "Solving\n"
+            + f"Time Spent (total): [bold white]{timedelta(seconds=stats.time_spent_total)}[/bold white]\n"
+            + (
+                f"Time Spent This Round: {timedelta(seconds=stats.time_spent)}\n"
+                + f"Time Spent Average: {timedelta(seconds=stats.time_average)}\n"
+                if verbose
+                else ""
+            )
+            + f"Coldkey Swap Difficulty: [bold white]{millify(stats.difficulty)}[/bold white]\n"
+            + f"Iters (Inst/Perp): [bold white]{get_human_readable(stats.hash_rate, 'H')}/s / "
+            + f"{get_human_readable(stats.hash_rate_perpetual, 'H')}/s[/bold white]\n"
+            + f"Block Number: [bold white]{stats.block_number}[/bold white]\n"
+            + f"Block Hash: [bold white]{stats.block_hash[:10]}...[/bold white]\n"
+        )
+        return message
+
+    def update(self, stats: ColdkeySwapStatistics, verbose: bool = False) -> None:
+        if self.status is not None:
+            self.status.update(self.get_status_message(stats, verbose=verbose))
+        else:
+            self.console.log(self.get_status_message(stats, verbose=verbose))
+
+
+def _calculate_difficulty(
+    base_difficulty: int,
+    swap_attempts: int,
+) -> int:
+    return base_difficulty * (2**swap_attempts)
 
 
 def _hex_bytes_to_u8_list(hex_bytes: bytes):
@@ -122,22 +131,6 @@ def _seal_meets_difficulty(seal: bytes, difficulty: int, limit: int):
     seal_number = int.from_bytes(seal, "big")
     product = seal_number * difficulty
     return product < limit
-
-
-@dataclass
-class POWSolution:
-    """A solution to the registration PoW problem."""
-
-    nonce: int
-    block_number: int
-    difficulty: int
-    seal: bytes
-
-    def is_stale(self, subtensor: "bittensor.subtensor") -> bool:
-        """Returns True if the POW is stale.
-        This means the block the POW is solved for is within 3 blocks of the current block.
-        """
-        return self.block_number < subtensor.get_current_block() - 3
 
 
 class _SolverBase(multiprocessing.Process):
@@ -190,7 +183,7 @@ class _SolverBase(multiprocessing.Process):
     solution_queue: multiprocessing.Queue
     newBlockEvent: multiprocessing.Event
     stopEvent: multiprocessing.Event
-    hotkey_bytes: bytes
+    coldkey_bytes: bytes
     curr_block: multiprocessing.Array
     curr_block_num: multiprocessing.Value
     curr_diff: multiprocessing.Array
@@ -371,7 +364,7 @@ def _solve_for_nonce_block_cuda(
     block_number: int,
     dev_id: int,
     tpb: int,
-) -> Optional[POWSolution]:
+) -> Optional[SwapPOWSolution]:
     """Tries to solve the POW on a CUDA device for a block of nonces (nonce_start, nonce_start + update_interval * tpb"""
     solution, seal = solve_cuda(
         nonce_start,
@@ -397,7 +390,7 @@ def _solve_for_nonce_block(
     difficulty: int,
     limit: int,
     block_number: int,
-) -> Optional[POWSolution]:
+) -> Optional[SwapPOWSolution]:
     """Tries to solve the POW for a block of nonces (nonce_start, nonce_end)"""
     for nonce in range(nonce_start, nonce_end):
         # Create seal.
@@ -406,7 +399,7 @@ def _solve_for_nonce_block(
         # Check if seal meets difficulty
         if _seal_meets_difficulty(seal, difficulty, limit):
             # Found a solution, save it.
-            return POWSolution(nonce, block_number, difficulty, seal)
+            return SwapPOWSolution(nonce, block_number, difficulty, seal)
 
     return None
 
@@ -422,10 +415,10 @@ def _registration_diff_pack(diff: int, packed_diff: multiprocessing.Array):
     packed_diff[1] = diff & 0xFFFFFFFF  # low 32 bits
 
 
-def _hash_block_with_hotkey(block_bytes: bytes, hotkey_bytes: bytes) -> bytes:
+def _hash_block_with_coldkey(block_bytes: bytes, coldkey_bytes: bytes) -> bytes:
     """Hashes the block with the hotkey using Keccak-256 to get 32 bytes"""
     kec = keccak.new(digest_bits=256)
-    kec = kec.update(bytearray(block_bytes + hotkey_bytes))
+    kec = kec.update(bytearray(block_bytes + coldkey_bytes))
     block_and_hotkey_hash_bytes = kec.digest()
     return block_and_hotkey_hash_bytes
 
@@ -437,13 +430,15 @@ def _update_curr_block(
     block_number: int,
     block_bytes: bytes,
     diff: int,
-    hotkey_bytes: bytes,
+    coldkey_bytes: bytes,
     lock: multiprocessing.Lock,
 ):
     with lock:
         curr_block_num.value = block_number
         # Hash the block with the hotkey
-        block_and_hotkey_hash_bytes = _hash_block_with_hotkey(block_bytes, hotkey_bytes)
+        block_and_hotkey_hash_bytes = _hash_block_with_coldkey(
+            block_bytes, coldkey_bytes
+        )
         for i in range(32):
             curr_block[i] = block_and_hotkey_hash_bytes[i]
         _registration_diff_pack(diff, curr_diff)
@@ -457,92 +452,26 @@ def get_cpu_count() -> int:
         return os.cpu_count()
 
 
-@dataclass
-class RegistrationStatistics:
-    """Statistics for a registration."""
-
-    time_spent_total: float
-    rounds_total: int
-    time_average: float
-    time_spent: float
-    hash_rate_perpetual: float
-    hash_rate: float
-    difficulty: int
-    block_number: int
-    block_hash: bytes
-
-
-class RegistrationStatisticsLogger:
-    """Logs statistics for a registration."""
-
-    console: rich_console.Console
-    status: Optional[rich_status.Status]
-
-    def __init__(
-        self, console: rich_console.Console, output_in_place: bool = True
-    ) -> None:
-        self.console = console
-
-        if output_in_place:
-            self.status = self.console.status("Solving")
-        else:
-            self.status = None
-
-    def start(self) -> None:
-        if self.status is not None:
-            self.status.start()
-
-    def stop(self) -> None:
-        if self.status is not None:
-            self.status.stop()
-
-    def get_status_message(
-        cls, stats: RegistrationStatistics, verbose: bool = False
-    ) -> str:
-        message = (
-            "Solving\n"
-            + f"Time Spent (total): [bold white]{timedelta(seconds=stats.time_spent_total)}[/bold white]\n"
-            + (
-                f"Time Spent This Round: {timedelta(seconds=stats.time_spent)}\n"
-                + f"Time Spent Average: {timedelta(seconds=stats.time_average)}\n"
-                if verbose
-                else ""
-            )
-            + f"Registration Difficulty: [bold white]{millify(stats.difficulty)}[/bold white]\n"
-            + f"Iters (Inst/Perp): [bold white]{get_human_readable(stats.hash_rate, 'H')}/s / "
-            + f"{get_human_readable(stats.hash_rate_perpetual, 'H')}/s[/bold white]\n"
-            + f"Block Number: [bold white]{stats.block_number}[/bold white]\n"
-            + f"Block Hash: [bold white]{stats.block_hash.encode('utf-8')}[/bold white]\n"
-        )
-        return message
-
-    def update(self, stats: RegistrationStatistics, verbose: bool = False) -> None:
-        if self.status is not None:
-            self.status.update(self.get_status_message(stats, verbose=verbose))
-        else:
-            self.console.log(self.get_status_message(stats, verbose=verbose))
-
-
-def _solve_for_difficulty_fast(
+def _solve_for_coldkey_swap_difficulty_cpu(
     subtensor,
     wallet: "bittensor.wallet",
-    netuid: int,
+    old_coldkey: str,
     output_in_place: bool = True,
     num_processes: Optional[int] = None,
     update_interval: Optional[int] = None,
     n_samples: int = 10,
     alpha_: float = 0.80,
     log_verbose: bool = False,
-) -> Optional[POWSolution]:
+) -> Optional[SwapPOWSolution]:
     """
-    Solves the POW for registration using multiprocessing.
+    Solves the POW for a coldkey-swap using multiprocessing.
     Args:
         subtensor
             Subtensor to connect to for block information and to submit.
         wallet:
-            wallet to use for registration.
-        netuid: int
-            The netuid of the subnet to register to.
+            wallet to use for coldkey-swap.
+        old_coldkey: str
+            The old coldkey to swap from.
         output_in_place: bool
             If true, prints the status in place. Otherwise, prints the status on a new line.
         num_processes: int
@@ -554,26 +483,21 @@ def _solve_for_difficulty_fast(
         alpha_: float
             The alpha for the EWMA for the hash_rate calculation
         log_verbose: bool
-            If true, prints more verbose logging of the registration metrics.
+            If true, prints more verbose logging of the POW metrics.
     Note: The hash rate is calculated as an exponentially weighted moving average in order to make the measure more robust.
-    Note:
-    - We can also modify the update interval to do smaller blocks of work,
-        while still updating the block information after a different number of nonces,
-        to increase the transparency of the process while still keeping the speed.
     """
     if num_processes == None:
         # get the number of allowed processes for this process
         num_processes = min(1, get_cpu_count())
 
     if update_interval is None:
-        update_interval = 50_000
+        update_interval = 1_000_000  # Should be high because we have no age criteria
 
     limit = int(math.pow(2, 256)) - 1
 
     curr_block, curr_block_num, curr_diff = _Solver.create_shared_memory()
 
     # Establish communication queues
-    ## See the _Solver class for more information on the queues.
     stopEvent = multiprocessing.Event()
     stopEvent.clear()
 
@@ -581,9 +505,8 @@ def _solve_for_difficulty_fast(
     finished_queues = [multiprocessing.Queue() for _ in range(num_processes)]
     check_block = multiprocessing.Lock()
 
-    hotkey_bytes = (
-        wallet.coldkeypub.public_key if netuid == -1 else wallet.hotkey.public_key
-    )
+    coldkey_bytes = ss58_address_to_bytes(old_coldkey)
+
     # Start consumers
     solvers = [
         _Solver(
@@ -603,12 +526,16 @@ def _solve_for_difficulty_fast(
     ]
 
     # Get first block
-    block_number, difficulty, block_hash = _get_block_with_retry(
-        subtensor=subtensor, netuid=netuid
+    block_number, block_hash = _get_block_with_retry(subtensor)
+    base_difficulty, swap_attempts = _get_swap_difficulty_with_retry(
+        subtensor, old_coldkey
     )
 
+    # Calculate the (current) actual difficulty
+    difficulty = _calculate_difficulty(base_difficulty, swap_attempts)
+    old_difficulty = difficulty
+
     block_bytes = bytes.fromhex(block_hash[2:])
-    old_block_number = block_number
     # Set to current block
     _update_curr_block(
         curr_diff,
@@ -617,7 +544,7 @@ def _solve_for_difficulty_fast(
         block_number,
         block_bytes,
         difficulty,
-        hotkey_bytes,
+        coldkey_bytes,
         check_block,
     )
 
@@ -631,7 +558,7 @@ def _solve_for_difficulty_fast(
     start_time = time.time()  # time that the registration started
     time_last = start_time  # time that the last work blocks completed
 
-    curr_stats = RegistrationStatistics(
+    curr_stats = ColdkeySwapStatistics(
         time_spent_total=0.0,
         time_average=0.0,
         rounds_total=0,
@@ -646,17 +573,17 @@ def _solve_for_difficulty_fast(
     start_time_perpetual = time.time()
 
     console = bittensor.__console__
-    logger = RegistrationStatisticsLogger(console, output_in_place)
+    logger = ColdkeySwapStatisticsLogger(console, output_in_place)
     logger.start()
 
     solution = None
 
     hash_rates = [0] * n_samples  # The last n true hash_rates
-    weights = [alpha_**i for i in range(n_samples)]  # weights decay by alpha
+    weights = [
+        alpha_**i + alpha_ for i in range(n_samples)
+    ]  # weights decay by alpha, but never reach zero
 
-    while netuid == -1 or not subtensor.is_hotkey_registered(
-        netuid=netuid, hotkey_ss58=wallet.hotkey.ss58_address
-    ):
+    while True:
         # Wait until a solver finds a solution
         try:
             solution = solution_queue.get(block=True, timeout=0.25)
@@ -666,12 +593,12 @@ def _solve_for_difficulty_fast(
             # No solution found, try again
             pass
 
-        # check for new block
-        old_block_number = _check_for_newest_block_and_update(
+        # No need to check for new blocks, we don't have any age criteria
+        # BUT, we should check for new difficulty, as it can change
+        old_difficulty = _check_for_newest_difficulty_and_update(
             subtensor=subtensor,
-            netuid=netuid,
-            hotkey_bytes=hotkey_bytes,
-            old_block_number=old_block_number,
+            old_coldkey=old_coldkey,
+            old_difficulty=old_difficulty,
             curr_diff=curr_diff,
             curr_block=curr_block,
             curr_block_num=curr_block_num,
@@ -698,9 +625,11 @@ def _solve_for_difficulty_fast(
             hash_rate_ = (num_time * update_interval) / time_since_last
             hash_rates.append(hash_rate_)
             hash_rates.pop(0)  # remove the 0th data point
-            curr_stats.hash_rate = sum(
-                [hash_rates[i] * weights[i] for i in range(n_samples)]
-            ) / (sum(weights))
+
+            # Calculate weighted average, avoiding division by zero
+            weighted_sum = sum([hash_rates[i] * weights[i] for i in range(n_samples)])
+            weight_sum = sum(weights)
+            curr_stats.hash_rate = weighted_sum / weight_sum if weight_sum > 0 else 0
 
             # update time last to now
             time_last = time_now
@@ -733,25 +662,17 @@ def _solve_for_difficulty_fast(
 
 
 @backoff.on_exception(backoff.constant, Exception, interval=1, max_tries=3)
-def _get_block_with_retry(
-    subtensor: "bittensor.subtensor", netuid: int
-) -> Tuple[int, int, bytes]:
+def _get_block_with_retry(subtensor: "bittensor.subtensor") -> Tuple[int, bytes]:
     """
-    Gets the current block number, difficulty, and block hash from the substrate node.
+    Gets the current block number, and block hash from the substrate node.
 
     Args:
         subtensor (:obj:`bittensor.subtensor`, `required`):
             The subtensor object to use to get the block number, difficulty, and block hash.
 
-        netuid (:obj:`int`, `required`):
-            The netuid of the network to get the block number, difficulty, and block hash from.
-
     Returns:
         block_number (:obj:`int`):
             The current block number.
-
-        difficulty (:obj:`int`):
-            The current difficulty of the subnet.
 
         block_hash (:obj:`bytes`):
             The current block hash.
@@ -761,15 +682,28 @@ def _get_block_with_retry(
         ValueError: If the difficulty is None.
     """
     block_number = subtensor.get_current_block()
-    difficulty = 1_000_000 if netuid == -1 else subtensor.difficulty(netuid=netuid)
     block_hash = subtensor.get_block_hash(block_number)
     if block_hash is None:
         raise Exception(
             "Network error. Could not connect to substrate to get block hash"
         )
-    if difficulty is None:
-        raise ValueError("Chain error. Difficulty is None")
-    return block_number, difficulty, block_hash
+    return block_number, block_hash
+
+
+@backoff.on_exception(backoff.constant, Exception, interval=1, max_tries=3)
+def _get_swap_difficulty_with_retry(subtensor, coldkey_address) -> Tuple[int, int]:
+    max_retries = 3
+    for _ in range(max_retries):
+        try:
+            base_difficulty = subtensor.get_base_difficulty()
+            swap_attempts = len(
+                subtensor.get_coldkey_swap_destinations(coldkey_address)
+            )
+            return base_difficulty, swap_attempts
+        except Exception as e:
+            bittensor.logging.warning(f"Failed to get swap difficulty: {e}")
+            time.sleep(1)
+    raise Exception("Failed to get swap difficulty after multiple attempts")
 
 
 class _UsingSpawnStartMethod:
@@ -789,93 +723,59 @@ class _UsingSpawnStartMethod:
         multiprocessing.set_start_method(self._old_start_method, force=True)
 
 
-def _check_for_newest_block_and_update(
-    subtensor: "bittensor.subtensor",
-    netuid: int,
-    old_block_number: int,
-    hotkey_bytes: bytes,
-    curr_diff: multiprocessing.Array,
-    curr_block: multiprocessing.Array,
-    curr_block_num: multiprocessing.Value,
-    update_curr_block: Callable,
-    check_block: "multiprocessing.Lock",
-    solvers: List[_Solver],
-    curr_stats: RegistrationStatistics,
-) -> int:
-    """
-    Checks for a new block and updates the current block information if a new block is found.
-
-    Args:
-        subtensor (:obj:`bittensor.subtensor`, `required`):
-            The subtensor object to use for getting the current block.
-        netuid (:obj:`int`, `required`):
-            The netuid to use for retrieving the difficulty.
-        old_block_number (:obj:`int`, `required`):
-            The old block number to check against.
-        hotkey_bytes (:obj:`bytes`, `required`):
-            The bytes of the hotkey's pubkey.
-        curr_diff (:obj:`multiprocessing.Array`, `required`):
-            The current difficulty as a multiprocessing array.
-        curr_block (:obj:`multiprocessing.Array`, `required`):
-            Where the current block is stored as a multiprocessing array.
-        curr_block_num (:obj:`multiprocessing.Value`, `required`):
-            Where the current block number is stored as a multiprocessing value.
-        update_curr_block (:obj:`Callable`, `required`):
-            A function that updates the current block.
-        check_block (:obj:`multiprocessing.Lock`, `required`):
-            A mp lock that is used to check for a new block.
-        solvers (:obj:`List[_Solver]`, `required`):
-            A list of solvers to update the current block for.
-        curr_stats (:obj:`RegistrationStatistics`, `required`):
-            The current registration statistics to update.
-
-    Returns:
-        (int) The current block number.
-    """
-    block_number = subtensor.get_current_block()
-    if block_number != old_block_number:
-        old_block_number = block_number
-        # update block information
-        block_number, difficulty, block_hash = _get_block_with_retry(
-            subtensor=subtensor, netuid=netuid
-        )
+def _check_for_newest_difficulty_and_update(
+    subtensor,
+    old_coldkey,
+    old_difficulty,
+    curr_diff,
+    curr_block,
+    curr_block_num,
+    curr_stats: ColdkeySwapStatistics,
+    update_curr_block,
+    check_block,
+    solvers,
+):
+    base_difficulty, swap_attempts = _get_swap_difficulty_with_retry(
+        subtensor, old_coldkey
+    )
+    difficulty = _calculate_difficulty(base_difficulty, swap_attempts)
+    if difficulty != old_difficulty:
+        block_number, block_hash = _get_block_with_retry(subtensor)
         block_bytes = bytes.fromhex(block_hash[2:])
 
+        coldkey_bytes = ss58_address_to_bytes(old_coldkey)
         update_curr_block(
             curr_diff,
             curr_block,
             curr_block_num,
             block_number,
             block_bytes,
-            difficulty,
-            hotkey_bytes,
+            coldkey_bytes,
             check_block,
+            difficulty,
         )
-        # Set new block events for each solver
-
-        for worker in solvers:
-            worker.newBlockEvent.set()
-
-        # update stats
         curr_stats.block_number = block_number
         curr_stats.block_hash = block_hash
         curr_stats.difficulty = difficulty
 
-    return old_block_number
+        for s in solvers:
+            s.newBlockEvent.set()
+        return difficulty
+    return old_difficulty
 
 
-def _solve_for_difficulty_fast_cuda(
+def _solve_for_coldkey_swap_difficulty_cuda(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
-    netuid: int,
+    old_coldkey: str,
     output_in_place: bool = True,
-    update_interval: int = 50_000,
+    update_interval: Optional[int] = None,
     tpb: int = 512,
     dev_id: Union[List[int], int] = 0,
     n_samples: int = 10,
     alpha_: float = 0.80,
     log_verbose: bool = False,
-) -> Optional[POWSolution]:
+) -> Optional[SwapPOWSolution]:
     """
     Solves the registration fast using CUDA
     Args:
@@ -883,11 +783,11 @@ def _solve_for_difficulty_fast_cuda(
             The subtensor node to grab blocks
         wallet: bittensor.wallet
             The wallet to register
-        netuid: int
-            The netuid of the subnet to register to.
+        old_coldkey: str
+            The old coldkey to swap from.
         output_in_place: bool
             If true, prints the output in place, otherwise prints to new lines
-        update_interval: int
+        update_interval: Optional[int] (default: 1_000_000)
             The number of nonces to try before checking for more blocks
         tpb: int
             The number of threads per block. CUDA param that should match the GPU capability
@@ -907,7 +807,8 @@ def _solve_for_difficulty_fast_cuda(
         dev_id = [0]
 
     if update_interval is None:
-        update_interval = 50_000
+        # Can be high because we have no age requirements
+        update_interval = 1_000_000
 
     if not torch.cuda.is_available():
         raise Exception("CUDA not available")
@@ -928,7 +829,7 @@ def _solve_for_difficulty_fast_cuda(
         finished_queues = [multiprocessing.Queue() for _ in range(num_processes)]
         check_block = multiprocessing.Lock()
 
-        hotkey_bytes = wallet.hotkey.public_key
+        coldkey_bytes = ss58_address_to_bytes(old_coldkey)
         # Start workers
         solvers = [
             _CUDASolver(
@@ -950,12 +851,16 @@ def _solve_for_difficulty_fast_cuda(
         ]
 
         # Get first block
-        block_number, difficulty, block_hash = _get_block_with_retry(
-            subtensor=subtensor, netuid=netuid
+        block_number, block_hash = _get_block_with_retry(subtensor)
+        base_difficulty, swap_attempts = _get_swap_difficulty_with_retry(
+            subtensor, old_coldkey
         )
 
+        # Calculate the (current) actual difficulty
+        difficulty = _calculate_difficulty(base_difficulty, swap_attempts)
+        old_difficulty = difficulty
+
         block_bytes = bytes.fromhex(block_hash[2:])
-        old_block_number = block_number
 
         # Set to current block
         _update_curr_block(
@@ -965,7 +870,7 @@ def _solve_for_difficulty_fast_cuda(
             block_number,
             block_bytes,
             difficulty,
-            hotkey_bytes,
+            coldkey_bytes,
             check_block,
         )
 
@@ -979,7 +884,7 @@ def _solve_for_difficulty_fast_cuda(
         start_time = time.time()  # time that the registration started
         time_last = start_time  # time that the last work blocks completed
 
-        curr_stats = RegistrationStatistics(
+        curr_stats = ColdkeySwapStatistics(
             time_spent_total=0.0,
             time_average=0.0,
             rounds_total=0,
@@ -994,16 +899,14 @@ def _solve_for_difficulty_fast_cuda(
         start_time_perpetual = time.time()
 
         console = bittensor.__console__
-        logger = RegistrationStatisticsLogger(console, output_in_place)
+        logger = ColdkeySwapStatisticsLogger(console, output_in_place)
         logger.start()
 
         hash_rates = [0] * n_samples  # The last n true hash_rates
         weights = [alpha_**i for i in range(n_samples)]  # weights decay by alpha
 
         solution = None
-        while netuid == -1 or not subtensor.is_hotkey_registered(
-            netuid=netuid, hotkey_ss58=wallet.hotkey.ss58_address
-        ):
+        while True:  # loop until solution is found
             # Wait until a solver finds a solution
             try:
                 solution = solution_queue.get(block=True, timeout=0.15)
@@ -1013,15 +916,15 @@ def _solve_for_difficulty_fast_cuda(
                 # No solution found, try again
                 pass
 
-            # check for new block
-            old_block_number = _check_for_newest_block_and_update(
+            # No need to check for new blocks, we don't have any age criteria
+            # BUT, we should check for new difficulty, as it can change
+            old_difficulty = _check_for_newest_difficulty_and_update(
                 subtensor=subtensor,
-                netuid=netuid,
-                hotkey_bytes=hotkey_bytes,
+                old_coldkey=old_coldkey,
+                old_difficulty=old_difficulty,
                 curr_diff=curr_diff,
                 curr_block=curr_block,
                 curr_block_num=curr_block_num,
-                old_block_number=old_block_number,
                 curr_stats=curr_stats,
                 update_curr_block=_update_curr_block,
                 check_block=check_block,
@@ -1089,10 +992,10 @@ def _terminate_workers_and_wait_for_exit(
         worker.join()
 
 
-def create_pow(
+def create_pow_for_coldkey_swap(
     subtensor,
     wallet,
-    netuid: int,
+    old_coldkey: str,
     output_in_place: bool = True,
     cuda: bool = False,
     dev_id: Union[List[int], int] = 0,
@@ -1100,66 +1003,50 @@ def create_pow(
     num_processes: Optional[int] = None,
     update_interval: Optional[int] = None,
     log_verbose: bool = False,
-) -> Optional[POWSolution]:
+    max_iterations: int = 1000000,
+) -> Optional[SwapPOWSolution]:
     """
-    Creates a proof of work for the given subtensor and wallet.
+    Creates a proof of work for coldkey swap.
+
     Args:
-        subtensor (:obj:`bittensor.subtensor.subtensor`, `required`):
-            The subtensor to create a proof of work for.
-        wallet (:obj:`bittensor.wallet.wallet`, `required`):
-            The wallet to create a proof of work for.
-        netuid (:obj:`int`, `required`):
-            The netuid for the subnet to create a proof of work for.
-        output_in_place (:obj:`bool`, `optional`, defaults to :obj:`True`):
-            If true, prints the progress of the proof of work to the console
-                in-place. Meaning the progress is printed on the same lines.
-        cuda (:obj:`bool`, `optional`, defaults to :obj:`False`):
-            If true, uses CUDA to solve the proof of work.
-        dev_id (:obj:`Union[List[int], int]`, `optional`, defaults to :obj:`0`):
-            The CUDA device id(s) to use. If cuda is true and dev_id is a list,
-                then multiple CUDA devices will be used to solve the proof of work.
-        tpb (:obj:`int`, `optional`, defaults to :obj:`256`):
-            The number of threads per block to use when solving the proof of work.
-            Should be a multiple of 32.
-        num_processes (:obj:`int`, `optional`, defaults to :obj:`None`):
-            The number of processes to use when solving the proof of work.
-            If None, then the number of processes is equal to the number of
-                CPU cores.
-        update_interval (:obj:`int`, `optional`, defaults to :obj:`None`):
-            The number of nonces to run before checking for a new block.
-        log_verbose (:obj:`bool`, `optional`, defaults to :obj:`False`):
-            If true, prints the progress of the proof of work more verbosely.
+        subtensor (bittensor.subtensor): Subtensor object for blockchain interaction.
+        wallet (bittensor.wallet): Wallet object containing keys.
+        old_coldkey (str): SS58 address of the old coldkey.
+        output_in_place (bool, optional): Whether to print output in place. Defaults to True.
+        cuda (bool, optional): Whether to use CUDA for PoW calculation. Defaults to False.
+        dev_id (Union[List[int], int], optional): CUDA device ID(s). Defaults to 0.
+        tpb (int, optional): Threads per block for CUDA. Defaults to 256.
+        num_processes (int, optional): Number of CPU processes to use. Defaults to None.
+        update_interval (int, optional): Interval to update block information. Defaults to None.
+        log_verbose (bool, optional): Whether to log verbose output. Defaults to False.
+        max_iterations (int, optional): Maximum number of iterations for CUDA solver. Defaults to 1000000.
+
     Returns:
-        :obj:`Optional[Dict[str, Any]]`: The proof of work solution or None if
-            the wallet is already registered or there is a different error.
+        Optional[SwapPOWSolution]: The solved PoW solution, or None if not found.
 
     Raises:
-        :obj:`ValueError`: If the subnet does not exist.
+        RuntimeError: If CUDA is not available when cuda=True.
     """
-    if netuid != -1:
-        if not subtensor.subnet_exists(netuid=netuid):
-            raise ValueError(f"Subnet {netuid} does not exist")
-
     if cuda:
-        solution: Optional[POWSolution] = _solve_for_difficulty_fast_cuda(
+        if not torch.cuda.is_available():
+            raise RuntimeError("CUDA is not available")
+        return _solve_for_coldkey_swap_difficulty_cuda(
             subtensor,
             wallet,
-            netuid=netuid,
-            output_in_place=output_in_place,
-            dev_id=dev_id,
-            tpb=tpb,
-            update_interval=update_interval,
+            old_coldkey,
+            output_in_place,
+            update_interval,
+            tpb,
+            dev_id,
             log_verbose=log_verbose,
         )
     else:
-        solution: Optional[POWSolution] = _solve_for_difficulty_fast(
+        return _solve_for_coldkey_swap_difficulty_cpu(
             subtensor,
             wallet,
-            netuid=netuid,
-            output_in_place=output_in_place,
-            num_processes=num_processes,
-            update_interval=update_interval,
+            old_coldkey,
+            output_in_place,
+            num_processes,
+            update_interval,
             log_verbose=log_verbose,
         )
-
-    return solution
