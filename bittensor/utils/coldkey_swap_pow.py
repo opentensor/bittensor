@@ -1034,12 +1034,10 @@ def create_pow_for_coldkey_swap(
             wallet,
             old_coldkey,
             output_in_place,
-            dev_id,
-            tpb,
-            num_processes,
             update_interval,
-            log_verbose,
-            max_iterations,
+            tpb,
+            dev_id,
+            log_verbose=log_verbose,
         )
     else:
         return _solve_for_coldkey_swap_difficulty_cpu(
@@ -1049,5 +1047,5 @@ def create_pow_for_coldkey_swap(
             output_in_place,
             num_processes,
             update_interval,
-            log_verbose,
+            log_verbose=log_verbose,
         )
