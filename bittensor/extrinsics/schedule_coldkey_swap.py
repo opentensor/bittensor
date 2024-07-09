@@ -4,7 +4,7 @@ from rich.prompt import Confirm
 
 from bittensor.utils import torch
 from bittensor.utils.registration import POWSolution
-from bittensor.utils.coldkey_swap_pow import create_pow_for_coldkey_swap
+from bittensor.utils.coldkey_swap_pow import create_pow_for_coldkey_swap, SwapPOWSolution
 
 
 def schedule_coldkey_swap_extrinsic(
@@ -134,7 +134,7 @@ def _generate_pow_for_coldkey_swap(
     num_processes: Optional[int] = None,
     update_interval: Optional[int] = None,
     log_verbose: bool = False,
-) -> Optional[POWSolution]:
+) -> Optional[SwapPOWSolution]:
     """
     Generate the proof of work for a scheduled cold-key swap.
 
@@ -151,7 +151,7 @@ def _generate_pow_for_coldkey_swap(
         log_verbose (bool, optional): If true, prints the progress of the proof of work more verbosely.
 
     Returns:
-        Optional[POWSolution]: The proof of work solution if found, None otherwise.
+        Optional[SwapPOWSolution]: The proof of work solution if found, None otherwise.
 
     Raises:
         ValueError: If unable to solve POW after maximum attempts.

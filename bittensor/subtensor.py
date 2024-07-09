@@ -103,7 +103,7 @@ from .extrinsics.unstaking import (
     unstake_extrinsic,
     unstake_multiple_extrinsic,
 )
-from .extrinsics.schedule_coldkey_swap import schedule_coldkey_swap_extrinsic
+from .extrinsics.schedule_coldkey_swap import schedule_coldkey_swap_extrinsic, SwapPOWSolution
 from .types import AxonServeCallParams, PrometheusServeCallParams
 from .utils import (
     U16_NORMALIZED_FLOAT,
@@ -2343,7 +2343,7 @@ class Subtensor:
         self,
         wallet: "bittensor.wallet",
         new_coldkey: str,
-        pow_result: POWSolution,
+        pow_result: SwapPOWSolution,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
     ) -> Tuple[bool, Optional[str]]:  # (success, error_message)
