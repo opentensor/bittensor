@@ -483,7 +483,7 @@ def _solve_for_coldkey_swap_difficulty_cpu(
         num_processes = min(1, get_cpu_count())
 
     if update_interval is None:
-        update_interval = 50_000
+        update_interval = 1_000_000 # Should be high because we have no age criteria
 
     limit = int(math.pow(2, 256)) - 1
 
@@ -750,7 +750,7 @@ def _solve_for_coldkey_swap_difficulty_cuda(
     wallet: "bittensor.wallet",
     old_coldkey: str,
     output_in_place: bool = True,
-    update_interval: int = 50_000,
+    update_interval: Optional[int] = None,
     tpb: int = 512,
     dev_id: Union[List[int], int] = 0,
     n_samples: int = 10,
@@ -768,7 +768,7 @@ def _solve_for_coldkey_swap_difficulty_cuda(
             The old coldkey to swap from.
         output_in_place: bool
             If true, prints the output in place, otherwise prints to new lines
-        update_interval: int
+        update_interval: Optional[int] (default: 1_000_000)
             The number of nonces to try before checking for more blocks
         tpb: int
             The number of threads per block. CUDA param that should match the GPU capability
@@ -788,7 +788,7 @@ def _solve_for_coldkey_swap_difficulty_cuda(
         dev_id = [0]
 
     if update_interval is None:
-        update_interval = 50_000
+        update_interval = 1_000_000
 
     if not torch.cuda.is_available():
         raise Exception("CUDA not available")
