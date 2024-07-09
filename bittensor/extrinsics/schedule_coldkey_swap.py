@@ -84,22 +84,23 @@ def schedule_coldkey_swap_extrinsic(
     ):
         return False, "User cancelled the operation."
 
-    with bittensor.__console__.status(":satellite: Scheduling coldkey swap..."):
-        try:
-            # Generate the POW
-            pow_result = _generate_pow_for_coldkey_swap(
-                subtensor=subtensor,
-                wallet=wallet,
-                old_coldkey=wallet.coldkeypub.ss58_address,  # swapping from the signer coldkey
-                max_allowed_attempts=max_allowed_attempts,
-                output_in_place=output_in_place,
-                cuda=cuda,
-                dev_id=dev_id,
-                tpb=tpb,
-                num_processes=num_processes,
-                update_interval=update_interval,
-                log_verbose=log_verbose,
-            )
+    
+    try:
+        # Generate the POW
+        pow_result = _generate_pow_for_coldkey_swap(
+            subtensor=subtensor,
+            wallet=wallet,
+            old_coldkey=wallet.coldkeypub.ss58_address,  # swapping from the signer coldkey
+            max_allowed_attempts=max_allowed_attempts,
+            output_in_place=output_in_place,
+            cuda=cuda,
+            dev_id=dev_id,
+            tpb=tpb,
+            num_processes=num_processes,
+            update_interval=update_interval,
+            log_verbose=log_verbose,
+        )
+        with bittensor.__console__.status(":satellite: Scheduling coldkey swap..."):
 
             # Call Subtensor with POW
             success, error_message = subtensor._do_schedule_coldkey_swap(
@@ -132,14 +133,14 @@ def schedule_coldkey_swap_extrinsic(
                 )
                 return False, error_message
 
-        except Exception as e:
-            bittensor.__console__.print(
-                ":cross_mark: [red]Failed[/red]: error:{}".format(e)
-            )
-            bittensor.logging.warning(
-                prefix="Schedule Coldkey Swap", suffix="<red>Failed: </red>" + str(e)
-            )
-            return False, str(e)
+    except Exception as e:
+        bittensor.__console__.print(
+            ":cross_mark: [red]Failed[/red]: error:{}".format(e)
+        )
+        bittensor.logging.warning(
+            prefix="Schedule Coldkey Swap", suffix="<red>Failed: </red>" + str(e)
+        )
+        return False, str(e)
 
 
 def _generate_pow_for_coldkey_swap(
