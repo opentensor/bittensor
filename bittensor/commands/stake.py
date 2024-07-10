@@ -597,7 +597,7 @@ class SetChildCommand:
 
     @staticmethod
     def run(cli: "bittensor.cli"):
-        r"""Set child hotkey."""
+        """Set child hotkey."""
         try:
             subtensor: "bittensor.subtensor" = bittensor.subtensor(
                 config=cli.config, log_verbose=False
@@ -730,7 +730,7 @@ class SetChildrenCommand:
 
     @staticmethod
     def run(cli: "bittensor.cli"):
-        r"""Set children hotkeys."""
+        """Set children hotkeys."""
         try:
             subtensor: "bittensor.subtensor" = bittensor.subtensor(
                 config=cli.config, log_verbose=False
@@ -767,6 +767,7 @@ class SetChildrenCommand:
         # Parse from strings
         netuid = cli.config.netuid
 
+        # extract proportions and child addresses from cli input
         proportions = [float(x) for x in re.split(r"[ ,]+", cli.config.proportions)]
         children = [str(x) for x in re.split(r"[ ,]+", cli.config.children)]
 
@@ -779,7 +780,7 @@ class SetChildrenCommand:
         total_proposed = sum(proportions)
         if total_proposed > 1:
             raise ValueError(
-                f":cross_mark:[red] The sum of all proportions cannot be greater than 1. Proposed sum of proportions is {total_proposed}[/red]"
+                f"The sum of all proportions cannot be greater than 1. Proposed sum of proportions is {total_proposed}."
             )
 
         success, message = subtensor.set_children_multiple(
@@ -877,7 +878,7 @@ class GetChildrenCommand:
 
     @staticmethod
     def run(cli: "bittensor.cli"):
-        r"""Set child hotkey."""
+        """Get children hotkeys."""
         try:
             subtensor: "bittensor.subtensor" = bittensor.subtensor(
                 config=cli.config, log_verbose=False

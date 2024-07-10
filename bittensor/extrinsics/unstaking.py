@@ -462,33 +462,25 @@ def do_revoke_child_singular_extrinsic(
     wait_for_finalization: bool = False,
     prompt: bool = False,
 ) -> Tuple[bool, str]:
-    r"""
+    """
     Revokes child hotkey from subnet.
 
     Args:
-        subtensor (bittensor.subtensor):
-            Subtensor endpoint to use.
-        wallet (bittensor.wallet):
-            Bittensor wallet object.
-        hotkey (str):
-            Parent hotkey.
-        child (str):
-            Child hotkey.
-        netuid (int):
-            Unique identifier of for the subnet.
-        wait_for_inclusion (bool):
-            If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization (bool):
-            If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
-        prompt (bool):
-            If ``true``, the call waits for confirmation from the user before proceeding.
+        subtensor (bittensor.subtensor): Subtensor endpoint to use.
+        wallet (bittensor.wallet): Bittensor wallet object.
+        hotkey (str): Parent hotkey.
+        child (str): Child hotkey.
+        netuid (int): Unique identifier of for the subnet.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
+        prompt (bool): If ``true``, the call waits for confirmation from the user before proceeding.
+
     Returns:
         Tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
+
     Raises:
-        bittensor.errors.ChildHotkeyError:
-            If the extrinsic fails to be finalized or included in the block.
-        bittensor.errors.NotRegisteredError:
-            If the hotkey is not registered in any subnets.
+        bittensor.errors.ChildHotkeyError: If the extrinsic fails to be finalized or included in the block.
+        bittensor.errors.NotRegisteredError: If the hotkey is not registered in any subnets.
 
     """
     # Ask before moving on.
@@ -542,34 +534,25 @@ def do_revoke_children_multiple_extrinsic(
     wait_for_finalization: bool = False,
     prompt: bool = False,
 ) -> Tuple[bool, str]:
-    r"""
+    """
     Revokes children hotkeys from subnet.
 
     Args:
-        subtensor (bittensor.subtensor):
-            Subtensor endpoint to use.
-        wallet (bittensor.wallet):
-            Bittensor wallet object.
-        hotkey (str):
-            Parent hotkey.
-        children (List[str]):
-            Children hotkeys.
-        netuid (int):
-            Unique identifier of for the subnet.
-        wait_for_inclusion (bool):
-            If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization (bool):
-            If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
-        prompt (bool):
-            If ``true``, the call waits for confirmation from the user before proceeding.
+        subtensor (bittensor.subtensor): Subtensor endpoint to use.
+        wallet (bittensor.wallet): Bittensor wallet object.
+        hotkey (str): Parent hotkey.
+        children (List[str]): Children hotkeys.
+        netuid (int): Unique identifier of for the subnet.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
+        prompt (bool): If ``true``, the call waits for confirmation from the user before proceeding.
+
     Returns:
-        success (bool):
-            Flag is ``true`` if extrinsic was finalized or included in the block. If we did not wait for finalization / inclusion, the response is ``true``.
+        success (bool): Flag is ``true`` if extrinsic was finalized or included in the block. If we did not wait for finalization / inclusion, the response is ``true``.
+
     Raises:
-        bittensor.errors.ChildHotkeyError:
-            If the extrinsic fails to be finalized or included in the block.
-        bittensor.errors.NotRegisteredError:
-            If the hotkey is not registered in any subnets.
+        bittensor.errors.ChildHotkeyError: If the extrinsic fails to be finalized or included in the block.
+        bittensor.errors.NotRegisteredError: If the hotkey is not registered in any subnets.
 
     """
     # Ask before moving on.
@@ -615,6 +598,7 @@ def do_revoke_children_multiple_extrinsic(
 
 
 def subtensor_result(error_message, success):
+    """Print message according to the result of the call."""
     if success is True:
         bittensor.__console__.print(":white_heavy_check_mark: [green]Finalized[/green]")
         bittensor.logging.success(
