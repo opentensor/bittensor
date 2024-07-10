@@ -52,6 +52,7 @@ def test_check_and_schedule_coldkey_swap(local_chain, capsys):
     # Assert one swap has already been scheduled
     output = capsys.readouterr().out
     assert "There has been 1 swap request made for this coldkey already." in output
+    assert "Your key swap is scheduled for " in output
 
     # Generate new wallet to transfer to
     dave_keypair, dave_exec_command, dave_wallet_path = setup_wallet("//Dave")

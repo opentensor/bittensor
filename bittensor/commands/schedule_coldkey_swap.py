@@ -27,6 +27,32 @@ from . import defaults
 console = bittensor.__console__
 
 
+def fetch_arbitration_stats(subtensor, wallet):
+    """
+    Performs a check of the current arbitration data (if any), and displays it through the bittensor console.
+    """
+    arbitration_check = len(subtensor.check_in_arbitration(wallet.coldkey.ss58_address))
+    if arbitration_check == 0:
+        bittensor.__console__.print(
+            "[green]There has been no previous key swap initiated for your coldkey.[/green]"
+        )
+    if arbitration_check == 1:
+        arbitration_remaining = subtensor.get_remaining_arbitration_period(
+            wallet.coldkey.ss58_address
+        )
+        hours, minutes, seconds = convert_blocks_to_time(arbitration_remaining)
+        bittensor.__console__.print(
+            "[yellow]There has been 1 swap request made for this coldkey already."
+            " By adding another swap request, the key will enter arbitration."
+            f" Your key swap is scheduled for {hours} hours, {minutes} minutes, {seconds} seconds"
+            " from now.[/yellow]"
+        )
+    if arbitration_check > 1:
+        bittensor.__console__.print(
+            f"[red]This coldkey is currently in arbitration with a total swaps of {arbitration_check}.[/red]"
+        )
+
+
 class ScheduleColdKeySwapCommand:
     """
     Executes the ``schedule_coldkey_swap`` command to schedule a coldkey swap on the Bittensor network.
@@ -86,7 +112,7 @@ class ScheduleColdKeySwapCommand:
             "[yellow]If you call this on the same key multiple times, the key will enter arbitration.[/yellow]"
         )
 
-        ScheduleColdKeySwapCommand.fetch_arbitration_stats(subtensor, wallet)
+        fetch_arbitration_stats(subtensor, wallet)
 
         # Get the values for the command
         if not cli.config.is_set("new_coldkey"):
@@ -221,25 +247,6 @@ class ScheduleColdKeySwapCommand:
         bittensor.wallet.add_args(schedule_coldkey_swap_parser)
         bittensor.subtensor.add_args(schedule_coldkey_swap_parser)
 
-    @staticmethod
-    def fetch_arbitration_stats(subtensor, wallet):
-        arbitration_check = len(
-            subtensor.check_in_arbitration(wallet.coldkey.ss58_address)
-        )
-        if arbitration_check == 0:
-            bittensor.__console__.print(
-                "[green]There has been no previous key swap initiated for your coldkey.[/green]"
-            )
-        if arbitration_check == 1:
-            bittensor.__console__.print(
-                "[yellow]There has been 1 swap request made for this coldkey already."
-                " By adding another swap request, the key will enter arbitration.[/yellow]"
-            )
-        if arbitration_check > 1:
-            bittensor.__console__.print(
-                f"[red]This coldkey is currently in arbitration with a total swaps of {arbitration_check}.[/red]"
-            )
-
 
 class CheckColdKeySwapCommand:
     """
@@ -289,31 +296,7 @@ class CheckColdKeySwapCommand:
         config = cli.config.copy()
         wallet = bittensor.wallet(config=config)
 
-        CheckColdKeySwapCommand.fetch_arbitration_stats(subtensor, wallet)
-
-    @staticmethod
-    def fetch_arbitration_stats(subtensor, wallet):
-        arbitration_check = len(
-            subtensor.check_in_arbitration(wallet.coldkey.ss58_address)
-        )
-        if arbitration_check == 0:
-            bittensor.__console__.print(
-                "[green]There has been no previous key swap initiated for your coldkey.[/green]"
-            )
-        if arbitration_check == 1:
-            arbitration_remaining = subtensor.get_remaining_arbitration_period(
-                wallet.coldkey.ss58_address
-            )
-            hours, minutes, seconds = convert_blocks_to_time(arbitration_remaining)
-            bittensor.__console__.print(
-                "[yellow]There has been 1 swap request made for this coldkey already."
-                " By adding another swap request, the key will enter arbitration."
-                f" Your key swap is scheduled for {hours} hours, {minutes} minutes, {seconds} seconds"
-            )
-        if arbitration_check > 1:
-            bittensor.__console__.print(
-                f"[red]This coldkey is currently in arbitration with a total swaps of {arbitration_check}.[/red]"
-            )
+        fetch_arbitration_stats(subtensor, wallet)
 
     @classmethod
     def check_config(cls, config: "bittensor.config"):

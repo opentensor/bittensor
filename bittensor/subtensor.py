@@ -44,7 +44,6 @@ from bittensor.btlogging import logging as _logger
 from bittensor.utils import torch, weight_utils, format_error_message
 from bittensor.utils.registration import (
     POWSolution,
-    create_pow,
     torch,
 )
 
@@ -4612,38 +4611,6 @@ class Subtensor:
     ######################################
     # Scheduled Coldkey Swap Information
     ######################################
-
-    def get_scheduled_coldkey_swap(
-        self, coldkey_ss58: str, block: Optional[int] = None
-    ) -> Optional[ScheduledColdkeySwapInfo]:
-        """
-        Retrieves the scheduled coldkey swap information for a given coldkey.
-
-        Args:
-            coldkey_ss58 (str): The SS58 address of the coldkey.
-            block (Optional[int], optional): The block number to query. If None, uses the latest block.
-
-        Returns:
-            Optional[ScheduledColdkeySwapInfo]: The scheduled coldkey swap information, or None if not found.
-        """
-        encoded_coldkey = ss58_to_vec_u8(coldkey_ss58)
-
-        hex_bytes_result = self.query_runtime_api(
-            runtime_api="ColdkeySwapRuntimeApi",
-            method="get_scheduled_coldkey_swap",
-            params=[encoded_coldkey],
-            block=block,
-        )
-
-        if hex_bytes_result is None:
-            return None
-
-        if hex_bytes_result.startswith("0x"):
-            bytes_result = bytes.fromhex(hex_bytes_result[2:])
-        else:
-            bytes_result = bytes.fromhex(hex_bytes_result)
-
-        return ScheduledColdkeySwapInfo.from_vec_u8(bytes_result)
 
     def get_coldkey_swap_destinations(
         self, coldkey_ss58: str, block: Optional[int] = None
