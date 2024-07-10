@@ -41,7 +41,7 @@ from substrateinterface.exceptions import SubstrateRequestException
 
 import bittensor
 from bittensor.btlogging import logging as _logger
-from bittensor.utils import torch, weight_utils, format_error_message
+from bittensor.utils import weight_utils, format_error_message
 from bittensor.utils.registration import (
     POWSolution,
     torch,
@@ -59,7 +59,6 @@ from .chain_data import (
     AxonInfo,
     ProposalVoteData,
     IPInfo,
-    ScheduledColdkeySwapInfo,
     custom_rpc_type_registry,
 )
 from .errors import IdentityError, NominationError, StakeError, TakeError
@@ -116,7 +115,6 @@ from .utils import (
     networking,
 )
 from .utils.balance import Balance
-from .utils.registration import POWSolution
 from .utils.registration import legacy_torch_api_compat
 from .utils.subtensor import get_subtensor_errors
 
