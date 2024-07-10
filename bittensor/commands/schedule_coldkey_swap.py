@@ -239,7 +239,7 @@ class ScheduleColdKeySwapCommand:
                 "[yellow]There has been 1 swap request made for this coldkey already."
                 " By adding another swap request, the key will enter arbitration."
                 f" Your key swap is scheduled for {hours} hours, {minutes} minutes, {seconds} seconds"
-                f" from now.[/yellow]"
+                " from now.[/yellow]"
             )
         if arbitration_check > 1:
             bittensor.__console__.print(
@@ -315,7 +315,7 @@ class CheckColdKeySwapCommand:
                 "[yellow]There has been 1 swap request made for this coldkey already."
                 " By adding another swap request, the key will enter arbitration."
                 f" Your key swap is scheduled for {hours} hours, {minutes} minutes, {seconds} seconds"
-                f" from now.[/yellow]"
+                " from now.[/yellow]"
             )
         if arbitration_check > 1:
             bittensor.__console__.print(
