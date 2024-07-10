@@ -1,5 +1,3 @@
-
-
 from bittensor.utils.formatting import convert_blocks_to_time
 
 
