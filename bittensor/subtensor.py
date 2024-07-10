@@ -41,10 +41,9 @@ from substrateinterface.exceptions import SubstrateRequestException
 
 import bittensor
 from bittensor.btlogging import logging as _logger
-from bittensor.utils import torch, weight_utils, format_error_message
+from bittensor.utils import weight_utils, format_error_message
 from bittensor.utils.registration import (
     POWSolution,
-    create_pow,
     torch,
 )
 
@@ -60,7 +59,6 @@ from .chain_data import (
     AxonInfo,
     ProposalVoteData,
     IPInfo,
-    ScheduledColdkeySwapInfo,
     custom_rpc_type_registry,
 )
 from .errors import IdentityError, NominationError, StakeError, TakeError
@@ -117,7 +115,6 @@ from .utils import (
     networking,
 )
 from .utils.balance import Balance
-from .utils.registration import POWSolution
 from .utils.registration import legacy_torch_api_compat
 from .utils.subtensor import get_subtensor_errors
 
@@ -2427,6 +2424,31 @@ class Subtensor:
             "SubtensorModule", "ColdkeySwapDestinations", params=[ss58_address]
         ).decode()
 
+    def get_remaining_arbitration_period(
+        self, coldkey_ss58: str, block: Optional[int] = None
+    ) -> Optional[int]:
+        """
+        Retrieves the remaining arbitration period for a given coldkey.
+        Args:
+            coldkey_ss58 (str): The SS58 address of the coldkey.
+            block (Optional[int], optional): The block number to query. If None, uses the latest block.
+        Returns:
+            Optional[int]: The remaining arbitration period in blocks, or 0 if not found.
+        """
+        arbitration_block = self.query_subtensor(
+            name="ColdkeyArbitrationBlock",
+            block=block,
+            params=[coldkey_ss58],
+        )
+
+        if block is None:
+            block = self.block
+
+        if arbitration_block.value > block:
+            return arbitration_block.value - block
+        else:
+            return 0
+
     ##########
     # Senate #
     ##########
@@ -4587,38 +4609,6 @@ class Subtensor:
     ######################################
     # Scheduled Coldkey Swap Information
     ######################################
-
-    def get_scheduled_coldkey_swap(
-        self, coldkey_ss58: str, block: Optional[int] = None
-    ) -> Optional[ScheduledColdkeySwapInfo]:
-        """
-        Retrieves the scheduled coldkey swap information for a given coldkey.
-
-        Args:
-            coldkey_ss58 (str): The SS58 address of the coldkey.
-            block (Optional[int], optional): The block number to query. If None, uses the latest block.
-
-        Returns:
-            Optional[ScheduledColdkeySwapInfo]: The scheduled coldkey swap information, or None if not found.
-        """
-        encoded_coldkey = ss58_to_vec_u8(coldkey_ss58)
-
-        hex_bytes_result = self.query_runtime_api(
-            runtime_api="ColdkeySwapRuntimeApi",
-            method="get_scheduled_coldkey_swap",
-            params=[encoded_coldkey],
-            block=block,
-        )
-
-        if hex_bytes_result is None:
-            return None
-
-        if hex_bytes_result.startswith("0x"):
-            bytes_result = bytes.fromhex(hex_bytes_result[2:])
-        else:
-            bytes_result = bytes.fromhex(hex_bytes_result)
-
-        return ScheduledColdkeySwapInfo.from_vec_u8(bytes_result)
 
     def get_coldkey_swap_destinations(
         self, coldkey_ss58: str, block: Optional[int] = None
