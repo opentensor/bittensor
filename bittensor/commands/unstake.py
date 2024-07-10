@@ -324,7 +324,7 @@ class RevokeChildCommand:
 
     @staticmethod
     def run(cli: "bittensor.cli"):
-        r"""Set child hotkey."""
+        """Revoke child hotkey."""
         try:
             subtensor: "bittensor.subtensor" = bittensor.subtensor(
                 config=cli.config, log_verbose=False
@@ -434,7 +434,7 @@ class RevokeChildrenCommand:
 
     @staticmethod
     def run(cli: "bittensor.cli"):
-        r"""Revokes children hotkeys."""
+        """Revokes children hotkeys."""
         try:
             subtensor: "bittensor.subtensor" = bittensor.subtensor(
                 config=cli.config, log_verbose=False

@@ -541,35 +541,25 @@ def do_set_child_singular_extrinsic(
     wait_for_finalization: bool = False,
     prompt: bool = False,
 ) -> Tuple[bool, str]:
-    r"""
+    """
     Sets child hotkey with a proportion assigned from the parent.
 
     Args:
-        subtensor (bittensor.subtensor):
-            Subtensor endpoint to use.
-        wallet (bittensor.wallet):
-            Bittensor wallet object.
-        hotkey (str):
-            Parent hotkey.
-        child (str):
-            Child hotkey.
-        netuid (int):
-            Unique identifier of for the subnet.
-        proportion (float):
-            Proportion assigned to child hotkey.
-        wait_for_inclusion (bool):
-            If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization (bool):
-            If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
-        prompt (bool):
-            If ``true``, the call waits for confirmation from the user before proceeding.
+        subtensor (bittensor.subtensor): Bittensor wallet object.
+        hotkey (str): Parent hotkey.
+        child (str): Child hotkey.
+        netuid (int): Unique identifier of for the subnet.
+        proportion (float): Proportion assigned to child hotkey.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
+        prompt (bool): If ``true``, the call waits for confirmation from the user before proceeding.
+
     Returns:
         Tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
+
     Raises:
-        bittensor.errors.ChildHotkeyError:
-            If the extrinsic fails to be finalized or included in the block.
-        bittensor.errors.NotRegisteredError:
-            If the hotkey is not registered in any subnets.
+        bittensor.errors.ChildHotkeyError: If the extrinsic fails to be finalized or included in the block.
+        bittensor.errors.NotRegisteredError: If the hotkey is not registered in any subnets.
 
     """
     # Ask before moving on.
@@ -629,35 +619,26 @@ def do_set_children_multiple_extrinsic(
     wait_for_finalization: bool = False,
     prompt: bool = False,
 ) -> Tuple[bool, str]:
-    r"""
+    """
     Sets children hotkeys with a proportion assigned from the parent.
 
     Args:
-        subtensor (bittensor.subtensor):
-            Subtensor endpoint to use.
-        wallet (bittensor.wallet):
-            Bittensor wallet object.
-        hotkey (str):
-            Parent hotkey.
-        children (List[str]):
-            Children hotkeys.
-        netuid (int):
-            Unique identifier of for the subnet.
-        proportions (np.ndarray):
-            Proportions assigned to children hotkeys.
-        wait_for_inclusion (bool):
-            If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization (bool):
-            If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
-        prompt (bool):
-            If ``true``, the call waits for confirmation from the user before proceeding.
+        subtensor (bittensor.subtensor): Subtensor endpoint to use.
+        wallet (bittensor.wallet): Bittensor wallet object.
+        hotkey (str): Parent hotkey.
+        children (List[str]): Children hotkeys.
+        netuid (int): Unique identifier of for the subnet.
+        proportions (np.ndarray): Proportions assigned to children hotkeys.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
+        prompt (bool): If ``true``, the call waits for confirmation from the user before proceeding.
+
     Returns:
         Tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
+
     Raises:
-        bittensor.errors.ChildHotkeyError:
-            If the extrinsic fails to be finalized or included in the block.
-        bittensor.errors.NotRegisteredError:
-            If the hotkey is not registered in any subnets.
+        bittensor.errors.ChildHotkeyError: If the extrinsic fails to be finalized or included in the block.
+        bittensor.errors.NotRegisteredError: If the hotkey is not registered in any subnets.
 
     """
     # Ask before moving on.
