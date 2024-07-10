@@ -2414,7 +2414,7 @@ class Subtensor:
                 return False, response.error_message
 
         return make_substrate_call_with_retry()
-    
+
     def get_remaining_arbitration_period(
         self, coldkey_ss58: str, block: Optional[int] = None
     ) -> Optional[int]:
