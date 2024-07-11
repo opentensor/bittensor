@@ -4,6 +4,7 @@ import binascii
 import hashlib
 import math
 import multiprocessing
+import multiprocessing.queues  # this must be imported separately, or could break type annotations
 import os
 import random
 import time
