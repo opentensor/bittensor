@@ -3,9 +3,20 @@ version: 2.1
 orbs:
   python: circleci/python@2.1.1
   python-lib: dialogue/python-lib@0.1.55
-  # coveralls: coveralls/coveralls@1.0.6
 
 jobs:
+  check-if-pr-is-draft:
+    docker:
+      - image: cimg/python:3.10
+    steps:
+      - checkout
+      - run:
+          name: Install jq
+          command: sudo apt-get update && sudo apt-get install -y jq
+      - run:
+          name: Check if PR is a draft
+          command: .circleci/check_pr_status.sh
+
   ruff:
     resource_class: small
     parameters:
@@ -137,6 +148,7 @@ jobs:
       - store_artifacts:
           path: test-results
 
+
       #- when:
           #condition:
             #equal: ["3.10.5", << parameters.python-version >> ]
@@ -152,6 +164,7 @@ jobs:
                   #CI_BRANCH: $CIRCLE_BRANCH
                   #CI_JOB_ID: $CIRCLE_NODE_INDEX
                   #COVERALLS_PARALLEL: true
+
 
   lint-and-type-check:
     resource_class: medium
@@ -275,6 +288,59 @@ jobs:
           command: |
             ./scripts/release/release.sh --github-token ${GH_API_ACCESS_TOKEN}
 
+  publish-to-pypi:
+    docker:
+      - image: cimg/python:3.10
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: |
+            python -m venv venv
+            . venv/bin/activate
+            pip install --upgrade pip
+            pip install wheel twine
+      - run:
+          name: Build package
+          command: |
+            . venv/bin/activate
+            python setup.py sdist bdist_wheel
+      - run:
+          name: Create .pypirc
+          command: |
+            echo -e "[distutils]" > ~/.pypirc
+            echo -e "index-servers =" >> ~/.pypirc
+            echo -e "    pypi" >> ~/.pypirc
+            echo -e "    bittensor\n" >> ~/.pypirc
+            echo -e "[bittensor]" >> ~/.pypirc
+            echo -e "repository = $BITTENSOR_REPOSITORY_URL" >> ~/.pypirc
+            echo -e "username = __token__" >> ~/.pypirc
+            echo -e "password = $PYPI_TOKEN" >> ~/.pypirc
+      - run:
+          name: Check if package version already exists
+          command: |
+            . venv/bin/activate
+            PACKAGE_NAME=$(python setup.py --name)
+            PACKAGE_VERSION=$(python setup.py --version)
+            if twine check dist/*; then
+              if pip install --index-url $BITTENSOR_REPOSITORY_URL $PACKAGE_NAME==$PACKAGE_VERSION; then
+                echo "!!!!!!!!!!!!!!!! Error: Version $PACKAGE_VERSION of $PACKAGE_NAME already exists on the bittensor repository !!!!!!!!!!!!!!!!"
+                circleci-agent step halt
+              else
+                echo "Version $PACKAGE_VERSION of $PACKAGE_NAME does not exist on the bittensor pypi. Proceeding with upload."
+              fi
+            else
+              echo "Error: Twine check failed."
+              circleci-agent step halt
+            fi
+      - run:
+          name: Publish to bittensor repository
+          command: |
+            . venv/bin/activate
+            if ! python -m twine upload --verbose --repository bittensor dist/*; then
+              echo "Error: Failed to upload package to bittensor repository"
+              exit 1
+            fi
 
 workflows:
   compatibility_checks:
@@ -291,12 +357,17 @@ workflows:
 
   pr-requirements:
     jobs:
+      - check-if-pr-is-draft
       - ruff:
           python-version: "3.9.13"
+          requires:
+            - check-if-pr-is-draft
       - build-and-test:
           matrix:
             parameters:
               python-version: ["3.9.13", "3.10.6", "3.11.4"]
+          requires:
+            - check-if-pr-is-draft
       - unit-tests-all-python-versions:
           requires:
             - build-and-test
@@ -305,7 +376,7 @@ workflows:
             parameters:
               python-version: ["3.9.13", "3.10.6", "3.11.4"]
           requires:
-            - build-and-test
+            - check-if-pr-is-draft
       #- coveralls:
           #requires:
             #- build-and-test
@@ -327,6 +398,17 @@ workflows:
             branches:
               only:
                 - /^(release|hotfix)/.*/
+      - hold-for-approval:
+          type: approval
+          filters:
+            branches:
+              only: /^release\/\d+\.\d+\.\d+$/
+      - publish-to-pypi:
+          requires:
+            - hold-for-approval
+          filters:
+            branches:
+              only: /^release\/\d+\.\d+\.\d+$/
 
   release-requirements:
     jobs:
