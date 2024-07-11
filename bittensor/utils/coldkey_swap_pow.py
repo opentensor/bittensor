@@ -985,11 +985,14 @@ def _solve_for_coldkey_swap_difficulty_cuda(
 
 
 def _terminate_workers_and_wait_for_exit(
-    workers: List[multiprocessing.Process],
+    workers: List[Union[multiprocessing.Process, multiprocessing.queues.Queue]],
 ) -> None:
     for worker in workers:
-        worker.terminate()
-        worker.join()
+        if isinstance(worker, multiprocessing.queues.Queue):
+            worker.join_thread()
+        else:
+            worker.join()
+        worker.close()
 
 
 def create_pow_for_coldkey_swap(
