@@ -16,10 +16,12 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import bittensor
-from rich.prompt import Confirm
 from time import sleep
-from typing import List, Union, Optional
+from typing import List, Optional, Union
+
+from rich.prompt import Confirm
+
+import bittensor
 from bittensor.utils.balance import Balance
 
 
@@ -168,7 +170,7 @@ def unstake_extrinsic(
         subtensor=subtensor, stake_balance=(stake_on_uid - unstaking_balance)
     ):
         bittensor.__console__.print(
-            f":warning: [yellow]This action will unstake the entire staked balance![/yellow]"
+            ":warning: [yellow]This action will unstake the entire staked balance![/yellow]"
         )
         unstaking_balance = stake_on_uid
 
@@ -232,7 +234,7 @@ def unstake_extrinsic(
             )
             return False
 
-    except bittensor.errors.NotRegisteredError as e:
+    except bittensor.errors.NotRegisteredError:
         bittensor.__console__.print(
             ":cross_mark: [red]Hotkey: {} is not registered.[/red]".format(
                 wallet.hotkey_str
@@ -352,7 +354,7 @@ def unstake_multiple_extrinsic(
             subtensor=subtensor, stake_balance=(stake_on_uid - unstaking_balance)
         ):
             bittensor.__console__.print(
-                f":warning: [yellow]This action will unstake the entire staked balance![/yellow]"
+                ":warning: [yellow]This action will unstake the entire staked balance![/yellow]"
             )
             unstaking_balance = stake_on_uid
 
@@ -424,7 +426,7 @@ def unstake_multiple_extrinsic(
                 )
                 continue
 
-        except bittensor.errors.NotRegisteredError as e:
+        except bittensor.errors.NotRegisteredError:
             bittensor.__console__.print(
                 ":cross_mark: [red]{} is not registered.[/red]".format(hotkey_ss58)
             )
