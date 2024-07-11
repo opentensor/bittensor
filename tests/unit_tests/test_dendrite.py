@@ -29,7 +29,7 @@ import pytest
 # Application
 import bittensor
 from bittensor.constants import DENDRITE_ERROR_MAPPING, DENDRITE_DEFAULT_ERROR
-from bittensor.dendrite import DendriteMixin
+from bittensor.dendrite import dendrite as Dendrite
 from bittensor.synapse import TerminalInfo
 from tests.helpers import _get_mock_wallet
 
@@ -400,7 +400,7 @@ def test_process_error_message(
     request_name,
 ):
     # Arrange
-    dendrite = DendriteMixin()
+    dendrite = Dendrite()
     synapse = Mock()
 
     synapse.timeout = synapse_timeout
