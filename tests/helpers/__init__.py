@@ -30,3 +30,14 @@ from .helpers import (
 def is_running_in_circleci():
     """Checks that tests are running in the app.circleci.com environment."""
     return os.getenv("CIRCLECI") == "true"
+
+
+__all__ = [
+    "_get_mock_coldkey",
+    "_get_mock_hotkey",
+    "_get_mock_keypair",
+    "_get_mock_wallet",
+    "CLOSE_IN_VALUE",
+    "MockConsole",
+    "__mock_wallet_factory__",
+]
