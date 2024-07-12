@@ -288,60 +288,6 @@ jobs:
           command: |
             ./scripts/release/release.sh --github-token ${GH_API_ACCESS_TOKEN}
 
-  publish-to-pypi:
-    docker:
-      - image: cimg/python:3.10
-    steps:
-      - checkout
-      - run:
-          name: Install dependencies
-          command: |
-            python -m venv venv
-            . venv/bin/activate
-            pip install --upgrade pip
-            pip install wheel twine
-      - run:
-          name: Build package
-          command: |
-            . venv/bin/activate
-            python setup.py sdist bdist_wheel
-      - run:
-          name: Create .pypirc
-          command: |
-            echo -e "[distutils]" > ~/.pypirc
-            echo -e "index-servers =" >> ~/.pypirc
-            echo -e "    pypi" >> ~/.pypirc
-            echo -e "    bittensor\n" >> ~/.pypirc
-            echo -e "[bittensor]" >> ~/.pypirc
-            echo -e "repository = $BITTENSOR_REPOSITORY_URL" >> ~/.pypirc
-            echo -e "username = __token__" >> ~/.pypirc
-            echo -e "password = $PYPI_TOKEN" >> ~/.pypirc
-      - run:
-          name: Check if package version already exists
-          command: |
-            . venv/bin/activate
-            PACKAGE_NAME=$(python setup.py --name)
-            PACKAGE_VERSION=$(python setup.py --version)
-            if twine check dist/*; then
-              if pip install --index-url $BITTENSOR_REPOSITORY_URL $PACKAGE_NAME==$PACKAGE_VERSION; then
-                echo "!!!!!!!!!!!!!!!! Error: Version $PACKAGE_VERSION of $PACKAGE_NAME already exists on the bittensor repository !!!!!!!!!!!!!!!!"
-                circleci-agent step halt
-              else
-                echo "Version $PACKAGE_VERSION of $PACKAGE_NAME does not exist on the bittensor pypi. Proceeding with upload."
-              fi
-            else
-              echo "Error: Twine check failed."
-              circleci-agent step halt
-            fi
-      - run:
-          name: Publish to bittensor repository
-          command: |
-            . venv/bin/activate
-            if ! python -m twine upload --verbose --repository bittensor dist/*; then
-              echo "Error: Failed to upload package to bittensor repository"
-              exit 1
-            fi
-
 workflows:
   compatibility_checks:
     jobs:
@@ -398,17 +344,6 @@ workflows:
             branches:
               only:
                 - /^(release|hotfix)/.*/
-      - hold-for-approval:
-          type: approval
-          filters:
-            branches:
-              only: /^release\/\d+\.\d+\.\d+$/
-      - publish-to-pypi:
-          requires:
-            - hold-for-approval
-          filters:
-            branches:
-              only: /^release\/\d+\.\d+\.\d+$/
 
   release-requirements:
     jobs:
