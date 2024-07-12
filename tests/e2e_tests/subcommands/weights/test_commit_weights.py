@@ -30,7 +30,7 @@ Verify that:
 
 def test_commit_and_reveal_weights(local_chain):
     # Register root as Alice
-    keypair, exec_command, wallet_path = setup_wallet("//Alice")
+    keypair, exec_command, wallet = setup_wallet("//Alice")
 
     exec_command(RegisterSubnetworkCommand, ["s", "create"])
 
@@ -47,12 +47,6 @@ def test_commit_and_reveal_weights(local_chain):
         RegisterCommand,
         ["s", "register", "--netuid", "1", "--wallet.path", "/tmp/btcli-wallet"],
     )
-
-    # Create a test wallet and set the coldkey, coldkeypub, and hotkey
-    wallet = bittensor.wallet(path="/tmp/btcli-wallet")
-    wallet.set_coldkey(keypair=keypair, encrypt=False, overwrite=True)
-    wallet.set_coldkeypub(keypair=keypair, encrypt=False, overwrite=True)
-    wallet.set_hotkey(keypair=keypair, encrypt=False, overwrite=True)
 
     # Stake to become to top neuron after the first epoch
     exec_command(

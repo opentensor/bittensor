@@ -5,7 +5,7 @@ import bittensor
 
 # Example test using the local_chain fixture
 def test_transfer(local_chain):
-    keypair, exec_command, wallet_path = setup_wallet("//Alice")
+    keypair, exec_command, wallet = setup_wallet("//Alice")
 
     acc_before = local_chain.query("System", "Account", [keypair.ss58_address])
     exec_command(
