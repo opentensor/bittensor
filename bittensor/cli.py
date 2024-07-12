@@ -69,7 +69,8 @@ from .commands import (
     WalletCreateCommand,
     CommitWeightCommand,
     RevealWeightCommand,
-    CheckColdKeySwapCommand
+    ScheduleColdKeySwapCommand,
+    CheckColdKeySwapCommand,
 )
 
 # Create a console instance for CLI display.
@@ -98,6 +99,7 @@ ALIAS_TO_COMMAND = {
     "weights": "weights",
     "wt": "weights",
     "weight": "weights",
+    "schedule_swap": "schedule_coldkey_swap",
 }
 COMMANDS = {
     "subnets": {
@@ -158,6 +160,7 @@ COMMANDS = {
             "set_identity": SetIdentityCommand,
             "get_identity": GetIdentityCommand,
             "history": GetWalletHistoryCommand,
+            "schedule_coldkey_swap": ScheduleColdKeySwapCommand,
             "check_coldkey_swap": CheckColdKeySwapCommand,
         },
     },

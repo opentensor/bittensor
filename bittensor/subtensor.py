@@ -42,6 +42,12 @@ from substrateinterface.exceptions import SubstrateRequestException
 import bittensor
 from bittensor.btlogging import logging as _logger
 from bittensor.utils import torch, weight_utils, format_error_message
+from bittensor.utils.registration import (
+    POWSolution,
+    create_pow,
+    torch,
+)
+
 from .chain_data import (
     DelegateInfoLite,
     NeuronInfo,
@@ -54,6 +60,7 @@ from .chain_data import (
     AxonInfo,
     ProposalVoteData,
     IPInfo,
+    ScheduledColdkeySwapInfo,
     custom_rpc_type_registry,
 )
 from .errors import IdentityError, NominationError, StakeError, TakeError
@@ -94,7 +101,14 @@ from .extrinsics.serving import (
 from .extrinsics.set_weights import set_weights_extrinsic
 from .extrinsics.staking import add_stake_extrinsic, add_stake_multiple_extrinsic
 from .extrinsics.transfer import transfer_extrinsic
-from .extrinsics.unstaking import unstake_extrinsic, unstake_multiple_extrinsic
+from .extrinsics.unstaking import (
+    unstake_extrinsic,
+    unstake_multiple_extrinsic,
+)
+from .extrinsics.schedule_coldkey_swap import (
+    schedule_coldkey_swap_extrinsic,
+    SwapPOWSolution,
+)
 from .types import AxonServeCallParams, PrometheusServeCallParams
 from .utils import (
     U16_NORMALIZED_FLOAT,
@@ -2301,6 +2315,107 @@ class Subtensor:
     # Coldkey Swap   #
     ##################
 
+    def schedule_coldkey_swap(
+        self,
+        wallet: "bittensor.wallet",
+        new_coldkey: str,
+        cuda: bool = False,
+        dev_id: Union[List[int], int] = 0,
+        tpb: int = 256,
+        num_processes: Optional[int] = None,
+        update_interval: Optional[int] = None,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+        prompt: bool = True,
+    ) -> tuple[bool, str]:
+        """
+        Schedules a coldkey swap on the Bittensor network. This function is used to change the coldkey to a new one.
+
+        Args:
+            wallet (bittensor.wallet): The wallet associated with the current coldkey.
+            new_coldkey (str): The SS58 address of the new coldkey.
+            cuda (bool, optional): If ``True``, uses a CUDA device to solve the POW.
+            wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
+            wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
+            prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
+
+        Returns:
+            bool: ``True`` if the scheduling of the coldkey swap is successful, False otherwise.
+
+        This function is essential for users who wish to change their coldkey on the network.
+        """
+
+        return schedule_coldkey_swap_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            new_coldkey=new_coldkey,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            prompt=prompt,
+            cuda=cuda,
+            dev_id=dev_id,
+            tpb=tpb,
+            num_processes=num_processes,
+            update_interval=update_interval,
+        )
+
+    def _do_schedule_coldkey_swap(
+        self,
+        wallet: "bittensor.wallet",
+        new_coldkey: str,
+        pow_result: SwapPOWSolution,
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = False,
+    ) -> Tuple[bool, Optional[str]]:  # (success, error_message)
+        """
+        Internal method to schedule a coldkey swap on the bittensor network.
+
+        Args:
+            wallet (bittensor.wallet): The wallet associated with the neuron setting the weights.
+            new_coldkey str: The coldkey to schedule the transfer to.
+            pow_result POWSolution: The Proof of Work object.
+            wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
+            wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
+
+        Returns:
+            Tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
+        """
+
+        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=_logger)
+        def make_substrate_call_with_retry():
+            call = self.substrate.compose_call(
+                call_module="SubtensorModule",
+                call_function="schedule_coldkey_swap",
+                call_params={
+                    "new_coldkey": new_coldkey,
+                    "block_number": pow_result.block_number,
+                    "nonce": pow_result.nonce,
+                    "work": [int(byte_) for byte_ in pow_result.seal],
+                },
+            )
+            extrinsic = self.substrate.create_signed_extrinsic(
+                call=call, keypair=wallet.coldkey
+            )
+            response = self.substrate.submit_extrinsic(
+                extrinsic,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
+            # We only wait here if we expect finalization.
+            if not wait_for_finalization and not wait_for_inclusion:
+                return (
+                    True,
+                    "Scheduled coldkey swap without waiting for inclusion or finalization.",
+                )
+
+            response.process_events()
+            if response.is_success:
+                return True, "Successfully scheduled coldkey swap."
+            else:
+                return False, response.error_message
+
+        return make_substrate_call_with_retry()
+
     def check_in_arbitration(self, ss58_address: str) -> int:
         """
         Checks storage function to see if the provided coldkey is in arbitration.
@@ -2311,31 +2426,6 @@ class Subtensor:
         return self.query_module(
             "SubtensorModule", "ColdkeySwapDestinations", params=[ss58_address]
         ).decode()
-
-    def get_remaining_arbitration_period(
-        self, coldkey_ss58: str, block: Optional[int] = None
-    ) -> Optional[int]:
-        """
-        Retrieves the remaining arbitration period for a given coldkey.
-        Args:
-            coldkey_ss58 (str): The SS58 address of the coldkey.
-            block (Optional[int], optional): The block number to query. If None, uses the latest block.
-        Returns:
-            Optional[int]: The remaining arbitration period in blocks, or 0 if not found.
-        """
-        arbitration_block = self.query_subtensor(
-            name="ColdkeyArbitrationBlock",
-            block=block,
-            params=[coldkey_ss58],
-        )
-
-        if block is None:
-            block = self.block
-
-        if arbitration_block.value > block:
-            return arbitration_block.value - block
-        else:
-            return 0
 
     ##########
     # Senate #
@@ -4493,6 +4583,86 @@ class Subtensor:
             return []
 
         return DelegateInfo.delegated_list_from_vec_u8(result)
+
+    ######################################
+    # Scheduled Coldkey Swap Information
+    ######################################
+
+    def get_scheduled_coldkey_swap(
+        self, coldkey_ss58: str, block: Optional[int] = None
+    ) -> Optional[ScheduledColdkeySwapInfo]:
+        """
+        Retrieves the scheduled coldkey swap information for a given coldkey.
+
+        Args:
+            coldkey_ss58 (str): The SS58 address of the coldkey.
+            block (Optional[int], optional): The block number to query. If None, uses the latest block.
+
+        Returns:
+            Optional[ScheduledColdkeySwapInfo]: The scheduled coldkey swap information, or None if not found.
+        """
+        encoded_coldkey = ss58_to_vec_u8(coldkey_ss58)
+
+        hex_bytes_result = self.query_runtime_api(
+            runtime_api="ColdkeySwapRuntimeApi",
+            method="get_scheduled_coldkey_swap",
+            params=[encoded_coldkey],
+            block=block,
+        )
+
+        if hex_bytes_result is None:
+            return None
+
+        if hex_bytes_result.startswith("0x"):
+            bytes_result = bytes.fromhex(hex_bytes_result[2:])
+        else:
+            bytes_result = bytes.fromhex(hex_bytes_result)
+
+        return ScheduledColdkeySwapInfo.from_vec_u8(bytes_result)
+
+    def get_coldkey_swap_destinations(
+        self, coldkey_ss58: str, block: Optional[int] = None
+    ) -> Optional[List[str]]:
+        """
+        Retrieves the coldkey swap destinations for a given coldkey.
+
+        Args:
+            coldkey_ss58 (str): The SS58 address of the coldkey.
+            block (Optional[int], optional): The block number to query. If None, uses the latest block.
+
+        Returns:
+            Optional[List[str]]: A list of SS58 addresses of the swap destinations, or None if not found.
+        """
+        result = self.query_subtensor(
+            name="ColdkeySwapDestinations",
+            block=block,
+            params=[coldkey_ss58],
+        )
+
+        return result.decode() if result is not None else None
+
+    def get_base_difficulty(self) -> int:
+        """
+        Returns the base difficulty for the Subtensor network.
+
+        This method retrieves the base difficulty value from the blockchain storage.
+        It uses a retry mechanism to handle potential network issues.
+
+        Returns:
+            int: The base difficulty value.
+
+        Raises:
+            Exception: If the substrate call fails after the maximum number of retries.
+        """
+
+        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
+        def make_substrate_call_with_retry():
+            return self.substrate.query(
+                module="SubtensorModule", storage_function="BaseDifficulty"
+            )
+
+        result = make_substrate_call_with_retry()
+        return result.value
 
     #####################
     # Stake Information #

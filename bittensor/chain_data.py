@@ -199,6 +199,14 @@ custom_rpc_type_registry = {
                 ["arbitration_block", "Compact<u64>"],
             ],
         },
+        "ScheduledColdkeySwapInfo": {
+            "type": "struct",
+            "type_mapping": [
+                ["old_coldkey", "AccountId"],
+                ["new_coldkey", "AccountId"],
+                ["arbitration_block", "Compact<u64>"],
+            ],
+        },
     }
 }
 
