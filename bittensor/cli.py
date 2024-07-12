@@ -69,7 +69,7 @@ from .commands import (
     WalletCreateCommand,
     CommitWeightCommand,
     RevealWeightCommand,
-    CheckColdKeySwapCommand
+    CheckColdKeySwapCommand,
 )
 
 # Create a console instance for CLI display.
