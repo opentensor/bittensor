@@ -186,6 +186,17 @@ custom_rpc_type_registry = {
                 ["difficulty", "Compact<u64>"],
                 ["commit_reveal_weights_interval", "Compact<u64>"],
                 ["commit_reveal_weights_enabled", "bool"],
+                ["alpha_high", "Compact<u16>"],
+                ["alpha_low", "Compact<u16>"],
+                ["liquid_alpha_enabled", "bool"],
+            ],
+        },
+        "ScheduledColdkeySwapInfo": {
+            "type": "struct",
+            "type_mapping": [
+                ["old_coldkey", "AccountId"],
+                ["new_coldkey", "AccountId"],
+                ["arbitration_block", "Compact<u64>"],
             ],
         },
     }
@@ -321,6 +332,7 @@ class ChainDataType(Enum):
     StakeInfo = 6
     IPInfo = 7
     SubnetHyperparameters = 8
+    ScheduledColdkeySwapInfo = 9
 
 
 def from_scale_encoding(
@@ -981,6 +993,9 @@ class SubnetHyperparameters:
     difficulty: int
     commit_reveal_weights_interval: int
     commit_reveal_weights_enabled: bool
+    alpha_high: int
+    alpha_low: int
+    liquid_alpha_enabled: bool
 
     @classmethod
     def from_vec_u8(cls, vec_u8: List[int]) -> Optional["SubnetHyperparameters"]:
@@ -1033,6 +1048,9 @@ class SubnetHyperparameters:
             difficulty=decoded["difficulty"],
             commit_reveal_weights_interval=decoded["commit_reveal_weights_interval"],
             commit_reveal_weights_enabled=decoded["commit_reveal_weights_enabled"],
+            alpha_high=decoded["alpha_high"],
+            alpha_low=decoded["alpha_low"],
+            liquid_alpha_enabled=decoded["liquid_alpha_enabled"],
         )
 
     def to_parameter_dict(
@@ -1131,3 +1149,54 @@ class ProposalVoteData(TypedDict):
 
 
 ProposalCallData = GenericCall
+
+
+@dataclass
+class ScheduledColdkeySwapInfo:
+    """Dataclass for scheduled coldkey swap information."""
+
+    old_coldkey: str
+    new_coldkey: str
+    arbitration_block: int
+
+    @classmethod
+    def fix_decoded_values(cls, decoded: Any) -> "ScheduledColdkeySwapInfo":
+        """Fixes the decoded values."""
+        return cls(
+            old_coldkey=ss58_encode(decoded["old_coldkey"], bittensor.__ss58_format__),
+            new_coldkey=ss58_encode(decoded["new_coldkey"], bittensor.__ss58_format__),
+            arbitration_block=decoded["arbitration_block"],
+        )
+
+    @classmethod
+    def from_vec_u8(cls, vec_u8: List[int]) -> Optional["ScheduledColdkeySwapInfo"]:
+        """Returns a ScheduledColdkeySwapInfo object from a ``vec_u8``."""
+        if len(vec_u8) == 0:
+            return None
+
+        decoded = from_scale_encoding(vec_u8, ChainDataType.ScheduledColdkeySwapInfo)
+        if decoded is None:
+            return None
+
+        return ScheduledColdkeySwapInfo.fix_decoded_values(decoded)
+
+    @classmethod
+    def list_from_vec_u8(cls, vec_u8: List[int]) -> List["ScheduledColdkeySwapInfo"]:
+        """Returns a list of ScheduledColdkeySwapInfo objects from a ``vec_u8``."""
+        decoded = from_scale_encoding(
+            vec_u8, ChainDataType.ScheduledColdkeySwapInfo, is_vec=True
+        )
+        if decoded is None:
+            return []
+
+        return [ScheduledColdkeySwapInfo.fix_decoded_values(d) for d in decoded]
+
+    @classmethod
+    def decode_account_id_list(cls, vec_u8: List[int]) -> Optional[List[str]]:
+        """Decodes a list of AccountIds from vec_u8."""
+        decoded = from_scale_encoding(vec_u8, ChainDataType.AccountId, is_vec=True)
+        if decoded is None:
+            return None
+        return [
+            ss58_encode(account_id, bittensor.__ss58_format__) for account_id in decoded
+        ]
