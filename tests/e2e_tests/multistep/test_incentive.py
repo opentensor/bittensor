@@ -1,7 +1,6 @@
 import asyncio
 import logging
 import sys
-import time
 
 import pytest
 
@@ -17,6 +16,7 @@ from tests.e2e_tests.utils import (
     setup_wallet,
     template_path,
     repo_name,
+    wait_epoch,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -44,13 +44,13 @@ are updated with proper values after an epoch has passed.
 @pytest.mark.asyncio
 async def test_incentive(local_chain):
     # Register root as Alice - the subnet owner and validator
-    alice_keypair, alice_exec_command, alice_wallet_path = setup_wallet("//Alice")
+    alice_keypair, alice_exec_command, alice_wallet = setup_wallet("//Alice")
     alice_exec_command(RegisterSubnetworkCommand, ["s", "create"])
     # Verify subnet 1 created successfully
     assert local_chain.query("SubtensorModule", "NetworksAdded", [1]).serialize()
 
     # Register Bob as miner
-    bob_keypair, bob_exec_command, bob_wallet_path = setup_wallet("//Bob")
+    bob_keypair, bob_exec_command, bob_wallet = setup_wallet("//Bob")
 
     # Register Alice as neuron to the subnet
     alice_exec_command(
@@ -60,17 +60,6 @@ async def test_incentive(local_chain):
             "register",
             "--netuid",
             "1",
-            "--wallet.name",
-            "default",
-            "--wallet.hotkey",
-            "default",
-            "--wallet.path",
-            alice_wallet_path,
-            "--subtensor.network",
-            "local",
-            "--subtensor.chain_endpoint",
-            "ws://localhost:9945",
-            "--no_prompt",
         ],
     )
 
@@ -82,15 +71,6 @@ async def test_incentive(local_chain):
             "register",
             "--netuid",
             "1",
-            "--wallet.name",
-            "default",
-            "--wallet.hotkey",
-            "default",
-            "--subtensor.network",
-            "local",
-            "--subtensor.chain_endpoint",
-            "ws://localhost:9945",
-            "--no_prompt",
         ],
     )
 
@@ -122,9 +102,9 @@ async def test_incentive(local_chain):
             "--subtensor.chain_endpoint",
             "ws://localhost:9945",
             "--wallet.path",
-            bob_wallet_path,
+            bob_wallet.path,
             "--wallet.name",
-            "default",
+            bob_wallet.name,
             "--wallet.hotkey",
             "default",
             "--logging.trace",
@@ -136,21 +116,6 @@ async def test_incentive(local_chain):
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
-
-    # Function to write output to the log file
-    async def miner_write_output(stream):
-        log_file = "miner.log"
-        with open(log_file, "a") as f:
-            while True:
-                line = await stream.readline()
-                if not line:
-                    break
-                f.write(line.decode())
-                f.flush()
-
-    # Create tasks to read stdout and stderr concurrently
-    asyncio.create_task(miner_write_output(miner_process.stdout))
-    asyncio.create_task(miner_write_output(miner_process.stderr))
 
     await asyncio.sleep(
         5
@@ -169,9 +134,9 @@ async def test_incentive(local_chain):
             "--subtensor.chain_endpoint",
             "ws://localhost:9945",
             "--wallet.path",
-            alice_wallet_path,
+            alice_wallet.path,
             "--wallet.name",
-            "default",
+            alice_wallet.name,
             "--wallet.hotkey",
             "default",
             "--logging.trace",
@@ -184,21 +149,6 @@ async def test_incentive(local_chain):
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
-
-    # Function to write output to the log file
-    async def validator_write_output(stream):
-        log_file = "validator.log"
-        with open(log_file, "a") as f:
-            while True:
-                line = await stream.readline()
-                if not line:
-                    break
-                f.write(line.decode())
-                f.flush()
-
-    # Create tasks to read stdout and stderr concurrently
-    asyncio.create_task(validator_write_output(validator_process.stdout))
-    asyncio.create_task(validator_write_output(validator_process.stderr))
 
     await asyncio.sleep(
         5
@@ -289,18 +239,3 @@ async def test_incentive(local_chain):
     assert alice_neuron.dividends == 1
     assert alice_neuron.stake.tao == 10_000.0
     assert alice_neuron.validator_trust == 1
-
-
-def wait_epoch(interval, subtensor):
-    current_block = subtensor.get_current_block()
-    next_tempo_block_start = (current_block - (current_block % interval)) + interval
-    while current_block < next_tempo_block_start:
-        time.sleep(1)  # Wait for 1 second before checking the block number again
-        current_block = subtensor.get_current_block()
-        if current_block % 10 == 0:
-            print(
-                f"Current Block: {current_block}  Next tempo at: {next_tempo_block_start}"
-            )
-            logging.info(
-                f"Current Block: {current_block}  Next tempo at: {next_tempo_block_start}"
-            )

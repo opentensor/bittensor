@@ -1,13 +1,13 @@
+import logging
 import os
 import shutil
 import subprocess
 import sys
-
+import time
 from typing import List
 
-from bittensor import Keypair
-
 import bittensor
+from bittensor import Keypair
 
 template_path = os.getcwd() + "/neurons/"
 repo_name = "templates repository"
@@ -39,7 +39,7 @@ def setup_wallet(uri: str):
         cli_instance = bittensor.cli(config)
         command.run(cli_instance)
 
-    return keypair, exec_command, wallet_path
+    return keypair, exec_command, wallet
 
 
 def clone_or_update_templates():
@@ -74,3 +74,18 @@ def uninstall_templates(install_dir):
     )
     # delete everything in directory
     shutil.rmtree(install_dir)
+
+
+def wait_epoch(interval, subtensor):
+    current_block = subtensor.get_current_block()
+    next_tempo_block_start = (current_block - (current_block % interval)) + interval
+    while current_block < next_tempo_block_start:
+        time.sleep(1)  # Wait for 1 second before checking the block number again
+        current_block = subtensor.get_current_block()
+        if current_block % 10 == 0:
+            print(
+                f"Current Block: {current_block}  Next tempo at: {next_tempo_block_start}"
+            )
+            logging.info(
+                f"Current Block: {current_block}  Next tempo at: {next_tempo_block_start}"
+            )
