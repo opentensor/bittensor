@@ -17,6 +17,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 import os
+import re
 from typing import Optional
 import warnings
 
@@ -42,6 +43,8 @@ if (NEST_ASYNCIO_ENV := os.getenv("NEST_ASYNCIO")) in ("1", None):
 
 # Bittensor code and protocol version.
 __version__ = "7.2.0a1"
+# Parsing version without any literals.
+__version__ = re.match(r"^\d+\.\d+\.\d+", __version__).group(0)
 
 _version_split = __version__.split(".")
 __version_info__ = tuple(int(part) for part in _version_split)
