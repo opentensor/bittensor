@@ -325,6 +325,7 @@ from .btlogging import logging
 
 # Allows avoiding name spacing conflicts and continue access to the `subtensor` module with `subtensor_module` name
 from . import subtensor as subtensor_module
+
 # Allows avoiding name spacing conflicts and continue access to the `metagraph` module with `metagraph_module` name
 from . import metagraph as metagraph_module
 
