@@ -30,7 +30,7 @@ from numpy.typing import NDArray
 
 import bittensor
 from bittensor.chain_data import AxonInfo
-from bittensor.utils import weight_utils
+from bittensor.utils import weight_utils, get_async_result
 from bittensor.utils.registration import torch, use_torch
 
 METAGRAPH_STATE_DICT_NDARRAY_KEYS = [
@@ -947,14 +947,8 @@ class TorchMetaGraph(MetagraphMixin, BaseClass):  # type: ignore
         self.should_sync = sync
         self.lite = lite
         self.subtensor = subtensor
-
-    async def __aenter__(self):
-        if self.should_sync:
-            await self.sync(block=None, lite=self.lite, subtensor=self.subtensor)
-        return self
-
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        pass
+        if sync:
+            get_async_result(self.sync, block=None, lite=self.lite, subtensor=subtensor)
 
     async def _set_metagraph_attributes(
         self, subtensor: "bittensor.subtensor", block: Optional[int] = None
@@ -1100,14 +1094,8 @@ class NonTorchMetagraph(MetagraphMixin):
         self.should_sync = sync
         self.lite = lite
         self.subtensor = subtensor
-
-    async def __aenter__(self):
-        if self.should_sync:
-            await self.sync(block=None, lite=self.lite, subtensor=self.subtensor)
-        return self
-
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        pass
+        if sync:
+            get_async_result(self.sync, block=None, lite=self.lite, subtensor=subtensor)
 
     async def _set_metagraph_attributes(
         self, subtensor: "bittensor.subtensor", block: Optional[int] = None
