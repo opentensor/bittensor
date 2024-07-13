@@ -48,7 +48,7 @@ async def test_axon(local_chain):
         ],
     )
     subtensor = bittensor.subtensor(network="ws://localhost:9945")
-    metagraph = await bittensor.metagraph(
+    metagraph = bittensor.metagraph(
         netuid=1, network="ws://localhost:9945", subtensor=subtensor
     )
 
@@ -84,7 +84,7 @@ async def test_axon(local_chain):
         ]
     )
 
-    axon_process = await asyncio.create_subprocess_shell(
+    await asyncio.create_subprocess_shell(
         cmd,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
@@ -95,9 +95,7 @@ async def test_axon(local_chain):
 
     # refresh metagraph
     subtensor = bittensor.subtensor(network="ws://localhost:9945")
-    metagraph = await bittensor.metagraph(
-        netuid=1, network="ws://localhost:9945", sync=True, subtensor=subtensor
-    )
+    metagraph = bittensor.metagraph(netuid=1, network="ws://localhost:9945", sync=True, subtensor=subtensor)
     updated_axon = metagraph.axons[0]
     external_ip = networking.get_external_ip()
 
