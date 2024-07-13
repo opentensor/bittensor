@@ -155,7 +155,7 @@ class wallet:
                 required=False,
                 default=default_name,
                 help="The name of the wallet to unlock for running bittensor "
-                     "(name mock is reserved for mocking this wallet)",
+                "(name mock is reserved for mocking this wallet)",
             )
             parser.add_argument(
                 "--" + prefix_str + "wallet.hotkey",
@@ -173,11 +173,11 @@ class wallet:
             pass
 
     def __init__(
-            self,
-            name: str = None,
-            hotkey: str = None,
-            path: str = None,
-            config: "bittensor.config" = None,
+        self,
+        name: str = None,
+        hotkey: str = None,
+        path: str = None,
+        config: "bittensor.config" = None,
     ):
         r"""
         Initialize the bittensor wallet object containing a hot and coldkey.
@@ -229,7 +229,7 @@ class wallet:
         return self.__str__()
 
     def create_if_non_existent(
-            self, coldkey_use_password: bool = True, hotkey_use_password: bool = False
+        self, coldkey_use_password: bool = True, hotkey_use_password: bool = False
     ) -> "wallet":
         """
         Checks for existing coldkeypub and hotkeys, and creates them if non-existent.
@@ -244,7 +244,7 @@ class wallet:
         return self.create(coldkey_use_password, hotkey_use_password)
 
     def create(
-            self, coldkey_use_password: bool = True, hotkey_use_password: bool = False
+        self, coldkey_use_password: bool = True, hotkey_use_password: bool = False
     ) -> "wallet":
         """
         Checks for existing coldkeypub and hotkeys, and creates them if non-existent.
@@ -258,8 +258,8 @@ class wallet:
         """
         # ---- Setup Wallet. ----
         if (
-                not self.coldkey_file.exists_on_device()
-                and not self.coldkeypub_file.exists_on_device()
+            not self.coldkey_file.exists_on_device()
+            and not self.coldkeypub_file.exists_on_device()
         ):
             self.create_new_coldkey(n_words=12, use_password=coldkey_use_password)
         if not self.hotkey_file.exists_on_device():
@@ -267,7 +267,7 @@ class wallet:
         return self
 
     def recreate(
-            self, coldkey_use_password: bool = True, hotkey_use_password: bool = False
+        self, coldkey_use_password: bool = True, hotkey_use_password: bool = False
     ) -> "wallet":
         """
         Checks for existing coldkeypub and hotkeys and creates them if non-existent.
@@ -321,10 +321,10 @@ class wallet:
         return bittensor.keyfile(path=coldkeypub_path)
 
     def set_hotkey(
-            self,
-            keypair: "bittensor.Keypair",
-            encrypt: bool = False,
-            overwrite: bool = False,
+        self,
+        keypair: "bittensor.Keypair",
+        encrypt: bool = False,
+        overwrite: bool = False,
     ) -> "bittensor.keyfile":
         """
         Sets the hotkey for the wallet.
@@ -341,10 +341,10 @@ class wallet:
         self.hotkey_file.set_keypair(keypair, encrypt=encrypt, overwrite=overwrite)
 
     def set_coldkeypub(
-            self,
-            keypair: "bittensor.Keypair",
-            encrypt: bool = False,
-            overwrite: bool = False,
+        self,
+        keypair: "bittensor.Keypair",
+        encrypt: bool = False,
+        overwrite: bool = False,
     ) -> "bittensor.keyfile":
         """
         Sets the coldkeypub for the wallet.
@@ -363,10 +363,10 @@ class wallet:
         )
 
     def set_coldkey(
-            self,
-            keypair: "bittensor.Keypair",
-            encrypt: bool = True,
-            overwrite: bool = False,
+        self,
+        keypair: "bittensor.Keypair",
+        encrypt: bool = True,
+        overwrite: bool = False,
     ) -> "bittensor.keyfile":
         """
         Sets the coldkey for the wallet.
@@ -464,11 +464,11 @@ class wallet:
         return self._coldkeypub
 
     def create_coldkey_from_uri(
-            self,
-            uri: str,
-            use_password: bool = True,
-            overwrite: bool = False,
-            suppress: bool = False,
+        self,
+        uri: str,
+        use_password: bool = True,
+        overwrite: bool = False,
+        suppress: bool = False,
     ) -> "wallet":
         """Creates coldkey from suri string, optionally encrypts it with the user-provided password.
 
@@ -491,11 +491,11 @@ class wallet:
         return self
 
     def create_hotkey_from_uri(
-            self,
-            uri: str,
-            use_password: bool = False,
-            overwrite: bool = False,
-            suppress: bool = False,
+        self,
+        uri: str,
+        use_password: bool = False,
+        overwrite: bool = False,
+        suppress: bool = False,
     ) -> "wallet":
         """Creates hotkey from suri string, optionally encrypts it with the user-provided password.
 
@@ -517,11 +517,11 @@ class wallet:
         return self
 
     def new_coldkey(
-            self,
-            n_words: int = 12,
-            use_password: bool = True,
-            overwrite: bool = False,
-            suppress: bool = False,
+        self,
+        n_words: int = 12,
+        use_password: bool = True,
+        overwrite: bool = False,
+        suppress: bool = False,
     ) -> "wallet":
         """Creates a new coldkey, optionally encrypts it with the user-provided password and saves to disk.
 
@@ -539,11 +539,11 @@ class wallet:
         self.create_new_coldkey(n_words, use_password, overwrite, suppress)
 
     def create_new_coldkey(
-            self,
-            n_words: int = 12,
-            use_password: bool = True,
-            overwrite: bool = False,
-            suppress: bool = False,
+        self,
+        n_words: int = 12,
+        use_password: bool = True,
+        overwrite: bool = False,
+        suppress: bool = False,
     ) -> "wallet":
         """Creates a new coldkey, optionally encrypts it with the user-provided password and saves to disk.
 
@@ -567,11 +567,11 @@ class wallet:
         return self
 
     def new_hotkey(
-            self,
-            n_words: int = 12,
-            use_password: bool = False,
-            overwrite: bool = False,
-            suppress: bool = False,
+        self,
+        n_words: int = 12,
+        use_password: bool = False,
+        overwrite: bool = False,
+        suppress: bool = False,
     ) -> "wallet":
         """Creates a new hotkey, optionally encrypts it with the user-provided password and saves to disk.
 
@@ -589,11 +589,11 @@ class wallet:
         self.create_new_hotkey(n_words, use_password, overwrite, suppress)
 
     def create_new_hotkey(
-            self,
-            n_words: int = 12,
-            use_password: bool = False,
-            overwrite: bool = False,
-            suppress: bool = False,
+        self,
+        n_words: int = 12,
+        use_password: bool = False,
+        overwrite: bool = False,
+        suppress: bool = False,
     ) -> "wallet":
         """Creates a new hotkey, optionally encrypts it with the user-provided password and saves to disk.
 
@@ -616,11 +616,11 @@ class wallet:
         return self
 
     def regenerate_coldkeypub(
-            self,
-            ss58_address: Optional[str] = None,
-            public_key: Optional[Union[str, bytes]] = None,
-            overwrite: bool = False,
-            suppress: bool = False,
+        self,
+        ss58_address: Optional[str] = None,
+        public_key: Optional[Union[str, bytes]] = None,
+        overwrite: bool = False,
+        suppress: bool = False,
     ) -> "wallet":
         """Regenerates the coldkeypub from the passed ``ss58_address`` or public_key and saves the file. Requires either ``ss58_address`` or public_key to be passed.
 
@@ -640,7 +640,7 @@ class wallet:
             raise ValueError("Either ss58_address or public_key must be passed")
 
         if not is_valid_bittensor_address_or_public_key(
-                ss58_address if ss58_address is not None else public_key
+            ss58_address if ss58_address is not None else public_key
         ):
             raise ValueError(
                 f"Invalid {'ss58_address' if ss58_address is not None else 'public_key'}"
@@ -670,40 +670,37 @@ class wallet:
 
     @overload
     def regenerate_coldkey(
-            self,
-            mnemonic: Optional[Union[list, str]] = None,
-            use_password: bool = True,
-            overwrite: bool = False,
-            suppress: bool = False,
-    ) -> "wallet":
-        ...
+        self,
+        mnemonic: Optional[Union[list, str]] = None,
+        use_password: bool = True,
+        overwrite: bool = False,
+        suppress: bool = False,
+    ) -> "wallet": ...
 
     @overload
     def regenerate_coldkey(
-            self,
-            seed: Optional[str] = None,
-            use_password: bool = True,
-            overwrite: bool = False,
-            suppress: bool = False,
-    ) -> "wallet":
-        ...
+        self,
+        seed: Optional[str] = None,
+        use_password: bool = True,
+        overwrite: bool = False,
+        suppress: bool = False,
+    ) -> "wallet": ...
 
     @overload
     def regenerate_coldkey(
-            self,
-            json: Optional[Tuple[Union[str, Dict], str]] = None,
-            use_password: bool = True,
-            overwrite: bool = False,
-            suppress: bool = False,
-    ) -> "wallet":
-        ...
+        self,
+        json: Optional[Tuple[Union[str, Dict], str]] = None,
+        use_password: bool = True,
+        overwrite: bool = False,
+        suppress: bool = False,
+    ) -> "wallet": ...
 
     def regenerate_coldkey(
-            self,
-            use_password: bool = True,
-            overwrite: bool = False,
-            suppress: bool = False,
-            **kwargs,
+        self,
+        use_password: bool = True,
+        overwrite: bool = False,
+        suppress: bool = False,
+        **kwargs,
     ) -> "wallet":
         """Regenerates the coldkey from the passed mnemonic or seed, or JSON encrypts it with the user's password and saves the file.
 
@@ -757,10 +754,10 @@ class wallet:
         else:
             # json is not None
             if (
-                    not isinstance(json, tuple)
-                    or len(json) != 2
-                    or not isinstance(json[0], (str, dict))
-                    or not isinstance(json[1], str)
+                not isinstance(json, tuple)
+                or len(json) != 2
+                or not isinstance(json[0], (str, dict))
+                or not isinstance(json[1], str)
             ):
                 raise ValueError(
                     "json must be a tuple of (json_data: str | Dict, passphrase: str)"
@@ -780,40 +777,37 @@ class wallet:
 
     @overload
     def regenerate_hotkey(
-            self,
-            mnemonic: Optional[Union[list, str]] = None,
-            use_password: bool = True,
-            overwrite: bool = False,
-            suppress: bool = False,
-    ) -> "wallet":
-        ...
+        self,
+        mnemonic: Optional[Union[list, str]] = None,
+        use_password: bool = True,
+        overwrite: bool = False,
+        suppress: bool = False,
+    ) -> "wallet": ...
 
     @overload
     def regenerate_hotkey(
-            self,
-            seed: Optional[str] = None,
-            use_password: bool = True,
-            overwrite: bool = False,
-            suppress: bool = False,
-    ) -> "wallet":
-        ...
+        self,
+        seed: Optional[str] = None,
+        use_password: bool = True,
+        overwrite: bool = False,
+        suppress: bool = False,
+    ) -> "wallet": ...
 
     @overload
     def regenerate_hotkey(
-            self,
-            json: Optional[Tuple[Union[str, Dict], str]] = None,
-            use_password: bool = True,
-            overwrite: bool = False,
-            suppress: bool = False,
-    ) -> "wallet":
-        ...
+        self,
+        json: Optional[Tuple[Union[str, Dict], str]] = None,
+        use_password: bool = True,
+        overwrite: bool = False,
+        suppress: bool = False,
+    ) -> "wallet": ...
 
     def regenerate_hotkey(
-            self,
-            use_password: bool = True,
-            overwrite: bool = False,
-            suppress: bool = False,
-            **kwargs,
+        self,
+        use_password: bool = True,
+        overwrite: bool = False,
+        suppress: bool = False,
+        **kwargs,
     ) -> "wallet":
         """Regenerates the hotkey from passed mnemonic or seed, encrypts it with the user's password and saves the file.
 
@@ -861,10 +855,10 @@ class wallet:
         else:
             # json is not None
             if (
-                    not isinstance(json, tuple)
-                    or len(json) != 2
-                    or not isinstance(json[0], (str, dict))
-                    or not isinstance(json[1], str)
+                not isinstance(json, tuple)
+                or len(json) != 2
+                or not isinstance(json[0], (str, dict))
+                or not isinstance(json[1], str)
             ):
                 raise ValueError(
                     "json must be a tuple of (json_data: str | Dict, passphrase: str)"

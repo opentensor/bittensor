@@ -33,6 +33,7 @@ from .defaults import defaults
 
 class InvalidConfigFile(Exception):
     """In place of YAMLError"""
+
     pass
 
 
@@ -65,11 +66,11 @@ class config(DefaultMunch):
     """
 
     def __init__(
-            self,
-            parser: argparse.ArgumentParser = None,
-            args: Optional[List[str]] = None,
-            strict: bool = False,
-            default: Optional[Any] = None,
+        self,
+        parser: argparse.ArgumentParser = None,
+        args: Optional[List[str]] = None,
+        strict: bool = False,
+        default: Optional[Any] = None,
     ) -> None:
         super().__init__(default)
 
@@ -138,9 +139,9 @@ class config(DefaultMunch):
         # 1.1 Optionally load defaults if the --config is set.
         try:
             config_file_path = (
-                    str(os.getcwd())
-                    + "/"
-                    + vars(parser.parse_known_args(args)[0])["config"]
+                str(os.getcwd())
+                + "/"
+                + vars(parser.parse_known_args(args)[0])["config"]
             )
         except Exception as e:
             config_file_path = None
@@ -242,7 +243,12 @@ class config(DefaultMunch):
         self.load_active_profile()
 
         # Merge all configs together and update self
-        merged_config = {**self.generic_config, **self.profile_config, **self.env_config, **self.params_config}
+        merged_config = {
+            **self.generic_config,
+            **self.profile_config,
+            **self.env_config,
+            **self.params_config,
+        }
         # TODO: we need a clean process for this
         # The param defaults override the profile and generic config this is not what we want
         # merged_config = self._merge(config.unflatten_dict(merged_config), self.__dict__)
@@ -258,7 +264,7 @@ class config(DefaultMunch):
             keys = split_keys
             while len(keys) > 1:
                 if (
-                        hasattr(head, keys[0]) and head[keys[0]] != None
+                    hasattr(head, keys[0]) and head[keys[0]] != None
                 ):  # Needs to be Config
                     head = getattr(head, keys[0])
                     keys = keys[1:]
@@ -275,7 +281,7 @@ class config(DefaultMunch):
         nested_dict = {}
 
         for key, value in flat_dict.items():
-            keys = key.split('.')
+            keys = key.split(".")
             d = nested_dict
             for part in keys[:-1]:
                 if part not in d:
@@ -285,9 +291,12 @@ class config(DefaultMunch):
 
         return nested_dict
 
-    def __parse_args__(self,
-                       args: List[str], parser: argparse.ArgumentParser = None, strict: bool = False
-                       ) -> argparse.Namespace:
+    def __parse_args__(
+        self,
+        args: List[str],
+        parser: argparse.ArgumentParser = None,
+        strict: bool = False,
+    ) -> argparse.Namespace:
         """Parses the passed args use the passed parser.
 
         Args:
@@ -314,8 +323,8 @@ class config(DefaultMunch):
                     # Add unrecognized arguments to the config
                     # maybe we should think about a better way to handle this for now we can override every config
                     if unrec.startswith("--"):
-                        if '=' in unrec[2:]:
-                            key, value = unrec[2:].split('=')
+                        if "=" in unrec[2:]:
+                            key, value = unrec[2:].split("=")
                         else:
                             key = unrec[2:]
                             value = True
@@ -434,7 +443,7 @@ class config(DefaultMunch):
         return True
 
     def __check_for_missing_required_args(
-            self, parser: argparse.ArgumentParser, args: List[str]
+        self, parser: argparse.ArgumentParser, args: List[str]
     ) -> List[str]:
         required_args = self.__get_required_args_from_parser(parser)
         missing_args = [arg for arg in required_args if not any(arg in s for s in args)]
@@ -458,7 +467,7 @@ class config(DefaultMunch):
         env_vars = {k: v for k, v in os.environ.items() if k.startswith("BTCLI_")}
         for var, value in env_vars.items():
             key = var[6:].lower()
-            key = key.replace('_', '.')
+            key = key.replace("_", ".")
             self.env_config[key] = value
 
     def load_or_create_generic_config(self):
@@ -473,7 +482,7 @@ class config(DefaultMunch):
             config_file = config_file_yml
 
         if config_file:
-            with open(config_file, 'r') as file:
+            with open(config_file, "r") as file:
                 config_data = yaml.safe_load(file)
         else:
             config_data = defaults.toDict()
@@ -483,10 +492,10 @@ class config(DefaultMunch):
             config_data.pop("profile", None)
             config_data.pop("wallet", None)
             os.makedirs(config_path, exist_ok=True)
-            with open(config_file_yml, 'w+') as file:
+            with open(config_file_yml, "w+") as file:
                 yaml.safe_dump(config_data, file)
 
-        def flatten_dict(d, parent_key=''):
+        def flatten_dict(d, parent_key=""):
             for k, v in d.items():
                 new_key = f"{parent_key}.{k}" if parent_key else k
                 if isinstance(v, dict):
@@ -501,20 +510,28 @@ class config(DefaultMunch):
 
     def load_active_profile(self):
 
-        profile_name = (self.params_config.get('profile.active') or
-                        self.env_config.get("profile.active") or
-                        self.generic_config.get("profile.active"))
+        profile_name = (
+            self.params_config.get("profile.active")
+            or self.env_config.get("profile.active")
+            or self.generic_config.get("profile.active")
+        )
 
-        profile_path = (self.params_config.get('profile.path') or
-                        self.env_config.get('profile.path') or
-                        self.generic_config.get('profile.path') or
-                        defaults.profile.path)
+        profile_path = (
+            self.params_config.get("profile.path")
+            or self.env_config.get("profile.path")
+            or self.generic_config.get("profile.path")
+            or defaults.profile.path
+        )
 
         if not profile_name or not profile_path:
             return
 
-        profile_file_yaml = os.path.expanduser(os.path.join(profile_path, f"{profile_name}.yaml"))
-        profile_file_yml = os.path.expanduser(os.path.join(profile_path, f"{profile_name}.yml"))
+        profile_file_yaml = os.path.expanduser(
+            os.path.join(profile_path, f"{profile_name}.yaml")
+        )
+        profile_file_yml = os.path.expanduser(
+            os.path.join(profile_path, f"{profile_name}.yml")
+        )
 
         if os.path.exists(profile_file_yaml):
             profile_file = profile_file_yaml
@@ -526,10 +543,10 @@ class config(DefaultMunch):
             print(f"Profile file for profile {profile_name} not found.")
             return
 
-        with open(profile_file, 'r') as file:
+        with open(profile_file, "r") as file:
             profile_data = yaml.safe_load(file)
 
-        def flatten_dict(d, parent_key=''):
+        def flatten_dict(d, parent_key=""):
             for k, v in d.items():
                 new_key = f"{parent_key}.{k}" if parent_key else k
                 if isinstance(v, dict):
