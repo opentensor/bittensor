@@ -17,7 +17,6 @@ from tests.e2e_tests.utils import (
     template_path,
     templates_repo,
     wait_interval,
-    write_output_log_to_file,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -118,12 +117,6 @@ async def test_incentive(local_chain):
         stderr=asyncio.subprocess.PIPE,
     )
 
-    # Create tasks to read stdout and stderr concurrently
-    # ignore, dont await coroutine, just write logs to file
-    asyncio.create_task(write_output_log_to_file("miner_stdout", miner_process.stdout))
-    # ignore, dont await coroutine, just write logs to file
-    asyncio.create_task(write_output_log_to_file("miner_stderr", miner_process.stderr))
-
     await asyncio.sleep(
         5
     )  # wait for 5 seconds for the metagraph to refresh with latest data
@@ -155,16 +148,6 @@ async def test_incentive(local_chain):
         cmd,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
-    )
-
-    # Create tasks to read stdout and stderr concurrently and write output to log file
-    # ignore, dont await coroutine, just write logs to file
-    asyncio.create_task(
-        write_output_log_to_file("validator_stdout", validator_process.stdout)
-    )
-    # ignore, dont await coroutine, just write logs to file
-    asyncio.create_task(
-        write_output_log_to_file("validator_stderr", validator_process.stderr)
     )
 
     await asyncio.sleep(
