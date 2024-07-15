@@ -21,7 +21,7 @@ Conversion for weight between chain representation and np.array or torch.Tensor
 
 import hashlib
 import logging
-from typing import Tuple, List, Union
+from typing import Tuple, List, Union, Optional
 
 import numpy as np
 from numpy.typing import NDArray
@@ -239,7 +239,7 @@ def process_weights_for_netuid(
     weights: Union[NDArray[np.float32], "torch.Tensor"],
     netuid: int,
     subtensor: "bittensor.subtensor",
-    metagraph: "bittensor.metagraph" = None,
+    metagraph: Optional["bittensor.metagraph"] = None,
     exclude_quantile: int = 0,
 ) -> Union[
     Tuple["torch.Tensor", "torch.FloatTensor"],
@@ -253,7 +253,7 @@ def process_weights_for_netuid(
 
     # Get latest metagraph from chain if metagraph is None.
     if metagraph is None:
-        metagraph = subtensor.metagraph(netuid)
+        metagraph = subtensor.metagraph(netuid=netuid)
 
     # Cast weights to floats.
     if use_torch():

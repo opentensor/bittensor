@@ -190,7 +190,7 @@ async def test_incentive(local_chain):
     )
 
     # get latest metagraph
-    metagraph = await bittensor.metagraph(
+    metagraph = bittensor.metagraph(
         netuid=1, network="ws://localhost:9945", subtensor=subtensor
     )
 
@@ -227,7 +227,7 @@ async def test_incentive(local_chain):
     await wait_interval(360, subtensor)
 
     # refresh metagraph
-    metagraph = await bittensor.metagraph(
+    metagraph = bittensor.metagraph(
         netuid=1, network="ws://localhost:9945", subtensor=subtensor
     )
 

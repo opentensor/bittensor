@@ -326,13 +326,16 @@ from .btlogging import logging
 # Allows avoiding name spacing conflicts and continue access to the `subtensor` module with `subtensor_module` name
 from . import subtensor as subtensor_module
 
+# Allows avoiding name spacing conflicts and continue access to the `metagraph` module with `metagraph_module` name
+from . import metagraph as metagraph_module
+
 # Double import allows using class `Subtensor` by referencing `bittensor.Subtensor` and `bittensor.subtensor`.
 # This will be available for a while until we remove reference `bittensor.subtensor`
 from .subtensor import Subtensor
 from .subtensor import Subtensor as subtensor
 
 from .cli import Cli as cli, COMMANDS as ALL_COMMANDS
-from .metagraph import metagraph as metagraph_class
+from .metagraph import metagraph
 from .threadpool import PriorityThreadPoolExecutor as PriorityThreadPoolExecutor
 
 from .synapse import TerminalInfo, Synapse
@@ -355,14 +358,3 @@ configs = [
     logging.get_config(),
 ]
 defaults = config.merge_all(configs)
-
-
-async def metagraph(
-    netuid: int,
-    network: str = "finney",
-    lite: bool = True,
-    sync: bool = True,
-    subtensor: Optional["Subtensor"] = None,
-):
-    async with metagraph_class(netuid, network, lite, sync, subtensor) as m:
-        return m

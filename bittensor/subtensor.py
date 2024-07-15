@@ -2873,7 +2873,7 @@ class Subtensor:
         Returns:
             str: The commitment data as a string.
         """
-        metagraph = await self.metagraph(netuid)
+        metagraph = self.metagraph(netuid)
         hotkey = metagraph.hotkeys[uid]  # type: ignore
 
         metadata = await get_metadata(self, netuid, hotkey, block)
@@ -5018,7 +5018,7 @@ class Subtensor:
 
         return NeuronInfoLite.list_from_vec_u8(bytes_result)  # type: ignore
 
-    async def metagraph(
+    def metagraph(
         self,
         netuid: int,
         lite: bool = True,
@@ -5040,10 +5040,9 @@ class Subtensor:
         network's decentralized architecture, particularly in relation to neuron interconnectivity and consensus
             processes.
         """
-        metagraph_ = await bittensor.metagraph(
+        return bittensor.metagraph(
             network=self.network, netuid=netuid, lite=lite, subtensor=self
         )
-        return metagraph_
 
     async def incentive(self, netuid: int, block: Optional[int] = None) -> List[int]:
         """

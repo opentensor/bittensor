@@ -284,7 +284,7 @@ class RootSetBoostCommand:
         """Set weights for root network."""
         wallet = bittensor.wallet(config=cli.config)
 
-        root = await subtensor.metagraph(0, lite=False)
+        root = subtensor.metagraph(netuid=0, lite=False)
         try:
             my_uid = root.hotkeys.index(wallet.hotkey.ss58_address)
         except ValueError:
@@ -406,7 +406,7 @@ class RootSetSlashCommand:
                 cli.config.netuid, cli.config.amount
             )
         )
-        root = await subtensor.metagraph(0, lite=False)
+        root = subtensor.metagraph(netuid=0, lite=False)
         try:
             my_uid = root.hotkeys.index(wallet.hotkey.ss58_address)
         except ValueError:

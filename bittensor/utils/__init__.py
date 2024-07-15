@@ -16,6 +16,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import asyncio
 import hashlib
 from typing import Callable, List, Dict, Literal, Tuple
 
@@ -284,3 +285,50 @@ def format_error_message(error_message: dict) -> str:
         err_docs = error_message.get("docs", [])
         err_description = err_docs[0] if len(err_docs) > 0 else err_description
     return f"Subtensor returned `{err_name} ({err_type})` error. This means: `{err_description}`"
+
+
+def get_async_result(cor_func, *args, **kwargs):
+    """
+    Executes an asynchronous function and returns its result.
+
+    This function creates a new coroutine for the given asynchronous function to avoid the `cannot reuse already awaited coroutine` error, and runs it using `asyncio.run`.
+
+    Args:
+        cor_func (coroutine): The asynchronous function to be executed.
+        *args: Positional arguments to pass to the asynchronous function.
+        **kwargs: Keyword arguments to pass to the asynchronous function.
+
+    Returns:
+        The result of the asynchronous function.
+
+        Examples:
+        >>> async def sample_coroutine(x, y):
+        ...     # some async staff here
+        ...     return x + y
+        ...
+        >>> result = get_async_result(sample_coroutine, 2, 3)
+        >>> print(result)
+        5
+        >>> async def fetch_data(uri):
+        ...     async with aiohttp.ClientSession() as session:
+        ...         async with session.get(uri) as response:
+        ...             return await response.text()
+        ...
+        >>> url = "https://www.example.com"
+        >>> html_content = get_async_result(fetch_data, url)
+        >>> print(html_content)
+
+        >>> async def main():
+        ...     await asyncio.sleep(2)
+        ...     return "Finished"
+        ...
+        >>> result = get_async_result(main)
+        >>> print(result)
+        "Finished"
+    """
+
+    # To avoid the `cannot reuse already awaited coroutine` error, I need to create a new coroutine every time.
+    def create_coroutine(cor_func_, *args_, **kwargs_):
+        return cor_func_(*args_, **kwargs_)
+
+    return asyncio.run(create_coroutine(cor_func, *args, **kwargs))

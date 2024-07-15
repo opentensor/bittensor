@@ -94,9 +94,7 @@ class MetagraphCommand:
         console.print(
             f":satellite: Syncing with chain: [white]{cli.config.subtensor.network}[/white] ..."
         )
-        metagraph: bittensor.metagraph = await subtensor.metagraph(
-            netuid=cli.config.netuid
-        )
+        metagraph: bittensor.metagraph = subtensor.metagraph(netuid=cli.config.netuid)
         metagraph.save()
 
         difficulty, total_issuance_ = await asyncio.gather(

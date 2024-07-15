@@ -54,7 +54,7 @@ async def test_dendrite(local_chain):
             "1",
         ],
     )
-    metagraph = await bittensor.metagraph(netuid=1, network="ws://localhost:9945")
+    metagraph = bittensor.metagraph(netuid=1, network="ws://localhost:9945")
     neuron = metagraph.neurons[0]
 
     subtensor = bittensor.subtensor(network="ws://localhost:9945")
@@ -80,9 +80,7 @@ async def test_dendrite(local_chain):
     )
 
     # refresh metagraph
-    metagraph = await bittensor.metagraph(
-        netuid=1, network="ws://localhost:9945", sync=True
-    )
+    metagraph = bittensor.metagraph(netuid=1, network="ws://localhost:9945", sync=True)
     neuron = metagraph.neurons[0]
     # assert stake is 10000
     assert neuron.stake.tao == 10_000.0
@@ -151,9 +149,7 @@ async def test_dendrite(local_chain):
     await wait_interval(360, subtensor)
 
     # refresh metagraph
-    metagraph = await bittensor.metagraph(
-        netuid=1, network="ws://localhost:9945", sync=True
-    )
+    metagraph = bittensor.metagraph(netuid=1, network="ws://localhost:9945", sync=True)
     # refresh validator neuron
     neuron = metagraph.neurons[0]
     assert len(metagraph.neurons) == 1

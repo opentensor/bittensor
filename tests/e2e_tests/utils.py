@@ -15,7 +15,7 @@ template_path = os.getcwd() + "/neurons/"
 templates_repo = "templates repository"
 
 # TODO: remove `ASYNC_TEMPL_URL` logging after async migration done
-ASYNC_TEMPL_URL = "https://api.github.com/repos/opentensor/bittensor-subnet-template/commits/for-async-e2e-tests-only-do-not-use-for-cloning"
+ASYNC_TEMPL_URL = "https://api.github.com/repos/opentensor/bittensor-subnet-template/commits/for-staging-async-only-do-not-use-for-cloning"
 
 
 async def setup_wallet(uri: str):

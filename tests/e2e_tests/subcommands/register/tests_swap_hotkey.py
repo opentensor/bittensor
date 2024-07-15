@@ -169,7 +169,7 @@ async def test_swap_hotkey_validator_owner(local_chain):
     )
 
     # get latest metagraph
-    metagraph = await bittensor.metagraph(netuid=1, network="ws://localhost:9945")
+    metagraph = bittensor.metagraph(netuid=1, network="ws://localhost:9945")
     subtensor = bittensor.subtensor(network="ws://localhost:9945")
 
     # assert alice has old hotkey
@@ -251,7 +251,7 @@ async def test_swap_hotkey_validator_owner(local_chain):
     )
 
     # get latest metagraph
-    metagraph = await bittensor.metagraph(netuid=1, network="ws://localhost:9945")
+    metagraph = bittensor.metagraph(netuid=1, network="ws://localhost:9945")
     subtensor = bittensor.subtensor(network="ws://localhost:9945")
 
     # assert Alice has new hotkey
@@ -432,7 +432,7 @@ async def test_swap_hotkey_miner(local_chain):
     )
 
     # get latest metagraph
-    metagraph = await bittensor.metagraph(netuid=1, network="ws://localhost:9945")
+    metagraph = bittensor.metagraph(netuid=1, network="ws://localhost:9945")
     subtensor = bittensor.subtensor(network="ws://localhost:9945")
 
     # assert bob has old hotkey
@@ -509,7 +509,7 @@ async def test_swap_hotkey_miner(local_chain):
     )
 
     # get latest metagraph
-    metagraph = await bittensor.metagraph(netuid=1, network="ws://localhost:9945")
+    metagraph = bittensor.metagraph(netuid=1, network="ws://localhost:9945")
     subtensor = bittensor.subtensor(network="ws://localhost:9945")
 
     # assert bob has new hotkey
