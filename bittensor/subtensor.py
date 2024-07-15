@@ -2297,18 +2297,18 @@ class Subtensor:
     # Coldkey Swap   #
     ##################
 
-    def check_in_arbitration(self, ss58_address: str) -> int:
+    async def check_in_arbitration(self, ss58_address: str) -> int:
         """
         Checks storage function to see if the provided coldkey is in arbitration.
         If 0, `swap` has not been called on this key. If 1, swap has been called once, so
         the key is not in arbitration. If >1, `swap` has been called with multiple destinations, and
         the key is thus in arbitration.
         """
-        return self.query_module(
+        return (await self.query_module(
             "SubtensorModule", "ColdkeySwapDestinations", params=[ss58_address]
-        ).decode()
+        )).decode()
 
-    def get_remaining_arbitration_period(
+    async def get_remaining_arbitration_period(
         self, coldkey_ss58: str, block: Optional[int] = None
     ) -> Optional[int]:
         """
@@ -2319,14 +2319,14 @@ class Subtensor:
         Returns:
             Optional[int]: The remaining arbitration period in blocks, or 0 if not found.
         """
-        arbitration_block = self.query_subtensor(
+        arbitration_block = await self.query_subtensor(
             name="ColdkeyArbitrationBlock",
             block=block,
             params=[coldkey_ss58],
         )
 
         if block is None:
-            block = self.block
+            block = await self.block()
 
         if arbitration_block.value > block:
             return arbitration_block.value - block

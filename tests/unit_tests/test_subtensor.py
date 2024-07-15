@@ -17,6 +17,7 @@
 
 # Standard Lib
 import argparse
+import unittest.mock
 import unittest.mock as mock
 from unittest.mock import MagicMock
 
@@ -2467,14 +2468,15 @@ async def test_get_delegate_take_no_data(mocker, subtensor):
     assert result is None
 
 
-def test_get_remaining_arbitration_period(subtensor, mocker):
+@pytest.mark.asyncio
+async def test_get_remaining_arbitration_period(subtensor, mocker: "unittest.mock"):
     """Tests successful retrieval of total stake for hotkey."""
     # Prep
-    subtensor.query_subtensor = mocker.MagicMock(return_value=mocker.MagicMock(value=0))
+    subtensor.query_subtensor = mocker.AsyncMock(return_value=mocker.MagicMock(value=0))
     fake_ss58_address = "12bzRJfh7arnnfPPUZHeJUaE62QLEwhK48QnH9LXeK2m1iZU"
 
     # Call
-    result = subtensor.get_remaining_arbitration_period(coldkey_ss58=fake_ss58_address)
+    result = await subtensor.get_remaining_arbitration_period(coldkey_ss58=fake_ss58_address)
 
     # Assertions
     subtensor.query_subtensor.assert_called_once_with(
@@ -2484,16 +2486,17 @@ def test_get_remaining_arbitration_period(subtensor, mocker):
     assert result == 0
 
 
-def test_get_remaining_arbitration_period_happy(subtensor, mocker):
+@pytest.mark.asyncio
+async def test_get_remaining_arbitration_period_happy(subtensor, mocker):
     """Tests successful retrieval of total stake for hotkey."""
     # Prep
-    subtensor.query_subtensor = mocker.MagicMock(
+    subtensor.query_subtensor = mocker.AsyncMock(
         return_value=mocker.MagicMock(value=2000)
     )
     fake_ss58_address = "12bzRJfh7arnnfPPUZHeJUaE62QLEwhK48QnH9LXeK2m1iZU"
 
     # Call
-    result = subtensor.get_remaining_arbitration_period(
+    result = await subtensor.get_remaining_arbitration_period(
         coldkey_ss58=fake_ss58_address, block=200
     )
 

@@ -26,17 +26,17 @@ from . import defaults
 console = bittensor.__console__
 
 
-def fetch_arbitration_stats(subtensor, wallet):
+async def fetch_arbitration_stats(subtensor, wallet):
     """
     Performs a check of the current arbitration data (if any), and displays it through the bittensor console.
     """
-    arbitration_check = len(subtensor.check_in_arbitration(wallet.coldkey.ss58_address))
+    arbitration_check = len(await subtensor.check_in_arbitration(wallet.coldkey.ss58_address))
     if arbitration_check == 0:
         bittensor.__console__.print(
             "[green]There has been no previous key swap initiated for your coldkey.[/green]"
         )
     if arbitration_check == 1:
-        arbitration_remaining = subtensor.get_remaining_arbitration_period(
+        arbitration_remaining = await subtensor.get_remaining_arbitration_period(
             wallet.coldkey.ss58_address
         )
         hours, minutes, seconds = convert_blocks_to_time(arbitration_remaining)
@@ -64,7 +64,7 @@ class CheckColdKeySwapCommand:
     """
 
     @staticmethod
-    def run(cli: "bittensor.cli"):
+    async def run(cli: "bittensor.cli"):
         """
         Runs the check coldkey swap command.
         Args:
@@ -75,16 +75,16 @@ class CheckColdKeySwapCommand:
             subtensor: "bittensor.subtensor" = bittensor.subtensor(
                 config=config, log_verbose=False
             )
-            CheckColdKeySwapCommand._run(cli, subtensor)
+            await CheckColdKeySwapCommand._run(cli, subtensor)
         except Exception as e:
             bittensor.logging.warning(f"Failed to get swap status: {e}")
         finally:
             if "subtensor" in locals():
-                subtensor.close()
+                await subtensor.close()
                 bittensor.logging.debug("closing subtensor connection")
 
     @staticmethod
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+    async def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         """
         Internal method to check coldkey swap status.
         Args:
@@ -94,10 +94,10 @@ class CheckColdKeySwapCommand:
         config = cli.config.copy()
         wallet = bittensor.wallet(config=config)
 
-        fetch_arbitration_stats(subtensor, wallet)
+        await fetch_arbitration_stats(subtensor, wallet)
 
     @classmethod
-    def check_config(cls, config: "bittensor.config"):
+    async def check_config(cls, config: "bittensor.config"):
         """
         Checks and prompts for necessary configuration settings.
         Args:
