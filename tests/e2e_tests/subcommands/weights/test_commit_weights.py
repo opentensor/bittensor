@@ -30,6 +30,7 @@ Verify that:
 def test_commit_and_reveal_weights(local_chain):
     # Register root as Alice
     keypair, exec_command, wallet = setup_wallet("//Alice")
+
     exec_command(RegisterSubnetworkCommand, ["s", "create"])
 
     # define values
@@ -61,6 +62,8 @@ def test_commit_and_reveal_weights(local_chain):
             "100000",
         ],
     )
+
+    subtensor = bittensor.subtensor(network="ws://localhost:9945")
 
     # Enable Commit Reveal
     exec_command(
