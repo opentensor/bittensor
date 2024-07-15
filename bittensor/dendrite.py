@@ -230,6 +230,18 @@ class DendriteMixin:
         return f"http://{endpoint}/{request_name}"
 
     def log_exception(self, exception: Exception):
+        """
+        Logs an exception with a unique identifier.
+
+        This method generates a unique UUID for the error, extracts the error type,
+        and logs the error message using Bittensor's logging system.
+
+        Args:
+            exception (Exception): The exception object to be logged.
+
+        Returns:
+            None
+        """
         error_id = str(uuid.uuid4())
         error_type = exception.__class__.__name__
         bittensor.logging.error(f"{error_type}#{error_id}: {exception}")
