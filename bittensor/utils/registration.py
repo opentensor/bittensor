@@ -22,8 +22,6 @@ This module provides functionality for solving proof of work (PoW) problems for 
 It includes classes and functions to handle PoW solving using both CPU and CUDA-enabled GPUs.
 """
 
-import asyncio
-
 import binascii
 import functools
 import hashlib
