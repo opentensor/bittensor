@@ -530,122 +530,37 @@ def __do_add_stake_single(
     return success
 
 
-def do_set_child_singular_extrinsic(
+def set_children_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
     hotkey: str,
-    child: str,
     netuid: int,
-    proportion: float,
+    children: List[Tuple[float, str]],
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
     prompt: bool = False,
 ) -> Tuple[bool, str]:
     """
-    Sets child hotkey with a proportion assigned from the parent.
-
-    Args:
-        subtensor (bittensor.subtensor): Bittensor wallet object.
-        hotkey (str): Parent hotkey.
-        child (str): Child hotkey.
-        netuid (int): Unique identifier of for the subnet.
-        proportion (float): Proportion assigned to child hotkey.
-        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
-        prompt (bool): If ``true``, the call waits for confirmation from the user before proceeding.
-
-    Returns:
-        Tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
-
-    Raises:
-        bittensor.errors.ChildHotkeyError: If the extrinsic fails to be finalized or included in the block.
-        bittensor.errors.NotRegisteredError: If the hotkey is not registered in any subnets.
-
-    """
-    # Ask before moving on.
-    if prompt:
-        if not Confirm.ask(
-            "Do you want to add child hotkey:\n[bold white]  child: {}\n  proportion: {}[/bold white ]?".format(
-                child, proportion
-            )
-        ):
-            return False, "Operation Cancelled"
-
-    with bittensor.__console__.status(
-        ":satellite: Setting child hotkey on [white]{}[/white] ...".format(
-            subtensor.network
-        )
-    ):
-        try:
-            # prepare values for emmit
-            proportion = float_to_u64(proportion)
-            proportion = normalize_u64_values([proportion])[0]
-
-            success, error_message = subtensor._do_set_child_singular(
-                wallet=wallet,
-                hotkey=hotkey,
-                child=child,
-                netuid=netuid,
-                proportion=proportion,
-                wait_for_inclusion=wait_for_inclusion,
-                wait_for_finalization=wait_for_finalization,
-            )
-
-            bittensor.__console__.print(success, error_message)
-
-            if not wait_for_finalization and not wait_for_inclusion:
-                return True, "Not waiting for finalization or inclusion."
-
-            return subtensor_result(error_message, success)
-
-        except Exception as e:
-            bittensor.__console__.print(
-                ":cross_mark: [red]Failed[/red]: error:{}".format(e)
-            )
-            bittensor.logging.warning(
-                prefix="Set child hotkey", suffix="<red>Failed: </red>" + str(e)
-            )
-            return False, "Exception Occurred while setting child hotkey."
-
-
-def do_set_children_multiple_extrinsic(
-    subtensor: "bittensor.subtensor",
-    wallet: "bittensor.wallet",
-    hotkey: str,
-    children: List[str],
-    netuid: int,
-    proportions: Union[NDArray[np.float32], list],
-    wait_for_inclusion: bool = True,
-    wait_for_finalization: bool = False,
-    prompt: bool = False,
-) -> Tuple[bool, str]:
-    """
-    Sets children hotkeys with a proportion assigned from the parent.
+    Sets children hotkeys with proportions assigned from the parent.
 
     Args:
         subtensor (bittensor.subtensor): Subtensor endpoint to use.
         wallet (bittensor.wallet): Bittensor wallet object.
         hotkey (str): Parent hotkey.
-        children (List[str]): Children hotkeys.
-        netuid (int): Unique identifier of for the subnet.
-        proportions (np.ndarray): Proportions assigned to children hotkeys.
-        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
-        prompt (bool): If ``true``, the call waits for confirmation from the user before proceeding.
+        netuid (int): Unique identifier for the subnet.
+        children (List[Tuple[float, str]]): List of (proportion, child_ss58) pairs.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning.
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning.
+        prompt (bool): If true, the call waits for confirmation from the user before proceeding.
 
     Returns:
-        Tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
-
-    Raises:
-        bittensor.errors.ChildHotkeyError: If the extrinsic fails to be finalized or included in the block.
-        bittensor.errors.NotRegisteredError: If the hotkey is not registered in any subnets.
-
+        Tuple[bool, str]: A tuple containing a success flag and a message.
     """
     # Ask before moving on.
     if prompt:
         if not Confirm.ask(
-            "Do you want to add children hotkeys:\n[bold white]  children: {}\n  proportions: {}[/bold white ]?".format(
-                children, proportions
+            "Do you want to set children hotkeys:\n[bold white]{}[/bold white]?".format(
+                "\n".join(f"  {child[1]}: {child[0]}" for child in children)
             )
         ):
             return False, "Operation Cancelled"
@@ -656,61 +571,51 @@ def do_set_children_multiple_extrinsic(
         )
     ):
         try:
-            # Convert to list if ndarray
-            proportions_val = (
-                proportions.tolist()
-                if isinstance(proportions, np.ndarray)
-                else proportions
-            )
+            # Convert proportions to u64 and normalize
+            children_u64 = [(float_to_u64(prop), child) for prop, child in children]
+            normalized_children = normalize_children_and_proportions(children_u64)
 
-            # Convert each proportion value to u64
-            proportions_val = [
-                float_to_u64(proportion) for proportion in proportions_val
-            ]
-
-            # Normalize the u64 values to ensure their sum equals u64::MAX
-            proportions_val = normalize_u64_values(proportions_val)
-
-            children_with_proportions = list(zip(children, proportions_val))
-
-            success, error_message = subtensor._do_set_children_multiple(
-                children_with_proportions=children_with_proportions,
+            success, error_message = subtensor._do_set_children(
+                wallet=wallet,
                 hotkey=hotkey,
                 netuid=netuid,
-                wallet=wallet,
+                children=normalized_children,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
             )
 
-            bittensor.__console__.print(success, error_message)
-
             if not wait_for_finalization and not wait_for_inclusion:
                 return True, "Not waiting for finalization or inclusion."
 
-            return subtensor_result(error_message, success)
+            return subtensor_result(error_message, success, "Set children hotkeys")
 
         except Exception as e:
-            bittensor.__console__.print(
-                ":cross_mark: [red]Failed[/red]: error:{}".format(e)
-            )
-            bittensor.logging.warning(
-                prefix="Set children hotkeys", suffix="<red>Failed: </red>" + str(e)
-            )
-            return False, "Exception Occurred while setting children hotkeys."
+            return False, f"Exception occurred while setting children hotkeys: {str(e)}"
 
 
-def subtensor_result(error_message, success):
-    if success is True:
+def normalize_children_and_proportions(
+    children: List[Tuple[int, str]]
+) -> List[Tuple[int, str]]:
+    """
+    Normalizes the proportions of children so that they sum to u64::MAX.
+    """
+    total = sum(prop for prop, _ in children)
+    u64_max = 2**64 - 1
+    return [(int(prop * u64_max / total), child) for prop, child in children]
+
+
+def subtensor_result(error_message, success, operation):
+    if success:
         bittensor.__console__.print(":white_heavy_check_mark: [green]Finalized[/green]")
         bittensor.logging.success(
-            prefix="Set child(ren) hotkeys",
+            prefix=operation,
             suffix="<green>Finalized: </green>" + str(success),
         )
-        return True, "Successfully set child(ren) hotkeys and Finalized."
+        return True, f"Successfully {operation.lower()} and Finalized."
     else:
         bittensor.__console__.print(f":cross_mark: [red]Failed[/red]: {error_message}")
         bittensor.logging.warning(
-            prefix="Set child(ren) hotkeys",
+            prefix=operation,
             suffix="<red>Failed: </red>" + str(error_message),
         )
         return False, error_message

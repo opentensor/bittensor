@@ -69,10 +69,8 @@ from .commands import (
     WalletCreateCommand,
     CommitWeightCommand,
     RevealWeightCommand,
-    SetChildCommand,
     SetChildrenCommand,
     GetChildrenCommand,
-    RevokeChildCommand,
     RevokeChildrenCommand,
 )
 
@@ -173,8 +171,6 @@ COMMANDS = {
             "add": StakeCommand,
             "remove": UnStakeCommand,
             "get_children": GetChildrenCommand,
-            "set_child": SetChildCommand,
-            "revoke_child": RevokeChildCommand,
             "set_children": SetChildrenCommand,
             "revoke_children": RevokeChildrenCommand,
         },

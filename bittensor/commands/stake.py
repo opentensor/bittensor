@@ -574,139 +574,6 @@ class StakeShow:
         bittensor.subtensor.add_args(list_parser)
 
 
-class SetChildCommand:
-    """
-    Executes the ``set_child`` command to add a child hotkey on a specified subnet on the Bittensor network.
-
-    This command is used to delegate authority to different hotkeys, securing their position and influence on the subnet.
-
-    Usage:
-        Users can specify the amount or 'proportion' to delegate to a child hotkey (either by name or ``SS58`` address),
-        the user needs to have sufficient authority to make this call, and the sum of proportions cannot be greater than 1.
-
-    The command prompts for confirmation before executing the set_child operation.
-
-    Example usage::
-
-        btcli stake set_child --child <child_hotkey> --hotkey <parent_hotkey> --netuid 1 --proportion 0.5
-
-    Note:
-        This command is critical for users who wish to delegate child hotkeys among different neurons (hotkeys) on the network.
-        It allows for a strategic allocation of authority to enhance network participation and influence.
-    """
-
-    @staticmethod
-    def run(cli: "bittensor.cli"):
-        """Set child hotkey."""
-        try:
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(
-                config=cli.config, log_verbose=False
-            )
-            SetChildCommand._run(cli, subtensor)
-        finally:
-            if "subtensor" in locals():
-                subtensor.close()
-                bittensor.logging.debug("closing subtensor connection")
-
-    @staticmethod
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
-        wallet = bittensor.wallet(config=cli.config)
-
-        GetChildrenCommand.run(cli)
-
-        # Get values if not set.
-        if not cli.config.is_set("netuid"):
-            cli.config.netuid = int(Prompt.ask("Enter netuid"))
-
-        if not cli.config.is_set("child"):
-            cli.config.child = Prompt.ask("Enter child hotkey (ss58)")
-
-        if not cli.config.is_set("hotkey"):
-            cli.config.hotkey = Prompt.ask("Enter parent hotkey (ss58)")
-
-        if not cli.config.is_set("proportion"):
-            cli.config.proportion = Prompt.ask("Enter proportion")
-
-        # Parse from strings
-        netuid = cli.config.netuid
-
-        try:
-            proportion = float(cli.config.proportion)
-        except ValueError:
-            console.print(
-                ":cross_mark:[red] Invalid proportion amount[/red] [bold white]{}[/bold white]".format(
-                    cli.config.proportion
-                )
-            )
-            sys.exit()
-
-        if proportion > 1:
-            raise ValueError(
-                f":cross_mark:[red] The sum of all proportions cannot be greater than 1. Proposed proportion is {proportion}[/red]"
-            )
-
-        if not wallet_utils.is_valid_ss58_address(cli.config.child):
-            raise ValueError(
-                f":cross_mark:[red] Child ss58 address: {cli.config.child} unrecognizable. Please check child address and try again.[/red]"
-            )
-
-        success, message = subtensor.set_child_singular(
-            wallet=wallet,
-            netuid=netuid,
-            child=cli.config.child,
-            hotkey=cli.config.hotkey,
-            proportion=proportion,
-            wait_for_inclusion=cli.config.wait_for_inclusion,
-            wait_for_finalization=cli.config.wait_for_finalization,
-            prompt=cli.config.prompt,
-        )
-
-        # Result
-        if success:
-            console.print(":white_heavy_check_mark: [green]Set child hotkey.[/green]")
-        else:
-            console.print(
-                f":cross_mark:[red] Unable to set child hotkey.[/red] {message}"
-            )
-
-    @staticmethod
-    def check_config(config: "bittensor.config"):
-        if not config.is_set("wallet.name") and not config.no_prompt:
-            wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
-            config.wallet.name = str(wallet_name)
-        if not config.is_set("wallet.hotkey") and not config.no_prompt:
-            hotkey = Prompt.ask("Enter hotkey name", default=defaults.wallet.hotkey)
-            config.wallet.hotkey = str(hotkey)
-
-    @staticmethod
-    def add_args(parser: argparse.ArgumentParser):
-        parser = parser.add_parser("set_child", help="""Set a child hotkey.""")
-        parser.add_argument("--netuid", dest="netuid", type=int, required=False)
-        parser.add_argument("--child", dest="child", type=str, required=False)
-        parser.add_argument("--hotkey", dest="hotkey", type=str, required=False)
-        parser.add_argument("--proportion", dest="proportion", type=str, required=False)
-        parser.add_argument(
-            "--wait-for-inclusion",
-            dest="wait_for_inclusion",
-            action="store_true",
-            default=False,
-        )
-        parser.add_argument(
-            "--wait-for-finalization",
-            dest="wait_for_finalization",
-            action="store_true",
-            default=True,
-        )
-        parser.add_argument(
-            "--prompt",
-            dest="prompt",
-            action="store_true",
-            default=False,
-        )
-        bittensor.wallet.add_args(parser)
-        bittensor.subtensor.add_args(parser)
-
-
 class SetChildrenCommand:
     """
     Executes the ``set_children`` command to add children hotkeys on a specified subnet on the Bittensor network.
@@ -714,14 +581,14 @@ class SetChildrenCommand:
     This command is used to delegate authority to different hotkeys, securing their position and influence on the subnet.
 
     Usage:
-        Users can specify the amount or 'proportion' to delegate to a child hotkey (either by name or ``SS58`` address),
+        Users can specify the amount or 'proportion' to delegate to child hotkeys (either by name or ``SS58`` address),
         the user needs to have sufficient authority to make this call, and the sum of proportions cannot be greater than 1.
 
     The command prompts for confirmation before executing the set_children operation.
 
     Example usage::
 
-        btcli stake set_children --children <child_hotkey>,<child_hotkey> --hotkey <parent_hotkey> --netuid 1 --proportion 0.3,0.3
+        btcli stake set_children --children <child_hotkey>,<child_hotkey> --hotkey <parent_hotkey> --netuid 1 --proportions 0.3,0.3
 
     Note:
         This command is critical for users who wish to delegate children hotkeys among different neurons (hotkeys) on the network.
@@ -783,12 +650,14 @@ class SetChildrenCommand:
                 f"The sum of all proportions cannot be greater than 1. Proposed sum of proportions is {total_proposed}."
             )
 
-        success, message = subtensor.set_children_multiple(
+        # Combine children and proportions into a list of tuples
+        children_with_proportions = list(zip(proportions, children))
+
+        success, message = subtensor.set_children(
             wallet=wallet,
             netuid=netuid,
-            children=children,
             hotkey=cli.config.hotkey,
-            proportions=proportions,
+            children=children_with_proportions,
             wait_for_inclusion=cli.config.wait_for_inclusion,
             wait_for_finalization=cli.config.wait_for_finalization,
             prompt=cli.config.prompt,
@@ -831,22 +700,25 @@ class SetChildrenCommand:
             "--proportions", dest="proportions", type=str, required=False
         )
         set_children_parser.add_argument(
-            "--wait-for-inclusion",
+            "--wait_for_inclusion",
             dest="wait_for_inclusion",
             action="store_true",
             default=False,
+            help="""Wait for the transaction to be included in a block.""",
         )
         set_children_parser.add_argument(
-            "--wait-for-finalization",
+            "--wait_for_finalization",
             dest="wait_for_finalization",
             action="store_true",
-            default=True,
+            default=False,
+            help="""Wait for the transaction to be finalized.""",
         )
         set_children_parser.add_argument(
             "--prompt",
             dest="prompt",
             action="store_true",
             default=False,
+            help="""Prompt for confirmation before proceeding.""",
         )
         bittensor.wallet.add_args(set_children_parser)
         bittensor.subtensor.add_args(set_children_parser)
