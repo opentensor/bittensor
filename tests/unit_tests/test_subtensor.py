@@ -2476,7 +2476,9 @@ async def test_get_remaining_arbitration_period(subtensor, mocker: "unittest.moc
     fake_ss58_address = "12bzRJfh7arnnfPPUZHeJUaE62QLEwhK48QnH9LXeK2m1iZU"
 
     # Call
-    result = await subtensor.get_remaining_arbitration_period(coldkey_ss58=fake_ss58_address)
+    result = await subtensor.get_remaining_arbitration_period(
+        coldkey_ss58=fake_ss58_address
+    )
 
     # Assertions
     subtensor.query_subtensor.assert_called_once_with(

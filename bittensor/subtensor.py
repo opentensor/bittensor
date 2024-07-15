@@ -2304,9 +2304,11 @@ class Subtensor:
         the key is not in arbitration. If >1, `swap` has been called with multiple destinations, and
         the key is thus in arbitration.
         """
-        return (await self.query_module(
-            "SubtensorModule", "ColdkeySwapDestinations", params=[ss58_address]
-        )).decode()
+        return (
+            await self.query_module(
+                "SubtensorModule", "ColdkeySwapDestinations", params=[ss58_address]
+            )
+        ).decode()
 
     async def get_remaining_arbitration_period(
         self, coldkey_ss58: str, block: Optional[int] = None
