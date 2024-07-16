@@ -30,14 +30,16 @@ def fetch_arbitration_stats(subtensor, wallet):
     """
     Performs a check of the current arbitration data (if any), and displays it through the bittensor console.
     """
-    arbitration_check = len(subtensor.check_in_arbitration(wallet.coldkey.ss58_address))
+    arbitration_check = len(
+        subtensor.check_in_arbitration(wallet.coldkeypub.ss58_address)
+    )
     if arbitration_check == 0:
         bittensor.__console__.print(
             "[green]There has been no previous key swap initiated for your coldkey.[/green]"
         )
     if arbitration_check == 1:
         arbitration_remaining = subtensor.get_remaining_arbitration_period(
-            wallet.coldkey.ss58_address
+            wallet.coldkeypub.ss58_address
         )
         hours, minutes, seconds = convert_blocks_to_time(arbitration_remaining)
         bittensor.__console__.print(
