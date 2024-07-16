@@ -22,13 +22,12 @@ This module provides functionality for solving proof of work (PoW) problems for 
 It includes classes and functions to handle PoW solving using both CPU and CUDA-enabled GPUs.
 """
 
-import asyncio
-
 import binascii
 import functools
 import hashlib
 import math
 import multiprocessing
+import multiprocessing.queues  # this must be imported separately, or could break type annotations
 import os
 import random
 import time
@@ -979,14 +978,10 @@ async def _solve_for_difficulty_fast_cuda(
             for i in range(num_processes)
         ]
 
-        block_hash_with_retry, is_hotkey_is_registered = await asyncio.gather(
-            _get_block_with_retry(subtensor=subtensor, netuid=netuid),
-            subtensor.is_hotkey_registered(
-                netuid=netuid, hotkey_ss58=wallet.hotkey.ss58_address
-            ),
-        )
         # Get first block
-        block_number, difficulty, block_hash = block_hash_with_retry
+        block_number, difficulty, block_hash = await _get_block_with_retry(
+            subtensor=subtensor, netuid=netuid
+        )
 
         block_bytes = bytes.fromhex(block_hash[2:])
         old_block_number = block_number
@@ -1035,7 +1030,9 @@ async def _solve_for_difficulty_fast_cuda(
         weights = [alpha_**i for i in range(n_samples)]  # weights decay by alpha
 
         solution = None
-        while netuid == -1 or not is_hotkey_is_registered:
+        while netuid == -1 or not await subtensor.is_hotkey_registered(
+            netuid=netuid, hotkey_ss58=wallet.hotkey.ss58_address
+        ):
             # Wait until a solver finds a solution
             try:
                 solution = solution_queue.get(block=True, timeout=0.15)
@@ -1114,11 +1111,14 @@ async def _solve_for_difficulty_fast_cuda(
 
 
 async def _terminate_workers_and_wait_for_exit(
-    workers: List[multiprocessing.Process],
+    workers: List[Union[multiprocessing.Process, multiprocessing.queues.Queue]],
 ) -> None:
     for worker in workers:
-        worker.terminate()
-        worker.join()
+        if isinstance(worker, multiprocessing.queues.Queue):
+            worker.join_thread()
+        else:
+            worker.join()
+        worker.close()
 
 
 async def create_pow(

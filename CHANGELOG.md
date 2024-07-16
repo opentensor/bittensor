@@ -1,5 +1,14 @@
 # Changelog
 
+## 7.3.0 / 2024-07-12
+
+## What's Changed
+* Liquid Alpha by @opendansor & @gus-opentensor in https://github.com/opentensor/bittensor/pull/2012
+* check_coldkey_swap by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2126
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v7.2.0...v7.3.0
+
+
 ## 7.2.0 / 2024-06-12
 
 ## What's Changed
