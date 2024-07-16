@@ -15,9 +15,8 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import sys
 import argparse
-import re
+import sys
 from typing import List, Union, Optional, Tuple
 
 from rich.prompt import Confirm, Prompt
@@ -27,7 +26,6 @@ import bittensor
 from bittensor.utils.balance import Balance
 from . import defaults, GetChildrenCommand
 from .utils import get_hotkey_wallets_for_wallet
-from ..utils import is_valid_ss58_address
 
 console = bittensor.__console__
 

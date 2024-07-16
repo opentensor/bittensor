@@ -19,11 +19,9 @@
 from rich.prompt import Confirm
 from time import sleep
 from typing import List, Union, Optional, Tuple
-from numpy.typing import NDArray
-import numpy as np
 
 import bittensor
-from ..utils.formatting import float_to_u64, normalize_u64_values
+from ..utils.formatting import float_to_u64
 
 from bittensor.utils.balance import Balance
 
@@ -594,7 +592,7 @@ def set_children_extrinsic(
 
 
 def normalize_children_and_proportions(
-    children: List[Tuple[int, str]]
+    children: List[Tuple[int, str]],
 ) -> List[Tuple[int, str]]:
     """
     Normalizes the proportions of children so that they sum to u64::MAX.
