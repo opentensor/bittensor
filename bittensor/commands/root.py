@@ -148,9 +148,7 @@ class RootList:
         root_neurons: typing.List[bittensor.NeuronInfoLite] = subtensor.neurons_lite(
             netuid=0
         )
-        delegate_info: Optional[Dict[str, DelegatesDetails]] = get_delegates_details(
-            url=bittensor.__delegates_details_url__
-        )
+        delegate_info: Optional[Dict[str, DelegatesDetails]] = get_delegates_details(subtensor=subtensor)
 
         table = Table(show_footer=False)
         table.title = "[white]Root Network"
@@ -191,7 +189,7 @@ class RootList:
             table.add_row(
                 str(neuron_data.uid),
                 (
-                    delegate_info[neuron_data.hotkey].name
+                    delegate_info[neuron_data.hotkey].display
                     if neuron_data.hotkey in delegate_info
                     else ""
                 ),

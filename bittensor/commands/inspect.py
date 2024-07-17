@@ -138,9 +138,7 @@ class InspectCommand:
         )
         bittensor.logging.debug(f"Netuids to check: {netuids}")
 
-        registered_delegate_info: Optional[Dict[str, DelegatesDetails]] = (
-            get_delegates_details(url=bittensor.__delegates_details_url__)
-        )
+        registered_delegate_info: Optional[Dict[str, DelegatesDetails]] = get_delegates_details(subtensor=subtensor)
         if registered_delegate_info is None:
             bittensor.__console__.print(
                 ":warning:[yellow]Could not get delegate info from chain.[/yellow]"
@@ -190,7 +188,7 @@ class InspectCommand:
             table.add_row(wallet.name, str(cold_balance), "", "", "", "", "", "", "")
             for dele, staked in delegates:
                 if dele.hotkey_ss58 in registered_delegate_info:
-                    delegate_name = registered_delegate_info[dele.hotkey_ss58].name
+                    delegate_name = registered_delegate_info[dele.hotkey_ss58].display
                 else:
                     delegate_name = dele.hotkey_ss58
                 table.add_row(
@@ -249,7 +247,7 @@ class InspectCommand:
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
             config.wallet.name = str(wallet_name)
 
-        if config.netuids != [] and config.netuids != None:
+        if config.netuids != [] and config.netuids is not None:
             if not isinstance(config.netuids, list):
                 config.netuids = [int(config.netuids)]
             else:
