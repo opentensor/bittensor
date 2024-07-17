@@ -17,7 +17,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from typing import Union, Optional
+from typing import Any, Dict, Union, Optional
 
 from substrateinterface import Keypair as Keypair
 from substrateinterface.utils import ss58
@@ -155,7 +155,7 @@ def create_identity_dict(
     }
 
 
-def decode_hex_identity_dict(info_dictionary):
+def decode_hex_identity_dict(info_dictionary) -> Dict[str, Any]:
     """
     Decodes hex-encoded strings in a dictionary.
 
@@ -178,7 +178,7 @@ def decode_hex_identity_dict(info_dictionary):
         {'name': 'john', 'additional': [('data', 'data')]}
     """
 
-    def get_decoded(data: str):
+    def get_decoded(data: str) -> str:
         """Decodes a hex-encoded string."""
         try:
             return bytes.fromhex(data[2:]).decode()
