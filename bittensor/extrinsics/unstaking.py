@@ -452,65 +452,6 @@ def unstake_multiple_extrinsic(
     return False
 
 
-def revoke_children_extrinsic(
-    subtensor: "bittensor.subtensor",
-    wallet: "bittensor.wallet",
-    hotkey: str,
-    netuid: int,
-    wait_for_inclusion: bool = True,
-    wait_for_finalization: bool = False,
-    prompt: bool = False,
-) -> Tuple[bool, str]:
-    """
-    Revokes all children hotkeys from subnet.
-
-    Args:
-        subtensor (bittensor.subtensor): Subtensor endpoint to use.
-        wallet (bittensor.wallet): Bittensor wallet object.
-        hotkey (str): Parent hotkey.
-        netuid (int): Unique identifier for the subnet.
-        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning.
-        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning.
-        prompt (bool): If true, the call waits for confirmation from the user before proceeding.
-
-    Returns:
-        Tuple[bool, str]: A tuple containing a success flag and a message.
-    """
-    # Ask before moving on.
-    if prompt:
-        if not Confirm.ask(
-            "Do you want to revoke all children hotkeys for hotkey:\n[bold white]{}[/bold white]?".format(
-                hotkey
-            )
-        ):
-            return False, "Operation Cancelled"
-
-    with bittensor.__console__.status(
-        ":satellite: Revoking children hotkeys on [white]{}[/white] ...".format(
-            subtensor.network
-        )
-    ):
-        try:
-            success, error_message = subtensor._do_revoke_children(
-                wallet=wallet,
-                hotkey=hotkey,
-                netuid=netuid,
-                wait_for_inclusion=wait_for_inclusion,
-                wait_for_finalization=wait_for_finalization,
-            )
-
-            if not wait_for_finalization and not wait_for_inclusion:
-                return True, "Not waiting for finalization or inclusion."
-
-            return subtensor_result(error_message, success, "Revoke children hotkeys")
-
-        except Exception as e:
-            return (
-                False,
-                f"Exception occurred while revoking children hotkeys: {str(e)}",
-            )
-
-
 def subtensor_result(error_message, success):
     """Print message according to the result of the call."""
     if success is True:

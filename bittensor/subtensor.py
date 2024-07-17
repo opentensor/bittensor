@@ -110,7 +110,6 @@ from .extrinsics.transfer import transfer_extrinsic
 from .extrinsics.unstaking import (
     unstake_extrinsic,
     unstake_multiple_extrinsic,
-    revoke_children_extrinsic,
 )
 from .types import AxonServeCallParams, PrometheusServeCallParams
 from .utils import (
@@ -2316,9 +2315,9 @@ class Subtensor:
 
         return make_substrate_call_with_retry()
 
-    ###################
-    # Setting hotkeys #
-    ###################
+    #########################
+    ##### Child Hotkeys #####
+    #########################
 
     def set_children(
         self,
@@ -2387,93 +2386,6 @@ class Subtensor:
                     "hotkey": hotkey,
                     "netuid": netuid,
                     "children": children,
-                },
-            )
-            extrinsic = self.substrate.create_signed_extrinsic(
-                call=call, keypair=wallet.coldkey
-            )
-            response = self.substrate.submit_extrinsic(
-                extrinsic,
-                wait_for_inclusion=wait_for_inclusion,
-                wait_for_finalization=wait_for_finalization,
-            )
-
-            if not wait_for_finalization and not wait_for_inclusion:
-                return True, None
-
-            response.process_events()
-            if not response.is_success:
-                return False, format_error_message(response.error_message)
-            else:
-                return True, None
-
-        return make_substrate_call_with_retry()
-
-    ####################
-    # Revoking hotkeys #
-    ####################
-
-    def revoke_children(
-        self,
-        wallet: "bittensor.wallet",
-        hotkey: str,
-        netuid: int,
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = False,
-        prompt: bool = False,
-    ) -> tuple[bool, str]:
-        """Revokes all children hotkeys from the subnet.
-
-        Args:
-            wallet (:func:`bittensor.wallet`): Wallet object that can sign the extrinsic.
-            hotkey: (str): Hotkey ``ss58`` address of the parent.
-            netuid (int): Unique identifier for the network.
-            wait_for_inclusion (bool): If ``true``, waits for inclusion before returning.
-            wait_for_finalization (bool): If ``true``, waits for finalization before returning.
-            prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
-        Returns:
-            success (bool): ``True`` if the extrinsic was successful.
-        Raises:
-            ChildHotkeyError: If the extrinsic failed.
-        """
-        return revoke_children_extrinsic(
-            self,
-            wallet=wallet,
-            hotkey=hotkey,
-            netuid=netuid,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-            prompt=prompt,
-        )
-
-    def _do_revoke_children(
-        self,
-        wallet: "bittensor.wallet",
-        hotkey: str,
-        netuid: int,
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = False,
-    ) -> tuple[bool, Optional[str]]:
-        """Revokes all children hotkeys extrinsic on the chain.
-
-        Args:
-            wallet (:func:`bittensor.wallet`): Wallet object that can sign the extrinsic.
-            hotkey: (str): Hotkey ``ss58`` address of the parent.
-            netuid (int): Unique identifier for the network.
-            wait_for_inclusion (bool): If ``true``, waits for inclusion before returning.
-            wait_for_finalization (bool): If ``true``, waits for finalization before returning.
-        Returns:
-            success (bool): ``True`` if the extrinsic was successful.
-        """
-
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
-        def make_substrate_call_with_retry():
-            call = self.substrate.compose_call(
-                call_module="SubtensorModule",
-                call_function="revoke_children",
-                call_params={
-                    "hotkey": hotkey,
-                    "netuid": netuid,
                 },
             )
             extrinsic = self.substrate.create_signed_extrinsic(
