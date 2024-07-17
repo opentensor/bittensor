@@ -70,7 +70,9 @@ class SenateCommand:
         )
 
         senate_members = subtensor.get_senate_members()
-        delegate_info: Optional[Dict[str, DelegatesDetails]] = get_delegates_details(subtensor=subtensor)
+        delegate_info: Optional[Dict[str, DelegatesDetails]] = get_delegates_details(
+            subtensor=subtensor
+        )
 
         table = Table(show_footer=False)
         table.title = "[white]Senate"
@@ -141,7 +143,8 @@ def format_call_data(call_data: "bittensor.ProposalCallData") -> str:
 
 
 def display_votes(
-    vote_data: "bittensor.ProposalVoteData", delegate_info: "Dict[str, DelegatesDetails]"
+    vote_data: "bittensor.ProposalVoteData",
+    delegate_info: "Dict[str, DelegatesDetails]",
 ) -> str:
     vote_list = list()
 
@@ -209,7 +212,9 @@ class ProposalsCommand:
         senate_members = subtensor.get_senate_members()
         proposals = subtensor.get_proposals()
 
-        registered_delegate_info: Optional[Dict[str, DelegatesDetails]] = get_delegates_details(subtensor=subtensor)
+        registered_delegate_info: Optional[Dict[str, DelegatesDetails]] = (
+            get_delegates_details(subtensor=subtensor)
+        )
 
         table = Table(show_footer=False)
         table.title = (
@@ -338,7 +343,9 @@ class ShowVotesCommand:
             console.print(":cross_mark: [red]Failed[/red]: Proposal not found.")
             return
 
-        registered_delegate_info: Optional[Dict[str, DelegatesDetails]] = get_delegates_details(subtensor=subtensor)
+        registered_delegate_info: Optional[Dict[str, DelegatesDetails]] = (
+            get_delegates_details(subtensor=subtensor)
+        )
 
         table = Table(show_footer=False)
         table.title = "[white]Votes for Proposal {}".format(proposal_hash)

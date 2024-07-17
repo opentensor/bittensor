@@ -148,7 +148,9 @@ class RootList:
         root_neurons: typing.List[bittensor.NeuronInfoLite] = subtensor.neurons_lite(
             netuid=0
         )
-        delegate_info: Optional[Dict[str, DelegatesDetails]] = get_delegates_details(subtensor=subtensor)
+        delegate_info: Optional[Dict[str, DelegatesDetails]] = get_delegates_details(
+            subtensor=subtensor
+        )
 
         table = Table(show_footer=False)
         table.title = "[white]Root Network"

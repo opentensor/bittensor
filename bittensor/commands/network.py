@@ -247,7 +247,9 @@ class SubnetListCommand:
 
         rows = []
         total_neurons = 0
-        delegate_info: Optional[Dict[str, DelegatesDetails]] = get_delegates_details(subtensor=subtensor)
+        delegate_info: Optional[Dict[str, DelegatesDetails]] = get_delegates_details(
+            subtensor=subtensor
+        )
 
         for subnet in subnets:
             total_neurons += subnet.max_n

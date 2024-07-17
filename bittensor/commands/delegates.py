@@ -46,7 +46,9 @@ console = bittensor.__console__
 
 
 def show_delegates_lite(
-    subtensor: "bittensor.subtensor", delegates_lite: List["bittensor.DelegateInfoLite"], width: Optional[int] = None
+    subtensor: "bittensor.subtensor",
+    delegates_lite: List["bittensor.DelegateInfoLite"],
+    width: Optional[int] = None,
 ):
     """
     This method is a lite version of the :func:`show_delegates`. This method displays a formatted table of Bittensor network delegates with detailed statistics to the console.
@@ -84,7 +86,9 @@ def show_delegates_lite(
         the table in the console.
     """
 
-    registered_delegate_info: Optional[Dict[str, DelegatesDetails]] = get_delegates_details(subtensor=subtensor)
+    registered_delegate_info: Optional[Dict[str, DelegatesDetails]] = (
+        get_delegates_details(subtensor=subtensor)
+    )
     if registered_delegate_info is None:
         bittensor.__console__.print(
             ":warning:[yellow]Could not get delegate info from chain.[/yellow]"
@@ -210,7 +214,9 @@ def show_delegates(
         for prev_delegate in prev_delegates:
             prev_delegates_dict[prev_delegate.hotkey_ss58] = prev_delegate
 
-    registered_delegate_info: Optional[Dict[str, DelegatesDetails]] = get_delegates_details(subtensor=subtensor)
+    registered_delegate_info: Optional[Dict[str, DelegatesDetails]] = (
+        get_delegates_details(subtensor=subtensor)
+    )
     if registered_delegate_info is None:
         bittensor.__console__.print(
             ":warning:[yellow]Could not get delegate info from chain.[/yellow]"
@@ -434,7 +440,9 @@ class DelegateStakeCommand:
                 sys.exit(1)
 
             delegates.sort(key=lambda delegate: delegate.total_stake, reverse=True)
-            show_delegates(subtensor=subtensor, delegates=delegates, prev_delegates=prev_delegates)
+            show_delegates(
+                subtensor=subtensor, delegates=delegates, prev_delegates=prev_delegates
+            )
             delegate_index = Prompt.ask("Enter delegate index")
             config.delegate_ss58key = str(delegates[int(delegate_index)].hotkey_ss58)
             console.print(
@@ -579,7 +587,9 @@ class DelegateUnstakeCommand:
                 sys.exit(1)
 
             delegates.sort(key=lambda delegate: delegate.total_stake, reverse=True)
-            show_delegates(subtensor=subtensor, delegates=delegates, prev_delegates=prev_delegates)
+            show_delegates(
+                subtensor=subtensor, delegates=delegates, prev_delegates=prev_delegates
+            )
             delegate_index = Prompt.ask("Enter delegate index")
             config.delegate_ss58key = str(delegates[int(delegate_index)].hotkey_ss58)
             console.print(
@@ -684,7 +694,11 @@ class ListDelegatesCommand:
                 ":warning: [yellow]Could not fetch delegates history[/yellow]"
             )
 
-        show_delegates(subtensor=subtensor, delegates=delegates, prev_delegates=prev_delegates, width=cli.config.get("width", None),
+        show_delegates(
+            subtensor=subtensor,
+            delegates=delegates,
+            prev_delegates=prev_delegates,
+            width=cli.config.get("width", None),
         )
 
     @staticmethod
@@ -948,7 +962,9 @@ class MyDelegatesCommand:
             delegates.sort(key=lambda delegate: delegate[0].total_stake, reverse=True)
             total_delegated += sum(my_delegates.values())
 
-            registered_delegate_info: Optional[DelegatesDetails] = get_delegates_details(subtensor=subtensor)
+            registered_delegate_info: Optional[DelegatesDetails] = (
+                get_delegates_details(subtensor=subtensor)
+            )
             if registered_delegate_info is None:
                 bittensor.__console__.print(
                     ":warning:[yellow]Could not get delegate info from chain.[/yellow]"

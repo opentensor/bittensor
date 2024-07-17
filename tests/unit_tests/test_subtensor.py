@@ -2315,3 +2315,7 @@ def test_get_remaining_arbitration_period_happy(subtensor, mocker):
     )
     # if we change the methods logic in the future we have to be make sure the returned type is correct
     assert result == 1800  # 2000 - 200
+
+
+def test_get_delegate_identities(subtensor, mocker):
+    pass

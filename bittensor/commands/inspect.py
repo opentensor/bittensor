@@ -138,7 +138,9 @@ class InspectCommand:
         )
         bittensor.logging.debug(f"Netuids to check: {netuids}")
 
-        registered_delegate_info: Optional[Dict[str, DelegatesDetails]] = get_delegates_details(subtensor=subtensor)
+        registered_delegate_info: Optional[Dict[str, DelegatesDetails]] = (
+            get_delegates_details(subtensor=subtensor)
+        )
         if registered_delegate_info is None:
             bittensor.__console__.print(
                 ":warning:[yellow]Could not get delegate info from chain.[/yellow]"

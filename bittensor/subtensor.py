@@ -2878,7 +2878,9 @@ class Subtensor:
 
         return make_substrate_call_with_retry()
 
-    def get_delegate_identities(self, block: Optional[int] = None) -> Dict[str, DelegatesDetails]:
+    def get_delegate_identities(
+        self, block: Optional[int] = None
+    ) -> Dict[str, DelegatesDetails]:
         """
         Retrieves the identities of all delegates from the blockchain.
 
@@ -2890,6 +2892,7 @@ class Subtensor:
         Returns:
             Dict[str, DelegatesDetails]: A dictionary where the keys are delegate SS58 addresses and the values are DelegatesDetails objects containing the details of each delegate.
         """
+
         @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
         def make_substrate_call_with_retry() -> "QueryMapResult":
             return self.substrate.query_map(
