@@ -1,3 +1,4 @@
+import logging
 import os
 import shutil
 import subprocess
@@ -8,7 +9,7 @@ from typing import List
 from substrateinterface import SubstrateInterface
 
 import bittensor
-from bittensor import Keypair, logging
+from bittensor import Keypair
 
 template_path = os.getcwd() + "/neurons/"
 templates_repo = "templates repository"
@@ -198,11 +199,27 @@ def install_templates(install_dir):
 
 
 def uninstall_templates(install_dir):
+    # uninstall templates
     subprocess.check_call(
         [sys.executable, "-m", "pip", "uninstall", "bittensor_subnet_template", "-y"]
     )
     # delete everything in directory
     shutil.rmtree(install_dir)
+
+
+def wait_epoch(interval, subtensor):
+    current_block = subtensor.get_current_block()
+    next_tempo_block_start = (current_block - (current_block % interval)) + interval
+    while current_block < next_tempo_block_start:
+        time.sleep(1)  # Wait for 1 second before checking the block number again
+        current_block = subtensor.get_current_block()
+        if current_block % 10 == 0:
+            print(
+                f"Current Block: {current_block}  Next tempo at: {next_tempo_block_start}"
+            )
+            logging.info(
+                f"Current Block: {current_block}  Next tempo at: {next_tempo_block_start}"
+            )
 
 
 async def write_output_log_to_file(name, stream):

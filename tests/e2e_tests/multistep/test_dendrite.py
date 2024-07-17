@@ -17,7 +17,6 @@ from tests.e2e_tests.utils import (
     template_path,
     templates_repo,
     wait_interval,
-    write_output_log_to_file,
 )
 
 
@@ -113,21 +112,10 @@ async def test_dendrite(local_chain):
     )
 
     # run validator in the background
-    dendrite_process = await asyncio.create_subprocess_shell(
+    await asyncio.create_subprocess_shell(
         cmd,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
-    )
-
-    # record logs of process
-    # Create tasks to read stdout and stderr concurrently
-    # ignore, dont await coroutine, just write logs to file
-    asyncio.create_task(
-        write_output_log_to_file("dendrite_stdout", dendrite_process.stdout)
-    )
-    # ignore, dont await coroutine, just write logs to file
-    asyncio.create_task(
-        write_output_log_to_file("dendrite_stderr", dendrite_process.stderr)
     )
 
     await asyncio.sleep(
