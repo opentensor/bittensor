@@ -540,33 +540,29 @@ def set_children_extrinsic(
 ) -> Tuple[bool, str]:
     """
     Sets children hotkeys with proportions assigned from the parent.
-
-    Args:
-        subtensor (bittensor.subtensor): Subtensor endpoint to use.
-        wallet (bittensor.wallet): Bittensor wallet object.
-        hotkey (str): Parent hotkey.
-        netuid (int): Unique identifier for the subnet.
-        children (List[Tuple[float, str]]): List of (proportion, child_ss58) pairs.
-        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning.
-        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning.
-        prompt (bool): If true, the call waits for confirmation from the user before proceeding.
-
-    Returns:
-        Tuple[bool, str]: A tuple containing a success flag and a message.
     """
+    # Check if all children are being revoked
+    all_revoked = all(prop == 0.0 for prop, _ in children)
+
+    operation = "Revoke all children hotkeys" if all_revoked else "Set children hotkeys"
+
     # Ask before moving on.
     if prompt:
-        if not Confirm.ask(
-            "Do you want to set children hotkeys:\n[bold white]{}[/bold white]?".format(
-                "\n".join(f"  {child[1]}: {child[0]}" for child in children)
-            )
-        ):
-            return False, "Operation Cancelled"
+        if all_revoked:
+            if not Confirm.ask(
+                f"Do you want to revoke all children hotkeys for hotkey {hotkey}?"
+            ):
+                return False, "Operation Cancelled"
+        else:
+            if not Confirm.ask(
+                "Do you want to set children hotkeys:\n[bold white]{}[/bold white]?".format(
+                    "\n".join(f"  {child[1]}: {child[0]}" for child in children)
+                )
+            ):
+                return False, "Operation Cancelled"
 
     with bittensor.__console__.status(
-        ":satellite: Setting children hotkeys on [white]{}[/white] ...".format(
-            subtensor.network
-        )
+        f":satellite: {operation} on [white]{subtensor.network}[/white] ..."
     ):
         try:
             # Convert proportions to u64 and normalize
@@ -583,12 +579,15 @@ def set_children_extrinsic(
             )
 
             if not wait_for_finalization and not wait_for_inclusion:
-                return True, "Not waiting for finalization or inclusion."
+                return (
+                    True,
+                    f"Not waiting for finalization or inclusion. {operation} initiated.",
+                )
 
-            return subtensor_result(error_message, success, "Set children hotkeys")
+            return subtensor_result(error_message, success, operation)
 
         except Exception as e:
-            return False, f"Exception occurred while setting children hotkeys: {str(e)}"
+            return False, f"Exception occurred while {operation.lower()}: {str(e)}"
 
 
 def normalize_children_and_proportions(

@@ -337,6 +337,7 @@ class RevokeChildrenCommand:
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         wallet = bittensor.wallet(config=cli.config)
 
+        # Display current children information
         GetChildrenCommand.run(cli)
 
         # Get values if not set.
@@ -349,10 +350,27 @@ class RevokeChildrenCommand:
         # Parse from strings
         netuid = cli.config.netuid
 
-        success, message = subtensor.revoke_children(
+        # Get current children
+        current_children = subtensor.get_children_info(netuid=netuid)
+        if (
+            cli.config.hotkey not in current_children
+            or not current_children[cli.config.hotkey]
+        ):
+            console.print(
+                f":cross_mark:[red]No children found for hotkey {cli.config.hotkey}[/red]"
+            )
+            return
+
+        # Prepare children with zero proportions
+        children_with_zero_proportions = [
+            (0.0, child.hotkey) for child in current_children[cli.config.hotkey]
+        ]
+
+        success, message = subtensor.set_children(
             wallet=wallet,
             netuid=netuid,
             hotkey=cli.config.hotkey,
+            children=children_with_zero_proportions,
             wait_for_inclusion=cli.config.wait_for_inclusion,
             wait_for_finalization=cli.config.wait_for_finalization,
             prompt=cli.config.prompt,
