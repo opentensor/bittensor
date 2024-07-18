@@ -12,9 +12,8 @@ from bittensor.subtensor import subtensor
 from ...utils import setup_wallet
 
 """
-Test the wallet with various commands
-
 Verify commands:
+
 * btcli w list
 * btcli w create
 * btcli w new_coldkey
@@ -22,8 +21,20 @@ Verify commands:
 """
 
 
-# This function physically checks the existence of wallets (coldkeys and hotkeys)
 def verify_wallet_dir(base_path, wallet_name, hotkey_name=None):
+    """
+    Verifies the existence of wallet directory, coldkey, and optionally the hotkey.
+
+    Args:
+        base_path (str): The base directory path where wallets are stored.
+        wallet_name (str): The name of the wallet directory to verify.
+        hotkey_name (str, optional): The name of the hotkey file to verify. If None,
+                                     only the wallet and coldkey file are checked.
+
+    Returns:
+        tuple: Returns a tuple containing a boolean and a message. The boolean is True if
+               all checks pass, otherwise False.
+    """
     wallet_path = os.path.join(base_path, wallet_name)
 
     # Check if wallet directory exists
@@ -52,7 +63,18 @@ def verify_wallet_dir(base_path, wallet_name, hotkey_name=None):
 
 
 def verify_key_pattern(output, wallet_name):
-    # Pattern: <wallet_name> <space> <Key starting with '5' followed by 47 chars>
+    """
+    Verifies that a specific wallet key pattern exists in the output text.
+
+    Args:
+        output (str): The string output where the wallet key should be verified.
+        wallet_name (str): The name of the wallet to search for in the output.
+
+    Raises:
+        AssertionError: If the wallet key pattern is not found, or if the key does not
+                        start with '5', or if the key is not exactly 48 characters long.
+    """
+    print(output) #temp for testing in staging
     pattern = rf"{wallet_name}\s*\((5[A-Za-z0-9]{{47}})\)"
 
     # Find instance of the pattern
@@ -72,6 +94,21 @@ def verify_key_pattern(output, wallet_name):
 
 
 def test_wallet_creations(local_chain: subtensor, capsys):
+    """
+    Test the creation and verification of wallet keys and directories in the Bittensor network.
+
+    Steps:
+        1. List existing wallets and verify the default setup.
+        2. Create a new wallet with both coldkey and hotkey, verify their presence in the output,
+           and check their physical existence.
+        3. Create a new coldkey and verify both its display in the command line output and its physical file.
+        4. Create a new hotkey for an existing coldkey, verify its display in the command line output,
+           and check for both coldkey and hotkey files.
+
+    Raises:
+        AssertionError: If any of the checks or verifications fail
+    """
+
     wallet_path_name = "//Alice"
     base_path = f"/tmp/btcli-e2e-wallet-{wallet_path_name.strip('/')}"
     keypair, exec_command, wallet = setup_wallet(wallet_path_name)
