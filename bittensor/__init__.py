@@ -40,7 +40,7 @@ if (NEST_ASYNCIO_ENV := os.getenv("NEST_ASYNCIO")) in ("1", None):
 
 
 # Bittensor code and protocol version.
-__version__ = "7.2.0"
+__version__ = "7.3.0"
 
 _version_split = __version__.split(".")
 __version_info__ = tuple(int(part) for part in _version_split)
@@ -228,6 +228,37 @@ __type_registry__ = {
         },
         "SubnetRegistrationRuntimeApi": {
             "methods": {"get_network_registration_cost": {"params": [], "type": "u64"}}
+        },
+        "ColdkeySwapRuntimeApi": {
+            "methods": {
+                "get_scheduled_coldkey_swap": {
+                    "params": [
+                        {
+                            "name": "coldkey_account_vec",
+                            "type": "Vec<u8>",
+                        },
+                    ],
+                    "type": "Vec<u8>",
+                },
+                "get_remaining_arbitration_period": {
+                    "params": [
+                        {
+                            "name": "coldkey_account_vec",
+                            "type": "Vec<u8>",
+                        },
+                    ],
+                    "type": "Vec<u8>",
+                },
+                "get_coldkey_swap_destinations": {
+                    "params": [
+                        {
+                            "name": "coldkey_account_vec",
+                            "type": "Vec<u8>",
+                        },
+                    ],
+                    "type": "Vec<u8>",
+                },
+            }
         },
     },
 }

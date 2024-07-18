@@ -1,7 +1,6 @@
 import asyncio
 import logging
 import sys
-import time
 
 import pytest
 
@@ -17,7 +16,9 @@ from tests.e2e_tests.utils import (
     setup_wallet,
     template_path,
     repo_name,
+    wait_epoch,
 )
+
 
 logging.basicConfig(level=logging.INFO)
 
@@ -35,7 +36,7 @@ Verify that:
 @pytest.mark.asyncio
 async def test_dendrite(local_chain):
     # Register root as Alice - the subnet owner
-    alice_keypair, exec_command, wallet_path = setup_wallet("//Alice")
+    alice_keypair, exec_command, wallet = setup_wallet("//Alice")
     exec_command(RegisterSubnetworkCommand, ["s", "create"])
 
     # Verify subnet 1 created successfully
@@ -51,15 +52,6 @@ async def test_dendrite(local_chain):
             "register",
             "--netuid",
             "1",
-            "--wallet.name",
-            "default",
-            "--wallet.hotkey",
-            "default",
-            "--subtensor.network",
-            "local",
-            "--subtensor.chain_endpoint",
-            "ws://localhost:9945",
-            "--no_prompt",
         ],
     )
 
@@ -111,20 +103,21 @@ async def test_dendrite(local_chain):
             "--subtensor.chain_endpoint",
             "ws://localhost:9945",
             "--wallet.path",
-            wallet_path,
+            wallet.path,
             "--wallet.name",
-            "default",
+            wallet.name,
             "--wallet.hotkey",
             "default",
         ]
     )
 
     # run validator in the background
-    await asyncio.create_subprocess_shell(
+    dendrite_process = await asyncio.create_subprocess_shell(
         cmd,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
+
     await asyncio.sleep(
         5
     )  # wait for 5 seconds for the metagraph and subtensor to refresh with latest data
@@ -137,12 +130,6 @@ async def test_dendrite(local_chain):
             "register",
             "--netuid",
             "1",
-            "--wallet.name",
-            "default",
-            "--wallet.hotkey",
-            "default",
-            "--subtensor.chain_endpoint",
-            "ws://localhost:9945",
         ],
     )
 
@@ -155,28 +142,10 @@ async def test_dendrite(local_chain):
             "1",
             "--increase",
             "1",
-            "--wallet.name",
-            "default",
-            "--wallet.hotkey",
-            "default",
-            "--subtensor.chain_endpoint",
-            "ws://localhost:9945",
         ],
     )
     # get current block, wait until 360 blocks pass (subnet tempo)
-    interval = 360
-    current_block = subtensor.get_current_block()
-    next_tempo_block_start = (current_block - (current_block % interval)) + interval
-    while current_block < next_tempo_block_start:
-        time.sleep(1)  # Wait for 1 second before checking the block number again
-        current_block = subtensor.get_current_block()
-        if current_block % 10 == 0:
-            print(
-                f"Current Block: {current_block}  Next tempo at: {next_tempo_block_start}"
-            )
-            logging.info(
-                f"Current Block: {current_block}  Next tempo at: {next_tempo_block_start}"
-            )
+    wait_epoch(360, subtensor)
 
     # refresh metagraph
     metagraph = bittensor.metagraph(netuid=1, network="ws://localhost:9945")

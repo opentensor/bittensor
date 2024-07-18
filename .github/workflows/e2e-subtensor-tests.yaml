@@ -5,18 +5,13 @@ concurrency:
   cancel-in-progress: true
 
 on:
-  ## Run automatically for all PRs against main, regardless of what the changes are
-  ## to be safe and so we can more easily force re-run the CI when github is being
-  ## weird by using a blank commit
   push:
     branches: [main, development, staging]
 
-  ##
-  # Run automatically for PRs against default/main branch if Rust files change
   pull_request:
     branches: [main, development, staging]
+    types: [ opened, synchronize, reopened, ready_for_review ]
 
-  ## Allow running workflow manually from the Actions tab
   workflow_dispatch:
     inputs:
       verbose:
@@ -26,24 +21,42 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  VERBOSE: ${{ github.events.input.verbose }}
+  VERBOSE: ${{ github.event.inputs.verbose }}
 
+# job to run tests in parallel
 jobs:
+  # Job to find all test files
+  find-tests:
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
+    outputs:
+      test-files: ${{ steps.get-tests.outputs.test-files }}
+    steps:
+      - name: Check-out repository under $GITHUB_WORKSPACE
+        uses: actions/checkout@v2
+
+      - name: Find test files
+        id: get-tests
+        run: |
+          test_files=$(find tests/e2e_tests -name "test*.py" | jq -R -s -c 'split("\n") | map(select(. != ""))')
+          echo "::set-output name=test-files::$test_files"
+        shell: bash
+
+  # Job to run tests in parallel
   run:
+    needs: find-tests
     runs-on: SubtensorCI
     strategy:
+      fail-fast: false  # Allow other matrix jobs to run even if this job fails
+      max-parallel: 8  # Set the maximum number of parallel jobs
       matrix:
         rust-branch:
           - nightly-2024-03-05
         rust-target:
           - x86_64-unknown-linux-gnu
-          # - x86_64-apple-darwin
         os:
           - ubuntu-latest
-          # - macos-latest
-        include:
-          - os: ubuntu-latest
-          # - os: macos-latest
+        test-file: ${{ fromJson(needs.find-tests.outputs.test-files) }}
     env:
       RELEASE_NAME: development
       RUSTV: ${{ matrix.rust-branch }}
@@ -81,4 +94,11 @@ jobs:
       - name: Run tests
         run: |
           python3 -m pip install -e .[dev] pytest
-          LOCALNET_SH_PATH="${{ github.workspace }}/subtensor/scripts/localnet.sh" pytest tests/e2e_tests/ -s
+          LOCALNET_SH_PATH="${{ github.workspace }}/subtensor/scripts/localnet.sh" pytest ${{ matrix.test-file }} -s
+
+      - name: Retry failed tests
+        if: failure()
+        run: |
+          sleep 10
+          python3 -m pip install -e .[dev] pytest
+          LOCALNET_SH_PATH="${{ github.workspace }}/subtensor/scripts/localnet.sh" pytest ${{ matrix.test-file }} -s
