@@ -74,7 +74,7 @@ def verify_key_pattern(output, wallet_name):
         AssertionError: If the wallet key pattern is not found, or if the key does not
                         start with '5', or if the key is not exactly 48 characters long.
     """
-    print(output) #temp for testing in staging
+    print(output)  # temp for testing in staging
     pattern = rf"{wallet_name}\s*\((5[A-Za-z0-9]{{47}})\)"
 
     # Find instance of the pattern
@@ -149,6 +149,8 @@ def test_wallet_creations(local_chain: subtensor, capsys):
         ],
     )
 
+    captured = capsys.readouterr()
+
     # List the wallets
     exec_command(
         ListCommand,
@@ -191,6 +193,8 @@ def test_wallet_creations(local_chain: subtensor, capsys):
         ],
     )
 
+    captured = capsys.readouterr()
+
     # List the wallets
     exec_command(
         ListCommand,
@@ -228,6 +232,8 @@ def test_wallet_creations(local_chain: subtensor, capsys):
             base_path,
         ],
     )
+
+    captured = capsys.readouterr()
 
     # List the wallets
     exec_command(
