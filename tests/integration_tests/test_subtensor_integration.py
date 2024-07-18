@@ -118,9 +118,9 @@ class TestSubtensor(unittest.IsolatedAsyncioTestCase):
         block = await self.subtensor.get_current_block()
         assert type(block) is int
 
-    def test_do_block_step(self):
+    async def test_do_block_step(self):
         self.subtensor.do_block_step()
-        block = self.subtensor.get_current_block()
+        block = await self.subtensor.get_current_block()
         assert type(block) is int
 
     async def test_do_block_step_query_previous_block(self):

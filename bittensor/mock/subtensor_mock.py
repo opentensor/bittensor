@@ -1258,6 +1258,8 @@ class MockSubtensor(Subtensor):
 
         # Unstake the funds
         # We know that the hotkey has stake, so we can just remove it
+        print(">>> wallet", wallet)
+
         stake_state[hotkey_ss58][wallet.coldkeypub.ss58_address][self.block_number] = (
             curr_stake - amount
         ).rao
