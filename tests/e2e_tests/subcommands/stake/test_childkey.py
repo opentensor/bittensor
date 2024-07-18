@@ -12,6 +12,36 @@ from unittest.mock import patch
 
 
 def test_set_revoke_children(local_chain, capsys):
+    """
+    Test the setting and revoking of children hotkeys for staking.
+
+    This test case covers the following scenarios:
+    1. Setting multiple children hotkeys with specified proportions
+    2. Retrieving children information
+    3. Revoking all children hotkeys
+    4. Verifying the absence of children after revocation
+
+    The test uses three wallets (Alice, Bob, and Eve) and performs operations
+    on a local blockchain.
+
+    Args:
+        local_chain: A fixture providing access to the local blockchain
+        capsys: A pytest fixture for capturing stdout and stderr
+
+    The test performs the following steps:
+    - Set up wallets for Alice, Bob, and Eve
+    - Create a subnet and register wallets
+    - Add stake to Alice's wallet
+    - Set Bob and Eve as children of Alice with specific proportions
+    - Verify the children are set correctly
+    - Get and verify children information
+    - Revoke all children
+    - Verify children are revoked
+    - Check that no children exist after revocation
+
+    This test ensures the proper functioning of setting children hotkeys,
+    retrieving children information, and revoking children in the staking system.
+    """
     # Setup
     alice_keypair, alice_exec_command, alice_wallet = setup_wallet("//Alice")
     bob_keypair, bob_exec_command, bob_wallet = setup_wallet("//Bob")
@@ -86,6 +116,30 @@ def test_set_revoke_children(local_chain, capsys):
 
 
 def test_error_handling(local_chain, capsys):
+    """
+    Test error handling scenarios for setting child hotkeys in the staking system.
+
+    This test case covers the following error scenarios:
+    1. Setting children with invalid proportions
+    2. Attempting to set children on a non-existent network
+    3. Trying to set a child hotkey that's the same as the parent
+
+    Args:
+        local_chain: Fixture providing access to the local blockchain
+        capsys: Pytest fixture for capturing stdout and stderr
+
+    The test performs the following steps:
+    1. Set up wallets for Alice and Bob
+    2. Attempt to set a child with an invalid proportion (> 1.0)
+    3. Verify that an appropriate error message is displayed
+    4. Try to set a child on a non-existent subnet (netuid 999)
+    5. Confirm that an error about non-existent subnet is shown
+    6. Attempt to set the parent (Alice) as its own child
+    7. Check that an error preventing self-assignment as child is displayed
+
+    This test ensures proper error handling and user feedback in various
+    invalid scenarios when setting child hotkeys for staking.
+    """
     alice_keypair, alice_exec_command, alice_wallet = setup_wallet("//Alice")
     bob_keypair, bob_exec_command, bob_wallet = setup_wallet("//Bob")
 
@@ -160,6 +214,30 @@ def test_error_handling(local_chain, capsys):
 
 
 def test_prompts_and_confirmations(local_chain, capsys):
+    """
+    Test user prompts and confirmations for setting and revoking child hotkeys.
+
+    This test case covers the following scenarios:
+    1. Setting children with user confirmation prompt
+    2. Attempting to revoke children with user cancellation
+
+    Args:
+        local_chain: Fixture providing access to the local blockchain
+        capsys: Pytest fixture for capturing stdout and stderr
+
+    The test performs the following steps:
+    1. Set up wallets for Alice and Bob
+    2. Simulate user confirming the setting of a child hotkey
+       - Use Bob as Alice's child with 0.5 proportion
+       - Verify that the operation is finalized successfully
+    3. Simulate user cancelling the revocation of children
+       - Attempt to revoke Alice's children
+       - Verify that the operation is cancelled
+
+    This test ensures that the user prompts work correctly for both
+    confirming and cancelling operations related to child hotkeys when staking.
+    It uses mocked user inputs to simulate user interactions.
+    """
     alice_keypair, alice_exec_command, alice_wallet = setup_wallet("//Alice")
     bob_keypair, bob_exec_command, bob_wallet = setup_wallet("//Bob")
 
@@ -203,6 +281,32 @@ def test_prompts_and_confirmations(local_chain, capsys):
 
 
 def test_get_children_edge_cases(local_chain, capsys):
+    """
+    Test edge cases and specific scenarios for retrieving child hotkey information.
+
+    This test case covers the following scenarios:
+    1. Attempting to get children information with an invalid netuid
+    2. Verifying the presence of APY information in the output
+
+    Args:
+        local_chain: Fixture providing access to the local blockchain
+        capsys: Pytest fixture for capturing stdout and stderr
+
+    The test performs the following steps:
+    1. Set up a wallet for Alice
+    2. Attempt to get children information with an invalid netuid (999)
+       - Verify that an appropriate error message is displayed
+    3. Retrieve children information for a valid netuid (1)
+       - Check that the APY column is present in the output
+
+    Note:
+    - The APY calculation test is simplified and only checks for the presence
+      of the "APY" column in the output. A more comprehensive test would involve
+      setting up a complex scenario with emissions over multiple epochs.
+
+    This test ensures proper error handling for invalid netuids and
+    verifies that important staking information like APY is included in the output.
+    """
     alice_keypair, alice_exec_command, alice_wallet = setup_wallet("//Alice")
 
     # Test 10: Get children with invalid netuid

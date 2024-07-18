@@ -2316,7 +2316,7 @@ class Subtensor:
         return make_substrate_call_with_retry()
 
     #########################
-    ##### Child Hotkeys #####
+    #     Child Hotkeys     #
     #########################
 
     def set_children(
