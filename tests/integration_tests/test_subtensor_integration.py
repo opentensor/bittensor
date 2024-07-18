@@ -1,15 +1,15 @@
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 # Copyright © 2023 Opentensor Technologies Inc
-
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
 # the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
+#
 # The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
-
+#
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
 # THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
@@ -18,7 +18,7 @@
 
 import unittest
 from queue import Empty as QueueEmpty
-from unittest.mock import MagicMock, patch, AsyncMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import numpy as np
 import pytest
@@ -118,8 +118,18 @@ class TestSubtensor(unittest.IsolatedAsyncioTestCase):
         block = await self.subtensor.get_current_block()
         assert type(block) is int
 
-    async def test_unstake(self):
-        self.subtensor.do_unstake = AsyncMock(return_value=True)
+    def test_do_block_step(self):
+        self.subtensor.do_block_step()
+        block = self.subtensor.get_current_block()
+        assert type(block) is int
+
+    async def test_do_block_step_query_previous_block(self):
+        self.subtensor.do_block_step()
+        block = await self.subtensor.get_current_block()
+        await self.subtensor.query_subtensor("NetworksAdded", block)
+
+    def test_unstake(self):
+        self.subtensor._do_unstake = AsyncMock(return_value=True)
 
         self.subtensor.substrate.get_payment_info = MagicMock(
             return_value={"partialFee": 100}

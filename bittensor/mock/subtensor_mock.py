@@ -624,7 +624,7 @@ class MockSubtensor(Subtensor):
             state_at_block = state.get(block, None)
             while state_at_block is None and block > 0:
                 block -= 1
-                state_at_block = self.state.get(block, None)
+                state_at_block = state.get(block, None)
             if state_at_block is not None:
                 return SimpleNamespace(value=state_at_block)
 
