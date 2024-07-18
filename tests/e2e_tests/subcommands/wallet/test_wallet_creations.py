@@ -74,23 +74,27 @@ def verify_key_pattern(output, wallet_name):
         AssertionError: If the wallet key pattern is not found, or if the key does not
                         start with '5', or if the key is not exactly 48 characters long.
     """
-    print(output)  # temp for testing in staging
+    split_output = output.splitlines()
     pattern = rf"{wallet_name}\s*\((5[A-Za-z0-9]{{47}})\)"
+    found = False
 
-    # Find instance of the pattern
-    match = re.search(pattern, output)
+    # Traverse each line to find instance of the pattern
+    for line in split_output:
+        match = re.search(pattern, line)
+        if match:
+            # Assert key starts with '5'
+            assert match.group(1).startswith(
+                "5"
+            ), f"{wallet_name} should start with '5'"
+            # Assert length of key is 48 characters
+            assert (
+                len(match.group(1)) == 48
+            ), f"Key for {wallet_name} should be 48 characters long"
+            found = True
+            return match.group(1)
 
-    # Assert instance is found
-    assert match is not None, f"{wallet_name} not found in wallet list"
-
-    # Assert key starts with 5
-    assert match.group(1).startswith("5"), f"{wallet_name} should start with '5'"
-
-    # Assert length of key is 48 characters
-    assert (
-        len(match.group(1)) == 48
-    ), f"Key for {wallet_name} should be 48 characters long"
-    return match.group(1)
+    # If no match is found in any line, raise an assertion error
+    assert found, f"{wallet_name} not found in wallet list"
 
 
 def test_wallet_creations(local_chain: subtensor, capsys):
@@ -137,9 +141,9 @@ def test_wallet_creations(local_chain: subtensor, capsys):
             "wallet",
             "create",
             "--wallet.name",
-            "alice_create_wallet",
+            "new_wallet",
             "--wallet.hotkey",
-            "alice_create_wallet_hotkey",
+            "new_hotkey",
             "--no_password",
             "--overwrite_coldkey",
             "--overwrite_hotkey",
@@ -162,16 +166,14 @@ def test_wallet_creations(local_chain: subtensor, capsys):
 
     captured = capsys.readouterr()
 
-    # Verify coldkey "alice_create_wallet" is displayed with key
-    verify_key_pattern(captured.out, "alice_create_wallet")
+    # Verify coldkey "new_wallet" is displayed with key
+    verify_key_pattern(captured.out, "new_wallet")
 
-    # Verify hotkey "alice_create_wallet_hotkey" is displayed with key
-    verify_key_pattern(captured.out, "alice_create_wallet_hotkey")
+    # Verify hotkey "new_hotkey" is displayed with key
+    verify_key_pattern(captured.out, "new_hotkey")
 
-    # Physically verify "alice_create_wallet" and "alice_create_wallet_hotkey" are present
-    wallet_status, message = verify_wallet_dir(
-        base_path, "alice_create_wallet", "alice_create_wallet_hotkey"
-    )
+    # Physically verify "new_wallet" and "new_hotkey" are present
+    wallet_status, message = verify_wallet_dir(base_path, "new_wallet", "new_hotkey")
     assert wallet_status, message
 
     # -----------------------------
@@ -184,7 +186,7 @@ def test_wallet_creations(local_chain: subtensor, capsys):
             "wallet",
             "new_coldkey",
             "--wallet.name",
-            "alice_new_coldkey",
+            "new_coldkey",
             "--no_password",
             "--no_prompt",
             "--overwrite_coldkey",
@@ -206,11 +208,11 @@ def test_wallet_creations(local_chain: subtensor, capsys):
 
     captured = capsys.readouterr()
 
-    # Verify coldkey "alice_new_coldkey" is displayed with key
-    verify_key_pattern(captured.out, "alice_create_wallet")
+    # Verify coldkey "new_coldkey" is displayed with key
+    verify_key_pattern(captured.out, "new_coldkey")
 
-    # Physically verify "alice_new_coldkey" is present
-    wallet_status, message = verify_wallet_dir(base_path, "alice_new_coldkey")
+    # Physically verify "new_coldkey" is present
+    wallet_status, message = verify_wallet_dir(base_path, "new_coldkey")
     assert wallet_status, message
 
     # -----------------------------
@@ -223,9 +225,9 @@ def test_wallet_creations(local_chain: subtensor, capsys):
             "wallet",
             "new_hotkey",
             "--wallet.name",
-            "alice_new_coldkey",
+            "new_coldkey",
             "--wallet.hotkey",
-            "alice_new_hotkey",
+            "new_hotkey",
             "--no_prompt",
             "--overwrite_hotkey",
             "--wallet.path",
@@ -246,10 +248,8 @@ def test_wallet_creations(local_chain: subtensor, capsys):
     captured = capsys.readouterr()
 
     # Verify hotkey "alice_new_hotkey" is displyed with key
-    verify_key_pattern(captured.out, "alice_new_hotkey")
+    verify_key_pattern(captured.out, "new_hotkey")
 
     # Physically verify "alice_new_coldkey" and "alice_new_hotkey" are present
-    wallet_status, message = verify_wallet_dir(
-        base_path, "alice_new_coldkey", "alice_new_hotkey"
-    )
+    wallet_status, message = verify_wallet_dir(base_path, "new_coldkey", "new_hotkey")
     assert wallet_status, message
