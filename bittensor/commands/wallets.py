@@ -22,7 +22,7 @@ import sys
 from typing import Optional, List, Tuple
 
 import requests
-from rich.prompt import Prompt, Confirm
+from rich.prompt import Confirm, Prompt
 from rich.table import Table
 
 import bittensor
@@ -646,7 +646,6 @@ class UpdateWalletCommand:
 
     Optional arguments:
         - ``--all`` (bool): When set, updates all legacy wallets.
-        - ``--no_prompt`` (bool): Disables user prompting during the update process.
 
     Example usage::
 

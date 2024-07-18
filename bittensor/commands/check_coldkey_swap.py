@@ -31,7 +31,7 @@ async def fetch_arbitration_stats(subtensor, wallet):
     Performs a check of the current arbitration data (if any), and displays it through the bittensor console.
     """
     arbitration_check = len(
-        await subtensor.check_in_arbitration(wallet.coldkey.ss58_address)
+        await subtensor.check_in_arbitration(wallet.coldkeypub.ss58_address)
     )
     if arbitration_check == 0:
         bittensor.__console__.print(
@@ -39,7 +39,7 @@ async def fetch_arbitration_stats(subtensor, wallet):
         )
     if arbitration_check == 1:
         arbitration_remaining = await subtensor.get_remaining_arbitration_period(
-            wallet.coldkey.ss58_address
+            wallet.coldkeypub.ss58_address
         )
         hours, minutes, seconds = convert_blocks_to_time(arbitration_remaining)
         bittensor.__console__.print(
