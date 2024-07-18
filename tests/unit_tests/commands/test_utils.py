@@ -54,5 +54,7 @@ def test_get_delegates_details_error(mocker):
 
     # Assertions
     mocked_sub.get_delegate_identities.assert_called_once()
-    bittensor.logging.exception.assert_called_once_with(f"Unable to get Delegates Identities. Error: {test_error_message}")
+    bittensor.logging.exception.assert_called_once_with(
+        f"Unable to get Delegates Identities. Error: {test_error_message}"
+    )
     assert result is None

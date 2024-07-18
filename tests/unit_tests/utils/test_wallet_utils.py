@@ -27,9 +27,7 @@ def test_decode_hex_identity_dict():
         "additional": [
             (
                 {"Raw11": "0x6465736372697074696f6e"},
-                {
-                    "Raw64": "0x46616b65206465736372697074696f6e"
-                },
+                {"Raw64": "0x46616b65206465736372697074696f6e"},
             )
         ],
         "display": {"Raw17": "0x46616b654e616d65"},
@@ -43,9 +41,7 @@ def test_decode_hex_identity_dict():
     }
 
     expected_result = {
-        "additional": [
-            ("description", "Fake description")
-        ],
+        "additional": [("description", "Fake description")],
         "display": "FakeName",
         "legal": "None",
         "web": "http://www.blabla-test.com",
@@ -62,5 +58,3 @@ def test_decode_hex_identity_dict():
 
     # Assertions
     assert result == expected_result
-
-
