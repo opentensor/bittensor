@@ -22,7 +22,6 @@ blockchain, facilitating a range of operations essential for the decentralized m
 """
 import argparse
 import copy
-import functools
 import socket
 import time
 from typing import List, Dict, Union, Optional, Tuple, TypedDict, Any, TypeVar
@@ -105,20 +104,6 @@ from .utils.registration import legacy_torch_api_compat
 
 KEY_NONCE: Dict[str, int] = {}
 
-T = TypeVar("T")
-
-#######
-# Monkey patch in caching the convert_type_string method
-#######
-if hasattr(RuntimeConfiguration, "convert_type_string"):
-    original_convert_type_string = RuntimeConfiguration.convert_type_string
-
-    @functools.lru_cache(maxsize=None)
-    def convert_type_string(cls, name):
-        return original_convert_type_string(name)
-
-    RuntimeConfiguration.convert_type_string = convert_type_string
-#######
 
 
 class ParamWithTypes(TypedDict):
