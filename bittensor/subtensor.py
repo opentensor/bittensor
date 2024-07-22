@@ -18,6 +18,7 @@
 
 import os
 import copy
+import socket
 import time
 import torch
 import logging
@@ -89,7 +90,6 @@ logger = logging.getLogger("subtensor")
 
 KEY_NONCE: Dict[str, int] = {}
 
-T = TypeVar("T")
 
 
 class ParamWithTypes(TypedDict):
