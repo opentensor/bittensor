@@ -25,9 +25,9 @@ python-statemachine~=2.1.2
 retry
 requests
 rich
-scalecodec==1.2.7  # scalecodec should not be changed unless first verifying compatibility with the subtensor's monkeypatching of scalecodec.RuntimeConfiguration.get_decoder_class
+scalecodec==1.2.11
 shtab~=1.6.5
-substrate-interface~=1.7.5
+substrate-interface~=1.7.9
 termcolor
 tqdm
 uvicorn<=0.30
