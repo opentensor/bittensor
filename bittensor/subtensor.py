@@ -18,6 +18,7 @@
 
 import os
 import copy
+import socket
 import time
 import torch
 import logging
@@ -88,8 +89,6 @@ from .utils.registration import POWSolution
 logger = logging.getLogger("subtensor")
 
 KEY_NONCE: Dict[str, int] = {}
-
-T = TypeVar("T")
 
 
 class ParamWithTypes(TypedDict):
@@ -2535,9 +2534,7 @@ class subtensor:
         """
         call_definition = bittensor.__type_registry__["runtime_api"][runtime_api][  # type: ignore
             "methods"  # type: ignore
-        ][
-            method
-        ]  # type: ignore
+        ][method]  # type: ignore
 
         json_result = self.state_call(
             method=f"{runtime_api}_{method}",
@@ -3914,7 +3911,8 @@ class subtensor:
             if block_hash:
                 params = params + [block_hash]
             return self.substrate.rpc_request(
-                method="neuronInfo_getNeuron", params=params  # custom rpc method
+                method="neuronInfo_getNeuron",
+                params=params,  # custom rpc method
             )
 
         json_body = make_substrate_call_with_retry()
