@@ -1,3 +1,22 @@
+# The MIT License (MIT)
+# Copyright © 2024 Opentensor Foundation
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
+# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+# the Software.
+#
+# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
+
+import os
+import re
 import pytest
 import multiprocessing
 import logging as stdlogging
@@ -168,3 +187,36 @@ def test_all_log_levels_output(logging_machine, caplog):
     assert "Test warning" in caplog.text
     assert "Test error" in caplog.text
     assert "Test critical" in caplog.text
+
+
+def test_log_sanity(logging_machine, caplog):
+    """
+    Test that logging is sane:
+    - prefix and suffix work
+    - format strings work
+    - reported filename is correct
+    Note that this is tested against caplog, which is not formatted the same as
+    stdout.
+    """
+    basemsg = "logmsg #%d, cookie: %s"
+    cookie = "0ef852c74c777f8d8cc09d511323ce76"
+    nfixtests = [
+        {},
+        {"prefix": "pref"},
+        {"suffix": "suff"},
+        {"prefix": "pref", "suffix": "suff"},
+    ]
+    cookiejar = {}
+    for i, nfix in enumerate(nfixtests):
+        prefix = nfix.get("prefix", "")
+        suffix = nfix.get("suffix", "")
+        use_cookie = f"{cookie} #{i}#"
+        logging_machine.info(basemsg, i, use_cookie, prefix=prefix, suffix=suffix)
+        # Check to see if all elements are present, regardless of downstream formatting.
+        expect = f"INFO.*{os.path.basename(__file__)}.* "
+        if prefix != "":
+            expect += prefix + " - "
+        expect += basemsg % (i, use_cookie)
+        if suffix != "":
+            expect += " - " + suffix
+        assert re.search(expect, caplog.text)
