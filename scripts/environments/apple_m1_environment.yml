@@ -242,7 +242,7 @@ dependencies:
       - sqlalchemy==2.0.19
       - starlette==0.37.2
       - streamlit==1.22.0
-      - substrate-interface==1.5.2
+      - substrate-interface==1.7.9
       - tenacity==8.2.2
       - termcolor==2.1.1
       - threadpoolctl==3.1.0
