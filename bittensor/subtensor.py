@@ -109,7 +109,6 @@ from .utils.subtensor import get_subtensor_errors
 KEY_NONCE: Dict[str, int] = {}
 
 
-
 class ParamWithTypes(TypedDict):
     name: str  # Name of the parameter.
     type: str  # ScaleType string of the parameter.
