@@ -24,9 +24,9 @@ pytest
 retry
 requests
 rich
-scalecodec==1.2.7
-shtab==1.6.5
-substrate-interface==1.7.5
+scalecodec==1.2.11
+shtab~=1.6.5
+substrate-interface~=1.7.9
 termcolor
 torch>=1.13.1
 tqdm
