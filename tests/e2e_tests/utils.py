@@ -34,6 +34,7 @@ def setup_wallet(uri: str):
             "--wallet.path",
             wallet_path,
         ]
+        logging.info(f'executing command: {command} {" ".join(args)}')
         config = bittensor.config(
             parser=parser,
             args=args,
@@ -123,18 +124,22 @@ def call_add_proposal(substrate: SubstrateInterface, wallet: bittensor.wallet) -
     return response.is_success
 
 
-def wait_interval(interval, subtensor):
+def wait_interval(tempo, subtensor, netuid=1):
+    interval = tempo + 1
     current_block = subtensor.get_current_block()
-    next_tempo_block_start = (current_block - (current_block % interval)) + interval
+    last_epoch = current_block - 1 - (current_block + netuid + 1) % interval
+    next_tempo_block_start = last_epoch + interval
+    last_reported = None
     while current_block < next_tempo_block_start:
         time.sleep(1)  # Wait for 1 second before checking the block number again
         current_block = subtensor.get_current_block()
-        if current_block % 10 == 0:
+        if last_reported is None or current_block - last_reported >= 10:
+            last_reported = current_block
             print(
-                f"Current Block: {current_block}  Next tempo at: {next_tempo_block_start}"
+                f"Current Block: {current_block}  Next tempo for netuid {netuid} at: {next_tempo_block_start}"
             )
             logging.info(
-                f"Current Block: {current_block}  Next tempo at: {next_tempo_block_start}"
+                f"Current Block: {current_block}  Next tempo for netuid {netuid} at: {next_tempo_block_start}"
             )
 
 
