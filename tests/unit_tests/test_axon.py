@@ -27,15 +27,15 @@ from unittest import IsolatedAsyncioTestCase
 from unittest.mock import AsyncMock, MagicMock, patch
 
 # Third Party
+import fastapi
 import netaddr
-
 import pytest
 from starlette.requests import Request
 from fastapi.testclient import TestClient
 
 # Bittensor
 import bittensor
-from bittensor import Synapse, RunException
+from bittensor import Synapse, RunException, StreamingSynapse
 from bittensor.axon import AxonMiddleware
 from bittensor.axon import axon as Axon
 
@@ -565,6 +565,17 @@ class TestAxonHTTPAPIResponses:
 
         return CustomSynapse
 
+    @pytest.fixture
+    def streaming_synapse_cls(self):
+        class CustomStreamingSynapse(StreamingSynapse):
+            async def process_streaming_response(self, response):
+                pass
+
+            def extract_response_json(self, response) -> dict:
+                return {}
+
+        return CustomStreamingSynapse
+
     async def test_synapse__explicitly_set_status_code(
         self, http_client, axon, custom_synapse_cls, no_verify_axon
     ):
@@ -613,3 +624,43 @@ class TestAxonHTTPAPIResponses:
         response_data = response.json()
         assert sorted(response_data.keys()) == ["message"]
         assert re.match(r"Internal Server Error #[\da-f\-]+", response_data["message"])
+
+    @pytest.mark.parametrize(
+        "forward_fn_return_annotation",
+        [
+            None,
+            fastapi.Response,
+            bittensor.StreamingSynapse,
+        ],
+    )
+    async def test_streaming_synapse(
+        self,
+        http_client,
+        axon,
+        streaming_synapse_cls,
+        no_verify_axon,
+        forward_fn_return_annotation,
+    ):
+        tokens = [f"data{i}\n" for i in range(10)]
+
+        async def streamer(send):
+            for token in tokens:
+                await send(
+                    {
+                        "type": "http.response.body",
+                        "body": token.encode(),
+                        "more_body": True,
+                    }
+                )
+            await send({"type": "http.response.body", "body": b"", "more_body": False})
+
+        async def forward_fn(synapse: streaming_synapse_cls):
+            return synapse.create_streaming_response(token_streamer=streamer)
+
+        if forward_fn_return_annotation is not None:
+            forward_fn.__annotations__["return"] = forward_fn_return_annotation
+
+        axon.attach(forward_fn)
+
+        response = http_client.post_synapse(streaming_synapse_cls())
+        assert (response.status_code, response.text) == (200, "".join(tokens))
