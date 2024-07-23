@@ -31,6 +31,7 @@ import time
 import traceback
 import typing
 import uuid
+import warnings
 from inspect import signature, Signature, Parameter
 from typing import List, Optional, Tuple, Callable, Any, Dict, Awaitable
 
@@ -484,17 +485,35 @@ class axon:
 
         async def endpoint(*args, **kwargs):
             start_time = time.time()
-            response_synapse = forward_fn(*args, **kwargs)
-            if isinstance(response_synapse, Awaitable):
-                response_synapse = await response_synapse
-            return await self.middleware_cls.synapse_to_response(
-                synapse=response_synapse, start_time=start_time
-            )
+            response = forward_fn(*args, **kwargs)
+            if isinstance(response, Awaitable):
+                response = await response
+            if isinstance(response, bittensor.Synapse):
+                return await self.middleware_cls.synapse_to_response(
+                    synapse=response, start_time=start_time
+                )
+            else:  # e.g. BTStreamingResponse
+                return response
 
-        # replace the endpoint signature, but set return annotation to JSONResponse
+        return_annotation = forward_sig.return_annotation
+
+        if isinstance(return_annotation, type) and issubclass(
+            return_annotation, bittensor.Synapse
+        ):
+            if issubclass(
+                return_annotation,
+                bittensor.StreamingSynapse,
+            ):
+                warnings.warn(
+                    "The forward_fn return annotation is a subclass of bittensor.StreamingSynapse. "
+                    "Most likely the correct return annotation would be BTStreamingResponse."
+                )
+            else:
+                return_annotation = JSONResponse
+
         endpoint.__signature__ = Signature(  # type: ignore
             parameters=list(forward_sig.parameters.values()),
-            return_annotation=JSONResponse,
+            return_annotation=return_annotation,
         )
 
         # Add the endpoint to the router, making it available on both GET and POST methods
