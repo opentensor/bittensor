@@ -1,6 +1,7 @@
 import os
 import re
 import time
+from typing import Dict, Optional, Tuple
 
 from bittensor.commands.list import ListCommand
 from bittensor.commands.wallets import (
@@ -28,7 +29,12 @@ Verify commands:
 """
 
 
-def verify_wallet_dir(base_path, wallet_name, hotkey_name=None, coldkeypub_name=None):
+def verify_wallet_dir(
+    base_path: str,
+    wallet_name: str,
+    hotkey_name: Optional[str] = None,
+    coldkeypub_name: Optional[str] = None,
+) -> Tuple[bool, str]:
     """
     Verifies the existence of wallet directory, coldkey, and optionally the hotkey.
 
@@ -37,6 +43,8 @@ def verify_wallet_dir(base_path, wallet_name, hotkey_name=None, coldkeypub_name=
         wallet_name (str): The name of the wallet directory to verify.
         hotkey_name (str, optional): The name of the hotkey file to verify. If None,
                                      only the wallet and coldkey file are checked.
+        coldkeypub_name (str, optional): The name of the coldkeypub file to verify. If None
+                                         only the wallet and coldkey is checked
 
     Returns:
         tuple: Returns a tuple containing a boolean and a message. The boolean is True if
@@ -75,7 +83,7 @@ def verify_wallet_dir(base_path, wallet_name, hotkey_name=None, coldkeypub_name=
     return True, f"Wallet {wallet_name} verified successfully"
 
 
-def verify_key_pattern(output, wallet_name):
+def verify_key_pattern(output: str, wallet_name: str) -> Optional[str]:
     """
     Verifies that a specific wallet key pattern exists in the output text.
 
@@ -108,9 +116,10 @@ def verify_key_pattern(output, wallet_name):
 
     # If no match is found in any line, raise an assertion error
     assert found, f"{wallet_name} not found in wallet list"
+    return None
 
 
-def extract_ss58_address(output, wallet_name):
+def extract_ss58_address(output: str, wallet_name: str) -> str:
     """
     Extracts the ss58 address from the given output for a specified wallet.
 
@@ -131,7 +140,7 @@ def extract_ss58_address(output, wallet_name):
     raise ValueError(f"ss58 address not found for wallet {wallet_name}")
 
 
-def extract_mnemonics_from_commands(output):
+def extract_mnemonics_from_commands(output: str) -> Dict[str, Optional[str]]:
     """
     Extracts mnemonics of coldkeys & hotkeys from the given output for a specified wallet.
 
@@ -141,7 +150,7 @@ def extract_mnemonics_from_commands(output):
     Returns:
         dict: A dictionary keys 'coldkey' and 'hotkey', each containing their mnemonics.
     """
-    mnemonics = {"coldkey": None, "hotkey": None}
+    mnemonics: Dict[str, Optional[str]] = {"coldkey": None, "hotkey": None}
     lines = output.splitlines()
 
     # Regex pattern to capture the mnemonic
@@ -277,7 +286,7 @@ def test_wallet_creations(local_chain: subtensor, capsys):
     verify_key_pattern(captured.out, "new_coldkey")
 
     # Physically verify "new_coldkey" is present
-    wallet_status, message = verify_wallet_dir(base_path, hotkey_name="new_coldkey")
+    wallet_status, message = verify_wallet_dir(base_path, "new_coldkey")
     assert wallet_status, message
 
     # -----------------------------
