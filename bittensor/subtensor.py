@@ -759,7 +759,6 @@ class Subtensor:
     ###############
     # Set Weights #
     ###############
-    # TODO: still needed? Can't find any usage of this method.
     def set_weights(
         self,
         wallet: "bittensor.wallet",
@@ -817,6 +816,8 @@ class Subtensor:
                     wait_for_finalization=wait_for_finalization,
                     prompt=prompt,
                 )
+                if not wait_for_finalization and not wait_for_inclusion:
+                    break
             except Exception as e:
                 _logger.error(f"Error setting weights: {e}")
             finally:
