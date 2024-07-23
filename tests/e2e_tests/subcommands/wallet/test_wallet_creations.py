@@ -332,6 +332,18 @@ def test_wallet_creations(local_chain: subtensor, capsys):
 
 
 def test_wallet_regen(local_chain: subtensor, capsys):
+    """
+    Test the regeneration of coldkeys, hotkeys, and coldkeypub files using mnemonics or ss58 address.
+
+    Steps:
+        1. List existing wallets and verify the default setup.
+        2. Regenerate the coldkey using the mnemonics and verify using mod time.
+        3. Regenerate the coldkeypub using ss58 address and verify using mod time
+        4. Regenerate the hotkey using mnemonics and verify using mod time.
+
+    Raises:
+        AssertionError: If any of the checks or verifications fail
+    """
     wallet_path_name = "//Bob"
     base_path = f"/tmp/btcli-e2e-wallet-{wallet_path_name.strip('/')}"
     keypair, exec_command, wallet = setup_wallet(wallet_path_name)
