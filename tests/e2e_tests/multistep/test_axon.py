@@ -13,7 +13,6 @@ from tests.e2e_tests.utils import (
     setup_wallet,
     template_path,
     templates_repo,
-    write_output_log_to_file,
 )
 
 """
@@ -84,18 +83,11 @@ async def test_axon(local_chain):
         ]
     )
 
-    axon_process = await asyncio.create_subprocess_shell(
+    await asyncio.create_subprocess_shell(
         cmd,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
-
-    # record logs of process
-    # Create tasks to read stdout and stderr concurrently
-    # ignore, dont await coroutine, just write logs to file
-    asyncio.create_task(write_output_log_to_file("axon_stdout", axon_process.stdout))
-    # ignore, dont await coroutine, just write logs to file
-    asyncio.create_task(write_output_log_to_file("axon_stderr", axon_process.stderr))
 
     await asyncio.sleep(
         5
