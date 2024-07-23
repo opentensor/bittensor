@@ -58,14 +58,27 @@ def list_profiles(path):
     return profiles
 
 
-def ask_for_profile(profiles, action):
+def ask_for_profile(profiles, action, include_none=False):
     profiles_without_extension = [profile.replace('.yml', '').replace('.yaml', '') for profile in profiles]
+
+    # Add 'None' as an option if include_none is True
+    if include_none:
+        profiles_without_extension.insert(0, 'None')
 
     # If we have no profiles, return None
     if len(profiles_without_extension) == 0:
         return None
 
-    profile_name = Prompt.ask(f"Enter profile name to {action}", choices=profiles_without_extension)
+    default_choice = 'None' if include_none else profiles_without_extension[0]
+    profile_name = Prompt.ask(
+        f"Enter profile name to {action}",
+        choices=profiles_without_extension,
+        default=default_choice
+    )
+
+    if profile_name == 'None':
+        return None
+
     return profile_name + ('.yml' if profile_name + '.yml' in profiles else '.yaml')
 
 
@@ -82,31 +95,35 @@ def get_profile_file_path(path, profile_name):
     return None
 
 
-def get_profile_path_from_config(cli, action):
+def get_profile_path_from_config(cli, action, include_none_option=False):
     """Extract profile path from config and handle user prompt if necessary."""
     config = cli.config.copy()
     path = os.path.expanduser(config.profile.path)
 
-    if not config.is_set("profile.name") and not config.no_prompt:
+    if not (config.is_set("profile.name") and config.profile.name != config.profile.active) and not config.no_prompt:
         profiles = list_profiles(path)
         if not profiles:
             return None, None
 
-        profile_name = ask_for_profile(profiles, action)
+        profile_name = ask_for_profile(profiles, action, include_none_option)
         config.profile.name = str(profile_name)
 
     profile_name = config.profile.name
+
+    if include_none_option and profile_name == 'None':
+        return config, None
+
     profile_path = get_profile_file_path(path, profile_name)
 
     return config, profile_path
 
 
-def open_profile(cli, action):
+def open_profile(cli, action, include_none_option=False):
     """Open a profile and return its configuration and contents."""
-    config, profile_path = get_profile_path_from_config(cli, action)
+    config, profile_path = get_profile_path_from_config(cli, action, include_none_option)
 
     if profile_path is None:
-        return None, None, None
+        return config, None, None
 
     try:
         with open(profile_path, "r") as f:
@@ -115,7 +132,7 @@ def open_profile(cli, action):
         return config, profile_path, contents
     except Exception as e:
         handle_error("Failed to read profile", e)
-        return None, None, None
+        return config, None, None
 
 
 class ProfileCommand:
@@ -460,10 +477,7 @@ class ProfileDeleteValueCommand:
 class ProfileSetCommand:
     @staticmethod
     def run(cli):
-        config, profile_path, contents = open_profile(cli, "set")
-
-        if profile_path is None:
-            return
+        config, profile_path, contents = open_profile(cli, "set", True)
 
         # Load generic config file and write active profile to it
         config_path = defaults.config.path
@@ -489,7 +503,10 @@ class ProfileSetCommand:
             if not generic_config:
                 generic_config = {'profile': {'active': ''}}
 
-            generic_config['profile']['active'] = config.profile.name.replace('.yml', '').replace('.yaml', '')
+            if profile_path is None:
+                generic_config['profile']['active'] = ''
+            else:
+                generic_config['profile']['active'] = config.profile.name.replace('.yml', '').replace('.yaml', '')
 
             with open(generic_config_path, 'w+') as file:
                 yaml.safe_dump(generic_config, file)

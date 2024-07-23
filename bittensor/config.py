@@ -66,11 +66,11 @@ class config(DefaultMunch):
     """
 
     def __init__(
-        self,
-        parser: argparse.ArgumentParser = None,
-        args: Optional[List[str]] = None,
-        strict: bool = False,
-        default: Optional[Any] = None,
+            self,
+            parser: argparse.ArgumentParser = None,
+            args: Optional[List[str]] = None,
+            strict: bool = False,
+            default: Optional[Any] = None,
     ) -> None:
         super().__init__(default)
 
@@ -139,9 +139,9 @@ class config(DefaultMunch):
         # 1.1 Optionally load defaults if the --config is set.
         try:
             config_file_path = (
-                str(os.getcwd())
-                + "/"
-                + vars(parser.parse_known_args(args)[0])["config"]
+                    str(os.getcwd())
+                    + "/"
+                    + vars(parser.parse_known_args(args)[0])["config"]
             )
         except Exception as e:
             config_file_path = None
@@ -235,24 +235,24 @@ class config(DefaultMunch):
             ]
         }
 
+        # Load config from environment variables and merge with defaults values
+        self.load_config_from_env_vars()
+
         # Load or create generic config
         self.load_or_create_generic_config()
-        # Load config from environment variables
-        self.load_config_from_env_vars()
+
         # Load active profile if we have one
         self.load_active_profile()
 
         # Merge all configs together and update self
-        merged_config = {
-            **self.generic_config,
-            **self.profile_config,
-            **self.env_config,
-            **self.params_config,
-        }
-        # TODO: we need a clean process for this
-        # The param defaults override the profile and generic config this is not what we want
-        # merged_config = self._merge(config.unflatten_dict(merged_config), self.__dict__)
-        merged_config = self._merge(self.__dict__, config.unflatten_dict(merged_config))
+        defaults_and_env = self.deep_merge(defaults.__dict__, config.unflatten_dict(self.env_config))
+
+        generic_and_profile = self.deep_merge(self.generic_config, self.profile_config)
+
+        merged_config = self.deep_merge(config.unflatten_dict(defaults_and_env),
+                                        self.deep_merge(config.unflatten_dict(generic_and_profile),
+                                                        config.unflatten_dict(params_no_defaults.__dict__)))
+
         self.merge(merged_config)
 
     @staticmethod
@@ -264,7 +264,7 @@ class config(DefaultMunch):
             keys = split_keys
             while len(keys) > 1:
                 if (
-                    hasattr(head, keys[0]) and head[keys[0]] != None
+                        hasattr(head, keys[0]) and head[keys[0]] != None
                 ):  # Needs to be Config
                     head = getattr(head, keys[0])
                     keys = keys[1:]
@@ -292,10 +292,10 @@ class config(DefaultMunch):
         return nested_dict
 
     def __parse_args__(
-        self,
-        args: List[str],
-        parser: argparse.ArgumentParser = None,
-        strict: bool = False,
+            self,
+            args: List[str],
+            parser: argparse.ArgumentParser = None,
+            strict: bool = False,
     ) -> argparse.Namespace:
         """Parses the passed args use the passed parser.
 
@@ -397,6 +397,18 @@ class config(DefaultMunch):
                 a[key] = b[key]
         return a
 
+    def deep_merge(self, dict1, dict2):
+        """
+        Recursively merges dict2 into dict1
+        """
+        merged = deepcopy(dict1)
+        for key, value in dict2.items():
+            if key in merged and isinstance(merged[key], dict) and isinstance(value, dict):
+                merged[key] = self.deep_merge(merged[key], value)
+            else:
+                merged[key] = deepcopy(value)
+        return merged
+
     def merge(self, b):
         """
         Merges the current config with another config.
@@ -425,25 +437,37 @@ class config(DefaultMunch):
             result.merge(cfg)
         return result
 
+    def get_value(self, d, keys):
+        """
+        Helper function to get the value from a nested dictionary using a list of keys.
+        Returns a tuple (value, exists) where exists is a boolean indicating whether the value was found.
+        """
+        for key in keys:
+            if isinstance(d, dict) and key in d:
+                d = d[key]
+            else:
+                return None, False
+        return d, True
+
     def is_set(self, param_name: str) -> bool:
         """
         Returns a boolean indicating whether the parameter has been set or is still the default.
         """
-        # TODO: Do we really need to check if the value is same as default?
-        # For now, we are just checking if the value is set or not
-
         keys = param_name.split(".")
-        current_dict = self.__dict__
-        for key in keys:
-            if key in current_dict:
-                current_dict = current_dict[key]
-            else:
-                return False
+        current_value, current_exists = self.get_value(self.__dict__, keys)
+        default_value, _default_exists = self.get_value(defaults, keys)
 
-        return True
+        print(f"param: {param_name}, current_value: {current_value}, default_value: {default_value}")
+
+        if not current_exists:
+            # The config for this parameter has not been set
+            return False
+
+        # Check if the value is different from the default value if not return False
+        return current_value != default_value
 
     def __check_for_missing_required_args(
-        self, parser: argparse.ArgumentParser, args: List[str]
+            self, parser: argparse.ArgumentParser, args: List[str]
     ) -> List[str]:
         required_args = self.__get_required_args_from_parser(parser)
         missing_args = [arg for arg in required_args if not any(arg in s for s in args)]
@@ -510,18 +534,14 @@ class config(DefaultMunch):
 
     def load_active_profile(self):
 
-        profile_name = (
-            self.params_config.get("profile.active")
-            or self.env_config.get("profile.active")
-            or self.generic_config.get("profile.active")
-        )
+        profile_name = (self.params_config.get('profile.active') or
+                        self.env_config.get("profile.active") or
+                        self.generic_config.get("profile.active"))
 
-        profile_path = (
-            self.params_config.get("profile.path")
-            or self.env_config.get("profile.path")
-            or self.generic_config.get("profile.path")
-            or defaults.profile.path
-        )
+        profile_path = (self.params_config.get('profile.path') or
+                        self.env_config.get('profile.path') or
+                        self.generic_config.get('profile.path') or
+                        defaults.profile.path)
 
         if not profile_name or not profile_path:
             return

@@ -475,6 +475,7 @@ class NewColdkeyCommand:
 
     def run(cli):
         r"""Creates a new coldkey under this wallet."""
+        return;
         wallet = bittensor.wallet(config=cli.config)
         wallet.create_new_coldkey(
             n_words=cli.config.n_words,

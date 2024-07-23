@@ -21,7 +21,7 @@ defaults: Munch = munchify(
         },
         "priority": {"max_workers": 5, "maxsize": 10},
         "prometheus": {"port": 7091, "level": "INFO"},
-        "profile": {"name": "default", "path": "~/.bittensor/profiles/", "active": "default"},
+        "profile": {"name": "default", "path": "~/.bittensor/profiles/"},
         "wallet": {
             "name": "default",
             "hotkey": "default",
