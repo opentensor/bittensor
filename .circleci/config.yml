@@ -288,7 +288,6 @@ jobs:
           command: |
             ./scripts/release/release.sh --github-token ${GH_API_ACCESS_TOKEN}
 
-
 workflows:
   compatibility_checks:
     jobs:
