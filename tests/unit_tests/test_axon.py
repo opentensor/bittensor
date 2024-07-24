@@ -22,13 +22,14 @@
 import re
 from dataclasses import dataclass
 
-from typing import Any
+from typing import Any, Optional
 from unittest import IsolatedAsyncioTestCase
 from unittest.mock import AsyncMock, MagicMock, patch
 
 # Third Party
 import fastapi
 import netaddr
+import pydantic
 import pytest
 from starlette.requests import Request
 from fastapi.testclient import TestClient
@@ -532,6 +533,39 @@ class TestAxonHTTPAPIResponses:
     async def no_verify_fn(self, synapse):
         return
 
+    class NonDeterministicHeaders(pydantic.BaseModel):
+        """
+        Helper class to verify headers.
+
+        Size headers are non-determistic as for example, header_size depends on non-deterministic
+        processing-time value.
+        """
+
+        bt_header_axon_process_time: float = pydantic.Field(gt=0, lt=30)
+        timeout: float = pydantic.Field(gt=0, lt=30)
+        header_size: int = pydantic.Field(None, gt=10, lt=400)
+        total_size: int = pydantic.Field(gt=100, lt=10000)
+        content_length: Optional[int] = pydantic.Field(
+            None, alias="content-length", gt=100, lt=10000
+        )
+
+    def assert_headers(self, response, expected_headers):
+        expected_headers = {
+            "bt_header_axon_status_code": "200",
+            "bt_header_axon_status_message": "Success",
+            **expected_headers,
+        }
+        headers = dict(response.headers)
+        non_deterministic_headers_names = {
+            field.alias or field_name
+            for field_name, field in self.NonDeterministicHeaders.model_fields.items()
+        }
+        non_deterministic_headers = {
+            field: headers.pop(field, None) for field in non_deterministic_headers_names
+        }
+        assert headers == expected_headers
+        self.NonDeterministicHeaders.model_validate(non_deterministic_headers)
+
     async def test_unknown_path(self, http_client):
         response = http_client.get("/no_such_path")
         assert (response.status_code, response.json()) == (
@@ -557,6 +591,14 @@ class TestAxonHTTPAPIResponses:
         assert response.status_code == 200
         response_synapse = Synapse(**response.json())
         assert response_synapse.axon.status_code == 200
+        self.assert_headers(
+            response,
+            {
+                "computed_body_hash": "a7ffc6f8bf1ed76651c14756a061d662f580ff4de43b49fa82d80a4b80f8434a",
+                "content-type": "application/json",
+                "name": "Synapse",
+            },
+        )
 
     @pytest.fixture
     def custom_synapse_cls(self):
@@ -664,3 +706,11 @@ class TestAxonHTTPAPIResponses:
 
         response = http_client.post_synapse(streaming_synapse_cls())
         assert (response.status_code, response.text) == (200, "".join(tokens))
+        self.assert_headers(
+            response,
+            {
+                "content-type": "text/event-stream",
+                "name": "CustomStreamingSynapse",
+                "computed_body_hash": "a7ffc6f8bf1ed76651c14756a061d662f580ff4de43b49fa82d80a4b80f8434a",
+            },
+        )
