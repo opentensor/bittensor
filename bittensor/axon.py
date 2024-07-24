@@ -969,7 +969,7 @@ def log_and_handle_error(
     exception: Exception,
     status_code: typing.Optional[int] = None,
     start_time: typing.Optional[float] = None,
-):
+) -> bittensor.Synapse:
     if isinstance(exception, SynapseException):
         synapse = exception.synapse or synapse
 
