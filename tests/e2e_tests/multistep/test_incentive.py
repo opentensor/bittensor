@@ -16,7 +16,7 @@ from tests.e2e_tests.utils import (
     setup_wallet,
     template_path,
     templates_repo,
-    wait_interval,
+    wait_epoch,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -206,8 +206,8 @@ async def test_incentive(local_chain):
     assert alice_neuron.stake.tao == 10_000.0
     assert alice_neuron.validator_trust == 0
 
-    # wait until 360 blocks pass (subnet tempo)
-    wait_interval(360, subtensor)
+    # wait until next epoch
+    await wait_epoch(subtensor)
 
     # for some reason the weights do not get set through the template. Set weight manually.
     alice_wallet = bittensor.wallet()
@@ -223,7 +223,7 @@ async def test_incentive(local_chain):
     )
 
     # wait epoch until weight go into effect
-    wait_interval(360, subtensor)
+    await wait_epoch(subtensor)
 
     # refresh metagraph
     metagraph = bittensor.metagraph(netuid=netuid, network="ws://localhost:9945")
