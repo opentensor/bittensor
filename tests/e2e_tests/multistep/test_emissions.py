@@ -47,11 +47,12 @@ are updated with proper values after an epoch has passed.
 
 @pytest.mark.asyncio
 async def test_emissions(local_chain):
+    netuid = 1
     # Register root as Alice - the subnet owner and validator
     alice_keypair, alice_exec_command, alice_wallet = setup_wallet("//Alice")
     alice_exec_command(RegisterSubnetworkCommand, ["s", "create"])
-    # Verify subnet 1 created successfully
-    assert local_chain.query("SubtensorModule", "NetworksAdded", [1]).serialize()
+    # Verify subnet <netuid> created successfully
+    assert local_chain.query("SubtensorModule", "NetworksAdded", [netuid]).serialize()
 
     # Register Bob as miner
     bob_keypair, bob_exec_command, bob_wallet = setup_wallet("//Bob")
@@ -63,7 +64,7 @@ async def test_emissions(local_chain):
             "s",
             "register",
             "--netuid",
-            "1",
+            str(netuid),
         ],
     )
 
@@ -74,13 +75,13 @@ async def test_emissions(local_chain):
             "s",
             "register",
             "--netuid",
-            "1",
+            str(netuid),
         ],
     )
 
     subtensor = bittensor.subtensor(network="ws://localhost:9945")
     # assert two neurons are in network
-    assert len(subtensor.neurons(netuid=1)) == 2
+    assert len(subtensor.neurons(netuid=netuid)) == 2
 
     # Alice to stake to become to top neuron after the first epoch
     alice_exec_command(
@@ -104,7 +105,7 @@ async def test_emissions(local_chain):
             f'"{template_path}{templates_repo}/neurons/validator.py"',
             "--no_prompt",
             "--netuid",
-            "1",
+            str(netuid),
             "--subtensor.network",
             "local",
             "--subtensor.chain_endpoint",
@@ -135,7 +136,7 @@ async def test_emissions(local_chain):
             "root",
             "register",
             "--netuid",
-            "1",
+            str(netuid),
             "--wait_for_inclusion",
             "True",
             "--wait_for_finalization",
@@ -151,7 +152,7 @@ async def test_emissions(local_chain):
             "root",
             "boost",
             "--netuid",
-            "1",
+            str(netuid),
             "--increase",
             "1000",
             "--wait_for_inclusion",
@@ -168,7 +169,7 @@ async def test_emissions(local_chain):
             f'"{template_path}{templates_repo}/neurons/miner.py"',
             "--no_prompt",
             "--netuid",
-            "1",
+            str(netuid),
             "--subtensor.network",
             "local",
             "--subtensor.chain_endpoint",
@@ -198,7 +199,7 @@ async def test_emissions(local_chain):
             "root",
             "weights",
             "--netuid",
-            "1",
+            str(netuid),
             "--weights",
             "0.3",
             "--wallet.name",
@@ -223,7 +224,7 @@ async def test_emissions(local_chain):
             "set",
             "hyperparameters",
             "--netuid",
-            "1",
+            str(netuid),
             "--wallet.name",
             alice_wallet.name,
             "--param",
@@ -249,9 +250,9 @@ async def test_emissions(local_chain):
 
     # get current emissions and validate that Alice has gotten tao
     weights = [(0, [(0, 65535), (1, 65535)])]
-    assert subtensor.weights(netuid=1) == weights
+    assert subtensor.weights(netuid=netuid) == weights
 
-    neurons = subtensor.neurons(netuid=1)
+    neurons = subtensor.neurons(netuid=netuid)
     bob = neurons[1]
     alice = neurons[0]
 
@@ -271,5 +272,5 @@ async def test_emissions(local_chain):
     assert alice.weights == [(0, 65535), (1, 65535)]
 
     assert (
-        subtensor.get_emission_value_by_subnet(netuid=1) > 0
+        subtensor.get_emission_value_by_subnet(netuid=netuid) > 0
     )  # emission on this subnet is strictly greater than 0
