@@ -16,7 +16,7 @@ from tests.e2e_tests.utils import (
     setup_wallet,
     template_path,
     templates_repo,
-    wait_interval,
+    wait_epoch,
 )
 
 
@@ -145,8 +145,8 @@ async def test_dendrite(local_chain):
             "1",
         ],
     )
-    # get current block, wait until 360 blocks pass (subnet tempo)
-    wait_interval(360, subtensor)
+    # get current block, wait until next epoch
+    await wait_epoch(subtensor, netuid=netuid)
 
     # refresh metagraph
     metagraph = bittensor.metagraph(netuid=netuid, network="ws://localhost:9945")

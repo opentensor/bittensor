@@ -19,7 +19,7 @@ from tests.e2e_tests.utils import (
     setup_wallet,
     template_path,
     templates_repo,
-    wait_interval,
+    wait_epoch,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -144,7 +144,7 @@ async def test_emissions(local_chain):
         ],
     )
 
-    wait_interval(360, subtensor)
+    await wait_epoch(subtensor, netuid=netuid)
 
     alice_exec_command(
         RootSetBoostCommand,
@@ -190,7 +190,7 @@ async def test_emissions(local_chain):
         stderr=asyncio.subprocess.PIPE,
     )
 
-    wait_interval(360, subtensor)
+    await wait_epoch(subtensor)
 
     logging.warning("Setting root set weights")
     alice_exec_command(
@@ -239,7 +239,7 @@ async def test_emissions(local_chain):
     )
 
     # wait epoch until for emissions to get distributed
-    wait_interval(360, subtensor)
+    await wait_epoch(subtensor)
 
     await asyncio.sleep(
         5
