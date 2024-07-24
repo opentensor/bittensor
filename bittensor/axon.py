@@ -45,7 +45,7 @@ from substrateinterface import Keypair
 
 import bittensor
 from bittensor.utils.axon_utils import allowed_nonce_window_ns, calculate_diff_seconds
-from bittensor.constants import V_7_2_0
+from bittensor.constants import V_7_2_0, ALLOWED_DELTA
 from bittensor.errors import (
     BlacklistedException,
     InvalidRequestNameError,
@@ -59,10 +59,6 @@ from bittensor.errors import (
 )
 from bittensor.threadpool import PriorityThreadPoolExecutor
 from bittensor.utils import networking
-
-
-ALLOWED_DELTA = 4000000000  # Delta of 4 seconds for nonce validation
-V_7_2_0 = 7002000
 
 
 class FastAPIThreadedServer(uvicorn.Server):
