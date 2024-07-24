@@ -25,9 +25,9 @@ python-statemachine~=2.1
 retry
 requests
 rich
-scalecodec==1.2.9
-shtab==1.6.5
-substrate-interface==1.7.5
+scalecodec==1.2.11
+shtab~=1.6.5
+substrate-interface~=1.7.9
 tenacity==8.3.0
 termcolor
 tqdm

@@ -613,7 +613,8 @@ def test_deserialize_keypair_from_keyfile_data(keyfile_setup_teardown):
 def test_get_coldkey_password_from_environment(monkeypatch):
     password_by_wallet = {
         "WALLET": "password",
-        "my_wallet": "password",
+        "my_wallet": "password2",
+        "my-wallet": "password2",
     }
 
     monkeypatch.setenv("bt_cold_pw_wallet", password_by_wallet["WALLET"])
