@@ -1,10 +1,15 @@
 import os
 import re
+import time
+from typing import Dict, Optional, Tuple
 
 from bittensor.commands.list import ListCommand
 from bittensor.commands.wallets import (
     NewColdkeyCommand,
     NewHotkeyCommand,
+    RegenColdkeyCommand,
+    RegenColdkeypubCommand,
+    RegenHotkeyCommand,
     WalletCreateCommand,
 )
 from bittensor.subtensor import subtensor
@@ -18,10 +23,18 @@ Verify commands:
 * btcli w create
 * btcli w new_coldkey
 * btcli w new_hotkey
+* btcli w regen_coldkey
+* btcli w regen_coldkeypub
+* btcli w regen_hotkey
 """
 
 
-def verify_wallet_dir(base_path, wallet_name, hotkey_name=None):
+def verify_wallet_dir(
+    base_path: str,
+    wallet_name: str,
+    hotkey_name: Optional[str] = None,
+    coldkeypub_name: Optional[str] = None,
+) -> Tuple[bool, str]:
     """
     Verifies the existence of wallet directory, coldkey, and optionally the hotkey.
 
@@ -30,6 +43,8 @@ def verify_wallet_dir(base_path, wallet_name, hotkey_name=None):
         wallet_name (str): The name of the wallet directory to verify.
         hotkey_name (str, optional): The name of the hotkey file to verify. If None,
                                      only the wallet and coldkey file are checked.
+        coldkeypub_name (str, optional): The name of the coldkeypub file to verify. If None
+                                         only the wallet and coldkey is checked
 
     Returns:
         tuple: Returns a tuple containing a boolean and a message. The boolean is True if
@@ -45,6 +60,12 @@ def verify_wallet_dir(base_path, wallet_name, hotkey_name=None):
     coldkey_path = os.path.join(wallet_path, "coldkey")
     if not os.path.isfile(coldkey_path):
         return False, f"Coldkey file not found in {wallet_name}"
+
+    # Check if coldkeypub exists
+    if coldkeypub_name:
+        coldkeypub_path = os.path.join(wallet_path, coldkeypub_name)
+        if not os.path.isfile(coldkeypub_path):
+            return False, f"Coldkeypub file not found in {wallet_name}"
 
     # Check if hotkey directory and file exists
     if hotkey_name:
@@ -62,7 +83,7 @@ def verify_wallet_dir(base_path, wallet_name, hotkey_name=None):
     return True, f"Wallet {wallet_name} verified successfully"
 
 
-def verify_key_pattern(output, wallet_name):
+def verify_key_pattern(output: str, wallet_name: str) -> Optional[str]:
     """
     Verifies that a specific wallet key pattern exists in the output text.
 
@@ -95,6 +116,55 @@ def verify_key_pattern(output, wallet_name):
 
     # If no match is found in any line, raise an assertion error
     assert found, f"{wallet_name} not found in wallet list"
+    return None
+
+
+def extract_ss58_address(output: str, wallet_name: str) -> str:
+    """
+    Extracts the ss58 address from the given output for a specified wallet.
+
+    Args:
+        output (str): The captured output.
+        wallet_name (str): The name of the wallet.
+
+    Returns:
+        str: ss58 address.
+    """
+    pattern = rf"{wallet_name}\s*\((5[A-Za-z0-9]{{47}})\)"
+    lines = output.splitlines()
+    for line in lines:
+        match = re.search(pattern, line)
+        if match:
+            return match.group(1)  # Return the ss58 address
+
+    raise ValueError(f"ss58 address not found for wallet {wallet_name}")
+
+
+def extract_mnemonics_from_commands(output: str) -> Dict[str, Optional[str]]:
+    """
+    Extracts mnemonics of coldkeys & hotkeys from the given output for a specified wallet.
+
+    Args:
+        output (str): The captured output.
+
+    Returns:
+        dict: A dictionary keys 'coldkey' and 'hotkey', each containing their mnemonics.
+    """
+    mnemonics: Dict[str, Optional[str]] = {"coldkey": None, "hotkey": None}
+    lines = output.splitlines()
+
+    # Regex pattern to capture the mnemonic
+    pattern = re.compile(r"btcli w regen_(coldkey|hotkey) --mnemonic ([a-z ]+)")
+
+    for line in lines:
+        line = line.strip().lower()
+        match = pattern.search(line)
+        if match:
+            key_type = match.group(1)  # 'coldkey' or 'hotkey'
+            mnemonic_phrase = match.group(2).strip()
+            mnemonics[key_type] = mnemonic_phrase
+
+    return mnemonics
 
 
 def test_wallet_creations(local_chain: subtensor, capsys):
@@ -128,7 +198,9 @@ def test_wallet_creations(local_chain: subtensor, capsys):
     captured = capsys.readouterr()
     # Assert the coldkey and hotkey are present in the display with keys
     assert "default" and "└── default" in captured.out
-    wallet_status, message = verify_wallet_dir(base_path, "default", "default")
+    wallet_status, message = verify_wallet_dir(
+        base_path, "default", hotkey_name="default"
+    )
     assert wallet_status, message
 
     # -----------------------------
@@ -173,7 +245,9 @@ def test_wallet_creations(local_chain: subtensor, capsys):
     verify_key_pattern(captured.out, "new_hotkey")
 
     # Physically verify "new_wallet" and "new_hotkey" are present
-    wallet_status, message = verify_wallet_dir(base_path, "new_wallet", "new_hotkey")
+    wallet_status, message = verify_wallet_dir(
+        base_path, "new_wallet", hotkey_name="new_hotkey"
+    )
     assert wallet_status, message
 
     # -----------------------------
@@ -251,5 +325,165 @@ def test_wallet_creations(local_chain: subtensor, capsys):
     verify_key_pattern(captured.out, "new_hotkey")
 
     # Physically verify "alice_new_coldkey" and "alice_new_hotkey" are present
-    wallet_status, message = verify_wallet_dir(base_path, "new_coldkey", "new_hotkey")
+    wallet_status, message = verify_wallet_dir(
+        base_path, "new_coldkey", hotkey_name="new_hotkey"
+    )
     assert wallet_status, message
+
+
+def test_wallet_regen(local_chain: subtensor, capsys):
+    """
+    Test the regeneration of coldkeys, hotkeys, and coldkeypub files using mnemonics or ss58 address.
+
+    Steps:
+        1. List existing wallets and verify the default setup.
+        2. Regenerate the coldkey using the mnemonics and verify using mod time.
+        3. Regenerate the coldkeypub using ss58 address and verify using mod time
+        4. Regenerate the hotkey using mnemonics and verify using mod time.
+
+    Raises:
+        AssertionError: If any of the checks or verifications fail
+    """
+    wallet_path_name = "//Bob"
+    base_path = f"/tmp/btcli-e2e-wallet-{wallet_path_name.strip('/')}"
+    keypair, exec_command, wallet = setup_wallet(wallet_path_name)
+
+    # Create a new wallet (coldkey + hotkey)
+    exec_command(
+        WalletCreateCommand,
+        [
+            "wallet",
+            "create",
+            "--wallet.name",
+            "new_wallet",
+            "--wallet.hotkey",
+            "new_hotkey",
+            "--no_password",
+            "--overwrite_coldkey",
+            "--overwrite_hotkey",
+            "--no_prompt",
+            "--wallet.path",
+            base_path,
+        ],
+    )
+
+    captured = capsys.readouterr()
+    mnemonics = extract_mnemonics_from_commands(captured.out)
+
+    wallet_status, message = verify_wallet_dir(
+        base_path,
+        "new_wallet",
+        hotkey_name="new_hotkey",
+        coldkeypub_name="coldkeypub.txt",
+    )
+    assert wallet_status, message  # Ensure wallet exists
+
+    # -----------------------------
+    # Command 1: <btcli w regen_coldkey>
+    # -----------------------------
+
+    coldkey_path = os.path.join(base_path, "new_wallet", "coldkey")
+    initial_coldkey_mod_time = os.path.getmtime(coldkey_path)
+
+    exec_command(
+        RegenColdkeyCommand,
+        [
+            "wallet",
+            "regen_coldkey",
+            "--wallet.name",
+            "new_wallet",
+            "--wallet.path",
+            base_path,
+            "--no_prompt",
+            "--overwrite_coldkey",
+            "--mnemonic",
+            mnemonics["coldkey"],
+            "--no_password",
+        ],
+    )
+
+    # Wait a bit to ensure file system updates modification time
+    time.sleep(1)
+
+    new_coldkey_mod_time = os.path.getmtime(coldkey_path)
+
+    assert (
+        initial_coldkey_mod_time != new_coldkey_mod_time
+    ), "Coldkey file was not regenerated as expected"
+
+    # -----------------------------
+    # Command 2: <btcli w regen_coldkeypub>
+    # -----------------------------
+
+    coldkeypub_path = os.path.join(base_path, "new_wallet", "coldkeypub.txt")
+    initial_coldkeypub_mod_time = os.path.getmtime(coldkeypub_path)
+
+    # List the wallets
+    exec_command(
+        ListCommand,
+        [
+            "wallet",
+            "list",
+        ],
+    )
+    captured = capsys.readouterr()
+    ss58_address = extract_ss58_address(captured.out, "new_wallet")
+
+    exec_command(
+        RegenColdkeypubCommand,
+        [
+            "wallet",
+            "regen_coldkeypub",
+            "--wallet.name",
+            "new_wallet",
+            "--wallet.path",
+            base_path,
+            "--no_prompt",
+            "--overwrite_coldkeypub",
+            "--ss58_address",
+            ss58_address,
+        ],
+    )
+
+    # Wait a bit to ensure file system updates modification time
+    time.sleep(1)
+
+    new_coldkeypub_mod_time = os.path.getmtime(coldkeypub_path)
+
+    assert (
+        initial_coldkeypub_mod_time != new_coldkeypub_mod_time
+    ), "Coldkeypub file was not regenerated as expected"
+
+    # -----------------------------
+    # Command 3: <btcli w regen_hotkey>
+    # -----------------------------
+
+    hotkey_path = os.path.join(base_path, "new_wallet", "hotkeys", "new_hotkey")
+    initial_hotkey_mod_time = os.path.getmtime(hotkey_path)
+
+    exec_command(
+        RegenHotkeyCommand,
+        [
+            "wallet",
+            "regen_hotkey",
+            "--no_prompt",
+            "--overwrite_hotkey",
+            "--wallet.name",
+            "new_wallet",
+            "--wallet.hotkey",
+            "new_hotkey",
+            "--wallet.path",
+            base_path,
+            "--mnemonic",
+            mnemonics["hotkey"],
+        ],
+    )
+
+    # Wait a bit to ensure file system updates modification time
+    time.sleep(1)
+
+    new_hotkey_mod_time = os.path.getmtime(hotkey_path)
+
+    assert (
+        initial_hotkey_mod_time != new_hotkey_mod_time
+    ), "Hotkey file was not regenerated as expected"
