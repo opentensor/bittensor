@@ -109,6 +109,8 @@ from .utils.subtensor import get_subtensor_errors
 
 KEY_NONCE: Dict[str, int] = {}
 
+T = TypeVar("T")
+
 
 class ParamWithTypes(TypedDict):
     name: str  # Name of the parameter.
