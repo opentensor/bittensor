@@ -182,21 +182,6 @@ def uninstall_templates(install_dir):
     shutil.rmtree(install_dir)
 
 
-def wait_epoch(interval, subtensor):
-    current_block = subtensor.get_current_block()
-    next_tempo_block_start = (current_block - (current_block % interval)) + interval
-    while current_block < next_tempo_block_start:
-        time.sleep(1)  # Wait for 1 second before checking the block number again
-        current_block = subtensor.get_current_block()
-        if current_block % 10 == 0:
-            print(
-                f"Current Block: {current_block}  Next tempo at: {next_tempo_block_start}"
-            )
-            logging.info(
-                f"Current Block: {current_block}  Next tempo at: {next_tempo_block_start}"
-            )
-
-
 async def write_output_log_to_file(name, stream):
     log_file = f"{name}.log"
     with open(log_file, "a") as f:
