@@ -90,7 +90,7 @@ logger = logging.getLogger("subtensor")
 
 KEY_NONCE: Dict[str, int] = {}
 
-
+T = TypeVar("T")
 
 class ParamWithTypes(TypedDict):
     name: str  # Name of the parameter.
