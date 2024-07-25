@@ -12,7 +12,7 @@ from bittensor.commands import (
 from tests.e2e_tests.utils import (
     setup_wallet,
     template_path,
-    repo_name,
+    templates_repo,
 )
 
 """
@@ -66,7 +66,7 @@ async def test_axon(local_chain):
     cmd = " ".join(
         [
             f"{sys.executable}",
-            f'"{template_path}{repo_name}/neurons/miner.py"',
+            f'"{template_path}{templates_repo}/neurons/miner.py"',
             "--no_prompt",
             "--netuid",
             "1",

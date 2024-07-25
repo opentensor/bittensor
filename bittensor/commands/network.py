@@ -534,13 +534,6 @@ class SubnetHyperparamsCommand:
         parser.add_argument(
             "--netuid", dest="netuid", type=int, required=False, default=False
         )
-        parser.add_argument(
-            "--no_prompt",
-            dest="no_prompt",
-            action="store_true",
-            help="""Set true to avoid prompting the user.""",
-            default=False,
-        )
         bittensor.subtensor.add_args(parser)
 
 
@@ -638,13 +631,6 @@ class SubnetGetHyperparamsCommand:
         parser = parser.add_parser("get", help="""View subnet hyperparameters""")
         parser.add_argument(
             "--netuid", dest="netuid", type=int, required=False, default=False
-        )
-        parser.add_argument(
-            "--no_prompt",
-            dest="no_prompt",
-            action="store_true",
-            help="""Set true to avoid prompting the user.""",
-            default=False,
         )
         bittensor.subtensor.add_args(parser)
 
