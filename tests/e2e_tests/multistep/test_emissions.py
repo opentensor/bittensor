@@ -11,6 +11,9 @@ from bittensor.commands import (
     StakeCommand,
     RootRegisterCommand,
     RootSetBoostCommand,
+    SubnetSudoCommand,
+    RootSetWeightsCommand,
+    SetTakeCommand,
 )
 from tests.e2e_tests.utils import (
     setup_wallet,
@@ -22,13 +25,14 @@ from tests.e2e_tests.utils import (
 logging.basicConfig(level=logging.INFO)
 
 """
-Test the incentive mechanism. 
+Test the emissions mechanism. 
 
 Verify that for the miner:
 * trust
 * rank
 * consensus
 * incentive
+* emission
 are updated with proper values after an epoch has passed. 
 
 For the validator verify that:
@@ -42,7 +46,7 @@ are updated with proper values after an epoch has passed.
 
 
 @pytest.mark.asyncio
-async def test_incentive(local_chain):
+async def test_emissions(local_chain):
     # Register root as Alice - the subnet owner and validator
     alice_keypair, alice_exec_command, alice_wallet = setup_wallet("//Alice")
     alice_exec_command(RegisterSubnetworkCommand, ["s", "create"])
@@ -86,6 +90,74 @@ async def test_incentive(local_chain):
             "add",
             "--amount",
             "10000",
+            "--wait_for_inclusion",
+            "True",
+            "--wait_for_finalization",
+            "True",
+        ],
+    )
+
+    # register Alice as validator
+    cmd = " ".join(
+        [
+            f"{sys.executable}",
+            f'"{template_path}{templates_repo}/neurons/validator.py"',
+            "--no_prompt",
+            "--netuid",
+            "1",
+            "--subtensor.network",
+            "local",
+            "--subtensor.chain_endpoint",
+            "ws://localhost:9945",
+            "--wallet.path",
+            alice_wallet.path,
+            "--wallet.name",
+            alice_wallet.name,
+            "--wallet.hotkey",
+            "default",
+            "--logging.trace",
+        ]
+    )
+    # run validator in the background
+
+    await asyncio.create_subprocess_shell(
+        cmd,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+
+    await asyncio.sleep(5)
+
+    # register validator with root network
+    alice_exec_command(
+        RootRegisterCommand,
+        [
+            "root",
+            "register",
+            "--netuid",
+            "1",
+            "--wait_for_inclusion",
+            "True",
+            "--wait_for_finalization",
+            "True",
+        ],
+    )
+
+    wait_interval(360, subtensor)
+
+    alice_exec_command(
+        RootSetBoostCommand,
+        [
+            "root",
+            "boost",
+            "--netuid",
+            "1",
+            "--increase",
+            "1000",
+            "--wait_for_inclusion",
+            "True",
+            "--wait_for_finalization",
+            "True",
         ],
     )
 
@@ -111,131 +183,93 @@ async def test_incentive(local_chain):
         ]
     )
 
-    miner_process = await asyncio.create_subprocess_shell(
+    await asyncio.create_subprocess_shell(
         cmd,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
 
-    await asyncio.sleep(
-        5
-    )  # wait for 5 seconds for the metagraph to refresh with latest data
+    wait_interval(360, subtensor)
 
-    # register Alice as validator
-    cmd = " ".join(
+    logging.warning("Setting root set weights")
+    alice_exec_command(
+        RootSetWeightsCommand,
         [
-            f"{sys.executable}",
-            f'"{template_path}{templates_repo}/neurons/validator.py"',
-            "--no_prompt",
+            "root",
+            "weights",
             "--netuid",
             "1",
-            "--subtensor.network",
-            "local",
-            "--subtensor.chain_endpoint",
-            "ws://localhost:9945",
-            "--wallet.path",
-            alice_wallet.path,
+            "--weights",
+            "0.3",
             "--wallet.name",
-            alice_wallet.name,
+            "default",
             "--wallet.hotkey",
             "default",
-            "--logging.trace",
-        ]
+            "--wait_for_inclusion",
+            "True",
+            "--wait_for_finalization",
+            "True",
+        ],
     )
-    # run validator in the background
 
-    validator_process = await asyncio.create_subprocess_shell(
-        cmd,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
+    # Set delegate take for Alice
+    alice_exec_command(SetTakeCommand, ["r", "set_take", "--take", "0.15"])
+
+    # Lower the rate limit
+    alice_exec_command(
+        SubnetSudoCommand,
+        [
+            "sudo",
+            "set",
+            "hyperparameters",
+            "--netuid",
+            "1",
+            "--wallet.name",
+            alice_wallet.name,
+            "--param",
+            "weights_rate_limit",
+            "--value",
+            "1",
+            "--wait_for_inclusion",
+            "True",
+            "--wait_for_finalization",
+            "True",
+        ],
     )
+
+    # wait epoch until for emissions to get distributed
+    wait_interval(360, subtensor)
 
     await asyncio.sleep(
         5
     )  # wait for 5 seconds for the metagraph and subtensor to refresh with latest data
 
-    # register validator with root network
-    alice_exec_command(
-        RootRegisterCommand,
-        [
-            "root",
-            "register",
-            "--netuid",
-            "1",
-            "--wallet.name",
-            "default",
-            "--wallet.hotkey",
-            "default",
-            "--subtensor.chain_endpoint",
-            "ws://localhost:9945",
-        ],
-    )
-
-    alice_exec_command(
-        RootSetBoostCommand,
-        [
-            "root",
-            "boost",
-            "--netuid",
-            "1",
-            "--increase",
-            "100",
-            "--wallet.name",
-            "default",
-            "--wallet.hotkey",
-            "default",
-            "--subtensor.chain_endpoint",
-            "ws://localhost:9945",
-        ],
-    )
-
-    # get latest metagraph
-    metagraph = bittensor.metagraph(netuid=1, network="ws://localhost:9945")
-
-    # get current emissions
-    bob_neuron = metagraph.neurons[1]
-    assert bob_neuron.incentive == 0
-    assert bob_neuron.consensus == 0
-    assert bob_neuron.rank == 0
-    assert bob_neuron.trust == 0
-
-    alice_neuron = metagraph.neurons[0]
-    assert alice_neuron.validator_permit is False
-    assert alice_neuron.dividends == 0
-    assert alice_neuron.stake.tao == 10_000.0
-    assert alice_neuron.validator_trust == 0
-
-    # wait until 360 blocks pass (subnet tempo)
-    wait_interval(360, subtensor)
-
-    # for some reason the weights do not get set through the template. Set weight manually.
-    alice_wallet = bittensor.wallet()
-    alice_wallet._hotkey = alice_keypair
-    subtensor._do_set_weights(
-        wallet=alice_wallet,
-        uids=[1],
-        vals=[65535],
-        netuid=1,
-        version_key=0,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
-    )
-
-    # wait epoch until weight go into effect
-    wait_interval(360, subtensor)
-
     # refresh metagraph
-    metagraph = bittensor.metagraph(netuid=1, network="ws://localhost:9945")
+    subtensor = bittensor.subtensor(network="ws://localhost:9945")
 
     # get current emissions and validate that Alice has gotten tao
-    bob_neuron = metagraph.neurons[1]
-    assert bob_neuron.incentive == 1
-    assert bob_neuron.consensus == 1
-    assert bob_neuron.rank == 1
-    assert bob_neuron.trust == 1
+    weights = [(0, [(0, 65535), (1, 65535)])]
+    assert subtensor.weights(netuid=1) == weights
 
-    alice_neuron = metagraph.neurons[0]
-    assert alice_neuron.validator_permit is True
-    assert alice_neuron.dividends == 1
-    assert alice_neuron.stake.tao == 10_000.0
-    assert alice_neuron.validator_trust == 1
+    neurons = subtensor.neurons(netuid=1)
+    bob = neurons[1]
+    alice = neurons[0]
+
+    assert bob.emission > 0
+    assert bob.consensus == 1
+    assert bob.incentive == 1
+    assert bob.rank == 1
+    assert bob.trust == 1
+
+    assert alice.emission > 0
+    assert alice.bonds == [(1, 65535)]
+    assert alice.dividends == 1
+    assert alice.stake.tao > 10000  # assert an increase in stake
+    assert alice.validator_permit is True
+    assert alice.validator_trust == 1
+
+    assert alice.weights == [(0, 65535), (1, 65535)]
+
+    assert (
+        subtensor.get_emission_value_by_subnet(netuid=1) > 0
+    )  # emission on this subnet is strictly greater than 0

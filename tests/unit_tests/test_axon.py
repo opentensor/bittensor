@@ -20,6 +20,7 @@
 
 # Standard Lib
 import re
+import time
 from dataclasses import dataclass
 
 from typing import Any
@@ -38,6 +39,8 @@ import bittensor
 from bittensor import Synapse, RunException
 from bittensor.axon import AxonMiddleware
 from bittensor.axon import axon as Axon
+from bittensor.utils.axon_utils import allowed_nonce_window_ns, calculate_diff_seconds
+from bittensor.constants import ALLOWED_DELTA, NANOSECONDS_IN_SECOND
 
 
 def test_attach():
@@ -282,6 +285,7 @@ async def test_priority_pass(middleware):
         ),
     ],
 )
+@pytest.mark.asyncio
 async def test_verify_body_integrity_happy_path(
     mock_request, axon_instance, body, expected
 ):
@@ -298,11 +302,12 @@ async def test_verify_body_integrity_happy_path(
 @pytest.mark.parametrize(
     "body, expected_exception_message",
     [
-        (b"", "EOFError"),  # Empty body
-        (b"not_json", "JSONDecodeError"),  # Non-JSON body
+        (b"", "Expecting value: line 1 column 1 (char 0)"),  # Empty body
+        (b"not_json", "Expecting value: line 1 column 1 (char 0)"),  # Non-JSON body
     ],
     ids=["empty_body", "non_json_body"],
 )
+@pytest.mark.asyncio
 async def test_verify_body_integrity_edge_cases(
     mock_request, axon_instance, body, expected_exception_message
 ):
@@ -323,6 +328,7 @@ async def test_verify_body_integrity_edge_cases(
         ("incorrect_hash", ValueError),
     ],
 )
+@pytest.mark.asyncio
 async def test_verify_body_integrity_error_cases(
     mock_request, axon_instance, computed_hash, expected_error
 ):
@@ -613,3 +619,62 @@ class TestAxonHTTPAPIResponses:
         response_data = response.json()
         assert sorted(response_data.keys()) == ["message"]
         assert re.match(r"Internal Server Error #[\da-f\-]+", response_data["message"])
+
+
+def test_allowed_nonce_window_ns():
+    mock_synapse = SynapseMock()
+    current_time = time.time_ns()
+    allowed_window_ns = allowed_nonce_window_ns(current_time, mock_synapse.timeout)
+    expected_window_ns = (
+        current_time - ALLOWED_DELTA - (mock_synapse.timeout * NANOSECONDS_IN_SECOND)
+    )
+    assert (
+        allowed_window_ns < current_time
+    ), "Allowed window should be less than the current time"
+    assert (
+        allowed_window_ns == expected_window_ns
+    ), f"Expected {expected_window_ns} but got {allowed_window_ns}"
+
+
+@pytest.mark.parametrize("nonce_offset_seconds", [1, 3, 5, 10])
+def test_nonce_diff_seconds(nonce_offset_seconds):
+    mock_synapse = SynapseMock()
+    current_time_ns = time.time_ns()
+    synapse_nonce = current_time_ns - (nonce_offset_seconds * NANOSECONDS_IN_SECOND)
+    diff_seconds, allowed_delta_seconds = calculate_diff_seconds(
+        current_time_ns, mock_synapse.timeout, synapse_nonce
+    )
+
+    expected_diff_seconds = nonce_offset_seconds  # Because we subtracted nonce_offset_seconds from current_time_ns
+    expected_allowed_delta_seconds = (
+        ALLOWED_DELTA + (mock_synapse.timeout * NANOSECONDS_IN_SECOND)
+    ) / NANOSECONDS_IN_SECOND
+
+    assert (
+        diff_seconds == expected_diff_seconds
+    ), f"Expected {expected_diff_seconds} but got {diff_seconds}"
+    assert (
+        allowed_delta_seconds == expected_allowed_delta_seconds
+    ), f"Expected {expected_allowed_delta_seconds} but got {allowed_delta_seconds}"
+
+
+# Mimicking axon default_verify nonce verification
+# True: Nonce is fresh, False: Nonce is old
+def is_nonce_within_allowed_window(synapse_nonce, allowed_window_ns):
+    return not (synapse_nonce <= allowed_window_ns)
+
+
+# Test assuming synapse timeout is the default 12 seconds
+@pytest.mark.parametrize(
+    "nonce_offset_seconds, expected_result",
+    [(1, True), (3, True), (5, True), (15, True), (18, False), (19, False)],
+)
+def test_nonce_within_allowed_window(nonce_offset_seconds, expected_result):
+    mock_synapse = SynapseMock()
+    current_time_ns = time.time_ns()
+    synapse_nonce = current_time_ns - (nonce_offset_seconds * NANOSECONDS_IN_SECOND)
+    allowed_window_ns = allowed_nonce_window_ns(current_time_ns, mock_synapse.timeout)
+
+    result = is_nonce_within_allowed_window(synapse_nonce, allowed_window_ns)
+
+    assert result == expected_result, f"Expected {expected_result} but got {result}"

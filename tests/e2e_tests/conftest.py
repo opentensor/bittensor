@@ -32,7 +32,7 @@ def local_chain(request):
         pytest.skip("LOCALNET_SH_PATH environment variable is not set.")
 
     # Check if param is None, and handle it accordingly
-    args = "" if param is None else f"fast_blocks={param}"
+    args = "" if param is None else f"{param}"
 
     # compile commands to send to process
     cmds = shlex.split(f"{script_path} {args}")
@@ -42,16 +42,22 @@ def local_chain(request):
     )
 
     # Pattern match indicates node is compiled and ready
-    pattern = re.compile(r"Successfully ran block step\.")
+    pattern = re.compile(r"Imported #1")
 
     # install neuron templates
     logging.info("downloading and installing neuron templates from github")
     templates_dir = clone_or_update_templates()
     install_templates(templates_dir)
 
+    timestamp = int(time.time())
+
     def wait_for_node_start(process, pattern):
         for line in process.stdout:
             print(line.strip())
+            # 10 min as timeout
+            if int(time.time()) - timestamp > 10 * 60:
+                print("Subtensor not started in time")
+                break
             if pattern.search(line):
                 print("Node started!")
                 break
