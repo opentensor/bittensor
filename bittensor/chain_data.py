@@ -333,7 +333,6 @@ class ChainDataType(Enum):
     IPInfo = 7
     SubnetHyperparameters = 8
     ScheduledColdkeySwapInfo = 9
-    AccountId = 10
 
 
 def from_scale_encoding(
