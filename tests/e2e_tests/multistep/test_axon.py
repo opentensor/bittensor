@@ -83,7 +83,7 @@ async def test_axon(local_chain):
         ]
     )
 
-    await asyncio.create_subprocess_shell(
+    axon_process = await asyncio.create_subprocess_shell(
         cmd,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
