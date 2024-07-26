@@ -112,7 +112,7 @@ async def test_dendrite(local_chain):
     )
 
     # run validator in the background
-    await asyncio.create_subprocess_shell(
+    dendrite_process = await asyncio.create_subprocess_shell(
         cmd,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
