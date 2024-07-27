@@ -1089,6 +1089,7 @@ def _terminate_workers_and_wait_for_exit(
         if isinstance(worker, multiprocessing.queues.Queue):
             worker.join_thread()
         else:
+            worker.terminate()
             worker.join()
         worker.close()
 
