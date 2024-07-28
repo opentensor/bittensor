@@ -14,7 +14,7 @@ class MockBittensorLogging:
 @pytest.fixture
 def mock_bittensor_logging(monkeypatch):
     mock_logger = MockBittensorLogging()
-    monkeypatch.setattr("bittensor.btlogging", mock_logger)
+    monkeypatch.setattr("bittensor.logging", mock_logger)
     return mock_logger
 
 
