@@ -937,7 +937,7 @@ class AsyncSubstrateInterface:
         module: str,
         block_hash: Optional[str] = None,
         reuse_block_hash: bool = False,
-    ) -> RequestManager.RequestResults:
+    ) -> dict[str, Any]:
         """
         Queries the subtensor. Only use this when making multiple queries, else use ``self.query``
         """
@@ -972,7 +972,7 @@ class AsyncSubstrateInterface:
         responses = await self._make_rpc_request(
             all_info, value_scale_type, storage_item, runtime
         )
-        return responses
+        return {param: responses[p.queryable][0] for (param, p) in zip(params, preprocessed)}
 
     async def create_scale_object(
         self,
