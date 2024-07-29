@@ -16,7 +16,7 @@ from tests.e2e_tests.utils import (
     setup_wallet,
     template_path,
     templates_repo,
-    wait_interval,
+    wait_epoch,
 )
 
 
@@ -35,12 +35,13 @@ Verify that:
 
 @pytest.mark.asyncio
 async def test_dendrite(local_chain):
+    netuid = 1
     # Register root as Alice - the subnet owner
     alice_keypair, exec_command, wallet = setup_wallet("//Alice")
     exec_command(RegisterSubnetworkCommand, ["s", "create"])
 
-    # Verify subnet 1 created successfully
-    assert local_chain.query("SubtensorModule", "NetworksAdded", [1]).serialize()
+    # Verify subnet <netuid> created successfully
+    assert local_chain.query("SubtensorModule", "NetworksAdded", [netuid]).serialize()
 
     bob_keypair, exec_command, wallet_path = setup_wallet("//Bob")
 
@@ -51,15 +52,15 @@ async def test_dendrite(local_chain):
             "s",
             "register",
             "--netuid",
-            "1",
+            str(netuid),
         ],
     )
 
-    metagraph = bittensor.metagraph(netuid=1, network="ws://localhost:9945")
+    metagraph = bittensor.metagraph(netuid=netuid, network="ws://localhost:9945")
     subtensor = bittensor.subtensor(network="ws://localhost:9945")
 
     # assert one neuron is Bob
-    assert len(subtensor.neurons(netuid=1)) == 1
+    assert len(subtensor.neurons(netuid=netuid)) == 1
     neuron = metagraph.neurons[0]
     assert neuron.hotkey == bob_keypair.ss58_address
     assert neuron.coldkey == bob_keypair.ss58_address
@@ -79,7 +80,7 @@ async def test_dendrite(local_chain):
     )
 
     # refresh metagraph
-    metagraph = bittensor.metagraph(netuid=1, network="ws://localhost:9945")
+    metagraph = bittensor.metagraph(netuid=netuid, network="ws://localhost:9945")
     neuron = metagraph.neurons[0]
     # assert stake is 10000
     assert neuron.stake.tao == 10_000.0
@@ -97,7 +98,7 @@ async def test_dendrite(local_chain):
             f'"{template_path}{templates_repo}/neurons/validator.py"',
             "--no_prompt",
             "--netuid",
-            "1",
+            str(netuid),
             "--subtensor.network",
             "local",
             "--subtensor.chain_endpoint",
@@ -112,7 +113,7 @@ async def test_dendrite(local_chain):
     )
 
     # run validator in the background
-    await asyncio.create_subprocess_shell(
+    dendrite_process = await asyncio.create_subprocess_shell(
         cmd,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
@@ -129,7 +130,7 @@ async def test_dendrite(local_chain):
             "root",
             "register",
             "--netuid",
-            "1",
+            str(netuid),
         ],
     )
 
@@ -139,16 +140,16 @@ async def test_dendrite(local_chain):
             "root",
             "boost",
             "--netuid",
-            "1",
+            str(netuid),
             "--increase",
             "1",
         ],
     )
-    # get current block, wait until 360 blocks pass (subnet tempo)
-    wait_interval(360, subtensor)
+    # get current block, wait until next epoch
+    await wait_epoch(subtensor, netuid=netuid)
 
     # refresh metagraph
-    metagraph = bittensor.metagraph(netuid=1, network="ws://localhost:9945")
+    metagraph = bittensor.metagraph(netuid=netuid, network="ws://localhost:9945")
 
     # refresh validator neuron
     neuron = metagraph.neurons[0]
