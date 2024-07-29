@@ -333,31 +333,31 @@ class axon:
             "max_workers", bittensor.defaults.axon.max_workers
         )
         axon.check_config(config)
-        self.config = config  # type: ignore [method-assign]
+        self.config = config  # type: ignore
 
         # Get wallet or use default.
         self.wallet = wallet or bittensor.wallet()
 
         # Build axon objects.
         self.uuid = str(uuid.uuid1())
-        self.ip = self.config.axon.ip
-        self.port = self.config.axon.port
+        self.ip = self.config.axon.ip  # type: ignore
+        self.port = self.config.axon.port  # type: ignore
         self.external_ip = (
-            self.config.axon.external_ip
-            if self.config.axon.external_ip is not None
+            self.config.axon.external_ip  # type: ignore
+            if self.config.axon.external_ip is not None  # type: ignore
             else bittensor.utils.networking.get_external_ip()
         )
         self.external_port = (
-            self.config.axon.external_port
-            if self.config.axon.external_port is not None
-            else self.config.axon.port
+            self.config.axon.external_port  # type: ignore
+            if self.config.axon.external_port is not None  # type: ignore
+            else self.config.axon.port  # type: ignore
         )
-        self.full_address = str(self.config.axon.ip) + ":" + str(self.config.axon.port)
+        self.full_address = str(self.config.axon.ip) + ":" + str(self.config.axon.port)  # type: ignore
         self.started = False
 
         # Build middleware
         self.thread_pool = bittensor.PriorityThreadPoolExecutor(
-            max_workers=self.config.axon.max_workers
+            max_workers=self.config.axon.max_workers  # type: ignore
         )
         self.nonces: Dict[str, int] = {}
 
@@ -372,9 +372,12 @@ class axon:
         self.app = FastAPI()
         log_level = "trace" if bittensor.logging.__trace_on__ else "critical"
         self.fast_config = uvicorn.Config(
-            self.app, host="0.0.0.0", port=self.config.axon.port, log_level=log_level
+            self.app,
+            host="0.0.0.0",
+            port=self.config.axon.port,  # type: ignore
+            log_level=log_level,  # type: ignore
         )
-        self.fast_server = FastAPIThreadedServer(config=self.fast_config)
+        self.fast_server = FastAPIThreadedServer(config=self.fast_config)  # type: ignore
         self.router = APIRouter()
         self.app.include_router(self.router)
 

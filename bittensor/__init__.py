@@ -296,7 +296,12 @@ from .errors import (
 from bittensor_wallet.errors import KeyFileError
 
 from substrateinterface import Keypair  # noqa: F401
-from bittensor_wallet.config import InvalidConfigFile, DefaultConfig, Config as config, T
+from bittensor_wallet.config import (
+    InvalidConfigFile,
+    DefaultConfig,
+    Config as config,
+    T,
+)
 from bittensor_wallet.keyfile import (
     serialized_keypair_to_keyfile_data,
     deserialize_keypair_from_keyfile_data,
@@ -311,7 +316,7 @@ from bittensor_wallet.keyfile import (
     encrypt_keyfile_data,
     get_coldkey_password_from_environment,
     decrypt_keyfile_data,
-    Keyfile as keyfile
+    Keyfile as keyfile,
 )
 from bittensor_wallet.wallet import display_mnemonic_msg, Wallet as wallet
 
