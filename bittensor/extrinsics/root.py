@@ -25,7 +25,7 @@ from numpy.typing import NDArray
 from rich.prompt import Confirm
 from typing import Union, List
 import bittensor.utils.weight_utils as weight_utils
-from bittensor.btlogging.defines import BITTENSOR_LOGGER_NAME
+from bittensor.utils.btlogging.defines import BITTENSOR_LOGGER_NAME
 from bittensor.utils.registration import torch, legacy_torch_api_compat
 
 logger = logging.getLogger(BITTENSOR_LOGGER_NAME)

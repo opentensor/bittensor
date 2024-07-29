@@ -39,7 +39,7 @@ from substrateinterface.base import QueryMapResult, SubstrateInterface, Extrinsi
 from substrateinterface.exceptions import SubstrateRequestException
 
 import bittensor
-from bittensor.btlogging import logging as _logger
+from bittensor.utils.btlogging import logging as _logger
 from bittensor.utils import torch, weight_utils, format_error_message
 from .chain_data import (
     DelegateInfoLite,

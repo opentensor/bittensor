@@ -2,9 +2,9 @@ import pytest
 import multiprocessing
 import logging as stdlogging
 from unittest.mock import MagicMock, patch
-from bittensor.btlogging import LoggingMachine
-from bittensor.btlogging.defines import DEFAULT_LOG_FILE_NAME, BITTENSOR_LOGGER_NAME
-from bittensor.btlogging.loggingmachine import LoggingConfig
+from bittensor.utils.btlogging import LoggingMachine
+from bittensor.utils.btlogging.defines import DEFAULT_LOG_FILE_NAME, BITTENSOR_LOGGER_NAME
+from bittensor.utils.btlogging.loggingmachine import LoggingConfig
 
 
 @pytest.fixture(autouse=True, scope="session")

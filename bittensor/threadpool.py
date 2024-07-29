@@ -20,7 +20,7 @@ import threading
 from typing import Callable
 from concurrent.futures import _base
 
-from bittensor.btlogging.defines import BITTENSOR_LOGGER_NAME
+from bittensor.utils.btlogging.defines import BITTENSOR_LOGGER_NAME
 
 # Workers are created as daemon threads. This is done to allow the interpreter
 # to exit when there are still idle threads in a ThreadPoolExecutor's thread

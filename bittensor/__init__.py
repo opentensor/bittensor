@@ -361,7 +361,7 @@ from .subtensor import Subtensor
 from .subtensor import Subtensor as subtensor
 
 from .cli import cli as cli, COMMANDS as ALL_COMMANDS
-from .btlogging import logging
+from bittensor.utils.btlogging import logging
 from .metagraph import metagraph as metagraph
 from .threadpool import PriorityThreadPoolExecutor as PriorityThreadPoolExecutor
 

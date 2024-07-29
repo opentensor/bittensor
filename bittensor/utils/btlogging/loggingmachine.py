@@ -34,7 +34,9 @@ from typing import NamedTuple
 from bittensor_wallet.config import Config
 from statemachine import State, StateMachine
 
-from bittensor.btlogging.defines import (
+from bittensor_wallet.config import Config
+
+from .defines import (
     BITTENSOR_LOGGER_NAME,
     DATE_FORMAT,
     DEFAULT_LOG_BACKUP_COUNT,

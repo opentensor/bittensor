@@ -28,7 +28,7 @@ from ..errors import (
 from rich.prompt import Confirm
 from typing import Union, Optional
 from bittensor.utils.balance import Balance
-from bittensor.btlogging.defines import BITTENSOR_LOGGER_NAME
+from bittensor.utils.btlogging.defines import BITTENSOR_LOGGER_NAME
 
 logger = logging.getLogger(BITTENSOR_LOGGER_NAME)
 
