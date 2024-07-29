@@ -1,21 +1,20 @@
 # The MIT License (MIT)
-# Copyright © 2021 Yuma Rao
-# Copyright © 2022-2023 Opentensor Foundation
-# Copyright © 2023 Opentensor Technologies Inc
-
+# Copyright © 2024 OpenTensor Foundation
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
 # the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
+#
 # The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
-
+#
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
 # THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
+
 import os
 import warnings
 
@@ -277,7 +276,6 @@ from .errors import (
     IdentityError,
     InternalServerError,
     InvalidRequestNameError,
-    KeyFileError,
     MetadataError,
     NominationError,
     NotDelegateError,
@@ -295,9 +293,11 @@ from .errors import (
     UnstakeError,
 )
 
+from bittensor_wallet.errors import KeyFileError
+
 from substrateinterface import Keypair  # noqa: F401
-from .config import InvalidConfigFile, DefaultConfig, config, T
-from .keyfile import (
+from bittensor_wallet.config import InvalidConfigFile, DefaultConfig, Config as config, T
+from bittensor_wallet.keyfile import (
     serialized_keypair_to_keyfile_data,
     deserialize_keypair_from_keyfile_data,
     validate_password,
@@ -311,10 +311,9 @@ from .keyfile import (
     encrypt_keyfile_data,
     get_coldkey_password_from_environment,
     decrypt_keyfile_data,
-    keyfile,
-    Mockkeyfile,
+    Keyfile as keyfile
 )
-from .wallet import display_mnemonic_msg, wallet
+from bittensor_wallet.wallet import display_mnemonic_msg, Wallet as wallet
 
 from .utils import (
     ss58_to_vec_u8,

@@ -1,19 +1,20 @@
 # The MIT License (MIT)
-# Copyright © 2023 Opentensor Foundation
-
+# Copyright © 2024 OpenTensor Foundation
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
 # the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
+#
 # The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
-
+#
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
 # THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
+
 from __future__ import annotations
 
 import typing
@@ -23,99 +24,63 @@ if typing.TYPE_CHECKING:
 
 
 class ChainError(BaseException):
-    r"""Base error for any chain related errors."""
-
-    pass
+    """Base error for any chain related errors."""
 
 
 class ChainConnectionError(ChainError):
-    r"""Error for any chain connection related errors."""
-
-    pass
+    """Error for any chain connection related errors."""
 
 
 class ChainTransactionError(ChainError):
-    r"""Error for any chain transaction related errors."""
-
-    pass
+    """Error for any chain transaction related errors."""
 
 
 class ChainQueryError(ChainError):
-    r"""Error for any chain query related errors."""
-
-    pass
+    """Error for any chain query related errors."""
 
 
 class StakeError(ChainTransactionError):
-    r"""Error raised when a stake transaction fails."""
-
-    pass
+    """Error raised when a stake transaction fails."""
 
 
 class UnstakeError(ChainTransactionError):
-    r"""Error raised when an unstake transaction fails."""
-
-    pass
+    """Error raised when an unstake transaction fails."""
 
 
 class IdentityError(ChainTransactionError):
-    r"""Error raised when an identity transaction fails."""
-
-    pass
+    """Error raised when an identity transaction fails."""
 
 
 class NominationError(ChainTransactionError):
-    r"""Error raised when a nomination transaction fails."""
-
-    pass
+    """Error raised when a nomination transaction fails."""
 
 
 class TakeError(ChainTransactionError):
-    r"""Error raised when a increase / decrease take transaction fails."""
-
-    pass
+    """Error raised when a increase / decrease take transaction fails."""
 
 
 class TransferError(ChainTransactionError):
-    r"""Error raised when a transfer transaction fails."""
-
-    pass
+    """Error raised when a transfer transaction fails."""
 
 
 class RegistrationError(ChainTransactionError):
-    r"""Error raised when a neuron registration transaction fails."""
-
-    pass
+    """Error raised when a neuron registration transaction fails."""
 
 
 class NotRegisteredError(ChainTransactionError):
-    r"""Error raised when a neuron is not registered, and the transaction requires it to be."""
-
-    pass
+    """Error raised when a neuron is not registered, and the transaction requires it to be."""
 
 
 class NotDelegateError(StakeError):
-    r"""Error raised when a hotkey you are trying to stake to is not a delegate."""
-
-    pass
-
-
-class KeyFileError(Exception):
-    """Error thrown when the keyfile is corrupt, non-writable, non-readable or the password used to decrypt is invalid."""
-
-    pass
+    """Error raised when a hotkey you are trying to stake to is not a delegate."""
 
 
 class MetadataError(ChainTransactionError):
-    r"""Error raised when metadata commitment transaction fails."""
-
-    pass
+    """Error raised when metadata commitment transaction fails."""
 
 
 class InvalidRequestNameError(Exception):
-    r"""This exception is raised when the request name is invalid. Ususally indicates a broken URL."""
-
-    pass
+    """This exception is raised when the request name is invalid. Usually indicates a broken URL."""
 
 
 class SynapseException(Exception):
@@ -128,51 +93,35 @@ class SynapseException(Exception):
 
 
 class UnknownSynapseError(SynapseException):
-    r"""This exception is raised when the request name is not found in the Axon's forward_fns dictionary."""
-
-    pass
+    """This exception is raised when the request name is not found in the Axon's forward_fns dictionary."""
 
 
 class SynapseParsingError(Exception):
-    r"""This exception is raised when the request headers are unable to be parsed into the synapse type."""
-
-    pass
+    """This exception is raised when the request headers are unable to be parsed into the synapse type."""
 
 
 class NotVerifiedException(SynapseException):
-    r"""This exception is raised when the request is not verified."""
-
-    pass
+    """This exception is raised when the request is not verified."""
 
 
 class BlacklistedException(SynapseException):
-    r"""This exception is raised when the request is blacklisted."""
-
-    pass
+    """This exception is raised when the request is blacklisted."""
 
 
 class PriorityException(SynapseException):
-    r"""This exception is raised when the request priority is not met."""
-
-    pass
+    """This exception is raised when the request priority is not met."""
 
 
 class PostProcessException(SynapseException):
-    r"""This exception is raised when the response headers cannot be updated."""
-
-    pass
+    """This exception is raised when the response headers cannot be updated."""
 
 
 class RunException(SynapseException):
-    r"""This exception is raised when the requested function cannot be executed. Indicates a server error."""
-
-    pass
+    """This exception is raised when the requested function cannot be executed. Indicates a server error."""
 
 
 class InternalServerError(SynapseException):
-    r"""This exception is raised when the requested function fails on the server. Indicates a server error."""
-
-    pass
+    """This exception is raised when the requested function fails on the server. Indicates a server error."""
 
 
 class SynapseDendriteNoneException(SynapseException):

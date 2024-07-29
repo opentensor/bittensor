@@ -32,3 +32,6 @@ termcolor
 tqdm
 uvicorn
 wheel
+
+# temporary btwallet dependence from repo directly instead of pypi
+git+https://github.com/opentensor/btwallet.git@main#egg=bittensor-wallet

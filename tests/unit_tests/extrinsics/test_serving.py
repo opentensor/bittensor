@@ -1,35 +1,53 @@
-import pytest
+# The MIT License (MIT)
+# Copyright © 2024 OpenTensor Foundation
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
+# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+# the Software.
+#
+# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
 
 from unittest.mock import MagicMock, patch
-from bittensor.subtensor import Subtensor
-from bittensor.wallet import wallet as Wallet
+
+import pytest
+from bittensor_wallet import Wallet
+
 from bittensor.axon import axon as Axon
 from bittensor.extrinsics.serving import (
     serve_extrinsic,
     publish_metadata,
     serve_axon_extrinsic,
 )
+from bittensor.subtensor import Subtensor
 
 
 @pytest.fixture
-def mock_subtensor():
-    mock_subtensor = MagicMock(spec=Subtensor)
+def mock_subtensor(mocker):
+    mock_subtensor = mocker.MagicMock(spec=Subtensor)
     mock_subtensor.network = "test_network"
-    mock_subtensor.substrate = MagicMock()
+    mock_subtensor.substrate = mocker.MagicMock()
     return mock_subtensor
 
 
 @pytest.fixture
-def mock_wallet():
-    wallet = MagicMock(spec=Wallet)
+def mock_wallet(mocker):
+    wallet = mocker.MagicMock(spec=Wallet)
     wallet.hotkey.ss58_address = "hotkey_address"
     wallet.coldkeypub.ss58_address = "coldkey_address"
     return wallet
 
 
 @pytest.fixture
-def mock_axon(mock_wallet):
-    axon = MagicMock(spec=Axon)
+def mock_axon(mock_wallet, mocker):
+    axon = mocker.MagicMock(spec=Axon)
     axon.wallet = mock_wallet()
     axon.external_port = 9221
     return axon
