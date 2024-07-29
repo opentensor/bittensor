@@ -781,7 +781,7 @@ class _UsingSpawnStartMethod:
     def __enter__(self):
         self._old_start_method = multiprocessing.get_start_method(allow_none=True)
         if self._old_start_method is None:
-            self._old_start_method = "spawn"  # default to spawnn
+            self._old_start_method = "spawn"  # default to spawn
 
         multiprocessing.set_start_method("spawn", force=self._force)
 
