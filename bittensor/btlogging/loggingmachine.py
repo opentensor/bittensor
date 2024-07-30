@@ -1,14 +1,14 @@
 # The MIT License (MIT)
-# Copyright © 2023 OpenTensor Foundation
-
+# Copyright © 2024 Opentensor Foundation
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
 # the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
+#
 # The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
-
+#
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
 # THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
@@ -31,9 +31,9 @@ import sys
 from logging.handlers import QueueHandler, QueueListener, RotatingFileHandler
 from typing import NamedTuple
 
+from bittensor_wallet.config import Config
 from statemachine import State, StateMachine
 
-import bittensor.config
 from bittensor.btlogging.defines import (
     BITTENSOR_LOGGER_NAME,
     DATE_FORMAT,
@@ -42,8 +42,8 @@ from bittensor.btlogging.defines import (
     DEFAULT_MAX_ROTATING_LOG_FILE_SIZE,
     TRACE_LOG_FORMAT,
 )
-from bittensor.btlogging.format import BtFileFormatter, BtStreamFormatter
-from bittensor.btlogging.helpers import all_loggers
+from .format import BtFileFormatter, BtStreamFormatter
+from .helpers import all_loggers
 
 
 class LoggingConfig(NamedTuple):
@@ -89,7 +89,7 @@ class LoggingMachine(StateMachine):
         | Disabled.to(Disabled)
     )
 
-    def __init__(self, config: bittensor.config, name: str = BITTENSOR_LOGGER_NAME):
+    def __init__(self, config: "Config", name: str = BITTENSOR_LOGGER_NAME):
         # basics
         super(LoggingMachine, self).__init__()
         self._queue = mp.Queue(-1)
@@ -429,7 +429,7 @@ class LoggingMachine(StateMachine):
         """Returns Logging level."""
         return self._logger.level
 
-    def check_config(self, config: bittensor.config):
+    def check_config(self, config: "Config"):
         assert config.logging
 
     def help(self):
@@ -475,7 +475,7 @@ class LoggingMachine(StateMachine):
             pass
 
     @classmethod
-    def config(cls) -> bittensor.config:
+    def config(cls) -> "Config":
         """Get config from the argument parser.
 
         Return:
@@ -483,11 +483,11 @@ class LoggingMachine(StateMachine):
         """
         parser = argparse.ArgumentParser()
         cls.add_args(parser)
-        return bittensor.config(parser, args=[])
+        return Config(parser, args=[])
 
     def __call__(
         self,
-        config: bittensor.config = None,
+        config: "Config" = None,
         debug: bool = None,
         trace: bool = None,
         record_log: bool = None,

@@ -1,30 +1,31 @@
 # The MIT License (MIT)
-# Copyright © 2022-2023 Opentensor Foundation
-
+# Copyright © 2024 Opentensor Foundation
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
 # the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
+#
 # The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
-
+#
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
 # THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from random import randint
-from types import SimpleNamespace
-from typing import Any, Dict, List, Optional, Tuple, TypedDict, Union
-from unittest.mock import MagicMock
-from dataclasses import dataclass
 from abc import abstractclassmethod
 from collections.abc import Mapping
-
+from dataclasses import dataclass
 from hashlib import sha256
-from ..wallet import wallet
+from random import randint
+from types import SimpleNamespace
+from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import TypedDict
+from unittest.mock import MagicMock
+
+from bittensor_wallet import Wallet
 
 from ..chain_data import (
     NeuronInfo,
@@ -39,9 +40,6 @@ from ..subtensor import Subtensor
 from ..utils import RAOPERTAO, U16_NORMALIZED_FLOAT
 from ..utils.balance import Balance
 from ..utils.registration import POWSolution
-
-from typing import TypedDict
-
 
 # Mock Testing Constant
 __GLOBAL_MOCK_STATE__ = {}
@@ -578,7 +576,7 @@ class MockSubtensor(Subtensor):
 
         return defaults_mapping.get(name, None)
 
-    def commit(self, wallet: "wallet", netuid: int, data: str) -> None:
+    def commit(self, wallet: "Wallet", netuid: int, data: str) -> None:
         uid = self.get_uid_for_hotkey_on_subnet(
             hotkey_ss58=wallet.hotkey.ss58_address,
             netuid=netuid,
@@ -1007,7 +1005,7 @@ class MockSubtensor(Subtensor):
     # Extrinsics
     def _do_delegation(
         self,
-        wallet: "wallet",
+        wallet: "Wallet",
         delegate_ss58: str,
         amount: "Balance",
         wait_for_inclusion: bool = True,
@@ -1030,7 +1028,7 @@ class MockSubtensor(Subtensor):
 
     def _do_undelegation(
         self,
-        wallet: "wallet",
+        wallet: "Wallet",
         delegate_ss58: str,
         amount: "Balance",
         wait_for_inclusion: bool = True,
@@ -1051,7 +1049,7 @@ class MockSubtensor(Subtensor):
 
     def _do_nominate(
         self,
-        wallet: "wallet",
+        wallet: "Wallet",
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
     ) -> bool:
@@ -1071,13 +1069,13 @@ class MockSubtensor(Subtensor):
             return True
 
     def get_transfer_fee(
-        self, wallet: "wallet", dest: str, value: Union["Balance", float, int]
+        self, wallet: "Wallet", dest: str, value: Union["Balance", float, int]
     ) -> "Balance":
         return Balance(700)
 
     def _do_transfer(
         self,
-        wallet: "wallet",
+        wallet: "Wallet",
         dest: str,
         transfer_balance: "Balance",
         wait_for_inclusion: bool = True,
@@ -1110,7 +1108,7 @@ class MockSubtensor(Subtensor):
     def _do_pow_register(
         self,
         netuid: int,
-        wallet: "wallet",
+        wallet: "Wallet",
         pow_result: "POWSolution",
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
@@ -1132,7 +1130,7 @@ class MockSubtensor(Subtensor):
     def _do_burned_register(
         self,
         netuid: int,
-        wallet: "wallet",
+        wallet: "Wallet",
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
     ) -> Tuple[bool, Optional[str]]:
@@ -1162,7 +1160,7 @@ class MockSubtensor(Subtensor):
 
     def _do_stake(
         self,
-        wallet: "wallet",
+        wallet: "Wallet",
         hotkey_ss58: str,
         amount: "Balance",
         wait_for_inclusion: bool = True,
@@ -1233,7 +1231,7 @@ class MockSubtensor(Subtensor):
 
     def _do_unstake(
         self,
-        wallet: "wallet",
+        wallet: "Wallet",
         hotkey_ss58: str,
         amount: "Balance",
         wait_for_inclusion: bool = True,
@@ -1440,7 +1438,7 @@ class MockSubtensor(Subtensor):
 
     def _do_serve_prometheus(
         self,
-        wallet: "wallet",
+        wallet: "Wallet",
         call_params: "PrometheusServeCallParams",
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
@@ -1449,7 +1447,7 @@ class MockSubtensor(Subtensor):
 
     def _do_set_weights(
         self,
-        wallet: "wallet",
+        wallet: "Wallet",
         netuid: int,
         uids: int,
         vals: List[int],
@@ -1461,7 +1459,7 @@ class MockSubtensor(Subtensor):
 
     def _do_serve_axon(
         self,
-        wallet: "wallet",
+        wallet: "Wallet",
         call_params: "AxonServeCallParams",
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
