@@ -1,6 +1,8 @@
 import re
 
 import numpy as np
+import asyncio
+import pytest
 
 import bittensor
 import bittensor.utils.weight_utils as weight_utils
@@ -27,7 +29,8 @@ Verify that:
 """
 
 
-def test_commit_and_reveal_weights(local_chain):
+@pytest.mark.asyncio
+async def test_commit_and_reveal_weights(local_chain):
     # Register root as Alice
     keypair, exec_command, wallet = setup_wallet("//Alice")
 
@@ -190,7 +193,7 @@ def test_commit_and_reveal_weights(local_chain):
     assert interval > 0, "Invalid WeightCommitRevealInterval"
 
     # Wait until the reveal block range
-    wait_interval(interval, subtensor)
+    await wait_interval(interval, subtensor)
 
     # Configure the CLI arguments for the RevealWeightCommand
     exec_command(
