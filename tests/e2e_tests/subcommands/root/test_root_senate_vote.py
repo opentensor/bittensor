@@ -42,7 +42,7 @@ def test_root_senate_vote(local_chain, capsys, monkeypatch):
 
     voting = local_chain.query("Triumvirate", "Voting", [proposal_hash]).serialize()
 
-    assert len(voting["ayes"]) == 2, f"Expected 1 ayes, found {len(voting['ayes'])}"
+    assert len(voting["ayes"]) == 1, f"Expected 1 ayes, found {len(voting['ayes'])}"
     assert (
         voting["ayes"][0] == wallet.hotkey.ss58_address
     ), "wallet hotkey address doesn't match 'ayes' address"

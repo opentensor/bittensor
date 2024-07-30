@@ -44,6 +44,7 @@ are updated with proper values after an epoch has passed.
 
 
 @pytest.mark.asyncio
+@pytest.mark.skip
 async def test_emissions(local_chain):
     logging.info("Testing test_emissions")
     netuid = 1

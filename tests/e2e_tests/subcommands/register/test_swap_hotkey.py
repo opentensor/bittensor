@@ -528,7 +528,7 @@ async def test_swap_hotkey_miner(local_chain):
 
     # assert bob has new hotkey
     bob_neuron = metagraph.neurons[1]
-    wallet_tree = alice_exec_command(ListCommand, ["w", "list"], "get_tree")
+    wallet_tree = bob_exec_command(ListCommand, ["w", "list"], "get_tree")
     new_num_hotkeys = len(wallet_tree.children[0].children)
 
     assert (
