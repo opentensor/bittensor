@@ -1,34 +1,41 @@
 # The MIT License (MIT)
-# Copyright © 2021 Yuma Rao
-# Copyright © 2023 Opentensor Foundation
-# Copyright © 2023 Opentensor Technologies Inc
-
+# Copyright © 2024 Opentensor Foundation
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
 # the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
+#
 # The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
-
+#
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
 # THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from abc import ABC, abstractmethod
 import os
 import pickle
-import numpy as np
-from numpy.typing import NDArray
-import bittensor
+from abc import ABC, abstractmethod
 from os import listdir
 from os.path import join
 from typing import List, Optional, Union, Tuple
 
+import numpy as np
+from numpy.typing import NDArray
+
+# import bittensor
+from bittensor import __version__, __version_as_int__
 from bittensor.chain_data import AxonInfo
 from bittensor.utils.registration import torch, use_torch
+from bittensor.utils.btlogging import logging
+from bittensor.subtensor import Subtensor
+from rich.console import Console
+from bittensor.utils.weight_utils import convert_weight_uids_and_vals_to_tensor
+
+
+console = Console()
 
 METAGRAPH_STATE_DICT_NDARRAY_KEYS = [
     "version",
@@ -85,7 +92,7 @@ def latest_block_path(dir_path: str) -> str:
             if block_number > latest_block:
                 latest_block = block_number
                 latest_file_full_path = full_path_filename
-        except Exception as e:
+        except Exception:
             pass
     if not latest_file_full_path:
         raise ValueError(f"Metagraph not found at: {dir_path}")
@@ -366,9 +373,7 @@ class MetagraphMixin(ABC):
         return [axon.ip_str() for axon in self.axons]
 
     @abstractmethod
-    def __init__(
-        self, netuid: int, network: str = "finney", lite: bool = True, sync: bool = True
-    ):
+    def __init__(self, netuid: int, network: str = "finney", lite: bool = True, sync: bool = True):
         """
         Initializes a new instance of the metagraph object, setting up the basic structure and parameters based on the provided arguments.
         This method is the entry point for creating a metagraph object,
@@ -382,7 +387,6 @@ class MetagraphMixin(ABC):
             Initializing a metagraph object for the Bittensor network with a specific network UID::
                 metagraph = metagraph(netuid=123, network="finney", lite=True, sync=True)
         """
-        pass
 
     def __str__(self) -> str:
         """
@@ -395,7 +399,7 @@ class MetagraphMixin(ABC):
         Example:
             When printing the metagraph object or using it in a string context, this method is automatically invoked::
 
-                print(metagraph)  # Output: "metagraph(netuid:1, n:100, block:500, network:finney)"
+            print(metagraph)  # Output: "metagraph(netuid:1, n:100, block:500, network:finney)"
         """
         return "metagraph(netuid:{}, n:{}, block:{}, network:{})".format(
             self.netuid, self.n.item(), self.block.item(), self.network
@@ -441,7 +445,7 @@ class MetagraphMixin(ABC):
             "n": self.n.item(),
             "block": self.block.item(),
             "network": self.network,
-            "version": bittensor.__version__,
+            "version": __version__,
         }
 
     def state_dict(self):
@@ -518,7 +522,7 @@ class MetagraphMixin(ABC):
         ):
             cur_block = subtensor.get_current_block()  # type: ignore
             if block and block < (cur_block - 300):
-                bittensor.logging.warning(
+                logging.warning(
                     "Attempting to sync longer than 300 blocks ago on a non-archive node. Please use the 'archive' network for subtensor and retry."
                 )
 
@@ -553,7 +557,7 @@ class MetagraphMixin(ABC):
         """
         if not subtensor:
             # TODO: Check and test the initialization of the new subtensor
-            subtensor = bittensor.subtensor(network=self.network)
+            subtensor = Subtensor(network=self.network)
         return subtensor
 
     def _assign_neurons(self, block, lite, subtensor):
@@ -603,7 +607,7 @@ class MetagraphMixin(ABC):
             else np.array(data, dtype=dtype)
         )
 
-    def _set_weights_and_bonds(self, subtensor: Optional[bittensor.subtensor] = None):
+    def _set_weights_and_bonds(self, subtensor: "Optional[Subtensor]" = None):
         """
         Computes and sets the weights and bonds for each neuron in the metagraph. This method is responsible for processing the raw weight and bond data obtained from the network and converting it into a structured format suitable for the metagraph model.
 
@@ -660,7 +664,7 @@ class MetagraphMixin(ABC):
                 # TODO: Validate and test the conversion of uids and values to tensor
                 if attribute == "weights":
                     data_array.append(
-                        bittensor.utils.weight_utils.convert_weight_uids_and_vals_to_tensor(
+                        convert_weight_uids_and_vals_to_tensor(
                             len(self.neurons),
                             list(uids),
                             list(values),  # type: ignore
@@ -686,7 +690,7 @@ class MetagraphMixin(ABC):
             )
         )
         if len(data_array) == 0:
-            bittensor.logging.warning(
+            logging.warning(
                 f"Empty {attribute}_array on metagraph.sync(). The '{attribute}' tensor is empty."
             )
         return tensor_param
@@ -696,7 +700,7 @@ class MetagraphMixin(ABC):
         pass
 
     def _process_root_weights(
-        self, data, attribute: str, subtensor: bittensor.subtensor
+        self, data, attribute: str, subtensor: "Subtensor"
     ) -> Union[NDArray, "torch.nn.Parameter"]:
         """
         Specifically processes the root weights data for the metagraph. This method is similar to :func:`_process_weights_or_bonds` but is tailored for processing root weights, which have a different structure and significance in the network.
@@ -712,10 +716,7 @@ class MetagraphMixin(ABC):
         Internal Usage:
             Used internally to process and set root weights for the metagraph::
 
-                self.root_weights = self._process_root_weights(
-                    raw_root_weights_data, "weights", subtensor
-                    )
-
+            self.root_weights = self._process_root_weights(raw_root_weights_data, "weights", subtensor)
         """
         data_array = []
         n_subnets = subtensor.get_total_subnets() or 0
@@ -749,7 +750,7 @@ class MetagraphMixin(ABC):
             )
         )
         if len(data_array) == 0:
-            bittensor.logging.warning(
+            logging.warning(
                 f"Empty {attribute}_array on metagraph.sync(). The '{attribute}' tensor is empty."
             )
         return tensor_param
@@ -783,7 +784,7 @@ class MetagraphMixin(ABC):
             state_dict = self.state_dict()
             state_dict["axons"] = self.axons
             torch.save(state_dict, graph_filename)
-            state_dict = torch.load(
+            torch.load(
                 graph_filename
             )  # verifies that the file can be loaded correctly
         else:
@@ -874,7 +875,7 @@ class TorchMetaGraph(MetagraphMixin, BaseClass):  # type: ignore
         self.netuid = netuid
         self.network = network
         self.version = torch.nn.Parameter(
-            torch.tensor([bittensor.__version_as_int__], dtype=torch.int64),
+            torch.tensor([__version_as_int__], dtype=torch.int64),
             requires_grad=False,
         )
         self.n: torch.nn.Parameter = torch.nn.Parameter(
@@ -948,9 +949,7 @@ class TorchMetaGraph(MetagraphMixin, BaseClass):  # type: ignore
                 self._set_metagraph_attributes(block, subtensor)
         """
         self.n = self._create_tensor(len(self.neurons), dtype=torch.int64)
-        self.version = self._create_tensor(
-            [bittensor.__version_as_int__], dtype=torch.int64
-        )
+        self.version = self._create_tensor([__version_as_int__], dtype=torch.int64)
         self.block = self._create_tensor(
             block if block else subtensor.block, dtype=torch.int64
         )
@@ -1047,7 +1046,7 @@ class NonTorchMetagraph(MetagraphMixin):
 
         self.netuid = netuid
         self.network = network
-        self.version = (np.array([bittensor.__version_as_int__], dtype=np.int64),)
+        self.version = (np.array([__version_as_int__], dtype=np.int64),)
         self.n = np.array([0], dtype=np.int64)
         self.block = np.array([0], dtype=np.int64)
         self.stake = np.array([], dtype=np.float32)
@@ -1087,7 +1086,7 @@ class NonTorchMetagraph(MetagraphMixin):
         # TODO: Check and test the setting of each attribute
         self.n = self._create_tensor(len(self.neurons), dtype=np.int64)
         self.version = self._create_tensor(
-            [bittensor.__version_as_int__], dtype=np.int64
+            [__version_as_int__], dtype=np.int64
         )
         self.block = self._create_tensor(
             block if block else subtensor.block, dtype=np.int64
@@ -1139,10 +1138,10 @@ class NonTorchMetagraph(MetagraphMixin):
             with open(graph_filename, "rb") as graph_file:
                 state_dict = pickle.load(graph_file)
         except pickle.UnpicklingError:
-            bittensor.__console__.print(
+            console.print(
                 "Unable to load file. Attempting to restore metagraph using torch."
             )
-            bittensor.__console__.print(
+            console.print(
                 ":warning:[yellow]Warning:[/yellow] This functionality exists to load "
                 "metagraph state from legacy saves, but will not be supported in the future."
             )
@@ -1154,7 +1153,7 @@ class NonTorchMetagraph(MetagraphMixin):
                     state_dict[key] = state_dict[key].detach().numpy()
                 del real_torch
             except (RuntimeError, ImportError):
-                bittensor.__console__.print("Unable to load file. It may be corrupted.")
+                console.print("Unable to load file. It may be corrupted.")
                 raise
 
         self.n = state_dict["n"]
