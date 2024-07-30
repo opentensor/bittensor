@@ -227,7 +227,7 @@ async def test_swap_hotkey_validator_owner(local_chain):
     # wait rate limit, until we are allowed to change hotkeys
     rate_limit = subtensor.tx_rate_limit()
     curr_block = subtensor.get_current_block()
-    wait_interval(rate_limit + curr_block + 1, subtensor)
+    await wait_interval(rate_limit + curr_block + 1, subtensor)
 
     # swap hotkey
     alice_exec_command(
@@ -481,7 +481,7 @@ async def test_swap_hotkey_miner(local_chain):
     # wait rate limit, until we are allowed to change hotkeys
     rate_limit = subtensor.tx_rate_limit()
     curr_block = subtensor.get_current_block()
-    wait_interval(rate_limit + curr_block + 1, subtensor)
+    await wait_interval(rate_limit + curr_block + 1, subtensor)
 
     # swap hotkey
     bob_exec_command(
