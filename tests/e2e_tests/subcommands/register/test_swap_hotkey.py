@@ -563,3 +563,4 @@ async def test_swap_hotkey_miner(local_chain):
         == bob_neuron.uid
     ), "UID for Bob changed on the subnet"
     assert new_num_hotkeys == num_hotkeys + 1, "Total hotkeys are not as expected"
+    logging.info("Passed test_swap_hotkey_miner")

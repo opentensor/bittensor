@@ -46,3 +46,4 @@ def test_root_senate_vote(local_chain, capsys, monkeypatch):
     assert (
         voting["ayes"][0] == wallet.hotkey.ss58_address
     ), "wallet hotkey address doesn't match 'ayes' address"
+    logging.info("Passed test_root_senate_vote")

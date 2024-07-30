@@ -39,7 +39,9 @@ async def test_dendrite(local_chain):
     exec_command(RegisterSubnetworkCommand, ["s", "create"])
 
     # Verify subnet <netuid> created successfully
-    assert local_chain.query("SubtensorModule", "NetworksAdded", [netuid]).serialize()
+    assert local_chain.query(
+        "SubtensorModule", "NetworksAdded", [netuid]
+    ).serialize(), "Subnet wasn't created successfully"
 
     bob_keypair, exec_command, wallet_path = setup_wallet("//Bob")
 

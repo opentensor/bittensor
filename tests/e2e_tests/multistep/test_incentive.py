@@ -47,7 +47,9 @@ async def test_incentive(local_chain):
     alice_keypair, alice_exec_command, alice_wallet = setup_wallet("//Alice")
     alice_exec_command(RegisterSubnetworkCommand, ["s", "create"])
     # Verify subnet <netuid> created successfully
-    assert local_chain.query("SubtensorModule", "NetworksAdded", [netuid]).serialize()
+    assert local_chain.query(
+        "SubtensorModule", "NetworksAdded", [netuid]
+    ).serialize(), "Subnet wasn't created successfully"
 
     # Register Bob as miner
     bob_keypair, bob_exec_command, bob_wallet = setup_wallet("//Bob")

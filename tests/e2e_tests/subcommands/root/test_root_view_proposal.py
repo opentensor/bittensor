@@ -64,4 +64,4 @@ def test_root_view_proposal(local_chain, capsys):
     ), f"Expected line starting with '0x78b8a348690f565efe3730cd8189f7388c0a896b6fd090276639c9130c0eba47', got {lines[3].strip()}"
     assert lines[4].strip() == "\x00)", f"Expected '\x00)', got {lines[4].strip()}"
     assert lines[5].strip() == "", f"Expected empty line, got {lines[5].strip()}"
-    logging.info("Finished test_root_view_proposal")
+    logging.info("Passed test_root_view_proposal")
