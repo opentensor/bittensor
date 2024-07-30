@@ -199,7 +199,9 @@ def test_wallet_creations(local_chain: subtensor, capsys):
 
     captured = capsys.readouterr()
     # Assert the coldkey and hotkey are present in the display with keys
-    assert "default" and "└── default" in captured.out, "Default wallet not found in wallet list"
+    assert (
+        "default" and "└── default" in captured.out
+    ), "Default wallet not found in wallet list"
     wallet_status, message = verify_wallet_dir(
         base_path, "default", hotkey_name="default"
     )
@@ -350,7 +352,9 @@ def test_wallet_regen(local_chain: subtensor, capsys):
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
-    logging.info("Testing test_wallet_regen (regen_coldkey, regen_hotkey, regen_coldkeypub)")
+    logging.info(
+        "Testing test_wallet_regen (regen_coldkey, regen_hotkey, regen_coldkeypub)"
+    )
     wallet_path_name = "//Bob"
     base_path = f"/tmp/btcli-e2e-wallet-{wallet_path_name.strip('/')}"
     keypair, exec_command, wallet = setup_wallet(wallet_path_name)

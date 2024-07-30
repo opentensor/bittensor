@@ -86,5 +86,7 @@ def test_faucet(local_chain):
 
     new_wallet_balance = subtensor.get_balance(keypair.ss58_address)
     # verify balance increase
-    assert wallet_balance.tao < new_wallet_balance.tao, "Old wallet balance is not less than the new wallet"
+    assert (
+        wallet_balance.tao < new_wallet_balance.tao
+    ), "Old wallet balance is not less than the new wallet"
     logging.info("Passed test_faucet")
