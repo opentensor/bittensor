@@ -24,16 +24,14 @@ from typing import List, Optional, Union, Tuple
 
 import numpy as np
 from numpy.typing import NDArray
-
-# import bittensor
-from bittensor import __version__, __version_as_int__
-from bittensor.chain_data import AxonInfo
-from bittensor.utils.registration import torch, use_torch
-from bittensor.utils.btlogging import logging
-from bittensor.subtensor import Subtensor
 from rich.console import Console
-from bittensor.utils.weight_utils import convert_weight_uids_and_vals_to_tensor
 
+from bittensor import __version__, __version_as_int__, __archive_entrypoint__
+from bittensor.chain_data import AxonInfo
+from bittensor.subtensor import Subtensor
+from bittensor.utils.btlogging import logging
+from bittensor.utils.registration import torch, use_torch
+from bittensor.utils.weight_utils import convert_weight_uids_and_vals_to_tensor, convert_bond_uids_and_vals_to_tensor
 
 console = Console()
 
@@ -477,7 +475,7 @@ class MetagraphMixin(ABC):
         self,
         block: Optional[int] = None,
         lite: bool = True,
-        subtensor: Optional["bittensor.subtensor"] = None,
+        subtensor: Optional["Subtensor"] = None,
     ):
         """
         Synchronizes the metagraph with the Bittensor network's current state. It updates the metagraph's attributes
@@ -488,7 +486,7 @@ class MetagraphMixin(ABC):
                                     This allows for historical analysis or specific state examination of the network.
             lite (bool): If True, a lite version of the metagraph is used for quicker synchronization. This is beneficial
                         when full detail is not necessary, allowing for reduced computational and time overhead.
-            subtensor (Optional[bittensor.subtensor]): An instance of the subtensor class from Bittensor, providing an
+            subtensor (Optional[Subtensor]): An instance of the subtensor class from Bittensor, providing an
                                                         interface to the underlying blockchain data. If provided, this
                                                         instance is used for data retrieval during synchronization.
 
@@ -517,7 +515,7 @@ class MetagraphMixin(ABC):
         subtensor = self._initialize_subtensor(subtensor)
 
         if (
-            subtensor.chain_endpoint != bittensor.__archive_entrypoint__  # type: ignore
+            subtensor.chain_endpoint != __archive_entrypoint__  # type: ignore
             or subtensor.network != "archive"  # type: ignore
         ):
             cur_block = subtensor.get_current_block()  # type: ignore
@@ -672,7 +670,7 @@ class MetagraphMixin(ABC):
                     )
                 else:
                     data_array.append(
-                        bittensor.utils.weight_utils.convert_bond_uids_and_vals_to_tensor(  # type: ignore
+                        convert_bond_uids_and_vals_to_tensor(  # type: ignore
                             len(self.neurons), list(uids), list(values)
                         ).astype(np.float32)
                     )
@@ -731,7 +729,7 @@ class MetagraphMixin(ABC):
                 uids, values = zip(*item)
                 # TODO: Validate and test the conversion of uids and values to tensor
                 data_array.append(
-                    bittensor.utils.weight_utils.convert_root_weight_uids_and_vals_to_tensor(  # type: ignore
+                    convert_root_weight_uids_and_vals_to_tensor(  # type: ignore
                         n_subnets, list(uids), list(values), subnets
                     )
                 )
