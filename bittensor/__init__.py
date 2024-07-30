@@ -322,7 +322,7 @@ from .subtensor import Subtensor as subtensor
 
 from .btcli.cli import cli as cli, COMMANDS as ALL_COMMANDS
 from bittensor.utils.btlogging import logging
-from .metagraph import metagraph as metagraph
+from bittensor.core.metagraph import metagraph as metagraph
 from .threadpool import PriorityThreadPoolExecutor as PriorityThreadPoolExecutor
 
 from .synapse import TerminalInfo, Synapse

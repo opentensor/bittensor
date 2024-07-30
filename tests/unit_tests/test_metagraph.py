@@ -20,7 +20,7 @@ import pytest
 import numpy as np
 import bittensor
 
-from bittensor.metagraph import metagraph as Metagraph
+from bittensor.core.metagraph import metagraph as Metagraph
 from unittest.mock import MagicMock
 
 
