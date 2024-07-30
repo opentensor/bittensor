@@ -26,7 +26,7 @@ from rich.table import Table
 
 import bittensor
 
-from ..utils import RAOPERTAO
+from bittensor.utils import RAOPERTAO
 from . import defaults
 
 
@@ -191,7 +191,7 @@ class RegenColdkeypubCommand:
         if not config.is_set("wallet.name") and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
             config.wallet.name = str(wallet_name)
-        if config.ss58_address == None and config.public_key_hex == None:
+        if config.ss58_address is None and config.public_key_hex is None:
             prompt_answer = Prompt.ask(
                 "Enter the ss58_address or the public key in hex"
             )

@@ -37,67 +37,6 @@ if (NEST_ASYNCIO_ENV := os.getenv("NEST_ASYNCIO")) in ("1", None):
 
     nest_asyncio.apply()
 
-
-# Bittensor code and protocol version.
-__version__ = "7.3.0"
-
-_version_split = __version__.split(".")
-__version_info__ = tuple(int(part) for part in _version_split)
-_version_int_base = 1000
-assert max(__version_info__) < _version_int_base
-
-__version_as_int__: int = sum(
-    e * (_version_int_base**i) for i, e in enumerate(reversed(__version_info__))
-)
-assert __version_as_int__ < 2**31  # fits in int32
-__new_signature_version__ = 360
-
-# Rich console.
-__console__ = Console()
-__use_console__ = True
-
-# Remove overdue locals in debug training.
-install(show_locals=False)
-
-
-def __getattr__(name):
-    if name == "version_split":
-        warnings.warn(
-            "version_split is deprecated and will be removed in future versions. Use __version__ instead.",
-            DeprecationWarning,
-        )
-        return _version_split
-    raise AttributeError(f"module {__name__} has no attribute {name}")
-
-
-def turn_console_off():
-    global __use_console__
-    global __console__
-    from io import StringIO
-
-    __use_console__ = False
-    __console__ = Console(file=StringIO(), stderr=False)
-
-
-def turn_console_on():
-    global __use_console__
-    global __console__
-    __use_console__ = True
-    __console__ = Console()
-
-
-turn_console_off()
-
-
-# Logging helpers.
-def trace(on: bool = True):
-    logging.set_trace(on)
-
-
-def debug(on: bool = True):
-    logging.set_debug(on)
-
-
 # Substrate chain block time (seconds).
 __blocktime__ = 12
 
@@ -352,6 +291,27 @@ from .chain_data import (
     ProposalVoteData,
 )
 
+# Bittensor code and protocol version.
+__version__ = "7.3.0"
+
+_version_split = __version__.split(".")
+__version_info__ = tuple(int(part) for part in _version_split)
+_version_int_base = 1000
+assert max(__version_info__) < _version_int_base
+
+__version_as_int__: int = sum(
+    e * (_version_int_base**i) for i, e in enumerate(reversed(__version_info__))
+)
+assert __version_as_int__ < 2**31  # fits in int32
+__new_signature_version__ = 360
+
+# Rich console.
+__console__ = Console()
+__use_console__ = True
+
+# Remove overdue locals in debug training.
+install(show_locals=False)
+
 # Allows avoiding name spacing conflicts and continue access to the `subtensor` module with `subtensor_module` name
 from . import subtensor as subtensor_module
 
@@ -360,7 +320,7 @@ from . import subtensor as subtensor_module
 from .subtensor import Subtensor
 from .subtensor import Subtensor as subtensor
 
-from .cli import cli as cli, COMMANDS as ALL_COMMANDS
+from .btcli.cli import cli as cli, COMMANDS as ALL_COMMANDS
 from bittensor.utils.btlogging import logging
 from .metagraph import metagraph as metagraph
 from .threadpool import PriorityThreadPoolExecutor as PriorityThreadPoolExecutor
@@ -371,10 +331,7 @@ from .tensor import tensor, Tensor
 from .axon import axon as axon
 from .dendrite import dendrite as dendrite
 
-from .mock.keyfile_mock import MockKeyfile as MockKeyfile
 from .mock.subtensor_mock import MockSubtensor as MockSubtensor
-from .mock.wallet_mock import MockWallet as MockWallet
-
 from .subnets import SubnetsAPI as SubnetsAPI
 
 configs = [
@@ -385,3 +342,41 @@ configs = [
     logging.get_config(),
 ]
 defaults = config.merge_all(configs)
+
+
+def __getattr__(name):
+    if name == "version_split":
+        warnings.warn(
+            "version_split is deprecated and will be removed in future versions. Use __version__ instead.",
+            DeprecationWarning,
+        )
+        return _version_split
+    raise AttributeError(f"module {__name__} has no attribute {name}")
+
+
+def turn_console_off():
+    global __use_console__
+    global __console__
+    from io import StringIO
+
+    __use_console__ = False
+    __console__ = Console(file=StringIO(), stderr=False)
+
+
+def turn_console_on():
+    global __use_console__
+    global __console__
+    __use_console__ = True
+    __console__ = Console()
+
+
+# Logging helpers.
+def trace(on: bool = True):
+    logging.set_trace(on)
+
+
+def debug(on: bool = True):
+    logging.set_debug(on)
+
+
+turn_console_off()

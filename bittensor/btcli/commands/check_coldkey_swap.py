@@ -1,5 +1,5 @@
 # The MIT License (MIT)
-# Copyright © 2021 Yuma Rao
+# Copyright © 2024 Opentensor Foundation
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
@@ -17,13 +17,14 @@
 
 import argparse
 
+from rich.console import Console
 from rich.prompt import Prompt
 
 import bittensor
 from bittensor.utils.formatting import convert_blocks_to_time
 from . import defaults
 
-console = bittensor.__console__
+console = Console()
 
 
 def fetch_arbitration_stats(subtensor, wallet):

@@ -15,19 +15,22 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import sys
 import os
-import bittensor
-import requests
-from bittensor.utils.registration import torch
-from bittensor.utils.balance import Balance
-from bittensor.utils import U64_NORMALIZED_FLOAT, U16_NORMALIZED_FLOAT
-from typing import List, Dict, Any, Optional, Tuple
-from rich.prompt import Confirm, PromptBase
+import sys
 from dataclasses import dataclass
+from typing import List, Dict, Any, Optional, Tuple
+
+import requests
+from rich.console import Console
+from rich.prompt import Confirm, PromptBase
+
+import bittensor
+from bittensor.utils import U64_NORMALIZED_FLOAT, U16_NORMALIZED_FLOAT
+from bittensor.utils.balance import Balance
+from bittensor.utils.registration import torch
 from . import defaults
 
-console = bittensor.__console__
+console = Console()
 
 
 class IntListPrompt(PromptBase):

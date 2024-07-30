@@ -1,14 +1,14 @@
 # The MIT License (MIT)
-# Copyright © 2021 Yuma Rao
-
+# Copyright © 2024 Opentensor Foundation
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
 # the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
+#
 # The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
-
+#
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
 # THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
@@ -16,24 +16,27 @@
 # DEALINGS IN THE SOFTWARE.
 
 import argparse
-import bittensor
-from tqdm import tqdm
-from concurrent.futures import ProcessPoolExecutor
 from collections import defaultdict
+from concurrent.futures import ProcessPoolExecutor
+from typing import List, Optional, Dict, Tuple
+
 from fuzzywuzzy import fuzz
 from rich.align import Align
-from rich.table import Table
+from rich.console import Console
 from rich.prompt import Prompt
-from typing import List, Optional, Dict, Tuple
+from rich.table import Table
+from tqdm import tqdm
+
+import bittensor
+from . import defaults
 from .utils import (
     get_hotkey_wallets_for_wallet,
     get_coldkey_wallets_for_path,
     get_all_wallets_for_path,
     filter_netuids_by_registered_hotkeys,
 )
-from . import defaults
 
-console = bittensor.__console__
+console = Console()
 
 
 class OverviewCommand:

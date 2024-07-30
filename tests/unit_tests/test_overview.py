@@ -7,7 +7,7 @@ import pytest
 
 # Bittensor
 import bittensor
-from bittensor.commands.overview import OverviewCommand
+from bittensor.btcli.commands import OverviewCommand
 from tests.unit_tests.factories.neuron_factory import NeuronInfoLiteFactory
 
 
@@ -95,13 +95,13 @@ def test_get_total_balance(
     with patch(
         "bittensor.wallet", return_value=mock_wallet
     ) as mock_wallet_constructor, patch(
-        "bittensor.commands.overview.get_coldkey_wallets_for_path",
+        "bittensor.btcli.commands.overview.get_coldkey_wallets_for_path",
         return_value=[mock_wallet] if config_all else [],
     ), patch(
-        "bittensor.commands.overview.get_all_wallets_for_path",
+        "bittensor.btcli.commands.overview.get_all_wallets_for_path",
         return_value=[mock_wallet],
     ), patch(
-        "bittensor.commands.overview.get_hotkey_wallets_for_wallet",
+        "bittensor.btcli.commands.overview.get_hotkey_wallets_for_wallet",
         return_value=[mock_wallet],
     ):
         # Act
