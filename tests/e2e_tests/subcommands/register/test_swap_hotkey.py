@@ -38,11 +38,13 @@ Verify that:
 
 @pytest.mark.asyncio
 async def test_swap_hotkey_validator_owner(local_chain):
+    logging.info("Testing swap hotkey of validator_owner")
     # Register root as Alice - the subnet owner and validator
     alice_keypair, alice_exec_command, alice_wallet = setup_wallet("//Alice")
     alice_exec_command(RegisterSubnetworkCommand, ["s", "create"])
     # Verify subnet 1 created successfully
     assert local_chain.query("SubtensorModule", "NetworksAdded", [1]).serialize()
+    logging.info("Subnet is registered successfully")
 
     # Register Bob as miner
     bob_keypair, bob_exec_command, bob_wallet = setup_wallet("//Bob")
@@ -71,9 +73,11 @@ async def test_swap_hotkey_validator_owner(local_chain):
         ],
     )
 
+    logging.info("Alice and bob registered to the subnet")
+
     subtensor = bittensor.subtensor(network="ws://localhost:9945")
     # assert two neurons are in network
-    assert len(subtensor.neurons(netuid=1)) == 2
+    assert len(subtensor.neurons(netuid=1)) == 2, "Alice and Bob neurons not found in the network"
 
     # register Bob as miner
     cmd = " ".join(
@@ -102,7 +106,7 @@ async def test_swap_hotkey_validator_owner(local_chain):
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
-
+    logging.info("Bob neuron is now mining")
     await asyncio.sleep(
         5
     )  # wait for 5 seconds for the metagraph to refresh with latest data
@@ -135,7 +139,7 @@ async def test_swap_hotkey_validator_owner(local_chain):
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
-
+    logging.info("Alice neuron is now validating")
     await asyncio.sleep(
         5
     )  # wait for 5 seconds for the metagraph and subtensor to refresh with latest data
@@ -179,28 +183,28 @@ async def test_swap_hotkey_validator_owner(local_chain):
     wallet_tree = alice_exec_command(ListCommand, ["w", "list"], "get_tree")
     num_hotkeys = len(wallet_tree.children[0].children)
 
-    assert alice_neuron.coldkey == "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
-    assert alice_neuron.hotkey == alice_old_hotkey_address
+    assert alice_neuron.coldkey == "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY", "Alice coldkey not as expected"
+    assert alice_neuron.hotkey == alice_old_hotkey_address, "Alice hotkey not as expected"
     assert (
         alice_neuron.stake_dict["5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"].tao
         == 10000.0
-    )
-    assert alice_neuron.hotkey == alice_neuron.coldkey
-    assert alice_neuron.hotkey == subtensor.get_all_subnets_info()[1].owner_ss58
-    assert alice_neuron.coldkey == subtensor.get_hotkey_owner(alice_old_hotkey_address)
-    assert subtensor.is_hotkey_delegate(alice_neuron.hotkey) is True
+    ), "Alice tao not as expected"
+    assert alice_neuron.hotkey == alice_neuron.coldkey, "Coldkey and hotkey don't match"
+    assert alice_neuron.hotkey == subtensor.get_all_subnets_info()[1].owner_ss58, "Hotkey doesn't match owner address"
+    assert alice_neuron.coldkey == subtensor.get_hotkey_owner(alice_old_hotkey_address), "Coldkey doesn't match hotkey owner"
+    assert subtensor.is_hotkey_delegate(alice_neuron.hotkey) is True, "Alice is not a delegate"
     assert (
         subtensor.is_hotkey_registered_on_subnet(
             hotkey_ss58=alice_neuron.hotkey, netuid=1
         )
         is True
-    )
+    ), "Alice hotkey not registered on subnet"
     assert (
         subtensor.get_uid_for_hotkey_on_subnet(
             hotkey_ss58=alice_neuron.hotkey, netuid=1
         )
         == alice_neuron.uid
-    )
+    ), "Alice hotkey not regisred on netuid"
     if num_hotkeys > 1:
         logging.info(f"You have {num_hotkeys} hotkeys for Alice.")
 
@@ -223,7 +227,7 @@ async def test_swap_hotkey_validator_owner(local_chain):
             "True",
         ],
     )
-
+    logging.info("New hotkey is created")
     # wait rate limit, until we are allowed to change hotkeys
     rate_limit = subtensor.tx_rate_limit()
     curr_block = subtensor.get_current_block()
@@ -259,9 +263,9 @@ async def test_swap_hotkey_validator_owner(local_chain):
 
     assert (
         alice_neuron.coldkey == "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
-    )  # cold key didnt change
-    assert alice_neuron.hotkey != alice_old_hotkey_address
-    assert alice_neuron.hotkey != alice_neuron.coldkey
+    ), "Coldkey was changed"  # cold key didnt change
+    assert alice_neuron.hotkey != alice_old_hotkey_address, "Hotkey is not updated w.r.t old_hotkey_address"
+    assert alice_neuron.hotkey != alice_neuron.coldkey, "Hotkey is not updated w.r.t coldkey"
     assert (
         alice_neuron.coldkey == subtensor.get_all_subnets_info()[1].owner_ss58
     )  # new hotkey address is subnet owner

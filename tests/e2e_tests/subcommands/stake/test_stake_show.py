@@ -1,8 +1,11 @@
+from bittensor import logging
 from bittensor.commands.stake import StakeShow
+
 from ...utils import setup_wallet
 
 
 def test_stake_show(local_chain, capsys):
+    logging.info("Testing test_stake_show")
     keypair, exec_command, wallet = setup_wallet("//Alice")
 
     # Execute the command
@@ -47,3 +50,4 @@ def test_stake_show(local_chain, capsys):
     assert (
         values3[2].replace("τ", "") == "0.00000/d"
     ), f"Expected '0.00000/d', got {values3[2]}."
+    logging.info("Passed test_stake_show")
