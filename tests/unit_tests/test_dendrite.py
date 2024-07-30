@@ -17,19 +17,15 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-# Standard Lib
 import asyncio
 import typing
 from unittest.mock import MagicMock, Mock
 
-# Third Party
 import aiohttp
 import pytest
 
-# Application
 import bittensor
-from bittensor.constants import DENDRITE_ERROR_MAPPING, DENDRITE_DEFAULT_ERROR
-from bittensor.dendrite import dendrite as Dendrite
+from bittensor.dendrite import DENDRITE_ERROR_MAPPING, DENDRITE_DEFAULT_ERROR, dendrite as Dendrite
 from bittensor.synapse import TerminalInfo
 from tests.helpers import _get_mock_wallet
 

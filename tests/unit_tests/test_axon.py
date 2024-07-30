@@ -1,16 +1,14 @@
 # The MIT License (MIT)
-# Copyright © 2021 Yuma Rao
-# Copyright © 2022 Opentensor Foundation
-# Copyright © 2023 Opentensor Technologies Inc
-
+# Copyright © 2024 Opentensor Foundation
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
 # the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
+#
 # The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
-
+#
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
 # THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
@@ -18,7 +16,6 @@
 # DEALINGS IN THE SOFTWARE.
 
 
-# Standard Lib
 import re
 import time
 from dataclasses import dataclass
@@ -27,20 +24,17 @@ from typing import Any
 from unittest import IsolatedAsyncioTestCase
 from unittest.mock import AsyncMock, MagicMock, patch
 
-# Third Party
 import netaddr
 
 import pytest
 from starlette.requests import Request
 from fastapi.testclient import TestClient
 
-# Bittensor
 import bittensor
 from bittensor import Synapse, RunException
 from bittensor.axon import AxonMiddleware
 from bittensor.axon import axon as Axon
-from bittensor.utils.axon_utils import allowed_nonce_window_ns, calculate_diff_seconds
-from bittensor.constants import ALLOWED_DELTA, NANOSECONDS_IN_SECOND
+from bittensor.utils.axon_utils import allowed_nonce_window_ns, calculate_diff_seconds, ALLOWED_DELTA, NANOSECONDS_IN_SECOND
 
 
 def test_attach():
