@@ -132,3 +132,4 @@ def test_root_register_add_member_senate(local_chain, capsys):
     assert (
         "5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw" in lines[7].strip().split()
     )
+    logging.info("Passed test_root_register_add_member_senate")

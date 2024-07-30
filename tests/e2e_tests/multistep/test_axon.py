@@ -39,7 +39,9 @@ async def test_axon(local_chain):
     exec_command(RegisterSubnetworkCommand, ["s", "create"])
 
     # Verify subnet <netuid> created successfully
-    assert local_chain.query("SubtensorModule", "NetworksAdded", [netuid]).serialize()
+    assert local_chain.query(
+        "SubtensorModule", "NetworksAdded", [netuid]
+    ).serialize(), "Subnet wasn't created successfully"
 
     # Register a neuron to the subnet
     exec_command(
