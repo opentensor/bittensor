@@ -55,44 +55,44 @@ from .chain_data import (
     custom_rpc_type_registry,
 )
 from .errors import IdentityError, NominationError, StakeError, TakeError
-from bittensor.extrinsics.commit_weights import (
+from bittensor.api.extrinsics.commit_weights import (
     commit_weights_extrinsic,
     reveal_weights_extrinsic,
 )
-from bittensor.extrinsics.delegation import (
+from bittensor.api.extrinsics.delegation import (
     delegate_extrinsic,
     nominate_extrinsic,
     undelegate_extrinsic,
     increase_take_extrinsic,
     decrease_take_extrinsic,
 )
-from bittensor.extrinsics.network import (
+from bittensor.api.extrinsics.network import (
     register_subnetwork_extrinsic,
     set_hyperparameter_extrinsic,
 )
-from bittensor.extrinsics.prometheus import prometheus_extrinsic
-from bittensor.extrinsics.registration import (
+from bittensor.api.extrinsics.prometheus import prometheus_extrinsic
+from bittensor.api.extrinsics.registration import (
     register_extrinsic,
     burned_register_extrinsic,
     run_faucet_extrinsic,
     swap_hotkey_extrinsic,
 )
-from bittensor.extrinsics.root import root_register_extrinsic, set_root_weights_extrinsic
-from bittensor.extrinsics.senate import (
+from bittensor.api.extrinsics.root import root_register_extrinsic, set_root_weights_extrinsic
+from bittensor.api.extrinsics.senate import (
     register_senate_extrinsic,
     leave_senate_extrinsic,
     vote_senate_extrinsic,
 )
-from bittensor.extrinsics.serving import (
+from bittensor.api.extrinsics.serving import (
     serve_extrinsic,
     serve_axon_extrinsic,
     publish_metadata,
     get_metadata,
 )
-from bittensor.extrinsics.set_weights import set_weights_extrinsic
-from bittensor.extrinsics.staking import add_stake_extrinsic, add_stake_multiple_extrinsic
-from bittensor.extrinsics.transfer import transfer_extrinsic
-from bittensor.extrinsics.unstaking import unstake_extrinsic, unstake_multiple_extrinsic
+from bittensor.api.extrinsics.set_weights import set_weights_extrinsic
+from bittensor.api.extrinsics.staking import add_stake_extrinsic, add_stake_multiple_extrinsic
+from bittensor.api.extrinsics.transfer import transfer_extrinsic
+from bittensor.api.extrinsics.unstaking import unstake_extrinsic, unstake_multiple_extrinsic
 from .types import AxonServeCallParams, PrometheusServeCallParams
 from bittensor.utils import (
     U16_NORMALIZED_FLOAT,

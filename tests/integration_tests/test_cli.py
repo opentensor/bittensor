@@ -2264,7 +2264,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         with patch("bittensor.wallet", return_value=mock_wallet) as mock_create_wallet:
             with patch(
-                "bittensor.extrinsics.registration.POWSolution.is_stale",
+                "bittensor.api.extrinsics.registration.POWSolution.is_stale",
                 side_effect=MockException,
             ) as mock_is_stale:
                 with pytest.raises(MockException):

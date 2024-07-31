@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
 from bittensor.core.subtensor import Subtensor
-from bittensor.extrinsics.root import (
+from bittensor.api.extrinsics.root import (
     root_register_extrinsic,
     set_root_weights_extrinsic,
 )

@@ -24,7 +24,7 @@ from rich.prompt import Confirm
 import bittensor
 import bittensor.utils.networking as net
 from bittensor.utils import format_error_message
-from ..core.errors import MetadataError
+from bittensor.core.errors import MetadataError
 
 
 def serve_extrinsic(

@@ -21,7 +21,7 @@ import pytest
 from bittensor_wallet import Wallet
 
 import bittensor
-from bittensor.extrinsics.prometheus import prometheus_extrinsic
+from bittensor.api.extrinsics.prometheus import prometheus_extrinsic
 from bittensor.core.subtensor import Subtensor
 
 

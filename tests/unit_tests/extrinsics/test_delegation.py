@@ -26,7 +26,7 @@ from bittensor.core.errors import (
     NotRegisteredError,
     StakeError,
 )
-from bittensor.extrinsics.delegation import (
+from bittensor.api.extrinsics.delegation import (
     nominate_extrinsic,
     delegate_extrinsic,
     undelegate_extrinsic,

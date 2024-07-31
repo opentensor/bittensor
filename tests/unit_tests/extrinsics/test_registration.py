@@ -20,7 +20,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from bittensor_wallet import Wallet
 
-from bittensor.extrinsics.registration import (
+from bittensor.api.extrinsics.registration import (
     MaxSuccessException,
     MaxAttemptsException,
     swap_hotkey_extrinsic,
@@ -97,7 +97,7 @@ def test_run_faucet_extrinsic_happy_path(
         "bittensor.utils.registration._solve_for_difficulty_fast",
         return_value=mock_pow_solution,
     ) as mock_create_pow, patch("rich.prompt.Confirm.ask", return_value=True):
-        from bittensor.extrinsics.registration import run_faucet_extrinsic
+        from bittensor.api.extrinsics.registration import run_faucet_extrinsic
 
         # Arrange
         mock_subtensor.get_balance.return_value = 100
@@ -153,7 +153,7 @@ def test_run_faucet_extrinsic_edge_cases(
     with patch("torch.cuda.is_available", return_value=torch_cuda_available), patch(
         "rich.prompt.Confirm.ask", return_value=prompt_response
     ):
-        from bittensor.extrinsics.registration import run_faucet_extrinsic
+        from bittensor.api.extrinsics.registration import run_faucet_extrinsic
 
         # Act
         result = run_faucet_extrinsic(
@@ -187,7 +187,7 @@ def test_run_faucet_extrinsic_error_cases(
         "bittensor.utils.registration.create_pow",
         side_effect=[mock_pow_solution, exception],
     ):
-        from bittensor.extrinsics.registration import run_faucet_extrinsic
+        from bittensor.api.extrinsics.registration import run_faucet_extrinsic
 
         # Act
         result = run_faucet_extrinsic(

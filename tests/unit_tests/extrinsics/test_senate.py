@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
 from bittensor import subtensor, wallet
-from bittensor.extrinsics.senate import (
+from bittensor.api.extrinsics.senate import (
     leave_senate_extrinsic,
     register_senate_extrinsic,
     vote_senate_extrinsic,
@@ -55,8 +55,8 @@ def test_register_senate_extrinsic(
 ):
     # Arrange
     with patch(
-        "bittensor.extrinsics.senate.Confirm.ask", return_value=not prompt
-    ), patch("bittensor.extrinsics.senate.time.sleep"), patch.object(
+        "bittensor.api.extrinsics.senate.Confirm.ask", return_value=not prompt
+    ), patch("bittensor.api.extrinsics.senate.time.sleep"), patch.object(
         mock_subtensor.substrate, "compose_call"
     ), patch.object(mock_subtensor.substrate, "create_signed_extrinsic"), patch.object(
         mock_subtensor.substrate,
@@ -148,8 +148,8 @@ def test_vote_senate_extrinsic(
     proposal_idx = 123
 
     with patch(
-        "bittensor.extrinsics.senate.Confirm.ask", return_value=not prompt
-    ), patch("bittensor.extrinsics.senate.time.sleep"), patch.object(
+        "bittensor.api.extrinsics.senate.Confirm.ask", return_value=not prompt
+    ), patch("bittensor.api.extrinsics.senate.time.sleep"), patch.object(
         mock_subtensor.substrate, "compose_call"
     ), patch.object(mock_subtensor.substrate, "create_signed_extrinsic"), patch.object(
         mock_subtensor.substrate,
@@ -212,8 +212,8 @@ def test_leave_senate_extrinsic(
 ):
     # Arrange
     with patch(
-        "bittensor.extrinsics.senate.Confirm.ask", return_value=not prompt
-    ), patch("bittensor.extrinsics.senate.time.sleep"), patch.object(
+        "bittensor.api.extrinsics.senate.Confirm.ask", return_value=not prompt
+    ), patch("bittensor.api.extrinsics.senate.time.sleep"), patch.object(
         mock_subtensor.substrate, "compose_call"
     ), patch.object(mock_subtensor.substrate, "create_signed_extrinsic"), patch.object(
         mock_subtensor.substrate,

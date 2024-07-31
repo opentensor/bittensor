@@ -17,7 +17,7 @@
 
 import logging
 import bittensor
-from ..core.errors import (
+from bittensor.core.errors import (
     NominationError,
     NotDelegateError,
     NotRegisteredError,

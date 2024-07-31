@@ -20,7 +20,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from bittensor_wallet import Wallet
 
-from bittensor.extrinsics.network import (
+from bittensor.api.extrinsics.network import (
     set_hyperparameter_extrinsic,
     register_subnetwork_extrinsic,
 )

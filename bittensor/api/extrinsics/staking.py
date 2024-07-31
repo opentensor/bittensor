@@ -20,7 +20,7 @@ from rich.prompt import Confirm
 from time import sleep
 from typing import List, Union, Optional, Tuple
 from bittensor.utils.balance import Balance
-from ..core.errors import NotDelegateError
+from bittensor.core.errors import NotDelegateError
 
 
 def _check_threshold_amount(

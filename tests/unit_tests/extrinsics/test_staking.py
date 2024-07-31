@@ -19,7 +19,7 @@ import pytest
 from unittest.mock import patch, MagicMock
 import bittensor
 from bittensor.utils.balance import Balance
-from bittensor.extrinsics.staking import (
+from bittensor.api.extrinsics.staking import (
     add_stake_extrinsic,
     add_stake_multiple_extrinsic,
 )
