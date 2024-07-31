@@ -328,10 +328,10 @@ from .core.synapse import TerminalInfo, Synapse
 from .core.stream import StreamingSynapse
 from .core.tensor import tensor, Tensor
 from .core.axon import Axon as axon
-from .dendrite import dendrite as dendrite
+from .core.dendrite import dendrite as dendrite
+from .core.subnets import SubnetsAPI as SubnetsAPI
 
 from .mock.subtensor_mock import MockSubtensor as MockSubtensor
-from .core.subnets import SubnetsAPI as SubnetsAPI
 
 configs = [
     axon.config(),
