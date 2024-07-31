@@ -56,7 +56,7 @@ from .errors import (
 )
 from bittensor.threadpool import PriorityThreadPoolExecutor
 from bittensor.utils import networking
-from bittensor.synapse import Synapse
+from .synapse import Synapse
 
 
 V_7_2_0 = 7002000

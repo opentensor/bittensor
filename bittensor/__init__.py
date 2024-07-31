@@ -325,10 +325,10 @@ from .utils.btlogging import logging
 from .core.metagraph import metagraph as metagraph
 from .threadpool import PriorityThreadPoolExecutor as PriorityThreadPoolExecutor
 
-from .synapse import TerminalInfo, Synapse
+from .core.synapse import TerminalInfo, Synapse
 from .stream import StreamingSynapse
 from .tensor import tensor, Tensor
-from bittensor.core.axon import Axon as axon
+from .core.axon import Axon as axon
 from .dendrite import dendrite as dendrite
 
 from .mock.subtensor_mock import MockSubtensor as MockSubtensor
