@@ -332,7 +332,7 @@ from bittensor.core.axon import Axon as axon
 from .dendrite import dendrite as dendrite
 
 from .mock.subtensor_mock import MockSubtensor as MockSubtensor
-from .subnets import SubnetsAPI as SubnetsAPI
+from bittensor.core.subnets import SubnetsAPI as SubnetsAPI
 
 configs = [
     axon.config(),
