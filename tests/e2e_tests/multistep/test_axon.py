@@ -5,54 +5,45 @@ import pytest
 
 import bittensor
 from bittensor import logging
-from bittensor.commands import (
-    RegisterCommand,
-    RegisterSubnetworkCommand,
-)
 from bittensor.utils import networking
 from tests.e2e_tests.utils import (
+    register_neuron,
+    register_subnet,
     setup_wallet,
     template_path,
     templates_repo,
 )
 
-"""
-Test the axon mechanism. 
-
-Verify that:
-* axon is registered on network as a miner
-* ip
-* type
-* port
-
-are set correctly, and that the miner is currently running
-
-"""
-
 
 @pytest.mark.asyncio
 async def test_axon(local_chain):
+    """
+    Test the Axon mechanism and successful registration.
+
+    Steps:
+        1. Register a subnet and register Alice
+        2. Check if metagraph updated and check axon attributes
+        3. Run Alice as a miner on the subnet
+        4. Check the metagraph again after running the miner and verify all attreibutes
+    Raises:
+        AssertionError: If any of the checks or verifications fail
+    """
+
     logging.info("Testing test_axon")
+
     netuid = 1
     # Register root as Alice
     alice_keypair, exec_command, wallet = setup_wallet("//Alice")
-    exec_command(RegisterSubnetworkCommand, ["s", "create"])
 
+    assert register_subnet(local_chain, wallet), "Subnet wasn't created"
     # Verify subnet <netuid> created successfully
     assert local_chain.query(
         "SubtensorModule", "NetworksAdded", [netuid]
     ).serialize(), "Subnet wasn't created successfully"
 
-    # Register a neuron to the subnet
-    exec_command(
-        RegisterCommand,
-        [
-            "s",
-            "register",
-            "--netuid",
-            str(netuid),
-        ],
-    )
+    assert register_neuron(
+        local_chain, wallet, netuid
+    ), f"Neuron wasn't registered to subnet {netuid}"
 
     metagraph = bittensor.metagraph(netuid=netuid, network="ws://localhost:9945")
 
