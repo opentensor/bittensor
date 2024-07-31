@@ -326,7 +326,7 @@ from .core.metagraph import metagraph as metagraph
 from .threadpool import PriorityThreadPoolExecutor as PriorityThreadPoolExecutor
 
 from .core.synapse import TerminalInfo, Synapse
-from .stream import StreamingSynapse
+from .core.stream import StreamingSynapse
 from .core.tensor import tensor, Tensor
 from .core.axon import Axon as axon
 from .dendrite import dendrite as dendrite
