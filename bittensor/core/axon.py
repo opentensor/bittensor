@@ -58,6 +58,8 @@ from bittensor.errors import (
 )
 from bittensor.threadpool import PriorityThreadPoolExecutor
 from bittensor.utils import networking
+from bittensor.synapse import Synapse
+
 
 V_7_2_0 = 7002000
 
@@ -155,7 +157,7 @@ class FastAPIThreadedServer(uvicorn.Server):
             self.should_exit = True
 
 
-class axon:
+class Axon:
     """
     The ``axon`` class in Bittensor is a fundamental component that serves as the server-side interface for a neuron within the Bittensor network.
 
@@ -320,7 +322,7 @@ class axon:
         """
         # Build and check config.
         if config is None:
-            config = axon.config()
+            config = Axon.config()
         config = copy.deepcopy(config)
         config.axon.ip = ip or config.axon.get("ip", bittensor.defaults.axon.ip)
         config.axon.port = port or config.axon.get("port", bittensor.defaults.axon.port)
@@ -333,7 +335,7 @@ class axon:
         config.axon.max_workers = max_workers or config.axon.get(
             "max_workers", bittensor.defaults.axon.max_workers
         )
-        axon.check_config(config)
+        Axon.check_config(config)
         self.config = config  # type: ignore
 
         # Get wallet or use default.
@@ -346,7 +348,7 @@ class axon:
         self.external_ip = (
             self.config.axon.external_ip  # type: ignore
             if self.config.axon.external_ip is not None  # type: ignore
-            else bittensor.utils.networking.get_external_ip()
+            else networking.get_external_ip()
         )
         self.external_port = (
             self.config.axon.external_port  # type: ignore
@@ -387,7 +389,7 @@ class axon:
         self.app.add_middleware(self.middleware_cls, axon=self)
 
         # Attach default forward.
-        def ping(r: bittensor.Synapse) -> bittensor.Synapse:
+        def ping(r: Synapse) -> Synapse:
             return r
 
         self.attach(
@@ -483,7 +485,7 @@ class axon:
 
         param_class = first_param.annotation
         assert issubclass(
-            param_class, bittensor.Synapse
+            param_class, Synapse
         ), "The first argument of forward_fn must inherit from bittensor.Synapse"
         request_name = param_class.__name__
 
@@ -565,7 +567,7 @@ class axon:
             bittensor.config: Configuration object with settings from command-line arguments.
         """
         parser = argparse.ArgumentParser()
-        axon.add_args(parser)  # Add specific axon-related arguments
+        Axon.add_args(parser)  # Add specific axon-related arguments
         return bittensor.config(parser, args=[])
 
     @classmethod
@@ -574,7 +576,7 @@ class axon:
         Prints the help text (list of command-line arguments and their descriptions) to stdout.
         """
         parser = argparse.ArgumentParser()
-        axon.add_args(parser)  # Add specific axon-related arguments
+        Axon.add_args(parser)  # Add specific axon-related arguments
         print(cls.__new__.__doc__)  # Print docstring of the class
         parser.print_help()  # Print parser's help text
 
@@ -708,11 +710,11 @@ class axon:
             AssertionError: If the axon or external ports are not in range [1024, 65535]
         """
         assert (
-            config.axon.port > 1024 and config.axon.port < 65535
+                1024 < config.axon.port < 65535
         ), "Axon port must be in range [1024, 65535]"
 
         assert config.axon.external_port is None or (
-            config.axon.external_port > 1024 and config.axon.external_port < 65535
+                1024 < config.axon.external_port < 65535
         ), "External port must be in range [1024, 65535]"
 
     def to_string(self):
@@ -831,7 +833,7 @@ class axon:
             subtensor.serve_axon(netuid=netuid, axon=self)
         return self
 
-    async def default_verify(self, synapse: bittensor.Synapse):
+    async def default_verify(self, synapse: Synapse):
         """
         This method is used to verify the authenticity of a received message using a digital signature.
 
@@ -949,7 +951,7 @@ class axon:
             raise SynapseDendriteNoneException(synapse=synapse)
 
 
-def create_error_response(synapse: bittensor.Synapse):
+def create_error_response(synapse: Synapse):
     if synapse.axon is None:
         return JSONResponse(
             status_code=400,
@@ -965,11 +967,11 @@ def create_error_response(synapse: bittensor.Synapse):
 
 
 def log_and_handle_error(
-    synapse: bittensor.Synapse,
+    synapse: Synapse,
     exception: Exception,
     status_code: typing.Optional[int] = None,
     start_time: typing.Optional[float] = None,
-) -> bittensor.Synapse:
+) -> Synapse:
     if isinstance(exception, SynapseException):
         synapse = exception.synapse or synapse
 
@@ -1086,12 +1088,12 @@ class AxonMiddleware(BaseHTTPMiddleware):
         try:
             # Set up the synapse from its headers.
             try:
-                synapse: bittensor.Synapse = await self.preprocess(request)
+                synapse: Synapse = await self.preprocess(request)
             except Exception as exc:
                 if isinstance(exc, SynapseException) and exc.synapse is not None:
                     synapse = exc.synapse
                 else:
-                    synapse = bittensor.Synapse()
+                    synapse = Synapse()
                 raise
 
             # Logs the start of the request processing
@@ -1154,7 +1156,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
             # Return the response to the requester.
             return response
 
-    async def preprocess(self, request: Request) -> bittensor.Synapse:
+    async def preprocess(self, request: Request) -> Synapse:
         """
         Performs the initial processing of the incoming request. This method is responsible for
         extracting relevant information from the request and setting up the Synapse object, which
@@ -1437,7 +1439,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
 
     @classmethod
     async def synapse_to_response(
-        cls, synapse: bittensor.Synapse, start_time: float
+        cls, synapse: "Synapse", start_time: float
     ) -> JSONResponse:
         """
         Converts the Synapse object into a JSON response with HTTP headers.

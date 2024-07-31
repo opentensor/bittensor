@@ -19,21 +19,18 @@
 import re
 import time
 from dataclasses import dataclass
-
 from typing import Any
 from unittest import IsolatedAsyncioTestCase
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import netaddr
-
 import pytest
-from starlette.requests import Request
 from fastapi.testclient import TestClient
+from starlette.requests import Request
 
 import bittensor
 from bittensor import Synapse, RunException
-from bittensor.axon import AxonMiddleware
-from bittensor.axon import axon as Axon
+from bittensor.core.axon import Axon, AxonMiddleware
 from bittensor.utils.axon_utils import allowed_nonce_window_ns, calculate_diff_seconds, ALLOWED_DELTA, NANOSECONDS_IN_SECOND
 
 
@@ -115,7 +112,7 @@ def test_attach():
 
 
 def test_log_and_handle_error():
-    from bittensor.axon import log_and_handle_error
+    from bittensor.core.axon import log_and_handle_error
 
     synapse = SynapseMock()
 
@@ -126,7 +123,7 @@ def test_log_and_handle_error():
 
 
 def test_create_error_response():
-    from bittensor.axon import create_error_response
+    from bittensor.core.axon import create_error_response
 
     synapse = SynapseMock()
     synapse.axon.status_code = 500

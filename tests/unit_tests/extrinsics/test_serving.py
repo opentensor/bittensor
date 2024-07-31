@@ -20,7 +20,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from bittensor_wallet import Wallet
 
-from bittensor.axon import axon as Axon
+from bittensor.core.axon import Axon
 from bittensor.extrinsics.serving import (
     serve_extrinsic,
     publish_metadata,

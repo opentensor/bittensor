@@ -321,14 +321,14 @@ from .subtensor import Subtensor
 from .subtensor import Subtensor as subtensor
 
 from .btcli.cli import cli as cli, COMMANDS as ALL_COMMANDS
-from bittensor.utils.btlogging import logging
-from bittensor.core.metagraph import metagraph as metagraph
+from .utils.btlogging import logging
+from .core.metagraph import metagraph as metagraph
 from .threadpool import PriorityThreadPoolExecutor as PriorityThreadPoolExecutor
 
 from .synapse import TerminalInfo, Synapse
 from .stream import StreamingSynapse
 from .tensor import tensor, Tensor
-from .axon import axon as axon
+from bittensor.core.axon import Axon as axon
 from .dendrite import dendrite as dendrite
 
 from .mock.subtensor_mock import MockSubtensor as MockSubtensor
