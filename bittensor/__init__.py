@@ -277,7 +277,7 @@ from .utils import (
 )
 
 from .utils.balance import Balance as Balance
-from .chain_data import (
+from .core.chain_data import (
     AxonInfo,
     NeuronInfo,
     NeuronInfoLite,

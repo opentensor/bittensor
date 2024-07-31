@@ -27,7 +27,7 @@ from unittest.mock import MagicMock
 
 from bittensor_wallet import Wallet
 
-from ..chain_data import (
+from bittensor.core.chain_data import (
     NeuronInfo,
     NeuronInfoLite,
     PrometheusInfo,

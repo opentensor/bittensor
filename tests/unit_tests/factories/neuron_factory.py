@@ -1,6 +1,6 @@
 import factory
 
-from bittensor.chain_data import AxonInfo, NeuronInfoLite, PrometheusInfo
+from bittensor.core.chain_data import AxonInfo, NeuronInfoLite, PrometheusInfo
 from bittensor.utils.balance import Balance
 
 

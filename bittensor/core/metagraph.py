@@ -27,7 +27,7 @@ from numpy.typing import NDArray
 from rich.console import Console
 
 from bittensor import __version__, __version_as_int__, __archive_entrypoint__
-from bittensor.chain_data import AxonInfo
+from .chain_data import AxonInfo
 from bittensor.subtensor import Subtensor
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import torch, use_torch

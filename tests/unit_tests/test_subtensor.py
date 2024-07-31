@@ -24,7 +24,7 @@ import pytest
 import bittensor
 from bittensor import subtensor_module
 from bittensor.btcli.commands.utils import normalize_hyperparameters
-from bittensor.chain_data import SubnetHyperparameters
+from bittensor.core.chain_data import SubnetHyperparameters
 from bittensor.subtensor import Subtensor, _logger
 from bittensor.utils.balance import Balance
 
