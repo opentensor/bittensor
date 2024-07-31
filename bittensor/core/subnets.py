@@ -44,7 +44,7 @@ class SubnetsAPI(ABC):
 
     async def query_api(
         self,
-        axons: Union[bt.axon, List[bt.axon]],
+        axons: Union["bt.Axon", List["bt.Axon"]],
         deserialize: Optional[bool] = False,
         timeout: Optional[int] = 12,
         **kwargs: Optional[Any],

@@ -31,7 +31,7 @@ from bittensor.extrinsics.delegation import (
     delegate_extrinsic,
     undelegate_extrinsic,
 )
-from bittensor.subtensor import Subtensor
+from bittensor.core.subtensor import Subtensor
 from bittensor.utils.balance import Balance
 
 

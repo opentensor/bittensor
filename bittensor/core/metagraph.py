@@ -28,7 +28,7 @@ from rich.console import Console
 
 from bittensor import __version__, __version_as_int__, __archive_entrypoint__
 from .chain_data import AxonInfo
-from bittensor.subtensor import Subtensor
+from .subtensor import Subtensor
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import torch, use_torch
 from bittensor.utils.weight_utils import convert_weight_uids_and_vals_to_tensor, convert_bond_uids_and_vals_to_tensor

@@ -26,7 +26,7 @@ from bittensor.extrinsics.serving import (
     publish_metadata,
     serve_axon_extrinsic,
 )
-from bittensor.subtensor import Subtensor
+from bittensor.core.subtensor import Subtensor
 
 
 @pytest.fixture

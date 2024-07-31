@@ -27,7 +27,7 @@ from bittensor.extrinsics.registration import (
     burned_register_extrinsic,
     register_extrinsic,
 )
-from bittensor.subtensor import Subtensor
+from bittensor.core.subtensor import Subtensor
 from bittensor.utils.registration import POWSolution
 
 

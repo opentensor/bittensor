@@ -22,10 +22,10 @@ from unittest.mock import MagicMock
 import pytest
 
 import bittensor
-from bittensor import subtensor_module
+from bittensor.core import subtensor as subtensor_module
 from bittensor.btcli.commands.utils import normalize_hyperparameters
 from bittensor.core.chain_data import SubnetHyperparameters
-from bittensor.subtensor import Subtensor, _logger
+from bittensor.core.subtensor import Subtensor, _logger
 from bittensor.utils.balance import Balance
 
 U16_MAX = 65535

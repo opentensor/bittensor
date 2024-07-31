@@ -238,7 +238,7 @@ from substrateinterface import Keypair  # noqa: F401
 from bittensor_wallet.config import (
     InvalidConfigFile,
     DefaultConfig,
-    Config as config,
+    Config,
     T,
 )
 from bittensor_wallet.keyfile import (
@@ -257,7 +257,7 @@ from bittensor_wallet.keyfile import (
     decrypt_keyfile_data,
     Keyfile as keyfile,
 )
-from bittensor_wallet.wallet import display_mnemonic_msg, Wallet as wallet
+from bittensor_wallet.wallet import display_mnemonic_msg, Wallet
 
 from .utils import (
     ss58_to_vec_u8,
@@ -312,35 +312,27 @@ __use_console__ = True
 # Remove overdue locals in debug training.
 install(show_locals=False)
 
-# Allows avoiding name spacing conflicts and continue access to the `subtensor` module with `subtensor_module` name
-from . import subtensor as subtensor_module
-
-# Double import allows using class `Subtensor` by referencing `bittensor.Subtensor` and `bittensor.subtensor`.
-# This will be available for a while until we remove reference `bittensor.subtensor`
-from .subtensor import Subtensor
-from .subtensor import Subtensor as subtensor
-
 from .btcli.cli import cli as cli, COMMANDS as ALL_COMMANDS
-from .utils.btlogging import logging
+from .core.subtensor import Subtensor
 from .core.metagraph import metagraph as metagraph
 from .core.threadpool import PriorityThreadPoolExecutor as PriorityThreadPoolExecutor
 from .core.synapse import TerminalInfo, Synapse
 from .core.stream import StreamingSynapse
 from .core.tensor import tensor, Tensor
-from .core.axon import Axon as axon
+from .core.axon import Axon
 from .core.dendrite import dendrite as dendrite
 from .core.subnets import SubnetsAPI as SubnetsAPI
-
 from .mock.subtensor_mock import MockSubtensor as MockSubtensor
+from .utils.btlogging import logging
 
 configs = [
-    axon.config(),
-    subtensor.config(),
+    Axon.config(),
+    Subtensor.config(),
     PriorityThreadPoolExecutor.config(),
-    wallet.config(),
+    Wallet.config(),
     logging.get_config(),
 ]
-defaults = config.merge_all(configs)
+defaults = Config.merge_all(configs)
 
 
 def __getattr__(name):
@@ -379,3 +371,19 @@ def debug(on: bool = True):
 
 
 turn_console_off()
+
+# Backwards compatibility with previous bittensor versions.
+from .core.subtensor import Subtensor as subtensor
+from .core.axon import Axon as axon
+from bittensor_wallet.wallet import Wallet as wallet
+from bittensor_wallet.config import Config as config
+
+__all__ = [
+    "axon",
+    "config",
+    "subtensor",
+    "wallet",
+    "InvalidConfigFile",
+    "DefaultConfig",
+    "T"
+]

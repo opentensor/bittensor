@@ -197,14 +197,14 @@ class PriorityThreadPoolExecutor(_base.Executor):
             pass
 
     @classmethod
-    def config(cls) -> "bittensor.config":
+    def config(cls) -> "bittensor.Config":
         """Get config from the argument parser.
 
-        Return: :func:`bittensor.config` object.
+        Return: :func:`bittensor.Config` object.
         """
         parser = argparse.ArgumentParser()
         PriorityThreadPoolExecutor.add_args(parser)
-        return bittensor.config(parser, args=[])
+        return bittensor.Config(parser, args=[])
 
     @property
     def is_empty(self):

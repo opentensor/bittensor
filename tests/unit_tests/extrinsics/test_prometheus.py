@@ -22,7 +22,7 @@ from bittensor_wallet import Wallet
 
 import bittensor
 from bittensor.extrinsics.prometheus import prometheus_extrinsic
-from bittensor.subtensor import Subtensor
+from bittensor.core.subtensor import Subtensor
 
 
 # Mocking the bittensor and networking modules

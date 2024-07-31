@@ -40,7 +40,7 @@ from substrateinterface.exceptions import SubstrateRequestException
 import bittensor
 from bittensor.utils.btlogging import logging as _logger
 from bittensor.utils import torch, weight_utils, format_error_message
-from .core.chain_data import (
+from .chain_data import (
     DelegateInfoLite,
     NeuronInfo,
     DelegateInfo,
@@ -54,56 +54,56 @@ from .core.chain_data import (
     IPInfo,
     custom_rpc_type_registry,
 )
-from .core.errors import IdentityError, NominationError, StakeError, TakeError
-from .extrinsics.commit_weights import (
+from .errors import IdentityError, NominationError, StakeError, TakeError
+from bittensor.extrinsics.commit_weights import (
     commit_weights_extrinsic,
     reveal_weights_extrinsic,
 )
-from .extrinsics.delegation import (
+from bittensor.extrinsics.delegation import (
     delegate_extrinsic,
     nominate_extrinsic,
     undelegate_extrinsic,
     increase_take_extrinsic,
     decrease_take_extrinsic,
 )
-from .extrinsics.network import (
+from bittensor.extrinsics.network import (
     register_subnetwork_extrinsic,
     set_hyperparameter_extrinsic,
 )
-from .extrinsics.prometheus import prometheus_extrinsic
-from .extrinsics.registration import (
+from bittensor.extrinsics.prometheus import prometheus_extrinsic
+from bittensor.extrinsics.registration import (
     register_extrinsic,
     burned_register_extrinsic,
     run_faucet_extrinsic,
     swap_hotkey_extrinsic,
 )
-from .extrinsics.root import root_register_extrinsic, set_root_weights_extrinsic
-from .extrinsics.senate import (
+from bittensor.extrinsics.root import root_register_extrinsic, set_root_weights_extrinsic
+from bittensor.extrinsics.senate import (
     register_senate_extrinsic,
     leave_senate_extrinsic,
     vote_senate_extrinsic,
 )
-from .extrinsics.serving import (
+from bittensor.extrinsics.serving import (
     serve_extrinsic,
     serve_axon_extrinsic,
     publish_metadata,
     get_metadata,
 )
-from .extrinsics.set_weights import set_weights_extrinsic
-from .extrinsics.staking import add_stake_extrinsic, add_stake_multiple_extrinsic
-from .extrinsics.transfer import transfer_extrinsic
-from .extrinsics.unstaking import unstake_extrinsic, unstake_multiple_extrinsic
-from bittensor.core.types import AxonServeCallParams, PrometheusServeCallParams
-from .utils import (
+from bittensor.extrinsics.set_weights import set_weights_extrinsic
+from bittensor.extrinsics.staking import add_stake_extrinsic, add_stake_multiple_extrinsic
+from bittensor.extrinsics.transfer import transfer_extrinsic
+from bittensor.extrinsics.unstaking import unstake_extrinsic, unstake_multiple_extrinsic
+from .types import AxonServeCallParams, PrometheusServeCallParams
+from bittensor.utils import (
     U16_NORMALIZED_FLOAT,
     ss58_to_vec_u8,
     U64_NORMALIZED_FLOAT,
     networking,
 )
-from .utils.balance import Balance
-from .utils.registration import POWSolution
-from .utils.registration import legacy_torch_api_compat
-from .utils.subtensor import get_subtensor_errors
+from bittensor.utils.balance import Balance
+from bittensor.utils.registration import POWSolution
+from bittensor.utils.registration import legacy_torch_api_compat
+from bittensor.utils.subtensor import get_subtensor_errors
 
 KEY_NONCE: Dict[str, int] = {}
 
@@ -169,7 +169,7 @@ class Subtensor:
     def __init__(
         self,
         network: Optional[str] = None,
-        config: Optional[bittensor.config] = None,
+        config: Optional[bittensor.Config] = None,
         _mock: bool = False,
         log_verbose: bool = True,
     ) -> None:
@@ -188,7 +188,7 @@ class Subtensor:
             network (str, optional): The network name to connect to (e.g., ``finney``, ``local``). This can also be the
                 chain endpoint (e.g., ``wss://entrypoint-finney.opentensor.ai:443``) and will be correctly parsed into
                 the network and chain endpoint. If not specified, defaults to the main Bittensor network.
-            config (bittensor.config, optional): Configuration object for the subtensor. If not provided, a default
+            config (bittensor.Config, optional): Configuration object for the subtensor. If not provided, a default
                 configuration is used.
             _mock (bool, optional): If set to ``True``, uses a mocked connection for testing purposes.
 
@@ -202,7 +202,7 @@ class Subtensor:
         # Argument importance: network > chain_endpoint > config.subtensor.chain_endpoint > config.subtensor.network
 
         # Check if network is a config object. (Single argument passed as first positional)
-        if isinstance(network, bittensor.config):
+        if isinstance(network, bittensor.Config):
             if network.subtensor is None:
                 _logger.warning(
                     "If passing a bittensor config object, it must not be empty. Using default subtensor config."
@@ -285,17 +285,17 @@ class Subtensor:
         return self.__str__()
 
     @staticmethod
-    def config() -> "bittensor.config":
+    def config() -> "bittensor.Config":
         """
         Creates and returns a Bittensor configuration object.
 
         Returns:
-            config (bittensor.config): A Bittensor configuration object configured with arguments added by the
+            config (bittensor.Config): A Bittensor configuration object configured with arguments added by the
                 `subtensor.add_args` method.
         """
         parser = argparse.ArgumentParser()
         Subtensor.add_args(parser)
-        return bittensor.config(parser, args=[])
+        return bittensor.Config(parser, args=[])
 
     @classmethod
     def help(cls):
@@ -405,7 +405,7 @@ class Subtensor:
                 return "unknown", network
 
     @staticmethod
-    def setup_config(network: str, config: "bittensor.config"):
+    def setup_config(network: str, config: "bittensor.Config"):
         """
         Sets up and returns the configuration for the Subtensor network and endpoint.
 
@@ -420,7 +420,7 @@ class Subtensor:
         Args:
             network (str): The name of the Subtensor network. If None, the network and endpoint will be determined from
                 the `config` object.
-            config (bittensor.config): The configuration object containing the network and chain endpoint settings.
+            config (bittensor.Config): The configuration object containing the network and chain endpoint settings.
 
         Returns:
             tuple: A tuple containing the formatted WebSocket endpoint URL and the evaluated network name.

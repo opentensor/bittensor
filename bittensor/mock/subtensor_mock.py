@@ -35,11 +35,11 @@ from bittensor.core.chain_data import (
     SubnetInfo,
     AxonInfo,
 )
-from ..core.errors import ChainQueryError
-from ..subtensor import Subtensor
-from ..utils import RAOPERTAO, U16_NORMALIZED_FLOAT
-from ..utils.balance import Balance
-from ..utils.registration import POWSolution
+from bittensor.core.subtensor import Subtensor
+from bittensor.core.errors import ChainQueryError
+from bittensor.utils import RAOPERTAO, U16_NORMALIZED_FLOAT
+from bittensor.utils.balance import Balance
+from bittensor.utils.registration import POWSolution
 
 # Mock Testing Constant
 __GLOBAL_MOCK_STATE__ = {}

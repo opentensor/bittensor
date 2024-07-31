@@ -567,7 +567,7 @@ class Axon:
         """
         parser = argparse.ArgumentParser()
         Axon.add_args(parser)  # Add specific axon-related arguments
-        return bittensor.config(parser, args=[])
+        return bittensor.Config(parser, args=[])
 
     @classmethod
     def help(cls):
@@ -803,7 +803,7 @@ class Axon:
         return self
 
     def serve(
-        self, netuid: int, subtensor: Optional[bittensor.subtensor] = None
+        self, netuid: int, subtensor: Optional["bittensor.subtensor"] = None
     ) -> "bittensor.axon":
         """
         Serves the Axon on the specified subtensor connection using the configured wallet. This method
