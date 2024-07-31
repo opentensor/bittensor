@@ -42,6 +42,7 @@ from starlette.responses import Response
 from substrateinterface import Keypair
 
 import bittensor
+from bittensor.utils import networking
 from bittensor.utils.axon_utils import allowed_nonce_window_ns, calculate_diff_seconds
 from .errors import (
     BlacklistedException,
@@ -54,9 +55,9 @@ from .errors import (
     SynapseParsingError,
     UnknownSynapseError,
 )
-from bittensor.threadpool import PriorityThreadPoolExecutor
-from bittensor.utils import networking
+
 from .synapse import Synapse
+from .threadpool import PriorityThreadPoolExecutor
 
 
 V_7_2_0 = 7002000

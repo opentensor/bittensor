@@ -323,8 +323,7 @@ from .subtensor import Subtensor as subtensor
 from .btcli.cli import cli as cli, COMMANDS as ALL_COMMANDS
 from .utils.btlogging import logging
 from .core.metagraph import metagraph as metagraph
-from .threadpool import PriorityThreadPoolExecutor as PriorityThreadPoolExecutor
-
+from .core.threadpool import PriorityThreadPoolExecutor as PriorityThreadPoolExecutor
 from .core.synapse import TerminalInfo, Synapse
 from .core.stream import StreamingSynapse
 from .core.tensor import tensor, Tensor
@@ -332,7 +331,7 @@ from .core.axon import Axon as axon
 from .dendrite import dendrite as dendrite
 
 from .mock.subtensor_mock import MockSubtensor as MockSubtensor
-from bittensor.core.subnets import SubnetsAPI as SubnetsAPI
+from .core.subnets import SubnetsAPI as SubnetsAPI
 
 configs = [
     axon.config(),
