@@ -31,10 +31,9 @@ import sys
 from logging.handlers import QueueHandler, QueueListener, RotatingFileHandler
 from typing import NamedTuple
 
-from bittensor_wallet.config import Config
 from statemachine import State, StateMachine
 
-from bittensor_wallet.config import Config
+from bittensor.core.config import Config
 
 from .defines import (
     BITTENSOR_LOGGER_NAME,

@@ -235,7 +235,7 @@ from .core.errors import (
 from bittensor_wallet.errors import KeyFileError
 
 from substrateinterface import Keypair  # noqa: F401
-from bittensor_wallet.config import (
+from .core.config import (
     InvalidConfigFile,
     DefaultConfig,
     Config,
@@ -373,10 +373,10 @@ def debug(on: bool = True):
 turn_console_off()
 
 # Backwards compatibility with previous bittensor versions.
-from .core.subtensor import Subtensor as subtensor
-from .core.axon import Axon as axon
-from bittensor_wallet.wallet import Wallet as wallet
-from bittensor_wallet.config import Config as config
+subtensor = Subtensor
+axon = Axon
+wallet = Wallet
+config = Config
 
 __all__ = [
     "axon",
@@ -387,3 +387,4 @@ __all__ = [
     "DefaultConfig",
     "T"
 ]
+
