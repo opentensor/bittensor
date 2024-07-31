@@ -206,7 +206,7 @@ __type_registry__ = {
     },
 }
 
-from .errors import (
+from .core.errors import (
     BlacklistedException,
     ChainConnectionError,
     ChainError,

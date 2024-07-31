@@ -1,15 +1,14 @@
 # The MIT License (MIT)
-# Copyright © 2021 Yuma Rao
-# Copyright © 2023 Opentensor Foundation
-
+# Copyright © 2024 Opentensor Foundation
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
 # the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
+#
 # The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
-
+#
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
 # THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
@@ -21,6 +20,7 @@ from rich.prompt import Confirm
 from time import sleep
 from typing import List, Union, Optional
 from bittensor.utils.balance import Balance
+from bittensor.core.errors import NotRegisteredError, StakeError
 
 
 def __do_remove_stake_single(
@@ -51,9 +51,9 @@ def __do_remove_stake_single(
         success (bool):
             Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     Raises:
-        bittensor.errors.StakeError:
+        bittensor.core.errors.StakeError:
             If the extrinsic fails to be finalized or included in the block.
-        bittensor.errors.NotRegisteredError:
+        bittensor.core.errors.NotRegisteredError:
             If the hotkey is not registered in any subnets.
 
     """
@@ -232,14 +232,14 @@ def unstake_extrinsic(
             )
             return False
 
-    except bittensor.errors.NotRegisteredError as e:
+    except NotRegisteredError as e:
         bittensor.__console__.print(
             ":cross_mark: [red]Hotkey: {} is not registered.[/red]".format(
                 wallet.hotkey_str
             )
         )
         return False
-    except bittensor.errors.StakeError as e:
+    except StakeError as e:
         bittensor.__console__.print(":cross_mark: [red]Stake Error: {}[/red]".format(e))
         return False
 
@@ -424,12 +424,12 @@ def unstake_multiple_extrinsic(
                 )
                 continue
 
-        except bittensor.errors.NotRegisteredError as e:
+        except NotRegisteredError as e:
             bittensor.__console__.print(
                 ":cross_mark: [red]{} is not registered.[/red]".format(hotkey_ss58)
             )
             continue
-        except bittensor.errors.StakeError as e:
+        except StakeError as e:
             bittensor.__console__.print(
                 ":cross_mark: [red]Stake Error: {}[/red]".format(e)
             )

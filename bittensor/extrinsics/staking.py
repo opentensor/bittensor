@@ -1,15 +1,14 @@
 # The MIT License (MIT)
-# Copyright © 2021 Yuma Rao
-# Copyright © 2023 Opentensor Foundation
-
+# Copyright © 2024 Opentensor Foundation
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
 # the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
+#
 # The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
-
+#
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
 # THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
@@ -21,6 +20,7 @@ from rich.prompt import Confirm
 from time import sleep
 from typing import List, Union, Optional, Tuple
 from bittensor.utils.balance import Balance
+from ..core.errors import NotDelegateError
 
 
 def _check_threshold_amount(
@@ -103,7 +103,7 @@ def add_stake_extrinsic(
         if not own_hotkey:
             # This is not the wallet's own hotkey so we are delegating.
             if not subtensor.is_hotkey_delegate(hotkey_ss58):
-                raise bittensor.errors.NotDelegateError(
+                raise NotDelegateError(
                     "Hotkey: {} is not a delegate.".format(hotkey_ss58)
                 )
 
@@ -228,14 +228,14 @@ def add_stake_extrinsic(
             )
             return False
 
-    except bittensor.errors.NotRegisteredError as e:
+    except bittensor.core.errors.NotRegisteredError as e:
         bittensor.__console__.print(
             ":cross_mark: [red]Hotkey: {} is not registered.[/red]".format(
                 wallet.hotkey_str
             )
         )
         return False
-    except bittensor.errors.StakeError as e:
+    except bittensor.core.errors.StakeError as e:
         bittensor.__console__.print(":cross_mark: [red]Stake Error: {}[/red]".format(e))
         return False
 
@@ -435,14 +435,14 @@ def add_stake_multiple_extrinsic(
                 )
                 continue
 
-        except bittensor.errors.NotRegisteredError as e:
+        except bittensor.core.errors.NotRegisteredError as e:
             bittensor.__console__.print(
                 ":cross_mark: [red]Hotkey: {} is not registered.[/red]".format(
                     hotkey_ss58
                 )
             )
             continue
-        except bittensor.errors.StakeError as e:
+        except bittensor.core.errors.StakeError as e:
             bittensor.__console__.print(
                 ":cross_mark: [red]Stake Error: {}[/red]".format(e)
             )
@@ -510,7 +510,7 @@ def __do_add_stake_single(
         # We are delegating.
         # Verify that the hotkey is a delegate.
         if not subtensor.is_hotkey_delegate(hotkey_ss58=hotkey_ss58):
-            raise bittensor.errors.NotDelegateError(
+            raise NotDelegateError(
                 "Hotkey: {} is not a delegate.".format(hotkey_ss58)
             )
 

@@ -20,7 +20,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from bittensor_wallet.wallet import Wallet
 
-from bittensor.errors import (
+from bittensor.core.errors import (
     NominationError,
     NotDelegateError,
     NotRegisteredError,
