@@ -156,6 +156,78 @@ class RegisterCommand:
             config.wallet.hotkey = str(hotkey)
 
 
+class RegisterCostCommand:
+    """
+    Executes the ``register_cost`` command to return the cost of registering a neuron on the Bittensor network by recycling some TAO.
+
+    This command is used to determine the registration cost for a neuron on a specified subnet within the network.
+
+    Usage:
+        The command verifies the existence of the specified subnet and returns the current recycle amount required for registration. The cost is displayed in TAO, the network's native token.
+
+        The registration cost is essential for users to understand the financial commitment required to add a neuron to the network. It is a critical factor in the decision-making process for contributing to the network.
+
+    Example usage::
+
+        btcli register_cost --netuid 1
+
+    Note:
+        This command is useful for users who wish to understand the registration cost before proceeding with the registration process. It provides valuable information for planning and budgeting the registration of a neuron on the network.
+    """
+
+    @staticmethod
+    def run(cli: "bittensor.cli"):
+        r"""View the cost to register a neuron to a subnet."""
+        try:
+            config = cli.config.copy()
+            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+                config=config, log_verbose=False
+            )
+            RegisterCostCommand._run(cli, subtensor)
+        finally:
+            if "subtensor" in locals():
+                subtensor.close()
+                bittensor.logging.debug("closing subtensor connection")
+
+    @staticmethod
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+        r"""View the cost to register a neuron to a subnet."""
+
+        # Verify subnet exists
+        if not subtensor.subnet_exists(netuid=cli.config.netuid):
+            bittensor.__console__.print(
+                f"[red]Subnet {cli.config.netuid} does not exist[/red]"
+            )
+            sys.exit(1)
+
+        # Check current recycle amount
+        current_recycle = subtensor.recycle(netuid=cli.config.netuid)
+        bittensor.__console__.print(
+            f"The cost to register by recycling is [green]{current_recycle}[/green] TAO"
+        )
+
+    @staticmethod
+    def add_args(parser: argparse.ArgumentParser):
+        register_parser = parser.add_parser(
+            "register_cost",
+            help="""Return the cost to register a wallet to a subnet.""",
+        )
+        register_parser.add_argument(
+            "--netuid",
+            type=int,
+            help="netuid for subnet to serve this neuron on",
+            default=argparse.SUPPRESS,
+        )
+
+        bittensor.subtensor.add_args(register_parser)
+
+    @staticmethod
+    def check_config(config: "bittensor.config"):
+        check_netuid_set(
+            config, subtensor=bittensor.subtensor(config=config, log_verbose=False)
+        )
+
+
 class PowRegisterCommand:
     """
     Executes the ``pow_register`` command to register a neuron on the Bittensor network using Proof of Work (PoW).
