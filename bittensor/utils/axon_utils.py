@@ -1,5 +1,7 @@
 # The MIT License (MIT)
-# Copyright © 2023 OpenTensor Foundation
+# Copyright © 2021 Yuma Rao
+# Copyright © 2022 Opentensor Foundation
+# Copyright © 2023 Opentensor Technologies Inc
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
@@ -15,29 +17,22 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-# Standard Library
-import asyncio
-from typing import Dict, Type
 
-# 3rd Party
-import aiohttp
+from typing import Optional
+
+from bittensor.constants import ALLOWED_DELTA, NANOSECONDS_IN_SECOND
 
 
-ALLOWED_DELTA = 4_000_000_000  # Delta of 4 seconds for nonce validation
-V_7_2_0 = 7002000
-NANOSECONDS_IN_SECOND = 1_000_000_000
+def allowed_nonce_window_ns(current_time_ns: int, synapse_timeout: Optional[float]):
+    synapse_timeout_ns = (synapse_timeout or 0) * NANOSECONDS_IN_SECOND
+    allowed_window_ns = current_time_ns - ALLOWED_DELTA - synapse_timeout_ns
+    return allowed_window_ns
 
-#### Dendrite ####
-DENDRITE_ERROR_MAPPING: Dict[Type[Exception], tuple] = {
-    aiohttp.ClientConnectorError: ("503", "Service unavailable"),
-    asyncio.TimeoutError: ("408", "Request timeout"),
-    aiohttp.ClientResponseError: (None, "Client response error"),
-    aiohttp.ClientPayloadError: ("400", "Payload error"),
-    aiohttp.ClientError: ("500", "Client error"),
-    aiohttp.ServerTimeoutError: ("504", "Server timeout error"),
-    aiohttp.ServerDisconnectedError: ("503", "Service disconnected"),
-    aiohttp.ServerConnectionError: ("503", "Service connection error"),
-}
 
-DENDRITE_DEFAULT_ERROR = ("422", "Failed to parse response")
-#### End Dendrite ####
+def calculate_diff_seconds(
+    current_time: int, synapse_timeout: Optional[float], synapse_nonce: int
+):
+    synapse_timeout_ns = (synapse_timeout or 0) * NANOSECONDS_IN_SECOND
+    diff_seconds = (current_time - synapse_nonce) / NANOSECONDS_IN_SECOND
+    allowed_delta_seconds = (ALLOWED_DELTA + synapse_timeout_ns) / NANOSECONDS_IN_SECOND
+    return diff_seconds, allowed_delta_seconds
