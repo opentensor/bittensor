@@ -5,6 +5,7 @@ from packaging.version import Version
 
 import bittensor
 import requests
+from ..core.settings import pipaddress
 
 VERSION_CHECK_THRESHOLD = 86400
 
@@ -38,10 +39,10 @@ def _get_version_from_file(version_file: Path) -> Optional[str]:
 
 def _get_version_from_pypi(timeout: int = 15) -> str:
     bittensor.logging.debug(
-        f"Checking latest Bittensor version at: {bittensor.__pipaddress__}"
+        f"Checking latest Bittensor version at: {pipaddress}"
     )
     try:
-        response = requests.get(bittensor.__pipaddress__, timeout=timeout)
+        response = requests.get(pipaddress, timeout=timeout)
         latest_version = response.json()["info"]["version"]
         return latest_version
     except requests.exceptions.RequestException:

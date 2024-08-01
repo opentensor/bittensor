@@ -1,15 +1,14 @@
 # The MIT License (MIT)
-# Copyright © 2022 Opentensor Foundation
-# Copyright © 2023 Opentensor Technologies Inc
-
+# Copyright © 2024 Opentensor Foundation
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
 # the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
+#
 # The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
-
+#
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
 # THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
@@ -26,6 +25,7 @@ import bittensor
 from .registration import torch, use_torch
 from .version import version_checking, check_version, VersionCheckError
 from .wallet_utils import *  # noqa F401
+from ..core.settings import ss58_format
 
 RAOPERTAO = 1e9
 U16_MAX = 65535
@@ -226,7 +226,7 @@ def get_explorer_url_for_network(
 def ss58_address_to_bytes(ss58_address: str) -> bytes:
     """Converts a ss58 address to a bytes object."""
     account_id_hex: str = scalecodec.ss58_decode(
-        ss58_address, bittensor.__ss58_format__
+        ss58_address, ss58_format
     )
     return bytes.fromhex(account_id_hex)
 
@@ -247,7 +247,7 @@ def u8_key_to_ss58(u8_key: List[int]) -> str:
         u8_key (List[int]): The u8-encoded account key.
     """
     # First byte is length, then 32 bytes of key.
-    return scalecodec.ss58_encode(bytes(u8_key).hex(), bittensor.__ss58_format__)
+    return scalecodec.ss58_encode(bytes(u8_key).hex(), ss58_format)
 
 
 def hash(content, encoding="utf-8"):

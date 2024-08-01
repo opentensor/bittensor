@@ -2,7 +2,7 @@ import argparse
 from rich.table import Table
 from rich.prompt import Prompt
 from sys import getsizeof
-
+from ...core.settings import networks
 import bittensor
 
 
@@ -155,7 +155,7 @@ class SetIdentityCommand:
             config.subtensor.network = Prompt.ask(
                 "Enter subtensor network",
                 default=bittensor.defaults.subtensor.network,
-                choices=bittensor.__networks__,
+                choices=networks,
             )
             (
                 _,
@@ -312,7 +312,7 @@ class GetIdentityCommand:
             config.subtensor.network = Prompt.ask(
                 "Enter subtensor network",
                 default=bittensor.defaults.subtensor.network,
-                choices=bittensor.__networks__,
+                choices=networks,
             )
             (
                 _,

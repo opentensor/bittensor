@@ -28,6 +28,7 @@ from tqdm import tqdm
 import bittensor
 from bittensor.utils.balance import Balance
 from . import defaults
+from ...core import settings
 from .utils import (
     get_hotkey_wallets_for_wallet,
     get_delegates_details,
@@ -195,7 +196,7 @@ class StakeCommand:
                 f"Do you want to stake to the following keys from {wallet.name}:\n"
                 + "".join(
                     [
-                        f"    [bold white]- {hotkey[0] + ':' if hotkey[0] else ''}{hotkey[1]}: {f'{amount} {bittensor.__tao_symbol__}' if amount else 'All'}[/bold white]\n"
+                        f"    [bold white]- {hotkey[0] + ':' if hotkey[0] else ''}{hotkey[1]}: {f'{amount} {settings.tao_symbol}' if amount else 'All'}[/bold white]\n"
                         for hotkey, amount in zip(final_hotkeys, final_amounts)
                     ]
                 )

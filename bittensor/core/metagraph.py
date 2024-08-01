@@ -26,7 +26,8 @@ import numpy as np
 from numpy.typing import NDArray
 from rich.console import Console
 
-from bittensor import __version__, __version_as_int__, __archive_entrypoint__
+from bittensor import __version__, __version_as_int__
+from . import settings
 from .chain_data import AxonInfo
 from .subtensor import Subtensor
 from bittensor.utils.btlogging import logging
@@ -515,7 +516,7 @@ class MetagraphMixin(ABC):
         subtensor = self._initialize_subtensor(subtensor)
 
         if (
-            subtensor.chain_endpoint != __archive_entrypoint__  # type: ignore
+            subtensor.chain_endpoint != settings.archive_entrypoint  # type: ignore
             or subtensor.network != "archive"  # type: ignore
         ):
             cur_block = subtensor.get_current_block()  # type: ignore

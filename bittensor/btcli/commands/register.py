@@ -25,6 +25,7 @@ from rich.prompt import Prompt, Confirm
 import bittensor
 from . import defaults
 from .utils import check_netuid_set, check_for_cuda_reg_config
+from ...core.settings import networks
 
 console = Console()
 
@@ -137,7 +138,7 @@ class RegisterCommand:
         ):
             config.subtensor.network = Prompt.ask(
                 "Enter subtensor network",
-                choices=bittensor.__networks__,
+                choices=networks,
                 default=defaults.subtensor.network,
             )
             _, endpoint = bittensor.subtensor.determine_chain_endpoint_and_network(
@@ -336,7 +337,7 @@ class PowRegisterCommand:
         ):
             config.subtensor.network = Prompt.ask(
                 "Enter subtensor network",
-                choices=bittensor.__networks__,
+                choices=networks,
                 default=defaults.subtensor.network,
             )
             _, endpoint = bittensor.subtensor.determine_chain_endpoint_and_network(
@@ -594,7 +595,7 @@ class SwapHotkeyCommand:
         ):
             config.subtensor.network = Prompt.ask(
                 "Enter subtensor network",
-                choices=bittensor.__networks__,
+                choices=networks,
                 default=defaults.subtensor.network,
             )
             _, endpoint = bittensor.subtensor.determine_chain_endpoint_and_network(

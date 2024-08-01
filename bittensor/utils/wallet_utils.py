@@ -20,7 +20,7 @@
 from substrateinterface.utils import ss58
 from typing import Union, Optional
 
-from .. import __ss58_format__
+from ..core.settings import ss58_format
 from substrateinterface import Keypair as Keypair
 
 
@@ -41,7 +41,7 @@ def is_valid_ss58_address(address: str) -> bool:
     """
     try:
         return ss58.is_valid_ss58_address(
-            address, valid_ss58_format=__ss58_format__
+            address, valid_ss58_format=ss58_format
         ) or ss58.is_valid_ss58_address(
             address, valid_ss58_format=42
         )  # Default substrate ss58 format (legacy)
@@ -70,7 +70,7 @@ def is_valid_ed25519_pubkey(public_key: Union[str, bytes]) -> bool:
         else:
             raise ValueError("public_key must be a string or bytes")
 
-        keypair = Keypair(public_key=public_key, ss58_format=__ss58_format__)
+        keypair = Keypair(public_key=public_key, ss58_format=ss58_format)
 
         ss58_addr = keypair.ss58_address
         return ss58_addr is not None

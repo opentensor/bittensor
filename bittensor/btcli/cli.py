@@ -15,6 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+from rich.console import Console
 import sys
 import shtab
 import argparse
@@ -73,7 +74,7 @@ from .commands import (
 )
 
 # Create a console instance for CLI display.
-console = bittensor.__console__
+console = Console()
 
 ALIAS_TO_COMMAND = {
     "subnets": "subnets",

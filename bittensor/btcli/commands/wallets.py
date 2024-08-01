@@ -28,6 +28,7 @@ import bittensor
 
 from bittensor.utils import RAOPERTAO
 from . import defaults
+from ...core.settings import networks
 
 
 class RegenColdkeyCommand:
@@ -932,7 +933,7 @@ class WalletBalanceCommand:
             network = Prompt.ask(
                 "Enter network",
                 default=defaults.subtensor.network,
-                choices=bittensor.__networks__,
+                choices=networks,
             )
             config.subtensor.network = str(network)
             (

@@ -1,5 +1,5 @@
 # The MIT License (MIT)
-# Copyright © 2023 Opentensor Foundation
+# Copyright © 2024 Opentensor Foundation
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
@@ -31,6 +31,7 @@ from scalecodec.types import GenericCall
 from scalecodec.utils.ss58 import ss58_encode
 
 import bittensor
+from .settings import ss58_format
 from bittensor.utils import networking as net, RAOPERTAO, U16_NORMALIZED_FLOAT
 from bittensor.utils.balance import Balance
 from bittensor.utils.registration import torch, use_torch
@@ -424,13 +425,13 @@ class NeuronInfo:
     def fix_decoded_values(cls, neuron_info_decoded: Any) -> "NeuronInfo":
         """Fixes the values of the NeuronInfo object."""
         neuron_info_decoded["hotkey"] = ss58_encode(
-            neuron_info_decoded["hotkey"], bittensor.__ss58_format__
+            neuron_info_decoded["hotkey"], ss58_format
         )
         neuron_info_decoded["coldkey"] = ss58_encode(
-            neuron_info_decoded["coldkey"], bittensor.__ss58_format__
+            neuron_info_decoded["coldkey"], ss58_format
         )
         stake_dict = {
-            ss58_encode(coldkey, bittensor.__ss58_format__): Balance.from_rao(
+            ss58_encode(coldkey, ss58_format): Balance.from_rao(
                 int(stake)
             )
             for coldkey, stake in neuron_info_decoded["stake"]
@@ -571,13 +572,13 @@ class NeuronInfoLite:
     def fix_decoded_values(cls, neuron_info_decoded: Any) -> "NeuronInfoLite":
         """Fixes the values of the NeuronInfoLite object."""
         neuron_info_decoded["hotkey"] = ss58_encode(
-            neuron_info_decoded["hotkey"], bittensor.__ss58_format__
+            neuron_info_decoded["hotkey"], ss58_format
         )
         neuron_info_decoded["coldkey"] = ss58_encode(
-            neuron_info_decoded["coldkey"], bittensor.__ss58_format__
+            neuron_info_decoded["coldkey"], ss58_format
         )
         stake_dict = {
-            ss58_encode(coldkey, bittensor.__ss58_format__): Balance.from_rao(
+            ss58_encode(coldkey, ss58_format): Balance.from_rao(
                 int(stake)
             )
             for coldkey, stake in neuron_info_decoded["stake"]
@@ -751,13 +752,13 @@ class DelegateInfo:
 
         return cls(
             hotkey_ss58=ss58_encode(
-                decoded["delegate_ss58"], bittensor.__ss58_format__
+                decoded["delegate_ss58"], ss58_format
             ),
-            owner_ss58=ss58_encode(decoded["owner_ss58"], bittensor.__ss58_format__),
+            owner_ss58=ss58_encode(decoded["owner_ss58"], ss58_format),
             take=U16_NORMALIZED_FLOAT(decoded["take"]),
             nominators=[
                 (
-                    ss58_encode(nom[0], bittensor.__ss58_format__),
+                    ss58_encode(nom[0], ss58_format),
                     Balance.from_rao(nom[1]),
                 )
                 for nom in decoded["nominators"]
@@ -823,8 +824,8 @@ class StakeInfo:
     def fix_decoded_values(cls, decoded: Any) -> "StakeInfo":
         """Fixes the decoded values."""
         return cls(
-            hotkey_ss58=ss58_encode(decoded["hotkey"], bittensor.__ss58_format__),
-            coldkey_ss58=ss58_encode(decoded["coldkey"], bittensor.__ss58_format__),
+            hotkey_ss58=ss58_encode(decoded["hotkey"], ss58_format),
+            coldkey_ss58=ss58_encode(decoded["coldkey"], ss58_format),
             stake=Balance.from_rao(decoded["stake"]),
         )
 
@@ -855,7 +856,7 @@ class StakeInfo:
             return {}
 
         return {
-            ss58_encode(address=account_id, ss58_format=bittensor.__ss58_format__): [
+            ss58_encode(address=account_id, ss58_format=ss58_format): [
                 StakeInfo.fix_decoded_values(d) for d in stake_info
             ]
             for account_id, stake_info in decoded
@@ -945,7 +946,7 @@ class SubnetInfo:
             },
             emission_value=decoded["emission_values"],
             burn=Balance.from_rao(decoded["burn"]),
-            owner_ss58=ss58_encode(decoded["owner"], bittensor.__ss58_format__),
+            owner_ss58=ss58_encode(decoded["owner"], ss58_format),
         )
 
     def to_parameter_dict(self) -> Union[dict[str, Any], "torch.nn.ParameterDict"]:
@@ -1163,8 +1164,8 @@ class ScheduledColdkeySwapInfo:
     def fix_decoded_values(cls, decoded: Any) -> "ScheduledColdkeySwapInfo":
         """Fixes the decoded values."""
         return cls(
-            old_coldkey=ss58_encode(decoded["old_coldkey"], bittensor.__ss58_format__),
-            new_coldkey=ss58_encode(decoded["new_coldkey"], bittensor.__ss58_format__),
+            old_coldkey=ss58_encode(decoded["old_coldkey"], ss58_format),
+            new_coldkey=ss58_encode(decoded["new_coldkey"], ss58_format),
             arbitration_block=decoded["arbitration_block"],
         )
 
@@ -1200,5 +1201,5 @@ class ScheduledColdkeySwapInfo:
         if decoded is None:
             return None
         return [
-            ss58_encode(account_id, bittensor.__ss58_format__) for account_id in decoded
+            ss58_encode(account_id, ss58_format) for account_id in decoded
         ]

@@ -20,6 +20,7 @@
 from typing import Union
 
 import bittensor
+from ..core import settings
 
 
 class Balance:
@@ -35,8 +36,8 @@ class Balance:
         tao: A float property that gives the balance in tao units.
     """
 
-    unit: str = bittensor.__tao_symbol__  # This is the tao unit
-    rao_unit: str = bittensor.__rao_symbol__  # This is the rao unit
+    unit: str = settings.tao_symbol  # This is the tao unit
+    rao_unit: str = settings.rao_symbol  # This is the rao unit
     rao: int
     tao: float
 

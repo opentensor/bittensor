@@ -22,7 +22,7 @@ from unittest.mock import MagicMock
 import pytest
 
 import bittensor
-from bittensor.core import subtensor as subtensor_module
+from bittensor.core import subtensor as subtensor_module, settings
 from bittensor.btcli.commands.utils import normalize_hyperparameters
 from bittensor.core.chain_data import SubnetHyperparameters
 from bittensor.core.subtensor import Subtensor, _logger
@@ -223,40 +223,40 @@ def test_argument_error_handling(monkeypatch, parser):
     "network, expected_network, expected_endpoint",
     [
         # Happy path tests
-        ("finney", "finney", bittensor.__finney_entrypoint__),
-        ("local", "local", bittensor.__local_entrypoint__),
-        ("test", "test", bittensor.__finney_test_entrypoint__),
-        ("archive", "archive", bittensor.__archive_entrypoint__),
+        ("finney", "finney", settings.finney_entrypoint),
+        ("local", "local", settings.local_entrypoint),
+        ("test", "test", settings.finney_test_entrypoint),
+        ("archive", "archive", settings.archive_entrypoint),
         # Endpoint override tests
         (
-            bittensor.__finney_entrypoint__,
+            settings.finney_entrypoint,
             "finney",
-            bittensor.__finney_entrypoint__,
+            settings.finney_entrypoint,
         ),
         (
             "entrypoint-finney.opentensor.ai",
             "finney",
-            bittensor.__finney_entrypoint__,
+            settings.finney_entrypoint,
         ),
         (
-            bittensor.__finney_test_entrypoint__,
+            settings.finney_test_entrypoint,
             "test",
-            bittensor.__finney_test_entrypoint__,
+            settings.finney_test_entrypoint,
         ),
         (
             "test.finney.opentensor.ai",
             "test",
-            bittensor.__finney_test_entrypoint__,
+            settings.finney_test_entrypoint,
         ),
         (
-            bittensor.__archive_entrypoint__,
+            settings.archive_entrypoint,
             "archive",
-            bittensor.__archive_entrypoint__,
+            settings.archive_entrypoint,
         ),
         (
             "archive.chain.opentensor.ai",
             "archive",
-            bittensor.__archive_entrypoint__,
+            settings.archive_entrypoint,
         ),
         ("127.0.0.1", "local", "127.0.0.1"),
         ("localhost", "local", "localhost"),
@@ -527,7 +527,7 @@ def test_hyperparameter_normalization(
 
     # Mid-value test
     if is_balance:
-        numeric_value = float(str(norm_value).lstrip(bittensor.__tao_symbol__))
+        numeric_value = float(str(norm_value).lstrip(settings.tao_symbol))
         expected_tao = mid_value / 1e9
         assert (
             numeric_value == expected_tao
@@ -541,7 +541,7 @@ def test_hyperparameter_normalization(
     norm_value = get_normalized_value(normalized, param_name)
 
     if is_balance:
-        numeric_value = float(str(norm_value).lstrip(bittensor.__tao_symbol__))
+        numeric_value = float(str(norm_value).lstrip(settings.tao_symbol))
         expected_tao = max_value / 1e9
         assert (
             numeric_value == expected_tao
@@ -555,7 +555,7 @@ def test_hyperparameter_normalization(
     norm_value = get_normalized_value(normalized, param_name)
 
     if is_balance:
-        numeric_value = float(str(norm_value).lstrip(bittensor.__tao_symbol__))
+        numeric_value = float(str(norm_value).lstrip(settings.tao_symbol))
         expected_tao = zero_value / 1e9
         assert (
             numeric_value == expected_tao

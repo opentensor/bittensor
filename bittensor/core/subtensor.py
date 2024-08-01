@@ -104,6 +104,7 @@ from bittensor.utils.balance import Balance
 from bittensor.utils.registration import POWSolution
 from bittensor.utils.registration import legacy_torch_api_compat
 from bittensor.utils.subtensor import get_subtensor_errors
+from . import settings
 
 KEY_NONCE: Dict[str, int] = {}
 
@@ -221,7 +222,7 @@ class Subtensor:
 
         if (
             self.network == "finney"
-            or self.chain_endpoint == bittensor.__finney_entrypoint__
+            or self.chain_endpoint == settings.finney_entrypoint
         ) and log_verbose:
             _logger.info(
                 f"You are connecting to {self.network} network with endpoint {self.chain_endpoint}."
@@ -239,10 +240,10 @@ class Subtensor:
         try:
             # Set up params.
             self.substrate = SubstrateInterface(
-                ss58_format=bittensor.__ss58_format__,
+                ss58_format=settings.ss58_format,
                 use_remote_preset=True,
                 url=self.chain_endpoint,
-                type_registry=bittensor.__type_registry__,
+                type_registry=settings.type_registry,
             )
         except ConnectionRefusedError:
             _logger.error(
@@ -327,8 +328,8 @@ class Subtensor:
         """
         prefix_str = "" if prefix is None else f"{prefix}."
         try:
-            default_network = bittensor.__networks__[1]
-            default_chain_endpoint = bittensor.__finney_entrypoint__
+            default_network = settings.networks[1]
+            default_chain_endpoint = settings.finney_entrypoint
 
             parser.add_argument(
                 f"--{prefix_str}subtensor.network",
@@ -376,29 +377,29 @@ class Subtensor:
         if network in ["finney", "local", "test", "archive"]:
             if network == "finney":
                 # Kiru Finney staging network.
-                return network, bittensor.__finney_entrypoint__
+                return network, settings.finney_entrypoint
             elif network == "local":
-                return network, bittensor.__local_entrypoint__
+                return network, settings.local_entrypoint
             elif network == "test":
-                return network, bittensor.__finney_test_entrypoint__
+                return network, settings.finney_test_entrypoint
             elif network == "archive":
-                return network, bittensor.__archive_entrypoint__
+                return network, settings.archive_entrypoint
         else:
             if (
-                network == bittensor.__finney_entrypoint__
+                network == settings.finney_entrypoint
                 or "entrypoint-finney.opentensor.ai" in network
             ):
-                return "finney", bittensor.__finney_entrypoint__
+                return "finney", settings.finney_entrypoint
             elif (
-                network == bittensor.__finney_test_entrypoint__
+                network == settings.finney_test_entrypoint
                 or "test.finney.opentensor.ai" in network
             ):
-                return "test", bittensor.__finney_test_entrypoint__
+                return "test", settings.finney_test_entrypoint
             elif (
-                network == bittensor.__archive_entrypoint__
+                network == settings.archive_entrypoint
                 or "archive.chain.opentensor.ai" in network
             ):
-                return "archive", bittensor.__archive_entrypoint__
+                return "archive", settings.archive_entrypoint
             elif "127.0.0.1" in network or "localhost" in network:
                 return "local", network
             else:
@@ -2712,7 +2713,7 @@ class Subtensor:
             Tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
 
         This method is vital for the dynamic weighting mechanism in Bittensor, where neurons adjust their
-        trust in other neurons based on observed performance and contributions on the root network.
+        trust in other neurons based on observed performance and contributions to the root network.
         """
 
         @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=_logger)
@@ -2741,7 +2742,7 @@ class Subtensor:
             )
             # We only wait here if we expect finalization.
             if not wait_for_finalization and not wait_for_inclusion:
-                return True, "Not waiting for finalziation or inclusion."
+                return True, "Not waiting for finalization or inclusion."
 
             response.process_events()
             if response.is_success:
@@ -3141,9 +3142,7 @@ class Subtensor:
         This function enables access to the deeper layers of the Bittensor blockchain, allowing for detailed
         and specific interactions with the network's runtime environment.
         """
-        call_definition = bittensor.__type_registry__["runtime_api"][runtime_api][  # type: ignore
-            "methods"  # type: ignore
-        ][method]  # type: ignore
+        call_definition = settings.type_registry["runtime_api"][runtime_api]["methods"][method]
 
         json_result = self.state_call(
             method=f"{runtime_api}_{method}",
