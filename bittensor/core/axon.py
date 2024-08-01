@@ -55,10 +55,8 @@ from .errors import (
     SynapseParsingError,
     UnknownSynapseError,
 )
-
 from .synapse import Synapse
 from .threadpool import PriorityThreadPoolExecutor
-
 
 V_7_2_0 = 7002000
 
@@ -1155,7 +1153,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
             # Return the response to the requester.
             return response
 
-    async def preprocess(self, request: Request) -> Synapse:
+    async def preprocess(self, request: Request) -> "Synapse":
         """
         Performs the initial processing of the incoming request. This method is responsible for
         extracting relevant information from the request and setting up the Synapse object, which
@@ -1223,7 +1221,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
         # Return the setup synapse.
         return synapse
 
-    async def verify(self, synapse: bittensor.Synapse):
+    async def verify(self, synapse: "Synapse"):
         """
         Verifies the authenticity and integrity of the request. This method ensures that the incoming
         request meets the predefined security and validation criteria.
@@ -1280,7 +1278,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
                     f"Not Verified with error: {str(e)}", synapse=synapse
                 )
 
-    async def blacklist(self, synapse: bittensor.Synapse):
+    async def blacklist(self, synapse: "Synapse"):
         """
         Checks if the request should be blacklisted. This method ensures that requests from disallowed
         sources or with malicious intent are blocked from processing. This can be extremely useful for
@@ -1336,7 +1334,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
                     f"Forbidden. Key is blacklisted: {reason}.", synapse=synapse
                 )
 
-    async def priority(self, synapse: bittensor.Synapse):
+    async def priority(self, synapse: "Synapse"):
         """
         Executes the priority function for the request. This method assesses and assigns a priority
         level to the request, determining its urgency and importance in the processing queue.
@@ -1403,7 +1401,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
 
     async def run(
         self,
-        synapse: bittensor.Synapse,
+        synapse: "Synapse",
         call_next: RequestResponseEndpoint,
         request: Request,
     ) -> Response:

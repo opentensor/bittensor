@@ -26,6 +26,8 @@ import aiohttp
 
 import bittensor
 from bittensor.utils.registration import torch, use_torch
+from .stream import StreamingSynapse
+from .synapse import Synapse
 
 DENDRITE_ERROR_MAPPING: Dict[Type[Exception], tuple] = {
     aiohttp.ClientConnectorError: ("503", "Service unavailable"),
@@ -89,21 +91,21 @@ class DendriteMixin:
 
     Example with a context manager::
 
-        >>> aysnc with dendrite(wallet = bittensor.wallet()) as d:
-        >>>     print(d)
-        >>>     d( <axon> ) # ping axon
-        >>>     d( [<axons>] ) # ping multiple
-        >>>     d( bittensor.axon(), bittensor.Synapse )
+        aysnc with dendrite(wallet = bittensor.wallet()) as d:
+            print(d)
+            d( <axon> ) # ping axon
+            d( [<axons>] ) # ping multiple
+            d( bittensor.axon(), bittensor.Synapse )
 
     However, you are able to safely call :func:`dendrite.query()` without a context manager in a synchronous setting.
 
     Example without a context manager::
 
-        >>> d = dendrite(wallet = bittensor.wallet() )
-        >>> print(d)
-        >>> d( <axon> ) # ping axon
-        >>> d( [<axons>] ) # ping multiple
-        >>> d( bittensor.axon(), bittensor.Synapse )
+        d = dendrite(wallet = bittensor.wallet() )
+        print(d)
+        d( <axon> ) # ping axon
+        d( [<axons>] ) # ping multiple
+        d( bittensor.axon(), bittensor.Synapse )
     """
 
     def __init__(
@@ -370,7 +372,7 @@ class DendriteMixin:
             List[Union[bittensor.AxonInfo, bittensor.axon]],
             Union[bittensor.AxonInfo, bittensor.axon],
         ],
-        synapse: bittensor.Synapse = bittensor.Synapse(),
+        synapse: "Synapse" = Synapse(),
         timeout: float = 12,
         deserialize: bool = True,
         run_async: bool = True,
@@ -392,12 +394,12 @@ class DendriteMixin:
 
         For example::
 
-            >>> ...
-            >>> wallet = bittensor.wallet()                   # Initialize a wallet
-            >>> synapse = bittensor.Synapse(...)              # Create a synapse object that contains query data
-            >>> dendrte = bittensor.dendrite(wallet = wallet) # Initialize a dendrite instance
-            >>> axons = metagraph.axons                       # Create a list of axons to query
-            >>> responses = await dendrite(axons, synapse)    # Send the query to all axons and await the responses
+            ...
+            wallet = bittensor.wallet()                   # Initialize a wallet
+            synapse = bittensor.Synapse(...)              # Create a synapse object that contains query data
+            dendrte = bittensor.dendrite(wallet = wallet) # Initialize a dendrite instance
+            axons = metagraph.axons                       # Create a list of axons to query
+            responses = await dendrite(axons, synapse)    # Send the query to all axons and await the responses
 
         When querying an Axon that sends back data in chunks using the Dendrite, this function
         returns an AsyncGenerator that yields each chunk as it is received. The generator can be
@@ -405,11 +407,11 @@ class DendriteMixin:
 
         For example::
 
-            >>> ...
-            >>> dendrte = bittensor.dendrite(wallet = wallet)
-            >>> async for chunk in dendrite.forward(axons, synapse, timeout, deserialize, run_async, streaming):
-            >>>     # Process each chunk here
-            >>>     print(chunk)
+            ...
+            dendrte = bittensor.dendrite(wallet = wallet)
+            async for chunk in dendrite.forward(axons, synapse, timeout, deserialize, run_async, streaming):
+                # Process each chunk here
+                print(chunk)
 
         Args:
             axons (Union[List[Union['bittensor.AxonInfo', 'bittensor.axon']], Union['bittensor.AxonInfo', 'bittensor.axon']]):
@@ -519,7 +521,7 @@ class DendriteMixin:
     async def call(
         self,
         target_axon: Union[bittensor.AxonInfo, bittensor.axon],
-        synapse: bittensor.Synapse = bittensor.Synapse(),
+        synapse: "Synapse" = Synapse(),
         timeout: float = 12.0,
         deserialize: bool = True,
     ) -> bittensor.Synapse:
@@ -591,7 +593,7 @@ class DendriteMixin:
     async def call_stream(
         self,
         target_axon: Union[bittensor.AxonInfo, bittensor.axon],
-        synapse: bittensor.StreamingSynapse = bittensor.Synapse(),  # type: ignore
+        synapse: "StreamingSynapse" = Synapse(),  # type: ignore
         timeout: float = 12.0,
         deserialize: bool = True,
     ) -> AsyncGenerator[Any, Any]:

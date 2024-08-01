@@ -29,10 +29,51 @@ assert __version_as_int__ < 2 ** 31  # fits in int32
 import os
 import warnings
 
+from bittensor_wallet.errors import KeyFileError  # noqa: F401
+from bittensor_wallet.keyfile import (  # noqa: F401
+    serialized_keypair_to_keyfile_data,
+    deserialize_keypair_from_keyfile_data,
+    validate_password,
+    ask_password_to_encrypt,
+    keyfile_data_is_encrypted_nacl,
+    keyfile_data_is_encrypted_ansible,
+    keyfile_data_is_encrypted_legacy,
+    keyfile_data_is_encrypted,
+    keyfile_data_encryption_method,
+    legacy_encrypt_keyfile_data,
+    encrypt_keyfile_data,
+    get_coldkey_password_from_environment,
+    decrypt_keyfile_data,
+    Keyfile,
+)
+from bittensor_wallet.wallet import display_mnemonic_msg, Wallet  # noqa: F401
 from rich.console import Console
 from rich.traceback import install
-from .core import settings
+from substrateinterface import Keypair  # noqa: F401
 
+from .btcli.cli import cli as cli, COMMANDS as ALL_COMMANDS
+from .core import settings
+from .core.axon import Axon
+from .core.chain_data import (
+    AxonInfo,
+    NeuronInfo,
+    NeuronInfoLite,
+    PrometheusInfo,
+    DelegateInfo,
+    StakeInfo,
+    SubnetInfo,
+    SubnetHyperparameters,
+    IPInfo,
+    ProposalCallData,
+    ProposalVoteData,
+)
+from .core.config import (  # noqa: F401
+    InvalidConfigFile,
+    DefaultConfig,
+    Config,
+    T,
+)
+from .core.dendrite import dendrite as dendrite
 from .core.errors import (
     BlacklistedException,
     ChainConnectionError,
@@ -58,33 +99,15 @@ from .core.errors import (
     UnknownSynapseError,
     UnstakeError,
 )
-
-from bittensor_wallet.errors import KeyFileError  # noqa: F401
-from substrateinterface import Keypair  # noqa: F401
-from .core.config import (  # noqa: F401
-    InvalidConfigFile,
-    DefaultConfig,
-    Config,
-    T,
-)
-from bittensor_wallet.keyfile import (  # noqa: F401
-    serialized_keypair_to_keyfile_data,
-    deserialize_keypair_from_keyfile_data,
-    validate_password,
-    ask_password_to_encrypt,
-    keyfile_data_is_encrypted_nacl,
-    keyfile_data_is_encrypted_ansible,
-    keyfile_data_is_encrypted_legacy,
-    keyfile_data_is_encrypted,
-    keyfile_data_encryption_method,
-    legacy_encrypt_keyfile_data,
-    encrypt_keyfile_data,
-    get_coldkey_password_from_environment,
-    decrypt_keyfile_data,
-    Keyfile,
-)
-from bittensor_wallet.wallet import display_mnemonic_msg, Wallet  # noqa: F401
-
+from .core.metagraph import metagraph as metagraph
+from .core.settings import blocktime
+from .core.stream import StreamingSynapse
+from .core.subnets import SubnetsAPI as SubnetsAPI
+from .core.subtensor import Subtensor
+from .core.synapse import TerminalInfo, Synapse
+from .core.tensor import tensor, Tensor
+from .core.threadpool import PriorityThreadPoolExecutor as PriorityThreadPoolExecutor
+from .mock.subtensor_mock import MockSubtensor as MockSubtensor
 from .utils import (
     ss58_to_vec_u8,
     unbiased_topk,
@@ -101,35 +124,8 @@ from .utils import (
     hash,
     wallet_utils,
 )
-
 from .utils.balance import Balance as Balance
-from .core.chain_data import (
-    AxonInfo,
-    NeuronInfo,
-    NeuronInfoLite,
-    PrometheusInfo,
-    DelegateInfo,
-    StakeInfo,
-    SubnetInfo,
-    SubnetHyperparameters,
-    IPInfo,
-    ProposalCallData,
-    ProposalVoteData,
-)
-
-from .btcli.cli import cli as cli, COMMANDS as ALL_COMMANDS
-from .core.subtensor import Subtensor
-from .core.metagraph import metagraph as metagraph
-from .core.threadpool import PriorityThreadPoolExecutor as PriorityThreadPoolExecutor
-from .core.synapse import TerminalInfo, Synapse
-from .core.stream import StreamingSynapse
-from .core.tensor import tensor, Tensor
-from .core.axon import Axon
-from .core.dendrite import dendrite as dendrite
-from .core.subnets import SubnetsAPI as SubnetsAPI
-from .mock.subtensor_mock import MockSubtensor as MockSubtensor
 from .utils.btlogging import logging
-from .core.settings import blocktime
 
 # Raw GitHub url for delegates registry file
 __delegates_details_url__: str = "https://raw.githubusercontent.com/opentensor/bittensor-delegates/main/public/delegates.json"
