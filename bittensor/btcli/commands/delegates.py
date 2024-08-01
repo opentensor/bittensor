@@ -28,6 +28,7 @@ from tqdm import tqdm
 
 import bittensor
 from . import defaults
+from ...core import settings
 from .identity import SetIdentityCommand
 from .utils import get_delegates_details, DelegatesDetails
 
@@ -84,7 +85,7 @@ def show_delegates_lite(
     """
 
     registered_delegate_info: Optional[Dict[str, DelegatesDetails]] = (
-        get_delegates_details(url=bittensor.__delegates_details_url__)
+        get_delegates_details(url=settings.delegates_details_url)
     )
     if registered_delegate_info is None:
         bittensor.__console__.print(
@@ -207,7 +208,7 @@ def show_delegates(
             prev_delegates_dict[prev_delegate.hotkey_ss58] = prev_delegate
 
     registered_delegate_info: Optional[Dict[str, DelegatesDetails]] = (
-        get_delegates_details(url=bittensor.__delegates_details_url__)
+        get_delegates_details(url=settings.delegates_details_url)
     )
     if registered_delegate_info is None:
         bittensor.__console__.print(
@@ -949,7 +950,7 @@ class MyDelegatesCommand:
             total_delegated += sum(my_delegates.values())
 
             registered_delegate_info: Optional[DelegatesDetails] = (
-                get_delegates_details(url=bittensor.__delegates_details_url__)
+                get_delegates_details(url=settings.delegates_details_url)
             )
             if registered_delegate_info is None:
                 bittensor.__console__.print(

@@ -127,9 +127,6 @@ from .utils import (
 from .utils.balance import Balance as Balance
 from .utils.btlogging import logging
 
-# Raw GitHub url for delegates registry file
-__delegates_details_url__: str = "https://raw.githubusercontent.com/opentensor/bittensor-delegates/main/public/delegates.json"
-
 
 configs = [
     Axon.config(),
@@ -223,11 +220,13 @@ __pipaddress__ = settings.pipaddress
 __ss58_format__ = settings.ss58_format
 __type_registry__ = settings.type_registry
 __ss58_address_length__ = settings.ss58_address_length
+
 __networks__ = settings.networks
+
 __finney_entrypoint__ = settings.finney_entrypoint
 __finney_test_entrypoint__ = settings.finney_test_entrypoint
 __archive_entrypoint__ = settings.archive_entrypoint
-__bellagene_entrypoint__ = settings.bellagene_entrypoint
 __local_entrypoint__ = settings.local_entrypoint
+
 __tao_symbol__ = settings.tao_symbol
 __rao_symbol__ = settings.rao_symbol

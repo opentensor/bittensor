@@ -27,6 +27,7 @@ from rich.table import Table
 from .utils import get_delegates_details, DelegatesDetails
 
 from . import defaults
+from ...core import settings
 
 console = Console()
 
@@ -150,7 +151,7 @@ class RootList:
             netuid=0
         )
         delegate_info: Optional[Dict[str, DelegatesDetails]] = get_delegates_details(
-            url=bittensor.__delegates_details_url__
+            url=settings.delegates_details_url
         )
 
         table = Table(show_footer=False)

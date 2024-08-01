@@ -25,6 +25,7 @@ from rich.table import Table
 
 import bittensor
 from . import defaults
+from ...core import settings
 from .utils import get_delegates_details, DelegatesDetails
 
 console = Console()
@@ -74,7 +75,7 @@ class SenateCommand:
 
         senate_members = subtensor.get_senate_members()
         delegate_info: Optional[Dict[str, DelegatesDetails]] = get_delegates_details(
-            url=bittensor.__delegates_details_url__
+            url=settings.delegates_details_url
         )
 
         table = Table(show_footer=False)
@@ -215,7 +216,7 @@ class ProposalsCommand:
         proposals = subtensor.get_proposals()
 
         registered_delegate_info: Optional[Dict[str, DelegatesDetails]] = (
-            get_delegates_details(url=bittensor.__delegates_details_url__)
+            get_delegates_details(url=settings.delegates_details_url)
         )
 
         table = Table(show_footer=False)
@@ -346,7 +347,7 @@ class ShowVotesCommand:
             return
 
         registered_delegate_info: Optional[Dict[str, DelegatesDetails]] = (
-            get_delegates_details(url=bittensor.__delegates_details_url__)
+            get_delegates_details(url=settings.delegates_details_url)
         )
 
         table = Table(show_footer=False)

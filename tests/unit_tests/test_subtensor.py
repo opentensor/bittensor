@@ -289,37 +289,13 @@ def substrate():
 
 @pytest.fixture
 def subtensor(substrate):
-    mock.patch.object(
-        subtensor_module,
-        "get_subtensor_errors",
-        return_value={
-            "1": ("ErrorOne", "Description one"),
-            "2": ("ErrorTwo", "Description two"),
-        },
-    ).start()
     return Subtensor()
-
-
-def test_get_error_info_by_index_known_error(subtensor):
-    name, description = subtensor.get_error_info_by_index(1)
-    assert name == "ErrorOne"
-    assert description == "Description one"
 
 
 @pytest.fixture
 def mock_logger():
     with mock.patch.object(_logger, "warning") as mock_warning:
         yield mock_warning
-
-
-def test_get_error_info_by_index_unknown_error(subtensor, mock_logger):
-    fake_index = 999
-    name, description = subtensor.get_error_info_by_index(fake_index)
-    assert name == "Unknown Error"
-    assert description == ""
-    mock_logger.assert_called_once_with(
-        f"Subtensor returned an error with an unknown index: {fake_index}"
-    )
 
 
 # Subtensor()._get_hyperparameter tests

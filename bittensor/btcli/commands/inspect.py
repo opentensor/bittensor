@@ -26,6 +26,7 @@ from tqdm import tqdm
 
 import bittensor
 from . import defaults
+from ...core import settings
 from .utils import (
     get_delegates_details,
     DelegatesDetails,
@@ -140,7 +141,7 @@ class InspectCommand:
         bittensor.logging.debug(f"Netuids to check: {netuids}")
 
         registered_delegate_info: Optional[Dict[str, DelegatesDetails]] = (
-            get_delegates_details(url=bittensor.__delegates_details_url__)
+            get_delegates_details(url=settings.delegates_details_url)
         )
         if registered_delegate_info is None:
             bittensor.__console__.print(

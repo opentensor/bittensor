@@ -19,7 +19,6 @@
 
 from typing import Union
 
-import bittensor
 from ..core import settings
 
 
