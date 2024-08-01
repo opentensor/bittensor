@@ -31,12 +31,13 @@ are set correctly, and that the miner is currently running
 
 @pytest.mark.asyncio
 async def test_axon(local_chain):
+    netuid = 1
     # Register root as Alice
     alice_keypair, exec_command, wallet = setup_wallet("//Alice")
     exec_command(RegisterSubnetworkCommand, ["s", "create"])
 
-    # Verify subnet 1 created successfully
-    assert local_chain.query("SubtensorModule", "NetworksAdded", [1]).serialize()
+    # Verify subnet <netuid> created successfully
+    assert local_chain.query("SubtensorModule", "NetworksAdded", [netuid]).serialize()
 
     # Register a neuron to the subnet
     exec_command(
@@ -45,11 +46,11 @@ async def test_axon(local_chain):
             "s",
             "register",
             "--netuid",
-            "1",
+            str(netuid),
         ],
     )
 
-    metagraph = bittensor.metagraph(netuid=1, network="ws://localhost:9945")
+    metagraph = bittensor.metagraph(netuid=netuid, network="ws://localhost:9945")
 
     # validate one miner with ip of none
     old_axon = metagraph.axons[0]
@@ -69,7 +70,7 @@ async def test_axon(local_chain):
             f'"{template_path}{templates_repo}/neurons/miner.py"',
             "--no_prompt",
             "--netuid",
-            "1",
+            str(netuid),
             "--subtensor.network",
             "local",
             "--subtensor.chain_endpoint",
@@ -83,7 +84,7 @@ async def test_axon(local_chain):
         ]
     )
 
-    await asyncio.create_subprocess_shell(
+    axon_process = await asyncio.create_subprocess_shell(
         cmd,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
@@ -94,7 +95,7 @@ async def test_axon(local_chain):
     )  # wait for 5 seconds for the metagraph to refresh with latest data
 
     # refresh metagraph
-    metagraph = bittensor.metagraph(netuid=1, network="ws://localhost:9945")
+    metagraph = bittensor.metagraph(netuid=netuid, network="ws://localhost:9945")
     updated_axon = metagraph.axons[0]
     external_ip = networking.get_external_ip()
 
