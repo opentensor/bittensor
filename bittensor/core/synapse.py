@@ -15,11 +15,11 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-
 import base64
 import json
 import sys
 import warnings
+from typing import Any, ClassVar, Dict, Optional, Tuple, Union
 
 from pydantic import (
     BaseModel,
@@ -28,8 +28,9 @@ from pydantic import (
     field_validator,
     model_validator,
 )
-import bittensor
-from typing import Optional, Any, Dict, ClassVar, Tuple
+
+from bittensor.utils import get_hash
+from bittensor.utils.btlogging import logging
 
 
 def get_size(obj, seen=None) -> int:
@@ -455,7 +456,7 @@ class Synapse(BaseModel):
     dendrite: Optional[TerminalInfo] = Field(
         title="dendrite",
         description="Dendrite Terminal Information",
-        examples=["bittensor.TerminalInfo"],
+        examples=["TerminalInfo"],
         default=TerminalInfo(),
         frozen=False,
         repr=False,
@@ -465,7 +466,7 @@ class Synapse(BaseModel):
     axon: Optional[TerminalInfo] = Field(
         title="axon",
         description="Axon Terminal Information",
-        examples=["bittensor.TerminalInfo"],
+        examples=["TerminalInfo"],
         default=TerminalInfo(),
         frozen=False,
         repr=False,
@@ -716,9 +717,9 @@ class Synapse(BaseModel):
         if required_hash_fields:
             instance_fields = instance_fields or self.model_dump()
             for field in required_hash_fields:
-                hashes.append(bittensor.utils.hash(str(instance_fields[field])))
+                hashes.append(get_hash(str(instance_fields[field])))
 
-        return bittensor.utils.hash("".join(hashes))
+        return get_hash("".join(hashes))
 
     @classmethod
     def parse_headers_to_inputs(cls, headers: dict) -> dict:
@@ -755,7 +756,7 @@ class Synapse(BaseModel):
         """
 
         # Initialize the input dictionary with empty sub-dictionaries for 'axon' and 'dendrite'
-        inputs_dict: Dict[str, Dict[str, str]] = {"axon": {}, "dendrite": {}}
+        inputs_dict: Dict[str, Union[Dict, Optional[str]]] = {"axon": {}, "dendrite": {}}
 
         # Iterate over each item in the headers
         for key, value in headers.items():
@@ -765,7 +766,7 @@ class Synapse(BaseModel):
                     new_key = key.split("bt_header_axon_")[1]
                     inputs_dict["axon"][new_key] = value
                 except Exception as e:
-                    bittensor.logging.error(
+                    logging.error(
                         f"Error while parsing 'axon' header {key}: {e}"
                     )
                     continue
@@ -775,7 +776,7 @@ class Synapse(BaseModel):
                     new_key = key.split("bt_header_dendrite_")[1]
                     inputs_dict["dendrite"][new_key] = value
                 except Exception as e:
-                    bittensor.logging.error(
+                    logging.error(
                         f"Error while parsing 'dendrite' header {key}: {e}"
                     )
                     continue
@@ -791,12 +792,12 @@ class Synapse(BaseModel):
                         base64.b64decode(value.encode()).decode("utf-8")
                     )
                 except json.JSONDecodeError as e:
-                    bittensor.logging.error(
+                    logging.error(
                         f"Error while json decoding 'input_obj' header {key}: {e}"
                     )
                     continue
                 except Exception as e:
-                    bittensor.logging.error(
+                    logging.error(
                         f"Error while parsing 'input_obj' header {key}: {e}"
                     )
                     continue
