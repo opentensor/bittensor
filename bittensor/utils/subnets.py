@@ -15,15 +15,22 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import bittensor as bt
 from abc import ABC, abstractmethod
 from typing import Any, List, Union, Optional
 
+from bittensor_wallet import Wallet
+
+from bittensor.core.axon import Axon
+from bittensor.core.dendrite import Dendrite
+from bittensor.core.synapse import Synapse
+from bittensor.utils.btlogging import logging
+
 
 class SubnetsAPI(ABC):
-    def __init__(self, wallet: "bt.wallet"):
+    """This class is not used within the bittensor package, but is actively used by the community."""
+    def __init__(self, wallet: "Wallet"):
         self.wallet = wallet
-        self.dendrite = bt.dendrite(wallet=wallet)
+        self.dendrite = Dendrite(wallet=wallet)
 
     async def __call__(self, *args, **kwargs):
         return await self.query_api(*args, **kwargs)
@@ -36,7 +43,7 @@ class SubnetsAPI(ABC):
         ...
 
     @abstractmethod
-    def process_responses(self, responses: List[Union["bt.Synapse", Any]]) -> Any:
+    def process_responses(self, responses: List[Union["Synapse", Any]]) -> Any:
         """
         Process the responses from the network.
         """
@@ -44,7 +51,7 @@ class SubnetsAPI(ABC):
 
     async def query_api(
         self,
-        axons: Union["bt.Axon", List["bt.Axon"]],
+        axons: Union["Axon", List["Axon"]],
         deserialize: Optional[bool] = False,
         timeout: Optional[int] = 12,
         **kwargs: Optional[Any],
@@ -62,7 +69,7 @@ class SubnetsAPI(ABC):
             Any: The result of the process_responses_fn.
         """
         synapse = self.prepare_synapse(**kwargs)
-        bt.logging.debug(f"Querying validator axons with synapse {synapse.name}...")
+        logging.debug(f"Querying validator axons with synapse {synapse.name}...")
         responses = await self.dendrite(
             axons=axons,
             synapse=synapse,
