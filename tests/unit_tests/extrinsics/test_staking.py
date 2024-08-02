@@ -17,26 +17,27 @@
 
 import pytest
 from unittest.mock import patch, MagicMock
-import bittensor
 from bittensor.utils.balance import Balance
 from bittensor.api.extrinsics.staking import (
     add_stake_extrinsic,
     add_stake_multiple_extrinsic,
 )
 from bittensor.core.errors import NotDelegateError
+from bittensor.core.subtensor import Subtensor
+from bittensor_wallet import Wallet
 
 
 # Mocking external dependencies
 @pytest.fixture
 def mock_subtensor():
-    mock = MagicMock(spec=bittensor.subtensor)
+    mock = MagicMock(spec=Subtensor)
     mock.network = "mock_network"
     return mock
 
 
 @pytest.fixture
 def mock_wallet():
-    mock = MagicMock(spec=bittensor.wallet)
+    mock = MagicMock(spec=Wallet)
     mock.hotkey.ss58_address = "5FHneW46..."
     mock.coldkeypub.ss58_address = "5Gv8YYFu8..."
     mock.hotkey_str = "mock_hotkey_str"
@@ -46,7 +47,7 @@ def mock_wallet():
 
 @pytest.fixture
 def mock_other_owner_wallet():
-    mock = MagicMock(spec=bittensor.wallet)
+    mock = MagicMock(spec=Wallet)
     mock.hotkey.ss58_address = "11HneC46..."
     mock.coldkeypub.ss58_address = "6Gv9ZZFu8..."
     mock.hotkey_str = "mock_hotkey_str_other_owner"
@@ -127,7 +128,7 @@ def test_add_stake_extrinsic(
     else:
         staking_balance = (
             Balance.from_tao(amount)
-            if not isinstance(amount, bittensor.Balance)
+            if not isinstance(amount, Balance)
             else amount
         )
 
@@ -152,11 +153,11 @@ def test_add_stake_extrinsic(
     ) as mock_confirm, patch.object(
         mock_subtensor,
         "get_minimum_required_stake",
-        return_value=bittensor.Balance.from_tao(0.01),
+        return_value=Balance.from_tao(0.01),
     ), patch.object(
         mock_subtensor,
         "get_existential_deposit",
-        return_value=bittensor.Balance.from_rao(100_000),
+        return_value=Balance.from_rao(100_000),
     ):
         mock_balance = mock_subtensor.get_balance()
         existential_deposit = mock_subtensor.get_existential_deposit()
@@ -464,7 +465,7 @@ def test_add_stake_extrinsic(
             None,
             0,
             TypeError,
-            "amounts must be a [list of bittensor.Balance or float] or None",
+            "amounts must be a [list of Balance or float] or None",
         ),
     ],
     ids=[
