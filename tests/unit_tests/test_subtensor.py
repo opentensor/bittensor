@@ -20,12 +20,13 @@ import unittest.mock as mock
 from unittest.mock import MagicMock
 
 import pytest
+from bittensor_wallet import Wallet
 
-import bittensor
-from bittensor.core import subtensor as subtensor_module, settings
 from bittensor.btcli.commands.utils import normalize_hyperparameters
+from bittensor.core import subtensor as subtensor_module, settings
+from bittensor.core.axon import Axon
 from bittensor.core.chain_data import SubnetHyperparameters
-from bittensor.core.subtensor import Subtensor, _logger
+from bittensor.core.subtensor import Subtensor, logging
 from bittensor.utils.balance import Balance
 
 U16_MAX = 65535
@@ -38,11 +39,11 @@ def test_serve_axon_with_external_ip_set():
 
     mock_serve_axon = MagicMock(return_value=True)
 
-    mock_subtensor = MagicMock(spec=bittensor.subtensor, serve_axon=mock_serve_axon)
+    mock_subtensor = MagicMock(spec=Subtensor, serve_axon=mock_serve_axon)
 
     mock_add_insecure_port = mock.MagicMock(return_value=None)
     mock_wallet = MagicMock(
-        spec=bittensor.wallet,
+        spec=Wallet,
         coldkey=MagicMock(),
         coldkeypub=MagicMock(
             # mock ss58 address
@@ -53,8 +54,8 @@ def test_serve_axon_with_external_ip_set():
         ),
     )
 
-    mock_config = bittensor.axon.config()
-    mock_axon_with_external_ip_set = bittensor.axon(
+    mock_config = Axon.config()
+    mock_axon_with_external_ip_set = Axon(
         wallet=mock_wallet,
         ip=internal_ip,
         external_ip=external_ip,
@@ -85,13 +86,13 @@ def test_serve_axon_with_external_port_set():
     mock_serve_axon = MagicMock(return_value=True)
 
     mock_subtensor = MagicMock(
-        spec=bittensor.subtensor,
+        spec=Subtensor,
         serve=mock_serve,
         serve_axon=mock_serve_axon,
     )
 
     mock_wallet = MagicMock(
-        spec=bittensor.wallet,
+        spec=Wallet,
         coldkey=MagicMock(),
         coldkeypub=MagicMock(
             # mock ss58 address
@@ -102,9 +103,9 @@ def test_serve_axon_with_external_port_set():
         ),
     )
 
-    mock_config = bittensor.axon.config()
+    mock_config = Axon.config()
 
-    mock_axon_with_external_port_set = bittensor.axon(
+    mock_axon_with_external_port_set = Axon(
         wallet=mock_wallet,
         port=internal_port,
         external_port=external_port,
@@ -134,10 +135,10 @@ class ExitEarly(Exception):
 
 
 def test_stake_multiple():
-    mock_amount: bittensor.Balance = bittensor.Balance.from_tao(1.0)
+    mock_amount: Balance = Balance.from_tao(1.0)
 
     mock_wallet = MagicMock(
-        spec=bittensor.wallet,
+        spec=Wallet,
         coldkey=MagicMock(),
         coldkeypub=MagicMock(
             # mock ss58 address
@@ -159,17 +160,17 @@ def test_stake_multiple():
     mock_do_stake = MagicMock(side_effect=ExitEarly)
 
     mock_subtensor = MagicMock(
-        spec=bittensor.subtensor,
+        spec=Subtensor,
         network="mock_net",
         get_balance=MagicMock(
-            return_value=bittensor.Balance.from_tao(mock_amount.tao + 20.0)
+            return_value=Balance.from_tao(mock_amount.tao + 20.0)
         ),  # enough balance to stake
         get_neuron_for_pubkey_and_subnet=MagicMock(return_value=mock_neuron),
         _do_stake=mock_do_stake,
     )
 
     with pytest.raises(ExitEarly):
-        bittensor.subtensor.add_stake_multiple(
+        Subtensor.add_stake_multiple(
             mock_subtensor,
             wallet=mock_wallet,
             hotkey_ss58s=mock_hotkey_ss58s,
@@ -294,7 +295,7 @@ def subtensor(substrate):
 
 @pytest.fixture
 def mock_logger():
-    with mock.patch.object(_logger, "warning") as mock_warning:
+    with mock.patch.object(logging, "warning") as mock_warning:
         yield mock_warning
 
 
