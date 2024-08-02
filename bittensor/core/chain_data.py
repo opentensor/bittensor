@@ -30,11 +30,11 @@ from scalecodec.type_registry import load_type_registry_preset
 from scalecodec.types import GenericCall
 from scalecodec.utils.ss58 import ss58_encode
 
-import bittensor
 from .settings import ss58_format
 from bittensor.utils import networking as net, RAOPERTAO, U16_NORMALIZED_FLOAT
 from bittensor.utils.balance import Balance
 from bittensor.utils.registration import torch, use_torch
+from bittensor.utils.btlogging import logging
 
 custom_rpc_type_registry = {
     "types": {
@@ -254,7 +254,7 @@ class AxonInfo:
         try:
             return json.dumps(asdict(self))
         except (TypeError, ValueError) as e:
-            bittensor.logging.error(f"Error converting AxonInfo to string: {e}")
+            logging.error(f"Error converting AxonInfo to string: {e}")
             return AxonInfo(0, "", 0, 0, "", "").to_string()
 
     @classmethod
@@ -277,11 +277,11 @@ class AxonInfo:
             data = json.loads(json_string)
             return cls(**data)
         except json.JSONDecodeError as e:
-            bittensor.logging.error(f"Error decoding JSON: {e}")
+            logging.error(f"Error decoding JSON: {e}")
         except TypeError as e:
-            bittensor.logging.error(f"Type error: {e}")
+            logging.error(f"Type error: {e}")
         except ValueError as e:
-            bittensor.logging.error(f"Value error: {e}")
+            logging.error(f"Value error: {e}")
         return AxonInfo(0, "", 0, 0, "", "")
 
     @classmethod
@@ -334,6 +334,7 @@ class ChainDataType(Enum):
     IPInfo = 7
     SubnetHyperparameters = 8
     ScheduledColdkeySwapInfo = 9
+    AccountId = 10
 
 
 def from_scale_encoding(
