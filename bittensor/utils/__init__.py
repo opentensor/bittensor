@@ -250,7 +250,7 @@ def u8_key_to_ss58(u8_key: List[int]) -> str:
     return scalecodec.ss58_encode(bytes(u8_key).hex(), ss58_format)
 
 
-def hash(content, encoding="utf-8"):
+def get_hash(content, encoding="utf-8"):
     sha3 = hashlib.sha3_256()
 
     # Update the hash object with the concatenated string
