@@ -55,7 +55,6 @@ from bittensor.core.errors import (
     UnknownSynapseError,
 )
 from bittensor.core.settings import defaults, version_as_int
-from bittensor.core.subtensor import Subtensor
 from bittensor.core.synapse import Synapse, TerminalInfo
 from bittensor.core.threadpool import PriorityThreadPoolExecutor
 from bittensor.utils import networking
