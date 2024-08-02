@@ -23,11 +23,17 @@ import uuid
 from typing import Any, AsyncGenerator, Dict, List, Optional, Union, Type
 
 import aiohttp
+from bittensor_wallet import Wallet
+from substrateinterface import Keypair
 
-import bittensor
+from bittensor.core.axon import Axon
+from bittensor.core.chain_data import AxonInfo
+from bittensor.core.settings import version_as_int
+from bittensor.core.stream import StreamingSynapse
+from bittensor.core.synapse import Synapse, TerminalInfo
+from bittensor.utils import networking
+from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import torch, use_torch
-from .stream import StreamingSynapse
-from .synapse import Synapse
 
 DENDRITE_ERROR_MAPPING: Dict[Type[Exception], tuple] = {
     aiohttp.ClientConnectorError: ("503", "Service unavailable"),
@@ -48,7 +54,7 @@ class DendriteMixin:
 
     In the brain analogy, dendrites receive signals
     from other neurons (in this case, network servers or axons), and the Dendrite class here is designed
-    to send requests to those endpoint to recieve inputs.
+    to send requests to those endpoint to receive inputs.
 
     This class includes a wallet or keypair used for signing messages, and methods for making
     HTTP requests to the network servers. It also provides functionalities such as logging
@@ -62,19 +68,19 @@ class DendriteMixin:
     Methods:
         __str__(): Returns a string representation of the Dendrite object.
         __repr__(): Returns a string representation of the Dendrite object, acting as a fallback for __str__().
-        query(self, *args, **kwargs) -> Union[bittensor.Synapse, List[bittensor.Synapse]]:
+        query(self, *args, **kwargs) -> Union[Synapse, List[Synapse]]:
             Makes synchronous requests to one or multiple target Axons and returns responses.
 
-        forward(self, axons, synapse=bittensor.Synapse(), timeout=12, deserialize=True, run_async=True, streaming=False) -> bittensor.Synapse:
+        forward(self, axons, synapse=Synapse(), timeout=12, deserialize=True, run_async=True, streaming=False) -> Synapse:
             Asynchronously sends requests to one or multiple Axons and collates their responses.
 
-        call(self, target_axon, synapse=bittensor.Synapse(), timeout=12.0, deserialize=True) -> bittensor.Synapse:
+        call(self, target_axon, synapse=Synapse(), timeout=12.0, deserialize=True) -> Synapse:
             Asynchronously sends a request to a specified Axon and processes the response.
 
-        call_stream(self, target_axon, synapse=bittensor.Synapse(), timeout=12.0, deserialize=True) -> AsyncGenerator[bittensor.Synapse, None]:
+        call_stream(self, target_axon, synapse=Synapse(), timeout=12.0, deserialize=True) -> AsyncGenerator[Synapse, None]:
             Sends a request to a specified Axon and yields an AsyncGenerator that contains streaming response chunks before finally yielding the filled Synapse as the final element.
 
-        preprocess_synapse_for_request(self, target_axon_info, synapse, timeout=12.0) -> bittensor.Synapse:
+        preprocess_synapse_for_request(self, target_axon_info, synapse, timeout=12.0) -> Synapse:
             Preprocesses the synapse for making a request, including building headers and signing.
 
         process_server_response(self, server_response, json_response, local_synapse):
@@ -91,31 +97,31 @@ class DendriteMixin:
 
     Example with a context manager::
 
-        aysnc with dendrite(wallet = bittensor.wallet()) as d:
+        async with dendrite(wallet = bittensor_wallet.Wallet()) as d:
             print(d)
             d( <axon> ) # ping axon
             d( [<axons>] ) # ping multiple
-            d( bittensor.axon(), bittensor.Synapse )
+            d( Axon(), Synapse )
 
     However, you are able to safely call :func:`dendrite.query()` without a context manager in a synchronous setting.
 
     Example without a context manager::
 
-        d = dendrite(wallet = bittensor.wallet() )
+        d = dendrite(wallet = bittensor_wallet.Wallet() )
         print(d)
         d( <axon> ) # ping axon
         d( [<axons>] ) # ping multiple
-        d( bittensor.axon(), bittensor.Synapse )
+        d( bittensor.core.axon.Axon(), bittensor.core.synapse.Synapse )
     """
 
     def __init__(
-        self, wallet: Optional[Union[bittensor.wallet, bittensor.Keypair]] = None
+        self, wallet: Optional[Union["Wallet", Keypair]] = None
     ):
         """
         Initializes the Dendrite object, setting up essential properties.
 
         Args:
-            wallet (Optional[Union['bittensor.wallet', 'bittensor.keypair']], optional):
+            wallet (Optional[Union['bittensor_wallet.Wallet', 'bittensor.keypair']], optional):
                 The user's wallet or keypair used for signing messages. Defaults to ``None``, in which case a new :func:`bittensor.wallet().hotkey` is generated and used.
         """
         # Initialize the parent class
@@ -125,12 +131,12 @@ class DendriteMixin:
         self.uuid = str(uuid.uuid1())
 
         # Get the external IP
-        self.external_ip = bittensor.utils.networking.get_external_ip()
+        self.external_ip = networking.get_external_ip()
 
         # If a wallet or keypair is provided, use its hotkey. If not, generate a new one.
         self.keypair = (
-            wallet.hotkey if isinstance(wallet, bittensor.wallet) else wallet
-        ) or bittensor.wallet().hotkey
+            wallet.hotkey if isinstance(wallet, Wallet) else wallet
+        ) or Wallet().hotkey
 
         self.synapse_history: list = []
 
@@ -253,14 +259,14 @@ class DendriteMixin:
         """
         error_id = str(uuid.uuid4())
         error_type = exception.__class__.__name__
-        bittensor.logging.error(f"{error_type}#{error_id}: {exception}")
+        logging.error(f"{error_type}#{error_id}: {exception}")
 
     def process_error_message(
         self,
-        synapse: Union[bittensor.Synapse, bittensor.StreamingSynapse],
+        synapse: Union["Synapse", "StreamingSynapse"],
         request_name: str,
         exception: Exception,
-    ) -> Union[bittensor.Synapse, bittensor.StreamingSynapse]:
+    ) -> Union["Synapse", "StreamingSynapse"]:
         """
         Handles exceptions that occur during network requests, updating the synapse with appropriate status codes and messages.
 
@@ -273,7 +279,7 @@ class DendriteMixin:
             exception: The exception object caught during the request.
 
         Returns:
-            bittensor.Synapse: The updated synapse object with the error status code and message.
+            Synapse: The updated synapse object with the error status code and message.
 
         Note:
             This method updates the synapse object in-place.
@@ -315,7 +321,7 @@ class DendriteMixin:
         Args:
             synapse: The synapse object representing the request being sent.
         """
-        bittensor.logging.trace(
+        logging.trace(
             f"dendrite | --> | {synapse.get_total_size()} B | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | 0 | Success"
         )
 
@@ -330,15 +336,11 @@ class DendriteMixin:
         Args:
             synapse: The synapse object representing the received response.
         """
-        bittensor.logging.trace(
+        logging.trace(
             f"dendrite | <-- | {synapse.get_total_size()} B | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | {synapse.dendrite.status_code} | {synapse.dendrite.status_message}"
         )
 
-    def query(
-        self, *args, **kwargs
-    ) -> List[
-        Union[AsyncGenerator[Any, Any], bittensor.Synapse, bittensor.StreamingSynapse]
-    ]:
+    def query(self, *args, **kwargs) -> "List[Union[AsyncGenerator[Any, Any], Synapse, StreamingSynapse]]":
         """
         Makes a synchronous request to multiple target Axons and returns the server responses.
 
@@ -347,11 +349,11 @@ class DendriteMixin:
         Args:
             axons (Union[List[Union['bittensor.AxonInfo', 'bittensor.axon']], Union['bittensor.AxonInfo', 'bittensor.axon']]):
                 The list of target Axon information.
-            synapse (bittensor.Synapse, optional): The Synapse object. Defaults to :func:`bittensor.Synapse()`.
+            synapse (Synapse, optional): The Synapse object. Defaults to :func:`Synapse()`.
             timeout (float, optional): The request timeout duration in seconds.
                 Defaults to ``12.0`` seconds.
         Returns:
-            Union[bittensor.Synapse, List[bittensor.Synapse]]: If a single target axon is provided, returns the response from that axon. If multiple target axons are provided, returns a list of responses from all target axons.
+            Union[Synapse, List[Synapse]]: If a single target axon is provided, returns the response from that axon. If multiple target axons are provided, returns a list of responses from all target axons.
         """
         result = None
         try:
@@ -360,7 +362,7 @@ class DendriteMixin:
         except Exception:
             new_loop = asyncio.new_event_loop()
             asyncio.set_event_loop(new_loop)
-            result = loop.run_until_complete(self.forward(*args, **kwargs))
+            result = new_loop.run_until_complete(self.forward(*args, **kwargs))
             new_loop.close()
         finally:
             self.close_session()
@@ -368,18 +370,13 @@ class DendriteMixin:
 
     async def forward(
         self,
-        axons: Union[
-            List[Union[bittensor.AxonInfo, bittensor.axon]],
-            Union[bittensor.AxonInfo, bittensor.axon],
-        ],
+        axons: "Union[List[Union[AxonInfo, Axon]], Union[AxonInfo, Axon]]",
         synapse: "Synapse" = Synapse(),
         timeout: float = 12,
         deserialize: bool = True,
         run_async: bool = True,
         streaming: bool = False,
-    ) -> List[
-        Union[AsyncGenerator[Any, Any], bittensor.Synapse, bittensor.StreamingSynapse]
-    ]:
+    ) -> "List[Union[AsyncGenerator[Any, Any], Synapse, StreamingSynapse]]":
         """
         Asynchronously sends requests to one or multiple Axons and collates their responses.
 
@@ -396,7 +393,7 @@ class DendriteMixin:
 
             ...
             wallet = bittensor.wallet()                   # Initialize a wallet
-            synapse = bittensor.Synapse(...)              # Create a synapse object that contains query data
+            synapse = Synapse(...)              # Create a synapse object that contains query data
             dendrte = bittensor.dendrite(wallet = wallet) # Initialize a dendrite instance
             axons = metagraph.axons                       # Create a list of axons to query
             responses = await dendrite(axons, synapse)    # Send the query to all axons and await the responses
@@ -416,14 +413,14 @@ class DendriteMixin:
         Args:
             axons (Union[List[Union['bittensor.AxonInfo', 'bittensor.axon']], Union['bittensor.AxonInfo', 'bittensor.axon']]):
                 The target Axons to send requests to. Can be a single Axon or a list of Axons.
-            synapse (bittensor.Synapse, optional): The Synapse object encapsulating the data. Defaults to a new :func:`bittensor.Synapse` instance.
+            synapse (Synapse, optional): The Synapse object encapsulating the data. Defaults to a new :func:`Synapse` instance.
             timeout (float, optional): Maximum duration to wait for a response from an Axon in seconds. Defaults to ``12.0``.
             deserialize (bool, optional): Determines if the received response should be deserialized. Defaults to ``True``.
             run_async (bool, optional): If ``True``, sends requests concurrently. Otherwise, sends requests sequentially. Defaults to ``True``.
             streaming (bool, optional): Indicates if the response is expected to be in streaming format. Defaults to ``False``.
 
         Returns:
-            Union[AsyncGenerator, bittensor.Synapse, List[bittensor.Synapse]]: If a single Axon is targeted, returns its response.
+            Union[AsyncGenerator, Synapse, List[Synapse]]: If a single Axon is targeted, returns its response.
             If multiple Axons are targeted, returns a list of their responses.
         """
         is_list = True
@@ -434,10 +431,10 @@ class DendriteMixin:
 
         # Check if synapse is an instance of the StreamingSynapse class or if streaming flag is set.
         is_streaming_subclass = issubclass(
-            synapse.__class__, bittensor.StreamingSynapse
+            synapse.__class__, StreamingSynapse
         )
         if streaming != is_streaming_subclass:
-            bittensor.logging.warning(
+            logging.warning(
                 f"Argument streaming is {streaming} while issubclass(synapse, StreamingSynapse) is {synapse.__class__.__name__}. This may cause unexpected behavior."
             )
         streaming = is_streaming_subclass or streaming
@@ -445,7 +442,7 @@ class DendriteMixin:
         async def query_all_axons(
             is_stream: bool,
         ) -> Union[
-            AsyncGenerator[Any, Any], bittensor.Synapse, bittensor.StreamingSynapse
+            AsyncGenerator[Any, Any], Synapse, StreamingSynapse
         ]:
             """
             Handles the processing of requests to all targeted axons, accommodating both streaming and non-streaming responses.
@@ -459,16 +456,14 @@ class DendriteMixin:
                 If ``True``, responses are handled in streaming mode.
 
             Returns:
-                List[Union[AsyncGenerator, bittensor.Synapse, bittensor.StreamingSynapse]]: A list
+                List[Union[AsyncGenerator, Synapse, bittensor.StreamingSynapse]]: A list
                 containing the responses from each axon. The type of each response depends on the
                 streaming mode and the type of synapse used.
             """
 
             async def single_axon_response(
                 target_axon,
-            ) -> Union[
-                AsyncGenerator[Any, Any], bittensor.Synapse, bittensor.StreamingSynapse
-            ]:
+            ) -> "Union[AsyncGenerator[Any, Any], Synapse, StreamingSynapse]":
                 """
                 Manages the request and response process for a single axon, supporting both streaming and non-streaming modes.
 
@@ -481,7 +476,7 @@ class DendriteMixin:
                     target_axon: The target axon object to which the request is to be sent. This object contains the necessary information like IP address and port to formulate the request.
 
                 Returns:
-                    Union[AsyncGenerator, bittensor.Synapse, bittensor.StreamingSynapse]: The response
+                    Union[AsyncGenerator, Synapse, bittensor.StreamingSynapse]: The response
                     from the targeted axon. In streaming mode, an AsyncGenerator is returned, yielding
                     data chunks. In non-streaming mode, a Synapse or StreamingSynapse object is returned
                     containing the response.
@@ -520,11 +515,11 @@ class DendriteMixin:
 
     async def call(
         self,
-        target_axon: Union[bittensor.AxonInfo, bittensor.axon],
+        target_axon: Union["AxonInfo", "Axon"],
         synapse: "Synapse" = Synapse(),
         timeout: float = 12.0,
         deserialize: bool = True,
-    ) -> bittensor.Synapse:
+    ) -> "Synapse":
         """
         Asynchronously sends a request to a specified Axon and processes the response.
 
@@ -534,19 +529,19 @@ class DendriteMixin:
 
         Args:
             target_axon (Union['bittensor.AxonInfo', 'bittensor.axon']): The target Axon to send the request to.
-            synapse (bittensor.Synapse, optional): The Synapse object encapsulating the data. Defaults to a new :func:`bittensor.Synapse` instance.
+            synapse (Synapse, optional): The Synapse object encapsulating the data. Defaults to a new :func:`Synapse` instance.
             timeout (float, optional): Maximum duration to wait for a response from the Axon in seconds. Defaults to ``12.0``.
             deserialize (bool, optional): Determines if the received response should be deserialized. Defaults to ``True``.
 
         Returns:
-            bittensor.Synapse: The Synapse object, updated with the response data from the Axon.
+            Synapse: The Synapse object, updated with the response data from the Axon.
         """
 
         # Record start time
         start_time = time.time()
         target_axon = (
             target_axon.info()
-            if isinstance(target_axon, bittensor.axon)
+            if isinstance(target_axon, Axon)
             else target_axon
         )
 
@@ -584,7 +579,7 @@ class DendriteMixin:
 
             # Log synapse event history
             self.synapse_history.append(
-                bittensor.Synapse.from_headers(synapse.to_headers())
+                Synapse.from_headers(synapse.to_headers())
             )
 
             # Return the updated synapse object after deserializing if requested
@@ -592,11 +587,11 @@ class DendriteMixin:
 
     async def call_stream(
         self,
-        target_axon: Union[bittensor.AxonInfo, bittensor.axon],
+        target_axon: "Union[AxonInfo, Axon]",
         synapse: "StreamingSynapse" = Synapse(),  # type: ignore
         timeout: float = 12.0,
         deserialize: bool = True,
-    ) -> AsyncGenerator[Any, Any]:
+    ) -> "AsyncGenerator[Any, Any]":
         """
         Sends a request to a specified Axon and yields streaming responses.
 
@@ -607,20 +602,20 @@ class DendriteMixin:
 
         Args:
             target_axon (Union['bittensor.AxonInfo', 'bittensor.axon']): The target Axon to send the request to.
-            synapse (bittensor.Synapse, optional): The Synapse object encapsulating the data. Defaults to a new :func:`bittensor.Synapse` instance.
+            synapse (Synapse, optional): The Synapse object encapsulating the data. Defaults to a new :func:`Synapse` instance.
             timeout (float, optional): Maximum duration to wait for a response (or a chunk of the response) from the Axon in seconds. Defaults to ``12.0``.
             deserialize (bool, optional): Determines if each received chunk should be deserialized. Defaults to ``True``.
 
         Yields:
             object: Each yielded object contains a chunk of the arbitrary response data from the Axon.
-            bittensor.Synapse: After the AsyncGenerator has been exhausted, yields the final filled Synapse.
+            Synapse: After the AsyncGenerator has been exhausted, yields the final filled Synapse.
         """
 
         # Record start time
         start_time = time.time()
         target_axon = (
             target_axon.info()
-            if isinstance(target_axon, bittensor.axon)
+            if isinstance(target_axon, Axon)
             else target_axon
         )
 
@@ -666,7 +661,7 @@ class DendriteMixin:
 
             # Log synapse event history
             self.synapse_history.append(
-                bittensor.Synapse.from_headers(synapse.to_headers())
+                Synapse.from_headers(synapse.to_headers())
             )
 
             # Return the updated synapse object after deserializing if requested
@@ -677,35 +672,35 @@ class DendriteMixin:
 
     def preprocess_synapse_for_request(
         self,
-        target_axon_info: bittensor.AxonInfo,
-        synapse: bittensor.Synapse,
+        target_axon_info: "AxonInfo",
+        synapse: "Synapse",
         timeout: float = 12.0,
-    ) -> bittensor.Synapse:
+    ) -> "Synapse":
         """
         Preprocesses the synapse for making a request. This includes building
         headers for Dendrite and Axon and signing the request.
 
         Args:
             target_axon_info (bittensor.AxonInfo): The target axon information.
-            synapse (bittensor.Synapse): The synapse object to be preprocessed.
+            synapse (Synapse): The synapse object to be preprocessed.
             timeout (float, optional): The request timeout duration in seconds.
                 Defaults to ``12.0`` seconds.
 
         Returns:
-            bittensor.Synapse: The preprocessed synapse.
+            Synapse: The preprocessed synapse.
         """
         # Set the timeout for the synapse
         synapse.timeout = timeout
-        synapse.dendrite = bittensor.TerminalInfo(
+        synapse.dendrite = TerminalInfo(
             ip=self.external_ip,
-            version=bittensor.__version_as_int__,
+            version=version_as_int,
             nonce=time.time_ns(),
             uuid=self.uuid,
             hotkey=self.keypair.ss58_address,
         )
 
         # Build the Axon headers using the target axon's details
-        synapse.axon = bittensor.TerminalInfo(
+        synapse.axon = TerminalInfo(
             ip=target_axon_info.ip,
             port=target_axon_info.port,
             hotkey=target_axon_info.hotkey,
@@ -721,7 +716,7 @@ class DendriteMixin:
         self,
         server_response: aiohttp.ClientResponse,
         json_response: dict,
-        local_synapse: bittensor.Synapse,
+        local_synapse: Synapse,
     ):
         """
         Processes the server response, updates the local synapse state with the
@@ -730,7 +725,7 @@ class DendriteMixin:
         Args:
             server_response (object): The `aiohttp <https://github.com/aio-libs/aiohttp>`_ response object from the server.
             json_response (dict): The parsed JSON response from the server.
-            local_synapse (bittensor.Synapse): The local synapse object to be updated.
+            local_synapse (Synapse): The local synapse object to be updated.
 
         Raises:
             None: But errors in attribute setting are silently ignored.
@@ -752,12 +747,12 @@ class DendriteMixin:
         else:
             # If the server responded with an error, update the local synapse state
             if local_synapse.axon is None:
-                local_synapse.axon = bittensor.TerminalInfo()
+                local_synapse.axon = TerminalInfo()
             local_synapse.axon.status_code = server_response.status
             local_synapse.axon.status_message = json_response.get("message")
 
         # Extract server headers and overwrite None values in local synapse headers
-        server_headers = bittensor.Synapse.from_headers(server_response.headers)  # type: ignore
+        server_headers = Synapse.from_headers(server_response.headers)  # type: ignore
 
         # Merge dendrite headers
         local_synapse.dendrite.__dict__.update(
@@ -859,10 +854,8 @@ class DendriteMixin:
 BaseModel: Union["torch.nn.Module", object] = torch.nn.Module if use_torch() else object
 
 
-class dendrite(DendriteMixin, BaseModel):  # type: ignore
-    def __init__(
-        self, wallet: Optional[Union[bittensor.wallet, bittensor.Keypair]] = None
-    ):
+class Dendrite(DendriteMixin, BaseModel):  # type: ignore
+    def __init__(self, wallet: Optional[Union[Wallet, Keypair]] = None):
         if use_torch():
             torch.nn.Module.__init__(self)
         DendriteMixin.__init__(self, wallet)
@@ -873,4 +866,4 @@ if not use_torch():
     async def call(self, *args, **kwargs):
         return await self.forward(*args, **kwargs)
 
-    dendrite.__call__ = call
+    Dendrite.__call__ = call
