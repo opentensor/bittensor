@@ -1086,6 +1086,199 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
                 # NO prompt happened
                 mock_ask_prompt.assert_not_called()
 
+    def test_sign_prompt_wallet_name_and_message(self, _):
+        base_args = [
+            "wallet",
+            "sign",
+        ]
+        # Patch command to exit early
+        with patch(
+            "bittensor.commands.wallets.WalletSignCommand.run", return_value=None
+        ):
+            # Test prompt happens when
+            # - wallet name IS NOT passed, AND
+            # - wallet hotkey IS NOT passed, AND
+            # - message IS NOT passed
+            with patch("rich.prompt.Prompt.ask") as mock_ask_prompt:
+                mock_ask_prompt.side_effect = ["mock", None, "mock_message"]
+
+                cli = bittensor.cli(
+                    args=base_args
+                    + [
+                        # '--wallet.name', 'mock',
+                        # '--wallet.hotkey', None,
+                        #' --message', 'mock_message',
+                    ]
+                )
+                cli.run()
+
+                # Prompt happened
+                mock_ask_prompt.assert_called()
+                self.assertEqual(
+                    mock_ask_prompt.call_count,
+                    3,
+                    msg="Prompt should have been called thrice",
+                )
+                args0, kwargs0 = mock_ask_prompt.call_args_list[0]
+                combined_args_kwargs0 = [arg for arg in args0] + [
+                    val for val in kwargs0.values()
+                ]
+                # check that prompt was called for wallet name
+                self.assertTrue(
+                    any(
+                        filter(
+                            lambda x: "wallet name" in x.lower(), combined_args_kwargs0
+                        )
+                    ),
+                    msg=f"Prompt should have been called for wallet name: {combined_args_kwargs0}",
+                )
+
+                args1, kwargs1 = mock_ask_prompt.call_args_list[1]
+                combined_args_kwargs1 = [arg for arg in args1] + [
+                    val for val in kwargs1.values()
+                ]
+                # check that prompt was called for hotkey
+                self.assertTrue(
+                    any(filter(lambda x: "hotkey" in x.lower(), combined_args_kwargs1)),
+                    msg=f"Prompt should have been called for hotkey {combined_args_kwargs1}",
+                )
+
+                args2, kwargs2 = mock_ask_prompt.call_args_list[2]
+                combined_args_kwargs2 = [arg for arg in args2] + [
+                    val for val in kwargs2.values()
+                ]
+                # check that prompt was called for message
+                self.assertTrue(
+                    any(
+                        filter(lambda x: "message" in x.lower(), combined_args_kwargs2)
+                    ),
+                    msg=f"Prompt should have been called for message {combined_args_kwargs2}",
+                )
+
+            # Test prompt happens when
+            # - wallet name IS NOT passed, AND
+            # - wallet hotkey IS NOT passed, AND
+            # - message IS passed
+            with patch("rich.prompt.Prompt.ask") as mock_ask_prompt:
+                mock_ask_prompt.side_effect = ["mock", "mock_hotkey", "mock_message"]
+
+                cli = bittensor.cli(
+                    args=base_args
+                    + [
+                        #'--wallet.name', 'mock',
+                        "--message",
+                        "mock_message",
+                    ]
+                )
+                cli.run()
+
+                # Prompt happened
+                mock_ask_prompt.assert_called()
+                self.assertEqual(
+                    mock_ask_prompt.call_count,
+                    2,
+                    msg="Prompt should have been called TRICE",
+                )
+                args0, kwargs0 = mock_ask_prompt.call_args_list[0]
+                combined_args_kwargs0 = [arg for arg in args0] + [
+                    val for val in kwargs0.values()
+                ]
+                # check that prompt was called for wallet name
+                self.assertTrue(
+                    any(
+                        filter(
+                            lambda x: "wallet name" in x.lower(), combined_args_kwargs0
+                        )
+                    ),
+                    msg=f"Prompt should have been called for wallet name: {combined_args_kwargs0}",
+                )
+
+                args1, kwargs1 = mock_ask_prompt.call_args_list[1]
+                combined_args_kwargs1 = [arg for arg in args1] + [
+                    val for val in kwargs1.values()
+                ]
+                # check that prompt was called for hotkey
+                self.assertTrue(
+                    any(filter(lambda x: "hotkey" in x.lower(), combined_args_kwargs1)),
+                    msg=f"Prompt should have been called for hotkey {combined_args_kwargs1}",
+                )
+
+            # Test prompt happens when
+            # - wallet name IS passed, AND
+            # - wallet hotkey IS NOT passed, AND
+            # - message IS NOT passed
+            with patch("rich.prompt.Prompt.ask") as mock_ask_prompt:
+                mock_ask_prompt.side_effect = ["mock", "mock_hotkey", "mock_message"]
+
+                cli = bittensor.cli(
+                    args=base_args
+                    + [
+                        "--wallet.name",
+                        "mock",
+                        #'--message', 'mock_message',
+                    ]
+                )
+                cli.run()
+
+                # Prompt happened
+                mock_ask_prompt.assert_called()
+                self.assertEqual(
+                    mock_ask_prompt.call_count,
+                    1,
+                    msg="Prompt should have been called ONCE",
+                )
+                args0, kwargs0 = mock_ask_prompt.call_args_list[0]
+                combined_args_kwargs0 = [arg for arg in args0] + [
+                    val for val in kwargs0.values()
+                ]
+                # check that prompt was called for message
+                self.assertTrue(
+                    any(
+                        filter(lambda x: "message" in x.lower(), combined_args_kwargs0)
+                    ),
+                    msg=f"Prompt should have been called for message {combined_args_kwargs0}",
+                )
+
+            # Test NO prompt happens when
+            # - wallet name IS passed, AND
+            # - wallet hotkey IS NOT passed, AND
+            # - message IS passed
+            with patch("rich.prompt.Prompt.ask") as mock_ask_prompt:
+                cli = bittensor.cli(
+                    args=base_args
+                    + [
+                        "--wallet.name",
+                        "coolwalletname",
+                        "--message",
+                        "coolmessage",
+                    ]
+                )
+                cli.run()
+
+                # NO prompt happened
+                mock_ask_prompt.assert_not_called()
+
+            # Test NO prompt happens when
+            # - wallet name 'default' IS passed, AND
+            # - wallet hotkey 'default' IS passed, AND
+            # - message 'default' IS passed
+            with patch("rich.prompt.Prompt.ask") as mock_ask_prompt:
+                cli = bittensor.cli(
+                    args=base_args
+                    + [
+                        "--wallet.name",
+                        "default",
+                        "--wallet.hotkey",
+                        "default",
+                        "--message",
+                        "default",
+                    ]
+                )
+                cli.run()
+
+                # NO prompt happened
+                mock_ask_prompt.assert_not_called()
+
     def test_delegate_prompt_hotkey(self, _):
         # Tests when
         # - wallet name IS passed, AND
