@@ -15,54 +15,50 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import bittensor
-
 import json
-import bittensor.utils.networking as net
+
+from bittensor_wallet import Wallet
+
+from bittensor.core.settings import version_as_int, bt_console
+from bittensor.core.types import PrometheusServeCallParams
+from bittensor.utils import networking as net
+from bittensor.utils.btlogging import logging
 
 
 def prometheus_extrinsic(
-    subtensor: "bittensor.subtensor",
-    wallet: "bittensor.wallet",
+    subtensor,
+    wallet: "Wallet",
     port: int,
     netuid: int,
     ip: int = None,
     wait_for_inclusion: bool = False,
     wait_for_finalization=True,
 ) -> bool:
-    r"""Subscribes an Bittensor endpoint to the substensor chain.
+    """Subscribes a Bittensor endpoint to the substensor chain.
 
     Args:
-        subtensor (bittensor.subtensor):
-            Bittensor subtensor object.
-        wallet (bittensor.wallet):
-            Bittensor wallet object.
-        ip (str):
-            Endpoint host port i.e., ``192.122.31.4``.
-        port (int):
-            Endpoint port number i.e., `9221`.
-        netuid (int):
-            Network `uid` to serve on.
-        wait_for_inclusion (bool):
-            If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization (bool):
-            If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
+        subtensor (bittensor.subtensor): Bittensor subtensor object.
+        wallet (bittensor.wallet): Bittensor wallet object.
+        ip (str): Endpoint host port i.e., ``192.122.31.4``.
+        port (int): Endpoint port number i.e., `9221`.
+        netuid (int): Network `uid` to serve on.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
+
     Returns:
-        success (bool):
-            Flag is ``true`` if extrinsic was finalized or uncluded in the block.
-            If we did not wait for finalization / inclusion, the response is ``true``.
+        success (bool): Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
 
-    # ---- Get external ip ----
+    # Get external ip
     if ip is None:
         try:
             external_ip = net.get_external_ip()
-            bittensor.__console__.print(
+            bt_console.print(
                 ":white_heavy_check_mark: [green]Found external ip: {}[/green]".format(
                     external_ip
                 )
             )
-            bittensor.logging.success(
+            logging.success(
                 prefix="External IP", suffix="<blue>{}</blue>".format(external_ip)
             )
         except Exception as E:
@@ -74,14 +70,14 @@ def prometheus_extrinsic(
     else:
         external_ip = ip
 
-    call_params: "bittensor.PrometheusServeCallParams" = {
-        "version": bittensor.__version_as_int__,
+    call_params: "PrometheusServeCallParams" = {
+        "version": version_as_int,
         "ip": net.ip_to_int(external_ip),
         "port": port,
         "ip_type": net.ip_version(external_ip),
     }
 
-    with bittensor.__console__.status(":satellite: Checking Prometheus..."):
+    with bt_console.status(":satellite: Checking Prometheus..."):
         neuron = subtensor.get_neuron_for_pubkey_and_subnet(
             wallet.hotkey.ss58_address, netuid=netuid
         )
@@ -93,7 +89,7 @@ def prometheus_extrinsic(
         }
 
     if neuron_up_to_date:
-        bittensor.__console__.print(
+        bt_console.print(
             f":white_heavy_check_mark: [green]Prometheus already Served[/green]\n"
             f"[green not bold]- Status: [/green not bold] |"
             f"[green not bold] ip: [/green not bold][white not bold]{net.int_to_ip(neuron.prometheus_info.ip)}[/white not bold] |"
@@ -102,7 +98,7 @@ def prometheus_extrinsic(
             f"[green not bold] version: [/green not bold][white not bold]{neuron.prometheus_info.version}[/white not bold] |"
         )
 
-        bittensor.__console__.print(
+        bt_console.print(
             ":white_heavy_check_mark: [white]Prometheus already served.[/white]".format(
                 external_ip
             )
@@ -112,7 +108,7 @@ def prometheus_extrinsic(
     # Add netuid, not in prometheus_info
     call_params["netuid"] = netuid
 
-    with bittensor.__console__.status(
+    with bt_console.status(
         ":satellite: Serving prometheus on: [white]{}:{}[/white] ...".format(
             subtensor.network, netuid
         )
@@ -126,14 +122,14 @@ def prometheus_extrinsic(
 
         if wait_for_inclusion or wait_for_finalization:
             if success is True:
-                bittensor.__console__.print(
+                bt_console.print(
                     ":white_heavy_check_mark: [green]Served prometheus[/green]\n  [bold white]{}[/bold white]".format(
                         json.dumps(call_params, indent=4, sort_keys=True)
                     )
                 )
                 return True
             else:
-                bittensor.__console__.print(f":cross_mark: [red]Failed[/red]: {err}")
+                bt_console.print(f":cross_mark: [red]Failed[/red]: {err}")
                 return False
         else:
             return True
