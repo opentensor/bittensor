@@ -26,6 +26,7 @@ retry
 requests
 rich
 scalecodec==1.2.11
+setuptools~=70.0.0 
 shtab~=1.6.5
 substrate-interface~=1.7.9
 termcolor
