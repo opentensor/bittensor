@@ -15,8 +15,55 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import os
+__version__ = "7.3.0"
 
+import os
+import re
+from pathlib import Path
+from rich.console import Console
+from rich.traceback import install
+
+from munch import munchify
+
+
+# Rich console.
+__console__ = Console()
+__use_console__ = True
+
+# Remove overdue locals in debug training.
+install(show_locals=False)
+
+
+def turn_console_off():
+    global __use_console__
+    global __console__
+    from io import StringIO
+
+    __use_console__ = False
+    __console__ = Console(file=StringIO(), stderr=False)
+
+
+def turn_console_on():
+    global __use_console__
+    global __console__
+    __use_console__ = True
+    __console__ = Console()
+
+
+turn_console_off()
+
+
+HOME_DIR = Path.home()
+USER_BITTENSOR_DIR = HOME_DIR / ".bittensor"
+WALLETS_DIR = USER_BITTENSOR_DIR / "wallets"
+MINERS_DIR = USER_BITTENSOR_DIR / "miners"
+
+DEFAULT_ENDPOINT = "wss://entrypoint-finney.opentensor.ai:443"
+DEFAULT_NETWORK = "finney"
+
+# Create dirs if they don't exist
+WALLETS_DIR.mkdir(parents=True, exist_ok=True)
+MINERS_DIR.mkdir(parents=True, exist_ok=True)
 
 # Bittensor networks name
 networks = ["local", "finney", "test", "archive"]
@@ -177,3 +224,45 @@ type_registry = {
         },
     },
 }
+
+defaults = Munch = munchify({
+    "axon": {
+        "port": os.getenv("BT_AXON_PORT") or 8091,
+        "ip": os.getenv("BT_AXON_IP") or "[::]",
+        "external_port": os.getenv("BT_AXON_EXTERNAL_PORT") or None,
+        "external_ip": os.getenv("BT_AXON_EXTERNAL_IP") or None,
+        "max_workers": os.getenv("BT_AXON_MAX_WORKERS") or 10,
+    },
+    "logging": {
+        "debug": os.getenv("BT_LOGGING_DEBUG") or False,
+        "trace": os.getenv("BT_LOGGING_TRACE") or False,
+        "record_log": os.getenv("BT_LOGGING_RECORD_LOG") or False,
+        "logging_dir": os.getenv("BT_LOGGING_LOGGING_DIR") or str(MINERS_DIR),
+    },
+    "priority": {
+        "max_workers": os.getenv("BT_PRIORITY_MAX_WORKERS") or 5,
+        "maxsize": os.getenv("BT_PRIORITY_MAXSIZE") or 10
+    },
+    "subtensor": {
+        "chain_endpoint": DEFAULT_ENDPOINT,
+        "network": DEFAULT_NETWORK,
+        "_mock": False
+    },
+    "wallet": {
+        "name": "default",
+        "hotkey": "default",
+        "path": str(WALLETS_DIR),
+    },
+})
+
+
+# Parsing version without any literals.
+__version__ = re.match(r"^\d+\.\d+\.\d+", __version__).group(0)
+
+version_split = __version__.split(".")
+_version_info = tuple(int(part) for part in version_split)
+_version_int_base = 1000
+assert max(_version_info) < _version_int_base
+
+version_as_int: int = sum(e * (_version_int_base**i) for i, e in enumerate(reversed(_version_info)))
+assert version_as_int < 2 ** 31  # fits in int32
