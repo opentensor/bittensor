@@ -78,7 +78,7 @@ class DendriteMixin:
 
     Example with a context manager::
 
-        >>> aysnc with dendrite(wallet = bittensor.wallet()) as d:
+        >>> async with dendrite(wallet = bittensor.wallet()) as d:
         >>>     print(d)
         >>>     d( <axon> ) # ping axon
         >>>     d( [<axons>] ) # ping multiple
