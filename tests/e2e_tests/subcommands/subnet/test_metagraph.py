@@ -74,6 +74,9 @@ def test_metagraph_command(local_chain, capsys):
     assert f"Metagraph: net: local:{netuid}" in captured.out
     assert "N: 1/1" in captured.out
 
+    # Create a secondary metagraph to test .load() later on
+    metagraph_pre_dave = subtensor.metagraph(netuid=netuid)
+
     # Register Dave as neuron to the subnet
     dave_keypair, dave_exec_command, dave_wallet = setup_wallet("//Dave")
     dave_exec_command(
@@ -106,3 +109,18 @@ def test_metagraph_command(local_chain, capsys):
     # Assert the neuron is registered and displayed
     assert f"Metagraph: net: local:{netuid}" in captured.out
     assert "N: 2/2" in captured.out
+
+    # Check save/load cycle
+    metagraph.save()
+    metagraph_pre_dave.load()
+
+    # Assert in progressive detail
+    assert len(metagraph.uids) == len(metagraph_pre_dave.uids)
+    assert (metagraph.uids == metagraph_pre_dave.uids).all()
+
+    assert len(metagraph.axons) == len(metagraph_pre_dave.axons)
+    assert metagraph.axons[1].hotkey == metagraph_pre_dave.axons[1].hotkey
+    assert metagraph.axons == metagraph_pre_dave.axons
+
+    assert len(metagraph.neurons) == len(metagraph_pre_dave.neurons)
+    assert metagraph.neurons == metagraph_pre_dave.neurons
