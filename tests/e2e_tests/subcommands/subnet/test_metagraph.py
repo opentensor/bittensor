@@ -19,13 +19,19 @@ Verify that:
 
 
 def test_metagraph_command(local_chain, capsys):
-    netuid = 1
     # Register root as Alice
     keypair, exec_command, wallet = setup_wallet("//Alice")
-    exec_command(RegisterSubnetworkCommand, ["s", "create"])
 
-    # Verify subnet <netuid> created successfully
-    assert local_chain.query("SubtensorModule", "NetworksAdded", [netuid]).serialize()
+    # The rest of the test will use subnet 2
+    netuid = 2
+
+    for i in range(netuid):
+        # Register subnet <i+1>
+        exec_command(RegisterSubnetworkCommand, ["s", "create"])
+        # Verify subnet <i+1> created successfully
+        assert local_chain.query(
+            "SubtensorModule", "NetworksAdded", [i + 1]
+        ).serialize()
 
     subtensor = bittensor.subtensor(network="ws://localhost:9945")
 
