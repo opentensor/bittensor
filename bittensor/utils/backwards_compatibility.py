@@ -111,8 +111,7 @@ from bittensor.utils import (  # noqa: F401
     U16_NORMALIZED_FLOAT,
     U64_NORMALIZED_FLOAT,
     u8_key_to_ss58,
-    get_hash,
-    wallet_utils,
+    get_hash
 )
 from bittensor.utils.balance import Balance as Balance   # noqa: F401
 from bittensor.utils.subnets import SubnetsAPI  # noqa: F401

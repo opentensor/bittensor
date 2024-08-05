@@ -222,6 +222,7 @@ def convert_weights_and_uids_for_emit(
     return weight_uids, weight_vals
 
 
+# The community uses / bittensor does not
 def process_weights_for_netuid(
     uids: Union[NDArray[np.int64], "torch.Tensor"],
     weights: Union[NDArray[np.float32], "torch.Tensor"],
@@ -229,10 +230,7 @@ def process_weights_for_netuid(
     subtensor: "Subtensor",
     metagraph: "Metagraph" = None,
     exclude_quantile: int = 0,
-) -> Union[
-    Tuple["torch.Tensor", "torch.FloatTensor"],
-    Tuple[NDArray[np.int64], NDArray[np.float32]],
-]:
+) -> Union[Tuple["torch.Tensor", "torch.FloatTensor"], Tuple[NDArray[np.int64], NDArray[np.float32]]]:
     logging.debug("process_weights_for_netuid()")
     logging.debug("weights", weights)
     logging.debug("netuid", netuid)

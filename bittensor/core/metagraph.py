@@ -24,15 +24,16 @@ from typing import List, Optional, Union, Tuple
 
 import numpy as np
 from numpy.typing import NDArray
-from rich.console import Console
 
 from . import settings
 from .chain_data import AxonInfo
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import torch, use_torch
-from bittensor.utils.weight_utils import convert_weight_uids_and_vals_to_tensor, convert_bond_uids_and_vals_to_tensor
-
-console = Console()
+from bittensor.utils.weight_utils import (
+    convert_weight_uids_and_vals_to_tensor,
+    convert_bond_uids_and_vals_to_tensor,
+    convert_root_weight_uids_and_vals_to_tensor
+)
 
 METAGRAPH_STATE_DICT_NDARRAY_KEYS = [
     "version",
@@ -1135,10 +1136,10 @@ class NonTorchMetagraph(MetagraphMixin):
             with open(graph_filename, "rb") as graph_file:
                 state_dict = pickle.load(graph_file)
         except pickle.UnpicklingError:
-            console.print(
+            settings.bt_console.print(
                 "Unable to load file. Attempting to restore metagraph using torch."
             )
-            console.print(
+            settings.bt_console.print(
                 ":warning:[yellow]Warning:[/yellow] This functionality exists to load "
                 "metagraph state from legacy saves, but will not be supported in the future."
             )
@@ -1150,7 +1151,7 @@ class NonTorchMetagraph(MetagraphMixin):
                     state_dict[key] = state_dict[key].detach().numpy()
                 del real_torch
             except (RuntimeError, ImportError):
-                console.print("Unable to load file. It may be corrupted.")
+                settings.bt_console.print("Unable to load file. It may be corrupted.")
                 raise
 
         self.n = state_dict["n"]

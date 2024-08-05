@@ -94,21 +94,20 @@ from bittensor.core.chain_data import (
     custom_rpc_type_registry,
 )
 from bittensor.core.config import Config
+from bittensor.core.errors import IdentityError, NominationError, StakeError, TakeError
 from bittensor.core.metagraph import Metagraph
+from bittensor.core.types import AxonServeCallParams, PrometheusServeCallParams
 from bittensor.utils import (
     U16_NORMALIZED_FLOAT,
     ss58_to_vec_u8,
     U64_NORMALIZED_FLOAT,
     networking,
 )
-from bittensor.utils import torch, weight_utils, format_error_message
-from bittensor.utils import wallet_utils
+from bittensor.utils import torch, weight_utils, format_error_message, create_identity_dict, decode_hex_identity_dict
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import POWSolution
 from bittensor.utils.registration import legacy_torch_api_compat
-from .errors import IdentityError, NominationError, StakeError, TakeError
-from .types import AxonServeCallParams, PrometheusServeCallParams
 
 KEY_NONCE: Dict[str, int] = {}
 
@@ -2779,7 +2778,7 @@ class Subtensor:
 
         identity_info = make_substrate_call_with_retry()
 
-        return wallet_utils.decode_hex_identity_dict(
+        return decode_hex_identity_dict(
             identity_info.value["info"]
         )
 
@@ -2818,7 +2817,7 @@ class Subtensor:
 
         params = {} if params is None else params
 
-        call_params = wallet_utils.create_identity_dict(**params)
+        call_params = create_identity_dict(**params)
         call_params["identified"] = identified
 
         @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=logging)
