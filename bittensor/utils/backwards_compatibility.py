@@ -97,7 +97,7 @@ from bittensor.core.subtensor import Subtensor
 from bittensor.core.synapse import TerminalInfo, Synapse   # noqa: F401
 from bittensor.core.tensor import tensor, Tensor   # noqa: F401
 from bittensor.core.threadpool import PriorityThreadPoolExecutor as PriorityThreadPoolExecutor   # noqa: F401
-from bittensor.mock.subtensor_mock import MockSubtensor as MockSubtensor   # noqa: F401
+from bittensor.utils.mock.subtensor_mock import MockSubtensor as MockSubtensor   # noqa: F401
 from bittensor.utils import (  # noqa: F401
     ss58_to_vec_u8,
     unbiased_topk,
@@ -146,3 +146,7 @@ __rao_symbol__ = settings.rao_symbol
 # Makes the `bittensor.api.extrinsics` subpackage available as `bittensor.extrinsics` for backwards compatibility.
 extrinsics = importlib.import_module('bittensor.api.extrinsics')
 sys.modules['bittensor.extrinsics'] = extrinsics
+
+# Makes the `bittensor.utils.mock` subpackage available as `bittensor.mock` for backwards compatibility.
+extrinsics = importlib.import_module('bittensor.utils.mock')
+sys.modules['bittensor.mock'] = extrinsics

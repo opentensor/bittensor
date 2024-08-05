@@ -18,7 +18,7 @@
 import bittensor
 import torch
 import os
-from bittensor.mock import MockSubtensor
+from bittensor.utils.mock import MockSubtensor
 from bittensor.core.metagraph import METAGRAPH_STATE_DICT_NDARRAY_KEYS, get_save_dir
 
 _subtensor_mock: MockSubtensor = MockSubtensor()

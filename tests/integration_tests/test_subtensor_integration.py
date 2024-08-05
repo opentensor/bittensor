@@ -25,7 +25,7 @@ import pytest
 from substrateinterface import Keypair
 
 import bittensor
-from bittensor.mock import MockSubtensor
+from bittensor.utils.mock import MockSubtensor
 from bittensor.utils import weight_utils
 from bittensor.utils.balance import Balance
 from tests.helpers import (
