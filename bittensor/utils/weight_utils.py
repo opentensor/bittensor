@@ -20,7 +20,6 @@ Conversion for weight between chain representation and np.array or torch.Tensor
 # DEALINGS IN THE SOFTWARE.
 
 import hashlib
-import logging
 from typing import Tuple, List, Union
 
 import numpy as np
@@ -145,7 +144,7 @@ def convert_root_weight_uids_and_vals_to_tensor(
                 wij
             )  # assumes max-upscaled values (w_max = U16_MAX).
         else:
-            logging.warning(
+            bittensor.logging.warning(
                 f"Incorrect Subnet uid {uid_j} in Subnets {subnets}. The subnet is unavailable at the moment."
             )
             continue
