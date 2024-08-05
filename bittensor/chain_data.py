@@ -1,14 +1,14 @@
 # The MIT License (MIT)
 # Copyright © 2023 Opentensor Foundation
-
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
 # the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
+#
 # The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
-
+#
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
 # THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
@@ -203,6 +203,14 @@ custom_rpc_type_registry = {
                 ["liquid_alpha_enabled", "bool"],
             ],
         },
+        "ScheduledColdkeySwapInfo": {
+            "type": "struct",
+            "type_mapping": [
+                ["old_coldkey", "AccountId"],
+                ["new_coldkey", "AccountId"],
+                ["arbitration_block", "Compact<u64>"],
+            ],
+        },
     }
 }
 
@@ -337,6 +345,7 @@ class ChainDataType(Enum):
     ChildInfo = 7
     IPInfo = 8
     SubnetHyperparameters = 9
+    ScheduledColdkeySwapInfo = 10
 
 
 def from_scale_encoding(
@@ -1253,3 +1262,56 @@ class ProposalVoteData(TypedDict):
 
 
 ProposalCallData = GenericCall
+
+
+@dataclass
+class ScheduledColdkeySwapInfo:
+    """Dataclass for scheduled coldkey swap information."""
+
+    old_coldkey: str
+    new_coldkey: str
+    arbitration_block: int
+
+    @classmethod
+    def fix_decoded_values(cls, decoded: Any) -> "ScheduledColdkeySwapInfo":
+        """Fixes the decoded values."""
+        return cls(
+            old_coldkey=ss58_encode(decoded["old_coldkey"], bittensor.__ss58_format__),
+            new_coldkey=ss58_encode(decoded["new_coldkey"], bittensor.__ss58_format__),
+            arbitration_block=decoded["arbitration_block"],
+        )
+
+    @classmethod
+    def from_vec_u8(cls, vec_u8: List[int]) -> Optional["ScheduledColdkeySwapInfo"]:
+        """Returns a ScheduledColdkeySwapInfo object from a ``vec_u8``."""
+        if len(vec_u8) == 0:
+            return None
+
+        decoded = from_scale_encoding(vec_u8, ChainDataType.ScheduledColdkeySwapInfo)
+        if decoded is None:
+            return None
+
+        return ScheduledColdkeySwapInfo.fix_decoded_values(decoded)
+
+    @classmethod
+    def list_from_vec_u8(cls, vec_u8: List[int]) -> List["ScheduledColdkeySwapInfo"]:
+        """Returns a list of ScheduledColdkeySwapInfo objects from a ``vec_u8``."""
+        decoded = from_scale_encoding(
+            vec_u8, ChainDataType.ScheduledColdkeySwapInfo, is_vec=True
+        )
+        if decoded is None:
+            return []
+
+        return [ScheduledColdkeySwapInfo.fix_decoded_values(d) for d in decoded]
+
+    @classmethod
+    def decode_account_id_list(cls, vec_u8: List[int]) -> Optional[List[str]]:
+        """Decodes a list of AccountIds from vec_u8."""
+        decoded = from_scale_encoding(
+            vec_u8, ChainDataType.ScheduledColdkeySwapInfo.AccountId, is_vec=True
+        )
+        if decoded is None:
+            return None
+        return [
+            ss58_encode(account_id, bittensor.__ss58_format__) for account_id in decoded
+        ]
