@@ -1,15 +1,14 @@
 # The MIT License (MIT)
-# Copyright © 2021 Yuma Rao
-# Copyright © 2023 Opentensor Technologies Inc
-
+# Copyright © 2024 Opentensor Foundation
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
 # the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
+#
 # The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
-
+#
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
 # THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
@@ -56,7 +55,7 @@ class TestSubtensor(unittest.TestCase):
     def setUpClass(cls) -> None:
         # mock rich console status
         mock_console = MockConsole()
-        cls._mock_console_patcher = patch("bittensor.__console__", mock_console)
+        cls._mock_console_patcher = patch("bittensor.core.settings.bt_console", mock_console)
         cls._mock_console_patcher.start()
 
         # Keeps the same mock network for all tests. This stops the network from being re-setup for each test.
@@ -711,7 +710,7 @@ class TestSubtensor(unittest.TestCase):
                 )
                 self.subtensor._do_pow_register = MagicMock(return_value=(True, None))
 
-                with patch("bittensor.__console__.status") as mock_set_status:
+                with patch("bittensor.core.settings.bt_console.status") as mock_set_status:
                     # Need to patch the console status to avoid opening a parallel live display
                     mock_set_status.__enter__ = MagicMock(return_value=True)
                     mock_set_status.__exit__ = MagicMock(return_value=True)

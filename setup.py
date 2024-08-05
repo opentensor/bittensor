@@ -15,18 +15,18 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from setuptools import setup, find_packages
-from os import path
-from io import open
 import codecs
-import re
 import os
 import pathlib
+import re
+from io import open
+from os import path
+
+from setuptools import setup, find_packages
 
 
 def read_requirements(path):
     requirements = []
-    git_requirements = []
 
     with pathlib.Path(path).open() as requirements_txt:
         for line in requirements_txt:
@@ -77,7 +77,6 @@ setup(
         "dev": extra_requirements_dev,
         "torch": extra_requirements_torch,
     },
-    scripts=["bin/btcli"],
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",
