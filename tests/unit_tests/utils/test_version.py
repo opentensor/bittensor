@@ -22,13 +22,16 @@ import pytest
 from freezegun import freeze_time
 from datetime import datetime, timedelta, timezone
 
-from bittensor.utils.version import (
-    VERSION_CHECK_THRESHOLD,
-    VersionCheckError,
-    get_and_save_latest_version,
-    check_version,
-    version_checking,
-)
+# from bittensor.utils.version import (
+#     VERSION_CHECK_THRESHOLD,
+#     VersionCheckError,
+#     get_and_save_latest_version,
+#     check_version,
+#     version_checking,
+#     __version__
+# )
+from bittensor.utils import version
+
 from unittest.mock import MagicMock
 from pytest_mock import MockerFixture
 
@@ -62,14 +65,14 @@ def test_get_and_save_latest_version_no_file(
 ):
     assert not version_file_path.exists()
 
-    assert get_and_save_latest_version() == pypi_version
+    assert version.get_and_save_latest_version() == pypi_version
 
     mock_get_version_from_pypi.assert_called_once()
     assert version_file_path.exists()
     assert version_file_path.read_text() == pypi_version
 
 
-@pytest.mark.parametrize("elapsed", [0, VERSION_CHECK_THRESHOLD - 5])
+@pytest.mark.parametrize("elapsed", [0, version.VERSION_CHECK_THRESHOLD - 5])
 def test_get_and_save_latest_version_file_fresh_check(
     mock_get_version_from_pypi: MagicMock, version_file_path: Path, elapsed: int
 ):
@@ -78,7 +81,7 @@ def test_get_and_save_latest_version_file_fresh_check(
     version_file_path.write_text("6.9.5")
 
     with freeze_time(now + timedelta(seconds=elapsed)):
-        assert get_and_save_latest_version() == "6.9.5"
+        assert version.get_and_save_latest_version() == "6.9.5"
 
     mock_get_version_from_pypi.assert_not_called()
 
@@ -90,8 +93,8 @@ def test_get_and_save_latest_version_file_expired_check(
 
     version_file_path.write_text("6.9.5")
 
-    with freeze_time(now + timedelta(seconds=VERSION_CHECK_THRESHOLD + 1)):
-        assert get_and_save_latest_version() == pypi_version
+    with freeze_time(now + timedelta(seconds=version.VERSION_CHECK_THRESHOLD + 1)):
+        assert version.get_and_save_latest_version() == pypi_version
 
     mock_get_version_from_pypi.assert_called_once()
     assert version_file_path.read_text() == pypi_version
@@ -111,13 +114,13 @@ def test_get_and_save_latest_version_file_expired_check(
 def test_check_version_newer_available(
     mocker: MockerFixture, current_version: str, latest_version: str, capsys
 ):
-    mocker.patch("bittensor.utils.version.bittensor.__version__", current_version)
+    version.__version__ = current_version
     mocker.patch(
         "bittensor.utils.version.get_and_save_latest_version",
         return_value=latest_version,
     )
 
-    check_version()
+    version.check_version()
 
     captured = capsys.readouterr()
 
@@ -137,13 +140,13 @@ def test_check_version_newer_available(
 def test_check_version_up_to_date(
     mocker: MockerFixture, current_version: str, latest_version: str, capsys
 ):
-    mocker.patch("bittensor.utils.version.bittensor.__version__", current_version)
+    version.__version__ = current_version
     mocker.patch(
         "bittensor.utils.version.get_and_save_latest_version",
         return_value=latest_version,
     )
 
-    check_version()
+    version.check_version()
 
     captured = capsys.readouterr()
 
@@ -153,16 +156,16 @@ def test_check_version_up_to_date(
 def test_version_checking(mocker: MockerFixture):
     mock = mocker.patch("bittensor.utils.version.check_version")
 
-    version_checking()
+    version.version_checking()
 
     mock.assert_called_once()
 
 
 def test_version_checking_exception(mocker: MockerFixture):
     mock = mocker.patch(
-        "bittensor.utils.version.check_version", side_effect=VersionCheckError
+        "bittensor.utils.version.check_version", side_effect=version.VersionCheckError
     )
 
-    version_checking()
+    version.version_checking()
 
     mock.assert_called_once()

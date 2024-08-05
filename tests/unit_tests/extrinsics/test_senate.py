@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from bittensor import subtensor, wallet
+from bittensor.core.subtensor import Subtensor
+from bittensor_wallet import Wallet
 from bittensor.api.extrinsics.senate import (
     leave_senate_extrinsic,
     register_senate_extrinsic,
@@ -11,14 +12,14 @@ from bittensor.api.extrinsics.senate import (
 # Mocking external dependencies
 @pytest.fixture
 def mock_subtensor():
-    mock = MagicMock(spec=subtensor)
+    mock = MagicMock(spec=Subtensor)
     mock.substrate = MagicMock()
     return mock
 
 
 @pytest.fixture
 def mock_wallet():
-    mock = MagicMock(spec=wallet)
+    mock = MagicMock(spec=Wallet)
     mock.coldkey = MagicMock()
     mock.hotkey = MagicMock()
     mock.hotkey.ss58_address = "fake_hotkey_address"
@@ -67,7 +68,7 @@ def test_register_senate_extrinsic(
             error_message="error",
         ),
     ) as mock_submit_extrinsic, patch.object(
-        mock_wallet, "is_senate_member", return_value=is_registered
+        mock_subtensor, "is_senate_member", return_value=is_registered
     ):
         # Act
         result = register_senate_extrinsic(
@@ -223,7 +224,7 @@ def test_leave_senate_extrinsic(
             process_events=MagicMock(),
             error_message="error",
         ),
-    ), patch.object(mock_wallet, "is_senate_member", return_value=is_registered):
+    ), patch.object(mock_subtensor, "is_senate_member", return_value=is_registered):
         # Act
         result = leave_senate_extrinsic(
             subtensor=mock_subtensor,

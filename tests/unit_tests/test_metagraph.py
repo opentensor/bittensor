@@ -21,9 +21,8 @@ from unittest.mock import Mock
 import numpy as np
 import pytest
 
-import bittensor
 from bittensor.core import settings
-from bittensor.core.metagraph import metagraph as Metagraph
+from bittensor.core.metagraph import Metagraph
 
 
 @pytest.fixture
@@ -59,7 +58,7 @@ def mock_environment():
 
 def test_set_metagraph_attributes(mock_environment):
     subtensor, neurons = mock_environment
-    metagraph = bittensor.metagraph(1, sync=False)
+    metagraph = Metagraph(1, sync=False)
     metagraph.neurons = neurons
     metagraph._set_metagraph_attributes(block=5, subtensor=subtensor)
 
@@ -97,7 +96,7 @@ def test_set_metagraph_attributes(mock_environment):
 
 def test_process_weights_or_bonds(mock_environment):
     _, neurons = mock_environment
-    metagraph = bittensor.metagraph(1, sync=False)
+    metagraph = Metagraph(1, sync=False)
     metagraph.neurons = neurons
 
     # Test weights processing

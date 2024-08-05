@@ -17,13 +17,15 @@
 
 import argparse
 
-from rich.console import Console
 from rich.table import Table
 
-import bittensor
+from bittensor.core.config import Config
+from bittensor.core.metagraph import Metagraph
+from bittensor.core.settings import bt_console
+from bittensor.core.subtensor import Subtensor
+from bittensor.utils.balance import Balance
+from bittensor.utils.btlogging import logging
 from .utils import check_netuid_set
-
-console = Console()
 
 
 class MetagraphCommand:
@@ -73,33 +75,34 @@ class MetagraphCommand:
     """
 
     @staticmethod
-    def run(cli: "bittensor.cli"):
+    def run(cli):
         r"""Prints an entire metagraph."""
         try:
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+            subtensor: "Subtensor" = Subtensor(
                 config=cli.config, log_verbose=False
             )
             MetagraphCommand._run(cli, subtensor)
         finally:
             if "subtensor" in locals():
                 subtensor.close()
-                bittensor.logging.debug("closing subtensor connection")
+                logging.debug("closing subtensor connection")
 
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+    @staticmethod
+    def _run(cli, subtensor: "Subtensor"):
         r"""Prints an entire metagraph."""
-        console = bittensor.__console__
+        console = bt_console
         console.print(
             ":satellite: Syncing with chain: [white]{}[/white] ...".format(
                 cli.config.subtensor.network
             )
         )
-        metagraph: bittensor.metagraph = subtensor.metagraph(netuid=cli.config.netuid)
+        metagraph: Metagraph = subtensor.metagraph(netuid=cli.config.netuid)
         metagraph.save()
         difficulty = subtensor.difficulty(cli.config.netuid)
-        subnet_emission = bittensor.Balance.from_tao(
+        subnet_emission = Balance.from_tao(
             subtensor.get_emission_value_by_subnet(cli.config.netuid)
         )
-        total_issuance = bittensor.Balance.from_rao(subtensor.total_issuance().rao)
+        total_issuance = Balance.from_rao(subtensor.total_issuance().rao)
 
         TABLE_DATA = []
         total_stake = 0.0
@@ -151,7 +154,7 @@ class MetagraphCommand:
             metagraph.block.item(),
             sum(metagraph.active.tolist()),
             metagraph.n.item(),
-            bittensor.Balance.from_tao(total_stake),
+            Balance.from_tao(total_stake),
             total_issuance,
             difficulty,
         )
@@ -247,9 +250,9 @@ class MetagraphCommand:
         console.print(table)
 
     @staticmethod
-    def check_config(config: "bittensor.config"):
+    def check_config(config: "Config"):
         check_netuid_set(
-            config, subtensor=bittensor.subtensor(config=config, log_verbose=False)
+            config, subtensor=Subtensor(config=config, log_verbose=False)
         )
 
     @staticmethod
@@ -265,4 +268,4 @@ class MetagraphCommand:
             default=False,
         )
 
-        bittensor.subtensor.add_args(metagraph_parser)
+        Subtensor.add_args(metagraph_parser)

@@ -15,14 +15,15 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import os
 import argparse
-import bittensor
-from rich.console import Console
+import os
+
 from rich.prompt import Prompt
 from rich.table import Table
 
-console = Console()
+from bittensor.core.config import Config
+from bittensor.core.settings import bt_console
+from bittensor.core.subtensor import Subtensor
 
 
 class UpdateCommand:
@@ -58,7 +59,7 @@ class UpdateCommand:
             os.system("pip install -e ~/.bittensor/bittensor/")
 
     @staticmethod
-    def check_config(config: "bittensor.config"):
+    def check_config(config: "Config"):
         if not config.no_prompt:
             answer = Prompt.ask(
                 "This will update the local bittensor package",
@@ -73,7 +74,7 @@ class UpdateCommand:
             "update", add_help=False, help="""Update bittensor """
         )
 
-        bittensor.subtensor.add_args(update_parser)
+        Subtensor.add_args(update_parser)
 
 
 class AutocompleteCommand:
@@ -81,7 +82,6 @@ class AutocompleteCommand:
 
     @staticmethod
     def run(cli):
-        console = bittensor.__console__
         shell_commands = {
             "Bash": "btcli --print-completion bash >> ~/.bashrc",
             "Zsh": "btcli --print-completion zsh >> ~/.zshrc",
@@ -95,16 +95,16 @@ class AutocompleteCommand:
         for shell, command in shell_commands.items():
             table.add_row(shell, command)
 
-        console.print(
+        bt_console.print(
             "To enable autocompletion for Bittensor CLI, run the appropriate command for your shell:"
         )
-        console.print(table)
+        bt_console.print(table)
 
-        console.print(
+        bt_console.print(
             "\n[bold]After running the command, execute the following to apply the changes:[/bold]"
         )
-        console.print("  [yellow]source ~/.bashrc[/yellow]  # For Bash and Zsh")
-        console.print("  [yellow]source ~/.tcshrc[/yellow]  # For Tcsh")
+        bt_console.print("  [yellow]source ~/.bashrc[/yellow]  # For Bash and Zsh")
+        bt_console.print("  [yellow]source ~/.tcshrc[/yellow]  # For Tcsh")
 
     @staticmethod
     def add_args(parser):

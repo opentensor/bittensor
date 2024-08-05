@@ -1,13 +1,12 @@
-# Standard Lib
+
 from copy import deepcopy
 from unittest.mock import MagicMock, patch
 
-# Pytest
 import pytest
 
-# Bittensor
-import bittensor
+from bittensor.btcli.cli import cli as btcli, COMMANDS as ALL_COMMANDS
 from bittensor.btcli.commands import OverviewCommand
+from bittensor.core.config import Config
 from tests.unit_tests.factories.neuron_factory import NeuronInfoLiteFactory
 
 
@@ -26,20 +25,20 @@ def fake_config(**kwargs):
 
 
 def construct_config():
-    parser = bittensor.cli.__create_parser__()
-    defaults = bittensor.config(parser=parser, args=[])
+    parser = btcli.__create_parser__()
+    defaults = Config(parser=parser, args=[])
     # Parse commands and subcommands
-    for command in bittensor.ALL_COMMANDS:
+    for command in ALL_COMMANDS:
         if (
-            command in bittensor.ALL_COMMANDS
-            and "commands" in bittensor.ALL_COMMANDS[command]
+            command in ALL_COMMANDS
+            and "commands" in ALL_COMMANDS[command]
         ):
-            for subcommand in bittensor.ALL_COMMANDS[command]["commands"]:
+            for subcommand in ALL_COMMANDS[command]["commands"]:
                 defaults.merge(
-                    bittensor.config(parser=parser, args=[command, subcommand])
+                    Config(parser=parser, args=[command, subcommand])
                 )
         else:
-            defaults.merge(bittensor.config(parser=parser, args=[command]))
+            defaults.merge(Config(parser=parser, args=[command]))
 
     defaults.netuid = 1
     # Always use mock subtensor.
@@ -93,7 +92,7 @@ def test_get_total_balance(
     mock_wallet.coldkeypub_file.is_encrypted.return_value = is_encrypted
 
     with patch(
-        "bittensor.wallet", return_value=mock_wallet
+        "bittensor_wallet.Wallet", return_value=mock_wallet
     ) as mock_wallet_constructor, patch(
         "bittensor.btcli.commands.overview.get_coldkey_wallets_for_path",
         return_value=[mock_wallet] if config_all else [],

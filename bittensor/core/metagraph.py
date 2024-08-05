@@ -26,10 +26,8 @@ import numpy as np
 from numpy.typing import NDArray
 from rich.console import Console
 
-from bittensor import __version__, __version_as_int__
 from . import settings
 from .chain_data import AxonInfo
-from .subtensor import Subtensor
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import torch, use_torch
 from bittensor.utils.weight_utils import convert_weight_uids_and_vals_to_tensor, convert_bond_uids_and_vals_to_tensor
@@ -444,7 +442,7 @@ class MetagraphMixin(ABC):
             "n": self.n.item(),
             "block": self.block.item(),
             "network": self.network,
-            "version": __version__,
+            "version": settings.__version__,
         }
 
     def state_dict(self):
@@ -509,20 +507,18 @@ class MetagraphMixin(ABC):
 
             For example::
 
-                subtensor = bittensor.subtensor(network='archive')
+                subtensor = bittensor.core.subtensor.Subtensor(network='archive')
         """
 
         # Initialize subtensor
         subtensor = self._initialize_subtensor(subtensor)
 
-        if (
-            subtensor.chain_endpoint != settings.archive_entrypoint  # type: ignore
-            or subtensor.network != "archive"  # type: ignore
-        ):
-            cur_block = subtensor.get_current_block()  # type: ignore
+        if subtensor.chain_endpoint != settings.archive_entrypoint or subtensor.network != settings.networks[3]:
+            cur_block = subtensor.get_current_block()
             if block and block < (cur_block - 300):
                 logging.warning(
-                    "Attempting to sync longer than 300 blocks ago on a non-archive node. Please use the 'archive' network for subtensor and retry."
+                    "Attempting to sync longer than 300 blocks ago on a non-archive node. Please use the 'archive' "
+                    "network for subtensor and retry."
                 )
 
         # Assign neurons based on 'lite' flag
@@ -556,6 +552,8 @@ class MetagraphMixin(ABC):
         """
         if not subtensor:
             # TODO: Check and test the initialization of the new subtensor
+            # Lazy import due to circular import (subtensor -> metagraph, metagraph -> subtensor)
+            from bittensor.core.subtensor import Subtensor
             subtensor = Subtensor(network=self.network)
         return subtensor
 
@@ -874,7 +872,7 @@ class TorchMetaGraph(MetagraphMixin, BaseClass):  # type: ignore
         self.netuid = netuid
         self.network = network
         self.version = torch.nn.Parameter(
-            torch.tensor([__version_as_int__], dtype=torch.int64),
+            torch.tensor([settings.version_as_int], dtype=torch.int64),
             requires_grad=False,
         )
         self.n: torch.nn.Parameter = torch.nn.Parameter(
@@ -948,7 +946,7 @@ class TorchMetaGraph(MetagraphMixin, BaseClass):  # type: ignore
                 self._set_metagraph_attributes(block, subtensor)
         """
         self.n = self._create_tensor(len(self.neurons), dtype=torch.int64)
-        self.version = self._create_tensor([__version_as_int__], dtype=torch.int64)
+        self.version = self._create_tensor([settings.version_as_int], dtype=torch.int64)
         self.block = self._create_tensor(
             block if block else subtensor.block, dtype=torch.int64
         )
@@ -1045,7 +1043,7 @@ class NonTorchMetagraph(MetagraphMixin):
 
         self.netuid = netuid
         self.network = network
-        self.version = (np.array([__version_as_int__], dtype=np.int64),)
+        self.version = (np.array([settings.version_as_int], dtype=np.int64),)
         self.n = np.array([0], dtype=np.int64)
         self.block = np.array([0], dtype=np.int64)
         self.stake = np.array([], dtype=np.float32)
@@ -1085,7 +1083,7 @@ class NonTorchMetagraph(MetagraphMixin):
         # TODO: Check and test the setting of each attribute
         self.n = self._create_tensor(len(self.neurons), dtype=np.int64)
         self.version = self._create_tensor(
-            [__version_as_int__], dtype=np.int64
+            [settings.version_as_int], dtype=np.int64
         )
         self.block = self._create_tensor(
             block if block else subtensor.block, dtype=np.int64
@@ -1178,4 +1176,4 @@ class NonTorchMetagraph(MetagraphMixin):
         return self
 
 
-metagraph = TorchMetaGraph if use_torch() else NonTorchMetagraph
+Metagraph = TorchMetaGraph if use_torch() else NonTorchMetagraph

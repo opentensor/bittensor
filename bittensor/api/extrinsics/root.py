@@ -15,32 +15,33 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import bittensor
-
-import time
 import logging
+import time
+from typing import Union, List
+
 import numpy as np
+from bittensor_wallet import Wallet
 from numpy.typing import NDArray
 from rich.prompt import Confirm
-from typing import Union, List
-import bittensor.utils.weight_utils as weight_utils
-from bittensor.utils.btlogging.defines import BITTENSOR_LOGGER_NAME
-from bittensor.utils.registration import torch, legacy_torch_api_compat
 
-logger = logging.getLogger(BITTENSOR_LOGGER_NAME)
+from bittensor.utils import weight_utils
+from bittensor.core.settings import bt_console
+from bittensor.utils.btlogging import logging
+from bittensor.utils.registration import torch, legacy_torch_api_compat
 
 
 def root_register_extrinsic(
-    subtensor: "bittensor.subtensor",
-    wallet: "bittensor.wallet",
+    subtensor,
+    wallet,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = True,
     prompt: bool = False,
 ) -> bool:
-    r"""Registers the wallet to root network.
+    """Registers the wallet to root network.
 
     Args:
-        wallet (bittensor.wallet):
+        subtensor:
+        wallet (Wallet):
             Bittensor wallet object.
         wait_for_inclusion (bool):
             If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
@@ -59,7 +60,7 @@ def root_register_extrinsic(
         netuid=0, hotkey_ss58=wallet.hotkey.ss58_address
     )
     if is_registered:
-        bittensor.__console__.print(
+        bt_console.print(
             ":white_heavy_check_mark: [green]Already registered on root network.[/green]"
         )
         return True
@@ -69,7 +70,7 @@ def root_register_extrinsic(
         if not Confirm.ask("Register to root network?"):
             return False
 
-    with bittensor.__console__.status(":satellite: Registering to root network..."):
+    with bt_console.status(":satellite: Registering to root network..."):
         success, err_msg = subtensor._do_root_register(
             wallet=wallet,
             wait_for_inclusion=wait_for_inclusion,
@@ -77,7 +78,7 @@ def root_register_extrinsic(
         )
 
         if not success:
-            bittensor.__console__.print(f":cross_mark: [red]Failed[/red]: {err_msg}")
+            bt_console.print(f":cross_mark: [red]Failed[/red]: {err_msg}")
             time.sleep(0.5)
 
         # Successful registration, final check for neuron and pubkey
@@ -86,21 +87,21 @@ def root_register_extrinsic(
                 netuid=0, hotkey_ss58=wallet.hotkey.ss58_address
             )
             if is_registered:
-                bittensor.__console__.print(
+                bt_console.print(
                     ":white_heavy_check_mark: [green]Registered[/green]"
                 )
                 return True
             else:
                 # neuron not found, try again
-                bittensor.__console__.print(
+                bt_console.print(
                     ":cross_mark: [red]Unknown error. Neuron not found.[/red]"
                 )
 
 
 @legacy_torch_api_compat
 def set_root_weights_extrinsic(
-    subtensor: "bittensor.subtensor",
-    wallet: "bittensor.wallet",
+    subtensor,
+    wallet,
     netuids: Union[NDArray[np.int64], "torch.LongTensor", List[int]],
     weights: Union[NDArray[np.float32], "torch.FloatTensor", List[float]],
     version_key: int = 0,
@@ -111,7 +112,8 @@ def set_root_weights_extrinsic(
     r"""Sets the given weights and values on chain for wallet hotkey account.
 
     Args:
-        wallet (bittensor.wallet):
+        subtensor:
+        wallet (Wallet):
             Bittensor wallet object.
         netuids (Union[NDArray[np.int64], torch.LongTensor, List[int]]):
             The ``netuid`` of the subnet to set weights for.
@@ -154,10 +156,10 @@ def set_root_weights_extrinsic(
         )
 
     # Normalize the weights to max value.
-    formatted_weights = bittensor.utils.weight_utils.normalize_max_weight(
+    formatted_weights = weight_utils.normalize_max_weight(
         x=weights, limit=max_weight_limit
     )
-    bittensor.__console__.print(
+    bt_console.print(
         f"\nRaw Weights -> Normalized weights: \n\t{weights} -> \n\t{formatted_weights}\n"
     )
 
@@ -170,7 +172,7 @@ def set_root_weights_extrinsic(
         ):
             return False
 
-    with bittensor.__console__.status(
+    with bt_console.status(
         ":satellite: Setting root weights on [white]{}[/white] ...".format(
             subtensor.network
         )
@@ -189,36 +191,36 @@ def set_root_weights_extrinsic(
                 wait_for_inclusion=wait_for_inclusion,
             )
 
-            bittensor.__console__.print(success, error_message)
+            bt_console.print(success, error_message)
 
             if not wait_for_finalization and not wait_for_inclusion:
                 return True
 
             if success is True:
-                bittensor.__console__.print(
+                bt_console.print(
                     ":white_heavy_check_mark: [green]Finalized[/green]"
                 )
-                bittensor.logging.success(
+                logging.success(
                     prefix="Set weights",
                     suffix="<green>Finalized: </green>" + str(success),
                 )
                 return True
             else:
-                bittensor.__console__.print(
+                bt_console.print(
                     f":cross_mark: [red]Failed[/red]: {error_message}"
                 )
-                bittensor.logging.warning(
+                logging.warning(
                     prefix="Set weights",
                     suffix="<red>Failed: </red>" + str(error_message),
                 )
                 return False
 
         except Exception as e:
-            # TODO( devs ): lets remove all of the bittensor.__console__ calls and replace with the bittensor logger.
-            bittensor.__console__.print(
+            # TODO( devs ): lets remove all of the bt_console calls and replace with the bittensor logger.
+            bt_console.print(
                 ":cross_mark: [red]Failed[/red]: error:{}".format(e)
             )
-            bittensor.logging.warning(
+            logging.warning(
                 prefix="Set weights", suffix="<red>Failed: </red>" + str(e)
             )
             return False

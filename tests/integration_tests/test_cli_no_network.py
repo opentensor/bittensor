@@ -26,8 +26,8 @@ import re
 
 from tests.helpers import _get_mock_coldkey, __mock_wallet_factory__, MockConsole
 
-import bittensor
-from bittensor import Balance
+# import bittensor
+from bittensor.utils.balance import Balance
 from rich.table import Table
 
 
@@ -37,14 +37,14 @@ class MockException(Exception):
 
 mock_delegate_info = {
     "hotkey_ss58": "",
-    "total_stake": bittensor.Balance.from_rao(0),
+    "total_stake": Balance.from_rao(0),
     "nominators": [],
     "owner_ss58": "",
     "take": 0.18,
     "validator_permits": [],
     "registrations": [],
-    "return_per_1000": bittensor.Balance.from_rao(0),
-    "total_daily_return": bittensor.Balance.from_rao(0),
+    "return_per_1000": Balance.from_rao(0),
+    "total_daily_return": Balance.from_rao(0),
 }
 
 
@@ -457,14 +457,14 @@ class TestEmptyArgs(unittest.TestCase):
 
 mock_delegate_info = {
     "hotkey_ss58": "",
-    "total_stake": bittensor.Balance.from_rao(0),
+    "total_stake": Balance.from_rao(0),
     "nominators": [],
     "owner_ss58": "",
     "take": 0.18,
     "validator_permits": [],
     "registrations": [],
-    "return_per_1000": bittensor.Balance.from_rao(0),
-    "total_daily_return": bittensor.Balance.from_rao(0),
+    "return_per_1000": Balance.from_rao(0),
+    "total_daily_return": Balance.from_rao(0),
 }
 
 
@@ -1105,14 +1105,14 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
                 return_value=[
                     bittensor.DelegateInfo(
                         hotkey_ss58=delegate_ss58,  # return delegate with mock coldkey
-                        total_stake=bittensor.Balance.from_float(0.1),
+                        total_stake=Balance.from_float(0.1),
                         nominators=[],
                         owner_ss58="",
                         take=0.18,
                         validator_permits=[],
                         registrations=[],
-                        return_per_1000=bittensor.Balance.from_float(0.1),
-                        total_daily_return=bittensor.Balance.from_float(0.1),
+                        return_per_1000=Balance.from_float(0.1),
+                        total_daily_return=Balance.from_float(0.1),
                     )
                 ],
             ):
@@ -1192,14 +1192,14 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
                 return_value=[
                     bittensor.DelegateInfo(
                         hotkey_ss58=delegate_ss58,  # return delegate with mock coldkey
-                        total_stake=bittensor.Balance.from_float(0.1),
+                        total_stake=Balance.from_float(0.1),
                         nominators=[],
                         owner_ss58="",
                         take=0.18,
                         validator_permits=[],
                         registrations=[],
-                        return_per_1000=bittensor.Balance.from_float(0.1),
-                        total_daily_return=bittensor.Balance.from_float(0.1),
+                        return_per_1000=Balance.from_float(0.1),
+                        total_daily_return=Balance.from_float(0.1),
                     )
                 ],
             ):

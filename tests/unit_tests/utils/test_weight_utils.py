@@ -57,7 +57,7 @@ def test_convert_weight_and_uids():
         weight_utils.convert_weights_and_uids_for_emit(uids, weights)
 
 
-def test_convert_weight_and_uids_torch(force_legacy_torch_compat_api):
+def test_convert_weight_and_uids_torch(force_legacy_torch_compatible_api):
     uids = torch.tensor(list(range(10)))
     weights = torch.rand(10)
     weight_utils.convert_weights_and_uids_for_emit(uids, weights)
@@ -144,7 +144,7 @@ def test_normalize_with_max_weight():
 
 
 def test_normalize_with_max_weight__legacy_torch_api_compat(
-    force_legacy_torch_compat_api,
+        force_legacy_torch_compatible_api,
 ):
     weights = torch.rand(1000)
     wn = weight_utils.normalize_max_weight(weights, limit=0.01)
@@ -240,7 +240,7 @@ def test_convert_weight_uids_and_vals_to_tensor_happy_path(
     ],
 )
 def test_convert_weight_uids_and_vals_to_tensor_happy_path_torch(
-    test_id, n, uids, weights, subnets, expected, force_legacy_torch_compat_api
+    test_id, n, uids, weights, subnets, expected, force_legacy_torch_compatible_api
 ):
     # Act
     result = weight_utils.convert_weight_uids_and_vals_to_tensor(n, uids, weights)
@@ -338,7 +338,7 @@ def test_convert_root_weight_uids_and_vals_to_tensor_happy_paths(
     ],
 )
 def test_convert_root_weight_uids_and_vals_to_tensor_edge_cases(
-    test_id, n, uids, weights, subnets, expected, force_legacy_torch_compat_api
+    test_id, n, uids, weights, subnets, expected, force_legacy_torch_compatible_api
 ):
     # Act
     result = weight_utils.convert_root_weight_uids_and_vals_to_tensor(
@@ -468,7 +468,7 @@ def test_happy_path(test_id, n, uids, bonds, expected_output):
     ],
 )
 def test_happy_path_torch(
-    test_id, n, uids, bonds, expected_output, force_legacy_torch_compat_api
+    test_id, n, uids, bonds, expected_output, force_legacy_torch_compatible_api
 ):
     # Act
     result = weight_utils.convert_bond_uids_and_vals_to_tensor(n, uids, bonds)
@@ -512,7 +512,7 @@ def test_edge_cases(test_id, n, uids, bonds, expected_output):
     ],
 )
 def test_edge_cases_torch(
-    test_id, n, uids, bonds, expected_output, force_legacy_torch_compat_api
+    test_id, n, uids, bonds, expected_output, force_legacy_torch_compatible_api
 ):
     # Act
     result = weight_utils.convert_bond_uids_and_vals_to_tensor(n, uids, bonds)

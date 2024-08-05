@@ -27,12 +27,15 @@ import pytest
 from bittensor_wallet import Wallet
 from bittensor_wallet.mock import get_mock_keypair, get_mock_wallet as generate_wallet
 
-import bittensor
-from bittensor import Balance
+from bittensor.btcli.cli import COMMANDS as ALL_COMMANDS
+from bittensor.btcli.cli import cli as btcli
 from bittensor.btcli.commands.delegates import _get_coldkey_wallets_for_path
 from bittensor.btcli.commands.identity import SetIdentityCommand
 from bittensor.btcli.commands.wallets import _get_coldkey_ss58_addresses_for_path
+from bittensor.core.config import Config
+from bittensor.core.subtensor import Subtensor
 from bittensor.mock import MockSubtensor
+from bittensor.utils.balance import Balance
 from tests.helpers import is_running_in_circleci, MockConsole
 
 _subtensor_mock: MockSubtensor = MockSubtensor()
@@ -55,7 +58,7 @@ def return_mock_sub(*args, **kwargs):
     return MockSubtensor
 
 
-@patch("bittensor.subtensor", new_callable=return_mock_sub)
+@patch("bittensor.core.subtensor.Subtensor", new_callable=return_mock_sub)
 class TestCLIWithNetworkAndConfig(unittest.TestCase):
     def setUp(self):
         self._config = TestCLIWithNetworkAndConfig.construct_config()
@@ -67,20 +70,20 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
     @staticmethod
     def construct_config():
-        parser = bittensor.cli.__create_parser__()
-        defaults = bittensor.config(parser=parser, args=[])
+        parser = btcli.__create_parser__()
+        defaults = Config(parser=parser, args=[])
         # Parse commands and subcommands
-        for command in bittensor.ALL_COMMANDS:
+        for command in ALL_COMMANDS:
             if (
-                command in bittensor.ALL_COMMANDS
-                and "commands" in bittensor.ALL_COMMANDS[command]
+                command in ALL_COMMANDS
+                and "commands" in ALL_COMMANDS[command]
             ):
-                for subcommand in bittensor.ALL_COMMANDS[command]["commands"]:
+                for subcommand in ALL_COMMANDS[command]["commands"]:
                     defaults.merge(
-                        bittensor.config(parser=parser, args=[command, subcommand])
+                        Config(parser=parser, args=[command, subcommand])
                     )
             else:
-                defaults.merge(bittensor.config(parser=parser, args=[command]))
+                defaults.merge(Config(parser=parser, args=[command]))
 
         defaults.netuid = 1
         # Always use mock subtensor.
@@ -101,7 +104,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             config.all = False
             config.netuid = []  # Don't set, so it tries all networks.
 
-            cli = bittensor.cli(config)
+            cli = btcli(config)
 
             mock_hotkeys = ["hk0", "hk1", "hk2", "hk3", "hk4"]
 
@@ -168,9 +171,9 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 "bittensor.btcli.commands.overview.get_hotkey_wallets_for_wallet"
             ) as mock_get_all_wallets:
                 mock_get_all_wallets.return_value = mock_wallets
-                with patch("bittensor.wallet") as mock_create_wallet:
+                with patch("bittensor_wallet.Wallet") as mock_create_wallet:
                     mock_create_wallet.side_effect = mock_get_wallet
-                    with patch("bittensor.__console__", mock_console):
+                    with patch("bittensor.core.settings.bt_console", mock_console):
                         cli.run()
 
                         # Check that the overview was printed.
@@ -209,7 +212,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             config.all = False
             config.netuid = []  # Don't set, so it tries all networks.
 
-            cli = bittensor.cli(config)
+            cli = btcli(config)
 
             mock_hotkeys = ["hk0", "hk1", "hk2", "hk3", "hk4"]
 
@@ -273,9 +276,9 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 "bittensor.btcli.commands.overview.get_hotkey_wallets_for_wallet"
             ) as mock_get_all_wallets:
                 mock_get_all_wallets.return_value = mock_wallets
-                with patch("bittensor.wallet") as mock_create_wallet:
+                with patch("bittensor_wallet.Wallet") as mock_create_wallet:
                     mock_create_wallet.side_effect = mock_get_wallet
-                    with patch("bittensor.__console__", mock_console):
+                    with patch("bittensor.core.settings.bt_console", mock_console):
                         cli.run()
 
                         # Check that the overview was printed.
@@ -313,7 +316,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.all = False
         config.netuid = []  # Don't set, so it tries all networks.
 
-        cli = bittensor.cli(config)
+        cli = btcli(config)
         cli.run()
 
     def test_overview_without_hotkeys_config(self, _):
@@ -324,7 +327,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.all = False
         config.netuid = []  # Don't set, so it tries all networks.
 
-        cli = bittensor.cli(config)
+        cli = btcli(config)
         cli.run()
 
     def test_overview_with_sort_by_config(self, _):
@@ -336,7 +339,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.all = False
         config.netuid = []  # Don't set, so it tries all networks.
 
-        cli = bittensor.cli(config)
+        cli = btcli(config)
         cli.run()
 
     def test_overview_with_sort_by_bad_column_name(self, _):
@@ -348,7 +351,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.all = False
         config.netuid = []  # Don't set, so it tries all networks.
 
-        cli = bittensor.cli(config)
+        cli = btcli(config)
         cli.run()
 
     def test_overview_without_sort_by_config(self, _):
@@ -359,7 +362,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.all = False
         config.netuid = []  # Don't set, so it tries all networks.
 
-        cli = bittensor.cli(config)
+        cli = btcli(config)
         cli.run()
 
     def test_overview_with_sort_order_config(self, _):
@@ -371,7 +374,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.all = False
         config.netuid = []  # Don't set, so it tries all networks.
 
-        cli = bittensor.cli(config)
+        cli = btcli(config)
         cli.run()
 
     def test_overview_with_sort_order_config_bad_sort_type(self, _):
@@ -383,7 +386,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.all = False
         config.netuid = []  # Don't set, so it tries all networks.
 
-        cli = bittensor.cli(config)
+        cli = btcli(config)
         cli.run()
 
     def test_overview_without_sort_order_config(self, _):
@@ -395,7 +398,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.all = False
         config.netuid = []  # Don't set, so it tries all networks.
 
-        cli = bittensor.cli(config)
+        cli = btcli(config)
         cli.run()
 
     def test_overview_with_width_config(self, _):
@@ -407,7 +410,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.all = False
         config.netuid = []  # Don't set, so it tries all networks.
 
-        cli = bittensor.cli(config)
+        cli = btcli(config)
         cli.run()
 
     def test_overview_without_width_config(self, _):
@@ -419,7 +422,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.all = False
         config.netuid = []  # Don't set, so it tries all networks.
 
-        cli = bittensor.cli(config)
+        cli = btcli(config)
         cli.run()
 
     def test_overview_all(self, _):
@@ -430,7 +433,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.netuid = []  # Don't set, so it tries all networks.
 
         config.all = True
-        cli = bittensor.cli(config)
+        cli = btcli(config)
         cli.run()
 
     def test_unstake_with_specific_hotkeys(self, _):
@@ -474,7 +477,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 stake=mock_stakes[wallet.hotkey_str].rao,
             )
 
-        cli = bittensor.cli(config)
+        cli = btcli(config)
 
         def mock_get_wallet(*args, **kwargs):
             if kwargs.get("hotkey"):
@@ -484,7 +487,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             else:
                 return mock_wallets[0]
 
-        with patch("bittensor.wallet") as mock_create_wallet:
+        with patch("bittensor_wallet.Wallet") as mock_create_wallet:
             mock_create_wallet.side_effect = mock_get_wallet
 
             # Check stakes before unstaking
@@ -550,7 +553,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 stake=mock_stakes[wallet.hotkey_str].rao,
             )
 
-        cli = bittensor.cli(config)
+        cli = btcli(config)
 
         def mock_get_wallet(*args, **kwargs):
             if kwargs.get("hotkey"):
@@ -564,7 +567,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             "bittensor.btcli.commands.unstake.get_hotkey_wallets_for_wallet"
         ) as mock_get_all_wallets:
             mock_get_all_wallets.return_value = mock_wallets
-            with patch("bittensor.wallet") as mock_create_wallet:
+            with patch("bittensor_wallet.Wallet") as mock_create_wallet:
                 mock_create_wallet.side_effect = mock_get_wallet
 
                 # Check stakes before unstaking
@@ -629,7 +632,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 stake=mock_stakes[wallet.hotkey_str].rao,
             )
 
-        cli = bittensor.cli(config)
+        cli = btcli(config)
 
         def mock_get_wallet(*args, **kwargs):
             if kwargs.get("hotkey"):
@@ -643,7 +646,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             "bittensor.btcli.commands.unstake.get_hotkey_wallets_for_wallet"
         ) as mock_get_all_wallets:
             mock_get_all_wallets.return_value = mock_wallets
-            with patch("bittensor.wallet") as mock_create_wallet:
+            with patch("bittensor_wallet.Wallet") as mock_create_wallet:
                 mock_create_wallet.side_effect = mock_get_wallet
 
                 # Check stakes before unstaking
@@ -717,7 +720,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 stake=mock_stakes[wallet.hotkey_str].rao,
             )
 
-        cli = bittensor.cli(config)
+        cli = btcli(config)
 
         def mock_get_wallet(*args, **kwargs):
             if kwargs.get("hotkey"):
@@ -731,7 +734,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             "bittensor.btcli.commands.unstake.get_hotkey_wallets_for_wallet"
         ) as mock_get_all_wallets:
             mock_get_all_wallets.return_value = mock_wallets
-            with patch("bittensor.wallet") as mock_create_wallet:
+            with patch("bittensor_wallet.Wallet") as mock_create_wallet:
                 mock_create_wallet.side_effect = mock_get_wallet
 
                 # Check stakes before unstaking
@@ -829,7 +832,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                     if wallet.name == kwargs["config"].wallet.name:
                         return wallet
 
-        with patch("bittensor.wallet") as mock_create_wallet:
+        with patch("bittensor_wallet.Wallet") as mock_create_wallet:
             mock_create_wallet.side_effect = mock_get_wallet
 
             for wallet in mock_wallets:
@@ -843,10 +846,10 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 config.wallet.name = wallet.name
                 config.hotkey_ss58address = delegate_hotkey  # Single unstake
 
-                cli = bittensor.cli(config)
+                cli = btcli(config)
                 with patch.object(_subtensor_mock, "_do_unstake") as mock_unstake:
                     with patch(
-                        "bittensor.__console__.print"
+                        "bittensor.core.settings.bt_console.print"
                     ) as mock_print:  # Catch console print
                         cli.run()
 
@@ -870,7 +873,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                             # This wallet owns the delegate
                             # Should unstake specified amount
                             self.assertEqual(
-                                kwargs["amount"], bittensor.Balance(config.amount)
+                                kwargs["amount"], Balance(config.amount)
                             )
                             # No warning for w0
                             self.assertRaises(
@@ -921,7 +924,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 stake=mock_stakes[wallet.hotkey_str].rao,
             )
 
-        cli = bittensor.cli(config)
+        cli = btcli(config)
 
         def mock_get_wallet(*args, **kwargs):
             if kwargs.get("hotkey"):
@@ -931,7 +934,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             else:
                 return mock_wallets[0]
 
-        with patch("bittensor.wallet") as mock_create_wallet:
+        with patch("bittensor_wallet.Wallet") as mock_create_wallet:
             mock_create_wallet.side_effect = mock_get_wallet
 
             # Check stakes before unstaking
@@ -994,7 +997,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             ss58_address=mock_coldkey_kp.ss58_address, balance=mock_balance.rao
         )
 
-        cli = bittensor.cli(config)
+        cli = btcli(config)
 
         def mock_get_wallet(*args, **kwargs):
             if kwargs.get("hotkey"):
@@ -1004,7 +1007,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             else:
                 return mock_wallets[0]
 
-        with patch("bittensor.wallet") as mock_create_wallet:
+        with patch("bittensor_wallet.Wallet") as mock_create_wallet:
             mock_create_wallet.side_effect = mock_get_wallet
 
             # Check stakes before staking
@@ -1069,7 +1072,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             ss58_address=mock_coldkey_kp.ss58_address, balance=mock_balance.rao
         )
 
-        cli = bittensor.cli(config)
+        cli = btcli(config)
 
         def mock_get_wallet(*args, **kwargs):
             if kwargs.get("hotkey"):
@@ -1079,7 +1082,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             else:
                 return mock_wallets[0]
 
-        with patch("bittensor.wallet") as mock_create_wallet:
+        with patch("bittensor_wallet.Wallet") as mock_create_wallet:
             mock_create_wallet.side_effect = mock_get_wallet
             with patch(
                 "bittensor.btcli.commands.stake.get_hotkey_wallets_for_wallet"
@@ -1167,7 +1170,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             ss58_address=mock_coldkey_kp.ss58_address, balance=mock_balance.rao
         )
 
-        cli = bittensor.cli(config)
+        cli = btcli(config)
 
         def mock_get_wallet(*args, **kwargs):
             if kwargs.get("hotkey"):
@@ -1181,7 +1184,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             "bittensor.btcli.commands.stake.get_hotkey_wallets_for_wallet"
         ) as mock_get_all_wallets:
             mock_get_all_wallets.return_value = mock_wallets
-            with patch("bittensor.wallet") as mock_create_wallet:
+            with patch("bittensor_wallet.Wallet") as mock_create_wallet:
                 mock_create_wallet.side_effect = mock_get_wallet
 
                 # Check stakes before staking
@@ -1281,7 +1284,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             ss58_address=mock_coldkey_kp.ss58_address, balance=mock_balance.rao
         )
 
-        cli = bittensor.cli(config)
+        cli = btcli(config)
 
         def mock_get_wallet(*args, **kwargs):
             if kwargs.get("hotkey"):
@@ -1291,7 +1294,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             else:
                 return mock_wallets[0]
 
-        with patch("bittensor.wallet") as mock_create_wallet:
+        with patch("bittensor_wallet.Wallet") as mock_create_wallet:
             mock_create_wallet.side_effect = mock_get_wallet
 
             # Check stakes before staking
@@ -1379,7 +1382,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             ss58_address=mock_coldkey_kp.ss58_address, balance=mock_balance.rao
         )
 
-        cli = bittensor.cli(config)
+        cli = btcli(config)
 
         def mock_get_wallet(*args, **kwargs):
             if kwargs.get("hotkey"):
@@ -1389,7 +1392,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             else:
                 return mock_wallets[0]
 
-        with patch("bittensor.wallet") as mock_create_wallet:
+        with patch("bittensor_wallet.Wallet") as mock_create_wallet:
             mock_create_wallet.side_effect = mock_get_wallet
 
             # Check stakes before staking
@@ -1472,7 +1475,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             ss58_address=mock_coldkey_kp.ss58_address, balance=mock_balance.rao
         )
 
-        cli = bittensor.cli(config)
+        cli = btcli(config)
 
         def mock_get_wallet(*args, **kwargs):
             if kwargs.get("hotkey"):
@@ -1482,7 +1485,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             else:
                 return mock_wallets[0]
 
-        with patch("bittensor.wallet") as mock_create_wallet:
+        with patch("bittensor_wallet.Wallet") as mock_create_wallet:
             mock_create_wallet.side_effect = mock_get_wallet
 
             # Check stakes before staking
@@ -1559,7 +1562,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             ss58_address=mock_coldkey_kp.ss58_address, balance=mock_balance.rao
         )
 
-        cli = bittensor.cli(config)
+        cli = btcli(config)
 
         def mock_get_wallet(*args, **kwargs):
             if kwargs.get("hotkey"):
@@ -1569,7 +1572,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             else:
                 return mock_wallets[0]
 
-        with patch("bittensor.wallet") as mock_create_wallet:
+        with patch("bittensor_wallet.Wallet") as mock_create_wallet:
             mock_create_wallet.side_effect = mock_get_wallet
 
             # Check stakes before staking
@@ -1653,7 +1656,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             ss58_address=mock_coldkey_kp.ss58_address, balance=mock_balance.rao
         )
 
-        cli = bittensor.cli(config)
+        cli = btcli(config)
 
         def mock_get_wallet(*args, **kwargs):
             if kwargs.get("hotkey"):
@@ -1663,7 +1666,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             else:
                 return mock_wallets[0]
 
-        with patch("bittensor.wallet") as mock_create_wallet:
+        with patch("bittensor_wallet.Wallet") as mock_create_wallet:
             mock_create_wallet.side_effect = mock_get_wallet
 
             # Check stakes before staking
@@ -1770,7 +1773,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                     if wallet.name == kwargs["config"].wallet.name:
                         return wallet
 
-        with patch("bittensor.wallet") as mock_create_wallet:
+        with patch("bittensor_wallet.Wallet") as mock_create_wallet:
             mock_create_wallet.side_effect = mock_get_wallet
 
             for wallet in mock_wallets:
@@ -1794,10 +1797,10 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                     wallet.name
                 ].tao  # Stake an amount below the threshold
 
-                cli = bittensor.cli(config)
+                cli = btcli(config)
                 with patch.object(_subtensor_mock, "_do_stake") as mock_stake:
                     with patch(
-                        "bittensor.__console__.print"
+                        "bittensor.core.settings.bt_console.print"
                     ) as mock_print:  # Catch console print
                         cli.run()
 
@@ -1819,7 +1822,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
                             # Should stake specified amount
                             self.assertEqual(
-                                kwargs["amount"], bittensor.Balance(config.amount)
+                                kwargs["amount"], Balance(config.amount)
                             )
                             # No error for w0
                             self.assertRaises(
@@ -1857,7 +1860,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             balance=mock_balance.rao,
         )
 
-        cli = bittensor.cli(config)
+        cli = btcli(config)
 
         def mock_get_wallet(*args, **kwargs):
             hk = kwargs.get("hotkey")
@@ -1873,7 +1876,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             else:
                 raise ValueError("Mock wallet not found")
 
-        with patch("bittensor.wallet") as mock_create_wallet:
+        with patch("bittensor_wallet.Wallet") as mock_create_wallet:
             mock_create_wallet.side_effect = mock_get_wallet
 
             cli.run()
@@ -1936,7 +1939,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         success = _subtensor_mock.nominate(wallet=mock_wallets[0])
         self.assertTrue(success)
 
-        cli = bittensor.cli(config)
+        cli = btcli(config)
 
         def mock_get_wallet(*args, **kwargs):
             hk = kwargs.get("hotkey")
@@ -1957,7 +1960,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 else:
                     return mock_wallets[0]
 
-        with patch("bittensor.wallet") as mock_create_wallet:
+        with patch("bittensor_wallet.Wallet") as mock_create_wallet:
             mock_create_wallet.side_effect = mock_get_wallet
 
             cli.run()
@@ -2038,7 +2041,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         )
         self.assertAlmostEqual(stake.tao, mock_delegated.tao, places=4)
 
-        cli = bittensor.cli(config)
+        cli = btcli(config)
 
         def mock_get_wallet(*args, **kwargs):
             hk = kwargs.get("hotkey")
@@ -2059,7 +2062,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 else:
                     return mock_wallets[0]
 
-        with patch("bittensor.wallet") as mock_create_wallet:
+        with patch("bittensor_wallet.Wallet") as mock_create_wallet:
             mock_create_wallet.side_effect = mock_get_wallet
 
             cli.run()
@@ -2106,7 +2109,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 balance=mock_balances[wallet.name].rao,
             )
 
-        cli = bittensor.cli(config)
+        cli = btcli(config)
 
         def mock_get_wallet(*args, **kwargs):
             name_ = kwargs.get("name")
@@ -2120,7 +2123,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             else:
                 raise ValueError(f"No mock wallet found with name: {name_}")
 
-        with patch("bittensor.wallet") as mock_create_wallet:
+        with patch("bittensor_wallet.Wallet") as mock_create_wallet:
             mock_create_wallet.side_effect = mock_get_wallet
 
             cli.run()
@@ -2174,7 +2177,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 balance=mock_balances[wallet.name].rao,
             )
 
-        cli = bittensor.cli(config)
+        cli = btcli(config)
 
         def mock_get_wallet(*args, **kwargs):
             name_ = kwargs.get("name")
@@ -2189,10 +2192,10 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
                 raise ValueError(f"No mock wallet found with name: {name_}")
 
         mock_console = MockConsole()
-        with patch("bittensor.wallet") as mock_create_wallet:
+        with patch("bittensor_wallet.Wallet") as mock_create_wallet:
             mock_create_wallet.side_effect = mock_get_wallet
 
-            with patch("bittensor.__console__", mock_console):
+            with patch("bittensor.core.settings.bt_console", mock_console):
                 cli.run()
 
             # Check that the overview was printed.
@@ -2234,13 +2237,13 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             balance=Balance.from_float(200.0),
         )
 
-        with patch("bittensor.wallet", return_value=mock_wallet) as mock_create_wallet:
-            cli = bittensor.cli(config)
+        with patch("bittensor_wallet.Wallet", return_value=mock_wallet) as mock_create_wallet:
+            cli = btcli(config)
             cli.run()
             mock_create_wallet.assert_called_once()
 
             # Verify that the wallet was registered
-            subtensor = bittensor.subtensor(config)
+            subtensor = Subtensor(config)
             registered = subtensor.is_hotkey_registered_on_subnet(
                 hotkey_ss58=mock_wallet.hotkey.ss58_address, netuid=1
             )
@@ -2262,13 +2265,13 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         class MockException(Exception):
             pass
 
-        with patch("bittensor.wallet", return_value=mock_wallet) as mock_create_wallet:
+        with patch("bittensor_wallet.Wallet", return_value=mock_wallet) as mock_create_wallet:
             with patch(
-                "bittensor.api.extrinsics.registration.POWSolution.is_stale",
+                "bittensor.utils.registration.POWSolution.is_stale",
                 side_effect=MockException,
             ) as mock_is_stale:
                 with pytest.raises(MockException):
-                    cli = bittensor.cli(config)
+                    cli = btcli(config)
                     cli.run()
                     mock_create_wallet.assert_called_once()
 
@@ -2286,7 +2289,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         config.model = "core_server"
         config.hotkey = "hk0"
 
-        subtensor = bittensor.subtensor(config)
+        subtensor = Subtensor(config)
 
         mock_wallet = generate_wallet(hotkey=get_mock_keypair(100, self.id()))
 
@@ -2300,13 +2303,13 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
             ).rao,  # 1.0 tao extra for fees, etc
         )
 
-        with patch("bittensor.wallet", return_value=mock_wallet) as mock_create_wallet:
+        with patch("bittensor_wallet.Wallet", return_value=mock_wallet) as mock_create_wallet:
             old_stake = subtensor.get_stake_for_coldkey_and_hotkey(
                 hotkey_ss58=mock_wallet.hotkey.ss58_address,
                 coldkey_ss58=mock_wallet.coldkey.ss58_address,
             )
 
-            cli = bittensor.cli(config)
+            cli = btcli(config)
             cli.run()
             mock_create_wallet.assert_called()
             self.assertEqual(mock_create_wallet.call_count, 2)
@@ -2351,10 +2354,10 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
 
         _subtensor_mock.neurons_lite(netuid=config.netuid)
 
-        cli = bittensor.cli(config)
+        cli = btcli(config)
 
         mock_console = MockConsole()
-        with patch("bittensor.__console__", mock_console):
+        with patch("bittensor.core.settings.bt_console", mock_console):
             cli.run()
 
         # Check that the overview was printed.
@@ -2383,7 +2386,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         # First create a new coldkey
         config.command = "wallet"
         config.subcommand = "new_coldkey"
-        cli = bittensor.cli(config)
+        cli = btcli(config)
         cli.run()
 
         # Now let's give it a hotkey
@@ -2410,7 +2413,7 @@ class TestCLIWithNetworkAndConfig(unittest.TestCase):
         cli.run()
 
 
-@patch("bittensor.subtensor", new_callable=return_mock_sub)
+@patch("bittensor.core.subtensor.Subtensor", new_callable=return_mock_sub)
 class TestCLIWithNetworkUsingArgs(unittest.TestCase):
     """
     Test the CLI by passing args directly to the bittensor.cli factory
@@ -2419,7 +2422,7 @@ class TestCLIWithNetworkUsingArgs(unittest.TestCase):
     @unittest.mock.patch.object(MockSubtensor, "get_delegates")
     def test_list_delegates(self, mocked_get_delegates, _):
         # Call
-        cli = bittensor.cli(args=["root", "list_delegates"])
+        cli = btcli(args=["root", "list_delegates"])
         cli.run()
 
         # Assertions
@@ -2427,7 +2430,7 @@ class TestCLIWithNetworkUsingArgs(unittest.TestCase):
         self.assertEqual(mocked_get_delegates.call_count, 2)
 
     def test_list_subnets(self, _):
-        cli = bittensor.cli(
+        cli = btcli(
             args=[
                 "subnets",
                 "list",
@@ -2484,9 +2487,9 @@ class TestCLIWithNetworkUsingArgs(unittest.TestCase):
         )
 
         with patch(
-            "bittensor.wallet", return_value=mock_wallet
+            "bittensor_wallet.Wallet", return_value=mock_wallet
         ):  # Mock wallet creation. SHOULD NOT BE REGISTERED
-            cli = bittensor.cli(
+            cli = btcli(
                 args=[
                     "root",
                     "delegate",
@@ -2675,9 +2678,9 @@ def test_set_identity_command(
     mock_wallet.coldkey.ss58_address = "fake_coldkey_ss58_address"
     mock_wallet.coldkey = MagicMock()
 
-    with patch("bittensor.subtensor", return_value=mock_subtensor), patch(
-        "bittensor.wallet", return_value=mock_wallet
-    ), patch("bittensor.__console__", MagicMock()), patch(
+    with patch("bittensor.core.subtensor.Subtensor", return_value=mock_subtensor), patch(
+        "bittensor_wallet.Wallet", return_value=mock_wallet
+    ), patch("bittensor.core.settings.bt_console", MagicMock()), patch(
         "rich.prompt.Prompt.ask", side_effect=["y", "y"]
     ), patch("sys.exit") as mock_exit:
         # Act

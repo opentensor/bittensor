@@ -15,12 +15,14 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import bittensor
+from typing import Union
 
 from rich.prompt import Confirm
-from typing import Union
-from bittensor.utils.balance import Balance
+
+from bittensor.core.settings import bt_console, network_explorer_map
+from bittensor.utils import get_explorer_url_for_network
 from bittensor.utils import is_valid_bittensor_address_or_public_key
+from bittensor.utils.balance import Balance
 
 
 def transfer_extrinsic(
@@ -56,7 +58,7 @@ def transfer_extrinsic(
     """
     # Validate destination address.
     if not is_valid_bittensor_address_or_public_key(dest):
-        bittensor.__console__.print(
+        bt_console.print(
             ":cross_mark: [red]Invalid destination address[/red]:[bold white]\n  {}[/bold white]".format(
                 dest
             )
@@ -71,29 +73,29 @@ def transfer_extrinsic(
     wallet.coldkey
 
     # Convert to bittensor.Balance
-    if not isinstance(amount, bittensor.Balance):
-        transfer_balance = bittensor.Balance.from_tao(amount)
+    if not isinstance(amount, Balance):
+        transfer_balance = Balance.from_tao(amount)
     else:
         transfer_balance = amount
 
     # Check balance.
-    with bittensor.__console__.status(":satellite: Checking Balance..."):
+    with bt_console.status(":satellite: Checking Balance..."):
         account_balance = subtensor.get_balance(wallet.coldkey.ss58_address)
         # check existential deposit.
         existential_deposit = subtensor.get_existential_deposit()
 
-    with bittensor.__console__.status(":satellite: Transferring..."):
+    with bt_console.status(":satellite: Transferring..."):
         fee = subtensor.get_transfer_fee(
             wallet=wallet, dest=dest, value=transfer_balance.rao
         )
 
     if not keep_alive:
         # Check if the transfer should keep_alive the account
-        existential_deposit = bittensor.Balance(0)
+        existential_deposit = Balance(0)
 
     # Check if we have enough balance.
     if account_balance < (transfer_balance + fee + existential_deposit):
-        bittensor.__console__.print(
+        bt_console.print(
             ":cross_mark: [red]Not enough balance[/red]:[bold white]\n  balance: {}\n  amount: {}\n  for fee: {}[/bold white]".format(
                 account_balance, transfer_balance, fee
             )
@@ -109,7 +111,7 @@ def transfer_extrinsic(
         ):
             return False
 
-    with bittensor.__console__.status(":satellite: Transferring..."):
+    with bt_console.status(":satellite: Transferring..."):
         success, block_hash, err_msg = subtensor._do_transfer(
             wallet,
             dest,
@@ -119,34 +121,34 @@ def transfer_extrinsic(
         )
 
         if success:
-            bittensor.__console__.print(
+            bt_console.print(
                 ":white_heavy_check_mark: [green]Finalized[/green]"
             )
-            bittensor.__console__.print(
+            bt_console.print(
                 "[green]Block Hash: {}[/green]".format(block_hash)
             )
 
-            explorer_urls = bittensor.utils.get_explorer_url_for_network(
-                subtensor.network, block_hash, bittensor.__network_explorer_map__
+            explorer_urls = get_explorer_url_for_network(
+                subtensor.network, block_hash, network_explorer_map
             )
             if explorer_urls != {} and explorer_urls:
-                bittensor.__console__.print(
+                bt_console.print(
                     "[green]Opentensor Explorer Link: {}[/green]".format(
                         explorer_urls.get("opentensor")
                     )
                 )
-                bittensor.__console__.print(
+                bt_console.print(
                     "[green]Taostats   Explorer Link: {}[/green]".format(
                         explorer_urls.get("taostats")
                     )
                 )
         else:
-            bittensor.__console__.print(f":cross_mark: [red]Failed[/red]: {err_msg}")
+            bt_console.print(f":cross_mark: [red]Failed[/red]: {err_msg}")
 
     if success:
-        with bittensor.__console__.status(":satellite: Checking Balance..."):
+        with bt_console.status(":satellite: Checking Balance..."):
             new_balance = subtensor.get_balance(wallet.coldkey.ss58_address)
-            bittensor.__console__.print(
+            bt_console.print(
                 "Balance:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format(
                     account_balance, new_balance
                 )

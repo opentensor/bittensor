@@ -19,16 +19,16 @@
 
 from typing import Tuple, List
 
+from bittensor_wallet import Wallet
 from rich.prompt import Confirm
 
-import bittensor
-
 from bittensor.utils import format_error_message
+from bittensor.utils.btlogging import logging
 
 
 def commit_weights_extrinsic(
-    subtensor: "bittensor.subtensor",
-    wallet: "bittensor.wallet",
+    subtensor,
+    wallet: "Wallet",
     netuid: int,
     commit_hash: str,
     wait_for_inclusion: bool = False,
@@ -64,16 +64,16 @@ def commit_weights_extrinsic(
     )
 
     if success:
-        bittensor.logging.info("Successfully committed weights.")
+        logging.info("Successfully committed weights.")
         return True, "Successfully committed weights."
     else:
-        bittensor.logging.error(f"Failed to commit weights: {error_message}")
+        logging.error(f"Failed to commit weights: {error_message}")
         return False, format_error_message(error_message)
 
 
 def reveal_weights_extrinsic(
-    subtensor: "bittensor.subtensor",
-    wallet: "bittensor.wallet",
+    subtensor,
+    wallet: "Wallet",
     netuid: int,
     uids: List[int],
     weights: List[int],
@@ -119,8 +119,8 @@ def reveal_weights_extrinsic(
     )
 
     if success:
-        bittensor.logging.info("Successfully revealed weights.")
+        logging.info("Successfully revealed weights.")
         return True, "Successfully revealed weights."
     else:
-        bittensor.logging.error(f"Failed to reveal weights: {error_message}")
+        logging.error(f"Failed to reveal weights: {error_message}")
         return False, error_message

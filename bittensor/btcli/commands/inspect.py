@@ -19,14 +19,11 @@ import argparse
 import os
 from typing import List, Tuple, Optional, Dict
 
-from rich.console import Console
 from rich.prompt import Prompt
 from rich.table import Table
 from tqdm import tqdm
 
-import bittensor
 from . import defaults
-from ...core import settings
 from .utils import (
     get_delegates_details,
     DelegatesDetails,
@@ -34,21 +31,26 @@ from .utils import (
     get_all_wallets_for_path,
     filter_netuids_by_registered_hotkeys,
 )
+from bittensor.core.subtensor import Subtensor
+from bittensor_wallet import Wallet
+from bittensor.core.config import Config
+from bittensor.core.settings import bt_console, delegates_details_url
+from bittensor.utils.btlogging import logging
+from bittensor.utils.balance import Balance
+from bittensor.core.chain_data import DelegateInfo
 
-console = Console()
 
-
-def _get_coldkey_wallets_for_path(path: str) -> List["bittensor.wallet"]:
+def _get_coldkey_wallets_for_path(path: str) -> List["Wallet"]:
     try:
         wallet_names = next(os.walk(os.path.expanduser(path)))[1]
-        return [bittensor.wallet(path=path, name=name) for name in wallet_names]
+        return [Wallet(path=path, name=name) for name in wallet_names]
     except StopIteration:
         # No wallet files found.
         wallets = []
     return wallets
 
 
-def _get_hotkey_wallets_for_wallet(wallet) -> List["bittensor.wallet"]:
+def _get_hotkey_wallets_for_wallet(wallet) -> List["Wallet"]:
     hotkey_wallets = []
     hotkeys_path = wallet.path + "/" + wallet.name + "/hotkeys"
     try:
@@ -57,7 +59,7 @@ def _get_hotkey_wallets_for_wallet(wallet) -> List["bittensor.wallet"]:
         hotkey_files = []
     for hotkey_file_name in hotkey_files:
         try:
-            hotkey_for_name = bittensor.wallet(
+            hotkey_for_name = Wallet(
                 path=wallet.path, name=wallet.name, hotkey=hotkey_file_name
             )
             if (
@@ -113,38 +115,38 @@ class InspectCommand:
     """
 
     @staticmethod
-    def run(cli: "bittensor.cli"):
+    def run(cli):
         r"""Inspect a cold, hot pair."""
         try:
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+            subtensor: "Subtensor" = Subtensor(
                 config=cli.config, log_verbose=False
             )
             InspectCommand._run(cli, subtensor)
         finally:
             if "subtensor" in locals():
                 subtensor.close()
-                bittensor.logging.debug("closing subtensor connection")
+                logging.debug("closing subtensor connection")
 
     @staticmethod
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+    def _run(cli, subtensor: "Subtensor"):
         if cli.config.get("all", d=False) == True:
             wallets = _get_coldkey_wallets_for_path(cli.config.wallet.path)
             all_hotkeys = get_all_wallets_for_path(cli.config.wallet.path)
         else:
-            wallets = [bittensor.wallet(config=cli.config)]
+            wallets = [Wallet(config=cli.config)]
             all_hotkeys = get_hotkey_wallets_for_wallet(wallets[0])
 
         netuids = subtensor.get_all_subnet_netuids()
         netuids = filter_netuids_by_registered_hotkeys(
             cli, subtensor, netuids, all_hotkeys
         )
-        bittensor.logging.debug(f"Netuids to check: {netuids}")
+        logging.debug(f"Netuids to check: {netuids}")
 
         registered_delegate_info: Optional[Dict[str, DelegatesDetails]] = (
-            get_delegates_details(url=settings.delegates_details_url)
+            get_delegates_details(url=delegates_details_url)
         )
         if registered_delegate_info is None:
-            bittensor.__console__.print(
+            bt_console.print(
                 ":warning:[yellow]Could not get delegate info from chain.[/yellow]"
             )
             registered_delegate_info = {}
@@ -183,7 +185,7 @@ class InspectCommand:
             "[overline white]Emission", footer_style="overline white", style="green"
         )
         for wallet in tqdm(wallets):
-            delegates: List[Tuple[bittensor.DelegateInfo, bittensor.Balance]] = (
+            delegates: List[Tuple[DelegateInfo, Balance]] = (
                 subtensor.get_delegated(coldkey_ss58=wallet.coldkeypub.ss58_address)
             )
             if not wallet.coldkeypub_file.exists_on_device():
@@ -236,13 +238,13 @@ class InspectCommand:
                             str(netuid),
                             f"{hotkey_name}{neuron.hotkey}",
                             str(neuron.stake),
-                            str(bittensor.Balance.from_tao(neuron.emission)),
+                            str(Balance.from_tao(neuron.emission)),
                         )
 
-        bittensor.__console__.print(table)
+        bt_console.print(table)
 
     @staticmethod
-    def check_config(config: "bittensor.config"):
+    def check_config(config: "Config"):
         if (
             not config.is_set("wallet.name")
             and not config.no_prompt
@@ -277,5 +279,5 @@ class InspectCommand:
             default=None,
         )
 
-        bittensor.wallet.add_args(inspect_parser)
-        bittensor.subtensor.add_args(inspect_parser)
+        Wallet.add_args(inspect_parser)
+        Subtensor.add_args(inspect_parser)

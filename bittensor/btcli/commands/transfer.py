@@ -17,12 +17,15 @@
 
 import sys
 import argparse
-import bittensor
-from rich.console import Console
 from rich.prompt import Prompt
-from . import defaults
 
-console = Console()
+from bittensor_wallet import Wallet
+from bittensor.core.settings import bt_console
+from bittensor.core.subtensor import Subtensor
+from bittensor.utils.btlogging import logging
+from bittensor.core.config import Config
+from . import defaults
+from bittensor.utils import is_valid_bittensor_address_or_public_key
 
 
 class TransferCommand:
@@ -50,22 +53,22 @@ class TransferCommand:
     """
 
     @staticmethod
-    def run(cli: "bittensor.cli"):
+    def run(cli):
         r"""Transfer token of amount to destination."""
         try:
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+            subtensor: "Subtensor" = Subtensor(
                 config=cli.config, log_verbose=False
             )
             TransferCommand._run(cli, subtensor)
         finally:
             if "subtensor" in locals():
                 subtensor.close()
-                bittensor.logging.debug("closing subtensor connection")
+                logging.debug("closing subtensor connection")
 
     @staticmethod
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+    def _run(cli, subtensor: "Subtensor"):
         r"""Transfer token of amount to destination."""
-        wallet = bittensor.wallet(config=cli.config)
+        wallet = Wallet(config=cli.config)
         subtensor.transfer(
             wallet=wallet,
             dest=cli.config.dest,
@@ -75,7 +78,7 @@ class TransferCommand:
         )
 
     @staticmethod
-    def check_config(config: "bittensor.config"):
+    def check_config(config: "Config"):
         if not config.is_set("wallet.name") and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
             config.wallet.name = str(wallet_name)
@@ -83,18 +86,18 @@ class TransferCommand:
         # Get destination.
         if not config.dest and not config.no_prompt:
             dest = Prompt.ask("Enter destination public key: (ss58 or ed2519)")
-            if not bittensor.utils.is_valid_bittensor_address_or_public_key(dest):
+            if not is_valid_bittensor_address_or_public_key(dest):
                 sys.exit()
             else:
                 config.dest = str(dest)
 
         # Get current balance and print to user.
         if not config.no_prompt:
-            wallet = bittensor.wallet(config=config)
-            subtensor = bittensor.subtensor(config=config, log_verbose=False)
-            with bittensor.__console__.status(":satellite: Checking Balance..."):
+            wallet = Wallet(config=config)
+            subtensor = Subtensor(config=config, log_verbose=False)
+            with bt_console.status(":satellite: Checking Balance..."):
                 account_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
-                bittensor.__console__.print(
+                bt_console.print(
                     "Balance: [green]{}[/green]".format(account_balance)
                 )
 
@@ -105,18 +108,14 @@ class TransferCommand:
                 try:
                     config.amount = float(amount)
                 except ValueError:
-                    console.print(
+                    bt_console.print(
                         ":cross_mark:[red] Invalid TAO amount[/red] [bold white]{}[/bold white]".format(
                             amount
                         )
                     )
                     sys.exit()
             else:
-                console.print(
-                    ":cross_mark:[red] Invalid TAO amount[/red] [bold white]{}[/bold white]".format(
-                        amount
-                    )
-                )
+                bt_console.print(":cross_mark:[red] Invalid TAO amount[/red]")
                 sys.exit(1)
 
     @staticmethod
@@ -129,5 +128,5 @@ class TransferCommand:
             "--amount", dest="amount", type=float, required=False
         )
 
-        bittensor.wallet.add_args(transfer_parser)
-        bittensor.subtensor.add_args(transfer_parser)
+        Wallet.add_args(transfer_parser)
+        Subtensor.add_args(transfer_parser)

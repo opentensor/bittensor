@@ -26,7 +26,8 @@ from bittensor_wallet.mock.wallet_mock import get_mock_wallet as _get_mock_walle
 from rich.console import Console
 from rich.text import Text
 
-from bittensor import Balance, NeuronInfo, AxonInfo, PrometheusInfo
+from bittensor.utils.balance import Balance
+from bittensor.core.chain_data import AxonInfo, NeuronInfo, PrometheusInfo
 
 
 def __mock_wallet_factory__(*args, **kwargs) -> _MockWallet:
@@ -53,11 +54,9 @@ class CLOSE_IN_VALUE:
         # True if __o \in [value - tolerance, value + tolerance]
         # or if value \in [__o - tolerance, __o + tolerance]
         return (
-            (self.value - self.tolerance) <= __o
-            and __o <= (self.value + self.tolerance)
+                (self.value - self.tolerance) <= __o <= (self.value + self.tolerance)
         ) or (
-            (__o - self.tolerance) <= self.value
-            and self.value <= (__o + self.tolerance)
+                (__o - self.tolerance) <= self.value <= (__o + self.tolerance)
         )
 
 

@@ -1,10 +1,12 @@
-import pytest
 from unittest.mock import MagicMock, patch
-from bittensor.core.subtensor import Subtensor
+
+import pytest
+
 from bittensor.api.extrinsics.root import (
     root_register_extrinsic,
     set_root_weights_extrinsic,
 )
+from bittensor.core.subtensor import Subtensor
 
 
 @pytest.fixture
@@ -293,7 +295,7 @@ def test_set_root_weights_extrinsic_torch(
     prompt,
     user_response,
     expected_success,
-    force_legacy_torch_compat_api,
+        force_legacy_torch_compatible_api,
 ):
     test_set_root_weights_extrinsic(
         mock_subtensor,

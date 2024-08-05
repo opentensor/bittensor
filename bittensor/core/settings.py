@@ -52,6 +52,8 @@ def turn_console_on():
 
 turn_console_off()
 
+bt_console = __console__
+
 
 HOME_DIR = Path.home()
 USER_BITTENSOR_DIR = HOME_DIR / ".bittensor"

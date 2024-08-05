@@ -13,14 +13,15 @@ import random
 import weakref
 import logging
 import argparse
-import bittensor
 import itertools
 import threading
 
 from typing import Callable
 from concurrent.futures import _base
 
+from bittensor.core.config import Config
 from bittensor.utils.btlogging.defines import BITTENSOR_LOGGER_NAME
+from bittensor.core.settings import blocktime
 
 # Workers are created as daemon threads. This is done to allow the interpreter
 # to exit when there are still idle threads in a ThreadPoolExecutor's thread
@@ -54,7 +55,7 @@ class _WorkItem(object):
         """Run the given work item"""
         # Checks if future is canceled or if work item is stale
         if (not self.future.set_running_or_notify_cancel()) or (
-            time.time() - self.start_time > bittensor.__blocktime__
+                time.time() - self.start_time > blocktime
         ):
             return
 
@@ -120,18 +121,18 @@ class BrokenThreadPool(_base.BrokenExecutor):
 
 
 class PriorityThreadPoolExecutor(_base.Executor):
-    """Base threadpool executor with a priority queue"""
+    """Base threadpool executor with a priority queue."""
 
     # Used to assign unique thread names when thread_name_prefix is not supplied.
     _counter = itertools.count().__next__
 
     def __init__(
-        self,
-        maxsize=-1,
-        max_workers=None,
-        thread_name_prefix="",
-        initializer=None,
-        initargs=(),
+            self,
+            maxsize=-1,
+            max_workers=None,
+            thread_name_prefix="",
+            initializer=None,
+            initargs=(),
     ):
         """Initializes a new `ThreadPoolExecutor <https://docs.python.org/3/library/concurrent.futures.html#threadpoolexecutor>`_ instance.
 
@@ -160,7 +161,7 @@ class PriorityThreadPoolExecutor(_base.Executor):
         self._shutdown = False
         self._shutdown_lock = threading.Lock()
         self._thread_name_prefix = thread_name_prefix or (
-            "ThreadPoolExecutor-%d" % self._counter()
+                "ThreadPoolExecutor-%d" % self._counter()
         )
         self._initializer = initializer
         self._initargs = initargs
@@ -168,16 +169,16 @@ class PriorityThreadPoolExecutor(_base.Executor):
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser, prefix: str = None):
         """Accept specific arguments from parser"""
-        prefix_str = "" if prefix == None else prefix + "."
+        prefix_str = "" if prefix is None else prefix + "."
         try:
             default_max_workers = (
                 os.getenv("BT_PRIORITY_MAX_WORKERS")
-                if os.getenv("BT_PRIORITY_MAX_WORKERS") != None
+                if os.getenv("BT_PRIORITY_MAX_WORKERS") is not None
                 else 5
             )
             default_maxsize = (
                 os.getenv("BT_PRIORITY_MAXSIZE")
-                if os.getenv("BT_PRIORITY_MAXSIZE") != None
+                if os.getenv("BT_PRIORITY_MAXSIZE") is not None
                 else 10
             )
             parser.add_argument(
@@ -197,14 +198,14 @@ class PriorityThreadPoolExecutor(_base.Executor):
             pass
 
     @classmethod
-    def config(cls) -> "bittensor.Config":
+    def config(cls) -> "Config":
         """Get config from the argument parser.
 
         Return: :func:`bittensor.Config` object.
         """
         parser = argparse.ArgumentParser()
         PriorityThreadPoolExecutor.add_args(parser)
-        return bittensor.Config(parser, args=[])
+        return Config(parser, args=[])
 
     @property
     def is_empty(self):

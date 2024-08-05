@@ -15,19 +15,22 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import bittensor
-from rich.prompt import Confirm
 from time import sleep
 from typing import List, Union, Optional
-from bittensor.utils.balance import Balance
+
+from bittensor_wallet import Wallet
+from rich.prompt import Confirm
+
 from bittensor.core.errors import NotRegisteredError, StakeError
+from bittensor.core.settings import bt_console
+from bittensor.utils.balance import Balance
 
 
 def __do_remove_stake_single(
-    subtensor: "bittensor.subtensor",
-    wallet: "bittensor.wallet",
+    subtensor,
+    wallet: "Wallet",
     hotkey_ss58: str,
-    amount: "bittensor.Balance",
+    amount: "Balance",
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
 ) -> bool:
@@ -35,7 +38,7 @@ def __do_remove_stake_single(
     Executes an unstake call to the chain using the wallet and the amount specified.
 
     Args:
-        wallet (bittensor.wallet):
+        wallet (Wallet):
             Bittensor wallet object.
         hotkey_ss58 (str):
             Hotkey address to unstake from.
@@ -72,7 +75,7 @@ def __do_remove_stake_single(
 
 
 def check_threshold_amount(
-    subtensor: "bittensor.subtensor", stake_balance: Balance
+    subtensor, stake_balance: Balance
 ) -> bool:
     """
     Checks if the remaining stake balance is above the minimum required stake threshold.
@@ -89,7 +92,7 @@ def check_threshold_amount(
     min_req_stake: Balance = subtensor.get_minimum_required_stake()
 
     if min_req_stake > stake_balance > 0:
-        bittensor.__console__.print(
+        bt_console.print(
             f":cross_mark: [yellow]Remaining stake balance of {stake_balance} less than minimum of {min_req_stake} TAO[/yellow]"
         )
         return False
@@ -98,8 +101,8 @@ def check_threshold_amount(
 
 
 def unstake_extrinsic(
-    subtensor: "bittensor.subtensor",
-    wallet: "bittensor.wallet",
+    subtensor,
+    wallet: "Wallet",
     hotkey_ss58: Optional[str] = None,
     amount: Optional[Union[Balance, float]] = None,
     wait_for_inclusion: bool = True,
@@ -109,7 +112,7 @@ def unstake_extrinsic(
     r"""Removes stake into the wallet coldkey from the specified hotkey ``uid``.
 
     Args:
-        wallet (bittensor.wallet):
+        wallet (Wallet):
             Bittensor wallet object.
         hotkey_ss58 (Optional[str]):
             The ``ss58`` address of the hotkey to unstake from. By default, the wallet hotkey is used.
@@ -131,7 +134,7 @@ def unstake_extrinsic(
     if hotkey_ss58 is None:
         hotkey_ss58 = wallet.hotkey.ss58_address  # Default to wallet's own hotkey.
 
-    with bittensor.__console__.status(
+    with bt_console.status(
         ":satellite: Syncing with chain: [white]{}[/white] ...".format(
             subtensor.network
         )
@@ -148,15 +151,15 @@ def unstake_extrinsic(
     if amount is None:
         # Unstake it all.
         unstaking_balance = old_stake
-    elif not isinstance(amount, bittensor.Balance):
-        unstaking_balance = bittensor.Balance.from_tao(amount)
+    elif not isinstance(amount, Balance):
+        unstaking_balance = Balance.from_tao(amount)
     else:
         unstaking_balance = amount
 
     # Check enough to unstake.
     stake_on_uid = old_stake
     if unstaking_balance > stake_on_uid:
-        bittensor.__console__.print(
+        bt_console.print(
             ":cross_mark: [red]Not enough stake[/red]: [green]{}[/green] to unstake: [blue]{}[/blue] from hotkey: [white]{}[/white]".format(
                 stake_on_uid, unstaking_balance, wallet.hotkey_str
             )
@@ -167,7 +170,7 @@ def unstake_extrinsic(
     if not own_hotkey and not check_threshold_amount(
         subtensor=subtensor, stake_balance=(stake_on_uid - unstaking_balance)
     ):
-        bittensor.__console__.print(
+        bt_console.print(
             f":warning: [yellow]This action will unstake the entire staked balance![/yellow]"
         )
         unstaking_balance = stake_on_uid
@@ -182,7 +185,7 @@ def unstake_extrinsic(
             return False
 
     try:
-        with bittensor.__console__.status(
+        with bt_console.status(
             ":satellite: Unstaking from chain: [white]{}[/white] ...".format(
                 subtensor.network
             )
@@ -201,10 +204,10 @@ def unstake_extrinsic(
             if not wait_for_finalization and not wait_for_inclusion:
                 return True
 
-            bittensor.__console__.print(
+            bt_console.print(
                 ":white_heavy_check_mark: [green]Finalized[/green]"
             )
-            with bittensor.__console__.status(
+            with bt_console.status(
                 ":satellite: Checking Balance on: [white]{}[/white] ...".format(
                     subtensor.network
                 )
@@ -215,38 +218,38 @@ def unstake_extrinsic(
                 new_stake = subtensor.get_stake_for_coldkey_and_hotkey(
                     coldkey_ss58=wallet.coldkeypub.ss58_address, hotkey_ss58=hotkey_ss58
                 )  # Get stake on hotkey.
-                bittensor.__console__.print(
+                bt_console.print(
                     "Balance:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format(
                         old_balance, new_balance
                     )
                 )
-                bittensor.__console__.print(
+                bt_console.print(
                     "Stake:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format(
                         old_stake, new_stake
                     )
                 )
                 return True
         else:
-            bittensor.__console__.print(
+            bt_console.print(
                 ":cross_mark: [red]Failed[/red]: Unknown Error."
             )
             return False
 
     except NotRegisteredError as e:
-        bittensor.__console__.print(
+        bt_console.print(
             ":cross_mark: [red]Hotkey: {} is not registered.[/red]".format(
                 wallet.hotkey_str
             )
         )
         return False
     except StakeError as e:
-        bittensor.__console__.print(":cross_mark: [red]Stake Error: {}[/red]".format(e))
+        bt_console.print(":cross_mark: [red]Stake Error: {}[/red]".format(e))
         return False
 
 
 def unstake_multiple_extrinsic(
-    subtensor: "bittensor.subtensor",
-    wallet: "bittensor.wallet",
+    subtensor,
+    wallet: "Wallet",
     hotkey_ss58s: List[str],
     amounts: Optional[List[Union[Balance, float]]] = None,
     wait_for_inclusion: bool = True,
@@ -256,7 +259,7 @@ def unstake_multiple_extrinsic(
     r"""Removes stake from each ``hotkey_ss58`` in the list, using each amount, to a common coldkey.
 
     Args:
-        wallet (bittensor.wallet):
+        wallet (Wallet):
             The wallet with the coldkey to unstake to.
         hotkey_ss58s (List[str]):
             List of hotkeys to unstake from.
@@ -287,7 +290,7 @@ def unstake_multiple_extrinsic(
         isinstance(amount, (Balance, float)) for amount in amounts
     ):
         raise TypeError(
-            "amounts must be a [list of bittensor.Balance or float] or None"
+            "amounts must be a [list of Balance or float] or None"
         )
 
     if amounts is None:
@@ -295,7 +298,7 @@ def unstake_multiple_extrinsic(
     else:
         # Convert to Balance
         amounts = [
-            bittensor.Balance.from_tao(amount) if isinstance(amount, float) else amount
+            Balance.from_tao(amount) if isinstance(amount, float) else amount
             for amount in amounts
         ]
 
@@ -308,7 +311,7 @@ def unstake_multiple_extrinsic(
 
     old_stakes = []
     own_hotkeys = []
-    with bittensor.__console__.status(
+    with bt_console.status(
         ":satellite: Syncing with chain: [white]{}[/white] ...".format(
             subtensor.network
         )
@@ -332,15 +335,15 @@ def unstake_multiple_extrinsic(
         if amount is None:
             # Unstake it all.
             unstaking_balance = old_stake
-        elif not isinstance(amount, bittensor.Balance):
-            unstaking_balance = bittensor.Balance.from_tao(amount)
+        elif not isinstance(amount, Balance):
+            unstaking_balance = Balance.from_tao(amount)
         else:
             unstaking_balance = amount
 
         # Check enough to unstake.
         stake_on_uid = old_stake
         if unstaking_balance > stake_on_uid:
-            bittensor.__console__.print(
+            bt_console.print(
                 ":cross_mark: [red]Not enough stake[/red]: [green]{}[/green] to unstake: [blue]{}[/blue] from hotkey: [white]{}[/white]".format(
                     stake_on_uid, unstaking_balance, wallet.hotkey_str
                 )
@@ -351,7 +354,7 @@ def unstake_multiple_extrinsic(
         if not own_hotkey and not check_threshold_amount(
             subtensor=subtensor, stake_balance=(stake_on_uid - unstaking_balance)
         ):
-            bittensor.__console__.print(
+            bt_console.print(
                 f":warning: [yellow]This action will unstake the entire staked balance![/yellow]"
             )
             unstaking_balance = stake_on_uid
@@ -366,7 +369,7 @@ def unstake_multiple_extrinsic(
                 continue
 
         try:
-            with bittensor.__console__.status(
+            with bt_console.status(
                 ":satellite: Unstaking from chain: [white]{}[/white] ...".format(
                     subtensor.network
                 )
@@ -387,7 +390,7 @@ def unstake_multiple_extrinsic(
                     # Wait for tx rate limit.
                     tx_rate_limit_blocks = subtensor.tx_rate_limit()
                     if tx_rate_limit_blocks > 0:
-                        bittensor.__console__.print(
+                        bt_console.print(
                             ":hourglass: [yellow]Waiting for tx rate limit: [white]{}[/white] blocks[/yellow]".format(
                                 tx_rate_limit_blocks
                             )
@@ -398,10 +401,10 @@ def unstake_multiple_extrinsic(
                     successful_unstakes += 1
                     continue
 
-                bittensor.__console__.print(
+                bt_console.print(
                     ":white_heavy_check_mark: [green]Finalized[/green]"
                 )
-                with bittensor.__console__.status(
+                with bt_console.status(
                     ":satellite: Checking Balance on: [white]{}[/white] ...".format(
                         subtensor.network
                     )
@@ -412,37 +415,37 @@ def unstake_multiple_extrinsic(
                         hotkey_ss58=hotkey_ss58,
                         block=block,
                     )
-                    bittensor.__console__.print(
+                    bt_console.print(
                         "Stake ({}): [blue]{}[/blue] :arrow_right: [green]{}[/green]".format(
                             hotkey_ss58, stake_on_uid, new_stake
                         )
                     )
                     successful_unstakes += 1
             else:
-                bittensor.__console__.print(
+                bt_console.print(
                     ":cross_mark: [red]Failed[/red]: Unknown Error."
                 )
                 continue
 
         except NotRegisteredError as e:
-            bittensor.__console__.print(
+            bt_console.print(
                 ":cross_mark: [red]{} is not registered.[/red]".format(hotkey_ss58)
             )
             continue
         except StakeError as e:
-            bittensor.__console__.print(
+            bt_console.print(
                 ":cross_mark: [red]Stake Error: {}[/red]".format(e)
             )
             continue
 
     if successful_unstakes != 0:
-        with bittensor.__console__.status(
+        with bt_console.status(
             ":satellite: Checking Balance on: ([white]{}[/white] ...".format(
                 subtensor.network
             )
         ):
             new_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
-        bittensor.__console__.print(
+        bt_console.print(
             "Balance: [blue]{}[/blue] :arrow_right: [green]{}[/green]".format(
                 old_balance, new_balance
             )

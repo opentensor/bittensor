@@ -15,14 +15,16 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import os
 import argparse
-import bittensor
+import os
+
+from bittensor_wallet import Wallet
+
 from rich import print
-from rich.console import Console
 from rich.tree import Tree
 
-console = Console()
+from bittensor.core.config import Config
+from bittensor.core.subtensor import Subtensor
 
 
 class ListCommand:
@@ -60,10 +62,10 @@ class ListCommand:
         ListCommand._run(cli, wallets)
 
     @staticmethod
-    def _run(cli: "bittensor.cli", wallets, return_value=False):
+    def _run(cli, wallets, return_value=False):
         root = Tree("Wallets")
         for w_name in wallets:
-            wallet_for_name = bittensor.wallet(path=cli.config.wallet.path, name=w_name)
+            wallet_for_name = Wallet(path=cli.config.wallet.path, name=w_name)
             try:
                 if (
                     wallet_for_name.coldkeypub_file.exists_on_device()
@@ -83,7 +85,7 @@ class ListCommand:
                 hotkeys = next(os.walk(os.path.expanduser(hotkeys_path)))
                 if len(hotkeys) > 1:
                     for h_name in hotkeys[2]:
-                        hotkey_for_name = bittensor.wallet(
+                        hotkey_for_name = Wallet(
                             path=cli.config.wallet.path, name=w_name, hotkey=h_name
                         )
                         try:
@@ -110,14 +112,14 @@ class ListCommand:
             return root
 
     @staticmethod
-    def check_config(config: "bittensor.config"):
+    def check_config(config: "Config"):
         pass
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
         list_parser = parser.add_parser("list", help="""List wallets""")
-        bittensor.wallet.add_args(list_parser)
-        bittensor.subtensor.add_args(list_parser)
+        Wallet.add_args(list_parser)
+        Subtensor.add_args(list_parser)
 
     @staticmethod
     def get_tree(cli):

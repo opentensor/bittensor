@@ -3,7 +3,12 @@ from rich.table import Table
 from rich.prompt import Prompt
 from sys import getsizeof
 from ...core.settings import networks
-import bittensor
+from bittensor.core.settings import bt_console
+from bittensor.core.subtensor import Subtensor
+from bittensor.core.config import Config
+from bittensor_wallet import Wallet
+from bittensor.utils.btlogging import logging
+from bittensor.btcli.commands import defaults
 
 
 class SetIdentityCommand:
@@ -54,24 +59,24 @@ class SetIdentityCommand:
         that makes changes to the blockchain state and should not be used programmatically as
         part of other scripts or applications.
     """
-
-    def run(cli: "bittensor.cli"):
+    @staticmethod
+    def run(cli):
         r"""Create a new or update existing identity on-chain."""
         try:
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+            subtensor: "Subtensor" = Subtensor(
                 config=cli.config, log_verbose=False
             )
             SetIdentityCommand._run(cli, subtensor)
         finally:
             if "subtensor" in locals():
                 subtensor.close()
-                bittensor.logging.debug("closing subtensor connection")
-
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+                logging.debug("closing subtensor connection")
+    
+    @staticmethod
+    def _run(cli, subtensor: "Subtensor"):
         r"""Create a new or update existing identity on-chain."""
-        console = bittensor.__console__
 
-        wallet = bittensor.wallet(config=cli.config)
+        wallet = Wallet(config=cli.config)
 
         id_dict = {
             "display": cli.config.display,
@@ -112,11 +117,11 @@ class SetIdentityCommand:
             ).lower()
             == "n"
         ):
-            console.print(":cross_mark: Aborted!")
+            bt_console.print(":cross_mark: Aborted!")
             exit(0)
 
         wallet.coldkey  # unlock coldkey
-        with console.status(":satellite: [bold green]Updating identity on-chain..."):
+        with bt_console.status(":satellite: [bold green]Updating identity on-chain..."):
             try:
                 subtensor.update_identity(
                     identified=identified,
@@ -124,10 +129,10 @@ class SetIdentityCommand:
                     params=id_dict,
                 )
             except Exception as e:
-                console.print(f"[red]:cross_mark: Failed![/red] {e}")
+                bt_console.print(f"[red]:cross_mark: Failed![/red] {e}")
                 exit(1)
 
-            console.print(":white_heavy_check_mark: Success!")
+            bt_console.print(":white_heavy_check_mark: Success!")
 
         identity = subtensor.query_identity(identified or wallet.coldkey.ss58_address)
 
@@ -139,28 +144,28 @@ class SetIdentityCommand:
         for key, value in identity.items():
             table.add_row(key, str(value) if value is not None else "None")
 
-        console.print(table)
+        bt_console.print(table)
 
     @staticmethod
-    def check_config(config: "bittensor.config"):
+    def check_config(config: "Config"):
         if not config.is_set("wallet.name") and not config.no_prompt:
             config.wallet.name = Prompt.ask(
-                "Enter wallet name", default=bittensor.defaults.wallet.name
+                "Enter wallet name", default=defaults.wallet.name
             )
         if not config.is_set("wallet.hotkey") and not config.no_prompt:
             config.wallet.hotkey = Prompt.ask(
-                "Enter wallet hotkey", default=bittensor.defaults.wallet.hotkey
+                "Enter wallet hotkey", default=defaults.wallet.hotkey
             )
         if not config.is_set("subtensor.network") and not config.no_prompt:
             config.subtensor.network = Prompt.ask(
                 "Enter subtensor network",
-                default=bittensor.defaults.subtensor.network,
+                default=defaults.subtensor.network,
                 choices=networks,
             )
             (
                 _,
                 config.subtensor.chain_endpoint,
-            ) = bittensor.subtensor.determine_chain_endpoint_and_network(
+            ) = Subtensor.determine_chain_endpoint_and_network(
                 config.subtensor.network
             )
         if not config.is_set("display") and not config.no_prompt:
@@ -235,8 +240,8 @@ class SetIdentityCommand:
             type=str,
             help="""The twitter url for the identity.""",
         )
-        bittensor.wallet.add_args(new_coldkey_parser)
-        bittensor.subtensor.add_args(new_coldkey_parser)
+        Wallet.add_args(new_coldkey_parser)
+        Subtensor.add_args(new_coldkey_parser)
 
 
 class GetIdentityCommand:
@@ -272,22 +277,23 @@ class GetIdentityCommand:
         primarily used for informational purposes and has no side effects on the network state.
     """
 
-    def run(cli: "bittensor.cli"):
-        r"""Queries the subtensor chain for user identity."""
+    @staticmethod
+    def run(cli):
+        """Queries the subtensor chain for user identity."""
         try:
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+            subtensor: "Subtensor" = Subtensor(
                 config=cli.config, log_verbose=False
             )
             GetIdentityCommand._run(cli, subtensor)
         finally:
             if "subtensor" in locals():
                 subtensor.close()
-                bittensor.logging.debug("closing subtensor connection")
+                logging.debug("closing subtensor connection")
 
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
-        console = bittensor.__console__
+    @staticmethod
+    def _run(cli, subtensor: "Subtensor"):
 
-        with console.status(":satellite: [bold green]Querying chain identity..."):
+        with bt_console.status(":satellite: [bold green]Querying chain identity..."):
             identity = subtensor.query_identity(cli.config.key)
 
         table = Table(title="[bold white italic]On-Chain Identity")
@@ -298,10 +304,10 @@ class GetIdentityCommand:
         for key, value in identity.items():
             table.add_row(key, str(value) if value is not None else "None")
 
-        console.print(table)
+        bt_console.print(table)
 
     @staticmethod
-    def check_config(config: "bittensor.config"):
+    def check_config(config: "Config"):
         if not config.is_set("key") and not config.no_prompt:
             config.key = Prompt.ask(
                 "Enter coldkey or hotkey ss58 address", default=None
@@ -311,13 +317,13 @@ class GetIdentityCommand:
         if not config.is_set("subtensor.network") and not config.no_prompt:
             config.subtensor.network = Prompt.ask(
                 "Enter subtensor network",
-                default=bittensor.defaults.subtensor.network,
+                default=defaults.subtensor.network,
                 choices=networks,
             )
             (
                 _,
                 config.subtensor.chain_endpoint,
-            ) = bittensor.subtensor.determine_chain_endpoint_and_network(
+            ) = Subtensor.determine_chain_endpoint_and_network(
                 config.subtensor.network
             )
 
@@ -333,5 +339,5 @@ class GetIdentityCommand:
             default=None,
             help="""The coldkey or hotkey ss58 address to query.""",
         )
-        bittensor.wallet.add_args(new_coldkey_parser)
-        bittensor.subtensor.add_args(new_coldkey_parser)
+        Wallet.add_args(new_coldkey_parser)
+        Subtensor.add_args(new_coldkey_parser)

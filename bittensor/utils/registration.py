@@ -1,7 +1,22 @@
-import binascii
+# The MIT License (MIT)
+# Copyright © 2024 Opentensor Foundation
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
+# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+# the Software.
+#
+# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
+
 import functools
 import hashlib
-import math
 import multiprocessing
 import multiprocessing.queues  # this must be imported separately, or could break type annotations
 import os
@@ -14,15 +29,21 @@ from queue import Empty, Full
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import backoff
+import binascii
+import math
 import numpy
-
-import bittensor
 from Crypto.Hash import keccak
 from rich import console as rich_console
 from rich import status as rich_status
 
-from .formatting import get_human_readable, millify
-from ._register_cuda import solve_cuda
+from bittensor.core.settings import bt_console
+from bittensor.utils._register_cuda import solve_cuda
+from bittensor.utils.btlogging import logging
+from bittensor.utils.formatting import get_human_readable, millify
+
+if typing.TYPE_CHECKING:
+    from bittensor.core.subtensor import Subtensor
+    from bittensor_wallet import Wallet
 
 
 def use_torch() -> bool:
@@ -35,11 +56,10 @@ def legacy_torch_api_compat(func):
     Convert function operating on numpy Input&Output to legacy torch Input&Output API if `use_torch()` is True.
 
     Args:
-        func (function):
-            Function with numpy Input/Output to be decorated.
+        func (function): Function with numpy Input/Output to be decorated.
+
     Returns:
-        decorated (function):
-            Decorated function.
+        decorated (function): Decorated function.
     """
 
     @functools.wraps(func)
@@ -74,7 +94,7 @@ def _get_real_torch():
 
 
 def log_no_torch_error():
-    bittensor.logging.error(
+    logging.error(
         "This command requires torch. You can install torch for bittensor"
         ' with `pip install bittensor[torch]` or `pip install ".[torch]"`'
         " if installing from source, and then run the command with USE_TORCH=1 {command}"
@@ -102,11 +122,9 @@ else:
 class CUDAException(Exception):
     """An exception raised when an error occurs in the CUDA environment."""
 
-    pass
-
 
 def _hex_bytes_to_u8_list(hex_bytes: bytes):
-    hex_chunks = [int(hex_bytes[i : i + 2], 16) for i in range(0, len(hex_bytes), 2)]
+    hex_chunks = [int(hex_bytes[i: i + 2], 16) for i in range(0, len(hex_bytes), 2)]
     return hex_chunks
 
 
@@ -134,9 +152,10 @@ class POWSolution:
     difficulty: int
     seal: bytes
 
-    def is_stale(self, subtensor: "bittensor.subtensor") -> bool:
-        """Returns True if the POW is stale.
-        This means the block the POW is solved for is within 3 blocks of the current block.
+    def is_stale(self, subtensor: "Subtensor") -> bool:
+        """
+        Returns True if the POW is stale. This means the block the POW is solved for is within 3 blocks of the current
+        block.
         """
         return self.block_number < subtensor.get_current_block() - 3
 
@@ -183,7 +202,6 @@ class _SolverBase(multiprocessing.Process):
         limit: int
             The limit of the pow solve for a valid solution.
     """
-
     proc_num: int
     num_proc: int
     update_interval: int
@@ -461,7 +479,6 @@ def get_cpu_count() -> int:
 @dataclass
 class RegistrationStatistics:
     """Statistics for a registration."""
-
     time_spent_total: float
     rounds_total: int
     time_average: float
@@ -525,8 +542,8 @@ class RegistrationStatisticsLogger:
 
 
 def _solve_for_difficulty_fast(
-    subtensor,
-    wallet: "bittensor.wallet",
+    subtensor: "Subtensor",
+    wallet: "Wallet",
     netuid: int,
     output_in_place: bool = True,
     num_processes: Optional[int] = None,
@@ -538,29 +555,23 @@ def _solve_for_difficulty_fast(
     """
     Solves the POW for registration using multiprocessing.
     Args:
-        subtensor
-            Subtensor to connect to for block information and to submit.
-        wallet:
-            wallet to use for registration.
-        netuid: int
-            The netuid of the subnet to register to.
-        output_in_place: bool
-            If true, prints the status in place. Otherwise, prints the status on a new line.
-        num_processes: int
-            Number of processes to use.
-        update_interval: int
-            Number of nonces to solve before updating block information.
-        n_samples: int
-            The number of samples of the hash_rate to keep for the EWMA
-        alpha_: float
-            The alpha for the EWMA for the hash_rate calculation
-        log_verbose: bool
-            If true, prints more verbose logging of the registration metrics.
-    Note: The hash rate is calculated as an exponentially weighted moving average in order to make the measure more robust.
+        subtensor (bittensor.core.subtensor.Subtensor): Subtensor to connect to for block information and to submit.
+        wallet (bittensor_wallet.Wallet): wallet to use for registration.
+        netuid (int): The netuid of the subnet to register to.
+        output_in_place (bool): If true, prints the status in place. Otherwise, prints the status on a new line.
+        num_processes (int): Number of processes to use.
+        update_interval (int): Number of nonces to solve before updating block information.
+        n_samples (int): The number of samples of the hash_rate to keep for the EWMA.
+        alpha_ (float): The alpha for the EWMA for the hash_rate calculation.
+        log_verbose (bool): If true, prints more verbose logging of the registration metrics.
+
     Note:
-    - We can also modify the update interval to do smaller blocks of work,
-        while still updating the block information after a different number of nonces,
-        to increase the transparency of the process while still keeping the speed.
+        The hash rate is calculated as an exponentially weighted moving average in order to make the measure more
+        robust.
+    Note:
+        - We can also modify the update interval to do smaller blocks of work, while still updating the block
+        information after a different number of nonces, to increase the transparency of the process while still keeping
+        the speed.
     """
     if num_processes is None:
         # get the number of allowed processes for this process
@@ -574,7 +585,7 @@ def _solve_for_difficulty_fast(
     curr_block, curr_block_num, curr_diff = _Solver.create_shared_memory()
 
     # Establish communication queues
-    ## See the _Solver class for more information on the queues.
+    # See the _Solver class for more information on the queues.
     stopEvent = multiprocessing.Event()
     stopEvent.clear()
 
@@ -646,8 +657,7 @@ def _solve_for_difficulty_fast(
 
     start_time_perpetual = time.time()
 
-    console = bittensor.__console__
-    logger = RegistrationStatisticsLogger(console, output_in_place)
+    logger = RegistrationStatisticsLogger(bt_console, output_in_place)
     logger.start()
 
     solution = None
@@ -735,27 +745,19 @@ def _solve_for_difficulty_fast(
 
 @backoff.on_exception(backoff.constant, Exception, interval=1, max_tries=3)
 def _get_block_with_retry(
-    subtensor: "bittensor.subtensor", netuid: int
+    subtensor: "Subtensor", netuid: int
 ) -> Tuple[int, int, bytes]:
     """
     Gets the current block number, difficulty, and block hash from the substrate node.
 
     Args:
-        subtensor (:obj:`bittensor.subtensor`, `required`):
-            The subtensor object to use to get the block number, difficulty, and block hash.
-
-        netuid (:obj:`int`, `required`):
-            The netuid of the network to get the block number, difficulty, and block hash from.
+        subtensor (bittensor.core.subtensor.Subtensor): The subtensor object to use to get the block number, difficulty, and block hash.
+        netuid (int): The netuid of the network to get the block number, difficulty, and block hash from.
 
     Returns:
-        block_number (:obj:`int`):
-            The current block number.
-
-        difficulty (:obj:`int`):
-            The current difficulty of the subnet.
-
-        block_hash (:obj:`bytes`):
-            The current block hash.
+        block_number (int): The current block number.
+        difficulty (int): The current difficulty of the subnet.
+        block_hash (bytes): The current block hash.
 
     Raises:
         Exception: If the block hash is None.
@@ -791,7 +793,7 @@ class _UsingSpawnStartMethod:
 
 
 def _check_for_newest_block_and_update(
-    subtensor: "bittensor.subtensor",
+    subtensor: "Subtensor",
     netuid: int,
     old_block_number: int,
     hotkey_bytes: bytes,
@@ -807,28 +809,17 @@ def _check_for_newest_block_and_update(
     Checks for a new block and updates the current block information if a new block is found.
 
     Args:
-        subtensor (:obj:`bittensor.subtensor`, `required`):
-            The subtensor object to use for getting the current block.
-        netuid (:obj:`int`, `required`):
-            The netuid to use for retrieving the difficulty.
-        old_block_number (:obj:`int`, `required`):
-            The old block number to check against.
-        hotkey_bytes (:obj:`bytes`, `required`):
-            The bytes of the hotkey's pubkey.
-        curr_diff (:obj:`multiprocessing.Array`, `required`):
-            The current difficulty as a multiprocessing array.
-        curr_block (:obj:`multiprocessing.Array`, `required`):
-            Where the current block is stored as a multiprocessing array.
-        curr_block_num (:obj:`multiprocessing.Value`, `required`):
-            Where the current block number is stored as a multiprocessing value.
-        update_curr_block (:obj:`Callable`, `required`):
-            A function that updates the current block.
-        check_block (:obj:`multiprocessing.Lock`, `required`):
-            A mp lock that is used to check for a new block.
-        solvers (:obj:`List[_Solver]`, `required`):
-            A list of solvers to update the current block for.
-        curr_stats (:obj:`RegistrationStatistics`, `required`):
-            The current registration statistics to update.
+        subtensor (bittensor.core.subtensor.Subtensor): The subtensor object to use for getting the current block.
+        netuid (int):  The netuid to use for retrieving the difficulty.
+        old_block_number (int): The old block number to check against.
+        hotkey_bytes (bytes): The bytes of the hotkey's pubkey.
+        curr_diff (multiprocessing.Array): The current difficulty as a multiprocessing array.
+        curr_block (multiprocessing.Array): Where the current block is stored as a multiprocessing array.
+        curr_block_num (multiprocessing.Value): Where the current block number is stored as a multiprocessing value.
+        update_curr_block (Callable): A function that updates the current block.
+        check_block (multiprocessing.Lock): A mp lock that is used to check for a new block.
+        solvers (List[_Solver]): A list of solvers to update the current block for.
+        curr_stats (RegistrationStatistics): The current registration statistics to update.
 
     Returns:
         (int) The current block number.
@@ -866,8 +857,8 @@ def _check_for_newest_block_and_update(
 
 
 def _solve_for_difficulty_fast_cuda(
-    subtensor: "bittensor.subtensor",
-    wallet: "bittensor.wallet",
+    subtensor: "Subtensor",
+    wallet: "Wallet",
     netuid: int,
     output_in_place: bool = True,
     update_interval: int = 50_000,
@@ -880,27 +871,19 @@ def _solve_for_difficulty_fast_cuda(
     """
     Solves the registration fast using CUDA
     Args:
-        subtensor: bittensor.subtensor
-            The subtensor node to grab blocks
-        wallet: bittensor.wallet
-            The wallet to register
-        netuid: int
-            The netuid of the subnet to register to.
-        output_in_place: bool
-            If true, prints the output in place, otherwise prints to new lines
-        update_interval: int
-            The number of nonces to try before checking for more blocks
-        tpb: int
-            The number of threads per block. CUDA param that should match the GPU capability
-        dev_id: Union[List[int], int]
-            The CUDA device IDs to execute the registration on, either a single device or a list of devices
-        n_samples: int
-            The number of samples of the hash_rate to keep for the EWMA
-        alpha_: float
-            The alpha for the EWMA for the hash_rate calculation
-        log_verbose: bool
-            If true, prints more verbose logging of the registration metrics.
-    Note: The hash rate is calculated as an exponentially weighted moving average in order to make the measure more robust.
+        subtensor (bittensor.core.subtensor.Subtensor): The subtensor node to grab blocks.
+        wallet (bittensor_wallet.Wallet): The wallet to register.
+        netuid (int): The netuid of the subnet to register to.
+        output_in_place (bool): If true, prints the output in place, otherwise prints to new lines.
+        update_interval (int): The number of nonces to try before checking for more blocks.
+        tpb (int): The number of threads per block. CUDA param that should match the GPU capability.
+        dev_id (Union[List[int], int]): The CUDA device IDs to execute the registration on, either a single device or a list of devices.
+        n_samples (int): The number of samples of the hash_rate to keep for the EWMA.
+        alpha_ (float): The alpha for the EWMA for the hash_rate calculation.
+        log_verbose (bool): If true, prints more verbose logging of the registration metrics.
+
+    Note:
+        The hash rate is calculated as an exponentially weighted moving average in order to make the measure more robust.
     """
     if isinstance(dev_id, int):
         dev_id = [dev_id]
@@ -919,7 +902,7 @@ def _solve_for_difficulty_fast_cuda(
     with _UsingSpawnStartMethod(force=True):
         curr_block, curr_block_num, curr_diff = _CUDASolver.create_shared_memory()
 
-        ## Create a worker per CUDA device
+        # Create a worker per CUDA device
         num_processes = len(dev_id)
 
         # Establish communication queues
@@ -994,8 +977,7 @@ def _solve_for_difficulty_fast_cuda(
 
         start_time_perpetual = time.time()
 
-        console = bittensor.__console__
-        logger = RegistrationStatisticsLogger(console, output_in_place)
+        logger = RegistrationStatisticsLogger(bt_console, output_in_place)
         logger.start()
 
         hash_rates = [0] * n_samples  # The last n true hash_rates
@@ -1109,37 +1091,22 @@ def create_pow(
     """
     Creates a proof of work for the given subtensor and wallet.
     Args:
-        subtensor (:obj:`bittensor.subtensor.subtensor`, `required`):
-            The subtensor to create a proof of work for.
-        wallet (:obj:`bittensor.wallet.wallet`, `required`):
-            The wallet to create a proof of work for.
-        netuid (:obj:`int`, `required`):
-            The netuid for the subnet to create a proof of work for.
-        output_in_place (:obj:`bool`, `optional`, defaults to :obj:`True`):
-            If true, prints the progress of the proof of work to the console
-                in-place. Meaning the progress is printed on the same lines.
-        cuda (:obj:`bool`, `optional`, defaults to :obj:`False`):
-            If true, uses CUDA to solve the proof of work.
-        dev_id (:obj:`Union[List[int], int]`, `optional`, defaults to :obj:`0`):
-            The CUDA device id(s) to use. If cuda is true and dev_id is a list,
-                then multiple CUDA devices will be used to solve the proof of work.
-        tpb (:obj:`int`, `optional`, defaults to :obj:`256`):
-            The number of threads per block to use when solving the proof of work.
-            Should be a multiple of 32.
-        num_processes (:obj:`int`, `optional`, defaults to :obj:`None`):
-            The number of processes to use when solving the proof of work.
-            If None, then the number of processes is equal to the number of
-                CPU cores.
-        update_interval (:obj:`int`, `optional`, defaults to :obj:`None`):
-            The number of nonces to run before checking for a new block.
-        log_verbose (:obj:`bool`, `optional`, defaults to :obj:`False`):
-            If true, prints the progress of the proof of work more verbosely.
+        subtensor (bittensor.core.subtensor.Subtensor): The subtensor to create a proof of work for.
+        wallet (bittensor_wallet.Wallet): The wallet to create a proof of work for.
+        netuid (int): The netuid for the subnet to create a proof of work for.
+        output_in_place (bool): If true, prints the progress of the proof of work to the console in-place. Meaning the progress is printed on the same lines.
+        cuda (bool): If true, uses CUDA to solve the proof of work.
+        dev_id (Union[List[int], int]): The CUDA device id(s) to use. If cuda is true and dev_id is a list, then multiple CUDA devices will be used to solve the proof of work.
+        tpb (int): The number of threads per block to use when solving the proof of work. Should be a multiple of 32.
+        num_processes (int): The number of processes to use when solving the proof of work. If None, then the number of processes is equal to the number of CPU cores.
+        update_interval (int): The number of nonces to run before checking for a new block.
+        log_verbose (bool): If true, prints the progress of the proof of work more verbosely.
+
     Returns:
-        :obj:`Optional[Dict[str, Any]]`: The proof of work solution or None if
-            the wallet is already registered or there is a different error.
+        Optional[Dict[str, Any]] : The proof of work solution or None if the wallet is already registered or there is a different error.
 
     Raises:
-        :obj:`ValueError`: If the subnet does not exist.
+        ValueError: If the subnet does not exist.
     """
     if netuid != -1:
         if not subtensor.subnet_exists(netuid=netuid):

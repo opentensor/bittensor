@@ -21,17 +21,18 @@ from dataclasses import dataclass
 from typing import List, Dict, Any, Optional, Tuple
 
 import requests
-from rich.console import Console
+from bittensor_wallet import Wallet
 from rich.prompt import Confirm, PromptBase
 
-import bittensor
+from bittensor.btcli.commands import defaults
+from bittensor.core.chain_data import SubnetHyperparameters
+from bittensor.core.config import Config
+from bittensor.core.settings import bt_console
+from bittensor.core.subtensor import Subtensor
 from bittensor.utils import U64_NORMALIZED_FLOAT, U16_NORMALIZED_FLOAT
 from bittensor.utils.balance import Balance
+from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import torch
-from . import defaults
-from ...core.chain_data import SubnetHyperparameters
-
-console = Console()
 
 
 class IntListPrompt(PromptBase):
@@ -50,14 +51,14 @@ class IntListPrompt(PromptBase):
 
 
 def check_netuid_set(
-    config: "bittensor.config",
-    subtensor: "bittensor.subtensor",
+    config: "Config",
+    subtensor: "Subtensor",
     allow_none: bool = False,
 ):
     if subtensor.network != "nakamoto":
         all_netuids = [str(netuid) for netuid in subtensor.get_subnets()]
         if len(all_netuids) == 0:
-            console.print(":cross_mark:[red]There are no open networks.[/red]")
+            bt_console.print(":cross_mark:[red]There are no open networks.[/red]")
             sys.exit()
 
         # Make sure netuid is set.
@@ -82,7 +83,7 @@ def check_netuid_set(
                 raise ValueError('netuid must be an integer or "None" (if applicable)')
 
 
-def check_for_cuda_reg_config(config: "bittensor.config") -> None:
+def check_for_cuda_reg_config(config: "Config") -> None:
     """Checks, when CUDA is available, if the user would like to register with their CUDA device."""
     if torch and torch.cuda.is_available():
         if not config.no_prompt:
@@ -101,11 +102,11 @@ def check_for_cuda_reg_config(config: "bittensor.config") -> None:
                     torch.cuda.get_device_name(x)
                     for x in range(torch.cuda.device_count())
                 ]
-                console.print("Available CUDA devices:")
+                bt_console.print("Available CUDA devices:")
                 choices_str: str = ""
                 for i, device in enumerate(devices):
                     choices_str += "  {}: {}\n".format(device, device_names[i])
-                console.print(choices_str)
+                bt_console.print(choices_str)
                 dev_id = IntListPrompt.ask(
                     "Which GPU(s) would you like to use? Please list one, or comma-separated",
                     choices=devices,
@@ -122,7 +123,7 @@ def check_for_cuda_reg_config(config: "bittensor.config") -> None:
                             for dev_id in dev_id.replace(",", " ").split()
                         ]
                     except ValueError:
-                        console.log(
+                        bt_console.log(
                             ":cross_mark:[red]Invalid GPU device[/red] [bold white]{}[/bold white]\nAvailable CUDA devices:{}".format(
                                 dev_id, choices_str
                             )
@@ -135,7 +136,7 @@ def check_for_cuda_reg_config(config: "bittensor.config") -> None:
                 config.pow_register.cuda.use_cuda = defaults.pow_register.cuda.use_cuda
 
 
-def get_hotkey_wallets_for_wallet(wallet) -> List["bittensor.wallet"]:
+def get_hotkey_wallets_for_wallet(wallet) -> List["Wallet"]:
     hotkey_wallets = []
     hotkeys_path = wallet.path + "/" + wallet.name + "/hotkeys"
     try:
@@ -144,7 +145,7 @@ def get_hotkey_wallets_for_wallet(wallet) -> List["bittensor.wallet"]:
         hotkey_files = []
     for hotkey_file_name in hotkey_files:
         try:
-            hotkey_for_name = bittensor.wallet(
+            hotkey_for_name = Wallet(
                 path=wallet.path, name=wallet.name, hotkey=hotkey_file_name
             )
             if (
@@ -157,17 +158,17 @@ def get_hotkey_wallets_for_wallet(wallet) -> List["bittensor.wallet"]:
     return hotkey_wallets
 
 
-def get_coldkey_wallets_for_path(path: str) -> List["bittensor.wallet"]:
+def get_coldkey_wallets_for_path(path: str) -> List["Wallet"]:
     try:
         wallet_names = next(os.walk(os.path.expanduser(path)))[1]
-        return [bittensor.wallet(path=path, name=name) for name in wallet_names]
+        return [Wallet(path=path, name=name) for name in wallet_names]
     except StopIteration:
         # No wallet files found.
         wallets = []
     return wallets
 
 
-def get_all_wallets_for_path(path: str) -> List["bittensor.wallet"]:
+def get_all_wallets_for_path(path: str) -> List["Wallet"]:
     all_wallets = []
     cold_wallets = get_coldkey_wallets_for_path(path)
     for cold_wallet in cold_wallets:
@@ -185,7 +186,7 @@ def filter_netuids_by_registered_hotkeys(
     netuids_with_registered_hotkeys = []
     for wallet in all_hotkeys:
         netuids_list = subtensor.get_netuids_for_hotkey(wallet.hotkey.ss58_address)
-        bittensor.logging.debug(
+        logging.debug(
             f"Hotkey {wallet.hotkey.ss58_address} registered in netuids: {netuids_list}"
         )
         netuids_with_registered_hotkeys.extend(netuids_list)
@@ -238,7 +239,7 @@ def normalize_hyperparameters(
             else:
                 norm_value = value
         except Exception as e:
-            bittensor.logging.warning(f"Error normalizing parameter '{param}': {e}")
+            logging.warning(f"Error normalizing parameter '{param}': {e}")
             norm_value = "-"
 
         normalized_values.append((param, str(value), str(norm_value)))

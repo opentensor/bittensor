@@ -19,7 +19,7 @@ import re
 import typing
 import argparse
 import numpy as np
-import bittensor
+
 from typing import List, Optional, Dict
 from rich.console import Console
 from rich.prompt import Prompt
@@ -27,7 +27,12 @@ from rich.table import Table
 from .utils import get_delegates_details, DelegatesDetails
 
 from . import defaults
-from ...core import settings
+from bittensor.core.settings import bt_console, delegates_details_url
+from bittensor.core.subtensor import Subtensor
+from bittensor.core.config import Config
+from bittensor_wallet import Wallet
+from bittensor.utils.btlogging import logging
+from bittensor.core.chain_data import NeuronInfoLite, SubnetInfo
 
 console = Console()
 
@@ -55,22 +60,22 @@ class RootRegisterCommand:
     """
 
     @staticmethod
-    def run(cli: "bittensor.cli"):
+    def run(cli):
         r"""Register to root network."""
         try:
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+            subtensor: "Subtensor" = Subtensor(
                 config=cli.config, log_verbose=False
             )
             RootRegisterCommand._run(cli, subtensor)
         finally:
             if "subtensor" in locals():
                 subtensor.close()
-                bittensor.logging.debug("closing subtensor connection")
+                logging.debug("closing subtensor connection")
 
     @staticmethod
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+    def _run(cli, subtensor: "Subtensor"):
         r"""Register to root network."""
-        wallet = bittensor.wallet(config=cli.config)
+        wallet = Wallet(config=cli.config)
 
         subtensor.root_register(wallet=wallet, prompt=not cli.config.no_prompt)
 
@@ -80,11 +85,11 @@ class RootRegisterCommand:
             "register", help="""Register a wallet to the root network."""
         )
 
-        bittensor.wallet.add_args(parser)
-        bittensor.subtensor.add_args(parser)
+        Wallet.add_args(parser)
+        Subtensor.add_args(parser)
 
     @staticmethod
-    def check_config(config: "bittensor.config"):
+    def check_config(config: "Config"):
         if not config.is_set("wallet.name") and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
             config.wallet.name = str(wallet_name)
@@ -125,20 +130,20 @@ class RootList:
     """
 
     @staticmethod
-    def run(cli: "bittensor.cli"):
+    def run(cli):
         r"""List the root network"""
         try:
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+            subtensor: "Subtensor" = Subtensor(
                 config=cli.config, log_verbose=False
             )
             RootList._run(cli, subtensor)
         finally:
             if "subtensor" in locals():
                 subtensor.close()
-                bittensor.logging.debug("closing subtensor connection")
+                logging.debug("closing subtensor connection")
 
     @staticmethod
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+    def _run(cli, subtensor: "Subtensor"):
         r"""List the root network"""
         console.print(
             ":satellite: Syncing with chain: [white]{}[/white] ...".format(
@@ -147,11 +152,11 @@ class RootList:
         )
 
         senate_members = subtensor.get_senate_members()
-        root_neurons: typing.List[bittensor.NeuronInfoLite] = subtensor.neurons_lite(
+        root_neurons: typing.List["NeuronInfoLite"] = subtensor.neurons_lite(
             netuid=0
         )
         delegate_info: Optional[Dict[str, DelegatesDetails]] = get_delegates_details(
-            url=settings.delegates_details_url
+            url=delegates_details_url
         )
 
         table = Table(show_footer=False)
@@ -207,15 +212,15 @@ class RootList:
         table.box = None
         table.pad_edge = False
         table.width = None
-        bittensor.__console__.print(table)
+        bt_console.print(table)
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
         parser = parser.add_parser("list", help="""List the root network""")
-        bittensor.subtensor.add_args(parser)
+        Subtensor.add_args(parser)
 
     @staticmethod
-    def check_config(config: "bittensor.config"):
+    def check_config(config: "Config"):
         pass
 
 
@@ -268,28 +273,28 @@ class RootSetBoostCommand:
     """
 
     @staticmethod
-    def run(cli: "bittensor.cli"):
+    def run(cli):
         r"""Set weights for root network."""
         try:
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+            subtensor: "Subtensor" = Subtensor(
                 config=cli.config, log_verbose=False
             )
             RootSetBoostCommand._run(cli, subtensor)
         finally:
             if "subtensor" in locals():
                 subtensor.close()
-                bittensor.logging.debug("closing subtensor connection")
+                logging.debug("closing subtensor connection")
 
     @staticmethod
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+    def _run(cli, subtensor: "Subtensor"):
         r"""Set weights for root network."""
-        wallet = bittensor.wallet(config=cli.config)
+        wallet = Wallet(config=cli.config)
 
         root = subtensor.metagraph(0, lite=False)
         try:
             my_uid = root.hotkeys.index(wallet.hotkey.ss58_address)
         except ValueError:
-            bittensor.__console__.print(
+            bt_console.print(
                 "Wallet hotkey: {} not found in root metagraph".format(wallet.hotkey)
             )
             exit()
@@ -297,13 +302,13 @@ class RootSetBoostCommand:
         prev_weight = my_weights[cli.config.netuid]
         new_weight = prev_weight + cli.config.amount
 
-        bittensor.__console__.print(
+        bt_console.print(
             f"Boosting weight for netuid {cli.config.netuid} from {prev_weight} -> {new_weight}"
         )
         my_weights[cli.config.netuid] = new_weight
         all_netuids = np.arange(len(my_weights))
 
-        bittensor.__console__.print("Setting root weights...")
+        bt_console.print("Setting root weights...")
         subtensor.root_set_weights(
             wallet=wallet,
             netuids=all_netuids,
@@ -322,11 +327,11 @@ class RootSetBoostCommand:
         parser.add_argument("--netuid", dest="netuid", type=int, required=False)
         parser.add_argument("--increase", dest="amount", type=float, required=False)
 
-        bittensor.wallet.add_args(parser)
-        bittensor.subtensor.add_args(parser)
+        Wallet.add_args(parser)
+        Subtensor.add_args(parser)
 
     @staticmethod
-    def check_config(config: "bittensor.config"):
+    def check_config(config: "Config"):
         if not config.is_set("wallet.name") and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
             config.wallet.name = str(wallet_name)
@@ -386,23 +391,23 @@ class RootSetSlashCommand:
     """
 
     @staticmethod
-    def run(cli: "bittensor.cli"):
+    def run(cli):
         """Set weights for root network with decreased values."""
         try:
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+            subtensor: "Subtensor" = Subtensor(
                 config=cli.config, log_verbose=False
             )
             RootSetSlashCommand._run(cli, subtensor)
         finally:
             if "subtensor" in locals():
                 subtensor.close()
-                bittensor.logging.debug("closing subtensor connection")
+                logging.debug("closing subtensor connection")
 
     @staticmethod
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
-        wallet = bittensor.wallet(config=cli.config)
+    def _run(cli, subtensor: "Subtensor"):
+        wallet = Wallet(config=cli.config)
 
-        bittensor.__console__.print(
+        bt_console.print(
             "Slashing weight for subnet: {} by amount: {}".format(
                 cli.config.netuid, cli.config.amount
             )
@@ -411,7 +416,7 @@ class RootSetSlashCommand:
         try:
             my_uid = root.hotkeys.index(wallet.hotkey.ss58_address)
         except ValueError:
-            bittensor.__console__.print(
+            bt_console.print(
                 "Wallet hotkey: {} not found in root metagraph".format(wallet.hotkey)
             )
             exit()
@@ -438,11 +443,11 @@ class RootSetSlashCommand:
         parser.add_argument("--netuid", dest="netuid", type=int, required=False)
         parser.add_argument("--decrease", dest="amount", type=float, required=False)
 
-        bittensor.wallet.add_args(parser)
-        bittensor.subtensor.add_args(parser)
+        Wallet.add_args(parser)
+        Subtensor.add_args(parser)
 
     @staticmethod
-    def check_config(config: "bittensor.config"):
+    def check_config(config: "Config"):
         if not config.is_set("wallet.name") and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
             config.wallet.name = str(wallet_name)
@@ -478,23 +483,23 @@ class RootSetWeightsCommand:
     """
 
     @staticmethod
-    def run(cli: "bittensor.cli"):
+    def run(cli):
         r"""Set weights for root network."""
         try:
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+            subtensor: "Subtensor" = Subtensor(
                 config=cli.config, log_verbose=False
             )
             RootSetWeightsCommand._run(cli, subtensor)
         finally:
             if "subtensor" in locals():
                 subtensor.close()
-                bittensor.logging.debug("closing subtensor connection")
+                logging.debug("closing subtensor connection")
 
     @staticmethod
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+    def _run(cli, subtensor: "Subtensor"):
         r"""Set weights for root network."""
-        wallet = bittensor.wallet(config=cli.config)
-        subnets: List[bittensor.SubnetInfo] = subtensor.get_all_subnets_info()
+        wallet = Wallet(config=cli.config)
+        subnets: List["SubnetInfo"] = subtensor.get_all_subnets_info()
 
         # Get values if not set.
         if not cli.config.is_set("netuids"):
@@ -544,11 +549,11 @@ class RootSetWeightsCommand:
         parser.add_argument("--netuids", dest="netuids", type=str, required=False)
         parser.add_argument("--weights", dest="weights", type=str, required=False)
 
-        bittensor.wallet.add_args(parser)
-        bittensor.subtensor.add_args(parser)
+        Wallet.add_args(parser)
+        Subtensor.add_args(parser)
 
     @staticmethod
-    def check_config(config: "bittensor.config"):
+    def check_config(config: "Config"):
         if not config.is_set("wallet.name") and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
             config.wallet.name = str(wallet_name)
@@ -592,21 +597,21 @@ class RootGetWeightsCommand:
     """
 
     @staticmethod
-    def run(cli: "bittensor.cli"):
+    def run(cli):
         r"""Get weights for root network."""
         try:
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+            subtensor: "Subtensor" = Subtensor(
                 config=cli.config, log_verbose=False
             )
             RootGetWeightsCommand._run(cli, subtensor)
         finally:
             if "subtensor" in locals():
                 subtensor.close()
-                bittensor.logging.debug("closing subtensor connection")
+                logging.debug("closing subtensor connection")
 
     @staticmethod
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
-        r"""Get weights for root network."""
+    def _run(cli, subtensor: "Subtensor"):
+        """Get weights for root network."""
         weights = subtensor.weights(0)
 
         table = Table(show_footer=False)
@@ -667,7 +672,7 @@ class RootGetWeightsCommand:
         table.box = None
         table.pad_edge = False
         table.width = None
-        bittensor.__console__.print(table)
+        bt_console.print(table)
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
@@ -675,9 +680,9 @@ class RootGetWeightsCommand:
             "get_weights", help="""Get weights for root network."""
         )
 
-        bittensor.wallet.add_args(parser)
-        bittensor.subtensor.add_args(parser)
+        Wallet.add_args(parser)
+        Subtensor.add_args(parser)
 
     @staticmethod
-    def check_config(config: "bittensor.config"):
+    def check_config(config: "Config"):
         pass

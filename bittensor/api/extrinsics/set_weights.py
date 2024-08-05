@@ -15,23 +15,23 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import bittensor
-
 import logging
+from typing import Union, Tuple
+
 import numpy as np
+from bittensor_wallet import Wallet
 from numpy.typing import NDArray
 from rich.prompt import Confirm
-from typing import Union, Tuple
-import bittensor.utils.weight_utils as weight_utils
-from bittensor.utils.btlogging.defines import BITTENSOR_LOGGER_NAME
-from bittensor.utils.registration import torch, use_torch
 
-logger = logging.getLogger(BITTENSOR_LOGGER_NAME)
+from bittensor.utils import weight_utils
+from bittensor.core.settings import bt_console
+from bittensor.utils.btlogging import logging
+from bittensor.utils.registration import torch, use_torch
 
 
 def set_weights_extrinsic(
-    subtensor: "bittensor.subtensor",
-    wallet: "bittensor.wallet",
+    subtensor,
+    wallet: "Wallet",
     netuid: int,
     uids: Union[NDArray[np.int64], "torch.LongTensor", list],
     weights: Union[NDArray[np.float32], "torch.FloatTensor", list],
@@ -40,7 +40,7 @@ def set_weights_extrinsic(
     wait_for_finalization: bool = False,
     prompt: bool = False,
 ) -> Tuple[bool, str]:
-    r"""Sets the given weights and values on chain for wallet hotkey account.
+    """Sets the given weights and values on chain for wallet hotkey account.
 
     Args:
         subtensor (bittensor.subtensor):
@@ -91,7 +91,7 @@ def set_weights_extrinsic(
         ):
             return False, "Prompt refused."
 
-    with bittensor.__console__.status(
+    with bt_console.status(
         ":satellite: Setting weights on [white]{}[/white] ...".format(subtensor.network)
     ):
         try:
@@ -109,16 +109,16 @@ def set_weights_extrinsic(
                 return True, "Not waiting for finalization or inclusion."
 
             if success is True:
-                bittensor.__console__.print(
+                bt_console.print(
                     ":white_heavy_check_mark: [green]Finalized[/green]"
                 )
-                bittensor.logging.success(
+                logging.success(
                     prefix="Set weights",
                     suffix="<green>Finalized: </green>" + str(success),
                 )
                 return True, "Successfully set weights and Finalized."
             else:
-                bittensor.logging.error(
+                logging.error(
                     msg=error_message,
                     prefix="Set weights",
                     suffix="<red>Failed: </red>",
@@ -126,10 +126,10 @@ def set_weights_extrinsic(
                 return False, error_message
 
         except Exception as e:
-            bittensor.__console__.print(
+            bt_console.print(
                 ":cross_mark: [red]Failed[/red]: error:{}".format(e)
             )
-            bittensor.logging.warning(
+            logging.warning(
                 prefix="Set weights", suffix="<red>Failed: </red>" + str(e)
             )
             return False, str(e)

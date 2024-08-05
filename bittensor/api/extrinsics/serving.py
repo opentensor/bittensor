@@ -18,18 +18,21 @@
 import json
 from typing import Optional
 
+from bittensor_wallet import Wallet
 from retry import retry
 from rich.prompt import Confirm
 
-import bittensor
-import bittensor.utils.networking as net
-from bittensor.utils import format_error_message
+from bittensor.core.axon import Axon
 from bittensor.core.errors import MetadataError
+from bittensor.core.settings import version_as_int, bt_console
+from bittensor.core.types import AxonServeCallParams
+from bittensor.utils import format_error_message, networking as net
+from bittensor.utils.btlogging import logging
 
 
 def serve_extrinsic(
-    subtensor: "bittensor.subtensor",
-    wallet: "bittensor.wallet",
+    subtensor,
+    wallet: "Wallet",
     ip: str,
     port: int,
     protocol: int,
@@ -40,37 +43,28 @@ def serve_extrinsic(
     wait_for_finalization=True,
     prompt: bool = False,
 ) -> bool:
-    r"""Subscribes a Bittensor endpoint to the subtensor chain.
+    """Subscribes a Bittensor endpoint to the subtensor chain.
 
     Args:
-        wallet (bittensor.wallet):
-            Bittensor wallet object.
-        ip (str):
-            Endpoint host port i.e., ``192.122.31.4``.
-        port (int):
-            Endpoint port number i.e., ``9221``.
-        protocol (int):
-            An ``int`` representation of the protocol.
-        netuid (int):
-            The network uid to serve on.
-        placeholder1 (int):
-            A placeholder for future use.
-        placeholder2 (int):
-            A placeholder for future use.
-        wait_for_inclusion (bool):
-            If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization (bool):
-            If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
-        prompt (bool):
-            If ``true``, the call waits for confirmation from the user before proceeding.
+        subtensor (bittensor.core.subtensor.Subtensor): Subtensor instance object.
+        wallet (bittensor.wallet): Bittensor wallet object.
+        ip (str): Endpoint host port i.e., ``192.122.31.4``.
+        port (int): Endpoint port number i.e., ``9221``.
+        protocol (int): An ``int`` representation of the protocol.
+        netuid (int): The network uid to serve on.
+        placeholder1 (int): A placeholder for future use.
+        placeholder2 (int): A placeholder for future use.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
+        prompt (bool): If ``true``, the call waits for confirmation from the user before proceeding.
+
     Returns:
-        success (bool):
-            Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
+        success (bool): Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
     # Decrypt hotkey
     wallet.hotkey
-    params: "bittensor.AxonServeCallParams" = {
-        "version": bittensor.__version_as_int__,
+    params: "AxonServeCallParams" = {
+        "version": version_as_int,
         "ip": net.ip_to_int(ip),
         "port": port,
         "ip_type": net.ip_version(ip),
@@ -81,7 +75,7 @@ def serve_extrinsic(
         "placeholder1": placeholder1,
         "placeholder2": placeholder2,
     }
-    bittensor.logging.debug("Checking axon ...")
+    logging.debug("Checking axon ...")
     neuron = subtensor.get_neuron_for_pubkey_and_subnet(
         wallet.hotkey.ss58_address, netuid=netuid
     )
@@ -101,7 +95,7 @@ def serve_extrinsic(
     output["coldkey"] = wallet.coldkeypub.ss58_address
     output["hotkey"] = wallet.hotkey.ss58_address
     if neuron_up_to_date:
-        bittensor.logging.debug(
+        logging.debug(
             f"Axon already served on: AxonInfo({wallet.hotkey.ss58_address},{ip}:{port}) "
         )
         return True
@@ -117,7 +111,7 @@ def serve_extrinsic(
         ):
             return False
 
-    bittensor.logging.debug(
+    logging.debug(
         f"Serving axon with: AxonInfo({wallet.hotkey.ss58_address},{ip}:{port}) -> {subtensor.network}:{netuid}"
     )
     success, error_message = subtensor._do_serve_axon(
@@ -129,41 +123,37 @@ def serve_extrinsic(
 
     if wait_for_inclusion or wait_for_finalization:
         if success is True:
-            bittensor.logging.debug(
+            logging.debug(
                 f"Axon served with: AxonInfo({wallet.hotkey.ss58_address},{ip}:{port}) on {subtensor.network}:{netuid} "
             )
             return True
         else:
-            bittensor.logging.error(f"Failed: {error_message}")
+            logging.error(f"Failed: {error_message}")
             return False
     else:
         return True
 
 
 def serve_axon_extrinsic(
-    subtensor: "bittensor.subtensor",
+    subtensor,
     netuid: int,
-    axon: "bittensor.Axon",
+    axon: "Axon",
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = True,
     prompt: bool = False,
 ) -> bool:
-    r"""Serves the axon to the network.
+    """Serves the axon to the network.
 
     Args:
-        netuid ( int ):
-            The ``netuid`` being served on.
-        axon (bittensor.Axon):
-            Axon to serve.
-        wait_for_inclusion (bool):
-            If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization (bool):
-            If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
-        prompt (bool):
-            If ``true``, the call waits for confirmation from the user before proceeding.
+        subtensor (bittensor.core.subtensor.Subtensor): Subtensor instance object.
+        netuid (int): The ``netuid`` being served on.
+        axon (bittensor.core.axon.Axon): Axon to serve.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
+        prompt (bool): If ``true``, the call waits for confirmation from the user before proceeding.
+
     Returns:
-        success (bool):
-            Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
+        success (bool): Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
     axon.wallet.hotkey
     axon.wallet.coldkeypub
@@ -173,12 +163,12 @@ def serve_axon_extrinsic(
     if axon.external_ip is None:
         try:
             external_ip = net.get_external_ip()
-            bittensor.__console__.print(
+            bt_console.print(
                 ":white_heavy_check_mark: [green]Found external ip: {}[/green]".format(
                     external_ip
                 )
             )
-            bittensor.logging.success(
+            logging.success(
                 prefix="External IP", suffix="<blue>{}</blue>".format(external_ip)
             )
         except Exception as E:
@@ -204,8 +194,8 @@ def serve_axon_extrinsic(
 
 
 def publish_metadata(
-    subtensor: "bittensor.subtensor",
-    wallet: "bittensor.wallet",
+    subtensor,
+    wallet: "Wallet",
     netuid: int,
     data_type: str,
     data: bytes,
@@ -216,28 +206,19 @@ def publish_metadata(
     Publishes metadata on the Bittensor network using the specified wallet and network identifier.
 
     Args:
-        subtensor (bittensor.subtensor):
-            The subtensor instance representing the Bittensor blockchain connection.
-        wallet (bittensor.wallet):
-            The wallet object used for authentication in the transaction.
-        netuid (int):
-            Network UID on which the metadata is to be published.
-        data_type (str):
-            The data type of the information being submitted. It should be one of the following: ``'Sha256'``, ``'Blake256'``, ``'Keccak256'``, or ``'Raw0-128'``. This specifies the format or hashing algorithm used for the data.
-        data (str):
-            The actual metadata content to be published. This should be formatted or hashed according to the ``type`` specified. (Note: max ``str`` length is 128 bytes)
-        wait_for_inclusion (bool, optional):
-            If ``True``, the function will wait for the extrinsic to be included in a block before returning. Defaults to ``False``.
-        wait_for_finalization (bool, optional):
-            If ``True``, the function will wait for the extrinsic to be finalized on the chain before returning. Defaults to ``True``.
+        subtensor (bittensor.subtensor): The subtensor instance representing the Bittensor blockchain connection.
+        wallet (bittensor.wallet): The wallet object used for authentication in the transaction.
+        netuid (int): Network UID on which the metadata is to be published.
+        data_type (str): The data type of the information being submitted. It should be one of the following: ``'Sha256'``, ``'Blake256'``, ``'Keccak256'``, or ``'Raw0-128'``. This specifies the format or hashing algorithm used for the data.
+        data (str): The actual metadata content to be published. This should be formatted or hashed according to the ``type`` specified. (Note: max ``str`` length is 128 bytes)
+        wait_for_inclusion (bool, optional): If ``True``, the function will wait for the extrinsic to be included in a block before returning. Defaults to ``False``.
+        wait_for_finalization (bool, optional): If ``True``, the function will wait for the extrinsic to be finalized on the chain before returning. Defaults to ``True``.
 
     Returns:
-        bool:
-            ``True`` if the metadata was successfully published (and finalized if specified). ``False`` otherwise.
+        bool: ``True`` if the metadata was successfully published (and finalized if specified). ``False`` otherwise.
 
     Raises:
-        MetadataError:
-            If there is an error in submitting the extrinsic or if the response from the blockchain indicates failure.
+        MetadataError: If there is an error in submitting the extrinsic or if the response from the blockchain indicates failure.
     """
 
     wallet.hotkey

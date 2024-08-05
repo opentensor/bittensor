@@ -46,9 +46,7 @@ __GLOBAL_MOCK_STATE__ = {}
 
 
 class AxonServeCallParams(TypedDict):
-    """
-    Axon serve chain call parameters.
-    """
+    """Axon serve chain call parameters."""
 
     version: int
     ip: int
@@ -58,9 +56,7 @@ class AxonServeCallParams(TypedDict):
 
 
 class PrometheusServeCallParams(TypedDict):
-    """
-    Prometheus serve chain call parameters.
-    """
+    """Prometheus serve chain call parameters."""
 
     version: int
     ip: int

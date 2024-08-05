@@ -15,12 +15,15 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from rich.console import Console
-import sys
-import shtab
 import argparse
-import bittensor
+import sys
 from typing import List, Optional
+
+import shtab
+
+from bittensor.core.config import Config
+from bittensor.core.settings import bt_console, turn_console_on, __version__
+from bittensor.utils import check_version, VersionCheckError
 from .commands import (
     AutocompleteCommand,
     DelegateStakeCommand,
@@ -72,9 +75,6 @@ from .commands import (
     RevealWeightCommand,
     CheckColdKeySwapCommand,
 )
-
-# Create a console instance for CLI display.
-console = Console()
 
 ALIAS_TO_COMMAND = {
     "subnets": "subnets",
@@ -233,18 +233,18 @@ class cli:
 
     def __init__(
         self,
-        config: Optional["bittensor.config"] = None,
+        config: Optional["Config"] = None,
         args: Optional[List[str]] = None,
     ):
         """
         Initializes a bittensor.CLI object.
 
         Args:
-            config (bittensor.config, optional): The configuration settings for the CLI.
+            config (Config, optional): The configuration settings for the CLI.
             args (List[str], optional): List of command line arguments.
         """
         # Turns on console for cli.
-        bittensor.turn_console_on()
+        turn_console_on()
 
         # If no config is provided, create a new one from args.
         if config is None:
@@ -254,7 +254,7 @@ class cli:
         if self.config.command in ALIAS_TO_COMMAND:
             self.config.command = ALIAS_TO_COMMAND[self.config.command]
         else:
-            console.print(
+            bt_console.print(
                 f":cross_mark:[red]Unknown command: {self.config.command}[/red]"
             )
             sys.exit()
@@ -265,8 +265,8 @@ class cli:
         # If no_version_checking is not set or set as False in the config, version checking is done.
         if not self.config.get("no_version_checking", d=True):
             try:
-                bittensor.utils.check_version()
-            except bittensor.utils.VersionCheckError:
+                check_version()
+            except VersionCheckError:
                 # If version checking fails, inform user with an exception.
                 raise RuntimeError(
                     "To avoid internet-based version checking, pass --no_version_checking while running the CLI."
@@ -282,7 +282,7 @@ class cli:
         """
         # Define the basic argument parser.
         parser = CLIErrorParser(
-            description=f"bittensor cli v{bittensor.__version__}",
+            description=f"bittensor cli v{__version__}",
             usage="btcli <command> <command args>",
             add_help=True,
         )
@@ -314,7 +314,7 @@ class cli:
         return parser
 
     @staticmethod
-    def create_config(args: List[str]) -> "bittensor.config":
+    def create_config(args: List[str]) -> "Config":
         """
         From the argument parser, add config to bittensor.executor and local config
 
@@ -322,7 +322,7 @@ class cli:
             args (List[str]): List of command line arguments.
 
         Returns:
-            bittensor.config: The configuration object for Bittensor CLI.
+            Config: The configuration object for Bittensor CLI.
         """
         parser = cli.__create_parser__()
 
@@ -331,15 +331,15 @@ class cli:
             parser.print_help()
             sys.exit()
 
-        return bittensor.config(parser, args=args)
+        return Config(parser, args=args)
 
     @staticmethod
-    def check_config(config: "bittensor.config"):
+    def check_config(config: "Config"):
         """
         Checks if the essential configuration exists under different command
 
         Args:
-            config (bittensor.config): The configuration settings for the CLI.
+            config (Config): The configuration settings for the CLI.
         """
         # Check if command exists, if so, run the corresponding check_config.
         # If command doesn't exist, inform user and exit the program.
@@ -351,14 +351,14 @@ class cli:
                 if config["subcommand"] is not None:
                     command_data["commands"][config["subcommand"]].check_config(config)
                 else:
-                    console.print(
+                    bt_console.print(
                         f":cross_mark:[red]Missing subcommand for: {config.command}[/red]"
                     )
                     sys.exit(1)
             else:
                 command_data.check_config(config)
         else:
-            console.print(f":cross_mark:[red]Unknown command: {config.command}[/red]")
+            bt_console.print(f":cross_mark:[red]Unknown command: {config.command}[/red]")
             sys.exit(1)
 
     def run(self):
@@ -383,7 +383,7 @@ class cli:
             else:
                 command_data.run(self)
         else:
-            console.print(
+            bt_console.print(
                 f":cross_mark:[red]Unknown command: {self.config.command}[/red]"
             )
             sys.exit()

@@ -240,7 +240,7 @@ def test_to_parameter_dict(axon_info, test_case):
 def test_to_parameter_dict_torch(
     axon_info,
     test_case,
-    force_legacy_torch_compat_api,
+        force_legacy_torch_compatible_api,
 ):
     result = axon_info.to_parameter_dict()
 
@@ -310,7 +310,7 @@ def test_from_parameter_dict(parameter_dict, expected, test_case):
     ],
 )
 def test_from_parameter_dict_torch(
-    parameter_dict, expected, test_case, force_legacy_torch_compat_api
+    parameter_dict, expected, test_case, force_legacy_torch_compatible_api
 ):
     # Act
     result = AxonInfo.from_parameter_dict(parameter_dict)

@@ -20,9 +20,10 @@ import time
 import substrateinterface
 from rich.prompt import Confirm
 
-import bittensor
-from bittensor.btcli.commands.network import HYPERPARAMS
+from bittensor.api.extrinsics.utils import HYPERPARAMS
+from bittensor.core.settings import bt_console
 from bittensor.utils import format_error_message
+from bittensor.utils.balance import Balance
 
 
 def _find_event_attributes_in_extrinsic_receipt(
@@ -72,15 +73,15 @@ def register_subnetwork_extrinsic(
             If we did not wait for finalization / inclusion, the response is ``true``.
     """
     your_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
-    burn_cost = bittensor.utils.balance.Balance(subtensor.get_subnet_burn_cost())
+    burn_cost = Balance(subtensor.get_subnet_burn_cost())
     if burn_cost > your_balance:
-        bittensor.__console__.print(
+        bt_console.print(
             f"Your balance of: [green]{your_balance}[/green] is not enough to pay the subnet lock cost of: [green]{burn_cost}[/green]"
         )
         return False
 
     if prompt:
-        bittensor.__console__.print(f"Your balance is: [green]{your_balance}[/green]")
+        bt_console.print(f"Your balance is: [green]{your_balance}[/green]")
         if not Confirm.ask(
             f"Do you want to register a subnet for [green]{ burn_cost }[/green]?"
         ):
@@ -88,7 +89,7 @@ def register_subnetwork_extrinsic(
 
     wallet.coldkey  # unlock coldkey
 
-    with bittensor.__console__.status(":satellite: Registering subnet..."):
+    with bt_console.status(":satellite: Registering subnet..."):
         with subtensor.substrate as substrate:
             # create extrinsic call
             call = substrate.compose_call(
@@ -112,7 +113,7 @@ def register_subnetwork_extrinsic(
             # process if registration successful
             response.process_events()
             if not response.is_success:
-                bittensor.__console__.print(
+                bt_console.print(
                     f":cross_mark: [red]Failed[/red]: {format_error_message(response.error_message)}"
                 )
                 time.sleep(0.5)
@@ -122,7 +123,7 @@ def register_subnetwork_extrinsic(
                 attributes = _find_event_attributes_in_extrinsic_receipt(
                     response, "NetworkAdded"
                 )
-                bittensor.__console__.print(
+                bt_console.print(
                     f":white_heavy_check_mark: [green]Registered subnetwork with netuid: {attributes[0]}[/green]"
                 )
                 return True
@@ -161,7 +162,7 @@ def set_hyperparameter_extrinsic(
             If we did not wait for finalization / inclusion, the response is ``true``.
     """
     if subtensor.get_subnet_owner(netuid) != wallet.coldkeypub.ss58_address:
-        bittensor.__console__.print(
+        bt_console.print(
             ":cross_mark: [red]This wallet doesn't own the specified subnet.[/red]"
         )
         return False
@@ -170,12 +171,12 @@ def set_hyperparameter_extrinsic(
 
     extrinsic = HYPERPARAMS.get(parameter)
     if extrinsic is None:
-        bittensor.__console__.print(
+        bt_console.print(
             ":cross_mark: [red]Invalid hyperparameter specified.[/red]"
         )
         return False
 
-    with bittensor.__console__.status(
+    with bt_console.status(
         f":satellite: Setting hyperparameter {parameter} to {value} on subnet: {netuid} ..."
     ):
         with subtensor.substrate as substrate:
@@ -230,14 +231,14 @@ def set_hyperparameter_extrinsic(
             # process if registration successful
             response.process_events()
             if not response.is_success:
-                bittensor.__console__.print(
+                bt_console.print(
                     f":cross_mark: [red]Failed[/red]: {format_error_message(response.error_message)}"
                 )
                 time.sleep(0.5)
 
             # Successful registration, final check for membership
             else:
-                bittensor.__console__.print(
+                bt_console.print(
                     f":white_heavy_check_mark: [green]Hyper parameter {parameter} changed to {value}[/green]"
                 )
                 return True

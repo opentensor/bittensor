@@ -19,14 +19,17 @@
 import argparse
 from typing import Optional, Dict
 
+from bittensor_wallet import Wallet
 from rich.console import Console
 from rich.prompt import Prompt, Confirm
 from rich.table import Table
 
-import bittensor
+from bittensor.btcli.commands.utils import get_delegates_details, DelegatesDetails
+from bittensor.core.config import Config
+from bittensor.core.settings import bt_console, delegates_details_url
+from bittensor.core.subtensor import Subtensor
+from bittensor.utils.btlogging import logging
 from . import defaults
-from ...core import settings
-from .utils import get_delegates_details, DelegatesDetails
 
 console = Console()
 
@@ -54,19 +57,19 @@ class SenateCommand:
         r"""View Bittensor's governance protocol proposals"""
         try:
             config = cli.config.copy()
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+            subtensor: "Subtensor" = Subtensor(
                 config=config, log_verbose=False
             )
             SenateCommand._run(cli, subtensor)
         finally:
             if "subtensor" in locals():
                 subtensor.close()
-                bittensor.logging.debug("closing subtensor connection")
+                logging.debug("closing subtensor connection")
 
     @staticmethod
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+    def _run(cli: "bittensor.cli", subtensor: "Subtensor"):
         r"""View Bittensor's governance protocol proposals"""
-        console = bittensor.__console__
+        console = bt_console
         console.print(
             ":satellite: Syncing with chain: [white]{}[/white] ...".format(
                 cli.config.subtensor.network
@@ -75,7 +78,7 @@ class SenateCommand:
 
         senate_members = subtensor.get_senate_members()
         delegate_info: Optional[Dict[str, DelegatesDetails]] = get_delegates_details(
-            url=settings.delegates_details_url
+            url=delegates_details_url
         )
 
         table = Table(show_footer=False)
@@ -110,7 +113,7 @@ class SenateCommand:
         console.print(table)
 
     @classmethod
-    def check_config(cls, config: "bittensor.config"):
+    def check_config(cls, config: "Config"):
         None
 
     @classmethod
@@ -119,8 +122,8 @@ class SenateCommand:
             "senate", help="""View senate and it's members"""
         )
 
-        bittensor.wallet.add_args(senate_parser)
-        bittensor.subtensor.add_args(senate_parser)
+        Wallet.add_args(senate_parser)
+        Subtensor.add_args(senate_parser)
 
 
 def format_call_data(call_data: "bittensor.ProposalCallData") -> str:
@@ -193,19 +196,19 @@ class ProposalsCommand:
         r"""View Bittensor's governance protocol proposals"""
         try:
             config = cli.config.copy()
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+            subtensor: "Subtensor" = Subtensor(
                 config=config, log_verbose=False
             )
             ProposalsCommand._run(cli, subtensor)
         finally:
             if "subtensor" in locals():
                 subtensor.close()
-                bittensor.logging.debug("closing subtensor connection")
+                logging.debug("closing subtensor connection")
 
     @staticmethod
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+    def _run(cli: "bittensor.cli", subtensor: "Subtensor"):
         r"""View Bittensor's governance protocol proposals"""
-        console = bittensor.__console__
+        console = bt_console
         console.print(
             ":satellite: Syncing with chain: [white]{}[/white] ...".format(
                 subtensor.network
@@ -216,7 +219,7 @@ class ProposalsCommand:
         proposals = subtensor.get_proposals()
 
         registered_delegate_info: Optional[Dict[str, DelegatesDetails]] = (
-            get_delegates_details(url=settings.delegates_details_url)
+            get_delegates_details(url=delegates_details_url)
         )
 
         table = Table(show_footer=False)
@@ -272,7 +275,7 @@ class ProposalsCommand:
         console.print(table)
 
     @classmethod
-    def check_config(cls, config: "bittensor.config"):
+    def check_config(cls, config: "Config"):
         None
 
     @classmethod
@@ -281,8 +284,8 @@ class ProposalsCommand:
             "proposals", help="""View active triumvirate proposals and their status"""
         )
 
-        bittensor.wallet.add_args(proposals_parser)
-        bittensor.subtensor.add_args(proposals_parser)
+        Wallet.add_args(proposals_parser)
+        Subtensor.add_args(proposals_parser)
 
 
 class ShowVotesCommand:
@@ -316,17 +319,17 @@ class ShowVotesCommand:
         r"""View Bittensor's governance protocol proposals active votes"""
         try:
             config = cli.config.copy()
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+            subtensor: "Subtensor" = Subtensor(
                 config=config, log_verbose=False
             )
             ShowVotesCommand._run(cli, subtensor)
         finally:
             if "subtensor" in locals():
                 subtensor.close()
-                bittensor.logging.debug("closing subtensor connection")
+                logging.debug("closing subtensor connection")
 
     @staticmethod
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+    def _run(cli: "bittensor.cli", subtensor: "Subtensor"):
         r"""View Bittensor's governance protocol proposals active votes"""
         console.print(
             ":satellite: Syncing with chain: [white]{}[/white] ...".format(
@@ -342,12 +345,12 @@ class ShowVotesCommand:
             return
 
         proposal_vote_data = subtensor.get_vote_data(proposal_hash)
-        if proposal_vote_data == None:
+        if proposal_vote_data is None:
             console.print(":cross_mark: [red]Failed[/red]: Proposal not found.")
             return
 
         registered_delegate_info: Optional[Dict[str, DelegatesDetails]] = (
-            get_delegates_details(url=settings.delegates_details_url)
+            get_delegates_details(url=delegates_details_url)
         )
 
         table = Table(show_footer=False)
@@ -374,7 +377,7 @@ class ShowVotesCommand:
         console.print(table)
 
     @classmethod
-    def check_config(cls, config: "bittensor.config"):
+    def check_config(cls, config: "Config"):
         if config.proposal_hash == "" and not config.no_prompt:
             proposal_hash = Prompt.ask("Enter proposal hash")
             config.proposal_hash = str(proposal_hash)
@@ -392,8 +395,8 @@ class ShowVotesCommand:
             help="""Set the proposal to show votes for.""",
             default="",
         )
-        bittensor.wallet.add_args(show_votes_parser)
-        bittensor.subtensor.add_args(show_votes_parser)
+        Wallet.add_args(show_votes_parser)
+        Subtensor.add_args(show_votes_parser)
 
 
 class SenateRegisterCommand:
@@ -420,19 +423,19 @@ class SenateRegisterCommand:
         r"""Register to participate in Bittensor's governance protocol proposals"""
         try:
             config = cli.config.copy()
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+            subtensor: "Subtensor" = Subtensor(
                 config=config, log_verbose=False
             )
             SenateRegisterCommand._run(cli, subtensor)
         finally:
             if "subtensor" in locals():
                 subtensor.close()
-                bittensor.logging.debug("closing subtensor connection")
+                logging.debug("closing subtensor connection")
 
     @staticmethod
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+    def _run(cli: "bittensor.cli", subtensor: "Subtensor"):
         r"""Register to participate in Bittensor's governance protocol proposals"""
-        wallet = bittensor.wallet(config=cli.config)
+        wallet = Wallet(config=cli.config)
 
         # Unlock the wallet.
         wallet.hotkey
@@ -458,7 +461,7 @@ class SenateRegisterCommand:
         subtensor.register_senate(wallet=wallet, prompt=not cli.config.no_prompt)
 
     @classmethod
-    def check_config(cls, config: "bittensor.config"):
+    def check_config(cls, config: "Config"):
         if not config.is_set("wallet.name") and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
             config.wallet.name = str(wallet_name)
@@ -474,8 +477,8 @@ class SenateRegisterCommand:
             help="""Register as a senate member to participate in proposals""",
         )
 
-        bittensor.wallet.add_args(senate_register_parser)
-        bittensor.subtensor.add_args(senate_register_parser)
+        Wallet.add_args(senate_register_parser)
+        Subtensor.add_args(senate_register_parser)
 
 
 class SenateLeaveCommand:
@@ -502,19 +505,19 @@ class SenateLeaveCommand:
         r"""Discard membership in Bittensor's governance protocol proposals"""
         try:
             config = cli.config.copy()
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+            subtensor: "Subtensor" = Subtensor(
                 config=config, log_verbose=False
             )
             SenateLeaveCommand._run(cli, subtensor)
         finally:
             if "subtensor" in locals():
                 subtensor.close()
-                bittensor.logging.debug("closing subtensor connection")
+                logging.debug("closing subtensor connection")
 
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.cli"):
         r"""Discard membership in Bittensor's governance protocol proposals"""
-        wallet = bittensor.wallet(config=cli.config)
+        wallet = Wallet(config=cli.config)
 
         # Unlock the wallet.
         wallet.hotkey
@@ -531,7 +534,7 @@ class SenateLeaveCommand:
         subtensor.leave_senate(wallet=wallet, prompt=not cli.config.no_prompt)
 
     @classmethod
-    def check_config(cls, config: "bittensor.config"):
+    def check_config(cls, config: "Config"):
         if not config.is_set("wallet.name") and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
             config.wallet.name = str(wallet_name)
@@ -547,8 +550,8 @@ class SenateLeaveCommand:
             help="""Discard senate membership in the governance protocol""",
         )
 
-        bittensor.wallet.add_args(senate_leave_parser)
-        bittensor.subtensor.add_args(senate_leave_parser)
+        Wallet.add_args(senate_leave_parser)
+        Subtensor.add_args(senate_leave_parser)
 
 
 class VoteCommand:
@@ -576,19 +579,19 @@ class VoteCommand:
         r"""Vote in Bittensor's governance protocol proposals"""
         try:
             config = cli.config.copy()
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+            subtensor: "Subtensor" = Subtensor(
                 config=config, log_verbose=False
             )
             VoteCommand._run(cli, subtensor)
         finally:
             if "subtensor" in locals():
                 subtensor.close()
-                bittensor.logging.debug("closing subtensor connection")
+                logging.debug("closing subtensor connection")
 
     @staticmethod
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+    def _run(cli: "bittensor.cli", subtensor: "Subtensor"):
         r"""Vote in Bittensor's governance protocol proposals"""
-        wallet = bittensor.wallet(config=cli.config)
+        wallet = Wallet(config=cli.config)
 
         proposal_hash = cli.config.proposal_hash
         if len(proposal_hash) == 0:
@@ -624,7 +627,7 @@ class VoteCommand:
         )
 
     @classmethod
-    def check_config(cls, config: "bittensor.config"):
+    def check_config(cls, config: "Config"):
         if not config.is_set("wallet.name") and not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
             config.wallet.name = str(wallet_name)
@@ -650,5 +653,5 @@ class VoteCommand:
             help="""Set the proposal to show votes for.""",
             default="",
         )
-        bittensor.wallet.add_args(vote_parser)
-        bittensor.subtensor.add_args(vote_parser)
+        Wallet.add_args(vote_parser)
+        Subtensor.add_args(vote_parser)
