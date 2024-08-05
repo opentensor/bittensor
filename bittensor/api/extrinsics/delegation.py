@@ -62,6 +62,14 @@ def nominate_extrinsic(
         )
         return False
 
+    if not subtensor.is_hotkey_registered_any(wallet.hotkey.ss58_address):
+        logging.error(
+            "Hotkey {} is not registered to any network".format(
+                wallet.hotkey.ss58_address
+            )
+        )
+        return False
+
     with bt_console.status(
         ":satellite: Sending nominate call on [white]{}[/white] ...".format(
             subtensor.network
