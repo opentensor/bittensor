@@ -17,16 +17,17 @@
 
 import argparse
 import unittest.mock as mock
+from typing import List, Tuple
 from unittest.mock import MagicMock
 
 import pytest
 from bittensor_wallet import Wallet
 
-from bittensor.btcli.commands.utils import normalize_hyperparameters
 from bittensor.core import subtensor as subtensor_module, settings
 from bittensor.core.axon import Axon
 from bittensor.core.chain_data import SubnetHyperparameters
 from bittensor.core.subtensor import Subtensor, logging
+from bittensor.utils import U16_NORMALIZED_FLOAT, U64_NORMALIZED_FLOAT
 from bittensor.utils.balance import Balance
 
 U16_MAX = 65535
@@ -459,6 +460,52 @@ def test_weights_rate_limit_success_calls(subtensor, mocker):
 @pytest.fixture
 def sample_hyperparameters():
     return MagicMock(spec=SubnetHyperparameters)
+
+
+def normalize_hyperparameters(
+    subnet: "SubnetHyperparameters",
+) -> List[Tuple[str, str, str]]:
+    """
+    Normalizes the hyperparameters of a subnet.
+
+    Args:
+        subnet: The subnet hyperparameters object.
+
+    Returns:
+        A list of tuples containing the parameter name, value, and normalized value.
+    """
+    param_mappings = {
+        "adjustment_alpha": U64_NORMALIZED_FLOAT,
+        "min_difficulty": U64_NORMALIZED_FLOAT,
+        "max_difficulty": U64_NORMALIZED_FLOAT,
+        "difficulty": U64_NORMALIZED_FLOAT,
+        "bonds_moving_avg": U64_NORMALIZED_FLOAT,
+        "max_weight_limit": U16_NORMALIZED_FLOAT,
+        "kappa": U16_NORMALIZED_FLOAT,
+        "alpha_high": U16_NORMALIZED_FLOAT,
+        "alpha_low": U16_NORMALIZED_FLOAT,
+        "min_burn": Balance.from_rao,
+        "max_burn": Balance.from_rao,
+    }
+
+    normalized_values: List[Tuple[str, str, str]] = []
+    subnet_dict = subnet.__dict__
+
+    for param, value in subnet_dict.items():
+        try:
+            if param in param_mappings:
+                norm_value = param_mappings[param](value)
+                if isinstance(norm_value, float):
+                    norm_value = f"{norm_value:.{10}g}"
+            else:
+                norm_value = value
+        except Exception as e:
+            logging.warning(f"Error normalizing parameter '{param}': {e}")
+            norm_value = "-"
+
+        normalized_values.append((param, str(value), str(norm_value)))
+
+    return normalized_values
 
 
 def get_normalized_value(normalized_data, param_name):
