@@ -20,6 +20,8 @@ The Bittensor Compatibility Module is designed to ensure seamless integration an
 the Bittensor framework, specifically up to and including version 7.3.0. This module addresses changes and deprecated
 features in recent versions, allowing users to maintain compatibility with older systems and projects.
 """
+import sys
+import importlib
 
 from bittensor_wallet.errors import KeyFileError  # noqa: F401
 from bittensor_wallet.keyfile import (  # noqa: F401
@@ -141,3 +143,7 @@ __local_entrypoint__ = settings.local_entrypoint
 
 __tao_symbol__ = settings.tao_symbol
 __rao_symbol__ = settings.rao_symbol
+
+# Makes the `bittensor.api.extrinsics` subpackage available as `bittensor.extrinsics` for backwards compatibility.
+extrinsics = importlib.import_module('bittensor.api.extrinsics')
+sys.modules['bittensor.extrinsics'] = extrinsics
