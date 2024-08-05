@@ -46,6 +46,7 @@ jobs:
   run:
     needs: find-tests
     runs-on: SubtensorCI
+    timeout-minutes: 45
     strategy:
       fail-fast: false  # Allow other matrix jobs to run even if this job fails
       max-parallel: 8  # Set the maximum number of parallel jobs

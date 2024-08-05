@@ -69,6 +69,7 @@ from .commands import (
     WalletCreateCommand,
     CommitWeightCommand,
     RevealWeightCommand,
+    CheckColdKeySwapCommand,
     SetChildCommand,
     SetChildrenCommand,
     GetChildrenCommand,
@@ -162,6 +163,7 @@ COMMANDS = {
             "set_identity": SetIdentityCommand,
             "get_identity": GetIdentityCommand,
             "history": GetWalletHistoryCommand,
+            "check_coldkey_swap": CheckColdKeySwapCommand,
         },
     },
     "stake": {

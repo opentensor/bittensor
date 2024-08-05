@@ -23,6 +23,20 @@ def millify(n: int):
     return "{:.2f}{}".format(n / 10 ** (3 * millidx), millnames[millidx])
 
 
+def convert_blocks_to_time(blocks: int, block_time: int = 12) -> tuple[int, int, int]:
+    """
+    Converts number of blocks into number of hours, minutes, seconds.
+    :param blocks: number of blocks
+    :param block_time: time per block, by default this is 12
+    :return: tuple containing number of hours, number of minutes, number of seconds
+    """
+    seconds = blocks * block_time
+    hours = seconds // 3600
+    minutes = (seconds % 3600) // 60
+    remaining_seconds = seconds % 60
+    return hours, minutes, remaining_seconds
+
+
 def float_to_u16(value):
     # Ensure the input is within the expected range
     if not (0 <= value <= 1):
