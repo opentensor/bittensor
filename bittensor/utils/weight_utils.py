@@ -230,7 +230,10 @@ def process_weights_for_netuid(
     subtensor: "Subtensor",
     metagraph: "Metagraph" = None,
     exclude_quantile: int = 0,
-) -> Union[Tuple["torch.Tensor", "torch.FloatTensor"], Tuple[NDArray[np.int64], NDArray[np.float32]]]:
+) -> Union[
+    Tuple["torch.Tensor", "torch.FloatTensor"],
+    Tuple[NDArray[np.int64], NDArray[np.float32]],
+]:
     logging.debug("process_weights_for_netuid()")
     logging.debug("weights", weights)
     logging.debug("netuid", netuid)

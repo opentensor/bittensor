@@ -16,14 +16,20 @@
 # DEALINGS IN THE SOFTWARE.
 
 import time
+from typing import TYPE_CHECKING
 
 import substrateinterface
+from bittensor_wallet import Wallet
 from rich.prompt import Confirm
 
 from bittensor.api.extrinsics.utils import HYPERPARAMS
 from bittensor.core.settings import bt_console
 from bittensor.utils import format_error_message
 from bittensor.utils.balance import Balance
+
+# For annotation purposes
+if TYPE_CHECKING:
+    from bittensor.core.subtensor import Subtensor
 
 
 def _find_event_attributes_in_extrinsic_receipt(
@@ -50,23 +56,21 @@ def _find_event_attributes_in_extrinsic_receipt(
 
 
 def register_subnetwork_extrinsic(
-    subtensor: "bittensor.subtensor",
-    wallet: "bittensor.wallet",
+    subtensor: "Subtensor",
+    wallet: "Wallet",
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = True,
     prompt: bool = False,
 ) -> bool:
-    r"""Registers a new subnetwork.
+    """Registers a new subnetwork.
 
     Args:
-        wallet (bittensor.wallet):
-            bittensor wallet object.
-        wait_for_inclusion (bool):
-            If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization (bool):
-            If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
-        prompt (bool):
-            If true, the call waits for confirmation from the user before proceeding.
+        subtensor (subtensor.core.subtensor.Subtensor): The Subtensor instance object.
+        wallet (bittensor.wallet): bittensor wallet object.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
+        prompt (bool): If true, the call waits for confirmation from the user before proceeding.
+
     Returns:
         success (bool):
             Flag is ``true`` if extrinsic was finalized or included in the block.
@@ -130,8 +134,8 @@ def register_subnetwork_extrinsic(
 
 
 def set_hyperparameter_extrinsic(
-    subtensor: "bittensor.subtensor",
-    wallet: "bittensor.wallet",
+    subtensor: "Subtensor",
+    wallet: "Wallet",
     netuid: int,
     parameter: str,
     value,
@@ -139,23 +143,18 @@ def set_hyperparameter_extrinsic(
     wait_for_finalization: bool = True,
     prompt: bool = False,
 ) -> bool:
-    r"""Sets a hyperparameter for a specific subnetwork.
+    """Sets a hyperparameter for a specific subnetwork.
 
     Args:
-        wallet (bittensor.wallet):
-            bittensor wallet object.
-        netuid (int):
-            Subnetwork ``uid``.
-        parameter (str):
-            Hyperparameter name.
-        value (any):
-            New hyperparameter value.
-        wait_for_inclusion (bool):
-            If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization (bool):
-            If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
-        prompt (bool):
-            If ``true``, the call waits for confirmation from the user before proceeding.
+        subtensor (subtensor.core.subtensor.Subtensor): The Subtensor instance object.
+        wallet (bittensor.wallet): bittensor wallet object.
+        netuid (int): Subnetwork ``uid``.
+        parameter (str): Hyperparameter name.
+        value (any): New hyperparameter value.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
+        prompt (bool): If ``true``, the call waits for confirmation from the user before proceeding.
+
     Returns:
         success (bool):
             Flag is ``true`` if extrinsic was finalized or included in the block.
@@ -171,9 +170,7 @@ def set_hyperparameter_extrinsic(
 
     extrinsic = HYPERPARAMS.get(parameter)
     if extrinsic is None:
-        bt_console.print(
-            ":cross_mark: [red]Invalid hyperparameter specified.[/red]"
-        )
+        bt_console.print(":cross_mark: [red]Invalid hyperparameter specified.[/red]")
         return False
 
     with bt_console.status(

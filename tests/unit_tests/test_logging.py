@@ -3,7 +3,10 @@ import multiprocessing
 import logging as stdlogging
 from unittest.mock import MagicMock, patch
 from bittensor.utils.btlogging import LoggingMachine
-from bittensor.utils.btlogging.defines import DEFAULT_LOG_FILE_NAME, BITTENSOR_LOGGER_NAME
+from bittensor.utils.btlogging.defines import (
+    DEFAULT_LOG_FILE_NAME,
+    BITTENSOR_LOGGER_NAME,
+)
 from bittensor.utils.btlogging.loggingmachine import LoggingConfig
 
 
@@ -75,7 +78,9 @@ def test_state_transitions(logging_machine, mock_config):
     Test state transitions and the associated logging level changes.
     """
     config, log_file_path = mock_config
-    with patch("bittensor.utils.btlogging.loggingmachine.all_loggers") as mocked_all_loggers:
+    with patch(
+        "bittensor.utils.btlogging.loggingmachine.all_loggers"
+    ) as mocked_all_loggers:
         # mock the main bittensor logger, identified by its `name` field
         mocked_bt_logger = MagicMock()
         mocked_bt_logger.name = BITTENSOR_LOGGER_NAME

@@ -25,7 +25,11 @@ import aiohttp
 import pytest
 
 from bittensor.core.axon import Axon
-from bittensor.core.dendrite import DENDRITE_ERROR_MAPPING, DENDRITE_DEFAULT_ERROR, Dendrite
+from bittensor.core.dendrite import (
+    DENDRITE_ERROR_MAPPING,
+    DENDRITE_DEFAULT_ERROR,
+    Dendrite,
+)
 from bittensor.core.synapse import TerminalInfo
 from tests.helpers import _get_mock_wallet
 from bittensor.core.synapse import Synapse

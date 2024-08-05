@@ -54,10 +54,8 @@ class CLOSE_IN_VALUE:
         # True if __o \in [value - tolerance, value + tolerance]
         # or if value \in [__o - tolerance, __o + tolerance]
         return (
-                (self.value - self.tolerance) <= __o <= (self.value + self.tolerance)
-        ) or (
-                (__o - self.tolerance) <= self.value <= (__o + self.tolerance)
-        )
+            (self.value - self.tolerance) <= __o <= (self.value + self.tolerance)
+        ) or ((__o - self.tolerance) <= self.value <= (__o + self.tolerance))
 
 
 def get_mock_neuron(**kwargs) -> NeuronInfo:

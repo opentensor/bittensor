@@ -17,7 +17,7 @@
 
 """Module commit weights and reveal weights extrinsic."""
 
-from typing import Tuple, List
+from typing import Tuple, List, TYPE_CHECKING
 
 from bittensor_wallet import Wallet
 from rich.prompt import Confirm
@@ -25,9 +25,13 @@ from rich.prompt import Confirm
 from bittensor.utils import format_error_message
 from bittensor.utils.btlogging import logging
 
+# For annotation purposes
+if TYPE_CHECKING:
+    from bittensor.core.subtensor import Subtensor
+
 
 def commit_weights_extrinsic(
-    subtensor,
+    subtensor: "Subtensor",
     wallet: "Wallet",
     netuid: int,
     commit_hash: str,
@@ -38,6 +42,7 @@ def commit_weights_extrinsic(
     """
     Commits a hash of the neuron's weights to the Bittensor blockchain using the provided wallet.
     This function is a wrapper around the `_do_commit_weights` method, handling user prompts and error messages.
+
     Args:
         subtensor (bittensor.subtensor): The subtensor instance used for blockchain interaction.
         wallet (bittensor.wallet): The wallet associated with the neuron committing the weights.
@@ -46,11 +51,11 @@ def commit_weights_extrinsic(
         wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
         wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
         prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
+
     Returns:
-        Tuple[bool, str]: ``True`` if the weight commitment is successful, False otherwise. And `msg`, a string
-        value describing the success or potential error.
-    This function provides a user-friendly interface for committing weights to the Bittensor blockchain, ensuring proper
-    error handling and user interaction when required.
+        Tuple[bool, str]: ``True`` if the weight commitment is successful, False otherwise. And `msg`, a string value describing the success or potential error.
+
+    This function provides a user-friendly interface for committing weights to the Bittensor blockchain, ensuring proper error handling and user interaction when required.
     """
     if prompt and not Confirm.ask(f"Would you like to commit weights?"):
         return False, "User cancelled the operation."
@@ -72,7 +77,7 @@ def commit_weights_extrinsic(
 
 
 def reveal_weights_extrinsic(
-    subtensor,
+    subtensor: "Subtensor",
     wallet: "Wallet",
     netuid: int,
     uids: List[int],
@@ -86,6 +91,7 @@ def reveal_weights_extrinsic(
     """
     Reveals the weights for a specific subnet on the Bittensor blockchain using the provided wallet.
     This function is a wrapper around the `_do_reveal_weights` method, handling user prompts and error messages.
+
     Args:
         subtensor (bittensor.subtensor): The subtensor instance used for blockchain interaction.
         wallet (bittensor.wallet): The wallet associated with the neuron revealing the weights.
@@ -97,11 +103,11 @@ def reveal_weights_extrinsic(
         wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
         wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
         prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
+
     Returns:
-        Tuple[bool, str]: ``True`` if the weight revelation is successful, False otherwise. And `msg`, a string
-        value describing the success or potential error.
-    This function provides a user-friendly interface for revealing weights on the Bittensor blockchain, ensuring proper
-    error handling and user interaction when required.
+        Tuple[bool, str]: ``True`` if the weight revelation is successful, False otherwise. And `msg`, a string value describing the success or potential error.
+
+    This function provides a user-friendly interface for revealing weights on the Bittensor blockchain, ensuring proper error handling and user interaction when required.
     """
 
     if prompt and not Confirm.ask(f"Would you like to reveal weights?"):

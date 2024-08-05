@@ -55,7 +55,9 @@ class TestSubtensor(unittest.TestCase):
     def setUpClass(cls) -> None:
         # mock rich console status
         mock_console = MockConsole()
-        cls._mock_console_patcher = patch("bittensor.core.settings.bt_console", mock_console)
+        cls._mock_console_patcher = patch(
+            "bittensor.core.settings.bt_console", mock_console
+        )
         cls._mock_console_patcher.start()
 
         # Keeps the same mock network for all tests. This stops the network from being re-setup for each test.
@@ -710,7 +712,9 @@ class TestSubtensor(unittest.TestCase):
                 )
                 self.subtensor._do_pow_register = MagicMock(return_value=(True, None))
 
-                with patch("bittensor.core.settings.bt_console.status") as mock_set_status:
+                with patch(
+                    "bittensor.core.settings.bt_console.status"
+                ) as mock_set_status:
                     # Need to patch the console status to avoid opening a parallel live display
                     mock_set_status.__enter__ = MagicMock(return_value=True)
                     mock_set_status.__exit__ = MagicMock(return_value=True)

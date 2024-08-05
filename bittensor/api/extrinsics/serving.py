@@ -16,7 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import json
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 from bittensor_wallet import Wallet
 from retry import retry
@@ -29,9 +29,13 @@ from bittensor.core.types import AxonServeCallParams
 from bittensor.utils import format_error_message, networking as net
 from bittensor.utils.btlogging import logging
 
+# For annotation purposes
+if TYPE_CHECKING:
+    from bittensor.core.subtensor import Subtensor
+
 
 def serve_extrinsic(
-    subtensor,
+    subtensor: "Subtensor",
     wallet: "Wallet",
     ip: str,
     port: int,
@@ -135,7 +139,7 @@ def serve_extrinsic(
 
 
 def serve_axon_extrinsic(
-    subtensor,
+    subtensor: "Subtensor",
     netuid: int,
     axon: "Axon",
     wait_for_inclusion: bool = False,

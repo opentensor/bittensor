@@ -20,6 +20,7 @@ The Bittensor Compatibility Module is designed to ensure seamless integration an
 the Bittensor framework, specifically up to and including version 7.3.0. This module addresses changes and deprecated
 features in recent versions, allowing users to maintain compatibility with older systems and projects.
 """
+
 import sys
 import importlib
 
@@ -92,12 +93,14 @@ from bittensor.core.errors import (  # noqa: F401
 )
 from bittensor.core.metagraph import Metagraph
 from bittensor.core.settings import blocktime
-from bittensor.core.stream import StreamingSynapse   # noqa: F401
+from bittensor.core.stream import StreamingSynapse  # noqa: F401
 from bittensor.core.subtensor import Subtensor
-from bittensor.core.synapse import TerminalInfo, Synapse   # noqa: F401
-from bittensor.core.tensor import tensor, Tensor   # noqa: F401
-from bittensor.core.threadpool import PriorityThreadPoolExecutor as PriorityThreadPoolExecutor   # noqa: F401
-from bittensor.utils.mock.subtensor_mock import MockSubtensor as MockSubtensor   # noqa: F401
+from bittensor.core.synapse import TerminalInfo, Synapse  # noqa: F401
+from bittensor.core.tensor import tensor, Tensor  # noqa: F401
+from bittensor.core.threadpool import (  # noqa: F401
+    PriorityThreadPoolExecutor as PriorityThreadPoolExecutor,
+)
+from bittensor.utils.mock.subtensor_mock import MockSubtensor as MockSubtensor  # noqa: F401
 from bittensor.utils import (  # noqa: F401
     ss58_to_vec_u8,
     unbiased_topk,
@@ -111,9 +114,9 @@ from bittensor.utils import (  # noqa: F401
     U16_NORMALIZED_FLOAT,
     U64_NORMALIZED_FLOAT,
     u8_key_to_ss58,
-    get_hash
+    get_hash,
 )
-from bittensor.utils.balance import Balance as Balance   # noqa: F401
+from bittensor.utils.balance import Balance as Balance  # noqa: F401
 from bittensor.utils.subnets import SubnetsAPI  # noqa: F401
 
 
@@ -144,9 +147,9 @@ __tao_symbol__ = settings.tao_symbol
 __rao_symbol__ = settings.rao_symbol
 
 # Makes the `bittensor.api.extrinsics` subpackage available as `bittensor.extrinsics` for backwards compatibility.
-extrinsics = importlib.import_module('bittensor.api.extrinsics')
-sys.modules['bittensor.extrinsics'] = extrinsics
+extrinsics = importlib.import_module("bittensor.api.extrinsics")
+sys.modules["bittensor.extrinsics"] = extrinsics
 
 # Makes the `bittensor.utils.mock` subpackage available as `bittensor.mock` for backwards compatibility.
-extrinsics = importlib.import_module('bittensor.utils.mock')
-sys.modules['bittensor.mock'] = extrinsics
+extrinsics = importlib.import_module("bittensor.utils.mock")
+sys.modules["bittensor.mock"] = extrinsics

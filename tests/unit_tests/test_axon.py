@@ -33,7 +33,12 @@ from bittensor.core.errors import RunException
 from bittensor.core.settings import version_as_int
 from bittensor.core.synapse import Synapse
 from bittensor.core.threadpool import PriorityThreadPoolExecutor
-from bittensor.utils.axon_utils import allowed_nonce_window_ns, calculate_diff_seconds, ALLOWED_DELTA, NANOSECONDS_IN_SECOND
+from bittensor.utils.axon_utils import (
+    allowed_nonce_window_ns,
+    calculate_diff_seconds,
+    ALLOWED_DELTA,
+    NANOSECONDS_IN_SECOND,
+)
 
 
 def test_attach_initial():

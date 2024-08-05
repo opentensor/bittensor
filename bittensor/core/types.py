@@ -30,6 +30,7 @@ class AxonServeCallParams(TypedDict):
 
 class PrometheusServeCallParams(TypedDict):
     """Prometheus serve chain call parameters."""
+
     version: int
     ip: int
     port: int

@@ -240,7 +240,7 @@ def test_to_parameter_dict(axon_info, test_case):
 def test_to_parameter_dict_torch(
     axon_info,
     test_case,
-        force_legacy_torch_compatible_api,
+    force_legacy_torch_compatible_api,
 ):
     result = axon_info.to_parameter_dict()
 
@@ -533,7 +533,8 @@ def mock_from_scale_encoding(mocker):
 @pytest.fixture
 def mock_fix_decoded_values(mocker):
     return mocker.patch(
-        "bittensor.core.chain_data.DelegateInfo.fix_decoded_values", side_effect=lambda x: x
+        "bittensor.core.chain_data.DelegateInfo.fix_decoded_values",
+        side_effect=lambda x: x,
     )
 
 

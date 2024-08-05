@@ -81,9 +81,7 @@ class InvalidRequestNameError(Exception):
 
 
 class SynapseException(Exception):
-    def __init__(
-        self, message="Synapse Exception", synapse: "Synapse" | None = None
-    ):
+    def __init__(self, message="Synapse Exception", synapse: "Synapse" | None = None):
         self.message = message
         self.synapse = synapse
         super().__init__(self.message)

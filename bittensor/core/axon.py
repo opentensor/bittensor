@@ -61,6 +61,10 @@ from bittensor.utils import networking
 from bittensor.utils.axon_utils import allowed_nonce_window_ns, calculate_diff_seconds
 from bittensor.utils.btlogging import logging
 
+# Just for annotation checker
+if typing.TYPE_CHECKING:
+    from bittensor.core.subtensor import Subtensor
+
 V_7_2_0 = 7002000
 
 
@@ -314,7 +318,7 @@ class Axon:
         # Build and check config.
         if config is None:
             config = Axon.config()
-        config: "Config" = copy.deepcopy(config)
+        config = copy.deepcopy(config)
         config.axon.ip = ip or defaults.axon.ip
         config.axon.port = port or defaults.axon.port
         config.axon.external_ip = external_ip or defaults.axon.external_ip
@@ -681,11 +685,11 @@ class Axon:
             AssertionError: If the axon or external ports are not in range [1024, 65535]
         """
         assert (
-                1024 < config.axon.port < 65535
+            1024 < config.axon.port < 65535
         ), "Axon port must be in range [1024, 65535]"
 
         assert config.axon.external_port is None or (
-                1024 < config.axon.external_port < 65535
+            1024 < config.axon.external_port < 65535
         ), "External port must be in range [1024, 65535]"
 
     def to_string(self):

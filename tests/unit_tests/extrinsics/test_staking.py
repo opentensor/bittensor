@@ -127,9 +127,7 @@ def test_add_stake_extrinsic(
         staking_balance = amount if amount else Balance.from_tao(100)
     else:
         staking_balance = (
-            Balance.from_tao(amount)
-            if not isinstance(amount, Balance)
-            else amount
+            Balance.from_tao(amount) if not isinstance(amount, Balance) else amount
         )
 
     with patch.object(

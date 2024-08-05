@@ -16,7 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 from time import sleep
-from typing import List, Union, Optional
+from typing import List, Union, Optional, TYPE_CHECKING
 
 from bittensor_wallet import Wallet
 from rich.prompt import Confirm
@@ -25,39 +25,36 @@ from bittensor.core.errors import NotRegisteredError, StakeError
 from bittensor.core.settings import bt_console
 from bittensor.utils.balance import Balance
 
+# For annotation purposes
+if TYPE_CHECKING:
+    from bittensor.core.subtensor import Subtensor
+
 
 def __do_remove_stake_single(
-    subtensor,
+    subtensor: "Subtensor",
     wallet: "Wallet",
     hotkey_ss58: str,
     amount: "Balance",
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
 ) -> bool:
-    r"""
+    """
     Executes an unstake call to the chain using the wallet and the amount specified.
 
     Args:
-        wallet (Wallet):
-            Bittensor wallet object.
-        hotkey_ss58 (str):
-            Hotkey address to unstake from.
-        amount (bittensor.Balance):
-            Amount to unstake as Bittensor balance object.
-        wait_for_inclusion (bool):
-            If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization (bool):
-            If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
-        prompt (bool):
-            If ``true``, the call waits for confirmation from the user before proceeding.
+        subtensor (subtensor.core.subtensor.Subtensor): The Subtensor instance object.
+        wallet (Wallet): Bittensor wallet object.
+        hotkey_ss58 (str): Hotkey address to unstake from.
+        amount (bittensor.Balance): Amount to unstake as Bittensor balance object.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
+        prompt (bool): If ``true``, the call waits for confirmation from the user before proceeding.
+
     Returns:
-        success (bool):
-            Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
+        success (bool): Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     Raises:
-        bittensor.core.errors.StakeError:
-            If the extrinsic fails to be finalized or included in the block.
-        bittensor.core.errors.NotRegisteredError:
-            If the hotkey is not registered in any subnets.
+        bittensor.core.errors.StakeError: If the extrinsic fails to be finalized or included in the block.
+        bittensor.core.errors.NotRegisteredError: If the hotkey is not registered in any subnets.
 
     """
     # Decrypt keys,
@@ -74,20 +71,16 @@ def __do_remove_stake_single(
     return success
 
 
-def check_threshold_amount(
-    subtensor, stake_balance: Balance
-) -> bool:
+def check_threshold_amount(subtensor: "Subtensor", stake_balance: Balance) -> bool:
     """
     Checks if the remaining stake balance is above the minimum required stake threshold.
 
     Args:
-        stake_balance (Balance):
-            the balance to check for threshold limits.
+        subtensor (subtensor.core.subtensor.Subtensor): The Subtensor instance object.
+        stake_balance (Balance): the balance to check for threshold limits.
 
     Returns:
-        success (bool):
-            ``true`` if the unstaking is above the threshold or 0, or ``false`` if the
-                unstaking is below the threshold, but not 0.
+        success (bool): ``true`` if the unstaking is above the threshold or 0, or ``false`` if the unstaking is below the threshold, but not 0.
     """
     min_req_stake: Balance = subtensor.get_minimum_required_stake()
 
@@ -101,7 +94,7 @@ def check_threshold_amount(
 
 
 def unstake_extrinsic(
-    subtensor,
+    subtensor: "Subtensor",
     wallet: "Wallet",
     hotkey_ss58: Optional[str] = None,
     amount: Optional[Union[Balance, float]] = None,
@@ -109,24 +102,19 @@ def unstake_extrinsic(
     wait_for_finalization: bool = False,
     prompt: bool = False,
 ) -> bool:
-    r"""Removes stake into the wallet coldkey from the specified hotkey ``uid``.
+    """Removes stake into the wallet coldkey from the specified hotkey ``uid``.
 
     Args:
-        wallet (Wallet):
-            Bittensor wallet object.
-        hotkey_ss58 (Optional[str]):
-            The ``ss58`` address of the hotkey to unstake from. By default, the wallet hotkey is used.
-        amount (Union[Balance, float]):
-            Amount to stake as Bittensor balance, or ``float`` interpreted as Tao.
-        wait_for_inclusion (bool):
-            If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization (bool):
-            If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
-        prompt (bool):
-            If ``true``, the call waits for confirmation from the user before proceeding.
+        subtensor (subtensor.core.subtensor.Subtensor): The Subtensor instance object.
+        wallet (Wallet): Bittensor wallet object.
+        hotkey_ss58 (Optional[str]): The ``ss58`` address of the hotkey to unstake from. By default, the wallet hotkey is used.
+        amount (Union[Balance, float]): Amount to stake as Bittensor balance, or ``float`` interpreted as Tao.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
+        prompt (bool): If ``true``, the call waits for confirmation from the user before proceeding.
+
     Returns:
-        success (bool):
-            Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
+        success (bool): Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
     # Decrypt keys,
     wallet.coldkey
@@ -204,9 +192,7 @@ def unstake_extrinsic(
             if not wait_for_finalization and not wait_for_inclusion:
                 return True
 
-            bt_console.print(
-                ":white_heavy_check_mark: [green]Finalized[/green]"
-            )
+            bt_console.print(":white_heavy_check_mark: [green]Finalized[/green]")
             with bt_console.status(
                 ":satellite: Checking Balance on: [white]{}[/white] ...".format(
                     subtensor.network
@@ -230,9 +216,7 @@ def unstake_extrinsic(
                 )
                 return True
         else:
-            bt_console.print(
-                ":cross_mark: [red]Failed[/red]: Unknown Error."
-            )
+            bt_console.print(":cross_mark: [red]Failed[/red]: Unknown Error.")
             return False
 
     except NotRegisteredError as e:
@@ -248,7 +232,7 @@ def unstake_extrinsic(
 
 
 def unstake_multiple_extrinsic(
-    subtensor,
+    subtensor: "Subtensor",
     wallet: "Wallet",
     hotkey_ss58s: List[str],
     amounts: Optional[List[Union[Balance, float]]] = None,
@@ -256,24 +240,19 @@ def unstake_multiple_extrinsic(
     wait_for_finalization: bool = False,
     prompt: bool = False,
 ) -> bool:
-    r"""Removes stake from each ``hotkey_ss58`` in the list, using each amount, to a common coldkey.
+    """Removes stake from each ``hotkey_ss58`` in the list, using each amount, to a common coldkey.
 
     Args:
-        wallet (Wallet):
-            The wallet with the coldkey to unstake to.
-        hotkey_ss58s (List[str]):
-            List of hotkeys to unstake from.
-        amounts (List[Union[Balance, float]]):
-            List of amounts to unstake. If ``None``, unstake all.
-        wait_for_inclusion (bool):
-            If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization (bool):
-            If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
-        prompt (bool):
-            If ``true``, the call waits for confirmation from the user before proceeding.
+        subtensor (subtensor.core.subtensor.Subtensor): The Subtensor instance object.
+        wallet (Wallet): The wallet with the coldkey to unstake to.
+        hotkey_ss58s (List[str]): List of hotkeys to unstake from.
+        amounts (List[Union[Balance, float]]): List of amounts to unstake. If ``None``, unstake all.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
+        prompt (bool): If ``true``, the call waits for confirmation from the user before proceeding.
+
     Returns:
-        success (bool):
-            Flag is ``true`` if extrinsic was finalized or included in the block. Flag is ``true`` if any wallet was unstaked. If we did not wait for finalization / inclusion, the response is ``true``.
+        success (bool): Flag is ``true`` if extrinsic was finalized or included in the block. Flag is ``true`` if any wallet was unstaked. If we did not wait for finalization / inclusion, the response is ``true``.
     """
     if not isinstance(hotkey_ss58s, list) or not all(
         isinstance(hotkey_ss58, str) for hotkey_ss58 in hotkey_ss58s
@@ -289,9 +268,7 @@ def unstake_multiple_extrinsic(
     if amounts is not None and not all(
         isinstance(amount, (Balance, float)) for amount in amounts
     ):
-        raise TypeError(
-            "amounts must be a [list of Balance or float] or None"
-        )
+        raise TypeError("amounts must be a [list of Balance or float] or None")
 
     if amounts is None:
         amounts = [None] * len(hotkey_ss58s)
@@ -401,9 +378,7 @@ def unstake_multiple_extrinsic(
                     successful_unstakes += 1
                     continue
 
-                bt_console.print(
-                    ":white_heavy_check_mark: [green]Finalized[/green]"
-                )
+                bt_console.print(":white_heavy_check_mark: [green]Finalized[/green]")
                 with bt_console.status(
                     ":satellite: Checking Balance on: [white]{}[/white] ...".format(
                         subtensor.network
@@ -422,9 +397,7 @@ def unstake_multiple_extrinsic(
                     )
                     successful_unstakes += 1
             else:
-                bt_console.print(
-                    ":cross_mark: [red]Failed[/red]: Unknown Error."
-                )
+                bt_console.print(":cross_mark: [red]Failed[/red]: Unknown Error.")
                 continue
 
         except NotRegisteredError as e:
@@ -433,9 +406,7 @@ def unstake_multiple_extrinsic(
             )
             continue
         except StakeError as e:
-            bt_console.print(
-                ":cross_mark: [red]Stake Error: {}[/red]".format(e)
-            )
+            bt_console.print(":cross_mark: [red]Stake Error: {}[/red]".format(e))
             continue
 
     if successful_unstakes != 0:

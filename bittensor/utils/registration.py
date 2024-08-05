@@ -124,7 +124,7 @@ class CUDAException(Exception):
 
 
 def _hex_bytes_to_u8_list(hex_bytes: bytes):
-    hex_chunks = [int(hex_bytes[i: i + 2], 16) for i in range(0, len(hex_bytes), 2)]
+    hex_chunks = [int(hex_bytes[i : i + 2], 16) for i in range(0, len(hex_bytes), 2)]
     return hex_chunks
 
 
@@ -202,6 +202,7 @@ class _SolverBase(multiprocessing.Process):
         limit: int
             The limit of the pow solve for a valid solution.
     """
+
     proc_num: int
     num_proc: int
     update_interval: int
@@ -479,6 +480,7 @@ def get_cpu_count() -> int:
 @dataclass
 class RegistrationStatistics:
     """Statistics for a registration."""
+
     time_spent_total: float
     rounds_total: int
     time_average: float

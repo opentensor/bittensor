@@ -432,9 +432,7 @@ class NeuronInfo:
             neuron_info_decoded["coldkey"], ss58_format
         )
         stake_dict = {
-            ss58_encode(coldkey, ss58_format): Balance.from_rao(
-                int(stake)
-            )
+            ss58_encode(coldkey, ss58_format): Balance.from_rao(int(stake))
             for coldkey, stake in neuron_info_decoded["stake"]
         }
         neuron_info_decoded["stake_dict"] = stake_dict
@@ -579,9 +577,7 @@ class NeuronInfoLite:
             neuron_info_decoded["coldkey"], ss58_format
         )
         stake_dict = {
-            ss58_encode(coldkey, ss58_format): Balance.from_rao(
-                int(stake)
-            )
+            ss58_encode(coldkey, ss58_format): Balance.from_rao(int(stake))
             for coldkey, stake in neuron_info_decoded["stake"]
         }
         neuron_info_decoded["stake_dict"] = stake_dict
@@ -752,9 +748,7 @@ class DelegateInfo:
         """Fixes the decoded values."""
 
         return cls(
-            hotkey_ss58=ss58_encode(
-                decoded["delegate_ss58"], ss58_format
-            ),
+            hotkey_ss58=ss58_encode(decoded["delegate_ss58"], ss58_format),
             owner_ss58=ss58_encode(decoded["owner_ss58"], ss58_format),
             take=U16_NORMALIZED_FLOAT(decoded["take"]),
             nominators=[
@@ -1201,6 +1195,4 @@ class ScheduledColdkeySwapInfo:
         )
         if decoded is None:
             return None
-        return [
-            ss58_encode(account_id, ss58_format) for account_id in decoded
-        ]
+        return [ss58_encode(account_id, ss58_format) for account_id in decoded]

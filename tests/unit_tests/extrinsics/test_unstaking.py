@@ -3,7 +3,10 @@ from unittest.mock import patch, MagicMock
 import pytest
 from bittensor_wallet import Wallet
 
-from bittensor.api.extrinsics.unstaking import unstake_extrinsic, unstake_multiple_extrinsic
+from bittensor.api.extrinsics.unstaking import (
+    unstake_extrinsic,
+    unstake_multiple_extrinsic,
+)
 from bittensor.core.subtensor import Subtensor
 from bittensor.utils.balance import Balance
 
@@ -106,9 +109,7 @@ def test_unstake_extrinsic(
             mock_subtensor._do_unstake.assert_called_once_with(
                 wallet=mock_wallet,
                 hotkey_ss58=hotkey_ss58 or mock_wallet.hotkey.ss58_address,
-                amount=Balance.from_tao(amount)
-                if amount
-                else mock_current_stake,
+                amount=Balance.from_tao(amount) if amount else mock_current_stake,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
             )

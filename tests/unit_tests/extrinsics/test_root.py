@@ -295,7 +295,7 @@ def test_set_root_weights_extrinsic_torch(
     prompt,
     user_response,
     expected_success,
-        force_legacy_torch_compatible_api,
+    force_legacy_torch_compatible_api,
 ):
     test_set_root_weights_extrinsic(
         mock_subtensor,

@@ -111,7 +111,7 @@ network_explorer_map = {
 }
 
 # --- Type Registry ---
-type_registry = {
+type_registry: dict = {
     "types": {
         "Balance": "u64",  # Need to override default u128
     },
@@ -227,35 +227,37 @@ type_registry = {
     },
 }
 
-defaults = Munch = munchify({
-    "axon": {
-        "port": os.getenv("BT_AXON_PORT") or 8091,
-        "ip": os.getenv("BT_AXON_IP") or "[::]",
-        "external_port": os.getenv("BT_AXON_EXTERNAL_PORT") or None,
-        "external_ip": os.getenv("BT_AXON_EXTERNAL_IP") or None,
-        "max_workers": os.getenv("BT_AXON_MAX_WORKERS") or 10,
-    },
-    "logging": {
-        "debug": os.getenv("BT_LOGGING_DEBUG") or False,
-        "trace": os.getenv("BT_LOGGING_TRACE") or False,
-        "record_log": os.getenv("BT_LOGGING_RECORD_LOG") or False,
-        "logging_dir": os.getenv("BT_LOGGING_LOGGING_DIR") or str(MINERS_DIR),
-    },
-    "priority": {
-        "max_workers": os.getenv("BT_PRIORITY_MAX_WORKERS") or 5,
-        "maxsize": os.getenv("BT_PRIORITY_MAXSIZE") or 10
-    },
-    "subtensor": {
-        "chain_endpoint": DEFAULT_ENDPOINT,
-        "network": DEFAULT_NETWORK,
-        "_mock": False
-    },
-    "wallet": {
-        "name": "default",
-        "hotkey": "default",
-        "path": str(WALLETS_DIR),
-    },
-})
+defaults = Munch = munchify(
+    {
+        "axon": {
+            "port": os.getenv("BT_AXON_PORT") or 8091,
+            "ip": os.getenv("BT_AXON_IP") or "[::]",
+            "external_port": os.getenv("BT_AXON_EXTERNAL_PORT") or None,
+            "external_ip": os.getenv("BT_AXON_EXTERNAL_IP") or None,
+            "max_workers": os.getenv("BT_AXON_MAX_WORKERS") or 10,
+        },
+        "logging": {
+            "debug": os.getenv("BT_LOGGING_DEBUG") or False,
+            "trace": os.getenv("BT_LOGGING_TRACE") or False,
+            "record_log": os.getenv("BT_LOGGING_RECORD_LOG") or False,
+            "logging_dir": os.getenv("BT_LOGGING_LOGGING_DIR") or str(MINERS_DIR),
+        },
+        "priority": {
+            "max_workers": os.getenv("BT_PRIORITY_MAX_WORKERS") or 5,
+            "maxsize": os.getenv("BT_PRIORITY_MAXSIZE") or 10,
+        },
+        "subtensor": {
+            "chain_endpoint": DEFAULT_ENDPOINT,
+            "network": DEFAULT_NETWORK,
+            "_mock": False,
+        },
+        "wallet": {
+            "name": "default",
+            "hotkey": "default",
+            "path": str(WALLETS_DIR),
+        },
+    }
+)
 
 
 # Parsing version without any literals.
@@ -266,5 +268,7 @@ _version_info = tuple(int(part) for part in version_split)
 _version_int_base = 1000
 assert max(_version_info) < _version_int_base
 
-version_as_int: int = sum(e * (_version_int_base**i) for i, e in enumerate(reversed(_version_info)))
-assert version_as_int < 2 ** 31  # fits in int32
+version_as_int: int = sum(
+    e * (_version_int_base**i) for i, e in enumerate(reversed(_version_info))
+)
+assert version_as_int < 2**31  # fits in int32

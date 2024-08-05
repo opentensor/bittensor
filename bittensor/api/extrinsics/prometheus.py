@@ -16,6 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import json
+from typing import TYPE_CHECKING
 
 from bittensor_wallet import Wallet
 
@@ -24,9 +25,13 @@ from bittensor.core.types import PrometheusServeCallParams
 from bittensor.utils import networking as net
 from bittensor.utils.btlogging import logging
 
+# For annotation purposes
+if TYPE_CHECKING:
+    from bittensor.core.subtensor import Subtensor
+
 
 def prometheus_extrinsic(
-    subtensor,
+    subtensor: "Subtensor",
     wallet: "Wallet",
     port: int,
     netuid: int,

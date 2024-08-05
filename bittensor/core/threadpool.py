@@ -55,7 +55,7 @@ class _WorkItem(object):
         """Run the given work item"""
         # Checks if future is canceled or if work item is stale
         if (not self.future.set_running_or_notify_cancel()) or (
-                time.time() - self.start_time > blocktime
+            time.time() - self.start_time > blocktime
         ):
             return
 
@@ -127,12 +127,12 @@ class PriorityThreadPoolExecutor(_base.Executor):
     _counter = itertools.count().__next__
 
     def __init__(
-            self,
-            maxsize=-1,
-            max_workers=None,
-            thread_name_prefix="",
-            initializer=None,
-            initargs=(),
+        self,
+        maxsize=-1,
+        max_workers=None,
+        thread_name_prefix="",
+        initializer=None,
+        initargs=(),
     ):
         """Initializes a new `ThreadPoolExecutor <https://docs.python.org/3/library/concurrent.futures.html#threadpoolexecutor>`_ instance.
 
@@ -161,7 +161,7 @@ class PriorityThreadPoolExecutor(_base.Executor):
         self._shutdown = False
         self._shutdown_lock = threading.Lock()
         self._thread_name_prefix = thread_name_prefix or (
-                "ThreadPoolExecutor-%d" % self._counter()
+            "ThreadPoolExecutor-%d" % self._counter()
         )
         self._initializer = initializer
         self._initargs = initargs

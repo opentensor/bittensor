@@ -60,9 +60,8 @@ def __apply_nest_asyncio():
             )
         # Install and apply nest asyncio to allow the async functions to run in a .ipynb
         import nest_asyncio
+
         nest_asyncio.apply()
 
 
 __apply_nest_asyncio()
-
-

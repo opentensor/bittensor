@@ -15,7 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from typing import Union
+from typing import Union, TYPE_CHECKING
 
 from rich.prompt import Confirm
 
@@ -23,11 +23,16 @@ from bittensor.core.settings import bt_console, network_explorer_map
 from bittensor.utils import get_explorer_url_for_network
 from bittensor.utils import is_valid_bittensor_address_or_public_key
 from bittensor.utils.balance import Balance
+from bittensor_wallet import Wallet
+
+# For annotation purposes
+if TYPE_CHECKING:
+    from bittensor.core.subtensor import Subtensor
 
 
 def transfer_extrinsic(
-    subtensor: "bittensor.subtensor",
-    wallet: "bittensor.wallet",
+    subtensor: "Subtensor",
+    wallet: "Wallet",
     dest: str,
     amount: Union[Balance, float],
     wait_for_inclusion: bool = True,
@@ -35,26 +40,20 @@ def transfer_extrinsic(
     keep_alive: bool = True,
     prompt: bool = False,
 ) -> bool:
-    r"""Transfers funds from this wallet to the destination public key address.
+    """Transfers funds from this wallet to the destination public key address.
 
     Args:
-        wallet (bittensor.wallet):
-            Bittensor wallet object to make transfer from.
-        dest (str, ss58_address or ed25519):
-            Destination public key address of reciever.
-        amount (Union[Balance, int]):
-            Amount to stake as Bittensor balance, or ``float`` interpreted as Tao.
-        wait_for_inclusion (bool):
-            If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization (bool):
-            If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
-        keep_alive (bool):
-            If set, keeps the account alive by keeping the balance above the existential deposit.
-        prompt (bool):
-            If ``true``, the call waits for confirmation from the user before proceeding.
+        subtensor (subtensor.core.subtensor.Subtensor): The Subtensor instance object.
+        wallet (bittensor.wallet): Bittensor wallet object to make transfer from.
+        dest (str, ss58_address or ed25519): Destination public key address of receiver.
+        amount (Union[Balance, int]): Amount to stake as Bittensor balance, or ``float`` interpreted as Tao.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
+        keep_alive (bool): If set, keeps the account alive by keeping the balance above the existential deposit.
+        prompt (bool): If ``true``, the call waits for confirmation from the user before proceeding.
+
     Returns:
-        success (bool):
-            Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
+        success (bool): Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
     # Validate destination address.
     if not is_valid_bittensor_address_or_public_key(dest):
@@ -121,12 +120,8 @@ def transfer_extrinsic(
         )
 
         if success:
-            bt_console.print(
-                ":white_heavy_check_mark: [green]Finalized[/green]"
-            )
-            bt_console.print(
-                "[green]Block Hash: {}[/green]".format(block_hash)
-            )
+            bt_console.print(":white_heavy_check_mark: [green]Finalized[/green]")
+            bt_console.print("[green]Block Hash: {}[/green]".format(block_hash))
 
             explorer_urls = get_explorer_url_for_network(
                 subtensor.network, block_hash, network_explorer_map

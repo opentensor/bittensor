@@ -56,9 +56,7 @@ def _get_version_from_file(version_file: Path) -> Optional[str]:
 
 
 def _get_version_from_pypi(timeout: int = 15) -> str:
-    logging.debug(
-        f"Checking latest Bittensor version at: {pipaddress}"
-    )
+    logging.debug(f"Checking latest Bittensor version at: {pipaddress}")
     try:
         response = requests.get(pipaddress, timeout=timeout)
         latest_version = response.json()["info"]["version"]

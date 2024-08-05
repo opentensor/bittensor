@@ -19,7 +19,7 @@ import base64
 import json
 import sys
 import warnings
-from typing import Any, ClassVar, Dict, Optional, Tuple, Union
+from typing import cast, Any, ClassVar, Dict, Optional, Tuple, Union
 
 from pydantic import (
     BaseModel,
@@ -756,7 +756,10 @@ class Synapse(BaseModel):
         """
 
         # Initialize the input dictionary with empty sub-dictionaries for 'axon' and 'dendrite'
-        inputs_dict: Dict[str, Union[Dict, Optional[str]]] = {"axon": {}, "dendrite": {}}
+        inputs_dict: Dict[str, Union[Dict, Optional[str]]] = {
+            "axon": {},
+            "dendrite": {},
+        }
 
         # Iterate over each item in the headers
         for key, value in headers.items():
@@ -764,21 +767,19 @@ class Synapse(BaseModel):
             if "bt_header_axon_" in key:
                 try:
                     new_key = key.split("bt_header_axon_")[1]
-                    inputs_dict["axon"][new_key] = value
+                    axon_dict = cast(dict, inputs_dict["axon"])
+                    axon_dict[new_key] = value
                 except Exception as e:
-                    logging.error(
-                        f"Error while parsing 'axon' header {key}: {e}"
-                    )
+                    logging.error(f"Error while parsing 'axon' header {key}: {str(e)}")
                     continue
             # Handle 'dendrite' headers
             elif "bt_header_dendrite_" in key:
                 try:
                     new_key = key.split("bt_header_dendrite_")[1]
-                    inputs_dict["dendrite"][new_key] = value
+                    dendrite_dict = cast(dict, inputs_dict["dendrite"])
+                    dendrite_dict[new_key] = value
                 except Exception as e:
-                    logging.error(
-                        f"Error while parsing 'dendrite' header {key}: {e}"
-                    )
+                    logging.error(f"Error while parsing 'dendrite' header {key}: {e}")
                     continue
             # Handle 'input_obj' headers
             elif "bt_header_input_obj" in key:
@@ -797,9 +798,7 @@ class Synapse(BaseModel):
                     )
                     continue
                 except Exception as e:
-                    logging.error(
-                        f"Error while parsing 'input_obj' header {key}: {e}"
-                    )
+                    logging.error(f"Error while parsing 'input_obj' header {key}: {e}")
                     continue
             else:
                 pass  # TODO: log unexpected keys

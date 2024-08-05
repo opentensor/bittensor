@@ -61,11 +61,11 @@ class config(DefaultMunch):
     """
 
     def __init__(
-            self,
-            parser: argparse.ArgumentParser = None,
-            args: Optional[List[str]] = None,
-            strict: bool = False,
-            default: Optional[Any] = None,
+        self,
+        parser: argparse.ArgumentParser = None,
+        args: Optional[List[str]] = None,
+        strict: bool = False,
+        default: Optional[Any] = None,
     ) -> None:
         super().__init__(default)
 
@@ -134,9 +134,9 @@ class config(DefaultMunch):
         # 1.1 Optionally load defaults if the --config is set.
         try:
             config_file_path = (
-                    str(os.getcwd())
-                    + "/"
-                    + vars(parser.parse_known_args(args)[0])["config"]
+                str(os.getcwd())
+                + "/"
+                + vars(parser.parse_known_args(args)[0])["config"]
             )
         except Exception as e:
             config_file_path = None
@@ -240,7 +240,7 @@ class config(DefaultMunch):
             keys = split_keys
             while len(keys) > 1:
                 if (
-                        hasattr(head, keys[0]) and head[keys[0]] is not None
+                    hasattr(head, keys[0]) and head[keys[0]] is not None
                 ):  # Needs to be Config
                     head = getattr(head, keys[0])
                     keys = keys[1:]
@@ -253,7 +253,7 @@ class config(DefaultMunch):
 
     @staticmethod
     def __parse_args__(
-            args: List[str], parser: argparse.ArgumentParser = None, strict: bool = False
+        args: List[str], parser: argparse.ArgumentParser = None, strict: bool = False
     ) -> argparse.Namespace:
         """Parses the passed args use the passed parser.
 
@@ -382,7 +382,7 @@ class config(DefaultMunch):
             return self.get("__is_set")[param_name]
 
     def __check_for_missing_required_args(
-            self, parser: argparse.ArgumentParser, args: List[str]
+        self, parser: argparse.ArgumentParser, args: List[str]
     ) -> List[str]:
         required_args = self.__get_required_args_from_parser(parser)
         missing_args = [arg for arg in required_args if not any(arg in s for s in args)]

@@ -114,9 +114,7 @@ class DendriteMixin:
         d( bittensor.core.axon.Axon(), bittensor.core.synapse.Synapse )
     """
 
-    def __init__(
-        self, wallet: Optional[Union["Wallet", Keypair]] = None
-    ):
+    def __init__(self, wallet: Optional[Union["Wallet", Keypair]] = None):
         """
         Initializes the Dendrite object, setting up essential properties.
 
@@ -340,7 +338,9 @@ class DendriteMixin:
             f"dendrite | <-- | {synapse.get_total_size()} B | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | {synapse.dendrite.status_code} | {synapse.dendrite.status_message}"
         )
 
-    def query(self, *args, **kwargs) -> "List[Union[AsyncGenerator[Any, Any], Synapse, StreamingSynapse]]":
+    def query(
+        self, *args, **kwargs
+    ) -> "List[Union[AsyncGenerator[Any, Any], Synapse, StreamingSynapse]]":
         """
         Makes a synchronous request to multiple target Axons and returns the server responses.
 
@@ -430,9 +430,7 @@ class DendriteMixin:
             axons = [axons]
 
         # Check if synapse is an instance of the StreamingSynapse class or if streaming flag is set.
-        is_streaming_subclass = issubclass(
-            synapse.__class__, StreamingSynapse
-        )
+        is_streaming_subclass = issubclass(synapse.__class__, StreamingSynapse)
         if streaming != is_streaming_subclass:
             logging.warning(
                 f"Argument streaming is {streaming} while issubclass(synapse, StreamingSynapse) is {synapse.__class__.__name__}. This may cause unexpected behavior."
@@ -441,9 +439,7 @@ class DendriteMixin:
 
         async def query_all_axons(
             is_stream: bool,
-        ) -> Union[
-            AsyncGenerator[Any, Any], Synapse, StreamingSynapse
-        ]:
+        ) -> Union[AsyncGenerator[Any, Any], Synapse, StreamingSynapse]:
             """
             Handles the processing of requests to all targeted axons, accommodating both streaming and non-streaming responses.
 
@@ -540,9 +536,7 @@ class DendriteMixin:
         # Record start time
         start_time = time.time()
         target_axon = (
-            target_axon.info()
-            if isinstance(target_axon, Axon)
-            else target_axon
+            target_axon.info() if isinstance(target_axon, Axon) else target_axon
         )
 
         # Build request endpoint from the synapse class
@@ -578,9 +572,7 @@ class DendriteMixin:
             self._log_incoming_response(synapse)
 
             # Log synapse event history
-            self.synapse_history.append(
-                Synapse.from_headers(synapse.to_headers())
-            )
+            self.synapse_history.append(Synapse.from_headers(synapse.to_headers()))
 
             # Return the updated synapse object after deserializing if requested
             return synapse.deserialize() if deserialize else synapse
@@ -614,9 +606,7 @@ class DendriteMixin:
         # Record start time
         start_time = time.time()
         target_axon = (
-            target_axon.info()
-            if isinstance(target_axon, Axon)
-            else target_axon
+            target_axon.info() if isinstance(target_axon, Axon) else target_axon
         )
 
         # Build request endpoint from the synapse class
@@ -660,9 +650,7 @@ class DendriteMixin:
             self._log_incoming_response(synapse)
 
             # Log synapse event history
-            self.synapse_history.append(
-                Synapse.from_headers(synapse.to_headers())
-            )
+            self.synapse_history.append(Synapse.from_headers(synapse.to_headers()))
 
             # Return the updated synapse object after deserializing if requested
             if deserialize:

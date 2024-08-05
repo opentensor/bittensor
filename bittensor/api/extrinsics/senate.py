@@ -16,16 +16,21 @@
 # DEALINGS IN THE SOFTWARE.
 
 import time
+from typing import TYPE_CHECKING
 
+from bittensor_wallet import Wallet
 from rich.prompt import Confirm
 
 from bittensor.core.settings import bt_console
 from bittensor.utils import format_error_message
-from bittensor_wallet import Wallet
+
+# For annotation purposes
+if TYPE_CHECKING:
+    from bittensor.core.subtensor import Subtensor
 
 
 def register_senate_extrinsic(
-    subtensor,
+    subtensor: "Subtensor",
     wallet: "Wallet",
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = True,
@@ -34,7 +39,7 @@ def register_senate_extrinsic(
     """Registers the wallet to chain for senate voting.
 
     Args:
-        subtensor:
+        subtensor (subtensor.core.subtensor.Subtensor): The Subtensor instance object.
         wallet (bittensor.wallet): Bittensor wallet object.
         wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
@@ -98,27 +103,23 @@ def register_senate_extrinsic(
 
 
 def leave_senate_extrinsic(
-    subtensor,
+    subtensor: "Subtensor",
     wallet: "Wallet",
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = True,
     prompt: bool = False,
 ) -> bool:
-    r"""Removes the wallet from chain for senate voting.
+    """Removes the wallet from chain for senate voting.
 
     Args:
-        subtensor:
-        wallet (bittensor.wallet):
-            Bittensor wallet object.
-        wait_for_inclusion (bool):
-            If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization (bool):
-            If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
-        prompt (bool):
-            If ``true``, the call waits for confirmation from the user before proceeding.
+        subtensor (subtensor.core.subtensor.Subtensor): The Subtensor instance object.
+        wallet (bittensor.wallet): Bittensor wallet object.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
+        prompt (bool): If ``true``, the call waits for confirmation from the user before proceeding.
+
     Returns:
-        success (bool):
-            Flag is ``true`` if extrinsic was finalized or included in the block. If we did not wait for finalization / inclusion, the response is ``true``.
+        success (bool): Flag is ``true`` if extrinsic was finalized or included in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
     wallet.coldkey  # unlock coldkey
     wallet.hotkey  # unlock hotkey
@@ -174,7 +175,7 @@ def leave_senate_extrinsic(
 
 
 def vote_senate_extrinsic(
-    subtensor,
+    subtensor: "Subtensor",
     wallet: "Wallet",
     proposal_hash: str,
     proposal_idx: int,
@@ -183,21 +184,19 @@ def vote_senate_extrinsic(
     wait_for_finalization: bool = True,
     prompt: bool = False,
 ) -> bool:
-    """Votes ayes or nays on proposals.
+    """
+    Votes ayes or nays on proposals.
 
     Args:
+        subtensor (subtensor.core.subtensor.Subtensor): The Subtensor instance object.
+        wallet (bittensor.wallet): Bittensor wallet object.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
+        prompt (bool): If ``true``, the call waits for confirmation from the user before proceeding.
         vote:
         proposal_idx:
         proposal_hash:
-        subtensor:
-        wallet (bittensor.wallet):
-            Bittensor wallet object.
-        wait_for_inclusion (bool):
-            If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization (bool):
-            If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
-        prompt (bool):
-            If ``true``, the call waits for confirmation from the user before proceeding.
+
     Returns:
         success (bool):
             Flag is ``true`` if extrinsic was finalized or included in the block. If we did not wait for finalization / inclusion, the response is ``true``.

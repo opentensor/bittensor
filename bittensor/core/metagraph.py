@@ -17,6 +17,7 @@
 
 import os
 import pickle
+import typing
 from abc import ABC, abstractmethod
 from os import listdir
 from os.path import join
@@ -25,15 +26,20 @@ from typing import List, Optional, Union, Tuple
 import numpy as np
 from numpy.typing import NDArray
 
-from . import settings
-from .chain_data import AxonInfo
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import torch, use_torch
 from bittensor.utils.weight_utils import (
     convert_weight_uids_and_vals_to_tensor,
     convert_bond_uids_and_vals_to_tensor,
-    convert_root_weight_uids_and_vals_to_tensor
+    convert_root_weight_uids_and_vals_to_tensor,
 )
+from . import settings
+from .chain_data import AxonInfo
+
+# For annotation purposes
+if typing.TYPE_CHECKING:
+    from bittensor.core.subtensor import Subtensor
+
 
 METAGRAPH_STATE_DICT_NDARRAY_KEYS = [
     "version",
@@ -371,7 +377,9 @@ class MetagraphMixin(ABC):
         return [axon.ip_str() for axon in self.axons]
 
     @abstractmethod
-    def __init__(self, netuid: int, network: str = "finney", lite: bool = True, sync: bool = True):
+    def __init__(
+        self, netuid: int, network: str = "finney", lite: bool = True, sync: bool = True
+    ):
         """
         Initializes a new instance of the metagraph object, setting up the basic structure and parameters based on the provided arguments.
         This method is the entry point for creating a metagraph object,
@@ -514,7 +522,10 @@ class MetagraphMixin(ABC):
         # Initialize subtensor
         subtensor = self._initialize_subtensor(subtensor)
 
-        if subtensor.chain_endpoint != settings.archive_entrypoint or subtensor.network != settings.networks[3]:
+        if (
+            subtensor.chain_endpoint != settings.archive_entrypoint
+            or subtensor.network != settings.networks[3]
+        ):
             cur_block = subtensor.get_current_block()
             if block and block < (cur_block - 300):
                 logging.warning(
@@ -555,6 +566,7 @@ class MetagraphMixin(ABC):
             # TODO: Check and test the initialization of the new subtensor
             # Lazy import due to circular import (subtensor -> metagraph, metagraph -> subtensor)
             from bittensor.core.subtensor import Subtensor
+
             subtensor = Subtensor(network=self.network)
         return subtensor
 
@@ -622,7 +634,7 @@ class MetagraphMixin(ABC):
             self.weights = self._process_root_weights(
                 [neuron.weights for neuron in self.neurons],
                 "weights",
-                subtensor,  # type: ignore
+                subtensor,
             )
         else:
             self.weights = self._process_weights_or_bonds(
@@ -654,9 +666,9 @@ class MetagraphMixin(ABC):
         for item in data:
             if len(item) == 0:
                 if use_torch():
-                    data_array.append(torch.zeros(len(self.neurons)))  # type: ignore
+                    data_array.append(torch.zeros(len(self.neurons)))
                 else:
-                    data_array.append(np.zeros(len(self.neurons), dtype=np.float32))  # type: ignore
+                    data_array.append(np.zeros(len(self.neurons), dtype=np.float32))
             else:
                 uids, values = zip(*item)
                 # TODO: Validate and test the conversion of uids and values to tensor
@@ -665,12 +677,12 @@ class MetagraphMixin(ABC):
                         convert_weight_uids_and_vals_to_tensor(
                             len(self.neurons),
                             list(uids),
-                            list(values),  # type: ignore
+                            list(values),
                         )
                     )
                 else:
                     data_array.append(
-                        convert_bond_uids_and_vals_to_tensor(  # type: ignore
+                        convert_bond_uids_and_vals_to_tensor(
                             len(self.neurons), list(uids), list(values)
                         ).astype(np.float32)
                     )
@@ -724,12 +736,12 @@ class MetagraphMixin(ABC):
                 if use_torch():
                     data_array.append(torch.zeros(n_subnets))
                 else:
-                    data_array.append(np.zeros(n_subnets, dtype=np.float32))  # type: ignore
+                    data_array.append(np.zeros(n_subnets, dtype=np.float32))
             else:
                 uids, values = zip(*item)
                 # TODO: Validate and test the conversion of uids and values to tensor
                 data_array.append(
-                    convert_root_weight_uids_and_vals_to_tensor(  # type: ignore
+                    convert_root_weight_uids_and_vals_to_tensor(
                         n_subnets, list(uids), list(values), subnets
                     )
                 )
@@ -753,7 +765,7 @@ class MetagraphMixin(ABC):
             )
         return tensor_param
 
-    def save(self) -> "metagraph":  # type: ignore
+    def save(self) -> "Metagraph":
         """
         Saves the current state of the metagraph to a file on disk. This function is crucial for persisting the current state of the network's metagraph, which can later be reloaded or analyzed. The save operation includes all neuron attributes and parameters, ensuring a complete snapshot of the metagraph's state.
 
@@ -782,9 +794,7 @@ class MetagraphMixin(ABC):
             state_dict = self.state_dict()
             state_dict["axons"] = self.axons
             torch.save(state_dict, graph_filename)
-            torch.load(
-                graph_filename
-            )  # verifies that the file can be loaded correctly
+            torch.load(graph_filename)  # verifies that the file can be loaded correctly
         else:
             graph_filename = f"{save_directory}/block-{self.block.item()}.pt"
             state_dict = self.state_dict()
@@ -818,7 +828,7 @@ class MetagraphMixin(ABC):
         self.load_from_path(get_save_dir(self.network, self.netuid))
 
     @abstractmethod
-    def load_from_path(self, dir_path: str) -> "metagraph":  # type: ignore
+    def load_from_path(self, dir_path: str) -> "Metagraph":
         """
         Loads the state of the metagraph from a specified directory path. This method is crucial for restoring the metagraph to a specific state based on saved data. It locates the latest block file in the given
         directory and loads all metagraph parameters from it. This is particularly useful for analyses that require historical states of the network or for restoring previous states of the metagraph in different
@@ -851,7 +861,7 @@ class MetagraphMixin(ABC):
 BaseClass: Union["torch.nn.Module", object] = torch.nn.Module if use_torch() else object
 
 
-class TorchMetaGraph(MetagraphMixin, BaseClass):  # type: ignore
+class TorchMetaGraph(MetagraphMixin, BaseClass):
     def __init__(
         self, netuid: int, network: str = "finney", lite: bool = True, sync: bool = True
     ):
@@ -992,7 +1002,7 @@ class TorchMetaGraph(MetagraphMixin, BaseClass):  # type: ignore
         )
         self.axons = [n.axon_info for n in self.neurons]
 
-    def load_from_path(self, dir_path: str) -> "metagraph":  # type: ignore
+    def load_from_path(self, dir_path: str) -> "Metagraph":
         graph_file = latest_block_path(dir_path)
         state_dict = torch.load(graph_file)
         self.n = torch.nn.Parameter(state_dict["n"], requires_grad=False)
@@ -1083,9 +1093,7 @@ class NonTorchMetagraph(MetagraphMixin):
         """
         # TODO: Check and test the setting of each attribute
         self.n = self._create_tensor(len(self.neurons), dtype=np.int64)
-        self.version = self._create_tensor(
-            [settings.version_as_int], dtype=np.int64
-        )
+        self.version = self._create_tensor([settings.version_as_int], dtype=np.int64)
         self.block = self._create_tensor(
             block if block else subtensor.block, dtype=np.int64
         )
@@ -1130,7 +1138,7 @@ class NonTorchMetagraph(MetagraphMixin):
         )
         self.axons = [n.axon_info for n in self.neurons]
 
-    def load_from_path(self, dir_path: str) -> "metagraph":  # type: ignore
+    def load_from_path(self, dir_path: str) -> "Metagraph":
         graph_filename = latest_block_path(dir_path)
         try:
             with open(graph_filename, "rb") as graph_file:

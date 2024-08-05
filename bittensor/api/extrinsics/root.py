@@ -17,22 +17,26 @@
 
 import logging
 import time
-from typing import Union, List
+from typing import Union, List, TYPE_CHECKING
 
 import numpy as np
 from bittensor_wallet import Wallet
 from numpy.typing import NDArray
 from rich.prompt import Confirm
 
-from bittensor.utils import weight_utils
 from bittensor.core.settings import bt_console
+from bittensor.utils import weight_utils
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import torch, legacy_torch_api_compat
 
+# For annotation purposes
+if TYPE_CHECKING:
+    from bittensor.core.subtensor import Subtensor
+
 
 def root_register_extrinsic(
-    subtensor,
-    wallet,
+    subtensor: "Subtensor",
+    wallet: "Wallet",
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = True,
     prompt: bool = False,
@@ -40,18 +44,14 @@ def root_register_extrinsic(
     """Registers the wallet to root network.
 
     Args:
-        subtensor:
-        wallet (Wallet):
-            Bittensor wallet object.
-        wait_for_inclusion (bool):
-            If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization (bool):
-            If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
-        prompt (bool):
-            If ``true``, the call waits for confirmation from the user before proceeding.
+        subtensor (bittensor.core.subtensor.Subtensor): The Subtensor instance object.
+        wallet (Wallet): Bittensor wallet object.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
+        prompt (bool): If ``true``, the call waits for confirmation from the user before proceeding.
+
     Returns:
-        success (bool):
-            Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
+        success (bool): Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
 
     wallet.coldkey  # unlock coldkey
@@ -87,9 +87,7 @@ def root_register_extrinsic(
                 netuid=0, hotkey_ss58=wallet.hotkey.ss58_address
             )
             if is_registered:
-                bt_console.print(
-                    ":white_heavy_check_mark: [green]Registered[/green]"
-                )
+                bt_console.print(":white_heavy_check_mark: [green]Registered[/green]")
                 return True
             else:
                 # neuron not found, try again
@@ -100,8 +98,8 @@ def root_register_extrinsic(
 
 @legacy_torch_api_compat
 def set_root_weights_extrinsic(
-    subtensor,
-    wallet,
+    subtensor: "Subtensor",
+    wallet: "Wallet",
     netuids: Union[NDArray[np.int64], "torch.LongTensor", List[int]],
     weights: Union[NDArray[np.float32], "torch.FloatTensor", List[float]],
     version_key: int = 0,
@@ -109,27 +107,20 @@ def set_root_weights_extrinsic(
     wait_for_finalization: bool = False,
     prompt: bool = False,
 ) -> bool:
-    r"""Sets the given weights and values on chain for wallet hotkey account.
+    """Sets the given weights and values on chain for wallet hotkey account.
 
     Args:
-        subtensor:
-        wallet (Wallet):
-            Bittensor wallet object.
-        netuids (Union[NDArray[np.int64], torch.LongTensor, List[int]]):
-            The ``netuid`` of the subnet to set weights for.
-        weights (Union[NDArray[np.float32], torch.FloatTensor, list]):
-            Weights to set. These must be ``float`` s and must correspond to the passed ``netuid`` s.
-        version_key (int):
-            The version key of the validator.
-        wait_for_inclusion (bool):
-            If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization (bool):
-            If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
-        prompt (bool):
-            If ``true``, the call waits for confirmation from the user before proceeding.
+        subtensor (bittensor.core.subtensor.Subtensor: The Subtensor instance object.
+        wallet (Wallet): Bittensor wallet object.
+        netuids (Union[NDArray[np.int64], torch.LongTensor, List[int]]): The ``netuid`` of the subnet to set weights for.
+        weights (Union[NDArray[np.float32], torch.FloatTensor, list]): Weights to set. These must be ``float`` s and must correspond to the passed ``netuid`` s.
+        version_key (int): The version key of the validator.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
+        prompt (bool): If ``true``, the call waits for confirmation from the user before proceeding.
+
     Returns:
-        success (bool):
-            Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
+        success (bool): Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
 
     wallet.coldkey  # unlock coldkey
@@ -197,18 +188,14 @@ def set_root_weights_extrinsic(
                 return True
 
             if success is True:
-                bt_console.print(
-                    ":white_heavy_check_mark: [green]Finalized[/green]"
-                )
+                bt_console.print(":white_heavy_check_mark: [green]Finalized[/green]")
                 logging.success(
                     prefix="Set weights",
                     suffix="<green>Finalized: </green>" + str(success),
                 )
                 return True
             else:
-                bt_console.print(
-                    f":cross_mark: [red]Failed[/red]: {error_message}"
-                )
+                bt_console.print(f":cross_mark: [red]Failed[/red]: {error_message}")
                 logging.warning(
                     prefix="Set weights",
                     suffix="<red>Failed: </red>" + str(error_message),
@@ -217,10 +204,6 @@ def set_root_weights_extrinsic(
 
         except Exception as e:
             # TODO( devs ): lets remove all of the bt_console calls and replace with the bittensor logger.
-            bt_console.print(
-                ":cross_mark: [red]Failed[/red]: error:{}".format(e)
-            )
-            logging.warning(
-                prefix="Set weights", suffix="<red>Failed: </red>" + str(e)
-            )
+            bt_console.print(":cross_mark: [red]Failed[/red]: error:{}".format(e))
+            logging.warning(prefix="Set weights", suffix="<red>Failed: </red>" + str(e))
             return False

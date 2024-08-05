@@ -61,7 +61,10 @@ from bittensor.api.extrinsics.registration import (
     run_faucet_extrinsic,
     swap_hotkey_extrinsic,
 )
-from bittensor.api.extrinsics.root import root_register_extrinsic, set_root_weights_extrinsic
+from bittensor.api.extrinsics.root import (
+    root_register_extrinsic,
+    set_root_weights_extrinsic,
+)
 from bittensor.api.extrinsics.senate import (
     register_senate_extrinsic,
     leave_senate_extrinsic,
@@ -74,9 +77,15 @@ from bittensor.api.extrinsics.serving import (
     get_metadata,
 )
 from bittensor.api.extrinsics.set_weights import set_weights_extrinsic
-from bittensor.api.extrinsics.staking import add_stake_extrinsic, add_stake_multiple_extrinsic
+from bittensor.api.extrinsics.staking import (
+    add_stake_extrinsic,
+    add_stake_multiple_extrinsic,
+)
 from bittensor.api.extrinsics.transfer import transfer_extrinsic
-from bittensor.api.extrinsics.unstaking import unstake_extrinsic, unstake_multiple_extrinsic
+from bittensor.api.extrinsics.unstaking import (
+    unstake_extrinsic,
+    unstake_multiple_extrinsic,
+)
 from bittensor.core import settings
 from bittensor.core.axon import Axon
 from bittensor.core.chain_data import (
@@ -103,7 +112,13 @@ from bittensor.utils import (
     U64_NORMALIZED_FLOAT,
     networking,
 )
-from bittensor.utils import torch, weight_utils, format_error_message, create_identity_dict, decode_hex_identity_dict
+from bittensor.utils import (
+    torch,
+    weight_utils,
+    format_error_message,
+    create_identity_dict,
+    decode_hex_identity_dict,
+)
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import POWSolution
@@ -2778,9 +2793,7 @@ class Subtensor:
 
         identity_info = make_substrate_call_with_retry()
 
-        return decode_hex_identity_dict(
-            identity_info.value["info"]
-        )
+        return decode_hex_identity_dict(identity_info.value["info"])
 
     def update_identity(
         self,
@@ -3125,7 +3138,9 @@ class Subtensor:
         This function enables access to the deeper layers of the Bittensor blockchain, allowing for detailed
         and specific interactions with the network's runtime environment.
         """
-        call_definition = settings.type_registry["runtime_api"][runtime_api]["methods"][method]
+        call_definition = settings.type_registry["runtime_api"][runtime_api]["methods"][
+            method
+        ]
 
         json_result = self.state_call(
             method=f"{runtime_api}_{method}",

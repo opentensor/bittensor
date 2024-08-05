@@ -217,9 +217,7 @@ def get_explorer_url_for_network(
 
 def ss58_address_to_bytes(ss58_address: str) -> bytes:
     """Converts a ss58 address to a bytes object."""
-    account_id_hex: str = scalecodec.ss58_decode(
-        ss58_address, ss58_format
-    )
+    account_id_hex: str = scalecodec.ss58_decode(ss58_address, ss58_format)
     return bytes.fromhex(account_id_hex)
 
 

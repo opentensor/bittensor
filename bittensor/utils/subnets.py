@@ -28,6 +28,7 @@ from bittensor.utils.btlogging import logging
 
 class SubnetsAPI(ABC):
     """This class is not used within the bittensor package, but is actively used by the community."""
+
     def __init__(self, wallet: "Wallet"):
         self.wallet = wallet
         self.dendrite = Dendrite(wallet=wallet)

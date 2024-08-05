@@ -144,7 +144,7 @@ def test_normalize_with_max_weight():
 
 
 def test_normalize_with_max_weight__legacy_torch_api_compat(
-        force_legacy_torch_compatible_api,
+    force_legacy_torch_compatible_api,
 ):
     weights = torch.rand(1000)
     wn = weight_utils.normalize_max_weight(weights, limit=0.01)
