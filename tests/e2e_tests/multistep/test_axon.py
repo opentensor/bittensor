@@ -12,8 +12,7 @@ from bittensor.commands import (
 from tests.e2e_tests.utils import (
     setup_wallet,
     template_path,
-    repo_name,
-    write_output_log_to_file,
+    templates_repo,
 )
 
 """
@@ -32,12 +31,13 @@ are set correctly, and that the miner is currently running
 
 @pytest.mark.asyncio
 async def test_axon(local_chain):
+    netuid = 1
     # Register root as Alice
     alice_keypair, exec_command, wallet = setup_wallet("//Alice")
     exec_command(RegisterSubnetworkCommand, ["s", "create"])
 
-    # Verify subnet 1 created successfully
-    assert local_chain.query("SubtensorModule", "NetworksAdded", [1]).serialize()
+    # Verify subnet <netuid> created successfully
+    assert local_chain.query("SubtensorModule", "NetworksAdded", [netuid]).serialize()
 
     # Register a neuron to the subnet
     exec_command(
@@ -46,11 +46,11 @@ async def test_axon(local_chain):
             "s",
             "register",
             "--netuid",
-            "1",
+            str(netuid),
         ],
     )
 
-    metagraph = bittensor.metagraph(netuid=1, network="ws://localhost:9945")
+    metagraph = bittensor.metagraph(netuid=netuid, network="ws://localhost:9945")
 
     # validate one miner with ip of none
     old_axon = metagraph.axons[0]
@@ -67,10 +67,10 @@ async def test_axon(local_chain):
     cmd = " ".join(
         [
             f"{sys.executable}",
-            f'"{template_path}{repo_name}/neurons/miner.py"',
+            f'"{template_path}{templates_repo}/neurons/miner.py"',
             "--no_prompt",
             "--netuid",
-            "1",
+            str(netuid),
             "--subtensor.network",
             "local",
             "--subtensor.chain_endpoint",
@@ -90,19 +90,12 @@ async def test_axon(local_chain):
         stderr=asyncio.subprocess.PIPE,
     )
 
-    # record logs of process
-    # Create tasks to read stdout and stderr concurrently
-    # ignore, dont await coroutine, just write logs to file
-    asyncio.create_task(write_output_log_to_file("axon_stdout", axon_process.stdout))
-    # ignore, dont await coroutine, just write logs to file
-    asyncio.create_task(write_output_log_to_file("axon_stderr", axon_process.stderr))
-
     await asyncio.sleep(
         5
     )  # wait for 5 seconds for the metagraph to refresh with latest data
 
     # refresh metagraph
-    metagraph = bittensor.metagraph(netuid=1, network="ws://localhost:9945")
+    metagraph = bittensor.metagraph(netuid=netuid, network="ws://localhost:9945")
     updated_axon = metagraph.axons[0]
     external_ip = networking.get_external_ip()
 

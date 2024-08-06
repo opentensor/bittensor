@@ -1,17 +1,19 @@
-import time
-
-from substrateinterface import SubstrateInterface
-from typing import List
+import logging
+import asyncio
 import os
 import shutil
 import subprocess
 import sys
+import time
+from typing import List
 
-from bittensor import Keypair, logging
+from substrateinterface import SubstrateInterface
+
 import bittensor
+from bittensor import Keypair
 
 template_path = os.getcwd() + "/neurons/"
-repo_name = "templates repository"
+templates_repo = "templates repository"
 
 
 def setup_wallet(uri: str):
@@ -33,6 +35,7 @@ def setup_wallet(uri: str):
             "--wallet.path",
             wallet_path,
         ]
+        logging.info(f'executing command: {command} {" ".join(args)}')
         config = bittensor.config(
             parser=parser,
             args=args,
@@ -122,25 +125,45 @@ def call_add_proposal(substrate: SubstrateInterface, wallet: bittensor.wallet) -
     return response.is_success
 
 
-def wait_epoch(interval, subtensor):
+async def wait_epoch(subtensor, netuid=1):
+    q_tempo = [
+        v.value
+        for [k, v] in subtensor.query_map_subtensor("Tempo")
+        if k.value == netuid
+    ]
+    if len(q_tempo) == 0:
+        raise Exception("could not determine tempo")
+    tempo = q_tempo[0]
+    logging.info(f"tempo = {tempo}")
+    await wait_interval(tempo, subtensor, netuid)
+
+
+async def wait_interval(tempo, subtensor, netuid=1):
+    interval = tempo + 1
     current_block = subtensor.get_current_block()
-    next_tempo_block_start = (current_block - (current_block % interval)) + interval
+    last_epoch = current_block - 1 - (current_block + netuid + 1) % interval
+    next_tempo_block_start = last_epoch + interval
+    last_reported = None
     while current_block < next_tempo_block_start:
-        time.sleep(1)  # Wait for 1 second before checking the block number again
+        await asyncio.sleep(
+            1
+        )  # Wait for 1 second before checking the block number again
         current_block = subtensor.get_current_block()
-        if current_block % 10 == 0:
+        if last_reported is None or current_block - last_reported >= 10:
+            last_reported = current_block
             print(
-                f"Current Block: {current_block}  Next tempo at: {next_tempo_block_start}"
+                f"Current Block: {current_block}  Next tempo for netuid {netuid} at: {next_tempo_block_start}"
             )
             logging.info(
-                f"Current Block: {current_block}  Next tempo at: {next_tempo_block_start}"
+                f"Current Block: {current_block}  Next tempo for netuid {netuid} at: {next_tempo_block_start}"
             )
 
 
 def clone_or_update_templates():
+    specific_commit = None
     install_dir = template_path
     repo_mapping = {
-        repo_name: "https://github.com/opentensor/bittensor-subnet-template.git",
+        templates_repo: "https://github.com/opentensor/bittensor-subnet-template.git",
     }
     os.makedirs(install_dir, exist_ok=True)
     os.chdir(install_dir)
@@ -155,7 +178,16 @@ def clone_or_update_templates():
             subprocess.run(["git", "pull"], check=True)
             os.chdir("..")
 
-    return install_dir + repo_name + "/"
+    # here for pulling specific commit versions of repo
+    if specific_commit:
+        os.chdir(templates_repo)
+        print(
+            f"\033[94mChecking out commit {specific_commit} in {templates_repo}...\033[0m"
+        )
+        subprocess.run(["git", "checkout", specific_commit], check=True)
+        os.chdir("..")
+
+    return install_dir + templates_repo + "/"
 
 
 def install_templates(install_dir):
