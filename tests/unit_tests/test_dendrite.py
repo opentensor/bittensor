@@ -17,24 +17,26 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-# Standard Lib
 import asyncio
 import typing
 from unittest.mock import MagicMock, Mock
 
-# Third Party
 import aiohttp
 import pytest
 
-# Application
-import bittensor
-from bittensor.constants import DENDRITE_ERROR_MAPPING, DENDRITE_DEFAULT_ERROR
-from bittensor.dendrite import dendrite as Dendrite
-from bittensor.synapse import TerminalInfo
+from bittensor.core.axon import Axon
+from bittensor.core.dendrite import (
+    DENDRITE_ERROR_MAPPING,
+    DENDRITE_DEFAULT_ERROR,
+    Dendrite,
+)
+from bittensor.core.synapse import TerminalInfo
 from tests.helpers import _get_mock_wallet
+from bittensor.core.synapse import Synapse
+from bittensor.core.chain_data import AxonInfo
 
 
-class SynapseDummy(bittensor.Synapse):
+class SynapseDummy(Synapse):
     input: int
     output: typing.Optional[int] = None
 
@@ -46,10 +48,9 @@ def dummy(synapse: SynapseDummy) -> SynapseDummy:
 
 @pytest.fixture
 def setup_dendrite():
-    user_wallet = (
-        _get_mock_wallet()
-    )  # assuming bittensor.wallet() returns a wallet object
-    dendrite_obj = bittensor.dendrite(user_wallet)
+    # Assuming bittensor.wallet() returns a wallet object
+    user_wallet = _get_mock_wallet()
+    dendrite_obj = Dendrite(user_wallet)
     return dendrite_obj
 
 
@@ -60,7 +61,7 @@ def dendrite_obj(setup_dendrite):
 
 @pytest.fixture
 def axon_info():
-    return bittensor.AxonInfo(
+    return AxonInfo(
         version=1,
         ip="127.0.0.1",
         port=666,
@@ -72,7 +73,7 @@ def axon_info():
 
 @pytest.fixture(scope="session")
 def setup_axon():
-    axon = bittensor.axon()
+    axon = Axon()
     axon.attach(forward_fn=dummy)
     axon.start()
     yield axon
@@ -81,7 +82,7 @@ def setup_axon():
 
 def test_init(setup_dendrite):
     dendrite_obj = setup_dendrite
-    assert isinstance(dendrite_obj, bittensor.dendrite)
+    assert isinstance(dendrite_obj, Dendrite)
     assert dendrite_obj.keypair == setup_dendrite.keypair
 
 
@@ -127,16 +128,16 @@ class AsyncMock(Mock):
 
 
 def test_dendrite_create_wallet():
-    d = bittensor.dendrite(_get_mock_wallet())
-    d = bittensor.dendrite(_get_mock_wallet().hotkey)
-    d = bittensor.dendrite(_get_mock_wallet().coldkeypub)
+    d = Dendrite(_get_mock_wallet())
+    d = Dendrite(_get_mock_wallet().hotkey)
+    d = Dendrite(_get_mock_wallet().coldkeypub)
     assert d.__str__() == d.__repr__()
 
 
 @pytest.mark.asyncio
 async def test_forward_many():
     n = 10
-    d = bittensor.dendrite(wallet=_get_mock_wallet())
+    d = Dendrite(wallet=_get_mock_wallet())
     d.call = AsyncMock()
     axons = [MagicMock() for _ in range(n)]
 
@@ -152,10 +153,10 @@ async def test_forward_many():
 
 
 def test_pre_process_synapse():
-    d = bittensor.dendrite(wallet=_get_mock_wallet())
-    s = bittensor.Synapse()
+    d = Dendrite(wallet=_get_mock_wallet())
+    s = Synapse()
     synapse = d.preprocess_synapse_for_request(
-        target_axon_info=bittensor.axon(wallet=_get_mock_wallet()).info(),
+        target_axon_info=Axon(wallet=_get_mock_wallet()).info(),
         synapse=s,
         timeout=12,
     )
@@ -296,7 +297,7 @@ def test_terminal_info_error_cases(
 
 @pytest.mark.asyncio
 async def test_dendrite__call__success_response(
-    axon_info, dendrite_obj, mock_aioresponse
+    axon_info, dendrite_obj, mock_aio_response
 ):
     input_synapse = SynapseDummy(input=1)
     expected_synapse = SynapseDummy(
@@ -312,7 +313,7 @@ async def test_dendrite__call__success_response(
             )
         )
     )
-    mock_aioresponse.post(
+    mock_aio_response.post(
         f"http://127.0.0.1:666/SynapseDummy",
         body=expected_synapse.json(),
     )
@@ -327,13 +328,13 @@ async def test_dendrite__call__success_response(
 
 @pytest.mark.asyncio
 async def test_dendrite__call__handles_http_error_response(
-    axon_info, dendrite_obj, mock_aioresponse
+    axon_info, dendrite_obj, mock_aio_response
 ):
     status_code = 414
     message = "Custom Error"
 
-    mock_aioresponse.post(
-        f"http://127.0.0.1:666/SynapseDummy",
+    mock_aio_response.post(
+        "http://127.0.0.1:666/SynapseDummy",
         status=status_code,
         payload={"message": message},
     )

@@ -20,11 +20,11 @@ from unittest.mock import MagicMock, patch
 import pytest
 from bittensor_wallet import Wallet
 
-from bittensor.extrinsics.network import (
+from bittensor.api.extrinsics.network import (
     set_hyperparameter_extrinsic,
     register_subnetwork_extrinsic,
 )
-from bittensor.subtensor import Subtensor
+from bittensor.core.subtensor import Subtensor
 
 
 # Mock the bittensor and related modules to avoid real network calls and wallet operations

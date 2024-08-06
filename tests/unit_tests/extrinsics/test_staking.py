@@ -1,25 +1,43 @@
+# The MIT License (MIT)
+# Copyright © 2024 Opentensor Foundation
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
+# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+# the Software.
+#
+# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
+
 import pytest
 from unittest.mock import patch, MagicMock
-import bittensor
 from bittensor.utils.balance import Balance
-from bittensor.extrinsics.staking import (
+from bittensor.api.extrinsics.staking import (
     add_stake_extrinsic,
     add_stake_multiple_extrinsic,
 )
-from bittensor.errors import NotDelegateError
+from bittensor.core.errors import NotDelegateError
+from bittensor.core.subtensor import Subtensor
+from bittensor_wallet import Wallet
 
 
 # Mocking external dependencies
 @pytest.fixture
 def mock_subtensor():
-    mock = MagicMock(spec=bittensor.subtensor)
+    mock = MagicMock(spec=Subtensor)
     mock.network = "mock_network"
     return mock
 
 
 @pytest.fixture
 def mock_wallet():
-    mock = MagicMock(spec=bittensor.wallet)
+    mock = MagicMock(spec=Wallet)
     mock.hotkey.ss58_address = "5FHneW46..."
     mock.coldkeypub.ss58_address = "5Gv8YYFu8..."
     mock.hotkey_str = "mock_hotkey_str"
@@ -29,7 +47,7 @@ def mock_wallet():
 
 @pytest.fixture
 def mock_other_owner_wallet():
-    mock = MagicMock(spec=bittensor.wallet)
+    mock = MagicMock(spec=Wallet)
     mock.hotkey.ss58_address = "11HneC46..."
     mock.coldkeypub.ss58_address = "6Gv9ZZFu8..."
     mock.hotkey_str = "mock_hotkey_str_other_owner"
@@ -109,9 +127,7 @@ def test_add_stake_extrinsic(
         staking_balance = amount if amount else Balance.from_tao(100)
     else:
         staking_balance = (
-            Balance.from_tao(amount)
-            if not isinstance(amount, bittensor.Balance)
-            else amount
+            Balance.from_tao(amount) if not isinstance(amount, Balance) else amount
         )
 
     with patch.object(
@@ -135,11 +151,11 @@ def test_add_stake_extrinsic(
     ) as mock_confirm, patch.object(
         mock_subtensor,
         "get_minimum_required_stake",
-        return_value=bittensor.Balance.from_tao(0.01),
+        return_value=Balance.from_tao(0.01),
     ), patch.object(
         mock_subtensor,
         "get_existential_deposit",
-        return_value=bittensor.Balance.from_rao(100_000),
+        return_value=Balance.from_rao(100_000),
     ):
         mock_balance = mock_subtensor.get_balance()
         existential_deposit = mock_subtensor.get_existential_deposit()
@@ -447,7 +463,7 @@ def test_add_stake_extrinsic(
             None,
             0,
             TypeError,
-            "amounts must be a [list of bittensor.Balance or float] or None",
+            "amounts must be a [list of Balance or float] or None",
         ),
     ],
     ids=[

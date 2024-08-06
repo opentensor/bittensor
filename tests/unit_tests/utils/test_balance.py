@@ -3,7 +3,7 @@ from hypothesis import given
 from hypothesis import strategies as st
 from typing import Union
 
-from bittensor import Balance
+from bittensor.utils.balance import Balance
 from tests.helpers import CLOSE_IN_VALUE
 
 """

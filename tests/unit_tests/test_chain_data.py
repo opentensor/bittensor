@@ -1,9 +1,25 @@
-import pytest
-import bittensor
-import torch
-from bittensor.chain_data import AxonInfo, ChainDataType, DelegateInfo, NeuronInfo
+# The MIT License (MIT)
+# Copyright © 2024 Opentensor Foundation
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
+# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+# the Software.
+#
+# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
 
-SS58_FORMAT = bittensor.__ss58_format__
+import pytest
+import torch
+
+from bittensor.core.chain_data import AxonInfo, ChainDataType, DelegateInfo, NeuronInfo
+
 RAOPERTAO = 10**18
 
 
@@ -224,7 +240,7 @@ def test_to_parameter_dict(axon_info, test_case):
 def test_to_parameter_dict_torch(
     axon_info,
     test_case,
-    force_legacy_torch_compat_api,
+    force_legacy_torch_compatible_api,
 ):
     result = axon_info.to_parameter_dict()
 
@@ -294,7 +310,7 @@ def test_from_parameter_dict(parameter_dict, expected, test_case):
     ],
 )
 def test_from_parameter_dict_torch(
-    parameter_dict, expected, test_case, force_legacy_torch_compat_api
+    parameter_dict, expected, test_case, force_legacy_torch_compatible_api
 ):
     # Act
     result = AxonInfo.from_parameter_dict(parameter_dict)
@@ -511,13 +527,14 @@ def test_fix_decoded_values_error_cases(
 
 @pytest.fixture
 def mock_from_scale_encoding(mocker):
-    return mocker.patch("bittensor.chain_data.from_scale_encoding")
+    return mocker.patch("bittensor.core.chain_data.from_scale_encoding")
 
 
 @pytest.fixture
 def mock_fix_decoded_values(mocker):
     return mocker.patch(
-        "bittensor.DelegateInfo.fix_decoded_values", side_effect=lambda x: x
+        "bittensor.core.chain_data.DelegateInfo.fix_decoded_values",
+        side_effect=lambda x: x,
     )
 
 

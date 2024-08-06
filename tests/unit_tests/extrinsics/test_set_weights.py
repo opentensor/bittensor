@@ -1,20 +1,22 @@
 import torch
 import pytest
 from unittest.mock import MagicMock, patch
-from bittensor import subtensor, wallet
-from bittensor.extrinsics.set_weights import set_weights_extrinsic
+
+from bittensor.core.subtensor import Subtensor
+from bittensor_wallet import Wallet
+from bittensor.api.extrinsics.set_weights import set_weights_extrinsic
 
 
 @pytest.fixture
 def mock_subtensor():
-    mock = MagicMock(spec=subtensor)
+    mock = MagicMock(spec=Subtensor)
     mock.network = "mock_network"
     return mock
 
 
 @pytest.fixture
 def mock_wallet():
-    mock = MagicMock(spec=wallet)
+    mock = MagicMock(spec=Wallet)
     return mock
 
 

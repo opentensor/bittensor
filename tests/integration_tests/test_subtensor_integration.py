@@ -1,15 +1,14 @@
 # The MIT License (MIT)
-# Copyright © 2021 Yuma Rao
-# Copyright © 2023 Opentensor Technologies Inc
-
+# Copyright © 2024 Opentensor Foundation
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
 # the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
+#
 # The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
-
+#
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
 # THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
@@ -26,7 +25,7 @@ import pytest
 from substrateinterface import Keypair
 
 import bittensor
-from bittensor.mock import MockSubtensor
+from bittensor.utils.mock import MockSubtensor
 from bittensor.utils import weight_utils
 from bittensor.utils.balance import Balance
 from tests.helpers import (
@@ -35,6 +34,7 @@ from tests.helpers import (
     _get_mock_keypair,
     _get_mock_wallet,
 )
+from bittensor.core import settings
 
 
 class TestSubtensor(unittest.TestCase):
@@ -55,7 +55,9 @@ class TestSubtensor(unittest.TestCase):
     def setUpClass(cls) -> None:
         # mock rich console status
         mock_console = MockConsole()
-        cls._mock_console_patcher = patch("bittensor.__console__", mock_console)
+        cls._mock_console_patcher = patch(
+            "bittensor.core.settings.bt_console", mock_console
+        )
         cls._mock_console_patcher.start()
 
         # Keeps the same mock network for all tests. This stops the network from being re-setup for each test.
@@ -79,8 +81,8 @@ class TestSubtensor(unittest.TestCase):
         # Argument importance: chain_endpoint (arg) > network (arg) > config.subtensor.chain_endpoint > config.subtensor.network
         config0 = bittensor.subtensor.config()
         config0.subtensor.network = "finney"
-        config0.subtensor.chain_endpoint = "wss://finney.subtensor.io"  # Should not match bittensor.__finney_entrypoint__
-        assert config0.subtensor.chain_endpoint != bittensor.__finney_entrypoint__
+        config0.subtensor.chain_endpoint = "wss://finney.subtensor.io"  # Should not match bittensor.core.settings.finney_entrypoint
+        assert config0.subtensor.chain_endpoint != settings.finney_entrypoint
 
         config1 = bittensor.subtensor.config()
         config1.subtensor.network = "local"
@@ -94,7 +96,7 @@ class TestSubtensor(unittest.TestCase):
                 sub1 = bittensor.subtensor(config=config1, network="local")
                 self.assertEqual(
                     sub1.chain_endpoint,
-                    bittensor.__local_entrypoint__,
+                    settings.local_entrypoint,
                     msg="Explicit network arg should override config.network",
                 )
 
@@ -102,14 +104,14 @@ class TestSubtensor(unittest.TestCase):
                 sub2 = bittensor.subtensor(config=config0)
                 self.assertNotEqual(
                     sub2.chain_endpoint,
-                    bittensor.__finney_entrypoint__,  # Here we expect the endpoint corresponding to the network "finney"
+                    settings.finney_entrypoint,  # Here we expect the endpoint corresponding to the network "finney"
                     msg="config.network should override config.chain_endpoint",
                 )
 
                 sub3 = bittensor.subtensor(config=config1)
                 # Should pick local instead of finney (default)
                 assert sub3.network == "local"
-                assert sub3.chain_endpoint == bittensor.__local_entrypoint__
+                assert sub3.chain_endpoint == settings.local_entrypoint
 
     def test_get_current_block(self):
         block = self.subtensor.get_current_block()
@@ -710,7 +712,9 @@ class TestSubtensor(unittest.TestCase):
                 )
                 self.subtensor._do_pow_register = MagicMock(return_value=(True, None))
 
-                with patch("bittensor.__console__.status") as mock_set_status:
+                with patch(
+                    "bittensor.core.settings.bt_console.status"
+                ) as mock_set_status:
                     # Need to patch the console status to avoid opening a parallel live display
                     mock_set_status.__enter__ = MagicMock(return_value=True)
                     mock_set_status.__exit__ = MagicMock(return_value=True)
@@ -769,7 +773,7 @@ class TestSubtensor(unittest.TestCase):
         mock_neuron.is_null = True
 
         with patch(
-            "bittensor.extrinsics.registration.create_pow", return_value=None
+            "bittensor.api.extrinsics.registration.create_pow", return_value=None
         ) as mock_create_pow:
             wallet = _get_mock_wallet(
                 hotkey=_get_mock_keypair(0, self.id()),
@@ -821,7 +825,7 @@ class TestSubtensor(unittest.TestCase):
 
         mock_create_pow = MagicMock(return_value=MagicMock(is_stale=mock_is_stale))
 
-        with patch("bittensor.extrinsics.registration.create_pow", mock_create_pow):
+        with patch("bittensor.api.extrinsics.registration.create_pow", mock_create_pow):
             # should create a pow and check if it is stale
             # then should create a new pow and check if it is stale
             # then should enter substrate and exit early because of test
@@ -843,7 +847,7 @@ class TestSubtensor(unittest.TestCase):
     def test_defaults_to_finney(self):
         sub = bittensor.subtensor()
         assert sub.network == "finney"
-        assert sub.chain_endpoint == bittensor.__finney_entrypoint__
+        assert sub.chain_endpoint == settings.finney_entrypoint
 
 
 if __name__ == "__main__":

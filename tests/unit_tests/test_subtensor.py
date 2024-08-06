@@ -1,38 +1,33 @@
 # The MIT License (MIT)
-# Copyright © 2022 Opentensor Foundation
-
+# Copyright © 2024 Opentensor Foundation
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
 # the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
+#
 # The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
-
+#
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
 # THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-# Standard Lib
 import argparse
 import unittest.mock as mock
+from typing import List, Tuple
 from unittest.mock import MagicMock
 
-# 3rd Party
 import pytest
+from bittensor_wallet import Wallet
 
-# Application
-import bittensor
-from bittensor.subtensor import (
-    Subtensor,
-    _logger,
-    Balance,
-)
-from bittensor.chain_data import SubnetHyperparameters
-from bittensor.commands.utils import normalize_hyperparameters
-from bittensor import subtensor_module
+from bittensor.core import subtensor as subtensor_module, settings
+from bittensor.core.axon import Axon
+from bittensor.core.chain_data import SubnetHyperparameters
+from bittensor.core.subtensor import Subtensor, logging
+from bittensor.utils import U16_NORMALIZED_FLOAT, U64_NORMALIZED_FLOAT
 from bittensor.utils.balance import Balance
 
 U16_MAX = 65535
@@ -45,11 +40,11 @@ def test_serve_axon_with_external_ip_set():
 
     mock_serve_axon = MagicMock(return_value=True)
 
-    mock_subtensor = MagicMock(spec=bittensor.subtensor, serve_axon=mock_serve_axon)
+    mock_subtensor = MagicMock(spec=Subtensor, serve_axon=mock_serve_axon)
 
     mock_add_insecure_port = mock.MagicMock(return_value=None)
     mock_wallet = MagicMock(
-        spec=bittensor.wallet,
+        spec=Wallet,
         coldkey=MagicMock(),
         coldkeypub=MagicMock(
             # mock ss58 address
@@ -60,8 +55,8 @@ def test_serve_axon_with_external_ip_set():
         ),
     )
 
-    mock_config = bittensor.axon.config()
-    mock_axon_with_external_ip_set = bittensor.axon(
+    mock_config = Axon.config()
+    mock_axon_with_external_ip_set = Axon(
         wallet=mock_wallet,
         ip=internal_ip,
         external_ip=external_ip,
@@ -92,13 +87,13 @@ def test_serve_axon_with_external_port_set():
     mock_serve_axon = MagicMock(return_value=True)
 
     mock_subtensor = MagicMock(
-        spec=bittensor.subtensor,
+        spec=Subtensor,
         serve=mock_serve,
         serve_axon=mock_serve_axon,
     )
 
     mock_wallet = MagicMock(
-        spec=bittensor.wallet,
+        spec=Wallet,
         coldkey=MagicMock(),
         coldkeypub=MagicMock(
             # mock ss58 address
@@ -109,9 +104,9 @@ def test_serve_axon_with_external_port_set():
         ),
     )
 
-    mock_config = bittensor.axon.config()
+    mock_config = Axon.config()
 
-    mock_axon_with_external_port_set = bittensor.axon(
+    mock_axon_with_external_port_set = Axon(
         wallet=mock_wallet,
         port=internal_port,
         external_port=external_port,
@@ -141,10 +136,10 @@ class ExitEarly(Exception):
 
 
 def test_stake_multiple():
-    mock_amount: bittensor.Balance = bittensor.Balance.from_tao(1.0)
+    mock_amount: Balance = Balance.from_tao(1.0)
 
     mock_wallet = MagicMock(
-        spec=bittensor.wallet,
+        spec=Wallet,
         coldkey=MagicMock(),
         coldkeypub=MagicMock(
             # mock ss58 address
@@ -166,17 +161,17 @@ def test_stake_multiple():
     mock_do_stake = MagicMock(side_effect=ExitEarly)
 
     mock_subtensor = MagicMock(
-        spec=bittensor.subtensor,
+        spec=Subtensor,
         network="mock_net",
         get_balance=MagicMock(
-            return_value=bittensor.Balance.from_tao(mock_amount.tao + 20.0)
+            return_value=Balance.from_tao(mock_amount.tao + 20.0)
         ),  # enough balance to stake
         get_neuron_for_pubkey_and_subnet=MagicMock(return_value=mock_neuron),
         _do_stake=mock_do_stake,
     )
 
     with pytest.raises(ExitEarly):
-        bittensor.subtensor.add_stake_multiple(
+        Subtensor.add_stake_multiple(
             mock_subtensor,
             wallet=mock_wallet,
             hotkey_ss58s=mock_hotkey_ss58s,
@@ -230,40 +225,40 @@ def test_argument_error_handling(monkeypatch, parser):
     "network, expected_network, expected_endpoint",
     [
         # Happy path tests
-        ("finney", "finney", bittensor.__finney_entrypoint__),
-        ("local", "local", bittensor.__local_entrypoint__),
-        ("test", "test", bittensor.__finney_test_entrypoint__),
-        ("archive", "archive", bittensor.__archive_entrypoint__),
+        ("finney", "finney", settings.finney_entrypoint),
+        ("local", "local", settings.local_entrypoint),
+        ("test", "test", settings.finney_test_entrypoint),
+        ("archive", "archive", settings.archive_entrypoint),
         # Endpoint override tests
         (
-            bittensor.__finney_entrypoint__,
+            settings.finney_entrypoint,
             "finney",
-            bittensor.__finney_entrypoint__,
+            settings.finney_entrypoint,
         ),
         (
             "entrypoint-finney.opentensor.ai",
             "finney",
-            bittensor.__finney_entrypoint__,
+            settings.finney_entrypoint,
         ),
         (
-            bittensor.__finney_test_entrypoint__,
+            settings.finney_test_entrypoint,
             "test",
-            bittensor.__finney_test_entrypoint__,
+            settings.finney_test_entrypoint,
         ),
         (
             "test.finney.opentensor.ai",
             "test",
-            bittensor.__finney_test_entrypoint__,
+            settings.finney_test_entrypoint,
         ),
         (
-            bittensor.__archive_entrypoint__,
+            settings.archive_entrypoint,
             "archive",
-            bittensor.__archive_entrypoint__,
+            settings.archive_entrypoint,
         ),
         (
             "archive.chain.opentensor.ai",
             "archive",
-            bittensor.__archive_entrypoint__,
+            settings.archive_entrypoint,
         ),
         ("127.0.0.1", "local", "127.0.0.1"),
         ("localhost", "local", "localhost"),
@@ -296,37 +291,13 @@ def substrate():
 
 @pytest.fixture
 def subtensor(substrate):
-    mock.patch.object(
-        subtensor_module,
-        "get_subtensor_errors",
-        return_value={
-            "1": ("ErrorOne", "Description one"),
-            "2": ("ErrorTwo", "Description two"),
-        },
-    ).start()
     return Subtensor()
-
-
-def test_get_error_info_by_index_known_error(subtensor):
-    name, description = subtensor.get_error_info_by_index(1)
-    assert name == "ErrorOne"
-    assert description == "Description one"
 
 
 @pytest.fixture
 def mock_logger():
-    with mock.patch.object(_logger, "warning") as mock_warning:
+    with mock.patch.object(logging, "warning") as mock_warning:
         yield mock_warning
-
-
-def test_get_error_info_by_index_unknown_error(subtensor, mock_logger):
-    fake_index = 999
-    name, description = subtensor.get_error_info_by_index(fake_index)
-    assert name == "Unknown Error"
-    assert description == ""
-    mock_logger.assert_called_once_with(
-        f"Subtensor returned an error with an unknown index: {fake_index}"
-    )
 
 
 # Subtensor()._get_hyperparameter tests
@@ -491,6 +462,52 @@ def sample_hyperparameters():
     return MagicMock(spec=SubnetHyperparameters)
 
 
+def normalize_hyperparameters(
+    subnet: "SubnetHyperparameters",
+) -> List[Tuple[str, str, str]]:
+    """
+    Normalizes the hyperparameters of a subnet.
+
+    Args:
+        subnet: The subnet hyperparameters object.
+
+    Returns:
+        A list of tuples containing the parameter name, value, and normalized value.
+    """
+    param_mappings = {
+        "adjustment_alpha": U64_NORMALIZED_FLOAT,
+        "min_difficulty": U64_NORMALIZED_FLOAT,
+        "max_difficulty": U64_NORMALIZED_FLOAT,
+        "difficulty": U64_NORMALIZED_FLOAT,
+        "bonds_moving_avg": U64_NORMALIZED_FLOAT,
+        "max_weight_limit": U16_NORMALIZED_FLOAT,
+        "kappa": U16_NORMALIZED_FLOAT,
+        "alpha_high": U16_NORMALIZED_FLOAT,
+        "alpha_low": U16_NORMALIZED_FLOAT,
+        "min_burn": Balance.from_rao,
+        "max_burn": Balance.from_rao,
+    }
+
+    normalized_values: List[Tuple[str, str, str]] = []
+    subnet_dict = subnet.__dict__
+
+    for param, value in subnet_dict.items():
+        try:
+            if param in param_mappings:
+                norm_value = param_mappings[param](value)
+                if isinstance(norm_value, float):
+                    norm_value = f"{norm_value:.{10}g}"
+            else:
+                norm_value = value
+        except Exception as e:
+            logging.warning(f"Error normalizing parameter '{param}': {e}")
+            norm_value = "-"
+
+        normalized_values.append((param, str(value), str(norm_value)))
+
+    return normalized_values
+
+
 def get_normalized_value(normalized_data, param_name):
     return next(
         (
@@ -534,7 +551,7 @@ def test_hyperparameter_normalization(
 
     # Mid-value test
     if is_balance:
-        numeric_value = float(str(norm_value).lstrip(bittensor.__tao_symbol__))
+        numeric_value = float(str(norm_value).lstrip(settings.tao_symbol))
         expected_tao = mid_value / 1e9
         assert (
             numeric_value == expected_tao
@@ -548,7 +565,7 @@ def test_hyperparameter_normalization(
     norm_value = get_normalized_value(normalized, param_name)
 
     if is_balance:
-        numeric_value = float(str(norm_value).lstrip(bittensor.__tao_symbol__))
+        numeric_value = float(str(norm_value).lstrip(settings.tao_symbol))
         expected_tao = max_value / 1e9
         assert (
             numeric_value == expected_tao
@@ -562,7 +579,7 @@ def test_hyperparameter_normalization(
     norm_value = get_normalized_value(normalized, param_name)
 
     if is_balance:
-        numeric_value = float(str(norm_value).lstrip(bittensor.__tao_symbol__))
+        numeric_value = float(str(norm_value).lstrip(settings.tao_symbol))
         expected_tao = zero_value / 1e9
         assert (
             numeric_value == expected_tao

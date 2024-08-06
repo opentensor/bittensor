@@ -20,21 +20,21 @@ from unittest.mock import MagicMock, patch
 import pytest
 from bittensor_wallet import Wallet
 
-import bittensor
-from bittensor.extrinsics.prometheus import prometheus_extrinsic
-from bittensor.subtensor import Subtensor
+from bittensor.api.extrinsics.prometheus import prometheus_extrinsic
+from bittensor.core.subtensor import Subtensor
+from bittensor.core.settings import version_as_int
 
 
 # Mocking the bittensor and networking modules
 @pytest.fixture
 def mock_bittensor():
-    with patch("bittensor.subtensor") as mock:
+    with patch("bittensor.core.subtensor.Subtensor") as mock:
         yield mock
 
 
 @pytest.fixture
 def mock_wallet():
-    with patch("bittensor.wallet") as mock:
+    with patch("bittensor_wallet.Wallet") as mock:
         yield mock
 
 
@@ -74,7 +74,7 @@ def test_prometheus_extrinsic_happy_path(
     mock_net.ip_version.return_value = 4
     neuron = MagicMock()
     neuron.is_null = False
-    neuron.prometheus_info.version = bittensor.__version_as_int__
+    neuron.prometheus_info.version = version_as_int
     neuron.prometheus_info.ip = 3232235521
     neuron.prometheus_info.port = port
     neuron.prometheus_info.ip_type = 4
