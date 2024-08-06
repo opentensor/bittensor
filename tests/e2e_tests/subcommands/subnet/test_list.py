@@ -17,13 +17,14 @@ def test_list_command(local_chain, capsys):
     # Register root as Alice
     keypair, exec_command, wallet = setup_wallet("//Alice")
 
-    subtensor = bittensor.subtensor(network="ws://localhost:9945")
+    netuids = [0, 3]
 
-    subnets = subtensor.get_subnets()
-
-    assert len(subnets) == 2
+    assert local_chain.query("SubtensorModule", "NetworksAdded", netuids).serialize()
 
     exec_command(RegisterSubnetworkCommand, ["s", "create"])
+
+    netuids.append(1)
+    netuids.sort()
+
     # Verify subnet 1 created successfully
-    subnets = subtensor.get_subnets()
-    assert len(subnets) == 3
+    assert local_chain.query("SubtensorModule", "NetworksAdded", netuids).serialize()
