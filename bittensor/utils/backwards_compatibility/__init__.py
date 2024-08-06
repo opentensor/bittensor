@@ -145,10 +145,12 @@ __local_entrypoint__ = settings.LOCAL_ENTRYPOINT
 __tao_symbol__ = settings.TAO_SYMBOL
 __rao_symbol__ = settings.RAO_SYMBOL
 
-# Makes the `bittensor.api.extrinsics` subpackage available as `bittensor.extrinsics` for backwards compatibility.
-extrinsics = importlib.import_module("bittensor.api.extrinsics")
-sys.modules["bittensor.extrinsics"] = extrinsics
-
 # Makes the `bittensor.utils.mock` subpackage available as `bittensor.mock` for backwards compatibility.
-extrinsics = importlib.import_module("bittensor.utils.mock")
-sys.modules["bittensor.mock"] = extrinsics
+mock_subpackage = importlib.import_module("bittensor.utils.mock")
+sys.modules["bittensor.mock"] = mock_subpackage
+
+# Makes the `bittensor.utils.backwards_compatibility.extrinsics` subpackage available as `bittensor.extrinsics` for backwards compatibility.
+extrinsics_subpackage = importlib.import_module(
+    "bittensor.utils.backwards_compatibility.extrinsics"
+)
+sys.modules["bittensor.extrinsics"] = extrinsics_subpackage
