@@ -43,7 +43,7 @@ class config(DefaultMunch):
 
     __is_set: Dict[str, bool]
 
-    r""" Translates the passed parser into a nested Bittensor config.
+    """ Translates the passed parser into a nested Bittensor config.
 
         Args:
             parser (argparse.ArgumentParser):
@@ -55,6 +55,7 @@ class config(DefaultMunch):
             default (Optional[Any]):
                 Default value for the Config. Defaults to ``None``.
                 This default will be returned for attributes that are undefined.
+                
         Returns:
             config (bittensor.config):
                 Nested config object created from parser arguments.
@@ -71,8 +72,8 @@ class config(DefaultMunch):
 
         self["__is_set"] = {}
 
-        if parser == None:
-            return None
+        if parser is None:
+            return
 
         # Optionally add config specific arguments
         try:
@@ -120,7 +121,7 @@ class config(DefaultMunch):
             pass
 
         # Get args from argv if not passed in.
-        if args == None:
+        if args is None:
             args = sys.argv[1:]
 
         # Check for missing required arguments before proceeding
@@ -145,10 +146,10 @@ class config(DefaultMunch):
         config_params = config.__parse_args__(args=args, parser=parser, strict=False)
 
         # 2. Optionally check for --strict
-        ## strict=True when passed in OR when --strict is set
+        # strict=True when passed in OR when --strict is set
         strict = config_params.strict or strict
 
-        if config_file_path != None:
+        if config_file_path is not None:
             config_file_path = os.path.expanduser(config_file_path)
             try:
                 with open(config_file_path) as f:
@@ -169,36 +170,36 @@ class config(DefaultMunch):
         # Make the is_set map
         _config["__is_set"] = {}
 
-        ## Reparse args using default of unset
+        # Reparse args using default of unset
         parser_no_defaults = copy.deepcopy(parser)
 
         # Only command as the arg, else no args
         default_param_args = (
             [_config.get("command")]
-            if _config.get("command") != None and _config.get("subcommand") == None
+            if _config.get("command") is not None and _config.get("subcommand") is None
             else []
         )
-        if _config.get("command") != None and _config.get("subcommand") != None:
+        if _config.get("command") is not None and _config.get("subcommand") is not None:
             default_param_args = [_config.get("command"), _config.get("subcommand")]
 
-        ## Get all args by name
+        # Get all args by name
         default_params = parser.parse_args(args=default_param_args)
 
         all_default_args = default_params.__dict__.keys() | []
-        ## Make a dict with keys as args and values as argparse.SUPPRESS
+        # Make a dict with keys as args and values as argparse.SUPPRESS
         defaults_as_suppress = {key: argparse.SUPPRESS for key in all_default_args}
-        ## Set the defaults to argparse.SUPPRESS, should remove them from the namespace
+        # Set the defaults to argparse.SUPPRESS, should remove them from the namespace
         parser_no_defaults.set_defaults(**defaults_as_suppress)
         parser_no_defaults._defaults.clear()  # Needed for quirk of argparse
 
-        ### Check for subparsers and do the same
-        if parser_no_defaults._subparsers != None:
+        # Check for subparsers and do the same
+        if parser_no_defaults._subparsers is not None:
             for action in parser_no_defaults._subparsers._actions:
                 # Should only be the "command" subparser action
                 if isinstance(action, argparse._SubParsersAction):
                     # Set the defaults to argparse.SUPPRESS, should remove them from the namespace
                     # Each choice is the keyword for a command, we need to set the defaults for each of these
-                    ## Note: we also need to clear the _defaults dict for each, this is a quirk of argparse
+                    # Note: we also need to clear the _defaults dict for each, this is a quirk of argparse
                     cmd_parser: argparse.ArgumentParser
                     for cmd_parser in action.choices.values():
                         # If this choice is also a subparser, set defaults recursively
@@ -264,6 +265,7 @@ class config(DefaultMunch):
                 Command line parser object.
             strict (bool):
                 If ``true``, the command line arguments are strictly parsed.
+
         Returns:
             Namespace:
                 Namespace object created from parser arguments.
@@ -331,7 +333,8 @@ class config(DefaultMunch):
 
     @classmethod
     def _merge(cls, a, b):
-        """Merge two configurations recursively.
+        """
+        Merge two configurations recursively.
         If there is a conflict, the value from the second configuration will take precedence.
         """
         for key in b:
@@ -403,15 +406,11 @@ T = TypeVar("T", bound="DefaultConfig")
 
 
 class DefaultConfig(config):
-    """
-    A Config with a set of default values.
-    """
+    """A Config with a set of default values."""
 
     @classmethod
     def default(cls: Type[T]) -> T:
-        """
-        Get default config.
-        """
+        """Get default config."""
         raise NotImplementedError("Function default is not implemented.")
 
 

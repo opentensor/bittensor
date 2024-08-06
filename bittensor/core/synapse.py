@@ -79,7 +79,7 @@ def cast_int(raw: str) -> int:
         int or None: The converted integer, or ``None`` if the input was ``None``.
 
     """
-    return int(raw) if raw is not None else raw  # type: ignore
+    return int(raw) if raw is not None else raw
 
 
 def cast_float(raw: str) -> float:
@@ -95,7 +95,7 @@ def cast_float(raw: str) -> float:
         float or None: The converted float, or ``None`` if the input was ``None``.
 
     """
-    return float(raw) if raw is not None else raw  # type: ignore
+    return float(raw) if raw is not None else raw
 
 
 class TerminalInfo(BaseModel):

@@ -15,11 +15,9 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from abc import abstractclassmethod
 from collections.abc import Mapping
 from dataclasses import dataclass
 from hashlib import sha256
-from random import randint
 from types import SimpleNamespace
 from typing import Any, Dict, List, Optional, Tuple, Union
 from typing import TypedDict
@@ -31,15 +29,12 @@ from bittensor.core.chain_data import (
     NeuronInfo,
     NeuronInfoLite,
     PrometheusInfo,
-    DelegateInfo,
-    SubnetInfo,
     AxonInfo,
 )
-from bittensor.core.subtensor import Subtensor
 from bittensor.core.errors import ChainQueryError
-from bittensor.utils import RAOPERTAO, U16_NORMALIZED_FLOAT
+from bittensor.core.subtensor import Subtensor
+from bittensor.utils import RAOPERTAO, u16_normalized_float
 from bittensor.utils.balance import Balance
-from bittensor.utils.registration import POWSolution
 
 # Mock Testing Constant
 __GLOBAL_MOCK_STATE__ = {}
@@ -69,7 +64,7 @@ BlockNumber = int
 
 
 class InfoDict(Mapping):
-    @abstractclassmethod
+    @classmethod
     def default(cls):
         raise NotImplementedError
 
@@ -276,6 +271,7 @@ class MockSubtensor(Subtensor):
             self.substrate = MagicMock()
 
     def __init__(self, *args, **kwargs) -> None:
+        super().__init__()
         self.__dict__ = __GLOBAL_MOCK_STATE__
 
         if not hasattr(self, "chain_state") or getattr(self, "chain_state") is None:
@@ -376,104 +372,6 @@ class MockSubtensor(Subtensor):
 
         subtensor_state["Difficulty"][netuid][self.block_number] = difficulty
 
-    def _register_neuron(self, netuid: int, hotkey: str, coldkey: str) -> int:
-        subtensor_state = self.chain_state["SubtensorModule"]
-        if netuid not in subtensor_state["NetworksAdded"]:
-            raise Exception("Subnet does not exist")
-
-        subnetwork_n = self._get_most_recent_storage(
-            subtensor_state["SubnetworkN"][netuid]
-        )
-
-        if subnetwork_n > 0 and any(
-            self._get_most_recent_storage(subtensor_state["Keys"][netuid][uid])
-            == hotkey
-            for uid in range(subnetwork_n)
-        ):
-            # already_registered
-            raise Exception("Hotkey already registered")
-        else:
-            # Not found
-            if subnetwork_n >= self._get_most_recent_storage(
-                subtensor_state["MaxAllowedUids"][netuid]
-            ):
-                # Subnet full, replace neuron randomly
-                uid = randint(0, subnetwork_n - 1)
-            else:
-                # Subnet not full, add new neuron
-                # Append as next uid and increment subnetwork_n
-                uid = subnetwork_n
-                subtensor_state["SubnetworkN"][netuid][self.block_number] = (
-                    subnetwork_n + 1
-                )
-
-            subtensor_state["Stake"][hotkey] = {}
-            subtensor_state["Stake"][hotkey][coldkey] = {}
-            subtensor_state["Stake"][hotkey][coldkey][self.block_number] = 0
-
-            subtensor_state["Uids"][netuid][hotkey] = {}
-            subtensor_state["Uids"][netuid][hotkey][self.block_number] = uid
-
-            subtensor_state["Keys"][netuid][uid] = {}
-            subtensor_state["Keys"][netuid][uid][self.block_number] = hotkey
-
-            subtensor_state["Owner"][hotkey] = {}
-            subtensor_state["Owner"][hotkey][self.block_number] = coldkey
-
-            subtensor_state["Active"][netuid][uid] = {}
-            subtensor_state["Active"][netuid][uid][self.block_number] = True
-
-            subtensor_state["LastUpdate"][netuid][uid] = {}
-            subtensor_state["LastUpdate"][netuid][uid][self.block_number] = (
-                self.block_number
-            )
-
-            subtensor_state["Rank"][netuid][uid] = {}
-            subtensor_state["Rank"][netuid][uid][self.block_number] = 0.0
-
-            subtensor_state["Emission"][netuid][uid] = {}
-            subtensor_state["Emission"][netuid][uid][self.block_number] = 0.0
-
-            subtensor_state["Incentive"][netuid][uid] = {}
-            subtensor_state["Incentive"][netuid][uid][self.block_number] = 0.0
-
-            subtensor_state["Consensus"][netuid][uid] = {}
-            subtensor_state["Consensus"][netuid][uid][self.block_number] = 0.0
-
-            subtensor_state["Trust"][netuid][uid] = {}
-            subtensor_state["Trust"][netuid][uid][self.block_number] = 0.0
-
-            subtensor_state["ValidatorTrust"][netuid][uid] = {}
-            subtensor_state["ValidatorTrust"][netuid][uid][self.block_number] = 0.0
-
-            subtensor_state["Dividends"][netuid][uid] = {}
-            subtensor_state["Dividends"][netuid][uid][self.block_number] = 0.0
-
-            subtensor_state["PruningScores"][netuid][uid] = {}
-            subtensor_state["PruningScores"][netuid][uid][self.block_number] = 0.0
-
-            subtensor_state["ValidatorPermit"][netuid][uid] = {}
-            subtensor_state["ValidatorPermit"][netuid][uid][self.block_number] = False
-
-            subtensor_state["Weights"][netuid][uid] = {}
-            subtensor_state["Weights"][netuid][uid][self.block_number] = []
-
-            subtensor_state["Bonds"][netuid][uid] = {}
-            subtensor_state["Bonds"][netuid][uid][self.block_number] = []
-
-            subtensor_state["Axons"][netuid][hotkey] = {}
-            subtensor_state["Axons"][netuid][hotkey][self.block_number] = {}
-
-            subtensor_state["Prometheus"][netuid][hotkey] = {}
-            subtensor_state["Prometheus"][netuid][hotkey][self.block_number] = {}
-
-            if hotkey not in subtensor_state["IsNetworkMember"]:
-                subtensor_state["IsNetworkMember"][hotkey] = {}
-            subtensor_state["IsNetworkMember"][hotkey][netuid] = {}
-            subtensor_state["IsNetworkMember"][hotkey][netuid][self.block_number] = True
-
-            return uid
-
     @staticmethod
     def _convert_to_balance(balance: Union["Balance", float, int]) -> "Balance":
         if isinstance(balance, float):
@@ -483,37 +381,6 @@ class MockSubtensor(Subtensor):
             balance = Balance.from_rao(balance)
 
         return balance
-
-    def force_register_neuron(
-        self,
-        netuid: int,
-        hotkey: str,
-        coldkey: str,
-        stake: Union["Balance", float, int] = Balance(0),
-        balance: Union["Balance", float, int] = Balance(0),
-    ) -> int:
-        """
-        Force register a neuron on the mock chain, returning the UID.
-        """
-        stake = self._convert_to_balance(stake)
-        balance = self._convert_to_balance(balance)
-
-        subtensor_state = self.chain_state["SubtensorModule"]
-        if netuid not in subtensor_state["NetworksAdded"]:
-            raise Exception("Subnet does not exist")
-
-        uid = self._register_neuron(netuid=netuid, hotkey=hotkey, coldkey=coldkey)
-
-        subtensor_state["TotalStake"][self.block_number] = (
-            self._get_most_recent_storage(subtensor_state["TotalStake"]) + stake.rao
-        )
-        subtensor_state["Stake"][hotkey][coldkey][self.block_number] = stake.rao
-
-        if balance.rao > 0:
-            self.force_set_balance(coldkey, balance)
-        self.force_set_balance(coldkey, balance)
-
-        return uid
 
     def force_set_balance(
         self, ss58_address: str, balance: Union["Balance", float, int] = Balance(0)
@@ -737,13 +604,6 @@ class MockSubtensor(Subtensor):
         else:
             return Balance(0)
 
-    def get_balances(self, block: int = None) -> Dict[str, "Balance"]:
-        balances = {}
-        for address in self.chain_state["System"]["Account"]:
-            balances[address] = self.get_balance(address, block)
-
-        return balances
-
     # ==== Neuron RPC methods ====
 
     def neuron_for_uid(
@@ -915,13 +775,13 @@ class MockSubtensor(Subtensor):
 
         weights = [[int(weight[0]), int(weight[1])] for weight in weights]
         bonds = [[int(bond[0]), int(bond[1])] for bond in bonds]
-        rank = U16_NORMALIZED_FLOAT(rank)
+        rank = u16_normalized_float(rank)
         emission = emission / RAOPERTAO
-        incentive = U16_NORMALIZED_FLOAT(incentive)
-        consensus = U16_NORMALIZED_FLOAT(consensus)
-        trust = U16_NORMALIZED_FLOAT(trust)
-        validator_trust = U16_NORMALIZED_FLOAT(validator_trust)
-        dividends = U16_NORMALIZED_FLOAT(dividends)
+        incentive = u16_normalized_float(incentive)
+        consensus = u16_normalized_float(consensus)
+        trust = u16_normalized_float(trust)
+        validator_trust = u16_normalized_float(validator_trust)
+        dividends = u16_normalized_float(dividends)
         prometheus_info = PrometheusInfo.fix_decoded_values(prometheus_info)
         axon_info_ = AxonInfo.from_neuron_info(
             {"hotkey": hotkey, "coldkey": coldkey, "axon_info": axon_info_}
@@ -955,32 +815,6 @@ class MockSubtensor(Subtensor):
 
         return neuron_info
 
-    def neuron_for_uid_lite(
-        self, uid: int, netuid: int, block: Optional[int] = None
-    ) -> Optional[NeuronInfoLite]:
-        if block:
-            if self.block_number < block:
-                raise Exception("Cannot query block in the future")
-
-        else:
-            block = self.block_number
-
-        if netuid not in self.chain_state["SubtensorModule"]["NetworksAdded"]:
-            raise Exception("Subnet does not exist")
-
-        neuron_info = self._neuron_subnet_exists(uid, netuid, block)
-        if neuron_info is None:
-            return None
-
-        else:
-            neuron_info_dict = neuron_info.__dict__
-            del neuron_info
-            del neuron_info_dict["weights"]
-            del neuron_info_dict["bonds"]
-
-            neuron_info_lite = NeuronInfoLite(**neuron_info_dict)
-            return neuron_info_lite
-
     def neurons_lite(
         self, netuid: int, block: Optional[int] = None
     ) -> List[NeuronInfoLite]:
@@ -998,78 +832,12 @@ class MockSubtensor(Subtensor):
 
         return neurons
 
-    # Extrinsics
-    def _do_delegation(
-        self,
-        wallet: "Wallet",
-        delegate_ss58: str,
-        amount: "Balance",
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = False,
-    ) -> bool:
-        # Check if delegate
-        if not self.is_hotkey_delegate(hotkey_ss58=delegate_ss58):
-            raise Exception("Not a delegate")
-
-        # do stake
-        success = self._do_stake(
-            wallet=wallet,
-            hotkey_ss58=delegate_ss58,
-            amount=amount,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-        )
-
-        return success
-
-    def _do_undelegation(
-        self,
-        wallet: "Wallet",
-        delegate_ss58: str,
-        amount: "Balance",
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = False,
-    ) -> bool:
-        # Check if delegate
-        if not self.is_hotkey_delegate(hotkey_ss58=delegate_ss58):
-            raise Exception("Not a delegate")
-
-        # do unstake
-        self._do_unstake(
-            wallet=wallet,
-            hotkey_ss58=delegate_ss58,
-            amount=amount,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-        )
-
-    def _do_nominate(
-        self,
-        wallet: "Wallet",
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = False,
-    ) -> bool:
-        hotkey_ss58 = wallet.hotkey.ss58_address
-        coldkey_ss58 = wallet.coldkeypub.ss58_address
-
-        subtensor_state = self.chain_state["SubtensorModule"]
-        if self.is_hotkey_delegate(hotkey_ss58=hotkey_ss58):
-            return True
-
-        else:
-            subtensor_state["Delegates"][hotkey_ss58] = {}
-            subtensor_state["Delegates"][hotkey_ss58][self.block_number] = (
-                0.18  # Constant for now
-            )
-
-            return True
-
     def get_transfer_fee(
         self, wallet: "Wallet", dest: str, value: Union["Balance", float, int]
     ) -> "Balance":
         return Balance(700)
 
-    def _do_transfer(
+    def do_transfer(
         self,
         wallet: "Wallet",
         dest: str,
@@ -1101,204 +869,6 @@ class MockSubtensor(Subtensor):
 
         return True, None, None
 
-    def _do_pow_register(
-        self,
-        netuid: int,
-        wallet: "Wallet",
-        pow_result: "POWSolution",
-        wait_for_inclusion: bool = False,
-        wait_for_finalization: bool = True,
-    ) -> Tuple[bool, Optional[str]]:
-        # Assume pow result is valid
-
-        subtensor_state = self.chain_state["SubtensorModule"]
-        if netuid not in subtensor_state["NetworksAdded"]:
-            raise Exception("Subnet does not exist")
-
-        self._register_neuron(
-            netuid=netuid,
-            hotkey=wallet.hotkey.ss58_address,
-            coldkey=wallet.coldkeypub.ss58_address,
-        )
-
-        return True, None
-
-    def _do_burned_register(
-        self,
-        netuid: int,
-        wallet: "Wallet",
-        wait_for_inclusion: bool = False,
-        wait_for_finalization: bool = True,
-    ) -> Tuple[bool, Optional[str]]:
-        subtensor_state = self.chain_state["SubtensorModule"]
-        if netuid not in subtensor_state["NetworksAdded"]:
-            raise Exception("Subnet does not exist")
-
-        bal = self.get_balance(wallet.coldkeypub.ss58_address)
-        burn = self.recycle(netuid=netuid)
-        existential_deposit = self.get_existential_deposit()
-
-        if bal < burn + existential_deposit:
-            raise Exception("Insufficient funds")
-
-        self._register_neuron(
-            netuid=netuid,
-            hotkey=wallet.hotkey.ss58_address,
-            coldkey=wallet.coldkeypub.ss58_address,
-        )
-
-        # Burn the funds
-        self.chain_state["System"]["Account"][wallet.coldkeypub.ss58_address]["data"][
-            "free"
-        ][self.block_number] = (bal - burn).rao
-
-        return True, None
-
-    def _do_stake(
-        self,
-        wallet: "Wallet",
-        hotkey_ss58: str,
-        amount: "Balance",
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = False,
-    ) -> bool:
-        subtensor_state = self.chain_state["SubtensorModule"]
-
-        bal = self.get_balance(wallet.coldkeypub.ss58_address)
-        curr_stake = self.get_stake_for_coldkey_and_hotkey(
-            hotkey_ss58=hotkey_ss58, coldkey_ss58=wallet.coldkeypub.ss58_address
-        )
-        if curr_stake is None:
-            curr_stake = Balance(0)
-        existential_deposit = self.get_existential_deposit()
-
-        if bal < amount + existential_deposit:
-            raise Exception("Insufficient funds")
-
-        stake_state = subtensor_state["Stake"]
-
-        # Stake the funds
-        if not hotkey_ss58 in stake_state:
-            stake_state[hotkey_ss58] = {}
-        if not wallet.coldkeypub.ss58_address in stake_state[hotkey_ss58]:
-            stake_state[hotkey_ss58][wallet.coldkeypub.ss58_address] = {}
-
-        stake_state[hotkey_ss58][wallet.coldkeypub.ss58_address][self.block_number] = (
-            amount.rao
-        )
-
-        # Add to total_stake storage
-        subtensor_state["TotalStake"][self.block_number] = (
-            self._get_most_recent_storage(subtensor_state["TotalStake"]) + amount.rao
-        )
-
-        total_hotkey_stake_state = subtensor_state["TotalHotkeyStake"]
-        if not hotkey_ss58 in total_hotkey_stake_state:
-            total_hotkey_stake_state[hotkey_ss58] = {}
-
-        total_coldkey_stake_state = subtensor_state["TotalColdkeyStake"]
-        if not wallet.coldkeypub.ss58_address in total_coldkey_stake_state:
-            total_coldkey_stake_state[wallet.coldkeypub.ss58_address] = {}
-
-        curr_total_hotkey_stake = self.query_subtensor(
-            name="TotalHotkeyStake",
-            params=[hotkey_ss58],
-            block=min(self.block_number - 1, 0),
-        )
-        curr_total_coldkey_stake = self.query_subtensor(
-            name="TotalColdkeyStake",
-            params=[wallet.coldkeypub.ss58_address],
-            block=min(self.block_number - 1, 0),
-        )
-
-        total_hotkey_stake_state[hotkey_ss58][self.block_number] = (
-            curr_total_hotkey_stake.value + amount.rao
-        )
-        total_coldkey_stake_state[wallet.coldkeypub.ss58_address][self.block_number] = (
-            curr_total_coldkey_stake.value + amount.rao
-        )
-
-        # Remove from free balance
-        self.chain_state["System"]["Account"][wallet.coldkeypub.ss58_address]["data"][
-            "free"
-        ][self.block_number] = (bal - amount).rao
-
-        return True
-
-    def _do_unstake(
-        self,
-        wallet: "Wallet",
-        hotkey_ss58: str,
-        amount: "Balance",
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = False,
-    ) -> bool:
-        subtensor_state = self.chain_state["SubtensorModule"]
-
-        bal = self.get_balance(wallet.coldkeypub.ss58_address)
-        curr_stake = self.get_stake_for_coldkey_and_hotkey(
-            hotkey_ss58=hotkey_ss58, coldkey_ss58=wallet.coldkeypub.ss58_address
-        )
-        if curr_stake is None:
-            curr_stake = Balance(0)
-
-        if curr_stake < amount:
-            raise Exception("Insufficient funds")
-
-        stake_state = subtensor_state["Stake"]
-
-        if curr_stake.rao == 0:
-            return True
-
-        # Unstake the funds
-        # We know that the hotkey has stake, so we can just remove it
-        stake_state[hotkey_ss58][wallet.coldkeypub.ss58_address][self.block_number] = (
-            curr_stake - amount
-        ).rao
-        # Add to the free balance
-        if wallet.coldkeypub.ss58_address not in self.chain_state["System"]["Account"]:
-            self.chain_state["System"]["Account"][wallet.coldkeypub.ss58_address] = {
-                "data": {"free": {}}
-            }
-
-        # Remove from total stake storage
-        subtensor_state["TotalStake"][self.block_number] = (
-            self._get_most_recent_storage(subtensor_state["TotalStake"]) - amount.rao
-        )
-
-        total_hotkey_stake_state = subtensor_state["TotalHotkeyStake"]
-        if not hotkey_ss58 in total_hotkey_stake_state:
-            total_hotkey_stake_state[hotkey_ss58] = {}
-            total_hotkey_stake_state[hotkey_ss58][self.block_number] = (
-                0  # Shouldn't happen
-            )
-
-        total_coldkey_stake_state = subtensor_state["TotalColdkeyStake"]
-        if not wallet.coldkeypub.ss58_address in total_coldkey_stake_state:
-            total_coldkey_stake_state[wallet.coldkeypub.ss58_address] = {}
-            total_coldkey_stake_state[wallet.coldkeypub.ss58_address][
-                self.block_number
-            ] = amount.rao  # Shouldn't happen
-
-        total_hotkey_stake_state[hotkey_ss58][self.block_number] = (
-            self._get_most_recent_storage(
-                subtensor_state["TotalHotkeyStake"][hotkey_ss58]
-            )
-            - amount.rao
-        )
-        total_coldkey_stake_state[wallet.coldkeypub.ss58_address][self.block_number] = (
-            self._get_most_recent_storage(
-                subtensor_state["TotalColdkeyStake"][wallet.coldkeypub.ss58_address]
-            )
-            - amount.rao
-        )
-
-        self.chain_state["System"]["Account"][wallet.coldkeypub.ss58_address]["data"][
-            "free"
-        ][self.block_number] = (bal + amount).rao
-
-        return True
-
     @staticmethod
     def min_required_stake():
         """
@@ -1308,131 +878,7 @@ class MockSubtensor(Subtensor):
         # valid minimum threshold as of 2024/05/01
         return 100_000_000  # RAO
 
-    def get_minimum_required_stake(self):
-        return Balance.from_rao(self.min_required_stake())
-
-    def get_delegate_by_hotkey(
-        self, hotkey_ss58: str, block: Optional[int] = None
-    ) -> Optional["DelegateInfo"]:
-        subtensor_state = self.chain_state["SubtensorModule"]
-
-        if hotkey_ss58 not in subtensor_state["Delegates"]:
-            return None
-
-        newest_state = self._get_most_recent_storage(
-            subtensor_state["Delegates"][hotkey_ss58], block
-        )
-        if newest_state is None:
-            return None
-
-        nom_result = []
-        nominators = subtensor_state["Stake"][hotkey_ss58]
-        for nominator in nominators:
-            nom_amount = self.get_stake_for_coldkey_and_hotkey(
-                hotkey_ss58=hotkey_ss58, coldkey_ss58=nominator, block=block
-            )
-            if nom_amount is not None and nom_amount.rao > 0:
-                nom_result.append((nominator, nom_amount))
-
-        registered_subnets = []
-        for subnet in self.get_all_subnet_netuids(block=block):
-            uid = self.get_uid_for_hotkey_on_subnet(
-                hotkey_ss58=hotkey_ss58, netuid=subnet, block=block
-            )
-
-            if uid is not None:
-                registered_subnets.append((subnet, uid))
-
-        info = DelegateInfo(
-            hotkey_ss58=hotkey_ss58,
-            total_stake=self.get_total_stake_for_hotkey(ss58_address=hotkey_ss58)
-            or Balance(0),
-            nominators=nom_result,
-            owner_ss58=self.get_hotkey_owner(hotkey_ss58=hotkey_ss58, block=block),
-            take=0.18,
-            validator_permits=[
-                subnet
-                for subnet, uid in registered_subnets
-                if self.neuron_has_validator_permit(uid=uid, netuid=subnet, block=block)
-            ],
-            registrations=[subnet for subnet, _ in registered_subnets],
-            return_per_1000=Balance.from_tao(1234567),  # Doesn't matter for mock?
-            total_daily_return=Balance.from_tao(1234567),  # Doesn't matter for mock?
-        )
-
-        return info
-
-    def get_delegates(self, block: Optional[int] = None) -> List["DelegateInfo"]:
-        subtensor_state = self.chain_state["SubtensorModule"]
-        delegates_info = []
-        for hotkey in subtensor_state["Delegates"]:
-            info = self.get_delegate_by_hotkey(hotkey_ss58=hotkey, block=block)
-            if info is not None:
-                delegates_info.append(info)
-
-        return delegates_info
-
-    def get_delegated(
-        self, coldkey_ss58: str, block: Optional[int] = None
-    ) -> List[Tuple["DelegateInfo", "Balance"]]:
-        """Returns the list of delegates that a given coldkey is staked to."""
-        delegates = self.get_delegates(block=block)
-
-        result = []
-        for delegate in delegates:
-            if coldkey_ss58 in delegate.nominators:
-                result.append((delegate, delegate.nominators[coldkey_ss58]))
-
-        return result
-
-    def get_all_subnets_info(self, block: Optional[int] = None) -> List[SubnetInfo]:
-        subtensor_state = self.chain_state["SubtensorModule"]
-        result = []
-        for subnet in subtensor_state["NetworksAdded"]:
-            info = self.get_subnet_info(netuid=subnet, block=block)
-            if info is not None:
-                result.append(info)
-
-        return result
-
-    def get_subnet_info(
-        self, netuid: int, block: Optional[int] = None
-    ) -> Optional[SubnetInfo]:
-        if not self.subnet_exists(netuid=netuid, block=block):
-            return None
-
-        def query_subnet_info(name: str) -> Optional[object]:
-            return self.query_subtensor(name=name, block=block, params=[netuid]).value
-
-        info = SubnetInfo(
-            netuid=netuid,
-            rho=query_subnet_info(name="Rho"),
-            kappa=query_subnet_info(name="Kappa"),
-            difficulty=query_subnet_info(name="Difficulty"),
-            immunity_period=query_subnet_info(name="ImmunityPeriod"),
-            max_allowed_validators=query_subnet_info(name="MaxAllowedValidators"),
-            min_allowed_weights=query_subnet_info(name="MinAllowedWeights"),
-            max_weight_limit=query_subnet_info(name="MaxWeightLimit"),
-            scaling_law_power=query_subnet_info(name="ScalingLawPower"),
-            subnetwork_n=query_subnet_info(name="SubnetworkN"),
-            max_n=query_subnet_info(name="MaxAllowedUids"),
-            blocks_since_epoch=query_subnet_info(name="BlocksSinceLastStep"),
-            tempo=query_subnet_info(name="Tempo"),
-            modality=query_subnet_info(name="NetworkModality"),
-            connection_requirements={
-                str(netuid_.value): percentile.value
-                for netuid_, percentile in self.query_map_subtensor(
-                    name="NetworkConnect", block=block, params=[netuid]
-                ).records
-            },
-            emission_value=query_subnet_info(name="EmissionValues"),
-            burn=query_subnet_info(name="Burn"),
-            owner_ss58=query_subnet_info(name="SubnetOwner"),
-        )
-
-        return info
-
-    def _do_serve_prometheus(
+    def do_serve_prometheus(
         self,
         wallet: "Wallet",
         call_params: "PrometheusServeCallParams",
@@ -1441,7 +887,7 @@ class MockSubtensor(Subtensor):
     ) -> Tuple[bool, Optional[str]]:
         return True, None
 
-    def _do_set_weights(
+    def do_set_weights(
         self,
         wallet: "Wallet",
         netuid: int,
@@ -1453,7 +899,7 @@ class MockSubtensor(Subtensor):
     ) -> Tuple[bool, Optional[str]]:
         return True, None
 
-    def _do_serve_axon(
+    def do_serve_axon(
         self,
         wallet: "Wallet",
         call_params: "AxonServeCallParams",

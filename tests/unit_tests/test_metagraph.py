@@ -129,7 +129,7 @@ def test_process_weights_or_bonds(mock_environment):
 @pytest.fixture
 def mock_subtensor():
     subtensor = MagicMock()
-    subtensor.chain_endpoint = settings.finney_entrypoint
+    subtensor.chain_endpoint = settings.FINNEY_ENTRYPOINT
     subtensor.network = "finney"
     subtensor.get_current_block.return_value = 601
     return subtensor

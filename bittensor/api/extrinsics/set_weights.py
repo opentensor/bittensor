@@ -33,6 +33,7 @@ if TYPE_CHECKING:
     from bittensor.core.subtensor import Subtensor
 
 
+# Community uses this extrinsic directly and via `subtensor.set_weights`
 def set_weights_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
@@ -90,7 +91,7 @@ def set_weights_extrinsic(
         ":satellite: Setting weights on [white]{}[/white] ...".format(subtensor.network)
     ):
         try:
-            success, error_message = subtensor._do_set_weights(
+            success, error_message = subtensor.do_set_weights(
                 wallet=wallet,
                 netuid=netuid,
                 uids=weight_uids,
@@ -120,5 +121,7 @@ def set_weights_extrinsic(
 
         except Exception as e:
             bt_console.print(":cross_mark: [red]Failed[/red]: error:{}".format(e))
-            logging.warning(prefix="Set weights", suffix="<red>Failed: </red>" + str(e))
+            logging.warning(
+                msg=str(e), prefix="Set weights", suffix="<red>Failed: </red>"
+            )
             return False, str(e)

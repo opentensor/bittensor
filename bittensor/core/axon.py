@@ -54,7 +54,7 @@ from bittensor.core.errors import (
     SynapseParsingError,
     UnknownSynapseError,
 )
-from bittensor.core.settings import defaults, version_as_int
+from bittensor.core.settings import DEFAULTS, version_as_int
 from bittensor.core.synapse import Synapse, TerminalInfo
 from bittensor.core.threadpool import PriorityThreadPoolExecutor
 from bittensor.utils import networking
@@ -319,11 +319,11 @@ class Axon:
         if config is None:
             config = Axon.config()
         config = copy.deepcopy(config)
-        config.axon.ip = ip or defaults.axon.ip
-        config.axon.port = port or defaults.axon.port
-        config.axon.external_ip = external_ip or defaults.axon.external_ip
-        config.axon.external_port = external_port or defaults.axon.external_port
-        config.axon.max_workers = max_workers or defaults.axon.max_workers
+        config.axon.ip = ip or DEFAULTS.axon.ip
+        config.axon.port = port or DEFAULTS.axon.port
+        config.axon.external_ip = external_ip or DEFAULTS.axon.external_ip
+        config.axon.external_port = external_port or DEFAULTS.axon.external_port
+        config.axon.max_workers = max_workers or DEFAULTS.axon.max_workers
         Axon.check_config(config)
         self.config = config  # type: ignore
 
@@ -586,34 +586,34 @@ class Axon:
                 "--" + prefix_str + "axon.port",
                 type=int,
                 help="The local port this axon endpoint is bound to. i.e. 8091",
-                default=defaults.axon.port,
+                default=DEFAULTS.axon.port,
             )
             parser.add_argument(
                 "--" + prefix_str + "axon.ip",
                 type=str,
                 help="""The local ip this axon binds to. ie. [::]""",
-                default=defaults.axon.ip,
+                default=DEFAULTS.axon.ip,
             )
             parser.add_argument(
                 "--" + prefix_str + "axon.external_port",
                 type=int,
                 required=False,
                 help="""The public port this axon broadcasts to the network. i.e. 8091""",
-                default=defaults.axon.external_port,
+                default=DEFAULTS.axon.external_port,
             )
             parser.add_argument(
                 "--" + prefix_str + "axon.external_ip",
                 type=str,
                 required=False,
                 help="""The external ip this axon broadcasts to the network to. ie. [::]""",
-                default=defaults.axon.external_ip,
+                default=DEFAULTS.axon.external_ip,
             )
             parser.add_argument(
                 "--" + prefix_str + "axon.max_workers",
                 type=int,
                 help="""The maximum number connection handler threads working simultaneously on this endpoint.
                         The grpc server distributes new worker threads to service requests up to this number.""",
-                default=defaults.axon.max_workers,
+                default=DEFAULTS.axon.max_workers,
             )
 
         except argparse.ArgumentError:
@@ -1340,7 +1340,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
             """
             loop = asyncio.get_event_loop()
             future = loop.run_in_executor(executor, lambda: priority)
-            await future
+            result = await future
             return priority, result
 
         # If a priority function exists for the request's name

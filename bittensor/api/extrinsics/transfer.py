@@ -19,7 +19,7 @@ from typing import Union, TYPE_CHECKING
 
 from rich.prompt import Confirm
 
-from bittensor.core.settings import bt_console, network_explorer_map
+from bittensor.core.settings import bt_console, NETWORK_EXPLORER_MAP
 from bittensor.utils import get_explorer_url_for_network
 from bittensor.utils import is_valid_bittensor_address_or_public_key
 from bittensor.utils.balance import Balance
@@ -30,6 +30,7 @@ if TYPE_CHECKING:
     from bittensor.core.subtensor import Subtensor
 
 
+# Community uses this extrinsic directly and via `subtensor.transfer`
 def transfer_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
@@ -69,7 +70,7 @@ def transfer_extrinsic(
         dest = "0x" + dest.hex()
 
     # Unlock wallet coldkey.
-    wallet.coldkey
+    wallet.unlock_coldkey()
 
     # Convert to bittensor.Balance
     if not isinstance(amount, Balance):
@@ -111,7 +112,7 @@ def transfer_extrinsic(
             return False
 
     with bt_console.status(":satellite: Transferring..."):
-        success, block_hash, err_msg = subtensor._do_transfer(
+        success, block_hash, err_msg = subtensor.do_transfer(
             wallet,
             dest,
             transfer_balance,
@@ -124,7 +125,7 @@ def transfer_extrinsic(
             bt_console.print("[green]Block Hash: {}[/green]".format(block_hash))
 
             explorer_urls = get_explorer_url_for_network(
-                subtensor.network, block_hash, network_explorer_map
+                subtensor.network, block_hash, NETWORK_EXPLORER_MAP
             )
             if explorer_urls != {} and explorer_urls:
                 bt_console.print(

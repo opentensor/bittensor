@@ -79,7 +79,7 @@ def test_prometheus_extrinsic_happy_path(
     neuron.prometheus_info.port = port
     neuron.prometheus_info.ip_type = 4
     subtensor.get_neuron_for_pubkey_and_subnet.return_value = neuron
-    subtensor._do_serve_prometheus.return_value = (True, None)
+    subtensor.do_serve_prometheus.return_value = (True, None)
 
     # Act
     result = prometheus_extrinsic(
@@ -117,7 +117,7 @@ def test_prometheus_extrinsic_edge_cases(
     neuron = MagicMock()
     neuron.is_null = True
     subtensor.get_neuron_for_pubkey_and_subnet.return_value = neuron
-    subtensor._do_serve_prometheus.return_value = (True, None)
+    subtensor.do_serve_prometheus.return_value = (True, None)
 
     # Act
     result = prometheus_extrinsic(
@@ -131,7 +131,7 @@ def test_prometheus_extrinsic_edge_cases(
     )
 
     # Assert
-    assert result == True, f"Test ID: {test_id}"
+    assert result is True, f"Test ID: {test_id}"
 
 
 # Error cases

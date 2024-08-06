@@ -118,7 +118,7 @@ def test_serve_extrinsic_happy_path(
     test_id,
 ):
     # Arrange
-    mock_subtensor._do_serve_axon.return_value = (True, "")
+    mock_subtensor.do_serve_axon.return_value = (True, "")
     with patch("bittensor.api.extrinsics.serving.Confirm.ask", return_value=True):
         # Act
         result = serve_extrinsic(
@@ -175,7 +175,7 @@ def test_serve_extrinsic_edge_cases(
     test_id,
 ):
     # Arrange
-    mock_subtensor._do_serve_axon.return_value = (True, "")
+    mock_subtensor.do_serve_axon.return_value = (True, "")
     with patch("bittensor.api.extrinsics.serving.Confirm.ask", return_value=True):
         # Act
         result = serve_extrinsic(
@@ -232,7 +232,7 @@ def test_serve_extrinsic_error_cases(
     test_id,
 ):
     # Arrange
-    mock_subtensor._do_serve_axon.return_value = (False, "Error serving axon")
+    mock_subtensor.do_serve_axon.return_value = (False, "Error serving axon")
     with patch("bittensor.api.extrinsics.serving.Confirm.ask", return_value=True):
         # Act
         result = serve_extrinsic(
@@ -307,13 +307,12 @@ def test_serve_axon_extrinsic(
         # Act
         if not external_ip_success:
             with pytest.raises(RuntimeError):
-                result = serve_axon_extrinsic(
+                serve_axon_extrinsic(
                     mock_subtensor,
                     netuid,
                     mock_axon,
                     wait_for_inclusion=wait_for_inclusion,
                     wait_for_finalization=wait_for_finalization,
-                    prompt=prompt,
                 )
         else:
             result = serve_axon_extrinsic(
@@ -322,8 +321,8 @@ def test_serve_axon_extrinsic(
                 mock_axon,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
-                prompt=prompt,
             )
+
             # Assert
             assert result == expected_result, f"Test ID: {test_id}"
 

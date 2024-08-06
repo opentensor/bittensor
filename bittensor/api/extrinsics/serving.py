@@ -34,6 +34,7 @@ if TYPE_CHECKING:
     from bittensor.core.subtensor import Subtensor
 
 
+# Community uses this extrinsic via `subtensor.serve`
 def serve_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
@@ -66,7 +67,7 @@ def serve_extrinsic(
         success (bool): Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
     # Decrypt hotkey
-    wallet.hotkey
+    wallet.unlock_hotkey()
     params: "AxonServeCallParams" = {
         "version": version_as_int,
         "ip": net.ip_to_int(ip),
@@ -118,7 +119,7 @@ def serve_extrinsic(
     logging.debug(
         f"Serving axon with: AxonInfo({wallet.hotkey.ss58_address},{ip}:{port}) -> {subtensor.network}:{netuid}"
     )
-    success, error_message = subtensor._do_serve_axon(
+    success, error_message = subtensor.do_serve_axon(
         wallet=wallet,
         call_params=params,
         wait_for_finalization=wait_for_finalization,
@@ -138,13 +139,13 @@ def serve_extrinsic(
         return True
 
 
+# Community uses this extrinsic via `subtensor.set_weights`
 def serve_axon_extrinsic(
     subtensor: "Subtensor",
     netuid: int,
     axon: "Axon",
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = True,
-    prompt: bool = False,
 ) -> bool:
     """Serves the axon to the network.
 
@@ -154,13 +155,12 @@ def serve_axon_extrinsic(
         axon (bittensor.core.axon.Axon): Axon to serve.
         wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
-        prompt (bool): If ``true``, the call waits for confirmation from the user before proceeding.
 
     Returns:
         success (bool): Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
-    axon.wallet.hotkey
-    axon.wallet.coldkeypub
+    axon.wallet.unlock_hotkey()
+    axon.wallet.unlock_coldkeypub()
     external_port = axon.external_port
 
     # ---- Get external ip ----
@@ -197,6 +197,7 @@ def serve_axon_extrinsic(
     return serve_success
 
 
+# Community uses this extrinsic directly and via `subtensor.commit`
 def publish_metadata(
     subtensor,
     wallet: "Wallet",
@@ -225,7 +226,7 @@ def publish_metadata(
         MetadataError: If there is an error in submitting the extrinsic or if the response from the blockchain indicates failure.
     """
 
-    wallet.hotkey
+    wallet.unlock_hotkey()
 
     with subtensor.substrate as substrate:
         call = substrate.compose_call(
@@ -253,6 +254,7 @@ def publish_metadata(
             raise MetadataError(format_error_message(response.error_message))
 
 
+# Community uses this function directly
 def get_metadata(self, netuid: int, hotkey: str, block: Optional[int] = None) -> str:
     @retry(delay=2, tries=3, backoff=2, max_delay=4)
     def make_substrate_call_with_retry():
