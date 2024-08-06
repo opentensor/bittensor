@@ -15,6 +15,20 @@ on:
         description: 'Branch of subtensor'
         required: true
         default: 'testnet'
+  
+  push:
+    branches: [main, development, staging]
+  
+  pull_request:
+    branches: [main, development, staging]
+    types: [opened, synchronize, reopened, ready_for_review]
+
+env:
+  DEFAULT_BITTENSOR_VERSIONS: '7.3.0,7.2.0'
+  DEFAULT_BITTENSOR_BRANCH: 'staging'
+  DEFAULT_SUBTENSOR_BRANCH: 'testnet'
+  RUSTV: nightly-2024-03-05
+  RUST_BACKTRACE: full
 
 jobs:
   setup:
@@ -25,7 +39,7 @@ jobs:
       - name: Set up test matrix
         id: set-matrix
         run: |
-          versions=$(echo "${{ github.event.inputs.bittensor_versions }}" | jq -R -s -c 'split(",")| map(select(. != ""))')
+          versions=$(echo "${{ github.event.inputs.bittensor_versions || env.DEFAULT_BITTENSOR_VERSIONS }}" | jq -R -s -c 'split(",")| map(select(. != ""))')
           echo "matrix=${versions}" >> $GITHUB_OUTPUT
 
   test:
@@ -38,15 +52,13 @@ jobs:
         rust-target:
           - x86_64-unknown-linux-gnu
     env:
-      RUSTV: nightly-2024-03-05
-      RUST_BACKTRACE: full
       RUST_BIN_DIR: target/${{ matrix.rust-target }}
       TARGET: ${{ matrix.rust-target }}
     steps:
       - name: Check-out repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
-          ref: ${{ github.event.inputs.bittensor_branch }}
+          ref: ${{ github.event.inputs.bittensor_branch || env.DEFAULT_BITTENSOR_BRANCH }}
 
       - name: Install Python dependencies
         run: |
@@ -75,7 +87,7 @@ jobs:
 
       - name: Setup subtensor repo
         working-directory: ${{ github.workspace }}/subtensor
-        run: git checkout ${{ github.event.inputs.subtensor_branch }}
+        run: git checkout ${{ github.event.inputs.subtensor_branch || env.DEFAULT_SUBTENSOR_BRANCH }}
 
       - name: Create tox.ini
         run: |
