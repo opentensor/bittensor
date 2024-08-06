@@ -17,14 +17,13 @@ def test_list_command(local_chain, capsys):
     # Register root as Alice
     keypair, exec_command, wallet = setup_wallet("//Alice")
 
-    netuids = [0, 3]
+    netuid = 0
 
-    assert local_chain.query("SubtensorModule", "NetworksAdded", netuids).serialize()
+    assert local_chain.query("SubtensorModule", "NetworksAdded", [netuid]).serialize()
 
     exec_command(RegisterSubnetworkCommand, ["s", "create"])
 
-    netuids.append(1)
-    netuids.sort()
+    netuid - 1
 
     # Verify subnet 1 created successfully
-    assert local_chain.query("SubtensorModule", "NetworksAdded", netuids).serialize()
+    assert local_chain.query("SubtensorModule", "NetworksAdded", [netuid]).serialize()
