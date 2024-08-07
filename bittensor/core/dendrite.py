@@ -763,7 +763,8 @@ class DendriteMixin:
             Dendrite: The current instance of the Dendrite class.
 
         Usage::
-            async with Dendrite() as dendrite: await dendrite.some_async_method()
+            async with Dendrite() as dendrite:
+                await dendrite.some_async_method()
         """
         return self
 
@@ -780,7 +781,8 @@ class DendriteMixin:
 
         Usage::
 
-            async with bt.dendrite( wallet ) as dendrite: await dendrite.some_async_method()
+            async with bt.dendrite( wallet ) as dendrite:
+                await dendrite.some_async_method()
 
         Note:
             This automatically closes the session by calling :func:`__aexit__` after the context closes.

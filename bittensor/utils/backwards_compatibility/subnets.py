@@ -22,6 +22,7 @@ from bittensor.core.axon import Axon
 from bittensor.core.dendrite import Dendrite
 from bittensor.utils.btlogging import logging
 
+# For annotation purposes
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
     from bittensor.core.synapse import Synapse
