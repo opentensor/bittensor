@@ -60,6 +60,11 @@ jobs:
         with:
           ref: ${{ github.event.inputs.bittensor_branch || env.DEFAULT_BITTENSOR_BRANCH }}
 
+      - name: Print working directory
+        run: |
+          pwd
+          ls -la
+
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
@@ -115,4 +120,5 @@ jobs:
         env:
           LOCALNET_SH_PATH: ${{ github.workspace }}/subtensor/scripts/localnet.sh
         run: |
-          tox -e bt-${{ matrix.bittensor-version }}
+          cd ..
+          tox -c ${{ github.workspace }}/tox.ini -e bt-${{ matrix.bittensor-version }}
