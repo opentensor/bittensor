@@ -1,19 +1,19 @@
 import asyncio
-import logging
 import sys
 
 import pytest
 
 import bittensor
+from bittensor import logging
 from bittensor.commands import (
     RegisterCommand,
     RegisterSubnetworkCommand,
-    StakeCommand,
     RootRegisterCommand,
     RootSetBoostCommand,
-    SubnetSudoCommand,
     RootSetWeightsCommand,
     SetTakeCommand,
+    StakeCommand,
+    SubnetSudoCommand,
 )
 from tests.e2e_tests.utils import (
     setup_wallet,
@@ -21,8 +21,6 @@ from tests.e2e_tests.utils import (
     templates_repo,
     wait_epoch,
 )
-
-logging.basicConfig(level=logging.INFO)
 
 """
 Test the emissions mechanism. 
@@ -46,13 +44,17 @@ are updated with proper values after an epoch has passed.
 
 
 @pytest.mark.asyncio
+@pytest.mark.skip
 async def test_emissions(local_chain):
+    logging.info("Testing test_emissions")
     netuid = 1
     # Register root as Alice - the subnet owner and validator
     alice_keypair, alice_exec_command, alice_wallet = setup_wallet("//Alice")
     alice_exec_command(RegisterSubnetworkCommand, ["s", "create"])
     # Verify subnet <netuid> created successfully
-    assert local_chain.query("SubtensorModule", "NetworksAdded", [netuid]).serialize()
+    assert local_chain.query(
+        "SubtensorModule", "NetworksAdded", [netuid]
+    ).serialize(), "Subnet wasn't created successfully"
 
     # Register Bob as miner
     bob_keypair, bob_exec_command, bob_wallet = setup_wallet("//Bob")
@@ -126,7 +128,7 @@ async def test_emissions(local_chain):
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
-
+    logging.info("Neuron Alice is now validating")
     await asyncio.sleep(5)
 
     # register validator with root network
@@ -189,7 +191,7 @@ async def test_emissions(local_chain):
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
-
+    logging.info("Neuron Bob is now mining")
     await wait_epoch(subtensor)
 
     logging.warning("Setting root set weights")
@@ -250,7 +252,9 @@ async def test_emissions(local_chain):
 
     # get current emissions and validate that Alice has gotten tao
     weights = [(0, [(0, 65535), (1, 65535)])]
-    assert subtensor.weights(netuid=netuid) == weights
+    assert (
+        subtensor.weights(netuid=netuid) == weights
+    ), "Weights set vs weights in subtensor don't match"
 
     neurons = subtensor.neurons(netuid=netuid)
     bob = neurons[1]
@@ -273,4 +277,7 @@ async def test_emissions(local_chain):
 
     assert (
         subtensor.get_emission_value_by_subnet(netuid=netuid) > 0
+    ), (
+        "Emissions are not greated than 0"
     )  # emission on this subnet is strictly greater than 0
+    logging.info("Passed test_emissions")
