@@ -44,7 +44,9 @@ def test_metagraph_command(local_chain, capsys):
 
     # Assert metagraph is printed for netuid 1
 
-    assert "Metagraph: net: local:1" in captured.out, "Netuid 1 was not displayed in metagraph"
+    assert (
+        "Metagraph: net: local:1" in captured.out
+    ), "Netuid 1 was not displayed in metagraph"
 
     # Register Bob as neuron to the subnet
     bob_keypair, bob_exec_command, bob_wallet = setup_wallet("//Bob")
