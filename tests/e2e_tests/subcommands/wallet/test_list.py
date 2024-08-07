@@ -20,7 +20,7 @@ def test_wallet_list(capsys):
     """
 
     wallet_path_name = "//Alice"
-    base_path = f"/tmp/btcli-e2e-wallet-{wallet_path_name.strip('/')}"
+    base_path = f"/tmp/btcli-e2e-wallet-list-{wallet_path_name.strip('/')}"
     keypair, exec_command, wallet = setup_wallet(wallet_path_name)
 
     # List initial wallets
