@@ -16,16 +16,19 @@
 # DEALINGS IN THE SOFTWARE.
 
 from abc import ABC, abstractmethod
-from typing import Any, List, Union, Optional
-
-from bittensor_wallet import Wallet
+from typing import Any, List, Union, Optional, TYPE_CHECKING
 
 from bittensor.core.axon import Axon
 from bittensor.core.dendrite import Dendrite
-from bittensor.core.synapse import Synapse
 from bittensor.utils.btlogging import logging
 
+# For annotation purposes
+if TYPE_CHECKING:
+    from bittensor_wallet import Wallet
+    from bittensor.core.synapse import Synapse
 
+
+# Community uses this class
 class SubnetsAPI(ABC):
     """This class is not used within the bittensor package, but is actively used by the community."""
 
@@ -38,17 +41,11 @@ class SubnetsAPI(ABC):
 
     @abstractmethod
     def prepare_synapse(self, *args, **kwargs) -> Any:
-        """
-        Prepare the synapse-specific payload.
-        """
-        ...
+        """Prepare the synapse-specific payload."""
 
     @abstractmethod
     def process_responses(self, responses: List[Union["Synapse", Any]]) -> Any:
-        """
-        Process the responses from the network.
-        """
-        ...
+        """Process the responses from the network."""
 
     async def query_api(
         self,

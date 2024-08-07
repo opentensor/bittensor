@@ -263,7 +263,6 @@ async def test_blacklist_fail(middleware):
 
 
 @pytest.mark.asyncio
-@pytest.mark.skip("middleware.priority runs infinitely")
 async def test_priority_pass(middleware):
     synapse = SynapseMock()
     middleware.axon.priority_fns = {"SynapseMock": priority_fn_pass}

@@ -30,8 +30,8 @@ from scalecodec.type_registry import load_type_registry_preset
 from scalecodec.types import GenericCall
 from scalecodec.utils.ss58 import ss58_encode
 
-from .settings import ss58_format
-from bittensor.utils import networking as net, RAOPERTAO, U16_NORMALIZED_FLOAT
+from .settings import SS58_FORMAT
+from bittensor.utils import networking as net, RAOPERTAO, u16_normalized_float
 from bittensor.utils.balance import Balance
 from bittensor.utils.registration import torch, use_torch
 from bittensor.utils.btlogging import logging
@@ -426,13 +426,13 @@ class NeuronInfo:
     def fix_decoded_values(cls, neuron_info_decoded: Any) -> "NeuronInfo":
         """Fixes the values of the NeuronInfo object."""
         neuron_info_decoded["hotkey"] = ss58_encode(
-            neuron_info_decoded["hotkey"], ss58_format
+            neuron_info_decoded["hotkey"], SS58_FORMAT
         )
         neuron_info_decoded["coldkey"] = ss58_encode(
-            neuron_info_decoded["coldkey"], ss58_format
+            neuron_info_decoded["coldkey"], SS58_FORMAT
         )
         stake_dict = {
-            ss58_encode(coldkey, ss58_format): Balance.from_rao(int(stake))
+            ss58_encode(coldkey, SS58_FORMAT): Balance.from_rao(int(stake))
             for coldkey, stake in neuron_info_decoded["stake"]
         }
         neuron_info_decoded["stake_dict"] = stake_dict
@@ -445,21 +445,21 @@ class NeuronInfo:
         neuron_info_decoded["bonds"] = [
             [int(bond[0]), int(bond[1])] for bond in neuron_info_decoded["bonds"]
         ]
-        neuron_info_decoded["rank"] = U16_NORMALIZED_FLOAT(neuron_info_decoded["rank"])
+        neuron_info_decoded["rank"] = u16_normalized_float(neuron_info_decoded["rank"])
         neuron_info_decoded["emission"] = neuron_info_decoded["emission"] / RAOPERTAO
-        neuron_info_decoded["incentive"] = U16_NORMALIZED_FLOAT(
+        neuron_info_decoded["incentive"] = u16_normalized_float(
             neuron_info_decoded["incentive"]
         )
-        neuron_info_decoded["consensus"] = U16_NORMALIZED_FLOAT(
+        neuron_info_decoded["consensus"] = u16_normalized_float(
             neuron_info_decoded["consensus"]
         )
-        neuron_info_decoded["trust"] = U16_NORMALIZED_FLOAT(
+        neuron_info_decoded["trust"] = u16_normalized_float(
             neuron_info_decoded["trust"]
         )
-        neuron_info_decoded["validator_trust"] = U16_NORMALIZED_FLOAT(
+        neuron_info_decoded["validator_trust"] = u16_normalized_float(
             neuron_info_decoded["validator_trust"]
         )
-        neuron_info_decoded["dividends"] = U16_NORMALIZED_FLOAT(
+        neuron_info_decoded["dividends"] = u16_normalized_float(
             neuron_info_decoded["dividends"]
         )
         neuron_info_decoded["prometheus_info"] = PrometheusInfo.fix_decoded_values(
@@ -571,33 +571,33 @@ class NeuronInfoLite:
     def fix_decoded_values(cls, neuron_info_decoded: Any) -> "NeuronInfoLite":
         """Fixes the values of the NeuronInfoLite object."""
         neuron_info_decoded["hotkey"] = ss58_encode(
-            neuron_info_decoded["hotkey"], ss58_format
+            neuron_info_decoded["hotkey"], SS58_FORMAT
         )
         neuron_info_decoded["coldkey"] = ss58_encode(
-            neuron_info_decoded["coldkey"], ss58_format
+            neuron_info_decoded["coldkey"], SS58_FORMAT
         )
         stake_dict = {
-            ss58_encode(coldkey, ss58_format): Balance.from_rao(int(stake))
+            ss58_encode(coldkey, SS58_FORMAT): Balance.from_rao(int(stake))
             for coldkey, stake in neuron_info_decoded["stake"]
         }
         neuron_info_decoded["stake_dict"] = stake_dict
         neuron_info_decoded["stake"] = sum(stake_dict.values())
         neuron_info_decoded["total_stake"] = neuron_info_decoded["stake"]
-        neuron_info_decoded["rank"] = U16_NORMALIZED_FLOAT(neuron_info_decoded["rank"])
+        neuron_info_decoded["rank"] = u16_normalized_float(neuron_info_decoded["rank"])
         neuron_info_decoded["emission"] = neuron_info_decoded["emission"] / RAOPERTAO
-        neuron_info_decoded["incentive"] = U16_NORMALIZED_FLOAT(
+        neuron_info_decoded["incentive"] = u16_normalized_float(
             neuron_info_decoded["incentive"]
         )
-        neuron_info_decoded["consensus"] = U16_NORMALIZED_FLOAT(
+        neuron_info_decoded["consensus"] = u16_normalized_float(
             neuron_info_decoded["consensus"]
         )
-        neuron_info_decoded["trust"] = U16_NORMALIZED_FLOAT(
+        neuron_info_decoded["trust"] = u16_normalized_float(
             neuron_info_decoded["trust"]
         )
-        neuron_info_decoded["validator_trust"] = U16_NORMALIZED_FLOAT(
+        neuron_info_decoded["validator_trust"] = u16_normalized_float(
             neuron_info_decoded["validator_trust"]
         )
-        neuron_info_decoded["dividends"] = U16_NORMALIZED_FLOAT(
+        neuron_info_decoded["dividends"] = u16_normalized_float(
             neuron_info_decoded["dividends"]
         )
         neuron_info_decoded["prometheus_info"] = PrometheusInfo.fix_decoded_values(
@@ -748,12 +748,12 @@ class DelegateInfo:
         """Fixes the decoded values."""
 
         return cls(
-            hotkey_ss58=ss58_encode(decoded["delegate_ss58"], ss58_format),
-            owner_ss58=ss58_encode(decoded["owner_ss58"], ss58_format),
-            take=U16_NORMALIZED_FLOAT(decoded["take"]),
+            hotkey_ss58=ss58_encode(decoded["delegate_ss58"], SS58_FORMAT),
+            owner_ss58=ss58_encode(decoded["owner_ss58"], SS58_FORMAT),
+            take=u16_normalized_float(decoded["take"]),
             nominators=[
                 (
-                    ss58_encode(nom[0], ss58_format),
+                    ss58_encode(nom[0], SS58_FORMAT),
                     Balance.from_rao(nom[1]),
                 )
                 for nom in decoded["nominators"]
@@ -819,8 +819,8 @@ class StakeInfo:
     def fix_decoded_values(cls, decoded: Any) -> "StakeInfo":
         """Fixes the decoded values."""
         return cls(
-            hotkey_ss58=ss58_encode(decoded["hotkey"], ss58_format),
-            coldkey_ss58=ss58_encode(decoded["coldkey"], ss58_format),
+            hotkey_ss58=ss58_encode(decoded["hotkey"], SS58_FORMAT),
+            coldkey_ss58=ss58_encode(decoded["coldkey"], SS58_FORMAT),
             stake=Balance.from_rao(decoded["stake"]),
         )
 
@@ -851,7 +851,7 @@ class StakeInfo:
             return {}
 
         return {
-            ss58_encode(address=account_id, ss58_format=ss58_format): [
+            ss58_encode(address=account_id, ss58_format=SS58_FORMAT): [
                 StakeInfo.fix_decoded_values(d) for d in stake_info
             ]
             for account_id, stake_info in decoded
@@ -936,12 +936,12 @@ class SubnetInfo:
             tempo=decoded["tempo"],
             modality=decoded["network_modality"],
             connection_requirements={
-                str(int(netuid)): U16_NORMALIZED_FLOAT(int(req))
+                str(int(netuid)): u16_normalized_float(int(req))
                 for netuid, req in decoded["network_connect"]
             },
             emission_value=decoded["emission_values"],
             burn=Balance.from_rao(decoded["burn"]),
-            owner_ss58=ss58_encode(decoded["owner"], ss58_format),
+            owner_ss58=ss58_encode(decoded["owner"], SS58_FORMAT),
         )
 
     def to_parameter_dict(self) -> Union[dict[str, Any], "torch.nn.ParameterDict"]:
@@ -1159,8 +1159,8 @@ class ScheduledColdkeySwapInfo:
     def fix_decoded_values(cls, decoded: Any) -> "ScheduledColdkeySwapInfo":
         """Fixes the decoded values."""
         return cls(
-            old_coldkey=ss58_encode(decoded["old_coldkey"], ss58_format),
-            new_coldkey=ss58_encode(decoded["new_coldkey"], ss58_format),
+            old_coldkey=ss58_encode(decoded["old_coldkey"], SS58_FORMAT),
+            new_coldkey=ss58_encode(decoded["new_coldkey"], SS58_FORMAT),
             arbitration_block=decoded["arbitration_block"],
         )
 
@@ -1195,4 +1195,4 @@ class ScheduledColdkeySwapInfo:
         )
         if decoded is None:
             return None
-        return [ss58_encode(account_id, ss58_format) for account_id in decoded]
+        return [ss58_encode(account_id, SS58_FORMAT) for account_id in decoded]

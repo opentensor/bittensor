@@ -23,7 +23,7 @@ import scalecodec
 from substrateinterface import Keypair as Keypair
 from substrateinterface.utils import ss58
 
-from bittensor.core.settings import ss58_format
+from bittensor.core.settings import SS58_FORMAT
 from .registration import torch, use_torch
 from .version import version_checking, check_version, VersionCheckError
 
@@ -43,7 +43,7 @@ def _unbiased_topk(
     values: Union[np.ndarray, "torch.Tensor"],
     k: int,
     dim=0,
-    sorted=True,
+    sorted_=True,
     largest=True,
     axis=0,
     return_type: str = "numpy",
@@ -53,7 +53,7 @@ def _unbiased_topk(
         values: (np.ndarray) if using numpy, (torch.Tensor) if using torch: Values to index into.
         k (int): Number to take.
         dim (int): Dimension to index into (used by Torch)
-        sorted (bool): Whether to sort indices.
+        sorted_ (bool): Whether to sort indices.
         largest (bool): Whether to take the largest value.
         axis (int): Axis along which to index into (used by Numpy)
         return_type (str): Whether or use torch or numpy approach
@@ -66,7 +66,7 @@ def _unbiased_topk(
         permutation = torch.randperm(values.shape[dim])
         permuted_values = values[permutation]
         topk, indices = torch.topk(
-            permuted_values, k, dim=dim, sorted=sorted, largest=largest
+            permuted_values, k, dim=dim, sorted=sorted_, largest=largest
         )
         return topk, permutation[indices]
     else:
@@ -77,7 +77,7 @@ def _unbiased_topk(
         permutation = np.random.permutation(values.shape[axis])
         permuted_values = np.take(values, permutation, axis=axis)
         indices = np.argpartition(permuted_values, -k, axis=axis)[-k:]
-        if not sorted:
+        if not sorted_:
             indices = np.sort(indices, axis=axis)
         if not largest:
             indices = indices[::-1]
@@ -89,38 +89,30 @@ def unbiased_topk(
     values: Union[np.ndarray, "torch.Tensor"],
     k: int,
     dim: int = 0,
-    sorted: bool = True,
+    sorted_: bool = True,
     largest: bool = True,
     axis: int = 0,
 ) -> Union[Tuple[np.ndarray, np.ndarray], Tuple["torch.Tensor", "torch.LongTensor"]]:
     """Selects topk as in torch.topk but does not bias lower indices when values are equal.
     Args:
-        values: (np.ndarray) if using numpy, (torch.Tensor) if using torch:
-            Values to index into.
-        k: (int):
-            Number to take.
-        dim: (int):
-            Dimension to index into (used by Torch)
-        sorted: (bool):
-            Whether to sort indices.
-        largest: (bool):
-            Whether to take the largest value.
-        axis: (int):
-            Axis along which to index into (used by Numpy)
+        values: (np.ndarray) if using numpy, (torch.Tensor) if using torch: Values to index into.
+        k: (int): Number to take.
+        dim: (int): Dimension to index into (used by Torch)
+        sorted_: (bool): Whether to sort indices.
+        largest: (bool): Whether to take the largest value.
+        axis: (int): Axis along which to index into (used by Numpy)
 
     Return:
-        topk: (np.ndarray) if using numpy, (torch.Tensor) if using torch:
-            topk k values.
-        indices: (np.ndarray) if using numpy, (torch.LongTensor) if using torch:
-            indices of the topk values.
+        topk: (np.ndarray) if using numpy, (torch.Tensor) if using torch: topk k values.
+        indices: (np.ndarray) if using numpy, (torch.LongTensor) if using torch: indices of the topk values.
     """
     if use_torch():
         return _unbiased_topk(
-            values, k, dim, sorted, largest, axis, return_type="torch"
+            values, k, dim, sorted_, largest, axis, return_type="torch"
         )
     else:
         return _unbiased_topk(
-            values, k, dim, sorted, largest, axis, return_type="numpy"
+            values, k, dim, sorted_, largest, axis, return_type="numpy"
         )
 
 
@@ -160,7 +152,7 @@ def strtobool(val: str) -> Union[bool, Literal["==SUPRESS=="]]:
 def get_explorer_root_url_by_network_from_map(
     network: str, network_map: Dict[str, Dict[str, str]]
 ) -> Optional[Dict[str, str]]:
-    r"""
+    """
     Returns the explorer root url for the given network name from the given network map.
 
     Args:
@@ -182,7 +174,7 @@ def get_explorer_root_url_by_network_from_map(
 def get_explorer_url_for_network(
     network: str, block_hash: str, network_map: Dict[str, str]
 ) -> Optional[List[str]]:
-    r"""
+    """
     Returns the explorer url for the given block hash and network.
 
     Args:
@@ -217,27 +209,27 @@ def get_explorer_url_for_network(
 
 def ss58_address_to_bytes(ss58_address: str) -> bytes:
     """Converts a ss58 address to a bytes object."""
-    account_id_hex: str = scalecodec.ss58_decode(ss58_address, ss58_format)
+    account_id_hex: str = scalecodec.ss58_decode(ss58_address, SS58_FORMAT)
     return bytes.fromhex(account_id_hex)
 
 
-def U16_NORMALIZED_FLOAT(x: int) -> float:
+def u16_normalized_float(x: int) -> float:
     return float(x) / float(U16_MAX)
 
 
-def U64_NORMALIZED_FLOAT(x: int) -> float:
+def u64_normalized_float(x: int) -> float:
     return float(x) / float(U64_MAX)
 
 
 def u8_key_to_ss58(u8_key: List[int]) -> str:
-    r"""
+    """
     Converts a u8-encoded account key to an ss58 address.
 
     Args:
         u8_key (List[int]): The u8-encoded account key.
     """
     # First byte is length, then 32 bytes of key.
-    return scalecodec.ss58_encode(bytes(u8_key).hex(), ss58_format)
+    return scalecodec.ss58_encode(bytes(u8_key).hex(), SS58_FORMAT)
 
 
 def get_hash(content, encoding="utf-8"):
@@ -301,7 +293,7 @@ def create_identity_dict(
         dict: A dictionary with the specified structure and byte string conversions.
 
     Raises:
-    ValueError: If pgp_fingerprint is not exactly 20 bytes long when encoded.
+        ValueError: If pgp_fingerprint is not exactly 20 bytes long when encoded.
     """
     if pgp_fingerprint and len(pgp_fingerprint.encode()) != 20:
         raise ValueError("pgp_fingerprint must be exactly 20 bytes long when encoded")
@@ -348,7 +340,7 @@ def is_valid_ss58_address(address: str) -> bool:
     """
     try:
         return ss58.is_valid_ss58_address(
-            address, valid_ss58_format=ss58_format
+            address, valid_ss58_format=SS58_FORMAT
         ) or ss58.is_valid_ss58_address(
             address, valid_ss58_format=42
         )  # Default substrate ss58 format (legacy)
@@ -377,7 +369,7 @@ def _is_valid_ed25519_pubkey(public_key: Union[str, bytes]) -> bool:
         else:
             raise ValueError("public_key must be a string or bytes")
 
-        keypair = Keypair(public_key=public_key, ss58_format=ss58_format)
+        keypair = Keypair(public_key=public_key, ss58_format=SS58_FORMAT)
 
         ss58_addr = keypair.ss58_address
         return ss58_addr is not None

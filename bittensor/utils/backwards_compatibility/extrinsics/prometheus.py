@@ -30,6 +30,7 @@ if TYPE_CHECKING:
     from bittensor.core.subtensor import Subtensor
 
 
+# Community uses this extrinsic
 def prometheus_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
@@ -97,7 +98,7 @@ def prometheus_extrinsic(
         bt_console.print(
             f":white_heavy_check_mark: [green]Prometheus already Served[/green]\n"
             f"[green not bold]- Status: [/green not bold] |"
-            f"[green not bold] ip: [/green not bold][white not bold]{net.int_to_ip(neuron.prometheus_info.ip)}[/white not bold] |"
+            f"[green not bold] ip: [/green not bold][white not bold]{neuron.prometheus_info.ip}[/white not bold] |"
             f"[green not bold] ip_type: [/green not bold][white not bold]{neuron.prometheus_info.ip_type}[/white not bold] |"
             f"[green not bold] port: [/green not bold][white not bold]{neuron.prometheus_info.port}[/white not bold] | "
             f"[green not bold] version: [/green not bold][white not bold]{neuron.prometheus_info.version}[/white not bold] |"
@@ -118,7 +119,7 @@ def prometheus_extrinsic(
             subtensor.network, netuid
         )
     ):
-        success, err = subtensor._do_serve_prometheus(
+        success, err = subtensor.do_serve_prometheus(
             wallet=wallet,
             call_params=call_params,
             wait_for_finalization=wait_for_finalization,

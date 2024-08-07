@@ -18,7 +18,7 @@
 import os
 import warnings
 
-from .core.settings import __version__, version_split, defaults
+from .core.settings import __version__, version_split, DEFAULTS
 from .utils.backwards_compatibility import *
 from .utils.btlogging import logging
 

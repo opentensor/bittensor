@@ -18,10 +18,9 @@
 from typing import Union
 
 from bittensor_wallet.mock.wallet_mock import MockWallet as _MockWallet
-from bittensor_wallet.mock.wallet_mock import get_mock_coldkey as _get_mock_coldkey
-from bittensor_wallet.mock.wallet_mock import get_mock_hotkey as _get_mock_hotkey
-from bittensor_wallet.mock.wallet_mock import get_mock_keypair as _get_mock_keypair
-from bittensor_wallet.mock.wallet_mock import get_mock_wallet as _get_mock_wallet
+from bittensor_wallet.mock.wallet_mock import get_mock_coldkey
+from bittensor_wallet.mock.wallet_mock import get_mock_hotkey
+from bittensor_wallet.mock.wallet_mock import get_mock_wallet
 
 from rich.console import Console
 from rich.text import Text
@@ -33,7 +32,7 @@ from bittensor.core.chain_data import AxonInfo, NeuronInfo, PrometheusInfo
 def __mock_wallet_factory__(*args, **kwargs) -> _MockWallet:
     """Returns a mock wallet object."""
 
-    mock_wallet = _get_mock_wallet()
+    mock_wallet = get_mock_wallet()
 
     return mock_wallet
 
@@ -117,7 +116,7 @@ def get_mock_neuron(**kwargs) -> NeuronInfo:
 
 def get_mock_neuron_by_uid(uid: int, **kwargs) -> NeuronInfo:
     return get_mock_neuron(
-        uid=uid, hotkey=_get_mock_hotkey(uid), coldkey=_get_mock_coldkey(uid), **kwargs
+        uid=uid, hotkey=get_mock_hotkey(uid), coldkey=get_mock_coldkey(uid), **kwargs
     )
 
 

@@ -523,8 +523,8 @@ class MetagraphMixin(ABC):
         subtensor = self._initialize_subtensor(subtensor)
 
         if (
-            subtensor.chain_endpoint != settings.archive_entrypoint
-            or subtensor.network != settings.networks[3]
+            subtensor.chain_endpoint != settings.ARCHIVE_ENTRYPOINT
+            or subtensor.network != settings.NETWORKS[3]
         ):
             cur_block = subtensor.get_current_block()
             if block and block < (cur_block - 300):
@@ -941,7 +941,7 @@ class TorchMetaGraph(MetagraphMixin, BaseClass):
         if sync:
             self.sync(block=None, lite=lite)
 
-    def _set_metagraph_attributes(self, block, subtensor):
+    def _set_metagraph_attributes(self, block, subtensor: "Subtensor"):
         """
         Sets various attributes of the metagraph based on the latest network data fetched from the subtensor.
 

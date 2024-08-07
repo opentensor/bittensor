@@ -15,21 +15,22 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from typing import Optional
-from pathlib import Path
 import time
-from packaging.version import Version
+from pathlib import Path
+from typing import Optional
 
 import requests
-from .btlogging import logging
-from ..core.settings import __version__
-from ..core.settings import pipaddress
+from packaging.version import Version
+
+from bittensor.core.settings import __version__
+from bittensor.core.settings import PIPADDRESS
+from bittensor.utils.btlogging import logging
 
 VERSION_CHECK_THRESHOLD = 86400
 
 
 class VersionCheckError(Exception):
-    pass
+    """Exception raised for errors in the version check process."""
 
 
 def _get_version_file_path() -> Path:
@@ -56,9 +57,9 @@ def _get_version_from_file(version_file: Path) -> Optional[str]:
 
 
 def _get_version_from_pypi(timeout: int = 15) -> str:
-    logging.debug(f"Checking latest Bittensor version at: {pipaddress}")
+    logging.debug(f"Checking latest Bittensor version at: {PIPADDRESS}")
     try:
-        response = requests.get(pipaddress, timeout=timeout)
+        response = requests.get(PIPADDRESS, timeout=timeout)
         latest_version = response.json()["info"]["version"]
         return latest_version
     except requests.exceptions.RequestException:
@@ -67,6 +68,15 @@ def _get_version_from_pypi(timeout: int = 15) -> str:
 
 
 def get_and_save_latest_version(timeout: int = 15) -> str:
+    """
+    Retrieves and saves the latest version of Bittensor.
+
+    Args:
+        timeout (int, optional): The timeout for the request to PyPI in seconds. Default is ``15``.
+
+    Returns:
+        str: The latest version of Bittensor.
+    """
     version_file = _get_version_file_path()
 
     if last_known_version := _get_version_from_file(version_file):
@@ -104,9 +114,7 @@ def check_version(timeout: int = 15):
 
 
 def version_checking(timeout: int = 15):
-    """
-    Deprecated, kept for backwards compatibility. Use check_version() instead.
-    """
+    """Deprecated, kept for backwards compatibility. Use check_version() instead."""
 
     from warnings import warn
 

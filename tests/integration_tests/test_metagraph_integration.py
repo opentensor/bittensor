@@ -26,11 +26,8 @@ _subtensor_mock: MockSubtensor = MockSubtensor()
 
 def setUpModule():
     _subtensor_mock.reset()
-
     _subtensor_mock.create_subnet(netuid=3)
-
-    # Set diff 0
-    _subtensor_mock.set_difficulty(netuid=3, difficulty=0)
+    _subtensor_mock.set_difficulty(netuid=3, difficulty=0)  # Set diff 0
 
 
 class TestMetagraph:

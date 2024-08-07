@@ -21,7 +21,7 @@ from concurrent.futures import _base
 
 from bittensor.core.config import Config
 from bittensor.utils.btlogging.defines import BITTENSOR_LOGGER_NAME
-from bittensor.core.settings import blocktime
+from bittensor.core.settings import BLOCKTIME
 
 # Workers are created as daemon threads. This is done to allow the interpreter
 # to exit when there are still idle threads in a ThreadPoolExecutor's thread
@@ -55,7 +55,7 @@ class _WorkItem(object):
         """Run the given work item"""
         # Checks if future is canceled or if work item is stale
         if (not self.future.set_running_or_notify_cancel()) or (
-            time.time() - self.start_time > blocktime
+            time.time() - self.start_time > BLOCKTIME
         ):
             return
 

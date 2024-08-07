@@ -68,29 +68,14 @@ class DendriteMixin:
     Methods:
         __str__(): Returns a string representation of the Dendrite object.
         __repr__(): Returns a string representation of the Dendrite object, acting as a fallback for __str__().
-        query(self, *args, **kwargs) -> Union[Synapse, List[Synapse]]:
-            Makes synchronous requests to one or multiple target Axons and returns responses.
-
-        forward(self, axons, synapse=Synapse(), timeout=12, deserialize=True, run_async=True, streaming=False) -> Synapse:
-            Asynchronously sends requests to one or multiple Axons and collates their responses.
-
-        call(self, target_axon, synapse=Synapse(), timeout=12.0, deserialize=True) -> Synapse:
-            Asynchronously sends a request to a specified Axon and processes the response.
-
-        call_stream(self, target_axon, synapse=Synapse(), timeout=12.0, deserialize=True) -> AsyncGenerator[Synapse, None]:
-            Sends a request to a specified Axon and yields an AsyncGenerator that contains streaming response chunks before finally yielding the filled Synapse as the final element.
-
-        preprocess_synapse_for_request(self, target_axon_info, synapse, timeout=12.0) -> Synapse:
-            Preprocesses the synapse for making a request, including building headers and signing.
-
-        process_server_response(self, server_response, json_response, local_synapse):
-            Processes the server response, updates the local synapse state, and merges headers.
-
-        close_session(self):
-            Synchronously closes the internal aiohttp client session.
-
-        aclose_session(self):
-            Asynchronously closes the internal aiohttp client session.
+        query(self, *args, **kwargs) -> Union[Synapse, List[Synapse]]: Makes synchronous requests to one or multiple target Axons and returns responses.
+        forward(self, axons, synapse=Synapse(), timeout=12, deserialize=True, run_async=True, streaming=False) -> Synapse: Asynchronously sends requests to one or multiple Axons and collates their responses.
+        call(self, target_axon, synapse=Synapse(), timeout=12.0, deserialize=True) -> Synapse: Asynchronously sends a request to a specified Axon and processes the response.
+        call_stream(self, target_axon, synapse=Synapse(), timeout=12.0, deserialize=True) -> AsyncGenerator[Synapse, None]: Sends a request to a specified Axon and yields an AsyncGenerator that contains streaming response chunks before finally yielding the filled Synapse as the final element.
+        preprocess_synapse_for_request(self, target_axon_info, synapse, timeout=12.0) -> Synapse: Preprocesses the synapse for making a request, including building headers and signing.
+        process_server_response(self, server_response, json_response, local_synapse): Processes the server response, updates the local synapse state, and merges headers.
+        close_session(self): Synchronously closes the internal aiohttp client session.
+        aclose_session(self): Asynchronously closes the internal aiohttp client session.
 
     NOTE:
         When working with async `aiohttp <https://github.com/aio-libs/aiohttp>`_ client sessions, it is recommended to use a context manager.
@@ -347,11 +332,10 @@ class DendriteMixin:
         Cleanup is automatically handled and sessions are closed upon completed requests.
 
         Args:
-            axons (Union[List[Union['bittensor.AxonInfo', 'bittensor.axon']], Union['bittensor.AxonInfo', 'bittensor.axon']]):
-                The list of target Axon information.
+            axons (Union[List[Union['bittensor.AxonInfo', 'bittensor.axon']], Union['bittensor.AxonInfo', 'bittensor.axon']]): The list of target Axon information.
             synapse (Synapse, optional): The Synapse object. Defaults to :func:`Synapse()`.
-            timeout (float, optional): The request timeout duration in seconds.
-                Defaults to ``12.0`` seconds.
+            timeout (float, optional): The request timeout duration in seconds. Defaults to ``12.0`` seconds.
+
         Returns:
             Union[Synapse, List[Synapse]]: If a single target axon is provided, returns the response from that axon. If multiple target axons are provided, returns a list of responses from all target axons.
         """
@@ -463,19 +447,13 @@ class DendriteMixin:
                 """
                 Manages the request and response process for a single axon, supporting both streaming and non-streaming modes.
 
-                This function is responsible for initiating a request to a single axon. Depending on the
-                ``is_stream`` flag, it either uses ``call_stream`` for streaming responses or ``call`` for
-                standard responses. The function handles the response processing, catering to the specifics
-                of streaming or non-streaming data.
+                This function is responsible for initiating a request to a single axon. Depending on the ``is_stream`` flag, it either uses ``call_stream`` for streaming responses or ``call`` for standard responses. The function handles the response processing, catering to the specifics of streaming or non-streaming data.
 
                 Args:
                     target_axon: The target axon object to which the request is to be sent. This object contains the necessary information like IP address and port to formulate the request.
 
                 Returns:
-                    Union[AsyncGenerator, Synapse, bittensor.StreamingSynapse]: The response
-                    from the targeted axon. In streaming mode, an AsyncGenerator is returned, yielding
-                    data chunks. In non-streaming mode, a Synapse or StreamingSynapse object is returned
-                    containing the response.
+                    Union[AsyncGenerator, Synapse, bittensor.StreamingSynapse]: The response from the targeted axon. In streaming mode, an AsyncGenerator is returned, yielding data chunks. In non-streaming mode, a Synapse or StreamingSynapse object is returned containing the response.
                 """
                 if is_stream:
                     # If in streaming mode, return the async_generator
@@ -519,9 +497,7 @@ class DendriteMixin:
         """
         Asynchronously sends a request to a specified Axon and processes the response.
 
-        This function establishes a connection with a specified Axon, sends the encapsulated
-        data through the Synapse object, waits for a response, processes it, and then
-        returns the updated Synapse object.
+        This function establishes a connection with a specified Axon, sends the encapsulated data through the Synapse object, waits for a response, processes it, and then returns the updated Synapse object.
 
         Args:
             target_axon (Union['bittensor.AxonInfo', 'bittensor.axon']): The target Axon to send the request to.
@@ -665,14 +641,12 @@ class DendriteMixin:
         timeout: float = 12.0,
     ) -> "Synapse":
         """
-        Preprocesses the synapse for making a request. This includes building
-        headers for Dendrite and Axon and signing the request.
+        Preprocesses the synapse for making a request. This includes building headers for Dendrite and Axon and signing the request.
 
         Args:
             target_axon_info (bittensor.AxonInfo): The target axon information.
             synapse (Synapse): The synapse object to be preprocessed.
-            timeout (float, optional): The request timeout duration in seconds.
-                Defaults to ``12.0`` seconds.
+            timeout (float, optional): The request timeout duration in seconds. Defaults to ``12.0`` seconds.
 
         Returns:
             Synapse: The preprocessed synapse.
@@ -707,8 +681,7 @@ class DendriteMixin:
         local_synapse: Synapse,
     ):
         """
-        Processes the server response, updates the local synapse state with the
-        server's state and merges headers set by the server.
+        Processes the server response, updates the local synapse state with the server's state and merges headers set by the server.
 
         Args:
             server_response (object): The `aiohttp <https://github.com/aio-libs/aiohttp>`_ response object from the server.
@@ -784,14 +757,12 @@ class DendriteMixin:
         """
         Asynchronous context manager entry method.
 
-        Enables the use of the ``async with`` statement with the Dendrite instance. When entering the context,
-        the current instance of the class is returned, making it accessible within the asynchronous context.
+        Enables the use of the ``async with`` statement with the Dendrite instance. When entering the context, the current instance of the class is returned, making it accessible within the asynchronous context.
 
         Returns:
             Dendrite: The current instance of the Dendrite class.
 
         Usage::
-
             async with Dendrite() as dendrite:
                 await dendrite.some_async_method()
         """
@@ -801,8 +772,7 @@ class DendriteMixin:
         """
         Asynchronous context manager exit method.
 
-        Ensures proper cleanup when exiting the ``async with`` context. This method will close the `aiohttp <https://github.com/aio-libs/aiohttp>`_ client session
-        asynchronously, releasing any tied resources.
+        Ensures proper cleanup when exiting the ``async with`` context. This method will close the `aiohttp <https://github.com/aio-libs/aiohttp>`_ client session asynchronously, releasing any tied resources.
 
         Args:
             exc_type (Type[BaseException], optional): The type of exception that was raised.
@@ -823,8 +793,7 @@ class DendriteMixin:
         """
         Dendrite destructor.
 
-        This method is invoked when the Dendrite instance is about to be destroyed. The destructor ensures that the
-        aiohttp client session is closed before the instance is fully destroyed, releasing any remaining resources.
+        This method is invoked when the Dendrite instance is about to be destroyed. The destructor ensures that the aiohttp client session is closed before the instance is fully destroyed, releasing any remaining resources.
 
         Note:
             Relying on the destructor for cleanup can be unpredictable. It is recommended to explicitly close sessions using the provided methods or the ``async with`` context manager.

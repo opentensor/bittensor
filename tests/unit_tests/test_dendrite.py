@@ -31,7 +31,7 @@ from bittensor.core.dendrite import (
     Dendrite,
 )
 from bittensor.core.synapse import TerminalInfo
-from tests.helpers import _get_mock_wallet
+from tests.helpers import get_mock_wallet
 from bittensor.core.synapse import Synapse
 from bittensor.core.chain_data import AxonInfo
 
@@ -49,7 +49,7 @@ def dummy(synapse: SynapseDummy) -> SynapseDummy:
 @pytest.fixture
 def setup_dendrite():
     # Assuming bittensor.wallet() returns a wallet object
-    user_wallet = _get_mock_wallet()
+    user_wallet = get_mock_wallet()
     dendrite_obj = Dendrite(user_wallet)
     return dendrite_obj
 
@@ -109,7 +109,7 @@ async def test_aclose(dendrite_obj, setup_axon):
     axon = setup_axon
     # Use context manager to open an async session
     async with dendrite_obj:
-        resp = await dendrite_obj([axon], SynapseDummy(input=1), deserialize=False)
+        await dendrite_obj([axon], SynapseDummy(input=1), deserialize=False)
     # Close should automatically be called on the session after context manager scope
     assert dendrite_obj._session is None
 
@@ -128,16 +128,16 @@ class AsyncMock(Mock):
 
 
 def test_dendrite_create_wallet():
-    d = Dendrite(_get_mock_wallet())
-    d = Dendrite(_get_mock_wallet().hotkey)
-    d = Dendrite(_get_mock_wallet().coldkeypub)
+    d = Dendrite(get_mock_wallet())
+    d = Dendrite(get_mock_wallet().hotkey)
+    d = Dendrite(get_mock_wallet().coldkeypub)
     assert d.__str__() == d.__repr__()
 
 
 @pytest.mark.asyncio
 async def test_forward_many():
     n = 10
-    d = Dendrite(wallet=_get_mock_wallet())
+    d = Dendrite(wallet=get_mock_wallet())
     d.call = AsyncMock()
     axons = [MagicMock() for _ in range(n)]
 
@@ -153,10 +153,10 @@ async def test_forward_many():
 
 
 def test_pre_process_synapse():
-    d = Dendrite(wallet=_get_mock_wallet())
+    d = Dendrite(wallet=get_mock_wallet())
     s = Synapse()
     synapse = d.preprocess_synapse_for_request(
-        target_axon_info=Axon(wallet=_get_mock_wallet()).info(),
+        target_axon_info=Axon(wallet=get_mock_wallet()).info(),
         synapse=s,
         timeout=12,
     )

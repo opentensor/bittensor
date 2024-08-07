@@ -72,9 +72,7 @@ dtypes = DTypes()
 
 def cast_dtype(raw: Union[None, np.dtype, "torch.dtype", str]) -> Optional[str]:
     """
-    Casts the raw value to a string representing the
-    `numpy data type <https://numpy.org/doc/stable/user/basics.types.html>`_, or the
-    `torch data type <https://pytorch.org/docs/stable/tensor_attributes.html>`_ if using torch.
+    Casts the raw value to a string representing the `numpy data type <https://numpy.org/doc/stable/user/basics.types.html>`_, or the `torch data type <https://pytorch.org/docs/stable/tensor_attributes.html>`_ if using torch.
 
     Args:
         raw (Union[None, numpy.dtype, torch.dtype, str]): The raw value to cast.

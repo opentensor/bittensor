@@ -15,7 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-__version__ = "7.3.0"
+__version__ = "7.5.0"
 
 import os
 import re
@@ -60,44 +60,45 @@ USER_BITTENSOR_DIR = HOME_DIR / ".bittensor"
 WALLETS_DIR = USER_BITTENSOR_DIR / "wallets"
 MINERS_DIR = USER_BITTENSOR_DIR / "miners"
 
+# Bittensor networks name
+NETWORKS = ["local", "finney", "test", "archive"]
+
 DEFAULT_ENDPOINT = "wss://entrypoint-finney.opentensor.ai:443"
-DEFAULT_NETWORK = "finney"
+DEFAULT_NETWORK = NETWORKS[1]
 
 # Create dirs if they don't exist
 WALLETS_DIR.mkdir(parents=True, exist_ok=True)
 MINERS_DIR.mkdir(parents=True, exist_ok=True)
 
-# Bittensor networks name
-networks = ["local", "finney", "test", "archive"]
 
 # Bittensor endpoints (Needs to use wss://)
-finney_entrypoint = "wss://entrypoint-finney.opentensor.ai:443"
-finney_test_entrypoint = "wss://test.finney.opentensor.ai:443/"
-archive_entrypoint = "wss://archive.chain.opentensor.ai:443/"
-local_entrypoint = os.getenv("BT_SUBTENSOR_CHAIN_ENDPOINT") or "ws://127.0.0.1:9944"
+FINNEY_ENTRYPOINT = "wss://entrypoint-finney.opentensor.ai:443"
+FINNEY_TEST_ENTRYPOINT = "wss://test.finney.opentensor.ai:443/"
+ARCHIVE_ENTRYPOINT = "wss://archive.chain.opentensor.ai:443/"
+LOCAL_ENTRYPOINT = os.getenv("BT_SUBTENSOR_CHAIN_ENDPOINT") or "ws://127.0.0.1:9944"
 
 # Currency Symbols Bittensor
-tao_symbol: str = chr(0x03C4)
-rao_symbol: str = chr(0x03C1)
+TAO_SYMBOL: str = chr(0x03C4)
+RAO_SYMBOL: str = chr(0x03C1)
 
 # Pip address for versioning
-pipaddress = "https://pypi.org/pypi/bittensor/json"
+PIPADDRESS = "https://pypi.org/pypi/bittensor/json"
 
 # Substrate chain block time (seconds).
-blocktime = 12
+BLOCKTIME = 12
 
 # Substrate ss58_format
-ss58_format = 42
+SS58_FORMAT = 42
 
 # Wallet ss58 address length
-ss58_address_length = 48
+SS58_ADDRESS_LENGTH = 48
 
 # Raw GitHub url for delegates registry file
-delegates_details_url = "https://raw.githubusercontent.com/opentensor/bittensor-delegates/main/public/delegates.json"
+DELEGATES_DETAILS_URL = "https://raw.githubusercontent.com/opentensor/bittensor-delegates/main/public/delegates.json"
 
 # Block Explorers map network to explorer url
 # Must all be polkadotjs explorer urls
-network_explorer_map = {
+NETWORK_EXPLORER_MAP = {
     "opentensor": {
         "local": "https://polkadot.js.org/apps/?rpc=wss%3A%2F%2Fentrypoint-finney.opentensor.ai%3A443#/explorer",
         "endpoint": "https://polkadot.js.org/apps/?rpc=wss%3A%2F%2Fentrypoint-finney.opentensor.ai%3A443#/explorer",
@@ -111,7 +112,7 @@ network_explorer_map = {
 }
 
 # --- Type Registry ---
-type_registry: dict = {
+TYPE_REGISTRY: dict = {
     "types": {
         "Balance": "u64",  # Need to override default u128
     },
@@ -142,41 +143,6 @@ type_registry: dict = {
                 },
             }
         },
-        "StakeInfoRuntimeApi": {
-            "methods": {
-                "get_stake_info_for_coldkey": {
-                    "params": [
-                        {
-                            "name": "coldkey_account_vec",
-                            "type": "Vec<u8>",
-                        },
-                    ],
-                    "type": "Vec<u8>",
-                },
-                "get_stake_info_for_coldkeys": {
-                    "params": [
-                        {
-                            "name": "coldkey_account_vecs",
-                            "type": "Vec<Vec<u8>>",
-                        },
-                    ],
-                    "type": "Vec<u8>",
-                },
-            },
-        },
-        "ValidatorIPRuntimeApi": {
-            "methods": {
-                "get_associated_validator_ip_info_for_subnet": {
-                    "params": [
-                        {
-                            "name": "netuid",
-                            "type": "u16",
-                        },
-                    ],
-                    "type": "Vec<u8>",
-                },
-            },
-        },
         "SubnetInfoRuntimeApi": {
             "methods": {
                 "get_subnet_hyperparams": {
@@ -193,41 +159,10 @@ type_registry: dict = {
         "SubnetRegistrationRuntimeApi": {
             "methods": {"get_network_registration_cost": {"params": [], "type": "u64"}}
         },
-        "ColdkeySwapRuntimeApi": {
-            "methods": {
-                "get_scheduled_coldkey_swap": {
-                    "params": [
-                        {
-                            "name": "coldkey_account_vec",
-                            "type": "Vec<u8>",
-                        },
-                    ],
-                    "type": "Vec<u8>",
-                },
-                "get_remaining_arbitration_period": {
-                    "params": [
-                        {
-                            "name": "coldkey_account_vec",
-                            "type": "Vec<u8>",
-                        },
-                    ],
-                    "type": "Vec<u8>",
-                },
-                "get_coldkey_swap_destinations": {
-                    "params": [
-                        {
-                            "name": "coldkey_account_vec",
-                            "type": "Vec<u8>",
-                        },
-                    ],
-                    "type": "Vec<u8>",
-                },
-            }
-        },
     },
 }
 
-defaults = Munch = munchify(
+DEFAULTS = munchify(
     {
         "axon": {
             "port": os.getenv("BT_AXON_PORT") or 8091,
