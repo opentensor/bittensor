@@ -96,6 +96,7 @@ jobs:
 
       - name: Create tox.ini
         run: |
+          cd ../..
           cat << EOF > tox.ini
           [tox]
           envlist = bt-${{ matrix.bittensor-version }}
@@ -108,7 +109,7 @@ jobs:
               nest_asyncio
               bittensor==${{ matrix.bittensor-version }}
           commands = 
-              pytest tests/e2e_tests -v -s {posargs}
+              pytest ${{ github.workspace }}/tests/e2e_tests -v -s {posargs}
           passenv =
               LOCALNET_SH_PATH
 
@@ -120,5 +121,7 @@ jobs:
         env:
           LOCALNET_SH_PATH: ${{ github.workspace }}/subtensor/scripts/localnet.sh
         run: |
-          cd ..
-          tox -c ${{ github.workspace }}/tox.ini -e bt-${{ matrix.bittensor-version }}
+          cd ../..
+          pwd
+          ls -la
+          tox -c tox.ini -e bt-${{ matrix.bittensor-version }}
