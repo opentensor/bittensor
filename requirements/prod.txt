@@ -33,5 +33,4 @@ termcolor
 tqdm
 uvicorn
 wheel
-
 git+https://github.com/opentensor/btwallet.git@main#egg=bittensor-wallet
