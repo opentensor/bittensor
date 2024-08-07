@@ -1,4 +1,4 @@
-name: E2E tests with multiple versions
+name: E2E tests w/ multiple bittensor versions
 
 on:
   workflow_dispatch:
