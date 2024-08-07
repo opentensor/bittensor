@@ -23,13 +23,15 @@ import contextlib
 import copy
 import inspect
 import json
+import os
 import threading
 import time
 import traceback
 import typing
 import uuid
-from inspect import Parameter, Signature, signature
-from typing import Any, Awaitable, Callable, Dict, List, Optional, Tuple
+import warnings
+from inspect import signature, Signature, Parameter
+from typing import List, Optional, Tuple, Callable, Any, Dict, Awaitable
 
 import uvicorn
 from bittensor_wallet import Wallet
@@ -364,12 +366,9 @@ class Axon:
         self.app = FastAPI()
         log_level = "trace" if logging.__trace_on__ else "critical"
         self.fast_config = uvicorn.Config(
-            self.app,
-            host="0.0.0.0",
-            port=self.config.axon.port,  # type: ignore
-            log_level=log_level,  # type: ignore
+            self.app, host="0.0.0.0", port=self.config.axon.port, log_level=log_level
         )
-        self.fast_server = FastAPIThreadedServer(config=self.fast_config)  # type: ignore
+        self.fast_server = FastAPIThreadedServer(config=self.fast_config)
         self.router = APIRouter()
         self.app.include_router(self.router)
 
@@ -378,7 +377,7 @@ class Axon:
         self.app.add_middleware(self.middleware_cls, axon=self)
 
         # Attach default forward.
-        def ping(r: Synapse) -> Synapse:
+        def ping(r: "Synapse") -> Synapse:
             return r
 
         self.attach(
@@ -480,17 +479,50 @@ class Axon:
 
         async def endpoint(*args, **kwargs):
             start_time = time.time()
-            response_synapse = forward_fn(*args, **kwargs)
-            if isinstance(response_synapse, Awaitable):
-                response_synapse = await response_synapse
-            return await self.middleware_cls.synapse_to_response(
-                synapse=response_synapse, start_time=start_time
-            )
+            response = forward_fn(*args, **kwargs)
+            if isinstance(response, Awaitable):
+                response = await response
+            if isinstance(response, bittensor.Synapse):
+                return await self.middleware_cls.synapse_to_response(
+                    synapse=response, start_time=start_time
+                )
+            else:
+                response_synapse = getattr(response, "synapse", None)
+                if response_synapse is None:
+                    warnings.warn(
+                        "The response synapse is None. The input synapse will be used as the response synapse. "
+                        "Reliance on forward_fn modifying input synapse as a side-effects is deprecated. "
+                        "Explicitly set `synapse` on response object instead.",
+                        DeprecationWarning,
+                    )
+                    # Replace with `return response` in next major version
+                    response_synapse = args[0]
 
-        # replace the endpoint signature, but set return annotation to JSONResponse
+                return await self.middleware_cls.synapse_to_response(
+                    synapse=response_synapse,
+                    start_time=start_time,
+                    response_override=response,
+                )
+
+        return_annotation = forward_sig.return_annotation
+
+        if isinstance(return_annotation, type) and issubclass(
+            return_annotation, bittensor.Synapse
+        ):
+            if issubclass(
+                return_annotation,
+                bittensor.StreamingSynapse,
+            ):
+                warnings.warn(
+                    "The forward_fn return annotation is a subclass of bittensor.StreamingSynapse. "
+                    "Most likely the correct return annotation would be BTStreamingResponse."
+                )
+            else:
+                return_annotation = JSONResponse
+
         endpoint.__signature__ = Signature(  # type: ignore
             parameters=list(forward_sig.parameters.values()),
-            return_annotation=JSONResponse,
+            return_annotation=return_annotation,
         )
 
         # Add the endpoint to the router, making it available on both GET and POST methods
@@ -802,7 +834,7 @@ class Axon:
             subtensor.serve_axon(netuid=netuid, axon=self)
         return self
 
-    async def default_verify(self, synapse: Synapse):
+    async def default_verify(self, synapse: "Synapse"):
         """
         This method is used to verify the authenticity of a received message using a digital signature.
 
@@ -919,7 +951,7 @@ class Axon:
             raise SynapseDendriteNoneException(synapse=synapse)
 
 
-def create_error_response(synapse: Synapse):
+def create_error_response(synapse: "Synapse"):
     if synapse.axon is None:
         return JSONResponse(
             status_code=400,
@@ -935,11 +967,11 @@ def create_error_response(synapse: Synapse):
 
 
 def log_and_handle_error(
-    synapse: Synapse,
+    synapse: "Synapse",
     exception: Exception,
     status_code: typing.Optional[int] = None,
     start_time: typing.Optional[float] = None,
-) -> Synapse:
+) -> "Synapse":
     if isinstance(exception, SynapseException):
         synapse = exception.synapse or synapse
 
@@ -1056,7 +1088,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
         try:
             # Set up the synapse from its headers.
             try:
-                synapse: Synapse = await self.preprocess(request)
+                synapse: "Synapse" = await self.preprocess(request)
             except Exception as exc:
                 if isinstance(exc, SynapseException) and exc.synapse is not None:
                     synapse = exc.synapse
@@ -1410,14 +1442,19 @@ class AxonMiddleware(BaseHTTPMiddleware):
 
     @classmethod
     async def synapse_to_response(
-        cls, synapse: "Synapse", start_time: float
-    ) -> JSONResponse:
+        cls,
+        synapse: "Synapse",
+        start_time: float,
+        *,
+        response_override: "Optional[Response]" = None,
+    ) -> "Response":
         """
         Converts the Synapse object into a JSON response with HTTP headers.
 
         Args:
             synapse (bittensor.Synapse): The Synapse object representing the request.
             start_time (float): The timestamp when the request processing started.
+            response_override: Instead of serializing the synapse, mutate the provided response object. This is only really useful for StreamingSynapse responses.
 
         Returns:
             Response: The final HTTP response, with updated headers, ready to be sent back to the client.
@@ -1436,11 +1473,14 @@ class AxonMiddleware(BaseHTTPMiddleware):
 
         synapse.axon.process_time = time.time() - start_time
 
-        serialized_synapse = await serialize_response(response_content=synapse)
-        response = JSONResponse(
-            status_code=synapse.axon.status_code,
-            content=serialized_synapse,
-        )
+        if response_override:
+            response = response_override
+        else:
+            serialized_synapse = await serialize_response(response_content=synapse)
+            response = JSONResponse(
+                status_code=synapse.axon.status_code,
+                content=serialized_synapse,
+            )
 
         try:
             updated_headers = synapse.to_headers()

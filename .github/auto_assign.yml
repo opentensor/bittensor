@@ -1,10 +1,7 @@
-# Set to true to add assignees to pull requests
-addAssignees: true
+addReviewers: true
 
 # A list of team slugs to add as assignees
-teamAssignees:
+reviewers:
   - opentensor/cortex
 
-# A number of assignees to add to the pull request
-# Set to 0 to add all of the assignees.
-numberOfAssignees: 0
+numberOfReviewers: 0
