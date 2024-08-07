@@ -5,7 +5,7 @@ from bittensor.subtensor import subtensor
 from ...utils import setup_wallet
 
 
-def test_wallet_list(local_chain: subtensor, capsys):
+def test_wallet_list(capsys):
     """
     Test the listing of wallets in the Bittensor network.
 
