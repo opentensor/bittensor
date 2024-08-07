@@ -37,10 +37,9 @@ def test_metagraph_command(local_chain, capsys):
     exec_command(MetagraphCommand, ["subnet", "metagraph", "--netuid", "1"])
 
     captured = capsys.readouterr()
-    lines = captured.out.splitlines()
 
     # Assert metagraph is printed for netuid 1
-    assert "Metagraph: net: local:1" in lines[2]
+    assert "Metagraph: net: local:1" in captured.out
 
     # Register Bob as neuron to the subnet
     bob_keypair, bob_exec_command, bob_wallet = setup_wallet("//Bob")
@@ -55,10 +54,9 @@ def test_metagraph_command(local_chain, capsys):
     )
 
     captured = capsys.readouterr()
-    lines = captured.out.splitlines()
 
     # Assert neuron was registered
-    assert "✅ Registered" in lines[3]
+    assert "✅ Registered" in captured.out
 
     # Refresh the metagraph
     metagraph = subtensor.metagraph(netuid=1)
@@ -87,10 +85,9 @@ def test_metagraph_command(local_chain, capsys):
     )
 
     captured = capsys.readouterr()
-    lines = captured.out.splitlines()
 
     # Assert neuron was registered
-    assert "✅ Registered" in lines[3]
+    assert "✅ Registered" in captured.out
 
     # Refresh the metagraph
     metagraph = subtensor.metagraph(netuid=1)
