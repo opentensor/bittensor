@@ -1,17 +1,20 @@
 import bittensor
+from bittensor import logging
 from bittensor.commands import (
-    RegisterSubnetworkCommand,
-    RegisterCommand,
-    StakeCommand,
     NominateCommand,
-    SetTakeCommand,
+    RegisterCommand,
+    RegisterSubnetworkCommand,
     RootRegisterCommand,
+    SetTakeCommand,
+    StakeCommand,
 )
 from bittensor.commands.senate import SenateCommand
+
 from ...utils import setup_wallet
 
 
 def test_root_register_add_member_senate(local_chain, capsys):
+    logging.info("Testing test_root_register_add_member_senate")
     # Register root as Alice - the subnet owner
     alice_keypair, exec_command, wallet = setup_wallet("//Alice")
     exec_command(RegisterSubnetworkCommand, ["s", "create"])
@@ -47,7 +50,7 @@ def test_root_register_add_member_senate(local_chain, capsys):
     assert local_chain.query("SubtensorModule", "NetworksAdded", [1]).serialize()
     # Query local chain for senate members
     members = local_chain.query("SenateMembers", "Members").serialize()
-    assert len(members) == 3
+    assert len(members) == 3, f"Expected 3 senate members, found {len(members)}"
 
     # Assert subtensor has 3 senate members
     subtensor = bittensor.subtensor(network="ws://localhost:9945")
@@ -90,7 +93,7 @@ def test_root_register_add_member_senate(local_chain, capsys):
     # sudo_call_add_senate_member(local_chain, wallet)
 
     members = local_chain.query("SenateMembers", "Members").serialize()
-    assert len(members) == 4
+    assert len(members) == 4, f"Expected 4 senate members, found {len(members)}"
 
     # Assert subtensor has 4 senate members
     subtensor = bittensor.subtensor(network="ws://localhost:9945")
@@ -107,6 +110,7 @@ def test_root_register_add_member_senate(local_chain, capsys):
     captured = capsys.readouterr()
 
     # assert output is graph Titling "Senate" with names and addresses
+
     assert "Senate" in captured.out
     assert "NAME" in captured.out
     assert "ADDRESS" in captured.out
