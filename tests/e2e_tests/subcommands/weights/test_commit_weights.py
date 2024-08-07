@@ -1,17 +1,18 @@
+import asyncio
 import re
 
 import numpy as np
-import asyncio
 import pytest
 
 import bittensor
 import bittensor.utils.weight_utils as weight_utils
+from bittensor import logging
 from bittensor.commands import (
-    RegisterCommand,
-    StakeCommand,
-    RegisterSubnetworkCommand,
     CommitWeightCommand,
+    RegisterCommand,
+    RegisterSubnetworkCommand,
     RevealWeightCommand,
+    StakeCommand,
     SubnetSudoCommand,
 )
 from tests.e2e_tests.utils import setup_wallet, wait_interval
@@ -31,6 +32,7 @@ Verify that:
 
 @pytest.mark.asyncio
 async def test_commit_and_reveal_weights(local_chain):
+    logging.info("Testing test_commit_and_reveal_weights")
     # Register root as Alice
     keypair, exec_command, wallet = setup_wallet("//Alice")
 
@@ -42,7 +44,9 @@ async def test_commit_and_reveal_weights(local_chain):
     salt = "18, 179, 107, 0, 165, 211, 141, 197"
 
     # Verify subnet 1 created successfully
-    assert local_chain.query("SubtensorModule", "NetworksAdded", [1]).serialize()
+    assert local_chain.query(
+        "SubtensorModule", "NetworksAdded", [1]
+    ).serialize(), "Subnet wasn't created successfully"
 
     # Register a neuron to the subnet
     exec_command(
@@ -239,3 +243,4 @@ async def test_commit_and_reveal_weights(local_chain):
     assert (
         expected_weights[0] == revealed_weights.value[0][1]
     ), f"Incorrect revealed weights. Expected: {expected_weights[0]}, Actual: {revealed_weights.value[0][1]}"
+    logging.info("Passed test_commit_and_reveal_weights")
