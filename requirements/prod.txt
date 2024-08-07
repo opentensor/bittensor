@@ -2,7 +2,7 @@ aiohttp~=3.9
 ansible~=8.5.0
 ansible_vault~=2.1
 backoff
-certifi~=2024.07.04
+certifi~=2024.7.4
 colorama~=0.4.6
 cryptography~=42.0.5
 ddt~=1.6.0
