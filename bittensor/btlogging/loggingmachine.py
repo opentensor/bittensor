@@ -362,7 +362,7 @@ class LoggingMachine(StateMachine):
 
     @staticmethod
     def _concat_msg(*args):
-        return " - ".join(el for el in args if el != "")
+        return " - ".join(str(el) for el in args if el != "")
 
     def trace(self, msg="", *args, prefix="", suffix="", **kwargs):
         """Wraps trace message with prefix and suffix."""
