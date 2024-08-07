@@ -30,18 +30,19 @@ import pytest
 from fastapi.testclient import TestClient
 from starlette.requests import Request
 
-import bittensor
-from bittensor.core.synapse import Synapse, RunException, StreamingSynapse
 from bittensor.core.axon import AxonMiddleware, Axon
-from bittensor.utils.axon_utils import allowed_nonce_window_ns, calculate_diff_seconds
-from bittensor.constants import ALLOWED_DELTA, NANOSECONDS_IN_SECOND
-
+from bittensor.core.errors import RunException
+from bittensor.core.settings import version_as_int
+from bittensor.core.stream import StreamingSynapse
+from bittensor.core.synapse import Synapse
+from bittensor.core.threadpool import PriorityThreadPoolExecutor
 from bittensor.utils.axon_utils import (
     allowed_nonce_window_ns,
     calculate_diff_seconds,
     ALLOWED_DELTA,
     NANOSECONDS_IN_SECOND,
 )
+
 
 def test_attach_initial():
     # Create a mock AxonServer instance
@@ -736,7 +737,7 @@ def test_nonce_within_allowed_window(nonce_offset_seconds, expected_result):
         [
             None,
             fastapi.Response,
-            bittensor.StreamingSynapse,
+            StreamingSynapse,
         ],
     )
     async def test_streaming_synapse(

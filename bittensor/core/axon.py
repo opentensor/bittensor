@@ -23,7 +23,6 @@ import contextlib
 import copy
 import inspect
 import json
-import os
 import threading
 import time
 import traceback
@@ -57,6 +56,7 @@ from bittensor.core.errors import (
     UnknownSynapseError,
 )
 from bittensor.core.settings import DEFAULTS, version_as_int
+from bittensor.core.stream import StreamingSynapse
 from bittensor.core.synapse import Synapse, TerminalInfo
 from bittensor.core.threadpool import PriorityThreadPoolExecutor
 from bittensor.utils import networking
@@ -377,7 +377,7 @@ class Axon:
         self.app.add_middleware(self.middleware_cls, axon=self)
 
         # Attach default forward.
-        def ping(r: "Synapse") -> Synapse:
+        def ping(r: Synapse) -> Synapse:
             return r
 
         self.attach(
@@ -482,7 +482,7 @@ class Axon:
             response = forward_fn(*args, **kwargs)
             if isinstance(response, Awaitable):
                 response = await response
-            if isinstance(response, bittensor.Synapse):
+            if isinstance(response, Synapse):
                 return await self.middleware_cls.synapse_to_response(
                     synapse=response, start_time=start_time
                 )
@@ -507,11 +507,11 @@ class Axon:
         return_annotation = forward_sig.return_annotation
 
         if isinstance(return_annotation, type) and issubclass(
-            return_annotation, bittensor.Synapse
+            return_annotation, Synapse
         ):
             if issubclass(
                 return_annotation,
-                bittensor.StreamingSynapse,
+                StreamingSynapse,
             ):
                 warnings.warn(
                     "The forward_fn return annotation is a subclass of bittensor.StreamingSynapse. "

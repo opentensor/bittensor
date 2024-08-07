@@ -39,9 +39,7 @@ class BTStreamingResponseModel(BaseModel):
     passing the token streamer to the BTStreamingResponse class.
 
     Attributes:
-        token_streamer: Callable[[Send], Awaitable[None]]
-            The token streamer callable, which takes a send function (provided by the ASGI server) and returns an awaitable.
-            It is responsible for generating the content of the streaming response.
+        token_streamer: Callable[[Send], Awaitable[None]] The token streamer callable, which takes a send function (provided by the ASGI server) and returns an awaitable. It is responsible for generating the content of the streaming response.
     """
 
     token_streamer: Callable[[Send], Awaitable[None]]
@@ -146,7 +144,6 @@ class StreamingSynapse(Synapse, ABC):
         Args:
             response: The response object from which to extract JSON data.
         """
-        ...
 
     def create_streaming_response(
         self, token_streamer: Callable[[Send], Awaitable[None]]
