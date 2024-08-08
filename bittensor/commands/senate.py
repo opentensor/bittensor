@@ -71,7 +71,7 @@ class SenateCommand:
 
         senate_members = subtensor.get_senate_members()
         delegate_info: Optional[Dict[str, DelegatesDetails]] = get_delegates_details(
-            url=bittensor.__delegates_details_url__
+            subtensor=subtensor
         )
 
         table = Table(show_footer=False)
@@ -93,7 +93,7 @@ class SenateCommand:
         for ss58_address in senate_members:
             table.add_row(
                 (
-                    delegate_info[ss58_address].name
+                    delegate_info[ss58_address].display
                     if ss58_address in delegate_info
                     else ""
                 ),
@@ -143,14 +143,15 @@ def format_call_data(call_data: "bittensor.ProposalCallData") -> str:
 
 
 def display_votes(
-    vote_data: "bittensor.ProposalVoteData", delegate_info: "bittensor.DelegateInfo"
+    vote_data: "bittensor.ProposalVoteData",
+    delegate_info: "Dict[str, DelegatesDetails]",
 ) -> str:
     vote_list = list()
 
     for address in vote_data["ayes"]:
         vote_list.append(
             "{}: {}".format(
-                delegate_info[address].name if address in delegate_info else address,
+                delegate_info[address].display if address in delegate_info else address,
                 "[bold green]Aye[/bold green]",
             )
         )
@@ -158,7 +159,7 @@ def display_votes(
     for address in vote_data["nays"]:
         vote_list.append(
             "{}: {}".format(
-                delegate_info[address].name if address in delegate_info else address,
+                delegate_info[address].display if address in delegate_info else address,
                 "[bold red]Nay[/bold red]",
             )
         )
@@ -212,7 +213,7 @@ class ProposalsCommand:
         proposals = subtensor.get_proposals()
 
         registered_delegate_info: Optional[Dict[str, DelegatesDetails]] = (
-            get_delegates_details(url=bittensor.__delegates_details_url__)
+            get_delegates_details(subtensor=subtensor)
         )
 
         table = Table(show_footer=False)
@@ -338,12 +339,12 @@ class ShowVotesCommand:
             return
 
         proposal_vote_data = subtensor.get_vote_data(proposal_hash)
-        if proposal_vote_data == None:
+        if proposal_vote_data is None:
             console.print(":cross_mark: [red]Failed[/red]: Proposal not found.")
             return
 
         registered_delegate_info: Optional[Dict[str, DelegatesDetails]] = (
-            get_delegates_details(url=bittensor.__delegates_details_url__)
+            get_delegates_details(subtensor=subtensor)
         )
 
         table = Table(show_footer=False)
