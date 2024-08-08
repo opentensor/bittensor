@@ -122,6 +122,7 @@ from .subnets import SubnetsAPI  # noqa: F401
 # Backwards compatibility with previous bittensor versions.
 axon = Axon
 config = Config
+dendrite = Dendrite
 keyfile = Keyfile
 metagraph = Metagraph
 wallet = Wallet
