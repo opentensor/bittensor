@@ -125,6 +125,43 @@ def call_add_proposal(substrate: SubstrateInterface, wallet: bittensor.wallet) -
     return response.is_success
 
 
+def register_subnet(substrate: SubstrateInterface, wallet: bittensor.wallet) -> bool:
+    register_call = substrate.compose_call(
+        call_module="SubtensorModule",
+        call_function="register_network",
+        call_params={"immunity_period": 0, "reg_allowed": True},
+    )
+    extrinsic = substrate.create_signed_extrinsic(
+        call=register_call, keypair=wallet.coldkey
+    )
+    response = substrate.submit_extrinsic(
+        extrinsic, wait_for_finalization=True, wait_for_inclusion=True
+    )
+    response.process_events()
+    return response.is_success
+
+
+def register_neuron(
+    substrate: SubstrateInterface, wallet: bittensor.wallet, netuid: int
+) -> bool:
+    neuron_register_call = substrate.compose_call(
+        call_module="SubtensorModule",
+        call_function="burned_register",
+        call_params={
+            "netuid": netuid,
+            "hotkey": wallet.hotkey.ss58_address,
+        },
+    )
+    extrinsic = substrate.create_signed_extrinsic(
+        call=neuron_register_call, keypair=wallet.coldkey
+    )
+    response = substrate.submit_extrinsic(
+        extrinsic, wait_for_finalization=True, wait_for_inclusion=True
+    )
+    response.process_events()
+    return response.is_success
+
+
 async def wait_epoch(subtensor, netuid=1):
     q_tempo = [
         v.value
