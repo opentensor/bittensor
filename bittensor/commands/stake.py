@@ -24,7 +24,6 @@ from typing import List, Union, Optional, Dict, Tuple
 from rich.prompt import Confirm, Prompt
 from rich.table import Table
 from rich.console import Console
-from rich.text import Text
 from tqdm import tqdm
 
 import bittensor
@@ -35,9 +34,7 @@ from .utils import (
     DelegatesDetails,
 )
 from . import defaults  # type: ignore
-from .. import ChildInfo
 from ..utils import wallet_utils
-from ..utils.formatting import u64_to_float
 
 console = bittensor.__console__
 
@@ -574,139 +571,6 @@ class StakeShow:
         bittensor.subtensor.add_args(list_parser)
 
 
-class SetChildCommand:
-    """
-    Executes the ``set_child`` command to add a child hotkey on a specified subnet on the Bittensor network.
-
-    This command is used to delegate authority to different hotkeys, securing their position and influence on the subnet.
-
-    Usage:
-        Users can specify the amount or 'proportion' to delegate to a child hotkey (either by name or ``SS58`` address),
-        the user needs to have sufficient authority to make this call, and the sum of proportions cannot be greater than 1.
-
-    The command prompts for confirmation before executing the set_child operation.
-
-    Example usage::
-
-        btcli stake set_child --child <child_hotkey> --hotkey <parent_hotkey> --netuid 1 --proportion 0.5
-
-    Note:
-        This command is critical for users who wish to delegate child hotkeys among different neurons (hotkeys) on the network.
-        It allows for a strategic allocation of authority to enhance network participation and influence.
-    """
-
-    @staticmethod
-    def run(cli: "bittensor.cli"):
-        """Set child hotkey."""
-        try:
-            subtensor: "bittensor.subtensor" = bittensor.subtensor(
-                config=cli.config, log_verbose=False
-            )
-            SetChildCommand._run(cli, subtensor)
-        finally:
-            if "subtensor" in locals():
-                subtensor.close()
-                bittensor.logging.debug("closing subtensor connection")
-
-    @staticmethod
-    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
-        wallet = bittensor.wallet(config=cli.config)
-
-        GetChildrenCommand.run(cli)
-
-        # Get values if not set.
-        if not cli.config.is_set("netuid"):
-            cli.config.netuid = int(Prompt.ask("Enter netuid"))
-
-        if not cli.config.is_set("child"):
-            cli.config.child = Prompt.ask("Enter child hotkey (ss58)")
-
-        if not cli.config.is_set("hotkey"):
-            cli.config.hotkey = Prompt.ask("Enter parent hotkey (ss58)")
-
-        if not cli.config.is_set("proportion"):
-            cli.config.proportion = Prompt.ask("Enter proportion")
-
-        # Parse from strings
-        netuid = cli.config.netuid
-
-        try:
-            proportion = float(cli.config.proportion)
-        except ValueError:
-            console.print(
-                ":cross_mark:[red] Invalid proportion amount[/red] [bold white]{}[/bold white]".format(
-                    cli.config.proportion
-                )
-            )
-            sys.exit()
-
-        if proportion > 1:
-            raise ValueError(
-                f":cross_mark:[red] The sum of all proportions cannot be greater than 1. Proposed proportion is {proportion}[/red]"
-            )
-
-        if not wallet_utils.is_valid_ss58_address(cli.config.child):
-            raise ValueError(
-                f":cross_mark:[red] Child ss58 address: {cli.config.child} unrecognizable. Please check child address and try again.[/red]"
-            )
-
-        success, message = subtensor.set_child_singular(
-            wallet=wallet,
-            netuid=netuid,
-            child=cli.config.child,
-            hotkey=cli.config.hotkey,
-            proportion=proportion,
-            wait_for_inclusion=cli.config.wait_for_inclusion,
-            wait_for_finalization=cli.config.wait_for_finalization,
-            prompt=cli.config.prompt,
-        )
-
-        # Result
-        if success:
-            console.print(":white_heavy_check_mark: [green]Set child hotkey.[/green]")
-        else:
-            console.print(
-                f":cross_mark:[red] Unable to set child hotkey.[/red] {message}"
-            )
-
-    @staticmethod
-    def check_config(config: "bittensor.config"):
-        if not config.is_set("wallet.name") and not config.no_prompt:
-            wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
-            config.wallet.name = str(wallet_name)
-        if not config.is_set("wallet.hotkey") and not config.no_prompt:
-            hotkey = Prompt.ask("Enter hotkey name", default=defaults.wallet.hotkey)
-            config.wallet.hotkey = str(hotkey)
-
-    @staticmethod
-    def add_args(parser: argparse.ArgumentParser):
-        parser = parser.add_parser("set_child", help="""Set a child hotkey.""")
-        parser.add_argument("--netuid", dest="netuid", type=int, required=False)
-        parser.add_argument("--child", dest="child", type=str, required=False)
-        parser.add_argument("--hotkey", dest="hotkey", type=str, required=False)
-        parser.add_argument("--proportion", dest="proportion", type=str, required=False)
-        parser.add_argument(
-            "--wait-for-inclusion",
-            dest="wait_for_inclusion",
-            action="store_true",
-            default=False,
-        )
-        parser.add_argument(
-            "--wait-for-finalization",
-            dest="wait_for_finalization",
-            action="store_true",
-            default=True,
-        )
-        parser.add_argument(
-            "--prompt",
-            dest="prompt",
-            action="store_true",
-            default=False,
-        )
-        bittensor.wallet.add_args(parser)
-        bittensor.subtensor.add_args(parser)
-
-
 class SetChildrenCommand:
     """
     Executes the ``set_children`` command to add children hotkeys on a specified subnet on the Bittensor network.
@@ -714,14 +578,14 @@ class SetChildrenCommand:
     This command is used to delegate authority to different hotkeys, securing their position and influence on the subnet.
 
     Usage:
-        Users can specify the amount or 'proportion' to delegate to a child hotkey (either by name or ``SS58`` address),
+        Users can specify the amount or 'proportion' to delegate to child hotkeys (``SS58`` address),
         the user needs to have sufficient authority to make this call, and the sum of proportions cannot be greater than 1.
 
     The command prompts for confirmation before executing the set_children operation.
 
     Example usage::
 
-        btcli stake set_children --children <child_hotkey>,<child_hotkey> --hotkey <parent_hotkey> --netuid 1 --proportion 0.3,0.3
+        btcli stake set_children --children <child_hotkey>,<child_hotkey> --hotkey <parent_hotkey> --netuid 1 --proportions 0.3,0.3
 
     Note:
         This command is critical for users who wish to delegate children hotkeys among different neurons (hotkeys) on the network.
@@ -745,19 +609,19 @@ class SetChildrenCommand:
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         wallet = bittensor.wallet(config=cli.config)
 
-        GetChildrenCommand.run(cli)
-
         # Get values if not set.
         if not cli.config.is_set("netuid"):
             cli.config.netuid = int(Prompt.ask("Enter netuid"))
+            
+        if not cli.config.is_set("hotkey"):
+            cli.config.hotkey = Prompt.ask("Enter parent hotkey (ss58)")
+            
+        children = GetChildrenCommand.run(cli)
 
         if not cli.config.is_set("children"):
             cli.config.children = Prompt.ask(
                 "Enter children hotkey (ss58) as comma-separated values"
             )
-
-        if not cli.config.is_set("hotkey"):
-            cli.config.hotkey = Prompt.ask("Enter parent hotkey (ss58)")
 
         if not cli.config.is_set("proportions"):
             cli.config.proportions = Prompt.ask(
@@ -780,15 +644,16 @@ class SetChildrenCommand:
         total_proposed = sum(proportions)
         if total_proposed > 1:
             raise ValueError(
-                f"The sum of all proportions cannot be greater than 1. Proposed sum of proportions is {total_proposed}."
+                f"Invalid proportion: The sum of all proportions cannot be greater than 1. Proposed sum of proportions is {total_proposed}."
             )
+        
+        children_with_proportions = list(zip(proportions, children))
 
-        success, message = subtensor.set_children_multiple(
+        success, message = subtensor.set_children(
             wallet=wallet,
             netuid=netuid,
-            children=children,
             hotkey=cli.config.hotkey,
-            proportions=proportions,
+            children_with_proportions=children_with_proportions,
             wait_for_inclusion=cli.config.wait_for_inclusion,
             wait_for_finalization=cli.config.wait_for_finalization,
             prompt=cli.config.prompt,
@@ -831,22 +696,25 @@ class SetChildrenCommand:
             "--proportions", dest="proportions", type=str, required=False
         )
         set_children_parser.add_argument(
-            "--wait-for-inclusion",
+            "--wait_for_inclusion",
             dest="wait_for_inclusion",
             action="store_true",
             default=False,
+            help="""Wait for the transaction to be included in a block.""",
         )
         set_children_parser.add_argument(
-            "--wait-for-finalization",
+            "--wait_for_finalization",
             dest="wait_for_finalization",
             action="store_true",
             default=True,
+            help="""Wait for the transaction to be finalized.""",
         )
         set_children_parser.add_argument(
             "--prompt",
             dest="prompt",
             action="store_true",
             default=False,
+            help="""Prompt for confirmation before proceeding.""",
         )
         bittensor.wallet.add_args(set_children_parser)
         bittensor.subtensor.add_args(set_children_parser)
@@ -891,20 +759,22 @@ class GetChildrenCommand:
 
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
-        wallet = bittensor.wallet(config=cli.config)
-
+        
         # Get values if not set.
         if not cli.config.is_set("netuid"):
             cli.config.netuid = int(Prompt.ask("Enter netuid"))
+            
+        # Get values if not set.
+        if not cli.config.is_set("hotkey"):
+            cli.config.netuid = Prompt.ask("Enter hotkey")
 
         # Parse from strings
         netuid = cli.config.netuid
+        hotkey = cli.config.hotkey
+        
+        children = subtensor.get_children(hotkey, netuid)
 
-        children = subtensor.get_children_info(
-            netuid=netuid,
-        )
-
-        GetChildrenCommand.render_table(children, netuid)
+        GetChildrenCommand.render_table(subtensor, hotkey, children, netuid)
 
         return children
 
@@ -923,12 +793,13 @@ class GetChildrenCommand:
             "get_children", help="""Get child hotkeys on subnet."""
         )
         parser.add_argument("--netuid", dest="netuid", type=int, required=False)
+        parser.add_argument("--hotkey", dest="hotkey", type=str, required=False)
 
         bittensor.wallet.add_args(parser)
         bittensor.subtensor.add_args(parser)
 
     @staticmethod
-    def render_table(children: list[ChildInfo], netuid: int):
+    def render_table(subtensor: "bittensor.subtensor", hotkey: str, children: list[Tuple[int, str]], netuid: int):
         console = Console()
 
         # Initialize Rich table for pretty printing
@@ -942,107 +813,55 @@ class GetChildrenCommand:
         # Add columns to the table with specific styles
         table.add_column("Index", style="cyan", no_wrap=True, justify="right")
         table.add_column("ChildHotkey", style="cyan", no_wrap=True)
-        table.add_column("ParentHotKeys", style="cyan", no_wrap=True)
         table.add_column("Proportion", style="cyan", no_wrap=True, justify="right")
         table.add_column("Total Stake", style="cyan", no_wrap=True, justify="right")
-        table.add_column("Emissions/Day", style="cyan", no_wrap=True, justify="right")
-        table.add_column("APY", style="cyan", no_wrap=True, justify="right")
-        table.add_column("Take", style="cyan", no_wrap=True, justify="right")
-
-        sum_proportion = 0.0
-        sum_total_stake = 0.0
-        sum_emissions_per_day = 0.0
-        sum_return_per_1000 = 0.0
-        sum_take = 0.0
-
-        child_hotkeys_set = set()
-        parent_hotkeys_set = set()
 
         if not children:
             console.print(table)
-            # Summary Row
-            summary = Text(
-                "Total (0) | Total (0) | 0.000000 | 0.0000 | 0.0000 | 0.0000 | 0.000000",
-                style="dim",
-            )
-            console.print(summary)
 
-            command = f"btcli stake set_child --child <child_hotkey> --hotkey <parent_hotkey> --netuid {netuid} --proportion <float that is less than 1 >"
+            command = f"btcli stake set_children --children <child_hotkey> --hotkey <parent_hotkey> --netuid {netuid} --proportion <float>"
             console.print(f"There are currently no child hotkeys on subnet {netuid}.")
             console.print(
                 f"To add a child hotkey you can run the command: [white]{command}[/white]"
             )
             return
+        
+        console.print("ParentHotKey:", style="cyan", no_wrap=True)
+        console.print(hotkey)
 
-        # Sort children by proportion (highest first)
-        sorted_children = sorted(
-            children.items(), key=lambda item: item[1][0].proportion, reverse=True
+        # calculate totals
+        total_proportion = 0
+        total_stake = 0
+
+        children_info = []
+        for child in children:
+            proportion = child[0]
+            child_hotkey = child[1]
+            child_stake = subtensor.get_total_stake_for_hotkey(ss58_address=child_hotkey) or Balance(0)
+
+            # add to totals
+            total_proportion += proportion
+            total_stake += child_stake
+
+            children_info.append((proportion, child_hotkey, child_stake))
+
+        children_info.sort(key=lambda x: x[0], reverse=True)  # sorting by proportion (highest first)
+
+        # add the children info to the table
+        for i, (proportion, hotkey, stake) in enumerate(children_info, 1):
+            table.add_row(
+                str(i),
+                hotkey,
+                str(proportion),
+                str(stake),
+            )
+
+        # add totals row
+        table.add_row(
+            "",
+            "Total",
+            str(total_proportion),
+            str(total_stake),
+            ""
         )
-
-        # Populate table with children data
-        index = 1
-        for child_hotkey, child_infos in sorted_children:
-            for child_info in child_infos:
-                table.add_row(
-                    str(index),
-                    child_info.child_ss58[:5] + "..." + child_info.child_ss58[-5:],
-                    str(len(child_info.parents)),
-                    str(u64_to_float(child_info.proportion)),
-                    str(child_info.total_stake),
-                    str(child_info.emissions_per_day),
-                    str(
-                        GetChildrenCommand.calculate_apy(child_info.return_per_1000.tao)
-                    ),
-                    str(child_info.take),
-                )
-
-                # Update totals and sets
-                child_hotkeys_set.add(child_info.child_ss58)
-                parent_hotkeys_set.update(p[1] for p in child_info.parents)
-                sum_proportion += child_info.proportion
-                sum_total_stake += float(child_info.total_stake)
-                sum_emissions_per_day += float(child_info.emissions_per_day)
-                sum_return_per_1000 += float(child_info.return_per_1000)
-                sum_take += float(child_info.take)
-
-        # Calculate averages
-        total_child_hotkeys = len(child_hotkeys_set)
-        total_parent_hotkeys = len(parent_hotkeys_set)
-        avg_emissions_per_day = (
-            sum_emissions_per_day / total_child_hotkeys if total_child_hotkeys else 0
-        )
-        avg_apy = (
-            GetChildrenCommand.calculate_apy(sum_return_per_1000) / total_child_hotkeys
-            if total_child_hotkeys
-            else 0
-        )
-
-        # Print table to console
         console.print(table)
-
-        # Add a summary row with fixed-width fields
-        summary = Text(
-            f"Total ({total_child_hotkeys:3}) | Total ({total_parent_hotkeys:3}) | "
-            f"Total ({u64_to_float(sum_proportion):10.6f}) | Total ({sum_total_stake:10.4f}) | "
-            f"Avg ({avg_emissions_per_day:10.4f}) | Avg ({avg_apy:10.4f}) | "
-            f"Total ({sum_take:10.6f})",
-            style="dim",
-        )
-        console.print(summary)
-
-    @staticmethod
-    def calculate_apy(daily_return_per_1000_tao):
-        """
-        Calculate the Annual Percentage Yield (APY) from the daily return per 1000 TAO.
-
-        Args:
-        daily_return_per_1000_tao (float): The daily return per 1000 TAO.
-
-        Returns:
-        float: The annual percentage yield (APY).
-        """
-        daily_return_rate = daily_return_per_1000_tao / 1000
-        # Compounding periods per year considering 12 seconds interval generation
-        compounding_periods_per_year = (365 * 24 * 60 * 60) / 12
-        apy = (1 + daily_return_rate) ** compounding_periods_per_year - 1
-        return apy

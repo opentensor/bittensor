@@ -95,7 +95,8 @@ def register_subnetwork_extrinsic(
             call = substrate.compose_call(
                 call_module="SubtensorModule",
                 call_function="register_network",
-                call_params={"immunity_period": 0, "reg_allowed": True},
+                # call_params={"immunity_period": 0, "reg_allowed": True},
+                call_params={},
             )
             extrinsic = substrate.create_signed_extrinsic(
                 call=call, keypair=wallet.coldkey

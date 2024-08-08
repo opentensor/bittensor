@@ -137,3 +137,28 @@ def get_subtensor_errors(
         return subtensor_errors_map
     else:
         return cached_errors_map.get("errors", {})
+
+
+def format_parent(proportion, parent):
+    int_proportion = (
+        proportion.value if hasattr(proportion, "value") else int(proportion)
+    )
+    return int_proportion, parent.value
+
+
+def format_children(children):
+    """
+    Formats raw children data into a list of tuples.
+    Args:
+        children: The raw children data.
+    Returns:
+        list: List of (proportion, child_address) tuples.
+    """
+    formatted_children = []
+    for proportion, child in children:
+        # Convert U64 to int
+        int_proportion = (
+            proportion.value if hasattr(proportion, "value") else int(proportion)
+        )
+        formatted_children.append((int_proportion, child.value))
+    return formatted_children
