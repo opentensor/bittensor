@@ -68,6 +68,7 @@ from .overview import OverviewCommand
 from .register import (
     PowRegisterCommand,
     RegisterCommand,
+    RegisterCostCommand,
     RunFaucetCommand,
     SwapHotkeyCommand,
 )
