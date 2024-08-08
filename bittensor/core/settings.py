@@ -162,14 +162,20 @@ TYPE_REGISTRY: dict = {
     },
 }
 
+
+_BT_AXON_PORT = os.getenv("BT_AXON_PORT")
+_BT_AXON_MAX_WORKERS = os.getenv("BT_AXON_MAX_WORKERS")
+_BT_PRIORITY_MAX_WORKERS = os.getenv("BT_PRIORITY_MAX_WORKERS")
+_BT_PRIORITY_MAXSIZE = os.getenv("BT_PRIORITY_MAXSIZE")
+
 DEFAULTS = munchify(
     {
         "axon": {
-            "port": os.getenv("BT_AXON_PORT") or 8091,
+            "port": int(_BT_AXON_PORT) if _BT_AXON_PORT else 8091,
             "ip": os.getenv("BT_AXON_IP") or "[::]",
             "external_port": os.getenv("BT_AXON_EXTERNAL_PORT") or None,
             "external_ip": os.getenv("BT_AXON_EXTERNAL_IP") or None,
-            "max_workers": os.getenv("BT_AXON_MAX_WORKERS") or 10,
+            "max_workers": int(_BT_AXON_MAX_WORKERS) if _BT_AXON_MAX_WORKERS else 10,
         },
         "logging": {
             "debug": os.getenv("BT_LOGGING_DEBUG") or False,
@@ -178,8 +184,10 @@ DEFAULTS = munchify(
             "logging_dir": os.getenv("BT_LOGGING_LOGGING_DIR") or str(MINERS_DIR),
         },
         "priority": {
-            "max_workers": os.getenv("BT_PRIORITY_MAX_WORKERS") or 5,
-            "maxsize": os.getenv("BT_PRIORITY_MAXSIZE") or 10,
+            "max_workers": int(_BT_PRIORITY_MAX_WORKERS)
+            if _BT_PRIORITY_MAX_WORKERS
+            else 5,
+            "maxsize": int(_BT_PRIORITY_MAXSIZE) if _BT_PRIORITY_MAXSIZE else 10,
         },
         "subtensor": {
             "chain_endpoint": DEFAULT_ENDPOINT,
