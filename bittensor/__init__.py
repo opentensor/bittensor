@@ -205,36 +205,6 @@ __type_registry__ = {
                 },
             },
         },
-        "ChildrenInfoRuntimeApi": {
-            "methods": {
-                "get_children_info": {
-                    "params": [
-                        {
-                            "name": "netuid",
-                            "type": "u16",
-                        },
-                    ],
-                    "type": "Vec<u8>",
-                },
-                "get_child_info": {
-                    "params": [
-                        {
-                            "name": "netuid",
-                            "type": "u16",
-                        },
-                        {
-                            "name": "child",
-                            "type": "Vec<u8>",
-                        },
-                        {
-                            "name": "proportion",
-                            "type": "u64",
-                        },
-                    ],
-                    "type": "Vec<u8>",
-                },
-            },
-        },
         "SubnetInfoRuntimeApi": {
             "methods": {
                 "get_subnet_hyperparams": {
@@ -357,7 +327,6 @@ from .chain_data import (
     PrometheusInfo,
     DelegateInfo,
     StakeInfo,
-    ChildInfo,
     SubnetInfo,
     SubnetHyperparameters,
     IPInfo,

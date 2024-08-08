@@ -159,18 +159,6 @@ custom_rpc_type_registry = {
                 ["stake", "Compact<u64>"],
             ],
         },
-        "ChildInfo": {
-            "type": "struct",
-            "type_mapping": [
-                ["child_ss58", "AccountId"],
-                ["proportion", "Compact<u64>"],
-                ["total_stake", "Compact<u64>"],
-                ["emissions_per_day", "Compact<u64>"],
-                ["return_per_1000", "Compact<u64>"],
-                ["take", "Compact<u16>"],
-                ["parents", "Vec<(Compact<u64>, AccountId)>"],
-            ],
-        },
         "SubnetHyperparameters": {
             "type": "struct",
             "type_mapping": [
@@ -342,10 +330,9 @@ class ChainDataType(Enum):
     NeuronInfoLite = 4
     DelegatedInfo = 5
     StakeInfo = 6
-    ChildInfo = 7
-    IPInfo = 8
-    SubnetHyperparameters = 9
-    ScheduledColdkeySwapInfo = 10
+    IPInfo = 7
+    SubnetHyperparameters = 8
+    ScheduledColdkeySwapInfo = 9
 
 
 def from_scale_encoding(
@@ -825,106 +812,6 @@ class DelegateInfo:
 
 
 @dataclass
-class ChildInfo:
-    """
-    Dataclass for child information.
-
-    Args:
-
-        child_ss58 (str): The AccountId of the child neuron
-        proportion (int): The proportion of stake allocated to this child
-        total_stake (int): The total stake of the child (including its own children and parents)
-        emissions_per_day (int): The emissions per day for this child
-        return_per_1000 (int): The return per 1000 TAO staked for this child
-        take (int): The take (commission) of the child
-        parents (List[Tuple[int, str]]: The parents of this child, each with their proportion
-
-    """
-
-    child_ss58: str  # The AccountId of the child neuron
-    proportion: int  # The proportion of stake allocated to this child
-    total_stake: (
-        int  # The total stake of the child (including its own children and parents)
-    )
-    emissions_per_day: int  # The emissions per day for this child
-    return_per_1000: int  # The return per 1000 TAO staked for this child
-    take: float  # The take (commission) of the child
-    parents: List[
-        Tuple[int, str]
-    ]  # The parents of this child, each with their proportion
-
-    @classmethod
-    def fix_decoded_values(cls, decoded: Any) -> "ChildInfo":
-        """Fixes the decoded values."""
-
-        child_ss58 = ss58_encode(decoded["child_ss58"], bittensor.__ss58_format__)
-        proportion = decoded["proportion"]
-        total_stake = decoded["total_stake"]
-        emissions_per_day = decoded["emissions_per_day"]
-        return_per_1000 = Balance.from_rao(decoded["return_per_1000"])
-        take = U16_NORMALIZED_FLOAT(decoded["take"])
-        parents = [
-            (
-                int(parent[0]),
-                ss58_encode(parent[1], bittensor.__ss58_format__),
-            )
-            for parent in decoded["parents"]
-        ]
-
-        return cls(
-            child_ss58=child_ss58,
-            proportion=proportion,
-            total_stake=total_stake,
-            emissions_per_day=emissions_per_day,
-            return_per_1000=return_per_1000,
-            take=take,
-            parents=parents,
-        )
-
-    @classmethod
-    def from_vec_u8(cls, vec_u8: List[int]) -> Optional["ChildInfo"]:
-        """Returns a ChildInfo object from a ``vec_u8``."""
-        if len(vec_u8) == 0:
-            return None
-
-        decoded = from_scale_encoding(vec_u8, ChainDataType.ChildInfo)
-        if decoded is None:
-            return None
-
-        return ChildInfo.fix_decoded_values(decoded)
-
-    @classmethod
-    def list_of_tuple_from_vec_u8(
-        cls, vec_u8: List[int]
-    ) -> Dict[str, List["ChildInfo"]]:
-        """Returns a list of ChildInfo objects from a ``vec_u8``."""
-        decoded: Optional[list[tuple[str, list[object]]]] = (
-            from_scale_encoding_using_type_string(
-                input_=vec_u8, type_string="Vec<(AccountId, Vec<ChildInfo>)>"
-            )
-        )
-
-        if decoded is None:
-            return {}
-
-        return {
-            ss58_encode(address=account_id, ss58_format=bittensor.__ss58_format__): [
-                ChildInfo.fix_decoded_values(d) for d in child_info
-            ]
-            for account_id, child_info in decoded
-        }
-
-    @classmethod
-    def list_from_vec_u8(cls, vec_u8: List[int]) -> List["ChildInfo"]:
-        """Returns a list of ChildInfo objects from a ``vec_u8``."""
-        decoded = from_scale_encoding(vec_u8, ChainDataType.ChildInfo, is_vec=True)
-        if decoded is None:
-            return []
-
-        return [ChildInfo.fix_decoded_values(d) for d in decoded]
-
-
-@dataclass
 class StakeInfo:
     """Dataclass for stake info."""
 
@@ -958,10 +845,10 @@ class StakeInfo:
         cls, vec_u8: List[int]
     ) -> Dict[str, List["StakeInfo"]]:
         """Returns a list of StakeInfo objects from a ``vec_u8``."""
-        decoded: Optional[list[tuple[str, list[object]]]] = (
-            from_scale_encoding_using_type_string(
-                input_=vec_u8, type_string="Vec<(AccountId, Vec<StakeInfo>)>"
-            )
+        decoded: Optional[
+            list[tuple[str, list[object]]]
+        ] = from_scale_encoding_using_type_string(
+            input_=vec_u8, type_string="Vec<(AccountId, Vec<StakeInfo>)>"
         )
 
         if decoded is None:
