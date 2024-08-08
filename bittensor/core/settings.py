@@ -184,7 +184,9 @@ DEFAULTS = munchify(
             "logging_dir": os.getenv("BT_LOGGING_LOGGING_DIR") or str(MINERS_DIR),
         },
         "priority": {
-            "max_workers": int(_BT_PRIORITY_MAX_WORKERS) if _BT_PRIORITY_MAX_WORKERS else 5,
+            "max_workers": int(_BT_PRIORITY_MAX_WORKERS)
+            if _BT_PRIORITY_MAX_WORKERS
+            else 5,
             "maxsize": int(_BT_PRIORITY_MAXSIZE) if _BT_PRIORITY_MAXSIZE else 10,
         },
         "subtensor": {
