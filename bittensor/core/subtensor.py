@@ -37,19 +37,19 @@ from scalecodec.type_registry import load_type_registry_preset
 from scalecodec.types import ScaleType
 from substrateinterface.base import QueryMapResult, SubstrateInterface
 
-from bittensor.utils.backwards_compatibility.extrinsics.prometheus import (
+from bittensor.utils.deprecated.extrinsics.prometheus import (
     prometheus_extrinsic,
 )
-from bittensor.utils.backwards_compatibility.extrinsics.serving import (
+from bittensor.utils.deprecated.extrinsics.serving import (
     serve_extrinsic,
     serve_axon_extrinsic,
     publish_metadata,
     get_metadata,
 )
-from bittensor.utils.backwards_compatibility.extrinsics.set_weights import (
+from bittensor.utils.deprecated.extrinsics.set_weights import (
     set_weights_extrinsic,
 )
-from bittensor.utils.backwards_compatibility.extrinsics.transfer import (
+from bittensor.utils.deprecated.extrinsics.transfer import (
     transfer_extrinsic,
 )
 from bittensor.core import settings

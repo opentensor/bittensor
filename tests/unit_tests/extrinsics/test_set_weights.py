@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 
 from bittensor.core.subtensor import Subtensor
 from bittensor_wallet import Wallet
-from bittensor.utils.backwards_compatibility.extrinsics.set_weights import (
+from bittensor.utils.deprecated.extrinsics.set_weights import (
     set_weights_extrinsic,
 )
 

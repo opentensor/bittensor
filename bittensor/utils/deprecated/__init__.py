@@ -150,8 +150,8 @@ __rao_symbol__ = settings.RAO_SYMBOL
 mock_subpackage = importlib.import_module("bittensor.utils.mock")
 sys.modules["bittensor.mock"] = mock_subpackage
 
-# Makes the `bittensor.utils.backwards_compatibility.extrinsics` subpackage available as `bittensor.extrinsics` for backwards compatibility.
+# Makes the `bittensor.utils.deprecated.extrinsics` subpackage available as `bittensor.extrinsics` for backwards compatibility.
 extrinsics_subpackage = importlib.import_module(
-    "bittensor.utils.backwards_compatibility.extrinsics"
+    "bittensor.utils.deprecated.extrinsics"
 )
 sys.modules["bittensor.extrinsics"] = extrinsics_subpackage
