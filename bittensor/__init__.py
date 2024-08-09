@@ -205,19 +205,6 @@ __type_registry__ = {
                 },
             },
         },
-        "ValidatorIPRuntimeApi": {
-            "methods": {
-                "get_associated_validator_ip_info_for_subnet": {
-                    "params": [
-                        {
-                            "name": "netuid",
-                            "type": "u16",
-                        },
-                    ],
-                    "type": "Vec<u8>",
-                },
-            },
-        },
         "SubnetInfoRuntimeApi": {
             "methods": {
                 "get_subnet_hyperparams": {
@@ -322,7 +309,6 @@ from .utils import (
     version_checking,
     strtobool,
     strtobool_with_default,
-    get_explorer_root_url_by_network_from_map,
     get_explorer_root_url_by_network_from_map,
     get_explorer_url_for_network,
     ss58_address_to_bytes,
