@@ -117,7 +117,7 @@ from bittensor.utils import (  # noqa: F401
 )
 from bittensor.utils.balance import Balance as Balance  # noqa: F401
 from bittensor.utils.mock.subtensor_mock import MockSubtensor as MockSubtensor  # noqa: F401
-from .subnets import SubnetsAPI  # noqa: F401
+from bittensor.utils.subnets import SubnetsAPI  # noqa: F401
 
 # Backwards compatibility with previous bittensor versions.
 axon = Axon
@@ -150,8 +150,6 @@ __rao_symbol__ = settings.RAO_SYMBOL
 mock_subpackage = importlib.import_module("bittensor.utils.mock")
 sys.modules["bittensor.mock"] = mock_subpackage
 
-# Makes the `bittensor.utils.backwards_compatibility.extrinsics` subpackage available as `bittensor.extrinsics` for backwards compatibility.
-extrinsics_subpackage = importlib.import_module(
-    "bittensor.utils.backwards_compatibility.extrinsics"
-)
+# Makes the `bittensor.utils.deprecated.extrinsics` subpackage available as `bittensor.extrinsics` for backwards compatibility.
+extrinsics_subpackage = importlib.import_module("bittensor.utils.deprecated.extrinsics")
 sys.modules["bittensor.extrinsics"] = extrinsics_subpackage
