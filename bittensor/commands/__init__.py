@@ -89,6 +89,7 @@ from .wallets import (
     WalletCreateCommand,
     WalletBalanceCommand,
     GetWalletHistoryCommand,
+    WalletSignCommand,
 )
 from .weights import CommitWeightCommand, RevealWeightCommand
 from .transfer import TransferCommand
