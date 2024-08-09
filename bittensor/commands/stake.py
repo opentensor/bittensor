@@ -612,10 +612,10 @@ class SetChildrenCommand:
         # Get values if not set.
         if not cli.config.is_set("netuid"):
             cli.config.netuid = int(Prompt.ask("Enter netuid"))
-            
+
         if not cli.config.is_set("hotkey"):
             cli.config.hotkey = Prompt.ask("Enter parent hotkey (ss58)")
-            
+
         children = GetChildrenCommand.run(cli)
 
         if not cli.config.is_set("children"):
@@ -646,7 +646,7 @@ class SetChildrenCommand:
             raise ValueError(
                 f"Invalid proportion: The sum of all proportions cannot be greater than 1. Proposed sum of proportions is {total_proposed}."
             )
-        
+
         children_with_proportions = list(zip(proportions, children))
 
         success, message = subtensor.set_children(
@@ -759,11 +759,10 @@ class GetChildrenCommand:
 
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
-        
         # Get values if not set.
         if not cli.config.is_set("netuid"):
             cli.config.netuid = int(Prompt.ask("Enter netuid"))
-            
+
         # Get values if not set.
         if not cli.config.is_set("hotkey"):
             cli.config.netuid = Prompt.ask("Enter hotkey")
@@ -771,7 +770,7 @@ class GetChildrenCommand:
         # Parse from strings
         netuid = cli.config.netuid
         hotkey = cli.config.hotkey
-        
+
         children = subtensor.get_children(hotkey, netuid)
 
         GetChildrenCommand.render_table(subtensor, hotkey, children, netuid)
@@ -799,7 +798,12 @@ class GetChildrenCommand:
         bittensor.subtensor.add_args(parser)
 
     @staticmethod
-    def render_table(subtensor: "bittensor.subtensor", hotkey: str, children: list[Tuple[int, str]], netuid: int):
+    def render_table(
+        subtensor: "bittensor.subtensor",
+        hotkey: str,
+        children: list[Tuple[int, str]],
+        netuid: int,
+    ):
         console = Console()
 
         # Initialize Rich table for pretty printing
@@ -825,7 +829,7 @@ class GetChildrenCommand:
                 f"To add a child hotkey you can run the command: [white]{command}[/white]"
             )
             return
-        
+
         console.print("ParentHotKey:", style="cyan", no_wrap=True)
         console.print(hotkey)
 
@@ -837,7 +841,9 @@ class GetChildrenCommand:
         for child in children:
             proportion = child[0]
             child_hotkey = child[1]
-            child_stake = subtensor.get_total_stake_for_hotkey(ss58_address=child_hotkey) or Balance(0)
+            child_stake = subtensor.get_total_stake_for_hotkey(
+                ss58_address=child_hotkey
+            ) or Balance(0)
 
             # add to totals
             total_proportion += proportion
@@ -845,7 +851,9 @@ class GetChildrenCommand:
 
             children_info.append((proportion, child_hotkey, child_stake))
 
-        children_info.sort(key=lambda x: x[0], reverse=True)  # sorting by proportion (highest first)
+        children_info.sort(
+            key=lambda x: x[0], reverse=True
+        )  # sorting by proportion (highest first)
 
         # add the children info to the table
         for i, (proportion, hotkey, stake) in enumerate(children_info, 1):
@@ -857,11 +865,5 @@ class GetChildrenCommand:
             )
 
         # add totals row
-        table.add_row(
-            "",
-            "Total",
-            str(total_proportion),
-            str(total_stake),
-            ""
-        )
+        table.add_row("", "Total", str(total_proportion), str(total_stake), "")
         console.print(table)
