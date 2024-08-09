@@ -36,3 +36,17 @@ def test_extrinsics_import():
 
     assert "bittensor.extrinsics" in sys.modules
     assert redirected_extrinsics is real_extrinsics
+
+
+def test_object_aliases_are_correctly_mapped():
+    """Ensures all object aliases correctly map to their respective classes in Bittensor package."""
+    import bittensor
+
+    assert issubclass(bittensor.axon, bittensor.Axon)
+    assert issubclass(bittensor.config, bittensor.Config)
+    assert issubclass(bittensor.dendrite, bittensor.Dendrite)
+    assert issubclass(bittensor.keyfile, bittensor.Keyfile)
+    assert issubclass(bittensor.metagraph, bittensor.Metagraph)
+    assert issubclass(bittensor.wallet, bittensor.Wallet)
+    assert issubclass(bittensor.synapse, bittensor.Synapse)
+
