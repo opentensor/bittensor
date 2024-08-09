@@ -1,8 +1,9 @@
 import bittensor
+from bittensor import logging
 from bittensor.commands import (
     RegisterCommand,
-    StakeCommand,
     RegisterSubnetworkCommand,
+    StakeCommand,
     SubnetSudoCommand,
 )
 from tests.e2e_tests.utils import setup_wallet
@@ -19,6 +20,7 @@ Verify that:
 
 
 def test_liquid_alpha_enabled(local_chain, capsys):
+    logging.info("Testing test_liquid_alpha_enabled")
     # Register root as Alice
     keypair, exec_command, wallet = setup_wallet("//Alice")
     exec_command(RegisterSubnetworkCommand, ["s", "create"])
@@ -273,3 +275,4 @@ def test_liquid_alpha_enabled(local_chain, capsys):
         "❌ Failed: Subtensor returned `LiquidAlphaDisabled (Module)` error. This means: \n`Attempting to set alpha high/low while disabled`"
         in output
     )
+    logging.info("Passed test_liquid_alpha_enabled")
