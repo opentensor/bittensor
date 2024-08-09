@@ -151,7 +151,5 @@ mock_subpackage = importlib.import_module("bittensor.utils.mock")
 sys.modules["bittensor.mock"] = mock_subpackage
 
 # Makes the `bittensor.utils.deprecated.extrinsics` subpackage available as `bittensor.extrinsics` for backwards compatibility.
-extrinsics_subpackage = importlib.import_module(
-    "bittensor.utils.deprecated.extrinsics"
-)
+extrinsics_subpackage = importlib.import_module("bittensor.utils.deprecated.extrinsics")
 sys.modules["bittensor.extrinsics"] = extrinsics_subpackage

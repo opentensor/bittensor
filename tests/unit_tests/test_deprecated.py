@@ -49,4 +49,3 @@ def test_object_aliases_are_correctly_mapped():
     assert issubclass(bittensor.metagraph, bittensor.Metagraph)
     assert issubclass(bittensor.wallet, bittensor.Wallet)
     assert issubclass(bittensor.synapse, bittensor.Synapse)
-
