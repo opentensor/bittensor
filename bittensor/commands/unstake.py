@@ -297,7 +297,7 @@ class UnStakeCommand:
             wait_for_inclusion=True,
             prompt=False,
         )
-        
+
 
 class RevokeChildrenCommand:
     """
@@ -343,17 +343,15 @@ class RevokeChildrenCommand:
 
         if not cli.config.is_set("hotkey"):
             cli.config.hotkey = Prompt.ask("Enter parent hotkey (ss58)")
-            
+
         # Display current children information
         current_children = GetChildrenCommand.run(cli)
 
         # Parse from strings
         netuid = cli.config.netuid
-        
+
         # Prepare children with zero proportions
-        children_with_zero_proportions = [
-            (0.0, child[1]) for child in current_children
-        ]
+        children_with_zero_proportions = [(0.0, child[1]) for child in current_children]
 
         success, message = subtensor.set_children(
             wallet=wallet,
