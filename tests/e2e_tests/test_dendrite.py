@@ -33,7 +33,7 @@ async def test_dendrite(local_chain):
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
-        
+
     logging.info("Testing test_dendrite")
     netuid = 1
 
