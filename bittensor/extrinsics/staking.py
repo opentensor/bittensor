@@ -16,10 +16,13 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import bittensor
 from rich.prompt import Confirm
 from time import sleep
 from typing import List, Union, Optional, Tuple
+
+import bittensor
+from ..utils.formatting import float_to_u64
+
 from bittensor.utils.balance import Balance
 
 
@@ -228,7 +231,7 @@ def add_stake_extrinsic(
             )
             return False
 
-    except bittensor.errors.NotRegisteredError as e:
+    except bittensor.errors.NotRegisteredError:
         bittensor.__console__.print(
             ":cross_mark: [red]Hotkey: {} is not registered.[/red]".format(
                 wallet.hotkey_str
@@ -435,7 +438,7 @@ def add_stake_multiple_extrinsic(
                 )
                 continue
 
-        except bittensor.errors.NotRegisteredError as e:
+        except bittensor.errors.NotRegisteredError:
             bittensor.__console__.print(
                 ":cross_mark: [red]Hotkey: {} is not registered.[/red]".format(
                     hotkey_ss58
@@ -523,3 +526,127 @@ def __do_add_stake_single(
     )
 
     return success
+
+
+def set_children_extrinsic(
+    subtensor: "bittensor.subtensor",
+    wallet: "bittensor.wallet",
+    hotkey: str,
+    netuid: int,
+    children_with_proportions: List[Tuple[float, str]],
+    wait_for_inclusion: bool = True,
+    wait_for_finalization: bool = False,
+    prompt: bool = False,
+) -> Tuple[bool, str]:
+    """
+    Sets children hotkeys with proportions assigned from the parent.
+
+    Args:
+        subtensor (bittensor.subtensor): Subtensor endpoint to use.
+        wallet (bittensor.wallet): Bittensor wallet object.
+        hotkey (str): Parent hotkey.
+        children_with_proportions (List[str]): Children hotkeys.
+        netuid (int): Unique identifier of for the subnet.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
+        prompt (bool): If ``true``, the call waits for confirmation from the user before proceeding.
+
+    Returns:
+        Tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
+
+    Raises:
+        bittensor.errors.ChildHotkeyError: If the extrinsic fails to be finalized or included in the block.
+        bittensor.errors.NotRegisteredError: If the hotkey is not registered in any subnets.
+
+    """
+    # Check if all children are being revoked
+    all_revoked = all(prop == 0.0 for prop, _ in children_with_proportions)
+
+    operation = "Revoke all children hotkeys" if all_revoked else "Set children hotkeys"
+
+    # Ask before moving on.
+    if prompt:
+        if all_revoked:
+            if not Confirm.ask(
+                f"Do you want to revoke all children hotkeys for hotkey {hotkey}?"
+            ):
+                return False, "Operation Cancelled"
+        else:
+            if not Confirm.ask(
+                "Do you want to set children hotkeys:\n[bold white]{}[/bold white]?".format(
+                    "\n".join(
+                        f"  {child[1]}: {child[0]}"
+                        for child in children_with_proportions
+                    )
+                )
+            ):
+                return False, "Operation Cancelled"
+
+    with bittensor.__console__.status(
+        f":satellite: {operation} on [white]{subtensor.network}[/white] ..."
+    ):
+        try:
+            normalized_children = (
+                prepare_child_proportions(children_with_proportions)
+                if not all_revoked
+                else children_with_proportions
+            )
+
+            success, error_message = subtensor._do_set_children(
+                wallet=wallet,
+                hotkey=hotkey,
+                netuid=netuid,
+                children=normalized_children,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
+
+            if not wait_for_finalization and not wait_for_inclusion:
+                return (
+                    True,
+                    f"Not waiting for finalization or inclusion. {operation} initiated.",
+                )
+
+            if success:
+                bittensor.__console__.print(
+                    ":white_heavy_check_mark: [green]Finalized[/green]"
+                )
+                bittensor.logging.success(
+                    prefix=operation,
+                    suffix="<green>Finalized: </green>" + str(success),
+                )
+                return True, f"Successfully {operation.lower()} and Finalized."
+            else:
+                bittensor.__console__.print(
+                    f":cross_mark: [red]Failed[/red]: {error_message}"
+                )
+                bittensor.logging.warning(
+                    prefix=operation,
+                    suffix="<red>Failed: </red>" + str(error_message),
+                )
+                return False, error_message
+
+        except Exception as e:
+            return False, f"Exception occurred while {operation.lower()}: {str(e)}"
+
+
+def prepare_child_proportions(children_with_proportions):
+    """
+    Convert proportions to u64 and normalize
+    """
+    children_u64 = [
+        (float_to_u64(prop), child) for prop, child in children_with_proportions
+    ]
+    normalized_children = normalize_children_and_proportions(children_u64)
+    return normalized_children
+
+
+def normalize_children_and_proportions(
+    children: List[Tuple[int, str]],
+) -> List[Tuple[int, str]]:
+    """
+    Normalizes the proportions of children so that they sum to u64::MAX.
+    """
+    total = sum(prop for prop, _ in children)
+    u64_max = 2**64 - 1
+    return [(int(prop * u64_max / total), child) for prop, child in children]
