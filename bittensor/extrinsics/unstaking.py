@@ -168,7 +168,7 @@ def unstake_extrinsic(
         subtensor=subtensor, stake_balance=(stake_on_uid - unstaking_balance)
     ):
         bittensor.__console__.print(
-            f":warning: [yellow]This action will unstake the entire staked balance![/yellow]"
+            ":warning: [yellow]This action will unstake the entire staked balance![/yellow]"
         )
         unstaking_balance = stake_on_uid
 
@@ -232,7 +232,7 @@ def unstake_extrinsic(
             )
             return False
 
-    except bittensor.errors.NotRegisteredError as e:
+    except bittensor.errors.NotRegisteredError:
         bittensor.__console__.print(
             ":cross_mark: [red]Hotkey: {} is not registered.[/red]".format(
                 wallet.hotkey_str
@@ -352,7 +352,7 @@ def unstake_multiple_extrinsic(
             subtensor=subtensor, stake_balance=(stake_on_uid - unstaking_balance)
         ):
             bittensor.__console__.print(
-                f":warning: [yellow]This action will unstake the entire staked balance![/yellow]"
+                ":warning: [yellow]This action will unstake the entire staked balance![/yellow]"
             )
             unstaking_balance = stake_on_uid
 
@@ -424,7 +424,7 @@ def unstake_multiple_extrinsic(
                 )
                 continue
 
-        except bittensor.errors.NotRegisteredError as e:
+        except bittensor.errors.NotRegisteredError:
             bittensor.__console__.print(
                 ":cross_mark: [red]{} is not registered.[/red]".format(hotkey_ss58)
             )

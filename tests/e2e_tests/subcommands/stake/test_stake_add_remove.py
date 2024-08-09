@@ -45,7 +45,7 @@ def test_stake_add(local_chain):
         == 0
     ), "LastTxBlockDelegateTake is not 0"
 
-    exec_command(RegisterCommand, ["s", "register", "--neduid", "1"])
+    exec_command(RegisterCommand, ["s", "register", "--netuid", "1"])
 
     assert (
         local_chain.query(
