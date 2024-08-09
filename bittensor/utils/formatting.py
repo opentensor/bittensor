@@ -37,7 +37,7 @@ def convert_blocks_to_time(blocks: int, block_time: int = 12) -> tuple[int, int,
     return hours, minutes, remaining_seconds
 
 
-def float_to_u16(value):
+def float_to_u16(value: int) -> int:
     # Ensure the input is within the expected range
     if not (0 <= value <= 1):
         raise ValueError("Input value must be between 0 and 1")
@@ -47,7 +47,7 @@ def float_to_u16(value):
     return int(value * u16_max)
 
 
-def u16_to_float(value):
+def u16_to_float(value: int) -> float:
     # Ensure the input is within the expected range
     if not (0 <= value <= 65535):
         raise ValueError("Input value must be between 0 and 65535")
@@ -66,7 +66,7 @@ def float_to_u64(value: float) -> int:
     return int(value * (2**64 - 1))
 
 
-def u64_to_float(value):
+def u64_to_float(value: int) -> float:
     u64_max = 2**64 - 1
     # Allow for a small margin of error (e.g., 1) to account for potential rounding issues
     if not (0 <= value <= u64_max + 1):
