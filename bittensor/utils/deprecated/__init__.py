@@ -117,7 +117,7 @@ from bittensor.utils import (  # noqa: F401
 )
 from bittensor.utils.balance import Balance as Balance  # noqa: F401
 from bittensor.utils.mock.subtensor_mock import MockSubtensor as MockSubtensor  # noqa: F401
-from .subnets import SubnetsAPI  # noqa: F401
+from bittensor.utils.subnets import SubnetsAPI  # noqa: F401
 
 # Backwards compatibility with previous bittensor versions.
 axon = Axon
