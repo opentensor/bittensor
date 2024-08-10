@@ -1,3 +1,8 @@
+"""
+This module provides functions interacting with the chain for end to end testing;
+these are not present in btsdk but are required for e2e tests
+"""
+
 import asyncio
 
 from substrateinterface import SubstrateInterface
