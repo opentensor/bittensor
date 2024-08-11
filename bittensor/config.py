@@ -64,7 +64,7 @@ class config(DefaultMunch):
         self,
         parser: argparse.ArgumentParser = None,
         args: Optional[List[str]] = None,
-        strict: bool = False,
+        strict: bool = True,
         default: Optional[Any] = None,
     ) -> None:
         super().__init__(default)
@@ -182,7 +182,10 @@ class config(DefaultMunch):
             default_param_args = [_config.get("command"), _config.get("subcommand")]
 
         ## Get all args by name
-        default_params = parser.parse_args(args=default_param_args)
+        parser_no_required = copy.deepcopy(parser)
+        for i in range(len(parser_no_required._actions)):
+            parser_no_required._actions[i].required = False
+        default_params = parser_no_required.parse_args(args=default_param_args)
 
         all_default_args = default_params.__dict__.keys() | []
         ## Make a dict with keys as args and values as argparse.SUPPRESS
