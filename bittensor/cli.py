@@ -106,7 +106,6 @@ ALIAS_TO_COMMAND = {
 }
 COMMANDS = {
     "subnets": {
-        "name": "subnets",
         "aliases": ["s", "subnet"],
         "help": "Commands for managing and viewing subnetworks.",
         "commands": {
@@ -120,7 +119,6 @@ COMMANDS = {
         },
     },
     "root": {
-        "name": "root",
         "aliases": ["r", "roots"],
         "help": "Commands for managing and viewing the root network.",
         "commands": {
@@ -142,7 +140,6 @@ COMMANDS = {
         },
     },
     "wallet": {
-        "name": "wallet",
         "aliases": ["w", "wallets"],
         "help": "Commands for managing and viewing wallets.",
         "commands": {
@@ -167,7 +164,6 @@ COMMANDS = {
         },
     },
     "stake": {
-        "name": "stake",
         "aliases": ["st", "stakes"],
         "help": "Commands for staking and removing stake and setting child hotkey accounts.",
         "commands": {
@@ -182,7 +178,6 @@ COMMANDS = {
         },
     },
     "weights": {
-        "name": "weights",
         "aliases": ["wt", "weight"],
         "help": "Commands for managing weight for subnets.",
         "commands": {
@@ -191,7 +186,6 @@ COMMANDS = {
         },
     },
     "sudo": {
-        "name": "sudo",
         "aliases": ["su", "sudos"],
         "help": "Commands for subnet management",
         "commands": {
@@ -201,7 +195,6 @@ COMMANDS = {
         },
     },
     "legacy": {
-        "name": "legacy",
         "aliases": ["l"],
         "help": "Miscellaneous commands.",
         "commands": {
@@ -210,7 +203,6 @@ COMMANDS = {
         },
     },
     "info": {
-        "name": "info",
         "aliases": ["i"],
         "help": "Instructions for enabling autocompletion for the CLI.",
         "commands": {
@@ -304,21 +296,18 @@ class cli:
         # Add arguments for each sub-command.
         cmd_parsers = parser.add_subparsers(dest="command")
         # Add argument parsers for all available commands.
-        for command in COMMANDS.values():
-            if isinstance(command, dict):
-                subcmd_parser = cmd_parsers.add_parser(
-                    name=command["name"],
-                    aliases=command["aliases"],
-                    help=command["help"],
-                )
-                subparser = subcmd_parser.add_subparsers(
-                    help=command["help"], dest="subcommand", required=True
-                )
+        for name, command in COMMANDS.items():
+            subcmd_parser = cmd_parsers.add_parser(
+                name=name,
+                aliases=command["aliases"],
+                help=command["help"],
+            )
+            subparser = subcmd_parser.add_subparsers(
+                help=command["help"], dest="subcommand", required=True
+            )
 
-                for subcommand in command["commands"].values():
-                    subcommand.add_args(subparser)
-            else:
-                command.add_args(cmd_parsers)
+            for subcommand in command["commands"].values():
+                subcommand.add_args(subparser)
 
         return parser
 

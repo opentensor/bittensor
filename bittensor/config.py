@@ -64,7 +64,7 @@ class config(DefaultMunch):
         self,
         parser: argparse.ArgumentParser = None,
         args: Optional[List[str]] = None,
-        strict: bool = False,
+        strict: bool = True,
         default: Optional[Any] = None,
     ) -> None:
         super().__init__(default)
@@ -74,50 +74,7 @@ class config(DefaultMunch):
         if parser == None:
             return None
 
-        # Optionally add config specific arguments
-        try:
-            parser.add_argument(
-                "--config",
-                type=str,
-                help="If set, defaults are overridden by passed file.",
-            )
-        except:
-            # this can fail if --config has already been added.
-            pass
-
-        try:
-            parser.add_argument(
-                "--strict",
-                action="store_true",
-                help="""If flagged, config will check that only exact arguments have been set.""",
-                default=False,
-            )
-        except:
-            # this can fail if --strict has already been added.
-            pass
-
-        try:
-            parser.add_argument(
-                "--no_version_checking",
-                action="store_true",
-                help="Set ``true`` to stop cli version checking.",
-                default=False,
-            )
-        except:
-            # this can fail if --no_version_checking has already been added.
-            pass
-
-        try:
-            parser.add_argument(
-                "--no_prompt",
-                dest="no_prompt",
-                action="store_true",
-                help="Set ``true`` to stop cli from prompting the user.",
-                default=False,
-            )
-        except:
-            # this can fail if --no_version_checking has already been added.
-            pass
+        config.apply_to_parser_recursive(parser, config.add_standard_args)
 
         # Get args from argv if not passed in.
         if args == None:
@@ -182,37 +139,21 @@ class config(DefaultMunch):
             default_param_args = [_config.get("command"), _config.get("subcommand")]
 
         ## Get all args by name
-        default_params = parser.parse_args(args=default_param_args)
+        parser_no_required = copy.deepcopy(parser)
+        for i in range(len(parser_no_required._actions)):
+            parser_no_required._actions[i].required = False
+        default_params = parser_no_required.parse_args(args=default_param_args)
 
         all_default_args = default_params.__dict__.keys() | []
         ## Make a dict with keys as args and values as argparse.SUPPRESS
         defaults_as_suppress = {key: argparse.SUPPRESS for key in all_default_args}
-        ## Set the defaults to argparse.SUPPRESS, should remove them from the namespace
-        parser_no_defaults.set_defaults(**defaults_as_suppress)
-        parser_no_defaults._defaults.clear()  # Needed for quirk of argparse
 
-        ### Check for subparsers and do the same
-        if parser_no_defaults._subparsers != None:
-            for action in parser_no_defaults._subparsers._actions:
-                # Should only be the "command" subparser action
-                if isinstance(action, argparse._SubParsersAction):
-                    # Set the defaults to argparse.SUPPRESS, should remove them from the namespace
-                    # Each choice is the keyword for a command, we need to set the defaults for each of these
-                    ## Note: we also need to clear the _defaults dict for each, this is a quirk of argparse
-                    cmd_parser: argparse.ArgumentParser
-                    for cmd_parser in action.choices.values():
-                        # If this choice is also a subparser, set defaults recursively
-                        if cmd_parser._subparsers:
-                            for action in cmd_parser._subparsers._actions:
-                                # Should only be the "command" subparser action
-                                if isinstance(action, argparse._SubParsersAction):
-                                    cmd_parser: argparse.ArgumentParser
-                                    for cmd_parser in action.choices.values():
-                                        cmd_parser.set_defaults(**defaults_as_suppress)
-                                        cmd_parser._defaults.clear()  # Needed for quirk of argparse
-                        else:
-                            cmd_parser.set_defaults(**defaults_as_suppress)
-                            cmd_parser._defaults.clear()  # Needed for quirk of argparse
+        def l_set_defaults(l_parser):
+            ## Set the defaults to argparse.SUPPRESS, should remove them from the namespace
+            l_parser.set_defaults(**defaults_as_suppress)
+            l_parser._defaults.clear()  # Needed for quirk of argparse
+
+        config.apply_to_parser_recursive(parser_no_defaults, l_set_defaults)
 
         ## Reparse the args, but this time with the defaults as argparse.SUPPRESS
         params_no_defaults = config.__parse_args__(
@@ -230,6 +171,63 @@ class config(DefaultMunch):
                 )
             ]
         }
+
+    @staticmethod
+    def apply_to_parser_recursive(parser, callback, depth=0):
+        callback(parser)
+        if not parser._subparsers:
+            return
+        for action in parser._subparsers._actions:
+            if not isinstance(action, argparse._SubParsersAction):
+                continue
+            for cmd_parser in action.choices.values():
+                config.apply_to_parser_recursive(cmd_parser, callback, depth=depth + 1)
+
+    @staticmethod
+    def add_standard_args(parser):
+        # Optionally add config specific arguments
+        try:
+            parser.add_argument(
+                "--config",
+                type=str,
+                help="If set, defaults are overridden by passed file.",
+            )
+        except:
+            # this can fail if --config has already been added.
+            pass
+
+        try:
+            parser.add_argument(
+                "--strict",
+                action="store_true",
+                help="If flagged, config will check that only exact arguments have been set.",
+                default=False,
+            )
+        except:
+            # this can fail if --strict has already been added.
+            pass
+
+        try:
+            parser.add_argument(
+                "--no_version_checking",
+                action="store_true",
+                help="Set ``true`` to stop cli version checking.",
+                default=False,
+            )
+        except:
+            # this can fail if --no_version_checking has already been added.
+            pass
+
+        try:
+            parser.add_argument(
+                "--no_prompt",
+                action="store_true",
+                help="Set ``true`` to stop cli from prompting the user.",
+                default=False,
+            )
+        except Exception as e:
+            # this can fail if --no_prompt has already been added.
+            pass
 
     @staticmethod
     def __split_params__(params: argparse.Namespace, _config: "config"):
