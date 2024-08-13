@@ -95,6 +95,7 @@ async def test_axon(local_chain):
         *args,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
+        env={"NEST_ASYNCIO": "0"},
     )
     await asyncio.sleep(1)  # wait for the miner to start up or fail
     if axon_process.returncode != None:
