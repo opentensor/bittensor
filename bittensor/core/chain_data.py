@@ -242,9 +242,7 @@ class AxonInfo:
         return False
 
     def __str__(self):
-        return "AxonInfo( {}, {}, {}, {} )".format(
-            str(self.ip_str()), str(self.hotkey), str(self.coldkey), self.version
-        )
+        return f"AxonInfo( {self.ip_str()}, {self.hotkey}, {self.coldkey}, {self.version} )"
 
     def __repr__(self):
         return self.__str__()

@@ -742,7 +742,7 @@ class DendriteMixin:
         Returns:
             str: The string representation of the Dendrite object in the format :func:`dendrite(<user_wallet_address>)`.
         """
-        return "dendrite({})".format(self.keypair.ss58_address)
+        return f"dendrite({self.keypair.ss58_address})"
 
     def __repr__(self) -> str:
         """

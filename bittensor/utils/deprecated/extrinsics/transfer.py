@@ -59,9 +59,7 @@ def transfer_extrinsic(
     # Validate destination address.
     if not is_valid_bittensor_address_or_public_key(dest):
         bt_console.print(
-            ":cross_mark: [red]Invalid destination address[/red]:[bold white]\n  {}[/bold white]".format(
-                dest
-            )
+            f":cross_mark: [red]Invalid destination address[/red]:[bold white]\n  {dest}[/bold white]"
         )
         return False
 
@@ -96,18 +94,21 @@ def transfer_extrinsic(
     # Check if we have enough balance.
     if account_balance < (transfer_balance + fee + existential_deposit):
         bt_console.print(
-            ":cross_mark: [red]Not enough balance[/red]:[bold white]\n  balance: {}\n  amount: {}\n  for fee: {}[/bold white]".format(
-                account_balance, transfer_balance, fee
-            )
+            ":cross_mark: [red]Not enough balance[/red]:[bold white]\n"
+            f"  balance: {account_balance}\n"
+            f"  amount: {transfer_balance}\n"
+            f"  for fee: {fee}[/bold white]"
         )
         return False
 
     # Ask before moving on.
     if prompt:
         if not Confirm.ask(
-            "Do you want to transfer:[bold white]\n  amount: {}\n  from: {}:{}\n  to: {}\n  for fee: {}[/bold white]".format(
-                transfer_balance, wallet.name, wallet.coldkey.ss58_address, dest, fee
-            )
+            "Do you want to transfer:[bold white]\n"
+            f"  amount: {transfer_balance}\n"
+            f"  from: {wallet.name}:{wallet.coldkey.ss58_address}\n"
+            f"  to: {dest}\n"
+            f"  for fee: {fee}[/bold white]"
         ):
             return False
 
@@ -122,21 +123,17 @@ def transfer_extrinsic(
 
         if success:
             bt_console.print(":white_heavy_check_mark: [green]Finalized[/green]")
-            bt_console.print("[green]Block Hash: {}[/green]".format(block_hash))
+            bt_console.print(f"[green]Block Hash: {block_hash}[/green]")
 
             explorer_urls = get_explorer_url_for_network(
                 subtensor.network, block_hash, NETWORK_EXPLORER_MAP
             )
             if explorer_urls != {} and explorer_urls:
                 bt_console.print(
-                    "[green]Opentensor Explorer Link: {}[/green]".format(
-                        explorer_urls.get("opentensor")
-                    )
+                    f"[green]Opentensor Explorer Link: {explorer_urls.get('opentensor')}[/green]"
                 )
                 bt_console.print(
-                    "[green]Taostats   Explorer Link: {}[/green]".format(
-                        explorer_urls.get("taostats")
-                    )
+                    f"[green]Taostats   Explorer Link: {explorer_urls.get('taostats')}[/green]"
                 )
         else:
             bt_console.print(f":cross_mark: [red]Failed[/red]: {err_msg}")
@@ -144,11 +141,7 @@ def transfer_extrinsic(
     if success:
         with bt_console.status(":satellite: Checking Balance..."):
             new_balance = subtensor.get_balance(wallet.coldkey.ss58_address)
-            bt_console.print(
-                "Balance:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format(
-                    account_balance, new_balance
-                )
-            )
+            bt_console.print(f"Balance:\n  [blue]{account_balance}[/blue] :arrow_right: [green]{new_balance}[/green]")
             return True
 
     return False

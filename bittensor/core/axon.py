@@ -550,23 +550,17 @@ class Axon:
             )
             assert (
                 signature(blacklist_fn) == blacklist_sig
-            ), "The blacklist_fn function must have the signature: blacklist( synapse: {} ) -> Tuple[bool, str]".format(
-                request_name
-            )
+            ), f"The blacklist_fn function must have the signature: blacklist( synapse: {request_name} ) -> Tuple[bool, str]"
         if priority_fn:
             priority_sig = Signature(expected_params, return_annotation=float)
             assert (
                 signature(priority_fn) == priority_sig
-            ), "The priority_fn function must have the signature: priority( synapse: {} ) -> float".format(
-                request_name
-            )
+            ), f"The priority_fn function must have the signature: priority( synapse: {request_name} ) -> float"
         if verify_fn:
             verify_sig = Signature(expected_params, return_annotation=None)
             assert (
                 signature(verify_fn) == verify_sig
-            ), "The verify_fn function must have the signature: verify( synapse: {} ) -> None".format(
-                request_name
-            )
+            ), f"The verify_fn function must have the signature: verify( synapse: {request_name} ) -> None"
 
         # Store functions in appropriate attribute dictionaries
         self.forward_class_types[request_name] = param_class
@@ -730,13 +724,9 @@ class Axon:
 
     def __str__(self) -> str:
         """Provides a human-readable representation of the Axon instance."""
-        return "Axon({}, {}, {}, {}, {})".format(
-            self.ip,
-            self.port,
-            self.wallet.hotkey.ss58_address,
-            "started" if self.started else "stopped",
-            list(self.forward_fns.keys()),
-        )
+        _started = "started" if self.started else "stopped"
+        _keys = list(self.forward_fns.keys())
+        return f"Axon({self.ip}, {self.port}, {self.wallet.hotkey.ss58_address}, {_started}, {_keys})"
 
     def __repr__(self) -> str:
         """

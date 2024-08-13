@@ -25,7 +25,7 @@ def setup_wallet(uri: str) -> Tuple[Keypair, bittensor.wallet]:
         - Sets keys in the wallet without encryption and with overwriting enabled.
     """
     keypair = Keypair.create_from_uri(uri)
-    wallet_path = "/tmp/btcli-e2e-wallet-{}".format(uri.strip("/"))
+    wallet_path = f"/tmp/btcli-e2e-wallet-{uri.strip('/')}"
     wallet = bittensor.wallet(path=wallet_path)
     wallet.set_coldkey(keypair=keypair, encrypt=False, overwrite=True)
     wallet.set_coldkeypub(keypair=keypair, encrypt=False, overwrite=True)

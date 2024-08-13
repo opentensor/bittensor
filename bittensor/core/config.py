@@ -154,10 +154,10 @@ class config(DefaultMunch):
             try:
                 with open(config_file_path) as f:
                     params_config = yaml.safe_load(f)
-                    print("Loading config defaults from: {}".format(config_file_path))
+                    print(f"Loading config defaults from: {config_file_path}")
                     parser.set_defaults(**params_config)
             except Exception as e:
-                print("Error in loading: {} using default parser settings".format(e))
+                print(f"Error in loading: {e} using default parser settings")
 
         # 2. Continue with loading in params.
         params = config.__parse_args__(args=args, parser=parser, strict=strict)

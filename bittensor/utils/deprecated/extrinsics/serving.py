@@ -110,9 +110,7 @@ def serve_extrinsic(
         output["coldkey"] = wallet.coldkeypub.ss58_address
         output["hotkey"] = wallet.hotkey.ss58_address
         if not Confirm.ask(
-            "Do you want to serve axon:\n  [bold white]{}[/bold white]".format(
-                json.dumps(output, indent=4, sort_keys=True)
-            )
+            f"Do you want to serve axon:\n  [bold white]{json.dumps(output, indent=4, sort_keys=True)}[/bold white]"
         ):
             return False
 
@@ -168,19 +166,13 @@ def serve_axon_extrinsic(
         try:
             external_ip = net.get_external_ip()
             bt_console.print(
-                ":white_heavy_check_mark: [green]Found external ip: {}[/green]".format(
-                    external_ip
-                )
+                f":white_heavy_check_mark: [green]Found external ip: {external_ip}[/green]"
             )
-            logging.success(
-                prefix="External IP", suffix="<blue>{}</blue>".format(external_ip)
-            )
-        except Exception as E:
+            logging.success(prefix="External IP", suffix=f"<blue>{external_ip}</blue>")
+        except Exception as e:
             raise RuntimeError(
-                "Unable to attain your external ip. Check your internet connection. error: {}".format(
-                    E
-                )
-            ) from E
+                f"Unable to attain your external ip. Check your internet connection. error: {e}"
+            ) from e
     else:
         external_ip = axon.external_ip
 

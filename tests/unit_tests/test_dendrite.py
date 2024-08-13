@@ -87,12 +87,12 @@ def test_init(setup_dendrite):
 
 
 def test_str(dendrite_obj):
-    expected_string = "dendrite({})".format(dendrite_obj.keypair.ss58_address)
+    expected_string = f"dendrite({dendrite_obj.keypair.ss58_address})"
     assert str(dendrite_obj) == expected_string
 
 
 def test_repr(dendrite_obj):
-    expected_string = "dendrite({})".format(dendrite_obj.keypair.ss58_address)
+    expected_string = f"dendrite({dendrite_obj.keypair.ss58_address})"
     assert repr(dendrite_obj) == expected_string
 
 
