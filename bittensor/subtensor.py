@@ -3253,7 +3253,9 @@ class Subtensor:
         """
         call_definition = bittensor.__type_registry__["runtime_api"][runtime_api][  # type: ignore
             "methods"  # type: ignore
-        ][method]  # type: ignore
+        ][
+            method
+        ]  # type: ignore
 
         json_result = self.state_call(
             method=f"{runtime_api}_{method}",
@@ -4611,7 +4613,6 @@ class Subtensor:
             if children:
                 return format_children(children)
             else:
-                print("  No children found.")
                 return []
         except SubstrateRequestException as e:
             print(f"Error querying ChildKeys: {e}")
