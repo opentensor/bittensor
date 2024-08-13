@@ -609,7 +609,7 @@ class SetChildrenCommand:
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         wallet = bittensor.wallet(config=cli.config)
-         
+
         # Get values if not set.
         if not cli.config.is_set("netuid"):
             cli.config.netuid = int(Prompt.ask("Enter netuid"))
@@ -618,7 +618,12 @@ class SetChildrenCommand:
             cli.config.hotkey = Prompt.ask("Enter parent hotkey (ss58)")
 
         # display children
-        GetChildrenCommand.retrieve_children(subtensor=subtensor, hotkey=cli.config.hotkey, netuid=cli.config.netuid, render_table=True)
+        GetChildrenCommand.retrieve_children(
+            subtensor=subtensor,
+            hotkey=cli.config.hotkey,
+            netuid=cli.config.netuid,
+            render_table=True,
+        )
 
         if not cli.config.is_set("children"):
             cli.config.children = Prompt.ask(
@@ -663,8 +668,12 @@ class SetChildrenCommand:
 
         # Result
         if success:
-            GetChildrenCommand.retrieve_children(subtensor=subtensor, hotkey=cli.config.hotkey,
-                                                 netuid=cli.config.netuid, render_table=True)
+            GetChildrenCommand.retrieve_children(
+                subtensor=subtensor,
+                hotkey=cli.config.hotkey,
+                netuid=cli.config.netuid,
+                render_table=True,
+            )
             console.print(
                 ":white_heavy_check_mark: [green]Set children hotkeys.[/green]"
             )
@@ -780,9 +789,11 @@ class GetChildrenCommand:
         GetChildrenCommand.render_table(subtensor, hotkey, children, netuid, True)
 
         return children
-    
+
     @staticmethod
-    def retrieve_children(subtensor: "bittensor.subtensor", hotkey: str, netuid: int, render_table: bool):
+    def retrieve_children(
+        subtensor: "bittensor.subtensor", hotkey: str, netuid: int, render_table: bool
+    ):
         children = subtensor.get_children(hotkey, netuid)
         if render_table:
             GetChildrenCommand.render_table(subtensor, hotkey, children, netuid, False)
@@ -834,15 +845,19 @@ class GetChildrenCommand:
 
         if not children:
             console.print(table)
-            console.print(f"There are currently no child hotkeys on subnet {netuid} with ParentHotKey {hotkey}.")
+            console.print(
+                f"There are currently no child hotkeys on subnet {netuid} with ParentHotKey {hotkey}."
+            )
             if prompt:
                 command = f"btcli stake set_children --children <child_hotkey> --hotkey <parent_hotkey> --netuid {netuid} --proportion <float>"
-                console.print(f"To add a child hotkey you can run the command: [white]{command}[/white]")
+                console.print(
+                    f"To add a child hotkey you can run the command: [white]{command}[/white]"
+                )
             return
 
         console.print("ParentHotKey:", style="cyan", no_wrap=True)
         console.print(hotkey)
-        
+
         # calculate totals
         total_proportion = 0
         total_stake = 0
@@ -867,7 +882,9 @@ class GetChildrenCommand:
 
         # add the children info to the table
         for i, (proportion, hotkey, stake) in enumerate(children_info, 1):
-            proportion_str = Text(str(proportion), style="red" if proportion == 0 else "")
+            proportion_str = Text(
+                str(proportion), style="red" if proportion == 0 else ""
+            )
             hotkey = Text(hotkey, style="red" if proportion == 0 else "")
             table.add_row(
                 str(i),
@@ -879,4 +896,3 @@ class GetChildrenCommand:
         # add totals row
         table.add_row("", "Total", str(total_proportion), str(total_stake), "")
         console.print(table)
-        
