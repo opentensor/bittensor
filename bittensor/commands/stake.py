@@ -794,6 +794,20 @@ class GetChildrenCommand:
     def retrieve_children(
         subtensor: "bittensor.subtensor", hotkey: str, netuid: int, render_table: bool
     ):
+        """
+
+        Static method to retrieve children for a given subtensor.
+
+        Args:
+            subtensor (bittensor.subtensor): The subtensor object used to interact with the Bittensor network.
+            hotkey (str): The hotkey of the tensor owner.
+            netuid (int): The network unique identifier of the subtensor.
+            render_table (bool): Flag indicating whether to render the retrieved children in a table.
+
+        Returns:
+            List[str]: A list of children hotkeys.
+
+        """
         children = subtensor.get_children(hotkey, netuid)
         if render_table:
             GetChildrenCommand.render_table(subtensor, hotkey, children, netuid, False)
@@ -827,6 +841,31 @@ class GetChildrenCommand:
         netuid: int,
         prompt: bool,
     ):
+        """
+
+        Render a table displaying information about child hotkeys on a particular subnet.
+
+        Parameters:
+        - subtensor: An instance of the "bittensor.subtensor" class.
+        - hotkey: The hotkey of the parent node.
+        - children: A list of tuples containing information about child hotkeys. Each tuple should contain:
+            - The proportion of the child's stake relative to the total stake.
+            - The hotkey of the child node.
+        - netuid: The ID of the subnet.
+        - prompt: A boolean indicating whether to display a prompt for adding a child hotkey.
+
+        Returns:
+        None
+
+        Example Usage:
+            subtensor = bittensor.subtensor_instance
+            hotkey = "parent_hotkey"
+            children = [(0.5, "child1_hotkey"), (0.3, "child2_hotkey"), (0.2, "child3_hotkey")]
+            netuid = 1234
+            prompt = True
+            render_table(subtensor, hotkey, children, netuid, prompt)
+
+        """
         console = Console()
 
         # Initialize Rich table for pretty printing
