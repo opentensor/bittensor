@@ -1,6 +1,7 @@
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 # Copyright © 2023 Opentensor Foundation
+from math import floor
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
@@ -649,4 +650,20 @@ def normalize_children_and_proportions(
     """
     total = sum(prop for prop, _ in children)
     u64_max = 2**64 - 1
-    return [(int(prop * u64_max / total), child) for prop, child in children]
+    normalized_children = [
+        (int(floor(prop * (u64_max - 1) / total)), child) for prop, child in children
+    ]
+    sum_norm = sum(prop for prop, _ in normalized_children)
+
+    # if the sum is more, subtract the excess from the first child
+    if sum_norm > u64_max:
+        if abs(sum_norm - u64_max) > 10:
+            raise ValueError(
+                "The sum of normalized proportions is out of the acceptable range."
+            )
+        normalized_children[0] = (
+            normalized_children[0][0] - (sum_norm - (u64_max - 1)),
+            normalized_children[0][1],
+        )
+
+    return normalized_children
