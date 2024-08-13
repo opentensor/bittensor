@@ -344,8 +344,13 @@ class RevokeChildrenCommand:
         if not cli.config.is_set("hotkey"):
             cli.config.hotkey = Prompt.ask("Enter parent hotkey (ss58)")
 
-        # Display current children information
-        current_children = GetChildrenCommand.run(cli)
+        # Get and display current children information
+        current_children = GetChildrenCommand.retrieve_children(
+            subtensor=subtensor,
+            hotkey=cli.config.hotkey,
+            netuid=cli.config.netuid,
+            render_table=False,
+        )
 
         # Parse from strings
         netuid = cli.config.netuid
@@ -365,6 +370,13 @@ class RevokeChildrenCommand:
 
         # Result
         if success:
+            if cli.config.wait_for_finalization and cli.config.wait_for_inclusion:
+                GetChildrenCommand.retrieve_children(
+                    subtensor=subtensor,
+                    hotkey=cli.config.hotkey,
+                    netuid=cli.config.netuid,
+                    render_table=True,
+                )
             console.print(
                 ":white_heavy_check_mark: [green]Revoked all children hotkeys.[/green]"
             )

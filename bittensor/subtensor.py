@@ -4611,7 +4611,6 @@ class Subtensor:
             if children:
                 return format_children(children)
             else:
-                print("  No children found.")
                 return []
         except SubstrateRequestException as e:
             print(f"Error querying ChildKeys: {e}")
