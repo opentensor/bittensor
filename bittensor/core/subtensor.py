@@ -1898,7 +1898,7 @@ class Subtensor:
             version_key=version_key,
         )
 
-        logging.info("Commit Hash: {}".format(commit_hash))
+        logging.info(f"Commit Hash: {commit_hash}")
 
         while retries < max_retries:
             try:
