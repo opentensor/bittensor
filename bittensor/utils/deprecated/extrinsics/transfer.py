@@ -17,13 +17,13 @@
 
 from typing import Union, TYPE_CHECKING
 
+from bittensor_wallet import Wallet
 from rich.prompt import Confirm
 
 from bittensor.core.settings import bt_console, NETWORK_EXPLORER_MAP
 from bittensor.utils import get_explorer_url_for_network
 from bittensor.utils import is_valid_bittensor_address_or_public_key
 from bittensor.utils.balance import Balance
-from bittensor_wallet import Wallet
 
 # For annotation purposes
 if TYPE_CHECKING:

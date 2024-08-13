@@ -27,7 +27,6 @@ from typing import Dict
 
 from colorama import init, Fore, Back, Style
 
-
 init(autoreset=True)
 
 TRACE_LEVEL_NUM: int = 5

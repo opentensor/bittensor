@@ -20,11 +20,10 @@ __version__ = "8.0.0"
 import os
 import re
 from pathlib import Path
-from rich.console import Console
-from rich.traceback import install
 
 from munch import munchify
-
+from rich.console import Console
+from rich.traceback import install
 
 # Rich console.
 __console__ = Console()

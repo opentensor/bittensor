@@ -34,7 +34,6 @@ from typing import NamedTuple
 from statemachine import State, StateMachine
 
 from bittensor.core.config import Config
-
 from .defines import (
     BITTENSOR_LOGGER_NAME,
     DATE_FORMAT,

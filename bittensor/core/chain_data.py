@@ -30,11 +30,11 @@ from scalecodec.type_registry import load_type_registry_preset
 from scalecodec.types import GenericCall
 from scalecodec.utils.ss58 import ss58_encode
 
-from .settings import SS58_FORMAT
 from bittensor.utils import networking as net, RAOPERTAO, u16_normalized_float
 from bittensor.utils.balance import Balance
-from bittensor.utils.registration import torch, use_torch
 from bittensor.utils.btlogging import logging
+from bittensor.utils.registration import torch, use_torch
+from .settings import SS58_FORMAT
 
 custom_rpc_type_registry = {
     "types": {

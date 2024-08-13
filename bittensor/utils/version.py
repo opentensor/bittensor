@@ -22,8 +22,7 @@ from typing import Optional
 import requests
 from packaging.version import Version
 
-from bittensor.core.settings import __version__
-from bittensor.core.settings import PIPADDRESS
+from bittensor.core.settings import __version__, PIPADDRESS
 from bittensor.utils.btlogging import logging
 
 VERSION_CHECK_THRESHOLD = 86400

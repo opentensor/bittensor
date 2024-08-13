@@ -19,8 +19,8 @@ import os
 import warnings
 
 from .core.settings import __version__, version_split, DEFAULTS
-from .utils.deprecated import *
 from .utils.btlogging import logging
+from .utils.deprecated import *
 
 
 def __getattr__(name):

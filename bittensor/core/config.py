@@ -20,14 +20,15 @@ Implementation of the config class, which manages the configuration of different
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import argparse
+import copy
 import os
 import sys
-import yaml
-import copy
 from copy import deepcopy
-from munch import DefaultMunch
 from typing import List, Optional, Dict, Any, TypeVar, Type
-import argparse
+
+import yaml
+from munch import DefaultMunch
 
 
 class InvalidConfigFile(Exception):

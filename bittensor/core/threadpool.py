@@ -5,23 +5,22 @@
 
 __author__ = "Brian Quinlan (brian@sweetapp.com)"
 
-import os
-import sys
-import time
-import queue
-import random
-import weakref
-import logging
 import argparse
 import itertools
+import logging
+import os
+import queue
+import random
+import sys
 import threading
-
-from typing import Callable
+import time
+import weakref
 from concurrent.futures import _base
+from typing import Callable
 
 from bittensor.core.config import Config
-from bittensor.utils.btlogging.defines import BITTENSOR_LOGGER_NAME
 from bittensor.core.settings import BLOCKTIME
+from bittensor.utils.btlogging.defines import BITTENSOR_LOGGER_NAME
 
 # Workers are created as daemon threads. This is done to allow the interpreter
 # to exit when there are still idle threads in a ThreadPoolExecutor's thread
