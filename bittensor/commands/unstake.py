@@ -65,21 +65,21 @@ class UnStakeCommand:
             config.wallet.name = str(wallet_name)
 
         if (
-            not config.get("hotkey_ss58address", d=None)
-            and not config.is_set("wallet.hotkey")
-            and not config.no_prompt
-            and not config.get("all_hotkeys")
-            and not config.get("hotkeys")
+                not config.get("hotkey_ss58address", d=None)
+                and not config.is_set("wallet.hotkey")
+                and not config.no_prompt
+                and not config.get("all_hotkeys")
+                and not config.get("hotkeys")
         ):
             hotkey = Prompt.ask("Enter hotkey name", default=defaults.wallet.hotkey)
             config.wallet.hotkey = str(hotkey)
 
         # Get amount.
         if (
-            not config.get("hotkey_ss58address")
-            and not config.get("amount")
-            and not config.get("unstake_all")
-            and not config.get("max_stake")
+                not config.get("hotkey_ss58address")
+                and not config.get("amount")
+                and not config.get("unstake_all")
+                and not config.get("max_stake")
         ):
             hotkeys: str = ""
             if config.get("all_hotkeys"):
@@ -270,13 +270,13 @@ class UnStakeCommand:
         # Ask to unstake
         if not cli.config.no_prompt:
             if not Confirm.ask(
-                f"Do you want to unstake from the following keys to {wallet.name}:\n"
-                + "".join(
-                    [
-                        f"    [bold white]- {hotkey[0] + ':' if hotkey[0] else ''}{hotkey[1]}: {f'{amount} {bittensor.__tao_symbol__}' if amount else 'All'}[/bold white]\n"
-                        for hotkey, amount in zip(final_hotkeys, final_amounts)
-                    ]
-                )
+                    f"Do you want to unstake from the following keys to {wallet.name}:\n"
+                    + "".join(
+                        [
+                            f"    [bold white]- {hotkey[0] + ':' if hotkey[0] else ''}{hotkey[1]}: {f'{amount} {bittensor.__tao_symbol__}' if amount else 'All'}[/bold white]\n"
+                            for hotkey, amount in zip(final_hotkeys, final_amounts)
+                        ]
+                    )
             ):
                 return None
 
@@ -344,8 +344,9 @@ class RevokeChildrenCommand:
         if not cli.config.is_set("hotkey"):
             cli.config.hotkey = Prompt.ask("Enter parent hotkey (ss58)")
 
-        # Display current children information
-        current_children = GetChildrenCommand.run(cli)
+        # Get and display current children information
+        current_children = GetChildrenCommand.retrieve_children(subtensor=subtensor, hotkey=cli.config.hotkey,
+                                                                netuid=cli.config.netuid, render_table=False)
 
         # Parse from strings
         netuid = cli.config.netuid
@@ -365,6 +366,10 @@ class RevokeChildrenCommand:
 
         # Result
         if success:
+            if cli.config.wait_for_finalization and cli.config.wait_for_inclusion:
+                GetChildrenCommand.retrieve_children(subtensor=subtensor, hotkey=cli.config.hotkey,
+                                                     netuid=cli.config.netuid,
+                                                     render_table=True)
             console.print(
                 ":white_heavy_check_mark: [green]Revoked all children hotkeys.[/green]"
             )
