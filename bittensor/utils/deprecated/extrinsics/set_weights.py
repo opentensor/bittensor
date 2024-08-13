@@ -23,8 +23,8 @@ from bittensor_wallet import Wallet
 from numpy.typing import NDArray
 from rich.prompt import Confirm
 
-from bittensor.utils import weight_utils
 from bittensor.core.settings import bt_console
+from bittensor.utils import weight_utils
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import torch, use_torch
 

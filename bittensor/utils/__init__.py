@@ -27,7 +27,6 @@ from bittensor.core.settings import SS58_FORMAT
 from .registration import torch, use_torch
 from .version import version_checking, check_version, VersionCheckError
 
-
 RAOPERTAO = 1e9
 U16_MAX = 65535
 U64_MAX = 18446744073709551615
