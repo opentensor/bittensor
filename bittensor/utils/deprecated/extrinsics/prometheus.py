@@ -60,19 +60,13 @@ def prometheus_extrinsic(
         try:
             external_ip = net.get_external_ip()
             bt_console.print(
-                ":white_heavy_check_mark: [green]Found external ip: {}[/green]".format(
-                    external_ip
-                )
+                f":white_heavy_check_mark: [green]Found external ip: {external_ip}[/green]"
             )
-            logging.success(
-                prefix="External IP", suffix="<blue>{}</blue>".format(external_ip)
-            )
-        except Exception as E:
+            logging.success(prefix="External IP", suffix="<blue>{external_ip}</blue>")
+        except Exception as e:
             raise RuntimeError(
-                "Unable to attain your external ip. Check your internet connection. error: {}".format(
-                    E
-                )
-            ) from E
+                f"Unable to attain your external ip. Check your internet connection. error: {e}"
+            ) from e
     else:
         external_ip = ip
 
@@ -105,9 +99,7 @@ def prometheus_extrinsic(
         )
 
         bt_console.print(
-            ":white_heavy_check_mark: [white]Prometheus already served.[/white]".format(
-                external_ip
-            )
+            f":white_heavy_check_mark: [white]Prometheus already served.[/white]"
         )
         return True
 
@@ -115,11 +107,9 @@ def prometheus_extrinsic(
     call_params["netuid"] = netuid
 
     with bt_console.status(
-        ":satellite: Serving prometheus on: [white]{}:{}[/white] ...".format(
-            subtensor.network, netuid
-        )
+        f":satellite: Serving prometheus on: [white]{subtensor.network}:{netuid}[/white] ..."
     ):
-        success, err = subtensor.do_serve_prometheus(
+        success, error_message = subtensor.do_serve_prometheus(
             wallet=wallet,
             call_params=call_params,
             wait_for_finalization=wait_for_finalization,
@@ -128,14 +118,13 @@ def prometheus_extrinsic(
 
         if wait_for_inclusion or wait_for_finalization:
             if success is True:
+                json_ = json.dumps(call_params, indent=4, sort_keys=True)
                 bt_console.print(
-                    ":white_heavy_check_mark: [green]Served prometheus[/green]\n  [bold white]{}[/bold white]".format(
-                        json.dumps(call_params, indent=4, sort_keys=True)
-                    )
+                    f":white_heavy_check_mark: [green]Served prometheus[/green]\n  [bold white]{json_}[/bold white]"
                 )
                 return True
             else:
-                bt_console.print(f":cross_mark: [red]Failed[/red]: {err}")
+                bt_console.print(f":cross_mark: [red]Failed[/red]: {error_message}")
                 return False
         else:
             return True

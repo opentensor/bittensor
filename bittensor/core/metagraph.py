@@ -407,9 +407,7 @@ class MetagraphMixin(ABC):
 
             print(metagraph)  # Output: "metagraph(netuid:1, n:100, block:500, network:finney)"
         """
-        return "metagraph(netuid:{}, n:{}, block:{}, network:{})".format(
-            self.netuid, self.n.item(), self.block.item(), self.network
-        )
+        return f"metagraph(netuid:{self.netuid}, n:{self.n.item()}, block:{self.block.item()}, network:{self.network})"
 
     def __repr__(self) -> str:
         """

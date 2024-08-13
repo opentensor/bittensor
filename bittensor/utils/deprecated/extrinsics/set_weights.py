@@ -81,14 +81,13 @@ def set_weights_extrinsic(
     # Ask before moving on.
     if prompt:
         if not Confirm.ask(
-            "Do you want to set weights:\n[bold white]  weights: {}\n  uids: {}[/bold white ]?".format(
-                [float(v / 65535) for v in weight_vals], weight_uids
-            )
+            f"Do you want to set weights:\n[bold white]  weights: {[float(v / 65535) for v in weight_vals]}\n"
+            f"uids: {weight_uids}[/bold white ]?"
         ):
             return False, "Prompt refused."
 
     with bt_console.status(
-        ":satellite: Setting weights on [white]{}[/white] ...".format(subtensor.network)
+        f":satellite: Setting weights on [white]{subtensor.network}[/white] ..."
     ):
         try:
             success, error_message = subtensor.do_set_weights(
@@ -107,8 +106,9 @@ def set_weights_extrinsic(
             if success is True:
                 bt_console.print(":white_heavy_check_mark: [green]Finalized[/green]")
                 logging.success(
+                    msg=str(success),
                     prefix="Set weights",
-                    suffix="<green>Finalized: </green>" + str(success),
+                    suffix="<green>Finalized: </green>",
                 )
                 return True, "Successfully set weights and Finalized."
             else:
@@ -120,7 +120,7 @@ def set_weights_extrinsic(
                 return False, error_message
 
         except Exception as e:
-            bt_console.print(":cross_mark: [red]Failed[/red]: error:{}".format(e))
+            bt_console.print(f":cross_mark: [red]Failed[/red]: error:{e}")
             logging.warning(
                 msg=str(e), prefix="Set weights", suffix="<red>Failed: </red>"
             )

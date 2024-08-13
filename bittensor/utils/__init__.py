@@ -173,7 +173,7 @@ def get_explorer_root_url_by_network_from_map(
 
 def get_explorer_url_for_network(
     network: str, block_hash: str, network_map: Dict[str, str]
-) -> Optional[List[str]]:
+) -> Optional[Dict[str, str]]:
     """
     Returns the explorer url for the given block hash and network.
 
@@ -195,11 +195,11 @@ def get_explorer_url_for_network(
 
     if explorer_root_urls != {}:
         # We are on a known network.
-        explorer_opentensor_url = "{root_url}/query/{block_hash}".format(
-            root_url=explorer_root_urls.get("opentensor"), block_hash=block_hash
+        explorer_opentensor_url = (
+            f"{explorer_root_urls.get('opentensor')}/query/{block_hash}"
         )
-        explorer_taostats_url = "{root_url}/extrinsic/{block_hash}".format(
-            root_url=explorer_root_urls.get("taostats"), block_hash=block_hash
+        explorer_taostats_url = (
+            f"{explorer_root_urls.get('taostats')}/extrinsic/{block_hash}"
         )
         explorer_urls["opentensor"] = explorer_opentensor_url
         explorer_urls["taostats"] = explorer_taostats_url

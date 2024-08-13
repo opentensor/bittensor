@@ -227,10 +227,10 @@ class Subtensor:
     def __str__(self) -> str:
         if self.network == self.chain_endpoint:
             # Connecting to chain endpoint without network known.
-            return "subtensor({})".format(self.chain_endpoint)
+            return f"subtensor({self.chain_endpoint})"
         else:
             # Connecting to network with endpoint known.
-            return "subtensor({}, {})".format(self.network, self.chain_endpoint)
+            return f"subtensor({self.network}, {self.chain_endpoint})"
 
     def __repr__(self) -> str:
         return self.__str__()
@@ -1802,9 +1802,7 @@ class Subtensor:
                 )
             except Exception as e:
                 settings.bt_console.print(
-                    ":cross_mark: [red]Failed to get payment info[/red]:[bold white]\n  {}[/bold white]".format(
-                        e
-                    )
+                    f":cross_mark: [red]Failed to get payment info[/red]:[bold white]\n  {e}[/bold white]"
                 )
                 payment_info = {"partialFee": int(2e7)}  # assume  0.02 Tao
 
@@ -1883,9 +1881,7 @@ class Subtensor:
         message = "No attempt made. Perhaps it is too soon to commit weights!"
 
         logging.info(
-            "Committing weights with params: netuid={}, uids={}, weights={}, version_key={}".format(
-                netuid, uids, weights, version_key
-            )
+            f"Committing weights with params: netuid={netuid}, uids={uids}, weights={weights}, version_key={version_key}"
         )
 
         # Generate the hash of the weights
