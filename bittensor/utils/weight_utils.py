@@ -17,15 +17,18 @@
 
 """Conversion for weight between chain representation and np.array or torch.Tensor"""
 
+import hashlib
 import logging
 import typing
-from typing import Tuple, List, Union
+from typing import List, Tuple, Union
 
 import numpy as np
 from numpy.typing import NDArray
+from scalecodec import U16, ScaleBytes, Vec
+from substrateinterface import Keypair
 
 from bittensor.utils.btlogging import logging
-from bittensor.utils.registration import torch, use_torch, legacy_torch_api_compat
+from bittensor.utils.registration import legacy_torch_api_compat, torch, use_torch
 
 if typing.TYPE_CHECKING:
     from bittensor.core.metagraph import Metagraph
@@ -357,3 +360,56 @@ def process_weights_for_netuid(
     logging.debug("final_weights", normalized_weights)
 
     return non_zero_weight_uids, normalized_weights
+
+
+def generate_weight_hash(
+    address: str,
+    netuid: int,
+    uids: List[int],
+    values: List[int],
+    version_key: int,
+    salt: List[int],
+) -> str:
+    """
+    Generate a valid commit hash from the provided weights.
+
+    Args:
+        address (str): The account identifier. Wallet ss58_address.
+        netuid (int): The network unique identifier.
+        uids (List[int]): The list of UIDs.
+        salt (List[int]): The salt to add to hash.
+        values (List[int]): The list of weight values.
+        version_key (int): The version key.
+
+    Returns:
+        str: The generated commit hash.
+    """
+    # Encode data using SCALE codec
+    wallet_address = ScaleBytes(Keypair(ss58_address=address).public_key)
+    netuid = ScaleBytes(netuid.to_bytes(2, "little"))
+
+    vec_uids = Vec(data=None, sub_type="U16")
+    vec_uids.value = [U16(ScaleBytes(uid.to_bytes(2, "little"))) for uid in uids]
+    uids = ScaleBytes(vec_uids.encode().data)
+
+    vec_values = Vec(data=None, sub_type="U16")
+    vec_values.value = [
+        U16(ScaleBytes(value.to_bytes(2, "little"))) for value in values
+    ]
+    values = ScaleBytes(vec_values.encode().data)
+
+    version_key = ScaleBytes(version_key.to_bytes(8, "little"))
+
+    vec_salt = Vec(data=None, sub_type="U16")
+    vec_salt.value = [U16(ScaleBytes(salts.to_bytes(2, "little"))) for salts in salt]
+    salt = ScaleBytes(vec_salt.encode().data)
+
+    data = wallet_address + netuid + uids + values + salt + version_key
+
+    # Generate Blake2b hash of the data tuple
+    blake2b_hash = hashlib.blake2b(data.data, digest_size=32)
+
+    # Convert the hash to hex string and add "0x" prefix
+    commit_hash = "0x" + blake2b_hash.hexdigest()
+
+    return commit_hash

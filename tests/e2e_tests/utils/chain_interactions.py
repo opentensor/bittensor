@@ -4,11 +4,66 @@ these are not present in btsdk but are required for e2e tests
 """
 
 import asyncio
+from typing import Dict, List, Tuple, Union
 
 from substrateinterface import SubstrateInterface
 
 import bittensor
 from bittensor import logging
+
+
+def sudo_set_hyperparameter_bool(
+    substrate: SubstrateInterface,
+    wallet: bittensor.wallet,
+    call_function: str,
+    value: bool,
+    netuid: int,
+) -> bool:
+    """
+    Sets boolean hyperparameter value through AdminUtils. Mimics setting hyperparams
+    """
+    call = substrate.compose_call(
+        call_module="AdminUtils",
+        call_function=call_function,
+        call_params={"netuid": netuid, "enabled": value},
+    )
+    extrinsic = substrate.create_signed_extrinsic(call=call, keypair=wallet.coldkey)
+    response = substrate.submit_extrinsic(
+        extrinsic,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    response.process_events()
+    return response.is_success
+
+
+def sudo_set_hyperparameter_values(
+    substrate: SubstrateInterface,
+    wallet: bittensor.wallet,
+    call_function: str,
+    call_params: Dict,
+    return_error_message: bool = False,
+) -> Union[bool, Tuple[bool, str]]:
+    """
+    Sets liquid alpha values using AdminUtils. Mimics setting hyperparams
+    """
+    call = substrate.compose_call(
+        call_module="AdminUtils",
+        call_function=call_function,
+        call_params=call_params,
+    )
+    extrinsic = substrate.create_signed_extrinsic(call=call, keypair=wallet.coldkey)
+    response = substrate.submit_extrinsic(
+        extrinsic,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    response.process_events()
+
+    if return_error_message:
+        return response.is_success, response.error_message
+
+    return response.is_success
 
 
 def add_stake(
