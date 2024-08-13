@@ -105,7 +105,8 @@ def check_version(timeout: int = 15):
             print(
                 f"\u001b[33mBittensor Version: Current {__version__}/Latest {latest_version}\n"
                 f"Please update to the latest version at your earliest convenience. "
-                "Run the following command to upgrade:\n\n\u001b[0mpython -m pip install --upgrade bittensor")
+                "Run the following command to upgrade:\n\n\u001b[0mpython -m pip install --upgrade bittensor"
+            )
         pass
     except Exception as e:
         raise VersionCheckError("Version check failed") from e

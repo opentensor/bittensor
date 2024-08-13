@@ -141,7 +141,9 @@ def transfer_extrinsic(
     if success:
         with bt_console.status(":satellite: Checking Balance..."):
             new_balance = subtensor.get_balance(wallet.coldkey.ss58_address)
-            bt_console.print(f"Balance:\n  [blue]{account_balance}[/blue] :arrow_right: [green]{new_balance}[/green]")
+            bt_console.print(
+                f"Balance:\n  [blue]{account_balance}[/blue] :arrow_right: [green]{new_balance}[/green]"
+            )
             return True
 
     return False
