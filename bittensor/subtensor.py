@@ -1007,14 +1007,23 @@ class subtensor:
         @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
         def make_substrate_call_with_retry():
             # create extrinsic call
-            call = self.substrate.compose_call(
-                call_module="SubtensorModule",
-                call_function="burned_register",
-                call_params={
-                    "netuid": netuid,
-                    "hotkey": wallet.hotkey.ss58_address,
-                },
-            )
+            if netuid != 0:
+                call = self.substrate.compose_call(
+                    call_module="SubtensorModule",
+                    call_function="burned_register",
+                    call_params={
+                        "netuid": netuid,
+                        "hotkey": wallet.hotkey.ss58_address,
+                    },
+                )
+            else:
+                call = self.substrate.compose_call(
+                    call_module="SubtensorModule",
+                    call_function="root_register",
+                    call_params={
+                        "hotkey": wallet.hotkey.ss58_address,
+                    },
+                )
             extrinsic = self.substrate.create_signed_extrinsic(
                 call=call, keypair=wallet.coldkey
             )

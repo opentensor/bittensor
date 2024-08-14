@@ -73,7 +73,6 @@ class ListSubnetsCommand:
                 storage_function="SubnetAlphaOut",
                 params=[ netuid ]
             ).value/10**9
-            print (f"alpha_in: {alpha_in}, alpha_out: {alpha_out}")
             tempo = subtensor.substrate.query(
                 module="SubtensorModule",
                 storage_function="Tempo",

@@ -173,6 +173,7 @@ custom_rpc_type_registry = {
                 ["coldkey", "AccountId"],
                 ["netuid", "Compact<u16>"],
                 ["stake", "Compact<u64>"],
+                ["locked", "Compact<u64>"],
             ],
         },
         "SubstakeElements": {
@@ -1076,6 +1077,7 @@ class StakeInfo:
     coldkey_ss58: str  # Coldkey address
     netuid: int
     stake: Balance  # Stake for the hotkey-coldkey pair
+    locked: Balance  # Stake which is locked.
 
     @classmethod
     def fix_decoded_values(cls, decoded: Any) -> "StakeInfo":
@@ -1086,6 +1088,7 @@ class StakeInfo:
             coldkey_ss58=ss58_encode(decoded["coldkey"], bittensor.__ss58_format__),
             netuid=int(decoded["netuid"]),
             stake=Balance.from_rao(decoded["stake"]),
+            locked=Balance.from_rao(decoded["locked"]),
         )
 
     @classmethod
