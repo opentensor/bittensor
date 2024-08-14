@@ -110,9 +110,9 @@ class FastAPIThreadedServer(uvicorn.Server):
     """
     Provide a channel to signal exceptions from the thread to our caller.
     """
-    _exception: Exception = None
+    _exception: Optional[Exception] = None
     _lock: threading.Lock = threading.Lock()
-    _thread: threading.Thread = None
+    _thread: Optional[threading.Thread] = None
     _started: bool = False
 
     def set_exception(self, exception: Exception) -> None:
