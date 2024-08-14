@@ -69,8 +69,7 @@ def register_subnetwork_extrinsic(
                 call_function="register_network",
                 call_params={
                     "hotkey": wallet.hotkey.ss58_address,
-                    "immunity_period": 0,
-                    "reg_allowed": True,
+                    "mechid": 1,
                 },
             )
             extrinsic = substrate.create_signed_extrinsic(

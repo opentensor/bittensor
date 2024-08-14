@@ -38,60 +38,63 @@ class ListSubnetsCommand:
     def _run(cli: "bt.cli", subtensor: "bt.subtensor"):
         r"""List all subnet netuids in the network."""
         # Fetch all subnet information
-        subnets: List[bt.SubnetInfoV2] = subtensor.get_all_subnets_info_v2()
+        subnets: List[int] = subtensor.get_subnets()
 
         # Initialize variables to store aggregated data
         rows = []
-        total_neurons = 0
-        total_registered = 0
         total_price = 0
         total_emission = 0
         dynamic_emission = 0
-        n_dtao = 0
-        n_stao = 0
-        total_tao_locked = 0
-
-        # Fetch delegate information
-        delegate_info = get_delegates_details(url=bt.__delegates_details_url__)
-
         # Process each subnet and collect relevant data
-        for subnet in subnets:
-            pool = subnet.dynamic_pool
-            total_neurons += subnet.max_n
-            total_registered += subnet.subnetwork_n
-            total_price += pool.price if pool.is_dynamic else bt.Balance.from_rao(0)
-            total_emission += subnet.emission_value
-            dynamic_emission += subnet.emission_value if pool.is_dynamic else 0
-            tao_locked = subnet.tao_locked
-            total_tao_locked += tao_locked
-
-            sn_symbol = f"{bt.Balance.get_unit(subnet.netuid)}\u200E"
-            alpha_out_str = (
-                f"{sn_symbol}{pool.alpha_outstanding.tao:,.4f}"
-                if pool.is_dynamic
-                else f"τ{tao_locked.tao:,.4f}"
-            )
-            if pool.is_dynamic:
-                n_dtao += 1
-            else:
-                n_stao += 1
+        for netuid in subnets:
+            
+            type = subtensor.substrate.query(
+                module="SubtensorModule",
+                storage_function="SubnetMechanism",
+                params=[ netuid ]
+            ).value
+            emission = subtensor.substrate.query(
+                module="SubtensorModule",
+                storage_function="EmissionValues",
+                params=[ netuid ]
+            ).value/10**9
+            tao_in = subtensor.substrate.query(
+                module="SubtensorModule",
+                storage_function="SubnetTAO",
+                params=[ netuid ]
+            ).value/10**9
+            alpha_in = subtensor.substrate.query(
+                module="SubtensorModule",
+                storage_function="SubnetAlphaIn",
+                params=[ netuid ]
+            ).value/10**9
+            alpha_out = subtensor.substrate.query(
+                module="SubtensorModule",
+                storage_function="SubnetAlphaOut",
+                params=[ netuid ]
+            ).value/10**9
+            print (f"alpha_in: {alpha_in}, alpha_out: {alpha_out}")
+            tempo = subtensor.substrate.query(
+                module="SubtensorModule",
+                storage_function="Tempo",
+                params=[ netuid ]
+            ).value
+            price = float( tao_in ) / float( alpha_in ) if alpha_in > 0 else 1.0
+            total_price += price
+            total_emission += emission
+            sn_symbol = f"{bt.Balance.get_unit(netuid)}\u200E"
 
             # Append row data for the table
             rows.append(
                 (
-                    str(subnet.netuid),
+                    str(netuid),
                     f"[light_goldenrod1]{sn_symbol}[light_goldenrod1]",
-                    f"{subnet.subnetwork_n}/{subnet.max_n}",
-                    "[indian_red]dynamic[/indian_red]" if pool.is_dynamic else "[light_sky_blue3]stable[/light_sky_blue3]",
-                    f"τ{bt.Balance.from_rao(subnet.emission_value).tao:.4f}",
-                    f"τ{tao_locked.tao:,.4f}",
-                    f"P({pool.tao_reserve},",
-                    f"{pool.alpha_reserve.tao:.4f}{sn_symbol})",
-                    alpha_out_str,
-                    f"{pool.price.tao:.4f}τ/{sn_symbol}" if pool.is_dynamic else "[grey0]NA[/grey0]",
-                    str(subnet.hyperparameters["tempo"]),
-                    f"{subnet.burn!s:8.8}",
-                    f"{delegate_info[subnet.owner_ss58].name if subnet.owner_ss58 in delegate_info else subnet.owner_ss58[:5] + '...' + subnet.owner_ss58[-5:]}",
+                    f"τ{bt.Balance.from_tao(emission).tao:.4f}",
+                    f"P( τ{tao_in:,.4f},",
+                    f"{alpha_in:,.4f}{sn_symbol} )",
+                    f"{alpha_out:,.4f}{sn_symbol}",
+                    f"{price:.4f}τ/{sn_symbol}",
+                    str(tempo),
                 )
             )
 
@@ -122,22 +125,17 @@ class ListSubnetsCommand:
         table.title = f"[white]Subnets - {subtensor.network}\n"
 
         # Add columns to the table
-        price_total = f"τ{total_price.tao:.2f}/{bt.Balance.from_rao(dynamic_emission).tao:.2f}"
-        above_price_threshold = total_price.tao > bt.Balance.from_rao(dynamic_emission).tao
+        # price_total = f"τ{total_price.tao:.2f}/{bt.Balance.from_rao(dynamic_emission).tao:.2f}"
+        # above_price_threshold = total_price.tao > bt.Balance.from_rao(dynamic_emission).tao
 
         table.add_column("Index", style="rgb(253,246,227)", no_wrap=True, justify="center")
         table.add_column("Symbol", style="rgb(211,54,130)", no_wrap=True, justify="center")
-        table.add_column("n", style="rgb(108,113,196)", no_wrap=True, justify="center")
-        table.add_column("Type", style="rgb(181,137,0)", no_wrap=True, justify="center")
         table.add_column("Emission", style="rgb(38,139,210)", no_wrap=True, justify="center")
-        table.add_column(f"{bt.Balance.unit}", style="rgb(220,50,47)", no_wrap=True, justify="right")
         table.add_column(f"P({bt.Balance.unit},", style="rgb(108,113,196)", no_wrap=True, justify="right")
         table.add_column(f"{bt.Balance.get_unit(1)})", style="rgb(42,161,152)", no_wrap=True, justify="left")
-        table.add_column(f"{bt.Balance.get_unit(1)}", style="rgb(133,153,0)", no_wrap=True, justify="right")
-        table.add_column("Price", style="rgb(181,137,0)", no_wrap=True, justify="center", footer=f"[red]↓ {price_total}[/red]" if above_price_threshold else f"[green]↑ {price_total}[/green]")
+        table.add_column(f"{bt.Balance.get_unit(1)}", style="rgb(133,153,0)", no_wrap=True, justify="center")
+        table.add_column("Price", style="rgb(181,137,0)", no_wrap=True, justify="center")
         table.add_column("Tempo", style="rgb(38,139,210)", no_wrap=True, justify="center")
-        table.add_column("Burn", style="rgb(220,50,47)", no_wrap=True, justify="center")
-        table.add_column("Owner", style="rgb(108,113,196)", no_wrap=True)
 
         # Add rows to the table
         for row in rows:

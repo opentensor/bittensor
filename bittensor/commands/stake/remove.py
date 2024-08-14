@@ -146,7 +146,7 @@ class RemoveStakeCommand:
         with bt.__console__.status(f"\n:satellite: Unstaking {amount_to_unstake_as_balance} from {staking_address_name} on netuid: {netuid} ..."):
             call = subtensor.substrate.compose_call(
                 call_module="SubtensorModule",
-                call_function="remove_subnet_stake",
+                call_function="remove_stake",
                 call_params={
                     "hotkey": staking_address_ss58,
                     "netuid": netuid,

@@ -146,7 +146,7 @@ class AddStakeCommand:
         with bt.__console__.status(f"\n:satellite: Staking {amount_to_stake_as_balance} to {staking_address_name} on netuid: {netuid} ..."):
             call = subtensor.substrate.compose_call(
                 call_module="SubtensorModule",
-                call_function="add_subnet_stake",
+                call_function="add_stake",
                 call_params={
                     "hotkey": staking_address_ss58,
                     "netuid": netuid,

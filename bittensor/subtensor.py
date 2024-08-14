@@ -356,8 +356,8 @@ class subtensor:
         """
         prefix_str = "" if prefix is None else f"{prefix}."
         try:
-            default_network = "dtao"
-            default_chain_endpoint = bittensor.__dtao_entrypoint__
+            default_network = "local"
+            default_chain_endpoint = bittensor.__local_entrypoint__
 
             parser.add_argument(
                 f"--{prefix_str}subtensor.network",
@@ -2660,7 +2660,7 @@ class subtensor:
         if not isinstance(netuid, int):
             raise ValueError(f"netuid must be an int, got {type(netuid)}")
         _result = self.query_subtensor(
-            "SubStake", block, [coldkey_ss58, hotkey_ss58, netuid]
+            "Alpha", block, [hotkey_ss58, coldkey_ss58, netuid]
         )
         if not hasattr(_result, "value") or _result is None:
             return None
@@ -2668,10 +2668,10 @@ class subtensor:
 
     def get_dynamic_info(self):
         netuids = self.get_all_subnet_netuids()
-        alpha_reserves = { rec[0].value: rec[1].value for rec in self.substrate.query_map( module="SubtensorModule", storage_function="DynamicAlphaReserve", params=[], block_hash=None ).records }
-        alpha_outstanding = {rec[0].value: rec[1].value for rec in self.substrate.query_map( module="SubtensorModule", storage_function="DynamicAlphaOutstanding", params=[], block_hash=None ).records }
-        tao_reserves = { rec[0].value: rec[1].value for rec in self.substrate.query_map( module="SubtensorModule", storage_function="DynamicTAOReserve", params=[], block_hash=None ).records }
-        k_values = { rec[0].value: rec[1].value for rec in self.substrate.query_map( module="SubtensorModule", storage_function="DynamicK", params=[], block_hash=None ).records }
+        alpha_reserves = { rec[0].value: rec[1].value for rec in self.substrate.query_map( module="SubtensorModule", storage_function="SubnetAlphaIn", params=[], block_hash=None ).records }
+        alpha_outstanding = {rec[0].value: rec[1].value for rec in self.substrate.query_map( module="SubtensorModule", storage_function="SubnetAlphaOut", params=[], block_hash=None ).records }
+        tao_reserves = { rec[0].value: rec[1].value for rec in self.substrate.query_map( module="SubtensorModule", storage_function="SubnetTAO", params=[], block_hash=None ).records }
+        k_values = { netuid: tao_reserves[netuid] * alpha_reserves[netuid] for netuid in tao_reserves.keys() if netuid in alpha_reserves }
         pools = {}
         for netuid in netuids:
             pool = DynamicPool(
@@ -2689,20 +2689,18 @@ class subtensor:
     def get_dynamic_info_for_netuid(
         self, netuid: int, block: Optional[int] = None
     ) -> DynamicPool:
-        is_dynamic = self.query_subtensor("IsDynamic", block, [netuid]).value
+        is_dynamic = self.query_subtensor("SubnetMechanism", block, [netuid]).value == 1
         alpha_reserve = Balance.from_rao(
-            self.query_subtensor("DynamicAlphaReserve", block, [netuid]).value
-        ).set_unit(netuid)
-        alpha_issuance = Balance.from_rao(
-            self.query_subtensor("DynamicAlphaIssuance", block, [netuid]).value
+            self.query_subtensor("SubnetAlphaIn", block, [netuid]).value
         ).set_unit(netuid)
         alpha_outstanding = Balance.from_rao(
-            self.query_subtensor("DynamicAlphaOutstanding", block, [netuid]).value
+            self.query_subtensor("SubnetAlphaOut", block, [netuid]).value
         ).set_unit(netuid)
+        alpha_issuance = alpha_outstanding + alpha_reserve
         tao_reserve = Balance.from_rao(
-            self.query_subtensor("DynamicTAOReserve", block, [netuid]).value
+            self.query_subtensor("SubnetTAO", block, [netuid]).value
         )
-        k = self.query_subtensor("DynamicK", block, [netuid]).value
+        k = tao_reserve.tao * alpha_reserve.tao
         return DynamicPool(
             is_dynamic=is_dynamic,
             netuid=netuid,
@@ -3168,10 +3166,10 @@ class subtensor:
         self, coldkey_ss58: str, block: Optional[int] = None
     ) -> Optional[List[Tuple[str, str, int, int]]]:
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
-        def make_substrate_call_with_retry(encoded_hotkey: List[int]):
+        def make_substrate_call_with_retry(encoded_coldkey: List[int]):
             with self.substrate as substrate:
                 block_hash = None if block == None else substrate.get_block_hash(block)
-                params = [encoded_hotkey]
+                params = [encoded_coldkey]
                 if block_hash:
                     params = params + [block_hash]
                 return substrate.rpc_request(
@@ -3179,8 +3177,8 @@ class subtensor:
                     params=params,
                 )
 
-        encoded_hotkey = ss58_to_vec_u8(coldkey_ss58)
-        json_body = make_substrate_call_with_retry(encoded_hotkey)
+        encoded_coldkey = ss58_to_vec_u8(coldkey_ss58)
+        json_body = make_substrate_call_with_retry(encoded_coldkey)
         result = json_body["result"]
         if result in (None, []):
             return None

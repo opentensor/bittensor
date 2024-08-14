@@ -171,6 +171,7 @@ custom_rpc_type_registry = {
             "type_mapping": [
                 ["hotkey", "AccountId"],
                 ["coldkey", "AccountId"],
+                ["netuid", "Compact<u16>"],
                 ["stake", "Compact<u64>"],
             ],
         },
@@ -1073,6 +1074,7 @@ class StakeInfo:
 
     hotkey_ss58: str  # Hotkey address
     coldkey_ss58: str  # Coldkey address
+    netuid: int
     stake: Balance  # Stake for the hotkey-coldkey pair
 
     @classmethod
@@ -1082,6 +1084,7 @@ class StakeInfo:
         return cls(
             hotkey_ss58=ss58_encode(decoded["hotkey"], bittensor.__ss58_format__),
             coldkey_ss58=ss58_encode(decoded["coldkey"], bittensor.__ss58_format__),
+            netuid=int(decoded["netuid"]),
             stake=Balance.from_rao(decoded["stake"]),
         )
 
