@@ -148,7 +148,7 @@ class config(DefaultMunch):
         ## Make a dict with keys as args and values as argparse.SUPPRESS
         defaults_as_suppress = {key: argparse.SUPPRESS for key in all_default_args}
 
-        def local_set_defaults(local_parser:argparse.ArgumentParser):
+        def local_set_defaults(local_parser: argparse.ArgumentParser):
             ## Set the defaults to argparse.SUPPRESS, should remove them from the namespace
             local_parser.set_defaults(**defaults_as_suppress)
             local_parser._defaults.clear()  # Needed for quirk of argparse
@@ -173,7 +173,11 @@ class config(DefaultMunch):
         }
 
     @staticmethod
-    def apply_to_parser_recursive(parser:argparse.ArgumentParser, callback:Callable[[argparse.ArgumentParser],None], depth:int=0):
+    def apply_to_parser_recursive(
+        parser: argparse.ArgumentParser,
+        callback: Callable[[argparse.ArgumentParser], None],
+        depth: int = 0,
+    ):
         """
         Recursively apply callback() to parser and its subparsers.
         """
@@ -187,7 +191,7 @@ class config(DefaultMunch):
                 config.apply_to_parser_recursive(cmd_parser, callback, depth=depth + 1)
 
     @staticmethod
-    def add_args(parser:argparse.ArgumentParser):
+    def add_args(parser: argparse.ArgumentParser):
         """
         Add standard arguments to argument parser.
         """
