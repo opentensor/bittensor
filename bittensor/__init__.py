@@ -17,6 +17,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import re
 from rich.console import Console
 from rich.traceback import install
 
@@ -27,7 +28,9 @@ import nest_asyncio
 nest_asyncio.apply()
 
 # Bittensor code and protocol version.
-__version__ = "7.0.1"
+__version__ = "7.4.0rc1"
+# Parsing version without any literals.
+__version__ = re.match(r"^\d+\.\d+\.\d+", __version__).group(0)
 
 version_split = __version__.split(".")
 __version_as_int__: int = (
