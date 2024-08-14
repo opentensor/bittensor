@@ -109,7 +109,7 @@ from .extrinsics.unstaking import (
     unstake_extrinsic,
     unstake_multiple_extrinsic,
 )
-from .types import AxonServeCallParams, PrometheusServeCallParams
+from .bt_types import AxonServeCallParams, PrometheusServeCallParams
 from .utils import (
     U16_NORMALIZED_FLOAT,
     ss58_to_vec_u8,
