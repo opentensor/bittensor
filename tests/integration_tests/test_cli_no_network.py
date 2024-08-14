@@ -1384,7 +1384,6 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
                 args=[
                     "sudo",
                     "set",
-                    "hyperparameters",
                     "--netuid",
                     "1",
                     "--param",
