@@ -26,7 +26,7 @@ import yaml
 import copy
 from copy import deepcopy
 from munch import DefaultMunch
-from typing import List, Optional, Dict, Any, TypeVar, Type
+from typing import List, Optional, Dict, Any, TypeVar, Type, Callable
 import argparse
 
 
@@ -74,7 +74,7 @@ class config(DefaultMunch):
         if parser == None:
             return None
 
-        config.apply_to_parser_recursive(parser, config.add_standard_args)
+        config.apply_to_parser_recursive(parser, config.add_args)
 
         # Get args from argv if not passed in.
         if args == None:
@@ -148,12 +148,12 @@ class config(DefaultMunch):
         ## Make a dict with keys as args and values as argparse.SUPPRESS
         defaults_as_suppress = {key: argparse.SUPPRESS for key in all_default_args}
 
-        def l_set_defaults(l_parser):
+        def local_set_defaults(local_parser:argparse.ArgumentParser):
             ## Set the defaults to argparse.SUPPRESS, should remove them from the namespace
-            l_parser.set_defaults(**defaults_as_suppress)
-            l_parser._defaults.clear()  # Needed for quirk of argparse
+            local_parser.set_defaults(**defaults_as_suppress)
+            local_parser._defaults.clear()  # Needed for quirk of argparse
 
-        config.apply_to_parser_recursive(parser_no_defaults, l_set_defaults)
+        config.apply_to_parser_recursive(parser_no_defaults, local_set_defaults)
 
         ## Reparse the args, but this time with the defaults as argparse.SUPPRESS
         params_no_defaults = config.__parse_args__(
@@ -173,7 +173,10 @@ class config(DefaultMunch):
         }
 
     @staticmethod
-    def apply_to_parser_recursive(parser, callback, depth=0):
+    def apply_to_parser_recursive(parser:argparse.ArgumentParser, callback:Callable[[argparse.ArgumentParser],None], depth:int=0):
+        """
+        Recursively apply callback() to parser and its subparsers.
+        """
         callback(parser)
         if not parser._subparsers:
             return
@@ -184,7 +187,10 @@ class config(DefaultMunch):
                 config.apply_to_parser_recursive(cmd_parser, callback, depth=depth + 1)
 
     @staticmethod
-    def add_standard_args(parser):
+    def add_args(parser:argparse.ArgumentParser):
+        """
+        Add standard arguments to argument parser.
+        """
         # Optionally add config specific arguments
         try:
             parser.add_argument(
