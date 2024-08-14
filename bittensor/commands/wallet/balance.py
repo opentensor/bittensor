@@ -132,7 +132,7 @@ class WalletBalanceCommand:
             ]
 
             stake_breakdown = {
-                coldkey: subtensor.get_substake_for_coldkey(coldkey)
+                coldkey: subtensor.get_stake_info_for_coldkeys(coldkey_ss58_list=[wallet.coldkeypub.ss58_address])[wallet.coldkeypub.ss58_address]
                 for coldkey in coldkeys
             }
 
@@ -164,7 +164,7 @@ class WalletBalanceCommand:
                 ]
 
                 stake_breakdown = {
-                    coldkey: subtensor.get_substake_for_coldkey(coldkey)
+                    coldkey: subtensor.get_stake_info_for_coldkeys(coldkey_ss58_list=[wallet.coldkeypub.ss58_address])[wallet.coldkeypub.ss58_address]
                     for coldkey in coldkeys
                 }
 
