@@ -356,8 +356,8 @@ class subtensor:
         """
         prefix_str = "" if prefix is None else f"{prefix}."
         try:
-            default_network = "local"
-            default_chain_endpoint = bittensor.__local_entrypoint__
+            default_network = "rao"
+            default_chain_endpoint = bittensor.__rao_entrypoint__
 
             parser.add_argument(
                 f"--{prefix_str}subtensor.network",
@@ -415,8 +415,8 @@ class subtensor:
                 return network, bittensor.__archive_entrypoint__
             elif network == "dev":
                 return network, bittensor.__dev_entrypoint__
-            elif network == "dtao":
-                return network, bittensor.__dtao_entrypoint__
+            elif network == "rao":
+                return network, bittensor.__rao_entrypoint__
             else:
                 raise ValueError(f"Network {network} unknown.")
         else:
@@ -436,10 +436,10 @@ class subtensor:
             ):
                 return "archive", bittensor.__archive_entrypoint__
             elif (
-                network == bittensor.__dtao_entrypoint__
-                or "dtao-demo.chain.opentensor.ai" in network
+                network == bittensor.__rao_entrypoint__
+                or "rao.chain.opentensor.ai" in network
             ):
-                return "dtao", bittensor.__dtao_entrypoint__
+                return "rao", bittensor.__rao_entrypoint__
             elif "127.0.0.1" in network or "localhost" in network:
                 return "local", network
             else:
