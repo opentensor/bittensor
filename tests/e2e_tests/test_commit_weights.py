@@ -81,6 +81,9 @@ async def test_commit_and_reveal_weights(local_chain):
         == 370
     ), "Failed to set commit/reveal interval"
 
+    assert (
+        subtensor.weights_rate_limit(netuid=netuid) > 0
+    ), "Weights rate limit is below 0"
     # Lower the rate limit
     assert sudo_set_hyperparameter_values(
         local_chain,
@@ -91,8 +94,9 @@ async def test_commit_and_reveal_weights(local_chain):
     )
     subtensor = bittensor.subtensor(network="ws://localhost:9945")
     assert (
-        subtensor.get_subnet_hyperparameters(netuid=1).weights_rate_limit == 0
+        subtensor.get_subnet_hyperparameters(netuid=netuid).weights_rate_limit == 0
     ), "Failed to set weights_rate_limit"
+    assert subtensor.weights_rate_limit(netuid=netuid) == 0
 
     # Commit-reveal values
     uids = np.array([0], dtype=np.int64)

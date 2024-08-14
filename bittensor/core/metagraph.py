@@ -475,6 +475,7 @@ class MetagraphMixin(ABC):
             "bonds": self.bonds,
             "uids": self.uids,
             "axons": self.axons,
+            "neurons": self.neurons,
         }
 
     def sync(
@@ -791,6 +792,7 @@ class MetagraphMixin(ABC):
             graph_filename = f"{save_directory}/block-{self.block.item()}.pt"
             state_dict = self.state_dict()
             state_dict["axons"] = self.axons
+            state_dict["neurons"] = self.neurons
             torch.save(state_dict, graph_filename)
             torch.load(graph_filename)  # verifies that the file can be loaded correctly
         else:
@@ -1034,6 +1036,7 @@ class TorchMetaGraph(MetagraphMixin, BaseClass):
         )
         self.uids = torch.nn.Parameter(state_dict["uids"], requires_grad=False)
         self.axons = state_dict["axons"]
+        self.neurons = state_dict["neurons"]
         if "weights" in state_dict:
             self.weights = torch.nn.Parameter(
                 state_dict["weights"], requires_grad=False
@@ -1176,6 +1179,7 @@ class NonTorchMetagraph(MetagraphMixin):
         self.last_update = state_dict["last_update"]
         self.validator_permit = state_dict["validator_permit"]
         self.axons = state_dict["axons"]
+        self.neurons = state_dict["neurons"]
         if "weights" in state_dict:
             self.weights = state_dict["weights"]
         if "bonds" in state_dict:
