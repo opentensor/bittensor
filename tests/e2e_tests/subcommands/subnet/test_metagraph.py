@@ -80,9 +80,8 @@ def test_metagraph_command(local_chain, capsys):
     captured = capsys.readouterr()
 
     # Assert the neuron is registered and displayed
-    assert (
-        "Metagraph: net: local:1" and "N: 1/1" in captured.out
-    ), "Neuron isn't displayed in metagraph"
+    assert "Metagraph: net: local:1" in captured.out
+    assert "N: 1/1" in captured.out, "Neuron isn't displayed in metagraph"
 
     # Register Dave as neuron to the subnet
     dave_keypair, dave_exec_command, dave_wallet = setup_wallet("//Dave")
@@ -117,6 +116,7 @@ def test_metagraph_command(local_chain, capsys):
     captured = capsys.readouterr()
 
     # Assert the neuron is registered and displayed
-    assert "Metagraph: net: local:1" and "N: 2/2" in captured.out
+    assert "Metagraph: net: local:1" in captured.out
+    assert "N: 2/2" in captured.out
 
     logging.info("Passed test_metagraph_command")
