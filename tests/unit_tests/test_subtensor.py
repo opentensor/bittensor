@@ -1914,6 +1914,24 @@ def test_get_subnets_no_block_specified(mocker, subtensor):
     subtensor.query_map_subtensor.assert_called_once_with("NetworksAdded", None)
 
 
+def test_get_subnets_correct_length(mocker, subtensor):
+    """Test get_subnets returns a list of the correct length."""
+    # Prep
+    block = 123
+    num_records = 50 
+    mock_records = [(mocker.MagicMock(value=i), True) for i in range(num_records)]
+    mock_result = mocker.MagicMock()
+    mock_result.records = mock_records
+    mocker.patch.object(subtensor, "query_map_subtensor", return_value=mock_result)
+
+    # Call
+    result = subtensor.get_subnets(block)
+
+    # Asserts
+    assert len(result) == num_records
+    subtensor.query_map_subtensor.assert_called_once_with("NetworksAdded", block)
+
+
 # `get_all_subnets_info` tests
 def test_get_all_subnets_info_success(mocker, subtensor):
     """Test get_all_subnets_info returns correct data when subnet information is found."""

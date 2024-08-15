@@ -4253,11 +4253,11 @@ class Subtensor:
         available for neuron participation and collaboration.
         """
         result = self.query_map_subtensor("NetworksAdded", block)
-        return (
-            [network[0].value for network in result.records]
-            if result and hasattr(result, "records")
-            else []
-        )
+        subnets = []
+        if result and hasattr(result, "records"):
+            for record in result.records:
+                subnets.append(record[0].value)
+        return subnets
 
     def get_all_subnets_info(self, block: Optional[int] = None) -> List[SubnetInfo]:
         """
