@@ -4,6 +4,7 @@ import argparse
 import bittensor
 from rich.prompt import Prompt
 
+
 class RegisterSubnetworkCommand:
     """
     Executes the ``register_subnetwork`` command to register a new subnetwork on the Bittensor network.
@@ -37,7 +38,7 @@ class RegisterSubnetworkCommand:
 
     @staticmethod
     def run(cli: "bittensor.cli"):
-        r"""Register a subnetwork"""
+        """Register a subnetwork"""
         try:
             config = cli.config.copy()
             subtensor: "bittensor.subtensor" = bittensor.subtensor(

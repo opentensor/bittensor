@@ -15,11 +15,17 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
-import time
-import bittensor
 
+import time
+
+import substrateinterface
+from rich.prompt import Confirm
+
+import bittensor
+from bittensor.utils import format_error_message
 from rich.prompt import Confirm
 from ..params.subnets import HYPERPARAMS
+
 
 def register_subnetwork_extrinsic(
     subtensor: "bittensor.subtensor",
@@ -89,9 +95,7 @@ def register_subnetwork_extrinsic(
             response.process_events()
             if not response.is_success:
                 bittensor.__console__.print(
-                    ":cross_mark: [red]Failed[/red]: error:{}".format(
-                        response.error_message
-                    )
+                    f":cross_mark: [red]Failed[/red]: {format_error_message(response.error_message)}"
                 )
                 time.sleep(0.5)
 
@@ -158,7 +162,7 @@ def set_hyperparameter_extrinsic(
     wallet.coldkey  # unlock coldkey
 
     extrinsic = HYPERPARAMS.get(parameter)
-    if extrinsic == None:
+    if extrinsic is None:
         bittensor.__console__.print(
             ":cross_mark: [red]Invalid hyperparameter specified.[/red]"
         )
@@ -171,16 +175,38 @@ def set_hyperparameter_extrinsic(
             extrinsic_params = substrate.get_metadata_call_function(
                 "AdminUtils", extrinsic
             )
-            value_argument = extrinsic_params["fields"][
-                len(extrinsic_params["fields"]) - 1
-            ]
+            call_params = {"netuid": netuid}
+
+            # if input value is a list, iterate through the list and assign values
+            if isinstance(value, list):
+                # Create an iterator for the list of values
+                value_iterator = iter(value)
+                # Iterate over all value arguments and add them to the call_params dictionary
+                for value_argument in extrinsic_params["fields"]:
+                    if "netuid" not in str(value_argument["name"]):
+                        # Assign the next value from the iterator
+                        try:
+                            call_params[str(value_argument["name"])] = next(
+                                value_iterator
+                            )
+                        except StopIteration:
+                            raise ValueError(
+                                "Not enough values provided in the list for all parameters"
+                            )
+
+            else:
+                value_argument = extrinsic_params["fields"][
+                    len(extrinsic_params["fields"]) - 1
+                ]
+                call_params[str(value_argument["name"])] = value
 
             # create extrinsic call
             call = substrate.compose_call(
                 call_module="AdminUtils",
                 call_function=extrinsic,
-                call_params={"netuid": netuid, str(value_argument["name"]): value},
+                call_params=call_params,
             )
+
             extrinsic = substrate.create_signed_extrinsic(
                 call=call, keypair=wallet.coldkey
             )

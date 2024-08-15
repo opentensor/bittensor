@@ -83,6 +83,7 @@ class ShowMetagraph:
                 subtensor.close()
                 bittensor.logging.debug("closing subtensor connection")
 
+    @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""Prints an entire metagraph."""
         console = bittensor.__console__
@@ -174,8 +175,8 @@ class ShowMetagraph:
             style="yellow",
         )
         table.add_column(
-            "[overline white]STAKE(\u03C4)",
-            "\u03C4{:.5f}".format(total_stake),
+            "[overline white]STAKE(\u03c4)",
+            "\u03c4{:.5f}".format(total_stake),
             footer_style="overline white",
             justify="right",
             style="green",
@@ -222,8 +223,8 @@ class ShowMetagraph:
             no_wrap=True,
         )
         table.add_column(
-            "[overline white]EMISSION(\u03C1)",
-            "\u03C1{}".format(int(total_emission)),
+            "[overline white]EMISSION(\u03c1)",
+            "\u03c1{}".format(int(total_emission)),
             footer_style="overline white",
             justify="right",
             style="green",
@@ -275,13 +276,6 @@ class ShowMetagraph:
             dest="netuid",
             type=int,
             help="""Set the netuid to get the metagraph of""",
-            default=False,
-        )
-        metagraph_parser.add_argument(
-            "--no_prompt",
-            dest="no_prompt",
-            action="store_true",
-            help="""Set true to avoid prompting the user.""",
             default=False,
         )
 

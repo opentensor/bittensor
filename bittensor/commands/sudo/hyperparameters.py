@@ -20,6 +20,7 @@ import bittensor
 from rich.table import Table
 from ..utils import check_netuid_set
 
+
 class SubnetHyperparamsCommand:
     """
     Executes the '``hyperparameters``' command to view the current hyperparameters of a specific subnet on the Bittensor network.

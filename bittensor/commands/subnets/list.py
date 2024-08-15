@@ -21,10 +21,11 @@ from typing import Optional, List, Dict
 from ..utils import get_delegates_details 
 from tqdm import tqdm
 
+
 class ListSubnetsCommand:
     @staticmethod
     def run(cli: "bt.cli"):
-        r"""List all subnet netuids in the network."""
+        """List all subnet netuids in the network."""
         try:
             subtensor: "bt.subtensor" = bt.subtensor(
                 config=cli.config, log_verbose=False
@@ -37,7 +38,7 @@ class ListSubnetsCommand:
 
     @staticmethod
     def _run(cli: "bt.cli", subtensor: "bt.subtensor"):
-        r"""List all subnet netuids in the network."""
+        """List all subnet netuids in the network."""
         # Fetch all subnet information
         subnets: List[int] = subtensor.get_subnets()
 
@@ -51,34 +52,34 @@ class ListSubnetsCommand:
             type = subtensor.substrate.query(
                 module="SubtensorModule",
                 storage_function="SubnetMechanism",
-                params=[ netuid ]
+                params=[netuid]
             ).value
             emission = subtensor.substrate.query(
                 module="SubtensorModule",
                 storage_function="EmissionValues",
-                params=[ netuid ]
+                params=[netuid]
             ).value/10**9
             tao_in = subtensor.substrate.query(
                 module="SubtensorModule",
                 storage_function="SubnetTAO",
-                params=[ netuid ]
+                params=[netuid]
             ).value/10**9
             alpha_in = subtensor.substrate.query(
                 module="SubtensorModule",
                 storage_function="SubnetAlphaIn",
-                params=[ netuid ]
+                params=[netuid]
             ).value/10**9
             alpha_out = subtensor.substrate.query(
                 module="SubtensorModule",
                 storage_function="SubnetAlphaOut",
-                params=[ netuid ]
+                params=[netuid]
             ).value/10**9
             tempo = subtensor.substrate.query(
                 module="SubtensorModule",
                 storage_function="Tempo",
-                params=[ netuid ]
+                params=[netuid]
             ).value
-            price = float( tao_in ) / float( alpha_in ) if alpha_in > 0 else 1.0
+            price = float(tao_in) / float(alpha_in) if alpha_in > 0 else 1.0
             total_price += price
             total_emission += emission
             sn_symbol = f"{bt.Balance.get_unit(netuid)}\u200E"

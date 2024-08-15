@@ -35,7 +35,8 @@ Example usage:
     print(f"Selected delegate: {selected_delegate.hotkey_ss58}")
 """
 
-def select_delegate( subtensor, netuid:int ): 
+
+def select_delegate(subtensor, netuid: int):
     # Get a list of delegates and sort them by total stake in descending order
     delegates: typing.List[bt.DelegateInfoLight] = subtensor.get_delegates_by_netuid_light( netuid )
     delegates.sort(key=lambda x: x.total_stake, reverse=True)
@@ -149,5 +150,3 @@ def select_delegate( subtensor, netuid:int ):
     
     # Return the selected delegate
     return delegates[selected_idx]
-
-

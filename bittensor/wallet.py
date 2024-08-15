@@ -1,5 +1,4 @@
-""" Implementation of the wallet class, which manages balances with staking and transfer. Also manages hotkey and coldkey.
-"""
+"""Implementation of the wallet class, which manages balances with staking and transfer. Also manages hotkey and coldkey."""
 
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
@@ -18,13 +17,15 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import os
-import copy
 import argparse
-import bittensor
-from termcolor import colored
+import copy
+import os
+from typing import Dict, Optional, Tuple, Union, overload
+
 from substrateinterface import Keypair
-from typing import Optional, Union, Tuple, Dict, overload
+from termcolor import colored
+
+import bittensor
 from bittensor.utils import is_valid_bittensor_address_or_public_key
 
 
@@ -139,7 +140,7 @@ class wallet:
             parser (argparse.ArgumentParser): Argument parser object.
             prefix (str): Argument prefix.
         """
-        prefix_str = "" if prefix == None else prefix + "."
+        prefix_str = "" if prefix is None else prefix + "."
         try:
             default_name = os.getenv("BT_WALLET_NAME") or "default"
             default_hotkey = os.getenv("BT_WALLET_NAME") or "default"
@@ -669,8 +670,7 @@ class wallet:
         use_password: bool = True,
         overwrite: bool = False,
         suppress: bool = False,
-    ) -> "wallet":
-        ...
+    ) -> "wallet": ...
 
     @overload
     def regenerate_coldkey(
@@ -679,8 +679,7 @@ class wallet:
         use_password: bool = True,
         overwrite: bool = False,
         suppress: bool = False,
-    ) -> "wallet":
-        ...
+    ) -> "wallet": ...
 
     @overload
     def regenerate_coldkey(
@@ -689,8 +688,7 @@ class wallet:
         use_password: bool = True,
         overwrite: bool = False,
         suppress: bool = False,
-    ) -> "wallet":
-        ...
+    ) -> "wallet": ...
 
     def regenerate_coldkey(
         self,
@@ -779,8 +777,7 @@ class wallet:
         use_password: bool = True,
         overwrite: bool = False,
         suppress: bool = False,
-    ) -> "wallet":
-        ...
+    ) -> "wallet": ...
 
     @overload
     def regenerate_hotkey(
@@ -789,8 +786,7 @@ class wallet:
         use_password: bool = True,
         overwrite: bool = False,
         suppress: bool = False,
-    ) -> "wallet":
-        ...
+    ) -> "wallet": ...
 
     @overload
     def regenerate_hotkey(
@@ -799,8 +795,7 @@ class wallet:
         use_password: bool = True,
         overwrite: bool = False,
         suppress: bool = False,
-    ) -> "wallet":
-        ...
+    ) -> "wallet": ...
 
     def regenerate_hotkey(
         self,
@@ -839,6 +834,8 @@ class wallet:
         if mnemonic is not None:
             if isinstance(mnemonic, str):
                 mnemonic = mnemonic.split()
+            elif isinstance(mnemonic, list) and len(mnemonic) == 1:
+                mnemonic = mnemonic[0].split()
             if len(mnemonic) not in [12, 15, 18, 21, 24]:
                 raise ValueError(
                     "Mnemonic has invalid size. This should be 12,15,18,21 or 24 words"

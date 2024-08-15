@@ -23,6 +23,7 @@ from rich.table import Table
 from typing import List, Tuple
 from .. import defaults
 
+
 def _get_coldkey_ss58_addresses_for_path(path: str) -> Tuple[List[str], List[str]]:
     """Get all coldkey ss58 addresses from path."""
 
@@ -52,6 +53,7 @@ def _get_coldkey_ss58_addresses_for_path(path: str) -> Tuple[List[str], List[str
         for coldkey_path in coldkey_files
     ]
     return addresses, wallet_names
+
 
 class WalletBalanceCommand:
     """
@@ -115,7 +117,6 @@ class WalletBalanceCommand:
         total_free_balance = 0
         total_staked_balance = 0
         balances = {}
-        dynamic_info = subtensor.get_dynamic_info()
 
         if cli.config.get("all", d=None):
             coldkeys, wallet_names = _get_coldkey_ss58_addresses_for_path(
@@ -130,11 +131,6 @@ class WalletBalanceCommand:
                 subtensor.get_total_stake_for_coldkey(coldkeys[i])
                 for i in range(len(coldkeys))
             ]
-
-            stake_breakdown = {
-                coldkey: subtensor.get_stake_info_for_coldkeys(coldkey_ss58_list=[wallet.coldkeypub.ss58_address])[wallet.coldkeypub.ss58_address]
-                for coldkey in coldkeys
-            }
 
             total_free_balance = sum(free_balances)
             total_staked_balance = sum(staked_balances)
@@ -162,11 +158,6 @@ class WalletBalanceCommand:
                     subtensor.get_total_stake_for_coldkey(coldkeys[i])
                     for i in range(len(coldkeys))
                 ]
-
-                stake_breakdown = {
-                    coldkey: subtensor.get_stake_info_for_coldkeys(coldkey_ss58_list=[wallet.coldkeypub.ss58_address])[wallet.coldkeypub.ss58_address]
-                    for coldkey in coldkeys
-                }
 
                 total_free_balance = sum(free_balances)
                 total_staked_balance = sum(staked_balances)
@@ -210,30 +201,6 @@ class WalletBalanceCommand:
                 no_wrap=True,
             )
 
-        table.add_column(
-            "[white]Netuid",
-            header_style="overline white",
-            footer_style="overline white",
-            style="green",
-            no_wrap=True,
-        )
-
-        table.add_column(
-            "[white]Subnet Stake",
-            header_style="overline white",
-            footer_style="overline white",
-            style="green",
-            no_wrap=True,
-        )
-
-        table.add_column(
-            "[white]Subnet Price",
-            header_style="overline white",
-            footer_style="overline white",
-            style="green",
-            no_wrap=True,
-        )
-
         for name, (coldkey, free, staked) in balances.items():
             table.add_row(
                 name,
@@ -241,23 +208,7 @@ class WalletBalanceCommand:
                 str(free),
                 str(staked),
                 str(free + staked),
-                "", 
-                "",
-                "",
             )
-
-            for stake in stake_breakdown[coldkey]:
-                table.add_row(
-                    "",
-                    "",
-                    "",
-                    "",
-                    "",
-                    str(stake["netuid"]), 
-                    str(bittensor.Balance.from_rao(stake["stake"]).set_unit(stake["netuid"])),
-                    "{:.4f}".format(dynamic_info[stake["netuid"]].price.__float__()),
-                )
-
         table.add_row()
         table.add_row(
             "Total Balance Across All Coldkeys",
