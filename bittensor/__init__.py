@@ -245,115 +245,6 @@ __type_registry__ = {
     },
 }
 
-from .errors import (
-    BlacklistedException,
-    ChainConnectionError,
-    ChainError,
-    ChainQueryError,
-    ChainTransactionError,
-    IdentityError,
-    InternalServerError,
-    InvalidRequestNameError,
-    KeyFileError,
-    MetadataError,
-    NominationError,
-    NotDelegateError,
-    NotRegisteredError,
-    NotVerifiedException,
-    PostProcessException,
-    PriorityException,
-    RegistrationError,
-    RunException,
-    StakeError,
-    SynapseDendriteNoneException,
-    SynapseParsingError,
-    TransferError,
-    UnknownSynapseError,
-    UnstakeError,
-)
-
-from substrateinterface import Keypair as Keypair
-from .config import InvalidConfigFile, DefaultConfig, config, T
-from .keyfile import (
-    serialized_keypair_to_keyfile_data,
-    deserialize_keypair_from_keyfile_data,
-    validate_password,
-    ask_password_to_encrypt,
-    keyfile_data_is_encrypted_nacl,
-    keyfile_data_is_encrypted_ansible,
-    keyfile_data_is_encrypted_legacy,
-    keyfile_data_is_encrypted,
-    keyfile_data_encryption_method,
-    legacy_encrypt_keyfile_data,
-    encrypt_keyfile_data,
-    get_coldkey_password_from_environment,
-    decrypt_keyfile_data,
-    keyfile,
-    Mockkeyfile,
-)
-from .wallet import display_mnemonic_msg, wallet
-
-from .utils import (
-    ss58_to_vec_u8,
-    unbiased_topk,
-    version_checking,
-    strtobool,
-    strtobool_with_default,
-    get_explorer_root_url_by_network_from_map,
-    get_explorer_root_url_by_network_from_map,
-    get_explorer_url_for_network,
-    ss58_address_to_bytes,
-    U16_NORMALIZED_FLOAT,
-    U64_NORMALIZED_FLOAT,
-    u8_key_to_ss58,
-    hash,
-    wallet_utils,
-)
-
-from .utils.balance import Balance as Balance
-from .chain_data import (
-    AxonInfo,
-    DynamicPoolInfoV2,
-    NeuronInfo,
-    NeuronInfoLite,
-    PrometheusInfo,
-    DelegateInfo,
-    DelegateInfoLight,
-    StakeInfo,
-    SubnetInfoV2,
-    SubnetHyperparameters,
-    IPInfo,
-    ProposalCallData,
-    ProposalVoteData,
-)
-
-from . import subtensor as subtensor_module
-from .subtensor import subtensor as subtensor
-from .cli import cli as cli, COMMANDS as ALL_COMMANDS
-from .btlogging import logging
-from .metagraph import metagraph as metagraph
-from .threadpool import PriorityThreadPoolExecutor as PriorityThreadPoolExecutor
-
-from .synapse import TerminalInfo, Synapse
-from .stream import StreamingSynapse
-from .tensor import tensor, Tensor
-from .axon import axon as axon
-from .dendrite import dendrite as dendrite
-
-from .mock.keyfile_mock import MockKeyfile as MockKeyfile
-from .mock.subtensor_mock import MockSubtensor as MockSubtensor
-from .mock.wallet_mock import MockWallet as MockWallet
-
-from .subnets import SubnetsAPI as SubnetsAPI
-
-configs = [
-    axon.config(),
-    subtensor.config(),
-    PriorityThreadPoolExecutor.config(),
-    wallet.config(),
-    logging.get_config(),
-]
-defaults = config.merge_all(configs)
 
 units = [
     "\u03C4",  # τ (tau, 0)
@@ -496,3 +387,114 @@ units = [
     "\u2D30",  # ⴰ (Ya, 127)
     "\u2D31",  # ⴱ (Yab, 128)
 ]
+
+from .errors import (
+    BlacklistedException,
+    ChainConnectionError,
+    ChainError,
+    ChainQueryError,
+    ChainTransactionError,
+    IdentityError,
+    InternalServerError,
+    InvalidRequestNameError,
+    KeyFileError,
+    MetadataError,
+    NominationError,
+    NotDelegateError,
+    NotRegisteredError,
+    NotVerifiedException,
+    PostProcessException,
+    PriorityException,
+    RegistrationError,
+    RunException,
+    StakeError,
+    SynapseDendriteNoneException,
+    SynapseParsingError,
+    TransferError,
+    UnknownSynapseError,
+    UnstakeError,
+)
+
+from substrateinterface import Keypair as Keypair
+from .config import InvalidConfigFile, DefaultConfig, config, T
+from .keyfile import (
+    serialized_keypair_to_keyfile_data,
+    deserialize_keypair_from_keyfile_data,
+    validate_password,
+    ask_password_to_encrypt,
+    keyfile_data_is_encrypted_nacl,
+    keyfile_data_is_encrypted_ansible,
+    keyfile_data_is_encrypted_legacy,
+    keyfile_data_is_encrypted,
+    keyfile_data_encryption_method,
+    legacy_encrypt_keyfile_data,
+    encrypt_keyfile_data,
+    get_coldkey_password_from_environment,
+    decrypt_keyfile_data,
+    keyfile,
+    Mockkeyfile,
+)
+from .wallet import display_mnemonic_msg, wallet
+
+from .utils import (
+    ss58_to_vec_u8,
+    unbiased_topk,
+    version_checking,
+    strtobool,
+    strtobool_with_default,
+    get_explorer_root_url_by_network_from_map,
+    get_explorer_root_url_by_network_from_map,
+    get_explorer_url_for_network,
+    ss58_address_to_bytes,
+    U16_NORMALIZED_FLOAT,
+    U64_NORMALIZED_FLOAT,
+    u8_key_to_ss58,
+    hash,
+    wallet_utils,
+)
+
+from .utils.balance import Balance as Balance
+from .chain_data import (
+    AxonInfo,
+    DynamicPoolInfoV2,
+    NeuronInfo,
+    NeuronInfoLite,
+    PrometheusInfo,
+    DelegateInfo,
+    DelegateInfoLight,
+    StakeInfo,
+    SubnetInfoV2,
+    DynamicInfo,
+    SubnetHyperparameters,
+    IPInfo,
+    ProposalCallData,
+    ProposalVoteData,
+)
+
+from . import subtensor as subtensor_module
+from .subtensor import subtensor as subtensor
+from .cli import cli as cli, COMMANDS as ALL_COMMANDS
+from .btlogging import logging
+from .metagraph import metagraph as metagraph
+from .threadpool import PriorityThreadPoolExecutor as PriorityThreadPoolExecutor
+
+from .synapse import TerminalInfo, Synapse
+from .stream import StreamingSynapse
+from .tensor import tensor, Tensor
+from .axon import axon as axon
+from .dendrite import dendrite as dendrite
+
+from .mock.keyfile_mock import MockKeyfile as MockKeyfile
+from .mock.subtensor_mock import MockSubtensor as MockSubtensor
+from .mock.wallet_mock import MockWallet as MockWallet
+
+from .subnets import SubnetsAPI as SubnetsAPI
+
+configs = [
+    axon.config(),
+    subtensor.config(),
+    PriorityThreadPoolExecutor.config(),
+    wallet.config(),
+    logging.get_config(),
+]
+defaults = config.merge_all(configs)
