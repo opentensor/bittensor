@@ -129,7 +129,7 @@ class MoveStakeCommand:
                 slippage_pct_float = 0
                 slippage_pct = f"{slippage_pct_float}%"
                 price = bt.Balance.from_tao(1).set_unit(origin_netuid)
-                price_str = str(price) + f"{bt.Balance.get_unit(origin_netuid)}/{bt.Balance.get_unit(origin_netuid)}"
+                price_str = str(float(price.tao)) + f"{bt.Balance.get_unit(origin_netuid)}/{bt.Balance.get_unit(origin_netuid)}"
             else:
                 dynamic_origin = subtensor.get_dynamic_info_for_netuid( origin_netuid )
                 dynamic_destination = subtensor.get_dynamic_info_for_netuid( destination_netuid )
@@ -139,7 +139,7 @@ class MoveStakeCommand:
                 received_amount_destination.set_unit(destination_netuid)
                 slippage_pct_float = 100 * float(slippage) / float(slippage + received_amount_destination) if slippage + received_amount_destination != 0 else 0
                 slippage_pct = f"{slippage_pct_float:.4f} %"
-                price_str = str(price) + f"{bt.Balance.get_unit( destination_netuid )}/{bt.Balance.get_unit( origin_netuid )}"
+                price_str = str(float(price.tao)) + f"{bt.Balance.get_unit( destination_netuid )}/{bt.Balance.get_unit( origin_netuid )}"
                 
             table = Table(
                 title="[white]Move Stake",
