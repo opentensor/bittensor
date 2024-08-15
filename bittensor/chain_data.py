@@ -179,16 +179,17 @@ custom_rpc_type_registry = {
         "DynamicInfo": {
             "type": "struct",
             "type_mapping": [
+                ["owner", "AccountId"],
+                ["netuid", "Compact<u16>"],
                 ["tempo", "Compact<u16>"],
                 ["last_step", "Compact<u64>"],
-                ["owner", "AccountId"],
+                ["blocks_since_last_step", "Compact<u64>"],
                 ["emission", "Compact<u64>"],
                 ["alpha_in", "Compact<u64>"],
                 ["alpha_out", "Compact<u64>"],
                 ["tao_in", "Compact<u64>"],
                 ["total_locked", "Compact<u64>"],
                 ["owner_locked", "Compact<u64>"],
-                ["netuid", "Compact<u16>"],
             ],
         },
         "SubstakeElements": {
@@ -290,9 +291,11 @@ def from_scale_encoding_using_type_string(
 @dataclass
 class DynamicInfo:
     
+    owner: str
+    netuid: int
     tempo: int
     last_step: int
-    owner: str
+    blocks_since_last_step: int
     emission: Balance
     alpha_in: Balance
     alpha_out: Balance
@@ -301,20 +304,19 @@ class DynamicInfo:
     owner_locked: Balance
     price: Balance
     k: float
-    is_dynamic: bool = True
-    symbol: str = bittensor.Balance.get_unit(0)
-    netuid: int
+    is_dynamic: bool
+    symbol: str
 
     @classmethod
     def from_vec_u8(cls, vec_u8: List[int]) -> Optional["DynamicInfo"]:
         if len(vec_u8) == 0: return None
-        decoded = from_scale_encoding(vec_u8, ChainDataType.DynamicInfo)
+        decoded = from_scale_encoding(vec_u8, ChainDataType.DynamicInfo, is_option=True )
         if decoded is None: return None
         return DynamicInfo.fix_decoded_values(decoded)
 
     @classmethod
     def list_from_vec_u8(cls, vec_u8: List[int]) -> List["DynamicInfo"]:
-        decoded = from_scale_encoding( vec_u8, ChainDataType.DynamicInfo, is_vec=True, is_option=False )
+        decoded = from_scale_encoding( vec_u8, ChainDataType.DynamicInfo, is_vec=True, is_option=True )
         if decoded is None: return []
         decoded = [DynamicInfo.fix_decoded_values(d) for d in decoded]
         return decoded
@@ -323,22 +325,30 @@ class DynamicInfo:
     def fix_decoded_values(cls, decoded: Dict) -> "DynamicInfo":
         netuid = int(decoded["netuid"])
         symbol = bittensor.Balance.get_unit(netuid)
-        print (netuid, symbol)
+        emission = Balance.from_rao(decoded["emission"]).set_unit(0)
+        alpha_out = bittensor.Balance.from_rao(decoded["alpha_out"]).set_unit(netuid)
+        alpha_in = bittensor.Balance.from_rao(decoded["alpha_in"]).set_unit(netuid)
+        tao_in = bittensor.Balance.from_rao(decoded["tao_in"]).set_unit(0)
+        total_locked = bittensor.Balance.from_rao(decoded["total_locked"]).set_unit(netuid)
+        owner_locked = bittensor.Balance.from_rao(decoded["owner_locked"]).set_unit(netuid)
+        price = bittensor.Balance.from_tao(tao_in.tao/alpha_in.tao) if alpha_in.tao > 0 else bittensor.Balance.from_tao(1)
+        is_dynamic = True if decoded["alpha_in"] > 0 else False
         return DynamicInfo(
+            owner = ss58_encode(decoded["owner"], bittensor.__ss58_format__),
+            netuid = netuid,
             tempo = decoded["tempo"],
             last_step = decoded["last_step"],
-            owner = ss58_encode(decoded["owner"], bittensor.__ss58_format__),
-            emission = Balance.from_rao(decoded["emission"]).set_unit(0),
-            alpha_out = bittensor.Balance.from_rao(decoded["alpha_out"]).set_unit(netuid),
-            alpha_in = bittensor.Balance.from_rao(decoded["alpha_in"]).set_unit(netuid),
-            tao_in = bittensor.Balance.from_rao(decoded["tao_in"]).set_unit(0),
-            total_locked = bittensor.Balance.from_rao(decoded["total_locked"]).set_unit(netuid),
-            owner_locked = bittensor.Balance.from_rao(decoded["owner_locked"]).set_unit(netuid),
-            price = bittensor.Balance.from_rao(float(decoded["tao_in"])/float(decoded["alpha_in"]) if decoded["alpha_in"] > 0 else 0.0).set_unit(0),
-            k = float(decoded["tao_in"]) * float(decoded["alpha_in"]),
-            is_dynamic = True if decoded["alpha_in"] > 0 else False,
-            symbol = bittensor.Balance.get_unit(netuid),
-            netuid = netuid,
+            blocks_since_last_step = decoded["blocks_since_last_step"],
+            emission = emission,
+            alpha_out = alpha_out,
+            alpha_in = alpha_in,
+            tao_in = tao_in,
+            total_locked = total_locked,
+            owner_locked = owner_locked,
+            price = price,
+            k = tao_in.rao * alpha_in.rao,
+            is_dynamic = is_dynamic,
+            symbol = symbol,
         )
         
     def tao_to_alpha(self, tao: Balance) -> Balance:
@@ -366,14 +376,14 @@ class DynamicInfo:
             amount as if there was no slippage
         """
         if self.is_dynamic:
-            new_tao_in = self.tao_reserve + tao
+            new_tao_in = self.tao_in + tao
             if new_tao_in == 0:
                 return tao, Balance.from_rao(0)
             new_alpha_in = self.k / new_tao_in
-
+    
             # Amount of alpha given to the staker
             alpha_returned = Balance.from_rao(
-                self.alpha_reserve.rao - new_alpha_in.rao
+                self.alpha_in.rao - new_alpha_in.rao
             ).set_unit(self.netuid)
 
             # Ideal conversion as if there is no slippage, just price
@@ -406,10 +416,10 @@ class DynamicInfo:
             amount as if there was no slippage
         """
         if self.is_dynamic:
-            new_alpha_in = self.alpha_reserve + alpha
+            new_alpha_in = self.alpha_in + alpha
             new_tao_reserve = self.k / new_alpha_in
             # Amount of TAO given to the unstaker
-            tao_returned = Balance.from_rao(self.tao_reserve - new_tao_reserve)
+            tao_returned = Balance.from_rao(self.tao_in - new_tao_reserve)
 
             # Ideal conversion as if there is no slippage, just price
             tao_ideal = self.alpha_to_tao(alpha)

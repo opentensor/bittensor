@@ -131,15 +131,15 @@ class MoveStakeCommand:
                 price = bt.Balance.from_tao(1).set_unit(origin_netuid)
                 price_str = str(float(price.tao)) + f"{bt.Balance.get_unit(origin_netuid)}/{bt.Balance.get_unit(origin_netuid)}"
             else:
-                dynamic_origin = subtensor.get_dynamic_info_for_netuid( origin_netuid )
-                dynamic_destination = subtensor.get_dynamic_info_for_netuid( destination_netuid )
+                dynamic_origin = subtensor.get_subnet_dynamic_info( origin_netuid )
+                dynamic_destination = subtensor.get_subnet_dynamic_info( destination_netuid )
                 price = float(dynamic_origin.price) * 1 / float(dynamic_destination.price)
                 received_amount_tao, slippage = dynamic_origin.alpha_to_tao_with_slippage( amount_to_move_as_balance )
                 received_amount_destination, slippage = dynamic_destination.tao_to_alpha_with_slippage( received_amount_tao )
                 received_amount_destination.set_unit(destination_netuid)
                 slippage_pct_float = 100 * float(slippage) / float(slippage + received_amount_destination) if slippage + received_amount_destination != 0 else 0
                 slippage_pct = f"{slippage_pct_float:.4f} %"
-                price_str = str(float(price.tao)) + f"{bt.Balance.get_unit( destination_netuid )}/{bt.Balance.get_unit( origin_netuid )}"
+                price_str = str(float(price)) + f"{bt.Balance.get_unit( destination_netuid )}/{bt.Balance.get_unit( origin_netuid )}"
                 
             table = Table(
                 title="[white]Move Stake",
@@ -189,7 +189,7 @@ class MoveStakeCommand:
                 message += f"\t-------------------------------------------------------------------------------------------------------------------\n"
                 message += f"\t[bold][yellow]WARNING:[/yellow]\tSlippage is high: [bold red]{slippage_pct}[/bold red], this may result in a loss of funds.[/bold] \n"
                 message += f"\t-------------------------------------------------------------------------------------------------------------------\n"
-            bt.__console__.print(message)
+                bt.__console__.print(message)
             if not Confirm.ask("Would you like to continue?"):
                 sys.exit(1)
         

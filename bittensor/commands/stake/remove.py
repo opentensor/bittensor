@@ -112,7 +112,7 @@ class RemoveStakeCommand:
 
         # Slippage warning
         if not config.no_prompt:
-            dynamic_info = subtensor.get_dynamic_info_for_netuid( netuid )
+            dynamic_info = subtensor.get_subnet_dynamic_info( netuid )
             received_amount, slippage = dynamic_info.alpha_to_tao_with_slippage( amount_to_unstake_as_balance )
             if dynamic_info.is_dynamic:
                 slippage_pct_float = 100 * float(slippage) / float(slippage + received_amount) if slippage + received_amount != 0 else 0
@@ -163,6 +163,7 @@ class RemoveStakeCommand:
                 message += f"\t-------------------------------------------------------------------------------------------------------------------\n"
                 message += f"\t[bold][yellow]WARNING:[/yellow]\tSlippage is high: [bold red]{slippage_pct}[/bold red], this may result in a loss of funds.[/bold] \n"
                 message += f"\t-------------------------------------------------------------------------------------------------------------------\n"
+                bt.__console__.print(message)
             if not Confirm.ask("Would you like to continue?"):
                 sys.exit(1)
 

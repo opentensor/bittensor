@@ -35,24 +35,23 @@ class ListSubnetsCommand:
     @staticmethod
     def _run(cli: "bt.cli", subtensor: "bt.subtensor"):
         r"""List all subnet netuids in the network."""
-        # Fetch all subnet information
-        json = subtensor.substrate.rpc_request( method="subnetInfo_getAllDynamicInfo", params=[None])
-        subnets = bt.chain_data.DynamicInfo.list_from_vec_u8(json['result'])
         
         # Initialize variables to store aggregated data
         rows = []
+        subnets = subtensor.get_all_subnet_dynamic_info()
         for subnet in subnets:
-            print (subnet.symbol)
             rows.append(
                 (
                     str(subnet.netuid),
                     f"[light_goldenrod1]{subnet.symbol}[light_goldenrod1]",
-                    f"τ{bt.Balance.from_tao(subnet.emission).tao:.4f}",
+                    f"τ{subnet.emission.tao:.4f}",
                     f"P( τ{subnet.tao_in.tao:,.4f},",
                     f"{subnet.alpha_in.tao:,.4f}{subnet.symbol} )",
                     f"{subnet.alpha_out.tao:,.4f}{subnet.symbol}",
                     f"{subnet.price.tao:.4f}τ/{subnet.symbol}",
-                    str(subnet.tempo),
+                    str(subnet.blocks_since_last_step) + "/" + str(subnet.tempo),
+                    # f"{subnet.owner_locked}" + "/" + f"{subnet.total_locked}",
+                    # f"{subnet.owner[:3]}...{subnet.owner[-3:]}",
                 )
             )
 
@@ -88,12 +87,14 @@ class ListSubnetsCommand:
 
         table.add_column("Index", style="rgb(253,246,227)", no_wrap=True, justify="center")
         table.add_column("Symbol", style="rgb(211,54,130)", no_wrap=True, justify="center")
-        table.add_column("Emission", style="rgb(38,139,210)", no_wrap=True, justify="center")
-        table.add_column(f"P({bt.Balance.unit},", style="rgb(108,113,196)", no_wrap=True, justify="right")
+        table.add_column(f"Emission ({bt.Balance.get_unit(0)})", style="rgb(38,139,210)", no_wrap=True, justify="center")
+        table.add_column(f"P({bt.Balance.get_unit(0)},", style="rgb(108,113,196)", no_wrap=True, justify="right")
         table.add_column(f"{bt.Balance.get_unit(1)})", style="rgb(42,161,152)", no_wrap=True, justify="left")
         table.add_column(f"{bt.Balance.get_unit(1)}", style="rgb(133,153,0)", no_wrap=True, justify="center")
-        table.add_column("Price", style="rgb(181,137,0)", no_wrap=True, justify="center")
+        table.add_column(f"Rate ({bt.Balance.get_unit(1)}/{bt.Balance.get_unit(0)})", style="rgb(181,137,0)", no_wrap=True, justify="center")
         table.add_column("Tempo", style="rgb(38,139,210)", no_wrap=True, justify="center")
+        # table.add_column(f"Locked ({bt.Balance.get_unit(1)})", style="rgb(38,139,210)", no_wrap=True, justify="center")
+        # table.add_column("Owner", style="rgb(38,139,210)", no_wrap=True, justify="center")
 
         # Add rows to the table
         for row in rows:
