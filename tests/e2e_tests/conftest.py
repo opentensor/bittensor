@@ -34,8 +34,9 @@ def local_chain(request):
     # Check if param is None, and handle it accordingly
     args = "" if param is None else f"{param}"
 
-    # compile commands to send to process
+    # Compile commands to send to process
     cmds = shlex.split(f"{script_path} {args}")
+
     # Start new node process
     process = subprocess.Popen(
         cmds, stdout=subprocess.PIPE, text=True, preexec_fn=os.setsid
