@@ -2709,7 +2709,7 @@ class subtensor:
         tao_reserve = Balance.from_rao(
             self.query_subtensor("SubnetTAO", block, [netuid]).value
         )
-        k = tao_reserve.tao * alpha_reserve.tao
+        k = tao_reserve.rao * alpha_reserve.rao
         return DynamicPool(
             is_dynamic=is_dynamic,
             netuid=netuid,

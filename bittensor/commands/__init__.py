@@ -96,6 +96,7 @@ from .wallet.history import GetWalletHistoryCommand
 from .stake.add import AddStakeCommand
 from .stake.remove import RemoveStakeCommand
 from .stake.list import StakeList
+from .stake.move import MoveStakeCommand
 
 # Sudo 
 from .sudo.vote import VoteCommand

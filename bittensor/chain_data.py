@@ -382,7 +382,6 @@ class DynamicPool:
         if self.is_dynamic:
             new_alpha_in = self.alpha_reserve + alpha
             new_tao_reserve = self.k / new_alpha_in
-
             # Amount of TAO given to the unstaker
             tao_returned = Balance.from_rao(self.tao_reserve - new_tao_reserve)
 

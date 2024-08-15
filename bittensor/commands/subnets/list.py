@@ -19,6 +19,7 @@ import bittensor as bt
 from rich.table import Table
 from typing import Optional, List, Dict
 from ..utils import get_delegates_details 
+from tqdm import tqdm
 
 class ListSubnetsCommand:
     @staticmethod
@@ -46,8 +47,7 @@ class ListSubnetsCommand:
         total_emission = 0
         dynamic_emission = 0
         # Process each subnet and collect relevant data
-        for netuid in subnets:
-            
+        for netuid in tqdm(subnets):
             type = subtensor.substrate.query(
                 module="SubtensorModule",
                 storage_function="SubnetMechanism",

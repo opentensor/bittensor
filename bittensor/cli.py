@@ -44,6 +44,7 @@ from .commands import (
     SetIdentityCommand,
     SetTakeCommand,
     StakeList,
+    MoveStakeCommand,
     SubnetHyperparamsCommand,
     SubnetSudoCommand,
     SwapHotkeyCommand,
@@ -126,6 +127,7 @@ COMMANDS = {
             "list": StakeList,
             "add": AddStakeCommand,
             "remove": RemoveStakeCommand,
+            "move": MoveStakeCommand,
         },
     },
     "sudo": {
