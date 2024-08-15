@@ -4,6 +4,7 @@ import sys
 import argparse
 import bittensor as bt
 from . import select_delegate
+from rich.table import Table
 from rich.prompt import Confirm, Prompt
 from bittensor.utils.slippage import (Operation, show_slippage_warning_if_needed)
 
@@ -106,7 +107,7 @@ class AddStakeCommand:
             coldkey_ss58=wallet.coldkeypub.ss58_address,
             hotkey_ss58=staking_address_ss58,
             netuid=netuid,
-        )
+        ).set_unit(netuid)
 
         # Check enough to stake.
         if amount_to_stake_as_balance > current_wallet_balance:
@@ -122,17 +123,40 @@ class AddStakeCommand:
                 slippage_pct = f"{slippage_pct:.4f} %"
             else:
                 slippage_pct = 'N/A'
-            message = (
-                f"Add Stake:\n\n"
-                f"     [rgb(133,153,0)]netuid:[/rgb(133,153,0)] {netuid}\n"
-                f"     [rgb(42,161,152)]current exchange rate:[/rgb(42,161,152)] { dynamic_info.price }\n"
-                f"     [rgb(38,139,210)]tao to be staked:[/rgb(38,139,210)] {amount_to_stake_as_balance}\n"
-                f"     [rgb(220,50,47)]stake received after staking:[/rgb(220,50,47)] {received_amount.set_unit(netuid)}\n"
-                f"     [rgb(181,137,0)]slippage:[/rgb(181,137,0)] {slippage_pct}\n"
-                f"     [rgb(38,139,210)]staking hotkey account:[/rgb(38,139,210)] {staking_address_name}\n"
-                f"     [rgb(220,50,47)]wallet coldkey account:[/rgb(220,50,47)] {wallet.coldkeypub.ss58_address}\n"
-                f"\n" 
+            table = Table(
+                title="[white]Add Stake",
+                width=bt.__console__.width - 5,
+                safe_box=True,
+                padding=(0, 1),
+                collapse_padding=False,
+                pad_edge=True,
+                expand=True,
+                show_header=True,
+                show_footer=True,
+                show_edge=False,
+                show_lines=False,
+                leading=0,
+                style="none",
+                row_styles=None,
+                header_style="bold",
+                footer_style="bold",
+                border_style="rgb(7,54,66)",
+                title_style="bold magenta",
+                title_justify="center",
+                highlight=False,
             )
+            table.add_column("Description", justify="center", style="rgb(133,153,0)")
+            table.add_column("Value", justify="center", style="rgb(38,139,210)")
+
+            table.add_row("netuid", str(netuid))
+            table.add_row("current exchange rate", str(dynamic_info.price))
+            table.add_row("tao to be staked", str(amount_to_stake_as_balance))
+            table.add_row("stake received after staking", str(received_amount.set_unit(netuid)))
+            table.add_row("slippage", str(slippage_pct))
+            table.add_row("staking hotkey account", staking_address_name)
+            table.add_row("wallet coldkey account", wallet.coldkeypub.ss58_address)
+
+            bt.__console__.print(table)
             if not isinstance(slippage_pct, str) and slippage_pct > 5:
                 message += f"\t-------------------------------------------------------------------------------------------------------------------\n"
                 message += f"\t[bold][yellow]WARNING:[/yellow]\tSlippage is high: {slippage_pct}%, this may result in a loss of funds.[/bold] \n"

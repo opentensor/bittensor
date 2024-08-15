@@ -2,6 +2,7 @@ import sys
 import argparse
 import bittensor as bt
 from . import select_delegate
+from rich.table import Table
 from rich.prompt import Confirm, Prompt
 from bittensor.utils.slippage import (Operation, show_slippage_warning_if_needed)
 
@@ -90,13 +91,14 @@ class MoveStakeCommand:
             coldkey_ss58=wallet.coldkeypub.ss58_address,
             hotkey_ss58=origin_hotkey_ss58,
             netuid=origin_netuid,
-        )
+        ).set_unit(origin_netuid)
+        
         destination_stake_balance: bt.Balance = subtensor.get_stake_for_coldkey_and_hotkey_on_netuid(
             coldkey_ss58=wallet.coldkeypub.ss58_address,
             hotkey_ss58=destination_hotkey_ss58,
-            netuid=origin_netuid,
-        )
-
+            netuid=destination_netuid,
+        ).set_unit(destination_netuid)
+        
         # Determine the amount we are moving.
         amount_to_move_as_balance = None
         if config.get("amount"):
@@ -124,7 +126,7 @@ class MoveStakeCommand:
         if not config.no_prompt:
             if origin_netuid == destination_netuid:
                 received_amount_destination = amount_to_move_as_balance
-                slippage_pct = f"{slippage_pct:.4f} %"
+                slippage_pct = f"0%"
                 price = bt.Balance.from_tao(1).set_unit(origin_netuid)
                 price_str = str(price) + f"{bt.Balance.get_unit(origin_netuid)}/{bt.Balance.get_unit(origin_netuid)}"
             else:
@@ -138,7 +140,6 @@ class MoveStakeCommand:
                 slippage_pct = f"{slippage_pct:.4f} %"
                 price_str = str(price) + f"{bt.Balance.get_unit( destination_netuid )}/{bt.Balance.get_unit( origin_netuid )}"
                 
-            from rich.table import Table
             table = Table(
                 title="[white]Move Stake",
                 width=bt.__console__.width - 5,
@@ -215,13 +216,17 @@ class MoveStakeCommand:
                     bt.__console__.print(f":cross_mark: [red]Failed[/red] with error: {response.error_message}")
                     return
                 else:
-                    new_balance = subtensor.get_balance(address=wallet.coldkeypub.ss58_address)
-                    new_stake = subtensor.get_stake_for_coldkey_and_hotkey_on_netuid(
+                    new_origin_stake_balance: bt.Balance = subtensor.get_stake_for_coldkey_and_hotkey_on_netuid(
+                        coldkey_ss58=wallet.coldkeypub.ss58_address,
+                        hotkey_ss58=origin_hotkey_ss58,
+                        netuid=origin_netuid,
+                    ).set_unit(origin_netuid)
+                    new_destination_stake_balance: bt.Balance = subtensor.get_stake_for_coldkey_and_hotkey_on_netuid(
                         coldkey_ss58=wallet.coldkeypub.ss58_address,
                         hotkey_ss58=destination_hotkey_ss58,
-                        netuid=destination_netuid,
-                    )
-                    bt.__console__.print(f"Balance:\n  [blue]{current_wallet_balance}[/blue] :arrow_right: [green]{new_balance}[/green]")
-                    bt.__console__.print(f"Stake:\n  [blue]{current_stake_balance}[/blue] :arrow_right: [green]{new_stake}[/green]")
+                        netuid=origin_netuid,
+                    ).set_unit(destination_netuid)
+                    bt.__console__.print(f"Origin Stake:\n  [blue]{origin_stake_balance}[/blue] :arrow_right: [green]{new_origin_stake_balance}[/green]")
+                    bt.__console__.print(f"Destination Stake:\n  [blue]{destination_stake_balance}[/blue] :arrow_right: [green]{new_destination_stake_balance}[/green]")
                     return
 
