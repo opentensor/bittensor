@@ -4,6 +4,7 @@ import sys
 import argparse
 import bittensor as bt
 from . import select_delegate
+from rich.table import Table
 from rich.prompt import Confirm, Prompt
 from bittensor.utils.slippage import (Operation, show_slippage_warning_if_needed)
 
@@ -59,19 +60,14 @@ class RemoveStakeCommand:
 
         # If no hotkey is specified, and no prompt is set, delegate to the selected delegate.
         if not staking_address_ss58 and not config.no_prompt:
-            if Confirm.ask("Is this a delegation?"):
-                delegate = select_delegate(subtensor, netuid)
-                staking_address_ss58 = delegate.hotkey_ss58
-                staking_address_name = delegate.hotkey_ss58
+            hotkey_str = Prompt.ask("Enter staking hotkey [bold blue]name[/bold blue] or [bold green]ss58_address[/bold green]", default=bt.defaults.wallet.hotkey)
+            if bt.utils.is_valid_ss58_address(hotkey_str):
+                staking_address_ss58 = str(hotkey_str)
+                staking_address_name = hotkey_str
             else:
-                hotkey_str = Prompt.ask("Enter hotkey name or ss58_address to stake to", default=bt.defaults.wallet.hotkey)
-                if bt.utils.is_valid_ss58_address(hotkey_str):
-                    staking_address_ss58 = str(hotkey_str)
-                    staking_address_name = hotkey_str
-                else:
-                    wallet = bt.wallet(name=config.wallet.name, hotkey=hotkey_str)
-                    staking_address_ss58 = wallet.hotkey.ss58_address
-                    staking_address_name = hotkey_str
+                wallet = bt.wallet(name=config.wallet.name, hotkey=hotkey_str)
+                staking_address_ss58 = wallet.hotkey.ss58_address
+                staking_address_name = hotkey_str
         elif not staking_address_ss58:
             bt.logging.error("--hotkey_ss58 must be specified when using --no_prompt or --y")
             sys.exit(1)
@@ -109,6 +105,7 @@ class RemoveStakeCommand:
                     sys.exit(1)
 
         # Check enough to stake.
+        amount_to_unstake_as_balance.set_unit(netuid)
         if amount_to_unstake_as_balance > current_stake_balance:
             bt.__console__.print(f"[red]Not enough stake to remove[/red]:[bold white]\n stake balance:{current_stake_balance} < unstaking amount: {amount_to_unstake_as_balance}[/bold white]")
             sys.exit(1)
@@ -118,24 +115,53 @@ class RemoveStakeCommand:
             dynamic_info = subtensor.get_dynamic_info_for_netuid( netuid )
             received_amount, slippage = dynamic_info.alpha_to_tao_with_slippage( amount_to_unstake_as_balance )
             if dynamic_info.is_dynamic:
-                slippage_pct = 100 * float(slippage) / float(slippage + received_amount) if slippage + received_amount != 0 else 0
-                slippage_pct = f"{slippage_pct:.4f} %"
+                slippage_pct_float = 100 * float(slippage) / float(slippage + received_amount) if slippage + received_amount != 0 else 0
+                slippage_pct = f"{slippage_pct_float:.4f} %"
             else:
-                slippage_pct = 'N/A'
-            message = (
-                f"Remove Stake:\n\n"
-                f"     [rgb(133,153,0)]netuid:[/rgb(133,153,0)] {netuid}\n"
-                f"     [rgb(42,161,152)]current exchange rate:[/rgb(42,161,152)] { dynamic_info.price }\n"
-                f"     [rgb(220,50,47)]stake to be removed:[/rgb(220,50,47)] { amount_to_unstake_as_balance }\n"
-                f"     [rgb(42,161,152)]tao received after unstake:[/rgb(42,161,152)] { received_amount }\n"
-                f"     [rgb(220,50,47)]slippage:[/rgb(220,50,47)] {slippage_pct}\n"
-                f"     [rgb(38,139,210)]staking hotkey account:[/rgb(38,139,210)] {staking_address_name}\n"
-                f"     [rgb(133,153,0)]wallet coldkey account:[/rgb(133,153,0)] {wallet.coldkeypub.ss58_address}\n"
-                f"\n"
+                slippage_pct_float = 0
+                slippage_pct = f"{slippage_pct_float}%"
+                
+            table = Table(
+                title=f"[white]Remove Stake: {wallet.coldkeypub.ss58_address}",
+                width=bt.__console__.width - 5,
+                safe_box=True,
+                padding=(0, 1),
+                collapse_padding=False,
+                pad_edge=True,
+                expand=True,
+                show_header=True,
+                show_footer=True,
+                show_edge=False,
+                show_lines=False,
+                leading=0,
+                style="none",
+                row_styles=None,
+                header_style="bold",
+                footer_style="bold",
+                border_style="rgb(7,54,66)",
+                title_style="bold magenta",
+                title_justify="center",
+                highlight=False,
             )
-            if not isinstance(slippage_pct, str) and slippage_pct > 5:
+            table.add_column("netuid", justify="center", style="rgb(133,153,0)")
+            table.add_column("hotkey", justify="center", style="rgb(42,161,152)")
+            table.add_column(f"amount ({bt.Balance.get_unit(netuid)})", justify="center", style="rgb(220,50,47)")
+            table.add_column(f"rate ({bt.Balance.get_unit(0)}/{bt.Balance.get_unit(netuid)})", justify="center", style="rgb(42,161,152)")
+            table.add_column(f"received ({bt.Balance.get_unit(0)})", justify="center", style="rgb(42,161,152)")
+            table.add_column("slippage", justify="center", style="rgb(220,50,47)")
+            table.add_row(
+                str(netuid),
+                f"{staking_address_ss58[:3]}...{staking_address_ss58[-3:]}",
+                str(amount_to_unstake_as_balance),
+                str(float(dynamic_info.price)) + f"({bt.Balance.get_unit(0)}/{bt.Balance.get_unit(netuid)})",
+                str(received_amount),
+                str(slippage_pct),
+            )
+            bt.__console__.print(table)
+            message = ""
+            if slippage_pct_float > 5:
                 message += f"\t-------------------------------------------------------------------------------------------------------------------\n"
-                message += f"\t[bold][yellow]WARNING:[/yellow]\tSlippage is high: {slippage_pct}%, this may result in a loss of funds.[/bold] \n"
+                message += f"\t[bold][yellow]WARNING:[/yellow]\tSlippage is high: [bold red]{slippage_pct}[/bold red], this may result in a loss of funds.[/bold] \n"
                 message += f"\t-------------------------------------------------------------------------------------------------------------------\n"
             if not Confirm.ask("Would you like to continue?"):
                 sys.exit(1)
@@ -169,7 +195,7 @@ class RemoveStakeCommand:
                         coldkey_ss58=wallet.coldkeypub.ss58_address,
                         hotkey_ss58=staking_address_ss58,
                         netuid=netuid,
-                    )
+                    ).set_unit(netuid)
                     bt.__console__.print(f"Balance:\n  [blue]{current_wallet_balance}[/blue] :arrow_right: [green]{new_balance}[/green]")
                     bt.__console__.print(f"Stake:\n  [blue]{current_stake_balance}[/blue] :arrow_right: [green]{new_stake}[/green]")
                     return

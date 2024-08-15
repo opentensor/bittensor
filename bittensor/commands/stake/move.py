@@ -63,7 +63,7 @@ class MoveStakeCommand:
         origin_hotkey_ss58 = config.get('origin_hotkey')
         if not origin_hotkey_ss58:
             if not config.no_prompt:
-                hotkey_str = Prompt.ask("Enter origin hotkey name or ss58_address", default=bt.defaults.wallet.hotkey)
+                hotkey_str = Prompt.ask("Enter origin hotkey [bold blue]name[/bold blue] or [bold green]ss58_address[/bold green]", default=bt.defaults.wallet.hotkey)
                 if bt.utils.is_valid_ss58_address(hotkey_str):
                     origin_hotkey_ss58 = str(hotkey_str)
                 else:
@@ -76,7 +76,7 @@ class MoveStakeCommand:
         destination_hotkey_ss58 = config.get('destination_hotkey')
         if not destination_hotkey_ss58:
             if not config.no_prompt:
-                hotkey_str = Prompt.ask("Enter destination hotkey name or ss58_address", default=bt.defaults.wallet.hotkey)
+                hotkey_str = Prompt.ask("Enter destination hotkey [bold blue]name[/bold blue] or [bold green]ss58_address[/bold green]", default=bt.defaults.wallet.hotkey)
                 if bt.utils.is_valid_ss58_address(hotkey_str):
                     destination_hotkey_ss58 = str(hotkey_str)
                 else:
@@ -126,7 +126,8 @@ class MoveStakeCommand:
         if not config.no_prompt:
             if origin_netuid == destination_netuid:
                 received_amount_destination = amount_to_move_as_balance
-                slippage_pct = f"0%"
+                slippage_pct_float = 0
+                slippage_pct = f"{slippage_pct_float}%"
                 price = bt.Balance.from_tao(1).set_unit(origin_netuid)
                 price_str = str(price) + f"{bt.Balance.get_unit(origin_netuid)}/{bt.Balance.get_unit(origin_netuid)}"
             else:
@@ -136,8 +137,8 @@ class MoveStakeCommand:
                 received_amount_tao, slippage = dynamic_origin.alpha_to_tao_with_slippage( amount_to_move_as_balance )
                 received_amount_destination, slippage = dynamic_destination.tao_to_alpha_with_slippage( received_amount_tao )
                 received_amount_destination.set_unit(destination_netuid)
-                slippage_pct = 100 * float(slippage) / float(slippage + received_amount_destination) if slippage + received_amount_destination != 0 else 0
-                slippage_pct = f"{slippage_pct:.4f} %"
+                slippage_pct_float = 100 * float(slippage) / float(slippage + received_amount_destination) if slippage + received_amount_destination != 0 else 0
+                slippage_pct = f"{slippage_pct_float:.4f} %"
                 price_str = str(price) + f"{bt.Balance.get_unit( destination_netuid )}/{bt.Balance.get_unit( origin_netuid )}"
                 
             table = Table(
@@ -162,14 +163,14 @@ class MoveStakeCommand:
                 title_justify="center",
                 highlight=False,
             )
-            table.add_column("Origin Netuid", justify="center", style="rgb(133,153,0)")
-            table.add_column("Origin Hotkey", justify="center", style="rgb(38,139,210)")
-            table.add_column("Dest Netuid", justify="center", style="rgb(133,153,0)")
-            table.add_column("Dest Hotkey", justify="center", style="rgb(38,139,210)")
-            table.add_column("Amount", justify="center", style="rgb(38,139,210)")
-            table.add_column("Rate", justify="center", style="rgb(42,161,152)")
-            table.add_column("Recieved", justify="center", style="rgb(220,50,47)")
-            table.add_column("Slippage", justify="center", style="rgb(181,137,0)")
+            table.add_column("origin netuid", justify="center", style="rgb(133,153,0)")
+            table.add_column("origin hotkey", justify="center", style="rgb(38,139,210)")
+            table.add_column("dest netuid", justify="center", style="rgb(133,153,0)")
+            table.add_column("dest hotkey", justify="center", style="rgb(38,139,210)")
+            table.add_column(f"amount ({bt.Balance.get_unit(origin_netuid)})", justify="center", style="rgb(38,139,210)")
+            table.add_column(f"rate  ({bt.Balance.get_unit(destination_netuid)}/{bt.Balance.get_unit(origin_netuid)})", justify="center", style="rgb(42,161,152)")
+            table.add_column(f"recieved ({bt.Balance.get_unit(destination_netuid)})", justify="center", style="rgb(220,50,47)")
+            table.add_column("slippage", justify="center", style="rgb(181,137,0)")
 
             table.add_row(
                 bt.Balance.get_unit(origin_netuid) + "(" + str(origin_netuid) + ")",
@@ -178,16 +179,17 @@ class MoveStakeCommand:
                 f"{destination_hotkey_ss58[:3]}...{destination_hotkey_ss58[-3:]}",
                 str(amount_to_move_as_balance),
                 price_str,
-                str(received_amount_destination.set_unit(origin_netuid)),
+                str(received_amount_destination.set_unit(destination_netuid)),
                 str(slippage_pct),
             )
 
             bt.__console__.print(table)
-            # if not isinstance(slippage_pct, str) and slippage_pct > 5:
-            #     message += f"\t-------------------------------------------------------------------------------------------------------------------\n"
-            #     message += f"\t[bold][yellow]WARNING:[/yellow]\tSlippage is high: {slippage_pct}%, this may result in a loss of funds.[/bold] \n"
-            #     message += f"\t-------------------------------------------------------------------------------------------------------------------\n"
-            # bt.__console__.print(message)
+            message = ""
+            if slippage_pct_float > 5:
+                message += f"\t-------------------------------------------------------------------------------------------------------------------\n"
+                message += f"\t[bold][yellow]WARNING:[/yellow]\tSlippage is high: [bold red]{slippage_pct}[/bold red], this may result in a loss of funds.[/bold] \n"
+                message += f"\t-------------------------------------------------------------------------------------------------------------------\n"
+            bt.__console__.print(message)
             if not Confirm.ask("Would you like to continue?"):
                 sys.exit(1)
         
