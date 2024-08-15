@@ -179,7 +179,6 @@ custom_rpc_type_registry = {
         "DynamicInfo": {
             "type": "struct",
             "type_mapping": [
-                ["netuid", "Compact<u16>"],
                 ["tempo", "Compact<u16>"],
                 ["last_step", "Compact<u64>"],
                 ["owner", "AccountId"],
@@ -189,6 +188,7 @@ custom_rpc_type_registry = {
                 ["tao_in", "Compact<u64>"],
                 ["total_locked", "Compact<u64>"],
                 ["owner_locked", "Compact<u64>"],
+                ["netuid", "Compact<u16>"],
             ],
         },
         "SubstakeElements": {
@@ -290,7 +290,6 @@ def from_scale_encoding_using_type_string(
 @dataclass
 class DynamicInfo:
     
-    netuid: int
     tempo: int
     last_step: int
     owner: str
@@ -304,6 +303,7 @@ class DynamicInfo:
     k: float
     is_dynamic: bool = True
     symbol: str = bittensor.Balance.get_unit(0)
+    netuid: int
 
     @classmethod
     def from_vec_u8(cls, vec_u8: List[int]) -> Optional["DynamicInfo"]:
@@ -325,7 +325,6 @@ class DynamicInfo:
         symbol = bittensor.Balance.get_unit(netuid)
         print (netuid, symbol)
         return DynamicInfo(
-            netuid = netuid,
             tempo = decoded["tempo"],
             last_step = decoded["last_step"],
             owner = ss58_encode(decoded["owner"], bittensor.__ss58_format__),
@@ -338,7 +337,8 @@ class DynamicInfo:
             price = bittensor.Balance.from_rao(float(decoded["tao_in"])/float(decoded["alpha_in"]) if decoded["alpha_in"] > 0 else 0.0).set_unit(0),
             k = float(decoded["tao_in"]) * float(decoded["alpha_in"]),
             is_dynamic = True if decoded["alpha_in"] > 0 else False,
-            symbol = bittensor.Balance.get_unit(netuid)
+            symbol = bittensor.Balance.get_unit(netuid),
+            netuid = netuid,
         )
         
     def tao_to_alpha(self, tao: Balance) -> Balance:
