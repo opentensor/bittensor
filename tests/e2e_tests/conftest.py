@@ -79,6 +79,6 @@ def local_chain(request):
     # Ensure the process has terminated
     process.wait()
 
-    # uninstall templates
+    # Uninstall templates
     logging.info("uninstalling neuron templates")
     uninstall_templates(template_path)
