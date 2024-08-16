@@ -17,8 +17,7 @@
 import argparse
 import bittensor as bt
 from rich.table import Table
-from typing import Optional, List, Dict
-from ..utils import get_delegates_details 
+from typing import List
 from tqdm import tqdm
 
 

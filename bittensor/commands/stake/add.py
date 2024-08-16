@@ -60,30 +60,20 @@ class AddStakeCommand:
 
         # If no hotkey is specified, and no prompt is set, delegate to the selected delegate.
         if not staking_address_ss58 and not config.no_prompt:
-            if Confirm.ask("Is this a delegation?"):
-                delegate = select_delegate(subtensor, netuid)
-                staking_address_ss58 = delegate.hotkey_ss58
-                staking_address_name = delegate.hotkey_ss58
+            hotkey_str = Prompt.ask("Enter staking hotkey [bold blue]name[/bold blue] or [bold green]ss58_address[/bold green]", default=bt.defaults.wallet.hotkey)
+            if bt.utils.is_valid_ss58_address(hotkey_str):
+                staking_address_ss58 = str(hotkey_str)
+                staking_address_name = hotkey_str
             else:
-                hotkey_str = Prompt.ask("Enter hotkey name or ss58_address to stake to", default=bt.defaults.wallet.hotkey)
-                if bt.utils.is_valid_ss58_address(hotkey_str):
-                    staking_address_ss58 = str(hotkey_str)
-                    staking_address_name = hotkey_str
-                else:
-                    wallet = bt.wallet(name=config.wallet.name, hotkey=hotkey_str)
-                    staking_address_ss58 = wallet.hotkey.ss58_address
-                    staking_address_name = hotkey_str
+                wallet = bt.wallet(name=config.wallet.name, hotkey=hotkey_str)
+                staking_address_ss58 = wallet.hotkey.ss58_address
+                staking_address_name = hotkey_str
         elif not staking_address_ss58:
             bt.logging.error("--hotkey_ss58 must be specified when using --no_prompt or --y")
             sys.exit(1)
 
-        # Check to see if the passed hotkey is valid.
-        if not subtensor.is_hotkey_registered_any(hotkey_ss58=staking_address_ss58):
-            bt.__console__.print(f"[red]Hotkey [bold]{staking_address_ss58}[/bold] is not registered on any subnets. Aborting.[/red]")
-            sys.exit(1)
-
         # Get the current wallet balance.
-        current_wallet_balance: bt.Balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
+        current_wallet_balance: bt.Balance = subtensor.get_balance(wallet.coldkeypub.ss58_address).set_unit(0)
 
         # Determine the amount we are staking.
         amount_to_stake_as_balance = None
@@ -96,7 +86,7 @@ class AddStakeCommand:
                 amount_to_stake_as_balance = current_wallet_balance
             else:
                 try:
-                    amount = float(Prompt.ask("Enter amount to stake in TAO"))
+                    amount = float(Prompt.ask(f"Enter amount to stake in {bt.Balance.get_unit(0)}"))
                     amount_to_stake_as_balance = bt.Balance.from_tao(amount)
                 except ValueError:
                     bt.__console__.print(f":cross_mark:[red]Invalid amount: {amount}[/red]")
@@ -110,21 +100,23 @@ class AddStakeCommand:
         ).set_unit(netuid)
 
         # Check enough to stake.
+        amount_to_stake_as_balance.set_unit(0)
         if amount_to_stake_as_balance > current_wallet_balance:
             bt.__console__.print(f"[red]Not enough stake[/red]:[bold white]\n wallet balance:{current_wallet_balance} < staking amount: {amount_to_stake_as_balance}[/bold white]")
             sys.exit(1)
 
         # Slippage warning
         if not config.no_prompt:
-            dynamic_info = subtensor.get_dynamic_info_for_netuid( netuid )
+            dynamic_info = subtensor.get_subnet_dynamic_info( netuid )
             received_amount, slippage = dynamic_info.tao_to_alpha_with_slippage( amount_to_stake_as_balance )
             if dynamic_info.is_dynamic:
-                slippage_pct = 100 * float(slippage) / float(slippage + received_amount) if slippage + received_amount != 0 else 0
-                slippage_pct = f"{slippage_pct:.4f} %"
+                slippage_pct_float = 100 * float(slippage) / float(slippage + received_amount) if slippage + received_amount != 0 else 0
+                slippage_pct = f"{slippage_pct_float:.4f} %"
             else:
+                slippage_pct_float = 0
                 slippage_pct = 'N/A'
             table = Table(
-                title="[white]Add Stake",
+                title=f"[white]Add Stake: {wallet.coldkeypub.ss58_address}",
                 width=bt.__console__.width - 5,
                 safe_box=True,
                 padding=(0, 1),
@@ -145,23 +137,27 @@ class AddStakeCommand:
                 title_justify="center",
                 highlight=False,
             )
-            table.add_column("Description", justify="center", style="rgb(133,153,0)")
-            table.add_column("Value", justify="center", style="rgb(38,139,210)")
-
-            table.add_row("netuid", str(netuid))
-            table.add_row("current exchange rate", str(dynamic_info.price))
-            table.add_row("tao to be staked", str(amount_to_stake_as_balance))
-            table.add_row("stake received after staking", str(received_amount.set_unit(netuid)))
-            table.add_row("slippage", str(slippage_pct))
-            table.add_row("staking hotkey account", staking_address_name)
-            table.add_row("wallet coldkey account", wallet.coldkeypub.ss58_address)
-
+            table.add_column("netuid", justify="center", style="rgb(133,153,0)")
+            table.add_column("hotkey", justify="center", style="rgb(42,161,152)")
+            table.add_column(f"amount ({bt.Balance.get_unit(0)})", justify="center", style="rgb(220,50,47)")
+            table.add_column(f"rate ({bt.Balance.get_unit(netuid)}/{bt.Balance.get_unit(0)})", justify="center", style="rgb(42,161,152)")
+            table.add_column(f"received ({bt.Balance.get_unit(netuid)})", justify="center", style="rgb(42,161,152)")
+            table.add_column("slippage", justify="center", style="rgb(220,50,47)")
+            table.add_row(
+                str(netuid),
+                f"{staking_address_ss58[:3]}...{staking_address_ss58[-3:]}",
+                str(amount_to_stake_as_balance),
+                str(1/float(dynamic_info.price)) + f"({bt.Balance.get_unit(netuid)}/{bt.Balance.get_unit(0)})",
+                str(received_amount.set_unit(netuid)),
+                str(slippage_pct),
+            )
             bt.__console__.print(table)
-            if not isinstance(slippage_pct, str) and slippage_pct > 5:
+            message = ""
+            if slippage_pct_float > 5:
                 message += f"\t-------------------------------------------------------------------------------------------------------------------\n"
-                message += f"\t[bold][yellow]WARNING:[/yellow]\tSlippage is high: {slippage_pct}%, this may result in a loss of funds.[/bold] \n"
+                message += f"\t[bold][yellow]WARNING:[/yellow]\tSlippage is high: [bold red]{slippage_pct}[/bold red], this may result in a loss of funds.[/bold] \n"
                 message += f"\t-------------------------------------------------------------------------------------------------------------------\n"
-            bt.__console__.print(message)
+                bt.__console__.print(message)
             if not Confirm.ask("Would you like to continue?"):
                 sys.exit(1)
         
@@ -193,7 +189,7 @@ class AddStakeCommand:
                         coldkey_ss58=wallet.coldkeypub.ss58_address,
                         hotkey_ss58=staking_address_ss58,
                         netuid=netuid,
-                    )
+                    ).set_unit(netuid)
                     bt.__console__.print(f"Balance:\n  [blue]{current_wallet_balance}[/blue] :arrow_right: [green]{new_balance}[/green]")
                     bt.__console__.print(f"Stake:\n  [blue]{current_stake_balance}[/blue] :arrow_right: [green]{new_stake}[/green]")
                     return

@@ -95,13 +95,23 @@ custom_rpc_type_registry = {
             "type": "struct",
             "type_mapping": [
                 ["delegate_ss58", "AccountId"],
-                ["take", "Compact<u16>"],
+                ["take", "Vec<(Compact<u16>, Compact<u16>)>"],
                 ["nominators", "Vec<(AccountId, Compact<u64>)>"],
                 ["owner_ss58", "AccountId"],
                 ["registrations", "Vec<Compact<u16>>"],
                 ["validator_permits", "Vec<Compact<u16>>"],
                 ["return_per_1000", "Compact<u64>"],
                 ["total_daily_return", "Compact<u64>"],
+            ],
+        },
+        "DelegateInfoLight": {
+            "type": "struct",
+            "type_mapping": [
+                ["delegate_ss58", "AccountId"],
+                ["owner_ss58", "AccountId"],
+                ["take", "u16"],
+                ["owner_stake", "Compact<u64>"],
+                ["total_stake", "Compact<u64>"],
             ],
         },
         "NeuronInfo": {
@@ -192,6 +202,22 @@ custom_rpc_type_registry = {
                 ["locked", "Compact<u64>"],
             ],
         },
+        "DynamicInfo": {
+            "type": "struct",
+            "type_mapping": [
+                ["owner", "AccountId"],
+                ["netuid", "Compact<u16>"],
+                ["tempo", "Compact<u16>"],
+                ["last_step", "Compact<u64>"],
+                ["blocks_since_last_step", "Compact<u64>"],
+                ["emission", "Compact<u64>"],
+                ["alpha_in", "Compact<u64>"],
+                ["alpha_out", "Compact<u64>"],
+                ["tao_in", "Compact<u64>"],
+                ["total_locked", "Compact<u64>"],
+                ["owner_locked", "Compact<u64>"],
+            ],
+        },
         "SubstakeElements": {
             "type": "struct",
             "type_mapping": [
@@ -257,8 +283,9 @@ class ChainDataType(Enum):
     SubstakeElements = 9
     DynamicPoolInfoV2 = 10
     DelegateInfoLight = 11
-    ScheduledColdkeySwapInfo = 12
-    SubnetInfo = 13
+    DynamicInfo = 12
+    ScheduledColdkeySwapInfo = 13
+    SubnetInfo = 14
 
 
 def from_scale_encoding(
@@ -292,14 +319,158 @@ def from_scale_encoding_using_type_string(
             as_bytes = input
         else:
             raise TypeError("input must be a List[int], bytes, or ScaleBytes")
-
         as_scale_bytes = ScaleBytes(as_bytes)
-
     rpc_runtime_config = RuntimeConfiguration()
     rpc_runtime_config.update_type_registry(load_type_registry_preset("legacy"))
     rpc_runtime_config.update_type_registry(custom_rpc_type_registry)
     obj = rpc_runtime_config.create_scale_object(type_string, data=as_scale_bytes)
     return obj.decode()
+
+
+@dataclass
+class DynamicInfo:
+
+    owner: str
+    netuid: int
+    tempo: int
+    last_step: int
+    blocks_since_last_step: int
+    emission: Balance
+    alpha_in: Balance
+    alpha_out: Balance
+    tao_in: Balance
+    total_locked: Balance
+    owner_locked: Balance
+    price: Balance
+    k: float
+    is_dynamic: bool
+    symbol: str
+
+    @classmethod
+    def from_vec_u8(cls, vec_u8: List[int]) -> Optional["DynamicInfo"]:
+        if len(vec_u8) == 0: return None
+        decoded = from_scale_encoding(vec_u8, ChainDataType.DynamicInfo, is_option=True )
+        if decoded is None: return None
+        return DynamicInfo.fix_decoded_values(decoded)
+
+    @classmethod
+    def list_from_vec_u8(cls, vec_u8: List[int]) -> List["DynamicInfo"]:
+        decoded = from_scale_encoding( vec_u8, ChainDataType.DynamicInfo, is_vec=True, is_option=True )
+        if decoded is None: return []
+        decoded = [DynamicInfo.fix_decoded_values(d) for d in decoded]
+        return decoded
+
+    @classmethod
+    def fix_decoded_values(cls, decoded: Dict) -> "DynamicInfo":
+        netuid = int(decoded["netuid"])
+        symbol = bittensor.Balance.get_unit(netuid)
+        emission = Balance.from_rao(decoded["emission"]).set_unit(0)
+        alpha_out = bittensor.Balance.from_rao(decoded["alpha_out"]).set_unit(netuid)
+        alpha_in = bittensor.Balance.from_rao(decoded["alpha_in"]).set_unit(netuid)
+        tao_in = bittensor.Balance.from_rao(decoded["tao_in"]).set_unit(0)
+        total_locked = bittensor.Balance.from_rao(decoded["total_locked"]).set_unit(netuid)
+        owner_locked = bittensor.Balance.from_rao(decoded["owner_locked"]).set_unit(netuid)
+        price = bittensor.Balance.from_tao(tao_in.tao/alpha_in.tao) if alpha_in.tao > 0 else bittensor.Balance.from_tao(1)
+        is_dynamic = True if decoded["alpha_in"] > 0 else False
+        return DynamicInfo(
+            owner = ss58_encode(decoded["owner"], bittensor.__ss58_format__),
+            netuid = netuid,
+            tempo = decoded["tempo"],
+            last_step = decoded["last_step"],
+            blocks_since_last_step = decoded["blocks_since_last_step"],
+            emission = emission,
+            alpha_out = alpha_out,
+            alpha_in = alpha_in,
+            tao_in = tao_in,
+            total_locked = total_locked,
+            owner_locked = owner_locked,
+            price = price,
+            k = tao_in.rao * alpha_in.rao,
+            is_dynamic = is_dynamic,
+            symbol = symbol,
+        )
+
+    def tao_to_alpha(self, tao: Balance) -> Balance:
+        if self.price.tao != 0:
+            return Balance.from_tao(tao.tao / self.price.tao).set_unit(self.netuid)
+        else:
+            return Balance.from_tao(0)
+
+    def alpha_to_tao(self, alpha: Balance) -> Balance:
+        return Balance.from_tao(alpha.tao * self.price.tao)
+
+    def tao_to_alpha_with_slippage(
+        self, tao: Balance
+    ) -> Tuple[Balance, Balance]:
+        """
+        Returns an estimate of how much Alpha would a staker receive if they stake their tao
+        using the current pool state
+
+        Args:
+            tao: Amount of TAO to stake.
+
+        Returns:
+            Tuple of balances where the first part is the amount of Alpha received, and the
+            second part (slippage) is the difference between the estimated amount and ideal
+            amount as if there was no slippage
+        """
+        if self.is_dynamic:
+            new_tao_in = self.tao_in + tao
+            if new_tao_in == 0:
+                return tao, Balance.from_rao(0)
+            new_alpha_in = self.k / new_tao_in
+
+            # Amount of alpha given to the staker
+            alpha_returned = Balance.from_rao(
+                self.alpha_in.rao - new_alpha_in.rao
+            ).set_unit(self.netuid)
+
+            # Ideal conversion as if there is no slippage, just price
+            alpha_ideal = self.tao_to_alpha(tao)
+
+            if alpha_ideal.tao > alpha_returned.tao:
+                slippage = Balance.from_tao(alpha_ideal.tao - alpha_returned.tao).set_unit(
+                    self.netuid
+                )
+            else:
+                slippage = Balance.from_tao(0)
+        else:
+            alpha_returned = tao.set_unit(self.netuid)
+            slippage = Balance.from_tao(0)
+        return alpha_returned, slippage
+
+    def alpha_to_tao_with_slippage(
+        self, alpha: Balance
+    ) -> Tuple[Balance, Balance]:
+        """
+        Returns an estimate of how much TAO would a staker receive if they unstake their
+        alpha using the current pool state
+
+        Args:
+            alpha: Amount of Alpha to stake.
+
+        Returns:
+            Tuple of balances where the first part is the amount of TAO received, and the
+            second part (slippage) is the difference between the estimated amount and ideal
+            amount as if there was no slippage
+        """
+        if self.is_dynamic:
+            new_alpha_in = self.alpha_in + alpha
+            new_tao_reserve = self.k / new_alpha_in
+            # Amount of TAO given to the unstaker
+            tao_returned = Balance.from_rao(self.tao_in - new_tao_reserve)
+
+            # Ideal conversion as if there is no slippage, just price
+            tao_ideal = self.alpha_to_tao(alpha)
+
+            if tao_ideal > tao_returned:
+                slippage = Balance.from_tao(tao_ideal.tao - tao_returned.tao)
+            else:
+                slippage = Balance.from_tao(0)
+        else:
+            tao_returned = alpha.set_unit(0)
+            slippage = Balance.from_tao(0)
+        return tao_returned, slippage
 
 
 @dataclass
@@ -545,6 +716,14 @@ class AxonInfo:
             hotkey=neuron_info["hotkey"],
             coldkey=neuron_info["coldkey"],
         )
+
+    def _to_parameter_dict(
+        self, return_type: str
+    ) -> Union[dict[str, Union[int, str]], "torch.nn.ParameterDict"]:
+        if return_type == "torch":
+            return torch.nn.ParameterDict(self.__dict__)
+        else:
+            return self.__dict__
 
     def to_parameter_dict(
         self,
@@ -882,7 +1061,7 @@ class DelegateInfoLite:
 
     @classmethod
     def fix_decoded_values(cls, decoded: Any) -> "DelegateInfoLite":
-        r"""Fixes the decoded values."""
+        """Fixes the decoded values."""
 
         decoded_take = decoded["take"]
         if decoded_take == 65535:
@@ -953,7 +1132,7 @@ class DelegateInfo:
         Tuple[str, Balance]
     ]  # List of nominators of the delegate and their stake
     owner_ss58: str  # Coldkey of owner
-    take: float  # Take of the delegate as a percentage
+    take: List[Tuple[int, float]]  # Takes of the delegate per subnet
     validator_permits: List[
         int
     ]  # List of subnets that the delegate is allowed to validate on

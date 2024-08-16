@@ -3953,6 +3953,17 @@ class Subtensor:
             return []
 
         return SubnetInfoV2.list_from_vec_u8(result)
+    
+    def get_all_subnet_dynamic_info(self) -> List['bittensor.chain_data.DynamicInfo']:
+        json = self.substrate.rpc_request( method="subnetInfo_getAllDynamicInfo", params=[None])
+        subnets = bittensor.chain_data.DynamicInfo.list_from_vec_u8(json['result'])
+        return subnets
+    
+    def get_subnet_dynamic_info(self, netuid: int ) -> List['bittensor.chain_data.DynamicInfo']:
+        json = self.substrate.rpc_request( method="subnetInfo_getDynamicInfo", params=[netuid, None])
+        subnets = bittensor.chain_data.DynamicInfo.from_vec_u8(json['result'])
+        return subnets
+
 
     def get_subnet_info_v2(
         self, netuid: int, block: Optional[int] = None
