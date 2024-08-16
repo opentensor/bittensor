@@ -588,7 +588,7 @@ class SetChildrenCommand:
 
     Example usage::
 
-        btcli stake set_children --children <child_hotkey>,<child_hotkey> --netuid 1 --proportions 0.4,0.6
+        btcli stake set_children --children <child_hotkey>,<child_hotkey> --hotkey <parent_hotkey> --netuid 1 --proportions 0.4,0.6
 
     Note:
         This command is critical for users who wish to delegate children hotkeys among different neurons (hotkeys) on the network.
