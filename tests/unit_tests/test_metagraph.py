@@ -124,7 +124,9 @@ def test_process_weights_or_bonds(mock_environment):
     # TODO: Add more checks to ensure the bonds have been processed correctly
 
 
-def test_process_weights_or_bonds_torch(mock_environment, force_legacy_torch_compat_api):
+def test_process_weights_or_bonds_torch(
+    mock_environment, force_legacy_torch_compat_api
+):
     _, neurons = mock_environment
     metagraph = bittensor.metagraph(1, sync=False)
     metagraph.neurons = neurons

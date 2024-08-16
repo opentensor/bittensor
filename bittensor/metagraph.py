@@ -649,7 +649,7 @@ class MetagraphMixin(ABC):
 
                 self.weights = self._process_weights_or_bonds(raw_weights_data, "weights")
         """
-        data_array = []
+        data_array: list[Union[NDArray[np.float32], "torch.Tensor"]] = []
         for item in data:
             if len(item) == 0:
                 if use_torch():
