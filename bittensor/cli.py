@@ -28,7 +28,6 @@ from .commands import (
     InspectCommand,
     ListCommand,
     ListSubnetsCommand,
-    ShowMetagraph,
     NewColdkeyCommand,
     NewHotkeyCommand,
     OverviewCommand,
@@ -98,11 +97,11 @@ COMMANDS = {
         "help": "Commands for managing and viewing subnetworks.",
         "commands": {
             "list": ListSubnetsCommand,
-            "metagraph": ShowMetagraph,
-            "create": RegisterSubnetworkCommand,
-            "pow_register": PowRegisterCommand,
-            "register": RegisterCommand,
             "show": ShowSubnet,
+            # "metagraph": ShowMetagraph,
+            "create": RegisterSubnetworkCommand,
+            # "pow_register": PowRegisterCommand,
+            "register": RegisterCommand,
         },
     },
     "wallet": {
@@ -111,9 +110,9 @@ COMMANDS = {
         "help": "Commands for managing and viewing wallets.",
         "commands": {
             "list": ListCommand,
-            "overview": OverviewCommand,
+            # "overview": OverviewCommand,
             "transfer": TransferCommand,
-            "inspect": InspectCommand,
+            # "inspect": InspectCommand,
             "balance": WalletBalanceCommand,
             "create": WalletCreateCommand,
             "new_hotkey": NewHotkeyCommand,
@@ -143,15 +142,15 @@ COMMANDS = {
             "revoke_children": RevokeChildrenCommand,
         },
     },
-    "weights": {
-        "name": "weights",
-        "aliases": ["wt", "weight"],
-        "help": "Commands for managing weight for subnets.",
-        "commands": {
-            "commit": CommitWeightCommand,
-            "reveal": RevealWeightCommand,
-        },
-    },
+    # "weights": {
+    #     "name": "weights",
+    #     "aliases": ["wt", "weight"],
+    #     "help": "Commands for managing weight for subnets.",
+    #     "commands": {
+    #         "commit": CommitWeightCommand,
+    #         "reveal": RevealWeightCommand,
+    #     },
+    # },
     "sudo": {
         "name": "sudo",
         "aliases": ["su", "sudos"],
@@ -171,13 +170,6 @@ COMMANDS = {
         "commands": {
             "update": UpdateCommand,
             "faucet": RunFaucetCommand,
-        },
-    },
-    "info": {
-        "name": "info",
-        "aliases": ["i"],
-        "help": "Instructions for enabling autocompletion for the CLI.",
-        "commands": {
             "autocomplete": AutocompleteCommand,
         },
     },

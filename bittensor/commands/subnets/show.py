@@ -61,14 +61,72 @@ class ShowSubnet:
             logging.error("netuid is needed to proceed")
             sys.exit(1)
             
-        
+        if netuid == 0:
+            ShowSubnet.show_root(subtensor, config)
+        else:
+            ShowSubnet.show_subnet(subtensor, netuid, config)
+            
+    @staticmethod
+    def show_root( subtensor: "Subtensor", config: "Config"):
+        root_info = subtensor.get_subnet_dynamic_info(0)
+        root_state: "SubnetState" = SubnetState.from_vec_u8(
+            subtensor.substrate.rpc_request(method="subnetInfo_getSubnetState", params=[0, None])['result']
+        )
+        console_width = console.width - 5
+        table = Table(
+            title=f"[white]Root Network",
+            width=console_width,
+            safe_box=True,
+            padding=(0, 1),
+            collapse_padding=False,
+            pad_edge=True,
+            expand=True,
+            show_header=True,
+            show_footer=True,
+            show_edge=False,
+            show_lines=False,
+            leading=0,
+            style="none",
+            row_styles=None,
+            header_style="bold",
+            footer_style="bold",
+            border_style="rgb(7,54,66)",
+            title_style="bold magenta",
+            title_justify="center",
+            highlight=False,
+        )
+        # Add columns to the table
+        table.add_column("Position", style="rgb(253,246,227)", no_wrap=True, justify="center")
+        table.add_column(f"Local ({Balance.get_unit(0)})", style="rgb(42,161,152)", no_wrap=True, justify="center")
+        table.add_column(f"Global ({Balance.get_unit(0)})", style="rgb(211,54,130)", no_wrap=True, justify="center")
+        table.add_column("hotkey", style="rgb(42,161,152)", no_wrap=True, justify="center")
+
+        sorted_hotkeys = sorted(
+            enumerate(root_state.hotkeys),
+            key=lambda x: root_state.global_stake[x[0]],
+            reverse=True
+        )
+        for pos, (idx, hk) in enumerate(sorted_hotkeys):
+            table.add_row(
+                str((pos + 1)),
+                str(root_state.local_stake[idx]),
+                str(root_state.global_stake[idx]),
+                f"{root_state.hotkeys[idx]}",
+            )
+
+        # Print the table
+        import bittensor as bt
+        bt.__console__.print(table)
+          
+    @staticmethod
+    def show_subnet(subtensor: "Subtensor", netuid: int, config: "Config"):
+
         subnet_info = subtensor.get_subnet_dynamic_info(netuid)
         subnet_state: "SubnetState" = SubnetState.from_vec_u8(
             subtensor.substrate.rpc_request(method="subnetInfo_getSubnetState", params=[netuid, None])['result']
         )
         # Define table properties
         console_width = console.width - 5
-
         table = Table(
             title=f"[white]Subnet State #{config.netuid}",
             width=console_width,
@@ -143,17 +201,6 @@ class ShowSubnet:
         table.add_column("incentive", style="rgb(220,50,47)", no_wrap=True, justify="center")
         table.add_column(f"emission ({Balance.get_unit(netuid)})", style="rgb(38,139,210)", no_wrap=True, justify="center")
         table.add_column("hotkey", style="rgb(42,161,152)", no_wrap=True, justify="center")
-        # table.add_column("cold", style="rgb(133,153,0)", no_wrap=True, justify="center")
-        # table.add_column("A", style="rgb(211,54,130)", no_wrap=True, justify="center")
-        # table.add_column("V", style="rgb(211,54,130)", no_wrap=True, justify="center")
-        # table.add_column("P", style="rgb(211,54,130)", no_wrap=True, justify="center")
-        # table.add_column("U", style="rgb(211,54,130)", no_wrap=True, justify="center")
-        # table.add_column("D", style="rgb(211,54,130)", no_wrap=True, justify="center")
-        # table.add_column("I", style="rgb(211,54,130)", no_wrap=True, justify="center")
-        # table.add_column("C", style="rgb(211,54,130)", no_wrap=True, justify="center")
-        # table.add_column("T", style="rgb(211,54,130)", no_wrap=True, justify="center")
-        # table.add_column("R", style="rgb(211,54,130)", no_wrap=True, justify="center")
-        # table.add_column("Regist", style="rgb(211,54,130)", no_wrap=True, justify="center")
 
         for idx, hk in enumerate(subnet_state.hotkeys):
             table.add_row(
