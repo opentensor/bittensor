@@ -72,6 +72,7 @@ from .subnets.metagraph import ShowMetagraph
 from .subnets.create import RegisterSubnetworkCommand
 from .subnets.pow_register import PowRegisterCommand
 from .subnets.register import RegisterCommand
+from .subnets.show import ShowSubnet
 
 # Wallet
 from .wallet.list import ListCommand
