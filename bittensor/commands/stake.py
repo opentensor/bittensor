@@ -924,7 +924,7 @@ class GetChildrenCommand:
         )
 
         if not children:
-            # console.print(table)
+            console.print(table)
             console.print(
                 f"There are currently no child hotkeys on subnet {netuid} with Parent HotKey {hotkey}."
             )
