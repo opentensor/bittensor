@@ -669,14 +669,12 @@ class MetagraphMixin(ABC):
                     )
                 else:
                     da_item = weight_utils.convert_bond_uids_and_vals_to_tensor(
-                            len(self.neurons), list(uids), list(values)
-                        )
+                        len(self.neurons), list(uids), list(values)
+                    )
                     if use_torch():
                         data_array.append(da_item)
                     else:
-                        data_array.append(
-                            da_item.astype(np.float32)
-                        )
+                        data_array.append(da_item.astype(np.float32))
         tensor_param: Union["torch.nn.Parameter", NDArray] = (
             (
                 torch.nn.Parameter(torch.stack(data_array), requires_grad=False)
