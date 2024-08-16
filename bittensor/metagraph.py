@@ -25,7 +25,7 @@ from numpy.typing import NDArray
 import bittensor
 from os import listdir
 from os.path import join
-from typing import List, Optional, Union, Tuple
+from typing import List, Optional, Union, Tuple, cast
 
 from bittensor.chain_data import AxonInfo
 from bittensor.utils.registration import torch, use_torch
@@ -672,12 +672,17 @@ class MetagraphMixin(ABC):
                         len(self.neurons), list(uids), list(values)
                     )
                     if use_torch():
-                        data_array.append(da_item)
+                        data_array.append(cast("torch.LongTensor", da_item))
                     else:
-                        data_array.append(da_item.astype(np.float32))
+                        data_array.append(
+                            cast(NDArray[np.float32], da_item).astype(np.float32)
+                        )
         tensor_param: Union["torch.nn.Parameter", NDArray] = (
             (
-                torch.nn.Parameter(torch.stack(data_array), requires_grad=False)
+                torch.nn.Parameter(
+                    torch.stack(cast(list["torch.Tensor"], data_array)),
+                    requires_grad=False,
+                )
                 if len(data_array)
                 else torch.nn.Parameter()
             )
