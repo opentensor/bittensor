@@ -13,7 +13,6 @@ from tests.e2e_tests.utils import (
     clone_or_update_templates,
     install_templates,
     uninstall_templates,
-    template_path,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -54,10 +53,9 @@ def local_chain(request):
     def wait_for_node_start(process, pattern):
         for line in process.stdout:
             print(line.strip())
-            # 10 min as timeout
-            if int(time.time()) - timestamp > 10 * 60:
-                print("Subtensor not started in time")
-                break
+            # 20 min as timeout
+            if int(time.time()) - timestamp > 20 * 60:
+                pytest.fail("Subtensor not started in time")
             if pattern.search(line):
                 print("Node started!")
                 break
@@ -82,4 +80,4 @@ def local_chain(request):
 
     # uninstall templates
     logging.info("uninstalling neuron templates")
-    uninstall_templates(template_path)
+    uninstall_templates(templates_dir)
