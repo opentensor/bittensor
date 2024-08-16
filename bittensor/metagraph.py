@@ -649,53 +649,47 @@ class MetagraphMixin(ABC):
 
                 self.weights = self._process_weights_or_bonds(raw_weights_data, "weights")
         """
-        if use_torch():
-            data_array: list["torch.Tensor"] = []
-            for item in data:
-                if len(item) == 0:
+        data_array = []
+        for item in data:
+            if len(item) == 0:
+                if use_torch():
                     data_array.append(torch.zeros(len(self.neurons)))
                 else:
-                    uids, values = zip(*item)
-                    if attribute == "weights":
-                        data_array.append(
-                            weight_utils.convert_weight_uids_and_vals_to_tensor(
-                                len(self.neurons),
-                                list(uids),
-                                list(values),
-                            )
+                    data_array.append(np.zeros(len(self.neurons), dtype=np.float32))
+            else:
+                uids, values = zip(*item)
+                # TODO: Validate and test the conversion of uids and values to tensor
+                if attribute == "weights":
+                    data_array.append(
+                        weight_utils.convert_weight_uids_and_vals_to_tensor(
+                            len(self.neurons),
+                            list(uids),
+                            list(values),
                         )
+                    )
+                else:
+                    da_item = weight_utils.convert_bond_uids_and_vals_to_tensor(
+                            len(self.neurons), list(uids), list(values)
+                        )
+                    if use_torch():
+                        data_array.append(da_item)
                     else:
                         data_array.append(
-                            weight_utils.convert_bond_uids_and_vals_to_tensor(
-                                len(self.neurons), list(uids), list(values)
-                            )
+                            da_item.astype(np.float32)
                         )
-            tensor_param: "torch.nn.Parameter" = (
+        tensor_param: Union["torch.nn.Parameter", NDArray] = (
+            (
                 torch.nn.Parameter(torch.stack(data_array), requires_grad=False)
                 if len(data_array)
                 else torch.nn.Parameter()
             )
-        else:
-            data_array: list[NDArray[np.float32]] = []
-            for item in data:
-                if len(item) == 0:
-                    data_array.append(np.zeros(len(self.neurons), dtype=np.float32))
-                else:
-                    uids, values = zip(*item)
-                    if attribute == "weights":
-                        data_array.append(
-                            weight_utils.convert_weight_uids_and_vals_to_tensor(
-                                len(self.neurons),
-                                list(uids),
-                                list(values),
-                            ).astype(np.float32)
-                        )
-            tensor_param: NDArray = (
+            if use_torch()
+            else (
                 np.stack(data_array)
                 if len(data_array)
                 else np.array([], dtype=np.float32)
             )
-
+        )
         if len(data_array) == 0:
             bittensor.logging.warning(
                 f"Empty {attribute}_array on metagraph.sync(). The '{attribute}' tensor is empty."
