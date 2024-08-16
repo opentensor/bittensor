@@ -36,6 +36,7 @@ from .utils import (
 )
 from . import defaults  # type: ignore
 from ..utils import wallet_utils
+from ..utils.formatting import u64_to_float
 
 console = bittensor.__console__
 
@@ -574,19 +575,20 @@ class StakeShow:
 
 class SetChildrenCommand:
     """
-    Executes the ``set_children`` command to add children hotkeys on a specified subnet on the Bittensor network.
+    Executes the ``set_children`` command to add children hotkeys on a specified subnet on the Bittensor network to the caller.
 
     This command is used to delegate authority to different hotkeys, securing their position and influence on the subnet.
 
     Usage:
         Users can specify the amount or 'proportion' to delegate to child hotkeys (``SS58`` address),
-        the user needs to have sufficient authority to make this call, and the sum of proportions cannot be greater than 1.
+        the user needs to have sufficient authority to make this call, and the sum of proportions must equal 1,
+        representing 100% of the proportion allocation.
 
     The command prompts for confirmation before executing the set_children operation.
 
     Example usage::
 
-        btcli stake set_children --children <child_hotkey>,<child_hotkey> --hotkey <parent_hotkey> --netuid 1 --proportions 0.3,0.3
+        btcli stake set_children --children <child_hotkey>,<child_hotkey> --netuid 1 --proportions 0.4,0.6
 
     Note:
         This command is critical for users who wish to delegate children hotkeys among different neurons (hotkeys) on the network.
@@ -613,45 +615,62 @@ class SetChildrenCommand:
         # Get values if not set.
         if not cli.config.is_set("netuid"):
             cli.config.netuid = int(Prompt.ask("Enter netuid"))
+        
+        netuid = cli.config.netuid
+        total_subnets = subtensor.get_total_subnets()
+        if total_subnets is not None and total_subnets <= netuid <= 0:
+            raise ValueError("Netuid is outside the current subnet range")
 
         if not cli.config.is_set("hotkey"):
             cli.config.hotkey = Prompt.ask("Enter parent hotkey (ss58)")
+        if not wallet_utils.is_valid_ss58_address(cli.config.hotkey):
+            console.print(f":cross_mark:[red] Invalid SS58 address: {cli.config.hotkey}[/red]")
+            return
 
-        # display children
-        GetChildrenCommand.retrieve_children(
+        # get children
+        curr_children = GetChildrenCommand.retrieve_children(
             subtensor=subtensor,
             hotkey=cli.config.hotkey,
             netuid=cli.config.netuid,
-            render_table=True,
+            render_table=False,
         )
+        
+        if curr_children:
+            GetChildrenCommand.retrieve_children(
+                subtensor=subtensor,
+                hotkey=cli.config.hotkey,
+                netuid=cli.config.netuid,
+                render_table=True,
+            )
+            raise ValueError(f"There are already children hotkeys under parent hotkey {cli.config.hotkey}. "
+                             f"Call revoke_children command before attempting to set_children again, or call the get_children command to view them.")
 
         if not cli.config.is_set("children"):
             cli.config.children = Prompt.ask(
-                "Enter children hotkey (ss58) as comma-separated values"
+                "Enter child(ren) hotkeys (ss58) as comma-separated values"
             )
-
-        if not cli.config.is_set("proportions"):
-            cli.config.proportions = Prompt.ask(
-                "Enter proportions for children as comma-separated values (sum less than 1)"
-            )
-
-        # Parse from strings
-        netuid = cli.config.netuid
-
-        # extract proportions and child addresses from cli input
-        proportions = [float(x) for x in re.split(r"[ ,]+", cli.config.proportions)]
         children = [str(x) for x in re.split(r"[ ,]+", cli.config.children)]
-
+        
         # Validate children SS58 addresses
         for child in children:
             if not wallet_utils.is_valid_ss58_address(child):
                 console.print(f":cross_mark:[red] Invalid SS58 address: {child}[/red]")
                 return
+        
+        if len(children) == 1:  # if only one child, then they have full proportion by default
+            cli.config.proportions = 1.0
+            
+        if not cli.config.is_set("proportions"):
+            cli.config.proportions = Prompt.ask(
+                "Enter the percentage of proportion for each child as comma-separated values (total must equal 1)"
+            )
 
+        # extract proportions and child addresses from cli input
+        proportions = [float(x) for x in re.split(r"[ ,]+", cli.config.proportions)]
         total_proposed = sum(proportions)
-        if total_proposed > 1:
+        if total_proposed != 1:
             raise ValueError(
-                f"Invalid proportion: The sum of all proportions cannot be greater than 1. Proposed sum of proportions is {total_proposed}."
+                f"Invalid proportion: The sum of all proportions must equal 1 (representing 100% of the allocation). Proposed sum of proportions is {total_proposed}."
             )
 
         children_with_proportions = list(zip(proportions, children))
@@ -775,18 +794,23 @@ class GetChildrenCommand:
         # Get values if not set.
         if not cli.config.is_set("netuid"):
             cli.config.netuid = int(Prompt.ask("Enter netuid"))
+        netuid = cli.config.netuid
+        total_subnets = subtensor.get_total_subnets()
+        if total_subnets is not None and total_subnets <= netuid <= 0:
+            raise ValueError("Netuid is outside the current subnet range")
 
         # Get values if not set.
         if not cli.config.is_set("hotkey"):
             cli.config.hotkey = Prompt.ask("Enter parent hotkey (ss58)")
-
-        # Parse from strings
-        netuid = cli.config.netuid
         hotkey = cli.config.hotkey
+        if not wallet_utils.is_valid_ss58_address(cli.config.hotkey):
+            console.print(f":cross_mark:[red] Invalid SS58 address: {cli.config.hotkey}[/red]")
+            return
 
         children = subtensor.get_children(hotkey, netuid)
+        hotkey_stake = subtensor.get_total_stake_for_hotkey(hotkey)
 
-        GetChildrenCommand.render_table(subtensor, hotkey, children, netuid, True)
+        GetChildrenCommand.render_table(subtensor, hotkey, hotkey_stake, children, netuid, True)
 
         return children
 
@@ -800,7 +824,7 @@ class GetChildrenCommand:
 
         Args:
             subtensor (bittensor.subtensor): The subtensor object used to interact with the Bittensor network.
-            hotkey (str): The hotkey of the tensor owner.
+            hotkey (str): The hotkey of the parent.
             netuid (int): The network unique identifier of the subtensor.
             render_table (bool): Flag indicating whether to render the retrieved children in a table.
 
@@ -810,7 +834,8 @@ class GetChildrenCommand:
         """
         children = subtensor.get_children(hotkey, netuid)
         if render_table:
-            GetChildrenCommand.render_table(subtensor, hotkey, children, netuid, False)
+            hotkey_stake = subtensor.get_total_stake_for_hotkey(hotkey)
+            GetChildrenCommand.render_table(subtensor, hotkey, hotkey_stake, children, netuid, False)
         return children
 
     @staticmethod
@@ -837,6 +862,7 @@ class GetChildrenCommand:
     def render_table(
         subtensor: "bittensor.subtensor",
         hotkey: str,
+        hotkey_stake: "Balance",
         children: list[Tuple[int, str]],
         netuid: int,
         prompt: bool,
@@ -880,12 +906,13 @@ class GetChildrenCommand:
         table.add_column("Index", style="cyan", no_wrap=True, justify="right")
         table.add_column("ChildHotkey", style="cyan", no_wrap=True)
         table.add_column("Proportion", style="cyan", no_wrap=True, justify="right")
-        table.add_column("Total Stake", style="cyan", no_wrap=True, justify="right")
+        table.add_column("Child Stake", style="cyan", no_wrap=True, justify="right")
+        table.add_column("Total Stake Weight", style="cyan", no_wrap=True, justify="right")
 
         if not children:
-            console.print(table)
+            # console.print(table)
             console.print(
-                f"There are currently no child hotkeys on subnet {netuid} with ParentHotKey {hotkey}."
+                f"There are currently no child hotkeys on subnet {netuid} with Parent HotKey {hotkey}."
             )
             if prompt:
                 command = f"btcli stake set_children --children <child_hotkey> --hotkey <parent_hotkey> --netuid {netuid} --proportion <float>"
@@ -894,12 +921,13 @@ class GetChildrenCommand:
                 )
             return
 
-        console.print("ParentHotKey:", style="cyan", no_wrap=True)
-        console.print(hotkey)
+        console.print(f"Parent HotKey: {hotkey}  |  ", style="cyan", end="", no_wrap=True)
+        console.print(f"Total Parent Stake: {hotkey_stake.tao}τ")
 
         # calculate totals
         total_proportion = 0
         total_stake = 0
+        total_stake_weight = 0
 
         children_info = []
         for child in children:
@@ -910,8 +938,9 @@ class GetChildrenCommand:
             ) or Balance(0)
 
             # add to totals
-            total_proportion += proportion
-            total_stake += child_stake
+            total_stake += child_stake.tao
+            
+            proportion = u64_to_float(proportion)
 
             children_info.append((proportion, child_hotkey, child_stake))
 
@@ -921,17 +950,25 @@ class GetChildrenCommand:
 
         # add the children info to the table
         for i, (proportion, hotkey, stake) in enumerate(children_info, 1):
-            proportion_str = Text(
-                str(proportion), style="red" if proportion == 0 else ""
-            )
+            proportion_percent = proportion * 100  # Proportion in percent
+            proportion_tao = hotkey_stake.tao * proportion  # Proportion in TAO
+            
+            total_proportion += proportion_percent
+
+            # Conditionally format text
+            proportion_str = f"{proportion_percent}% ({proportion_tao}τ)"
+            stake_weight = stake.tao + proportion_tao
+            total_stake_weight += stake_weight
+            
             hotkey = Text(hotkey, style="red" if proportion == 0 else "")
             table.add_row(
                 str(i),
                 hotkey,
                 proportion_str,
-                str(stake),
+                str(stake.tao),
+                str(stake_weight),
             )
 
         # add totals row
-        table.add_row("", "Total", str(total_proportion), str(total_stake), "")
+        table.add_row("", "Total", f"{total_proportion}%", f"{total_stake}τ", f"{total_stake_weight}τ")
         console.print(table)
