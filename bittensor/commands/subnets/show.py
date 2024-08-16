@@ -36,5 +36,10 @@ class ShowSubnet:
         config = cli.config.copy()
         subtensor = bt.subtensor(config=config, log_verbose=False)
         
-        
+        # Get state.
+        dynamic_info = subtensor.get_subnet_dynamic_info( config.netuid )
+        subnet_state: bt.chain_data.SubnetState = bt.chain_data.SubnetState.from_vec_u8(
+            subtensor.substrate.rpc_request( method="subnetInfo_getSubnetState", params=[config.netuid, None])['result']
+        )
+    
     
