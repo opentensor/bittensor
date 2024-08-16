@@ -285,7 +285,6 @@ __type_registry__ = {
     },
 }
 
-
 units = [
     "\u03C4",  # τ (tau, 0)
     "\u03B1",  # α (alpha, 1)
@@ -501,7 +500,7 @@ from .chain_data import (
     NeuronInfoLite,
     PrometheusInfo,
     DelegateInfo,
-    DelegateInfoLight,
+    DelegateInfoLite,
     StakeInfo,
     SubnetInfoV2,
     DynamicInfo,
