@@ -38,7 +38,9 @@ Example usage:
 
 def select_delegate(subtensor, netuid: int):
     # Get a list of delegates and sort them by total stake in descending order
-    delegates: typing.List[bt.DelegateInfoLight] = subtensor.get_delegates_by_netuid_light( netuid )
+    delegates: typing.List[bt.DelegateInfoLight] = (
+        subtensor.get_delegates_by_netuid_light(netuid)
+    )
     delegates.sort(key=lambda x: x.total_stake, reverse=True)
 
     # Get registered delegates details.
@@ -50,7 +52,12 @@ def select_delegate(subtensor, netuid: int):
     console = Console()
 
     # Create a table to display delegate information
-    table = Table(show_header=True, header_style="bold", border_style="rgb(7,54,66)", style="rgb(0,43,54)")
+    table = Table(
+        show_header=True,
+        header_style="bold",
+        border_style="rgb(7,54,66)",
+        style="rgb(0,43,54)",
+    )
 
     # Add columns to the table with specific styles
     table.add_column("Index", style="rgb(253,246,227)", no_wrap=True)
@@ -58,8 +65,12 @@ def select_delegate(subtensor, netuid: int):
     table.add_column("Hotkey SS58", style="rgb(211,54,130)", no_wrap=True)
     table.add_column("Owner SS58", style="rgb(133,153,0)", no_wrap=True)
     table.add_column("Take", style="rgb(181,137,0)", no_wrap=True)
-    table.add_column("Total Stake", style="rgb(38,139,210)", no_wrap=True, justify="right")
-    table.add_column("Owner Stake", style="rgb(220,50,47)", no_wrap=True, justify="right")
+    table.add_column(
+        "Total Stake", style="rgb(38,139,210)", no_wrap=True, justify="right"
+    )
+    table.add_column(
+        "Owner Stake", style="rgb(220,50,47)", no_wrap=True, justify="right"
+    )
     # table.add_column("Return per 1000", style="rgb(108,113,196)", no_wrap=True, justify="right")
     # table.add_column("Total Daily Return", style="rgb(42,161,152)", no_wrap=True, justify="right")
 
@@ -76,14 +87,20 @@ def select_delegate(subtensor, netuid: int):
                 delegate = delegates[idx]
 
                 # Add delegate to visible list
-                visible_delegates.append( delegate )
+                visible_delegates.append(delegate)
 
                 # Add a row to the table with delegate information
                 table.add_row(
                     str(idx),
-                    registered_delegate_info[delegate.hotkey_ss58].name if delegate.hotkey_ss58 in registered_delegate_info else "",
-                    delegate.hotkey_ss58[:5] + "..." + delegate.hotkey_ss58[-5:],  # Show truncated hotkey
-                    delegate.owner_ss58[:5] + "..." + delegate.owner_ss58[-5:],    # Show truncated owner address
+                    registered_delegate_info[delegate.hotkey_ss58].name
+                    if delegate.hotkey_ss58 in registered_delegate_info
+                    else "",
+                    delegate.hotkey_ss58[:5]
+                    + "..."
+                    + delegate.hotkey_ss58[-5:],  # Show truncated hotkey
+                    delegate.owner_ss58[:5]
+                    + "..."
+                    + delegate.owner_ss58[-5:],  # Show truncated owner address
                     f"{delegate.take:.6f}",
                     f"τ{delegate.total_stake.tao:,.4f}",
                     f"τ{delegate.owner_stake.tao:,.4f}",
@@ -96,25 +113,43 @@ def select_delegate(subtensor, netuid: int):
             console.print(table)
 
             # Prompt user for input
-            user_input = input('Press Enter to scroll, enter a number (1-N) to select, or type "h" for help: ')
-            
+            user_input = input(
+                'Press Enter to scroll, enter a number (1-N) to select, or type "h" for help: '
+            )
+
             # Add a help option to display information about each column
-            if user_input.lower() == 'h' or user_input.lower() == 'help':
+            if user_input.lower() == "h" or user_input.lower() == "help":
                 console.print("\nColumn Information:")
-                console.print("[rgb(253,246,227)]Index:[/rgb(253,246,227)] Position in the list of delegates")
-                console.print("[rgb(211,54,130)]Hotkey SS58:[/rgb(211,54,130)] Truncated public key of the delegate's hotkey")
-                console.print("[rgb(133,153,0)]Owner SS58:[/rgb(133,153,0)] Truncated public key of the delegate's owner")
-                console.print("[rgb(181,137,0)]Take:[/rgb(181,137,0)] Percentage of rewards the delegate takes")
-                console.print("[rgb(38,139,210)]Total Stake:[/rgb(38,139,210)] Total amount staked to this delegate")
-                console.print("[rgb(220,50,47)]Owner Stake:[/rgb(220,50,47)] Amount staked by the delegate owner")
-                console.print("[rgb(108,113,196)]Return per 1000:[/rgb(108,113,196)] Estimated return for 1000 Tao staked")
-                console.print("[rgb(42,161,152)]Total Daily Return:[/rgb(42,161,152)] Estimated total daily return for all stake")
+                console.print(
+                    "[rgb(253,246,227)]Index:[/rgb(253,246,227)] Position in the list of delegates"
+                )
+                console.print(
+                    "[rgb(211,54,130)]Hotkey SS58:[/rgb(211,54,130)] Truncated public key of the delegate's hotkey"
+                )
+                console.print(
+                    "[rgb(133,153,0)]Owner SS58:[/rgb(133,153,0)] Truncated public key of the delegate's owner"
+                )
+                console.print(
+                    "[rgb(181,137,0)]Take:[/rgb(181,137,0)] Percentage of rewards the delegate takes"
+                )
+                console.print(
+                    "[rgb(38,139,210)]Total Stake:[/rgb(38,139,210)] Total amount staked to this delegate"
+                )
+                console.print(
+                    "[rgb(220,50,47)]Owner Stake:[/rgb(220,50,47)] Amount staked by the delegate owner"
+                )
+                console.print(
+                    "[rgb(108,113,196)]Return per 1000:[/rgb(108,113,196)] Estimated return for 1000 Tao staked"
+                )
+                console.print(
+                    "[rgb(42,161,152)]Total Daily Return:[/rgb(42,161,152)] Estimated total daily return for all stake"
+                )
                 console.print("\nPress Enter to continue...")
                 input()
                 continue
 
             # If user presses Enter, continue to next delegate
-            if user_input: 
+            if user_input:
                 try:
                     # Try to convert user input to integer (delegate index)
                     selected_idx = int(user_input)
@@ -122,12 +157,18 @@ def select_delegate(subtensor, netuid: int):
                         # Exit loop if valid index is selected
                         done = True
                     else:
-                        console.print(f"[red]Invalid index. Please enter a number between 0 and {len(delegates) - 1}.[/red]")
+                        console.print(
+                            f"[red]Invalid index. Please enter a number between 0 and {len(delegates) - 1}.[/red]"
+                        )
                         continue
                 except ValueError:
-                    console.print("[red]Invalid input. Please enter a valid number.[/red]")
+                    console.print(
+                        "[red]Invalid input. Please enter a valid number.[/red]"
+                    )
                 except IndexError:
-                    console.print(f"[red]Invalid index. Please enter a number between 0 and {len(delegates) - 1}.[/red]")
+                    console.print(
+                        f"[red]Invalid index. Please enter a number between 0 and {len(delegates) - 1}.[/red]"
+                    )
                 except Exception as e:
                     console.print(f"[red]An error occurred: {str(e)}[/red]")
                     continue  # If input is invalid, continue to next delegate
@@ -143,10 +184,10 @@ def select_delegate(subtensor, netuid: int):
     # console.print(f"\nSelected delegate: [rgb(211,54,130)]{visible_delegates[selected_idx].hotkey_ss58}[/rgb(211,54,130)]")
     # console.print(f"Take: [rgb(181,137,0)]{visible_delegates[selected_idx].take:.6f}[/rgb(181,137,0)]")
     # console.print(f"Total Stake: [rgb(38,139,210)]{visible_delegates[selected_idx].total_stake}[/rgb(38,139,210)]")
-    
+
     # confirmation = Prompt.ask("Do you want to proceed with this delegate? (y/n)")
     # if confirmation.lower() != 'yes' and confirmation.lower() != 'y':
     #     return select_delegate( subtensor, netuid )
-    
+
     # Return the selected delegate
     return delegates[selected_idx]

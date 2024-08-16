@@ -98,4 +98,3 @@ class UpdateWalletCommand:
                 "Enter wallet name", default=bittensor.defaults.wallet.name
             )
             config.wallet.name = str(wallet_name)
-

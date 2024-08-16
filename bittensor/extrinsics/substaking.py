@@ -21,9 +21,7 @@ from rich.prompt import Confirm
 from time import sleep
 from typing import List, Union, Optional
 from bittensor.utils.balance import Balance
-from bittensor.utils.slippage import (
-    Operation, show_slippage_warning_if_needed
-)
+from bittensor.utils.slippage import Operation, show_slippage_warning_if_needed
 
 
 def remove_substake_extrinsic(

@@ -5,6 +5,7 @@ from rich.table import Table
 from typing import Dict
 from .. import defaults
 
+
 class VoteCommand:
     """
     Executes the ``senate_vote`` command to cast a vote on an active proposal in Bittensor's governance protocol.

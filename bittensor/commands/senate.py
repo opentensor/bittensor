@@ -26,6 +26,7 @@ from . import defaults
 
 console = bittensor.__console__
 
+
 def display_votes(
     vote_data: "bittensor.ProposalVoteData", delegate_info: "bittensor.DelegateInfo"
 ) -> str:
@@ -420,5 +421,3 @@ class SenateLeaveCommand:
 
         bittensor.wallet.add_args(senate_leave_parser)
         bittensor.subtensor.add_args(senate_leave_parser)
-
-

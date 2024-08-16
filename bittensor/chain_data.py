@@ -71,7 +71,7 @@ custom_rpc_type_registry = {
                 ["alpha_reserve", "u64"],
                 ["tao_reserve", "u64"],
                 ["k", "u128"],
-            ]
+            ],
         },
         "SubnetInfoV2": {
             "type": "struct",
@@ -329,7 +329,6 @@ def from_scale_encoding_using_type_string(
 
 @dataclass
 class DynamicInfo:
-
     owner: str
     netuid: int
     tempo: int
@@ -348,15 +347,20 @@ class DynamicInfo:
 
     @classmethod
     def from_vec_u8(cls, vec_u8: List[int]) -> Optional["DynamicInfo"]:
-        if len(vec_u8) == 0: return None
-        decoded = from_scale_encoding(vec_u8, ChainDataType.DynamicInfo, is_option=True )
-        if decoded is None: return None
+        if len(vec_u8) == 0:
+            return None
+        decoded = from_scale_encoding(vec_u8, ChainDataType.DynamicInfo, is_option=True)
+        if decoded is None:
+            return None
         return DynamicInfo.fix_decoded_values(decoded)
 
     @classmethod
     def list_from_vec_u8(cls, vec_u8: List[int]) -> List["DynamicInfo"]:
-        decoded = from_scale_encoding( vec_u8, ChainDataType.DynamicInfo, is_vec=True, is_option=True )
-        if decoded is None: return []
+        decoded = from_scale_encoding(
+            vec_u8, ChainDataType.DynamicInfo, is_vec=True, is_option=True
+        )
+        if decoded is None:
+            return []
         decoded = [DynamicInfo.fix_decoded_values(d) for d in decoded]
         return decoded
 
@@ -368,26 +372,34 @@ class DynamicInfo:
         alpha_out = bittensor.Balance.from_rao(decoded["alpha_out"]).set_unit(netuid)
         alpha_in = bittensor.Balance.from_rao(decoded["alpha_in"]).set_unit(netuid)
         tao_in = bittensor.Balance.from_rao(decoded["tao_in"]).set_unit(0)
-        total_locked = bittensor.Balance.from_rao(decoded["total_locked"]).set_unit(netuid)
-        owner_locked = bittensor.Balance.from_rao(decoded["owner_locked"]).set_unit(netuid)
-        price = bittensor.Balance.from_tao(tao_in.tao/alpha_in.tao) if alpha_in.tao > 0 else bittensor.Balance.from_tao(1)
+        total_locked = bittensor.Balance.from_rao(decoded["total_locked"]).set_unit(
+            netuid
+        )
+        owner_locked = bittensor.Balance.from_rao(decoded["owner_locked"]).set_unit(
+            netuid
+        )
+        price = (
+            bittensor.Balance.from_tao(tao_in.tao / alpha_in.tao)
+            if alpha_in.tao > 0
+            else bittensor.Balance.from_tao(1)
+        )
         is_dynamic = True if decoded["alpha_in"] > 0 else False
         return DynamicInfo(
-            owner = ss58_encode(decoded["owner"], bittensor.__ss58_format__),
-            netuid = netuid,
-            tempo = decoded["tempo"],
-            last_step = decoded["last_step"],
-            blocks_since_last_step = decoded["blocks_since_last_step"],
-            emission = emission,
-            alpha_out = alpha_out,
-            alpha_in = alpha_in,
-            tao_in = tao_in,
-            total_locked = total_locked,
-            owner_locked = owner_locked,
-            price = price,
-            k = tao_in.rao * alpha_in.rao,
-            is_dynamic = is_dynamic,
-            symbol = symbol,
+            owner=ss58_encode(decoded["owner"], bittensor.__ss58_format__),
+            netuid=netuid,
+            tempo=decoded["tempo"],
+            last_step=decoded["last_step"],
+            blocks_since_last_step=decoded["blocks_since_last_step"],
+            emission=emission,
+            alpha_out=alpha_out,
+            alpha_in=alpha_in,
+            tao_in=tao_in,
+            total_locked=total_locked,
+            owner_locked=owner_locked,
+            price=price,
+            k=tao_in.rao * alpha_in.rao,
+            is_dynamic=is_dynamic,
+            symbol=symbol,
         )
 
     def tao_to_alpha(self, tao: Balance) -> Balance:
@@ -399,9 +411,7 @@ class DynamicInfo:
     def alpha_to_tao(self, alpha: Balance) -> Balance:
         return Balance.from_tao(alpha.tao * self.price.tao)
 
-    def tao_to_alpha_with_slippage(
-        self, tao: Balance
-    ) -> Tuple[Balance, Balance]:
+    def tao_to_alpha_with_slippage(self, tao: Balance) -> Tuple[Balance, Balance]:
         """
         Returns an estimate of how much Alpha would a staker receive if they stake their tao
         using the current pool state
@@ -429,9 +439,9 @@ class DynamicInfo:
             alpha_ideal = self.tao_to_alpha(tao)
 
             if alpha_ideal.tao > alpha_returned.tao:
-                slippage = Balance.from_tao(alpha_ideal.tao - alpha_returned.tao).set_unit(
-                    self.netuid
-                )
+                slippage = Balance.from_tao(
+                    alpha_ideal.tao - alpha_returned.tao
+                ).set_unit(self.netuid)
             else:
                 slippage = Balance.from_tao(0)
         else:
@@ -439,9 +449,7 @@ class DynamicInfo:
             slippage = Balance.from_tao(0)
         return alpha_returned, slippage
 
-    def alpha_to_tao_with_slippage(
-        self, alpha: Balance
-    ) -> Tuple[Balance, Balance]:
+    def alpha_to_tao_with_slippage(self, alpha: Balance) -> Tuple[Balance, Balance]:
         """
         Returns an estimate of how much TAO would a staker receive if they unstake their
         alpha using the current pool state
@@ -496,18 +504,36 @@ class DynamicPool:
     ):
         self.is_dynamic = is_dynamic
         self.netuid = netuid
-        self.alpha_issuance = alpha_issuance if isinstance(alpha_issuance, Balance) else Balance.from_rao(alpha_issuance).set_unit(netuid)
-        self.alpha_outstanding = alpha_outstanding if isinstance(alpha_outstanding, Balance) else Balance.from_rao(alpha_outstanding).set_unit(netuid)
-        self.alpha_reserve = alpha_reserve if isinstance(alpha_reserve, Balance) else Balance.from_rao(alpha_reserve).set_unit(netuid)
-        self.tao_reserve = tao_reserve if isinstance(tao_reserve, Balance) else Balance.from_rao(tao_reserve).set_unit(0)
+        self.alpha_issuance = (
+            alpha_issuance
+            if isinstance(alpha_issuance, Balance)
+            else Balance.from_rao(alpha_issuance).set_unit(netuid)
+        )
+        self.alpha_outstanding = (
+            alpha_outstanding
+            if isinstance(alpha_outstanding, Balance)
+            else Balance.from_rao(alpha_outstanding).set_unit(netuid)
+        )
+        self.alpha_reserve = (
+            alpha_reserve
+            if isinstance(alpha_reserve, Balance)
+            else Balance.from_rao(alpha_reserve).set_unit(netuid)
+        )
+        self.tao_reserve = (
+            tao_reserve
+            if isinstance(tao_reserve, Balance)
+            else Balance.from_rao(tao_reserve).set_unit(0)
+        )
         self.k = k
         if is_dynamic:
             if self.alpha_reserve.tao > 0:
-                self.price = Balance.from_tao(self.tao_reserve.tao / self.alpha_reserve.tao)
+                self.price = Balance.from_tao(
+                    self.tao_reserve.tao / self.alpha_reserve.tao
+                )
             else:
-                self.price = Balance.from_tao(0.)
+                self.price = Balance.from_tao(0.0)
         else:
-            self.price = Balance.from_tao(1.)
+            self.price = Balance.from_tao(1.0)
 
     def __str__(self) -> str:
         return f"DynamicPool( alpha_issuance={self.alpha_issuance}, alpha_outstanding={self.alpha_outstanding}, alpha_reserve={self.alpha_reserve}, tao_reserve={self.tao_reserve}, k={self.k}, price={self.price} )"
@@ -524,9 +550,7 @@ class DynamicPool:
     def alpha_to_tao(self, alpha: Balance) -> Balance:
         return Balance.from_tao(alpha.tao * self.price.tao)
 
-    def tao_to_alpha_with_slippage(
-        self, tao: Balance
-    ) -> Tuple[Balance, Balance]:
+    def tao_to_alpha_with_slippage(self, tao: Balance) -> Tuple[Balance, Balance]:
         """
         Returns an estimate of how much Alpha would a staker receive if they stake their tao
         using the current pool state
@@ -554,9 +578,9 @@ class DynamicPool:
             alpha_ideal = self.tao_to_alpha(tao)
 
             if alpha_ideal.tao > alpha_returned.tao:
-                slippage = Balance.from_tao(alpha_ideal.tao - alpha_returned.tao).set_unit(
-                    self.netuid
-                )
+                slippage = Balance.from_tao(
+                    alpha_ideal.tao - alpha_returned.tao
+                ).set_unit(self.netuid)
             else:
                 slippage = Balance.from_tao(0)
         else:
@@ -564,9 +588,7 @@ class DynamicPool:
             slippage = Balance.from_tao(0)
         return alpha_returned, slippage
 
-    def alpha_to_tao_with_slippage(
-        self, alpha: Balance
-    ) -> Tuple[Balance, Balance]:
+    def alpha_to_tao_with_slippage(self, alpha: Balance) -> Tuple[Balance, Balance]:
         """
         Returns an estimate of how much TAO would a staker receive if they unstake their
         alpha using the current pool state
@@ -1098,7 +1120,9 @@ class DelegateInfoLite:
     @classmethod
     def list_from_vec_u8(cls, vec_u8: List[int]) -> List["DelegateInfoLite"]:
         r"""Returns a list of DelegateInfoLight objects from a ``vec_u8``."""
-        decoded = from_scale_encoding(vec_u8, ChainDataType.DelegateInfoLight, is_vec=True)
+        decoded = from_scale_encoding(
+            vec_u8, ChainDataType.DelegateInfoLight, is_vec=True
+        )
 
         if decoded is None:
             return []
@@ -1474,6 +1498,7 @@ class SubnetHyperparameters:
 @dataclass
 class DynamicPoolInfoV2:
     """Dataclass for dynamic pool info."""
+
     netuid: int
     alpha_issuance: int
     alpha_outstanding: int
@@ -1512,7 +1537,9 @@ class DynamicPoolInfoV2:
         return cls(**dict(parameter_dict))
 
     @classmethod
-    def _from_parameter_dict_numpy(cls, parameter_dict: dict[str, Any]) -> "DynamicPoolInfoV2":
+    def _from_parameter_dict_numpy(
+        cls, parameter_dict: dict[str, Any]
+    ) -> "DynamicPoolInfoV2":
         r"""Returns a DynamicPoolInfoV2 object from a parameter_dict."""
         return cls(**parameter_dict)
 
@@ -1628,7 +1655,9 @@ class SubnetInfoV2:
         return cls(**dict(parameter_dict))
 
     @classmethod
-    def _from_parameter_dict_numpy(cls, parameter_dict: dict[str, Any]) -> "SubnetInfoV2":
+    def _from_parameter_dict_numpy(
+        cls, parameter_dict: dict[str, Any]
+    ) -> "SubnetInfoV2":
         """Returns a SubnetInfoV2 object from a parameter_dict."""
         return cls(**parameter_dict)
 

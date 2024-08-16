@@ -180,7 +180,7 @@ COMMANDS = {
         "commands": {
             "autocomplete": AutocompleteCommand,
         },
-    }
+    },
 }
 
 

@@ -2540,6 +2540,7 @@ class TestCLIWithNetworkUsingArgs(unittest.TestCase):
         new_balance = _subtensor_mock.get_balance(mock_wallet.coldkey.ss58_address)
         self.assertAlmostEqual(new_balance.tao, old_balance.tao - 10.0, delta=1e-6)
 
+
 @pytest.fixture(scope="function")
 def wallets_dir_path(tmp_path):
     wallets_dir = tmp_path / "wallets"

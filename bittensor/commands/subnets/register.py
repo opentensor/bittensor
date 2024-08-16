@@ -6,6 +6,7 @@ import bittensor
 from rich.prompt import Prompt, Confirm
 import sys
 
+
 class RegisterCommand:
     """
     Executes the ``register`` command to register a neuron on the Bittensor network by recycling some TAO (the network's native token).
@@ -85,7 +86,7 @@ class RegisterCommand:
                 == False
             ):
                 sys.exit(1)
-        
+
         subtensor.burned_register(
             wallet=wallet, netuid=cli.config.netuid, prompt=not cli.config.no_prompt
         )

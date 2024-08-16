@@ -28,9 +28,7 @@ from ..errors import (
 from rich.prompt import Confirm
 from typing import Union, Optional, Tuple, List
 from bittensor.utils.balance import Balance
-from bittensor.utils.slippage import (
-    Operation, show_slippage_warning_if_needed
-)
+from bittensor.utils.slippage import Operation, show_slippage_warning_if_needed
 from bittensor.utils.user_io import (
     user_input_confirmation,
     print_summary_header,

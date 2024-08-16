@@ -51,37 +51,47 @@ class ListSubnetsCommand:
             type = subtensor.substrate.query(
                 module="SubtensorModule",
                 storage_function="SubnetMechanism",
-                params=[netuid]
+                params=[netuid],
             ).value
-            emission = subtensor.substrate.query(
-                module="SubtensorModule",
-                storage_function="EmissionValues",
-                params=[netuid]
-            ).value/10**9
-            tao_in = subtensor.substrate.query(
-                module="SubtensorModule",
-                storage_function="SubnetTAO",
-                params=[netuid]
-            ).value/10**9
-            alpha_in = subtensor.substrate.query(
-                module="SubtensorModule",
-                storage_function="SubnetAlphaIn",
-                params=[netuid]
-            ).value/10**9
-            alpha_out = subtensor.substrate.query(
-                module="SubtensorModule",
-                storage_function="SubnetAlphaOut",
-                params=[netuid]
-            ).value/10**9
+            emission = (
+                subtensor.substrate.query(
+                    module="SubtensorModule",
+                    storage_function="EmissionValues",
+                    params=[netuid],
+                ).value
+                / 10**9
+            )
+            tao_in = (
+                subtensor.substrate.query(
+                    module="SubtensorModule",
+                    storage_function="SubnetTAO",
+                    params=[netuid],
+                ).value
+                / 10**9
+            )
+            alpha_in = (
+                subtensor.substrate.query(
+                    module="SubtensorModule",
+                    storage_function="SubnetAlphaIn",
+                    params=[netuid],
+                ).value
+                / 10**9
+            )
+            alpha_out = (
+                subtensor.substrate.query(
+                    module="SubtensorModule",
+                    storage_function="SubnetAlphaOut",
+                    params=[netuid],
+                ).value
+                / 10**9
+            )
             tempo = subtensor.substrate.query(
-                module="SubtensorModule",
-                storage_function="Tempo",
-                params=[netuid]
+                module="SubtensorModule", storage_function="Tempo", params=[netuid]
             ).value
             price = float(tao_in) / float(alpha_in) if alpha_in > 0 else 1.0
             total_price += price
             total_emission += emission
-            sn_symbol = f"{bt.Balance.get_unit(netuid)}\u200E"
+            sn_symbol = f"{bt.Balance.get_unit(netuid)}\u200e"
 
             # Append row data for the table
             rows.append(
@@ -127,14 +137,39 @@ class ListSubnetsCommand:
         # price_total = f"τ{total_price.tao:.2f}/{bt.Balance.from_rao(dynamic_emission).tao:.2f}"
         # above_price_threshold = total_price.tao > bt.Balance.from_rao(dynamic_emission).tao
 
-        table.add_column("Index", style="rgb(253,246,227)", no_wrap=True, justify="center")
-        table.add_column("Symbol", style="rgb(211,54,130)", no_wrap=True, justify="center")
-        table.add_column("Emission", style="rgb(38,139,210)", no_wrap=True, justify="center")
-        table.add_column(f"P({bt.Balance.unit},", style="rgb(108,113,196)", no_wrap=True, justify="right")
-        table.add_column(f"{bt.Balance.get_unit(1)})", style="rgb(42,161,152)", no_wrap=True, justify="left")
-        table.add_column(f"{bt.Balance.get_unit(1)}", style="rgb(133,153,0)", no_wrap=True, justify="center")
-        table.add_column("Price", style="rgb(181,137,0)", no_wrap=True, justify="center")
-        table.add_column("Tempo", style="rgb(38,139,210)", no_wrap=True, justify="center")
+        table.add_column(
+            "Index", style="rgb(253,246,227)", no_wrap=True, justify="center"
+        )
+        table.add_column(
+            "Symbol", style="rgb(211,54,130)", no_wrap=True, justify="center"
+        )
+        table.add_column(
+            "Emission", style="rgb(38,139,210)", no_wrap=True, justify="center"
+        )
+        table.add_column(
+            f"P({bt.Balance.unit},",
+            style="rgb(108,113,196)",
+            no_wrap=True,
+            justify="right",
+        )
+        table.add_column(
+            f"{bt.Balance.get_unit(1)})",
+            style="rgb(42,161,152)",
+            no_wrap=True,
+            justify="left",
+        )
+        table.add_column(
+            f"{bt.Balance.get_unit(1)}",
+            style="rgb(133,153,0)",
+            no_wrap=True,
+            justify="center",
+        )
+        table.add_column(
+            "Price", style="rgb(181,137,0)", no_wrap=True, justify="center"
+        )
+        table.add_column(
+            "Tempo", style="rgb(38,139,210)", no_wrap=True, justify="center"
+        )
 
         # Add rows to the table
         for row in rows:

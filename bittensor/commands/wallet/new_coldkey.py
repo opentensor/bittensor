@@ -21,6 +21,7 @@ from rich.prompt import Prompt, Confirm
 from rich.table import Table
 from .. import defaults
 
+
 class NewColdkeyCommand:
     """
     Executes the ``new_coldkey`` command to create a new coldkey under a wallet on the Bittensor network.

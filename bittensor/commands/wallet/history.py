@@ -46,6 +46,7 @@ query ($first: Int!, $after: Cursor, $filter: TransferFilter, $order: [Transfers
 }
 """
 
+
 class GetWalletHistoryCommand:
     """
     Executes the ``history`` command to fetch the latest transfers of the provided wallet on the Bittensor network.

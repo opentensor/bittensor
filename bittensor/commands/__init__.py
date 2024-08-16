@@ -92,13 +92,13 @@ from .wallet.set_identity import SetIdentityCommand
 from .wallet.get_identity import GetIdentityCommand
 from .wallet.history import GetWalletHistoryCommand
 
-# Staking 
+# Staking
 from .stake.add import AddStakeCommand
 from .stake.remove import RemoveStakeCommand
 from .stake.list import StakeList
 from .stake.move import MoveStakeCommand
 
-# Sudo 
+# Sudo
 from .sudo.vote import VoteCommand
 from .sudo.senate import SenateCommand
 from .sudo.set_take import SetTakeCommand
@@ -115,7 +115,11 @@ from .weights import CommitWeightCommand, RevealWeightCommand
 from .check_coldkey_swap import CheckColdKeySwapCommand
 
 # Children
-from .stake.children import GetChildrenCommand, SetChildrenCommand, RevokeChildrenCommand
+from .stake.children import (
+    GetChildrenCommand,
+    SetChildrenCommand,
+    RevokeChildrenCommand,
+)
 
 # TODO: Unused command, either remove or use
 # from .senate import (

@@ -21,6 +21,7 @@ from rich.prompt import Prompt
 from rich.table import Table
 from .. import defaults
 
+
 class WalletCreateCommand:
     """
     Executes the ``create`` command to generate both a new coldkey and hotkey under a specified wallet on the Bittensor network.
@@ -109,5 +110,3 @@ class WalletCreateCommand:
         )
         bittensor.wallet.add_args(new_coldkey_parser)
         bittensor.subtensor.add_args(new_coldkey_parser)
-
-

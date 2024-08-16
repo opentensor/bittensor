@@ -22,6 +22,7 @@ from rich.prompt import Prompt, Confirm
 from rich.table import Table
 from .. import defaults
 
+
 class RegenColdkeypubCommand:
     """
     Executes the ``regen_coldkeypub`` command to regenerate the public part of a coldkey (coldkeypub) for a wallet on the Bittensor network.

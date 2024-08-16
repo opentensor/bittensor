@@ -2063,7 +2063,6 @@ class Subtensor:
 
         return make_substrate_call_with_retry()
 
-
     ##########
     # Senate #
     ##########
@@ -3486,10 +3485,14 @@ class Subtensor:
     ) -> Optional["Balance"]:
         """Returns the total stake under a coldkey - hotkey pairing"""
         netuids = self.get_all_subnet_netuids()
-        balance = sum([
-            self.get_stake_for_coldkey_and_hotkey_on_netuid(hotkey_ss58, coldkey_ss58, netuid, block)
-            for netuid in netuids
-        ])
+        balance = sum(
+            [
+                self.get_stake_for_coldkey_and_hotkey_on_netuid(
+                    hotkey_ss58, coldkey_ss58, netuid, block
+                )
+                for netuid in netuids
+            ]
+        )
         return Balance.from_rao(balance)
 
     def get_stake_list_for_coldkey_and_hotkey(
@@ -3498,7 +3501,11 @@ class Subtensor:
         """Returns the list of stakes for coldkey - hotkey pairing for multiple netuids"""
         netuids = self.get_all_subnet_netuids()
         netuid_balances = {
-            netuid: Balance.from_rao(self.get_stake_for_coldkey_and_hotkey_on_netuid(hotkey_ss58, coldkey_ss58, netuid, block))
+            netuid: Balance.from_rao(
+                self.get_stake_for_coldkey_and_hotkey_on_netuid(
+                    hotkey_ss58, coldkey_ss58, netuid, block
+                )
+            )
             for netuid in netuids
         }
         return [
@@ -3526,18 +3533,50 @@ class Subtensor:
 
     def get_dynamic_info(self):
         netuids = self.get_all_subnet_netuids()
-        alpha_reserves = {rec[0].value: rec[1].value for rec in self.substrate.query_map(module="SubtensorModule", storage_function="SubnetAlphaIn", params=[], block_hash=None).records}
-        alpha_outstanding = {rec[0].value: rec[1].value for rec in self.substrate.query_map(module="SubtensorModule", storage_function="SubnetAlphaOut", params=[], block_hash=None).records}
-        tao_reserves = {rec[0].value: rec[1].value for rec in self.substrate.query_map(module="SubtensorModule", storage_function="SubnetTAO", params=[], block_hash=None).records}
-        k_values = {netuid: tao_reserves[netuid] * alpha_reserves[netuid] for netuid in tao_reserves.keys() if netuid in alpha_reserves}
+        alpha_reserves = {
+            rec[0].value: rec[1].value
+            for rec in self.substrate.query_map(
+                module="SubtensorModule",
+                storage_function="SubnetAlphaIn",
+                params=[],
+                block_hash=None,
+            ).records
+        }
+        alpha_outstanding = {
+            rec[0].value: rec[1].value
+            for rec in self.substrate.query_map(
+                module="SubtensorModule",
+                storage_function="SubnetAlphaOut",
+                params=[],
+                block_hash=None,
+            ).records
+        }
+        tao_reserves = {
+            rec[0].value: rec[1].value
+            for rec in self.substrate.query_map(
+                module="SubtensorModule",
+                storage_function="SubnetTAO",
+                params=[],
+                block_hash=None,
+            ).records
+        }
+        k_values = {
+            netuid: tao_reserves[netuid] * alpha_reserves[netuid]
+            for netuid in tao_reserves.keys()
+            if netuid in alpha_reserves
+        }
         pools = {}
         for netuid in netuids:
             pool = DynamicPool(
                 is_dynamic=True if netuid in alpha_reserves else False,
                 netuid=netuid,
                 tao_reserve=tao_reserves[netuid] if netuid in tao_reserves else 0,
-                alpha_issuance=alpha_outstanding[netuid] + alpha_reserves[netuid] if netuid in alpha_reserves else 0,
-                alpha_outstanding=alpha_outstanding[netuid] if netuid in alpha_outstanding else 0,
+                alpha_issuance=alpha_outstanding[netuid] + alpha_reserves[netuid]
+                if netuid in alpha_reserves
+                else 0,
+                alpha_outstanding=alpha_outstanding[netuid]
+                if netuid in alpha_outstanding
+                else 0,
                 alpha_reserve=alpha_reserves[netuid] if netuid in alpha_reserves else 0,
                 k=k_values[netuid] if netuid in k_values else 0,
             )
@@ -3920,7 +3959,9 @@ class Subtensor:
             else []
         )
 
-    def get_all_subnets_info_v2(self, block: Optional[int] = None) -> List[SubnetInfoV2]:
+    def get_all_subnets_info_v2(
+        self, block: Optional[int] = None
+    ) -> List[SubnetInfoV2]:
         """
         Retrieves detailed information about all subnets within the Bittensor network. This function
         provides comprehensive data on each subnet, including its characteristics and operational parameters.
@@ -3953,17 +3994,22 @@ class Subtensor:
             return []
 
         return SubnetInfoV2.list_from_vec_u8(result)
-    
-    def get_all_subnet_dynamic_info(self) -> List['bittensor.chain_data.DynamicInfo']:
-        json = self.substrate.rpc_request( method="subnetInfo_getAllDynamicInfo", params=[None])
-        subnets = bittensor.chain_data.DynamicInfo.list_from_vec_u8(json['result'])
-        return subnets
-    
-    def get_subnet_dynamic_info(self, netuid: int ) -> List['bittensor.chain_data.DynamicInfo']:
-        json = self.substrate.rpc_request( method="subnetInfo_getDynamicInfo", params=[netuid, None])
-        subnets = bittensor.chain_data.DynamicInfo.from_vec_u8(json['result'])
+
+    def get_all_subnet_dynamic_info(self) -> List["bittensor.chain_data.DynamicInfo"]:
+        json = self.substrate.rpc_request(
+            method="subnetInfo_getAllDynamicInfo", params=[None]
+        )
+        subnets = bittensor.chain_data.DynamicInfo.list_from_vec_u8(json["result"])
         return subnets
 
+    def get_subnet_dynamic_info(
+        self, netuid: int
+    ) -> List["bittensor.chain_data.DynamicInfo"]:
+        json = self.substrate.rpc_request(
+            method="subnetInfo_getDynamicInfo", params=[netuid, None]
+        )
+        subnets = bittensor.chain_data.DynamicInfo.from_vec_u8(json["result"])
+        return subnets
 
     def get_subnet_info_v2(
         self, netuid: int, block: Optional[int] = None
@@ -4085,7 +4131,6 @@ class Subtensor:
     def get_substake_for_hotkey(
         self, hotkey_ss58: str, block: Optional[int] = None
     ) -> Optional[List[Tuple[str, str, int, int]]]:
-
         @retry(delay=2, tries=3, backoff=2, max_delay=4)
         def make_substrate_call_with_retry(encoded_hotkey: List[int]):
             with self.substrate as substrate:
@@ -4223,7 +4268,9 @@ class Subtensor:
 
         return DelegateInfo.list_from_vec_u8(result)
 
-    def get_delegates_by_netuid_light(self, netuid, block: Optional[int] = None) -> List[DelegateInfoLite]:
+    def get_delegates_by_netuid_light(
+        self, netuid, block: Optional[int] = None
+    ) -> List[DelegateInfoLite]:
         """
         Retrieves a list of all delegate neurons within the Bittensor network. This function provides an overview of the neurons that are actively involved in the network's delegation system.
 
@@ -4306,6 +4353,7 @@ class Subtensor:
         Returns:
             List[Tuple[str, Balance]]: The list of tuples (hotkey, GDT balance).
         """
+
         @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=_logger)
         def make_substrate_call_with_retry():
             block_hash = None if block is None else self.substrate.get_block_hash(block)
@@ -4323,16 +4371,13 @@ class Subtensor:
         if result in (None, []):
             return None
 
-        decoded = from_scale_encoding_using_type_string(result, "Vec<(AccountId, Compact<u64>)>")
+        decoded = from_scale_encoding_using_type_string(
+            result, "Vec<(AccountId, Compact<u64>)>"
+        )
 
         result = []
         for pubkey, stake in decoded:
-            result.append((
-                ss58_encode(
-                    pubkey, bittensor.__ss58_format__
-                ),
-                stake
-            ))
+            result.append((ss58_encode(pubkey, bittensor.__ss58_format__), stake))
 
         return result
 

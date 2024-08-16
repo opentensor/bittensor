@@ -101,8 +101,8 @@ class ShowMetagraph:
         total_issuance = bittensor.Balance.from_rao(subtensor.total_issuance().rao)
 
         # Get registered delegates details.
-        registered_delegate_info: typing.Optional[DelegatesDetails] = get_delegates_details(
-            url=bittensor.__delegates_details_url__
+        registered_delegate_info: typing.Optional[DelegatesDetails] = (
+            get_delegates_details(url=bittensor.__delegates_details_url__)
         )
 
         TABLE_DATA = []
@@ -117,7 +117,11 @@ class ShowMetagraph:
         for uid in metagraph.uids:
             neuron = metagraph.neurons[uid]
             ep = metagraph.axons[uid]
-            upgate_blocks_ago = metagraph.block.item() - metagraph.last_update[uid].item() if metagraph.block.item() >= metagraph.last_update[uid].item() else 0
+            upgate_blocks_ago = (
+                metagraph.block.item() - metagraph.last_update[uid].item()
+                if metagraph.block.item() >= metagraph.last_update[uid].item()
+                else 0
+            )
             row = [
                 str(neuron.uid),
                 "{:.5f}".format(metagraph.stake[uid]),
@@ -138,7 +142,9 @@ class ShowMetagraph:
                 ),
                 ep.hotkey[:10],
                 ep.coldkey[:10],
-                registered_delegate_info[ep.hotkey].name if ep.hotkey in registered_delegate_info else "",
+                registered_delegate_info[ep.hotkey].name
+                if ep.hotkey in registered_delegate_info
+                else "",
             ]
             total_stake += metagraph.stake[uid]
             total_rank += metagraph.ranks[uid]
@@ -148,10 +154,7 @@ class ShowMetagraph:
             total_incentive += metagraph.incentive[uid]
             total_dividends += metagraph.dividends[uid]
             total_emission += int(metagraph.emission[uid] * 1000000000)
-            TABLE_DATA.append({
-                "stake": metagraph.stake[uid],
-                "row": row
-            })
+            TABLE_DATA.append({"stake": metagraph.stake[uid], "row": row})
 
         # sort table by stake weight
         TABLE_DATA.sort(key=lambda x: x["stake"], reverse=True)
