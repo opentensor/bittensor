@@ -59,6 +59,7 @@ from .commands import (
     SetChildrenCommand,
     GetChildrenCommand,
     RevokeChildrenCommand,
+    ShowSubnet,
 )
 
 # Create a console instance for CLI display.
@@ -101,6 +102,7 @@ COMMANDS = {
             "create": RegisterSubnetworkCommand,
             "pow_register": PowRegisterCommand,
             "register": RegisterCommand,
+            "show": ShowSubnet,
         },
     },
     "wallet": {
