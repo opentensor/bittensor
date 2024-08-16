@@ -16,14 +16,17 @@
 # DEALINGS IN THE SOFTWARE.
 
 import argparse
+from typing import TYPE_CHECKING
 
 from rich.console import Console
 from rich.table import Table
 
 from bittensor.chain_data import SubnetState
-from bittensor.cli import cli as Cli
 from bittensor.config import config as Config
 from bittensor.subtensor import Subtensor
+
+if TYPE_CHECKING:
+    from bittensor.cli import cli as Cli
 
 
 class ShowSubnet:
