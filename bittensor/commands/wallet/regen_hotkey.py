@@ -23,6 +23,7 @@ from rich.table import Table
 from typing import Optional
 from .. import defaults
 
+
 class RegenHotkeyCommand:
     """
     Executes the ``regen_hotkey`` command to regenerate a hotkey for a wallet on the Bittensor network.

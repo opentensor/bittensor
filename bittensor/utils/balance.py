@@ -71,7 +71,7 @@ class Balance:
         if self.unit == bittensor.units[0]:
             return f"{self.unit}{float(self.tao):,.4f}"
         else:
-            return f"{float(self.tao):,.4f}{self.unit}\u200E"
+            return f"{float(self.tao):,.4f}{self.unit}\u200e"
 
     def __rich__(self):
         return "[green]{}[/green][green]{}[/green][green].[/green][dim green]{}[/dim green]".format(
@@ -87,8 +87,7 @@ class Balance:
         if bittensor.units.index(self.unit) != 0:
             return f"[green]{int(self.rao)}{self.unit}[/green]"
         else:
-            return f"[green]{self.unit}\u200E{int(self.rao)}[/green]"
-
+            return f"[green]{self.unit}\u200e{int(self.rao)}[/green]"
 
     def __repr__(self):
         return self.__str__()

@@ -16,28 +16,44 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
+import os
+import warnings
 
 import re
 from rich.console import Console
 from rich.traceback import install
 
-# Install and apply nest asyncio to allow the async functions
-# to run in a .ipynb
-import nest_asyncio
 
-nest_asyncio.apply()
+if (NEST_ASYNCIO_ENV := os.getenv("NEST_ASYNCIO")) in ("1", None):
+    if NEST_ASYNCIO_ENV is None:
+        warnings.warn(
+            "NEST_ASYNCIO implicitly set to '1'. In the future, the default value will be '0'."
+            "If you use `nest_asyncio` make sure to add it explicitly to your project dependencies,"
+            "as it will be removed from `bittensor` package dependencies in the future."
+            "To silence this warning, explicitly set the environment variable, e.g. `export NEST_ASYNCIO=0`.",
+            DeprecationWarning,
+        )
+    # Install and apply nest asyncio to allow the async functions
+    # to run in a .ipynb
+    import nest_asyncio
+
+    nest_asyncio.apply()
+
 
 # Bittensor code and protocol version.
 __version__ = "7.4.0rc1"
 # Parsing version without any literals.
 __version__ = re.match(r"^\d+\.\d+\.\d+", __version__).group(0)
 
-version_split = __version__.split(".")
-__version_as_int__: int = (
-    (100 * int(version_split[0]))
-    + (10 * int(version_split[1]))
-    + (1 * int(version_split[2]))
+_version_split = __version__.split(".")
+__version_info__ = tuple(int(part) for part in _version_split)
+_version_int_base = 1000
+assert max(__version_info__) < _version_int_base
+
+__version_as_int__: int = sum(
+    e * (_version_int_base**i) for i, e in enumerate(reversed(__version_info__))
 )
+assert __version_as_int__ < 2**31  # fits in int32
 __new_signature_version__ = 360
 
 # Rich console.
@@ -46,6 +62,16 @@ __use_console__ = True
 
 # Remove overdue locals in debug training.
 install(show_locals=False)
+
+
+def __getattr__(name):
+    if name == "version_split":
+        warnings.warn(
+            "version_split is deprecated and will be removed in future versions. Use __version__ instead.",
+            DeprecationWarning,
+        )
+        return _version_split
+    raise AttributeError(f"module {__name__} has no attribute {name}")
 
 
 def turn_console_off():
@@ -82,7 +108,7 @@ __blocktime__ = 12
 # Pip address for versioning
 __pipaddress__ = "https://pypi.org/pypi/bittensor/json"
 
-# Raw github url for delegates registry file
+# Raw GitHub url for delegates registry file
 __delegates_details_url__: str = "https://raw.githubusercontent.com/opentensor/bittensor-delegates/main/public/delegates.json"
 
 # Substrate ss58_format
@@ -106,14 +132,19 @@ __dev_entrypoint__ = "wss://dev.chain.opentensor.ai:443 "
 # Needs to use wss://
 __bellagene_entrypoint__ = "wss://parachain.opentensor.ai:443"
 
-__local_entrypoint__ = "ws://127.0.0.1:9944"
+if (
+    BT_SUBTENSOR_CHAIN_ENDPOINT := os.getenv("BT_SUBTENSOR_CHAIN_ENDPOINT")
+) is not None:
+    __local_entrypoint__ = BT_SUBTENSOR_CHAIN_ENDPOINT
+else:
+    __local_entrypoint__ = "ws://127.0.0.1:9944"
 
 __tao_symbol__: str = chr(0x03C4)
 
 __rao_symbol__: str = chr(0x03C1)
 
 # Block Explorers map network to explorer url
-## Must all be polkadotjs explorer urls
+# Must all be polkadotjs explorer urls
 __network_explorer_map__ = {
     "opentensor": {
         "local": "https://polkadot.js.org/apps/?rpc=wss%3A%2F%2Fentrypoint-finney.opentensor.ai%3A443#/explorer",
@@ -158,28 +189,6 @@ __type_registry__ = {
                     "type": "Vec<u8>",
                 },
             }
-        },
-        "StakeInfoRuntimeApi": {
-            "methods": {
-                "get_stake_info_for_coldkey": {
-                    "params": [
-                        {
-                            "name": "coldkey_account_vec",
-                            "type": "Vec<u8>",
-                        },
-                    ],
-                    "type": "Vec<u8>",
-                },
-                "get_stake_info_for_coldkeys": {
-                    "params": [
-                        {
-                            "name": "coldkey_account_vecs",
-                            "type": "Vec<Vec<u8>>",
-                        },
-                    ],
-                    "type": "Vec<u8>",
-                },
-            },
         },
         "ValidatorIPRuntimeApi": {
             "methods": {
@@ -242,73 +251,103 @@ __type_registry__ = {
                 },
             }
         },
+        "ColdkeySwapRuntimeApi": {
+            "methods": {
+                "get_scheduled_coldkey_swap": {
+                    "params": [
+                        {
+                            "name": "coldkey_account_vec",
+                            "type": "Vec<u8>",
+                        },
+                    ],
+                    "type": "Vec<u8>",
+                },
+                "get_remaining_arbitration_period": {
+                    "params": [
+                        {
+                            "name": "coldkey_account_vec",
+                            "type": "Vec<u8>",
+                        },
+                    ],
+                    "type": "Vec<u8>",
+                },
+                "get_coldkey_swap_destinations": {
+                    "params": [
+                        {
+                            "name": "coldkey_account_vec",
+                            "type": "Vec<u8>",
+                        },
+                    ],
+                    "type": "Vec<u8>",
+                },
+            }
+        },
     },
 }
 
-
 units = [
-    "\u03C4",  # τ (tau, 0)
-    "\u03B1",  # α (alpha, 1)
-    "\u03B2",  # β (beta, 2)
-    "\u03B3",  # γ (gamma, 3)
-    "\u03B4",  # δ (delta, 4)
-    "\u03B5",  # ε (epsilon, 5)
-    "\u03B6",  # ζ (zeta, 6)
-    "\u03B7",  # η (eta, 7)
-    "\u03B8",  # θ (theta, 8)
-    "\u03B9",  # ι (iota, 9)
-    "\u03BA",  # κ (kappa, 10)
-    "\u03BB",  # λ (lambda, 11)
-    "\u03BC",  # μ (mu, 12)
-    "\u03BD",  # ν (nu, 13)
-    "\u03BE",  # ξ (xi, 14)
-    "\u03BF",  # ο (omicron, 15)
-    "\u03C0",  # π (pi, 16)
-    "\u03C1",  # ρ (rho, 17)
-    "\u03C3",  # σ (sigma, 18)
-    "\u03C4",  # τ (tau, 19)
-    "\u03C5",  # υ (upsilon, 20)
-    "\u03C6",  # φ (phi, 21)
-    "\u03C7",  # χ (chi, 22)
-    "\u03C8",  # ψ (psi, 23)
-    "\u03C9",  # ω (omega, 24)
+    "\u03c4",  # τ (tau, 0)
+    "\u03b1",  # α (alpha, 1)
+    "\u03b2",  # β (beta, 2)
+    "\u03b3",  # γ (gamma, 3)
+    "\u03b4",  # δ (delta, 4)
+    "\u03b5",  # ε (epsilon, 5)
+    "\u03b6",  # ζ (zeta, 6)
+    "\u03b7",  # η (eta, 7)
+    "\u03b8",  # θ (theta, 8)
+    "\u03b9",  # ι (iota, 9)
+    "\u03ba",  # κ (kappa, 10)
+    "\u03bb",  # λ (lambda, 11)
+    "\u03bc",  # μ (mu, 12)
+    "\u03bd",  # ν (nu, 13)
+    "\u03be",  # ξ (xi, 14)
+    "\u03bf",  # ο (omicron, 15)
+    "\u03c0",  # π (pi, 16)
+    "\u03c1",  # ρ (rho, 17)
+    "\u03c3",  # σ (sigma, 18)
+    "\u03c4",  # τ (tau, 19)
+    "\u03c5",  # υ (upsilon, 20)
+    "\u03c6",  # φ (phi, 21)
+    "\u03c7",  # χ (chi, 22)
+    "\u03c8",  # ψ (psi, 23)
+    "\u03c9",  # ω (omega, 24)
     # Hebrew letters
-    "\u05D0",  # א (aleph, 25)
-    "\u05D1",  # ב (bet, 26)
-    "\u05D2",  # ג (gimel, 27)
-    "\u05D3",  # ד (dalet, 28)
-    "\u05D4",  # ה (he, 29)
-    "\u05D5",  # ו (vav, 30)
-    "\u05D6",  # ז (zayin, 31)
-    "\u05D7",  # ח (het, 32)
-    "\u05D8",  # ט (tet, 33)
-    "\u05D9",  # י (yod, 34)
-    "\u05DA",  # ך (final kaf, 35)
-    "\u05DB",  # כ (kaf, 36)
-    "\u05DC",  # ל (lamed, 37)
-    "\u05DD",  # ם (final mem, 38)
-    "\u05DE",  # מ (mem, 39)
-    "\u05DF",  # ן (final nun, 40)
-    "\u05E0",  # נ (nun, 41)
-    "\u05E1",  # ס (samekh, 42)
-    "\u05E2",  # ע (ayin, 43)
-    "\u05E3",  # ף (final pe, 44)
-    "\u05E4",  # פ (pe, 45)
-    "\u05E5",  # ץ (final tsadi, 46)
-    "\u05E6",  # צ (tsadi, 47)
-    "\u05E7",  # ק (qof, 48)
-    "\u05E8",  # ר (resh, 49)
-    "\u05E9",  # ש (shin, 50)
-    "\u05EA",  # ת (tav, 51)
+    "\u05d0",  # א (aleph, 25)
+    "\u05d1",  # ב (bet, 26)
+    "\u05d2",  # ג (gimel, 27)
+    "\u05d3",  # ד (dalet, 28)
+    "\u05d4",  # ה (he, 29)
+    "\u05d5",  # ו (vav, 30)
+    "\u05d6",  # ז (zayin, 31)
+    "\u05d7",  # ח (het, 32)
+    "\u05d8",  # ט (tet, 33)
+    "\u05d9",  # י (yod, 34)
+    "\u05da",  # ך (final kaf, 35)
+    "\u05db",  # כ (kaf, 36)
+    "\u05dc",  # ל (lamed, 37)
+    "\u05dd",  # ם (final mem, 38)
+    "\u05de",  # מ (mem, 39)
+    "\u05df",  # ן (final nun, 40)
+    "\u05e0",  # נ (nun, 41)
+    "\u05e1",  # ס (samekh, 42)
+    "\u05e2",  # ע (ayin, 43)
+    "\u05e3",  # ף (final pe, 44)
+    "\u05e4",  # פ (pe, 45)
+    "\u05e5",  # ץ (final tsadi, 46)
+    "\u05e6",  # צ (tsadi, 47)
+    "\u05e7",  # ק (qof, 48)
+    "\u05e8",  # ר (resh, 49)
+    "\u05e9",  # ש (shin, 50)
+    "\u05ea",  # ת (tav, 51)
     # Arabic letters
     "\u0627",  # ا (alef, 52)
     "\u0628",  # ب (ba, 53)
-    "\u062A",  # ت (ta, 54)
-    "\u062B",  # ث (tha, 55)
-    "\u062C",  # ج (jeem, 56)
-    "\u062D",  # ح (ha, 57)
-    "\u062E",  # خ (kha, 58)
-    "\u062F",  # د (dal, 59)
+    "\u062a",  # ت (ta, 54)
+    "\u062b",  # ث (tha, 55)
+    "\u062c",  # ج (jeem, 56)
+    "\u062d",  # ح (ha, 57)
+    "\u062e",  # خ (kha, 58)
+    "\u062f",  # د (dal, 59)
     "\u0630",  # ذ (dhal, 60)
     "\u0631",  # ر (ra, 61)
     "\u0632",  # ز (zay, 62)
@@ -319,7 +358,7 @@ units = [
     "\u0637",  # ط (ta, 67)
     "\u0638",  # ظ (dha, 68)
     "\u0639",  # ع (ain, 69)
-    "\u063A",  # غ (ghain, 70)
+    "\u063a",  # غ (ghain, 70)
     "\u0641",  # ف (fa, 71)
     "\u0642",  # ق (qaf, 72)
     "\u0643",  # ك (kaf, 73)
@@ -329,17 +368,17 @@ units = [
     "\u0647",  # ه (ha, 77)
     "\u0648",  # و (waw, 78)
     "\u0649",  # ى (alef maksura, 79)
-    "\u064A",  # ي (ya, 80)
+    "\u064a",  # ي (ya, 80)
     # Runic Alphabet
-    "\u16A0",  # ᚠ (Fehu, wealth, 81)
-    "\u16A2",  # ᚢ (Uruz, strength, 82)
-    "\u16A6",  # ᚦ (Thurisaz, giant, 83)
-    "\u16A8",  # ᚨ (Ansuz, god, 84)
-    "\u16B1",  # ᚱ (Raidho, ride, 85)
-    "\u16B3",  # ᚲ (Kaunan, ulcer, 86)
-    "\u16C7",  # ᛇ (Eihwaz, yew, 87)
-    "\u16C9",  # ᛉ (Algiz, protection, 88)
-    "\u16D2",  # ᛒ (Berkanan, birch, 89)
+    "\u16a0",  # ᚠ (Fehu, wealth, 81)
+    "\u16a2",  # ᚢ (Uruz, strength, 82)
+    "\u16a6",  # ᚦ (Thurisaz, giant, 83)
+    "\u16a8",  # ᚨ (Ansuz, god, 84)
+    "\u16b1",  # ᚱ (Raidho, ride, 85)
+    "\u16b3",  # ᚲ (Kaunan, ulcer, 86)
+    "\u16c7",  # ᛇ (Eihwaz, yew, 87)
+    "\u16c9",  # ᛉ (Algiz, protection, 88)
+    "\u16d2",  # ᛒ (Berkanan, birch, 89)
     # Ogham Alphabet
     "\u1680",  #   (Space, 90)
     "\u1681",  # ᚁ (Beith, birch, 91)
@@ -347,14 +386,14 @@ units = [
     "\u1683",  # ᚃ (Fearn, alder, 93)
     "\u1684",  # ᚄ (Sail, willow, 94)
     "\u1685",  # ᚅ (Nion, ash, 95)
-    "\u169B",  # ᚛ (Forfeda, 96)
+    "\u169b",  # ᚛ (Forfeda, 96)
     # Georgian Alphabet (Mkhedruli)
-    "\u10D0",  # ა (Ani, 97)
-    "\u10D1",  # ბ (Bani, 98)
-    "\u10D2",  # გ (Gani, 99)
-    "\u10D3",  # დ (Doni, 100)
-    "\u10D4",  # ე (Eni, 101)
-    "\u10D5",  # ვ (Vini, 102)
+    "\u10d0",  # ა (Ani, 97)
+    "\u10d1",  # ბ (Bani, 98)
+    "\u10d2",  # გ (Gani, 99)
+    "\u10d3",  # დ (Doni, 100)
+    "\u10d4",  # ე (Eni, 101)
+    "\u10d5",  # ვ (Vini, 102)
     # Armenian Alphabet
     "\u0531",  # Ա (Ayp, 103)
     "\u0532",  # Բ (Ben, 104)
@@ -362,7 +401,7 @@ units = [
     "\u0534",  # Դ (Da, 106)
     "\u0535",  # Ե (Ech, 107)
     "\u0536",  # Զ (Za, 108)
-    "\u055E",  # ՞ (Question mark, 109)
+    "\u055e",  # ՞ (Question mark, 109)
     # Cyrillic Alphabet
     "\u0400",  # Ѐ (Ie with grave, 110)
     "\u0401",  # Ё (Io, 111)
@@ -371,12 +410,12 @@ units = [
     "\u0404",  # Є (Ukrainian Ie, 114)
     "\u0405",  # Ѕ (Dze, 115)
     # Coptic Alphabet
-    "\u2C80",  # Ⲁ (Alfa, 116)
-    "\u2C81",  # ⲁ (Small Alfa, 117)
-    "\u2C82",  # Ⲃ (Vida, 118)
-    "\u2C83",  # ⲃ (Small Vida, 119)
-    "\u2C84",  # Ⲅ (Gamma, 120)
-    "\u2C85",  # ⲅ (Small Gamma, 121)
+    "\u2c80",  # Ⲁ (Alfa, 116)
+    "\u2c81",  # ⲁ (Small Alfa, 117)
+    "\u2c82",  # Ⲃ (Vida, 118)
+    "\u2c83",  # ⲃ (Small Vida, 119)
+    "\u2c84",  # Ⲅ (Gamma, 120)
+    "\u2c85",  # ⲅ (Small Gamma, 121)
     # Brahmi Script
     "\u11000",  # 𑀀 (A, 122)
     "\u11001",  # 𑀁 (Aa, 123)
@@ -384,8 +423,8 @@ units = [
     "\u11003",  # 𑀃 (Ii, 125)
     "\u11005",  # 𑀅 (U, 126)
     # Tifinagh Alphabet
-    "\u2D30",  # ⴰ (Ya, 127)
-    "\u2D31",  # ⴱ (Yab, 128)
+    "\u2d30",  # ⴰ (Ya, 127)
+    "\u2d31",  # ⴱ (Yab, 128)
 ]
 
 from .errors import (
@@ -461,7 +500,7 @@ from .chain_data import (
     NeuronInfoLite,
     PrometheusInfo,
     DelegateInfo,
-    DelegateInfoLight,
+    DelegateInfoLite,
     StakeInfo,
     SubnetInfoV2,
     DynamicInfo,

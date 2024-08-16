@@ -73,18 +73,18 @@ def check_version(timeout: int = 15):
 
     pass
     # TODO: bring this back before merging to main.
-    # try:
-    #     latest_version = get_and_save_latest_version(timeout)
+    try:
+        latest_version = get_and_save_latest_version(timeout)
 
-    #     if Version(latest_version) > Version(bittensor.__version__):
-    #         print(
-    #             "\u001b[33mBittensor Version: Current {}/Latest {}\nPlease update to the latest version at your earliest convenience. "
-    #             "Run the following command to upgrade:\n\n\u001b[0mpython -m pip install --upgrade bittensor".format(
-    #                 bittensor.__version__, latest_version
-    #             )
-    #         )
-    # except Exception as e:
-    #     raise VersionCheckError("Version check failed") from e
+        if Version(latest_version) > Version(bittensor.__version__):
+            print(
+                "\u001b[33mBittensor Version: Current {}/Latest {}\nPlease update to the latest version at your earliest convenience. "
+                "Run the following command to upgrade:\n\n\u001b[0mpython -m pip install --upgrade bittensor".format(
+                    bittensor.__version__, latest_version
+                )
+            )
+    except Exception as e:
+        raise VersionCheckError("Version check failed") from e
 
 
 def version_checking(timeout: int = 15):

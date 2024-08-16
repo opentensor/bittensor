@@ -32,9 +32,11 @@ from enum import Enum
 MAX_SLIPPAGE_PCT = 5.0
 # MAX_SLIPPAGE_PCT = 0.01
 
+
 class Operation(Enum):
     UNSTAKE = 1
     STAKE = 2
+
 
 def show_slippage_warning_if_needed(
     subtensor: "bittensor.subtensor",
@@ -44,7 +46,7 @@ def show_slippage_warning_if_needed(
     prompt: bool = False,
 ):
     r"""
-    Query subtensor for dynamic pool info and display slippage warning if percentage of 
+    Query subtensor for dynamic pool info and display slippage warning if percentage of
     slippage is above threshold defined by MAX_SLIPPAGE_PCT
 
     Args:
@@ -89,7 +91,9 @@ def show_slippage_warning_if_needed(
         )
         if op == Operation.STAKE:
             estimated = (
-                bittensor.Balance.from_tao(received_amount.tao).set_unit(netuid).__str__()
+                bittensor.Balance.from_tao(received_amount.tao)
+                .set_unit(netuid)
+                .__str__()
             )
             expected = (
                 bittensor.Balance.from_tao(slippage.tao + received_amount.tao)
@@ -98,7 +102,9 @@ def show_slippage_warning_if_needed(
             )
         else:
             estimated = bittensor.Balance.from_tao(received_amount.tao).__str__()
-            expected = bittensor.Balance.from_tao(slippage.tao + received_amount.tao).__str__()
+            expected = bittensor.Balance.from_tao(
+                slippage.tao + received_amount.tao
+            ).__str__()
         print_summary_message(
             f"You will only receive [green][bold]{estimated}[/bold][/green] vs. expected [green][bold]{expected}[/bold][/green]"
         )

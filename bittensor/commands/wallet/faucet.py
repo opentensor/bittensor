@@ -23,6 +23,7 @@ from ..utils import check_for_cuda_reg_config
 
 from .. import defaults
 
+
 class RunFaucetCommand:
     """
     Executes the ``faucet`` command to obtain test TAO tokens by performing Proof of Work (PoW).
@@ -183,4 +184,3 @@ class RunFaucetCommand:
             config.wallet.name = str(wallet_name)
         if not config.no_prompt:
             check_for_cuda_reg_config(config)
-

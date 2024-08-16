@@ -1,41 +1,67 @@
 # The MIT License (MIT)
 # Copyright © 2023 Opentensor Foundation
-
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
 # the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
+#
 # The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
-
+#
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
 # THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
-import bittensor
+
+"""
+This module provides data structures and functions for working with the Bittensor network,
+including neuron and subnet information, SCALE encoding/decoding, and custom RPC type registry.
+"""
+
 import json
 import typing
-from enum import Enum
 from dataclasses import dataclass, asdict
-from scalecodec.types import GenericCall
+from enum import Enum
 from typing import List, Tuple, Dict, Optional, Any, TypedDict, Union
+
 from scalecodec.base import RuntimeConfiguration, ScaleBytes
 from scalecodec.type_registry import load_type_registry_preset
+from scalecodec.types import GenericCall
 from scalecodec.utils.ss58 import ss58_encode
 
-from .utils import networking as net, U16_MAX, U16_NORMALIZED_FLOAT
+import bittensor
+from .utils import networking as net, RAOPERTAO, U16_NORMALIZED_FLOAT
 from .utils.balance import Balance
 from .utils.registration import torch, use_torch
 
-# Constants
-RAOPERTAO = 1e9
-U16_MAX = 65535
-U64_MAX = 18446744073709551615
 
 custom_rpc_type_registry = {
     "types": {
+        "SubnetInfo": {
+            "type": "struct",
+            "type_mapping": [
+                ["netuid", "Compact<u16>"],
+                ["rho", "Compact<u16>"],
+                ["kappa", "Compact<u16>"],
+                ["difficulty", "Compact<u64>"],
+                ["immunity_period", "Compact<u16>"],
+                ["max_allowed_validators", "Compact<u16>"],
+                ["min_allowed_weights", "Compact<u16>"],
+                ["max_weights_limit", "Compact<u16>"],
+                ["scaling_law_power", "Compact<u16>"],
+                ["subnetwork_n", "Compact<u16>"],
+                ["max_allowed_uids", "Compact<u16>"],
+                ["blocks_since_last_step", "Compact<u64>"],
+                ["tempo", "Compact<u16>"],
+                ["network_modality", "Compact<u16>"],
+                ["network_connect", "Vec<[u16; 2]>"],
+                ["emission_values", "Compact<u64>"],
+                ["burn", "Compact<u64>"],
+                ["owner", "AccountId"],
+            ],
+        },
         "DynamicPoolInfoV2": {
             "type": "struct",
             "type_mapping": [
@@ -45,7 +71,7 @@ custom_rpc_type_registry = {
                 ["alpha_reserve", "u64"],
                 ["tao_reserve", "u64"],
                 ["k", "u128"],
-            ]
+            ],
         },
         "SubnetInfoV2": {
             "type": "struct",
@@ -228,6 +254,17 @@ custom_rpc_type_registry = {
                 ["difficulty", "Compact<u64>"],
                 ["commit_reveal_weights_interval", "Compact<u64>"],
                 ["commit_reveal_weights_enabled", "bool"],
+                ["alpha_high", "Compact<u16>"],
+                ["alpha_low", "Compact<u16>"],
+                ["liquid_alpha_enabled", "bool"],
+            ],
+        },
+        "ScheduledColdkeySwapInfo": {
+            "type": "struct",
+            "type_mapping": [
+                ["old_coldkey", "AccountId"],
+                ["new_coldkey", "AccountId"],
+                ["arbitration_block", "Compact<u64>"],
             ],
         },
     }
@@ -247,6 +284,8 @@ class ChainDataType(Enum):
     DynamicPoolInfoV2 = 10
     DelegateInfoLight = 11
     DynamicInfo = 12
+    ScheduledColdkeySwapInfo = 13
+    SubnetInfo = 14
 
 
 def from_scale_encoding(
@@ -290,7 +329,6 @@ def from_scale_encoding_using_type_string(
 
 @dataclass
 class DynamicInfo:
-    
     owner: str
     netuid: int
     tempo: int
@@ -309,15 +347,20 @@ class DynamicInfo:
 
     @classmethod
     def from_vec_u8(cls, vec_u8: List[int]) -> Optional["DynamicInfo"]:
-        if len(vec_u8) == 0: return None
-        decoded = from_scale_encoding(vec_u8, ChainDataType.DynamicInfo, is_option=True )
-        if decoded is None: return None
+        if len(vec_u8) == 0:
+            return None
+        decoded = from_scale_encoding(vec_u8, ChainDataType.DynamicInfo, is_option=True)
+        if decoded is None:
+            return None
         return DynamicInfo.fix_decoded_values(decoded)
 
     @classmethod
     def list_from_vec_u8(cls, vec_u8: List[int]) -> List["DynamicInfo"]:
-        decoded = from_scale_encoding( vec_u8, ChainDataType.DynamicInfo, is_vec=True, is_option=True )
-        if decoded is None: return []
+        decoded = from_scale_encoding(
+            vec_u8, ChainDataType.DynamicInfo, is_vec=True, is_option=True
+        )
+        if decoded is None:
+            return []
         decoded = [DynamicInfo.fix_decoded_values(d) for d in decoded]
         return decoded
 
@@ -329,28 +372,36 @@ class DynamicInfo:
         alpha_out = bittensor.Balance.from_rao(decoded["alpha_out"]).set_unit(netuid)
         alpha_in = bittensor.Balance.from_rao(decoded["alpha_in"]).set_unit(netuid)
         tao_in = bittensor.Balance.from_rao(decoded["tao_in"]).set_unit(0)
-        total_locked = bittensor.Balance.from_rao(decoded["total_locked"]).set_unit(netuid)
-        owner_locked = bittensor.Balance.from_rao(decoded["owner_locked"]).set_unit(netuid)
-        price = bittensor.Balance.from_tao(tao_in.tao/alpha_in.tao) if alpha_in.tao > 0 else bittensor.Balance.from_tao(1)
+        total_locked = bittensor.Balance.from_rao(decoded["total_locked"]).set_unit(
+            netuid
+        )
+        owner_locked = bittensor.Balance.from_rao(decoded["owner_locked"]).set_unit(
+            netuid
+        )
+        price = (
+            bittensor.Balance.from_tao(tao_in.tao / alpha_in.tao)
+            if alpha_in.tao > 0
+            else bittensor.Balance.from_tao(1)
+        )
         is_dynamic = True if decoded["alpha_in"] > 0 else False
         return DynamicInfo(
-            owner = ss58_encode(decoded["owner"], bittensor.__ss58_format__),
-            netuid = netuid,
-            tempo = decoded["tempo"],
-            last_step = decoded["last_step"],
-            blocks_since_last_step = decoded["blocks_since_last_step"],
-            emission = emission,
-            alpha_out = alpha_out,
-            alpha_in = alpha_in,
-            tao_in = tao_in,
-            total_locked = total_locked,
-            owner_locked = owner_locked,
-            price = price,
-            k = tao_in.rao * alpha_in.rao,
-            is_dynamic = is_dynamic,
-            symbol = symbol,
+            owner=ss58_encode(decoded["owner"], bittensor.__ss58_format__),
+            netuid=netuid,
+            tempo=decoded["tempo"],
+            last_step=decoded["last_step"],
+            blocks_since_last_step=decoded["blocks_since_last_step"],
+            emission=emission,
+            alpha_out=alpha_out,
+            alpha_in=alpha_in,
+            tao_in=tao_in,
+            total_locked=total_locked,
+            owner_locked=owner_locked,
+            price=price,
+            k=tao_in.rao * alpha_in.rao,
+            is_dynamic=is_dynamic,
+            symbol=symbol,
         )
-        
+
     def tao_to_alpha(self, tao: Balance) -> Balance:
         if self.price.tao != 0:
             return Balance.from_tao(tao.tao / self.price.tao).set_unit(self.netuid)
@@ -360,9 +411,7 @@ class DynamicInfo:
     def alpha_to_tao(self, alpha: Balance) -> Balance:
         return Balance.from_tao(alpha.tao * self.price.tao)
 
-    def tao_to_alpha_with_slippage(
-        self, tao: Balance
-    ) -> Tuple[Balance, Balance]:
+    def tao_to_alpha_with_slippage(self, tao: Balance) -> Tuple[Balance, Balance]:
         """
         Returns an estimate of how much Alpha would a staker receive if they stake their tao
         using the current pool state
@@ -380,7 +429,7 @@ class DynamicInfo:
             if new_tao_in == 0:
                 return tao, Balance.from_rao(0)
             new_alpha_in = self.k / new_tao_in
-    
+
             # Amount of alpha given to the staker
             alpha_returned = Balance.from_rao(
                 self.alpha_in.rao - new_alpha_in.rao
@@ -390,9 +439,9 @@ class DynamicInfo:
             alpha_ideal = self.tao_to_alpha(tao)
 
             if alpha_ideal.tao > alpha_returned.tao:
-                slippage = Balance.from_tao(alpha_ideal.tao - alpha_returned.tao).set_unit(
-                    self.netuid
-                )
+                slippage = Balance.from_tao(
+                    alpha_ideal.tao - alpha_returned.tao
+                ).set_unit(self.netuid)
             else:
                 slippage = Balance.from_tao(0)
         else:
@@ -400,9 +449,7 @@ class DynamicInfo:
             slippage = Balance.from_tao(0)
         return alpha_returned, slippage
 
-    def alpha_to_tao_with_slippage(
-        self, alpha: Balance
-    ) -> Tuple[Balance, Balance]:
+    def alpha_to_tao_with_slippage(self, alpha: Balance) -> Tuple[Balance, Balance]:
         """
         Returns an estimate of how much TAO would a staker receive if they unstake their
         alpha using the current pool state
@@ -457,18 +504,36 @@ class DynamicPool:
     ):
         self.is_dynamic = is_dynamic
         self.netuid = netuid
-        self.alpha_issuance = alpha_issuance if isinstance(alpha_issuance, Balance) else Balance.from_rao(alpha_issuance).set_unit(netuid)
-        self.alpha_outstanding = alpha_outstanding if isinstance(alpha_outstanding, Balance) else Balance.from_rao(alpha_outstanding).set_unit(netuid)
-        self.alpha_reserve = alpha_reserve if isinstance(alpha_reserve, Balance) else Balance.from_rao(alpha_reserve).set_unit(netuid)
-        self.tao_reserve = tao_reserve if isinstance(tao_reserve, Balance) else Balance.from_rao(tao_reserve).set_unit(0)
+        self.alpha_issuance = (
+            alpha_issuance
+            if isinstance(alpha_issuance, Balance)
+            else Balance.from_rao(alpha_issuance).set_unit(netuid)
+        )
+        self.alpha_outstanding = (
+            alpha_outstanding
+            if isinstance(alpha_outstanding, Balance)
+            else Balance.from_rao(alpha_outstanding).set_unit(netuid)
+        )
+        self.alpha_reserve = (
+            alpha_reserve
+            if isinstance(alpha_reserve, Balance)
+            else Balance.from_rao(alpha_reserve).set_unit(netuid)
+        )
+        self.tao_reserve = (
+            tao_reserve
+            if isinstance(tao_reserve, Balance)
+            else Balance.from_rao(tao_reserve).set_unit(0)
+        )
         self.k = k
         if is_dynamic:
             if self.alpha_reserve.tao > 0:
-                self.price = Balance.from_tao(self.tao_reserve.tao / self.alpha_reserve.tao)
+                self.price = Balance.from_tao(
+                    self.tao_reserve.tao / self.alpha_reserve.tao
+                )
             else:
-                self.price = Balance.from_tao(0.)
+                self.price = Balance.from_tao(0.0)
         else:
-            self.price = Balance.from_tao(1.)
+            self.price = Balance.from_tao(1.0)
 
     def __str__(self) -> str:
         return f"DynamicPool( alpha_issuance={self.alpha_issuance}, alpha_outstanding={self.alpha_outstanding}, alpha_reserve={self.alpha_reserve}, tao_reserve={self.tao_reserve}, k={self.k}, price={self.price} )"
@@ -485,9 +550,7 @@ class DynamicPool:
     def alpha_to_tao(self, alpha: Balance) -> Balance:
         return Balance.from_tao(alpha.tao * self.price.tao)
 
-    def tao_to_alpha_with_slippage(
-        self, tao: Balance
-    ) -> Tuple[Balance, Balance]:
+    def tao_to_alpha_with_slippage(self, tao: Balance) -> Tuple[Balance, Balance]:
         """
         Returns an estimate of how much Alpha would a staker receive if they stake their tao
         using the current pool state
@@ -515,9 +578,9 @@ class DynamicPool:
             alpha_ideal = self.tao_to_alpha(tao)
 
             if alpha_ideal.tao > alpha_returned.tao:
-                slippage = Balance.from_tao(alpha_ideal.tao - alpha_returned.tao).set_unit(
-                    self.netuid
-                )
+                slippage = Balance.from_tao(
+                    alpha_ideal.tao - alpha_returned.tao
+                ).set_unit(self.netuid)
             else:
                 slippage = Balance.from_tao(0)
         else:
@@ -525,9 +588,7 @@ class DynamicPool:
             slippage = Balance.from_tao(0)
         return alpha_returned, slippage
 
-    def alpha_to_tao_with_slippage(
-        self, alpha: Balance
-    ) -> Tuple[Balance, Balance]:
+    def alpha_to_tao_with_slippage(self, alpha: Balance) -> Tuple[Balance, Balance]:
         """
         Returns an estimate of how much TAO would a staker receive if they unstake their
         alpha using the current pool state
@@ -557,6 +618,7 @@ class DynamicPool:
             tao_returned = alpha.set_unit(0)
             slippage = Balance.from_tao(0)
         return tao_returned, slippage
+
 
 class SubstakeElements:
     @staticmethod
@@ -592,18 +654,16 @@ class AxonInfo:
     @property
     def is_serving(self) -> bool:
         """True if the endpoint is serving."""
-        if self.ip == "0.0.0.0":
-            return False
-        else:
-            return True
+        return self.ip != "0.0.0.0"
 
     def ip_str(self) -> str:
         """Return the whole IP as string"""
         return net.ip__str__(self.ip_type, self.ip, self.port)
 
     def __eq__(self, other: "AxonInfo"):
-        if other == None:
+        if other is None:
             return False
+
         if (
             self.version == other.version
             and self.ip == other.ip
@@ -613,8 +673,8 @@ class AxonInfo:
             and self.hotkey == other.hotkey
         ):
             return True
-        else:
-            return False
+
+        return False
 
     def __str__(self):
         return "AxonInfo( {}, {}, {}, {} )".format(
@@ -633,10 +693,23 @@ class AxonInfo:
             return AxonInfo(0, "", 0, 0, "", "").to_string()
 
     @classmethod
-    def from_string(cls, s: str) -> "AxonInfo":
-        """Creates an AxonInfo object from its string representation using JSON."""
+    def from_string(cls, json_string: str) -> "AxonInfo":
+        """
+        Creates an AxonInfo object from its string representation using JSON.
+
+        Args:
+            json_string (str): The JSON string representation of the AxonInfo object.
+
+        Returns:
+            AxonInfo: An instance of AxonInfo created from the JSON string. If decoding fails, returns a default AxonInfo object with default values.
+
+        Raises:
+            json.JSONDecodeError: If there is an error in decoding the JSON string.
+            TypeError: If there is a type error when creating the AxonInfo object.
+            ValueError: If there is a value error when creating the AxonInfo object.
+        """
         try:
-            data = json.loads(s)
+            data = json.loads(json_string)
             return cls(**data)
         except json.JSONDecodeError as e:
             bittensor.logging.error(f"Error decoding JSON: {e}")
@@ -648,7 +721,15 @@ class AxonInfo:
 
     @classmethod
     def from_neuron_info(cls, neuron_info: dict) -> "AxonInfo":
-        """Converts a dictionary to an axon_info object."""
+        """
+        Converts a dictionary to an AxonInfo object.
+
+        Args:
+            neuron_info (dict): A dictionary containing the neuron information.
+
+        Returns:
+            instance (AxonInfo): An instance of AxonInfo created from the dictionary.
+        """
         return cls(
             version=neuron_info["axon_info"]["version"],
             ip=net.int_to_ip(int(neuron_info["axon_info"]["ip"])),
@@ -669,22 +750,11 @@ class AxonInfo:
     def to_parameter_dict(
         self,
     ) -> Union[dict[str, Union[int, str]], "torch.nn.ParameterDict"]:
-        """Returns a torch tensor or dict of the subnet info, depending on the USE_TORCH flag set"""
+        """Returns a torch tensor or dict of the subnet info, depending on the USE_TORCH flag set."""
         if use_torch():
-            return self._to_parameter_dict("torch")
+            return torch.nn.ParameterDict(self.__dict__)
         else:
-            return self._to_parameter_dict("numpy")
-
-    @classmethod
-    def _from_parameter_dict(
-        cls,
-        parameter_dict: Union[dict[str, Any], "torch.nn.ParameterDict"],
-        return_type: str,
-    ) -> "AxonInfo":
-        if return_type == "torch":
-            return cls(**dict(parameter_dict))
-        else:
-            return cls(**parameter_dict)
+            return self.__dict__
 
     @classmethod
     def from_parameter_dict(
@@ -692,16 +762,14 @@ class AxonInfo:
     ) -> "AxonInfo":
         """Returns an axon_info object from a torch parameter_dict or a parameter dict."""
         if use_torch():
-            return cls._from_parameter_dict(parameter_dict, "torch")
+            return cls(**dict(parameter_dict))
         else:
-            return cls._from_parameter_dict(parameter_dict, "numpy")
+            return cls(**parameter_dict)
 
 
 @dataclass
 class NeuronInfo:
-    r"""
-    Dataclass for neuron metadata.
-    """
+    """Dataclass for neuron metadata."""
 
     hotkey: str
     coldkey: str
@@ -730,7 +798,7 @@ class NeuronInfo:
 
     @classmethod
     def fix_decoded_values(cls, neuron_info_decoded: Any) -> "NeuronInfo":
-        r"""Fixes the values of the NeuronInfo object."""
+        """Fixes the values of the NeuronInfo object."""
         neuron_info_decoded["hotkey"] = ss58_encode(
             neuron_info_decoded["hotkey"], bittensor.__ss58_format__
         )
@@ -776,26 +844,23 @@ class NeuronInfo:
         neuron_info_decoded["axon_info"] = AxonInfo.from_neuron_info(
             neuron_info_decoded
         )
-
         return cls(**neuron_info_decoded)
 
     @classmethod
     def from_vec_u8(cls, vec_u8: List[int]) -> "NeuronInfo":
-        r"""Returns a NeuronInfo object from a ``vec_u8``."""
+        """Returns a NeuronInfo object from a ``vec_u8``."""
         if len(vec_u8) == 0:
-            return NeuronInfo._null_neuron()
+            return NeuronInfo.get_null_neuron()
 
         decoded = from_scale_encoding(vec_u8, ChainDataType.NeuronInfo)
         if decoded is None:
-            return NeuronInfo._null_neuron()
+            return NeuronInfo.get_null_neuron()
 
-        decoded = NeuronInfo.fix_decoded_values(decoded)
-
-        return decoded
+        return NeuronInfo.fix_decoded_values(decoded)
 
     @classmethod
     def list_from_vec_u8(cls, vec_u8: List[int]) -> List["NeuronInfo"]:
-        r"""Returns a list of NeuronInfo objects from a ``vec_u8``."""
+        """Returns a list of NeuronInfo objects from a ``vec_u8``"""
 
         decoded_list = from_scale_encoding(
             vec_u8, ChainDataType.NeuronInfo, is_vec=True
@@ -809,7 +874,7 @@ class NeuronInfo:
         return decoded_list
 
     @staticmethod
-    def _null_neuron() -> "NeuronInfo":
+    def get_null_neuron() -> "NeuronInfo":
         neuron = NeuronInfo(
             uid=0,
             netuid=0,
@@ -850,43 +915,20 @@ class NeuronInfo:
 
         return cls(**n_dict)
 
-    @staticmethod
-    def _neuron_dict_to_namespace(neuron_dict) -> "NeuronInfo":
-        # TODO: Legacy: remove?
-        if neuron_dict["hotkey"] == "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM":
-            return NeuronInfo._null_neuron()
-        else:
-            neuron = NeuronInfo(**neuron_dict)
-            neuron.stake_dict = {
-                hk: Balance.from_rao(stake) for hk, stake in neuron.stake.items()
-            }
-            neuron.stake = Balance.from_rao(neuron.total_stake)
-            neuron.total_stake = neuron.stake
-            neuron.rank = neuron.rank / U16_MAX
-            neuron.trust = neuron.trust / U16_MAX
-            neuron.consensus = neuron.consensus / U16_MAX
-            neuron.validator_trust = neuron.validator_trust / U16_MAX
-            neuron.incentive = neuron.incentive / U16_MAX
-            neuron.dividends = neuron.dividends / U16_MAX
-            neuron.emission = neuron.emission / RAOPERTAO
-
-            return neuron
-
 
 @dataclass
 class NeuronInfoLite:
-    r"""
-    Dataclass for neuron metadata, but without the weights and bonds.
-
-    stake and total_stake are in fact stake weights
-    """
+    """Dataclass for neuron metadata, but without the weights and bonds."""
 
     hotkey: str
     coldkey: str
     uid: int
     netuid: int
     active: int
-    stake: float
+    stake: Balance
+    # mapping of coldkey to amount staked to this Neuron
+    stake_dict: Dict[str, Balance]
+    total_stake: Balance
     rank: float
     emission: float
     incentive: float
@@ -896,27 +938,29 @@ class NeuronInfoLite:
     dividends: float
     last_update: int
     validator_permit: bool
-    # weights: List[List[int]]
-    # bonds: List[List[int]] No weights or bonds in lite version
-    prometheus_info: "PrometheusInfo"
+    prometheus_info: Optional["PrometheusInfo"]
     axon_info: "axon_info"
     pruning_score: int
     is_null: bool = False
 
     @classmethod
     def fix_decoded_values(cls, neuron_info_decoded: Any) -> "NeuronInfoLite":
-        r"""Fixes the values of the NeuronInfoLite object."""
+        """Fixes the values of the NeuronInfoLite object."""
         neuron_info_decoded["hotkey"] = ss58_encode(
             neuron_info_decoded["hotkey"], bittensor.__ss58_format__
         )
         neuron_info_decoded["coldkey"] = ss58_encode(
             neuron_info_decoded["coldkey"], bittensor.__ss58_format__
         )
-        (_, stake) = neuron_info_decoded["stake"][0]
-        neuron_info_decoded["stake"] = float(stake) / 65535.
-        # Don't need weights and bonds in lite version
-        # neuron_info_decoded['weights'] = [[int(weight[0]), int(weight[1])] for weight in neuron_info_decoded['weights']]
-        # neuron_info_decoded['bonds'] = [[int(bond[0]), int(bond[1])] for bond in neuron_info_decoded['bonds']]
+        stake_dict = {
+            ss58_encode(coldkey, bittensor.__ss58_format__): Balance.from_rao(
+                int(stake)
+            )
+            for coldkey, stake in neuron_info_decoded["stake"]
+        }
+        neuron_info_decoded["stake_dict"] = stake_dict
+        neuron_info_decoded["stake"] = sum(stake_dict.values())
+        neuron_info_decoded["total_stake"] = neuron_info_decoded["stake"]
         neuron_info_decoded["rank"] = U16_NORMALIZED_FLOAT(neuron_info_decoded["rank"])
         neuron_info_decoded["emission"] = neuron_info_decoded["emission"] / RAOPERTAO
         neuron_info_decoded["incentive"] = U16_NORMALIZED_FLOAT(
@@ -944,21 +988,19 @@ class NeuronInfoLite:
 
     @classmethod
     def from_vec_u8(cls, vec_u8: List[int]) -> "NeuronInfoLite":
-        r"""Returns a NeuronInfoLite object from a ``vec_u8``."""
+        """Returns a NeuronInfoLite object from a ``vec_u8``."""
         if len(vec_u8) == 0:
-            return NeuronInfoLite._null_neuron()
+            return NeuronInfoLite.get_null_neuron()
 
         decoded = from_scale_encoding(vec_u8, ChainDataType.NeuronInfoLite)
         if decoded is None:
-            return NeuronInfoLite._null_neuron()
+            return NeuronInfoLite.get_null_neuron()
 
-        decoded = NeuronInfoLite.fix_decoded_values(decoded)
-
-        return decoded
+        return NeuronInfoLite.fix_decoded_values(decoded)
 
     @classmethod
     def list_from_vec_u8(cls, vec_u8: List[int]) -> List["NeuronInfoLite"]:
-        r"""Returns a list of NeuronInfoLite objects from a ``vec_u8``."""
+        """Returns a list of NeuronInfoLite objects from a ``vec_u8``."""
 
         decoded_list = from_scale_encoding(
             vec_u8, ChainDataType.NeuronInfoLite, is_vec=True
@@ -972,7 +1014,7 @@ class NeuronInfoLite:
         return decoded_list
 
     @staticmethod
-    def _null_neuron() -> "NeuronInfoLite":
+    def get_null_neuron() -> "NeuronInfoLite":
         neuron = NeuronInfoLite(
             uid=0,
             netuid=0,
@@ -989,8 +1031,6 @@ class NeuronInfoLite:
             dividends=0,
             last_update=0,
             validator_permit=False,
-            # weights = [], // No weights or bonds in lite version
-            # bonds = [],
             prometheus_info=None,
             axon_info=None,
             is_null=True,
@@ -1000,34 +1040,10 @@ class NeuronInfoLite:
         )
         return neuron
 
-    @staticmethod
-    def _neuron_dict_to_namespace(neuron_dict) -> "NeuronInfoLite":
-        # TODO: Legacy: remove?
-        if neuron_dict["hotkey"] == "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM":
-            return NeuronInfoLite._null_neuron()
-        else:
-            neuron = NeuronInfoLite(**neuron_dict)
-            neuron.stake = Balance.from_rao(neuron.total_stake)
-            neuron.stake_dict = {
-                hk: Balance.from_rao(stake) for hk, stake in neuron.stake.items()
-            }
-            neuron.total_stake = neuron.stake
-            neuron.rank = neuron.rank / U16_MAX
-            neuron.trust = neuron.trust / U16_MAX
-            neuron.consensus = neuron.consensus / U16_MAX
-            neuron.validator_trust = neuron.validator_trust / U16_MAX
-            neuron.incentive = neuron.incentive / U16_MAX
-            neuron.dividends = neuron.dividends / U16_MAX
-            neuron.emission = neuron.emission / RAOPERTAO
-
-            return neuron
-
 
 @dataclass
 class PrometheusInfo:
-    r"""
-    Dataclass for prometheus info.
-    """
+    """Dataclass for prometheus info."""
 
     block: int
     version: int
@@ -1037,7 +1053,7 @@ class PrometheusInfo:
 
     @classmethod
     def fix_decoded_values(cls, prometheus_info_decoded: Dict) -> "PrometheusInfo":
-        r"""Returns a PrometheusInfo object from a prometheus_info_decoded dictionary."""
+        """Returns a PrometheusInfo object from a prometheus_info_decoded dictionary."""
         prometheus_info_decoded["ip"] = net.int_to_ip(
             int(prometheus_info_decoded["ip"])
         )
@@ -1046,9 +1062,80 @@ class PrometheusInfo:
 
 
 @dataclass
+class DelegateInfoLite:
+    """
+    Dataclass for light delegate information.
+
+    Args:
+        hotkey_ss58 (str): Hotkey of the delegate for which the information is being fetched.
+        owner_ss58 (str): Coldkey of the owner.
+        total_stake (int): Total stake of the delegate.
+        owner_stake (int): Own stake of the delegate.
+        take (float): Take of the delegate as a percentage. None if custom
+    """
+
+    hotkey_ss58: str  # Hotkey of delegate
+    owner_ss58: str  # Coldkey of owner
+    take: float
+    total_stake: Balance  # Total stake of the delegate
+    previous_total_stake: Balance  # Total stake of the delegate
+    owner_stake: Balance  # Own stake of the delegate
+
+    @classmethod
+    def fix_decoded_values(cls, decoded: Any) -> "DelegateInfoLite":
+        """Fixes the decoded values."""
+
+        decoded_take = decoded["take"]
+        if decoded_take == 65535:
+            fixed_take = None
+        else:
+            fixed_take = U16_NORMALIZED_FLOAT(decoded_take)
+
+        return cls(
+            hotkey_ss58=ss58_encode(
+                decoded["delegate_ss58"], bittensor.__ss58_format__
+            ),
+            owner_ss58=ss58_encode(decoded["owner_ss58"], bittensor.__ss58_format__),
+            take=fixed_take,
+            total_stake=Balance.from_rao(decoded["total_stake"]),
+            owner_stake=Balance.from_rao(decoded["owner_stake"]),
+            previous_total_stake=None,
+        )
+
+    @classmethod
+    def from_vec_u8(cls, vec_u8: List[int]) -> Optional["DelegateInfoLite"]:
+        r"""Returns a DelegateInfoLight object from a ``vec_u8``."""
+        if len(vec_u8) == 0:
+            return None
+
+        decoded = from_scale_encoding(vec_u8, ChainDataType.DelegateInfoLight)
+
+        if decoded is None:
+            return None
+
+        decoded = DelegateInfoLite.fix_decoded_values(decoded)
+
+        return decoded
+
+    @classmethod
+    def list_from_vec_u8(cls, vec_u8: List[int]) -> List["DelegateInfoLite"]:
+        r"""Returns a list of DelegateInfoLight objects from a ``vec_u8``."""
+        decoded = from_scale_encoding(
+            vec_u8, ChainDataType.DelegateInfoLight, is_vec=True
+        )
+
+        if decoded is None:
+            return []
+
+        decoded = [DelegateInfoLite.fix_decoded_values(d) for d in decoded]
+
+        return decoded
+
+
+@dataclass
 class DelegateInfo:
-    r"""
-    Dataclass for delegate information.
+    """
+    Dataclass for delegate information. For a lighter version of this class, see :func:`DelegateInfoLite`.
 
     Args:
         hotkey_ss58 (str): Hotkey of the delegate for which the information is being fetched.
@@ -1079,19 +1166,14 @@ class DelegateInfo:
 
     @classmethod
     def fix_decoded_values(cls, decoded: Any) -> "DelegateInfo":
-        r"""Fixes the decoded values."""
-
-        decoded_takes = decoded["take"]
-        fixed_take_list = []
-        for take_tuple in decoded_takes:
-            fixed_take_list.append((take_tuple[0], U16_NORMALIZED_FLOAT(take_tuple[1])))
+        """Fixes the decoded values."""
 
         return cls(
             hotkey_ss58=ss58_encode(
                 decoded["delegate_ss58"], bittensor.__ss58_format__
             ),
             owner_ss58=ss58_encode(decoded["owner_ss58"], bittensor.__ss58_format__),
-            take=fixed_take_list,
+            take=U16_NORMALIZED_FLOAT(decoded["take"]),
             nominators=[
                 (
                     ss58_encode(nom[0], bittensor.__ss58_format__),
@@ -1110,128 +1192,47 @@ class DelegateInfo:
 
     @classmethod
     def from_vec_u8(cls, vec_u8: List[int]) -> Optional["DelegateInfo"]:
-        r"""Returns a DelegateInfo object from a ``vec_u8``."""
+        """Returns a DelegateInfo object from a ``vec_u8``."""
         if len(vec_u8) == 0:
             return None
 
         decoded = from_scale_encoding(vec_u8, ChainDataType.DelegateInfo)
-
         if decoded is None:
             return None
 
-        decoded = DelegateInfo.fix_decoded_values(decoded)
-
-        return decoded
+        return DelegateInfo.fix_decoded_values(decoded)
 
     @classmethod
     def list_from_vec_u8(cls, vec_u8: List[int]) -> List["DelegateInfo"]:
-        r"""Returns a list of DelegateInfo objects from a ``vec_u8``."""
+        """Returns a list of DelegateInfo objects from a ``vec_u8``."""
         decoded = from_scale_encoding(vec_u8, ChainDataType.DelegateInfo, is_vec=True)
 
         if decoded is None:
             return []
 
-        decoded = [DelegateInfo.fix_decoded_values(d) for d in decoded]
-
-        return decoded
+        return [DelegateInfo.fix_decoded_values(d) for d in decoded]
 
     @classmethod
     def delegated_list_from_vec_u8(
         cls, vec_u8: List[int]
     ) -> List[Tuple["DelegateInfo", Balance]]:
-        r"""Returns a list of Tuples of DelegateInfo objects, and Balance, from a ``vec_u8``.
+        """Returns a list of Tuples of DelegateInfo objects, and Balance, from a ``vec_u8``.
 
         This is the list of delegates that the user has delegated to, and the amount of stake delegated.
         """
         decoded = from_scale_encoding(vec_u8, ChainDataType.DelegatedInfo, is_vec=True)
-
         if decoded is None:
             return []
 
-        decoded = [
+        return [
             (DelegateInfo.fix_decoded_values(d), Balance.from_rao(s))
             for d, s in decoded
         ]
 
-        return decoded
-
-@dataclass
-class DelegateInfoLight:
-    r"""
-    Dataclass for light delegate information.
-
-    Args:
-        hotkey_ss58 (str): Hotkey of the delegate for which the information is being fetched.
-        owner_ss58 (str): Coldkey of the owner.
-        total_stake (int): Total stake of the delegate.
-        owner_stake (int): Own stake of the delegate.
-        take (float): Take of the delegate as a percentage. None if custom
-        validator_permits (list[int]): List of subnets that the delegate is allowed to validate on.
-        return_per_1000 (int): Return per 1000 TAO, for the delegate over a day.
-        total_daily_return (int): Total daily return of the delegate.
-
-    """
-
-    hotkey_ss58: str  # Hotkey of delegate
-    owner_ss58: str  # Coldkey of owner
-    take: float
-    total_stake: Balance  # Total stake of the delegate
-    previous_total_stake: Balance  # Total stake of the delegate
-    owner_stake: Balance  # Own stake of the delegate
-
-    @classmethod
-    def fix_decoded_values(cls, decoded: Any) -> "DelegateInfoLight":
-        r"""Fixes the decoded values."""
-
-        decoded_take = decoded["take"]
-        if decoded_take == 65535:
-            fixed_take = None
-        else:
-            fixed_take = U16_NORMALIZED_FLOAT(decoded_take)
-
-        return cls(
-            hotkey_ss58=ss58_encode(
-                decoded["delegate_ss58"], bittensor.__ss58_format__
-            ),
-            owner_ss58=ss58_encode(decoded["owner_ss58"], bittensor.__ss58_format__),
-            take=fixed_take,
-            total_stake=Balance.from_rao(decoded["total_stake"]),
-            owner_stake=Balance.from_rao(decoded["owner_stake"]),
-            previous_total_stake=None,
-        )
-
-    @classmethod
-    def from_vec_u8(cls, vec_u8: List[int]) -> Optional["DelegateInfoLight"]:
-        r"""Returns a DelegateInfoLight object from a ``vec_u8``."""
-        if len(vec_u8) == 0:
-            return None
-
-        decoded = from_scale_encoding(vec_u8, ChainDataType.DelegateInfoLight)
-
-        if decoded is None:
-            return None
-
-        decoded = DelegateInfoLight.fix_decoded_values(decoded)
-
-        return decoded
-
-    @classmethod
-    def list_from_vec_u8(cls, vec_u8: List[int]) -> List["DelegateInfoLight"]:
-        r"""Returns a list of DelegateInfoLight objects from a ``vec_u8``."""
-        decoded = from_scale_encoding(vec_u8, ChainDataType.DelegateInfoLight, is_vec=True)
-
-        if decoded is None:
-            return []
-
-        decoded = [DelegateInfoLight.fix_decoded_values(d) for d in decoded]
-
-        return decoded
 
 @dataclass
 class StakeInfo:
-    r"""
-    Dataclass for stake info.
-    """
+    """Dataclass for stake info."""
 
     hotkey_ss58: str  # Hotkey address
     coldkey_ss58: str  # Coldkey address
@@ -1241,8 +1242,7 @@ class StakeInfo:
 
     @classmethod
     def fix_decoded_values(cls, decoded: Any) -> "StakeInfo":
-        r"""Fixes the decoded values."""
-
+        """Fixes the decoded values."""
         return cls(
             hotkey_ss58=ss58_encode(decoded["hotkey"], bittensor.__ss58_format__),
             coldkey_ss58=ss58_encode(decoded["coldkey"], bittensor.__ss58_format__),
@@ -1253,59 +1253,144 @@ class StakeInfo:
 
     @classmethod
     def from_vec_u8(cls, vec_u8: List[int]) -> Optional["StakeInfo"]:
-        r"""Returns a StakeInfo object from a ``vec_u8``."""
+        """Returns a StakeInfo object from a ``vec_u8``."""
         if len(vec_u8) == 0:
             return None
 
         decoded = from_scale_encoding(vec_u8, ChainDataType.StakeInfo)
-
         if decoded is None:
             return None
 
-        decoded = StakeInfo.fix_decoded_values(decoded)
-
-        return decoded
+        return StakeInfo.fix_decoded_values(decoded)
 
     @classmethod
     def list_of_tuple_from_vec_u8(
         cls, vec_u8: List[int]
     ) -> Dict[str, List["StakeInfo"]]:
-        r"""Returns a list of StakeInfo objects from a ``vec_u8``."""
-        decoded: Optional[
-            list[tuple[str, list[object]]]
-        ] = from_scale_encoding_using_type_string(
-            input=vec_u8, type_string="Vec<(AccountId, Vec<StakeInfo>)>"
+        """Returns a list of StakeInfo objects from a ``vec_u8``."""
+        decoded: Optional[list[tuple[str, list[object]]]] = (
+            from_scale_encoding_using_type_string(
+                input=vec_u8, type_string="Vec<(AccountId, Vec<StakeInfo>)>"
+            )
         )
 
         if decoded is None:
             return {}
 
-        stake_map = {
+        return {
             ss58_encode(address=account_id, ss58_format=bittensor.__ss58_format__): [
                 StakeInfo.fix_decoded_values(d) for d in stake_info
             ]
             for account_id, stake_info in decoded
         }
 
-        return stake_map
-
     @classmethod
     def list_from_vec_u8(cls, vec_u8: List[int]) -> List["StakeInfo"]:
-        r"""Returns a list of StakeInfo objects from a ``vec_u8``."""
+        """Returns a list of StakeInfo objects from a ``vec_u8``."""
         decoded = from_scale_encoding(vec_u8, ChainDataType.StakeInfo, is_vec=True)
+        if decoded is None:
+            return []
+
+        return [StakeInfo.fix_decoded_values(d) for d in decoded]
+
+
+@dataclass
+class SubnetInfo:
+    """Dataclass for subnet info."""
+
+    netuid: int
+    rho: int
+    kappa: int
+    difficulty: int
+    immunity_period: int
+    max_allowed_validators: int
+    min_allowed_weights: int
+    max_weight_limit: float
+    scaling_law_power: float
+    subnetwork_n: int
+    max_n: int
+    blocks_since_epoch: int
+    tempo: int
+    modality: int
+    # netuid -> topk percentile prunning score requirement (u16:MAX normalized.)
+    connection_requirements: Dict[str, float]
+    emission_value: float
+    burn: Balance
+    owner_ss58: str
+
+    @classmethod
+    def from_vec_u8(cls, vec_u8: List[int]) -> Optional["SubnetInfo"]:
+        """Returns a SubnetInfo object from a ``vec_u8``."""
+        if len(vec_u8) == 0:
+            return None
+
+        decoded = from_scale_encoding(vec_u8, ChainDataType.SubnetInfo)
+        if decoded is None:
+            return None
+
+        return SubnetInfo.fix_decoded_values(decoded)
+
+    @classmethod
+    def list_from_vec_u8(cls, vec_u8: List[int]) -> List["SubnetInfo"]:
+        r"""Returns a list of SubnetInfo objects from a ``vec_u8``."""
+        decoded = from_scale_encoding(
+            vec_u8, ChainDataType.SubnetInfo, is_vec=True, is_option=True
+        )
 
         if decoded is None:
             return []
 
-        decoded = [StakeInfo.fix_decoded_values(d) for d in decoded]
+        return [SubnetInfo.fix_decoded_values(d) for d in decoded]
 
-        return decoded
+    @classmethod
+    def fix_decoded_values(cls, decoded: Dict) -> "SubnetInfo":
+        """Returns a SubnetInfo object from a decoded SubnetInfo dictionary."""
+        return SubnetInfo(
+            netuid=decoded["netuid"],
+            rho=decoded["rho"],
+            kappa=decoded["kappa"],
+            difficulty=decoded["difficulty"],
+            immunity_period=decoded["immunity_period"],
+            max_allowed_validators=decoded["max_allowed_validators"],
+            min_allowed_weights=decoded["min_allowed_weights"],
+            max_weight_limit=decoded["max_weights_limit"],
+            # adjustment_alpha=decoded["adjustment_alpha"],
+            # bonds_moving_avg=decoded["bonds_moving_average"],
+            scaling_law_power=decoded["scaling_law_power"],
+            subnetwork_n=decoded["subnetwork_n"],
+            max_n=decoded["max_allowed_uids"],
+            blocks_since_epoch=decoded["blocks_since_last_step"],
+            tempo=decoded["tempo"],
+            modality=decoded["network_modality"],
+            connection_requirements={
+                str(int(netuid)): U16_NORMALIZED_FLOAT(int(req))
+                for netuid, req in decoded["network_connect"]
+            },
+            emission_value=decoded["emission_values"],
+            burn=Balance.from_rao(decoded["burn"]),
+            owner_ss58=ss58_encode(decoded["owner"], bittensor.__ss58_format__),
+        )
+
+    def to_parameter_dict(self) -> Union[dict[str, Any], "torch.nn.ParameterDict"]:
+        """Returns a torch tensor or dict of the subnet info."""
+        if use_torch():
+            return torch.nn.ParameterDict(self.__dict__)
+        else:
+            return self.__dict__
+
+    @classmethod
+    def from_parameter_dict(
+        cls, parameter_dict: Union[dict[str, Any], "torch.nn.ParameterDict"]
+    ) -> "SubnetInfo":
+        if use_torch():
+            return cls(**dict(parameter_dict))
+        else:
+            return cls(**parameter_dict)
+
 
 @dataclass
 class SubnetHyperparameters:
-    r"""
-    Dataclass for subnet hyperparameters.
-    """
+    """Dataclass for subnet hyperparameters."""
 
     rho: int
     kappa: int
@@ -1329,15 +1414,19 @@ class SubnetHyperparameters:
     max_validators: int
     adjustment_alpha: int
     difficulty: int
+    commit_reveal_weights_interval: int
+    commit_reveal_weights_enabled: bool
+    alpha_high: int
+    alpha_low: int
+    liquid_alpha_enabled: bool
 
     @classmethod
     def from_vec_u8(cls, vec_u8: List[int]) -> Optional["SubnetHyperparameters"]:
-        r"""Returns a SubnetHyperparameters object from a ``vec_u8``."""
+        """Returns a SubnetHyperparameters object from a ``vec_u8``."""
         if len(vec_u8) == 0:
             return None
 
         decoded = from_scale_encoding(vec_u8, ChainDataType.SubnetHyperparameters)
-
         if decoded is None:
             return None
 
@@ -1345,21 +1434,18 @@ class SubnetHyperparameters:
 
     @classmethod
     def list_from_vec_u8(cls, vec_u8: List[int]) -> List["SubnetHyperparameters"]:
-        r"""Returns a list of SubnetHyperparameters objects from a ``vec_u8``."""
+        """Returns a list of SubnetHyperparameters objects from a ``vec_u8``."""
         decoded = from_scale_encoding(
             vec_u8, ChainDataType.SubnetHyperparameters, is_vec=True, is_option=True
         )
-
         if decoded is None:
             return []
 
-        decoded = [SubnetHyperparameters.fix_decoded_values(d) for d in decoded]
-
-        return decoded
+        return [SubnetHyperparameters.fix_decoded_values(d) for d in decoded]
 
     @classmethod
     def fix_decoded_values(cls, decoded: Dict) -> "SubnetHyperparameters":
-        r"""Returns a SubnetHyperparameters object from a decoded SubnetHyperparameters dictionary."""
+        """Returns a SubnetHyperparameters object from a decoded SubnetHyperparameters dictionary."""
         return SubnetHyperparameters(
             rho=decoded["rho"],
             kappa=decoded["kappa"],
@@ -1383,53 +1469,36 @@ class SubnetHyperparameters:
             bonds_moving_avg=decoded["bonds_moving_avg"],
             adjustment_alpha=decoded["adjustment_alpha"],
             difficulty=decoded["difficulty"],
+            commit_reveal_weights_interval=decoded["commit_reveal_weights_interval"],
+            commit_reveal_weights_enabled=decoded["commit_reveal_weights_enabled"],
+            alpha_high=decoded["alpha_high"],
+            alpha_low=decoded["alpha_low"],
+            liquid_alpha_enabled=decoded["liquid_alpha_enabled"],
         )
-
-    def _to_parameter_dict_torch(
-        self, return_type: str
-    ) -> Union[dict[str, Union[int, float, bool]], "torch.nn.ParameterDict"]:
-        if return_type == "torch":
-            return torch.nn.ParameterDict(self.__dict__)
-        else:
-            return self.__dict__
 
     def to_parameter_dict(
         self,
     ) -> Union[dict[str, Union[int, float, bool]], "torch.nn.ParameterDict"]:
         """Returns a torch tensor or dict of the subnet hyperparameters."""
         if use_torch():
-            return self._to_parameter_dict_torch("torch")
+            return torch.nn.ParameterDict(self.__dict__)
         else:
-            return self._to_parameter_dict_torch("numpy")
-
-    @classmethod
-    def _from_parameter_dict_torch(
-        cls, parameter_dict: "torch.nn.ParameterDict"
-    ) -> "SubnetHyperparameters":
-        """Returns a SubnetHyperparameters object from a torch parameter_dict."""
-        return cls(**dict(parameter_dict))
-
-    @classmethod
-    def _from_parameter_dict_numpy(
-        cls, parameter_dict: dict[str, Any]
-    ) -> "SubnetHyperparameters":
-        """Returns a SubnetHyperparameters object from a parameter_dict."""
-        return cls(**parameter_dict)
+            return self.__dict__
 
     @classmethod
     def from_parameter_dict(
         cls, parameter_dict: Union[dict[str, Any], "torch.nn.ParameterDict"]
     ) -> "SubnetHyperparameters":
         if use_torch():
-            return cls._from_parameter_dict_torch(parameter_dict)
+            return cls(**dict(parameter_dict))
         else:
-            return cls._from_parameter_dict_numpy(parameter_dict)
+            return cls(**parameter_dict)
+
 
 @dataclass
 class DynamicPoolInfoV2:
-    r"""
-    Dataclass for dynamic pool info.
-    """
+    """Dataclass for dynamic pool info."""
+
     netuid: int
     alpha_issuance: int
     alpha_outstanding: int
@@ -1444,7 +1513,6 @@ class DynamicPoolInfoV2:
             return None
 
         return from_scale_encoding(vec_u8, ChainDataType.DynamicPoolInfoV2)
- 
 
     def _to_parameter_dict(
         self, return_type: str
@@ -1469,7 +1537,9 @@ class DynamicPoolInfoV2:
         return cls(**dict(parameter_dict))
 
     @classmethod
-    def _from_parameter_dict_numpy(cls, parameter_dict: dict[str, Any]) -> "DynamicPoolInfoV2":
+    def _from_parameter_dict_numpy(
+        cls, parameter_dict: dict[str, Any]
+    ) -> "DynamicPoolInfoV2":
         r"""Returns a DynamicPoolInfoV2 object from a parameter_dict."""
         return cls(**parameter_dict)
 
@@ -1480,14 +1550,12 @@ class DynamicPoolInfoV2:
         if use_torch():
             return cls._from_parameter_dict_torch(parameter_dict)
         else:
-            return cls._from_parameter_dict_numpy(parameter_dict) 
+            return cls._from_parameter_dict_numpy(parameter_dict)
 
 
 @dataclass
 class SubnetInfoV2:
-    r"""
-    Dataclass for subnet info.
-    """
+    """Dataclass for subnet info."""
 
     netuid: int
     owner_ss58: str
@@ -1505,7 +1573,7 @@ class SubnetInfoV2:
 
     @classmethod
     def from_vec_u8(cls, vec_u8: List[int]) -> Optional["SubnetInfoV2"]:
-        r"""Returns a SubnetInfoV2 object from a ``vec_u8``."""
+        """Returns a SubnetInfoV2 object from a ``vec_u8``."""
         if len(vec_u8) == 0:
             return None
 
@@ -1518,7 +1586,7 @@ class SubnetInfoV2:
 
     @classmethod
     def list_from_vec_u8(cls, vec_u8: List[int]) -> List["SubnetInfoV2"]:
-        r"""Returns a list of SubnetInfoV2 objects from a ``vec_u8``."""
+        """Returns a list of SubnetInfoV2 objects from a ``vec_u8``."""
         decoded = from_scale_encoding(
             vec_u8, ChainDataType.SubnetInfoV2, is_vec=True, is_option=False
         )
@@ -1532,7 +1600,7 @@ class SubnetInfoV2:
 
     @classmethod
     def fix_decoded_values(cls, decoded: Dict) -> "SubnetInfoV2":
-        r"""Returns a SubnetInfoV2 object from a decoded SubnetInfoV2 dictionary."""
+        """Returns a SubnetInfoV2 object from a decoded SubnetInfoV2 dictionary."""
         # init dynamic pool object
         pool_info = decoded["dynamic_pool"]
         if pool_info:
@@ -1587,8 +1655,10 @@ class SubnetInfoV2:
         return cls(**dict(parameter_dict))
 
     @classmethod
-    def _from_parameter_dict_numpy(cls, parameter_dict: dict[str, Any]) -> "SubnetInfoV2":
-        r"""Returns a SubnetInfoV2 object from a parameter_dict."""
+    def _from_parameter_dict_numpy(
+        cls, parameter_dict: dict[str, Any]
+    ) -> "SubnetInfoV2":
+        """Returns a SubnetInfoV2 object from a parameter_dict."""
         return cls(**parameter_dict)
 
     @classmethod
@@ -1600,18 +1670,17 @@ class SubnetInfoV2:
         else:
             return cls._from_parameter_dict_numpy(parameter_dict)
 
+
 @dataclass
 class IPInfo:
-    r"""
-    Dataclass for associated IP Info.
-    """
+    """Dataclass for associated IP Info."""
 
     ip: str
     ip_type: int
     protocol: int
 
     def encode(self) -> Dict[str, Any]:
-        r"""Returns a dictionary of the IPInfo object that can be encoded."""
+        """Returns a dictionary of the IPInfo object that can be encoded."""
         return {
             "ip": net.ip_to_int(
                 self.ip
@@ -1621,12 +1690,11 @@ class IPInfo:
 
     @classmethod
     def from_vec_u8(cls, vec_u8: List[int]) -> Optional["IPInfo"]:
-        r"""Returns a IPInfo object from a ``vec_u8``."""
+        """Returns a IPInfo object from a ``vec_u8``."""
         if len(vec_u8) == 0:
             return None
 
         decoded = from_scale_encoding(vec_u8, ChainDataType.IPInfo)
-
         if decoded is None:
             return None
 
@@ -1640,62 +1708,37 @@ class IPInfo:
         if decoded is None:
             return []
 
-        decoded = [IPInfo.fix_decoded_values(d) for d in decoded]
-
-        return decoded
+        return [IPInfo.fix_decoded_values(d) for d in decoded]
 
     @classmethod
     def fix_decoded_values(cls, decoded: Dict) -> "IPInfo":
-        r"""Returns a IPInfo object from a decoded IPInfo dictionary."""
+        """Returns a IPInfo object from a decoded IPInfo dictionary."""
         return IPInfo(
-            ip=bittensor.utils.networking.int_to_ip(decoded["ip"]),
+            ip=net.int_to_ip(decoded["ip"]),
             ip_type=decoded["ip_type_and_protocol"] >> 4,
             protocol=decoded["ip_type_and_protocol"] & 0xF,
         )
-
-    def _to_parameter_dict(
-        self, return_type: str
-    ) -> Union[dict[str, Union[str, int]], "torch.nn.ParameterDict"]:
-        """Returns a torch tensor of the subnet info."""
-        if return_type == "torch":
-            return torch.nn.ParameterDict(self.__dict__)
-        else:
-            return self.__dict__
 
     def to_parameter_dict(
         self,
     ) -> Union[dict[str, Union[str, int]], "torch.nn.ParameterDict"]:
         """Returns a torch tensor or dict of the subnet IP info."""
         if use_torch():
-            return self._to_parameter_dict("torch")
+            return torch.nn.ParameterDict(self.__dict__)
         else:
-            return self._to_parameter_dict("numpy")
-
-    @classmethod
-    def _from_parameter_dict_torch(
-        cls, parameter_dict: "torch.nn.ParameterDict"
-    ) -> "IPInfo":
-        """Returns a IPInfo object from a torch parameter_dict."""
-        return cls(**dict(parameter_dict))
-
-    @classmethod
-    def _from_parameter_dict_numpy(cls, parameter_dict: dict[str, Any]) -> "IPInfo":
-        """Returns a IPInfo object from a parameter_dict."""
-        return cls(**parameter_dict)
+            return self.__dict__
 
     @classmethod
     def from_parameter_dict(
         cls, parameter_dict: Union[dict[str, Any], "torch.nn.ParameterDict"]
     ) -> "IPInfo":
         if use_torch():
-            return cls._from_parameter_dict_torch(parameter_dict)
+            return cls(**dict(parameter_dict))
         else:
-            return cls._from_parameter_dict_numpy(parameter_dict)
+            return cls(**parameter_dict)
 
 
 # Senate / Proposal data
-
-
 class ProposalVoteData(TypedDict):
     index: int
     threshold: int
@@ -1705,3 +1748,56 @@ class ProposalVoteData(TypedDict):
 
 
 ProposalCallData = GenericCall
+
+
+@dataclass
+class ScheduledColdkeySwapInfo:
+    """Dataclass for scheduled coldkey swap information."""
+
+    old_coldkey: str
+    new_coldkey: str
+    arbitration_block: int
+
+    @classmethod
+    def fix_decoded_values(cls, decoded: Any) -> "ScheduledColdkeySwapInfo":
+        """Fixes the decoded values."""
+        return cls(
+            old_coldkey=ss58_encode(decoded["old_coldkey"], bittensor.__ss58_format__),
+            new_coldkey=ss58_encode(decoded["new_coldkey"], bittensor.__ss58_format__),
+            arbitration_block=decoded["arbitration_block"],
+        )
+
+    @classmethod
+    def from_vec_u8(cls, vec_u8: List[int]) -> Optional["ScheduledColdkeySwapInfo"]:
+        """Returns a ScheduledColdkeySwapInfo object from a ``vec_u8``."""
+        if len(vec_u8) == 0:
+            return None
+
+        decoded = from_scale_encoding(vec_u8, ChainDataType.ScheduledColdkeySwapInfo)
+        if decoded is None:
+            return None
+
+        return ScheduledColdkeySwapInfo.fix_decoded_values(decoded)
+
+    @classmethod
+    def list_from_vec_u8(cls, vec_u8: List[int]) -> List["ScheduledColdkeySwapInfo"]:
+        """Returns a list of ScheduledColdkeySwapInfo objects from a ``vec_u8``."""
+        decoded = from_scale_encoding(
+            vec_u8, ChainDataType.ScheduledColdkeySwapInfo, is_vec=True
+        )
+        if decoded is None:
+            return []
+
+        return [ScheduledColdkeySwapInfo.fix_decoded_values(d) for d in decoded]
+
+    @classmethod
+    def decode_account_id_list(cls, vec_u8: List[int]) -> Optional[List[str]]:
+        """Decodes a list of AccountIds from vec_u8."""
+        decoded = from_scale_encoding(
+            vec_u8, ChainDataType.ScheduledColdkeySwapInfo.AccountId, is_vec=True
+        )
+        if decoded is None:
+            return None
+        return [
+            ss58_encode(account_id, bittensor.__ss58_format__) for account_id in decoded
+        ]

@@ -21,8 +21,8 @@ defaults: Munch = munchify(
     {
         "netuid": 1,
         "subtensor": {
-            "network": "dtao",
-            "chain_endpoint": "wss://dtao-demo.chain.opentensor.ai:443",
+            "network": "rao",
+            "chain_endpoint": "wss://rao.chain.opentensor.ai:9944",
             "_mock": False,
         },
         "pow_register": {
@@ -92,13 +92,13 @@ from .wallet.set_identity import SetIdentityCommand
 from .wallet.get_identity import GetIdentityCommand
 from .wallet.history import GetWalletHistoryCommand
 
-# Staking 
+# Staking
 from .stake.add import AddStakeCommand
 from .stake.remove import RemoveStakeCommand
 from .stake.list import StakeList
 from .stake.move import MoveStakeCommand
 
-# Sudo 
+# Sudo
 from .sudo.vote import VoteCommand
 from .sudo.senate import SenateCommand
 from .sudo.set_take import SetTakeCommand
@@ -107,6 +107,19 @@ from .sudo.hyperparameters import SubnetHyperparamsCommand
 
 # Misc
 from .misc.misc import UpdateCommand, AutocompleteCommand
+
+# Weights
+from .weights import CommitWeightCommand, RevealWeightCommand
+
+# ColdKeySwap
+from .check_coldkey_swap import CheckColdKeySwapCommand
+
+# Children
+from .stake.children import (
+    GetChildrenCommand,
+    SetChildrenCommand,
+    RevokeChildrenCommand,
+)
 
 # TODO: Unused command, either remove or use
 # from .senate import (

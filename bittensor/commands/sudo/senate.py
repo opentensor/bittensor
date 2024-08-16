@@ -29,7 +29,7 @@ class SenateCommand:
 
     @staticmethod
     def run(cli: "bittensor.cli"):
-        r"""View Bittensor's governance protocol proposals"""
+        """View Bittensor's governance protocol proposals"""
         try:
             config = cli.config.copy()
             subtensor: "bittensor.subtensor" = bittensor.subtensor(

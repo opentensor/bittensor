@@ -6,6 +6,7 @@ import bittensor
 from rich.prompt import Prompt
 import sys
 
+
 class PowRegisterCommand:
     """
     Executes the ``pow_register`` command to register a neuron on the Bittensor network using Proof of Work (PoW).

@@ -83,6 +83,7 @@ class ShowMetagraph:
                 subtensor.close()
                 bittensor.logging.debug("closing subtensor connection")
 
+    @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""Prints an entire metagraph."""
         console = bittensor.__console__
@@ -100,8 +101,8 @@ class ShowMetagraph:
         total_issuance = bittensor.Balance.from_rao(subtensor.total_issuance().rao)
 
         # Get registered delegates details.
-        registered_delegate_info: typing.Optional[DelegatesDetails] = get_delegates_details(
-            url=bittensor.__delegates_details_url__
+        registered_delegate_info: typing.Optional[DelegatesDetails] = (
+            get_delegates_details(url=bittensor.__delegates_details_url__)
         )
 
         TABLE_DATA = []
@@ -116,7 +117,11 @@ class ShowMetagraph:
         for uid in metagraph.uids:
             neuron = metagraph.neurons[uid]
             ep = metagraph.axons[uid]
-            upgate_blocks_ago = metagraph.block.item() - metagraph.last_update[uid].item() if metagraph.block.item() >= metagraph.last_update[uid].item() else 0
+            upgate_blocks_ago = (
+                metagraph.block.item() - metagraph.last_update[uid].item()
+                if metagraph.block.item() >= metagraph.last_update[uid].item()
+                else 0
+            )
             row = [
                 str(neuron.uid),
                 "{:.5f}".format(metagraph.stake[uid]),
@@ -137,7 +142,9 @@ class ShowMetagraph:
                 ),
                 ep.hotkey[:10],
                 ep.coldkey[:10],
-                registered_delegate_info[ep.hotkey].name if ep.hotkey in registered_delegate_info else "",
+                registered_delegate_info[ep.hotkey].name
+                if ep.hotkey in registered_delegate_info
+                else "",
             ]
             total_stake += metagraph.stake[uid]
             total_rank += metagraph.ranks[uid]
@@ -147,10 +154,7 @@ class ShowMetagraph:
             total_incentive += metagraph.incentive[uid]
             total_dividends += metagraph.dividends[uid]
             total_emission += int(metagraph.emission[uid] * 1000000000)
-            TABLE_DATA.append({
-                "stake": metagraph.stake[uid],
-                "row": row
-            })
+            TABLE_DATA.append({"stake": metagraph.stake[uid], "row": row})
 
         # sort table by stake weight
         TABLE_DATA.sort(key=lambda x: x["stake"], reverse=True)
@@ -174,8 +178,8 @@ class ShowMetagraph:
             style="yellow",
         )
         table.add_column(
-            "[overline white]STAKE(\u03C4)",
-            "\u03C4{:.5f}".format(total_stake),
+            "[overline white]STAKE(\u03c4)",
+            "\u03c4{:.5f}".format(total_stake),
             footer_style="overline white",
             justify="right",
             style="green",
@@ -222,8 +226,8 @@ class ShowMetagraph:
             no_wrap=True,
         )
         table.add_column(
-            "[overline white]EMISSION(\u03C1)",
-            "\u03C1{}".format(int(total_emission)),
+            "[overline white]EMISSION(\u03c1)",
+            "\u03c1{}".format(int(total_emission)),
             footer_style="overline white",
             justify="right",
             style="green",
@@ -275,13 +279,6 @@ class ShowMetagraph:
             dest="netuid",
             type=int,
             help="""Set the netuid to get the metagraph of""",
-            default=False,
-        )
-        metagraph_parser.add_argument(
-            "--no_prompt",
-            dest="no_prompt",
-            action="store_true",
-            help="""Set true to avoid prompting the user.""",
             default=False,
         )
 

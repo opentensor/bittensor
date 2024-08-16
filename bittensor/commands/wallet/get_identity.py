@@ -4,6 +4,7 @@ from rich.prompt import Prompt
 
 import bittensor
 
+
 class GetIdentityCommand:
     """
     Executes the :func:`get_identity` command, which retrieves and displays the identity details of a user's coldkey or hotkey associated with the Bittensor network. This function

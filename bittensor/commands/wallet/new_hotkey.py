@@ -21,6 +21,7 @@ from rich.prompt import Prompt, Confirm
 from rich.table import Table
 from .. import defaults
 
+
 class NewHotkeyCommand:
     """
     Executes the ``new_hotkey`` command to create a new hotkey under a wallet on the Bittensor network.
@@ -98,4 +99,3 @@ class NewHotkeyCommand:
         )
         bittensor.wallet.add_args(new_hotkey_parser)
         bittensor.subtensor.add_args(new_hotkey_parser)
-

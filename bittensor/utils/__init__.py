@@ -1,7 +1,6 @@
 # The MIT License (MIT)
 # Copyright © 2022 Opentensor Foundation
 # Copyright © 2023 Opentensor Technologies Inc
-import os
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
@@ -17,17 +16,16 @@ import os
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import hashlib
 from typing import Callable, List, Dict, Literal, Tuple
 
-import bittensor
-import hashlib
-import requests
-import scalecodec
 import numpy as np
+import scalecodec
 
-from .wallet_utils import *  # noqa F401
-from .version import version_checking, check_version, VersionCheckError
+import bittensor
 from .registration import torch, use_torch
+from .version import version_checking, check_version, VersionCheckError
+from .wallet_utils import *  # noqa F401
 
 RAOPERTAO = 1e9
 U16_MAX = 65535
@@ -207,9 +205,9 @@ def get_explorer_url_for_network(
 
     explorer_urls: Optional[Dict[str, str]] = {}
     # Will be None if the network is not known. i.e. not in network_map
-    explorer_root_urls: Optional[
-        Dict[str, str]
-    ] = get_explorer_root_url_by_network_from_map(network, network_map)
+    explorer_root_urls: Optional[Dict[str, str]] = (
+        get_explorer_root_url_by_network_from_map(network, network_map)
+    )
 
     if explorer_root_urls != {}:
         # We are on a known network.
@@ -260,3 +258,25 @@ def hash(content, encoding="utf-8"):
 
     # Produce the hash
     return sha3.hexdigest()
+
+
+def format_error_message(error_message: dict) -> str:
+    """
+    Formats an error message from the Subtensor error information to using in extrinsics.
+
+    Args:
+        error_message (dict): A dictionary containing the error information from Subtensor.
+
+    Returns:
+        str: A formatted error message string.
+    """
+    err_type = "UnknownType"
+    err_name = "UnknownError"
+    err_description = "Unknown Description"
+
+    if isinstance(error_message, dict):
+        err_type = error_message.get("type", err_type)
+        err_name = error_message.get("name", err_name)
+        err_docs = error_message.get("docs", [])
+        err_description = err_docs[0] if len(err_docs) > 0 else err_description
+    return f"Subtensor returned `{err_name} ({err_type})` error. This means: `{err_description}`"

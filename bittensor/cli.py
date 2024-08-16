@@ -54,6 +54,12 @@ from .commands import (
     VoteCommand,
     WalletBalanceCommand,
     WalletCreateCommand,
+    CommitWeightCommand,
+    RevealWeightCommand,
+    CheckColdKeySwapCommand,
+    SetChildrenCommand,
+    GetChildrenCommand,
+    RevokeChildrenCommand,
 )
 
 # Create a console instance for CLI display.
@@ -81,6 +87,9 @@ ALIAS_TO_COMMAND = {
     "info": "info",
     "sub": "substake",
     "substake": "substake",
+    "weights": "weights",
+    "wt": "weights",
+    "weight": "weights",
 }
 COMMANDS = {
     "subnets": {
@@ -117,17 +126,30 @@ COMMANDS = {
             "set_identity": SetIdentityCommand,
             "get_identity": GetIdentityCommand,
             "history": GetWalletHistoryCommand,
+            "check_coldkey_swap": CheckColdKeySwapCommand,
         },
     },
     "stake": {
         "name": "stake",
         "aliases": ["st", "stakes"],
-        "help": "Commands for staking and removing stake from hotkey accounts.",
+        "help": "Commands for staking and removing stake and setting child hotkey accounts.",
         "commands": {
             "list": StakeList,
             "add": AddStakeCommand,
             "remove": RemoveStakeCommand,
             "move": MoveStakeCommand,
+            "get_children": GetChildrenCommand,
+            "set_children": SetChildrenCommand,
+            "revoke_children": RevokeChildrenCommand,
+        },
+    },
+    "weights": {
+        "name": "weights",
+        "aliases": ["wt", "weight"],
+        "help": "Commands for managing weight for subnets.",
+        "commands": {
+            "commit": CommitWeightCommand,
+            "reveal": RevealWeightCommand,
         },
     },
     "sudo": {
@@ -149,10 +171,18 @@ COMMANDS = {
         "commands": {
             "update": UpdateCommand,
             "faucet": RunFaucetCommand,
+        },
+    },
+    "info": {
+        "name": "info",
+        "aliases": ["i"],
+        "help": "Instructions for enabling autocompletion for the CLI.",
+        "commands": {
             "autocomplete": AutocompleteCommand,
         },
-    }
+    },
 }
+
 
 class CLIErrorParser(argparse.ArgumentParser):
     """

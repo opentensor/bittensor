@@ -25,6 +25,7 @@ from rich.console import Text
 from substrateinterface.exceptions import SubstrateRequestException
 from .. import defaults
 
+
 class SetTakeCommand:
     """
     Executes the ``set_take`` command, which sets the delegate take for a specified subnet.
@@ -76,7 +77,9 @@ class SetTakeCommand:
         # Prompt user for netuid and take value.
         netuid = config.get("netuid")
         if netuid == None:
-            netuid = IntPrompt.ask(f"Enter subnet ID ({netuids[0]}..{netuids[len(netuids)-1]})")
+            netuid = IntPrompt.ask(
+                f"Enter subnet ID ({netuids[0]}..{netuids[len(netuids)-1]})"
+            )
         else:
             netuid = int(netuid)
         # Check if netuid exists
@@ -85,7 +88,7 @@ class SetTakeCommand:
                 "ERROR: This netuid ({}) doesn't exist on the network".format(netuid)
             )
             return
-        
+
         # Print current take
         current_take = subtensor.get_delegate_take(wallet.hotkey.ss58_address, netuid)
         bittensor.__console__.print(f"Current take: {current_take * 100.:.2f} %")

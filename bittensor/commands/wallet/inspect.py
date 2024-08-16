@@ -138,9 +138,9 @@ class InspectCommand:
         )
         bittensor.logging.debug(f"Netuids to check: {netuids}")
 
-        registered_delegate_info: Optional[
-            Dict[str, DelegatesDetails]
-        ] = get_delegates_details(url=bittensor.__delegates_details_url__)
+        registered_delegate_info: Optional[Dict[str, DelegatesDetails]] = (
+            get_delegates_details(url=bittensor.__delegates_details_url__)
+        )
         if registered_delegate_info is None:
             bittensor.__console__.print(
                 ":warning:[yellow]Could not get delegate info from chain.[/yellow]"
@@ -181,9 +181,9 @@ class InspectCommand:
             "[overline white]Emission", footer_style="overline white", style="green"
         )
         for wallet in tqdm(wallets):
-            delegates: List[
-                Tuple[bittensor.DelegateInfo, bittensor.Balance]
-            ] = subtensor.get_delegated(coldkey_ss58=wallet.coldkeypub.ss58_address)
+            delegates: List[Tuple[bittensor.DelegateInfo, bittensor.Balance]] = (
+                subtensor.get_delegated(coldkey_ss58=wallet.coldkeypub.ss58_address)
+            )
             if not wallet.coldkeypub_file.exists_on_device():
                 continue
             cold_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)

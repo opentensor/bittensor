@@ -22,6 +22,7 @@ from copy import deepcopy
 
 from .. import defaults
 
+
 class SwapHotkeyCommand:
     @staticmethod
     def run(cli: "bittensor.cli"):
