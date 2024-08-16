@@ -15,12 +15,17 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import sys
 import argparse
 from typing import TYPE_CHECKING
 
 from rich.console import Console
 from rich.table import Table
+from rich.prompt import Prompt
 
+from bittensor import Balance
+from bittensor import __console__ as console
+from bittensor.btlogging import logging
 from bittensor.chain_data import SubnetState
 from bittensor.config import config as Config
 from bittensor.subtensor import Subtensor
@@ -43,18 +48,29 @@ class ShowSubnet:
     
     @staticmethod
     def run(cli: "Cli"):
-        console = Console()
         config = cli.config.copy()
         subtensor = Subtensor(config=config, log_verbose=False)
         
+        # Get netuid
+        netuid = config.get('netuid') 
+        if config.is_set("netuid"):
+            netuid = config.get('netuid')
+        elif not config.no_prompt:
+            netuid = int( Prompt.ask("Enter netuid", default="0") )
+        else:
+            logging.error("netuid is needed to proceed")
+            sys.exit(1)
+            
+        
+        subnet_info = subtensor.get_subnet_dynamic_info(netuid)
         subnet_state: "SubnetState" = SubnetState.from_vec_u8(
-            subtensor.substrate.rpc_request(method="subnetInfo_getSubnetState", params=[config.netuid, None])['result']
+            subtensor.substrate.rpc_request(method="subnetInfo_getSubnetState", params=[netuid, None])['result']
         )
         # Define table properties
         console_width = console.width - 5
 
         table = Table(
-            title="Subnet Info",
+            title=f"[white]Subnet State #{config.netuid}",
             width=console_width,
             safe_box=True,
             padding=(0, 1),
@@ -75,47 +91,88 @@ class ShowSubnet:
             title_justify="center",
             highlight=False,
         )
-        table.title = f"[white]Subnet State for subnet #{config.netuid}."
+        subnet_info_table = Table(
+            width=console_width,
+            safe_box=True,
+            padding=(0, 1),
+            collapse_padding=False,
+            pad_edge=True,
+            expand=True,
+            show_header=True,
+            show_footer=False,
+            show_edge=False,
+            show_lines=False,
+            leading=0,
+            style="none",
+            row_styles=None,
+            header_style="bold",
+            footer_style="bold",
+            border_style="rgb(7,54,66)",
+            title_style="bold magenta",
+            title_justify="center",
+            highlight=False,
+        )
+        
+        subnet_info_table.add_column("Index", style="rgb(253,246,227)", no_wrap=True, justify="center")
+        subnet_info_table.add_column("Symbol", style="rgb(211,54,130)", no_wrap=True, justify="center")
+        subnet_info_table.add_column(f"Emission ({Balance.get_unit(0)})", style="rgb(38,139,210)", no_wrap=True, justify="center")
+        subnet_info_table.add_column(f"P({Balance.get_unit(0)},", style="rgb(108,113,196)", no_wrap=True, justify="right")
+        subnet_info_table.add_column(f"{Balance.get_unit(1)})", style="rgb(42,161,152)", no_wrap=True, justify="left")
+        subnet_info_table.add_column(f"{Balance.get_unit(1)}", style="rgb(133,153,0)", no_wrap=True, justify="center")
+        subnet_info_table.add_column(f"Rate ({Balance.get_unit(1)}/{Balance.get_unit(0)})", style="rgb(181,137,0)", no_wrap=True, justify="center")
+        subnet_info_table.add_column("Tempo", style="rgb(38,139,210)", no_wrap=True, justify="center")
+        subnet_info_table.add_row(
+            str(netuid),
+            f"[light_goldenrod1]{str(subnet_info.symbol)}[light_goldenrod1]",
+            f"τ{subnet_info.emission.tao:.4f}",
+            f"P( τ{subnet_info.tao_in.tao:,.4f},",
+            f"{subnet_info.alpha_in.tao:,.4f}{subnet_info.symbol} )",
+            f"{subnet_info.alpha_out.tao:,.4f}{subnet_info.symbol}",
+            f"{subnet_info.price.tao:.4f}τ/{subnet_info.symbol}",
+            str(subnet_info.blocks_since_last_step) + "/" + str(subnet_info.tempo),
+                # f"{subnet.owner_locked}" + "/" + f"{subnet.total_locked}",
+                # f"{subnet.owner[:3]}...{subnet.owner[-3:]}",
+        )
 
         # Add columns to the table
-        table.add_column("Index", style="rgb(211,54,130)", no_wrap=True, justify="center")
-        table.add_column("Hotkeys", style="rgb(211,54,130)", no_wrap=True, justify="center")
-        table.add_column("Coldkeys", style="rgb(211,54,130)", no_wrap=True, justify="center")
-        table.add_column("Active", style="rgb(211,54,130)", no_wrap=True, justify="center")
-        table.add_column("Validator Permit", style="rgb(211,54,130)", no_wrap=True, justify="center")
-        table.add_column("Pruning Score", style="rgb(211,54,130)", no_wrap=True, justify="center")
-        table.add_column("Last Update", style="rgb(211,54,130)", no_wrap=True, justify="center")
-        table.add_column("Emission", style="rgb(211,54,130)", no_wrap=True, justify="center")
-        table.add_column("Dividends", style="rgb(211,54,130)", no_wrap=True, justify="center")
-        table.add_column("Incentives", style="rgb(211,54,130)", no_wrap=True, justify="center")
-        table.add_column("Consensus", style="rgb(211,54,130)", no_wrap=True, justify="center")
-        table.add_column("Trust", style="rgb(211,54,130)", no_wrap=True, justify="center")
-        table.add_column("Rank", style="rgb(211,54,130)", no_wrap=True, justify="center")
-        table.add_column("Block at registration", style="rgb(211,54,130)", no_wrap=True, justify="center")
-        table.add_column("Local Stake", style="rgb(211,54,130)", no_wrap=True, justify="center")
-        table.add_column("Global Stake", style="rgb(211,54,130)", no_wrap=True, justify="center")
-        table.add_column("Stake Weight", style="rgb(211,54,130)", no_wrap=True, justify="center")
+        table.add_column("uid", style="rgb(133,153,0)", no_wrap=True, justify="center")
+        table.add_column(f"{Balance.get_unit(netuid)}", style="rgb(42,161,152)", no_wrap=True, justify="center")
+        table.add_column(f"{Balance.get_unit(0)}", style="rgb(211,54,130)", no_wrap=True, justify="center")
+        table.add_column("stake", style="rgb(108,113,196)", no_wrap=True, justify="center")
+        table.add_column("dividends", style="rgb(181,137,0)", no_wrap=True, justify="center")
+        table.add_column("incentive", style="rgb(220,50,47)", no_wrap=True, justify="center")
+        table.add_column(f"emission ({Balance.get_unit(netuid)})", style="rgb(38,139,210)", no_wrap=True, justify="center")
+        table.add_column("hotkey", style="rgb(42,161,152)", no_wrap=True, justify="center")
+        # table.add_column("cold", style="rgb(133,153,0)", no_wrap=True, justify="center")
+        # table.add_column("A", style="rgb(211,54,130)", no_wrap=True, justify="center")
+        # table.add_column("V", style="rgb(211,54,130)", no_wrap=True, justify="center")
+        # table.add_column("P", style="rgb(211,54,130)", no_wrap=True, justify="center")
+        # table.add_column("U", style="rgb(211,54,130)", no_wrap=True, justify="center")
+        # table.add_column("D", style="rgb(211,54,130)", no_wrap=True, justify="center")
+        # table.add_column("I", style="rgb(211,54,130)", no_wrap=True, justify="center")
+        # table.add_column("C", style="rgb(211,54,130)", no_wrap=True, justify="center")
+        # table.add_column("T", style="rgb(211,54,130)", no_wrap=True, justify="center")
+        # table.add_column("R", style="rgb(211,54,130)", no_wrap=True, justify="center")
+        # table.add_column("Regist", style="rgb(211,54,130)", no_wrap=True, justify="center")
 
         for idx, hk in enumerate(subnet_state.hotkeys):
             table.add_row(
-                subnet_state.hotkeys[idx],
-                subnet_state.hotkeys[idx],
-                subnet_state.coldkeys[idx],
-                "Yes" if subnet_state.active[idx] else "No",
-                "Yes" if subnet_state.validator_permit[idx] else "No",
-                str(subnet_state.pruning_score[idx]),
-                str(subnet_state.last_update[idx]),
-                str(subnet_state.emission[idx]),
-                str(subnet_state.dividends[idx]),
-                str(subnet_state.incentives[idx]),
-                str(subnet_state.consensus[idx]),
-                str(subnet_state.trust[idx]),
-                str(subnet_state.rank[idx]),
-                str(subnet_state.block_at_registration[idx]),
+                str(idx),
                 str(subnet_state.local_stake[idx]),
                 str(subnet_state.global_stake[idx]),
-                str(subnet_state.stake_weight[idx]),
+                f"{subnet_state.stake_weight[idx]:.4f}",
+                str(subnet_state.dividends[idx]),
+                str(subnet_state.incentives[idx]),
+                str(subnet_state.emission[idx]),
+                f"{subnet_state.hotkeys[idx]}",
+            
             )
 
         # Print the table
-        config.print(table)
+        import bittensor as bt
+        bt.__console__.print("\n\n\n")
+        bt.__console__.print(f"\t\tSubnet: {netuid}: Owner: {subnet_info.owner}, Total Locked: {subnet_info.total_locked}, Owner Locked: {subnet_info.owner_locked}")
+        bt.__console__.print("\n\n\n")
+        bt.__console__.print(subnet_info_table)
+        bt.__console__.print("\n\n\n")
+        bt.__console__.print(table)
