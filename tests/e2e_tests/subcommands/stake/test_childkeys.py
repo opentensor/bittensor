@@ -74,7 +74,7 @@ async def test_set_revoke_children(local_chain, capsys):
     await wait()
 
     children_with_proportions = [
-        [0.3, bob_keypair.ss58_address],
+        [0.6, bob_keypair.ss58_address],
         [0.4, eve_keypair.ss58_address],
     ]
 
@@ -125,10 +125,14 @@ async def test_set_revoke_children(local_chain, capsys):
         ],
     )
     output = capsys.readouterr().out
-    assert "ParentHotKey:\n5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY" in output
-    assert "5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj6… │ 105409966135483…" in output
-    assert "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJ… │ 790574746016123…" in output
-    assert "Total                                       │ 184467440737095…" in output
+    assert (
+        "Parent HotKey: 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY  |  Total Parent Stake: 100000.0"
+        in output
+    )
+    assert "ChildHotkey                              ┃  Proportion" in output
+    assert "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92U… │ 60.0%" in output
+    assert "5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZc… │ 40.0%" in output
+    assert "Total                                    │      100.0%" in output
 
     await wait()
 
@@ -151,10 +155,9 @@ async def test_set_revoke_children(local_chain, capsys):
 
     await wait()
 
-    assert subtensor.get_children(netuid=1, hotkey=alice_keypair.ss58_address) == [
-        (0, children_with_proportions[0][1]),
-        (0, children_with_proportions[1][1]),
-    ], "Failed to revoke children hotkeys"
+    assert (
+        subtensor.get_children(netuid=1, hotkey=alice_keypair.ss58_address) == []
+    ), "Failed to revoke children hotkeys"
 
     await wait()
     # Test 4: Get children after revocation
@@ -170,6 +173,4 @@ async def test_set_revoke_children(local_chain, capsys):
         ],
     )
     output = capsys.readouterr().out
-    assert "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM69… │        0 " in output
-    assert "5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kU… │        0" in output
-    assert "Total                                          │        0" in output
+    assert "There are currently no child hotkeys on subnet" in output

@@ -3253,7 +3253,9 @@ class Subtensor:
         """
         call_definition = bittensor.__type_registry__["runtime_api"][runtime_api][  # type: ignore
             "methods"  # type: ignore
-        ][method]  # type: ignore
+        ][
+            method
+        ]  # type: ignore
 
         json_result = self.state_call(
             method=f"{runtime_api}_{method}",
@@ -4639,7 +4641,9 @@ class Subtensor:
                 return []
 
             formatted_parents = [
-                format_parent(proportion, parent) for proportion, parent in parents
+                format_parent(proportion, parent)
+                for proportion, parent in parents
+                if proportion != 0
             ]
             return formatted_parents
         except SubstrateRequestException as e:
