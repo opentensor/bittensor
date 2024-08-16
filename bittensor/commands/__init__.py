@@ -110,10 +110,6 @@ from .misc.misc import UpdateCommand, AutocompleteCommand
 
 # Weights
 from .weights import CommitWeightCommand, RevealWeightCommand
-
-# ColdKeySwap
-from .check_coldkey_swap import CheckColdKeySwapCommand
-
 # Children
 from .stake.children import (
     GetChildrenCommand,

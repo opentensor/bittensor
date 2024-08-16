@@ -17,14 +17,11 @@
 import argparse
 import bittensor as bt
 from rich.table import Table
-from typing import List
-from tqdm import tqdm
-
 
 class ListSubnetsCommand:
     @staticmethod
     def run(cli: "bt.cli"):
-        """List all subnet netuids in the network."""
+        r"""List all subnet netuids in the network."""
         try:
             subtensor: "bt.subtensor" = bt.subtensor(
                 config=cli.config, log_verbose=False
@@ -37,73 +34,24 @@ class ListSubnetsCommand:
 
     @staticmethod
     def _run(cli: "bt.cli", subtensor: "bt.subtensor"):
-        """List all subnet netuids in the network."""
-        # Fetch all subnet information
-        subnets: List[int] = subtensor.get_subnets()
-
+        r"""List all subnet netuids in the network."""
+        
         # Initialize variables to store aggregated data
         rows = []
-        total_price = 0
-        total_emission = 0
-        dynamic_emission = 0
-        # Process each subnet and collect relevant data
-        for netuid in tqdm(subnets):
-            type = subtensor.substrate.query(
-                module="SubtensorModule",
-                storage_function="SubnetMechanism",
-                params=[netuid],
-            ).value
-            emission = (
-                subtensor.substrate.query(
-                    module="SubtensorModule",
-                    storage_function="EmissionValues",
-                    params=[netuid],
-                ).value
-                / 10**9
-            )
-            tao_in = (
-                subtensor.substrate.query(
-                    module="SubtensorModule",
-                    storage_function="SubnetTAO",
-                    params=[netuid],
-                ).value
-                / 10**9
-            )
-            alpha_in = (
-                subtensor.substrate.query(
-                    module="SubtensorModule",
-                    storage_function="SubnetAlphaIn",
-                    params=[netuid],
-                ).value
-                / 10**9
-            )
-            alpha_out = (
-                subtensor.substrate.query(
-                    module="SubtensorModule",
-                    storage_function="SubnetAlphaOut",
-                    params=[netuid],
-                ).value
-                / 10**9
-            )
-            tempo = subtensor.substrate.query(
-                module="SubtensorModule", storage_function="Tempo", params=[netuid]
-            ).value
-            price = float(tao_in) / float(alpha_in) if alpha_in > 0 else 1.0
-            total_price += price
-            total_emission += emission
-            sn_symbol = f"{bt.Balance.get_unit(netuid)}\u200e"
-
-            # Append row data for the table
+        subnets = subtensor.get_all_subnet_dynamic_info()
+        for subnet in subnets:
             rows.append(
                 (
-                    str(netuid),
-                    f"[light_goldenrod1]{sn_symbol}[light_goldenrod1]",
-                    f"τ{bt.Balance.from_tao(emission).tao:.4f}",
-                    f"P( τ{tao_in:,.4f},",
-                    f"{alpha_in:,.4f}{sn_symbol} )",
-                    f"{alpha_out:,.4f}{sn_symbol}",
-                    f"{price:.4f}τ/{sn_symbol}",
-                    str(tempo),
+                    str(subnet.netuid),
+                    f"[light_goldenrod1]{subnet.symbol}[light_goldenrod1]",
+                    f"τ{subnet.emission.tao:.4f}",
+                    f"P( τ{subnet.tao_in.tao:,.4f},",
+                    f"{subnet.alpha_in.tao:,.4f}{subnet.symbol} )",
+                    f"{subnet.alpha_out.tao:,.4f}{subnet.symbol}",
+                    f"{subnet.price.tao:.4f}τ/{subnet.symbol}",
+                    str(subnet.blocks_since_last_step) + "/" + str(subnet.tempo),
+                    # f"{subnet.owner_locked}" + "/" + f"{subnet.total_locked}",
+                    # f"{subnet.owner[:3]}...{subnet.owner[-3:]}",
                 )
             )
 
@@ -137,39 +85,16 @@ class ListSubnetsCommand:
         # price_total = f"τ{total_price.tao:.2f}/{bt.Balance.from_rao(dynamic_emission).tao:.2f}"
         # above_price_threshold = total_price.tao > bt.Balance.from_rao(dynamic_emission).tao
 
-        table.add_column(
-            "Index", style="rgb(253,246,227)", no_wrap=True, justify="center"
-        )
-        table.add_column(
-            "Symbol", style="rgb(211,54,130)", no_wrap=True, justify="center"
-        )
-        table.add_column(
-            "Emission", style="rgb(38,139,210)", no_wrap=True, justify="center"
-        )
-        table.add_column(
-            f"P({bt.Balance.unit},",
-            style="rgb(108,113,196)",
-            no_wrap=True,
-            justify="right",
-        )
-        table.add_column(
-            f"{bt.Balance.get_unit(1)})",
-            style="rgb(42,161,152)",
-            no_wrap=True,
-            justify="left",
-        )
-        table.add_column(
-            f"{bt.Balance.get_unit(1)}",
-            style="rgb(133,153,0)",
-            no_wrap=True,
-            justify="center",
-        )
-        table.add_column(
-            "Price", style="rgb(181,137,0)", no_wrap=True, justify="center"
-        )
-        table.add_column(
-            "Tempo", style="rgb(38,139,210)", no_wrap=True, justify="center"
-        )
+        table.add_column("Index", style="rgb(253,246,227)", no_wrap=True, justify="center")
+        table.add_column("Symbol", style="rgb(211,54,130)", no_wrap=True, justify="center")
+        table.add_column(f"Emission ({bt.Balance.get_unit(0)})", style="rgb(38,139,210)", no_wrap=True, justify="center")
+        table.add_column(f"P({bt.Balance.get_unit(0)},", style="rgb(108,113,196)", no_wrap=True, justify="right")
+        table.add_column(f"{bt.Balance.get_unit(1)})", style="rgb(42,161,152)", no_wrap=True, justify="left")
+        table.add_column(f"{bt.Balance.get_unit(1)}", style="rgb(133,153,0)", no_wrap=True, justify="center")
+        table.add_column(f"Rate ({bt.Balance.get_unit(1)}/{bt.Balance.get_unit(0)})", style="rgb(181,137,0)", no_wrap=True, justify="center")
+        table.add_column("Tempo", style="rgb(38,139,210)", no_wrap=True, justify="center")
+        # table.add_column(f"Locked ({bt.Balance.get_unit(1)})", style="rgb(38,139,210)", no_wrap=True, justify="center")
+        # table.add_column("Owner", style="rgb(38,139,210)", no_wrap=True, justify="center")
 
         # Add rows to the table
         for row in rows:

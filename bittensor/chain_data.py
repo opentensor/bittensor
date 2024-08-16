@@ -267,6 +267,28 @@ custom_rpc_type_registry = {
                 ["arbitration_block", "Compact<u64>"],
             ],
         },
+        "SubnetState": {
+            "type": "struct",
+            "type_mapping": [
+                ["netuid", "Compact<u16>"],
+                ["hotkeys", "Vec<AccountId>"],
+                ["coldkeys", "Vec<AccountId>"],
+                ["active", "Vec<bool>"],
+                ["validator_permit", "Vec<bool>"],
+                ["pruning_score", "Vec<Compact<u16>>"],
+                ["last_update", "Vec<Compact<u64>>"],
+                ["emission", "Vec<Compact<u64>>"],
+                ["dividends", "Vec<Compact<u16>>"],
+                ["incentives", "Vec<Compact<u16>>"],
+                ["consensus", "Vec<Compact<u16>>"],
+                ["trust", "Vec<Compact<u16>>"],
+                ["rank", "Vec<Compact<u16>>"],
+                ["block_at_registration", "Vec<Compact<u64>>"],
+                ["local_stake", "Vec<Compact<u64>>"],
+                ["global_stake", "Vec<Compact<u64>>"],
+                ["stake_weight", "Vec<Compact<u16>>"],
+            ],
+        },
     }
 }
 
@@ -286,6 +308,7 @@ class ChainDataType(Enum):
     DynamicInfo = 12
     ScheduledColdkeySwapInfo = 13
     SubnetInfo = 14
+    SubnetState = 15
 
 
 def from_scale_encoding(
@@ -325,6 +348,63 @@ def from_scale_encoding_using_type_string(
     rpc_runtime_config.update_type_registry(custom_rpc_type_registry)
     obj = rpc_runtime_config.create_scale_object(type_string, data=as_scale_bytes)
     return obj.decode()
+
+@dataclass
+class SubnetState:
+    netuid: int
+    hotkeys: List[str]  
+    coldkeys: List[str]
+    active: List[bool]
+    validator_permit: List[bool]
+    pruning_score: List[float]
+    last_update: List[int]
+    emission: List[bittensor.Balance]
+    dividends: List[float]
+    incentives: List[float]
+    consensus: List[float]
+    trust: List[float]
+    rank: List[float]
+    block_at_registration: List[int]
+    local_stake: List[bittensor.Balance]
+    global_stake: List[bittensor.Balance]
+    stake_weight: List[float]
+    
+    @classmethod
+    def from_vec_u8(cls, vec_u8: List[int]) -> Optional["SubnetState"]:
+        if len(vec_u8) == 0: return None
+        decoded = from_scale_encoding(vec_u8, ChainDataType.SubnetState, is_option=True)
+        if decoded is None: return None
+        return SubnetState.fix_decoded_values(decoded)
+
+    @classmethod
+    def list_from_vec_u8(cls, vec_u8: List[int]) -> List["SubnetState"]:
+        decoded = from_scale_encoding( vec_u8, ChainDataType.SubnetState, is_vec=True, is_option=True )
+        if decoded is None:return []
+        decoded = [SubnetState.fix_decoded_values(d) for d in decoded]
+        return decoded
+
+    @classmethod
+    def fix_decoded_values(cls, decoded: Dict) -> "SubnetState":
+        netuid = decoded["netuid"]
+        return SubnetState(
+            netuid = netuid,
+            hotkeys = [ss58_encode(val, bittensor.__ss58_format__) for val in decoded["hotkeys"]],
+            coldkeys = [ss58_encode(val, bittensor.__ss58_format__) for val in decoded["coldkeys"]],
+            active = decoded["active"],
+            validator_permit = decoded["validator_permit"],
+            pruning_score = [U16_NORMALIZED_FLOAT(val) for val in decoded["pruning_score"]],
+            last_update = decoded["last_update"],
+            emission = [bittensor.Balance.from_rao( val ).set_unit(netuid) for val in decoded["emission"]],
+            dividends = [U16_NORMALIZED_FLOAT(val) for val in decoded["dividends"]],
+            incentives = [U16_NORMALIZED_FLOAT(val) for val in decoded["incentives"]],
+            consensus = [U16_NORMALIZED_FLOAT(val) for val in decoded["consensus"]],
+            trust = [U16_NORMALIZED_FLOAT(val) for val in decoded["trust"]],
+            rank = [U16_NORMALIZED_FLOAT(val) for val in decoded["rank"]],
+            block_at_registration = decoded["block_at_registration"],
+            local_stake = [bittensor.Balance.from_rao( val ).set_unit(netuid) for val in decoded["local_stake"]],
+            global_stake = [bittensor.Balance.from_rao( val ).set_unit(0) for val in decoded["global_stake"]],
+            stake_weight = [U16_NORMALIZED_FLOAT(val) for val in decoded["stake_weight"]],
+        )
 
 
 @dataclass
