@@ -46,7 +46,14 @@ def register_senate_extrinsic(
         success (bool):
             Flag is ``true`` if extrinsic was finalized or included in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
-    wallet.coldkey  # unlock coldkey
+    try:
+        wallet.coldkey  # unlock coldkey
+    except bittensor.KeyFileError:
+        bittensor.__console__.print(
+            ":cross_mark: [red]Keyfile is corrupt, non-writable, non-readable or the password used to decrypt is invalid[/red]:[bold white]\n  [/bold white]"
+        )
+        return False
+
     wallet.hotkey  # unlock hotkey
 
     if prompt:
@@ -121,7 +128,14 @@ def leave_senate_extrinsic(
         success (bool):
             Flag is ``true`` if extrinsic was finalized or included in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
-    wallet.coldkey  # unlock coldkey
+    try:
+        wallet.coldkey  # unlock coldkey
+    except bittensor.KeyFileError:
+        bittensor.__console__.print(
+            ":cross_mark: [red]Keyfile is corrupt, non-writable, non-readable or the password used to decrypt is invalid[/red]:[bold white]\n  [/bold white]"
+        )
+        return False
+
     wallet.hotkey  # unlock hotkey
 
     if prompt:

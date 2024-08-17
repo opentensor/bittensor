@@ -168,5 +168,6 @@ def format_children(children) -> List[Tuple[str, str]]:
         int_proportion = (
             proportion.value if hasattr(proportion, "value") else int(proportion)
         )
-        formatted_children.append((int_proportion, child.value))
+        if int_proportion > 0:
+            formatted_children.append((int_proportion, child.value))
     return formatted_children
