@@ -752,7 +752,13 @@ class NominateCommand:
 
         # Unlock the wallet.
         wallet.hotkey
-        wallet.coldkey
+        try:
+            wallet.coldkey
+        except bittensor.KeyFileError:
+            bittensor.__console__.print(
+                ":cross_mark: [red]Keyfile is corrupt, non-writable, non-readable or the password used to decrypt is invalid[/red]:[bold white]\n  [/bold white]"
+            )
+            return
 
         # Check if the hotkey is already a delegate.
         if subtensor.is_hotkey_delegate(wallet.hotkey.ss58_address):
