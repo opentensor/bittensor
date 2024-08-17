@@ -188,8 +188,6 @@ class ShowSubnet:
             f"{subnet_info.alpha_out.tao:,.4f}{subnet_info.symbol}",
             f"{subnet_info.price.tao:.4f}τ/{subnet_info.symbol}",
             str(subnet_info.blocks_since_last_step) + "/" + str(subnet_info.tempo),
-                # f"{subnet.owner_locked}" + "/" + f"{subnet.total_locked}",
-                # f"{subnet.owner[:3]}...{subnet.owner[-3:]}",
         )
 
         # Add columns to the table
