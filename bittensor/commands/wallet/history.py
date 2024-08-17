@@ -16,12 +16,15 @@
 # DEALINGS IN THE SOFTWARE.
 
 import argparse
-import bittensor
+from typing import List
+
+import requests
 from rich.prompt import Prompt
 from rich.table import Table
-from typing import List
+
+import bittensor
+from bittensor.utils import RAOPERTAO
 from .. import defaults
-import requests
 
 API_URL = "https://api.subquery.network/sq/TaoStats/bittensor-indexer"
 MAX_TXN = 1000
