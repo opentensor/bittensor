@@ -86,7 +86,13 @@ def add_stake_extrinsic(
             If the hotkey is not a delegate on the chain.
     """
     # Decrypt keys,
-    wallet.coldkey
+    try:
+        wallet.coldkey
+    except bittensor.KeyFileError:
+        bittensor.__console__.print(
+            ":cross_mark: [red]Keyfile is corrupt, non-writable, non-readable or the password used to decrypt is invalid[/red]:[bold white]\n  [/bold white]"
+        )
+        return False
 
     # Default to wallet's own hotkey if the value is not passed.
     if hotkey_ss58 is None:
@@ -560,6 +566,14 @@ def set_children_extrinsic(
         bittensor.errors.NotRegisteredError: If the hotkey is not registered in any subnets.
 
     """
+
+    # Decrypt coldkey.
+    wallet.coldkey
+
+    user_hotkey_ss58 = wallet.hotkey.ss58_address  # Default to wallet's own hotkey.
+    if hotkey != user_hotkey_ss58:
+        raise ValueError("Can only call  children for other hotkeys.")
+
     # Check if all children are being revoked
     all_revoked = all(prop == 0.0 for prop, _ in children_with_proportions)
 

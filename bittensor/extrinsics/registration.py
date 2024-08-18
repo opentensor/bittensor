@@ -259,7 +259,13 @@ def burned_register_extrinsic(
         )
         return False
 
-    wallet.coldkey  # unlock coldkey
+    try:
+        wallet.coldkey  # unlock coldkey
+    except bittensor.KeyFileError:
+        bittensor.__console__.print(
+            ":cross_mark: [red]Keyfile is corrupt, non-writable, non-readable or the password used to decrypt is invalid[/red]:[bold white]\n  [/bold white]"
+        )
+        return False
     with bittensor.__console__.status(
         f":satellite: Checking Account on [bold]subnet:{netuid}[/bold]..."
     ):
@@ -394,7 +400,13 @@ def run_faucet_extrinsic(
         return False, "Requires torch"
 
     # Unlock coldkey
-    wallet.coldkey
+    try:
+        wallet.coldkey
+    except bittensor.KeyFileError:
+        bittensor.__console__.print(
+            ":cross_mark: [red]Keyfile is corrupt, non-writable, non-readable or the password used to decrypt is invalid[/red]:[bold white]\n  [/bold white]"
+        )
+        return False, ""
 
     # Get previous balance.
     old_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
@@ -497,7 +509,13 @@ def swap_hotkey_extrinsic(
     wait_for_finalization: bool = True,
     prompt: bool = False,
 ) -> bool:
-    wallet.coldkey  # unlock coldkey
+    try:
+        wallet.coldkey  # unlock coldkey
+    except bittensor.KeyFileError:
+        bittensor.__console__.print(
+            ":cross_mark: [red]Keyfile is corrupt, non-writable, non-readable or the password used to decrypt is invalid[/red]:[bold white]\n  [/bold white]"
+        )
+        return False
     if prompt:
         # Prompt user for confirmation.
         if not Confirm.ask(
