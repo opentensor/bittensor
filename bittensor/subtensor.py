@@ -4639,7 +4639,9 @@ class Subtensor:
                 return []
 
             formatted_parents = [
-                format_parent(proportion, parent) for proportion, parent in parents
+                format_parent(proportion, parent)
+                for proportion, parent in parents
+                if proportion != 0
             ]
             return formatted_parents
         except SubstrateRequestException as e:

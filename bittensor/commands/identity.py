@@ -115,7 +115,14 @@ class SetIdentityCommand:
             console.print(":cross_mark: Aborted!")
             exit(0)
 
-        wallet.coldkey  # unlock coldkey
+        try:
+            wallet.coldkey  # unlock coldkey
+        except bittensor.KeyFileError:
+            bittensor.__console__.print(
+                ":cross_mark: [red]Keyfile is corrupt, non-writable, non-readable or the password used to decrypt is invalid[/red]:[bold white]\n  [/bold white]"
+            )
+            return
+
         with console.status(":satellite: [bold green]Updating identity on-chain..."):
             try:
                 subtensor.update_identity(
