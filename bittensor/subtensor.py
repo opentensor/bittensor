@@ -4254,9 +4254,13 @@ class Subtensor:
         """
         result = self.query_map_subtensor("NetworksAdded", block)
         subnets = []
-        if result and hasattr(result, "records"):
-            for record in result.records:
-                subnets.append(record[0].value)
+
+        for data in result:
+            continue
+        # Check if the 'records' attribute exists and is not None
+        if hasattr(result, "records") and result.records:
+            subnets = [subnet[0].value for subnet in result.records]
+
         return subnets
 
     def get_all_subnets_info(self, block: Optional[int] = None) -> List[SubnetInfo]:
