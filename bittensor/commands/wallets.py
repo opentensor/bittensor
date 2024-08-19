@@ -1116,7 +1116,7 @@ class WalletSignCommand:
     Example usage::
 
         btcli wallet sign --wallet.name default --message '{"something": "here", "timestamp": 1719908486}'
-        btcli wallet sign --wallet.name default --wallet.name hotkey --message '{"something": "here", "timestamp": 1719908486}'
+        btcli wallet sign --wallet.name default --wallet.hotkey hotkey --message '{"something": "here", "timestamp": 1719908486}'
 
     Note:
         When using `btcli`, `w` is used interchangeably with `wallet`. You may use either based on your preference for brevity or clarity.
