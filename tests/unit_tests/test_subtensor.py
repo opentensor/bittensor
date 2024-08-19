@@ -1918,7 +1918,7 @@ def test_get_subnets_correct_length(mocker, subtensor):
     """Test get_subnets returns a list of the correct length."""
     # Prep
     block = 123
-    num_records = 50
+    num_records = 500
     mock_records = [(mocker.MagicMock(value=i), True) for i in range(num_records)]
     mock_result = mocker.MagicMock()
     mock_result.records = mock_records
