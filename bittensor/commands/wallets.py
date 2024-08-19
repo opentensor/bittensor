@@ -1134,7 +1134,7 @@ class WalletSignCommand:
             bittensor.__console__.print(
                 ":cross_mark: [red]Keyfile is corrupt, non-writable, non-readable or the password used to decrypt is invalid[/red]:[bold white]\n  [/bold white]"
             )
-        
+
         keypair = wallet.coldkey
 
         # Use a hotkey if the user specified it
