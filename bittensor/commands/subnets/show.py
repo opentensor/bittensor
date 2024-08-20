@@ -110,12 +110,14 @@ class ShowSubnet:
             total_emission = 0
             for netuid in range( len(all_info)):
                 dynamic_info = all_info[netuid]
-                total_emission += dynamic_info.alpha_to_tao( Balance.from_rao(root_state.emission_history[netuid][idx]) )
+                last_emission_drain = root_state.emission_history[netuid][idx]
+                per_block_emission = last_emission_drain.tao / dynamic_info.tempo 
+                total_emission_per_block += dynamic_info.alpha_to_tao( Balance.from_tao(per_block_emission) )
             table.add_row(
                 str((pos + 1)),
                 str(root_state.local_stake[idx]),
                 str(root_state.global_stake[idx]),
-                str(total_emission.tao),
+                str(total_emission_per_block),
                 f"{root_state.hotkeys[idx]}",
             )
 

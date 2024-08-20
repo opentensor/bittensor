@@ -60,6 +60,7 @@ class StakeList:
 
         # Token pricing info.
         dynamic_info = subtensor.get_all_subnet_dynamic_info()
+        emission_drain_tempo = int(subtensor.query_module("SubtensorModule", "HotkeyEmissionTempo").value)
         balance = subtensor.get_balance( wallet.coldkeypub.ss58_address )
     
         # Iterate over substakes and aggregate them by hotkey.
@@ -92,7 +93,7 @@ class StakeList:
                     slippage_percentage = 'N/A'                
                 tao_locked = pool.tao_in if pool.is_dynamic else subtensor.get_total_subnet_stake(netuid).set_unit(netuid)
                 issuance = pool.alpha_out if pool.is_dynamic else tao_locked
-                per_block_emission = substake.emission.tao / ((300 / subtensor.get_subnet_hyperparameters(netuid).tempo) * subtensor.get_subnet_hyperparameters(0).tempo )
+                per_block_emission = substake.emission.tao / ( ( emission_drain_tempo / pool.tempo) * pool.tempo )
                 if alpha_value.tao > 0.00009:
                     if issuance.tao != 0:
                         alpha_ownership = "{:.4f}".format((alpha_value.tao / issuance.tao) * 100)
