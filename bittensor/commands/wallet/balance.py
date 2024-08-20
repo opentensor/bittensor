@@ -17,11 +17,16 @@
 
 import argparse
 import os
+
 import bittensor
 from rich.prompt import Prompt, Confirm
 from rich.table import Table
-from typing import List, Tuple
+from typing import Dict, List, Tuple, TYPE_CHECKING
 from .. import defaults
+from bittensor.utils.balance import Balance
+
+if TYPE_CHECKING:
+    from bittensor.subtensor import Subtensor
 
 
 def _get_coldkey_ss58_addresses_for_path(path: str) -> Tuple[List[str], List[str]]:
@@ -53,6 +58,68 @@ def _get_coldkey_ss58_addresses_for_path(path: str) -> Tuple[List[str], List[str
         for coldkey_path in coldkey_files
     ]
     return addresses, wallet_names
+
+
+def _get_total_stake_for_coldkey(
+    subtensor: "Subtensor", ss58_address: str
+) -> "Balance":
+    """Gets all staked balance for the coldkey address."""
+    sub_stakes = subtensor.get_stake_info_for_coldkeys(
+        coldkey_ss58_list=[ss58_address]
+    )[ss58_address]
+
+    # Token pricing info.
+    dynamic_info = subtensor.get_all_subnet_dynamic_info()
+
+    all_staked_tao = 0
+
+    # Iterate over sub-stakes and aggregate them by hotkey.
+    for substake in sub_stakes:
+        if substake.stake.rao == 0:
+            continue
+        netuid = substake.netuid
+        pool = dynamic_info[netuid]
+        alpha_value = bittensor.Balance.from_rao(int(substake.stake.rao)).set_unit(
+            netuid
+        )
+        tao_locked = (
+            pool.tao_in
+            if pool.is_dynamic
+            else subtensor.get_total_subnet_stake(netuid).set_unit(netuid)
+        )
+        issuance = pool.alpha_out if pool.is_dynamic else tao_locked
+        tao_ownership = 0
+
+        if alpha_value.tao > 0.00009 and issuance.tao != 0:
+            tao_ownership = bittensor.Balance.from_tao(
+                (alpha_value.tao / issuance.tao) * tao_locked.tao
+            )
+
+        all_staked_tao += tao_ownership.rao
+
+    return Balance.from_rao(all_staked_tao)
+
+
+def _get_balances(
+    subtensor: "Subtensor", coldkeys, wallet_names
+) -> Tuple[Dict["str", tuple[str, "Balance", "Balance"]], int, int]:
+    free_balances = [subtensor.get_balance(coldkeys[i]) for i in range(len(coldkeys))]
+
+    staked_balances = [
+        _get_total_stake_for_coldkey(subtensor, coldkeys[i])
+        for i in range(len(coldkeys))
+    ]
+
+    total_free_balance = sum(free_balances)
+    total_staked_balance = sum(staked_balances)
+
+    balances = {
+        name: (coldkey, free, staked)
+        for name, coldkey, free, staked in sorted(
+            zip(wallet_names, coldkeys, free_balances, staked_balances)
+        )
+    }
+    return balances, total_free_balance, total_staked_balance
 
 
 class WalletBalanceCommand:
@@ -108,134 +175,104 @@ class WalletBalanceCommand:
 
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
-        
-        pass
-        
-        # wallet = bittensor.wallet(config=cli.config)        
-        
-        # dynamic_info = subtensor.get_all_subnet_dynamic_info()
-        # substakes = subtensor.get_stake_info_for_coldkeys( coldkey_ss58_list=[wallet.coldkeypub.ss58_address] )
-        # balance = subtensor.get_balance( wallet.coldkeypub.ss58_address )
+        total_staked_balance = 0
+        balances = {}
 
+        if cli.config.get("all", d=None):
+            coldkeys, wallet_names = _get_coldkey_ss58_addresses_for_path(
+                cli.config.wallet.path
+            )
 
-        # wallet_names = []
-        # coldkeys = []
-        # free_balances = []
-        # staked_balances = []
-        # total_free_balance = 0
-        # total_staked_balance = 0
-        # balances = {}
-        
-        # dynamic_info = subtensor.get_all_subnet_dynamic_info()
+            balances, total_free_balance, total_staked_balance = _get_balances(
+                subtensor=subtensor, coldkeys=coldkeys, wallet_names=wallet_names
+            )
+        else:
+            coldkey_wallet = bittensor.wallet(config=cli.config)
+            if (
+                coldkey_wallet.coldkeypub_file.exists_on_device()
+                and not coldkey_wallet.coldkeypub_file.is_encrypted()
+            ):
+                coldkeys = [coldkey_wallet.coldkeypub.ss58_address]
+                wallet_names = [coldkey_wallet.name]
 
-        # if cli.config.get("all", d=None):
-        #     coldkeys, wallet_names = _get_coldkey_ss58_addresses_for_path(
-        #         cli.config.wallet.path
-        #     )
+                balances, total_free_balance, total_staked_balance = _get_balances(
+                    subtensor=subtensor, coldkeys=coldkeys, wallet_names=wallet_names
+                )
 
-        #     free_balances = [
-        #         subtensor.get_balance(coldkeys[i]) for i in range(len(coldkeys))
-        #     ]
+            if not coldkey_wallet.coldkeypub_file.exists_on_device():
+                bittensor.__console__.print("[bold red]No wallets found.")
+                return
 
-        #     substakes = subtensor.get_stake_info_for_coldkeys(
-        #         coldkey_ss58_list=[cold.coldkeypub.ss58_address for cold in coldkeys]
-        #     )
-            
-            
-        #     tao_ownership = bittensor.Balance.from_tao((alpha_value.tao / issuance.tao) * tao_locked.tao)
+        table = Table(
+            title="[white]Wallet Coldkey Balances",
+            width=bittensor.__console__.width - 5,
+            safe_box=True,
+            padding=(0, 1),
+            collapse_padding=False,
+            pad_edge=True,
+            expand=True,
+            show_header=True,
+            show_footer=True,
+            show_edge=False,
+            show_lines=False,
+            leading=0,
+            style="none",
+            row_styles=None,
+            header_style="bold",
+            footer_style="bold",
+            border_style="rgb(7,54,66)",
+            title_style="bold magenta",
+            title_justify="center",
+            highlight=False,
+        )
+        table.add_column(
+            "[white]Wallet Name",
+            header_style="overline white",
+            footer_style="overline white",
+            style="rgb(50,163,219)",
+            no_wrap=True,
+        )
 
+        table.add_column(
+            "[white]Coldkey Address",
+            header_style="overline white",
+            footer_style="overline white",
+            style="rgb(50,163,219)",
+            no_wrap=True,
+        )
 
-        #     total_free_balance = sum(free_balances)
-        #     total_staked_balance = sum(staked_balances)
+        for type_str in ["Free", "Staked", "Total"]:
+            table.add_column(
+                f"[white]{type_str} Balance",
+                header_style="overline white",
+                footer_style="overline white",
+                justify="right",
+                style="green",
+                no_wrap=True,
+            )
 
-        #     balances = {
-        #         name: (coldkey, free, staked)
-        #         for name, coldkey, free, staked in sorted(
-        #             zip(wallet_names, coldkeys, free_balances, staked_balances)
-        #         )
-        #     }
-        # else:
-        #     coldkey_wallet = bittensor.wallet(config=cli.config)
-        #     if (
-        #         coldkey_wallet.coldkeypub_file.exists_on_device()
-        #         and not coldkey_wallet.coldkeypub_file.is_encrypted()
-        #     ):
-        #         coldkeys = [coldkey_wallet.coldkeypub.ss58_address]
-        #         wallet_names = [coldkey_wallet.name]
+        for name, (coldkey, free, staked) in balances.items():
+            table.add_row(
+                name,
+                coldkey,
+                str(free),
+                str(staked),
+                str(free + staked),
+            )
+        table.add_row()
+        table.add_row(
+            "Total Balance Across All Coldkeys",
+            "",
+            str(total_free_balance),
+            str(total_staked_balance),
+            str(total_free_balance + total_staked_balance),
+        )
+        table.show_footer = True
 
-        #         free_balances = [
-        #             subtensor.get_balance(coldkeys[i]) for i in range(len(coldkeys))
-        #         ]
-
-        #         staked_balances = [
-        #             subtensor.get_total_stake_for_coldkey(coldkeys[i])
-        #             for i in range(len(coldkeys))
-        #         ]
-
-        #         total_free_balance = sum(free_balances)
-        #         total_staked_balance = sum(staked_balances)
-
-        #         balances = {
-        #             name: (coldkey, free, staked)
-        #             for name, coldkey, free, staked in sorted(
-        #                 zip(wallet_names, coldkeys, free_balances, staked_balances)
-        #             )
-        #         }
-
-        #     if not coldkey_wallet.coldkeypub_file.exists_on_device():
-        #         bittensor.__console__.print("[bold red]No wallets found.")
-        #         return
-
-        # table = Table(show_footer=False)
-        # table.title = "[white]Wallet Coldkey Balances"
-        # table.add_column(
-        #     "[white]Wallet Name",
-        #     header_style="overline white",
-        #     footer_style="overline white",
-        #     style="rgb(50,163,219)",
-        #     no_wrap=True,
-        # )
-
-        # table.add_column(
-        #     "[white]Coldkey Address",
-        #     header_style="overline white",
-        #     footer_style="overline white",
-        #     style="rgb(50,163,219)",
-        #     no_wrap=True,
-        # )
-
-        # for typestr in ["Free", "Staked", "Total"]:
-        #     table.add_column(
-        #         f"[white]{typestr} Balance",
-        #         header_style="overline white",
-        #         footer_style="overline white",
-        #         justify="right",
-        #         style="green",
-        #         no_wrap=True,
-        #     )
-
-        # for name, (coldkey, free, staked) in balances.items():
-        #     table.add_row(
-        #         name,
-        #         coldkey,
-        #         str(free),
-        #         str(staked),
-        #         str(free + staked),
-        #     )
-        # table.add_row()
-        # table.add_row(
-        #     "Total Balance Across All Coldkeys",
-        #     "",
-        #     str(total_free_balance),
-        #     str(total_staked_balance),
-        #     str(total_free_balance + total_staked_balance),
-        # )
-        # table.show_footer = True
-
-        # table.box = None
-        # table.pad_edge = False
-        # table.width = None
-        # bittensor.__console__.print(table)
+        table.box = None
+        table.pad_edge = False
+        table.width = None
+        bittensor.__console__.print(table)
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
