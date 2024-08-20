@@ -226,28 +226,28 @@ class WalletBalanceCommand:
             highlight=False,
         )
         table.add_column(
-            "[white]Wallet Name",
-            header_style="overline white",
-            footer_style="overline white",
-            style="rgb(50,163,219)",
+            "[bold magenta]Wallet Name",
+            header_style="overline bold magenta",
+            footer_style="overline bold magenta",
+            style="rgb(211,54,130)",  # Solarized magenta
             no_wrap=True,
         )
 
         table.add_column(
-            "[white]Coldkey Address",
-            header_style="overline white",
-            footer_style="overline white",
-            style="rgb(50,163,219)",
+            "[bold yellow]Coldkey Address",
+            header_style="overline bold yellow",
+            footer_style="overline bold yellow",
+            style="rgb(181,137,0)",  # Solarized yellow
             no_wrap=True,
         )
 
         for type_str in ["Free", "Staked", "Total"]:
             table.add_column(
-                f"[white]{type_str} Balance",
-                header_style="overline white",
-                footer_style="overline white",
+                f"[bold cyan]{type_str} Balance",
+                header_style="overline bold cyan",
+                footer_style="overline bold cyan",
                 justify="right",
-                style="green",
+                style="rgb(42,161,152)",  # Solarized cyan
                 no_wrap=True,
             )
 
