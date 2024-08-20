@@ -618,8 +618,9 @@ class SetChildrenCommand:
 
         netuid = cli.config.netuid
         total_subnets = subtensor.get_total_subnets()
-        if total_subnets is not None and total_subnets <= netuid <= 0:
-            raise ValueError("Netuid is outside the current subnet range")
+        if total_subnets is not None and not (0 <= netuid <= total_subnets):
+            console.print("Netuid is outside the current subnet range")
+            return
 
         if not cli.config.is_set("hotkey"):
             cli.config.hotkey = Prompt.ask("Enter parent hotkey (ss58)")
@@ -644,10 +645,11 @@ class SetChildrenCommand:
                 netuid=cli.config.netuid,
                 render_table=True,
             )
-            raise ValueError(
+            console.print(
                 f"There are already children hotkeys under parent hotkey {cli.config.hotkey}. "
                 f"Call revoke_children command before attempting to set_children again, or call the get_children command to view them."
             )
+            return
 
         if not cli.config.is_set("children"):
             cli.config.children = Prompt.ask(
@@ -660,13 +662,15 @@ class SetChildrenCommand:
             if not wallet_utils.is_valid_ss58_address(child):
                 console.print(f":cross_mark:[red] Invalid SS58 address: {child}[/red]")
                 return
-
+        console.print(f"the number of children is {len(children)}")
         if (
             len(children) == 1
         ):  # if only one child, then they have full proportion by default
             cli.config.proportions = 1.0
+            console.print(f"setting proportion to 1: {cli.config.proportions}")
 
         if not cli.config.is_set("proportions"):
+            console.print(f"the proportion val is {cli.config.proportions}")
             cli.config.proportions = Prompt.ask(
                 "Enter the percentage of proportion for each child as comma-separated values (total must equal 1)"
             )
@@ -675,11 +679,16 @@ class SetChildrenCommand:
         proportions = [float(x) for x in re.split(r"[ ,]+", cli.config.proportions)]
         total_proposed = sum(proportions)
         if total_proposed != 1:
-            raise ValueError(
-                f"Invalid proportion: The sum of all proportions must equal 1 (representing 100% of the allocation). Proposed sum of proportions is {total_proposed}."
-            )
+            console.print(f"Invalid proportion: The sum of all proportions must equal 1 (representing 100% of the allocation). Proposed sum of proportions is {total_proposed}.")
+            return
+        
+        if len(proportions) != len(children):
+            console.print("Invalid proportion and children length: The count of children and number of proportion values entered do not match.")
+            return
 
         children_with_proportions = list(zip(proportions, children))
+        
+        SetChildrenCommand.print_current_stake(subtensor=subtensor, children=children, hotkey=cli.config.hotkey)
 
         success, message = subtensor.set_children(
             wallet=wallet,
@@ -737,7 +746,7 @@ class SetChildrenCommand:
             "--wait_for_inclusion",
             dest="wait_for_inclusion",
             action="store_true",
-            default=False,
+            default=True,
             help="""Wait for the transaction to be included in a block.""",
         )
         set_children_parser.add_argument(
@@ -751,11 +760,21 @@ class SetChildrenCommand:
             "--prompt",
             dest="prompt",
             action="store_true",
-            default=False,
+            default=True,
             help="""Prompt for confirmation before proceeding.""",
         )
         bittensor.wallet.add_args(set_children_parser)
         bittensor.subtensor.add_args(set_children_parser)
+
+    @staticmethod
+    def print_current_stake(subtensor, children, hotkey):
+        parent_stake = subtensor.get_total_stake_for_hotkey(
+            ss58_address=hotkey
+        )
+        console.print(f"Parent Hotkey: {hotkey} | Total Parent Stake: {parent_stake}τ")
+        for child in children:
+            child_stake = subtensor.get_total_stake_for_hotkey(child)
+            console.print(f"Child Hotkey: {child} | Current Child Stake: {child_stake}τ")
 
 
 class GetChildrenCommand:
@@ -918,9 +937,8 @@ class GetChildrenCommand:
         table.add_column("Index", style="cyan", no_wrap=True, justify="right")
         table.add_column("ChildHotkey", style="cyan", no_wrap=True)
         table.add_column("Proportion", style="cyan", no_wrap=True, justify="right")
-        table.add_column("Child Stake", style="cyan", no_wrap=True, justify="right")
         table.add_column(
-            "Total Stake Weight", style="cyan", no_wrap=True, justify="right"
+            "New Stake Weight", style="cyan", no_wrap=True, justify="right"
         )
 
         if not children:
@@ -981,7 +999,6 @@ class GetChildrenCommand:
                 str(i),
                 hotkey,
                 proportion_str,
-                str(stake.tao),
                 str(stake_weight),
             )
 
@@ -990,7 +1007,6 @@ class GetChildrenCommand:
             "",
             "Total",
             f"{total_proportion}%",
-            f"{total_stake}τ",
             f"{total_stake_weight}τ",
         )
         console.print(table)
