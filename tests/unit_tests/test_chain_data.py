@@ -511,7 +511,7 @@ def test_fix_decoded_values_error_cases(
 
 @pytest.fixture
 def mock_from_scale_encoding(mocker):
-    return mocker.patch("bittensor.chain_data.from_scale_encoding")
+    return mocker.patch("bittensor.chain_data.utils.from_scale_encoding")
 
 
 @pytest.fixture

@@ -46,6 +46,7 @@ class NewColdkeyCommand:
         It's a foundational step in establishing a secure presence on the Bittensor network.
     """
 
+    @staticmethod
     def run(cli):
         r"""Creates a new coldkey under this wallet."""
         wallet = bittensor.wallet(config=cli.config)

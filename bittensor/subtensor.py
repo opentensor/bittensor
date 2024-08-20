@@ -44,6 +44,10 @@ from substrateinterface.exceptions import SubstrateRequestException
 import bittensor
 from bittensor.btlogging import logging as _logger
 from bittensor.utils import torch, weight_utils, format_error_message
+
+from bittensor.chain_data.dynamic_info import DynamicInfo
+from bittensor.chain_data.substake_elements import SubstakeElements
+
 from .chain_data import (
     NeuronInfo,
     DelegateInfo,
@@ -56,11 +60,9 @@ from .chain_data import (
     AxonInfo,
     ProposalVoteData,
     IPInfo,
-    SubstakeElements,
     DynamicPool,
-    from_scale_encoding_using_type_string,
-    custom_rpc_type_registry,
 )
+from .chain_data.utils import custom_rpc_type_registry, from_scale_encoding_using_type_string
 from .errors import (
     IdentityError,
     NominationError,
@@ -3995,20 +3997,20 @@ class Subtensor:
 
         return SubnetInfoV2.list_from_vec_u8(result)
 
-    def get_all_subnet_dynamic_info(self) -> List["bittensor.chain_data.DynamicInfo"]:
+    def get_all_subnet_dynamic_info(self) -> List["DynamicInfo"]:
         json = self.substrate.rpc_request(
             method="subnetInfo_getAllDynamicInfo", params=[None]
         )
-        subnets = bittensor.chain_data.DynamicInfo.list_from_vec_u8(json["result"])
+        subnets = DynamicInfo.list_from_vec_u8(json["result"])
         return subnets
 
     def get_subnet_dynamic_info(
         self, netuid: int
-    ) -> List["bittensor.chain_data.DynamicInfo"]:
+    ) -> List["DynamicInfo"]:
         json = self.substrate.rpc_request(
             method="subnetInfo_getDynamicInfo", params=[netuid, None]
         )
-        subnets = bittensor.chain_data.DynamicInfo.from_vec_u8(json["result"])
+        subnets = DynamicInfo.from_vec_u8(json["result"])
         return subnets
 
     def get_subnet_info_v2(
