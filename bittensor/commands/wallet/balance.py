@@ -268,10 +268,6 @@ class WalletBalanceCommand:
             str(total_free_balance + total_staked_balance),
         )
         table.show_footer = True
-
-        table.box = None
-        table.pad_edge = False
-        table.width = None
         bittensor.__console__.print(table)
 
     @staticmethod
