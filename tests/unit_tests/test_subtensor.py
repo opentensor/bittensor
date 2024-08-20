@@ -839,6 +839,135 @@ def test_get_subnet_hyperparameters_no_data(mocker, subtensor):
     subtensor_module.SubnetHyperparameters.from_vec_u8.assert_not_called()
 
 
+def test_do_serve_prometheus_is_success(subtensor, mocker):
+    """Successful do_serve_prometheus call."""
+    # Prep
+    fake_wallet = mocker.MagicMock()
+    fake_call_params = mocker.MagicMock()
+    fake_wait_for_inclusion = True
+    fake_wait_for_finalization = True
+
+    mocked_substrate = mocker.MagicMock()
+    mocked_substrate.submit_extrinsic.return_value.is_success = True
+    subtensor.substrate = mocked_substrate
+
+    # Call
+    result = subtensor._do_serve_prometheus(
+        wallet=fake_wallet,
+        call_params=fake_call_params,
+        wait_for_inclusion=fake_wait_for_inclusion,
+        wait_for_finalization=fake_wait_for_finalization,
+    )
+
+    # Asserts
+    mocked_substrate.compose_call.assert_called_once_with(
+        call_module="SubtensorModule",
+        call_function="serve_prometheus",
+        call_params=fake_call_params,
+    )
+
+    mocked_substrate.create_signed_extrinsic.assert_called_once_with(
+        call=mocked_substrate.compose_call.return_value,
+        keypair=fake_wallet.hotkey,
+    )
+
+    mocked_substrate.submit_extrinsic.assert_called_once_with(
+        mocked_substrate.create_signed_extrinsic.return_value,
+        wait_for_inclusion=fake_wait_for_inclusion,
+        wait_for_finalization=fake_wait_for_finalization,
+    )
+
+    mocked_substrate.submit_extrinsic.return_value.process_events.assert_called_once()
+    assert result == (True, None)
+
+
+def test_do_serve_prometheus_is_not_success(subtensor, mocker):
+    """Unsuccessful do_serve_axon call."""
+    # Prep
+    fake_wallet = mocker.MagicMock()
+    fake_call_params = mocker.MagicMock()
+    fake_wait_for_inclusion = True
+    fake_wait_for_finalization = True
+
+    mocked_substrate = mocker.MagicMock()
+    mocked_substrate.submit_extrinsic.return_value.is_success = None
+    subtensor.substrate = mocked_substrate
+
+    mocked_format_error_message = mocker.MagicMock()
+    subtensor_module.format_error_message = mocked_format_error_message
+
+    # Call
+    result = subtensor._do_serve_prometheus(
+        wallet=fake_wallet,
+        call_params=fake_call_params,
+        wait_for_inclusion=fake_wait_for_inclusion,
+        wait_for_finalization=fake_wait_for_finalization,
+    )
+
+    # Asserts
+    mocked_substrate.compose_call.assert_called_once_with(
+        call_module="SubtensorModule",
+        call_function="serve_prometheus",
+        call_params=fake_call_params,
+    )
+
+    mocked_substrate.create_signed_extrinsic.assert_called_once_with(
+        call=mocked_substrate.compose_call.return_value,
+        keypair=fake_wallet.hotkey,
+    )
+
+    mocked_substrate.submit_extrinsic.assert_called_once_with(
+        mocked_substrate.create_signed_extrinsic.return_value,
+        wait_for_inclusion=fake_wait_for_inclusion,
+        wait_for_finalization=fake_wait_for_finalization,
+    )
+
+    mocked_substrate.submit_extrinsic.return_value.process_events.assert_called_once()
+    mocked_format_error_message.assert_called_once_with(
+        mocked_substrate.submit_extrinsic.return_value.error_message
+    )
+    assert result == (False, mocked_format_error_message.return_value)
+
+
+def test_do_serve_prometheus_no_waits(subtensor, mocker):
+    """Unsuccessful do_serve_axon call."""
+    # Prep
+    fake_wallet = mocker.MagicMock()
+    fake_call_params = mocker.MagicMock()
+    fake_wait_for_inclusion = False
+    fake_wait_for_finalization = False
+
+    mocked_substrate = mocker.MagicMock()
+    subtensor.substrate = mocked_substrate
+
+    # Call
+    result = subtensor._do_serve_prometheus(
+        wallet=fake_wallet,
+        call_params=fake_call_params,
+        wait_for_inclusion=fake_wait_for_inclusion,
+        wait_for_finalization=fake_wait_for_finalization,
+    )
+
+    # Asserts
+    mocked_substrate.compose_call.assert_called_once_with(
+        call_module="SubtensorModule",
+        call_function="serve_prometheus",
+        call_params=fake_call_params,
+    )
+
+    mocked_substrate.create_signed_extrinsic.assert_called_once_with(
+        call=mocked_substrate.compose_call.return_value,
+        keypair=fake_wallet.hotkey,
+    )
+
+    mocked_substrate.submit_extrinsic.assert_called_once_with(
+        mocked_substrate.create_signed_extrinsic.return_value,
+        wait_for_inclusion=fake_wait_for_inclusion,
+        wait_for_finalization=fake_wait_for_finalization,
+    )
+    assert result == (True, None)
+
+
 def test_serve_prometheus(subtensor, mocker):
     """Test serve_prometheus function successful call."""
     # Preps
