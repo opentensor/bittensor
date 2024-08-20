@@ -17,6 +17,7 @@
 
 import argparse
 import unittest.mock as mock
+from cgitb import reset
 from typing import List, Tuple
 from unittest.mock import MagicMock
 
@@ -815,6 +816,87 @@ def test_get_subnet_hyperparameters_success(mocker, subtensor):
     subtensor_module.SubnetHyperparameters.from_vec_u8.assert_called_once_with(
         bytes_result
     )
+
+
+def test_neuron_for_uid_none(subtensor, mocker):
+    """Test neuron_for_uid successful call."""
+    # Prep
+    fake_uid = None
+    fake_netuid = 2
+    fake_block = 123
+    mocked_neuron_info = mocker.patch.object(
+        subtensor_module.NeuronInfo, "get_null_neuron"
+    )
+
+    # Call
+    result = subtensor.neuron_for_uid(
+        uid=fake_uid, netuid=fake_netuid, block=fake_block
+    )
+
+    # Asserts
+    mocked_neuron_info.assert_called_once()
+    assert result == mocked_neuron_info.return_value
+
+
+def test_neuron_for_uid_response_none(subtensor, mocker):
+    """Test neuron_for_uid successful call."""
+    # Prep
+    fake_uid = 1
+    fake_netuid = 2
+    fake_block = 123
+    mocked_neuron_info = mocker.patch.object(
+        subtensor_module.NeuronInfo, "get_null_neuron"
+    )
+
+    mocked_substrate = mocker.MagicMock()
+    mocked_substrate.rpc_request.return_value.get.return_value = None
+    subtensor.substrate = mocked_substrate
+
+    # Call
+    result = subtensor.neuron_for_uid(
+        uid=fake_uid, netuid=fake_netuid, block=fake_block
+    )
+
+    # Asserts
+    mocked_substrate.get_block_hash.assert_called_once_with(fake_block)
+    mocked_substrate.rpc_request.assert_called_once_with(
+        method="neuronInfo_getNeuron",
+        params=[fake_netuid, fake_uid, mocked_substrate.get_block_hash.return_value],
+    )
+
+    mocked_neuron_info.assert_called_once()
+    assert result == mocked_neuron_info.return_value
+
+
+def test_neuron_for_uid_success(subtensor, mocker):
+    """Test neuron_for_uid successful call."""
+    # Prep
+    fake_uid = 1
+    fake_netuid = 2
+    fake_block = 123
+    mocked_neuron_from_vec_u8 = mocker.patch.object(
+        subtensor_module.NeuronInfo, "from_vec_u8"
+    )
+
+    mocked_substrate = mocker.MagicMock()
+    subtensor.substrate = mocked_substrate
+
+    # Call
+    result = subtensor.neuron_for_uid(
+        uid=fake_uid, netuid=fake_netuid, block=fake_block
+    )
+
+    # Asserts
+    mocked_substrate.get_block_hash.assert_called_once_with(fake_block)
+    mocked_substrate.rpc_request.assert_called_once_with(
+        method="neuronInfo_getNeuron",
+        params=[fake_netuid, fake_uid, mocked_substrate.get_block_hash.return_value],
+    )
+
+    mocked_neuron_from_vec_u8.assert_called_once_with(
+        mocked_substrate.rpc_request.return_value.get.return_value
+    )
+    assert result == mocked_neuron_from_vec_u8.return_value
 
 
 def test_get_subnet_hyperparameters_no_data(mocker, subtensor):
