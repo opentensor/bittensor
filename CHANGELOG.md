@@ -1,5 +1,12 @@
 # Changelog
 
+## 7.3.1 / 2024-08-19
+
+## What's Changed
+* https://github.com/opentensor/bittensor/pull/2156 by @camfairchild
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v7.3.0...v7.3.1
+
 ## 7.3.0 / 2024-07-12
 
 ## What's Changed
