@@ -864,6 +864,35 @@ def test_get_subnet_hyperparameters_no_data(mocker, subtensor):
     subtensor_module.SubnetHyperparameters.from_vec_u8.assert_not_called()
 
 
+def test_get_neuron_for_pubkey_and_subnet(subtensor, mocker):
+    """Successful call to get_neuron_for_pubkey_and_subnet."""
+    # Prep
+    fake_hotkey_ss58 = "fake_hotkey"
+    fake_netuid = 1
+    fake_block = 123
+
+    mocked_neuron_for_uid = mocker.MagicMock()
+    subtensor.neuron_for_uid = mocked_neuron_for_uid
+
+    mocked_get_uid_for_hotkey_on_subnet = mocker.MagicMock()
+    subtensor.get_uid_for_hotkey_on_subnet = mocked_get_uid_for_hotkey_on_subnet
+
+    # Call
+    result = subtensor.get_neuron_for_pubkey_and_subnet(
+        hotkey_ss58=fake_hotkey_ss58,
+        netuid=fake_netuid,
+        block=fake_block,
+    )
+
+    # Asserts
+    mocked_neuron_for_uid.assert_called_once_with(
+        mocked_get_uid_for_hotkey_on_subnet.return_value,
+        fake_netuid,
+        block=fake_block,
+    )
+    assert result == mocked_neuron_for_uid.return_value
+
+
 def test_neuron_for_uid_none(subtensor, mocker):
     """Test neuron_for_uid successful call."""
     # Prep
