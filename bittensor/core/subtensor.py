@@ -1839,6 +1839,7 @@ class Subtensor:
             return None
         return Balance.from_rao(result.value)
 
+    # Community uses this method
     def commit_weights(
         self,
         wallet: "Wallet",
@@ -1915,6 +1916,7 @@ class Subtensor:
 
         return success, message
 
+    # Community uses this method
     def _do_commit_weights(
         self,
         wallet: "Wallet",
@@ -1968,10 +1970,11 @@ class Subtensor:
             if response.is_success:
                 return True, None
             else:
-                return False, response.error_message
+                return False, format_error_message(response.error_message)
 
         return make_substrate_call_with_retry()
 
+    # Community uses this method
     def reveal_weights(
         self,
         wallet: "Wallet",
@@ -2036,6 +2039,7 @@ class Subtensor:
 
         return success, message
 
+    # Community uses this method
     def _do_reveal_weights(
         self,
         wallet: "Wallet",
