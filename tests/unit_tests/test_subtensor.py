@@ -23,6 +23,7 @@ from unittest.mock import MagicMock
 
 import pytest
 from bittensor_wallet import Wallet
+from mypy.plugins.singledispatch import make_fake_register_class_instance
 
 from bittensor import wallet
 from bittensor.core import subtensor as subtensor_module, settings
@@ -32,6 +33,7 @@ from bittensor.core.settings import version_as_int
 from bittensor.core.subtensor import Subtensor, logging
 from bittensor.utils import u16_normalized_float, u64_normalized_float
 from bittensor.utils.balance import Balance
+from e2e_tests.utils.chain_interactions import register_subnet
 
 U16_MAX = 65535
 U64_MAX = 18446744073709551615
@@ -864,6 +866,211 @@ def test_get_subnet_hyperparameters_no_data(mocker, subtensor):
         block=block,
     )
     subtensor_module.SubnetHyperparameters.from_vec_u8.assert_not_called()
+
+
+def test_state_call(subtensor, mocker):
+    """Tests state_call call."""
+    # Prep
+    fake_method = "method"
+    fake_data = "data"
+    mocked_substrate = mocker.MagicMock()
+    subtensor.substrate = mocked_substrate
+
+    # Call
+    result = subtensor.state_call(fake_method, fake_data)
+
+    # Asserts
+    mocked_substrate.rpc_request.assert_called_once_with(
+        method="state_call",
+        params=[fake_method, fake_data],
+    )
+    assert result == mocked_substrate.rpc_request.return_value
+
+
+def test_query_map(subtensor, mocker):
+    """Tests query_map call."""
+    # Prep
+    fake_module_name = "module_name"
+    fake_name = "constant_name"
+    mocked_substrate = mocker.MagicMock()
+    subtensor.substrate = mocked_substrate
+
+    # Call
+    result = subtensor.query_map(fake_module_name, fake_name)
+
+    # Asserts
+    mocked_substrate.query_map.assert_called_once_with(
+        module=fake_module_name,
+        storage_function=fake_name,
+        params=None,
+        block_hash=None,
+    )
+    assert result == mocked_substrate.query_map.return_value
+
+
+def test_query_constant(subtensor, mocker):
+    """Tests query_constant call."""
+    # Prep
+    fake_module_name = "module_name"
+    fake_constant_name = "constant_name"
+    mocked_substrate = mocker.MagicMock()
+    subtensor.substrate = mocked_substrate
+
+    # Call
+    result = subtensor.query_constant(fake_module_name, fake_constant_name)
+
+    # Asserts
+    mocked_substrate.get_constant.assert_called_once_with(
+        module_name=fake_module_name,
+        constant_name=fake_constant_name,
+        block_hash=None,
+    )
+    assert result == mocked_substrate.get_constant.return_value
+
+
+def test_query_module(subtensor, mocker):
+    # Prep
+    fake_module = "module"
+    fake_name = "function_name"
+    mocked_substrate = mocker.MagicMock()
+    subtensor.substrate = mocked_substrate
+
+    # Call
+    result = subtensor.query_module(fake_module, fake_name)
+
+    # Asserts
+    mocked_substrate.query.assert_called_once_with(
+        module=fake_module,
+        storage_function=fake_name,
+        params=None,
+        block_hash=None,
+    )
+    assert result == mocked_substrate.query.return_value
+
+
+def test_metagraph(subtensor, mocker):
+    """Tests subtensor.metagraph call."""
+    # Prep
+    fake_netuid = 1
+    fake_lite = True
+    mocked_metagraph = mocker.patch.object(subtensor_module, "Metagraph")
+
+    # Call
+    result = subtensor.metagraph(fake_netuid, fake_lite)
+
+    # Asserts
+    mocked_metagraph.assert_called_once_with(
+        network=subtensor.network,
+        netuid=fake_netuid,
+        lite=fake_lite,
+        sync=False
+    )
+    mocked_metagraph.return_value.sync.assert_called_once_with(
+        block=None, lite=fake_lite, subtensor=subtensor
+    )
+    assert result == mocked_metagraph.return_value
+
+
+def test_get_netuids_for_hotkey(subtensor, mocker):
+    """Tests get_netuids_for_hotkey call."""
+    # Prep
+    fake_hotkey_ss58 = "hotkey_ss58"
+    fake_block = 123
+
+    mocked_query_map_subtensor = mocker.MagicMock()
+    subtensor.query_map_subtensor = mocked_query_map_subtensor
+
+    # Call
+    result = subtensor.get_netuids_for_hotkey(fake_hotkey_ss58, fake_block)
+
+    # Asserts
+    mocked_query_map_subtensor.assert_called_once_with("IsNetworkMember", fake_block, [fake_hotkey_ss58])
+    assert result == []
+
+
+def test_get_current_block(subtensor, mocker):
+    """Tests get_current_block call."""
+    # Prep
+    mocked_substrate = mocker.MagicMock()
+    subtensor.substrate = mocked_substrate
+
+    # Call
+    result = subtensor.get_current_block()
+
+    # Asserts
+    mocked_substrate.get_block_number.assert_called_once_with(None)
+    assert result == mocked_substrate.get_block_number.return_value
+
+
+def test_is_hotkey_registered_any(subtensor, mocker):
+    """Tests is_hotkey_registered_any call"""
+    # Prep
+    fake_hotkey_ss58 = "hotkey_ss58"
+    fake_block = 123
+    return_value = [1, 2]
+
+    mocked_get_netuids_for_hotkey = mocker.MagicMock(return_value=return_value)
+    subtensor.get_netuids_for_hotkey = mocked_get_netuids_for_hotkey
+
+    # Call
+    result = subtensor.is_hotkey_registered_any(fake_hotkey_ss58, fake_block)
+
+    # Asserts
+    mocked_get_netuids_for_hotkey.assert_called_once_with(fake_hotkey_ss58, fake_block)
+    assert result is (len(return_value) > 0)
+
+
+def test_is_hotkey_registered_on_subnet(subtensor, mocker):
+    """Tests is_hotkey_registered_on_subnet call."""
+    # Prep
+    fake_hotkey_ss58 = "hotkey_ss58"
+    fake_netuid = 1
+    fake_block = 123
+
+    mocked_get_uid_for_hotkey_on_subnet = mocker.MagicMock()
+    subtensor.get_uid_for_hotkey_on_subnet = mocked_get_uid_for_hotkey_on_subnet
+
+    # Call
+    result = subtensor.is_hotkey_registered_on_subnet(fake_hotkey_ss58, fake_netuid, fake_block)
+
+    # Asserts
+    mocked_get_uid_for_hotkey_on_subnet.assert_called_once_with(fake_hotkey_ss58, fake_netuid, fake_block)
+    assert result is (mocked_get_uid_for_hotkey_on_subnet.return_value is not None)
+
+
+def test_is_hotkey_registered_without_netuid(subtensor, mocker):
+    """Tests is_hotkey_registered call with no netuid specified."""
+    # Prep
+    fake_hotkey_ss58 = "hotkey_ss58"
+
+    mocked_is_hotkey_registered_any = mocker.MagicMock()
+    subtensor.is_hotkey_registered_any = mocked_is_hotkey_registered_any
+
+    # Call
+
+    result = subtensor.is_hotkey_registered(fake_hotkey_ss58)
+
+    # Asserts
+    mocked_is_hotkey_registered_any.assert_called_once_with(fake_hotkey_ss58, None)
+    assert result == mocked_is_hotkey_registered_any.return_value
+
+
+def test_is_hotkey_registered_with_netuid(subtensor, mocker):
+    """Tests is_hotkey_registered call with netuid specified."""
+    # Prep
+    fake_hotkey_ss58 = "hotkey_ss58"
+    fake_netuid = 123
+
+    mocked_is_hotkey_registered_on_subnet = mocker.MagicMock()
+    subtensor.is_hotkey_registered_on_subnet = mocked_is_hotkey_registered_on_subnet
+
+    # Call
+
+    result = subtensor.is_hotkey_registered(fake_hotkey_ss58, fake_netuid)
+
+    # Asserts
+    mocked_is_hotkey_registered_on_subnet.assert_called_once_with(fake_hotkey_ss58, fake_netuid, None)
+    assert result == mocked_is_hotkey_registered_on_subnet.return_value
 
 
 def test_do_set_weights_is_success(subtensor, mocker):
