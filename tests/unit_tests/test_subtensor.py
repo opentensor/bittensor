@@ -839,7 +839,40 @@ def test_get_subnet_hyperparameters_no_data(mocker, subtensor):
     subtensor_module.SubnetHyperparameters.from_vec_u8.assert_not_called()
 
 
-def test_get_subnet_hyperparameters_hex_without_prefix(mocker, subtensor):
+def test_serve_prometheus(subtensor, mocker):
+    """Test serve_prometheus function successful call."""
+    # Preps
+    fake_wallet = mocker.MagicMock()
+    fake_port = 1234
+    fake_netuid = 1
+    wait_for_inclusion = True
+    wait_for_finalization = False
+
+    mocked_prometheus_extrinsic = mocker.patch.object(subtensor_module, "prometheus_extrinsic")
+
+    # Call
+    result = subtensor.serve_prometheus(
+        fake_wallet,
+        fake_port,
+        fake_netuid,
+        wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization,
+    )
+
+    # Asserts
+    mocked_prometheus_extrinsic.assert_called_once_with(
+        subtensor,
+        wallet=fake_wallet,
+        port=fake_port,
+        netuid=fake_netuid,
+        wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization,
+    )
+
+    assert result == mocked_prometheus_extrinsic.return_value
+
+
+def test_get_subnet_hyperparameters_hex_without_prefix(subtensor, mocker):
     """Test get_subnet_hyperparameters correctly processes hex string without '0x' prefix."""
     # Prep
     netuid = 1
@@ -862,6 +895,248 @@ def test_get_subnet_hyperparameters_hex_without_prefix(mocker, subtensor):
     subtensor_module.SubnetHyperparameters.from_vec_u8.assert_called_once_with(
         bytes_result
     )
+
+
+def test_do_serve_axon_is_success(subtensor, mocker):
+    """Successful do_serve_axon call."""
+    # Prep
+    fake_wallet = mocker.MagicMock()
+    fake_call_params = mocker.MagicMock()
+    fake_wait_for_inclusion = True
+    fake_wait_for_finalization = True
+
+    mocked_substrate = mocker.MagicMock()
+    mocked_substrate.submit_extrinsic.return_value.is_success = True
+    subtensor.substrate = mocked_substrate
+
+    # Call
+    result = subtensor._do_serve_axon(
+        wallet=fake_wallet,
+        call_params=fake_call_params,
+        wait_for_inclusion=fake_wait_for_inclusion,
+        wait_for_finalization=fake_wait_for_finalization,
+    )
+
+    # Asserts
+    mocked_substrate.compose_call.assert_called_once_with(
+        call_module="SubtensorModule",
+        call_function="serve_axon",
+        call_params=fake_call_params,
+    )
+
+    mocked_substrate.create_signed_extrinsic.assert_called_once_with(
+        call=mocked_substrate.compose_call.return_value,
+        keypair=fake_wallet.hotkey,
+    )
+
+    mocked_substrate.submit_extrinsic.assert_called_once_with(
+        mocked_substrate.create_signed_extrinsic.return_value,
+        wait_for_inclusion=fake_wait_for_inclusion,
+        wait_for_finalization=fake_wait_for_finalization,
+    )
+
+    mocked_substrate.submit_extrinsic.return_value.process_events.assert_called_once()
+    assert result == (True, None)
+
+
+def test_do_serve_axon_is_not_success(subtensor, mocker):
+    """Unsuccessful do_serve_axon call."""
+    # Prep
+    fake_wallet = mocker.MagicMock()
+    fake_call_params = mocker.MagicMock()
+    fake_wait_for_inclusion = True
+    fake_wait_for_finalization = True
+
+    mocked_substrate = mocker.MagicMock()
+    mocked_substrate.submit_extrinsic.return_value.is_success = None
+    subtensor.substrate = mocked_substrate
+
+    mocked_format_error_message = mocker.MagicMock()
+    subtensor_module.format_error_message = mocked_format_error_message
+
+    # Call
+    result = subtensor._do_serve_axon(
+        wallet=fake_wallet,
+        call_params=fake_call_params,
+        wait_for_inclusion=fake_wait_for_inclusion,
+        wait_for_finalization=fake_wait_for_finalization,
+    )
+
+    # Asserts
+    mocked_substrate.compose_call.assert_called_once_with(
+        call_module="SubtensorModule",
+        call_function="serve_axon",
+        call_params=fake_call_params,
+    )
+
+    mocked_substrate.create_signed_extrinsic.assert_called_once_with(
+        call=mocked_substrate.compose_call.return_value,
+        keypair=fake_wallet.hotkey,
+    )
+
+    mocked_substrate.submit_extrinsic.assert_called_once_with(
+        mocked_substrate.create_signed_extrinsic.return_value,
+        wait_for_inclusion=fake_wait_for_inclusion,
+        wait_for_finalization=fake_wait_for_finalization,
+    )
+
+    mocked_substrate.submit_extrinsic.return_value.process_events.assert_called_once()
+    mocked_format_error_message.assert_called_once_with(mocked_substrate.submit_extrinsic.return_value.error_message)
+    assert result == (False, mocked_format_error_message.return_value)
+
+
+def test_do_serve_axon_no_waits(subtensor, mocker):
+    """Unsuccessful do_serve_axon call."""
+    # Prep
+    fake_wallet = mocker.MagicMock()
+    fake_call_params = mocker.MagicMock()
+    fake_wait_for_inclusion = False
+    fake_wait_for_finalization = False
+
+    mocked_substrate = mocker.MagicMock()
+    subtensor.substrate = mocked_substrate
+
+    # Call
+    result = subtensor._do_serve_axon(
+        wallet=fake_wallet,
+        call_params=fake_call_params,
+        wait_for_inclusion=fake_wait_for_inclusion,
+        wait_for_finalization=fake_wait_for_finalization,
+    )
+
+    # Asserts
+    mocked_substrate.compose_call.assert_called_once_with(
+        call_module="SubtensorModule",
+        call_function="serve_axon",
+        call_params=fake_call_params,
+    )
+
+    mocked_substrate.create_signed_extrinsic.assert_called_once_with(
+        call=mocked_substrate.compose_call.return_value,
+        keypair=fake_wallet.hotkey,
+    )
+
+    mocked_substrate.submit_extrinsic.assert_called_once_with(
+        mocked_substrate.create_signed_extrinsic.return_value,
+        wait_for_inclusion=fake_wait_for_inclusion,
+        wait_for_finalization=fake_wait_for_finalization,
+    )
+    assert result == (True, None)
+
+
+def test_serve(subtensor, mocker):
+    """Successful serve call."""
+    # Prep
+    fake_wallet = mocker.MagicMock()
+    fake_ip = "fake_ip"
+    fake_port = 1234
+    fake_protocol = 1
+    fake_netuid = 1
+    fake_placeholder1 = 0
+    fake_placeholder2 = 1
+    fake_wait_for_inclusion = True
+    fake_wait_for_finalization = True
+
+    mocked_serve_extrinsic = mocker.patch.object(subtensor_module, "serve_extrinsic")
+
+    # Call
+    result = subtensor.serve(
+        fake_wallet,
+        fake_ip,
+        fake_port,
+        fake_protocol,
+        fake_netuid,
+        fake_placeholder1,
+        fake_placeholder2,
+        fake_wait_for_inclusion,
+        fake_wait_for_finalization,
+    )
+
+    # Asserts
+    mocked_serve_extrinsic.assert_called_once_with(
+        subtensor,
+        fake_wallet,
+        fake_ip,
+        fake_port,
+        fake_protocol,
+        fake_netuid,
+        fake_placeholder1,
+        fake_placeholder2,
+        fake_wait_for_inclusion,
+        fake_wait_for_finalization,
+    )
+
+    assert result == mocked_serve_extrinsic.return_value
+
+
+def test_immunity_period(subtensor, mocker):
+    """Successful immunity_period call."""
+    # Preps
+    fake_netuid = 1
+    fake_block = 123
+    fare_result = 101
+
+    mocked_get_hyperparameter = mocker.MagicMock()
+    mocked_get_hyperparameter.return_value = fare_result
+    subtensor._get_hyperparameter = mocked_get_hyperparameter
+
+    # Call
+    result = subtensor.immunity_period(netuid=fake_netuid, block=fake_block)
+
+    # Assertions
+    mocked_get_hyperparameter.assert_called_once_with(
+        param_name="ImmunityPeriod",
+        netuid=fake_netuid,
+        block=fake_block,
+    )
+    assert result == mocked_get_hyperparameter.return_value
+
+
+def test_get_uid_for_hotkey_on_subnet(subtensor, mocker):
+    """Successful get_uid_for_hotkey_on_subnet call."""
+    # Prep
+    fake_hotkey_ss58 = "fake_hotkey_ss58"
+    fake_netuid = 1
+    fake_block = 123
+    mocked_query_subtensor = mocker.MagicMock()
+    subtensor.query_subtensor = mocked_query_subtensor
+
+    # Call
+    result = subtensor.get_uid_for_hotkey_on_subnet(
+        hotkey_ss58=fake_hotkey_ss58,
+        netuid=fake_netuid,
+        block=fake_block
+    )
+
+    # Assertions
+    mocked_query_subtensor.assert_called_once_with(
+        "Uids", fake_block, [fake_netuid, fake_hotkey_ss58]
+    )
+
+    assert result == mocked_query_subtensor.return_value.value
+
+
+def test_tempo(subtensor, mocker):
+    """Successful tempo call."""
+    # Preps
+    fake_netuid = 1
+    fake_block = 123
+    fare_result = 101
+
+    mocked_get_hyperparameter = mocker.MagicMock()
+    mocked_get_hyperparameter.return_value = fare_result
+    subtensor._get_hyperparameter = mocked_get_hyperparameter
+
+    # Call
+    result = subtensor.tempo(netuid=fake_netuid, block=fake_block)
+
+    # Assertions
+    mocked_get_hyperparameter.assert_called_once_with(
+        param_name="Tempo",
+        netuid=fake_netuid,
+        block=fake_block,
+    )
+    assert result == mocked_get_hyperparameter.return_value
 
 
 def test_get_commitment(subtensor, mocker):
