@@ -87,7 +87,13 @@ def register_subnetwork_extrinsic(
         ):
             return False
 
-    wallet.coldkey  # unlock coldkey
+    try:
+        wallet.coldkey  # unlock coldkey
+    except bittensor.KeyFileError:
+        bittensor.__console__.print(
+            ":cross_mark: [red]Keyfile is corrupt, non-writable, non-readable or the password used to decrypt is invalid[/red]:[bold white]\n  [/bold white]"
+        )
+        return False
 
     with bittensor.__console__.status(":satellite: Registering subnet..."):
         with subtensor.substrate as substrate:
