@@ -848,7 +848,9 @@ def test_serve_prometheus(subtensor, mocker):
     wait_for_inclusion = True
     wait_for_finalization = False
 
-    mocked_prometheus_extrinsic = mocker.patch.object(subtensor_module, "prometheus_extrinsic")
+    mocked_prometheus_extrinsic = mocker.patch.object(
+        subtensor_module, "prometheus_extrinsic"
+    )
 
     # Call
     result = subtensor.serve_prometheus(
@@ -981,7 +983,9 @@ def test_do_serve_axon_is_not_success(subtensor, mocker):
     )
 
     mocked_substrate.submit_extrinsic.return_value.process_events.assert_called_once()
-    mocked_format_error_message.assert_called_once_with(mocked_substrate.submit_extrinsic.return_value.error_message)
+    mocked_format_error_message.assert_called_once_with(
+        mocked_substrate.submit_extrinsic.return_value.error_message
+    )
     assert result == (False, mocked_format_error_message.return_value)
 
 
@@ -1103,9 +1107,7 @@ def test_get_uid_for_hotkey_on_subnet(subtensor, mocker):
 
     # Call
     result = subtensor.get_uid_for_hotkey_on_subnet(
-        hotkey_ss58=fake_hotkey_ss58,
-        netuid=fake_netuid,
-        block=fake_block
+        hotkey_ss58=fake_hotkey_ss58, netuid=fake_netuid, block=fake_block
     )
 
     # Assertions
