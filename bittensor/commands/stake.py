@@ -760,7 +760,7 @@ class SetChildrenCommand:
             "--prompt",
             dest="prompt",
             action="store_true",
-            default=True,
+            default=False,
             help="""Prompt for confirmation before proceeding.""",
         )
         bittensor.wallet.add_args(set_children_parser)
@@ -772,10 +772,13 @@ class SetChildrenCommand:
         parent_stake = subtensor.get_total_stake_for_hotkey(
             ss58_address=hotkey
         )
-        console.print(f"Parent Hotkey: {hotkey} | Total Parent Stake: {parent_stake}τ")
+        console.print(
+            f"Parent HotKey: {hotkey}  |  ", style="cyan", end="", no_wrap=True
+        )
+        console.print(f"Total Parent Stake: {parent_stake}τ")
         for child in children:
             child_stake = subtensor.get_total_stake_for_hotkey(child)
-            console.print(f"Child Hotkey: {child} | Current Child Stake: {child_stake}τ")
+            console.print(f"Child Hotkey:  {child}  | Current Child Stake: {child_stake}τ")
 
 
 class GetChildrenCommand:
@@ -955,11 +958,6 @@ class GetChildrenCommand:
                     f"To add a child hotkey you can run the command: [white]{command}[/white]"
                 )
             return
-
-        console.print(
-            f"Parent HotKey: {hotkey}  |  ", style="cyan", end="", no_wrap=True
-        )
-        console.print(f"Total Parent Stake: {hotkey_stake.tao}τ")
 
         # calculate totals
         total_proportion = 0
