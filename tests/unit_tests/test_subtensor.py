@@ -818,28 +818,6 @@ def test_get_subnet_hyperparameters_success(mocker, subtensor):
     )
 
 
-def test_get_subnet_hyperparameters_no_data(mocker, subtensor):
-    """Test get_subnet_hyperparameters returns empty list when no data is found."""
-    # Prep
-    netuid = 1
-    block = 123
-    mocker.patch.object(subtensor, "query_runtime_api", return_value=None)
-    mocker.patch.object(subtensor_module.SubnetHyperparameters, "from_vec_u8")
-
-    # Call
-    result = subtensor.get_subnet_hyperparameters(netuid, block)
-
-    # Asserts
-    assert result == []
-    subtensor.query_runtime_api.assert_called_once_with(
-        runtime_api="SubnetInfoRuntimeApi",
-        method="get_subnet_hyperparams",
-        params=[netuid],
-        block=block,
-    )
-    subtensor_module.SubnetHyperparameters.from_vec_u8.assert_not_called()
-
-
 def test_get_subnet_hyperparameters_hex_without_prefix(subtensor, mocker):
     """Test get_subnet_hyperparameters correctly processes hex string without '0x' prefix."""
     # Prep
@@ -863,6 +841,28 @@ def test_get_subnet_hyperparameters_hex_without_prefix(subtensor, mocker):
     subtensor_module.SubnetHyperparameters.from_vec_u8.assert_called_once_with(
         bytes_result
     )
+
+
+def test_get_subnet_hyperparameters_no_data(mocker, subtensor):
+    """Test get_subnet_hyperparameters returns empty list when no data is found."""
+    # Prep
+    netuid = 1
+    block = 123
+    mocker.patch.object(subtensor, "query_runtime_api", return_value=None)
+    mocker.patch.object(subtensor_module.SubnetHyperparameters, "from_vec_u8")
+
+    # Call
+    result = subtensor.get_subnet_hyperparameters(netuid, block)
+
+    # Asserts
+    assert result == []
+    subtensor.query_runtime_api.assert_called_once_with(
+        runtime_api="SubnetInfoRuntimeApi",
+        method="get_subnet_hyperparams",
+        params=[netuid],
+        block=block,
+    )
+    subtensor_module.SubnetHyperparameters.from_vec_u8.assert_not_called()
 
 
 def test_neuron_for_uid_none(subtensor, mocker):
