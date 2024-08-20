@@ -868,6 +868,34 @@ def test_get_subnet_hyperparameters_no_data(mocker, subtensor):
     subtensor_module.SubnetHyperparameters.from_vec_u8.assert_not_called()
 
 
+def test_query_runtime_api(subtensor, mocker):
+    """Tests query_runtime_api call."""
+    # Prep
+    fake_runtime_api = "NeuronInfoRuntimeApi"
+    fake_method = "get_neuron_lite"
+
+    mocked_state_call = mocker.MagicMock()
+    subtensor.state_call = mocked_state_call
+
+    mocked_runtime_configuration = mocker.patch.object(subtensor_module, "RuntimeConfiguration")
+    mocked_scalecodec = mocker.patch.object(subtensor_module.scalecodec, "ScaleBytes")
+
+    # Call
+    result = subtensor.query_runtime_api(fake_runtime_api, fake_method, None)
+
+    # Asserts
+    subtensor.state_call.assert_called_once_with(
+        method=f"{fake_runtime_api}_{fake_method}",
+        data="0x",
+        block=None
+    )
+    mocked_scalecodec.assert_called_once_with(subtensor.state_call.return_value.__getitem__.return_value)
+    mocked_runtime_configuration.assert_called_once()
+    mocked_runtime_configuration.return_value.update_type_registry.assert_called()
+    mocked_runtime_configuration.return_value.create_scale_object.assert_called()
+    assert result == mocked_runtime_configuration.return_value.create_scale_object.return_value.decode.return_value
+
+
 def test_state_call(subtensor, mocker):
     """Tests state_call call."""
     # Prep
@@ -960,10 +988,7 @@ def test_metagraph(subtensor, mocker):
 
     # Asserts
     mocked_metagraph.assert_called_once_with(
-        network=subtensor.network,
-        netuid=fake_netuid,
-        lite=fake_lite,
-        sync=False
+        network=subtensor.network, netuid=fake_netuid, lite=fake_lite, sync=False
     )
     mocked_metagraph.return_value.sync.assert_called_once_with(
         block=None, lite=fake_lite, subtensor=subtensor
@@ -984,7 +1009,9 @@ def test_get_netuids_for_hotkey(subtensor, mocker):
     result = subtensor.get_netuids_for_hotkey(fake_hotkey_ss58, fake_block)
 
     # Asserts
-    mocked_query_map_subtensor.assert_called_once_with("IsNetworkMember", fake_block, [fake_hotkey_ss58])
+    mocked_query_map_subtensor.assert_called_once_with(
+        "IsNetworkMember", fake_block, [fake_hotkey_ss58]
+    )
     assert result == []
 
 
@@ -1031,10 +1058,14 @@ def test_is_hotkey_registered_on_subnet(subtensor, mocker):
     subtensor.get_uid_for_hotkey_on_subnet = mocked_get_uid_for_hotkey_on_subnet
 
     # Call
-    result = subtensor.is_hotkey_registered_on_subnet(fake_hotkey_ss58, fake_netuid, fake_block)
+    result = subtensor.is_hotkey_registered_on_subnet(
+        fake_hotkey_ss58, fake_netuid, fake_block
+    )
 
     # Asserts
-    mocked_get_uid_for_hotkey_on_subnet.assert_called_once_with(fake_hotkey_ss58, fake_netuid, fake_block)
+    mocked_get_uid_for_hotkey_on_subnet.assert_called_once_with(
+        fake_hotkey_ss58, fake_netuid, fake_block
+    )
     assert result is (mocked_get_uid_for_hotkey_on_subnet.return_value is not None)
 
 
@@ -1069,7 +1100,9 @@ def test_is_hotkey_registered_with_netuid(subtensor, mocker):
     result = subtensor.is_hotkey_registered(fake_hotkey_ss58, fake_netuid)
 
     # Asserts
-    mocked_is_hotkey_registered_on_subnet.assert_called_once_with(fake_hotkey_ss58, fake_netuid, None)
+    mocked_is_hotkey_registered_on_subnet.assert_called_once_with(
+        fake_hotkey_ss58, fake_netuid, None
+    )
     assert result == mocked_is_hotkey_registered_on_subnet.return_value
 
 
