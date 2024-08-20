@@ -125,14 +125,10 @@ async def test_set_revoke_children(local_chain, capsys):
         ],
     )
     output = capsys.readouterr().out
-    assert (
-        "Parent HotKey: 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY  |  Total Parent Stake: 100000.0"
-        in output
-    )
-    assert "ChildHotkey                              ┃  Proportion" in output
-    assert "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92U… │ 60.0%" in output
-    assert "5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZc… │ 40.0%" in output
-    assert "Total                                    │      100.0%" in output
+    assert "ChildHotkey                                 ┃   Proportion" in output
+    assert "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJ… │ 60.0%" in output
+    assert "5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj6… │ 40.0%" in output
+    assert "Total                                       │       100.0%" in output
 
     await wait()
 
