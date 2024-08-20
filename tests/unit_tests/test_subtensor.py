@@ -979,7 +979,7 @@ def test_do_set_weights_is_not_success(subtensor, mocker):
 
 
 def test_do_set_weights_no_waits(subtensor, mocker):
-    """Unsuccessful _do_set_weights call."""
+    """Successful _do_set_weights call without wait flags for fake_wait_for_inclusion and fake_wait_for_finalization."""
     # Prep
     fake_wallet = mocker.MagicMock()
     fake_uids = [1, 2, 3]
@@ -1098,15 +1098,22 @@ def test_serve_axon(subtensor, mocker):
     fake_wait_for_inclusion = False
     fake_wait_for_finalization = True
 
-    mocked_serve_axon_extrinsic = mocker.patch.object(subtensor_module, "serve_axon_extrinsic")
+    mocked_serve_axon_extrinsic = mocker.patch.object(
+        subtensor_module, "serve_axon_extrinsic"
+    )
 
     # Call
     result = subtensor.serve_axon(
-        fake_netuid, fake_axon, fake_wait_for_inclusion, fake_wait_for_finalization)
+        fake_netuid, fake_axon, fake_wait_for_inclusion, fake_wait_for_finalization
+    )
 
     # Asserts
     mocked_serve_axon_extrinsic.assert_called_once_with(
-        subtensor, fake_netuid, fake_axon, fake_wait_for_inclusion, fake_wait_for_finalization
+        subtensor,
+        fake_netuid,
+        fake_axon,
+        fake_wait_for_inclusion,
+        fake_wait_for_finalization,
     )
     assert result == mocked_serve_axon_extrinsic.return_value
 
@@ -1184,7 +1191,7 @@ def test_do_transfer_is_success_true(subtensor, mocker):
         fake_dest,
         fake_transfer_balance,
         fake_wait_for_inclusion,
-        fake_wait_for_finalization
+        fake_wait_for_finalization,
     )
 
     # Asserts
@@ -1194,8 +1201,7 @@ def test_do_transfer_is_success_true(subtensor, mocker):
         call_params={"dest": fake_dest, "value": fake_transfer_balance.rao},
     )
     mocked_substrate.create_signed_extrinsic.assert_called_once_with(
-        call=mocked_substrate.compose_call.return_value,
-        keypair=fake_wallet.coldkey
+        call=mocked_substrate.compose_call.return_value, keypair=fake_wallet.coldkey
     )
     mocked_substrate.submit_extrinsic.assert_called_once_with(
         mocked_substrate.create_signed_extrinsic.return_value,
@@ -1203,7 +1209,11 @@ def test_do_transfer_is_success_true(subtensor, mocker):
         wait_for_finalization=fake_wait_for_finalization,
     )
     mocked_substrate.submit_extrinsic.return_value.process_events.assert_called_once()
-    assert result == (True, mocked_substrate.submit_extrinsic.return_value.block_hash, None)
+    assert result == (
+        True,
+        mocked_substrate.submit_extrinsic.return_value.block_hash,
+        None,
+    )
 
 
 def test_do_transfer_is_success_false(subtensor, mocker):
@@ -1228,7 +1238,7 @@ def test_do_transfer_is_success_false(subtensor, mocker):
         fake_dest,
         fake_transfer_balance,
         fake_wait_for_inclusion,
-        fake_wait_for_finalization
+        fake_wait_for_finalization,
     )
 
     # Asserts
@@ -1238,8 +1248,7 @@ def test_do_transfer_is_success_false(subtensor, mocker):
         call_params={"dest": fake_dest, "value": fake_transfer_balance.rao},
     )
     mocked_substrate.create_signed_extrinsic.assert_called_once_with(
-        call=mocked_substrate.compose_call.return_value,
-        keypair=fake_wallet.coldkey
+        call=mocked_substrate.compose_call.return_value, keypair=fake_wallet.coldkey
     )
     mocked_substrate.submit_extrinsic.assert_called_once_with(
         mocked_substrate.create_signed_extrinsic.return_value,
@@ -1247,7 +1256,9 @@ def test_do_transfer_is_success_false(subtensor, mocker):
         wait_for_finalization=fake_wait_for_finalization,
     )
     mocked_substrate.submit_extrinsic.return_value.process_events.assert_called_once()
-    mocked_format_error_message.assert_called_once_with(mocked_substrate.submit_extrinsic.return_value.error_message)
+    mocked_format_error_message.assert_called_once_with(
+        mocked_substrate.submit_extrinsic.return_value.error_message
+    )
     assert result == (False, None, mocked_format_error_message.return_value)
 
 
@@ -1269,7 +1280,7 @@ def test_do_transfer_no_waits(subtensor, mocker):
         fake_dest,
         fake_transfer_balance,
         fake_wait_for_inclusion,
-        fake_wait_for_finalization
+        fake_wait_for_finalization,
     )
 
     # Asserts
@@ -1279,8 +1290,7 @@ def test_do_transfer_no_waits(subtensor, mocker):
         call_params={"dest": fake_dest, "value": fake_transfer_balance.rao},
     )
     mocked_substrate.create_signed_extrinsic.assert_called_once_with(
-        call=mocked_substrate.compose_call.return_value,
-        keypair=fake_wallet.coldkey
+        call=mocked_substrate.compose_call.return_value, keypair=fake_wallet.coldkey
     )
     mocked_substrate.submit_extrinsic.assert_called_once_with(
         mocked_substrate.create_signed_extrinsic.return_value,
@@ -1299,7 +1309,9 @@ def test_transfer(subtensor, mocker):
     fake_wait_for_inclusion = True
     fake_wait_for_finalization = True
     fake_prompt = False
-    mocked_transfer_extrinsic = mocker.patch.object(subtensor_module, "transfer_extrinsic")
+    mocked_transfer_extrinsic = mocker.patch.object(
+        subtensor_module, "transfer_extrinsic"
+    )
 
     # Call
     result = subtensor.transfer(
@@ -1308,7 +1320,7 @@ def test_transfer(subtensor, mocker):
         fake_amount,
         fake_wait_for_inclusion,
         fake_wait_for_finalization,
-        fake_prompt
+        fake_prompt,
     )
 
     # Asserts
@@ -1319,7 +1331,7 @@ def test_transfer(subtensor, mocker):
         amount=fake_amount,
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
-        prompt=fake_prompt
+        prompt=fake_prompt,
     )
     assert result == mocked_transfer_extrinsic.return_value
 
