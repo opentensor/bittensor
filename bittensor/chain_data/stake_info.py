@@ -17,6 +17,7 @@ class StakeInfo:
     stake: Balance  # Stake for the hotkey-coldkey pair
     locked: Balance  # Stake which is locked.
     emission: Balance # Emission for the hotkey-coldkey pair
+    drain: int
 
     @classmethod
     def fix_decoded_values(cls, decoded: Any) -> "StakeInfo":
@@ -28,6 +29,7 @@ class StakeInfo:
             stake = Balance.from_rao(decoded["stake"]).set_unit(decoded["netuid"]),
             locked = Balance.from_rao(decoded["locked"]).set_unit(decoded["netuid"]),
             emission = Balance.from_rao(decoded["emission"]).set_unit(decoded["netuid"]),
+            drain = int(decoded["drain"])
         )
 
     @classmethod

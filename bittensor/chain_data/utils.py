@@ -318,6 +318,7 @@ custom_rpc_type_registry = {
                 ["stake", "Compact<u64>"],
                 ["locked", "Compact<u64>"],
                 ["emission", "Compact<u64>"],
+                ["drain", "Compact<u64>"],
             ],
         },
     }
