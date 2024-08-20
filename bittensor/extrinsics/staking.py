@@ -26,6 +26,8 @@ from ..utils.formatting import float_to_u64
 
 from bittensor.utils.balance import Balance
 
+console = bittensor.__console__
+
 
 def _check_threshold_amount(
     subtensor: "bittensor.subtensor", stake_balance: Balance
@@ -606,6 +608,7 @@ def set_children_extrinsic(
                 if not all_revoked
                 else children_with_proportions
             )
+            console.print(f"setting children with values {normalized_children}")
 
             success, error_message = subtensor._do_set_children(
                 wallet=wallet,
@@ -615,7 +618,9 @@ def set_children_extrinsic(
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
             )
-
+            console.print(
+                f"wait_for_inclusion: {wait_for_inclusion}  wait_for_finalization: {wait_for_finalization}"
+            )
             if not wait_for_finalization and not wait_for_inclusion:
                 return (
                     True,

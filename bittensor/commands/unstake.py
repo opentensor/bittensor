@@ -405,21 +405,21 @@ class RevokeChildrenCommand:
             "--wait_for_inclusion",
             dest="wait_for_inclusion",
             action="store_true",
-            default=False,
+            default=True,
             help="""Wait for the transaction to be included in a block.""",
         )
         parser.add_argument(
             "--wait_for_finalization",
             dest="wait_for_finalization",
             action="store_true",
-            default=False,
+            default=True,
             help="""Wait for the transaction to be finalized.""",
         )
         parser.add_argument(
             "--prompt",
             dest="prompt",
             action="store_true",
-            default=False,
+            default=True,
             help="""Prompt for confirmation before proceeding.""",
         )
         bittensor.wallet.add_args(parser)
