@@ -109,7 +109,7 @@ class AddStakeCommand:
                 staking_address_ss58 = str(hotkey_str)
                 staking_address_name = hotkey_str
             else:
-                wallet = bt.wallet(name=config.wallet.name, hotkey=hotkey_str)
+                wallet = bt.wallet(name=config.wallet.name, hotkey=hotkey_str, path=config.wallet.path)
                 staking_address_ss58 = wallet.hotkey.ss58_address
                 staking_address_name = hotkey_str
         elif not staking_address_ss58:
