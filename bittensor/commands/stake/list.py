@@ -109,7 +109,8 @@ class StakeList:
                         f"[light_slate_blue]{ tao_value }[/light_slate_blue]", # Tao equiv
                         f"[cadet_blue]{ swapped_tao_value }[/cadet_blue]", # Swap amount.
                         f"[light_salmon3]{alpha_ownership}%[/light_salmon3]", # Ownership.
-                        f"[medium_purple]{tao_ownership}[/medium_purple]" # Tao ownership.
+                        f"[medium_purple]{tao_ownership}[/medium_purple]", # Tao ownership.
+                        str(substake.emission),
                     ])
             # table = Table(show_footer=True, pad_edge=False, box=None, expand=False, title=f"{name}")
             table = Table(
@@ -143,6 +144,7 @@ class StakeList:
             table.add_column(f"[white]Swap({bittensor.Balance.get_unit(1)}) -> {bittensor.Balance.unit}", footer_style="overline white", style="blue", justify="center" )
             table.add_column(f"[white]Control({bittensor.Balance.get_unit(1)})", style="aquamarine3", justify="center")
             table.add_column(f"[white]Global({bittensor.Balance.unit})", style="aquamarine3", justify="center", footer=f"{total_global_tao}")
+            table.add_column(f"[white]Emission({bittensor.Balance.unit})", style="aquamarine3", justify="center")
             for row in rows:
                 table.add_row(*row)
             bittensor.__console__.print(table)

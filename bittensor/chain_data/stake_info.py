@@ -22,9 +22,9 @@ class StakeInfo:
     def fix_decoded_values(cls, decoded: Any) -> "StakeInfo":
         """Fixes the decoded values."""
         return cls(
-            netuid = int(decoded["netuid"]),
             hotkey_ss58 =ss58_encode(decoded["hotkey"], SS58_FORMAT),
             coldkey_ss58 = ss58_encode(decoded["coldkey"], SS58_FORMAT),
+            netuid = int(decoded["netuid"]),
             stake = Balance.from_rao(decoded["stake"]).set_unit(decoded["netuid"]),
             locked = Balance.from_rao(decoded["locked"]).set_unit(decoded["netuid"]),
             emission = Balance.from_rao(decoded["emission"]).set_unit(decoded["netuid"]),
