@@ -99,7 +99,7 @@ class ShowSubnet:
         table.add_column("Position", style="rgb(253,246,227)", no_wrap=True, justify="center")
         table.add_column(f"Local ({Balance.get_unit(0)})", style="rgb(42,161,152)", no_wrap=True, justify="center")
         table.add_column(f"Global ({Balance.get_unit(0)})", style="rgb(211,54,130)", no_wrap=True, justify="center")
-        table.add_column(f"Emission ({Balance.get_unit(0)})", style="rgb(42,161,152)", no_wrap=True, justify="center")
+        table.add_column(f"Emission ({Balance.get_unit(0)}/block)", style="rgb(42,161,152)", no_wrap=True, justify="center")
         table.add_column("hotkey", style="rgb(42,161,152)", no_wrap=True, justify="center")
         sorted_hotkeys = sorted(
             enumerate(root_state.hotkeys),
@@ -107,12 +107,12 @@ class ShowSubnet:
             reverse=True
         )        
         for pos, (idx, hk) in enumerate(sorted_hotkeys):
-            total_emission = 0
+            total_emission_per_block = 0
             for netuid in range( len(all_info)):
                 dynamic_info = all_info[netuid]
                 last_emission_drain = root_state.emission_history[netuid][idx]
-                per_block_emission = last_emission_drain.tao / dynamic_info.tempo 
-                total_emission_per_block += dynamic_info.alpha_to_tao( Balance.from_tao(per_block_emission) )
+                per_block_emission = last_emission_drain / dynamic_info.tempo 
+                total_emission_per_block += dynamic_info.alpha_to_tao( Balance.from_rao(per_block_emission) )
             table.add_row(
                 str((pos + 1)),
                 str(root_state.local_stake[idx]),
