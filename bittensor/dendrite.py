@@ -17,16 +17,20 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+# Standard Library
 from __future__ import annotations
-
 import asyncio
-import uuid
 import time
+from typing import Optional, List, Union, AsyncGenerator, Any
+import uuid
+
+# 3rd Party
 import aiohttp
 from aiohttp import ClientTimeout
 
+# Application
 import bittensor
-from typing import Optional, List, Union, AsyncGenerator, Any
+from bittensor.constants import DENDRITE_ERROR_MAPPING, DENDRITE_DEFAULT_ERROR
 from bittensor.utils.registration import torch, use_torch
 
 
@@ -226,7 +230,29 @@ class DendriteMixin:
         )
         return f"http://{endpoint}/{request_name}"
 
-    def _handle_request_errors(self, synapse, request_name, exception):
+    def log_exception(self, exception: Exception):
+        """
+        Logs an exception with a unique identifier.
+
+        This method generates a unique UUID for the error, extracts the error type,
+        and logs the error message using Bittensor's logging system.
+
+        Args:
+            exception (Exception): The exception object to be logged.
+
+        Returns:
+            None
+        """
+        error_id = str(uuid.uuid4())
+        error_type = exception.__class__.__name__
+        bittensor.logging.error(f"{error_type}#{error_id}: {exception}")
+
+    def process_error_message(
+        self,
+        synapse: Union[bittensor.Synapse, bittensor.StreamingSynapse],
+        request_name: str,
+        exception: Exception,
+    ) -> Union[bittensor.Synapse, bittensor.StreamingSynapse]:
         """
         Handles exceptions that occur during network requests, updating the synapse with appropriate status codes and messages.
 
@@ -238,22 +264,32 @@ class DendriteMixin:
             request_name: The name of the request during which the exception occurred.
             exception: The exception object caught during the request.
 
+        Returns:
+            bittensor.Synapse: The updated synapse object with the error status code and message.
+
         Note:
             This method updates the synapse object in-place.
         """
+
+        self.log_exception(exception)
+
+        error_info = DENDRITE_ERROR_MAPPING.get(type(exception), DENDRITE_DEFAULT_ERROR)
+        status_code, status_message = error_info
+
+        if status_code:
+            synapse.dendrite.status_code = status_code  # type: ignore
+        elif isinstance(exception, aiohttp.ClientResponseError):
+            synapse.dendrite.status_code = str(exception.code)  # type: ignore
+
+        message = f"{status_message}: {str(exception)}"
         if isinstance(exception, aiohttp.ClientConnectorError):
-            synapse.dendrite.status_code = "503"
-            synapse.dendrite.status_message = f"Service at {synapse.axon.ip}:{str(synapse.axon.port)}/{request_name} unavailable."
+            message = f"{status_message} at {synapse.axon.ip}:{synapse.axon.port}/{request_name}"  # type: ignore
         elif isinstance(exception, asyncio.TimeoutError):
-            synapse.dendrite.status_code = "408"
-            synapse.dendrite.status_message = (
-                f"Timedout after {synapse.timeout} seconds."
-            )
-        else:
-            synapse.dendrite.status_code = "422"
-            synapse.dendrite.status_message = (
-                f"Failed to parse response object with error: {str(exception)}"
-            )
+            message = f"{status_message} after {synapse.timeout} seconds"
+
+        synapse.dendrite.status_message = message  # type: ignore
+
+        return synapse
 
     def _log_outgoing_request(self, synapse):
         """
@@ -533,7 +569,7 @@ class DendriteMixin:
             synapse.dendrite.process_time = str(time.time() - start_time)  # type: ignore
 
         except Exception as e:
-            self._handle_request_errors(synapse, request_name, e)
+            synapse = self.process_error_message(synapse, request_name, e)
 
         finally:
             self._log_incoming_response(synapse)
@@ -544,10 +580,7 @@ class DendriteMixin:
             )
 
             # Return the updated synapse object after deserializing if requested
-            if deserialize:
-                return synapse.deserialize()
-            else:
-                return synapse
+            return synapse.deserialize() if deserialize else synapse
 
     async def call_stream(
         self,
@@ -618,7 +651,7 @@ class DendriteMixin:
             synapse.dendrite.process_time = str(time.time() - start_time)  # type: ignore
 
         except Exception as e:
-            self._handle_request_errors(synapse, request_name, e)
+            synapse = self.process_error_message(synapse, request_name, e)  # type: ignore
 
         finally:
             self._log_incoming_response(synapse)
@@ -705,10 +738,7 @@ class DendriteMixin:
                     # Set the attribute in the local synapse from the corresponding
                     # attribute in the server synapse
                     setattr(local_synapse, key, getattr(server_synapse, key))
-                except Exception as e:
-                    bittensor.logging.info(
-                        f"Ignoring error when setting attribute: {e}"
-                    )
+                except Exception:
                     # Ignore errors during attribute setting
                     pass
         else:

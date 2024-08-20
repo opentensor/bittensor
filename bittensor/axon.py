@@ -31,11 +31,12 @@ import time
 import traceback
 import typing
 import uuid
+import warnings
 from inspect import signature, Signature, Parameter
 from typing import List, Optional, Tuple, Callable, Any, Dict, Awaitable
 
 import uvicorn
-from fastapi import FastAPI, APIRouter, Depends
+from fastapi import APIRouter, Depends, FastAPI
 from fastapi.responses import JSONResponse
 from fastapi.routing import serialize_response
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
@@ -44,18 +45,19 @@ from starlette.responses import Response
 from substrateinterface import Keypair
 
 import bittensor
+from bittensor.utils.axon_utils import allowed_nonce_window_ns, calculate_diff_seconds
+from bittensor.constants import V_7_2_0
 from bittensor.errors import (
+    BlacklistedException,
     InvalidRequestNameError,
+    NotVerifiedException,
+    PostProcessException,
+    PriorityException,
     SynapseDendriteNoneException,
+    SynapseException,
     SynapseParsingError,
     UnknownSynapseError,
-    NotVerifiedException,
-    BlacklistedException,
-    PriorityException,
-    PostProcessException,
-    SynapseException,
 )
-from bittensor.constants import ALLOWED_DELTA, V_7_2_0
 from bittensor.threadpool import PriorityThreadPoolExecutor
 from bittensor.utils import networking
 
@@ -484,17 +486,50 @@ class axon:
 
         async def endpoint(*args, **kwargs):
             start_time = time.time()
-            response_synapse = forward_fn(*args, **kwargs)
-            if isinstance(response_synapse, Awaitable):
-                response_synapse = await response_synapse
-            return await self.middleware_cls.synapse_to_response(
-                synapse=response_synapse, start_time=start_time
-            )
+            response = forward_fn(*args, **kwargs)
+            if isinstance(response, Awaitable):
+                response = await response
+            if isinstance(response, bittensor.Synapse):
+                return await self.middleware_cls.synapse_to_response(
+                    synapse=response, start_time=start_time
+                )
+            else:
+                response_synapse = getattr(response, "synapse", None)
+                if response_synapse is None:
+                    warnings.warn(
+                        "The response synapse is None. The input synapse will be used as the response synapse. "
+                        "Reliance on forward_fn modifying input synapse as a side-effects is deprecated. "
+                        "Explicitly set `synapse` on response object instead.",
+                        DeprecationWarning,
+                    )
+                    # Replace with `return response` in next major version
+                    response_synapse = args[0]
 
-        # replace the endpoint signature, but set return annotation to JSONResponse
+                return await self.middleware_cls.synapse_to_response(
+                    synapse=response_synapse,
+                    start_time=start_time,
+                    response_override=response,
+                )
+
+        return_annotation = forward_sig.return_annotation
+
+        if isinstance(return_annotation, type) and issubclass(
+            return_annotation, bittensor.Synapse
+        ):
+            if issubclass(
+                return_annotation,
+                bittensor.StreamingSynapse,
+            ):
+                warnings.warn(
+                    "The forward_fn return annotation is a subclass of bittensor.StreamingSynapse. "
+                    "Most likely the correct return annotation would be BTStreamingResponse."
+                )
+            else:
+                return_annotation = JSONResponse
+
         endpoint.__signature__ = Signature(  # type: ignore
             parameters=list(forward_sig.parameters.values()),
-            return_annotation=JSONResponse,
+            return_annotation=return_annotation,
         )
 
         # Add the endpoint to the router, making it available on both GET and POST methods
@@ -847,6 +882,8 @@ class axon:
                 The method checks for increasing nonce values, which is a vital
                 step in preventing replay attacks. A replay attack involves an adversary reusing or
                 delaying the transmission of a valid data transmission to deceive the receiver.
+                The first time a nonce is seen, it is checked for freshness by ensuring it is
+                within an acceptable delta time range.
 
             Authenticity and Integrity Checks
                 By verifying that the message's digital signature matches
@@ -893,33 +930,43 @@ class axon:
             if synapse.dendrite.nonce is None:
                 raise Exception("Missing Nonce")
 
-            # If we don't have a nonce stored, ensure that the nonce falls within
-            # a reasonable delta.
-
+            # Newer nonce structure post v7.2
             if (
                 synapse.dendrite.version is not None
                 and synapse.dendrite.version >= V_7_2_0
             ):
                 # If we don't have a nonce stored, ensure that the nonce falls within
                 # a reasonable delta.
+                current_time_ns = time.time_ns()
+                allowed_window_ns = allowed_nonce_window_ns(
+                    current_time_ns, synapse.timeout
+                )
+
                 if (
                     self.nonces.get(endpoint_key) is None
-                    and synapse.dendrite.nonce
-                    <= time.time_ns() - ALLOWED_DELTA - (synapse.timeout or 0)
+                    and synapse.dendrite.nonce <= allowed_window_ns
                 ):
-                    raise Exception("Nonce is too old")
+                    diff_seconds, allowed_delta_seconds = calculate_diff_seconds(
+                        current_time_ns, synapse.timeout, synapse.dendrite.nonce
+                    )
+                    raise Exception(
+                        f"Nonce is too old: acceptable delta is {allowed_delta_seconds:.2f} seconds but request was {diff_seconds:.2f} seconds old"
+                    )
+
+                # If a nonce is stored, ensure the new nonce
+                # is greater than the previous nonce
                 if (
                     self.nonces.get(endpoint_key) is not None
                     and synapse.dendrite.nonce <= self.nonces[endpoint_key]
                 ):
-                    raise Exception("Nonce is too old")
+                    raise Exception("Nonce is too old, a newer one was last processed")
+            # Older nonce structure pre v7.2
             else:
                 if (
-                    endpoint_key in self.nonces.keys()
-                    and self.nonces[endpoint_key] is not None
+                    self.nonces.get(endpoint_key) is not None
                     and synapse.dendrite.nonce <= self.nonces[endpoint_key]
                 ):
-                    raise Exception("Nonce is too small")
+                    raise Exception("Nonce is too old, a newer one was last processed")
 
             if not keypair.verify(message, synapse.dendrite.signature):
                 raise Exception(
@@ -952,7 +999,7 @@ def log_and_handle_error(
     exception: Exception,
     status_code: typing.Optional[int] = None,
     start_time: typing.Optional[float] = None,
-):
+) -> bittensor.Synapse:
     if isinstance(exception, SynapseException):
         synapse = exception.synapse or synapse
 
@@ -1420,14 +1467,21 @@ class AxonMiddleware(BaseHTTPMiddleware):
 
     @classmethod
     async def synapse_to_response(
-        cls, synapse: bittensor.Synapse, start_time: float
-    ) -> JSONResponse:
+        cls,
+        synapse: bittensor.Synapse,
+        start_time: float,
+        *,
+        response_override: Optional[Response] = None,
+    ) -> Response:
         """
         Converts the Synapse object into a JSON response with HTTP headers.
 
         Args:
-            synapse (bittensor.Synapse): The Synapse object representing the request.
-            start_time (float): The timestamp when the request processing started.
+            synapse: The Synapse object representing the request.
+            start_time: The timestamp when the request processing started.
+            response_override:
+                Instead of serializing the synapse, mutate the provided response object.
+                This is only really useful for StreamingSynapse responses.
 
         Returns:
             Response: The final HTTP response, with updated headers, ready to be sent back to the client.
@@ -1446,11 +1500,14 @@ class AxonMiddleware(BaseHTTPMiddleware):
 
         synapse.axon.process_time = time.time() - start_time
 
-        serialized_synapse = await serialize_response(response_content=synapse)
-        response = JSONResponse(
-            status_code=synapse.axon.status_code,
-            content=serialized_synapse,
-        )
+        if response_override:
+            response = response_override
+        else:
+            serialized_synapse = await serialize_response(response_content=synapse)
+            response = JSONResponse(
+                status_code=synapse.axon.status_code,
+                content=serialized_synapse,
+            )
 
         try:
             updated_headers = synapse.to_headers()

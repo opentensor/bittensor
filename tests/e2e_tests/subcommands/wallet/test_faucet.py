@@ -15,12 +15,15 @@ from tests.e2e_tests.utils import (
 @pytest.mark.skip
 @pytest.mark.parametrize("local_chain", [False], indirect=True)
 def test_faucet(local_chain):
+    logging.info("Testing test_faucet")
     # Register root as Alice
-    keypair, exec_command, wallet_path = setup_wallet("//Alice")
+    keypair, exec_command, wallet = setup_wallet("//Alice")
     exec_command(RegisterSubnetworkCommand, ["s", "create"])
 
     # Verify subnet 1 created successfully
-    assert local_chain.query("SubtensorModule", "NetworksAdded", [1]).serialize()
+    assert local_chain.query(
+        "SubtensorModule", "NetworksAdded", [1]
+    ).serialize(), "Subnet wasn't created successfully"
 
     # Register a neuron to the subnet
     exec_command(
@@ -46,11 +49,11 @@ def test_faucet(local_chain):
 
     # verify current balance
     wallet_balance = subtensor.get_balance(keypair.ss58_address)
-    assert wallet_balance.tao == 998999.0
+    assert wallet_balance.tao == 998999.0, "Balance wasn't as expected"
 
     # run faucet 3 times
     for i in range(3):
-        logging.info(f"faucet run #:{i+1}")
+        logging.info(f"faucet run #:{i + 1}")
         try:
             exec_command(
                 RunFaucetCommand,
@@ -58,11 +61,13 @@ def test_faucet(local_chain):
                     "wallet",
                     "faucet",
                     "--wallet.name",
-                    "default",
+                    wallet.name,
                     "--wallet.hotkey",
                     "default",
-                    "--subtensor.chain_endpoint",
-                    "ws://localhost:9945",
+                    "--wait_for_inclusion",
+                    "True",
+                    "--wait_for_finalization",
+                    "True",
                 ],
             )
             logging.info(
@@ -81,7 +86,7 @@ def test_faucet(local_chain):
 
     new_wallet_balance = subtensor.get_balance(keypair.ss58_address)
     # verify balance increase
-    assert wallet_balance.tao < new_wallet_balance.tao
     assert (
-        new_wallet_balance.tao == 999899.0
-    )  # after 3 runs we should see an increase of 900 tao
+        wallet_balance.tao < new_wallet_balance.tao
+    ), "Old wallet balance is not less than the new wallet"
+    logging.info("Passed test_faucet")

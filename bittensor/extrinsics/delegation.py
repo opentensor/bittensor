@@ -47,13 +47,29 @@ def nominate_extrinsic(
         success (bool): ``True`` if the transaction was successful.
     """
     # Unlock the coldkey.
-    wallet.coldkey
-    wallet.hotkey
 
+    try:
+        wallet.coldkey
+
+    except bittensor.KeyFileError:
+        bittensor.__console__.print(
+            ":cross_mark: [red]Keyfile is corrupt, non-writable, non-readable or the password used to decrypt is invalid[/red]:[bold white]\n  [/bold white]"
+        )
+        return False
+
+    wallet.hotkey
     # Check if the hotkey is already a delegate.
     if subtensor.is_hotkey_delegate(wallet.hotkey.ss58_address):
         logger.error(
             "Hotkey {} is already a delegate.".format(wallet.hotkey.ss58_address)
+        )
+        return False
+
+    if not subtensor.is_hotkey_registered_any(wallet.hotkey.ss58_address):
+        logger.error(
+            "Hotkey {} is not registered to any network".format(
+                wallet.hotkey.ss58_address
+            )
         )
         return False
 
@@ -125,7 +141,13 @@ def delegate_extrinsic(
         NotDelegateError: If the hotkey is not a delegate on the chain.
     """
     # Decrypt keys,
-    wallet.coldkey
+    try:
+        wallet.coldkey
+    except bittensor.KeyFileError:
+        bittensor.__console__.print(
+            ":cross_mark: [red]Keyfile is corrupt, non-writable, non-readable or the password used to decrypt is invalid[/red]:[bold white]\n  [/bold white]"
+        )
+        return False
     if not subtensor.is_hotkey_delegate(delegate_ss58):
         raise NotDelegateError("Hotkey: {} is not a delegate.".format(delegate_ss58))
 
@@ -386,7 +408,14 @@ def decrease_take_extrinsic(
         success (bool): ``True`` if the transaction was successful.
     """
     # Unlock the coldkey.
-    wallet.coldkey
+    try:
+        wallet.coldkey
+    except bittensor.KeyFileError:
+        bittensor.__console__.print(
+            ":cross_mark: [red]Keyfile is corrupt, non-writable, non-readable or the password used to decrypt is invalid[/red]:[bold white]\n  [/bold white]"
+        )
+        return False
+
     wallet.hotkey
 
     with bittensor.__console__.status(
@@ -446,7 +475,14 @@ def increase_take_extrinsic(
         success (bool): ``True`` if the transaction was successful.
     """
     # Unlock the coldkey.
-    wallet.coldkey
+    try:
+        wallet.coldkey
+    except bittensor.KeyFileError:
+        bittensor.__console__.print(
+            ":cross_mark: [red]Keyfile is corrupt, non-writable, non-readable or the password used to decrypt is invalid[/red]:[bold white]\n  [/bold white]"
+        )
+        return False
+
     wallet.hotkey
 
     with bittensor.__console__.status(

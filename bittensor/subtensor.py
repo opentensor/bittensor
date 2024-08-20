@@ -21,6 +21,8 @@ The ``bittensor.subtensor`` module in Bittensor serves as a crucial interface fo
 blockchain, facilitating a range of operations essential for the decentralized machine learning network.
 """
 
+from __future__ import annotations
+
 import argparse
 import copy
 import socket
@@ -55,7 +57,12 @@ from .chain_data import (
     IPInfo,
     custom_rpc_type_registry,
 )
-from .errors import IdentityError, NominationError, StakeError, TakeError
+from .errors import (
+    IdentityError,
+    NominationError,
+    StakeError,
+    TakeError,
+)
 from .extrinsics.commit_weights import (
     commit_weights_extrinsic,
     reveal_weights_extrinsic,
@@ -91,9 +98,16 @@ from .extrinsics.serving import (
     get_metadata,
 )
 from .extrinsics.set_weights import set_weights_extrinsic
-from .extrinsics.staking import add_stake_extrinsic, add_stake_multiple_extrinsic
+from .extrinsics.staking import (
+    add_stake_extrinsic,
+    add_stake_multiple_extrinsic,
+    set_children_extrinsic,
+)
 from .extrinsics.transfer import transfer_extrinsic
-from .extrinsics.unstaking import unstake_extrinsic, unstake_multiple_extrinsic
+from .extrinsics.unstaking import (
+    unstake_extrinsic,
+    unstake_multiple_extrinsic,
+)
 from .types import AxonServeCallParams, PrometheusServeCallParams
 from .utils import (
     U16_NORMALIZED_FLOAT,
@@ -104,7 +118,7 @@ from .utils import (
 from .utils.balance import Balance
 from .utils.registration import POWSolution
 from .utils.registration import legacy_torch_api_compat
-from .utils.subtensor import get_subtensor_errors
+from .utils.subtensor import get_subtensor_errors, format_parent, format_children
 
 KEY_NONCE: Dict[str, int] = {}
 
@@ -2280,6 +2294,101 @@ class Subtensor:
                 return True
             else:
                 raise StakeError(format_error_message(response.error_message))
+
+        return make_substrate_call_with_retry()
+
+    ###################
+    # Child hotkeys #
+    ###################
+
+    def set_children(
+        self,
+        wallet: "bittensor.wallet",
+        hotkey: str,
+        children_with_proportions: List[Tuple[float, str]],
+        netuid: int,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+        prompt: bool = False,
+    ) -> tuple[bool, str]:
+        """Sets a children hotkeys extrinsic on the subnet.
+
+        Args:
+            wallet (:func:`bittensor.wallet`): Wallet object that can sign the extrinsic.
+            hotkey: (str): Hotkey ``ss58`` address of the parent.
+            netuid (int): Unique identifier of for the subnet.
+            children_with_proportions (List[Tuple[float, str]]): List of (proportion, child_ss58) pairs.
+            wait_for_inclusion (bool): If ``true``, waits for inclusion before returning.
+            wait_for_finalization (bool): If ``true``, waits for finalization before returning.
+            prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
+        Returns:
+            success (bool): ``True`` if the extrinsic was successful.
+        Raises:
+            ChildHotkeyError: If the extrinsic failed.
+        """
+
+        return set_children_extrinsic(
+            self,
+            wallet=wallet,
+            hotkey=hotkey,
+            children_with_proportions=children_with_proportions,
+            netuid=netuid,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            prompt=prompt,
+        )
+
+    def _do_set_children(
+        self,
+        wallet: "bittensor.wallet",
+        hotkey: str,
+        children: List[Tuple[int, str]],
+        netuid: int,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+    ) -> tuple[bool, Optional[str]]:
+        """Sends a set_children hotkey extrinsic on the chain.
+
+        Args:
+            wallet (:func:`bittensor.wallet`): Wallet object that can sign the extrinsic.
+            hotkey: (str): Hotkey ``ss58`` address of the parent.
+            children: (List[Tuple[int, str]]): A list of tuples containing the hotkey ``ss58`` addresses of the children and their proportions as u16 MAX standardized values.
+            netuid (int): Unique identifier for the network.
+            wait_for_inclusion (bool): If ``true``, waits for inclusion before returning.
+            wait_for_finalization (bool): If ``true``, waits for finalization before returning.
+        Returns:
+            success (bool): ``True`` if the extrinsic was successful.
+        """
+
+        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
+        def make_substrate_call_with_retry():
+            # create extrinsic call
+            call = self.substrate.compose_call(
+                call_module="SubtensorModule",
+                call_function="set_children",
+                call_params={
+                    "hotkey": hotkey,
+                    "children": children,
+                    "netuid": netuid,
+                },
+            )
+            extrinsic = self.substrate.create_signed_extrinsic(
+                call=call, keypair=wallet.coldkey
+            )
+            response = self.substrate.submit_extrinsic(
+                extrinsic,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
+
+            if not wait_for_finalization and not wait_for_inclusion:
+                return True, None
+
+            response.process_events()
+            if not response.is_success:
+                return False, format_error_message(response.error_message)
+            else:
+                return True, None
 
         return make_substrate_call_with_retry()
 
@@ -4480,6 +4589,68 @@ class Subtensor:
 
         return DelegateInfo.delegated_list_from_vec_u8(result)
 
+        ############################
+        # Child Hotkey Information #
+        ############################
+
+    def get_children(self, hotkey, netuid):
+        """
+        Get the children of a hotkey on a specific network.
+        Args:
+            hotkey (str): The hotkey to query.
+            netuid (int): The network ID.
+        Returns:
+            list or None: List of (proportion, child_address) tuples, or None if an error occurred.
+        """
+        try:
+            children = self.substrate.query(
+                module="SubtensorModule",
+                storage_function="ChildKeys",
+                params=[hotkey, netuid],
+            )
+            if children:
+                return format_children(children)
+            else:
+                return []
+        except SubstrateRequestException as e:
+            print(f"Error querying ChildKeys: {e}")
+            return None
+        except Exception as e:
+            print(f"Unexpected error in get_children: {e}")
+            return None
+
+    def get_parents(self, child_hotkey, netuid):
+        """
+        Get the parents of a child hotkey on a specific network.
+        Args:
+            child_hotkey (str): The child hotkey to query.
+            netuid (int): The network ID.
+        Returns:
+            list or None: List of (proportion, parent_address) tuples, or None if an error occurred.
+        """
+        try:
+            parents = self.substrate.query(
+                module="SubtensorModule",
+                storage_function="ParentKeys",
+                params=[child_hotkey, netuid],
+            )
+            if not parents:
+                print("No parents found.")
+                return []
+
+            formatted_parents = [
+                format_parent(proportion, parent)
+                for proportion, parent in parents
+                if proportion != 0
+            ]
+            return formatted_parents
+        except SubstrateRequestException as e:
+            print(f"Error querying ParentKeys: {e}")
+        except Exception as e:
+            print(f"Unexpected error in get_parents: {e}")
+
+        return None
+
     #####################
     # Stake Information #
     #####################
@@ -5072,41 +5243,6 @@ class Subtensor:
                 b_map.append((uid.serialize(), b.serialize()))
 
         return b_map
-
-    def associated_validator_ip_info(
-        self, netuid: int, block: Optional[int] = None
-    ) -> Optional[List["IPInfo"]]:
-        """
-        Retrieves the list of all validator IP addresses associated with a specific subnet in the Bittensor
-        network. This information is crucial for network communication and the identification of validator nodes.
-
-        Args:
-            netuid (int): The network UID of the subnet to query.
-            block (Optional[int]): The blockchain block number for the query.
-
-        Returns:
-            Optional[List[IPInfo]]: A list of IPInfo objects for validator nodes in the subnet, or ``None`` if no
-                validators are associated.
-
-        Validator IP information is key for establishing secure and reliable connections within the network,
-        facilitating consensus and validation processes critical for the network's integrity and performance.
-        """
-        hex_bytes_result = self.query_runtime_api(
-            runtime_api="ValidatorIPRuntimeApi",
-            method="get_associated_validator_ip_info_for_subnet",
-            params=[netuid],  # type: ignore
-            block=block,
-        )
-
-        if hex_bytes_result is None:
-            return None
-
-        if hex_bytes_result.startswith("0x"):
-            bytes_result = bytes.fromhex(hex_bytes_result[2:])
-        else:
-            bytes_result = bytes.fromhex(hex_bytes_result)
-
-        return IPInfo.list_from_vec_u8(bytes_result)  # type: ignore
 
     def get_subnet_burn_cost(self, block: Optional[int] = None) -> Optional[str]:
         """
