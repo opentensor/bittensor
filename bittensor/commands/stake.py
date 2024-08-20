@@ -610,6 +610,7 @@ class SetChildrenCommand:
 
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+        console = Console()
         wallet = bittensor.wallet(config=cli.config)
 
         # Get values if not set.
@@ -662,28 +663,26 @@ class SetChildrenCommand:
             if not wallet_utils.is_valid_ss58_address(child):
                 console.print(f":cross_mark:[red] Invalid SS58 address: {child}[/red]")
                 return
-        console.print(f"the number of children is {len(children)}")
+
         if (
             len(children) == 1
         ):  # if only one child, then they have full proportion by default
             cli.config.proportions = 1.0
-            console.print(f"setting proportion to 1: {cli.config.proportions}")
 
         if not cli.config.is_set("proportions"):
-            console.print(f"the proportion val is {cli.config.proportions}")
             cli.config.proportions = Prompt.ask(
                 "Enter the percentage of proportion for each child as comma-separated values (total must equal 1)"
             )
 
         # extract proportions and child addresses from cli input
-        proportions = [float(x) for x in re.split(r"[ ,]+", cli.config.proportions)]
+        proportions = [float(x) for x in re.split(r"[ ,]+", str(cli.config.proportions))]
         total_proposed = sum(proportions)
         if total_proposed != 1:
-            console.print(f"Invalid proportion: The sum of all proportions must equal 1 (representing 100% of the allocation). Proposed sum of proportions is {total_proposed}.")
+            console.print(f":cross_mark:[red]Invalid proportion: The sum of all proportions must equal 1 (representing 100% of the allocation). Proposed sum of proportions is {total_proposed}.[/red]")
             return
         
         if len(proportions) != len(children):
-            console.print("Invalid proportion and children length: The count of children and number of proportion values entered do not match.")
+            console.print(":cross_mark:[red]Invalid proportion and children length: The count of children and number of proportion values entered do not match.[/red]")
             return
 
         children_with_proportions = list(zip(proportions, children))
@@ -702,12 +701,13 @@ class SetChildrenCommand:
 
         # Result
         if success:
-            GetChildrenCommand.retrieve_children(
-                subtensor=subtensor,
-                hotkey=cli.config.hotkey,
-                netuid=cli.config.netuid,
-                render_table=True,
-            )
+            if cli.config.wait_for_finalization and cli.config.wait_for_inclusion:
+                GetChildrenCommand.retrieve_children(
+                    subtensor=subtensor,
+                    hotkey=cli.config.hotkey,
+                    netuid=cli.config.netuid,
+                    render_table=True,
+                )
             console.print(
                 ":white_heavy_check_mark: [green]Set children hotkeys.[/green]"
             )
@@ -768,6 +768,7 @@ class SetChildrenCommand:
 
     @staticmethod
     def print_current_stake(subtensor, children, hotkey):
+        console = Console()
         parent_stake = subtensor.get_total_stake_for_hotkey(
             ss58_address=hotkey
         )
@@ -817,12 +818,14 @@ class GetChildrenCommand:
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         # Get values if not set.
+        console = Console()
         if not cli.config.is_set("netuid"):
             cli.config.netuid = int(Prompt.ask("Enter netuid"))
         netuid = cli.config.netuid
         total_subnets = subtensor.get_total_subnets()
-        if total_subnets is not None and total_subnets <= netuid <= 0:
-            raise ValueError("Netuid is outside the current subnet range")
+        if total_subnets is not None and not (0 <= netuid <= total_subnets):
+            console.print("Netuid is outside the current subnet range")
+            return
 
         # Get values if not set.
         if not cli.config.is_set("hotkey"):

@@ -18,6 +18,7 @@ from math import floor
 # DEALINGS IN THE SOFTWARE.
 
 from rich.prompt import Confirm
+from rich.console import Console
 from time import sleep
 from typing import List, Union, Optional, Tuple
 
@@ -571,10 +572,11 @@ def set_children_extrinsic(
 
     # Decrypt coldkey.
     wallet.coldkey
+    console = Console()
 
     user_hotkey_ss58 = wallet.hotkey.ss58_address  # Default to wallet's own hotkey.
     if hotkey != user_hotkey_ss58:
-        raise ValueError("Can only call  children for other hotkeys.")
+        raise ValueError("Cannot set/revoke yourself as child hotkey.")
 
     # Check if all children are being revoked
     all_revoked = all(prop == 0.0 for prop, _ in children_with_proportions)
@@ -608,7 +610,6 @@ def set_children_extrinsic(
                 if not all_revoked
                 else children_with_proportions
             )
-            console.print(f"setting children with values {normalized_children}")
 
             success, error_message = subtensor._do_set_children(
                 wallet=wallet,
@@ -618,9 +619,7 @@ def set_children_extrinsic(
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
             )
-            console.print(
-                f"wait_for_inclusion: {wait_for_inclusion}  wait_for_finalization: {wait_for_finalization}"
-            )
+
             if not wait_for_finalization and not wait_for_inclusion:
                 return (
                     True,
@@ -652,13 +651,10 @@ def set_children_extrinsic(
 
 def prepare_child_proportions(children_with_proportions):
     """
-    Convert proportions to u64 and normalize
+    Convert proportions to u64 and normalize.
     """
-    children_u64 = [
-        (float_to_u64(prop), child) for prop, child in children_with_proportions
-    ]
-    normalized_children = normalize_children_and_proportions(children_u64)
-    return normalized_children
+    children_u64 = [(float_to_u64(proportion), child) for proportion, child in children_with_proportions]
+    return normalize_children_and_proportions(children_u64)
 
 
 def normalize_children_and_proportions(
@@ -667,22 +663,21 @@ def normalize_children_and_proportions(
     """
     Normalizes the proportions of children so that they sum to u64::MAX.
     """
-    total = sum(prop for prop, _ in children)
-    u64_max = 2**64 - 1
-    normalized_children = [
-        (int(floor(prop * (u64_max - 1) / total)), child) for prop, child in children
-    ]
-    sum_norm = sum(prop for prop, _ in normalized_children)
+    u64_max = 2 ** 64 - 1
+    total_proportions = sum(proportion for proportion, _ in children)
 
-    # if the sum is more, subtract the excess from the first child
-    if sum_norm > u64_max:
-        if abs(sum_norm - u64_max) > 10:
-            raise ValueError(
-                "The sum of normalized proportions is out of the acceptable range."
-            )
-        normalized_children[0] = (
-            normalized_children[0][0] - (sum_norm - (u64_max - 1)),
-            normalized_children[0][1],
+    # Adjust the proportions
+    normalized_children_u64 = [
+        (floor(proportion * u64_max / total_proportions) if proportion != total_proportions else u64_max, child)
+        for proportion, child in children]
+
+    # Compensate for any rounding errors
+    total_normalized_proportions = sum(proportion for proportion, _ in normalized_children_u64)
+    if total_normalized_proportions != u64_max:
+        max_proportion_child_index = max(range(len(normalized_children_u64)),
+                                         key=lambda index: normalized_children_u64[index][0])
+        normalized_children_u64[max_proportion_child_index] = (
+            normalized_children_u64[max_proportion_child_index][0] + u64_max - total_normalized_proportions,
+            normalized_children_u64[max_proportion_child_index][1],
         )
-
-    return normalized_children
+    return normalized_children_u64
