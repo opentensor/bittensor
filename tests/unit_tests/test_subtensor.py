@@ -17,7 +17,6 @@
 
 import argparse
 import unittest.mock as mock
-from cgitb import reset
 from typing import List, Tuple
 from unittest.mock import MagicMock
 
