@@ -865,7 +865,7 @@ def test_get_subnet_hyperparameters_hex_without_prefix(mocker, subtensor):
 
 
 def test_get_commitment(subtensor, mocker):
-    """ Successful get_commitment call."""
+    """Successful get_commitment call."""
     # Preps
     fake_netuid = 1
     fake_uid = 2
@@ -879,13 +879,13 @@ def test_get_commitment(subtensor, mocker):
     mocked_metagraph.return_value.hotkeys = {fake_uid: fake_hotkey}
 
     mocked_get_metadata = mocker.patch.object(subtensor_module, "get_metadata")
-    mocked_get_metadata.return_value = {"info": {"fields": [{fake_hex_data: fake_hex_data}]}}
+    mocked_get_metadata.return_value = {
+        "info": {"fields": [{fake_hex_data: fake_hex_data}]}
+    }
 
     # Call
     result = subtensor.get_commitment(
-        netuid=fake_netuid,
-        uid=fake_uid,
-        block=fake_block
+        netuid=fake_netuid, uid=fake_uid, block=fake_block
     )
 
     # Assertions
@@ -965,7 +965,7 @@ def test_get_transfer_fee(subtensor, mocker):
 
 
 def test_get_transfer_fee_incorrect_value(subtensor, mocker):
-    """ Successful get_transfer_fee call."""
+    """Successful get_transfer_fee call."""
     # Preps
     fake_wallet = mocker.MagicMock()
     fake_dest = mocker.MagicMock()
@@ -985,7 +985,7 @@ def test_get_transfer_fee_incorrect_value(subtensor, mocker):
 
 
 def test_get_existential_deposit(subtensor, mocker):
-    """ Successful get_existential_deposit call."""
+    """Successful get_existential_deposit call."""
     # Prep
     block = 123
 
@@ -999,9 +999,8 @@ def test_get_existential_deposit(subtensor, mocker):
 
     # Assertions
     mocked_query_constant.assert_called_once_with(
-        module_name="Balances",
-        constant_name="ExistentialDeposit",
-        block=block)
+        module_name="Balances", constant_name="ExistentialDeposit", block=block
+    )
 
     assert isinstance(result, Balance)
     assert result == Balance.from_rao(value)
@@ -1021,8 +1020,12 @@ def test_commit_weights(subtensor, mocker):
     max_retries = 5
 
     expected_result = (True, None)
-    mocked_generate_weight_hash = mocker.patch.object(subtensor_module, "generate_weight_hash", return_value=expected_result)
-    mocked_commit_weights_extrinsic = mocker.patch.object(subtensor_module, "commit_weights_extrinsic", return_value=expected_result)
+    mocked_generate_weight_hash = mocker.patch.object(
+        subtensor_module, "generate_weight_hash", return_value=expected_result
+    )
+    mocked_commit_weights_extrinsic = mocker.patch.object(
+        subtensor_module, "commit_weights_extrinsic", return_value=expected_result
+    )
 
     # Call
     result = subtensor.commit_weights(
@@ -1055,7 +1058,7 @@ def test_commit_weights(subtensor, mocker):
         commit_hash=mocked_generate_weight_hash.return_value,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
-        prompt=prompt
+        prompt=prompt,
     )
     assert result == expected_result
 
@@ -1092,12 +1095,11 @@ def test_do_commit_weights(subtensor, mocker):
         call_params={
             "netuid": netuid,
             "commit_hash": commit_hash,
-        }
+        },
     )
 
     mocked_substrate.create_signed_extrinsic.assert_called_once_with(
-        call=mocked_substrate.compose_call.return_value,
-        keypair=fake_wallet.hotkey
+        call=mocked_substrate.compose_call.return_value, keypair=fake_wallet.hotkey
     )
 
     mocked_substrate.submit_extrinsic.assert_called_once_with(
@@ -1120,7 +1122,9 @@ def test_reveal_weights(subtensor, mocker):
     weights = [0.1, 0.2, 0.3, 0.4]
     salt = [4, 2, 2, 1]
     expected_result = (True, None)
-    mocked_extrinsic = mocker.patch.object(subtensor_module, "reveal_weights_extrinsic", return_value=expected_result)
+    mocked_extrinsic = mocker.patch.object(
+        subtensor_module, "reveal_weights_extrinsic", return_value=expected_result
+    )
 
     # Call
     result = subtensor.reveal_weights(
@@ -1159,7 +1163,10 @@ def test_reveal_weights_false(subtensor, mocker):
     weights = [0.1, 0.2, 0.3, 0.4]
     salt = [4, 2, 2, 1]
 
-    expected_result = (False, "No attempt made. Perhaps it is too soon to reveal weights!")
+    expected_result = (
+        False,
+        "No attempt made. Perhaps it is too soon to reveal weights!",
+    )
     mocked_extrinsic = mocker.patch.object(subtensor_module, "reveal_weights_extrinsic")
 
     # Call
@@ -1221,12 +1228,11 @@ def test_do_reveal_weights(subtensor, mocker):
             "values": values,
             "salt": salt,
             "version_key": version_as_int,
-        }
+        },
     )
 
     mocked_substrate.create_signed_extrinsic.assert_called_once_with(
-        call=mocked_substrate.compose_call.return_value,
-        keypair=fake_wallet.hotkey
+        call=mocked_substrate.compose_call.return_value, keypair=fake_wallet.hotkey
     )
 
     mocked_substrate.submit_extrinsic.assert_called_once_with(
