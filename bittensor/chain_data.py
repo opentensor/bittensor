@@ -287,6 +287,7 @@ custom_rpc_type_registry = {
                 ["local_stake", "Vec<Compact<u64>>"],
                 ["global_stake", "Vec<Compact<u64>>"],
                 ["stake_weight", "Vec<Compact<u16>>"],
+                ["emission_history", "Vec<Vec<Compact<u64>>>"],
             ],
         },
     }
@@ -368,6 +369,7 @@ class SubnetState:
     local_stake: List[bittensor.Balance]
     global_stake: List[bittensor.Balance]
     stake_weight: List[float]
+    emission_history: List[List[int]]
     
     @classmethod
     def from_vec_u8(cls, vec_u8: List[int]) -> Optional["SubnetState"]:
@@ -404,6 +406,7 @@ class SubnetState:
             local_stake = [bittensor.Balance.from_rao( val ).set_unit(netuid) for val in decoded["local_stake"]],
             global_stake = [bittensor.Balance.from_rao( val ).set_unit(0) for val in decoded["global_stake"]],
             stake_weight = [U16_NORMALIZED_FLOAT(val) for val in decoded["stake_weight"]],
+            emission_history = decoded["emission_history"]
         )
 
 

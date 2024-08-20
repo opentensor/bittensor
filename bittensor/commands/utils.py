@@ -52,12 +52,13 @@ def check_netuid_set(
     allow_none: bool = False,
 ):
     if subtensor.network != "nakamoto":
-        netuids = subtensor.get_subnets()
+        netuids = [s.netuid for s in subtensor.get_all_subnet_dynamic_info()]
         if len(netuids) == 0:
             console.print(":cross_mark:[red]There are no open networks.[/red]")
             sys.exit()
         elif len(netuids) == 1:
             config.netuid = netuids[0]
+            all_netuids = f"{netuids[0]}"
         else:
             all_netuids = f"{netuids[0]} .. {netuids[len(netuids)-1]}"
 

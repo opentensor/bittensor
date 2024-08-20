@@ -68,7 +68,7 @@ class ShowSubnet:
             
     @staticmethod
     def show_root( subtensor: "Subtensor", config: "Config"):
-        root_info = subtensor.get_subnet_dynamic_info(0)
+        all_info = subtensor.get_all_subnet_dynamic_info()
         root_state: "SubnetState" = SubnetState.from_vec_u8(
             subtensor.substrate.rpc_request(method="subnetInfo_getSubnetState", params=[0, None])['result']
         )
@@ -99,18 +99,23 @@ class ShowSubnet:
         table.add_column("Position", style="rgb(253,246,227)", no_wrap=True, justify="center")
         table.add_column(f"Local ({Balance.get_unit(0)})", style="rgb(42,161,152)", no_wrap=True, justify="center")
         table.add_column(f"Global ({Balance.get_unit(0)})", style="rgb(211,54,130)", no_wrap=True, justify="center")
+        table.add_column(f"Emission ({Balance.get_unit(0)})", style="rgb(42,161,152)", no_wrap=True, justify="center")
         table.add_column("hotkey", style="rgb(42,161,152)", no_wrap=True, justify="center")
-
         sorted_hotkeys = sorted(
             enumerate(root_state.hotkeys),
             key=lambda x: root_state.global_stake[x[0]],
             reverse=True
-        )
+        )        
         for pos, (idx, hk) in enumerate(sorted_hotkeys):
+            total_emission = 0
+            for netuid in range( len(all_info)):
+                dynamic_info = all_info[netuid]
+                total_emission += dynamic_info.alpha_to_tao( Balance.from_rao(root_state.emission_history[netuid][idx]) )
             table.add_row(
                 str((pos + 1)),
                 str(root_state.local_stake[idx]),
                 str(root_state.global_stake[idx]),
+                str(total_emission.tao),
                 f"{root_state.hotkeys[idx]}",
             )
 
@@ -128,7 +133,7 @@ class ShowSubnet:
         # Define table properties
         console_width = console.width - 5
         table = Table(
-            title=f"[white]Subnet State #{config.netuid}",
+            title=f"[white]Subnet State #{netuid}",
             width=console_width,
             safe_box=True,
             padding=(0, 1),
@@ -195,7 +200,7 @@ class ShowSubnet:
         # Add columns to the table
         table.add_column("uid", style="rgb(133,153,0)", no_wrap=True, justify="center")
         table.add_column(f"{Balance.get_unit(netuid)}", style="rgb(42,161,152)", no_wrap=True, justify="center")
-        table.add_column(f"{Balance.get_unit(0)}", style="rgb(211,54,130)", no_wrap=True, justify="center")
+        table.add_column(f"Global({Balance.get_unit(0)})", style="rgb(211,54,130)", no_wrap=True, justify="center")
         table.add_column("stake", style="rgb(108,113,196)", no_wrap=True, justify="center")
         table.add_column("dividends", style="rgb(181,137,0)", no_wrap=True, justify="center")
         table.add_column("incentive", style="rgb(220,50,47)", no_wrap=True, justify="center")
