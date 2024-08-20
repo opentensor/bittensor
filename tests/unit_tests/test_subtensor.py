@@ -877,7 +877,9 @@ def test_query_runtime_api(subtensor, mocker):
     mocked_state_call = mocker.MagicMock()
     subtensor.state_call = mocked_state_call
 
-    mocked_runtime_configuration = mocker.patch.object(subtensor_module, "RuntimeConfiguration")
+    mocked_runtime_configuration = mocker.patch.object(
+        subtensor_module, "RuntimeConfiguration"
+    )
     mocked_scalecodec = mocker.patch.object(subtensor_module.scalecodec, "ScaleBytes")
 
     # Call
@@ -885,15 +887,18 @@ def test_query_runtime_api(subtensor, mocker):
 
     # Asserts
     subtensor.state_call.assert_called_once_with(
-        method=f"{fake_runtime_api}_{fake_method}",
-        data="0x",
-        block=None
+        method=f"{fake_runtime_api}_{fake_method}", data="0x", block=None
     )
-    mocked_scalecodec.assert_called_once_with(subtensor.state_call.return_value.__getitem__.return_value)
+    mocked_scalecodec.assert_called_once_with(
+        subtensor.state_call.return_value.__getitem__.return_value
+    )
     mocked_runtime_configuration.assert_called_once()
     mocked_runtime_configuration.return_value.update_type_registry.assert_called()
     mocked_runtime_configuration.return_value.create_scale_object.assert_called()
-    assert result == mocked_runtime_configuration.return_value.create_scale_object.return_value.decode.return_value
+    assert (
+        result
+        == mocked_runtime_configuration.return_value.create_scale_object.return_value.decode.return_value
+    )
 
 
 def test_state_call(subtensor, mocker):
