@@ -14,8 +14,10 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
+from symbol import return_stmt
 
 from bittensor import utils
+from bittensor.core.settings import SS58_FORMAT
 import pytest
 
 
@@ -73,4 +75,51 @@ def test_strtobool_raise_error(test_input):
 
 
 def test_get_explorer_root_url_by_network_from_map():
-    pass
+    """Tests private utils._get_explorer_root_url_by_network_from_map function."""
+    # Prep
+    # Test with a known network
+    network_map = {
+        "entity1": {"network1": "url1", "network2": "url2"},
+        "entity2": {"network1": "url3", "network3": "url4"},
+    }
+    # Test with no matching network in the map
+    network_map_empty = {
+        "entity1": {},
+        "entity2": {},
+    }
+
+    # Assertions
+    assert utils._get_explorer_root_url_by_network_from_map("network1", network_map) == {
+        "entity1": "url1",
+        "entity2": "url3",
+    }
+    # Test with an unknown network
+    assert utils._get_explorer_root_url_by_network_from_map("unknown_network", network_map) == {}
+    assert utils._get_explorer_root_url_by_network_from_map("network1", network_map_empty) == {}
+
+
+def test_get_explorer_url_for_network():
+    """Tests `utils.get_explorer_url_for_network` function."""
+    # Prep
+    fake_block_hash = "0x1234567890abcdef"
+    fake_map = {"opentensor": {"network": "url"}, "taostats": {"network": "url2"}}
+
+    # Call
+    result = utils.get_explorer_url_for_network("network", fake_block_hash, fake_map)
+
+    # Assert
+    assert result == {'opentensor': f'url/query/{fake_block_hash}', 'taostats': f'url2/extrinsic/{fake_block_hash}'}
+
+
+def test_ss58_address_to_bytes(mocker):
+    """Tests utils.ss58_address_to_bytes function."""
+    # Preps
+    fake_ss58_address = "ss58_address"
+    mocked_scalecodec_ss58_decode = mocker.patch.object(utils.scalecodec, "ss58_decode", return_value="")
+
+    # Call
+    result = utils.ss58_address_to_bytes(fake_ss58_address)
+
+    # Asserts
+    mocked_scalecodec_ss58_decode.assert_called_once_with(fake_ss58_address, SS58_FORMAT)
+    assert result == bytes.fromhex(mocked_scalecodec_ss58_decode.return_value)
