@@ -72,7 +72,7 @@ from .commands import (
     CheckColdKeySwapCommand,
     SetChildrenCommand,
     GetChildrenCommand,
-    RevokeChildrenCommand,
+    RevokeChildrenCommand, SetChildKeyTakeCommand,
 )
 
 # Create a console instance for CLI display.
@@ -175,6 +175,7 @@ COMMANDS = {
             "get_children": GetChildrenCommand,
             "set_children": SetChildrenCommand,
             "revoke_children": RevokeChildrenCommand,
+            "set_childkey_take": SetChildKeyTakeCommand,
         },
     },
     "weights": {

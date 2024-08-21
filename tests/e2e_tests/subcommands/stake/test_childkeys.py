@@ -8,6 +8,7 @@ from bittensor.commands import (
     RevokeChildrenCommand,
     GetChildrenCommand,
 )
+from bittensor.commands.stake import SetChildKeyTakeCommand
 from bittensor.extrinsics.staking import prepare_child_proportions
 from tests.e2e_tests.utils import setup_wallet, wait_interval
 
@@ -170,3 +171,57 @@ async def test_set_revoke_children(local_chain, capsys):
     )
     output = capsys.readouterr().out
     assert "There are currently no child hotkeys on subnet" in output
+
+
+@pytest.mark.asyncio
+async def test_set_revoke_childkey_take(local_chain, capsys):
+ # todo add comment
+    # Setup
+    alice_keypair, alice_exec_command, alice_wallet = setup_wallet("//Alice")
+    bob_keypair, bob_exec_command, bob_wallet = setup_wallet("//Bob")
+    eve_keypair, eve_exec_command, eve_wallet = setup_wallet("//Eve")
+
+    alice_exec_command(RegisterSubnetworkCommand, ["s", "create"])
+    assert local_chain.query("SubtensorModule", "NetworksAdded", [1]).serialize()
+
+    for exec_command in [alice_exec_command, bob_exec_command, eve_exec_command]:
+        exec_command(RegisterCommand, ["s", "register", "--netuid", "1"])
+
+    async def wait():
+        # wait rate limit, until we are allowed to get children
+
+        rate_limit = (
+            subtensor.query_constant(
+                module_name="SubtensorModule", constant_name="InitialTempo"
+            ).value
+            * 2
+        )
+        curr_block = subtensor.get_current_block()
+        await wait_interval(rate_limit + curr_block + 1, subtensor)
+
+    subtensor = bittensor.subtensor(network="ws://localhost:9945")
+
+    # await wait()
+
+    # Test 1: Set multiple children
+    alice_exec_command(
+        SetChildKeyTakeCommand,
+        [
+            "stake",
+            "set_childkey_take",
+            "--netuid",
+            "1",
+            "--hotkey",
+            str(alice_keypair.ss58_address),
+            "--take",
+            "0.12",
+            "--wait_for_inclusion",
+            "True",
+            "--wait_for_finalization",
+            "True",
+        ],
+    )
+
+    await wait()
+
+    subtensor = bittensor.subtensor(network="ws://localhost:9945")
