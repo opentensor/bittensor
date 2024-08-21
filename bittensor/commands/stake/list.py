@@ -75,18 +75,20 @@ class StakeList:
             name = registered_delegate_info[hotkey].name + f" ({hotkey})" if hotkey in registered_delegate_info else hotkey
             rows = []
             total_global_tao = bittensor.Balance(0)
+            total_tao_value = bittensor.Balance(0)
             for substake in substakes:
                 netuid = substake.netuid
                 pool = dynamic_info[netuid]
                 symbol = f"{bittensor.Balance.get_unit(netuid)}\u200E"
-                price = "{:.4f}{}".format( pool.price.__float__(), f"τ/{bittensor.Balance.get_unit(netuid)}\u200E") if pool.is_dynamic else f"{1.0}τ/{symbol}"
+                price = "{:.4f}{}".format( pool.price.__float__(), f" (τ/{bittensor.Balance.get_unit(netuid)}\u200E)") if pool.is_dynamic else f" {1.0} ( τ/{symbol} ) "
                 alpha_value = bittensor.Balance.from_rao( int(substake.stake.rao) ).set_unit(netuid)
                 locked_value = bittensor.Balance.from_rao( int(substake.locked.rao) ).set_unit(netuid)
                 tao_value = pool.alpha_to_tao(alpha_value)
+                total_tao_value += tao_value
                 swapped_tao_value, slippage = pool.alpha_to_tao_with_slippage( substake.stake )
                 if pool.is_dynamic:
                     slippage_percentage = 100 * float(slippage) / float(slippage + swapped_tao_value) if slippage + swapped_tao_value != 0 else 0
-                    slippage_percentage = f"[red]{slippage_percentage:.3f}%[/red]"
+                    slippage_percentage = f"[red]{slippage_percentage:.3f}[/red][white]%[/white]"
                 else:
                     slippage_percentage = 'N/A'                
                 tao_locked = pool.tao_in 
@@ -103,12 +105,12 @@ class StakeList:
                     rows.append([
                         str(netuid), # Number
                         symbol, # Symbol
-                        f"[medium_purple]{tao_ownership}[/medium_purple]", # Tao ownership.
+                        f"[medium_purple]{tao_ownership}[/medium_purple] ([light_salmon3]{ alpha_ownership }[/light_salmon3][white]%[/white])", # Tao ownership.
                         f"[dark_sea_green]{ alpha_value }", # Alpha value
                         price, # Price
                         f"[light_slate_blue]{ tao_value }[/light_slate_blue]", # Tao equiv
-                        f"[cadet_blue]{ swapped_tao_value }[/cadet_blue]({slippage_percentage})", # Swap amount.
-                        f"[light_salmon3]{ alpha_ownership }%[/light_salmon3]", # Ownership.
+                        f"[cadet_blue]{ swapped_tao_value }[/cadet_blue] ({slippage_percentage})", # Swap amount.
+                        # f"[light_salmon3]{ alpha_ownership }%[/light_salmon3]", # Ownership.
                         str(bittensor.Balance.from_tao(per_block_emission).set_unit(netuid)), # emission per block.
                         f"[light_slate_blue]{ locked_value }[/light_slate_blue]", # Locked value
                     ])
@@ -137,26 +139,29 @@ class StakeList:
             )
             table.add_column(f"[white]Netuid", footer_style="overline white", style="grey89")
             table.add_column(f"[white]Symbol", footer_style="white", style="light_goldenrod1", justify="right", width=5, no_wrap=True)
-            table.add_column(f"[white]Stake({bittensor.Balance.unit})", style="aquamarine3", justify="right", footer=f"{total_global_tao}")
-            table.add_column(f"[white]Stake({bittensor.Balance.get_unit(1)})", footer_style="overline white", style="green",  justify="right" )
+            table.add_column(f"[white]Global({bittensor.Balance.unit})", style="aquamarine3", justify="right", footer=f"{total_global_tao}")
+            table.add_column(f"[white]Local({bittensor.Balance.get_unit(1)})", footer_style="overline white", style="green",  justify="right" )
             table.add_column(f"[white]Rate({bittensor.Balance.unit}/{bittensor.Balance.get_unit(1)})", footer_style="white", style="light_goldenrod2", justify="center" )
-            table.add_column(f"[white]Value({bittensor.Balance.unit})", footer_style="overline white", style="blue", justify="right" )
+            table.add_column(f"[white]Value({bittensor.Balance.get_unit(1)} x {bittensor.Balance.unit}/{bittensor.Balance.get_unit(1)})", footer_style="overline white", style="blue", justify="right", footer=f"{total_tao_value}")
             table.add_column(f"[white]Swaped({bittensor.Balance.get_unit(1)}) -> {bittensor.Balance.unit}", footer_style="overline white", style="blue", justify="right" )
-            table.add_column(f"[white]Control({bittensor.Balance.get_unit(1)})", style="aquamarine3", justify="right")
+            # table.add_column(f"[white]Control({bittensor.Balance.get_unit(1)})", style="aquamarine3", justify="right")
             table.add_column(f"[white]Emission({bittensor.Balance.get_unit(1)}/block)", style="aquamarine3", justify="right")
             table.add_column(f"[white]Locked({bittensor.Balance.get_unit(1)})", footer_style="overline white", style="green",  justify="right" )
             for row in rows:
                 table.add_row(*row)
             bittensor.__console__.print(table)
-            return total_global_tao
+            return total_global_tao,total_tao_value
 
         # Iterate over each hotkey and make a table
         all_hotkeys_total_global_tao = bittensor.Balance(0)
+        all_hotkeys_total_tao_value = bittensor.Balance(0)
         for hotkey in hotkeys_to_substakes.keys():
-            all_hotkeys_total_global_tao += table_substakes( hotkey, hotkeys_to_substakes[hotkey] )
-            
+            stake, value = table_substakes( hotkey, hotkeys_to_substakes[hotkey] )
+            all_hotkeys_total_global_tao += stake
+            all_hotkeys_total_tao_value += value
+
         bittensor.__console__.print("\n\n")
-        bittensor.__console__.print(f"Wallet:{cli.config.coldkey_address}, Free Balance: {balance} Total Stake ({bittensor.Balance.unit}): {all_hotkeys_total_global_tao}")
+        bittensor.__console__.print(f"Wallet:{cli.config.coldkey_address}, Free Balance: {balance} Total Global Stake ({bittensor.Balance.unit}): {all_hotkeys_total_global_tao}, Total TAO Value ({bittensor.Balance.unit}): {all_hotkeys_total_tao_value}")
         bittensor.__console__.print("\n\n")
 
 

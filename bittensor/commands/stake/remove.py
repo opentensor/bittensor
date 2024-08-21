@@ -93,9 +93,9 @@ class RemoveStakeCommand:
             sys.exit(1)
 
         # Check to see if the passed hotkey is valid.
-        if not subtensor.is_hotkey_registered_any(hotkey_ss58=staking_address_ss58):
-            bt.__console__.print(f"[red]Hotkey [bold]{staking_address_ss58}[/bold] is not registered on any subnets. Aborting.[/red]")
-            sys.exit(1)
+        # if not subtensor.is_hotkey_registered_any(hotkey_ss58=staking_address_ss58):
+        #     bt.__console__.print(f"[red]Hotkey [bold]{staking_address_ss58}[/bold] is not registered on any subnets. Aborting.[/red]")
+        #     sys.exit(1)
 
         # Get old staking balance.
         current_stake_balance: bt.Balance = subtensor.get_stake_for_coldkey_and_hotkey_on_netuid(
@@ -163,12 +163,12 @@ class RemoveStakeCommand:
                 title_justify="center",
                 highlight=False,
             )
-            table.add_column("netuid", justify="center", style="rgb(133,153,0)")
-            table.add_column("hotkey", justify="center", style="rgb(42,161,152)")
-            table.add_column(f"amount ({bt.Balance.get_unit(netuid)})", justify="center", style="rgb(220,50,47)")
-            table.add_column(f"rate ({bt.Balance.get_unit(0)}/{bt.Balance.get_unit(netuid)})", justify="center", style="rgb(42,161,152)")
-            table.add_column(f"received ({bt.Balance.get_unit(0)})", justify="center", style="rgb(42,161,152)")
-            table.add_column("slippage", justify="center", style="rgb(220,50,47)")
+            table.add_column("Netuid", justify="center", style="rgb(133,153,0)")
+            table.add_column("Hotkey", justify="center", style="rgb(42,161,152)")
+            table.add_column(f"Amount ({bt.Balance.get_unit(netuid)})", justify="center", style="rgb(220,50,47)")
+            table.add_column(f"Rate ({bt.Balance.get_unit(0)}/{bt.Balance.get_unit(netuid)})", justify="center", style="rgb(42,161,152)")
+            table.add_column(f"Recieved ({bt.Balance.get_unit(0)})", justify="center", style="rgb(42,161,152)")
+            table.add_column("Slippage", justify="center", style="rgb(220,50,47)")
             table.add_row(
                 str(netuid),
                 f"{staking_address_ss58[:3]}...{staking_address_ss58[-3:]}",

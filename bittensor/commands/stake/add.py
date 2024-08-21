@@ -186,12 +186,12 @@ class AddStakeCommand:
                 title_justify="center",
                 highlight=False,
             )
-            table.add_column("netuid", justify="center", style="rgb(133,153,0)")
-            table.add_column("hotkey", justify="center", style="rgb(42,161,152)")
-            table.add_column(f"amount ({bt.Balance.get_unit(0)})", justify="center", style="rgb(220,50,47)")
-            table.add_column(f"rate ({bt.Balance.get_unit(netuid)}/{bt.Balance.get_unit(0)})", justify="center", style="rgb(42,161,152)")
-            table.add_column(f"received ({bt.Balance.get_unit(netuid)})", justify="center", style="rgb(42,161,152)")
-            table.add_column("slippage", justify="center", style="rgb(220,50,47)")
+            table.add_column("Netuid", justify="center", style="rgb(133,153,0)")
+            table.add_column("Hotkey", justify="center", style="rgb(42,161,152)")
+            table.add_column(f"Amount ({bt.Balance.get_unit(0)})", justify="center", style="rgb(220,50,47)")
+            table.add_column(f"Rate ({bt.Balance.get_unit(netuid)}/{bt.Balance.get_unit(0)})", justify="center", style="rgb(42,161,152)")
+            table.add_column(f"Recieved ({bt.Balance.get_unit(netuid)})", justify="center", style="rgb(42,161,152)")
+            table.add_column("Slippage", justify="center", style="rgb(220,50,47)")
             table.add_row(
                 str(netuid),
                 f"{staking_address_ss58[:3]}...{staking_address_ss58[-3:]}",

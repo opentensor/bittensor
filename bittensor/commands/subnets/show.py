@@ -228,14 +228,14 @@ class ShowSubnet:
                 )
             )        
         # Add columns to the table
-        table.add_column("uid", style="rgb(133,153,0)", no_wrap=True, justify="center")
-        table.add_column(f"Stake({Balance.get_unit(0)})", style="medium_purple", no_wrap=True, justify="right")
-        table.add_column(f"Stake({Balance.get_unit(netuid)})", style="dark_sea_green", no_wrap=True, justify="right")
+        table.add_column("UID", style="rgb(133,153,0)", no_wrap=True, justify="center")
+        table.add_column(f"Global({Balance.get_unit(0)})", style="medium_purple", no_wrap=True, justify="right")
+        table.add_column(f"Local({Balance.get_unit(netuid)})", style="dark_sea_green", no_wrap=True, justify="right")
         table.add_column(f"Stake({Balance.get_unit(0)}•{Balance.get_unit(netuid)})", style="rgb(108,113,196)", no_wrap=True, justify="center")
-        table.add_column("dividends", style="rgb(181,137,0)", no_wrap=True, justify="center")
-        table.add_column("incentive", style="rgb(220,50,47)", no_wrap=True, justify="center")
-        table.add_column(f"emission ({Balance.get_unit(netuid)})", style="rgb(38,139,210)", no_wrap=True, justify="center")
-        table.add_column("hotkey", style="rgb(42,161,152)", no_wrap=True, justify="center")
+        table.add_column("Dividends", style="rgb(181,137,0)", no_wrap=True, justify="center")
+        table.add_column("Incentive", style="rgb(220,50,47)", no_wrap=True, justify="center")
+        table.add_column(f"Emission ({Balance.get_unit(netuid)})", style="rgb(38,139,210)", no_wrap=True, justify="center")
+        table.add_column("Hotkey", style="rgb(42,161,152)", no_wrap=True, justify="center")
         for row in rows:
             table.add_row(*row)
 
