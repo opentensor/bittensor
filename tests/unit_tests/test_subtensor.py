@@ -868,6 +868,27 @@ def test_get_subnet_hyperparameters_no_data(mocker, subtensor):
     subtensor_module.SubnetHyperparameters.from_vec_u8.assert_not_called()
 
 
+def test_query_subtensor(subtensor, mocker):
+    """Tests query_subtensor call."""
+    # Prep
+    fake_name = "module_name"
+
+    mocked_substrate = mocker.MagicMock()
+    subtensor.substrate = mocked_substrate
+
+    # Call
+    result = subtensor.query_subtensor(fake_name)
+
+    # Asserts
+    mocked_substrate.query.assert_called_once_with(
+        module="SubtensorModule",
+        storage_function=fake_name,
+        params=None,
+        block_hash=None,
+    )
+    assert result == mocked_substrate.query.return_value
+
+
 def test_query_runtime_api(subtensor, mocker):
     """Tests query_runtime_api call."""
     # Prep
@@ -899,6 +920,27 @@ def test_query_runtime_api(subtensor, mocker):
         result
         == mocked_runtime_configuration.return_value.create_scale_object.return_value.decode.return_value
     )
+
+
+def test_query_map_subtensor(subtensor, mocker):
+    """Tests query_map_subtensor call."""
+    # Prep
+    fake_name = "module_name"
+
+    mocked_substrate = mocker.MagicMock()
+    subtensor.substrate = mocked_substrate
+
+    # Call
+    result = subtensor.query_map_subtensor(fake_name)
+
+    # Asserts
+    mocked_substrate.query_map.assert_called_once_with(
+        module="SubtensorModule",
+        storage_function=fake_name,
+        params=None,
+        block_hash=None,
+    )
+    assert result == mocked_substrate.query_map.return_value
 
 
 def test_state_call(subtensor, mocker):
