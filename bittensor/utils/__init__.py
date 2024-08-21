@@ -78,7 +78,7 @@ def _get_explorer_root_url_by_network_from_map(
 
 
 def get_explorer_url_for_network(
-    network: str, block_hash: str, network_map: Dict[str, str]
+    network: str, block_hash: str, network_map: Dict[str, Dict[str, str]]
 ) -> Optional[Dict[str, str]]:
     """
     Returns the explorer url for the given block hash and network.
