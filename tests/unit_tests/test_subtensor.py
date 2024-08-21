@@ -17,15 +17,12 @@
 
 import argparse
 import unittest.mock as mock
-from cgitb import reset
 from typing import List, Tuple
 from unittest.mock import MagicMock
 
 import pytest
 from bittensor_wallet import Wallet
-from mypy.plugins.singledispatch import make_fake_register_class_instance
 
-from bittensor import wallet
 from bittensor.core import subtensor as subtensor_module, settings
 from bittensor.core.axon import Axon
 from bittensor.core.chain_data import SubnetHyperparameters
@@ -33,7 +30,6 @@ from bittensor.core.settings import version_as_int
 from bittensor.core.subtensor import Subtensor, logging
 from bittensor.utils import u16_normalized_float, u64_normalized_float
 from bittensor.utils.balance import Balance
-from e2e_tests.utils.chain_interactions import register_subnet
 
 U16_MAX = 65535
 U64_MAX = 18446744073709551615
