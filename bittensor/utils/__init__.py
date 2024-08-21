@@ -16,9 +16,8 @@
 # DEALINGS IN THE SOFTWARE.
 
 import hashlib
-from typing import Callable, List, Dict, Literal, Tuple, Union, Optional
+from typing import Callable, List, Dict, Literal, Union, Optional
 
-import numpy as np
 import scalecodec
 from substrateinterface import Keypair as Keypair
 from substrateinterface.utils import ss58
@@ -36,83 +35,6 @@ def ss58_to_vec_u8(ss58_address: str) -> List[int]:
     ss58_bytes: bytes = ss58_address_to_bytes(ss58_address)
     encoded_address: List[int] = [int(byte) for byte in ss58_bytes]
     return encoded_address
-
-
-def _unbiased_topk(
-    values: Union[np.ndarray, "torch.Tensor"],
-    k: int,
-    dim=0,
-    sorted_=True,
-    largest=True,
-    axis=0,
-    return_type: str = "numpy",
-) -> Union[Tuple[np.ndarray, np.ndarray], Tuple["torch.Tensor", "torch.LongTensor"]]:
-    """Selects topk as in torch.topk but does not bias lower indices when values are equal.
-    Args:
-        values: (np.ndarray) if using numpy, (torch.Tensor) if using torch: Values to index into.
-        k (int): Number to take.
-        dim (int): Dimension to index into (used by Torch)
-        sorted_ (bool): Whether to sort indices.
-        largest (bool): Whether to take the largest value.
-        axis (int): Axis along which to index into (used by Numpy)
-        return_type (str): Whether or use torch or numpy approach
-
-    Return:
-        topk (np.ndarray): if using numpy, (torch.Tensor) if using torch: topk k values.
-        indices (np.ndarray): if using numpy, (torch.LongTensor) if using torch: indices of the topk values.
-    """
-    if return_type == "torch":
-        permutation = torch.randperm(values.shape[dim])
-        permuted_values = values[permutation]
-        topk, indices = torch.topk(
-            permuted_values, k, dim=dim, sorted=sorted_, largest=largest
-        )
-        return topk, permutation[indices]
-    else:
-        if dim != 0 and axis == 0:
-            # Ensures a seamless transition for calls made to this function that specified args by keyword
-            axis = dim
-
-        permutation = np.random.permutation(values.shape[axis])
-        permuted_values = np.take(values, permutation, axis=axis)
-        indices = np.argpartition(permuted_values, -k, axis=axis)[-k:]
-        if not sorted_:
-            indices = np.sort(indices, axis=axis)
-        if not largest:
-            indices = indices[::-1]
-        topk = np.take(permuted_values, indices, axis=axis)
-        return topk, permutation[indices]
-
-
-def unbiased_topk(
-    values: Union[np.ndarray, "torch.Tensor"],
-    k: int,
-    dim: int = 0,
-    sorted_: bool = True,
-    largest: bool = True,
-    axis: int = 0,
-) -> Union[Tuple[np.ndarray, np.ndarray], Tuple["torch.Tensor", "torch.LongTensor"]]:
-    """Selects topk as in torch.topk but does not bias lower indices when values are equal.
-    Args:
-        values: (np.ndarray) if using numpy, (torch.Tensor) if using torch: Values to index into.
-        k: (int): Number to take.
-        dim: (int): Dimension to index into (used by Torch)
-        sorted_: (bool): Whether to sort indices.
-        largest: (bool): Whether to take the largest value.
-        axis: (int): Axis along which to index into (used by Numpy)
-
-    Return:
-        topk: (np.ndarray) if using numpy, (torch.Tensor) if using torch: topk k values.
-        indices: (np.ndarray) if using numpy, (torch.LongTensor) if using torch: indices of the topk values.
-    """
-    if use_torch():
-        return _unbiased_topk(
-            values, k, dim, sorted_, largest, axis, return_type="torch"
-        )
-    else:
-        return _unbiased_topk(
-            values, k, dim, sorted_, largest, axis, return_type="numpy"
-        )
 
 
 def strtobool_with_default(

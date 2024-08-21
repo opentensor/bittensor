@@ -102,7 +102,6 @@ from bittensor.core.threadpool import (  # noqa: F401
 )
 from bittensor.utils import (  # noqa: F401
     ss58_to_vec_u8,
-    unbiased_topk,
     version_checking,
     strtobool,
     strtobool_with_default,
