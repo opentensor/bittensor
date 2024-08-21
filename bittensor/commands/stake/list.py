@@ -60,7 +60,7 @@ class StakeList:
         # Token pricing info.
         dynamic_info = subtensor.get_all_subnet_dynamic_info()
         emission_drain_tempo = int(subtensor.query_module("SubtensorModule", "HotkeyEmissionTempo").value)
-        balance = subtensor.get_balance( wallet.coldkeypub.ss58_address )
+        balance = subtensor.get_balance( cli.config.coldkey_address )
     
         # Iterate over substakes and aggregate them by hotkey.
         hotkeys_to_substakes: typing.Dict[str, typing.List[typing.Dict]] = {}
@@ -157,7 +157,7 @@ class StakeList:
             all_hotkeys_total_global_tao += table_substakes( hotkey, hotkeys_to_substakes[hotkey] )
             
         bittensor.__console__.print("\n\n")
-        bittensor.__console__.print(f"Wallet:{wallet.coldkeypub.ss58_address}, Balance: {balance} Global: {all_hotkeys_total_global_tao}")
+        bittensor.__console__.print(f"Wallet:{cli.config.coldkey_address}, Balance: {balance} Global: {all_hotkeys_total_global_tao}")
         bittensor.__console__.print("\n\n")
 
 
