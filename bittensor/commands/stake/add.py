@@ -106,6 +106,8 @@ class AddStakeCommand:
         if config.is_set("wallet.hotkey"):
             wallet = bt.wallet(name=wallet.name, hotkey=config.wallet.hotkey, path=wallet.path)
             staking_address_name = wallet.hotkey.ss58_address
+        elif config.is_set("hotkey_ss58"):
+            staking_address_name = config.get('hotkey_ss58')
         elif not staking_address_ss58 and not config.no_prompt:
             hotkey_str = Prompt.ask("Enter staking hotkey [bold blue]name[/bold blue] or [bold green]ss58_address[/bold green]", default=bt.defaults.wallet.hotkey)
             if bt.utils.is_valid_ss58_address(hotkey_str):
