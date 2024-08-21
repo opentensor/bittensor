@@ -16,8 +16,23 @@
 # DEALINGS IN THE SOFTWARE.
 
 import logging
+from symbol import return_stmt
 
 import numpy as np
-from bittensor import utils
+from bittensor import utils, ss58_address_to_bytes
 import pytest
 
+
+def test_ss58_to_vec_u8(mocker):
+    """Tests `utils.ss58_to_vec_u8` function."""
+    # Prep
+    test_ss58_address = "5DD26kC2kxajmwfbbZmVmxhrY9VeeyR1Gpzy9i8wxLUg6zxm"
+    fake_return = b'2\xa6?'
+    mocked_ss58_address_to_bytes = mocker.patch.object(utils, "ss58_address_to_bytes", return_value=fake_return)
+
+    # Call
+    result = utils.ss58_to_vec_u8(test_ss58_address)
+
+    # Asserts
+    mocked_ss58_address_to_bytes.assert_called_once_with(test_ss58_address)
+    assert result == [int(byte) for byte in fake_return]
