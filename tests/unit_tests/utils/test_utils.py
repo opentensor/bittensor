@@ -113,7 +113,7 @@ def test_get_explorer_url_for_network():
 
 def test_ss58_address_to_bytes(mocker):
     """Tests utils.ss58_address_to_bytes function."""
-    # Preps
+    # Prep
     fake_ss58_address = "ss58_address"
     mocked_scalecodec_ss58_decode = mocker.patch.object(utils.scalecodec, "ss58_decode", return_value="")
 
@@ -123,3 +123,24 @@ def test_ss58_address_to_bytes(mocker):
     # Asserts
     mocked_scalecodec_ss58_decode.assert_called_once_with(fake_ss58_address, SS58_FORMAT)
     assert result == bytes.fromhex(mocked_scalecodec_ss58_decode.return_value)
+
+
+@pytest.mark.parametrize(
+    "test_input, expected_result",
+    [
+        (123, False),
+        ("0x234SD", True),
+        (b"0x234SD", True),
+    ],
+)
+def test_is_valid_bittensor_address_or_public_key(mocker, test_input, expected_result):
+    """ Tests utils.is_valid_bittensor_address_or_public_key function."""
+    # Prep
+    fake_address = "some_address"
+    mocked_is_valid_ss58_address = mocker.patch.object(utils, "_is_valid_ed25519_pubkey", return_value=True)
+
+    # Call
+    result = utils.is_valid_bittensor_address_or_public_key(test_input)
+
+    # Asserts
+    assert result == expected_result

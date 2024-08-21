@@ -108,7 +108,6 @@ from bittensor.utils import (  # noqa: F401
     ss58_address_to_bytes,
     u16_normalized_float,
     u64_normalized_float,
-    u8_key_to_ss58,
     get_hash,
 )
 from bittensor.utils.balance import Balance as Balance  # noqa: F401
