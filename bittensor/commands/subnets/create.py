@@ -77,8 +77,12 @@ class RegisterSubnetworkCommand:
     @classmethod
     def check_config(cls, config: "bittensor.config"):
         if not config.is_set("wallet.name") and not config.no_prompt:
-            wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
+            wallet_name = Prompt.ask("Enter wallet [bold blue]name[/bold blue]", default=defaults.wallet.name)
             config.wallet.name = str(wallet_name)
+            
+        if not config.is_set("wallet.hotkey") and not config.no_prompt:
+            wallet_hotkey = Prompt.ask("Enter wallet [bold green]hotkey[/bold green] (to register on the network at creation)", default=defaults.wallet.hotkey)
+            config.wallet.hotkey = str(wallet_hotkey)
 
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser):
