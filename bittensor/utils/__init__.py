@@ -16,7 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import hashlib
-from typing import Callable, List, Dict, Literal, Union, Optional
+from typing import List, Dict, Literal, Union, Optional
 
 import scalecodec
 from substrateinterface import Keypair as Keypair
@@ -37,21 +37,6 @@ def ss58_to_vec_u8(ss58_address: str) -> List[int]:
     return encoded_address
 
 
-def strtobool_with_default(
-    default: bool,
-) -> Callable[[str], Union[bool, Literal["==SUPRESS=="]]]:
-    """
-    Creates a strtobool function with a default value.
-
-    Args:
-        default(bool): The default value to return if the string is empty.
-
-    Returns:
-        The strtobool function with the default value.
-    """
-    return lambda x: strtobool(x) if x != "" else default
-
-
 def strtobool(val: str) -> Union[bool, Literal["==SUPRESS=="]]:
     """
     Converts a string to a boolean value.
@@ -70,7 +55,7 @@ def strtobool(val: str) -> Union[bool, Literal["==SUPRESS=="]]:
         raise ValueError("invalid truth value %r" % (val,))
 
 
-def get_explorer_root_url_by_network_from_map(
+def _get_explorer_root_url_by_network_from_map(
     network: str, network_map: Dict[str, Dict[str, str]]
 ) -> Optional[Dict[str, str]]:
     """
@@ -111,7 +96,7 @@ def get_explorer_url_for_network(
     explorer_urls: Optional[Dict[str, str]] = {}
     # Will be None if the network is not known. i.e. not in network_map
     explorer_root_urls: Optional[Dict[str, str]] = (
-        get_explorer_root_url_by_network_from_map(network, network_map)
+        _get_explorer_root_url_by_network_from_map(network, network_map)
     )
 
     if explorer_root_urls != {}:

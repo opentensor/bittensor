@@ -104,8 +104,6 @@ from bittensor.utils import (  # noqa: F401
     ss58_to_vec_u8,
     version_checking,
     strtobool,
-    strtobool_with_default,
-    get_explorer_root_url_by_network_from_map,
     get_explorer_url_for_network,
     ss58_address_to_bytes,
     u16_normalized_float,
