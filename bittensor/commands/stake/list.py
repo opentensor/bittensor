@@ -47,7 +47,6 @@ class StakeList:
 
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
-        wallet = bittensor.wallet(config=cli.config)
         substakes = subtensor.get_stake_info_for_coldkeys(
             coldkey_ss58_list=[cli.config.coldkey_address]
         )[cli.config.coldkey_address]
@@ -105,13 +104,13 @@ class StakeList:
                         str(netuid), # Number
                         symbol, # Symbol
                         f"[medium_purple]{tao_ownership}[/medium_purple]", # Tao ownership.
-                        price, # Price
                         f"[dark_sea_green]{ alpha_value }", # Alpha value
-                        f"[light_slate_blue]{ locked_value }[/light_slate_blue]", # Locked value
+                        price, # Price
                         f"[light_slate_blue]{ tao_value }[/light_slate_blue]", # Tao equiv
                         f"[cadet_blue]{ swapped_tao_value }[/cadet_blue]", # Swap amount.
                         f"[light_salmon3]{ alpha_ownership }%[/light_salmon3]", # Ownership.
                         str(bittensor.Balance.from_tao(per_block_emission).set_unit(netuid)), # emission per block.
+                        f"[light_slate_blue]{ locked_value }[/light_slate_blue]", # Locked value
                     ])
             # table = Table(show_footer=True, pad_edge=False, box=None, expand=False, title=f"{name}")
             table = Table(
@@ -138,14 +137,14 @@ class StakeList:
             )
             table.add_column(f"[white]Netuid", footer_style="overline white", style="grey89")
             table.add_column(f"[white]Symbol", footer_style="white", style="light_goldenrod1", justify="center", width=5, no_wrap=True)
-            table.add_column(f"[white]Global({bittensor.Balance.unit})", style="aquamarine3", justify="center", footer=f"{total_global_tao}")
+            table.add_column(f"[white]Stake({bittensor.Balance.unit})", style="aquamarine3", justify="center", footer=f"{total_global_tao}")
+            table.add_column(f"[white]Stake({bittensor.Balance.get_unit(1)})", footer_style="overline white", style="green",  justify="center" )
             table.add_column(f"[white]Rate({bittensor.Balance.unit}/{bittensor.Balance.get_unit(1)})", footer_style="white", style="light_goldenrod2", justify="center" )
-            table.add_column(f"[white]Local({bittensor.Balance.get_unit(1)})", footer_style="overline white", style="green",  justify="center" )
-            table.add_column(f"[white]Locked({bittensor.Balance.get_unit(1)})", footer_style="overline white", style="green",  justify="center" )
             table.add_column(f"[white]Value({bittensor.Balance.unit})", footer_style="overline white", style="blue", justify="center" )
             table.add_column(f"[white]Swaped({bittensor.Balance.get_unit(1)}) -> {bittensor.Balance.unit}", footer_style="overline white", style="blue", justify="center" )
             table.add_column(f"[white]Control({bittensor.Balance.get_unit(1)})", style="aquamarine3", justify="center")
-            table.add_column(f"[white]Emission({bittensor.Balance.get_unit(1)})", style="aquamarine3", justify="center")
+            table.add_column(f"[white]Emission({bittensor.Balance.get_unit(1)}/block)", style="aquamarine3", justify="center")
+            table.add_column(f"[white]Locked({bittensor.Balance.get_unit(1)})", footer_style="overline white", style="green",  justify="center" )
             for row in rows:
                 table.add_row(*row)
             bittensor.__console__.print(table)
@@ -157,7 +156,7 @@ class StakeList:
             all_hotkeys_total_global_tao += table_substakes( hotkey, hotkeys_to_substakes[hotkey] )
             
         bittensor.__console__.print("\n\n")
-        bittensor.__console__.print(f"Wallet:{cli.config.coldkey_address}, Balance: {balance} Global: {all_hotkeys_total_global_tao}")
+        bittensor.__console__.print(f"Wallet:{cli.config.coldkey_address}, Balance: {balance} Stake: {all_hotkeys_total_global_tao}")
         bittensor.__console__.print("\n\n")
 
 
