@@ -90,7 +90,7 @@ class StakeList:
                     slippage_percentage = f"{slippage_percentage:.4f}%"
                 else:
                     slippage_percentage = 'N/A'                
-                tao_locked = pool.tao_in if pool.is_dynamic else subtensor.get_total_subnet_stake(netuid).set_unit(netuid)
+                tao_locked = pool.tao_in 
                 issuance = pool.alpha_out if pool.is_dynamic else tao_locked
                 per_block_emission = substake.emission.tao / ( ( emission_drain_tempo / pool.tempo) * pool.tempo )
                 if alpha_value.tao > 0.00009:
