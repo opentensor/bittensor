@@ -186,17 +186,17 @@ class AddStakeCommand:
                 title_justify="center",
                 highlight=False,
             )
-            table.add_column("Netuid", justify="center", style="rgb(133,153,0)")
+            table.add_column("Netuid", justify="center", style="grey89")
             table.add_column("Hotkey", justify="center", style="rgb(42,161,152)")
-            table.add_column(f"Amount ({bt.Balance.get_unit(0)})", justify="center", style="rgb(220,50,47)")
-            table.add_column(f"Rate ({bt.Balance.get_unit(netuid)}/{bt.Balance.get_unit(0)})", justify="center", style="rgb(42,161,152)")
-            table.add_column(f"Recieved ({bt.Balance.get_unit(netuid)})", justify="center", style="rgb(42,161,152)")
+            table.add_column(f"Amount ({bt.Balance.get_unit(0)})", justify="center", style="dark_sea_green")
+            table.add_column(f"Rate ({bt.Balance.get_unit(netuid)}/{bt.Balance.get_unit(0)})", justify="center", style="light_goldenrod2")
+            table.add_column(f"Recieved ({bt.Balance.get_unit(netuid)})", justify="center", style="light_slate_blue")
             table.add_column("Slippage", justify="center", style="rgb(220,50,47)")
             table.add_row(
                 str(netuid),
                 f"{staking_address_ss58[:3]}...{staking_address_ss58[-3:]}",
                 str(amount_to_stake_as_balance),
-                str(1/float(dynamic_info.price)) + f"({bt.Balance.get_unit(netuid)}/{bt.Balance.get_unit(0)})",
+                str(1/float(dynamic_info.price)) + f" ({bt.Balance.get_unit(netuid)}/{bt.Balance.get_unit(0)}) ",
                 str(received_amount.set_unit(netuid)),
                 str(slippage_pct),
             )
