@@ -156,7 +156,7 @@ class StakeList:
             all_hotkeys_total_global_tao += table_substakes( hotkey, hotkeys_to_substakes[hotkey] )
             
         bittensor.__console__.print("\n\n")
-        bittensor.__console__.print(f"Wallet:{cli.config.coldkey_address}, Balance: {balance} Stake: {all_hotkeys_total_global_tao}")
+        bittensor.__console__.print(f"Wallet:{cli.config.coldkey_address}, Free Balance: {balance} Total Stake: {all_hotkeys_total_global_tao}")
         bittensor.__console__.print("\n\n")
 
 
