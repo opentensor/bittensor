@@ -17,6 +17,7 @@
 
 import sys
 import argparse
+import bittensor as bt
 from typing import TYPE_CHECKING
 
 from rich.console import Console
@@ -68,10 +69,18 @@ class ShowSubnet:
             
     @staticmethod
     def show_root( subtensor: "Subtensor", config: "Config"):
-        all_info = subtensor.get_all_subnet_dynamic_info()
+        all_subnets = subtensor.get_all_subnet_dynamic_info()
         root_state: "SubnetState" = SubnetState.from_vec_u8(
             subtensor.substrate.rpc_request(method="subnetInfo_getSubnetState", params=[0, None])['result']
         )
+        import bittensor as bt
+        if root_state is None:
+            bt.__console__.print(f"The root subnet does not exist")
+            return
+        if len(root_state.hotkeys) == 0:
+            bt.__console__.print(f"The root-subnet is currently empty with 0 UIDs registered.")
+            return
+
         console_width = console.width - 5
         table = Table(
             title=f"[white]Root Network",
@@ -101,6 +110,8 @@ class ShowSubnet:
         table.add_column(f"Global ({Balance.get_unit(0)})", style="rgb(211,54,130)", no_wrap=True, justify="center")
         table.add_column(f"Emission ({Balance.get_unit(0)}/block)", style="rgb(42,161,152)", no_wrap=True, justify="center")
         table.add_column("hotkey", style="rgb(42,161,152)", no_wrap=True, justify="center")
+        print (root_state.hotkeys)
+        print (root_state.global_stake)
         sorted_hotkeys = sorted(
             enumerate(root_state.hotkeys),
             key=lambda x: root_state.global_stake[x[0]],
@@ -108,11 +119,10 @@ class ShowSubnet:
         )        
         for pos, (idx, hk) in enumerate(sorted_hotkeys):
             total_emission_per_block = 0
-            for netuid in range( len(all_info)):
-                dynamic_info = all_info[netuid]
-                last_emission_drain = root_state.emission_history[netuid][idx]
-                per_block_emission = last_emission_drain / dynamic_info.tempo 
-                total_emission_per_block += dynamic_info.alpha_to_tao( Balance.from_rao(per_block_emission) )
+            for netuid in range( len(all_subnets)):
+                subnet = all_subnets[netuid]
+                emission_on_subnet = root_state.emission_history[netuid][idx] / subnet.tempo 
+                total_emission_per_block += subnet.alpha_to_tao( Balance.from_rao(emission_on_subnet) )
             table.add_row(
                 str((pos + 1)),
                 str(root_state.local_stake[idx]),
@@ -132,6 +142,13 @@ class ShowSubnet:
         subnet_state: "SubnetState" = SubnetState.from_vec_u8(
             subtensor.substrate.rpc_request(method="subnetInfo_getSubnetState", params=[netuid, None])['result']
         )
+        if subnet_info is None:
+            bt.__console__.print(f"Subnet {netuid} does not exist")
+            return
+        if len(subnet_state.hotkeys) == 0:
+            bt.__console__.print(f"Subnet {netuid} is currently empty with 0 UIDs registered.")
+            return
+
         # Define table properties
         console_width = console.width - 5
         table = Table(
@@ -197,6 +214,21 @@ class ShowSubnet:
             str(subnet_info.blocks_since_last_step) + "/" + str(subnet_info.tempo),
         )
 
+        rows = []
+        emission_sum = sum([subnet_state.emission[idx].tao for idx in range(len(subnet_state.emission))])
+        for idx, hk in enumerate(subnet_state.hotkeys):
+            hotkey_block_emission = subnet_state.emission[idx].tao/emission_sum if emission_sum != 0 else 0
+            rows.append((
+                    str(idx),
+                    str(subnet_state.local_stake[idx]),
+                    str(subnet_state.global_stake[idx]),
+                    f"{subnet_state.stake_weight[idx]:.4f}",
+                    str(subnet_state.dividends[idx]),
+                    str(subnet_state.incentives[idx]),
+                    str(Balance.from_tao(hotkey_block_emission).set_unit(netuid)),
+                    f"{subnet_state.hotkeys[idx]}",
+                )
+            )        
         # Add columns to the table
         table.add_column("uid", style="rgb(133,153,0)", no_wrap=True, justify="center")
         table.add_column(f"{Balance.get_unit(netuid)}", style="rgb(42,161,152)", no_wrap=True, justify="center")
@@ -206,22 +238,10 @@ class ShowSubnet:
         table.add_column("incentive", style="rgb(220,50,47)", no_wrap=True, justify="center")
         table.add_column(f"emission ({Balance.get_unit(netuid)})", style="rgb(38,139,210)", no_wrap=True, justify="center")
         table.add_column("hotkey", style="rgb(42,161,152)", no_wrap=True, justify="center")
-
-        for idx, hk in enumerate(subnet_state.hotkeys):
-            table.add_row(
-                str(idx),
-                str(subnet_state.local_stake[idx]),
-                str(subnet_state.global_stake[idx]),
-                f"{subnet_state.stake_weight[idx]:.4f}",
-                str(subnet_state.dividends[idx]),
-                str(subnet_state.incentives[idx]),
-                str(subnet_state.emission[idx]),
-                f"{subnet_state.hotkeys[idx]}",
-            
-            )
+        for row in rows:
+            table.add_row(*row)
 
         # Print the table
-        import bittensor as bt
         bt.__console__.print("\n\n\n")
         bt.__console__.print(f"\t\tSubnet: {netuid}: Owner: {subnet_info.owner}, Total Locked: {subnet_info.total_locked}, Owner Locked: {subnet_info.owner_locked}")
         bt.__console__.print("\n\n\n")

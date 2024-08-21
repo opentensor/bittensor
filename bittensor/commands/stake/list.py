@@ -111,12 +111,12 @@ class StakeList:
                         f"[light_slate_blue]{ locked_value }[/light_slate_blue]", # Locked value
                         f"[light_slate_blue]{ tao_value }[/light_slate_blue]", # Tao equiv
                         f"[cadet_blue]{ swapped_tao_value }[/cadet_blue]", # Swap amount.
-                        f"[light_salmon3]{alpha_ownership}%[/light_salmon3]", # Ownership.
+                        f"[light_salmon3]{ alpha_ownership }%[/light_salmon3]", # Ownership.
                         str(bittensor.Balance.from_tao(per_block_emission).set_unit(netuid)), # emission per block.
                     ])
             # table = Table(show_footer=True, pad_edge=False, box=None, expand=False, title=f"{name}")
             table = Table(
-                title=f"[white]hotkey: {name}[/white]",
+                title=f"[white]hotkey: {name}[/white]\n",
                 width=bittensor.__console__.width - 5,
                 safe_box=True,
                 padding=(0, 1),
@@ -137,10 +137,10 @@ class StakeList:
                 title_justify="center",
                 highlight=False,
             )
-            table.add_column(f"[white]", footer_style="overline white", style="grey89")
-            table.add_column(f"[white]", footer_style="white", style="light_goldenrod1", justify="center", width=5, no_wrap=True)
+            table.add_column(f"[white]Netuid", footer_style="overline white", style="grey89")
+            table.add_column(f"[white]Symbol", footer_style="white", style="light_goldenrod1", justify="center", width=5, no_wrap=True)
             table.add_column(f"[white]Global({bittensor.Balance.unit})", style="aquamarine3", justify="center", footer=f"{total_global_tao}")
-            table.add_column(f"[white]({bittensor.Balance.unit}/{bittensor.Balance.get_unit(1)})", footer_style="white", style="light_goldenrod2", justify="center" )
+            table.add_column(f"[white]Rate({bittensor.Balance.unit}/{bittensor.Balance.get_unit(1)})", footer_style="white", style="light_goldenrod2", justify="center" )
             table.add_column(f"[white]Local({bittensor.Balance.get_unit(1)})", footer_style="overline white", style="green",  justify="center" )
             table.add_column(f"[white]Locked({bittensor.Balance.get_unit(1)})", footer_style="overline white", style="green",  justify="center" )
             table.add_column(f"[white]Value({bittensor.Balance.unit})", footer_style="overline white", style="blue", justify="center" )
