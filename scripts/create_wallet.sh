@@ -10,4 +10,7 @@ chmod 0600 ~/.bittensor/wallets/default/hotkeys/default
 echo "~/.bittensor/wallets/default/coldkeypub.txt"
 cat ~/.bittensor/wallets/default/coldkeypub.txt
 echo "~/.bittensor/wallets/default/hotkeys/default"
+
+
+
 cat ~/.bittensor/wallets/default/hotkeys/default
