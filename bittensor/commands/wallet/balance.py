@@ -85,7 +85,7 @@ def _get_total_stake_for_coldkey(
         tao_locked = (
             pool.tao_in
             if pool.is_dynamic
-            else subtensor.get_total_subnet_stake(netuid).set_unit(netuid)
+            else pool.tao_in
         )
         issuance = pool.alpha_out if pool.is_dynamic else tao_locked
         tao_ownership = 0
