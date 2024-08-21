@@ -133,6 +133,9 @@ class RemoveStakeCommand:
         # Slippage warning
         if not config.no_prompt:
             dynamic_info = subtensor.get_subnet_dynamic_info( netuid )
+            if dynamic_info == None:
+                bt.__console__.print(f"[red]Subnet: {netuid} does not exist.[/red]")
+                sys.exit(1)
             received_amount, slippage = dynamic_info.alpha_to_tao_with_slippage( amount_to_unstake_as_balance )
             if dynamic_info.is_dynamic:
                 slippage_pct_float = 100 * float(slippage) / float(slippage + received_amount) if slippage + received_amount != 0 else 0
