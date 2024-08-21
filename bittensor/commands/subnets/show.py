@@ -110,8 +110,6 @@ class ShowSubnet:
         table.add_column(f"Global ({Balance.get_unit(0)})", style="rgb(211,54,130)", no_wrap=True, justify="center")
         table.add_column(f"Emission ({Balance.get_unit(0)}/block)", style="rgb(42,161,152)", no_wrap=True, justify="center")
         table.add_column("hotkey", style="rgb(42,161,152)", no_wrap=True, justify="center")
-        print (root_state.hotkeys)
-        print (root_state.global_stake)
         sorted_hotkeys = sorted(
             enumerate(root_state.hotkeys),
             key=lambda x: root_state.global_stake[x[0]],
@@ -220,8 +218,8 @@ class ShowSubnet:
             hotkey_block_emission = subnet_state.emission[idx].tao/emission_sum if emission_sum != 0 else 0
             rows.append((
                     str(idx),
-                    str(subnet_state.local_stake[idx]),
                     str(subnet_state.global_stake[idx]),
+                    str(subnet_state.local_stake[idx]),
                     f"{subnet_state.stake_weight[idx]:.4f}",
                     str(subnet_state.dividends[idx]),
                     str(subnet_state.incentives[idx]),
@@ -231,9 +229,9 @@ class ShowSubnet:
             )        
         # Add columns to the table
         table.add_column("uid", style="rgb(133,153,0)", no_wrap=True, justify="center")
-        table.add_column(f"{Balance.get_unit(netuid)}", style="rgb(42,161,152)", no_wrap=True, justify="center")
-        table.add_column(f"Global({Balance.get_unit(0)})", style="rgb(211,54,130)", no_wrap=True, justify="center")
-        table.add_column("stake", style="rgb(108,113,196)", no_wrap=True, justify="center")
+        table.add_column(f"Stake({Balance.get_unit(0)})", style="medium_purple", no_wrap=True, justify="center")
+        table.add_column(f"Stake({Balance.get_unit(netuid)})", style="dark_sea_green", no_wrap=True, justify="center")
+        table.add_column(f"Stake({Balance.get_unit(0)}•{Balance.get_unit(netuid)})", style="rgb(108,113,196)", no_wrap=True, justify="center")
         table.add_column("dividends", style="rgb(181,137,0)", no_wrap=True, justify="center")
         table.add_column("incentive", style="rgb(220,50,47)", no_wrap=True, justify="center")
         table.add_column(f"emission ({Balance.get_unit(netuid)})", style="rgb(38,139,210)", no_wrap=True, justify="center")

@@ -59,7 +59,7 @@ class RemoveStakeCommand:
             
         # Get wallet.
         wallet = bt.wallet( config = config )
-        if config.is_set("--wallet.name"):
+        if config.is_set("wallet.name"):
             wallet = bt.wallet( config = config )
         elif not config.no_prompt:
             wallet_name = Prompt.ask("Enter wallet name", default=bt.defaults.wallet.name)
