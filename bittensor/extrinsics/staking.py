@@ -18,7 +18,6 @@ from math import floor
 # DEALINGS IN THE SOFTWARE.
 
 from rich.prompt import Confirm
-from rich.console import Console
 from time import sleep
 from typing import List, Union, Optional, Tuple
 
@@ -538,6 +537,95 @@ def __do_add_stake_single(
     return success
 
 
+def set_childkey_take_extrinsic(
+    subtensor: "bittensor.subtensor",
+    wallet: "bittensor.wallet",
+    hotkey: str,
+    netuid: int,
+    take: float,
+    wait_for_inclusion: bool = True,
+    wait_for_finalization: bool = False,
+    prompt: bool = False,
+) -> Tuple[bool, str]:
+    """
+    Sets childkey take.
+
+    Args:
+        subtensor (bittensor.subtensor): Subtensor endpoint to use.
+        wallet (bittensor.wallet): Bittensor wallet object.
+        hotkey (str): Childkey hotkey.
+        take (float): Childkey take value.
+        netuid (int): Unique identifier of for the subnet.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
+        prompt (bool): If ``true``, the call waits for confirmation from the user before proceeding.
+
+    Returns:
+        Tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
+
+    Raises:
+        bittensor.errors.ChildHotkeyError: If the extrinsic fails to be finalized or included in the block.
+        bittensor.errors.NotRegisteredError: If the hotkey is not registered in any subnets.
+
+    """
+
+    # Decrypt coldkey.
+    wallet.coldkey
+
+    user_hotkey_ss58 = wallet.hotkey.ss58_address  # Default to wallet's own hotkey.
+    if hotkey != user_hotkey_ss58:
+        raise ValueError("You can only set childkey take for ss58 hotkey that you own.")
+
+    # Ask before moving on.
+    if prompt:
+        if not Confirm.ask(
+            f"Do you want to set childkey take to: [bold white]{take*100}%[/bold white]?"
+        ):
+            return False, "Operation Cancelled"
+
+    with bittensor.__console__.status(
+        f":satellite: Setting childkey take on [white]{subtensor.network}[/white] ..."
+    ):
+        try:
+
+            success, error_message = subtensor._do_set_childkey_take(
+                wallet=wallet,
+                hotkey=hotkey,
+                netuid=netuid,
+                take=take,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
+
+            if not wait_for_finalization and not wait_for_inclusion:
+                return (
+                    True,
+                    "Not waiting for finalization or inclusion. Set childkey take initiated.",
+                )
+
+            if success:
+                bittensor.__console__.print(
+                    ":white_heavy_check_mark: [green]Finalized[/green]"
+                )
+                bittensor.logging.success(
+                    prefix="Setting childkey take",
+                    suffix="<green>Finalized: </green>" + str(success),
+                )
+                return True, "Successfully set childkey take and Finalized."
+            else:
+                bittensor.__console__.print(
+                    f":cross_mark: [red]Failed[/red]: {error_message}"
+                )
+                bittensor.logging.warning(
+                    prefix="Setting childkey take",
+                    suffix="<red>Failed: </red>" + str(error_message),
+                )
+                return False, error_message
+
+        except Exception as e:
+            return False, f"Exception occurred while setting childkey take: {str(e)}"
+
+
 def set_children_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
@@ -572,10 +660,9 @@ def set_children_extrinsic(
 
     # Decrypt coldkey.
     wallet.coldkey
-    console = Console()
 
     user_hotkey_ss58 = wallet.hotkey.ss58_address  # Default to wallet's own hotkey.
-    if hotkey != user_hotkey_ss58:
+    if hotkey == user_hotkey_ss58:
         raise ValueError("Cannot set/revoke yourself as child hotkey.")
 
     # Check if all children are being revoked
