@@ -80,7 +80,7 @@ class StakeList:
                 netuid = substake.netuid
                 pool = dynamic_info[netuid]
                 symbol = f"{bittensor.Balance.get_unit(netuid)}\u200E"
-                price = "{:.4f}{}".format( pool.price.__float__(), f" (τ/{bittensor.Balance.get_unit(netuid)}\u200E)") if pool.is_dynamic else f" {1.0} ( τ/{symbol} ) "
+                price = "{:.4f}{}".format( pool.price.__float__(), f" (τ/{bittensor.Balance.get_unit(netuid)}\u200E)") if pool.is_dynamic else f" {1.0} (τ/{symbol}) "
                 alpha_value = bittensor.Balance.from_rao( int(substake.stake.rao) ).set_unit(netuid)
                 locked_value = bittensor.Balance.from_rao( int(substake.locked.rao) ).set_unit(netuid)
                 tao_value = pool.alpha_to_tao(alpha_value)
@@ -161,7 +161,7 @@ class StakeList:
             all_hotkeys_total_tao_value += value
 
         bittensor.__console__.print("\n\n")
-        bittensor.__console__.print(f"Wallet:{cli.config.coldkey_address}, Free Balance: {balance} Total Global Stake ({bittensor.Balance.unit}): {all_hotkeys_total_global_tao}, Total TAO Value ({bittensor.Balance.unit}): {all_hotkeys_total_tao_value}")
+        bittensor.__console__.print(f"Wallet:\n  Coldkey SS58: [light_goldenrod2]{cli.config.coldkey_address}[/light_goldenrod2]\n  Free Balance: [aquamarine3]{balance}[/aquamarine3]\n  Total Global ({bittensor.Balance.unit}): [aquamarine3]{all_hotkeys_total_global_tao}[/aquamarine3]\n  Total Value ({bittensor.Balance.unit}): [aquamarine3]{all_hotkeys_total_tao_value}[/aquamarine3]")
         bittensor.__console__.print("\n\n")
 
 
