@@ -7,4 +7,13 @@ if git diff --name-only HEAD~1 | grep -E 'requirements/prod.txt|requirements/dev
 else
     echo "Requirements files have not changed. Skipping compatibility checks..."
     echo 'export REQUIREMENTS_CHANGED="false"' >> $BASH_ENV
+
+
+
+
+
 fi
+
+
+
+
