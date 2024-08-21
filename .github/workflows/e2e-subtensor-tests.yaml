@@ -95,7 +95,7 @@ jobs:
       - name: List tests
         run: ls -l ${{ matrix.test-subfolder }}
 
-      - name: Run tests
+      - name: Run e2e tests
         run: |
           python3 -m pip install -e .[dev] pytest
           LOCALNET_SH_PATH="${{ github.workspace }}/subtensor/scripts/localnet.sh" pytest ${{ matrix.test-subfolder }} -s
