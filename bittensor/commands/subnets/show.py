@@ -106,10 +106,10 @@ class ShowSubnet:
         )
         # Add columns to the table
         table.add_column("Position", style="rgb(253,246,227)", no_wrap=True, justify="center")
-        table.add_column(f"Local ({Balance.get_unit(0)})", style="rgb(42,161,152)", no_wrap=True, justify="center")
-        table.add_column(f"Global ({Balance.get_unit(0)})", style="rgb(211,54,130)", no_wrap=True, justify="center")
+        table.add_column(f"Stake ({Balance.get_unit(0)})", style="dark_sea_green", no_wrap=True, justify="center")
+        table.add_column(f"Stake ({Balance.get_unit(0)})", style="medium_purple", no_wrap=True, justify="center")
         table.add_column(f"Emission ({Balance.get_unit(0)}/block)", style="rgb(42,161,152)", no_wrap=True, justify="center")
-        table.add_column("hotkey", style="rgb(42,161,152)", no_wrap=True, justify="center")
+        table.add_column("Hotkey", style="light_salmon3", no_wrap=True, justify="center")
         sorted_hotkeys = sorted(
             enumerate(root_state.hotkeys),
             key=lambda x: root_state.global_stake[x[0]],
