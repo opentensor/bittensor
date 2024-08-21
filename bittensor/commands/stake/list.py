@@ -49,9 +49,8 @@ class StakeList:
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         wallet = bittensor.wallet(config=cli.config)
         substakes = subtensor.get_stake_info_for_coldkeys(
-            coldkey_ss58_list=[wallet.coldkeypub.ss58_address]
-        )[wallet.coldkeypub.ss58_address]
-        netuids: typing.List[int] = subtensor.get_subnets()
+            coldkey_ss58_list=[cli.config.coldkey_address]
+        )[cli.config.coldkey_address]
 
         # Get registered delegates details.
         registered_delegate_info: Optional[DelegatesDetails] = get_delegates_details(
@@ -150,21 +149,27 @@ class StakeList:
             for row in rows:
                 table.add_row(*row)
             bittensor.__console__.print(table)
+            return total_global_tao
 
         # Iterate over each hotkey and make a table
+        all_hotkeys_total_global_tao = bittensor.Balance(0)
         for hotkey in hotkeys_to_substakes.keys():
-            table_substakes( hotkey, hotkeys_to_substakes[hotkey] )
+            all_hotkeys_total_global_tao += table_substakes( hotkey, hotkeys_to_substakes[hotkey] )
             
         bittensor.__console__.print("\n\n")
-        bittensor.__console__.print(f"Wallet: {wallet.name} [{wallet.coldkeypub.ss58_address}], Balance: {balance}")
+        bittensor.__console__.print(f"Wallet:{wallet.coldkeypub.ss58_address}, Balance: {balance} Global: {all_hotkeys_total_global_tao}")
         bittensor.__console__.print("\n\n")
 
 
     @staticmethod
     def check_config(config: "bittensor.config"):
         if not config.is_set("wallet.name") and not config.no_prompt:
-            wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
-            config.wallet.name = str(wallet_name)
+            wallet_name = Prompt.ask("Enter wallet [bold blue]name[/bold blue] or [bold green]ss58_address[/bold green]", default=defaults.wallet.name)
+            if bittensor.utils.is_valid_ss58_address(wallet_name):
+                config.coldkey_address = str(wallet_name)
+            else:
+                wallet = bittensor.wallet( name = wallet_name, config = config)
+                config.coldkey_address = wallet.coldkeypub.ss58_address
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
