@@ -16,4 +16,8 @@ echo "~/.bittensor/wallets/default/hotkeys/default"
 
 
 
+
+
+
+
 cat ~/.bittensor/wallets/default/hotkeys/default
