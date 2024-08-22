@@ -13,28 +13,15 @@ def test_getattr_version_split():
         assert "version_split is deprecated" in str(w[-1].message)
 
 
-@pytest.mark.parametrize(
-    'test_input, expected',
-    [
-        (True, "Trace"),
-        (False, "Default")
-    ]
-)
+@pytest.mark.parametrize("test_input, expected", [(True, "Trace"), (False, "Default")])
 def test_trace(test_input, expected):
     """Test the trace function turns tracing on|off."""
     trace(test_input)
     assert logging.current_state_value == expected
 
 
-@pytest.mark.parametrize(
-    'test_input, expected',
-    [
-        (True, "Debug"),
-        (False, "Default")
-    ]
-)
+@pytest.mark.parametrize("test_input, expected", [(True, "Debug"), (False, "Default")])
 def test_debug(test_input, expected):
     """Test the debug function turns tracing on|off."""
     debug(test_input)
     assert logging.current_state_value == expected
-
