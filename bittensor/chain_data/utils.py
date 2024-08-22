@@ -319,6 +319,7 @@ custom_rpc_type_registry = {
                 ["locked", "Compact<u64>"],
                 ["emission", "Compact<u64>"],
                 ["drain", "Compact<u64>"],
+                ["is_registered", "bool"],
             ],
         },
     }

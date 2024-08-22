@@ -69,9 +69,9 @@ class Balance:
         Returns the Balance object as a string in the format "symbolvalue", where the value is in tao.
         """
         if self.unit == bittensor.units[0]:
-            return f"{self.unit}{float(self.tao):,.4f}"
+            return f"{self.unit} {float(self.tao):,.4f}"
         else:
-            return f"{float(self.tao):,.4f}{self.unit}\u200e"
+            return f"{float(self.tao):,.4f} {self.unit}\u200e"
 
     def __rich__(self):
         return "[green]{}[/green][green]{}[/green][green].[/green][dim green]{}[/dim green]".format(

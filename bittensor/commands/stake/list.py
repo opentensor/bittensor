@@ -80,7 +80,7 @@ class StakeList:
                 netuid = substake.netuid
                 pool = dynamic_info[netuid]
                 symbol = f"{bittensor.Balance.get_unit(netuid)}\u200E"
-                price = "{:.4f}{}".format( pool.price.__float__(), f" (τ/{bittensor.Balance.get_unit(netuid)}\u200E)") if pool.is_dynamic else f" {1.0} (τ/{symbol}) "
+                price = "{:.4f}{}".format( pool.price.__float__(), f" τ/{bittensor.Balance.get_unit(netuid)}\u200E") if pool.is_dynamic else f" {1.0000} τ/{symbol} "
                 alpha_value = bittensor.Balance.from_rao( int(substake.stake.rao) ).set_unit(netuid)
                 locked_value = bittensor.Balance.from_rao( int(substake.locked.rao) ).set_unit(netuid)
                 tao_value = pool.alpha_to_tao(alpha_value)
@@ -88,9 +88,9 @@ class StakeList:
                 swapped_tao_value, slippage = pool.alpha_to_tao_with_slippage( substake.stake )
                 if pool.is_dynamic:
                     slippage_percentage = 100 * float(slippage) / float(slippage + swapped_tao_value) if slippage + swapped_tao_value != 0 else 0
-                    slippage_percentage = f"[red]{slippage_percentage:.3f}[/red][white]%[/white]"
+                    slippage_percentage = f"[dark_red]{slippage_percentage:.3f}%[/dark_red]"
                 else:
-                    slippage_percentage = 'N/A'                
+                    slippage_percentage = '0.000%'                
                 tao_locked = pool.tao_in 
                 issuance = pool.alpha_out if pool.is_dynamic else tao_locked
                 per_block_emission = substake.emission.tao / ( ( emission_drain_tempo / pool.tempo) * pool.tempo )
@@ -109,11 +109,12 @@ class StakeList:
                         f"[medium_purple]{tao_ownership}[/medium_purple]", # Tao ownership.
                         # f"[dark_sea_green]{ alpha_value }", # Alpha value
                         f"{substake.stake.tao:,.4f} {pool.symbol}",
-                        price, # Price
+                        f"{pool.price.tao:.4f} τ/{pool.symbol}",
                         f"[light_slate_blue]{ tao_value }[/light_slate_blue]", # Tao equiv
                         f"[cadet_blue]{ swapped_tao_value }[/cadet_blue] ({slippage_percentage})", # Swap amount.
                         # f"[light_salmon3]{ alpha_ownership }%[/light_salmon3]", # Ownership.
                         str(bittensor.Balance.from_tao(per_block_emission).set_unit(netuid)), # emission per block.
+                        f"[bold cadet_blue]YES[/bold cadet_blue]" if substake.is_registered else f"[dark_red]NO[/dark_red]", # Registered.
                         f"[light_slate_blue]{ locked_value }[/light_slate_blue]", # Locked value
                     ])
             # table = Table(show_footer=True, pad_edge=False, box=None, expand=False, title=f"{name}")
@@ -145,9 +146,10 @@ class StakeList:
             table.add_column(f"[white]Stake({bittensor.Balance.get_unit(1)})", footer_style="overline white", style="green",  justify="right" )
             table.add_column(f"[white]Rate({bittensor.Balance.unit}/{bittensor.Balance.get_unit(1)})", footer_style="white", style="light_goldenrod2", justify="center" )
             table.add_column(f"[white]Value({bittensor.Balance.get_unit(1)} x {bittensor.Balance.unit}/{bittensor.Balance.get_unit(1)})", footer_style="overline white", style="blue", justify="right", footer=f"{total_tao_value}")
-            table.add_column(f"[white]Swaped({bittensor.Balance.get_unit(1)}) -> {bittensor.Balance.unit}", footer_style="overline white", style="blue", justify="right" )
+            table.add_column(f"[white]Swap({bittensor.Balance.get_unit(1)}) -> {bittensor.Balance.unit}", footer_style="overline white", style="white", justify="right" )
             # table.add_column(f"[white]Control({bittensor.Balance.get_unit(1)})", style="aquamarine3", justify="right")
             table.add_column(f"[white]Emission({bittensor.Balance.get_unit(1)}/block)", style="aquamarine3", justify="right")
+            table.add_column(f"[white]Registered", style="red", justify="right")
             table.add_column(f"[white]Locked({bittensor.Balance.get_unit(1)})", footer_style="overline white", style="green",  justify="right" )
             for row in rows:
                 table.add_row(*row)
@@ -166,19 +168,20 @@ class StakeList:
         bittensor.__console__.print(f"Wallet:\n  Coldkey SS58: [bold dark_green]{cli.config.coldkey_address}[/bold dark_green]\n  Free Balance: [aquamarine3]{balance}[/aquamarine3]\n  Total TAO ({bittensor.Balance.unit}): [aquamarine3]{all_hotkeys_total_global_tao}[/aquamarine3]\n  Total Value ({bittensor.Balance.unit}): [aquamarine3]{all_hotkeys_total_tao_value}[/aquamarine3]")
         bittensor.__console__.print(
             """
-Description:
+[bold white]Description[/bold white]:
     Each table displays information about your coldkey's staking accounts with a hotkey. 
     The header of the table displays the hotkey and the footer displays the total stake and total value of all your staking accounts. 
     The columns of the table are as follows:
-        - Netuid: The unique identifier for the subnet (its index).
-        - Symbol: The symbol representing the subnet stake's unit.
-        - TAO: The hotkey's TAO balance on this subnet. This is this hotkey's proportion of total TAO staked into the subnet divided by the hotkey's share of outstanding stake.
-        - Stake: The hotkey's stake balance in subnets staking unit.
-        - Rate: The rate of exchange between the subnet's staking unit and the subnet's TAO.
-        - Value: The price of the hotkey's stake in TAO computed via the exchange rate.
-        - Swap: The amount of TAO recieved when unstaking all of the hotkey's stake (with slippage).
-        - Emission: The emission (in stake) attained by this hotkey on this subnet per block.
-        - Locked: The total amount of stake locked (not able to be unstaked).
+        - [bold white]Netuid[/bold white]: The unique identifier for the subnet (its index).
+        - [bold white]Symbol[/bold white]: The symbol representing the subnet stake's unit.
+        - [bold white]TAO[/bold white]: The hotkey's TAO balance on this subnet. This is this hotkey's proportion of total TAO staked into the subnet divided by the hotkey's share of outstanding stake.
+        - [bold white]Stake[/bold white]: The hotkey's stake balance in subnets staking unit.
+        - [bold white]Rate[/bold white]: The rate of exchange between the subnet's staking unit and the subnet's TAO.
+        - [bold white]Value[/bold white]: The price of the hotkey's stake in TAO computed via the exchange rate.
+        - [bold white]Swap[/bold white]: The amount of TAO recieved when unstaking all of the hotkey's stake (with slippage).
+        - [bold white]Emission[/bold white]: The emission (in stake) attained by this hotkey on this subnet per block.
+        - [bold white]Registered[/bold white]: Whether the hotkey is registered on this subnet.
+        - [bold white]Locked[/bold white]: The total amount of stake locked (not able to be unstaked).
 """
 )
 

@@ -97,24 +97,27 @@ class ListSubnetsCommand:
         # table.add_column(f"Locked ({bt.Balance.get_unit(1)})", style="rgb(38,139,210)", no_wrap=True, justify="center")
         # table.add_column("Owner", style="rgb(38,139,210)", no_wrap=True, justify="center")
 
+        # Sort rows by subnet.emission.tao, keeping the first subnet in the first position
+        sorted_rows = [rows[0]] + sorted(rows[1:], key=lambda x: x[2], reverse=True)
+
         # Add rows to the table
-        for row in rows:
+        for row in sorted_rows:
             table.add_row(*row)
 
         # Print the table
         bt.__console__.print(table)
         bt.__console__.print(
             """
-Description:
+[bold white]Description[/bold white]:
     The table displays relevant information about each subnet on the network. 
     The columns are as follows:
-        - Netuid: The unique identifier for the subnet (its index).
-        - Symbol: The symbol representing the subnet's stake.
-        - Emission: The amount of TAO added to the subnet every block. Calculated by dividing the TAO (t) column values by the sum of the TAO (t) column.
-        - TAO: The TAO staked into the subnet ( which dynamically changes during stake, unstake and emission events ).
-        - Stake: The outstanding supply of stake across all staking accounts on this subnet.
-        - Rate: The rate of conversion between TAO and the subnet's staking unit.
-        - Tempo: The number of blocks between epochs. Represented as (k/n) where k is the blocks since the last epoch and n is the total blocks in the epoch.
+        - [bold white]Netuid[/bold white]: The unique identifier for the subnet (its index).
+        - [bold white]Symbol[/bold white]: The symbol representing the subnet's stake.
+        - [bold white]Emission[/bold white]: The amount of TAO added to the subnet every block. Calculated by dividing the TAO (t) column values by the sum of the TAO (t) column.
+        - [bold white]TAO[/bold white]: The TAO staked into the subnet ( which dynamically changes during stake, unstake and emission events ).
+        - [bold white]Stake[/bold white]: The outstanding supply of stake across all staking accounts on this subnet.
+        - [bold white]Rate[/bold white]: The rate of conversion between TAO and the subnet's staking unit.
+        - [bold white]Tempo[/bold white]: The number of blocks between epochs. Represented as (k/n) where k is the blocks since the last epoch and n is the total blocks in the epoch.
 """
 )
 

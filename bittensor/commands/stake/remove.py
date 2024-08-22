@@ -211,15 +211,15 @@ class RemoveStakeCommand:
             sys.exit(1)
         bt.__console__.print(
             """
-Description:
+[bold white]Description[/bold white]:
     The table displays information about the stake remove operation you are about to perform.
     The columns are as follows:
-        - Netuid: The netuid of the subnet you are unstaking from.
-        - Hotkey: The ss58 address of the hotkey you are unstaking from. 
-        - Amount: The stake amount you are removing from this key.
-        - Rate: The rate of exchange between TAO and the subnet's stake.
-        - Received: The amount of free balance TAO you will receive on this subnet after slippage.
-        - Slippage: The slippage percentage of the unstake operation. (0% if the subnet is not dynamic i.e. root).
+        - [bold white]Netuid[/bold white]: The netuid of the subnet you are unstaking from.
+        - [bold white]Hotkey[/bold white]: The ss58 address of the hotkey you are unstaking from. 
+        - [bold white]Amount[/bold white]: The stake amount you are removing from this key.
+        - [bold white]Rate[/bold white]: The rate of exchange between TAO and the subnet's stake.
+        - [bold white]Received[/bold white]: The amount of free balance TAO you will receive on this subnet after slippage.
+        - [bold white]Slippage[/bold white]: The slippage percentage of the unstake operation. (0% if the subnet is not dynamic i.e. root).
 """)
 
                                             
@@ -249,7 +249,7 @@ Description:
                         new_stake = subtensor.get_stake_for_coldkey_and_hotkey_on_netuid(
                             coldkey_ss58=wallet.coldkeypub.ss58_address,
                             hotkey_ss58=staking_address_ss58,
-                            netuid=netuid,
-                        ).set_unit(netuid)
+                            netuid=netuid_i,
+                        ).set_unit(netuid_i)
                         bt.__console__.print(f"Balance:\n  [blue]{current_wallet_balance}[/blue] :arrow_right: [green]{new_balance}[/green]")
-                        bt.__console__.print(f"Subnet: {netuid} Stake:\n  [blue]{current}[/blue] :arrow_right: [green]{new_stake}[/green]")
+                        bt.__console__.print(f"Subnet: {netuid_i} Stake:\n  [blue]{current}[/blue] :arrow_right: [green]{new_stake}[/green]")
