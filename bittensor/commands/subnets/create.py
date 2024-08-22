@@ -1,5 +1,6 @@
 from .. import defaults
 from ..wallet.set_identity import SetIdentityCommand
+import sys
 import argparse
 import bittensor
 from bittensor.utils import format_error_message
@@ -28,6 +29,16 @@ class RegisterSubnetworkCommand:
         
         # Get your wallet.
         wallet = bittensor.wallet(config=cli.config)
+        
+        # check coldkey
+        if not wallet.coldkeypub_file.exists_on_device(): 
+            bittensor.__console__.print(f"\n:cross_mark: [red]Failed[/red]: your coldkey: {wallet.name} does not exist on this device. To create it run:\n\n\tbtcli w new_coldkey --wallet.name {wallet.name}\n")
+            sys.exit(1)
+
+        # check hotkey
+        if not wallet.hotkey_file.exists_on_device(): 
+            bittensor.__console__.print(f"\n:cross_mark: [red]Failed[/red]: your hotkey: {wallet.hotkey_str} does not exist on this device. To create it run:\n\n\tbtcli w new_hotkey --wallet.name {wallet.name} --wallet.hotkey {wallet.hotkey_str}\n")
+            sys.exit(1)
         
         # Get your balance.
         your_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
