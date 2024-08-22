@@ -150,7 +150,7 @@ class ShowSubnet:
         # Define table properties
         console_width = console.width - 5
         table = Table(
-            title=f"[white]Subnet State #{netuid}",
+            title=f"[white]Subnet {netuid} Metagraph",
             width=console_width,
             safe_box=True,
             padding=(0, 1),
@@ -193,7 +193,7 @@ class ShowSubnet:
             highlight=False,
         )
         
-        subnet_info_table.add_column("Index", style="rgb(253,246,227)", no_wrap=True, justify="center")
+        subnet_info_table.add_column("Index", style="grey89", no_wrap=True, justify="center")
         subnet_info_table.add_column("Symbol", style="rgb(211,54,130)", no_wrap=True, justify="center")
         subnet_info_table.add_column(f"Emission ({Balance.get_unit(0)})", style="rgb(38,139,210)", no_wrap=True, justify="center")
         subnet_info_table.add_column(f"P({Balance.get_unit(0)},", style="rgb(108,113,196)", no_wrap=True, justify="right")
@@ -219,30 +219,46 @@ class ShowSubnet:
             rows.append((
                     str(idx),
                     str(subnet_state.global_stake[idx]),
-                    str(subnet_state.local_stake[idx]),
+                    f"{subnet_state.local_stake[idx].tao:.4f} {subnet_info.symbol}",
                     f"{subnet_state.stake_weight[idx]:.4f}",
-                    str(subnet_state.dividends[idx]),
+                    # str(subnet_state.dividends[idx]),
+                    f"{str(Balance.from_tao(hotkey_block_emission).set_unit(netuid).tao)} {subnet_info.symbol}",
                     str(subnet_state.incentives[idx]),
-                    str(Balance.from_tao(hotkey_block_emission).set_unit(netuid)),
+                    f"{str(Balance.from_tao(hotkey_block_emission).set_unit(netuid).tao)} {subnet_info.symbol}",
                     f"{subnet_state.hotkeys[idx]}",
                 )
             )        
         # Add columns to the table
-        table.add_column("UID", style="rgb(133,153,0)", no_wrap=True, justify="center")
-        table.add_column(f"Global({Balance.get_unit(0)})", style="medium_purple", no_wrap=True, justify="right")
-        table.add_column(f"Local({Balance.get_unit(netuid)})", style="dark_sea_green", no_wrap=True, justify="right")
-        table.add_column(f"Stake({Balance.get_unit(0)}•{Balance.get_unit(netuid)})", style="rgb(108,113,196)", no_wrap=True, justify="center")
+        table.add_column("UID", style="grey89", no_wrap=True, justify="center")
+        table.add_column(f"Stake({Balance.get_unit(0)})", style="medium_purple", no_wrap=True, justify="right")
+        table.add_column(f"Dynamic({Balance.get_unit(netuid)})", style="green", no_wrap=True, justify="right")
+        table.add_column(f"Weight({Balance.get_unit(0)}•{Balance.get_unit(netuid)})", style="blue", no_wrap=True, justify="center")
         table.add_column("Dividends", style="rgb(181,137,0)", no_wrap=True, justify="center")
         table.add_column("Incentive", style="rgb(220,50,47)", no_wrap=True, justify="center")
-        table.add_column(f"Emission ({Balance.get_unit(netuid)})", style="rgb(38,139,210)", no_wrap=True, justify="center")
-        table.add_column("Hotkey", style="rgb(42,161,152)", no_wrap=True, justify="center")
+        table.add_column(f"Emission ({Balance.get_unit(netuid)})", style="aquamarine3", no_wrap=True, justify="center")
+        table.add_column("Hotkey", style="light_salmon3", no_wrap=True, justify="center")
         for row in rows:
             table.add_row(*row)
 
         # Print the table
-        bt.__console__.print("\n\n\n")
-        bt.__console__.print(f"\t\tSubnet: {netuid}: Owner: {subnet_info.owner}, Total Locked: {subnet_info.total_locked}, Owner Locked: {subnet_info.owner_locked}")
-        bt.__console__.print("\n\n\n")
-        bt.__console__.print(subnet_info_table)
-        bt.__console__.print("\n\n\n")
+        # bt.__console__.print("\n\n\n")
+        # bt.__console__.print(subnet_info_table)
+        bt.__console__.print("\n\n")
         bt.__console__.print(table)
+        bt.__console__.print("\n")
+        bt.__console__.print(f"Subnet: {netuid}:\n  Owner: [light_salmon3]{subnet_info.owner}[/light_salmon3]\n  Total Locked: [green]{subnet_info.total_locked}[/green]\n  Owner Locked: [green]{subnet_info.owner_locked}[/green]")
+        bt.__console__.print(
+            """
+Description:
+    The table displays the subnet participants and their metrics.
+    The columns are as follows:
+        - UID: The hotkey index in the subnet.
+        - Stake: The stake of the hotkey accross all subnets. 
+        - Dyanmic: The dynamic stake of this hotkey on this subnet.
+        - Weight: The stake weight of this hotkey on this subnet computed as an average of the Stake and Dynamic columns.
+        - Dividends: Validating dividends earned by the hotkey.
+        - Incentives: Mining incentives earned by the hotkey (always zero in the RAO demo.)
+        - Emission: The per block emission accrued to this key on this subnet every block.
+        - Hotkey: The hotkey address.
+"""
+)

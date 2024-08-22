@@ -105,8 +105,10 @@ class StakeList:
                     rows.append([
                         str(netuid), # Number
                         symbol, # Symbol
-                        f"[medium_purple]{tao_ownership}[/medium_purple] ([light_salmon3]{ alpha_ownership }[/light_salmon3][white]%[/white])", # Tao ownership.
-                        f"[dark_sea_green]{ alpha_value }", # Alpha value
+                        # f"[medium_purple]{tao_ownership}[/medium_purple] ([light_salmon3]{ alpha_ownership }[/light_salmon3][white]%[/white])", # Tao ownership.
+                        f"[medium_purple]{tao_ownership}[/medium_purple]", # Tao ownership.
+                        # f"[dark_sea_green]{ alpha_value }", # Alpha value
+                        f"{substake.stake.tao:,.4f} {pool.symbol}",
                         price, # Price
                         f"[light_slate_blue]{ tao_value }[/light_slate_blue]", # Tao equiv
                         f"[cadet_blue]{ swapped_tao_value }[/cadet_blue] ({slippage_percentage})", # Swap amount.
@@ -139,8 +141,8 @@ class StakeList:
             )
             table.add_column(f"[white]Netuid", footer_style="overline white", style="grey89")
             table.add_column(f"[white]Symbol", footer_style="white", style="light_goldenrod1", justify="right", width=5, no_wrap=True)
-            table.add_column(f"[white]Global({bittensor.Balance.unit})", style="aquamarine3", justify="right", footer=f"{total_global_tao}")
-            table.add_column(f"[white]Local({bittensor.Balance.get_unit(1)})", footer_style="overline white", style="green",  justify="right" )
+            table.add_column(f"[white]Stake({bittensor.Balance.unit})", style="aquamarine3", justify="right", footer=f"{total_global_tao}")
+            table.add_column(f"[white]Dynamic({bittensor.Balance.get_unit(1)})", footer_style="overline white", style="green",  justify="right" )
             table.add_column(f"[white]Rate({bittensor.Balance.unit}/{bittensor.Balance.get_unit(1)})", footer_style="white", style="light_goldenrod2", justify="center" )
             table.add_column(f"[white]Value({bittensor.Balance.get_unit(1)} x {bittensor.Balance.unit}/{bittensor.Balance.get_unit(1)})", footer_style="overline white", style="blue", justify="right", footer=f"{total_tao_value}")
             table.add_column(f"[white]Swaped({bittensor.Balance.get_unit(1)}) -> {bittensor.Balance.unit}", footer_style="overline white", style="blue", justify="right" )
@@ -161,8 +163,24 @@ class StakeList:
             all_hotkeys_total_tao_value += value
 
         bittensor.__console__.print("\n\n")
-        bittensor.__console__.print(f"Wallet:\n  Coldkey SS58: [light_goldenrod2]{cli.config.coldkey_address}[/light_goldenrod2]\n  Free Balance: [aquamarine3]{balance}[/aquamarine3]\n  Total Global ({bittensor.Balance.unit}): [aquamarine3]{all_hotkeys_total_global_tao}[/aquamarine3]\n  Total Value ({bittensor.Balance.unit}): [aquamarine3]{all_hotkeys_total_tao_value}[/aquamarine3]")
-        bittensor.__console__.print("\n\n")
+        bittensor.__console__.print(f"Wallet:\n  Coldkey SS58: [light_salmon3]{cli.config.coldkey_address}[/light_salmon3]\n  Free Balance: [aquamarine3]{balance}[/aquamarine3]\n  Total Stake ({bittensor.Balance.unit}): [aquamarine3]{all_hotkeys_total_global_tao}[/aquamarine3]\n  Total Value ({bittensor.Balance.unit}): [aquamarine3]{all_hotkeys_total_tao_value}[/aquamarine3]")
+        bittensor.__console__.print(
+            """
+Description:
+    Each table displays information about your coldkey's staking accounts with a hotkey. 
+    The header of the table displays the hotkey and the footer displays the total stake and total value of all your staking accounts. 
+    The columns of the table are as follows:
+        - Netuid: The unique identifier for the subnet (its index).
+        - Symbol: The symbol representing the subnet's dynamic stake.
+        - Stake: The hotkey's stake balance on this subnet. This is this hotkeys proportion of subnet's total stake partitioned by the hotkey's share of outstanding dynamic stake.
+        - Dynamic: The hotkey's balance of the subnet's dynamic stake.
+        - Rate: The rate at which the hotkey's dynamic stake can be unstaked for the subnet's stake in TAO.
+        - Value: The price of the hotkey's dynamic stake in TAO computed via the exchange rate.
+        - Swap: The amount of free balance TAO recieved when unstaking all of the hotkey's dynamic stake (with slippage).
+        - Emission: The per block emission attained by this hotkey on this subnet per block.
+        - Locked: The total amount of dynamic stake locked (not able to be unstaked).
+"""
+)
 
 
     @staticmethod

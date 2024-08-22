@@ -165,7 +165,7 @@ class AddStakeCommand:
                 slippage_pct_float = 0
                 slippage_pct = 'N/A'
             table = Table(
-                title=f"[white]Add Stake: {wallet.coldkeypub.ss58_address}",
+                title=f"[white]Staking operation from Coldkey SS58[/white]: [cyan]{wallet.coldkeypub.ss58_address}[/cyan]\n",
                 width=bt.__console__.width - 5,
                 safe_box=True,
                 padding=(0, 1),
@@ -187,14 +187,15 @@ class AddStakeCommand:
                 highlight=False,
             )
             table.add_column("Netuid", justify="center", style="grey89")
-            table.add_column("Hotkey", justify="center", style="rgb(42,161,152)")
+            table.add_column("Hotkey", justify="center", style="light_salmon3")
             table.add_column(f"Amount ({bt.Balance.get_unit(0)})", justify="center", style="dark_sea_green")
             table.add_column(f"Rate ({bt.Balance.get_unit(netuid)}/{bt.Balance.get_unit(0)})", justify="center", style="light_goldenrod2")
             table.add_column(f"Recieved ({bt.Balance.get_unit(netuid)})", justify="center", style="light_slate_blue")
             table.add_column("Slippage", justify="center", style="rgb(220,50,47)")
             table.add_row(
                 str(netuid),
-                f"{staking_address_ss58[:3]}...{staking_address_ss58[-3:]}",
+                # f"{staking_address_ss58[:3]}...{staking_address_ss58[-3:]}",
+                f"{staking_address_ss58}",
                 str(amount_to_stake_as_balance),
                 str(1/float(dynamic_info.price)) + f" ({bt.Balance.get_unit(netuid)}/{bt.Balance.get_unit(0)}) ",
                 str(received_amount.set_unit(netuid)),
@@ -207,6 +208,18 @@ class AddStakeCommand:
                 message += f"\t[bold][yellow]WARNING:[/yellow]\tSlippage is high: [bold red]{slippage_pct}[/bold red], this may result in a loss of funds.[/bold] \n"
                 message += f"\t-------------------------------------------------------------------------------------------------------------------\n"
                 bt.__console__.print(message)
+            bt.__console__.print(
+            """
+Description:
+    The table displays information about the stake operation you are about to perform.
+    The columns are as follows:
+        - Netuid: The netuid of the subnet you are staking to.
+        - Hotkey: The ss58 address of the hotkey you are staking to. 
+        - Amount: The TAO you are staking into this subnet onto this hotkey.
+        - Rate: The rate of exchange between your TAO and the subnet's dynamic stake.
+        - Received: The amount of dynamic stake you will receive on this subnet after slippage.
+        - Slippage: The slippage percentage of the stake operation. (0% if the subnet is not dynamic i.e. root).
+""")
             if not Confirm.ask("Would you like to continue?"):
                 sys.exit(1)
         

@@ -45,8 +45,9 @@ class ListSubnetsCommand:
                     str(subnet.netuid),
                     f"[light_goldenrod1]{subnet.symbol}[light_goldenrod1]",
                     f"τ {subnet.emission.tao:.4f}",
-                    f"P( τ {subnet.tao_in.tao:,.4f},",
-                    f"{subnet.alpha_in.tao:,.4f} {subnet.symbol} )",
+                    # f"P( τ {subnet.tao_in.tao:,.4f},",
+                    f"τ {subnet.tao_in.tao:,.4f}",
+                    # f"{subnet.alpha_in.tao:,.4f} {subnet.symbol} )",
                     f"{subnet.alpha_out.tao:,.4f} {subnet.symbol}",
                     f"{subnet.price.tao:.4f} τ/{subnet.symbol}",
                     str(subnet.blocks_since_last_step) + "/" + str(subnet.tempo),
@@ -87,12 +88,12 @@ class ListSubnetsCommand:
 
         table.add_column("Netuid", style="rgb(253,246,227)", no_wrap=True, justify="center")
         table.add_column("Symbol", style="rgb(211,54,130)", no_wrap=True, justify="center")
-        table.add_column(f"Emission ({bt.Balance.get_unit(0)})", style="rgb(38,139,210)", no_wrap=True, justify="center")
-        table.add_column(f"P({bt.Balance.get_unit(0)},", style="rgb(108,113,196)", no_wrap=True, justify="right")
-        table.add_column(f"{bt.Balance.get_unit(1)})", style="rgb(42,161,152)", no_wrap=True, justify="left")
-        table.add_column(f"{bt.Balance.get_unit(1)}", style="rgb(133,153,0)", no_wrap=True, justify="center")
-        table.add_column(f"Rate ({bt.Balance.get_unit(1)}/{bt.Balance.get_unit(0)})", style="rgb(181,137,0)", no_wrap=True, justify="center")
-        table.add_column("Tempo (k/n)", style="rgb(38,139,210)", no_wrap=True, justify="center")
+        table.add_column(f"Emission ({bt.Balance.get_unit(0)})", style="rgb(38,139,210)", no_wrap=True, justify="right")
+        table.add_column(f"Stake({bt.Balance.get_unit(0)})", style="medium_purple", no_wrap=True, justify="right")
+        # table.add_column(f"{bt.Balance.get_unit(1)})", style="rgb(42,161,152)", no_wrap=True, justify="left")
+        table.add_column(f"Dynamic({bt.Balance.get_unit(1)})", style="green", no_wrap=True, justify="right")
+        table.add_column(f"Rate ({bt.Balance.get_unit(1)}/{bt.Balance.get_unit(0)})", style="light_goldenrod2", no_wrap=True, justify="center")
+        table.add_column("Tempo (k/n)", style="light_salmon3", no_wrap=True, justify="center")
         # table.add_column(f"Locked ({bt.Balance.get_unit(1)})", style="rgb(38,139,210)", no_wrap=True, justify="center")
         # table.add_column("Owner", style="rgb(38,139,210)", no_wrap=True, justify="center")
 
@@ -102,6 +103,21 @@ class ListSubnetsCommand:
 
         # Print the table
         bt.__console__.print(table)
+        bt.__console__.print(
+            """
+Description:
+    The table displays relevant information about each subnet on the network. 
+    The columns are as follows:
+        - Netuid: The unique identifier for the subnet (its index).
+        - Symbol: The symbol representing the subnet's dynamic stake.
+        - Emission: The per block emission rate of the subnet which is added to the stake. Calculated by dividing the Stake (t) column values by the sum of the Stake (t) column.
+        - Stake: The total TAO staked into the subnet.
+        - Dynamic: The outstanding supply of dynamic stake across all staking accounts on this subnet.
+        - Rate: The rate of conversion between the base unit in TAO and the subnet unit.
+        - Tempo: The subnet epoch tempo represented as k/n where k is the blocks since the last epoch and n is the total blocks in the epoch.
+"""
+)
+
 
     @staticmethod
     def check_config(config: "bt.config"):

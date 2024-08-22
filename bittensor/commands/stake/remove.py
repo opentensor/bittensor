@@ -103,7 +103,7 @@ class RemoveStakeCommand:
 
         # Get old staking balance.
         table = Table(
-            title=f"[white]Remove Stake: {wallet.coldkeypub.ss58_address}\n",
+            title=f"[white]Unstake operation to Coldkey SS58: [cyan]{wallet.coldkeypub.ss58_address}[/cyan]\n",
             width=bt.__console__.width - 5,
             safe_box=True,
             padding=(0, 1),
@@ -175,7 +175,8 @@ class RemoveStakeCommand:
             rows.append( 
                 (
                     str(netuid),
-                    f"{staking_address_ss58[:3]}...{staking_address_ss58[-3:]}",
+                    # f"{staking_address_ss58[:3]}...{staking_address_ss58[-3:]}",
+                    f"{staking_address_ss58}",
                     str(amount_to_unstake_as_balance),
                     str(float(dynamic_info.price)) + f"({bt.Balance.get_unit(0)}/{bt.Balance.get_unit(netuid)})",
                     str(received_amount),
@@ -192,7 +193,7 @@ class RemoveStakeCommand:
             #     sys.exit(1)
                 
         table.add_column("Netuid", justify="center", style="grey89")
-        table.add_column("Hotkey", justify="center", style="rgb(42,161,152)")
+        table.add_column("Hotkey", justify="center", style="light_salmon3")
         table.add_column(f"Amount ({bt.Balance.get_unit(1)})", justify="center", style="dark_sea_green")
         table.add_column(f"Rate ({bt.Balance.get_unit(0)}/{bt.Balance.get_unit(1)})", justify="center", style="light_goldenrod2")
         table.add_column(f"Recieved ({bt.Balance.get_unit(0)})", justify="center", style="light_slate_blue", footer=f"{total_received_amount}")
@@ -200,6 +201,18 @@ class RemoveStakeCommand:
         for row in rows:
             table.add_row(*row)
         bt.__console__.print(table)
+        bt.__console__.print(
+            """
+Description:
+    The table displays information about the stake remove operation you are about to perform.
+    The columns are as follows:
+        - Netuid: The netuid of the subnet you are unstaking from.
+        - Hotkey: The ss58 address of the hotkey you are unstaking from. 
+        - Amount: The dynamic stake amount you are removing from this key.
+        - Rate: The rate of exchange between TAO and the subnet's dynamic stake.
+        - Received: The amount of free balance TAO you will receive on this subnet after slippage.
+        - Slippage: The slippage percentage of the unstake operation. (0% if the subnet is not dynamic i.e. root).
+""")
 
                                             
         # Perform staking operation.
