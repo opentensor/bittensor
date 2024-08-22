@@ -71,21 +71,19 @@ class AddStakeCommand:
         subtensor = bt.subtensor(config=config, log_verbose=False)
 
         # Get netuid
-        netuid = config.get('netuid') 
+        netuids = [config.get('netuid')]
         if config.is_set("netuid"):
-            netuid = config.get('netuid')
+            netuids = [config.get('netuid')]
         elif not config.no_prompt:
-            netuid = int( Prompt.ask("Enter netuid", default="0") )
+            netuid_or_all = Prompt.ask("Enter netuid (\"[blue]all[/blue]\" for all subnets)", default="0")
+            if netuid_or_all.lower() == "all":
+                netuids = subtensor.get_subnets()
+            else:
+                netuids = [int(netuid_or_all)]
         else:
             bt.logging.error("netuid is needed to proceed")
             sys.exit(1)
-            
-        # Check that the subnet exists.
-        dynamic_info = subtensor.get_subnet_dynamic_info( netuid )
-        if not dynamic_info:
-            bt.logging.error(f"Subnet with netuid: {netuid} does not exist.")
-            sys.exit(1)
-            
+                        
         # Get wallet.
         wallet = bt.wallet( config = config )
         if config.is_set("wallet.name"):
@@ -121,42 +119,79 @@ class AddStakeCommand:
             bt.logging.error("--hotkey_ss58 must be specified when using --no_prompt or --y")
             sys.exit(1)
 
-        # Get the current wallet balance.
-        current_wallet_balance: bt.Balance = subtensor.get_balance(wallet.coldkeypub.ss58_address).set_unit(0)
 
+        # Init the table.
+        table = Table(
+            title=f"[white]Staking operation from Coldkey SS58[/white]: [bold dark_green]{wallet.coldkeypub.ss58_address}[/bold dark_green]\n",
+            width=bt.__console__.width - 5,
+            safe_box=True,
+            padding=(0, 1),
+            collapse_padding=False,
+            pad_edge=True,
+            expand=True,
+            show_header=True,
+            show_footer=True,
+            show_edge=False,
+            show_lines=False,
+            leading=0,
+            style="none",
+            row_styles=None,
+            header_style="bold",
+            footer_style="bold",
+            border_style="rgb(7,54,66)",
+            title_style="bold magenta",
+            title_justify="center",
+            highlight=False,
+        )
+         
         # Determine the amount we are staking.
-        amount_to_stake_as_balance = None
-        if config.get("amount"):
-            amount_to_stake_as_balance = bt.Balance.from_tao(config.amount)
-        elif config.get("stake_all"):
-            amount_to_stake_as_balance = current_wallet_balance
-        elif not config.get("amount") and not config.get("max_stake"):
-            if Confirm.ask(f"Stake all: [bold]{current_wallet_balance}[/bold]?"):
-                amount_to_stake_as_balance = current_wallet_balance
-            else:
-                try:
-                    amount = float(Prompt.ask(f"Enter amount to stake in {bt.Balance.get_unit(0)}"))
-                    amount_to_stake_as_balance = bt.Balance.from_tao(amount)
-                except ValueError:
-                    bt.__console__.print(f":cross_mark:[red]Invalid amount: {amount}[/red]")
-                    sys.exit(1)
-
-        # Get old staking balance.
-        current_stake_balance: bt.Balance = subtensor.get_stake_for_coldkey_and_hotkey_on_netuid(
-            coldkey_ss58=wallet.coldkeypub.ss58_address,
-            hotkey_ss58=staking_address_ss58,
-            netuid=netuid,
-        ).set_unit(netuid)
-
-        # Check enough to stake.
-        amount_to_stake_as_balance.set_unit(0)
-        if amount_to_stake_as_balance > current_wallet_balance:
-            bt.__console__.print(f"[red]Not enough stake[/red]:[bold white]\n wallet balance:{current_wallet_balance} < staking amount: {amount_to_stake_as_balance}[/bold white]")
-            sys.exit(1)
-
-        # Slippage warning
-        if not config.no_prompt:
+        rows = []
+        stake_amount_balance = []
+        current_stake_balances = []
+        current_wallet_balance: bt.Balance = subtensor.get_balance(wallet.coldkeypub.ss58_address).set_unit(0)
+        remaining_wallet_balance = current_wallet_balance
+        for netuid in netuids:
+            
+            # Check that the subnet exists.
             dynamic_info = subtensor.get_subnet_dynamic_info( netuid )
+            if not dynamic_info:
+                bt.logging.error(f"Subnet with netuid: {netuid} does not exist.")
+                continue
+            
+            # Get old staking balance.
+            current_stake_balance: bt.Balance = subtensor.get_stake_for_coldkey_and_hotkey_on_netuid(
+                coldkey_ss58=wallet.coldkeypub.ss58_address,
+                hotkey_ss58=staking_address_ss58,
+                netuid=netuid,
+            ).set_unit(netuid)
+            current_stake_balances.append( current_stake_balance )
+
+            # Get the amount.
+            amount_to_stake_as_balance = None
+            if config.get("amount"):
+                amount_to_stake_as_balance = bt.Balance.from_tao(config.amount)
+            elif config.get("stake_all"):
+                amount_to_stake_as_balance = remaining_wallet_balance
+            elif not config.get("amount") and not config.get("max_stake"):
+                if Confirm.ask(f"Stake all: [bold]{remaining_wallet_balance}[/bold]?"):
+                    amount_to_stake_as_balance = remaining_wallet_balance
+                else:
+                    try:
+                        amount = float(Prompt.ask(f"Enter amount to stake in {bt.Balance.get_unit(0)} to subnet: {netuid}"))
+                        amount_to_stake_as_balance = bt.Balance.from_tao(amount)
+                    except ValueError:
+                        bt.__console__.print(f":cross_mark:[red]Invalid amount: {amount}[/red]")
+                        sys.exit(1)
+            stake_amount_balance.append( amount_to_stake_as_balance )
+
+            # Check enough to stake.
+            amount_to_stake_as_balance.set_unit(0)
+            if amount_to_stake_as_balance > remaining_wallet_balance:
+                bt.__console__.print(f"[red]Not enough stake[/red]:[bold white]\n wallet balance:{remaining_wallet_balance} < staking amount: {amount_to_stake_as_balance}[/bold white]")
+                sys.exit(1)
+            remaining_wallet_balance -= amount_to_stake_as_balance
+
+            # Slippage warning
             received_amount, slippage = dynamic_info.tao_to_alpha_with_slippage( amount_to_stake_as_balance )
             if dynamic_info.is_dynamic:
                 slippage_pct_float = 100 * float(slippage) / float(slippage + received_amount) if slippage + received_amount != 0 else 0
@@ -164,51 +199,34 @@ class AddStakeCommand:
             else:
                 slippage_pct_float = 0
                 slippage_pct = 'N/A'
-            table = Table(
-                title=f"[white]Staking operation from Coldkey SS58[/white]: [cyan]{wallet.coldkeypub.ss58_address}[/cyan]\n",
-                width=bt.__console__.width - 5,
-                safe_box=True,
-                padding=(0, 1),
-                collapse_padding=False,
-                pad_edge=True,
-                expand=True,
-                show_header=True,
-                show_footer=True,
-                show_edge=False,
-                show_lines=False,
-                leading=0,
-                style="none",
-                row_styles=None,
-                header_style="bold",
-                footer_style="bold",
-                border_style="rgb(7,54,66)",
-                title_style="bold magenta",
-                title_justify="center",
-                highlight=False,
+            rows.append(
+                (
+                    str(netuid),
+                    # f"{staking_address_ss58[:3]}...{staking_address_ss58[-3:]}",
+                    f"{staking_address_ss58}",
+                    str(amount_to_stake_as_balance),
+                    str(1/float(dynamic_info.price)) + f" ({bt.Balance.get_unit(netuid)}/{bt.Balance.get_unit(0)}) ",
+                    str(received_amount.set_unit(netuid)),
+                    str(slippage_pct),
+                )
             )
-            table.add_column("Netuid", justify="center", style="grey89")
-            table.add_column("Hotkey", justify="center", style="light_salmon3")
-            table.add_column(f"Amount ({bt.Balance.get_unit(0)})", justify="center", style="dark_sea_green")
-            table.add_column(f"Rate ({bt.Balance.get_unit(netuid)}/{bt.Balance.get_unit(0)})", justify="center", style="light_goldenrod2")
-            table.add_column(f"Recieved ({bt.Balance.get_unit(netuid)})", justify="center", style="light_slate_blue")
-            table.add_column("Slippage", justify="center", style="rgb(220,50,47)")
-            table.add_row(
-                str(netuid),
-                # f"{staking_address_ss58[:3]}...{staking_address_ss58[-3:]}",
-                f"{staking_address_ss58}",
-                str(amount_to_stake_as_balance),
-                str(1/float(dynamic_info.price)) + f" ({bt.Balance.get_unit(netuid)}/{bt.Balance.get_unit(0)}) ",
-                str(received_amount.set_unit(netuid)),
-                str(slippage_pct),
-            )
-            bt.__console__.print(table)
-            message = ""
-            if slippage_pct_float > 5:
-                message += f"\t-------------------------------------------------------------------------------------------------------------------\n"
-                message += f"\t[bold][yellow]WARNING:[/yellow]\tSlippage is high: [bold red]{slippage_pct}[/bold red], this may result in a loss of funds.[/bold] \n"
-                message += f"\t-------------------------------------------------------------------------------------------------------------------\n"
-                bt.__console__.print(message)
-            bt.__console__.print(
+           
+        table.add_column("Netuid", justify="center", style="grey89")
+        table.add_column("Hotkey", justify="center", style="light_salmon3")
+        table.add_column(f"Amount ({bt.Balance.get_unit(0)})", justify="center", style="dark_sea_green")
+        table.add_column(f"Rate ({bt.Balance.get_unit(netuid)}/{bt.Balance.get_unit(0)})", justify="center", style="light_goldenrod2")
+        table.add_column(f"Recieved ({bt.Balance.get_unit(netuid)})", justify="center", style="light_slate_blue")
+        table.add_column("Slippage", justify="center", style="rgb(220,50,47)")
+        for row in rows:
+            table.add_row(*row)
+        bt.__console__.print(table)
+        # message = ""
+        # if slippage_pct_float > 5:
+        #     message += f"\t-------------------------------------------------------------------------------------------------------------------\n"
+        #     message += f"\t[bold][yellow]WARNING:[/yellow]\tSlippage is high: [bold red]{slippage_pct}[/bold red], this may result in a loss of funds.[/bold] \n"
+        #     message += f"\t-------------------------------------------------------------------------------------------------------------------\n"
+        #     bt.__console__.print(message)
+        bt.__console__.print(
             """
 Description:
     The table displays information about the stake operation you are about to perform.
@@ -220,38 +238,37 @@ Description:
         - Received: The amount of stake you will receive on this subnet after slippage.
         - Slippage: The slippage percentage of the stake operation. (0% if the subnet is not dynamic i.e. root).
 """)
-            if not Confirm.ask("Would you like to continue?"):
-                sys.exit(1)
+        if not Confirm.ask("Would you like to continue?"):
+            sys.exit(1)
         
         # Perform staking operation.
         wallet.coldkey
         with bt.__console__.status(f"\n:satellite: Staking {amount_to_stake_as_balance} to {staking_address_name} on netuid: {netuid} ..."):
-            call = subtensor.substrate.compose_call(
-                call_module="SubtensorModule",
-                call_function="add_stake",
-                call_params={
-                    "hotkey": staking_address_ss58,
-                    "netuid": netuid,
-                    "amount_staked": amount_to_stake_as_balance.rao,
-                },
-            )
-            extrinsic = subtensor.substrate.create_signed_extrinsic(call=call, keypair=wallet.coldkey)
-            response = subtensor.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=True, wait_for_finalization=False)
-            if config.no_prompt:
-                bt.__console__.print(":white_heavy_check_mark: [green]Sent[/green]")
-                return
-            else:
-                response.process_events()
-                if not response.is_success:
-                    bt.__console__.print(f":cross_mark: [red]Failed[/red] with error: {response.error_message}")
-                    return
+            for netuid_i, amount, current in list(zip(netuids, stake_amount_balance, current_stake_balances)):
+                call = subtensor.substrate.compose_call(
+                    call_module="SubtensorModule",
+                    call_function="add_stake",
+                    call_params={
+                        "hotkey": staking_address_ss58,
+                        "netuid": netuid_i,
+                        "amount_staked": amount.rao,
+                    },
+                )
+                extrinsic = subtensor.substrate.create_signed_extrinsic(call=call, keypair=wallet.coldkey)
+                response = subtensor.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=True, wait_for_finalization=False)
+                if config.no_prompt:
+                    bt.__console__.print(":white_heavy_check_mark: [green]Sent[/green]")
                 else:
-                    new_balance = subtensor.get_balance(address=wallet.coldkeypub.ss58_address)
-                    new_stake = subtensor.get_stake_for_coldkey_and_hotkey_on_netuid(
-                        coldkey_ss58=wallet.coldkeypub.ss58_address,
-                        hotkey_ss58=staking_address_ss58,
-                        netuid=netuid,
-                    ).set_unit(netuid)
-                    bt.__console__.print(f"Balance:\n  [blue]{current_wallet_balance}[/blue] :arrow_right: [green]{new_balance}[/green]")
-                    bt.__console__.print(f"Stake:\n  [blue]{current_stake_balance}[/blue] :arrow_right: [green]{new_stake}[/green]")
-                    return
+                    response.process_events()
+                    if not response.is_success:
+                        bt.__console__.print(f":cross_mark: [red]Failed[/red] with error: {response.error_message}")
+                    else:
+                        new_balance = subtensor.get_balance(address=wallet.coldkeypub.ss58_address)
+                        new_stake = subtensor.get_stake_for_coldkey_and_hotkey_on_netuid(
+                            coldkey_ss58=wallet.coldkeypub.ss58_address,
+                            hotkey_ss58=staking_address_ss58,
+                            netuid=netuid,
+                        ).set_unit(netuid)
+                        bt.__console__.print(f"Balance:\n  [blue]{current_wallet_balance}[/blue] :arrow_right: [green]{new_balance}[/green]")
+                        bt.__console__.print(f"Subnet: {netuid} Stake:\n  [blue]{current}[/blue] :arrow_right: [green]{new_stake}[/green]")
+                        

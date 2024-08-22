@@ -103,7 +103,7 @@ class RemoveStakeCommand:
 
         # Get old staking balance.
         table = Table(
-            title=f"[white]Unstake operation to Coldkey SS58: [cyan]{wallet.coldkeypub.ss58_address}[/cyan]\n",
+            title=f"[white]Unstake operation to Coldkey SS58: [bold dark_green]{wallet.coldkeypub.ss58_address}[/bold dark_green]\n",
             width=bt.__console__.width - 5,
             safe_box=True,
             padding=(0, 1),
@@ -126,14 +126,24 @@ class RemoveStakeCommand:
         )
         rows = []
         unstake_amount_balance = []
+        current_stake_balances = []
         total_received_amount = bt.Balance.from_tao(0)
         current_wallet_balance: bt.Balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
         for netuid in netuids:
+            
+            # Check that the subnet exists.
+            dynamic_info = subtensor.get_subnet_dynamic_info( netuid )
+            if dynamic_info == None:
+                bt.__console__.print(f"[red]Subnet: {netuid} does not exist.[/red]")
+                sys.exit(1)
+            
             current_stake_balance: bt.Balance = subtensor.get_stake_for_coldkey_and_hotkey_on_netuid(
                 coldkey_ss58=wallet.coldkeypub.ss58_address,
                 hotkey_ss58=staking_address_ss58,
                 netuid=netuid,
             )
+            current_stake_balances.append(current_stake_balance)
+            
             # Determine the amount we are staking.
             amount_to_unstake_as_balance = None
             if config.get("amount"):
@@ -146,7 +156,7 @@ class RemoveStakeCommand:
                 else:
                     try:
                         # TODO add unit.
-                        amount = float(Prompt.ask(f"Enter amount to unstake in {bt.Balance.get_unit(netuid)}"))
+                        amount = float(Prompt.ask(f"Enter amount to unstake in {bt.Balance.get_unit(netuid)} from subnet: {netuid}" ))
                         amount_to_unstake_as_balance = bt.Balance.from_tao(amount)
                     except ValueError:
                         bt.__console__.print(f":cross_mark:[red]Invalid amount: {amount}[/red]")
@@ -159,10 +169,6 @@ class RemoveStakeCommand:
                 bt.__console__.print(f"[red]Not enough stake to remove[/red]:[bold white]\n stake balance:{current_stake_balance} < unstaking amount: {amount_to_unstake_as_balance}[/bold white]")
                 sys.exit(1)
 
-            dynamic_info = subtensor.get_subnet_dynamic_info( netuid )
-            if dynamic_info == None:
-                bt.__console__.print(f"[red]Subnet: {netuid} does not exist.[/red]")
-                sys.exit(1)
             received_amount, slippage = dynamic_info.alpha_to_tao_with_slippage( amount_to_unstake_as_balance )
             total_received_amount += received_amount 
             if dynamic_info.is_dynamic:
@@ -218,7 +224,7 @@ Description:
         # Perform staking operation.
         wallet.coldkey # decrypt key.
         with bt.__console__.status(f"\n:satellite: Unstaking {amount_to_unstake_as_balance} from {staking_address_name} on netuid: {netuid} ..."):
-            for netuid_i, amount in list(zip(netuids, unstake_amount_balance)):
+            for netuid_i, amount, current in list(zip(netuids, unstake_amount_balance, current_stake_balances)):
                 call = subtensor.substrate.compose_call(
                     call_module="SubtensorModule",
                     call_function="remove_stake",
@@ -232,12 +238,10 @@ Description:
                 response = subtensor.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=True, wait_for_finalization=False)
                 if config.no_prompt:
                     bt.__console__.print(":white_heavy_check_mark: [green]Sent[/green]")
-                    return
                 else:
                     response.process_events()
                     if not response.is_success:
                         bt.__console__.print(f":cross_mark: [red]Failed[/red] with error: {response.error_message}")
-                        return
                     else:
                         new_balance = subtensor.get_balance(address=wallet.coldkeypub.ss58_address)
                         new_stake = subtensor.get_stake_for_coldkey_and_hotkey_on_netuid(
@@ -246,5 +250,4 @@ Description:
                             netuid=netuid,
                         ).set_unit(netuid)
                         bt.__console__.print(f"Balance:\n  [blue]{current_wallet_balance}[/blue] :arrow_right: [green]{new_balance}[/green]")
-                        bt.__console__.print(f"Stake:\n  [blue]{current_stake_balance}[/blue] :arrow_right: [green]{new_stake}[/green]")
-                        return
+                        bt.__console__.print(f"Subnet: {netuid} Stake:\n  [blue]{current}[/blue] :arrow_right: [green]{new_stake}[/green]")

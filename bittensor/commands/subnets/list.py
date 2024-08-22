@@ -110,9 +110,9 @@ Description:
     The columns are as follows:
         - Netuid: The unique identifier for the subnet (its index).
         - Symbol: The symbol representing the subnet's stake.
-        - Emission: The per block emission rate of the subnet which is added to the stake. Calculated by dividing the TAO (t) column values by the sum of the Stake (t) column.
+        - Emission: The per block emission rate of the subnet which is added to the subnet TAO. Calculated by dividing the TAO (t) column values by the sum of the TAO (t) column.
         - TAO: The TAO staked into the subnet ( which dynamically changes during stake, unstake and emission events ).
-        - Stake: The outstanding supply of stake across all staking accounts on this subnet in the subnet unit.
+        - Stake: The outstanding supply of stake across all staking accounts on this subnet in the subnet stake unit.
         - Rate: The rate of conversion between the base unit in TAO and the subnet unit.
         - Tempo: The subnet epoch tempo represented as k/n where k is the blocks since the last epoch and n is the total blocks in the epoch.
 """

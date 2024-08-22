@@ -118,7 +118,7 @@ class StakeList:
                     ])
             # table = Table(show_footer=True, pad_edge=False, box=None, expand=False, title=f"{name}")
             table = Table(
-                title=f"[white]hotkey: {name}[/white]\n",
+                title=f"[white]hotkey:[/white] [light_salmon3]{name}[/light_salmon3]\n",
                 width=bittensor.__console__.width - 5,
                 safe_box=True,
                 padding=(0, 1),
@@ -163,7 +163,7 @@ class StakeList:
             all_hotkeys_total_tao_value += value
 
         bittensor.__console__.print("\n\n")
-        bittensor.__console__.print(f"Wallet:\n  Coldkey SS58: [light_salmon3]{cli.config.coldkey_address}[/light_salmon3]\n  Free Balance: [aquamarine3]{balance}[/aquamarine3]\n  Total Stake ({bittensor.Balance.unit}): [aquamarine3]{all_hotkeys_total_global_tao}[/aquamarine3]\n  Total Value ({bittensor.Balance.unit}): [aquamarine3]{all_hotkeys_total_tao_value}[/aquamarine3]")
+        bittensor.__console__.print(f"Wallet:\n  Coldkey SS58: [bold dark_green]{cli.config.coldkey_address}[/bold dark_green]\n  Free Balance: [aquamarine3]{balance}[/aquamarine3]\n  Total TAO ({bittensor.Balance.unit}): [aquamarine3]{all_hotkeys_total_global_tao}[/aquamarine3]\n  Total Value ({bittensor.Balance.unit}): [aquamarine3]{all_hotkeys_total_tao_value}[/aquamarine3]")
         bittensor.__console__.print(
             """
 Description:
