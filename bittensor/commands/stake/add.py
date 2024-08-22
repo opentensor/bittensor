@@ -95,6 +95,11 @@ class AddStakeCommand:
         else:
             bt.logging.error("--wallet.name is needed to proceed")
             sys.exit(1)
+            
+        # check coldkey
+        if not wallet.coldkey_file.exists_on_device(): 
+            bt.__console__.print(f"\n:cross_mark: [red]Failed[/red]: your coldkey: {wallet.name} does not exist on this device. To create it run:\n\n\tbtcli w new_coldkey --wallet.name {wallet.name}\n")
+            sys.exit(1)
 
         # Get which hotkey we are staking to.
         staking_address_ss58 = config.get('hotkey_ss58')
