@@ -135,6 +135,7 @@ class RemoveStakeCommand:
         total_received_amount = bt.Balance.from_tao(0)
         current_wallet_balance: bt.Balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
         max_float_slippage = 0
+        non_zero_netuids = []
         for netuid in netuids:
             
             # Check that the subnet exists.
@@ -148,6 +149,9 @@ class RemoveStakeCommand:
                 hotkey_ss58=staking_address_ss58,
                 netuid=netuid,
             )
+            if current_stake_balance.tao == 0:
+                continue
+            non_zero_netuids.append(netuid)
             current_stake_balances.append(current_stake_balance)
             
             # Determine the amount we are staking.
@@ -232,7 +236,7 @@ class RemoveStakeCommand:
         # Perform staking operation.
         wallet.coldkey # decrypt key.
         with bt.__console__.status(f"\n:satellite: Unstaking {amount_to_unstake_as_balance} from {staking_address_name} on netuid: {netuid} ..."):
-            for netuid_i, amount, current in list(zip(netuids, unstake_amount_balance, current_stake_balances)):
+            for netuid_i, amount, current in list(zip(non_zero_netuids, unstake_amount_balance, current_stake_balances)):
                 call = subtensor.substrate.compose_call(
                     call_module="SubtensorModule",
                     call_function="remove_stake",
