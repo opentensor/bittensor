@@ -89,7 +89,7 @@ class AddStakeCommand:
         if config.is_set("wallet.name"):
             wallet = bt.wallet( config = config )
         elif not config.no_prompt:
-            wallet_name = Prompt.ask("Enter wallet name", default=bt.defaults.wallet.name)
+            wallet_name = Prompt.ask("Enter wallet [bold dark_green]name[/bold dark_green]", default=bt.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
             wallet = bt.wallet( config = config )
         else:
@@ -107,7 +107,7 @@ class AddStakeCommand:
         elif config.is_set("hotkey_ss58"):
             staking_address_name = config.get('hotkey_ss58')
         elif not staking_address_ss58 and not config.no_prompt:
-            hotkey_str = Prompt.ask("Enter staking hotkey [bold blue]name[/bold blue] or [bold green]ss58_address[/bold green]", default=bt.defaults.wallet.hotkey)
+            hotkey_str = Prompt.ask("Enter staking hotkey [light_salmon3]name[/light_salmon3] or [light_salmon3]ss58_address[/light_salmon3]", default=bt.defaults.wallet.hotkey)
             if bt.utils.is_valid_ss58_address(hotkey_str):
                 staking_address_ss58 = str(hotkey_str)
                 staking_address_name = hotkey_str

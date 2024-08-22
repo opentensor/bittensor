@@ -189,7 +189,7 @@ class StakeList:
     @staticmethod
     def check_config(config: "bittensor.config"):
         if not config.is_set("wallet.name") and not config.no_prompt:
-            wallet_name = Prompt.ask("Enter wallet [bold blue]name[/bold blue] or [bold green]ss58_address[/bold green]", default=defaults.wallet.name)
+            wallet_name = Prompt.ask("Enter wallet [bold dark_green]name[/bold dark_green] or [bold green]ss58_address[/bold green]", default=defaults.wallet.name)
             if bittensor.utils.is_valid_ss58_address(wallet_name):
                 config.coldkey_address = str(wallet_name)
             else:
