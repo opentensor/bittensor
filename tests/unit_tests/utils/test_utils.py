@@ -91,13 +91,21 @@ def test_get_explorer_root_url_by_network_from_map():
     }
 
     # Assertions
-    assert utils._get_explorer_root_url_by_network_from_map("network1", network_map) == {
+    assert utils._get_explorer_root_url_by_network_from_map(
+        "network1", network_map
+    ) == {
         "entity1": "url1",
         "entity2": "url3",
     }
     # Test with an unknown network
-    assert utils._get_explorer_root_url_by_network_from_map("unknown_network", network_map) == {}
-    assert utils._get_explorer_root_url_by_network_from_map("network1", network_map_empty) == {}
+    assert (
+        utils._get_explorer_root_url_by_network_from_map("unknown_network", network_map)
+        == {}
+    )
+    assert (
+        utils._get_explorer_root_url_by_network_from_map("network1", network_map_empty)
+        == {}
+    )
 
 
 def test_get_explorer_url_for_network():
@@ -110,20 +118,27 @@ def test_get_explorer_url_for_network():
     result = utils.get_explorer_url_for_network("network", fake_block_hash, fake_map)
 
     # Assert
-    assert result == {'opentensor': f'url/query/{fake_block_hash}', 'taostats': f'url2/extrinsic/{fake_block_hash}'}
+    assert result == {
+        "opentensor": f"url/query/{fake_block_hash}",
+        "taostats": f"url2/extrinsic/{fake_block_hash}",
+    }
 
 
 def test_ss58_address_to_bytes(mocker):
     """Tests utils.ss58_address_to_bytes function."""
     # Prep
     fake_ss58_address = "ss58_address"
-    mocked_scalecodec_ss58_decode = mocker.patch.object(utils.scalecodec, "ss58_decode", return_value="")
+    mocked_scalecodec_ss58_decode = mocker.patch.object(
+        utils.scalecodec, "ss58_decode", return_value=""
+    )
 
     # Call
     result = utils.ss58_address_to_bytes(fake_ss58_address)
 
     # Asserts
-    mocked_scalecodec_ss58_decode.assert_called_once_with(fake_ss58_address, SS58_FORMAT)
+    mocked_scalecodec_ss58_decode.assert_called_once_with(
+        fake_ss58_address, SS58_FORMAT
+    )
     assert result == bytes.fromhex(mocked_scalecodec_ss58_decode.return_value)
 
 
@@ -137,10 +152,14 @@ def test_ss58_address_to_bytes(mocker):
     ],
 )
 def test_is_valid_bittensor_address_or_public_key(mocker, test_input, expected_result):
-    """ Tests utils.is_valid_bittensor_address_or_public_key function."""
+    """Tests utils.is_valid_bittensor_address_or_public_key function."""
     # Prep
-    mocked_is_valid_ed25519_pubkey = mocker.patch.object(utils, "_is_valid_ed25519_pubkey", return_value=True)
-    mocked_ss58_is_valid_ss58_address = mocker.patch.object(utils.ss58, "is_valid_ss58_address", side_effect=[False, True])
+    mocked_is_valid_ed25519_pubkey = mocker.patch.object(
+        utils, "_is_valid_ed25519_pubkey", return_value=True
+    )
+    mocked_ss58_is_valid_ss58_address = mocker.patch.object(
+        utils.ss58, "is_valid_ss58_address", side_effect=[False, True]
+    )
 
     # Call
     result = utils.is_valid_bittensor_address_or_public_key(test_input)
