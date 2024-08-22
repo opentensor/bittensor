@@ -6,10 +6,10 @@ concurrency:
 
 on:
   push:
-    branches: [main, development, staging]
+    branches: [main, development, staging, btsdk]
 
   pull_request:
-    branches: [main, development, staging]
+    branches: [main, development, staging, btsdk]
     types: [ opened, synchronize, reopened, ready_for_review ]
 
   workflow_dispatch:
