@@ -16,6 +16,8 @@
 # DEALINGS IN THE SOFTWARE.
 from symbol import return_stmt
 
+from more_itertools.more import side_effect
+
 from bittensor import utils
 from bittensor.core.settings import SS58_FORMAT
 import pytest
@@ -130,17 +132,22 @@ def test_ss58_address_to_bytes(mocker):
     [
         (123, False),
         ("0x234SD", True),
+        ("5D34SD", True),
         (b"0x234SD", True),
     ],
 )
 def test_is_valid_bittensor_address_or_public_key(mocker, test_input, expected_result):
     """ Tests utils.is_valid_bittensor_address_or_public_key function."""
     # Prep
-    fake_address = "some_address"
-    mocked_is_valid_ss58_address = mocker.patch.object(utils, "_is_valid_ed25519_pubkey", return_value=True)
+    mocked_is_valid_ed25519_pubkey = mocker.patch.object(utils, "_is_valid_ed25519_pubkey", return_value=True)
+    mocked_ss58_is_valid_ss58_address = mocker.patch.object(utils.ss58, "is_valid_ss58_address", side_effect=[False, True])
 
     # Call
     result = utils.is_valid_bittensor_address_or_public_key(test_input)
 
     # Asserts
+    if not isinstance(test_input, int) and isinstance(test_input, bytes):
+        mocked_is_valid_ed25519_pubkey.assert_called_with(test_input)
+    if isinstance(test_input, str) and not test_input.startswith("0x"):
+        assert mocked_ss58_is_valid_ss58_address.call_count == 2
     assert result == expected_result
