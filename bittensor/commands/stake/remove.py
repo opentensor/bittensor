@@ -85,9 +85,11 @@ class RemoveStakeCommand:
         # If no hotkey is specified, and no prompt is set, delegate to the selected delegate.
         if config.is_set("wallet.hotkey"):
             wallet = bt.wallet(name=wallet.name, hotkey=config.wallet.hotkey, path=wallet.path)
-            staking_address_name = wallet.hotkey.ss58_address
+            staking_address_name = wallet.hotkey_str
+            staking_address_ss58 = wallet.hotkey.ss58_address
         elif config.is_set("hotkey_ss58"):
             staking_address_name = config.get('hotkey_ss58')
+            staking_address_ss58 = config.get('hotkey_ss58')
         elif not staking_address_ss58 and not config.no_prompt:
             hotkey_str = Prompt.ask("Enter staking [light_salmon3]hotkey[/light_salmon3] name or ss58_address", default=bt.defaults.wallet.hotkey)
             if bt.utils.is_valid_ss58_address(hotkey_str):
