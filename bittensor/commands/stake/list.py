@@ -113,8 +113,8 @@ class StakeList:
                         f"[light_slate_blue]{ tao_value }[/light_slate_blue]", # Tao equiv
                         f"[cadet_blue]{ swapped_tao_value }[/cadet_blue] ({slippage_percentage})", # Swap amount.
                         # f"[light_salmon3]{ alpha_ownership }%[/light_salmon3]", # Ownership.
-                        str(bittensor.Balance.from_tao(per_block_emission).set_unit(netuid)), # emission per block.
                         f"[bold cadet_blue]YES[/bold cadet_blue]" if substake.is_registered else f"[dark_red]NO[/dark_red]", # Registered.
+                        str(bittensor.Balance.from_tao(per_block_emission).set_unit(netuid)) if substake.is_registered else "[dark_red]N/A[/dark_red]", # emission per block.
                         f"[light_slate_blue]{ locked_value }[/light_slate_blue]", # Locked value
                     ])
             # table = Table(show_footer=True, pad_edge=False, box=None, expand=False, title=f"{name}")
@@ -148,8 +148,8 @@ class StakeList:
             table.add_column(f"[white]Value({bittensor.Balance.get_unit(1)} x {bittensor.Balance.unit}/{bittensor.Balance.get_unit(1)})", footer_style="overline white", style="blue", justify="right", footer=f"{total_tao_value}")
             table.add_column(f"[white]Swap({bittensor.Balance.get_unit(1)}) -> {bittensor.Balance.unit}", footer_style="overline white", style="white", justify="right" )
             # table.add_column(f"[white]Control({bittensor.Balance.get_unit(1)})", style="aquamarine3", justify="right")
-            table.add_column(f"[white]Emission({bittensor.Balance.get_unit(1)}/block)", style="aquamarine3", justify="right")
             table.add_column(f"[white]Registered", style="red", justify="right")
+            table.add_column(f"[white]Emission({bittensor.Balance.get_unit(1)}/block)", style="aquamarine3", justify="right")
             table.add_column(f"[white]Locked({bittensor.Balance.get_unit(1)})", footer_style="overline white", style="green",  justify="right" )
             for row in rows:
                 table.add_row(*row)
