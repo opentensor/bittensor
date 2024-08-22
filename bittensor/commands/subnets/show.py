@@ -241,6 +241,7 @@ Description:
                     str(subnet_state.incentives[idx]),
                     f"{str(Balance.from_tao(hotkey_block_emission).set_unit(netuid).tao)} {subnet_info.symbol}",
                     f"{subnet_state.hotkeys[idx]}",
+                    f"{subnet_state.coldkeys[idx]}",
                 )
             )        
         # Add columns to the table
@@ -252,6 +253,7 @@ Description:
         table.add_column("Incentive", style="rgb(220,50,47)", no_wrap=True, justify="center")
         table.add_column(f"Emission ({Balance.get_unit(netuid)})", style="aquamarine3", no_wrap=True, justify="center")
         table.add_column("Hotkey", style="light_salmon3", no_wrap=True, justify="center")
+        table.add_column("Coldkey", style="bold dark_green", no_wrap=True, justify="center")
         for row in rows:
             table.add_row(*row)
 
