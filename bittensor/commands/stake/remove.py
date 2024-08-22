@@ -66,7 +66,7 @@ class RemoveStakeCommand:
         if config.is_set("wallet.name"):
             wallet = bt.wallet( config = config )
         elif not config.no_prompt:
-            wallet_name = Prompt.ask("Enter wallet [bold dark_green]name[/bold dark_green]", default=bt.defaults.wallet.name)
+            wallet_name = Prompt.ask("Enter [bold dark_green]coldkey[/bold dark_green] name", default=bt.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
             wallet = bt.wallet( config = config )
         else:
@@ -84,7 +84,7 @@ class RemoveStakeCommand:
         elif config.is_set("hotkey_ss58"):
             staking_address_name = config.get('hotkey_ss58')
         elif not staking_address_ss58 and not config.no_prompt:
-            hotkey_str = Prompt.ask("Enter staking hotkey [bold blue]name[/bold blue] or [light_salmon3]ss58_address[/light_salmon3]", default=bt.defaults.wallet.hotkey)
+            hotkey_str = Prompt.ask("Enter staking [light_salmon3]hotkey[/light_salmon3] name or ss58_address", default=bt.defaults.wallet.hotkey)
             if bt.utils.is_valid_ss58_address(hotkey_str):
                 staking_address_ss58 = str(hotkey_str)
                 staking_address_name = hotkey_str
@@ -204,11 +204,12 @@ class RemoveStakeCommand:
         message = ""
         if max_float_slippage > 5:
             message += f"-------------------------------------------------------------------------------------------------------------------\n"
-            message += f"[bold][yellow]WARNING:[/yellow]\tOn one of your operations slippage is high: [bold red]{max_float_slippage} %[/bold red], this may result in a loss of funds.[/bold] \n"
+            message += f"[bold][yellow]WARNING:[/yellow]\tThe slippage on one of your operations is high: [bold red]{max_float_slippage} %[/bold red], this may result in a loss of funds.[/bold] \n"
             message += f"-------------------------------------------------------------------------------------------------------------------\n"
             bt.__console__.print(message)
-        if not config.no_prompt and Confirm.ask("Would you like to continue?"):
-            sys.exit(1)
+        if not config.no_prompt:
+            if not Confirm.ask("Would you like to continue?"):
+                sys.exit(1)
         bt.__console__.print(
             """
 [bold white]Description[/bold white]:

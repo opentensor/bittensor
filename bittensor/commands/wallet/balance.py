@@ -302,7 +302,7 @@ class WalletBalanceCommand:
                 and not config.get("all", d=None)
             ):
                 wallet_name = Prompt.ask(
-                    "Enter wallet name", default=defaults.wallet.name
+                    "Enter [bold dark_green]coldkey[/bold dark_green] name", default=defaults.wallet.name
                 )
                 config.wallet.name = str(wallet_name)
 

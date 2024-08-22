@@ -89,7 +89,7 @@ class AddStakeCommand:
         if config.is_set("wallet.name"):
             wallet = bt.wallet( config = config )
         elif not config.no_prompt:
-            wallet_name = Prompt.ask("Enter wallet [bold dark_green]name[/bold dark_green]", default=bt.defaults.wallet.name)
+            wallet_name = Prompt.ask("Enter [bold dark_green]coldkey[/bold dark_green] name", default=bt.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
             wallet = bt.wallet( config = config )
         else:
@@ -107,7 +107,7 @@ class AddStakeCommand:
         elif config.is_set("hotkey_ss58"):
             staking_address_name = config.get('hotkey_ss58')
         elif not staking_address_ss58 and not config.no_prompt:
-            hotkey_str = Prompt.ask("Enter staking hotkey [light_salmon3]name[/light_salmon3] or [light_salmon3]ss58_address[/light_salmon3]", default=bt.defaults.wallet.hotkey)
+            hotkey_str = Prompt.ask("Enter staking [light_salmon3]hotkey[/light_salmon3] name or ss58_address", default=bt.defaults.wallet.hotkey)
             if bt.utils.is_valid_ss58_address(hotkey_str):
                 staking_address_ss58 = str(hotkey_str)
                 staking_address_name = hotkey_str
@@ -207,7 +207,7 @@ class AddStakeCommand:
                     # f"{staking_address_ss58[:3]}...{staking_address_ss58[-3:]}",
                     f"{staking_address_ss58}",
                     str(amount_to_stake_as_balance),
-                    str(1/float(dynamic_info.price)) + f" ({bt.Balance.get_unit(netuid)}/{bt.Balance.get_unit(0)}) ",
+                    str(1/float(dynamic_info.price)) + f" {bt.Balance.get_unit(netuid)}/{bt.Balance.get_unit(0)} ",
                     str(received_amount.set_unit(netuid)),
                     str(slippage_pct),
                 )
@@ -240,8 +240,9 @@ class AddStakeCommand:
         - [bold white]Received[/bold white]: The amount of stake you will receive on this subnet after slippage.
         - [bold white]Slippage[/bold white]: The slippage percentage of the stake operation. (0% if the subnet is not dynamic i.e. root).
 """)
-        if not Confirm.ask("Would you like to continue?"):
-            sys.exit(1)
+        if not config.no_prompt:
+            if not Confirm.ask("Would you like to continue?"):
+                sys.exit(1)
         
         # Perform staking operation.
         wallet.coldkey

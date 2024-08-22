@@ -66,7 +66,7 @@ class RegisterSubnetworkCommand:
         )
         table.title = f"[white]Create - {subtensor.network}\n"
         subnets = subtensor.get_all_subnet_dynamic_info()
-        netuid = len(subnets) + 1
+        netuid = len(subnets)
         unit = bittensor.Balance.get_unit(netuid)
         
         table.add_column("Netuid", style="rgb(253,246,227)", no_wrap=True, justify="center")
@@ -129,7 +129,7 @@ class RegisterSubnetworkCommand:
     @classmethod
     def check_config(cls, config: "bittensor.config"):
         if not config.is_set("wallet.name") and not config.no_prompt:
-            wallet_name = Prompt.ask("Enter wallet [bold dark_green]name[/bold dark_green]", default=defaults.wallet.name)
+            wallet_name = Prompt.ask("Enter [bold dark_green]coldkey[/bold dark_green] name", default=defaults.wallet.name)
             config.wallet.name = str(wallet_name)
             
         if not config.is_set("wallet.hotkey") and not config.no_prompt:

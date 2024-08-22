@@ -95,6 +95,6 @@ class UpdateWalletCommand:
             and not config.no_prompt
         ):
             wallet_name = Prompt.ask(
-                "Enter wallet name", default=bittensor.defaults.wallet.name
+                "Enter [bold dark_green]coldkey[/bold dark_green] name", default=bittensor.defaults.wallet.name
             )
             config.wallet.name = str(wallet_name)

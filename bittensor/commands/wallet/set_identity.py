@@ -145,7 +145,7 @@ class SetIdentityCommand:
     def check_config(config: "bittensor.config"):
         if not config.is_set("wallet.name") and not config.no_prompt:
             config.wallet.name = Prompt.ask(
-                "Enter wallet name", default=bittensor.defaults.wallet.name
+                "Enter [bold dark_green]coldkey[/bold dark_green] name", default=bittensor.defaults.wallet.name
             )
         if not config.is_set("wallet.hotkey") and not config.no_prompt:
             config.wallet.hotkey = Prompt.ask(

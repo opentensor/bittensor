@@ -179,8 +179,8 @@ class StakeList:
         - [bold white]Rate[/bold white]: The rate of exchange between the subnet's staking unit and the subnet's TAO.
         - [bold white]Value[/bold white]: The price of the hotkey's stake in TAO computed via the exchange rate.
         - [bold white]Swap[/bold white]: The amount of TAO recieved when unstaking all of the hotkey's stake (with slippage).
-        - [bold white]Emission[/bold white]: The emission (in stake) attained by this hotkey on this subnet per block.
         - [bold white]Registered[/bold white]: Whether the hotkey is registered on this subnet.
+        - [bold white]Emission[/bold white]: If registered, the emission (in stake) attained by this hotkey on this subnet per block.
         - [bold white]Locked[/bold white]: The total amount of stake locked (not able to be unstaked).
 """
 )
@@ -189,7 +189,7 @@ class StakeList:
     @staticmethod
     def check_config(config: "bittensor.config"):
         if not config.is_set("wallet.name") and not config.no_prompt:
-            wallet_name = Prompt.ask("Enter wallet [bold dark_green]name[/bold dark_green] or [bold green]ss58_address[/bold green]", default=defaults.wallet.name)
+            wallet_name = Prompt.ask("Enter [bold dark_green]coldkey[/bold dark_green] name or [bold green]ss58_address[/bold green]", default=defaults.wallet.name)
             if bittensor.utils.is_valid_ss58_address(wallet_name):
                 config.coldkey_address = str(wallet_name)
             else:

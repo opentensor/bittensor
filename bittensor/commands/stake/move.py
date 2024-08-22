@@ -80,7 +80,7 @@ class MoveStakeCommand:
             wallet = bt.wallet(config=config)
         elif not config.no_prompt:
             wallet_name = Prompt.ask(
-                "Enter wallet name", default=bt.defaults.wallet.name
+                "Enter [bold dark_green]coldkey[/bold dark_green] name", default=bt.defaults.wallet.name
             )
             config.wallet.name = str(wallet_name)
             wallet = bt.wallet(config=config)
