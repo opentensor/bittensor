@@ -229,7 +229,7 @@ Description:
 
         rows = []
         emission_sum = sum([subnet_state.emission[idx].tao for idx in range(len(subnet_state.emission))])
-        for idx, hk in enumerate(subnet_state.hotkeys):
+        for idx in range(len(subnet_state.global_stake)):
             hotkey_block_emission = subnet_state.emission[idx].tao/emission_sum if emission_sum != 0 else 0
             rows.append((
                     str(idx),
