@@ -253,9 +253,9 @@ Description:
     The table displays the subnet participants and their metrics.
     The columns are as follows:
         - UID: The hotkey index in the subnet.
-        - Stake: The stake of the hotkey accross all subnets. 
-        - Dyanmic: The dynamic stake of this hotkey on this subnet.
-        - Weight: The stake weight of this hotkey on this subnet computed as an average of the Stake and Dynamic columns.
+        - TAO: The sum of all TAO stake for this hotkey accross all subnets. 
+        - Stake: The stake balance of this hotkey on this subnet.
+        - Weight: The stake weight of this hotkey on this subnet computed as an average of the Stake and TAO columns.
         - Dividends: Validating dividends earned by the hotkey.
         - Incentives: Mining incentives earned by the hotkey (always zero in the RAO demo.)
         - Emission: The per block emission accrued to this key on this subnet every block.

@@ -216,8 +216,8 @@ Description:
         - Netuid: The netuid of the subnet you are staking to.
         - Hotkey: The ss58 address of the hotkey you are staking to. 
         - Amount: The TAO you are staking into this subnet onto this hotkey.
-        - Rate: The rate of exchange between your TAO and the subnet's dynamic stake.
-        - Received: The amount of dynamic stake you will receive on this subnet after slippage.
+        - Rate: The rate of exchange between your TAO and the subnet's stake.
+        - Received: The amount of stake you will receive on this subnet after slippage.
         - Slippage: The slippage percentage of the stake operation. (0% if the subnet is not dynamic i.e. root).
 """)
             if not Confirm.ask("Would you like to continue?"):

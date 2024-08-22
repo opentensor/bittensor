@@ -141,8 +141,8 @@ class StakeList:
             )
             table.add_column(f"[white]Netuid", footer_style="overline white", style="grey89")
             table.add_column(f"[white]Symbol", footer_style="white", style="light_goldenrod1", justify="right", width=5, no_wrap=True)
-            table.add_column(f"[white]Stake({bittensor.Balance.unit})", style="aquamarine3", justify="right", footer=f"{total_global_tao}")
-            table.add_column(f"[white]Dynamic({bittensor.Balance.get_unit(1)})", footer_style="overline white", style="green",  justify="right" )
+            table.add_column(f"[white]TAO({bittensor.Balance.unit})", style="aquamarine3", justify="right", footer=f"{total_global_tao}")
+            table.add_column(f"[white]Stake({bittensor.Balance.get_unit(1)})", footer_style="overline white", style="green",  justify="right" )
             table.add_column(f"[white]Rate({bittensor.Balance.unit}/{bittensor.Balance.get_unit(1)})", footer_style="white", style="light_goldenrod2", justify="center" )
             table.add_column(f"[white]Value({bittensor.Balance.get_unit(1)} x {bittensor.Balance.unit}/{bittensor.Balance.get_unit(1)})", footer_style="overline white", style="blue", justify="right", footer=f"{total_tao_value}")
             table.add_column(f"[white]Swaped({bittensor.Balance.get_unit(1)}) -> {bittensor.Balance.unit}", footer_style="overline white", style="blue", justify="right" )
@@ -171,14 +171,14 @@ Description:
     The header of the table displays the hotkey and the footer displays the total stake and total value of all your staking accounts. 
     The columns of the table are as follows:
         - Netuid: The unique identifier for the subnet (its index).
-        - Symbol: The symbol representing the subnet's dynamic stake.
-        - Stake: The hotkey's stake balance on this subnet. This is this hotkeys proportion of subnet's total stake partitioned by the hotkey's share of outstanding dynamic stake.
-        - Dynamic: The hotkey's balance of the subnet's dynamic stake.
-        - Rate: The rate at which the hotkey's dynamic stake can be unstaked for the subnet's stake in TAO.
-        - Value: The price of the hotkey's dynamic stake in TAO computed via the exchange rate.
-        - Swap: The amount of free balance TAO recieved when unstaking all of the hotkey's dynamic stake (with slippage).
+        - Symbol: The symbol representing the subnet's stake.
+        - TAO: The hotkey's TAO balance on this subnet. This is this hotkeys proportion of subnet's TAO partitioned by the hotkey's share of outstanding stake.
+        - Stake: The hotkey's stake balance in subnets staking unit.
+        - Rate: The rate at which the hotkey's stake can be unstaked for the subnet's TAO.
+        - Value: The price of the hotkey's stake in TAO computed via the exchange rate.
+        - Swap: The amount of free balance TAO recieved when unstaking all of the hotkey's stake (with slippage).
         - Emission: The per block emission attained by this hotkey on this subnet per block.
-        - Locked: The total amount of dynamic stake locked (not able to be unstaked).
+        - Locked: The total amount of stake locked (not able to be unstaked).
 """
 )
 

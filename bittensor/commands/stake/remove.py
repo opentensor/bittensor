@@ -208,8 +208,8 @@ Description:
     The columns are as follows:
         - Netuid: The netuid of the subnet you are unstaking from.
         - Hotkey: The ss58 address of the hotkey you are unstaking from. 
-        - Amount: The dynamic stake amount you are removing from this key.
-        - Rate: The rate of exchange between TAO and the subnet's dynamic stake.
+        - Amount: The stake amount you are removing from this key.
+        - Rate: The rate of exchange between TAO and the subnet's stake.
         - Received: The amount of free balance TAO you will receive on this subnet after slippage.
         - Slippage: The slippage percentage of the unstake operation. (0% if the subnet is not dynamic i.e. root).
 """)
