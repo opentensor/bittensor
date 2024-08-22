@@ -91,6 +91,7 @@ def version_checking(timeout: int = 15):
     """
     Deprecated, kept for backwards compatibility. Use check_version() instead.
     """
+    pass
 
     from warnings import warn
 
