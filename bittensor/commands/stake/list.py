@@ -14,6 +14,7 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
+import sys
 import typing
 import argparse
 from rich.table import Table
@@ -197,6 +198,10 @@ class StakeList:
                 config.coldkey_address = wallet.coldkeypub.ss58_address
         else:
             wallet = bittensor.wallet( name = config.wallet.name, config = config)
+            if not wallet.coldkey_file.exists_on_device(): 
+                bittensor.__console__.print(f"\n:cross_mark: [red]Failed[/red]: your coldkey: {wallet.name} does not exist on this device. To create it run:\n\n\tbtcli w new_coldkey --wallet.name {wallet.name}\n")
+                sys.exit(1)
+
             config.coldkey_address = wallet.coldkeypub.ss58_address
 
     @staticmethod
