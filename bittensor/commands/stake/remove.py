@@ -129,6 +129,7 @@ class RemoveStakeCommand:
         current_stake_balances = []
         total_received_amount = bt.Balance.from_tao(0)
         current_wallet_balance: bt.Balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
+        max_float_slippage = 0
         for netuid in netuids:
             
             # Check that the subnet exists.
@@ -177,6 +178,7 @@ class RemoveStakeCommand:
             else:
                 slippage_pct_float = 0
                 slippage_pct = f"{slippage_pct_float}%"
+            max_float_slippage = max(max_float_slippage, slippage_pct_float)
                 
             rows.append( 
                 (
@@ -189,14 +191,6 @@ class RemoveStakeCommand:
                     str(slippage_pct)
                 )
             )
-            # message = ""
-            # if slippage_pct_float > 5:
-            #     message += f"\t-------------------------------------------------------------------------------------------------------------------\n"
-            #     message += f"\t[bold][yellow]WARNING:[/yellow]\tSlippage is high: [bold red]{slippage_pct}[/bold red], this may result in a loss of funds.[/bold] \n"
-            #     message += f"\t-------------------------------------------------------------------------------------------------------------------\n"
-            #     bt.__console__.print(message)
-            # if not config.no_prompt and Confirm.ask("Would you like to continue?"):
-            #     sys.exit(1)
                 
         table.add_column("Netuid", justify="center", style="grey89")
         table.add_column("Hotkey", justify="center", style="light_salmon3")
@@ -207,6 +201,14 @@ class RemoveStakeCommand:
         for row in rows:
             table.add_row(*row)
         bt.__console__.print(table)
+        message = ""
+        if max_float_slippage > 5:
+            message += f"-------------------------------------------------------------------------------------------------------------------\n"
+            message += f"[bold][yellow]WARNING:[/yellow]\tOn one of your operations slippage is high: [bold red]{max_float_slippage} %[/bold red], this may result in a loss of funds.[/bold] \n"
+            message += f"-------------------------------------------------------------------------------------------------------------------\n"
+            bt.__console__.print(message)
+        if not config.no_prompt and Confirm.ask("Would you like to continue?"):
+            sys.exit(1)
         bt.__console__.print(
             """
 Description:

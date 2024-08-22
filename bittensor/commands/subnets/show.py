@@ -106,10 +106,13 @@ class ShowSubnet:
         )
         # Add columns to the table
         table.add_column("Position", style="rgb(253,246,227)", no_wrap=True, justify="center")
+        table.add_column(f"TAO ({Balance.get_unit(0)})", style="medium_purple", no_wrap=True, justify="center")
         table.add_column(f"Stake ({Balance.get_unit(0)})", style="dark_sea_green", no_wrap=True, justify="center")
-        table.add_column(f"Stake ({Balance.get_unit(0)})", style="medium_purple", no_wrap=True, justify="center")
         table.add_column(f"Emission ({Balance.get_unit(0)}/block)", style="rgb(42,161,152)", no_wrap=True, justify="center")
         table.add_column("Hotkey", style="light_salmon3", no_wrap=True, justify="center")
+        print (f"Root state: {root_state.hotkeys}")
+        if len(root_state.global_stake) == 0:
+            root_state.global_stake = [Balance.from_tao(0) for _ in range(len(root_state.hotkeys))]
         sorted_hotkeys = sorted(
             enumerate(root_state.hotkeys),
             key=lambda x: root_state.global_stake[x[0]],
@@ -123,8 +126,8 @@ class ShowSubnet:
                 total_emission_per_block += subnet.alpha_to_tao( Balance.from_rao(emission_on_subnet) )
             table.add_row(
                 str((pos + 1)),
-                str(root_state.local_stake[idx]),
                 str(root_state.global_stake[idx]),
+                str(root_state.local_stake[idx]),
                 str(total_emission_per_block),
                 f"{root_state.hotkeys[idx]}",
             )
@@ -132,6 +135,18 @@ class ShowSubnet:
         # Print the table
         import bittensor as bt
         bt.__console__.print(table)
+        bt.__console__.print(
+"""
+Description:
+    The table displays the root subnet participants and their metrics.
+    The columns are as follows:
+        - Position: The sorted position of the hotkey by total TAO.
+        - TAO: The sum of all TAO balances for this hotkey accross all subnets. 
+        - Stake: The stake balance of this hotkey on root (measured in TAO).
+        - Emission: The emission accrued to this hotkey across all subnets every block measured in TAO.
+        - Hotkey: The hotkey ss58 address.
+"""
+)
           
     @staticmethod
     def show_subnet(subtensor: "Subtensor", netuid: int, config: "Config"):
@@ -230,8 +245,8 @@ class ShowSubnet:
             )        
         # Add columns to the table
         table.add_column("UID", style="grey89", no_wrap=True, justify="center")
-        table.add_column(f"Stake({Balance.get_unit(0)})", style="medium_purple", no_wrap=True, justify="right")
-        table.add_column(f"Dynamic({Balance.get_unit(netuid)})", style="green", no_wrap=True, justify="right")
+        table.add_column(f"TAO({Balance.get_unit(0)})", style="medium_purple", no_wrap=True, justify="right")
+        table.add_column(f"Stake({Balance.get_unit(netuid)})", style="green", no_wrap=True, justify="right")
         table.add_column(f"Weight({Balance.get_unit(0)}•{Balance.get_unit(netuid)})", style="blue", no_wrap=True, justify="center")
         table.add_column("Dividends", style="rgb(181,137,0)", no_wrap=True, justify="center")
         table.add_column("Incentive", style="rgb(220,50,47)", no_wrap=True, justify="center")
@@ -253,12 +268,12 @@ Description:
     The table displays the subnet participants and their metrics.
     The columns are as follows:
         - UID: The hotkey index in the subnet.
-        - TAO: The sum of all TAO stake for this hotkey accross all subnets. 
+        - TAO: The sum of all TAO balances for this hotkey accross all subnets. 
         - Stake: The stake balance of this hotkey on this subnet.
-        - Weight: The stake weight of this hotkey on this subnet computed as an average of the Stake and TAO columns.
+        - Weight: The stake-weight of this hotkey on this subnet. Computed as an average of the normalized TAO and Stake columns of this subnet.
         - Dividends: Validating dividends earned by the hotkey.
         - Incentives: Mining incentives earned by the hotkey (always zero in the RAO demo.)
-        - Emission: The per block emission accrued to this key on this subnet every block.
-        - Hotkey: The hotkey address.
+        - Emission: The emission accrued to this hokey on this subnet every block (in staking units).
+        - Hotkey: The hotkey ss58 address.
 """
 )

@@ -171,13 +171,13 @@ Description:
     The header of the table displays the hotkey and the footer displays the total stake and total value of all your staking accounts. 
     The columns of the table are as follows:
         - Netuid: The unique identifier for the subnet (its index).
-        - Symbol: The symbol representing the subnet's stake.
-        - TAO: The hotkey's TAO balance on this subnet. This is this hotkeys proportion of subnet's TAO partitioned by the hotkey's share of outstanding stake.
+        - Symbol: The symbol representing the subnet stake's unit.
+        - TAO: The hotkey's TAO balance on this subnet. This is this hotkey's proportion of total TAO staked into the subnet divided by the hotkey's share of outstanding stake.
         - Stake: The hotkey's stake balance in subnets staking unit.
-        - Rate: The rate at which the hotkey's stake can be unstaked for the subnet's TAO.
+        - Rate: The rate of exchange between the subnet's staking unit and the subnet's TAO.
         - Value: The price of the hotkey's stake in TAO computed via the exchange rate.
-        - Swap: The amount of free balance TAO recieved when unstaking all of the hotkey's stake (with slippage).
-        - Emission: The per block emission attained by this hotkey on this subnet per block.
+        - Swap: The amount of TAO recieved when unstaking all of the hotkey's stake (with slippage).
+        - Emission: The emission (in stake) attained by this hotkey on this subnet per block.
         - Locked: The total amount of stake locked (not able to be unstaked).
 """
 )

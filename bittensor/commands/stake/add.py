@@ -150,6 +150,7 @@ class AddStakeCommand:
         current_stake_balances = []
         current_wallet_balance: bt.Balance = subtensor.get_balance(wallet.coldkeypub.ss58_address).set_unit(0)
         remaining_wallet_balance = current_wallet_balance
+        max_slippage = 0
         for netuid in netuids:
             
             # Check that the subnet exists.
@@ -171,7 +172,7 @@ class AddStakeCommand:
             if config.get("amount"):
                 amount_to_stake_as_balance = bt.Balance.from_tao(config.amount)
             elif config.get("stake_all"):
-                amount_to_stake_as_balance = remaining_wallet_balance
+                amount_to_stake_as_balance = current_wallet_balance/len(netuids)
             elif not config.get("amount") and not config.get("max_stake"):
                 if Confirm.ask(f"Stake all: [bold]{remaining_wallet_balance}[/bold]?"):
                     amount_to_stake_as_balance = remaining_wallet_balance
@@ -199,6 +200,7 @@ class AddStakeCommand:
             else:
                 slippage_pct_float = 0
                 slippage_pct = 'N/A'
+            max_slippage = max(slippage_pct_float, max_slippage)
             rows.append(
                 (
                     str(netuid),
@@ -220,12 +222,12 @@ class AddStakeCommand:
         for row in rows:
             table.add_row(*row)
         bt.__console__.print(table)
-        # message = ""
-        # if slippage_pct_float > 5:
-        #     message += f"\t-------------------------------------------------------------------------------------------------------------------\n"
-        #     message += f"\t[bold][yellow]WARNING:[/yellow]\tSlippage is high: [bold red]{slippage_pct}[/bold red], this may result in a loss of funds.[/bold] \n"
-        #     message += f"\t-------------------------------------------------------------------------------------------------------------------\n"
-        #     bt.__console__.print(message)
+        message = ""
+        if max_slippage > 5:
+            message += f"\t-------------------------------------------------------------------------------------------------------------------\n"
+            message += f"\t[bold][yellow]WARNING:[/yellow]\tOn one of your operations slippage is high: [bold red]{max_slippage} %[/bold red], this may result in a loss of funds.[/bold] \n"
+            message += f"\t-------------------------------------------------------------------------------------------------------------------\n"
+            bt.__console__.print(message)
         bt.__console__.print(
             """
 Description:
