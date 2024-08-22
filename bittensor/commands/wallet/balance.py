@@ -241,7 +241,7 @@ class WalletBalanceCommand:
             no_wrap=True,
         )
 
-        for type_str in ["Free", "Global Stake", "Total"]:
+        for type_str in ["Free", "Stake", "Total"]:
             table.add_column(
                 f"[bold cyan]{type_str} Balance",
                 header_style="overline bold cyan",
