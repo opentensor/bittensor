@@ -550,8 +550,10 @@ def test_process_weights_for_netuid(mocker):
     fake_subtensor.min_allowed_weights.return_value = 0.1
     fake_subtensor.max_weight_limit.return_value = 1.0
     fake_metagraph.n = 1
-    mocked_normalize_max_weight = mocker.patch.object(weight_utils, "normalize_max_weight")
-    
+    mocked_normalize_max_weight = mocker.patch.object(
+        weight_utils, "normalize_max_weight"
+    )
+
     # Call
     result = weight_utils.process_weights_for_netuid(
         uids=fake_uids,
@@ -567,7 +569,7 @@ def test_process_weights_for_netuid(mocker):
     fake_subtensor.max_weight_limit.assert_called_once_with(netuid=fake_netuid)
 
     res1, res2 = result
-    assert np.array_equal(res1,  fake_uids)
+    assert np.array_equal(res1, fake_uids)
     assert res2 == mocked_normalize_max_weight.return_value
 
 
@@ -601,7 +603,7 @@ def test_process_weights_with_all_zero_weights(mocker):
 
     res1, res2 = result
     assert np.array_equal(res1, np.array([0]))
-    assert np.array_equal(res2, np.array([1.]))
+    assert np.array_equal(res2, np.array([1.0]))
 
 
 def test_process_weights_for_netuid_with_nzs_less_min_allowed_weights(mocker):
@@ -618,7 +620,9 @@ def test_process_weights_for_netuid_with_nzs_less_min_allowed_weights(mocker):
     fake_subtensor.max_weight_limit.return_value = 1.0
     fake_subtensor.metagraph.return_value.n = 5
     mocked_np_arange = mocker.patch.object(np, "arange")
-    mocked_normalize_max_weight = mocker.patch.object(weight_utils, "normalize_max_weight")
+    mocked_normalize_max_weight = mocker.patch.object(
+        weight_utils, "normalize_max_weight"
+    )
 
     # Call
     result = weight_utils.process_weights_for_netuid(
@@ -634,7 +638,10 @@ def test_process_weights_for_netuid_with_nzs_less_min_allowed_weights(mocker):
     fake_subtensor.metagraph.assert_called_once_with(fake_netuid)
     fake_subtensor.min_allowed_weights.assert_called_once_with(netuid=fake_netuid)
     fake_subtensor.max_weight_limit.assert_called_once_with(netuid=fake_netuid)
-    assert result == (mocked_np_arange.return_value, mocked_normalize_max_weight.return_value)
+    assert result == (
+        mocked_np_arange.return_value,
+        mocked_normalize_max_weight.return_value,
+    )
 
 
 def test_generate_weight_hash(mocker):
@@ -668,4 +675,7 @@ def test_generate_weight_hash(mocker):
     mocked_keypair.assert_called()
     mocker_vec.assert_called()
     mocked_u16.assert_called()
-    assert result == mocked_hasher.return_value.hexdigest.return_value.__radd__.return_value
+    assert (
+        result
+        == mocked_hasher.return_value.hexdigest.return_value.__radd__.return_value
+    )

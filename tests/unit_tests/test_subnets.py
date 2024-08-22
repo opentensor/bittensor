@@ -36,14 +36,18 @@ async def test_query_api(mocker):
     """Test querying the MySubnetsAPI instance asynchronously."""
     # Prep
     mocked_async_dendrite = mocker.AsyncMock()
-    mocked_dendrite = mocker.patch.object(subnets, "Dendrite", return_value=mocked_async_dendrite)
+    mocked_dendrite = mocker.patch.object(
+        subnets, "Dendrite", return_value=mocked_async_dendrite
+    )
 
     fake_wallet = mocker.MagicMock()
     fake_axon = mocker.MagicMock()
 
     mocked_synapse = mocker.MagicMock()
     mocked_synapse.return_value.name = "test synapse"
-    mocked_prepare_synapse = mocker.patch.object(MySubnetsAPI, "prepare_synapse", return_value=mocked_synapse)
+    mocked_prepare_synapse = mocker.patch.object(
+        MySubnetsAPI, "prepare_synapse", return_value=mocked_synapse
+    )
 
     # Call
     instance = MySubnetsAPI(fake_wallet)
@@ -60,8 +64,12 @@ async def test_test_instance_call(mocker):
     """Test the MySubnetsAPI instance call with asynchronous handling."""
     # Prep
     mocked_async_dendrite = mocker.AsyncMock()
-    mocked_dendrite = mocker.patch.object(subnets, "Dendrite", return_value=mocked_async_dendrite)
-    mocked_query_api = mocker.patch.object(MySubnetsAPI, "query_api", new=mocker.AsyncMock())
+    mocked_dendrite = mocker.patch.object(
+        subnets, "Dendrite", return_value=mocked_async_dendrite
+    )
+    mocked_query_api = mocker.patch.object(
+        MySubnetsAPI, "query_api", new=mocker.AsyncMock()
+    )
     fake_wallet = mocker.MagicMock()
     fake_axon = mocker.MagicMock()
 
