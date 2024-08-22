@@ -349,7 +349,7 @@ class Subtensor:
                 default=default_network,
                 type=str,
                 help="""The subtensor network flag. The likely choices are:
-                                        -- dtao (dtao demo network)
+                                        -- rao (rao demo network)
                                         -- finney (main network)
                                         -- test (test network)
                                         -- archive (archive network +300 blocks)
@@ -3539,7 +3539,7 @@ class Subtensor:
             rec[0].value: rec[1].value
             for rec in self.substrate.query_map(
                 module="SubtensorModule",
-                storage_function="SubnetAlphaIn",
+                storage_function="SubnetAlphaI",
                 params=[],
                 block_hash=None,
             ).records

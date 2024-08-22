@@ -119,7 +119,7 @@ __ss58_address_length__ = 48
 
 __networks__ = ["rao", "local", "finney", "test", "archive", "dev"]
 
-__rao_entrypoint__ = "ws://rao.chain.opentensor.ai:9944"
+__rao_entrypoint__ = "wss://rao.chain.opentensor.ai:443/"
 
 __finney_entrypoint__ = "wss://entrypoint-finney.opentensor.ai:443"
 
