@@ -195,6 +195,9 @@ class StakeList:
             else:
                 wallet = bittensor.wallet( name = wallet_name, config = config)
                 config.coldkey_address = wallet.coldkeypub.ss58_address
+        else:
+            wallet = bittensor.wallet( name = config.wallet.name, config = config)
+            config.coldkey_address = wallet.coldkeypub.ss58_address
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):

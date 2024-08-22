@@ -110,9 +110,6 @@ class ShowSubnet:
         table.add_column(f"Stake ({Balance.get_unit(0)})", style="dark_sea_green", no_wrap=True, justify="center")
         table.add_column(f"Emission ({Balance.get_unit(0)}/block)", style="rgb(42,161,152)", no_wrap=True, justify="center")
         table.add_column("Hotkey", style="light_salmon3", no_wrap=True, justify="center")
-        print (f"Root state: {root_state.hotkeys}")
-        if len(root_state.global_stake) == 0:
-            root_state.global_stake = [Balance.from_tao(0) for _ in range(len(root_state.hotkeys))]
         sorted_hotkeys = sorted(
             enumerate(root_state.hotkeys),
             key=lambda x: root_state.global_stake[x[0]],
@@ -229,7 +226,7 @@ Description:
 
         rows = []
         emission_sum = sum([subnet_state.emission[idx].tao for idx in range(len(subnet_state.emission))])
-        for idx in range(len(subnet_state.global_stake)):
+        for idx, hk in enumerate(subnet_state.hotkeys):
             hotkey_block_emission = subnet_state.emission[idx].tao/emission_sum if emission_sum != 0 else 0
             rows.append((
                     str(idx),
