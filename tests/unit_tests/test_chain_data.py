@@ -18,7 +18,8 @@
 import pytest
 import torch
 
-from bittensor.core.chain_data import AxonInfo, ChainDataType, DelegateInfo, NeuronInfo
+from bittensor.core.chain_data import AxonInfo, DelegateInfo, NeuronInfo
+from bittensor.core.chain_data.utils import ChainDataType
 
 RAOPERTAO = 10**18
 
@@ -527,7 +528,7 @@ def test_fix_decoded_values_error_cases(
 
 @pytest.fixture
 def mock_from_scale_encoding(mocker):
-    return mocker.patch("bittensor.core.chain_data.from_scale_encoding")
+    return mocker.patch("bittensor.core.chain_data.delegate_info.from_scale_encoding")
 
 
 @pytest.fixture
