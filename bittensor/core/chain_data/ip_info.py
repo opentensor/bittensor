@@ -9,6 +9,7 @@ from bittensor.utils.registration import torch, use_torch
 @dataclass
 class IPInfo:
     """Dataclass for associated IP Info."""
+
     ip: str
     ip_type: int
     protocol: int
@@ -53,7 +54,9 @@ class IPInfo:
             protocol=decoded["ip_type_and_protocol"] & 0xF,
         )
 
-    def to_parameter_dict(self) -> Union[dict[str, Union[str, int]], "torch.nn.ParameterDict"]:
+    def to_parameter_dict(
+        self,
+    ) -> Union[dict[str, Union[str, int]], "torch.nn.ParameterDict"]:
         """Returns a torch tensor or dict of the subnet IP info."""
         if use_torch():
             return torch.nn.ParameterDict(self.__dict__)
@@ -61,7 +64,9 @@ class IPInfo:
             return self.__dict__
 
     @classmethod
-    def from_parameter_dict(cls, parameter_dict: Union[dict[str, Any], "torch.nn.ParameterDict"]) -> "IPInfo":
+    def from_parameter_dict(
+        cls, parameter_dict: Union[dict[str, Any], "torch.nn.ParameterDict"]
+    ) -> "IPInfo":
         """Creates a IPInfo instance from a parameter dictionary."""
         if use_torch():
             return cls(**dict(parameter_dict))

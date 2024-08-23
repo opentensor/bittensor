@@ -8,5 +8,3 @@ class ProposalVoteData(TypedDict):
     ayes: List[str]
     nays: List[str]
     end: int
-
-

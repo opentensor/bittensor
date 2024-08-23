@@ -10,6 +10,7 @@ from bittensor.core.settings import SS58_FORMAT
 @dataclass
 class ScheduledColdkeySwapInfo:
     """Dataclass for scheduled coldkey swap information."""
+
     old_coldkey: str
     new_coldkey: str
     arbitration_block: int
@@ -38,7 +39,9 @@ class ScheduledColdkeySwapInfo:
     @classmethod
     def list_from_vec_u8(cls, vec_u8: List[int]) -> List["ScheduledColdkeySwapInfo"]:
         """Returns a list of ScheduledColdkeySwapInfo objects from a ``vec_u8``."""
-        decoded = from_scale_encoding(vec_u8, ChainDataType.ScheduledColdkeySwapInfo, is_vec=True)
+        decoded = from_scale_encoding(
+            vec_u8, ChainDataType.ScheduledColdkeySwapInfo, is_vec=True
+        )
         if decoded is None:
             return []
 
@@ -47,7 +50,9 @@ class ScheduledColdkeySwapInfo:
     @classmethod
     def decode_account_id_list(cls, vec_u8: List[int]) -> Optional[List[str]]:
         """Decodes a list of AccountIds from vec_u8."""
-        decoded = from_scale_encoding(vec_u8, ChainDataType.ScheduledColdkeySwapInfo.AccountId, is_vec=True)
+        decoded = from_scale_encoding(
+            vec_u8, ChainDataType.ScheduledColdkeySwapInfo.AccountId, is_vec=True
+        )
         if decoded is None:
             return None
         return [ss58_encode(account_id, SS58_FORMAT) for account_id in decoded]

@@ -47,6 +47,7 @@ class Config(DefaultMunch):
     Returns:
         config (bittensor.config): Nested config object created from parser arguments.
     """
+
     __is_set: Dict[str, bool]
 
     def __init__(

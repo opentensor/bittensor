@@ -14,6 +14,7 @@ from bittensor.utils.balance import Balance
 @dataclass
 class NeuronInfoLite:
     """Dataclass for neuron metadata, but without the weights and bonds."""
+
     hotkey: str
     coldkey: str
     uid: int
@@ -40,8 +41,12 @@ class NeuronInfoLite:
     @classmethod
     def fix_decoded_values(cls, neuron_info_decoded: Any) -> "NeuronInfoLite":
         """Fixes the values of the NeuronInfoLite object."""
-        neuron_info_decoded["hotkey"] = ss58_encode(neuron_info_decoded["hotkey"], SS58_FORMAT)
-        neuron_info_decoded["coldkey"] = ss58_encode(neuron_info_decoded["coldkey"], SS58_FORMAT)
+        neuron_info_decoded["hotkey"] = ss58_encode(
+            neuron_info_decoded["hotkey"], SS58_FORMAT
+        )
+        neuron_info_decoded["coldkey"] = ss58_encode(
+            neuron_info_decoded["coldkey"], SS58_FORMAT
+        )
         stake_dict = {
             ss58_encode(coldkey, SS58_FORMAT): Balance.from_rao(int(stake))
             for coldkey, stake in neuron_info_decoded["stake"]
@@ -51,13 +56,27 @@ class NeuronInfoLite:
         neuron_info_decoded["total_stake"] = neuron_info_decoded["stake"]
         neuron_info_decoded["rank"] = u16_normalized_float(neuron_info_decoded["rank"])
         neuron_info_decoded["emission"] = neuron_info_decoded["emission"] / RAOPERTAO
-        neuron_info_decoded["incentive"] = u16_normalized_float(neuron_info_decoded["incentive"])
-        neuron_info_decoded["consensus"] = u16_normalized_float(neuron_info_decoded["consensus"])
-        neuron_info_decoded["trust"] = u16_normalized_float(neuron_info_decoded["trust"])
-        neuron_info_decoded["validator_trust"] = u16_normalized_float(neuron_info_decoded["validator_trust"])
-        neuron_info_decoded["dividends"] = u16_normalized_float(neuron_info_decoded["dividends"])
-        neuron_info_decoded["prometheus_info"] = PrometheusInfo.fix_decoded_values(neuron_info_decoded["prometheus_info"])
-        neuron_info_decoded["axon_info"] = AxonInfo.from_neuron_info(neuron_info_decoded)
+        neuron_info_decoded["incentive"] = u16_normalized_float(
+            neuron_info_decoded["incentive"]
+        )
+        neuron_info_decoded["consensus"] = u16_normalized_float(
+            neuron_info_decoded["consensus"]
+        )
+        neuron_info_decoded["trust"] = u16_normalized_float(
+            neuron_info_decoded["trust"]
+        )
+        neuron_info_decoded["validator_trust"] = u16_normalized_float(
+            neuron_info_decoded["validator_trust"]
+        )
+        neuron_info_decoded["dividends"] = u16_normalized_float(
+            neuron_info_decoded["dividends"]
+        )
+        neuron_info_decoded["prometheus_info"] = PrometheusInfo.fix_decoded_values(
+            neuron_info_decoded["prometheus_info"]
+        )
+        neuron_info_decoded["axon_info"] = AxonInfo.from_neuron_info(
+            neuron_info_decoded
+        )
         return cls(**neuron_info_decoded)
 
     @classmethod
@@ -76,11 +95,15 @@ class NeuronInfoLite:
     def list_from_vec_u8(cls, vec_u8: List[int]) -> List["NeuronInfoLite"]:
         """Returns a list of NeuronInfoLite objects from a ``vec_u8``."""
 
-        decoded_list = from_scale_encoding(vec_u8, ChainDataType.NeuronInfoLite, is_vec=True)
+        decoded_list = from_scale_encoding(
+            vec_u8, ChainDataType.NeuronInfoLite, is_vec=True
+        )
         if decoded_list is None:
             return []
 
-        decoded_list = [NeuronInfoLite.fix_decoded_values(decoded) for decoded in decoded_list]
+        decoded_list = [
+            NeuronInfoLite.fix_decoded_values(decoded) for decoded in decoded_list
+        ]
         return decoded_list
 
     @staticmethod

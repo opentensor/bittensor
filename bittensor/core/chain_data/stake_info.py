@@ -3,7 +3,11 @@ from typing import List, Dict, Optional, Any
 
 from scalecodec.utils.ss58 import ss58_encode
 
-from bittensor.core.chain_data.utils import from_scale_encoding, from_scale_encoding_using_type_string, ChainDataType
+from bittensor.core.chain_data.utils import (
+    from_scale_encoding,
+    from_scale_encoding_using_type_string,
+    ChainDataType,
+)
 from bittensor.core.settings import SS58_FORMAT
 from bittensor.utils.balance import Balance
 
@@ -11,6 +15,7 @@ from bittensor.utils.balance import Balance
 @dataclass
 class StakeInfo:
     """Dataclass for stake info."""
+
     hotkey_ss58: str  # Hotkey address
     coldkey_ss58: str  # Coldkey address
     stake: Balance  # Stake for the hotkey-coldkey pair

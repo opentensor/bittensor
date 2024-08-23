@@ -17,6 +17,7 @@ if TYPE_CHECKING:
 @dataclass
 class NeuronInfo:
     """Dataclass for neuron metadata."""
+
     hotkey: str
     coldkey: str
     uid: int

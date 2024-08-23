@@ -13,6 +13,7 @@ from bittensor.utils.registration import torch, use_torch
 @dataclass
 class SubnetInfo:
     """Dataclass for subnet info."""
+
     netuid: int
     rho: int
     kappa: int
@@ -92,7 +93,9 @@ class SubnetInfo:
             return self.__dict__
 
     @classmethod
-    def from_parameter_dict(cls, parameter_dict: Union[dict[str, Any], "torch.nn.ParameterDict"]) -> "SubnetInfo":
+    def from_parameter_dict(
+        cls, parameter_dict: Union[dict[str, Any], "torch.nn.ParameterDict"]
+    ) -> "SubnetInfo":
         """Creates a SubnetInfo instance from a parameter dictionary."""
         if use_torch():
             return cls(**dict(parameter_dict))

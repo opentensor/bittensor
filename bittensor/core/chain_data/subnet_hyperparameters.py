@@ -8,6 +8,7 @@ from bittensor.utils.registration import torch, use_torch
 @dataclass
 class SubnetHyperparameters:
     """Dataclass for subnet hyperparameters."""
+
     rho: int
     kappa: int
     immunity_period: int
@@ -92,7 +93,9 @@ class SubnetHyperparameters:
             liquid_alpha_enabled=decoded["liquid_alpha_enabled"],
         )
 
-    def to_parameter_dict(self) -> Union[dict[str, Union[int, float, bool]], "torch.nn.ParameterDict"]:
+    def to_parameter_dict(
+        self,
+    ) -> Union[dict[str, Union[int, float, bool]], "torch.nn.ParameterDict"]:
         """Returns a torch tensor or dict of the subnet hyperparameters."""
         if use_torch():
             return torch.nn.ParameterDict(self.__dict__)
@@ -100,7 +103,9 @@ class SubnetHyperparameters:
             return self.__dict__
 
     @classmethod
-    def from_parameter_dict(cls, parameter_dict: Union[dict[str, Any], "torch.nn.ParameterDict"]) -> "SubnetHyperparameters":
+    def from_parameter_dict(
+        cls, parameter_dict: Union[dict[str, Any], "torch.nn.ParameterDict"]
+    ) -> "SubnetHyperparameters":
         """Creates a SubnetHyperparameters instance from a parameter dictionary."""
         if use_torch():
             return cls(**dict(parameter_dict))
