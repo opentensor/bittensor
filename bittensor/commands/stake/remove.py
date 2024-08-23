@@ -18,10 +18,9 @@
 import sys
 import argparse
 import bittensor as bt
-from . import select_delegate
 from rich.table import Table
 from rich.prompt import Confirm, Prompt
-from bittensor.utils.slippage import (Operation, show_slippage_warning_if_needed)
+
 
 class RemoveStakeCommand:
     
@@ -62,13 +61,13 @@ class RemoveStakeCommand:
             sys.exit(1)
             
         # Get wallet.
-        wallet = bt.wallet( config = config )
+        wallet = bt.wallet(config=config)
         if config.is_set("wallet.name"):
-            wallet = bt.wallet( config = config )
+            wallet = bt.wallet(config=config)
         elif not config.no_prompt:
             wallet_name = Prompt.ask("Enter [bold dark_green]coldkey[/bold dark_green] name", default=bt.defaults.wallet.name)
             config.wallet.name = str(wallet_name)
-            wallet = bt.wallet( config = config )
+            wallet = bt.wallet(config=config)
         else:
             bt.logging.error("--wallet.name is needed to proceed")
             sys.exit(1)
@@ -141,8 +140,8 @@ class RemoveStakeCommand:
         for netuid in netuids:
             
             # Check that the subnet exists.
-            dynamic_info = subtensor.get_subnet_dynamic_info( netuid )
-            if dynamic_info == None:
+            dynamic_info = subtensor.get_subnet_dynamic_info(netuid)
+            if dynamic_info is None:
                 bt.__console__.print(f"[red]Subnet: {netuid} does not exist.[/red]")
                 sys.exit(1)
             
@@ -171,7 +170,7 @@ class RemoveStakeCommand:
                         amount = float(Prompt.ask(f"Enter amount to unstake in {bt.Balance.get_unit(netuid)} from subnet: {netuid}" ))
                         amount_to_unstake_as_balance = bt.Balance.from_tao(amount)
                     except ValueError:
-                        bt.__console__.print(f":cross_mark:[red]Invalid amount: {amount}[/red]")
+                        bt.__console__.print(f":cross_mark:[red]Invalid amount Please use `--amount` with `--no_prompt`.[/red]")
                         sys.exit(1)
             unstake_amount_balance.append( amount_to_unstake_as_balance )
 
@@ -236,7 +235,7 @@ class RemoveStakeCommand:
 
                                             
         # Perform staking operation.
-        wallet.coldkey # decrypt key.
+        wallet.coldkey  # decrypt key.
         with bt.__console__.status(f"\n:satellite: Unstaking {amount_to_unstake_as_balance} from {staking_address_name} on netuid: {netuid} ..."):
             for netuid_i, amount, current in list(zip(non_zero_netuids, unstake_amount_balance, current_stake_balances)):
                 call = subtensor.substrate.compose_call(
