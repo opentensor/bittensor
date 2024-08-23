@@ -40,6 +40,7 @@ class ListSubnetsCommand:
         rows = []
         subnets = subtensor.get_all_subnet_dynamic_info()
         for subnet in subnets:
+            symbol = f"{subnet.symbol}\u200E"
             rows.append(
                 (
                     str(subnet.netuid),
@@ -48,9 +49,9 @@ class ListSubnetsCommand:
                     # f"P( τ {subnet.tao_in.tao:,.4f},",
                     f"τ {subnet.tao_in.tao:,.4f}",
                     # f"{subnet.alpha_in.tao:,.4f} {subnet.symbol} )",
-                    f"{subnet.alpha_out.tao:,.4f} {subnet.symbol}",
-                    f"{subnet.price.tao:.4f} τ/{subnet.symbol}",
-                    str(subnet.blocks_since_last_step) + "/" + str(subnet.tempo),
+                    f"{subnet.alpha_out.tao:,.4f} {symbol}",
+                    f"{subnet.price.tao:.4f} τ/{symbol}",
+                    str(subnet.blocks_since_last_step) + "/" + str(symbol),
                     # f"{subnet.owner_locked}" + "/" + f"{subnet.total_locked}",
                     # f"{subnet.owner[:3]}...{subnet.owner[-3:]}",
                 )

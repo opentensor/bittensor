@@ -108,8 +108,8 @@ class StakeList:
                         # f"[medium_purple]{tao_ownership}[/medium_purple] ([light_salmon3]{ alpha_ownership }[/light_salmon3][white]%[/white])", # Tao ownership.
                         f"[medium_purple]{tao_ownership}[/medium_purple]", # Tao ownership.
                         # f"[dark_sea_green]{ alpha_value }", # Alpha value
-                        f"{substake.stake.tao:,.4f} {pool.symbol}",
-                        f"{pool.price.tao:.4f} τ/{pool.symbol}",
+                        f"{substake.stake.tao:,.4f} {symbol}",
+                        f"{pool.price.tao:.4f} τ/{symbol}",
                         f"[light_slate_blue]{ tao_value }[/light_slate_blue]", # Tao equiv
                         f"[cadet_blue]{ swapped_tao_value }[/cadet_blue] ({slippage_percentage})", # Swap amount.
                         # f"[light_salmon3]{ alpha_ownership }%[/light_salmon3]", # Ownership.
