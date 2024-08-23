@@ -26,7 +26,7 @@ import requests
 
 
 def int_to_ip(int_val: int) -> str:
-    r"""Maps an integer to a unique ip-string
+    """Maps an integer to a unique ip-string
     Args:
         int_val  (:type:`int128`, `required`):
             The integer representation of an ip. Must be in the range (0, 3.4028237e+38).
@@ -43,7 +43,7 @@ def int_to_ip(int_val: int) -> str:
 
 
 def ip_to_int(str_val: str) -> int:
-    r"""Maps an ip-string to a unique integer.
+    """Maps an ip-string to a unique integer.
     arg:
         str_val (:tyep:`str`, `required):
             The string representation of an ip. Of form *.*.*.* for ipv4 or *::*:*:*:* for ipv6
@@ -60,7 +60,7 @@ def ip_to_int(str_val: str) -> int:
 
 
 def ip_version(str_val: str) -> int:
-    r"""Returns the ip version (IPV4 or IPV6).
+    """Returns the ip version (IPV4 or IPV6).
     arg:
         str_val (:tyep:`str`, `required):
             The string representation of an ip. Of form *.*.*.* for ipv4 or *::*:*:*:* for ipv6
@@ -86,7 +86,7 @@ class ExternalIPNotFound(Exception):
 
 
 def get_external_ip() -> str:
-    r"""Checks CURL/URLLIB/IPIFY/AWS for your external ip.
+    """Checks CURL/URLLIB/IPIFY/AWS for your external ip.
     Returns:
         external_ip  (:obj:`str` `required`):
             Your routers external facing ip as a string.
