@@ -74,6 +74,7 @@ from .commands import (
     GetChildrenCommand,
     RevokeChildrenCommand, SetChildKeyTakeCommand,
 )
+from .commands.stake import GetChildKeyTakeCommand
 
 # Create a console instance for CLI display.
 console = bittensor.__console__
@@ -176,6 +177,7 @@ COMMANDS = {
             "set_children": SetChildrenCommand,
             "revoke_children": RevokeChildrenCommand,
             "set_childkey_take": SetChildKeyTakeCommand,
+            "get_childkey_take": GetChildKeyTakeCommand,
         },
     },
     "weights": {
