@@ -4006,7 +4006,7 @@ class Subtensor:
 
     def get_subnet_dynamic_info(
         self, netuid: int
-    ) -> List["DynamicInfo"]:
+    ) -> "DynamicInfo":
         json = self.substrate.rpc_request(
             method="subnetInfo_getDynamicInfo", params=[netuid, None]
         )
