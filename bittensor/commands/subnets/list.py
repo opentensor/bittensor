@@ -51,7 +51,7 @@ class ListSubnetsCommand:
                     # f"{subnet.alpha_in.tao:,.4f} {subnet.symbol} )",
                     f"{subnet.alpha_out.tao:,.4f} {symbol}",
                     f"{subnet.price.tao:.4f} τ/{symbol}",
-                    str(subnet.blocks_since_last_step) + "/" + str(symbol),
+                    str(subnet.blocks_since_last_step) + "/" + str(subnet.tempo),
                     # f"{subnet.owner_locked}" + "/" + f"{subnet.total_locked}",
                     # f"{subnet.owner[:3]}...{subnet.owner[-3:]}",
                 )
