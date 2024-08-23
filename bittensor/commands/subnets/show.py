@@ -110,9 +110,6 @@ class ShowSubnet:
         table.add_column(f"Stake ({Balance.get_unit(0)})", style="dark_sea_green", no_wrap=True, justify="center")
         table.add_column(f"Emission ({Balance.get_unit(0)}/block)", style="rgb(42,161,152)", no_wrap=True, justify="center")
         table.add_column("Hotkey", style="light_salmon3", no_wrap=True, justify="center")
-        print (f"Root state: {root_state.hotkeys}")
-        if len(root_state.global_stake) == 0:
-            root_state.global_stake = [Balance.from_tao(0) for _ in range(len(root_state.hotkeys))]
         sorted_hotkeys = sorted(
             enumerate(root_state.hotkeys),
             key=lambda x: root_state.global_stake[x[0]],
@@ -241,6 +238,7 @@ Description:
                     str(subnet_state.incentives[idx]),
                     f"{str(Balance.from_tao(hotkey_block_emission).set_unit(netuid).tao)} {subnet_info.symbol}",
                     f"{subnet_state.hotkeys[idx]}",
+                    f"{subnet_state.coldkeys[idx]}",
                 )
             )        
         # Add columns to the table
@@ -252,6 +250,7 @@ Description:
         table.add_column("Incentive", style="rgb(220,50,47)", no_wrap=True, justify="center")
         table.add_column(f"Emission ({Balance.get_unit(netuid)})", style="aquamarine3", no_wrap=True, justify="center")
         table.add_column("Hotkey", style="light_salmon3", no_wrap=True, justify="center")
+        table.add_column("Coldkey", style="bold dark_green", no_wrap=True, justify="center")
         for row in rows:
             table.add_row(*row)
 

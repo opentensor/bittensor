@@ -75,7 +75,7 @@ class ListCommand:
                 coldkeypub_str = "?"
 
             wallet_tree = root.add(
-                "\n[bold white]{} ({})".format(w_name, coldkeypub_str)
+                f"[bold red]Coldkey[/bold red] [name<[green]{w_name}[/green]>, as58_address<[green]{coldkeypub_str}[/green]>]"
             )
             hotkeys_path = os.path.join(cli.config.wallet.path, w_name, "hotkeys")
             try:
@@ -95,7 +95,7 @@ class ListCommand:
                                 hotkey_str = "?"
                         except:
                             hotkey_str = "?"
-                        wallet_tree.add("[bold grey]{} ({})".format(h_name, hotkey_str))
+                        wallet_tree.add("[bold yellow]Hotkey[/bold yellow] [name<[green]{}[/green]>, as58_address<[green]{}[/green]>]\n".format(h_name, hotkey_str))
             except:
                 continue
 
