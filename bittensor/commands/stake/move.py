@@ -1,10 +1,10 @@
-import sys
 import argparse
-import bittensor as bt
-from . import select_delegate
-from rich.table import Table
+import sys
+
 from rich.prompt import Confirm, Prompt
-from bittensor.utils.slippage import Operation, show_slippage_warning_if_needed
+from rich.table import Table
+
+import bittensor as bt
 
 
 class MoveStakeCommand:
@@ -65,6 +65,7 @@ class MoveStakeCommand:
             else:
                 bt.logging.error("origin_netuid is needed to proceed")
                 sys.exit(1)
+
         if not destination_netuid:
             if not config.no_prompt:
                 destination_netuid = int(
@@ -151,7 +152,7 @@ class MoveStakeCommand:
                 try:
                     amount = float(
                         Prompt.ask(
-                            f"Enter amount to move in {bt.Balance.get_unit( origin_netuid )}"
+                            f"Enter amount to move in {bt.Balance.get_unit(origin_netuid)}"
                         )
                     )
                     amount_to_move_as_balance = bt.Balance.from_tao(amount)
@@ -240,12 +241,12 @@ class MoveStakeCommand:
                 style="rgb(38,139,210)",
             )
             table.add_column(
-                f"rate  ({bt.Balance.get_unit(destination_netuid)}/{bt.Balance.get_unit(origin_netuid)})",
+                f"rate ({bt.Balance.get_unit(destination_netuid)}/{bt.Balance.get_unit(origin_netuid)})",
                 justify="center",
                 style="rgb(42,161,152)",
             )
             table.add_column(
-                f"recieved ({bt.Balance.get_unit(destination_netuid)})",
+                f"received ({bt.Balance.get_unit(destination_netuid)})",
                 justify="center",
                 style="rgb(220,50,47)",
             )
@@ -319,7 +320,7 @@ class MoveStakeCommand:
                         subtensor.get_stake_for_coldkey_and_hotkey_on_netuid(
                             coldkey_ss58=wallet.coldkeypub.ss58_address,
                             hotkey_ss58=destination_hotkey_ss58,
-                            netuid=origin_netuid,
+                            netuid=destination_netuid,
                         ).set_unit(destination_netuid)
                     )
                     bt.__console__.print(
