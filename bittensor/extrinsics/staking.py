@@ -1,7 +1,6 @@
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 # Copyright © 2023 Opentensor Foundation
-from math import floor
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
@@ -22,7 +21,7 @@ from time import sleep
 from typing import List, Union, Optional, Tuple
 
 import bittensor
-from ..utils.formatting import float_to_u64
+from ..utils.formatting import float_to_u64, float_to_u16
 
 from bittensor.utils.balance import Balance
 
@@ -587,12 +586,17 @@ def set_childkey_take_extrinsic(
         f":satellite: Setting childkey take on [white]{subtensor.network}[/white] ..."
     ):
         try:
+            
+            if 0 < take < 0.18:
+                take_u16 = float_to_u16(take)
+            else:
+                return False, "Invalid take value"
 
             success, error_message = subtensor._do_set_childkey_take(
                 wallet=wallet,
                 hotkey=hotkey,
                 netuid=netuid,
-                take=take,
+                take=take_u16,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
             )
@@ -662,13 +666,13 @@ def set_children_extrinsic(
     wallet.coldkey
 
     user_hotkey_ss58 = wallet.hotkey.ss58_address  # Default to wallet's own hotkey.
-    if hotkey == user_hotkey_ss58:
-        raise ValueError("Cannot set/revoke yourself as child hotkey.")
+    if hotkey != user_hotkey_ss58:
+        raise ValueError("Cannot set/revoke child hotkeys for others.")
 
     # Check if all children are being revoked
     all_revoked = all(prop == 0.0 for prop, _ in children_with_proportions)
 
-    operation = "Revoke all children hotkeys" if all_revoked else "Set children hotkeys"
+    operation = "Revoke children hotkeys" if all_revoked else "Set children hotkeys"
 
     # Ask before moving on.
     if prompt:
@@ -679,7 +683,7 @@ def set_children_extrinsic(
                 return False, "Operation Cancelled"
         else:
             if not Confirm.ask(
-                "Do you want to set children hotkeys:\n[bold white]{}[/bold white]?".format(
+                "Do you want to set children hotkeys with proportions:\n[bold white]{}[/bold white]?".format(
                     "\n".join(
                         f"  {child[1]}: {child[0]}"
                         for child in children_with_proportions
@@ -738,33 +742,19 @@ def set_children_extrinsic(
 
 def prepare_child_proportions(children_with_proportions):
     """
-    Convert proportions to u64 and normalize.
+    Convert proportions to u64 and normalize, ensuring total does not exceed u64 max.
     """
     children_u64 = [(float_to_u64(proportion), child) for proportion, child in children_with_proportions]
-    return normalize_children_and_proportions(children_u64)
+    total = sum(proportion for proportion, _ in children_u64)
 
-
-def normalize_children_and_proportions(
-    children: List[Tuple[int, str]],
-) -> List[Tuple[int, str]]:
-    """
-    Normalizes the proportions of children so that they sum to u64::MAX.
-    """
-    u64_max = 2 ** 64 - 1
-    total_proportions = sum(proportion for proportion, _ in children)
-
-    # Adjust the proportions
-    normalized_children_u64 = [
-        (floor(proportion * u64_max / total_proportions) if proportion != total_proportions else u64_max, child)
-        for proportion, child in children]
-
-    # Compensate for any rounding errors
-    total_normalized_proportions = sum(proportion for proportion, _ in normalized_children_u64)
-    if total_normalized_proportions != u64_max:
-        max_proportion_child_index = max(range(len(normalized_children_u64)),
-                                         key=lambda index: normalized_children_u64[index][0])
-        normalized_children_u64[max_proportion_child_index] = (
-            normalized_children_u64[max_proportion_child_index][0] + u64_max - total_normalized_proportions,
-            normalized_children_u64[max_proportion_child_index][1],
+    if total > (2 ** 64 - 1):
+        excess = total - (2 ** 64 - 1)
+        if excess > (2 ** 64 * 0.01):  # Example threshold of 1% of u64 max
+            raise ValueError("Excess is too great to normalize proportions")
+        largest_child_index = max(range(len(children_u64)), key=lambda i: children_u64[i][0])
+        children_u64[largest_child_index] = (
+            children_u64[largest_child_index][0] - excess,
+            children_u64[largest_child_index][1]
         )
-    return normalized_children_u64
+
+    return children_u64

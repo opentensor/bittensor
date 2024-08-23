@@ -2301,40 +2301,6 @@ class Subtensor:
     # Child hotkeys #
     ###################
     
-    def get_childkey_take(
-        self,
-        wallet: "bittensor.wallet",
-        hotkey: str,
-        netuid: int,
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = False,
-        prompt: bool = False,
-    ) -> tuple[bool, str]:
-        """Gets a childkey take extrinsic on the subnet.
-
-        Args:
-            wallet (:func:`bittensor.wallet`): Wallet object that can sign the extrinsic.
-            hotkey: (str): Hotkey ``ss58`` address of the child for which take is getting set.
-            netuid (int): Unique identifier of for the subnet.
-            wait_for_inclusion (bool): If ``true``, waits for inclusion before returning.
-            wait_for_finalization (bool): If ``true``, waits for finalization before returning.
-            prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
-        Returns:
-            success (bool): ``True`` if the extrinsic was successful.
-        Raises:
-            ChildHotkeyError: If the extrinsic failed.
-        """
-
-        return get_childkey_take_extrinsic(
-            self,
-            wallet=wallet,
-            hotkey=hotkey,
-            netuid=netuid,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-            prompt=prompt,
-        )
-    
     def set_childkey_take(
         self,
         wallet: "bittensor.wallet",
@@ -2376,7 +2342,7 @@ class Subtensor:
         self,
         wallet: "bittensor.wallet",
         hotkey: str,
-        take: float,
+        take: int,
         netuid: int,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
@@ -2386,7 +2352,7 @@ class Subtensor:
         Args:
             wallet (:func:`bittensor.wallet`): Wallet object that can sign the extrinsic.
             hotkey: (str): Hotkey ``ss58`` address of the wallet for which take is getting set.
-            take: (float): The take that this ss58 hotkey will have if assigned as a child hotkey. 
+            take: (int): The take that this ss58 hotkey will have if assigned as a child hotkey as u16 value. 
             netuid (int): Unique identifier for the network.
             wait_for_inclusion (bool): If ``true``, waits for inclusion before returning.
             wait_for_finalization (bool): If ``true``, waits for finalization before returning.
@@ -4718,7 +4684,34 @@ class Subtensor:
         # Child Hotkey Information #
         ############################
 
-    def get_children(self, hotkey, netuid):
+    def get_childkey_take(self, hotkey: str, netuid: int, block: Optional[int] = None) -> Optional[float]:
+        """
+        Get the childkey take of a hotkey on a specific network.
+        Args:
+        - hotkey (str): The hotkey to search for.
+        - netuid (int): The netuid to search for.
+        - block (Optional[int]): Optional parameter specifying the block number. Defaults to None.
+
+        Returns:
+        - Optional[float]: The value of the "ChildkeyTake" if found, or None if any error occurs.
+        """
+        try:
+            childkey_take = self.query_subtensor(
+                name="ChildkeyTake",
+                block=block,
+                params=[hotkey, netuid],
+            )
+            if childkey_take:
+                return float(childkey_take.value)
+            
+        except SubstrateRequestException as e:
+            print(f"Error querying ChildKeys: {e}")
+            return None
+        except Exception as e:
+            print(f"Unexpected error in get_children: {e}")
+            return None
+        
+    def get_children(self, hotkey, netuid) -> list[tuple[int, str]] | list[Any] | None:
         """
         Get the children of a hotkey on a specific network.
         Args:
