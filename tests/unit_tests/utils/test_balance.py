@@ -515,11 +515,6 @@ def test_from_float():
     assert Balance.from_tao(1.0) == Balance(1000000000)
 
 
-def test_from_tao():
-    """Tests from_tao method call."""
-    assert Balance.from_tao(1.0) == Balance(1000000000)
-
-
 def test_from_rao():
     """Tests from_rao method call."""
     assert Balance.from_tao(1) == Balance(1000000000)
