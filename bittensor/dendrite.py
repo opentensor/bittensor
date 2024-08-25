@@ -26,6 +26,7 @@ import uuid
 
 # 3rd Party
 import aiohttp
+from aiohttp import ClientTimeout
 
 # Application
 import bittensor
@@ -557,7 +558,7 @@ class DendriteMixin:
                 url,
                 headers=synapse.to_headers(),
                 json=synapse.model_dump(),
-                timeout=timeout,
+                timeout=ClientTimeout(total=timeout),
             ) as response:
                 # Extract the JSON response from the server
                 json_response = await response.json()
@@ -636,7 +637,7 @@ class DendriteMixin:
                 url,
                 headers=synapse.to_headers(),
                 json=synapse.model_dump(),
-                timeout=timeout,
+                timeout=ClientTimeout(total=timeout),
             ) as response:
                 # Use synapse subclass' process_streaming_response method to yield the response chunks
                 async for chunk in synapse.process_streaming_response(response):  # type: ignore
