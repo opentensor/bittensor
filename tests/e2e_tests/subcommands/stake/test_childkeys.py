@@ -127,9 +127,9 @@ async def test_set_revoke_children_multiple(local_chain, capsys):
     )
     output = capsys.readouterr().out
     assert "ChildHotkey" in output
-    assert "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92Uh… │ 40.0%" in output
-    assert "5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcC… │ 20.0%" in output
-    assert "Total                                     │     60.0%" in output
+    assert "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92U… │ 40.000%" in output
+    assert "5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZc… │ 20.000%" in output
+    assert "Total                                    │      60.000%" in output
 
     await wait()
 
@@ -143,8 +143,6 @@ async def test_set_revoke_children_multiple(local_chain, capsys):
             "1",
             "--hotkey",
             str(alice_keypair.ss58_address),
-            "--children",
-            f"{children_with_proportions[0][1]},{children_with_proportions[1][1]}",
             "--wait_for_inclusion",
             "True",
             "--wait_for_finalization",
@@ -337,6 +335,10 @@ async def test_set_revoke_children_singular(local_chain, capsys):
             "True",
         ],
     )
+    
+    output = capsys.readouterr().out
+    assert "ChildHotkey" in output
+    assert "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92U… │ 60.000%" in output
 
     await wait()
 
@@ -371,13 +373,7 @@ async def test_set_revoke_children_singular(local_chain, capsys):
     subtensor = bittensor.subtensor(network="ws://localhost:9945")
     children_info = subtensor.get_children(hotkey=alice_keypair.ss58_address, netuid=1)
 
-    assert len(children_info) == 2, "Failed to set child hotkey"
-    
-    normalized_proportions = prepare_child_proportions(children_with_proportions)
-    assert (
-            children_info[0][0] == normalized_proportions[1][0]
-            and children_info[1][0] == normalized_proportions[0][0]
-    ), "Incorrect proportions set"
+    assert len(children_info) == 1, "Failed to set child hotkey"
 
     # Test 2: Get children information
     alice_exec_command(
@@ -393,30 +389,8 @@ async def test_set_revoke_children_singular(local_chain, capsys):
     )
     output = capsys.readouterr().out
     assert "ChildHotkey" in output
-    assert "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92Uh… │ 60.0%" in output
-    assert "5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcC… │ 40.0%" in output
-    assert "Total                                     │    100.0%" in output
+    assert "5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZc… │ 40.000%" in output
 
-    await wait()
-
-    # Test 3: Revoke 1 child
-    alice_exec_command(
-        RevokeChildrenCommand,
-        [
-            "stake",
-            "revoke_children",
-            "--netuid",
-            "1",
-            "--hotkey",
-            str(alice_keypair.ss58_address),
-            "--children",
-            f"{children_with_proportions[0][1]}",
-            "--wait_for_inclusion",
-            "True",
-            "--wait_for_finalization",
-            "True",
-        ],
-    )
     await wait()
     
     subtensor = bittensor.subtensor(network="ws://localhost:9945")
@@ -433,8 +407,6 @@ async def test_set_revoke_children_singular(local_chain, capsys):
             "1",
             "--hotkey",
             str(alice_keypair.ss58_address),
-            "--children",
-            f"{children_with_proportions[1][1]}",
             "--wait_for_inclusion",
             "True",
             "--wait_for_finalization",
@@ -445,6 +417,7 @@ async def test_set_revoke_children_singular(local_chain, capsys):
     subtensor = bittensor.subtensor(network="ws://localhost:9945")
     children_info = subtensor.get_children(hotkey=alice_keypair.ss58_address, netuid=1)
     assert len(children_info) == 0, "Failed to revoke child hotkey"
+    
     # Test 4: Get children after revocation
     alice_exec_command(
         GetChildrenCommand,
