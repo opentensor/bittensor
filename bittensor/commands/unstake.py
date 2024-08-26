@@ -18,7 +18,6 @@
 import sys
 import argparse
 from typing import List, Union, Optional, Tuple
-import re
 
 from rich.prompt import Confirm, Prompt
 from tqdm import tqdm
@@ -28,7 +27,6 @@ from bittensor.utils.balance import Balance
 from . import defaults, GetChildrenCommand
 from .utils import get_hotkey_wallets_for_wallet
 from ..utils import wallet_utils
-from ..utils.formatting import u64_to_float
 
 console = bittensor.__console__
 
@@ -339,7 +337,7 @@ class RevokeChildrenCommand:
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         wallet = bittensor.wallet(config=cli.config)
-
+        
         # Get values if not set.
         if not cli.config.is_set("netuid"):
             cli.config.netuid = int(Prompt.ask("Enter netuid"))
@@ -351,46 +349,25 @@ class RevokeChildrenCommand:
             return
 
         # get parent hotkey
-        if not cli.config.is_set("hotkey"):
-            cli.config.hotkey = Prompt.ask("Enter parent hotkey (ss58)")
-        if not wallet_utils.is_valid_ss58_address(cli.config.hotkey):
+        if wallet and wallet.hotkey:
+            hotkey = wallet.hotkey.ss58_address
+            console.print(f"Hotkey is {hotkey}")
+        elif cli.config.is_set("hotkey"):
+            hotkey = cli.config.hotkey
+        else:
+            hotkey = Prompt.ask("Enter parent hotkey (ss58)")
+
+        if not wallet_utils.is_valid_ss58_address(hotkey):
             console.print(
-                f":cross_mark:[red] Invalid SS58 address: {cli.config.hotkey}[/red]"
+                f":cross_mark:[red] Invalid SS58 address: {hotkey}[/red]"
             )
             return
-
-        # Get and display current children information
-        current_children = GetChildrenCommand.retrieve_children(
-            subtensor=subtensor,
-            hotkey=cli.config.hotkey,
-            netuid=cli.config.netuid,
-            render_table=True,
-        )
-
-        # get new children
-        if not cli.config.is_set("children"):
-            cli.config.children = Prompt.ask(
-                "Enter children hotkeys (ss58) as comma-separated values that you wish to revoke."
-            )
-        revoked_children = [str(x) for x in re.split(r"[ ,]+", cli.config.children)]
-
-        # Check if revoked children are in current children
-        current_children_set = set(child[1] for child in current_children)
-        for revoked_child in revoked_children:
-            if revoked_child not in current_children_set:
-                console.print(
-                    f":cross_mark:[red] Child hotkey {revoked_child} is not present in current children hotkeys.[/red]")
-                return
-
-        # Prepare children with zero proportions for revoked children and convert proportions of non-revoked children to float
-        children_with_proportions = [(0, child[1]) if child[1] in revoked_children else (u64_to_float(child[0]), child[1]) for
-                                     child in current_children]
 
         success, message = subtensor.set_children(
             wallet=wallet,
             netuid=netuid,
-            children_with_proportions=children_with_proportions,
-            hotkey=cli.config.hotkey,
+            children_with_proportions=[],
+            hotkey=hotkey,
             wait_for_inclusion=cli.config.wait_for_inclusion,
             wait_for_finalization=cli.config.wait_for_finalization,
             prompt=cli.config.prompt,
@@ -401,8 +378,8 @@ class RevokeChildrenCommand:
             if cli.config.wait_for_finalization and cli.config.wait_for_inclusion:
                 GetChildrenCommand.retrieve_children(
                     subtensor=subtensor,
-                    hotkey=cli.config.hotkey,
-                    netuid=cli.config.netuid,
+                    hotkey=hotkey,
+                    netuid=netuid,
                     render_table=True,
                 )
             console.print(
@@ -430,9 +407,6 @@ class RevokeChildrenCommand:
         parser.add_argument("--netuid", dest="netuid", type=int, required=False)
         parser.add_argument("--hotkey", dest="hotkey", type=str, required=False)
         parser.add_argument(
-            "--children", dest="children", type=str, required=False
-        )
-        parser.add_argument(
             "--wait_for_inclusion",
             dest="wait_for_inclusion",
             action="store_true",
@@ -455,3 +429,4 @@ class RevokeChildrenCommand:
         )
         bittensor.wallet.add_args(parser)
         bittensor.subtensor.add_args(parser)
+        
