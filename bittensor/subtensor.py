@@ -4684,7 +4684,7 @@ class Subtensor:
         # Child Hotkey Information #
         ############################
 
-    def get_childkey_take(self, hotkey: str, netuid: int, block: Optional[int] = None) -> Optional[float]:
+    def get_childkey_take(self, hotkey: str, netuid: int, block: Optional[int] = None) -> Optional[int]:
         """
         Get the childkey take of a hotkey on a specific network.
         Args:
@@ -4702,7 +4702,7 @@ class Subtensor:
                 params=[hotkey, netuid],
             )
             if childkey_take:
-                return float(childkey_take.value)
+                return int(childkey_take.value)
             
         except SubstrateRequestException as e:
             print(f"Error querying ChildKeys: {e}")
