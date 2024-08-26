@@ -102,17 +102,12 @@ from bittensor.core.threadpool import (  # noqa: F401
 )
 from bittensor.utils import (  # noqa: F401
     ss58_to_vec_u8,
-    unbiased_topk,
     version_checking,
     strtobool,
-    strtobool_with_default,
-    get_explorer_root_url_by_network_from_map,
-    get_explorer_root_url_by_network_from_map,
     get_explorer_url_for_network,
     ss58_address_to_bytes,
     u16_normalized_float,
     u64_normalized_float,
-    u8_key_to_ss58,
     get_hash,
 )
 from bittensor.utils.balance import Balance as Balance  # noqa: F401

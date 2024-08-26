@@ -16,9 +16,8 @@
 # DEALINGS IN THE SOFTWARE.
 
 import hashlib
-from typing import Callable, List, Dict, Literal, Tuple, Union, Optional
+from typing import List, Dict, Literal, Union, Optional
 
-import numpy as np
 import scalecodec
 from substrateinterface import Keypair as Keypair
 from substrateinterface.utils import ss58
@@ -36,98 +35,6 @@ def ss58_to_vec_u8(ss58_address: str) -> List[int]:
     ss58_bytes: bytes = ss58_address_to_bytes(ss58_address)
     encoded_address: List[int] = [int(byte) for byte in ss58_bytes]
     return encoded_address
-
-
-def _unbiased_topk(
-    values: Union[np.ndarray, "torch.Tensor"],
-    k: int,
-    dim=0,
-    sorted_=True,
-    largest=True,
-    axis=0,
-    return_type: str = "numpy",
-) -> Union[Tuple[np.ndarray, np.ndarray], Tuple["torch.Tensor", "torch.LongTensor"]]:
-    """Selects topk as in torch.topk but does not bias lower indices when values are equal.
-    Args:
-        values: (np.ndarray) if using numpy, (torch.Tensor) if using torch: Values to index into.
-        k (int): Number to take.
-        dim (int): Dimension to index into (used by Torch)
-        sorted_ (bool): Whether to sort indices.
-        largest (bool): Whether to take the largest value.
-        axis (int): Axis along which to index into (used by Numpy)
-        return_type (str): Whether or use torch or numpy approach
-
-    Return:
-        topk (np.ndarray): if using numpy, (torch.Tensor) if using torch: topk k values.
-        indices (np.ndarray): if using numpy, (torch.LongTensor) if using torch: indices of the topk values.
-    """
-    if return_type == "torch":
-        permutation = torch.randperm(values.shape[dim])
-        permuted_values = values[permutation]
-        topk, indices = torch.topk(
-            permuted_values, k, dim=dim, sorted=sorted_, largest=largest
-        )
-        return topk, permutation[indices]
-    else:
-        if dim != 0 and axis == 0:
-            # Ensures a seamless transition for calls made to this function that specified args by keyword
-            axis = dim
-
-        permutation = np.random.permutation(values.shape[axis])
-        permuted_values = np.take(values, permutation, axis=axis)
-        indices = np.argpartition(permuted_values, -k, axis=axis)[-k:]
-        if not sorted_:
-            indices = np.sort(indices, axis=axis)
-        if not largest:
-            indices = indices[::-1]
-        topk = np.take(permuted_values, indices, axis=axis)
-        return topk, permutation[indices]
-
-
-def unbiased_topk(
-    values: Union[np.ndarray, "torch.Tensor"],
-    k: int,
-    dim: int = 0,
-    sorted_: bool = True,
-    largest: bool = True,
-    axis: int = 0,
-) -> Union[Tuple[np.ndarray, np.ndarray], Tuple["torch.Tensor", "torch.LongTensor"]]:
-    """Selects topk as in torch.topk but does not bias lower indices when values are equal.
-    Args:
-        values: (np.ndarray) if using numpy, (torch.Tensor) if using torch: Values to index into.
-        k: (int): Number to take.
-        dim: (int): Dimension to index into (used by Torch)
-        sorted_: (bool): Whether to sort indices.
-        largest: (bool): Whether to take the largest value.
-        axis: (int): Axis along which to index into (used by Numpy)
-
-    Return:
-        topk: (np.ndarray) if using numpy, (torch.Tensor) if using torch: topk k values.
-        indices: (np.ndarray) if using numpy, (torch.LongTensor) if using torch: indices of the topk values.
-    """
-    if use_torch():
-        return _unbiased_topk(
-            values, k, dim, sorted_, largest, axis, return_type="torch"
-        )
-    else:
-        return _unbiased_topk(
-            values, k, dim, sorted_, largest, axis, return_type="numpy"
-        )
-
-
-def strtobool_with_default(
-    default: bool,
-) -> Callable[[str], Union[bool, Literal["==SUPRESS=="]]]:
-    """
-    Creates a strtobool function with a default value.
-
-    Args:
-        default(bool): The default value to return if the string is empty.
-
-    Returns:
-        The strtobool function with the default value.
-    """
-    return lambda x: strtobool(x) if x != "" else default
 
 
 def strtobool(val: str) -> Union[bool, Literal["==SUPRESS=="]]:
@@ -148,7 +55,7 @@ def strtobool(val: str) -> Union[bool, Literal["==SUPRESS=="]]:
         raise ValueError("invalid truth value %r" % (val,))
 
 
-def get_explorer_root_url_by_network_from_map(
+def _get_explorer_root_url_by_network_from_map(
     network: str, network_map: Dict[str, Dict[str, str]]
 ) -> Optional[Dict[str, str]]:
     """
@@ -171,7 +78,7 @@ def get_explorer_root_url_by_network_from_map(
 
 
 def get_explorer_url_for_network(
-    network: str, block_hash: str, network_map: Dict[str, str]
+    network: str, block_hash: str, network_map: Dict[str, Dict[str, str]]
 ) -> Optional[Dict[str, str]]:
     """
     Returns the explorer url for the given block hash and network.
@@ -189,7 +96,7 @@ def get_explorer_url_for_network(
     explorer_urls: Optional[Dict[str, str]] = {}
     # Will be None if the network is not known. i.e. not in network_map
     explorer_root_urls: Optional[Dict[str, str]] = (
-        get_explorer_root_url_by_network_from_map(network, network_map)
+        _get_explorer_root_url_by_network_from_map(network, network_map)
     )
 
     if explorer_root_urls != {}:
@@ -218,17 +125,6 @@ def u16_normalized_float(x: int) -> float:
 
 def u64_normalized_float(x: int) -> float:
     return float(x) / float(U64_MAX)
-
-
-def u8_key_to_ss58(u8_key: List[int]) -> str:
-    """
-    Converts a u8-encoded account key to an ss58 address.
-
-    Args:
-        u8_key (List[int]): The u8-encoded account key.
-    """
-    # First byte is length, then 32 bytes of key.
-    return scalecodec.ss58_encode(bytes(u8_key).hex(), SS58_FORMAT)
 
 
 def get_hash(content, encoding="utf-8"):
@@ -263,70 +159,7 @@ def format_error_message(error_message: dict) -> str:
     return f"Subtensor returned `{err_name} ({err_type})` error. This means: `{err_description}`"
 
 
-def create_identity_dict(
-    display: str = "",
-    legal: str = "",
-    web: str = "",
-    riot: str = "",
-    email: str = "",
-    pgp_fingerprint: Optional[str] = None,
-    image: str = "",
-    info: str = "",
-    twitter: str = "",
-) -> dict:
-    """
-    Creates a dictionary with structure for identity extrinsic. Must fit within 64 bits.
-
-    Args:
-        display (str): String to be converted and stored under 'display'.
-        legal (str): String to be converted and stored under 'legal'.
-        web (str): String to be converted and stored under 'web'.
-        riot (str): String to be converted and stored under 'riot'.
-        email (str): String to be converted and stored under 'email'.
-        pgp_fingerprint (str): String to be converted and stored under 'pgp_fingerprint'.
-        image (str): String to be converted and stored under 'image'.
-        info (str): String to be converted and stored under 'info'.
-        twitter (str): String to be converted and stored under 'twitter'.
-
-    Returns:
-        dict: A dictionary with the specified structure and byte string conversions.
-
-    Raises:
-        ValueError: If pgp_fingerprint is not exactly 20 bytes long when encoded.
-    """
-    if pgp_fingerprint and len(pgp_fingerprint.encode()) != 20:
-        raise ValueError("pgp_fingerprint must be exactly 20 bytes long when encoded")
-
-    return {
-        "info": {
-            "additional": [[]],
-            "display": {f"Raw{len(display.encode())}": display.encode()},
-            "legal": {f"Raw{len(legal.encode())}": legal.encode()},
-            "web": {f"Raw{len(web.encode())}": web.encode()},
-            "riot": {f"Raw{len(riot.encode())}": riot.encode()},
-            "email": {f"Raw{len(email.encode())}": email.encode()},
-            "pgp_fingerprint": pgp_fingerprint.encode() if pgp_fingerprint else None,
-            "image": {f"Raw{len(image.encode())}": image.encode()},
-            "info": {f"Raw{len(info.encode())}": info.encode()},
-            "twitter": {f"Raw{len(twitter.encode())}": twitter.encode()},
-        }
-    }
-
-
-def decode_hex_identity_dict(info_dictionary):
-    for key, value in info_dictionary.items():
-        if isinstance(value, dict):
-            item = list(value.values())[0]
-            if isinstance(item, str) and item.startswith("0x"):
-                try:
-                    info_dictionary[key] = bytes.fromhex(item[2:]).decode()
-                except UnicodeDecodeError:
-                    print(f"Could not decode: {key}: {item}")
-            else:
-                info_dictionary[key] = item
-    return info_dictionary
-
-
+# Subnet 24 uses this function
 def is_valid_ss58_address(address: str) -> bool:
     """
     Checks if the given address is a valid ss58 address.

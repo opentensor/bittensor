@@ -19,10 +19,13 @@
 
 import logging
 import numpy as np
+from hypothesis import settings
+
 import bittensor.utils.weight_utils as weight_utils
 import pytest
 
 from bittensor.utils import torch
+from bittensor.core.settings import version_as_int
 
 
 def test_convert_weight_and_uids():
@@ -532,3 +535,147 @@ def test_error_cases(test_id, n, uids, bonds, exception):
     # Act / Assert
     with pytest.raises(exception):
         weight_utils.convert_bond_uids_and_vals_to_tensor(n, uids, bonds)
+
+
+def test_process_weights_for_netuid(mocker):
+    """Test the process_weights_for_netuid function."""
+    # Prep
+    fake_uids = np.array([1, 2, 3, 4, 5], dtype=np.int64)
+    fake_weights = np.array([1.0, 2.5, 3.3, 4.7, 5.9], dtype=np.float32)
+    fake_netuid = 1
+    fake_subtensor = mocker.MagicMock()
+    fake_metagraph = mocker.MagicMock()
+    fake_exclude_quantile = 0
+
+    fake_subtensor.min_allowed_weights.return_value = 0.1
+    fake_subtensor.max_weight_limit.return_value = 1.0
+    fake_metagraph.n = 1
+    mocked_normalize_max_weight = mocker.patch.object(
+        weight_utils, "normalize_max_weight"
+    )
+
+    # Call
+    result = weight_utils.process_weights_for_netuid(
+        uids=fake_uids,
+        weights=fake_weights,
+        netuid=fake_netuid,
+        subtensor=fake_subtensor,
+        metagraph=fake_metagraph,
+        exclude_quantile=fake_exclude_quantile,
+    )
+
+    # Asserts
+    fake_subtensor.min_allowed_weights.assert_called_once_with(netuid=fake_netuid)
+    fake_subtensor.max_weight_limit.assert_called_once_with(netuid=fake_netuid)
+
+    res1, res2 = result
+    assert np.array_equal(res1, fake_uids)
+    assert res2 == mocked_normalize_max_weight.return_value
+
+
+def test_process_weights_with_all_zero_weights(mocker):
+    """Test the process_weights_for_netuid function with all zero weights."""
+    # Prep
+    fake_uids = np.array([1, 2, 3, 4, 5], dtype=np.int64)
+    fake_weights = np.array([0.0, 0.0, 0.0, 0.0, 0.0], dtype=np.float32)
+    fake_netuid = 1
+    fake_subtensor = mocker.MagicMock()
+    fake_metagraph = mocker.MagicMock()
+    fake_exclude_quantile = 0
+
+    fake_subtensor.min_allowed_weights.return_value = 0.1
+    fake_subtensor.max_weight_limit.return_value = 1.0
+    fake_metagraph.n = 1
+
+    # Call
+    result = weight_utils.process_weights_for_netuid(
+        uids=fake_uids,
+        weights=fake_weights,
+        netuid=fake_netuid,
+        subtensor=fake_subtensor,
+        metagraph=fake_metagraph,
+        exclude_quantile=fake_exclude_quantile,
+    )
+
+    # Asserts
+    fake_subtensor.min_allowed_weights.assert_called_once_with(netuid=fake_netuid)
+    fake_subtensor.max_weight_limit.assert_called_once_with(netuid=fake_netuid)
+
+    res1, res2 = result
+    assert np.array_equal(res1, np.array([0]))
+    assert np.array_equal(res2, np.array([1.0]))
+
+
+def test_process_weights_for_netuid_with_nzs_less_min_allowed_weights(mocker):
+    """Tests process_weights_for_netuid method when non-zero weights are less than the min allowed weights."""
+    # Prep
+    fake_uids = np.array([1, 2, 3, 4, 5], dtype=np.int64)
+    fake_weights = np.array([0.1, 0.2, 0.3, 0.0, 0.0], dtype=np.float32)
+    fake_netuid = 1
+    fake_subtensor = mocker.MagicMock()
+    fake_metagraph = None
+    fake_exclude_quantile = 0
+
+    fake_subtensor.min_allowed_weights.return_value = 4
+    fake_subtensor.max_weight_limit.return_value = 1.0
+    fake_subtensor.metagraph.return_value.n = 5
+    mocked_np_arange = mocker.patch.object(np, "arange")
+    mocked_normalize_max_weight = mocker.patch.object(
+        weight_utils, "normalize_max_weight"
+    )
+
+    # Call
+    result = weight_utils.process_weights_for_netuid(
+        uids=fake_uids,
+        weights=fake_weights,
+        netuid=fake_netuid,
+        subtensor=fake_subtensor,
+        metagraph=fake_metagraph,
+        exclude_quantile=fake_exclude_quantile,
+    )
+
+    # Asserts
+    fake_subtensor.metagraph.assert_called_once_with(fake_netuid)
+    fake_subtensor.min_allowed_weights.assert_called_once_with(netuid=fake_netuid)
+    fake_subtensor.max_weight_limit.assert_called_once_with(netuid=fake_netuid)
+    assert result == (
+        mocked_np_arange.return_value,
+        mocked_normalize_max_weight.return_value,
+    )
+
+
+def test_generate_weight_hash(mocker):
+    """Tests weight_utils.generate_weight_hash function."""
+    # Prep
+    fake_address = "5D1ABCD"
+    fake_netuid = 1
+    fake_uids = [1, 2]
+    fake_values = [10, 20]
+    fake_version_key = 80000
+    fake_salt = [1, 2]
+
+    mocked_scale_bytes = mocker.patch.object(weight_utils, "ScaleBytes")
+    mocked_keypair = mocker.patch.object(weight_utils, "Keypair")
+    mocker_vec = mocker.patch.object(weight_utils, "Vec")
+    mocked_u16 = mocker.patch.object(weight_utils, "U16")
+    mocked_hasher = mocker.patch.object(weight_utils.hashlib, "blake2b")
+
+    # Call
+    result = weight_utils.generate_weight_hash(
+        address=fake_address,
+        netuid=fake_netuid,
+        uids=fake_uids,
+        values=fake_values,
+        version_key=fake_version_key,
+        salt=fake_salt,
+    )
+
+    # Asserts
+    mocked_scale_bytes.assert_called()
+    mocked_keypair.assert_called()
+    mocker_vec.assert_called()
+    mocked_u16.assert_called()
+    assert (
+        result
+        == mocked_hasher.return_value.hexdigest.return_value.__radd__.return_value
+    )
