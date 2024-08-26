@@ -51,6 +51,8 @@ def float_to_u16(value: float) -> int:
 
 def u16_to_float(value: int) -> float:
     # Ensure the input is within the expected range
+    if value is None:
+        return 0.0
     if not (0 <= value <= 65535):
         raise ValueError("Input value must be between 0 and 65535")
 
