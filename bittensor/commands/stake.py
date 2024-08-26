@@ -1037,7 +1037,7 @@ class SetChildrenCommand:
             "--prompt",
             dest="prompt",
             action="store_true",
-            default=False,
+            default=True,
             help="""Prompt for confirmation before proceeding.""",
         )
         bittensor.wallet.add_args(set_children_parser)
