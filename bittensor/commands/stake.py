@@ -890,11 +890,14 @@ class SetChildrenCommand:
 
         if curr_children:
             # print the table of current children
-            GetChildrenCommand.retrieve_children(
+            hotkey_stake = subtensor.get_total_stake_for_hotkey(cli.config.hotkey)
+            GetChildrenCommand.render_table(
                 subtensor=subtensor,
                 hotkey=cli.config.hotkey,
-                netuid=cli.config.netuid,
-                render_table=True,
+                hotkey_stake=hotkey_stake,
+                children=curr_children,
+                netuid=netuid,
+                prompt=False,
             )
 
         # get new children
@@ -905,7 +908,7 @@ class SetChildrenCommand:
         proposed_children = [str(x) for x in re.split(r"[ ,]+", cli.config.children)]
 
         # Set max 5 children
-        if len(proposed_children) + len(curr_children) > 5:
+        if curr_children and len(proposed_children) + len(curr_children) > 5:
             console.print(
                 ":cross_mark:[red] Too many children. Maximum 5 children per hotkey[/red]"
             )
@@ -1095,9 +1098,9 @@ class GetChildrenCommand:
         if not cli.config.is_set("hotkey"):
             cli.config.hotkey = Prompt.ask("Enter parent hotkey (ss58)")
         hotkey = cli.config.hotkey
-        if not wallet_utils.is_valid_ss58_address(cli.config.hotkey):
+        if not wallet_utils.is_valid_ss58_address(hotkey):
             console.print(
-                f":cross_mark:[red] Invalid SS58 address: {cli.config.hotkey}[/red]"
+                f":cross_mark:[red] Invalid SS58 address: {hotkey}[/red]"
             )
             return
 
@@ -1236,6 +1239,7 @@ class GetChildrenCommand:
             ) or Balance(0)
 
             child_take = subtensor.get_childkey_take(child_hotkey, netuid)
+            child_take = u16_to_float(child_take)
 
             # add to totals
             total_stake += child_stake.tao
