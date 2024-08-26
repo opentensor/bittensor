@@ -5,6 +5,7 @@ from rich.prompt import Confirm, Prompt
 from rich.table import Table
 
 import bittensor as bt
+from bittensor.utils import format_error_message
 
 
 class MoveStakeCommand:
@@ -305,7 +306,7 @@ class MoveStakeCommand:
                 response.process_events()
                 if not response.is_success:
                     bt.__console__.print(
-                        f":cross_mark: [red]Failed[/red] with error: {response.error_message}"
+                        f":cross_mark: [red]Failed[/red] with error: {format_error_message(response.error_message)}"
                     )
                     return
                 else:
