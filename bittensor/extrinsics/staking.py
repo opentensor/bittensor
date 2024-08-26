@@ -670,7 +670,7 @@ def set_children_extrinsic(
         raise ValueError("Cannot set/revoke child hotkeys for others.")
 
     # Check if all children are being revoked
-    all_revoked = all(prop == 0.0 for prop, _ in children_with_proportions)
+    all_revoked = len(children_with_proportions) == 0
 
     operation = "Revoke children hotkeys" if all_revoked else "Set children hotkeys"
 
@@ -696,11 +696,14 @@ def set_children_extrinsic(
         f":satellite: {operation} on [white]{subtensor.network}[/white] ..."
     ):
         try:
-            normalized_children = (
-                prepare_child_proportions(children_with_proportions)
-                if not all_revoked
-                else children_with_proportions
-            )
+            if not all_revoked:
+                normalized_children = (
+                    prepare_child_proportions(children_with_proportions)
+                    if not all_revoked
+                    else children_with_proportions
+                )
+            else:
+                normalized_children = []
 
             success, error_message = subtensor._do_set_children(
                 wallet=wallet,
