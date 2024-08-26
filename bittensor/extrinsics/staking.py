@@ -661,14 +661,6 @@ def set_children_extrinsic(
         bittensor.errors.NotRegisteredError: If the hotkey is not registered in any subnets.
 
     """
-
-    # Decrypt coldkey.
-    wallet.coldkey
-
-    user_hotkey_ss58 = wallet.hotkey.ss58_address  # Default to wallet's own hotkey.
-    if hotkey != user_hotkey_ss58:
-        raise ValueError("Cannot set/revoke child hotkeys for others.")
-
     # Check if all children are being revoked
     all_revoked = len(children_with_proportions) == 0
 
@@ -692,6 +684,14 @@ def set_children_extrinsic(
             ):
                 return False, "Operation Cancelled"
 
+
+    # Decrypt coldkey.
+    wallet.coldkey
+
+    user_hotkey_ss58 = wallet.hotkey.ss58_address  # Default to wallet's own hotkey.
+    if hotkey != user_hotkey_ss58:
+        raise ValueError("Cannot set/revoke child hotkeys for others.")
+    
     with bittensor.__console__.status(
         f":satellite: {operation} on [white]{subtensor.network}[/white] ..."
     ):
