@@ -120,7 +120,7 @@ class TerminalInfo(BaseModel):
         ip (str): IP address of the terminal, crucial for network routing and data transmission.
         port (int): Network port used by the terminal, key for establishing network connections.
         version (int): Bittensor version running on the terminal, ensuring compatibility between different nodes in the network.
-        nonce (int): Unix timestamp that linearly increases for each request, ensuring requests cannot be duplicated or repeated
+        nonce (int): Unique, monotonically increasing number for each terminal, aiding in identifying and ordering network interactions.
         uuid (str): Unique identifier for the terminal, fundamental for network security and identification.
         hotkey (str): Encoded hotkey string of the terminal wallet, important for transaction and identity verification in the network.
         signature (str): Digital signature verifying the tuple of nonce, axon_hotkey, dendrite_hotkey, and uuid, critical for ensuring data authenticity and security.
@@ -369,6 +369,7 @@ class Synapse(BaseModel):
     """
 
     model_config = ConfigDict(validate_assignment=True)
+    _model_json_schema: ClassVar[Dict[str, Any]]
 
     def deserialize(self) -> "Synapse":
         """
@@ -580,11 +581,27 @@ class Synapse(BaseModel):
         """
         return self.dendrite is not None and self.dendrite.status_code == 401
 
+    @classmethod
+    def _get_cached_model_json_schema(cls) -> dict:
+        """
+        Returns the JSON schema for the Synapse model.
+
+        This method returns a cached version of the JSON schema for the Synapse model.
+        The schema is stored in the class variable ``_model_json_schema`` and is only
+        generated once to improve performance.
+
+        Returns:
+            dict: The JSON schema for the Synapse model.
+        """
+        if "_model_json_schema" not in cls.__dict__:
+            cls._model_json_schema = cls.model_json_schema()
+        return cls._model_json_schema
+
     def get_required_fields(self):
         """
         Get the required fields from the model's JSON schema.
         """
-        schema = self.__class__.model_json_schema()
+        schema = self._get_cached_model_json_schema()
         return schema.get("required", [])
 
     def to_headers(self) -> dict:
@@ -635,16 +652,15 @@ class Synapse(BaseModel):
         # Getting the fields of the instance
         instance_fields = self.model_dump()
 
+        required = set(self.get_required_fields())
         # Iterating over the fields of the instance
         for field, value in instance_fields.items():
             # If the object is not optional, serializing it, encoding it, and adding it to the headers
-            required = self.get_required_fields()
-
             # Skipping the field if it's already in the headers or its value is None
             if field in headers or value is None:
                 continue
 
-            elif required and field in required:
+            elif field in required:
                 try:
                     # create an empty (dummy) instance of type(value) to pass pydantic validation on the axon side
                     serialized_value = json.dumps(value.__class__.__call__())

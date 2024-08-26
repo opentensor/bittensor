@@ -20,6 +20,7 @@ Conversion for weight between chain representation and np.array or torch.Tensor
 # DEALINGS IN THE SOFTWARE.
 
 import hashlib
+import logging
 from typing import Tuple, List, Union
 
 import numpy as np
@@ -140,11 +141,14 @@ def convert_root_weight_uids_and_vals_to_tensor(
     for uid_j, wij in list(zip(uids, weights)):
         if uid_j in subnets:
             index_s = subnets.index(uid_j)
+            row_weights[index_s] = float(
+                wij
+            )  # assumes max-upscaled values (w_max = U16_MAX).
         else:
-            raise Exception("Incorrect Subnet {uid_j} in {subnets}")
-        row_weights[index_s] = float(
-            wij
-        )  # assumes max-upscaled values (w_max = U16_MAX).
+            logging.warning(
+                f"Incorrect Subnet uid {uid_j} in Subnets {subnets}. The subnet is unavailable at the moment."
+            )
+            continue
     row_sum = row_weights.sum()
     if row_sum > 0:
         row_weights /= row_sum  # normalize
@@ -252,7 +256,7 @@ def process_weights_for_netuid(
         metagraph = subtensor.metagraph(netuid)
 
     # Cast weights to floats.
-    if not use_torch():
+    if use_torch():
         if not isinstance(weights, torch.FloatTensor):
             weights = weights.type(torch.float32)
     else:

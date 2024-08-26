@@ -211,9 +211,9 @@ class ProposalsCommand:
         senate_members = subtensor.get_senate_members()
         proposals = subtensor.get_proposals()
 
-        registered_delegate_info: Optional[
-            Dict[str, DelegatesDetails]
-        ] = get_delegates_details(url=bittensor.__delegates_details_url__)
+        registered_delegate_info: Optional[Dict[str, DelegatesDetails]] = (
+            get_delegates_details(url=bittensor.__delegates_details_url__)
+        )
 
         table = Table(show_footer=False)
         table.title = (
@@ -342,9 +342,9 @@ class ShowVotesCommand:
             console.print(":cross_mark: [red]Failed[/red]: Proposal not found.")
             return
 
-        registered_delegate_info: Optional[
-            Dict[str, DelegatesDetails]
-        ] = get_delegates_details(url=bittensor.__delegates_details_url__)
+        registered_delegate_info: Optional[Dict[str, DelegatesDetails]] = (
+            get_delegates_details(url=bittensor.__delegates_details_url__)
+        )
 
         table = Table(show_footer=False)
         table.title = "[white]Votes for Proposal {}".format(proposal_hash)
@@ -432,7 +432,13 @@ class SenateRegisterCommand:
 
         # Unlock the wallet.
         wallet.hotkey
-        wallet.coldkey
+        try:
+            wallet.coldkey
+        except bittensor.KeyFileError:
+            bittensor.__console__.print(
+                ":cross_mark: [red]Keyfile is corrupt, non-writable, non-readable or the password used to decrypt is invalid[/red]:[bold white]\n  [/bold white]"
+            )
+            return
 
         # Check if the hotkey is a delegate.
         if not subtensor.is_hotkey_delegate(wallet.hotkey.ss58_address):
@@ -514,7 +520,13 @@ class SenateLeaveCommand:
 
         # Unlock the wallet.
         wallet.hotkey
-        wallet.coldkey
+        try:
+            wallet.coldkey
+        except bittensor.KeyFileError:
+            bittensor.__console__.print(
+                ":cross_mark: [red]Keyfile is corrupt, non-writable, non-readable or the password used to decrypt is invalid[/red]:[bold white]\n  [/bold white]"
+            )
+            return
 
         if not subtensor.is_senate_member(hotkey_ss58=wallet.hotkey.ss58_address):
             console.print(
@@ -603,7 +615,15 @@ class VoteCommand:
 
         # Unlock the wallet.
         wallet.hotkey
-        wallet.coldkey
+        try:
+            wallet.coldkey
+        except bittensor.KeyFileError:
+            bittensor.__console__.print(
+                ":cross_mark: [red]Keyfile is corrupt, non-writable, non-readable or the password used to decrypt is invalid[/red]:[bold white]\n  [/bold white]"
+            )
+            return
+
+        vote_data = subtensor.get_vote_data(proposal_hash)
 
         vote_data = subtensor.get_vote_data(proposal_hash)
         if vote_data == None:

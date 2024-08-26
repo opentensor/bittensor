@@ -44,7 +44,7 @@ def set_weights_extrinsic(
     r"""Sets the given weights and values on chain for wallet hotkey account.
 
     Args:
-        subtensor_endpoint (bittensor.subtensor):
+        subtensor (bittensor.subtensor):
             Subtensor endpoint to use.
         wallet (bittensor.wallet):
             Bittensor wallet object.
@@ -64,7 +64,7 @@ def set_weights_extrinsic(
             If ``true``, the call waits for confirmation from the user before proceeding.
     Returns:
         success (bool):
-            Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
+            Flag is ``true`` if extrinsic was finalized or included in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
     # First convert types.
     if use_torch():
@@ -109,7 +109,7 @@ def set_weights_extrinsic(
             if not wait_for_finalization and not wait_for_inclusion:
                 return True, "Not waiting for finalization or inclusion."
 
-            if success == True:
+            if success is True:
                 bittensor.__console__.print(
                     ":white_heavy_check_mark: [green]Finalized[/green]"
                 )
@@ -119,12 +119,10 @@ def set_weights_extrinsic(
                 )
                 return True, "Successfully set weights and Finalized."
             else:
-                bittensor.__console__.print(
-                    ":cross_mark: [red]Failed[/red]: error:{}".format(error_message)
-                )
-                bittensor.logging.warning(
+                bittensor.logging.error(
+                    msg=error_message,
                     prefix="Set weights",
-                    suffix="<red>Failed: </red>" + str(error_message),
+                    suffix="<red>Failed: </red>",
                 )
                 return False, error_message
 

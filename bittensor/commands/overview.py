@@ -258,9 +258,9 @@ class OverviewCommand:
                 for neuron in neuron_list:
                     if neuron.hotkey in checked_hotkeys:
                         continue
-                    total_coldkey_stake_from_metagraph[
-                        neuron.coldkey
-                    ] += neuron.stake_dict[neuron.coldkey]
+                    total_coldkey_stake_from_metagraph[neuron.coldkey] += (
+                        neuron.stake_dict[neuron.coldkey]
+                    )
                     checked_hotkeys.add(neuron.hotkey)
 
             alerts_table = Table(show_header=True, header_style="bold magenta")
@@ -317,7 +317,7 @@ class OverviewCommand:
                 de_registered_neurons = []
                 for hotkey_addr, our_stake in de_registered_stake:
                     # Make a neuron info lite for this hotkey and coldkey.
-                    de_registered_neuron = bittensor.NeuronInfoLite._null_neuron()
+                    de_registered_neuron = bittensor.NeuronInfoLite.get_null_neuron()
                     de_registered_neuron.hotkey = hotkey_addr
                     de_registered_neuron.coldkey = (
                         coldkey_wallet.coldkeypub.ss58_address
@@ -483,8 +483,8 @@ class OverviewCommand:
             )
             if last_subnet:
                 table.add_column(
-                    "[overline white]STAKE(\u03C4)",
-                    "\u03C4{:.5f}".format(total_stake),
+                    "[overline white]STAKE(\u03c4)",
+                    "\u03c4{:.5f}".format(total_stake),
                     footer_style="overline white",
                     justify="right",
                     style="green",
@@ -493,7 +493,7 @@ class OverviewCommand:
             else:
                 # No footer for non-last subnet.
                 table.add_column(
-                    "[overline white]STAKE(\u03C4)",
+                    "[overline white]STAKE(\u03c4)",
                     justify="right",
                     style="green",
                     no_wrap=True,
@@ -539,8 +539,8 @@ class OverviewCommand:
                 no_wrap=True,
             )
             table.add_column(
-                "[overline white]EMISSION(\u03C1)",
-                "\u03C1{:_}".format(total_emission),
+                "[overline white]EMISSION(\u03c1)",
+                "\u03c1{:_}".format(total_emission),
                 footer_style="overline white",
                 justify="right",
                 style="green",
@@ -603,7 +603,7 @@ class OverviewCommand:
 
         console.clear()
 
-        caption = "[italic][dim][white]Wallet balance: [green]\u03C4" + str(
+        caption = "[italic][dim][white]Wallet balance: [green]\u03c4" + str(
             total_balance.tao
         )
         grid.add_row(Align(caption, vertical="middle", align="center"))
@@ -613,7 +613,7 @@ class OverviewCommand:
 
     @staticmethod
     def _get_neurons_for_netuid(
-        args_tuple: Tuple["bittensor.Config", int, List[str]]
+        args_tuple: Tuple["bittensor.Config", int, List[str]],
     ) -> Tuple[int, List["bittensor.NeuronInfoLite"], Optional[str]]:
         subtensor_config, netuid, hot_wallets = args_tuple
 

@@ -17,14 +17,21 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from pydantic import ValidationError
-import pytest
+# Standard Lib
+import asyncio
 import typing
-import bittensor
 from unittest.mock import MagicMock, Mock
-from tests.helpers import _get_mock_wallet
 
+# Third Party
+import aiohttp
+import pytest
+
+# Application
+import bittensor
+from bittensor.constants import DENDRITE_ERROR_MAPPING, DENDRITE_DEFAULT_ERROR
+from bittensor.dendrite import dendrite as Dendrite
 from bittensor.synapse import TerminalInfo
+from tests.helpers import _get_mock_wallet
 
 
 class SynapseDummy(bittensor.Synapse):
@@ -93,7 +100,7 @@ def test_close(dendrite_obj, setup_axon):
     # Query the axon to open a session
     dendrite_obj.query(axon, SynapseDummy(input=1))
     # Session should be automatically closed after query
-    assert dendrite_obj._session == None
+    assert dendrite_obj._session is None
 
 
 @pytest.mark.asyncio
@@ -103,7 +110,7 @@ async def test_aclose(dendrite_obj, setup_axon):
     async with dendrite_obj:
         resp = await dendrite_obj([axon], SynapseDummy(input=1), deserialize=False)
     # Close should automatically be called on the session after context manager scope
-    assert dendrite_obj._session == None
+    assert dendrite_obj._session is None
 
 
 class AsyncMock(Mock):
@@ -334,3 +341,75 @@ async def test_dendrite__call__handles_http_error_response(
 
     assert synapse.axon.status_code == synapse.dendrite.status_code == status_code
     assert synapse.axon.status_message == synapse.dendrite.status_message == message
+
+
+@pytest.mark.parametrize(
+    "exception, expected_status_code, expected_message, synapse_timeout, synapse_ip, synapse_port, request_name",
+    [
+        (
+            aiohttp.ClientConnectorError(Mock(), Mock()),
+            DENDRITE_ERROR_MAPPING[aiohttp.ClientConnectorError][0],
+            f"{DENDRITE_ERROR_MAPPING[aiohttp.ClientConnectorError][1]} at 127.0.0.1:8080/test_request",
+            None,
+            "127.0.0.1",
+            "8080",
+            "test_request_client_connector_error",
+        ),
+        (
+            asyncio.TimeoutError(),
+            DENDRITE_ERROR_MAPPING[asyncio.TimeoutError][0],
+            f"{DENDRITE_ERROR_MAPPING[asyncio.TimeoutError][1]} after 5 seconds",
+            5,
+            None,
+            None,
+            "test_request_timeout",
+        ),
+        (
+            aiohttp.ClientResponseError(Mock(), Mock(), status=404),
+            "404",
+            f"{DENDRITE_ERROR_MAPPING[aiohttp.ClientResponseError][1]}: 404, message=''",
+            None,
+            None,
+            None,
+            "test_request_client_response_error",
+        ),
+        (
+            Exception("Unknown error"),
+            DENDRITE_DEFAULT_ERROR[0],
+            f"{DENDRITE_DEFAULT_ERROR[1]}: Unknown error",
+            None,
+            None,
+            None,
+            "test_request_unknown_error",
+        ),
+    ],
+    ids=[
+        "ClientConnectorError",
+        "TimeoutError",
+        "ClientResponseError",
+        "GenericException",
+    ],
+)
+def test_process_error_message(
+    exception,
+    expected_status_code,
+    expected_message,
+    synapse_timeout,
+    synapse_ip,
+    synapse_port,
+    request_name,
+):
+    # Arrange
+    dendrite = Dendrite()
+    synapse = Mock()
+
+    synapse.timeout = synapse_timeout
+    synapse.axon.ip = synapse_ip
+    synapse.axon.port = synapse_port
+
+    # Act
+    result = dendrite.process_error_message(synapse, request_name, exception)
+
+    # Assert
+    assert result.dendrite.status_code == expected_status_code
+    assert expected_message in result.dendrite.status_message

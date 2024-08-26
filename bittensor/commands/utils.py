@@ -20,7 +20,9 @@ import os
 import bittensor
 import requests
 from bittensor.utils.registration import torch
-from typing import List, Dict, Any, Optional
+from bittensor.utils.balance import Balance
+from bittensor.utils import U64_NORMALIZED_FLOAT, U16_NORMALIZED_FLOAT
+from typing import List, Dict, Any, Optional, Tuple
 from rich.prompt import Confirm, PromptBase
 from dataclasses import dataclass
 from . import defaults
@@ -184,14 +186,60 @@ def filter_netuids_by_registered_hotkeys(
         )
         netuids_with_registered_hotkeys.extend(netuids_list)
 
-    if cli.config.netuids == None or cli.config.netuids == []:
+    if not cli.config.netuids:
         netuids = netuids_with_registered_hotkeys
 
-    elif cli.config.netuids != []:
+    else:
         netuids = [netuid for netuid in netuids if netuid in cli.config.netuids]
         netuids.extend(netuids_with_registered_hotkeys)
 
     return list(set(netuids))
+
+
+def normalize_hyperparameters(
+    subnet: bittensor.SubnetHyperparameters,
+) -> List[Tuple[str, str, str]]:
+    """
+    Normalizes the hyperparameters of a subnet.
+
+    Args:
+        subnet: The subnet hyperparameters object.
+
+    Returns:
+        A list of tuples containing the parameter name, value, and normalized value.
+    """
+    param_mappings = {
+        "adjustment_alpha": U64_NORMALIZED_FLOAT,
+        "min_difficulty": U64_NORMALIZED_FLOAT,
+        "max_difficulty": U64_NORMALIZED_FLOAT,
+        "difficulty": U64_NORMALIZED_FLOAT,
+        "bonds_moving_avg": U64_NORMALIZED_FLOAT,
+        "max_weight_limit": U16_NORMALIZED_FLOAT,
+        "kappa": U16_NORMALIZED_FLOAT,
+        "alpha_high": U16_NORMALIZED_FLOAT,
+        "alpha_low": U16_NORMALIZED_FLOAT,
+        "min_burn": Balance.from_rao,
+        "max_burn": Balance.from_rao,
+    }
+
+    normalized_values: List[Tuple[str, str, str]] = []
+    subnet_dict = subnet.__dict__
+
+    for param, value in subnet_dict.items():
+        try:
+            if param in param_mappings:
+                norm_value = param_mappings[param](value)
+                if isinstance(norm_value, float):
+                    norm_value = f"{norm_value:.{10}g}"
+            else:
+                norm_value = value
+        except Exception as e:
+            bittensor.logging.warning(f"Error normalizing parameter '{param}': {e}")
+            norm_value = "-"
+
+        normalized_values.append((param, str(value), str(norm_value)))
+
+    return normalized_values
 
 
 @dataclass

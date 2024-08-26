@@ -76,7 +76,7 @@ You can contribute to Bittensor in one of two main ways (as well as many others)
 
 Here is a high-level summary:
 - Code consistency is crucial; adhere to established programming language conventions.
-- Use `black` to format your Python code; it ensures readability and consistency.
+- Use `ruff format .` to format your Python code; it ensures readability and consistency.
 - Write concise Git commit messages; summarize changes in ~50 characters.
 - Follow these six commit rules:
   - Atomic Commits: Focus on one task or fix per commit.

@@ -39,8 +39,8 @@ def mock_get_minimum_required_stake():
         ("5FHneW46...", 10.0, True, True, True, False, False, False),
         # Not enough stake to unstake
         ("5FHneW46...", 1000.0, True, True, False, None, False, False),
-        # Unsuccessful - unstake threshold not reached
-        (None, 0.01, True, True, False, None, False, False),
+        # Successful - unstake threshold not reached
+        (None, 0.01, True, True, False, None, True, True),
         # Successful unstaking all
         (None, None, False, False, False, None, True, True),
         # Failure - unstaking failed
@@ -51,7 +51,7 @@ def mock_get_minimum_required_stake():
         "successful-with-prompt",
         "failure-prompt-declined",
         "failure-not-enough-stake",
-        "failure-threshold-not-reached",
+        "success-threshold-not-reached",
         "success-unstake-all",
         "failure-unstake-failed",
     ],
@@ -83,9 +83,7 @@ def test_unstake_extrinsic(
         mock_subtensor,
         "get_stake_for_coldkey_and_hotkey",
         return_value=mock_current_stake,
-    ), patch(
-        "rich.prompt.Confirm.ask", return_value=user_accepts
-    ) as mock_confirm:
+    ), patch("rich.prompt.Confirm.ask", return_value=user_accepts) as mock_confirm:
         result = unstake_extrinsic(
             subtensor=mock_subtensor,
             wallet=mock_wallet,
@@ -168,18 +166,20 @@ def test_unstake_extrinsic(
             None,
             None,
         ),
-        # Unsuccessful unstake - threshold not reached
+        # Successful unstake - new stake below threshold
         (
             ["5FHneW46..."],
-            [0.01],
+            [
+                100 - mock_get_minimum_required_stake() + 0.01
+            ],  # New stake just below threshold
             100,
             True,
             True,
             False,
             True,
-            [None],
-            False,
-            0,
+            [True],
+            True,  # Sucessful unstake
+            1,
             None,
             None,
         ),
@@ -249,7 +249,7 @@ def test_unstake_extrinsic(
         "partial-success-one-fail",
         "success-no-hotkey",
         "failure-not-enough-stake",
-        "failure-threshold-not-reached",
+        "success-threshold-not-reached",
         "failure-prompt-declined",
         "failure-type-error-hotkeys",
         "failure-value-error-amounts",
@@ -291,15 +291,11 @@ def test_unstake_multiple_extrinsic(
         side_effect=mock_get_minimum_required_stake,
     ), patch.object(
         mock_subtensor, "get_balance", return_value=Balance.from_tao(wallet_balance)
-    ), patch.object(
-        mock_subtensor, "tx_rate_limit", return_value=0
-    ), patch.object(
+    ), patch.object(mock_subtensor, "tx_rate_limit", return_value=0), patch.object(
         mock_subtensor,
         "get_stake_for_coldkey_and_hotkey",
         return_value=mock_current_stake,
-    ), patch(
-        "rich.prompt.Confirm.ask", return_value=prompt_response
-    ) as mock_confirm:
+    ), patch("rich.prompt.Confirm.ask", return_value=prompt_response) as mock_confirm:
         # Act
         if exception:
             with pytest.raises(exception) as exc_info:

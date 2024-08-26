@@ -1,11 +1,13 @@
+from bittensor import logging
 from bittensor.commands.transfer import TransferCommand
+
 from ...utils import setup_wallet
-import bittensor
 
 
 # Example test using the local_chain fixture
 def test_transfer(local_chain):
-    (keypair, exec_command) = setup_wallet("//Alice")
+    logging.info("Testing test_transfer")
+    keypair, exec_command, wallet = setup_wallet("//Alice")
 
     acc_before = local_chain.query("System", "Account", [keypair.ss58_address])
     exec_command(
@@ -30,3 +32,4 @@ def test_transfer(local_chain):
     assert (
         expected_transfer <= actual_difference <= expected_transfer + tolerance
     ), f"Expected transfer with tolerance: {expected_transfer} <= {actual_difference} <= {expected_transfer + tolerance}"
+    logging.info("Passed test_transfer")

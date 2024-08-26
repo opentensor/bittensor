@@ -62,8 +62,13 @@ defaults: Munch = munchify(
     }
 )
 
-from .stake import StakeCommand, StakeShow
-from .unstake import UnStakeCommand
+from .stake import (
+    StakeCommand,
+    StakeShow,
+    SetChildrenCommand,
+    GetChildrenCommand,
+)
+from .unstake import UnStakeCommand, RevokeChildrenCommand
 from .overview import OverviewCommand
 from .register import (
     PowRegisterCommand,
@@ -74,7 +79,6 @@ from .register import (
 from .delegates import (
     NominateCommand,
     ListDelegatesCommand,
-    ListDelegatesLiteCommand,
     DelegateStakeCommand,
     DelegateUnstakeCommand,
     MyDelegatesCommand,
@@ -122,3 +126,4 @@ from .root import (
     RootSetSlashCommand,
 )
 from .identity import GetIdentityCommand, SetIdentityCommand
+from .check_coldkey_swap import CheckColdKeySwapCommand

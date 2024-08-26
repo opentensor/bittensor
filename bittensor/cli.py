@@ -29,7 +29,6 @@ from .commands import (
     InspectCommand,
     ListCommand,
     ListDelegatesCommand,
-    ListDelegatesLiteCommand,
     MetagraphCommand,
     MyDelegatesCommand,
     NewColdkeyCommand,
@@ -70,6 +69,10 @@ from .commands import (
     WalletCreateCommand,
     CommitWeightCommand,
     RevealWeightCommand,
+    CheckColdKeySwapCommand,
+    SetChildrenCommand,
+    GetChildrenCommand,
+    RevokeChildrenCommand,
 )
 
 # Create a console instance for CLI display.
@@ -133,7 +136,6 @@ COMMANDS = {
             "undelegate": DelegateUnstakeCommand,
             "my_delegates": MyDelegatesCommand,
             "list_delegates": ListDelegatesCommand,
-            "list_delegates_lite": ListDelegatesLiteCommand,
             "nominate": NominateCommand,
         },
     },
@@ -159,16 +161,20 @@ COMMANDS = {
             "set_identity": SetIdentityCommand,
             "get_identity": GetIdentityCommand,
             "history": GetWalletHistoryCommand,
+            "check_coldkey_swap": CheckColdKeySwapCommand,
         },
     },
     "stake": {
         "name": "stake",
         "aliases": ["st", "stakes"],
-        "help": "Commands for staking and removing stake from hotkey accounts.",
+        "help": "Commands for staking and removing stake and setting child hotkey accounts.",
         "commands": {
             "show": StakeShow,
             "add": StakeCommand,
             "remove": UnStakeCommand,
+            "get_children": GetChildrenCommand,
+            "set_children": SetChildrenCommand,
+            "revoke_children": RevokeChildrenCommand,
         },
     },
     "weights": {

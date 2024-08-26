@@ -115,6 +115,16 @@ class TestSubtensor(unittest.TestCase):
         block = self.subtensor.get_current_block()
         assert type(block) == int
 
+    def test_do_block_step(self):
+        self.subtensor.do_block_step()
+        block = self.subtensor.get_current_block()
+        assert type(block) == int
+
+    def test_do_block_step_query_previous_block(self):
+        self.subtensor.do_block_step()
+        block = self.subtensor.get_current_block()
+        self.subtensor.query_subtensor("NetworksAdded", block)
+
     def test_unstake(self):
         self.subtensor._do_unstake = MagicMock(return_value=True)
 
@@ -734,7 +744,7 @@ class TestSubtensor(unittest.TestCase):
         )
 
         self.subtensor.get_neuron_for_pubkey_and_subnet = MagicMock(
-            return_value=bittensor.NeuronInfo._null_neuron()
+            return_value=bittensor.NeuronInfo.get_null_neuron()
         )
         self.subtensor.is_hotkey_registered = MagicMock(
             side_effect=is_registered_side_effect
@@ -816,7 +826,7 @@ class TestSubtensor(unittest.TestCase):
             # then should create a new pow and check if it is stale
             # then should enter substrate and exit early because of test
             self.subtensor.get_neuron_for_pubkey_and_subnet = MagicMock(
-                return_value=bittensor.NeuronInfo._null_neuron()
+                return_value=bittensor.NeuronInfo.get_null_neuron()
             )
             with pytest.raises(ExitEarly):
                 bittensor.subtensor.register(mock_subtensor_self, mock_wallet, netuid=3)

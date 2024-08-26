@@ -131,12 +131,12 @@ def test_custom_synapse():
         c: Optional[int]  # Required, carried through headers, cannot be None
         d: Optional[list[int]]  # Required, carried though headers, cannot be None
         e: list[int]  # Carried through headers
-        f: Optional[
-            int
-        ] = None  # Not Required, Not carried through headers, can be None
-        g: Optional[
-            list[int]
-        ] = None  # Not Required, Not carried though headers, can be None
+        f: Optional[int] = (
+            None  # Not Required, Not carried through headers, can be None
+        )
+        g: Optional[list[int]] = (
+            None  # Not Required, Not carried though headers, can be None
+        )
 
     # Create an instance of the custom Synapse subclass
     synapse = Test(

@@ -114,9 +114,6 @@ def test_add_stake_extrinsic(
             else amount
         )
 
-    if staking_balance > bittensor.Balance.from_rao(1000):
-        staking_balance = staking_balance - bittensor.Balance.from_rao(1000)
-
     with patch.object(
         mock_subtensor, "_do_stake", return_value=expected_success
     ) as mock_add_stake, patch.object(
@@ -133,11 +130,22 @@ def test_add_stake_extrinsic(
         else mock_other_owner_wallet.coldkeypub.ss58_address,
     ), patch.object(
         mock_subtensor, "is_hotkey_delegate", return_value=hotkey_delegate
-    ), patch.object(
-        mock_subtensor, "get_delegate_take", return_value=0.01
-    ), patch(
+    ), patch.object(mock_subtensor, "get_delegate_take", return_value=0.01), patch(
         "rich.prompt.Confirm.ask", return_value=user_accepts
-    ) as mock_confirm:
+    ) as mock_confirm, patch.object(
+        mock_subtensor,
+        "get_minimum_required_stake",
+        return_value=bittensor.Balance.from_tao(0.01),
+    ), patch.object(
+        mock_subtensor,
+        "get_existential_deposit",
+        return_value=bittensor.Balance.from_rao(100_000),
+    ):
+        mock_balance = mock_subtensor.get_balance()
+        existential_deposit = mock_subtensor.get_existential_deposit()
+        if staking_balance > mock_balance - existential_deposit:
+            staking_balance = mock_balance - existential_deposit
+
         # Act
         if not hotkey_owner and not hotkey_delegate:
             with pytest.raises(exception):
@@ -506,9 +514,7 @@ def test_add_stake_multiple_extrinsic(
         mock_subtensor, "_do_stake", side_effect=stake_side_effect
     ) as mock_do_stake, patch.object(
         mock_subtensor, "tx_rate_limit", return_value=0
-    ), patch(
-        "rich.prompt.Confirm.ask", return_value=prompt_response
-    ) as mock_confirm:
+    ), patch("rich.prompt.Confirm.ask", return_value=prompt_response) as mock_confirm:
         # Act
         if exception:
             with pytest.raises(exception) as exc_info:

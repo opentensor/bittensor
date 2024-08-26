@@ -1,6 +1,7 @@
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 # Copyright © 2023 Opentensor Foundation
+from math import floor
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
@@ -16,11 +17,38 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import bittensor
 from rich.prompt import Confirm
 from time import sleep
-from typing import List, Union, Optional
+from typing import List, Union, Optional, Tuple
+
+import bittensor
+from ..utils.formatting import float_to_u64
+
 from bittensor.utils.balance import Balance
+
+
+def _check_threshold_amount(
+    subtensor: "bittensor.subtensor", stake_balance: Balance
+) -> Tuple[bool, Balance]:
+    """
+    Checks if the new stake balance will be above the minimum required stake threshold.
+
+    Args:
+        stake_balance (Balance):
+            the balance to check for threshold limits.
+
+    Returns:
+        success, threshold (bool, Balance):
+            ``true`` if the staking balance is above the threshold, or ``false`` if the
+                staking balance is below the threshold.
+            The threshold balance required to stake.
+    """
+    min_req_stake: Balance = subtensor.get_minimum_required_stake()
+
+    if min_req_stake > stake_balance:
+        return False, min_req_stake
+    else:
+        return True, min_req_stake
 
 
 def add_stake_extrinsic(
@@ -58,7 +86,13 @@ def add_stake_extrinsic(
             If the hotkey is not a delegate on the chain.
     """
     # Decrypt keys,
-    wallet.coldkey
+    try:
+        wallet.coldkey
+    except bittensor.KeyFileError:
+        bittensor.__console__.print(
+            ":cross_mark: [red]Keyfile is corrupt, non-writable, non-readable or the password used to decrypt is invalid[/red]:[bold white]\n  [/bold white]"
+        )
+        return False
 
     # Default to wallet's own hotkey if the value is not passed.
     if hotkey_ss58 is None:
@@ -91,8 +125,11 @@ def add_stake_extrinsic(
             coldkey_ss58=wallet.coldkeypub.ss58_address, hotkey_ss58=hotkey_ss58
         )
 
+        # Grab the existential deposit.
+        existential_deposit = subtensor.get_existential_deposit()
+
     # Convert to bittensor.Balance
-    if amount == None:
+    if amount is None:
         # Stake it all.
         staking_balance = bittensor.Balance.from_tao(old_balance.tao)
     elif not isinstance(amount, bittensor.Balance):
@@ -100,9 +137,10 @@ def add_stake_extrinsic(
     else:
         staking_balance = amount
 
-    # Remove existential balance to keep key alive.
-    if staking_balance > bittensor.Balance.from_rao(1000):
-        staking_balance = staking_balance - bittensor.Balance.from_rao(1000)
+    # Leave existential balance to keep key alive.
+    if staking_balance > old_balance - existential_deposit:
+        # If we are staking all, we need to leave at least the existential deposit.
+        staking_balance = old_balance - existential_deposit
     else:
         staking_balance = staking_balance
 
@@ -114,6 +152,18 @@ def add_stake_extrinsic(
             )
         )
         return False
+
+    # If nominating, we need to check if the new stake balance will be above the minimum required stake threshold.
+    if not own_hotkey:
+        new_stake_balance = old_stake + staking_balance
+        is_above_threshold, threshold = _check_threshold_amount(
+            subtensor, new_stake_balance
+        )
+        if not is_above_threshold:
+            bittensor.__console__.print(
+                f":cross_mark: [red]New stake balance of {new_stake_balance} is below the minimum required nomination stake threshold {threshold}.[/red]"
+            )
+            return False
 
     # Ask before moving on.
     if prompt:
@@ -148,7 +198,7 @@ def add_stake_extrinsic(
                 wait_for_finalization=wait_for_finalization,
             )
 
-        if staking_response == True:  # If we successfully staked.
+        if staking_response is True:  # If we successfully staked.
             # We only wait here if we expect finalization.
             if not wait_for_finalization and not wait_for_inclusion:
                 return True
@@ -167,7 +217,7 @@ def add_stake_extrinsic(
                 block = subtensor.get_current_block()
                 new_stake = subtensor.get_stake_for_coldkey_and_hotkey(
                     coldkey_ss58=wallet.coldkeypub.ss58_address,
-                    hotkey_ss58=wallet.hotkey.ss58_address,
+                    hotkey_ss58=hotkey_ss58,
                     block=block,
                 )  # Get current stake
 
@@ -188,7 +238,7 @@ def add_stake_extrinsic(
             )
             return False
 
-    except bittensor.errors.NotRegisteredError as e:
+    except bittensor.errors.NotRegisteredError:
         bittensor.__console__.print(
             ":cross_mark: [red]Hotkey: {} is not registered.[/red]".format(
                 wallet.hotkey_str
@@ -395,7 +445,7 @@ def add_stake_multiple_extrinsic(
                 )
                 continue
 
-        except bittensor.errors.NotRegisteredError as e:
+        except bittensor.errors.NotRegisteredError:
             bittensor.__console__.print(
                 ":cross_mark: [red]Hotkey: {} is not registered.[/red]".format(
                     hotkey_ss58
@@ -483,3 +533,151 @@ def __do_add_stake_single(
     )
 
     return success
+
+
+def set_children_extrinsic(
+    subtensor: "bittensor.subtensor",
+    wallet: "bittensor.wallet",
+    hotkey: str,
+    netuid: int,
+    children_with_proportions: List[Tuple[float, str]],
+    wait_for_inclusion: bool = True,
+    wait_for_finalization: bool = False,
+    prompt: bool = False,
+) -> Tuple[bool, str]:
+    """
+    Sets children hotkeys with proportions assigned from the parent.
+
+    Args:
+        subtensor (bittensor.subtensor): Subtensor endpoint to use.
+        wallet (bittensor.wallet): Bittensor wallet object.
+        hotkey (str): Parent hotkey.
+        children_with_proportions (List[str]): Children hotkeys.
+        netuid (int): Unique identifier of for the subnet.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
+        prompt (bool): If ``true``, the call waits for confirmation from the user before proceeding.
+
+    Returns:
+        Tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
+
+    Raises:
+        bittensor.errors.ChildHotkeyError: If the extrinsic fails to be finalized or included in the block.
+        bittensor.errors.NotRegisteredError: If the hotkey is not registered in any subnets.
+
+    """
+
+    # Decrypt coldkey.
+    wallet.coldkey
+
+    user_hotkey_ss58 = wallet.hotkey.ss58_address  # Default to wallet's own hotkey.
+    if hotkey != user_hotkey_ss58:
+        raise ValueError("Can only call  children for other hotkeys.")
+
+    # Check if all children are being revoked
+    all_revoked = all(prop == 0.0 for prop, _ in children_with_proportions)
+
+    operation = "Revoke all children hotkeys" if all_revoked else "Set children hotkeys"
+
+    # Ask before moving on.
+    if prompt:
+        if all_revoked:
+            if not Confirm.ask(
+                f"Do you want to revoke all children hotkeys for hotkey {hotkey}?"
+            ):
+                return False, "Operation Cancelled"
+        else:
+            if not Confirm.ask(
+                "Do you want to set children hotkeys:\n[bold white]{}[/bold white]?".format(
+                    "\n".join(
+                        f"  {child[1]}: {child[0]}"
+                        for child in children_with_proportions
+                    )
+                )
+            ):
+                return False, "Operation Cancelled"
+
+    with bittensor.__console__.status(
+        f":satellite: {operation} on [white]{subtensor.network}[/white] ..."
+    ):
+        try:
+            normalized_children = (
+                prepare_child_proportions(children_with_proportions)
+                if not all_revoked
+                else children_with_proportions
+            )
+
+            success, error_message = subtensor._do_set_children(
+                wallet=wallet,
+                hotkey=hotkey,
+                netuid=netuid,
+                children=normalized_children,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
+
+            if not wait_for_finalization and not wait_for_inclusion:
+                return (
+                    True,
+                    f"Not waiting for finalization or inclusion. {operation} initiated.",
+                )
+
+            if success:
+                bittensor.__console__.print(
+                    ":white_heavy_check_mark: [green]Finalized[/green]"
+                )
+                bittensor.logging.success(
+                    prefix=operation,
+                    suffix="<green>Finalized: </green>" + str(success),
+                )
+                return True, f"Successfully {operation.lower()} and Finalized."
+            else:
+                bittensor.__console__.print(
+                    f":cross_mark: [red]Failed[/red]: {error_message}"
+                )
+                bittensor.logging.warning(
+                    prefix=operation,
+                    suffix="<red>Failed: </red>" + str(error_message),
+                )
+                return False, error_message
+
+        except Exception as e:
+            return False, f"Exception occurred while {operation.lower()}: {str(e)}"
+
+
+def prepare_child_proportions(children_with_proportions):
+    """
+    Convert proportions to u64 and normalize
+    """
+    children_u64 = [
+        (float_to_u64(prop), child) for prop, child in children_with_proportions
+    ]
+    normalized_children = normalize_children_and_proportions(children_u64)
+    return normalized_children
+
+
+def normalize_children_and_proportions(
+    children: List[Tuple[int, str]],
+) -> List[Tuple[int, str]]:
+    """
+    Normalizes the proportions of children so that they sum to u64::MAX.
+    """
+    total = sum(prop for prop, _ in children)
+    u64_max = 2**64 - 1
+    normalized_children = [
+        (int(floor(prop * (u64_max - 1) / total)), child) for prop, child in children
+    ]
+    sum_norm = sum(prop for prop, _ in normalized_children)
+
+    # if the sum is more, subtract the excess from the first child
+    if sum_norm > u64_max:
+        if abs(sum_norm - u64_max) > 10:
+            raise ValueError(
+                "The sum of normalized proportions is out of the acceptable range."
+            )
+        normalized_children[0] = (
+            normalized_children[0][0] - (sum_norm - (u64_max - 1)),
+            normalized_children[0][1],
+        )
+
+    return normalized_children

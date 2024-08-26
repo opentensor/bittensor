@@ -15,10 +15,38 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
-import time
-import bittensor
 
+import time
+
+import substrateinterface
 from rich.prompt import Confirm
+
+import bittensor
+from bittensor.utils import format_error_message
+from ..commands.network import HYPERPARAMS
+
+
+def _find_event_attributes_in_extrinsic_receipt(
+    response: "substrateinterface.base.ExtrinsicReceipt", event_name: str
+) -> list:
+    """
+    Searches for the attributes of a specified event within an extrinsic receipt.
+
+    Args:
+        response (substrateinterface.base.ExtrinsicReceipt): The receipt of the extrinsic to be searched.
+        event_name (str): The name of the event to search for.
+
+    Returns:
+        list: A list of attributes for the specified event. Returns [-1] if the event is not found.
+    """
+    for event in response.triggered_events:
+        # Access the event details
+        event_details = event.value["event"]
+        # Check if the event_id is 'NetworkAdded'
+        if event_details["event_id"] == event_name:
+            # Once found, you can access the attributes of the event_name
+            return event_details["attributes"]
+    return [-1]
 
 
 def register_subnetwork_extrinsic(
@@ -59,7 +87,13 @@ def register_subnetwork_extrinsic(
         ):
             return False
 
-    wallet.coldkey  # unlock coldkey
+    try:
+        wallet.coldkey  # unlock coldkey
+    except bittensor.KeyFileError:
+        bittensor.__console__.print(
+            ":cross_mark: [red]Keyfile is corrupt, non-writable, non-readable or the password used to decrypt is invalid[/red]:[bold white]\n  [/bold white]"
+        )
+        return False
 
     with bittensor.__console__.status(":satellite: Registering subnet..."):
         with subtensor.substrate as substrate:
@@ -86,35 +120,19 @@ def register_subnetwork_extrinsic(
             response.process_events()
             if not response.is_success:
                 bittensor.__console__.print(
-                    ":cross_mark: [red]Failed[/red]: error:{}".format(
-                        response.error_message
-                    )
+                    f":cross_mark: [red]Failed[/red]: {format_error_message(response.error_message)}"
                 )
                 time.sleep(0.5)
 
             # Successful registration, final check for membership
             else:
-                attributes = find_event_attributes_in_extrinsic_receipt(
+                attributes = _find_event_attributes_in_extrinsic_receipt(
                     response, "NetworkAdded"
                 )
                 bittensor.__console__.print(
                     f":white_heavy_check_mark: [green]Registered subnetwork with netuid: {attributes[0]}[/green]"
                 )
                 return True
-
-
-def find_event_attributes_in_extrinsic_receipt(response, event_name) -> list:
-    for event in response.triggered_events:
-        # Access the event details
-        event_details = event.value["event"]
-        # Check if the event_id is 'NetworkAdded'
-        if event_details["event_id"] == event_name:
-            # Once found, you can access the attributes of the event_name
-            return event_details["attributes"]
-    return [-1]
-
-
-from ..commands.network import HYPERPARAMS
 
 
 def set_hyperparameter_extrinsic(
@@ -158,7 +176,7 @@ def set_hyperparameter_extrinsic(
     wallet.coldkey  # unlock coldkey
 
     extrinsic = HYPERPARAMS.get(parameter)
-    if extrinsic == None:
+    if extrinsic is None:
         bittensor.__console__.print(
             ":cross_mark: [red]Invalid hyperparameter specified.[/red]"
         )
@@ -171,16 +189,38 @@ def set_hyperparameter_extrinsic(
             extrinsic_params = substrate.get_metadata_call_function(
                 "AdminUtils", extrinsic
             )
-            value_argument = extrinsic_params["fields"][
-                len(extrinsic_params["fields"]) - 1
-            ]
+            call_params = {"netuid": netuid}
+
+            # if input value is a list, iterate through the list and assign values
+            if isinstance(value, list):
+                # Create an iterator for the list of values
+                value_iterator = iter(value)
+                # Iterate over all value arguments and add them to the call_params dictionary
+                for value_argument in extrinsic_params["fields"]:
+                    if "netuid" not in str(value_argument["name"]):
+                        # Assign the next value from the iterator
+                        try:
+                            call_params[str(value_argument["name"])] = next(
+                                value_iterator
+                            )
+                        except StopIteration:
+                            raise ValueError(
+                                "Not enough values provided in the list for all parameters"
+                            )
+
+            else:
+                value_argument = extrinsic_params["fields"][
+                    len(extrinsic_params["fields"]) - 1
+                ]
+                call_params[str(value_argument["name"])] = value
 
             # create extrinsic call
             call = substrate.compose_call(
                 call_module="AdminUtils",
                 call_function=extrinsic,
-                call_params={"netuid": netuid, str(value_argument["name"]): value},
+                call_params=call_params,
             )
+
             extrinsic = substrate.create_signed_extrinsic(
                 call=call, keypair=wallet.coldkey
             )
@@ -198,9 +238,7 @@ def set_hyperparameter_extrinsic(
             response.process_events()
             if not response.is_success:
                 bittensor.__console__.print(
-                    ":cross_mark: [red]Failed[/red]: error:{}".format(
-                        response.error_message
-                    )
+                    f":cross_mark: [red]Failed[/red]: {format_error_message(response.error_message)}"
                 )
                 time.sleep(0.5)
 
