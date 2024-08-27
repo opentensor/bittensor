@@ -583,7 +583,7 @@ def set_childkey_take_extrinsic(
     ):
         try:
             
-            if 0 < take < 0.18:
+            if 0 < take <= 0.18:
                 take_u16 = float_to_u16(take)
             else:
                 return False, "Invalid take value"
