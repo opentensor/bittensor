@@ -74,8 +74,8 @@ from .commands import (
     GetChildrenCommand,
     RevokeChildrenCommand,
     SetChildKeyTakeCommand,
+    GetChildKeyTakeCommand,
 )
-from .commands.stake import GetChildKeyTakeCommand
 
 # Create a console instance for CLI display.
 console = bittensor.__console__
