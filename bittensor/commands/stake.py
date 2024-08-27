@@ -1286,6 +1286,11 @@ class GetChildrenCommand:
                     f"[bold cyan]To add a child hotkey you can run the command: [white]{command}[/white][/bold cyan]"
                 )
             return
+        
+        console.print(
+            f"Parent Hotkey: {hotkey}  |  ", style="cyan", end="", no_wrap=True
+        )
+        console.print(f"Total Parent Stake: {hotkey_stake}τ")
 
         # calculate totals
         total_proportion = 0

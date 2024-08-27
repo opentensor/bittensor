@@ -4693,7 +4693,7 @@ class Subtensor:
         - block (Optional[int]): Optional parameter specifying the block number. Defaults to None.
 
         Returns:
-        - Optional[float]: The value of the "ChildkeyTake" if found, or None if any error occurs.
+        - Optional[int]: The value of the "ChildkeyTake" if found, or None if any error occurs.
         """
         try:
             childkey_take = self.query_subtensor(
