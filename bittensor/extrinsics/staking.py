@@ -568,10 +568,6 @@ def set_childkey_take_extrinsic(
 
     """
 
-    user_hotkey_ss58 = wallet.hotkey.ss58_address  # Default to wallet's own hotkey.
-    if hotkey != user_hotkey_ss58:
-        raise ValueError("You can only set childkey take for ss58 hotkey that you own.")
-
     # Ask before moving on.
     if prompt:
         if not Confirm.ask(
