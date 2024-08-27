@@ -89,17 +89,16 @@ def local_chain(request):
     if not already_running:
         # Terminate the process group (includes all child processes)
         os.killpg(os.getpgid(process.pid), signal.SIGTERM)
-    
+
         # Give some time for the process to terminate
         time.sleep(1)
-    
+
         # If the process is not terminated, send SIGKILL
         if process.poll() is None:
             os.killpg(os.getpgid(process.pid), signal.SIGKILL)
-    
+
         # Ensure the process has terminated
         process.wait()
 
     logging.info("Uninstalling neuron templates")
     uninstall_templates(templates_dir)
-    
