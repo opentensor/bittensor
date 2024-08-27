@@ -72,7 +72,8 @@ from .commands import (
     CheckColdKeySwapCommand,
     SetChildrenCommand,
     GetChildrenCommand,
-    RevokeChildrenCommand, SetChildKeyTakeCommand,
+    RevokeChildrenCommand, 
+    SetChildKeyTakeCommand,
 )
 from .commands.stake import GetChildKeyTakeCommand
 
