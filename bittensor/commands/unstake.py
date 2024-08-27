@@ -337,7 +337,7 @@ class RevokeChildrenCommand:
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         wallet = bittensor.wallet(config=cli.config)
-        
+
         # Get values if not set.
         if not cli.config.is_set("netuid"):
             cli.config.netuid = int(Prompt.ask("Enter netuid"))
@@ -358,9 +358,7 @@ class RevokeChildrenCommand:
             hotkey = Prompt.ask("Enter parent hotkey (ss58)")
 
         if not wallet_utils.is_valid_ss58_address(hotkey):
-            console.print(
-                f":cross_mark:[red] Invalid SS58 address: {hotkey}[/red]"
-            )
+            console.print(f":cross_mark:[red] Invalid SS58 address: {hotkey}[/red]")
             return
 
         success, message = subtensor.set_children(
@@ -441,4 +439,3 @@ class RevokeChildrenCommand:
         )
         bittensor.wallet.add_args(parser)
         bittensor.subtensor.add_args(parser)
-        

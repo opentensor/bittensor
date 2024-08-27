@@ -72,7 +72,7 @@ from .commands import (
     CheckColdKeySwapCommand,
     SetChildrenCommand,
     GetChildrenCommand,
-    RevokeChildrenCommand, 
+    RevokeChildrenCommand,
     SetChildKeyTakeCommand,
 )
 from .commands.stake import GetChildKeyTakeCommand

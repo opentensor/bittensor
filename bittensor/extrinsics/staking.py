@@ -574,7 +574,7 @@ def set_childkey_take_extrinsic(
             f"Do you want to set childkey take to: [bold white]{take*100}%[/bold white]?"
         ):
             return False, "Operation Cancelled"
-        
+
     # Decrypt coldkey.
     wallet.coldkey
 
@@ -582,7 +582,6 @@ def set_childkey_take_extrinsic(
         f":satellite: Setting childkey take on [white]{subtensor.network}[/white] ..."
     ):
         try:
-            
             if 0 < take <= 0.18:
                 take_u16 = float_to_u16(take)
             else:
@@ -686,13 +685,15 @@ def set_children_extrinsic(
     user_hotkey_ss58 = wallet.hotkey.ss58_address  # Default to wallet's own hotkey.
     if hotkey != user_hotkey_ss58:
         raise ValueError("Cannot set/revoke child hotkeys for others.")
-    
+
     with bittensor.__console__.status(
         f":satellite: {operation} on [white]{subtensor.network}[/white] ..."
     ):
         try:
             if not all_revoked:
-                normalized_children = prepare_child_proportions(children_with_proportions)
+                normalized_children = prepare_child_proportions(
+                    children_with_proportions
+                )
             else:
                 normalized_children = []
 
@@ -738,17 +739,22 @@ def prepare_child_proportions(children_with_proportions):
     """
     Convert proportions to u64 and normalize, ensuring total does not exceed u64 max.
     """
-    children_u64 = [(float_to_u64(proportion), child) for proportion, child in children_with_proportions]
+    children_u64 = [
+        (float_to_u64(proportion), child)
+        for proportion, child in children_with_proportions
+    ]
     total = sum(proportion for proportion, _ in children_u64)
 
-    if total > (2 ** 64 - 1):
-        excess = total - (2 ** 64 - 1)
-        if excess > (2 ** 64 * 0.01):  # Example threshold of 1% of u64 max
+    if total > (2**64 - 1):
+        excess = total - (2**64 - 1)
+        if excess > (2**64 * 0.01):  # Example threshold of 1% of u64 max
             raise ValueError("Excess is too great to normalize proportions")
-        largest_child_index = max(range(len(children_u64)), key=lambda i: children_u64[i][0])
+        largest_child_index = max(
+            range(len(children_u64)), key=lambda i: children_u64[i][0]
+        )
         children_u64[largest_child_index] = (
             children_u64[largest_child_index][0] - excess,
-            children_u64[largest_child_index][1]
+            children_u64[largest_child_index][1],
         )
 
     return children_u64

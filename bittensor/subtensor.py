@@ -101,7 +101,8 @@ from .extrinsics.set_weights import set_weights_extrinsic
 from .extrinsics.staking import (
     add_stake_extrinsic,
     add_stake_multiple_extrinsic,
-    set_children_extrinsic, set_childkey_take_extrinsic,
+    set_children_extrinsic,
+    set_childkey_take_extrinsic,
 )
 from .extrinsics.transfer import transfer_extrinsic
 from .extrinsics.unstaking import (
@@ -2300,7 +2301,7 @@ class Subtensor:
     ###################
     # Child hotkeys #
     ###################
-    
+
     def set_childkey_take(
         self,
         wallet: "bittensor.wallet",
@@ -2337,7 +2338,7 @@ class Subtensor:
             wait_for_finalization=wait_for_finalization,
             prompt=prompt,
         )
-    
+
     def _do_set_childkey_take(
         self,
         wallet: "bittensor.wallet",
@@ -2352,7 +2353,7 @@ class Subtensor:
         Args:
             wallet (:func:`bittensor.wallet`): Wallet object that can sign the extrinsic.
             hotkey: (str): Hotkey ``ss58`` address of the wallet for which take is getting set.
-            take: (int): The take that this ss58 hotkey will have if assigned as a child hotkey as u16 value. 
+            take: (int): The take that this ss58 hotkey will have if assigned as a child hotkey as u16 value.
             netuid (int): Unique identifier for the network.
             wait_for_inclusion (bool): If ``true``, waits for inclusion before returning.
             wait_for_finalization (bool): If ``true``, waits for finalization before returning.
@@ -4684,7 +4685,9 @@ class Subtensor:
         # Child Hotkey Information #
         ############################
 
-    def get_childkey_take(self, hotkey: str, netuid: int, block: Optional[int] = None) -> Optional[int]:
+    def get_childkey_take(
+        self, hotkey: str, netuid: int, block: Optional[int] = None
+    ) -> Optional[int]:
         """
         Get the childkey take of a hotkey on a specific network.
         Args:
@@ -4703,14 +4706,14 @@ class Subtensor:
             )
             if childkey_take:
                 return int(childkey_take.value)
-            
+
         except SubstrateRequestException as e:
             print(f"Error querying ChildKeys: {e}")
             return None
         except Exception as e:
             print(f"Unexpected error in get_children: {e}")
             return None
-        
+
     def get_children(self, hotkey, netuid) -> list[tuple[int, str]] | list[Any] | None:
         """
         Get the children of a hotkey on a specific network.
