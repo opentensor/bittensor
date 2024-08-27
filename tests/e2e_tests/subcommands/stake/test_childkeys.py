@@ -62,10 +62,10 @@ async def test_set_revoke_children_multiple(local_chain, capsys):
         # wait rate limit, until we are allowed to get children
 
         rate_limit = (
-                subtensor.query_constant(
-                    module_name="SubtensorModule", constant_name="InitialTempo"
-                ).value
-                * 2
+            subtensor.query_constant(
+                module_name="SubtensorModule", constant_name="InitialTempo"
+            ).value
+            * 2
         )
         curr_block = subtensor.get_current_block()
         await wait_interval(rate_limit + curr_block + 1, subtensor)
@@ -101,7 +101,6 @@ async def test_set_revoke_children_multiple(local_chain, capsys):
             "True",
             "--wait_for_finalization",
             "True",
-            
         ],
     )
 
@@ -114,8 +113,8 @@ async def test_set_revoke_children_multiple(local_chain, capsys):
 
     normalized_proportions = prepare_child_proportions(children_with_proportions)
     assert (
-            children_info[0][0] == normalized_proportions[0][0]
-            and children_info[1][0] == normalized_proportions[1][0]
+        children_info[0][0] == normalized_proportions[0][0]
+        and children_info[1][0] == normalized_proportions[1][0]
     ), "Incorrect proportions set"
 
     # Test 2: Get children information
@@ -161,7 +160,7 @@ async def test_set_revoke_children_multiple(local_chain, capsys):
     await wait()
 
     assert (
-            subtensor.get_children(netuid=1, hotkey=alice_keypair.ss58_address) == []
+        subtensor.get_children(netuid=1, hotkey=alice_keypair.ss58_address) == []
     ), "Failed to revoke children hotkeys"
 
     await wait()
@@ -204,7 +203,7 @@ async def test_set_revoke_childkey_take(local_chain, capsys):
     - Set a childkey take amount for Alice
     - Verify the setting operation was successful
     - Retrieve the set childkey take amount
-    - Verify the retrieved amount is correct 
+    - Verify the retrieved amount is correct
 
     This test ensures the proper functioning of setting and retrieving
     childkey take amounts in the staking system.
@@ -242,7 +241,10 @@ async def test_set_revoke_childkey_take(local_chain, capsys):
     )
 
     output = capsys.readouterr().out
-    assert "The childkey take for 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY is now \nset to 12.000%." in output
+    assert (
+        "The childkey take for 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY is now \nset to 12.000%."
+        in output
+    )
 
     # Test 1: Set multiple children
     alice_exec_command(
@@ -258,9 +260,12 @@ async def test_set_revoke_childkey_take(local_chain, capsys):
     )
 
     output = capsys.readouterr().out
-    assert "The childkey take for 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY is \n12.000%." in output
-    
-    
+    assert (
+        "The childkey take for 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY is \n12.000%."
+        in output
+    )
+
+
 @pytest.mark.asyncio
 async def test_set_revoke_children_singular(local_chain, capsys):
     """
@@ -310,10 +315,10 @@ async def test_set_revoke_children_singular(local_chain, capsys):
         # wait rate limit, until we are allowed to get children
 
         rate_limit = (
-                subtensor.query_constant(
-                    module_name="SubtensorModule", constant_name="InitialTempo"
-                ).value
-                * 2
+            subtensor.query_constant(
+                module_name="SubtensorModule", constant_name="InitialTempo"
+            ).value
+            * 2
         )
         curr_block = subtensor.get_current_block()
         await wait_interval(rate_limit + curr_block + 1, subtensor)
@@ -351,7 +356,7 @@ async def test_set_revoke_children_singular(local_chain, capsys):
             "True",
         ],
     )
-    
+
     output = capsys.readouterr().out
     assert "5FHn… │ 60.000%" in output
 
@@ -359,9 +364,9 @@ async def test_set_revoke_children_singular(local_chain, capsys):
 
     subtensor = bittensor.subtensor(network="ws://localhost:9945")
     children_info = subtensor.get_children(hotkey=alice_keypair.ss58_address, netuid=1)
-    
+
     assert len(children_info) == 1, "Failed to set child hotkeys"
-    
+
     # Test 2: Set second child
     alice_exec_command(
         SetChildrenCommand,
@@ -414,11 +419,11 @@ async def test_set_revoke_children_singular(local_chain, capsys):
     assert "5HGj… │ 40.000%" in output
 
     await wait()
-    
+
     subtensor = bittensor.subtensor(network="ws://localhost:9945")
     children_info = subtensor.get_children(hotkey=alice_keypair.ss58_address, netuid=1)
     assert len(children_info) == 1, "Failed to revoke child hotkey"
-    
+
     # Test 4: Revoke second child
     alice_exec_command(
         RevokeChildrenCommand,
@@ -443,7 +448,7 @@ async def test_set_revoke_children_singular(local_chain, capsys):
     subtensor = bittensor.subtensor(network="ws://localhost:9945")
     children_info = subtensor.get_children(hotkey=alice_keypair.ss58_address, netuid=1)
     assert len(children_info) == 0, "Failed to revoke child hotkey"
-    
+
     # Test 4: Get children after revocation
     alice_exec_command(
         GetChildrenCommand,
@@ -461,5 +466,7 @@ async def test_set_revoke_children_singular(local_chain, capsys):
         ],
     )
     output = capsys.readouterr().out
-    assert "There are currently no child hotkeys on subnet 1 with Parent HotKey \n5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY." in output
-
+    assert (
+        "There are currently no child hotkeys on subnet 1 with Parent HotKey \n5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY."
+        in output
+    )
