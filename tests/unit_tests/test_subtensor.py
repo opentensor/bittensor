@@ -233,7 +233,9 @@ def test_determine_chain_endpoint_and_network(
 def subtensor(mocker):
     fake_substrate = mocker.MagicMock()
     fake_substrate.websocket.sock.getsockopt.return_value = 0
-    mocker.patch.object(subtensor_module, "SubstrateInterface", return_value=fake_substrate)
+    mocker.patch.object(
+        subtensor_module, "SubstrateInterface", return_value=fake_substrate
+    )
     return Subtensor()
 
 
@@ -2164,7 +2166,8 @@ def test_get_transfer_fee(subtensor, mocker):
     )
 
     subtensor.substrate.get_payment_info.assert_called_once_with(
-        call=subtensor.substrate.compose_call.return_value, keypair=fake_wallet.coldkeypub
+        call=subtensor.substrate.compose_call.return_value,
+        keypair=fake_wallet.coldkeypub,
     )
 
     assert result == 2e10
@@ -2453,7 +2456,9 @@ def test_connect_without_substrate(mocker):
     # Prep
     fake_substrate = mocker.MagicMock()
     fake_substrate.websocket.sock.getsockopt.return_value = 1
-    mocker.patch.object(subtensor_module, "SubstrateInterface", return_value=fake_substrate)
+    mocker.patch.object(
+        subtensor_module, "SubstrateInterface", return_value=fake_substrate
+    )
     fake_subtensor = Subtensor()
     spy_get_substrate = mocker.spy(Subtensor, "_get_substrate")
 
@@ -2469,7 +2474,9 @@ def test_connect_with_substrate(mocker):
     # Prep
     fake_substrate = mocker.MagicMock()
     fake_substrate.websocket.sock.getsockopt.return_value = 0
-    mocker.patch.object(subtensor_module, "SubstrateInterface", return_value=fake_substrate)
+    mocker.patch.object(
+        subtensor_module, "SubstrateInterface", return_value=fake_substrate
+    )
     fake_subtensor = Subtensor()
     spy_get_substrate = mocker.spy(Subtensor, "_get_substrate")
 
@@ -2478,5 +2485,3 @@ def test_connect_with_substrate(mocker):
 
     # Assertions
     assert spy_get_substrate.call_count == 0
-
-

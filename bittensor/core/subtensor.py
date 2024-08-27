@@ -87,11 +87,15 @@ def _ensure_connected(func):
     @wraps(func)
     def wrapper(self, *args, **kwargs):
         # Check the socket state before method execution
-        if self.substrate.websocket.sock.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR) != 0:
+        if (
+            self.substrate.websocket.sock.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
+            != 0
+        ):
             logging.info("Reconnection substrate...")
             self._get_substrate()
         # Execute the method if the connection is active or after reconnecting
         return func(self, *args, **kwargs)
+
     return wrapper
 
 
@@ -200,7 +204,6 @@ class Subtensor:
                 "To get ahead of this change, please run a local subtensor node and point to it."
             )
 
-        self.substrate = None
         self.log_verbose = log_verbose
         self._get_substrate()
 
@@ -218,7 +221,7 @@ class Subtensor:
     def close(self):
         """Cleans up resources for this subtensor instance like active websocket connection and active extensions."""
         self.substrate.close()
-        
+
     def _get_substrate(self):
         """Establishes a connection to the Substrate node using configured parameters."""
         try:
@@ -230,7 +233,9 @@ class Subtensor:
                 type_registry=settings.TYPE_REGISTRY,
             )
             if self.log_verbose:
-                logging.info(f"Connected to {self.network} network and {self.chain_endpoint}.")
+                logging.info(
+                    f"Connected to {self.network} network and {self.chain_endpoint}."
+                )
 
         except ConnectionRefusedError:
             logging.error(
