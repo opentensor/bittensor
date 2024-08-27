@@ -692,11 +692,7 @@ def set_children_extrinsic(
     ):
         try:
             if not all_revoked:
-                normalized_children = (
-                    prepare_child_proportions(children_with_proportions)
-                    if not all_revoked
-                    else children_with_proportions
-                )
+                normalized_children = prepare_child_proportions(children_with_proportions)
             else:
                 normalized_children = []
 
