@@ -568,9 +568,6 @@ def set_childkey_take_extrinsic(
 
     """
 
-    # Decrypt coldkey.
-    wallet.coldkey
-
     user_hotkey_ss58 = wallet.hotkey.ss58_address  # Default to wallet's own hotkey.
     if hotkey != user_hotkey_ss58:
         raise ValueError("You can only set childkey take for ss58 hotkey that you own.")
@@ -581,6 +578,9 @@ def set_childkey_take_extrinsic(
             f"Do you want to set childkey take to: [bold white]{take*100}%[/bold white]?"
         ):
             return False, "Operation Cancelled"
+        
+    # Decrypt coldkey.
+    wallet.coldkey
 
     with bittensor.__console__.status(
         f":satellite: Setting childkey take on [white]{subtensor.network}[/white] ..."
@@ -664,7 +664,7 @@ def set_children_extrinsic(
     # Check if all children are being revoked
     all_revoked = len(children_with_proportions) == 0
 
-    operation = "Revoke children hotkeys" if all_revoked else "Set children hotkeys"
+    operation = "Revoking all child hotkeys" if all_revoked else "Setting child hotkeys"
 
     # Ask before moving on.
     if prompt:
@@ -683,7 +683,6 @@ def set_children_extrinsic(
                 )
             ):
                 return False, "Operation Cancelled"
-
 
     # Decrypt coldkey.
     wallet.coldkey

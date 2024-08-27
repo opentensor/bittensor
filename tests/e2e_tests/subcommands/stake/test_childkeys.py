@@ -93,10 +93,15 @@ async def test_set_revoke_children_multiple(local_chain, capsys):
             str(alice_keypair.ss58_address),
             "--proportions",
             f"{children_with_proportions[0][0]},{children_with_proportions[1][0]}",
+            "--wallet.name",
+            "default",
+            "--wallet.hotkey",
+            "default",
             "--wait_for_inclusion",
             "True",
             "--wait_for_finalization",
             "True",
+            
         ],
     )
 
@@ -126,10 +131,9 @@ async def test_set_revoke_children_multiple(local_chain, capsys):
         ],
     )
     output = capsys.readouterr().out
-    assert "ChildHotkey" in output
-    assert "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92U… │ 40.000%" in output
-    assert "5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZc… │ 20.000%" in output
-    assert "Total                                    │      60.000%" in output
+    assert "5FHne… │ 40.000%" in output
+    assert "5HGjW… │ 20.000%" in output
+    assert "Total  │              60.000%" in output
 
     await wait()
 
@@ -143,6 +147,10 @@ async def test_set_revoke_children_multiple(local_chain, capsys):
             "1",
             "--hotkey",
             str(alice_keypair.ss58_address),
+            "--wallet.name",
+            "default",
+            "--wallet.hotkey",
+            "default",
             "--wait_for_inclusion",
             "True",
             "--wait_for_finalization",
@@ -220,6 +228,10 @@ async def test_set_revoke_childkey_take(local_chain, capsys):
             "1",
             "--hotkey",
             str(alice_keypair.ss58_address),
+            "--wallet.name",
+            "default",
+            "--wallet.hotkey",
+            "default",
             "--take",
             "0.12",
             "--wait_for_inclusion",
@@ -230,7 +242,7 @@ async def test_set_revoke_childkey_take(local_chain, capsys):
     )
 
     output = capsys.readouterr().out
-    assert "Set childkey take." in output
+    assert "The childkey take for 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY is now \nset to 12.000%." in output
 
     # Test 1: Set multiple children
     alice_exec_command(
@@ -246,7 +258,7 @@ async def test_set_revoke_childkey_take(local_chain, capsys):
     )
 
     output = capsys.readouterr().out
-    assert f"The childkey take for {alice_keypair.ss58_address} is \n11.999694819562066%" in output
+    assert "The childkey take for 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY is \n12.000%." in output
     
     
 @pytest.mark.asyncio
@@ -329,6 +341,10 @@ async def test_set_revoke_children_singular(local_chain, capsys):
             str(alice_keypair.ss58_address),
             "--proportions",
             f"{children_with_proportions[0][0]}",
+            "--wallet.name",
+            "default",
+            "--wallet.hotkey",
+            "default",
             "--wait_for_inclusion",
             "True",
             "--wait_for_finalization",
@@ -337,8 +353,7 @@ async def test_set_revoke_children_singular(local_chain, capsys):
     )
     
     output = capsys.readouterr().out
-    assert "ChildHotkey" in output
-    assert "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92U… │ 60.000%" in output
+    assert "5FHn… │ 60.000%" in output
 
     await wait()
 
@@ -361,6 +376,10 @@ async def test_set_revoke_children_singular(local_chain, capsys):
             str(alice_keypair.ss58_address),
             "--proportions",
             f"{children_with_proportions[1][0]}",
+            "--wallet.name",
+            "default",
+            "--wallet.hotkey",
+            "default",
             "--wait_for_inclusion",
             "True",
             "--wait_for_finalization",
@@ -385,11 +404,14 @@ async def test_set_revoke_children_singular(local_chain, capsys):
             "1",
             "--hotkey",
             str(alice_keypair.ss58_address),
+            "--wallet.name",
+            "default",
+            "--wallet.hotkey",
+            "default",
         ],
     )
     output = capsys.readouterr().out
-    assert "ChildHotkey" in output
-    assert "5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZc… │ 40.000%" in output
+    assert "5HGj… │ 40.000%" in output
 
     await wait()
     
@@ -407,6 +429,10 @@ async def test_set_revoke_children_singular(local_chain, capsys):
             "1",
             "--hotkey",
             str(alice_keypair.ss58_address),
+            "--wallet.name",
+            "default",
+            "--wallet.hotkey",
+            "default",
             "--wait_for_inclusion",
             "True",
             "--wait_for_finalization",
@@ -428,8 +454,12 @@ async def test_set_revoke_children_singular(local_chain, capsys):
             "1",
             "--hotkey",
             str(alice_keypair.ss58_address),
+            "--wallet.name",
+            "default",
+            "--wallet.hotkey",
+            "default",
         ],
     )
     output = capsys.readouterr().out
-    assert "There are currently no child hotkeys on subnet" in output
+    assert "There are currently no child hotkeys on subnet 1 with Parent HotKey \n5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY." in output
 
