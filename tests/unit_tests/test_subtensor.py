@@ -229,17 +229,13 @@ def test_determine_chain_endpoint_and_network(
     assert result_endpoint == expected_endpoint
 
 
-# Subtensor().get_error_info_by_index tests
 @pytest.fixture
-def substrate():
-    class MockSubstrate:
-        pass
-
-    return MockSubstrate()
-
-
-@pytest.fixture
-def subtensor(substrate):
+def subtensor(mocker):
+    fake_substrate = mocker.MagicMock()
+    fake_substrate.websocket.sock.getsockopt.return_value = 0
+    mocker.patch.object(
+        subtensor_module, "SubstrateInterface", return_value=fake_substrate
+    )
     return Subtensor()
 
 
@@ -249,7 +245,6 @@ def mock_logger():
         yield mock_warning
 
 
-# Subtensor()._get_hyperparameter tests
 def test_hyperparameter_subnet_does_not_exist(subtensor, mocker):
     """Tests when the subnet does not exist."""
     subtensor.subnet_exists = mocker.MagicMock(return_value=False)
@@ -268,7 +263,6 @@ def test_hyperparameter_result_is_none(subtensor, mocker):
 
 def test_hyperparameter_result_has_no_value(subtensor, mocker):
     """Test when the result has no 'value' attribute."""
-
     subtensor.subnet_exists = mocker.MagicMock(return_value=True)
     subtensor.query_subtensor = mocker.MagicMock(return_value=None)
     assert subtensor._get_hyperparameter("Difficulty", 1, None) is None
@@ -869,20 +863,17 @@ def test_query_subtensor(subtensor, mocker):
     # Prep
     fake_name = "module_name"
 
-    mocked_substrate = mocker.MagicMock()
-    subtensor.substrate = mocked_substrate
-
     # Call
     result = subtensor.query_subtensor(fake_name)
 
     # Asserts
-    mocked_substrate.query.assert_called_once_with(
+    subtensor.substrate.query.assert_called_once_with(
         module="SubtensorModule",
         storage_function=fake_name,
         params=None,
         block_hash=None,
     )
-    assert result == mocked_substrate.query.return_value
+    assert result == subtensor.substrate.query.return_value
 
 
 def test_query_runtime_api(subtensor, mocker):
@@ -923,20 +914,17 @@ def test_query_map_subtensor(subtensor, mocker):
     # Prep
     fake_name = "module_name"
 
-    mocked_substrate = mocker.MagicMock()
-    subtensor.substrate = mocked_substrate
-
     # Call
     result = subtensor.query_map_subtensor(fake_name)
 
     # Asserts
-    mocked_substrate.query_map.assert_called_once_with(
+    subtensor.substrate.query_map.assert_called_once_with(
         module="SubtensorModule",
         storage_function=fake_name,
         params=None,
         block_hash=None,
     )
-    assert result == mocked_substrate.query_map.return_value
+    assert result == subtensor.substrate.query_map.return_value
 
 
 def test_state_call(subtensor, mocker):
@@ -944,18 +932,16 @@ def test_state_call(subtensor, mocker):
     # Prep
     fake_method = "method"
     fake_data = "data"
-    mocked_substrate = mocker.MagicMock()
-    subtensor.substrate = mocked_substrate
 
     # Call
     result = subtensor.state_call(fake_method, fake_data)
 
     # Asserts
-    mocked_substrate.rpc_request.assert_called_once_with(
+    subtensor.substrate.rpc_request.assert_called_once_with(
         method="state_call",
         params=[fake_method, fake_data],
     )
-    assert result == mocked_substrate.rpc_request.return_value
+    assert result == subtensor.substrate.rpc_request.return_value
 
 
 def test_query_map(subtensor, mocker):
@@ -963,20 +949,18 @@ def test_query_map(subtensor, mocker):
     # Prep
     fake_module_name = "module_name"
     fake_name = "constant_name"
-    mocked_substrate = mocker.MagicMock()
-    subtensor.substrate = mocked_substrate
 
     # Call
     result = subtensor.query_map(fake_module_name, fake_name)
 
     # Asserts
-    mocked_substrate.query_map.assert_called_once_with(
+    subtensor.substrate.query_map.assert_called_once_with(
         module=fake_module_name,
         storage_function=fake_name,
         params=None,
         block_hash=None,
     )
-    assert result == mocked_substrate.query_map.return_value
+    assert result == subtensor.substrate.query_map.return_value
 
 
 def test_query_constant(subtensor, mocker):
@@ -984,39 +968,35 @@ def test_query_constant(subtensor, mocker):
     # Prep
     fake_module_name = "module_name"
     fake_constant_name = "constant_name"
-    mocked_substrate = mocker.MagicMock()
-    subtensor.substrate = mocked_substrate
 
     # Call
     result = subtensor.query_constant(fake_module_name, fake_constant_name)
 
     # Asserts
-    mocked_substrate.get_constant.assert_called_once_with(
+    subtensor.substrate.get_constant.assert_called_once_with(
         module_name=fake_module_name,
         constant_name=fake_constant_name,
         block_hash=None,
     )
-    assert result == mocked_substrate.get_constant.return_value
+    assert result == subtensor.substrate.get_constant.return_value
 
 
-def test_query_module(subtensor, mocker):
+def test_query_module(subtensor):
     # Prep
     fake_module = "module"
     fake_name = "function_name"
-    mocked_substrate = mocker.MagicMock()
-    subtensor.substrate = mocked_substrate
 
     # Call
     result = subtensor.query_module(fake_module, fake_name)
 
     # Asserts
-    mocked_substrate.query.assert_called_once_with(
+    subtensor.substrate.query.assert_called_once_with(
         module=fake_module,
         storage_function=fake_name,
         params=None,
         block_hash=None,
     )
-    assert result == mocked_substrate.query.return_value
+    assert result == subtensor.substrate.query.return_value
 
 
 def test_metagraph(subtensor, mocker):
@@ -1058,18 +1038,14 @@ def test_get_netuids_for_hotkey(subtensor, mocker):
     assert result == []
 
 
-def test_get_current_block(subtensor, mocker):
+def test_get_current_block(subtensor):
     """Tests get_current_block call."""
-    # Prep
-    mocked_substrate = mocker.MagicMock()
-    subtensor.substrate = mocked_substrate
-
     # Call
     result = subtensor.get_current_block()
 
     # Asserts
-    mocked_substrate.get_block_number.assert_called_once_with(None)
-    assert result == mocked_substrate.get_block_number.return_value
+    subtensor.substrate.get_block_number.assert_called_once_with(None)
+    assert result == subtensor.substrate.get_block_number.return_value
 
 
 def test_is_hotkey_registered_any(subtensor, mocker):
@@ -1159,9 +1135,7 @@ def test_do_set_weights_is_success(subtensor, mocker):
     fake_wait_for_inclusion = True
     fake_wait_for_finalization = True
 
-    mocked_substrate = mocker.MagicMock()
-    mocked_substrate.submit_extrinsic.return_value.is_success = True
-    subtensor.substrate = mocked_substrate
+    subtensor.substrate.submit_extrinsic.return_value.is_success = True
 
     # Call
     result = subtensor._do_set_weights(
@@ -1175,7 +1149,7 @@ def test_do_set_weights_is_success(subtensor, mocker):
     )
 
     # Asserts
-    mocked_substrate.compose_call.assert_called_once_with(
+    subtensor.substrate.compose_call.assert_called_once_with(
         call_module="SubtensorModule",
         call_function="set_weights",
         call_params={
@@ -1186,19 +1160,19 @@ def test_do_set_weights_is_success(subtensor, mocker):
         },
     )
 
-    mocked_substrate.create_signed_extrinsic.assert_called_once_with(
-        call=mocked_substrate.compose_call.return_value,
+    subtensor.substrate.create_signed_extrinsic.assert_called_once_with(
+        call=subtensor.substrate.compose_call.return_value,
         keypair=fake_wallet.hotkey,
         era={"period": 5},
     )
 
-    mocked_substrate.submit_extrinsic.assert_called_once_with(
-        mocked_substrate.create_signed_extrinsic.return_value,
+    subtensor.substrate.submit_extrinsic.assert_called_once_with(
+        subtensor.substrate.create_signed_extrinsic.return_value,
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
     )
 
-    mocked_substrate.submit_extrinsic.return_value.process_events.assert_called_once()
+    subtensor.substrate.submit_extrinsic.return_value.process_events.assert_called_once()
     assert result == (True, "Successfully set weights.")
 
 
@@ -1212,10 +1186,7 @@ def test_do_set_weights_is_not_success(subtensor, mocker):
     fake_wait_for_inclusion = True
     fake_wait_for_finalization = True
 
-    mocked_substrate = mocker.MagicMock()
-    mocked_substrate.submit_extrinsic.return_value.is_success = False
-    subtensor.substrate = mocked_substrate
-
+    subtensor.substrate.submit_extrinsic.return_value.is_success = False
     mocked_format_error_message = mocker.MagicMock()
     subtensor_module.format_error_message = mocked_format_error_message
 
@@ -1231,7 +1202,7 @@ def test_do_set_weights_is_not_success(subtensor, mocker):
     )
 
     # Asserts
-    mocked_substrate.compose_call.assert_called_once_with(
+    subtensor.substrate.compose_call.assert_called_once_with(
         call_module="SubtensorModule",
         call_function="set_weights",
         call_params={
@@ -1242,21 +1213,21 @@ def test_do_set_weights_is_not_success(subtensor, mocker):
         },
     )
 
-    mocked_substrate.create_signed_extrinsic.assert_called_once_with(
-        call=mocked_substrate.compose_call.return_value,
+    subtensor.substrate.create_signed_extrinsic.assert_called_once_with(
+        call=subtensor.substrate.compose_call.return_value,
         keypair=fake_wallet.hotkey,
         era={"period": 5},
     )
 
-    mocked_substrate.submit_extrinsic.assert_called_once_with(
-        mocked_substrate.create_signed_extrinsic.return_value,
+    subtensor.substrate.submit_extrinsic.assert_called_once_with(
+        subtensor.substrate.create_signed_extrinsic.return_value,
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
     )
 
-    mocked_substrate.submit_extrinsic.return_value.process_events.assert_called_once()
+    subtensor.substrate.submit_extrinsic.return_value.process_events.assert_called_once()
     mocked_format_error_message.assert_called_once_with(
-        mocked_substrate.submit_extrinsic.return_value.error_message
+        subtensor.substrate.submit_extrinsic.return_value.error_message
     )
     assert result == (False, mocked_format_error_message.return_value)
 
@@ -1271,9 +1242,6 @@ def test_do_set_weights_no_waits(subtensor, mocker):
     fake_wait_for_inclusion = False
     fake_wait_for_finalization = False
 
-    mocked_substrate = mocker.MagicMock()
-    subtensor.substrate = mocked_substrate
-
     # Call
     result = subtensor._do_set_weights(
         wallet=fake_wallet,
@@ -1286,7 +1254,7 @@ def test_do_set_weights_no_waits(subtensor, mocker):
     )
 
     # Asserts
-    mocked_substrate.compose_call.assert_called_once_with(
+    subtensor.substrate.compose_call.assert_called_once_with(
         call_module="SubtensorModule",
         call_function="set_weights",
         call_params={
@@ -1297,14 +1265,14 @@ def test_do_set_weights_no_waits(subtensor, mocker):
         },
     )
 
-    mocked_substrate.create_signed_extrinsic.assert_called_once_with(
-        call=mocked_substrate.compose_call.return_value,
+    subtensor.substrate.create_signed_extrinsic.assert_called_once_with(
+        call=subtensor.substrate.compose_call.return_value,
         keypair=fake_wallet.hotkey,
         era={"period": 5},
     )
 
-    mocked_substrate.submit_extrinsic.assert_called_once_with(
-        mocked_substrate.create_signed_extrinsic.return_value,
+    subtensor.substrate.submit_extrinsic.assert_called_once_with(
+        subtensor.substrate.create_signed_extrinsic.return_value,
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
     )
@@ -1405,15 +1373,13 @@ def test_get_block_hash(subtensor, mocker):
     """Tests successful get_block_hash call."""
     # Prep
     fake_block_id = 123
-    mocked_substrate = mocker.MagicMock()
-    subtensor.substrate = mocked_substrate
 
     # Call
     result = subtensor.get_block_hash(fake_block_id)
 
     # Asserts
-    mocked_substrate.get_block_hash.assert_called_once_with(block_id=fake_block_id)
-    assert result == mocked_substrate.get_block_hash.return_value
+    subtensor.substrate.get_block_hash.assert_called_once_with(block_id=fake_block_id)
+    assert result == subtensor.substrate.get_block_hash.return_value
 
 
 def test_commit(subtensor, mocker):
@@ -1464,9 +1430,7 @@ def test_do_transfer_is_success_true(subtensor, mocker):
     fake_wait_for_inclusion = True
     fake_wait_for_finalization = True
 
-    mocked_substrate = mocker.MagicMock()
-    mocked_substrate.submit_extrinsic.return_value.is_success = True
-    subtensor.substrate = mocked_substrate
+    subtensor.substrate.submit_extrinsic.return_value.is_success = True
 
     # Call
     result = subtensor.do_transfer(
@@ -1478,23 +1442,23 @@ def test_do_transfer_is_success_true(subtensor, mocker):
     )
 
     # Asserts
-    mocked_substrate.compose_call.assert_called_once_with(
+    subtensor.substrate.compose_call.assert_called_once_with(
         call_module="Balances",
         call_function="transfer_allow_death",
         call_params={"dest": fake_dest, "value": fake_transfer_balance.rao},
     )
-    mocked_substrate.create_signed_extrinsic.assert_called_once_with(
-        call=mocked_substrate.compose_call.return_value, keypair=fake_wallet.coldkey
+    subtensor.substrate.create_signed_extrinsic.assert_called_once_with(
+        call=subtensor.substrate.compose_call.return_value, keypair=fake_wallet.coldkey
     )
-    mocked_substrate.submit_extrinsic.assert_called_once_with(
-        mocked_substrate.create_signed_extrinsic.return_value,
+    subtensor.substrate.submit_extrinsic.assert_called_once_with(
+        subtensor.substrate.create_signed_extrinsic.return_value,
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
     )
-    mocked_substrate.submit_extrinsic.return_value.process_events.assert_called_once()
+    subtensor.substrate.submit_extrinsic.return_value.process_events.assert_called_once()
     assert result == (
         True,
-        mocked_substrate.submit_extrinsic.return_value.block_hash,
+        subtensor.substrate.submit_extrinsic.return_value.block_hash,
         None,
     )
 
@@ -1508,9 +1472,7 @@ def test_do_transfer_is_success_false(subtensor, mocker):
     fake_wait_for_inclusion = True
     fake_wait_for_finalization = True
 
-    mocked_substrate = mocker.MagicMock()
-    mocked_substrate.submit_extrinsic.return_value.is_success = False
-    subtensor.substrate = mocked_substrate
+    subtensor.substrate.submit_extrinsic.return_value.is_success = False
 
     mocked_format_error_message = mocker.MagicMock()
     subtensor_module.format_error_message = mocked_format_error_message
@@ -1525,22 +1487,22 @@ def test_do_transfer_is_success_false(subtensor, mocker):
     )
 
     # Asserts
-    mocked_substrate.compose_call.assert_called_once_with(
+    subtensor.substrate.compose_call.assert_called_once_with(
         call_module="Balances",
         call_function="transfer_allow_death",
         call_params={"dest": fake_dest, "value": fake_transfer_balance.rao},
     )
-    mocked_substrate.create_signed_extrinsic.assert_called_once_with(
-        call=mocked_substrate.compose_call.return_value, keypair=fake_wallet.coldkey
+    subtensor.substrate.create_signed_extrinsic.assert_called_once_with(
+        call=subtensor.substrate.compose_call.return_value, keypair=fake_wallet.coldkey
     )
-    mocked_substrate.submit_extrinsic.assert_called_once_with(
-        mocked_substrate.create_signed_extrinsic.return_value,
+    subtensor.substrate.submit_extrinsic.assert_called_once_with(
+        subtensor.substrate.create_signed_extrinsic.return_value,
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
     )
-    mocked_substrate.submit_extrinsic.return_value.process_events.assert_called_once()
+    subtensor.substrate.submit_extrinsic.return_value.process_events.assert_called_once()
     mocked_format_error_message.assert_called_once_with(
-        mocked_substrate.submit_extrinsic.return_value.error_message
+        subtensor.substrate.submit_extrinsic.return_value.error_message
     )
     assert result == (False, None, mocked_format_error_message.return_value)
 
@@ -1554,9 +1516,6 @@ def test_do_transfer_no_waits(subtensor, mocker):
     fake_wait_for_inclusion = False
     fake_wait_for_finalization = False
 
-    mocked_substrate = mocker.MagicMock()
-    subtensor.substrate = mocked_substrate
-
     # Call
     result = subtensor.do_transfer(
         fake_wallet,
@@ -1567,16 +1526,16 @@ def test_do_transfer_no_waits(subtensor, mocker):
     )
 
     # Asserts
-    mocked_substrate.compose_call.assert_called_once_with(
+    subtensor.substrate.compose_call.assert_called_once_with(
         call_module="Balances",
         call_function="transfer_allow_death",
         call_params={"dest": fake_dest, "value": fake_transfer_balance.rao},
     )
-    mocked_substrate.create_signed_extrinsic.assert_called_once_with(
-        call=mocked_substrate.compose_call.return_value, keypair=fake_wallet.coldkey
+    subtensor.substrate.create_signed_extrinsic.assert_called_once_with(
+        call=subtensor.substrate.compose_call.return_value, keypair=fake_wallet.coldkey
     )
-    mocked_substrate.submit_extrinsic.assert_called_once_with(
-        mocked_substrate.create_signed_extrinsic.return_value,
+    subtensor.substrate.submit_extrinsic.assert_called_once_with(
+        subtensor.substrate.create_signed_extrinsic.return_value,
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
     )
@@ -1678,9 +1637,7 @@ def test_neuron_for_uid_response_none(subtensor, mocker):
         subtensor_module.NeuronInfo, "get_null_neuron"
     )
 
-    mocked_substrate = mocker.MagicMock()
-    mocked_substrate.rpc_request.return_value.get.return_value = None
-    subtensor.substrate = mocked_substrate
+    subtensor.substrate.rpc_request.return_value.get.return_value = None
 
     # Call
     result = subtensor.neuron_for_uid(
@@ -1688,10 +1645,10 @@ def test_neuron_for_uid_response_none(subtensor, mocker):
     )
 
     # Asserts
-    mocked_substrate.get_block_hash.assert_called_once_with(fake_block)
-    mocked_substrate.rpc_request.assert_called_once_with(
+    subtensor.substrate.get_block_hash.assert_called_once_with(fake_block)
+    subtensor.substrate.rpc_request.assert_called_once_with(
         method="neuronInfo_getNeuron",
-        params=[fake_netuid, fake_uid, mocked_substrate.get_block_hash.return_value],
+        params=[fake_netuid, fake_uid, subtensor.substrate.get_block_hash.return_value],
     )
 
     mocked_neuron_info.assert_called_once()
@@ -1708,23 +1665,20 @@ def test_neuron_for_uid_success(subtensor, mocker):
         subtensor_module.NeuronInfo, "from_vec_u8"
     )
 
-    mocked_substrate = mocker.MagicMock()
-    subtensor.substrate = mocked_substrate
-
     # Call
     result = subtensor.neuron_for_uid(
         uid=fake_uid, netuid=fake_netuid, block=fake_block
     )
 
     # Asserts
-    mocked_substrate.get_block_hash.assert_called_once_with(fake_block)
-    mocked_substrate.rpc_request.assert_called_once_with(
+    subtensor.substrate.get_block_hash.assert_called_once_with(fake_block)
+    subtensor.substrate.rpc_request.assert_called_once_with(
         method="neuronInfo_getNeuron",
-        params=[fake_netuid, fake_uid, mocked_substrate.get_block_hash.return_value],
+        params=[fake_netuid, fake_uid, subtensor.substrate.get_block_hash.return_value],
     )
 
     mocked_neuron_from_vec_u8.assert_called_once_with(
-        mocked_substrate.rpc_request.return_value.get.return_value
+        subtensor.substrate.rpc_request.return_value.get.return_value
     )
     assert result == mocked_neuron_from_vec_u8.return_value
 
@@ -1737,9 +1691,7 @@ def test_do_serve_prometheus_is_success(subtensor, mocker):
     fake_wait_for_inclusion = True
     fake_wait_for_finalization = True
 
-    mocked_substrate = mocker.MagicMock()
-    mocked_substrate.submit_extrinsic.return_value.is_success = True
-    subtensor.substrate = mocked_substrate
+    subtensor.substrate.submit_extrinsic.return_value.is_success = True
 
     # Call
     result = subtensor._do_serve_prometheus(
@@ -1750,24 +1702,24 @@ def test_do_serve_prometheus_is_success(subtensor, mocker):
     )
 
     # Asserts
-    mocked_substrate.compose_call.assert_called_once_with(
+    subtensor.substrate.compose_call.assert_called_once_with(
         call_module="SubtensorModule",
         call_function="serve_prometheus",
         call_params=fake_call_params,
     )
 
-    mocked_substrate.create_signed_extrinsic.assert_called_once_with(
-        call=mocked_substrate.compose_call.return_value,
+    subtensor.substrate.create_signed_extrinsic.assert_called_once_with(
+        call=subtensor.substrate.compose_call.return_value,
         keypair=fake_wallet.hotkey,
     )
 
-    mocked_substrate.submit_extrinsic.assert_called_once_with(
-        mocked_substrate.create_signed_extrinsic.return_value,
+    subtensor.substrate.submit_extrinsic.assert_called_once_with(
+        subtensor.substrate.create_signed_extrinsic.return_value,
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
     )
 
-    mocked_substrate.submit_extrinsic.return_value.process_events.assert_called_once()
+    subtensor.substrate.submit_extrinsic.return_value.process_events.assert_called_once()
     assert result == (True, None)
 
 
@@ -1779,9 +1731,7 @@ def test_do_serve_prometheus_is_not_success(subtensor, mocker):
     fake_wait_for_inclusion = True
     fake_wait_for_finalization = True
 
-    mocked_substrate = mocker.MagicMock()
-    mocked_substrate.submit_extrinsic.return_value.is_success = None
-    subtensor.substrate = mocked_substrate
+    subtensor.substrate.submit_extrinsic.return_value.is_success = None
 
     mocked_format_error_message = mocker.MagicMock()
     subtensor_module.format_error_message = mocked_format_error_message
@@ -1795,26 +1745,26 @@ def test_do_serve_prometheus_is_not_success(subtensor, mocker):
     )
 
     # Asserts
-    mocked_substrate.compose_call.assert_called_once_with(
+    subtensor.substrate.compose_call.assert_called_once_with(
         call_module="SubtensorModule",
         call_function="serve_prometheus",
         call_params=fake_call_params,
     )
 
-    mocked_substrate.create_signed_extrinsic.assert_called_once_with(
-        call=mocked_substrate.compose_call.return_value,
+    subtensor.substrate.create_signed_extrinsic.assert_called_once_with(
+        call=subtensor.substrate.compose_call.return_value,
         keypair=fake_wallet.hotkey,
     )
 
-    mocked_substrate.submit_extrinsic.assert_called_once_with(
-        mocked_substrate.create_signed_extrinsic.return_value,
+    subtensor.substrate.submit_extrinsic.assert_called_once_with(
+        subtensor.substrate.create_signed_extrinsic.return_value,
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
     )
 
-    mocked_substrate.submit_extrinsic.return_value.process_events.assert_called_once()
+    subtensor.substrate.submit_extrinsic.return_value.process_events.assert_called_once()
     mocked_format_error_message.assert_called_once_with(
-        mocked_substrate.submit_extrinsic.return_value.error_message
+        subtensor.substrate.submit_extrinsic.return_value.error_message
     )
     assert result == (False, mocked_format_error_message.return_value)
 
@@ -1827,9 +1777,6 @@ def test_do_serve_prometheus_no_waits(subtensor, mocker):
     fake_wait_for_inclusion = False
     fake_wait_for_finalization = False
 
-    mocked_substrate = mocker.MagicMock()
-    subtensor.substrate = mocked_substrate
-
     # Call
     result = subtensor._do_serve_prometheus(
         wallet=fake_wallet,
@@ -1839,19 +1786,19 @@ def test_do_serve_prometheus_no_waits(subtensor, mocker):
     )
 
     # Asserts
-    mocked_substrate.compose_call.assert_called_once_with(
+    subtensor.substrate.compose_call.assert_called_once_with(
         call_module="SubtensorModule",
         call_function="serve_prometheus",
         call_params=fake_call_params,
     )
 
-    mocked_substrate.create_signed_extrinsic.assert_called_once_with(
-        call=mocked_substrate.compose_call.return_value,
+    subtensor.substrate.create_signed_extrinsic.assert_called_once_with(
+        call=subtensor.substrate.compose_call.return_value,
         keypair=fake_wallet.hotkey,
     )
 
-    mocked_substrate.submit_extrinsic.assert_called_once_with(
-        mocked_substrate.create_signed_extrinsic.return_value,
+    subtensor.substrate.submit_extrinsic.assert_called_once_with(
+        subtensor.substrate.create_signed_extrinsic.return_value,
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
     )
@@ -1901,9 +1848,7 @@ def test_do_serve_axon_is_success(subtensor, mocker):
     fake_wait_for_inclusion = True
     fake_wait_for_finalization = True
 
-    mocked_substrate = mocker.MagicMock()
-    mocked_substrate.submit_extrinsic.return_value.is_success = True
-    subtensor.substrate = mocked_substrate
+    subtensor.substrate.submit_extrinsic.return_value.is_success = True
 
     # Call
     result = subtensor._do_serve_axon(
@@ -1914,24 +1859,24 @@ def test_do_serve_axon_is_success(subtensor, mocker):
     )
 
     # Asserts
-    mocked_substrate.compose_call.assert_called_once_with(
+    subtensor.substrate.compose_call.assert_called_once_with(
         call_module="SubtensorModule",
         call_function="serve_axon",
         call_params=fake_call_params,
     )
 
-    mocked_substrate.create_signed_extrinsic.assert_called_once_with(
-        call=mocked_substrate.compose_call.return_value,
+    subtensor.substrate.create_signed_extrinsic.assert_called_once_with(
+        call=subtensor.substrate.compose_call.return_value,
         keypair=fake_wallet.hotkey,
     )
 
-    mocked_substrate.submit_extrinsic.assert_called_once_with(
-        mocked_substrate.create_signed_extrinsic.return_value,
+    subtensor.substrate.submit_extrinsic.assert_called_once_with(
+        subtensor.substrate.create_signed_extrinsic.return_value,
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
     )
 
-    mocked_substrate.submit_extrinsic.return_value.process_events.assert_called_once()
+    subtensor.substrate.submit_extrinsic.return_value.process_events.assert_called_once()
     assert result == (True, None)
 
 
@@ -1943,9 +1888,7 @@ def test_do_serve_axon_is_not_success(subtensor, mocker):
     fake_wait_for_inclusion = True
     fake_wait_for_finalization = True
 
-    mocked_substrate = mocker.MagicMock()
-    mocked_substrate.submit_extrinsic.return_value.is_success = None
-    subtensor.substrate = mocked_substrate
+    subtensor.substrate.submit_extrinsic.return_value.is_success = None
 
     mocked_format_error_message = mocker.MagicMock()
     subtensor_module.format_error_message = mocked_format_error_message
@@ -1959,26 +1902,26 @@ def test_do_serve_axon_is_not_success(subtensor, mocker):
     )
 
     # Asserts
-    mocked_substrate.compose_call.assert_called_once_with(
+    subtensor.substrate.compose_call.assert_called_once_with(
         call_module="SubtensorModule",
         call_function="serve_axon",
         call_params=fake_call_params,
     )
 
-    mocked_substrate.create_signed_extrinsic.assert_called_once_with(
-        call=mocked_substrate.compose_call.return_value,
+    subtensor.substrate.create_signed_extrinsic.assert_called_once_with(
+        call=subtensor.substrate.compose_call.return_value,
         keypair=fake_wallet.hotkey,
     )
 
-    mocked_substrate.submit_extrinsic.assert_called_once_with(
-        mocked_substrate.create_signed_extrinsic.return_value,
+    subtensor.substrate.submit_extrinsic.assert_called_once_with(
+        subtensor.substrate.create_signed_extrinsic.return_value,
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
     )
 
-    mocked_substrate.submit_extrinsic.return_value.process_events.assert_called_once()
+    subtensor.substrate.submit_extrinsic.return_value.process_events.assert_called_once()
     mocked_format_error_message.assert_called_once_with(
-        mocked_substrate.submit_extrinsic.return_value.error_message
+        subtensor.substrate.submit_extrinsic.return_value.error_message
     )
     assert result == (False, mocked_format_error_message.return_value)
 
@@ -1991,9 +1934,6 @@ def test_do_serve_axon_no_waits(subtensor, mocker):
     fake_wait_for_inclusion = False
     fake_wait_for_finalization = False
 
-    mocked_substrate = mocker.MagicMock()
-    subtensor.substrate = mocked_substrate
-
     # Call
     result = subtensor._do_serve_axon(
         wallet=fake_wallet,
@@ -2003,19 +1943,19 @@ def test_do_serve_axon_no_waits(subtensor, mocker):
     )
 
     # Asserts
-    mocked_substrate.compose_call.assert_called_once_with(
+    subtensor.substrate.compose_call.assert_called_once_with(
         call_module="SubtensorModule",
         call_function="serve_axon",
         call_params=fake_call_params,
     )
 
-    mocked_substrate.create_signed_extrinsic.assert_called_once_with(
-        call=mocked_substrate.compose_call.return_value,
+    subtensor.substrate.create_signed_extrinsic.assert_called_once_with(
+        call=subtensor.substrate.compose_call.return_value,
         keypair=fake_wallet.hotkey,
     )
 
-    mocked_substrate.submit_extrinsic.assert_called_once_with(
-        mocked_substrate.create_signed_extrinsic.return_value,
+    subtensor.substrate.submit_extrinsic.assert_called_once_with(
+        subtensor.substrate.create_signed_extrinsic.return_value,
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
     )
@@ -2212,24 +2152,22 @@ def test_get_transfer_fee(subtensor, mocker):
     fake_dest = "SS58ADDRESS"
     value = 1
 
-    mocked_substrate = mocker.MagicMock()
-    subtensor.substrate = mocked_substrate
-
     fake_payment_info = {"partialFee": int(2e10)}
-    mocked_substrate.get_payment_info.return_value = fake_payment_info
+    subtensor.substrate.get_payment_info.return_value = fake_payment_info
 
     # Call
     result = subtensor.get_transfer_fee(wallet=fake_wallet, dest=fake_dest, value=value)
 
     # Asserts
-    mocked_substrate.compose_call.assert_called_once_with(
+    subtensor.substrate.compose_call.assert_called_once_with(
         call_module="Balances",
         call_function="transfer_allow_death",
         call_params={"dest": fake_dest, "value": value},
     )
 
-    mocked_substrate.get_payment_info.assert_called_once_with(
-        call=mocked_substrate.compose_call.return_value, keypair=fake_wallet.coldkeypub
+    subtensor.substrate.get_payment_info.assert_called_once_with(
+        call=subtensor.substrate.compose_call.return_value,
+        keypair=fake_wallet.coldkeypub,
     )
 
     assert result == 2e10
@@ -2343,9 +2281,7 @@ def test_do_commit_weights(subtensor, mocker):
     wait_for_inclusion = True
     wait_for_finalization = True
 
-    mocked_substrate = mocker.MagicMock()
-    mocked_substrate.submit_extrinsic.return_value.is_success = None
-    subtensor.substrate = mocked_substrate
+    subtensor.substrate.submit_extrinsic.return_value.is_success = None
 
     mocked_format_error_message = mocker.MagicMock()
     subtensor_module.format_error_message = mocked_format_error_message
@@ -2360,7 +2296,7 @@ def test_do_commit_weights(subtensor, mocker):
     )
 
     # Assertions
-    mocked_substrate.compose_call.assert_called_once_with(
+    subtensor.substrate.compose_call.assert_called_once_with(
         call_module="SubtensorModule",
         call_function="commit_weights",
         call_params={
@@ -2369,17 +2305,17 @@ def test_do_commit_weights(subtensor, mocker):
         },
     )
 
-    mocked_substrate.create_signed_extrinsic.assert_called_once_with(
-        call=mocked_substrate.compose_call.return_value, keypair=fake_wallet.hotkey
+    subtensor.substrate.create_signed_extrinsic.assert_called_once_with(
+        call=subtensor.substrate.compose_call.return_value, keypair=fake_wallet.hotkey
     )
 
-    mocked_substrate.submit_extrinsic.assert_called_once_with(
-        mocked_substrate.create_signed_extrinsic.return_value,
+    subtensor.substrate.submit_extrinsic.assert_called_once_with(
+        subtensor.substrate.create_signed_extrinsic.return_value,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
     )
 
-    mocked_substrate.submit_extrinsic.return_value.process_events.assert_called_once()
+    subtensor.substrate.submit_extrinsic.return_value.process_events.assert_called_once()
 
     assert result == (False, mocked_format_error_message.return_value)
 
@@ -2470,9 +2406,7 @@ def test_do_reveal_weights(subtensor, mocker):
     wait_for_inclusion = True
     wait_for_finalization = True
 
-    mocked_substrate = mocker.MagicMock()
-    mocked_substrate.submit_extrinsic.return_value.is_success = None
-    subtensor.substrate = mocked_substrate
+    subtensor.substrate.submit_extrinsic.return_value.is_success = None
 
     mocked_format_error_message = mocker.MagicMock()
     subtensor_module.format_error_message = mocked_format_error_message
@@ -2490,7 +2424,7 @@ def test_do_reveal_weights(subtensor, mocker):
     )
 
     # Asserts
-    mocked_substrate.compose_call.assert_called_once_with(
+    subtensor.substrate.compose_call.assert_called_once_with(
         call_module="SubtensorModule",
         call_function="reveal_weights",
         call_params={
@@ -2502,16 +2436,52 @@ def test_do_reveal_weights(subtensor, mocker):
         },
     )
 
-    mocked_substrate.create_signed_extrinsic.assert_called_once_with(
-        call=mocked_substrate.compose_call.return_value, keypair=fake_wallet.hotkey
+    subtensor.substrate.create_signed_extrinsic.assert_called_once_with(
+        call=subtensor.substrate.compose_call.return_value, keypair=fake_wallet.hotkey
     )
 
-    mocked_substrate.submit_extrinsic.assert_called_once_with(
-        mocked_substrate.create_signed_extrinsic.return_value,
+    subtensor.substrate.submit_extrinsic.assert_called_once_with(
+        subtensor.substrate.create_signed_extrinsic.return_value,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
     )
 
-    mocked_substrate.submit_extrinsic.return_value.process_events.assert_called_once()
+    subtensor.substrate.submit_extrinsic.return_value.process_events.assert_called_once()
 
     assert result == (False, mocked_format_error_message.return_value)
+
+
+def test_connect_without_substrate(mocker):
+    """Ensure re-connection is called when using an alive substrate."""
+    # Prep
+    fake_substrate = mocker.MagicMock()
+    fake_substrate.websocket.sock.getsockopt.return_value = 1
+    mocker.patch.object(
+        subtensor_module, "SubstrateInterface", return_value=fake_substrate
+    )
+    fake_subtensor = Subtensor()
+    spy_get_substrate = mocker.spy(Subtensor, "_get_substrate")
+
+    # Call
+    _ = fake_subtensor.block
+
+    # Assertions
+    assert spy_get_substrate.call_count == 1
+
+
+def test_connect_with_substrate(mocker):
+    """Ensure re-connection is non called when using an alive substrate."""
+    # Prep
+    fake_substrate = mocker.MagicMock()
+    fake_substrate.websocket.sock.getsockopt.return_value = 0
+    mocker.patch.object(
+        subtensor_module, "SubstrateInterface", return_value=fake_substrate
+    )
+    fake_subtensor = Subtensor()
+    spy_get_substrate = mocker.spy(Subtensor, "_get_substrate")
+
+    # Call
+    _ = fake_subtensor.block
+
+    # Assertions
+    assert spy_get_substrate.call_count == 0
