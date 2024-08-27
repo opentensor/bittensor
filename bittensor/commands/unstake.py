@@ -427,6 +427,18 @@ class RevokeChildrenCommand:
             default=True,
             help="""Prompt for confirmation before proceeding.""",
         )
+        parser.add_argument(
+            "--no_prompt",
+            dest="prompt",
+            action="store_false",
+            help="""Disable prompt for confirmation before proceeding.""",
+        )
+        parser.add_argument(
+            "--y",
+            dest="prompt",
+            action="store_false",
+            help="""Defaults to Yes for all prompts.""",
+        )
         bittensor.wallet.add_args(parser)
         bittensor.subtensor.add_args(parser)
         

@@ -417,7 +417,7 @@ class Subtensor:
             elif "127.0.0.1" in network or "localhost" in network:
                 return "local", network
             else:
-                return "unknown", network
+                return "unknown network", network
 
     @staticmethod
     def setup_config(network: str, config: "bittensor.config"):

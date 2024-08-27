@@ -621,11 +621,12 @@ class SetChildKeyTakeCommand:
         # get parent hotkey
         if wallet and wallet.hotkey:
             hotkey = wallet.hotkey.ss58_address
-            console.print(f"Hotkey is {hotkey}")
         elif cli.config.is_set("hotkey"):
             hotkey = cli.config.hotkey
+        elif cli.config.is_set("ss58"):
+            hotkey = cli.config.ss58 
         else:
-            hotkey = Prompt.ask("Enter child hotkey (ss58)")
+            hotkey = Prompt.ask("Enter hotkey (ss58)")
 
         if not wallet_utils.is_valid_ss58_address(hotkey):
             console.print(
@@ -665,6 +666,7 @@ class SetChildKeyTakeCommand:
             console.print(
                 ":white_heavy_check_mark: [green]Set childkey take.[/green]"
             )
+            console.print(f"The childkey take for {hotkey} is now set to {take * 100:.3f}%.")
         else:
             console.print(
                 f":cross_mark:[red] Unable to set childkey take.[/red] {message}"
@@ -676,8 +678,11 @@ class SetChildKeyTakeCommand:
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
             config.wallet.name = str(wallet_name)
         if not config.is_set("wallet.hotkey") and not config.no_prompt:
-            hotkey = Prompt.ask("Enter hotkey name", default=defaults.wallet.hotkey)
-            config.wallet.hotkey = str(hotkey)
+            hotkey_or_ss58 = Prompt.ask("Enter hotkey name or ss58", default=defaults.wallet.hotkey)
+            if wallet_utils.is_valid_ss58_address(hotkey_or_ss58):
+                config.ss58 = str(hotkey_or_ss58)
+            else:
+                config.wallet.hotkey = str(hotkey_or_ss58)
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
@@ -711,8 +716,20 @@ class SetChildKeyTakeCommand:
             "--prompt",
             dest="prompt",
             action="store_true",
-            default=False,
+            default=True,
             help="""Prompt for confirmation before proceeding.""",
+        )
+        set_childkey_take_parser.add_argument(
+            "--no_prompt",
+            dest="prompt",
+            action="store_false",
+            help="""Disable prompt for confirmation before proceeding.""",
+        )
+        set_childkey_take_parser.add_argument(
+            "--y",
+            dest="prompt",
+            action="store_false",
+            help="""Defaults to Yes for all prompts.""",
         )
         bittensor.wallet.add_args(set_childkey_take_parser)
         bittensor.subtensor.add_args(set_childkey_take_parser)
@@ -763,11 +780,12 @@ class GetChildKeyTakeCommand:
         # get parent hotkey
         if wallet and wallet.hotkey:
             hotkey = wallet.hotkey.ss58_address
-            console.print(f"Hotkey is {hotkey}")
         elif cli.config.is_set("hotkey"):
             hotkey = cli.config.hotkey
+        elif cli.config.is_set("ss58"):
+            hotkey = cli.config.ss58 
         else:
-            hotkey = Prompt.ask("Enter child hotkey (ss58)")
+            hotkey = Prompt.ask("Enter hotkey (ss58)")
 
         if not wallet_utils.is_valid_ss58_address(hotkey):
             console.print(
@@ -784,7 +802,7 @@ class GetChildKeyTakeCommand:
         if take_u16:
             take = u16_to_float(take_u16)
             console.print(
-                f"The childkey take for {hotkey} is {take * 100}%."
+                f"The childkey take for {hotkey} is {take * 100:.3f}%."
             )
         else:
             console.print(
@@ -797,8 +815,11 @@ class GetChildKeyTakeCommand:
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
             config.wallet.name = str(wallet_name)
         if not config.is_set("wallet.hotkey") and not config.no_prompt:
-            hotkey = Prompt.ask("Enter hotkey name", default=defaults.wallet.hotkey)
-            config.wallet.hotkey = str(hotkey)
+            hotkey_or_ss58 = Prompt.ask("Enter hotkey name or ss58", default=defaults.wallet.hotkey)
+            if wallet_utils.is_valid_ss58_address(hotkey_or_ss58):
+                config.ss58 = str(hotkey_or_ss58)
+            else:
+                config.wallet.hotkey = str(hotkey_or_ss58)
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
@@ -892,7 +913,7 @@ class SetChildrenCommand:
         elif cli.config.is_set("hotkey"):
             hotkey = cli.config.hotkey
         elif cli.config.is_set("ss58"):
-            hotkey = cli.config.ss58 
+            hotkey = cli.config.ss58
         else:
             hotkey = Prompt.ask("Enter parent hotkey (ss58)")
 
@@ -1044,6 +1065,18 @@ class SetChildrenCommand:
             action="store_true",
             default=True,
             help="""Prompt for confirmation before proceeding.""",
+        )
+        set_children_parser.add_argument(
+            "--no_prompt",
+            dest="prompt",
+            action="store_false",
+            help="""Disable prompt for confirmation before proceeding.""",
+        )
+        set_children_parser.add_argument(
+            "--y",
+            dest="prompt",
+            action="store_false",
+            help="""Defaults to Yes for all prompts.""",
         )
         bittensor.wallet.add_args(set_children_parser)
         bittensor.subtensor.add_args(set_children_parser)
@@ -1229,28 +1262,28 @@ class GetChildrenCommand:
         table = Table(
             show_header=True,
             header_style="bold magenta",
-            border_style="green",
-            style="green",
+            border_style="blue",
+            style="dim",
         )
 
         # Add columns to the table with specific styles
-        table.add_column("Index", style="cyan", no_wrap=True, justify="right")
-        table.add_column("ChildHotkey", style="cyan", no_wrap=True)
-        table.add_column("Proportion", style="cyan", no_wrap=True, justify="right")
-        table.add_column("Childkey Take", style="cyan", no_wrap=True, justify="right")
+        table.add_column("Index", style="bold yellow", no_wrap=True, justify="center")
+        table.add_column("ChildHotkey", style="bold green")
+        table.add_column("Proportion", style="bold cyan", no_wrap=True, justify="right")
+        table.add_column("Childkey Take", style="bold blue", no_wrap=True, justify="right")
         table.add_column(
-            "New Stake Weight", style="cyan", no_wrap=True, justify="right"
+            "Current Stake Weight", style="bold red", no_wrap=True, justify="right"
         )
 
         if not children:
             console.print(table)
             console.print(
-                f"There are currently no child hotkeys on subnet {netuid} with Parent HotKey {hotkey}."
+                f"[bold red]There are currently no child hotkeys on subnet {netuid} with Parent HotKey {hotkey}.[/bold red]"
             )
             if prompt:
                 command = f"btcli stake set_children --children <child_hotkey> --hotkey <parent_hotkey> --netuid {netuid} --proportion <float>"
                 console.print(
-                    f"To add a child hotkey you can run the command: [white]{command}[/white]"
+                    f"[bold cyan]To add a child hotkey you can run the command: [white]{command}[/white][/bold cyan]"
                 )
             return
 
@@ -1296,7 +1329,7 @@ class GetChildrenCommand:
             total_stake_weight += stake_weight
             take_str = f"{child_take * 100:.3f}%"
 
-            hotkey = Text(hotkey, style="red" if proportion == 0 else "")
+            hotkey = Text(hotkey, style="italic red" if proportion == 0 else "")
             table.add_row(
                 str(i),
                 hotkey,
@@ -1310,9 +1343,10 @@ class GetChildrenCommand:
         # add totals row
         table.add_row(
             "",
-            "Total",
-            f"{total_proportion:.3f}%",
-            f"(avg) {avg_take * 100:.3f}%",
-            f"{total_stake_weight:.3f}τ",
+            "[dim]Total[/dim]",
+            f"[dim]{total_proportion:.3f}%[/dim]",
+            f"[dim](avg) {avg_take * 100:.3f}%[/dim]",
+            f"[dim]{total_stake_weight:.3f}τ[/dim]",
+            style="dim"
         )
         console.print(table)
