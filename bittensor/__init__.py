@@ -40,7 +40,7 @@ if (NEST_ASYNCIO_ENV := os.getenv("NEST_ASYNCIO")) in ("1", None):
 
 
 # Bittensor code and protocol version.
-__version__ = "7.3.0"
+__version__ = "7.3.1"
 
 _version_split = __version__.split(".")
 __version_info__ = tuple(int(part) for part in _version_split)
@@ -125,12 +125,14 @@ __archive_entrypoint__ = "wss://archive.chain.opentensor.ai:443/"
 # Needs to use wss://
 __bellagene_entrypoint__ = "wss://parachain.opentensor.ai:443"
 
+
 if (
     BT_SUBTENSOR_CHAIN_ENDPOINT := os.getenv("BT_SUBTENSOR_CHAIN_ENDPOINT")
 ) is not None:
     __local_entrypoint__ = BT_SUBTENSOR_CHAIN_ENDPOINT
 else:
-    __local_entrypoint__ = "ws://127.0.0.1:9944"
+    __local_entrypoint__ = "ws://127.0.0.1:9946"
+
 
 __tao_symbol__: str = chr(0x03C4)
 
