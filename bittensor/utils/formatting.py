@@ -69,7 +69,7 @@ def float_to_u64(value: float) -> int:
         raise ValueError("Input value must be between 0 and 1")
 
     # Convert the float to a u64 value, take the floor value
-    return int(math.floor((value * (2 ** 64 - 1))))
+    return int(math.floor((value * (2**64 - 1))))
 
 
 def u64_to_float(value: int) -> float:
