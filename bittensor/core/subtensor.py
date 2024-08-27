@@ -24,6 +24,7 @@ import argparse
 import copy
 import socket
 import sys
+from functools import wraps
 from typing import List, Dict, Union, Optional, Tuple, TypedDict, Any
 
 import numpy as np
@@ -80,6 +81,18 @@ KEY_NONCE: Dict[str, int] = {}
 class ParamWithTypes(TypedDict):
     name: str  # Name of the parameter.
     type: str  # ScaleType string of the parameter.
+
+
+def _ensure_connected(func):
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        # Check the socket state before method execution
+        if self.substrate.websocket.sock.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR) != 0:
+            logging.info("Reconnection substrate...")
+            self._get_substrate()
+        # Execute the method if the connection is active or after reconnecting
+        return func(self, *args, **kwargs)
+    return wrapper
 
 
 class Subtensor:
@@ -187,41 +200,9 @@ class Subtensor:
                 "To get ahead of this change, please run a local subtensor node and point to it."
             )
 
-        # Attempt to connect to chosen endpoint. Fallback to finney if local unavailable.
-        try:
-            # Set up params.
-            self.substrate = SubstrateInterface(
-                ss58_format=settings.SS58_FORMAT,
-                use_remote_preset=True,
-                url=self.chain_endpoint,
-                type_registry=settings.TYPE_REGISTRY,
-            )
-        except ConnectionRefusedError:
-            logging.error(
-                f"Could not connect to {self.network} network with {self.chain_endpoint} chain endpoint. Exiting...",
-            )
-            logging.info(
-                "You can check if you have connectivity by running this command: nc -vz localhost "
-                f"{self.chain_endpoint.split(':')[2]}"
-            )
-            sys.exit(1)
-            # TODO (edu/phil): Advise to run local subtensor and point to dev docs.
-
-        try:
-            self.substrate.websocket.settimeout(600)
-        except AttributeError as e:
-            logging.warning(f"AttributeError: {e}")
-        except TypeError as e:
-            logging.warning(f"TypeError: {e}")
-        except (socket.error, OSError) as e:
-            logging.warning(f"Socket error: {e}")
-
-        if log_verbose:
-            logging.info(
-                f"Connected to {self.network} network and {self.chain_endpoint}."
-            )
-
-        self._subtensor_errors: Dict[str, Dict[str, str]] = {}
+        self.substrate = None
+        self.log_verbose = log_verbose
+        self._get_substrate()
 
     def __str__(self) -> str:
         if self.network == self.chain_endpoint:
@@ -237,6 +218,38 @@ class Subtensor:
     def close(self):
         """Cleans up resources for this subtensor instance like active websocket connection and active extensions."""
         self.substrate.close()
+        
+    def _get_substrate(self):
+        """Establishes a connection to the Substrate node using configured parameters."""
+        try:
+            # Set up params.
+            self.substrate = SubstrateInterface(
+                ss58_format=settings.SS58_FORMAT,
+                use_remote_preset=True,
+                url=self.chain_endpoint,
+                type_registry=settings.TYPE_REGISTRY,
+            )
+            if self.log_verbose:
+                logging.info(f"Connected to {self.network} network and {self.chain_endpoint}.")
+
+        except ConnectionRefusedError:
+            logging.error(
+                f"Could not connect to {self.network} network with {self.chain_endpoint} chain endpoint. Exiting...",
+            )
+            logging.info(
+                "You can check if you have connectivity by running this command: nc -vz localhost "
+                f"{self.chain_endpoint.split(':')[2]}"
+            )
+            sys.exit(1)
+
+        try:
+            self.substrate.websocket.settimeout(600)
+        except AttributeError as e:
+            logging.warning(f"AttributeError: {e}")
+        except TypeError as e:
+            logging.warning(f"TypeError: {e}")
+        except (socket.error, OSError) as e:
+            logging.warning(f"Socket error: {e}")
 
     @staticmethod
     def config() -> "Config":
@@ -383,6 +396,7 @@ class Subtensor:
             pass
 
     # Inner private functions
+    @_ensure_connected
     def _encode_params(
         self,
         call_definition: List["ParamWithTypes"],
@@ -427,6 +441,7 @@ class Subtensor:
         return result.value
 
     # Calls methods
+    @_ensure_connected
     def query_subtensor(
         self, name: str, block: Optional[int] = None, params: Optional[list] = None
     ) -> "ScaleType":
@@ -457,6 +472,7 @@ class Subtensor:
 
         return make_substrate_call_with_retry()
 
+    @_ensure_connected
     def query_map_subtensor(
         self, name: str, block: Optional[int] = None, params: Optional[list] = None
     ) -> "QueryMapResult":
@@ -539,6 +555,7 @@ class Subtensor:
 
         return obj.decode()
 
+    @_ensure_connected
     def state_call(
         self, method: str, data: str, block: Optional[int] = None
     ) -> Dict[Any, Any]:
@@ -566,6 +583,7 @@ class Subtensor:
 
         return make_substrate_call_with_retry()
 
+    @_ensure_connected
     def query_map(
         self,
         module: str,
@@ -601,6 +619,7 @@ class Subtensor:
 
         return make_substrate_call_with_retry()
 
+    @_ensure_connected
     def query_constant(
         self, module_name: str, constant_name: str, block: Optional[int] = None
     ) -> Optional["ScaleType"]:
@@ -630,6 +649,7 @@ class Subtensor:
 
         return make_substrate_call_with_retry()
 
+    @_ensure_connected
     def query_module(
         self,
         module: str,
@@ -753,6 +773,7 @@ class Subtensor:
             else []
         )
 
+    @_ensure_connected
     def get_current_block(self) -> int:
         """
         Returns the current block number on the Bittensor blockchain. This function provides the latest block number, indicating the most recent state of the blockchain.
@@ -828,6 +849,7 @@ class Subtensor:
         else:
             return self.is_hotkey_registered_on_subnet(hotkey_ss58, netuid, block)
 
+    @_ensure_connected
     def do_set_weights(
         self,
         wallet: "Wallet",
@@ -1002,6 +1024,7 @@ class Subtensor:
         call = self._get_hyperparameter(param_name="LastUpdate", netuid=netuid)
         return None if call is None else self.get_current_block() - int(call[uid])
 
+    @_ensure_connected
     def get_block_hash(self, block_id: int) -> str:
         """
         Retrieves the hash of a specific block on the Bittensor blockchain. The block hash is a unique identifier representing the cryptographic hash of the block's content, ensuring its integrity and immutability.
@@ -1059,6 +1082,7 @@ class Subtensor:
         )
         return None if call is None else int(call)
 
+    @_ensure_connected
     def do_transfer(
         self,
         wallet: "Wallet",
@@ -1170,6 +1194,7 @@ class Subtensor:
             block=block,
         )
 
+    @_ensure_connected
     def neuron_for_uid(
         self, uid: Optional[int], netuid: int, block: Optional[int] = None
     ) -> NeuronInfo:
@@ -1208,6 +1233,7 @@ class Subtensor:
         return NeuronInfo.from_vec_u8(result)
 
     # Community uses this method via `bittensor.api.extrinsics.prometheus.prometheus_extrinsic`
+    @_ensure_connected
     def do_serve_prometheus(
         self,
         wallet: "Wallet",
@@ -1290,6 +1316,7 @@ class Subtensor:
         )
 
     # Community uses this method as part of `subtensor.serve_axon`
+    @_ensure_connected
     def do_serve_axon(
         self,
         wallet: "Wallet",
@@ -1731,6 +1758,7 @@ class Subtensor:
         return w_map
 
     # Used by community via `transfer_extrinsic`
+    @_ensure_connected
     def get_balance(self, address: str, block: Optional[int] = None) -> Balance:
         """
         Retrieves the token balance of a specific address within the Bittensor network. This function queries the blockchain to determine the amount of Tao held by a given account.
@@ -1767,6 +1795,7 @@ class Subtensor:
         return Balance(result.value["data"]["free"])
 
     # Used in community via `bittensor.core.subtensor.Subtensor.transfer`
+    @_ensure_connected
     def get_transfer_fee(
         self, wallet: "Wallet", dest: str, value: Union["Balance", float, int]
     ) -> "Balance":
@@ -1917,6 +1946,7 @@ class Subtensor:
         return success, message
 
     # Community uses this method
+    @_ensure_connected
     def _do_commit_weights(
         self,
         wallet: "Wallet",
@@ -2040,6 +2070,7 @@ class Subtensor:
         return success, message
 
     # Community uses this method
+    @_ensure_connected
     def _do_reveal_weights(
         self,
         wallet: "Wallet",
