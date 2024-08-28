@@ -4686,7 +4686,7 @@ class Subtensor:
         ############################
 
     def get_childkey_take(
-        self, hotkey: str, netuid: int, block: Optional[int] = None
+            self, hotkey: str, netuid: int, block: Optional[int] = None
     ) -> Optional[int]:
         """
         Get the childkey take of a hotkey on a specific network.
@@ -4713,6 +4713,7 @@ class Subtensor:
         except Exception as e:
             print(f"Unexpected error in get_children: {e}")
             return None
+        return None
 
     def get_children(self, hotkey, netuid) -> list[tuple[int, str]] | list[Any] | None:
         """
