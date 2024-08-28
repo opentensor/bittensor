@@ -40,8 +40,13 @@ from ..utils.formatting import u64_to_float, u16_to_float
 
 console = bittensor.__console__
 
+MAX_CHILDREN = 5
 
-def get_netuid(cli, subtensor):
+
+def get_netuid(
+    cli: "bittensor.cli", subtensor: "bittensor.subtensor"
+) -> Tuple[bool, int]:
+    """Retrieve and validate the netuid from the user or configuration."""
     console = Console()
     if not cli.config.is_set("netuid"):
         try:
@@ -63,6 +68,7 @@ def get_netuid(cli, subtensor):
 
 
 def get_hotkey(wallet: "bittensor.wallet", config: "bittensor.config") -> str:
+    """Retrieve the hotkey from the wallet or config."""
     if wallet and wallet.hotkey:
         return wallet.hotkey.ss58_address
     elif config.is_set("hotkey"):
@@ -937,7 +943,7 @@ class SetChildrenCommand:
         proposed_children = [str(x) for x in re.split(r"[ ,]+", cli.config.children)]
 
         # Set max 5 children
-        if len(proposed_children) > 5:
+        if len(proposed_children) > MAX_CHILDREN:
             console.print(
                 ":cross_mark:[red] Too many children. Maximum 5 children per hotkey[/red]"
             )
