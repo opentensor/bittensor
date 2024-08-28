@@ -47,7 +47,9 @@ def get_netuid(cli, subtensor):
         try:
             cli.config.netuid = int(Prompt.ask("Enter netuid"))
         except ValueError:
-            console.print("[red]Invalid input. Please enter a valid integer for netuid.[/red]")
+            console.print(
+                "[red]Invalid input. Please enter a valid integer for netuid.[/red]"
+            )
             return False, -1
     netuid = cli.config.netuid
     if not subtensor.subnet_exists(netuid=netuid):
@@ -203,7 +205,7 @@ class StakeCommand:
                 # If the max_stake is greater than the current wallet balance, stake the entire balance.
                 stake_amount_tao: float = min(stake_amount_tao, wallet_balance.tao)
                 if (
-                        stake_amount_tao <= 0.00001
+                    stake_amount_tao <= 0.00001
                 ):  # Threshold because of fees, might create a loop otherwise
                     # Skip hotkey if max_stake is less than current stake.
                     continue
@@ -226,13 +228,13 @@ class StakeCommand:
         # Ask to stake
         if not config.no_prompt:
             if not Confirm.ask(
-                    f"Do you want to stake to the following keys from {wallet.name}:\n"
-                    + "".join(
-                        [
-                            f"    [bold white]- {hotkey[0] + ':' if hotkey[0] else ''}{hotkey[1]}: {f'{amount} {bittensor.__tao_symbol__}' if amount else 'All'}[/bold white]\n"
-                            for hotkey, amount in zip(final_hotkeys, final_amounts)
-                        ]
-                    )
+                f"Do you want to stake to the following keys from {wallet.name}:\n"
+                + "".join(
+                    [
+                        f"    [bold white]- {hotkey[0] + ':' if hotkey[0] else ''}{hotkey[1]}: {f'{amount} {bittensor.__tao_symbol__}' if amount else 'All'}[/bold white]\n"
+                        for hotkey, amount in zip(final_hotkeys, final_amounts)
+                    ]
+                )
             ):
                 return None
 
@@ -261,24 +263,24 @@ class StakeCommand:
             config.wallet.name = str(wallet_name)
 
         if (
-                not config.is_set("wallet.hotkey")
-                and not config.no_prompt
-                and not config.wallet.get("all_hotkeys")
-                and not config.wallet.get("hotkeys")
+            not config.is_set("wallet.hotkey")
+            and not config.no_prompt
+            and not config.wallet.get("all_hotkeys")
+            and not config.wallet.get("hotkeys")
         ):
             hotkey = Prompt.ask("Enter hotkey name", default=defaults.wallet.hotkey)
             config.wallet.hotkey = str(hotkey)
 
         # Get amount.
         if (
-                not config.get("amount")
-                and not config.get("stake_all")
-                and not config.get("max_stake")
+            not config.get("amount")
+            and not config.get("stake_all")
+            and not config.get("max_stake")
         ):
             if not Confirm.ask(
-                    "Stake all Tao from account: [bold]'{}'[/bold]?".format(
-                        config.wallet.get("name", defaults.wallet.name)
-                    )
+                "Stake all Tao from account: [bold]'{}'[/bold]?".format(
+                    config.wallet.get("name", defaults.wallet.name)
+                )
             ):
                 amount = Prompt.ask("Enter Tao amount to stake")
                 try:
@@ -357,8 +359,8 @@ def _get_hotkey_wallets_for_wallet(wallet) -> List["bittensor.wallet"]:
                 path=wallet.path, name=wallet.name, hotkey=hotkey_file_name
             )
             if (
-                    hotkey_for_name.hotkey_file.exists_on_device()
-                    and not hotkey_for_name.hotkey_file.is_encrypted()
+                hotkey_for_name.hotkey_file.exists_on_device()
+                and not hotkey_for_name.hotkey_file.is_encrypted()
             ):
                 hotkey_wallets.append(hotkey_for_name)
         except Exception:
@@ -421,7 +423,7 @@ class StakeShow:
         )
 
         def get_stake_accounts(
-                wallet, subtensor
+            wallet, subtensor
         ) -> Dict[str, Dict[str, Union[str, Balance]]]:
             """Get stake account details for the given wallet.
 
@@ -450,7 +452,7 @@ class StakeShow:
             }
 
         def get_stakes_from_hotkeys(
-                subtensor, wallet
+            subtensor, wallet
         ) -> Dict[str, Dict[str, Union[str, Balance]]]:
             """Fetch stakes from hotkeys for the provided wallet.
 
@@ -467,8 +469,8 @@ class StakeShow:
                     [
                         n.emission
                         for n in subtensor.get_all_neurons_for_pubkey(
-                        hot.hotkey.ss58_address
-                    )
+                            hot.hotkey.ss58_address
+                        )
                     ]
                 )
                 hotkey_stake = subtensor.get_stake_for_coldkey_and_hotkey(
@@ -483,7 +485,7 @@ class StakeShow:
             return stakes
 
         def get_stakes_from_delegates(
-                subtensor, wallet
+            subtensor, wallet
         ) -> Dict[str, Dict[str, Union[str, Balance]]]:
             """Fetch stakes from delegates for the provided wallet.
 
@@ -509,13 +511,13 @@ class StakeShow:
                             "name": delegate_name,
                             "stake": nom[1],
                             "rate": dele.total_daily_return.tao
-                                    * (nom[1] / dele.total_stake.tao),
+                            * (nom[1] / dele.total_stake.tao),
                         }
             return stakes
 
         def get_all_wallet_accounts(
-                wallets,
-                subtensor,
+            wallets,
+            subtensor,
         ) -> List[Dict[str, Dict[str, Union[str, Balance]]]]:
             """Fetch stake accounts for all provided wallets using a ThreadPool.
 
@@ -580,9 +582,9 @@ class StakeShow:
     @staticmethod
     def check_config(config: "bittensor.config"):
         if (
-                not config.get("all", d=None)
-                and not config.is_set("wallet.name")
-                and not config.no_prompt
+            not config.get("all", d=None)
+            and not config.is_set("wallet.name")
+            and not config.no_prompt
         ):
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
             config.wallet.name = str(wallet_name)
@@ -648,7 +650,6 @@ class SetChildKeyTakeCommand:
         if not wallet_utils.is_valid_ss58_address(hotkey):
             console.print(f":cross_mark:[red] Invalid SS58 address: {hotkey}[/red]")
             return
-
 
         if not cli.config.is_set("take"):
             cli.config.take = Prompt.ask(
@@ -794,7 +795,6 @@ class GetChildKeyTakeCommand:
             console.print(f":cross_mark:[red] Invalid SS58 address: {hotkey}[/red]")
             return
 
-
         take_u16 = subtensor.get_childkey_take(
             netuid=netuid,
             hotkey=hotkey,
@@ -907,7 +907,6 @@ class SetChildrenCommand:
         if not wallet_utils.is_valid_ss58_address(hotkey):
             console.print(f":cross_mark:[red] Invalid SS58 address: {hotkey}[/red]")
             return
-
 
         # get current children
         curr_children = GetChildrenCommand.retrieve_children(
@@ -1074,9 +1073,7 @@ class SetChildrenCommand:
         console = Console()
         parent_stake = subtensor.get_total_stake_for_hotkey(ss58_address=hotkey)
         console.print("Current Status:")
-        console.print(
-            f"My Hotkey: {hotkey}  |  ", style="cyan", end="", no_wrap=True
-        )
+        console.print(f"My Hotkey: {hotkey}  |  ", style="cyan", end="", no_wrap=True)
         console.print(f"Total Stake: {parent_stake}τ")
         for child in children:
             child_stake = subtensor.get_total_stake_for_hotkey(child)
@@ -1143,16 +1140,29 @@ class GetChildrenCommand:
             return
 
         try:
-            netuids = subtensor.get_all_subnet_netuids() if cli.config.is_set("all") else [netuid]
-            hotkey_stake = GetChildrenCommand.get_parent_stake_info(console, subtensor, hotkey)
+            netuids = (
+                subtensor.get_all_subnet_netuids()
+                if cli.config.is_set("all")
+                else [netuid]
+            )
+            hotkey_stake = GetChildrenCommand.get_parent_stake_info(
+                console, subtensor, hotkey
+            )
             for netuid in netuids:
                 children = subtensor.get_children(hotkey, netuid)
                 if children:
                     GetChildrenCommand.render_table(
-                        subtensor, hotkey, hotkey_stake, children, netuid, not cli.config.is_set("all")
+                        subtensor,
+                        hotkey,
+                        hotkey_stake,
+                        children,
+                        netuid,
+                        not cli.config.is_set("all"),
                     )
         except Exception as e:
-            console.print(f":cross_mark:[red] An error occurred while retrieving children: {str(e)}[/red]")
+            console.print(
+                f":cross_mark:[red] An error occurred while retrieving children: {str(e)}[/red]"
+            )
             return
 
         return children
@@ -1168,7 +1178,7 @@ class GetChildrenCommand:
 
     @staticmethod
     def retrieve_children(
-            subtensor: "bittensor.subtensor", hotkey: str, netuid: int, render_table: bool
+        subtensor: "bittensor.subtensor", hotkey: str, netuid: int, render_table: bool
     ) -> list[tuple[int, str]]:
         """
 
@@ -1194,7 +1204,9 @@ class GetChildrenCommand:
             return children
         except Exception as e:
             console = Console()
-            console.print(f":cross_mark:[red] An error occurred while retrieving children: {str(e)}[/red]")
+            console.print(
+                f":cross_mark:[red] An error occurred while retrieving children: {str(e)}[/red]"
+            )
             return []
 
     @staticmethod
@@ -1218,19 +1230,24 @@ class GetChildrenCommand:
         )
         parser.add_argument("--netuid", dest="netuid", type=int, required=False)
         parser.add_argument("--hotkey", dest="hotkey", type=str, required=False)
-        parser.add_argument('--all', dest='all', action='store_true', help='Retrieve children from all subnets.')
+        parser.add_argument(
+            "--all",
+            dest="all",
+            action="store_true",
+            help="Retrieve children from all subnets.",
+        )
 
         bittensor.wallet.add_args(parser)
         bittensor.subtensor.add_args(parser)
 
     @staticmethod
     def render_table(
-            subtensor: "bittensor.subtensor",
-            hotkey: str,
-            hotkey_stake: "Balance",
-            children: list[Tuple[int, str]],
-            netuid: int,
-            prompt: bool,
+        subtensor: "bittensor.subtensor",
+        hotkey: str,
+        hotkey_stake: "Balance",
+        children: list[Tuple[int, str]],
+        netuid: int,
+        prompt: bool,
     ):
         """
 

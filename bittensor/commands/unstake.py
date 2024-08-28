@@ -403,7 +403,6 @@ class RevokeChildrenCommand:
             else:
                 config.wallet.hotkey = str(hotkey_or_ss58)
 
-
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
         parser = parser.add_parser(
