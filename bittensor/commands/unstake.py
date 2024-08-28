@@ -351,9 +351,10 @@ class RevokeChildrenCommand:
         # get parent hotkey
         if wallet and wallet.hotkey:
             hotkey = wallet.hotkey.ss58_address
-            console.print(f"Hotkey is {hotkey}")
         elif cli.config.is_set("hotkey"):
             hotkey = cli.config.hotkey
+        elif cli.config.is_set("ss58"):
+            hotkey = cli.config.ss58
         else:
             hotkey = Prompt.ask("Enter parent hotkey (ss58)")
 
@@ -394,8 +395,14 @@ class RevokeChildrenCommand:
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
             config.wallet.name = str(wallet_name)
         if not config.is_set("wallet.hotkey") and not config.no_prompt:
-            hotkey = Prompt.ask("Enter hotkey name", default=defaults.wallet.hotkey)
-            config.wallet.hotkey = str(hotkey)
+            hotkey_or_ss58 = Prompt.ask(
+                "Enter hotkey name or ss58", default=defaults.wallet.hotkey
+            )
+            if wallet_utils.is_valid_ss58_address(hotkey_or_ss58):
+                config.ss58 = str(hotkey_or_ss58)
+            else:
+                config.wallet.hotkey = str(hotkey_or_ss58)
+
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
@@ -426,16 +433,11 @@ class RevokeChildrenCommand:
             help="""Prompt for confirmation before proceeding.""",
         )
         parser.add_argument(
+            "--y",
             "--no_prompt",
             dest="prompt",
             action="store_false",
-            help="""Disable prompt for confirmation before proceeding.""",
-        )
-        parser.add_argument(
-            "--y",
-            dest="prompt",
-            action="store_false",
-            help="""Defaults to Yes for all prompts.""",
+            help="""Disable prompt for confirmation before proceeding. Defaults to Yes for all prompts.""",
         )
         bittensor.wallet.add_args(parser)
         bittensor.subtensor.add_args(parser)

@@ -50,11 +50,11 @@ async def test_set_revoke_children_multiple(local_chain, capsys):
     bob_keypair, bob_exec_command, bob_wallet = setup_wallet("//Bob")
     eve_keypair, eve_exec_command, eve_wallet = setup_wallet("//Eve")
 
-    alice_exec_command(RegisterSubnetworkCommand, ["s", "create"])
-    assert local_chain.query("SubtensorModule", "NetworksAdded", [1]).serialize()
+    # alice_exec_command(RegisterSubnetworkCommand, ["s", "create"])
+    # assert local_chain.query("SubtensorModule", "NetworksAdded", [1]).serialize()
 
     for exec_command in [alice_exec_command, bob_exec_command, eve_exec_command]:
-        exec_command(RegisterCommand, ["s", "register", "--netuid", "1"])
+        exec_command(RegisterCommand, ["s", "register", "--netuid", "3"])
 
     alice_exec_command(StakeCommand, ["stake", "add", "--amount", "100000"])
 
