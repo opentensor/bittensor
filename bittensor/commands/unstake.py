@@ -433,6 +433,7 @@ class RevokeChildrenCommand:
         )
         parser.add_argument(
             "--y",
+            "--yes",
             "--no_prompt",
             dest="prompt",
             action="store_false",

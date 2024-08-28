@@ -743,6 +743,7 @@ class SetChildKeyTakeCommand:
         )
         set_childkey_take_parser.add_argument(
             "--y",
+            "--yes",
             "--no_prompt",
             dest="prompt",
             action="store_false",
@@ -1060,6 +1061,7 @@ class SetChildrenCommand:
         )
         set_children_parser.add_argument(
             "--y",
+            "--yes",
             "--no_prompt",
             dest="prompt",
             action="store_false",
