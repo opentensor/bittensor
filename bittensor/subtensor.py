@@ -4686,7 +4686,7 @@ class Subtensor:
         ############################
 
     def get_childkey_take(
-            self, hotkey: str, netuid: int, block: Optional[int] = None
+        self, hotkey: str, netuid: int, block: Optional[int] = None
     ) -> Optional[int]:
         """
         Get the childkey take of a hotkey on a specific network.
