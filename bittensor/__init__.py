@@ -131,7 +131,7 @@ if (
 ) is not None:
     __local_entrypoint__ = BT_SUBTENSOR_CHAIN_ENDPOINT
 else:
-    __local_entrypoint__ = "ws://127.0.0.1:9946"
+    __local_entrypoint__ = "ws://127.0.0.1:9944"
 
 
 __tao_symbol__: str = chr(0x03C4)
