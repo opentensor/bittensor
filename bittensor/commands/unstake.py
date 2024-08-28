@@ -26,6 +26,7 @@ import bittensor
 from bittensor.utils.balance import Balance
 from . import defaults, GetChildrenCommand
 from .utils import get_hotkey_wallets_for_wallet
+from ..utils import wallet_utils
 
 console = bittensor.__console__
 
@@ -341,28 +342,31 @@ class RevokeChildrenCommand:
         if not cli.config.is_set("netuid"):
             cli.config.netuid = int(Prompt.ask("Enter netuid"))
 
-        if not cli.config.is_set("hotkey"):
-            cli.config.hotkey = Prompt.ask("Enter parent hotkey (ss58)")
-
-        # Get and display current children information
-        current_children = GetChildrenCommand.retrieve_children(
-            subtensor=subtensor,
-            hotkey=cli.config.hotkey,
-            netuid=cli.config.netuid,
-            render_table=False,
-        )
-
-        # Parse from strings
         netuid = cli.config.netuid
+        total_subnets = subtensor.get_total_subnets()
+        if total_subnets is not None and not (0 <= netuid < total_subnets):
+            console.print("Netuid is outside the current subnet range")
+            return
 
-        # Prepare children with zero proportions
-        children_with_zero_proportions = [(0.0, child[1]) for child in current_children]
+        # get parent hotkey
+        if wallet and wallet.hotkey:
+            hotkey = wallet.hotkey.ss58_address
+        elif cli.config.is_set("hotkey"):
+            hotkey = cli.config.hotkey
+        elif cli.config.is_set("ss58"):
+            hotkey = cli.config.ss58
+        else:
+            hotkey = Prompt.ask("Enter parent hotkey (ss58)")
+
+        if not wallet_utils.is_valid_ss58_address(hotkey):
+            console.print(f":cross_mark:[red] Invalid SS58 address: {hotkey}[/red]")
+            return
 
         success, message = subtensor.set_children(
             wallet=wallet,
             netuid=netuid,
-            children_with_proportions=children_with_zero_proportions,
-            hotkey=cli.config.hotkey,
+            children_with_proportions=[],
+            hotkey=hotkey,
             wait_for_inclusion=cli.config.wait_for_inclusion,
             wait_for_finalization=cli.config.wait_for_finalization,
             prompt=cli.config.prompt,
@@ -373,8 +377,8 @@ class RevokeChildrenCommand:
             if cli.config.wait_for_finalization and cli.config.wait_for_inclusion:
                 GetChildrenCommand.retrieve_children(
                     subtensor=subtensor,
-                    hotkey=cli.config.hotkey,
-                    netuid=cli.config.netuid,
+                    hotkey=hotkey,
+                    netuid=netuid,
                     render_table=True,
                 )
             console.print(
@@ -391,8 +395,13 @@ class RevokeChildrenCommand:
             wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
             config.wallet.name = str(wallet_name)
         if not config.is_set("wallet.hotkey") and not config.no_prompt:
-            hotkey = Prompt.ask("Enter hotkey name", default=defaults.wallet.hotkey)
-            config.wallet.hotkey = str(hotkey)
+            hotkey_or_ss58 = Prompt.ask(
+                "Enter hotkey name or ss58", default=defaults.wallet.hotkey
+            )
+            if wallet_utils.is_valid_ss58_address(hotkey_or_ss58):
+                config.ss58 = str(hotkey_or_ss58)
+            else:
+                config.wallet.hotkey = str(hotkey_or_ss58)
 
     @staticmethod
     def add_args(parser: argparse.ArgumentParser):
@@ -405,22 +414,30 @@ class RevokeChildrenCommand:
             "--wait_for_inclusion",
             dest="wait_for_inclusion",
             action="store_true",
-            default=False,
+            default=True,
             help="""Wait for the transaction to be included in a block.""",
         )
         parser.add_argument(
             "--wait_for_finalization",
             dest="wait_for_finalization",
             action="store_true",
-            default=False,
+            default=True,
             help="""Wait for the transaction to be finalized.""",
         )
         parser.add_argument(
             "--prompt",
             dest="prompt",
             action="store_true",
-            default=False,
+            default=True,
             help="""Prompt for confirmation before proceeding.""",
+        )
+        parser.add_argument(
+            "--y",
+            "--yes",
+            "--no_prompt",
+            dest="prompt",
+            action="store_false",
+            help="""Disable prompt for confirmation before proceeding. Defaults to Yes for all prompts.""",
         )
         bittensor.wallet.add_args(parser)
         bittensor.subtensor.add_args(parser)
