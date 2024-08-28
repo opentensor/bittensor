@@ -1,7 +1,6 @@
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 # Copyright © 2023 Opentensor Foundation
-from math import floor
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
@@ -22,9 +21,11 @@ from time import sleep
 from typing import List, Union, Optional, Tuple
 
 import bittensor
-from ..utils.formatting import float_to_u64
+from ..utils.formatting import float_to_u64, float_to_u16
 
 from bittensor.utils.balance import Balance
+
+console = bittensor.__console__
 
 
 def _check_threshold_amount(
@@ -535,6 +536,95 @@ def __do_add_stake_single(
     return success
 
 
+def set_childkey_take_extrinsic(
+    subtensor: "bittensor.subtensor",
+    wallet: "bittensor.wallet",
+    hotkey: str,
+    netuid: int,
+    take: float,
+    wait_for_inclusion: bool = True,
+    wait_for_finalization: bool = False,
+    prompt: bool = False,
+) -> Tuple[bool, str]:
+    """
+    Sets childkey take.
+
+    Args:
+        subtensor (bittensor.subtensor): Subtensor endpoint to use.
+        wallet (bittensor.wallet): Bittensor wallet object.
+        hotkey (str): Childkey hotkey.
+        take (float): Childkey take value.
+        netuid (int): Unique identifier of for the subnet.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
+        prompt (bool): If ``true``, the call waits for confirmation from the user before proceeding.
+
+    Returns:
+        Tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
+
+    Raises:
+        bittensor.errors.ChildHotkeyError: If the extrinsic fails to be finalized or included in the block.
+        bittensor.errors.NotRegisteredError: If the hotkey is not registered in any subnets.
+
+    """
+
+    # Ask before moving on.
+    if prompt:
+        if not Confirm.ask(
+            f"Do you want to set childkey take to: [bold white]{take*100}%[/bold white]?"
+        ):
+            return False, "Operation Cancelled"
+
+    # Decrypt coldkey.
+    wallet.coldkey
+
+    with bittensor.__console__.status(
+        f":satellite: Setting childkey take on [white]{subtensor.network}[/white] ..."
+    ):
+        try:
+            if 0 < take <= 0.18:
+                take_u16 = float_to_u16(take)
+            else:
+                return False, "Invalid take value"
+
+            success, error_message = subtensor._do_set_childkey_take(
+                wallet=wallet,
+                hotkey=hotkey,
+                netuid=netuid,
+                take=take_u16,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
+
+            if not wait_for_finalization and not wait_for_inclusion:
+                return (
+                    True,
+                    "Not waiting for finalization or inclusion. Set childkey take initiated.",
+                )
+
+            if success:
+                bittensor.__console__.print(
+                    ":white_heavy_check_mark: [green]Finalized[/green]"
+                )
+                bittensor.logging.success(
+                    prefix="Setting childkey take",
+                    suffix="<green>Finalized: </green>" + str(success),
+                )
+                return True, "Successfully set childkey take and Finalized."
+            else:
+                bittensor.__console__.print(
+                    f":cross_mark: [red]Failed[/red]: {error_message}"
+                )
+                bittensor.logging.warning(
+                    prefix="Setting childkey take",
+                    suffix="<red>Failed: </red>" + str(error_message),
+                )
+                return False, error_message
+
+        except Exception as e:
+            return False, f"Exception occurred while setting childkey take: {str(e)}"
+
+
 def set_children_extrinsic(
     subtensor: "bittensor.subtensor",
     wallet: "bittensor.wallet",
@@ -566,18 +656,10 @@ def set_children_extrinsic(
         bittensor.errors.NotRegisteredError: If the hotkey is not registered in any subnets.
 
     """
-
-    # Decrypt coldkey.
-    wallet.coldkey
-
-    user_hotkey_ss58 = wallet.hotkey.ss58_address  # Default to wallet's own hotkey.
-    if hotkey != user_hotkey_ss58:
-        raise ValueError("Can only call  children for other hotkeys.")
-
     # Check if all children are being revoked
-    all_revoked = all(prop == 0.0 for prop, _ in children_with_proportions)
+    all_revoked = len(children_with_proportions) == 0
 
-    operation = "Revoke all children hotkeys" if all_revoked else "Set children hotkeys"
+    operation = "Revoking all child hotkeys" if all_revoked else "Setting child hotkeys"
 
     # Ask before moving on.
     if prompt:
@@ -588,7 +670,7 @@ def set_children_extrinsic(
                 return False, "Operation Cancelled"
         else:
             if not Confirm.ask(
-                "Do you want to set children hotkeys:\n[bold white]{}[/bold white]?".format(
+                "Do you want to set children hotkeys with proportions:\n[bold white]{}[/bold white]?".format(
                     "\n".join(
                         f"  {child[1]}: {child[0]}"
                         for child in children_with_proportions
@@ -597,15 +679,23 @@ def set_children_extrinsic(
             ):
                 return False, "Operation Cancelled"
 
+    # Decrypt coldkey.
+    wallet.coldkey
+
+    user_hotkey_ss58 = wallet.hotkey.ss58_address  # Default to wallet's own hotkey.
+    if hotkey != user_hotkey_ss58:
+        raise ValueError("Cannot set/revoke child hotkeys for others.")
+
     with bittensor.__console__.status(
         f":satellite: {operation} on [white]{subtensor.network}[/white] ..."
     ):
         try:
-            normalized_children = (
-                prepare_child_proportions(children_with_proportions)
-                if not all_revoked
-                else children_with_proportions
-            )
+            if not all_revoked:
+                normalized_children = prepare_child_proportions(
+                    children_with_proportions
+                )
+            else:
+                normalized_children = []
 
             success, error_message = subtensor._do_set_children(
                 wallet=wallet,
@@ -647,37 +737,24 @@ def set_children_extrinsic(
 
 def prepare_child_proportions(children_with_proportions):
     """
-    Convert proportions to u64 and normalize
+    Convert proportions to u64 and normalize, ensuring total does not exceed u64 max.
     """
     children_u64 = [
-        (float_to_u64(prop), child) for prop, child in children_with_proportions
+        (float_to_u64(proportion), child)
+        for proportion, child in children_with_proportions
     ]
-    normalized_children = normalize_children_and_proportions(children_u64)
-    return normalized_children
+    total = sum(proportion for proportion, _ in children_u64)
 
-
-def normalize_children_and_proportions(
-    children: List[Tuple[int, str]],
-) -> List[Tuple[int, str]]:
-    """
-    Normalizes the proportions of children so that they sum to u64::MAX.
-    """
-    total = sum(prop for prop, _ in children)
-    u64_max = 2**64 - 1
-    normalized_children = [
-        (int(floor(prop * (u64_max - 1) / total)), child) for prop, child in children
-    ]
-    sum_norm = sum(prop for prop, _ in normalized_children)
-
-    # if the sum is more, subtract the excess from the first child
-    if sum_norm > u64_max:
-        if abs(sum_norm - u64_max) > 10:
-            raise ValueError(
-                "The sum of normalized proportions is out of the acceptable range."
-            )
-        normalized_children[0] = (
-            normalized_children[0][0] - (sum_norm - (u64_max - 1)),
-            normalized_children[0][1],
+    if total > (2**64 - 1):
+        excess = total - (2**64 - 1)
+        if excess > (2**64 * 0.01):  # Example threshold of 1% of u64 max
+            raise ValueError("Excess is too great to normalize proportions")
+        largest_child_index = max(
+            range(len(children_u64)), key=lambda i: children_u64[i][0]
+        )
+        children_u64[largest_child_index] = (
+            children_u64[largest_child_index][0] - excess,
+            children_u64[largest_child_index][1],
         )
 
-    return normalized_children
+    return children_u64
