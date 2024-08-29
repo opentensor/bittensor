@@ -40,6 +40,7 @@ def read_requirements(path):
 
 
 requirements = read_requirements("requirements/prod.txt")
+extra_requirements_btcli = read_requirements("requirements/btcli.txt")
 extra_requirements_dev = read_requirements("requirements/dev.txt")
 extra_requirements_cubit = read_requirements("requirements/cubit.txt")
 extra_requirements_torch = read_requirements("requirements/torch.txt")
@@ -74,6 +75,8 @@ setup(
     python_requires=">=3.9",
     install_requires=requirements,
     extras_require={
+        "btcli": extra_requirements_btcli,
+        "cubit": extra_requirements_cubit,
         "dev": extra_requirements_dev,
         "torch": extra_requirements_torch,
     },
@@ -81,7 +84,6 @@ setup(
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",
         "Topic :: Software Development :: Build Tools",
-        # Pick your license as you wish
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python :: 3 :: Only",
         "Programming Language :: Python :: 3.9",
