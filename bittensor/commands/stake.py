@@ -58,7 +58,7 @@ def get_netuid(
         )
         return False, -1
     netuid = cli.config.netuid
-    if netuid < 0 or netuid > 2**32 - 1:
+    if netuid < 0 or netuid > 65535:
         console.print(
             "[red]Invalid input. Please enter a valid integer for netuid in subnet range.[/red]"
         )
