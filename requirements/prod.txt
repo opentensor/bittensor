@@ -4,7 +4,7 @@ aiohttp~=3.9
 colorama~=0.4.6
 fastapi~=0.110.1
 munch~=2.5.0
-numpy~=1.26
+numpy~=2.0.1
 msgpack-numpy-opentensor~=0.5.0
 nest_asyncio
 netaddr
@@ -15,7 +15,9 @@ retry
 requests
 rich
 pydantic>=2.3, <3
+python-Levenshtein
 scalecodec==1.2.11
 substrate-interface~=1.7.9
 uvicorn
 git+ssh://git@github.com/opentensor/btwallet.git@main#egg=bittensor-wallet
+git+ssh://git@github.com/opentensor/btcli.git@main#egg=bittensor-cli
