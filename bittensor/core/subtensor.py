@@ -85,6 +85,7 @@ class ParamWithTypes(TypedDict):
 
 def _ensure_connected(func):
     """Decorator ensuring the function executes with an active substrate connection."""
+
     @wraps(func)
     def wrapper(self, *args, **kwargs):
         # Check the socket state before method execution

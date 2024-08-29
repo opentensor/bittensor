@@ -15,22 +15,11 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import os
 import warnings
 
 from .core.settings import __version__, version_split, DEFAULTS
 from .utils.btlogging import logging
 from .utils.deprecated import *
-
-
-def __getattr__(name):
-    if name == "version_split":
-        warnings.warn(
-            "version_split is deprecated and will be removed in future versions. Use __version__ instead.",
-            DeprecationWarning,
-        )
-        return version_split
-    raise AttributeError(f"module {__name__} has no attribute {name}")
 
 
 # Logging helpers.
@@ -42,26 +31,11 @@ def debug(on: bool = True):
     logging.set_debug(on)
 
 
-def __apply_nest_asyncio():
-    """
-    Apply nest_asyncio if the environment variable NEST_ASYNCIO is set to "1" or not set.
-    If not set, warn the user that the default will change in the future.
-    """
-    nest_asyncio_env = os.getenv("NEST_ASYNCIO")
-
-    if nest_asyncio_env == "1" or nest_asyncio_env is None:
-        if nest_asyncio_env is None:
-            warnings.warn(
-                """NEST_ASYNCIO implicitly set to '1'. In the future, the default value will be '0'.
-                If you use `nest_asyncio`, make sure to add it explicitly to your project dependencies,
-                as it will be removed from `bittensor` package dependencies in the future.
-                To silence this warning, explicitly set the environment variable, e.g. `export NEST_ASYNCIO=0`.""",
-                DeprecationWarning,
-            )
-        # Install and apply nest asyncio to allow the async functions to run in a .ipynb
-        import nest_asyncio
-
-        nest_asyncio.apply()
-
-
-__apply_nest_asyncio()
+def __getattr__(name):
+    if name == "version_split":
+        warnings.warn(
+            "version_split is deprecated and will be removed in future versions. Use __version__ instead.",
+            DeprecationWarning,
+        )
+        return version_split
+    raise AttributeError(f"module {__name__} has no attribute {name}")
