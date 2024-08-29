@@ -54,7 +54,7 @@ async def test_set_revoke_children_multiple(local_chain, capsys):
     assert local_chain.query("SubtensorModule", "NetworksAdded", [1]).serialize()
 
     for exec_command in [alice_exec_command, bob_exec_command, eve_exec_command]:
-        exec_command(RegisterCommand, ["s", "register", "--netuid", "4"])
+        exec_command(RegisterCommand, ["s", "register", "--netuid", "1"])
 
     alice_exec_command(StakeCommand, ["stake", "add", "--amount", "100000"])
 
@@ -75,8 +75,8 @@ async def test_set_revoke_children_multiple(local_chain, capsys):
     await wait()
 
     children_with_proportions = [
-        [0.2, bob_keypair.ss58_address],
-        [0.1, eve_keypair.ss58_address],
+        [0.4, bob_keypair.ss58_address],
+        [0.2, eve_keypair.ss58_address],
     ]
 
     # Test 1: Set multiple children
@@ -86,7 +86,7 @@ async def test_set_revoke_children_multiple(local_chain, capsys):
             "stake",
             "set_children",
             "--netuid",
-            "2",
+            "1",
             "--children",
             f"{children_with_proportions[0][1]},{children_with_proportions[1][1]}",
             "--hotkey",
