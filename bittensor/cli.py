@@ -73,6 +73,8 @@ from .commands import (
     SetChildrenCommand,
     GetChildrenCommand,
     RevokeChildrenCommand,
+    SetChildKeyTakeCommand,
+    GetChildKeyTakeCommand,
     WalletSignCommand,
 )
 
@@ -177,6 +179,8 @@ COMMANDS = {
             "get_children": GetChildrenCommand,
             "set_children": SetChildrenCommand,
             "revoke_children": RevokeChildrenCommand,
+            "set_childkey_take": SetChildKeyTakeCommand,
+            "get_childkey_take": GetChildKeyTakeCommand,
         },
     },
     "weights": {

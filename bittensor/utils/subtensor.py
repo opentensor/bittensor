@@ -154,7 +154,7 @@ def format_parent(proportion, parent) -> Tuple[str, str]:
     return int_proportion, parent.value
 
 
-def format_children(children) -> List[Tuple[str, str]]:
+def format_children(children) -> List[Tuple[int, str]]:
     """
     Formats raw children data into a list of tuples.
     Args:
