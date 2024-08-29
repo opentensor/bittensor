@@ -44,19 +44,25 @@ MAX_CHILDREN = 5
 
 
 def get_netuid(
-    cli: "bittensor.cli", subtensor: "bittensor.subtensor"
+    cli: "bittensor.cli", subtensor: "bittensor.subtensor", prompt: bool = True
 ) -> Tuple[bool, int]:
     """Retrieve and validate the netuid from the user or configuration."""
     console = Console()
-    if not cli.config.is_set("netuid"):
-        try:
-            cli.config.netuid = int(Prompt.ask("Enter netuid"))
-        except ValueError:
-            console.print(
-                "[red]Invalid input. Please enter a valid integer for netuid.[/red]"
-            )
-            return False, -1
+    if not cli.config.is_set("netuid") and prompt:
+        cli.config.netuid = Prompt.ask("Enter netuid")
+    try:
+        cli.config.netuid = int(cli.config.netuid)
+    except ValueError:
+        console.print(
+            "[red]Invalid input. Please enter a valid integer for netuid.[/red]"
+        )
+        return False, -1
     netuid = cli.config.netuid
+    if netuid < 0 or netuid > 2**32 - 1:
+        console.print(
+            "[red]Invalid input. Please enter a valid integer for netuid in subnet range.[/red]"
+        )
+        return False, -1
     if not subtensor.subnet_exists(netuid=netuid):
         console.print(
             "[red]Network with netuid {} does not exist. Please try again.[/red]".format(
@@ -1136,10 +1142,27 @@ class GetChildrenCommand:
         wallet = bittensor.wallet(config=cli.config)
 
         # check all
-        if not cli.config.is_set("all"):
-            exists, netuid = get_netuid(cli, subtensor)
-            if not exists:
-                return
+        if cli.config.is_set("all"):
+            cli.config.netuid = None
+            cli.config.all = True
+        elif cli.config.is_set("netuid"):
+            if cli.config.netuid == "all":
+                cli.config.all = True
+            else:
+                cli.config.netuid = int(cli.config.netuid)
+                exists, netuid = get_netuid(cli, subtensor)
+                if not exists:
+                    return
+        else:
+            netuid_input = Prompt.ask("Enter netuid or 'all'", default="all")
+            if netuid_input == "all":
+                cli.config.netuid = None
+                cli.config.all = True
+            else:
+                cli.config.netuid = int(netuid_input)
+                exists, netuid = get_netuid(cli, subtensor, False)
+                if not exists:
+                    return
 
         # get parent hotkey
         hotkey = get_hotkey(wallet, cli.config)
@@ -1148,11 +1171,7 @@ class GetChildrenCommand:
             return
 
         try:
-            netuids = (
-                subtensor.get_all_subnet_netuids()
-                if cli.config.is_set("all")
-                else [netuid]
-            )
+            netuids = subtensor.get_all_subnet_netuids() if cli.config.all else [netuid]
             hotkey_stake = GetChildrenCommand.get_parent_stake_info(
                 console, subtensor, hotkey
             )
@@ -1236,7 +1255,7 @@ class GetChildrenCommand:
         parser = parser.add_parser(
             "get_children", help="""Get child hotkeys on subnet."""
         )
-        parser.add_argument("--netuid", dest="netuid", type=int, required=False)
+        parser.add_argument("--netuid", dest="netuid", type=str, required=False)
         parser.add_argument("--hotkey", dest="hotkey", type=str, required=False)
         parser.add_argument(
             "--all",
@@ -1294,7 +1313,7 @@ class GetChildrenCommand:
 
         # Add columns to the table with specific styles
         table.add_column("Index", style="bold yellow", no_wrap=True, justify="center")
-        table.add_column("ChildHotkey", style="bold green")
+        table.add_column("Child Hotkey", style="bold green")
         table.add_column("Proportion", style="bold cyan", no_wrap=True, justify="right")
         table.add_column(
             "Childkey Take", style="bold blue", no_wrap=True, justify="right"
