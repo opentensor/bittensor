@@ -228,7 +228,7 @@ dependencies:
       - retry==0.9.2
       - rich==12.5.1
       - rsa==4.9
-      - scalecodec==1.2.7  # scalecodec should not be changed unless first verifying compatibility with the subtensor's monkeypatching of scalecodec.RuntimeConfiguration.get_decoder_class
+      - scalecodec==1.2.11
       - scikit-learn==1.2.2
       - scipy==1.10.1
       - sentencepiece==0.1.99
@@ -242,7 +242,7 @@ dependencies:
       - sqlalchemy==2.0.19
       - starlette==0.37.2
       - streamlit==1.22.0
-      - substrate-interface==1.5.2
+      - substrate-interface==1.7.9
       - tenacity==8.2.2
       - termcolor==2.1.1
       - threadpoolctl==3.1.0
