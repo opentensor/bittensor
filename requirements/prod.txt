@@ -19,4 +19,4 @@ python-Levenshtein
 scalecodec==1.2.11
 substrate-interface~=1.7.9
 uvicorn
-git+ssh://git@github.com/opentensor/btwallet.git@main#egg=bittensor-wallet
+git+https://github.com/opentensor/btwallet.git#egg=bittensor-wallet
