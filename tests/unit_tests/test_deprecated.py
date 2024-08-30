@@ -32,7 +32,7 @@ def test_mock_import():
 def test_extrinsics_import():
     """Tests that `bittensor.extrinsics` can be imported and is the same as `bittensor.utils.deprecated.extrinsics`."""
     import bittensor.extrinsics as redirected_extrinsics
-    import bittensor.utils.deprecated.extrinsics as real_extrinsics
+    import bittensor.core.extrinsics as real_extrinsics
 
     assert "bittensor.extrinsics" in sys.modules
     assert redirected_extrinsics is real_extrinsics
