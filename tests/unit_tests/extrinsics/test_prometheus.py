@@ -20,7 +20,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from bittensor_wallet import Wallet
 
-from bittensor.utils.deprecated.extrinsics.prometheus import (
+from bittensor.core.extrinsics.prometheus import (
     prometheus_extrinsic,
 )
 from bittensor.core.subtensor import Subtensor

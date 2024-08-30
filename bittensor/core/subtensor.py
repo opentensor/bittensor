@@ -48,31 +48,31 @@ from bittensor.core.chain_data import (
     custom_rpc_type_registry,
 )
 from bittensor.core.config import Config
+from bittensor.core.extrinsics.commit_weights import (
+    commit_weights_extrinsic,
+    reveal_weights_extrinsic,
+)
+from bittensor.core.extrinsics.prometheus import (
+    prometheus_extrinsic,
+)
+from bittensor.core.extrinsics.serving import (
+    serve_extrinsic,
+    serve_axon_extrinsic,
+    publish_metadata,
+    get_metadata,
+)
+from bittensor.core.extrinsics.set_weights import (
+    set_weights_extrinsic,
+)
+from bittensor.core.extrinsics.transfer import (
+    transfer_extrinsic,
+)
 from bittensor.core.metagraph import Metagraph
 from bittensor.core.types import AxonServeCallParams, PrometheusServeCallParams
 from bittensor.utils import torch, format_error_message
 from bittensor.utils import u16_normalized_float, networking
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
-from bittensor.utils.deprecated.extrinsics.commit_weights import (
-    commit_weights_extrinsic,
-    reveal_weights_extrinsic,
-)
-from bittensor.utils.deprecated.extrinsics.prometheus import (
-    prometheus_extrinsic,
-)
-from bittensor.utils.deprecated.extrinsics.serving import (
-    serve_extrinsic,
-    serve_axon_extrinsic,
-    publish_metadata,
-    get_metadata,
-)
-from bittensor.utils.deprecated.extrinsics.set_weights import (
-    set_weights_extrinsic,
-)
-from bittensor.utils.deprecated.extrinsics.transfer import (
-    transfer_extrinsic,
-)
 from bittensor.utils.weight_utils import generate_weight_hash
 
 KEY_NONCE: Dict[str, int] = {}
