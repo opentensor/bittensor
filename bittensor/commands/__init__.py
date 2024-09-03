@@ -67,6 +67,8 @@ from .stake import (
     StakeShow,
     SetChildrenCommand,
     GetChildrenCommand,
+    SetChildKeyTakeCommand,
+    GetChildKeyTakeCommand,
 )
 from .unstake import UnStakeCommand, RevokeChildrenCommand
 from .overview import OverviewCommand

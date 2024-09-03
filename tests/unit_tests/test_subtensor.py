@@ -269,7 +269,7 @@ def test_argument_error_handling(monkeypatch, parser):
         ("localhost", "local", "localhost"),
         # Edge cases
         (None, None, None),
-        ("unknown", "unknown", "unknown"),
+        ("unknown", "unknown network", "unknown"),
     ],
 )
 def test_determine_chain_endpoint_and_network(
