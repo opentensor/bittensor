@@ -759,7 +759,7 @@ class Subtensor:
         """
         result = self.query_map_subtensor("IsNetworkMember", block, [hotkey_ss58])
         return (
-            [record[0].value for record in result.records if record[1]]
+            [record[0].value for record in result if record[1]]
             if result and hasattr(result, "records")
             else []
         )
@@ -1684,7 +1684,7 @@ class Subtensor:
         """
         result = self.query_map_subtensor("NetworksAdded", block)
         return (
-            [network[0].value for network in result.records]
+            [network[0].value for network in result.records if network[1]]
             if result and hasattr(result, "records")
             else []
         )
