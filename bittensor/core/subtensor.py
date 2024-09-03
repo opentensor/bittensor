@@ -24,7 +24,6 @@ import argparse
 import copy
 import socket
 import sys
-from functools import wraps
 from typing import List, Dict, Union, Optional, Tuple, TypedDict, Any
 
 import numpy as np
@@ -81,24 +80,6 @@ KEY_NONCE: Dict[str, int] = {}
 class ParamWithTypes(TypedDict):
     name: str  # Name of the parameter.
     type: str  # ScaleType string of the parameter.
-
-
-def _ensure_connected(func):
-    """Decorator ensuring the function executes with an active substrate connection."""
-
-    @wraps(func)
-    def wrapper(self, *args, **kwargs):
-        # Check the socket state before method execution
-        if (
-            self.substrate.websocket.sock.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
-            != 0
-        ):
-            logging.info("Reconnection substrate...")
-            self._get_substrate()
-        # Execute the method if the connection is active or after reconnecting
-        return func(self, *args, **kwargs)
-
-    return wrapper
 
 
 class Subtensor:
@@ -160,6 +141,7 @@ class Subtensor:
         config: Optional["Config"] = None,
         _mock: bool = False,
         log_verbose: bool = True,
+        connection_timeout: int = 600,
     ) -> None:
         """
         Initializes a Subtensor interface for interacting with the Bittensor blockchain.
@@ -173,6 +155,7 @@ class Subtensor:
             network (str, optional): The network name to connect to (e.g., ``finney``, ``local``). This can also be the chain endpoint (e.g., ``wss://entrypoint-finney.opentensor.ai:443``) and will be correctly parsed into the network and chain endpoint. If not specified, defaults to the main Bittensor network.
             config (bittensor.core.config.Config, optional): Configuration object for the subtensor. If not provided, a default configuration is used.
             _mock (bool, optional): If set to ``True``, uses a mocked connection for testing purposes.
+            connection_timeout (int): The maximum time in seconds to keep the connection alive.
 
         This initialization sets up the connection to the specified Bittensor network, allowing for various blockchain operations such as neuron registration, stake management, and setting weights.
         """
@@ -207,6 +190,7 @@ class Subtensor:
             )
 
         self.log_verbose = log_verbose
+        self._connection_timeout = connection_timeout
         self._get_substrate()
 
     def __str__(self) -> str:
@@ -250,7 +234,7 @@ class Subtensor:
             sys.exit(1)
 
         try:
-            self.substrate.websocket.settimeout(600)
+            self.substrate.websocket.settimeout(self._connection_timeout)
         except AttributeError as e:
             logging.warning(f"AttributeError: {e}")
         except TypeError as e:
@@ -403,7 +387,7 @@ class Subtensor:
             pass
 
     # Inner private functions
-    @_ensure_connected
+    @networking.ensure_connected
     def _encode_params(
         self,
         call_definition: List["ParamWithTypes"],
@@ -448,7 +432,7 @@ class Subtensor:
         return result.value
 
     # Calls methods
-    @_ensure_connected
+    @networking.ensure_connected
     def query_subtensor(
         self, name: str, block: Optional[int] = None, params: Optional[list] = None
     ) -> "ScaleType":
@@ -479,7 +463,7 @@ class Subtensor:
 
         return make_substrate_call_with_retry()
 
-    @_ensure_connected
+    @networking.ensure_connected
     def query_map_subtensor(
         self, name: str, block: Optional[int] = None, params: Optional[list] = None
     ) -> "QueryMapResult":
@@ -562,7 +546,7 @@ class Subtensor:
 
         return obj.decode()
 
-    @_ensure_connected
+    @networking.ensure_connected
     def state_call(
         self, method: str, data: str, block: Optional[int] = None
     ) -> Dict[Any, Any]:
@@ -590,7 +574,7 @@ class Subtensor:
 
         return make_substrate_call_with_retry()
 
-    @_ensure_connected
+    @networking.ensure_connected
     def query_map(
         self,
         module: str,
@@ -626,7 +610,7 @@ class Subtensor:
 
         return make_substrate_call_with_retry()
 
-    @_ensure_connected
+    @networking.ensure_connected
     def query_constant(
         self, module_name: str, constant_name: str, block: Optional[int] = None
     ) -> Optional["ScaleType"]:
@@ -656,7 +640,7 @@ class Subtensor:
 
         return make_substrate_call_with_retry()
 
-    @_ensure_connected
+    @networking.ensure_connected
     def query_module(
         self,
         module: str,
@@ -780,7 +764,7 @@ class Subtensor:
             else []
         )
 
-    @_ensure_connected
+    @networking.ensure_connected
     def get_current_block(self) -> int:
         """
         Returns the current block number on the Bittensor blockchain. This function provides the latest block number, indicating the most recent state of the blockchain.
@@ -856,7 +840,7 @@ class Subtensor:
         else:
             return self.is_hotkey_registered_on_subnet(hotkey_ss58, netuid, block)
 
-    @_ensure_connected
+    @networking.ensure_connected
     def do_set_weights(
         self,
         wallet: "Wallet",
@@ -1031,7 +1015,7 @@ class Subtensor:
         call = self._get_hyperparameter(param_name="LastUpdate", netuid=netuid)
         return None if call is None else self.get_current_block() - int(call[uid])
 
-    @_ensure_connected
+    @networking.ensure_connected
     def get_block_hash(self, block_id: int) -> str:
         """
         Retrieves the hash of a specific block on the Bittensor blockchain. The block hash is a unique identifier representing the cryptographic hash of the block's content, ensuring its integrity and immutability.
@@ -1089,7 +1073,7 @@ class Subtensor:
         )
         return None if call is None else int(call)
 
-    @_ensure_connected
+    @networking.ensure_connected
     def do_transfer(
         self,
         wallet: "Wallet",
@@ -1201,7 +1185,7 @@ class Subtensor:
             block=block,
         )
 
-    @_ensure_connected
+    @networking.ensure_connected
     def neuron_for_uid(
         self, uid: Optional[int], netuid: int, block: Optional[int] = None
     ) -> NeuronInfo:
@@ -1240,7 +1224,7 @@ class Subtensor:
         return NeuronInfo.from_vec_u8(result)
 
     # Community uses this method via `bittensor.api.extrinsics.prometheus.prometheus_extrinsic`
-    @_ensure_connected
+    @networking.ensure_connected
     def do_serve_prometheus(
         self,
         wallet: "Wallet",
@@ -1323,7 +1307,7 @@ class Subtensor:
         )
 
     # Community uses this method as part of `subtensor.serve_axon`
-    @_ensure_connected
+    @networking.ensure_connected
     def do_serve_axon(
         self,
         wallet: "Wallet",
@@ -1765,7 +1749,7 @@ class Subtensor:
         return w_map
 
     # Used by community via `transfer_extrinsic`
-    @_ensure_connected
+    @networking.ensure_connected
     def get_balance(self, address: str, block: Optional[int] = None) -> Balance:
         """
         Retrieves the token balance of a specific address within the Bittensor network. This function queries the blockchain to determine the amount of Tao held by a given account.
@@ -1802,7 +1786,7 @@ class Subtensor:
         return Balance(result.value["data"]["free"])
 
     # Used in community via `bittensor.core.subtensor.Subtensor.transfer`
-    @_ensure_connected
+    @networking.ensure_connected
     def get_transfer_fee(
         self, wallet: "Wallet", dest: str, value: Union["Balance", float, int]
     ) -> "Balance":
@@ -1953,7 +1937,7 @@ class Subtensor:
         return success, message
 
     # Community uses this method
-    @_ensure_connected
+    @networking.ensure_connected
     def _do_commit_weights(
         self,
         wallet: "Wallet",
@@ -2077,7 +2061,7 @@ class Subtensor:
         return success, message
 
     # Community uses this method
-    @_ensure_connected
+    @networking.ensure_connected
     def _do_reveal_weights(
         self,
         wallet: "Wallet",
