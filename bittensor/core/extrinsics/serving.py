@@ -247,6 +247,7 @@ def publish_metadata(
 
 
 # Community uses this function directly
+@net.ensure_connected
 def get_metadata(self, netuid: int, hotkey: str, block: Optional[int] = None) -> str:
     @retry(delay=2, tries=3, backoff=2, max_delay=4)
     def make_substrate_call_with_retry():

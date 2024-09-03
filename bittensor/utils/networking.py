@@ -19,10 +19,14 @@
 
 import json
 import os
+import socket
 import urllib
+from functools import wraps
 
 import netaddr
 import requests
+
+from bittensor.utils.btlogging import logging
 
 
 def int_to_ip(int_val: int) -> str:
@@ -167,3 +171,26 @@ def get_formatted_ws_endpoint_url(endpoint_url: str) -> str:
         endpoint_url = f"ws://{endpoint_url}"
 
     return endpoint_url
+
+
+def ensure_connected(func):
+    """Decorator ensuring the function executes with an active substrate connection."""
+
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        # Check the socket state before method execution
+        if (
+            # connection was closed correctly
+            self.substrate.websocket.sock is None
+            # connection has a broken pipe
+            or self.substrate.websocket.sock.getsockopt(
+                socket.SOL_SOCKET, socket.SO_ERROR
+            )
+            != 0
+        ):
+            logging.info("Reconnection substrate...")
+            self._get_substrate()
+        # Execute the method if the connection is active or after reconnecting
+        return func(self, *args, **kwargs)
+
+    return wrapper
