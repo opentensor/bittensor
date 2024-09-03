@@ -102,6 +102,7 @@ from .extrinsics.staking import (
     add_stake_extrinsic,
     add_stake_multiple_extrinsic,
     set_children_extrinsic,
+    set_childkey_take_extrinsic,
 )
 from .extrinsics.transfer import transfer_extrinsic
 from .extrinsics.unstaking import (
@@ -417,7 +418,7 @@ class Subtensor:
             elif "127.0.0.1" in network or "localhost" in network:
                 return "local", network
             else:
-                return "unknown", network
+                return "unknown network", network
 
     @staticmethod
     def setup_config(network: str, config: "bittensor.config"):
@@ -2300,6 +2301,97 @@ class Subtensor:
     ###################
     # Child hotkeys #
     ###################
+
+    def set_childkey_take(
+        self,
+        wallet: "bittensor.wallet",
+        hotkey: str,
+        take: float,
+        netuid: int,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+        prompt: bool = False,
+    ) -> tuple[bool, str]:
+        """Sets a childkey take extrinsic on the subnet.
+
+        Args:
+            wallet (:func:`bittensor.wallet`): Wallet object that can sign the extrinsic.
+            hotkey: (str): Hotkey ``ss58`` address of the child for which take is getting set.
+            netuid (int): Unique identifier of for the subnet.
+            take (float): Value of childhotkey take on subnet.
+            wait_for_inclusion (bool): If ``true``, waits for inclusion before returning.
+            wait_for_finalization (bool): If ``true``, waits for finalization before returning.
+            prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
+        Returns:
+            success (bool): ``True`` if the extrinsic was successful.
+        Raises:
+            ChildHotkeyError: If the extrinsic failed.
+        """
+
+        return set_childkey_take_extrinsic(
+            self,
+            wallet=wallet,
+            hotkey=hotkey,
+            take=take,
+            netuid=netuid,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            prompt=prompt,
+        )
+
+    def _do_set_childkey_take(
+        self,
+        wallet: "bittensor.wallet",
+        hotkey: str,
+        take: int,
+        netuid: int,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+    ) -> tuple[bool, Optional[str]]:
+        """Sends a set_children hotkey extrinsic on the chain.
+
+        Args:
+            wallet (:func:`bittensor.wallet`): Wallet object that can sign the extrinsic.
+            hotkey: (str): Hotkey ``ss58`` address of the wallet for which take is getting set.
+            take: (int): The take that this ss58 hotkey will have if assigned as a child hotkey as u16 value.
+            netuid (int): Unique identifier for the network.
+            wait_for_inclusion (bool): If ``true``, waits for inclusion before returning.
+            wait_for_finalization (bool): If ``true``, waits for finalization before returning.
+        Returns:
+            success (bool): ``True`` if the extrinsic was successful.
+        """
+
+        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
+        def make_substrate_call_with_retry():
+            # create extrinsic call
+            call = self.substrate.compose_call(
+                call_module="SubtensorModule",
+                call_function="set_childkey_take",
+                call_params={
+                    "hotkey": hotkey,
+                    "take": take,
+                    "netuid": netuid,
+                },
+            )
+            extrinsic = self.substrate.create_signed_extrinsic(
+                call=call, keypair=wallet.coldkey
+            )
+            response = self.substrate.submit_extrinsic(
+                extrinsic,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
+
+            if not wait_for_finalization and not wait_for_inclusion:
+                return True, None
+
+            response.process_events()
+            if not response.is_success:
+                return False, format_error_message(response.error_message)
+            else:
+                return True, None
+
+        return make_substrate_call_with_retry()
 
     def set_children(
         self,
@@ -4593,7 +4685,37 @@ class Subtensor:
         # Child Hotkey Information #
         ############################
 
-    def get_children(self, hotkey, netuid):
+    def get_childkey_take(
+        self, hotkey: str, netuid: int, block: Optional[int] = None
+    ) -> Optional[int]:
+        """
+        Get the childkey take of a hotkey on a specific network.
+        Args:
+        - hotkey (str): The hotkey to search for.
+        - netuid (int): The netuid to search for.
+        - block (Optional[int]): Optional parameter specifying the block number. Defaults to None.
+
+        Returns:
+        - Optional[int]: The value of the "ChildkeyTake" if found, or None if any error occurs.
+        """
+        try:
+            childkey_take = self.query_subtensor(
+                name="ChildkeyTake",
+                block=block,
+                params=[hotkey, netuid],
+            )
+            if childkey_take:
+                return int(childkey_take.value)
+
+        except SubstrateRequestException as e:
+            print(f"Error querying ChildKeys: {e}")
+            return None
+        except Exception as e:
+            print(f"Unexpected error in get_children: {e}")
+            return None
+        return None
+
+    def get_children(self, hotkey, netuid) -> list[tuple[int, str]] | list[Any] | None:
         """
         Get the children of a hotkey on a specific network.
         Args:
@@ -4639,7 +4761,9 @@ class Subtensor:
                 return []
 
             formatted_parents = [
-                format_parent(proportion, parent) for proportion, parent in parents
+                format_parent(proportion, parent)
+                for proportion, parent in parents
+                if proportion != 0
             ]
             return formatted_parents
         except SubstrateRequestException as e:

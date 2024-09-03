@@ -624,3 +624,20 @@ def test_get_coldkey_password_from_environment(monkeypatch):
         assert get_coldkey_password_from_environment(wallet) == password
 
     assert get_coldkey_password_from_environment("non_existent_wallet") is None
+
+
+def test_keyfile_error_incorrect_password(keyfile_setup_teardown):
+    """
+    Test case for attempting to decrypt a keyfile with an incorrect password.
+    """
+    root_path = keyfile_setup_teardown
+    keyfile = bittensor.keyfile(path=os.path.join(root_path, "keyfile"))
+
+    # Ensure the keyfile is encrypted
+    assert keyfile.is_encrypted()
+
+    # Attempt to decrypt with an incorrect password
+    with pytest.raises(bittensor.KeyFileError) as excinfo:
+        keyfile.get_keypair(password="incorrect_password")
+
+    assert "Invalid password" in str(excinfo.value)
