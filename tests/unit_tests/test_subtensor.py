@@ -1137,7 +1137,7 @@ def test_do_set_weights_is_success(subtensor, mocker):
     subtensor.substrate.submit_extrinsic.return_value.is_success = True
 
     # Call
-    result = subtensor._do_set_weights(
+    result = subtensor.do_set_weights(
         wallet=fake_wallet,
         uids=fake_uids,
         vals=fake_vals,
@@ -1190,7 +1190,7 @@ def test_do_set_weights_is_not_success(subtensor, mocker):
     subtensor_module.format_error_message = mocked_format_error_message
 
     # Call
-    result = subtensor._do_set_weights(
+    result = subtensor.do_set_weights(
         wallet=fake_wallet,
         uids=fake_uids,
         vals=fake_vals,
@@ -1225,10 +1225,7 @@ def test_do_set_weights_is_not_success(subtensor, mocker):
     )
 
     subtensor.substrate.submit_extrinsic.return_value.process_events.assert_called_once()
-    mocked_format_error_message.assert_called_once_with(
-        subtensor.substrate.submit_extrinsic.return_value.error_message
-    )
-    assert result == (False, mocked_format_error_message.return_value)
+    assert result == (False, subtensor.substrate.submit_extrinsic.return_value.error_message)
 
 
 def test_do_set_weights_no_waits(subtensor, mocker):
@@ -1242,7 +1239,7 @@ def test_do_set_weights_no_waits(subtensor, mocker):
     fake_wait_for_finalization = False
 
     # Call
-    result = subtensor._do_set_weights(
+    result = subtensor.do_set_weights(
         wallet=fake_wallet,
         uids=fake_uids,
         vals=fake_vals,

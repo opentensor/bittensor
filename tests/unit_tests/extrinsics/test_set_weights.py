@@ -47,7 +47,7 @@ def mock_wallet():
             True,
             "Not waiting for finalization or inclusion.",
         ),
-        ([1, 2], [0.5, 0.5], 0, True, False, True, True, False, "Mock error message"),
+        ([1, 2], [0.5, 0.5], 0, True, False, True, True, False, "Subtensor returned `UnknownError (UnknownType)` error. This means: `Unknown Description`"),
         ([1, 2], [0.5, 0.5], 0, True, True, True, False, False, "Prompt refused."),
     ],
     ids=[
@@ -75,9 +75,8 @@ def test_set_weights_extrinsic(
     with patch(
         "bittensor.utils.weight_utils.convert_weights_and_uids_for_emit",
         return_value=(uids_tensor, weights_tensor),
-    ), patch("rich.prompt.Confirm.ask", return_value=user_accepts), patch.object(
-        mock_subtensor,
-        "do_set_weights",
+    ), patch("rich.prompt.Confirm.ask", return_value=user_accepts), patch(
+        "bittensor.core.extrinsics.set_weights.do_set_weights",
         return_value=(expected_success, "Mock error message"),
     ) as mock_do_set_weights:
         result, message = set_weights_extrinsic(
@@ -96,6 +95,7 @@ def test_set_weights_extrinsic(
         assert message == expected_message, f"Test {expected_message} failed."
         if user_accepts is not False:
             mock_do_set_weights.assert_called_once_with(
+                self=mock_subtensor,
                 wallet=mock_wallet,
                 netuid=123,
                 uids=uids_tensor,

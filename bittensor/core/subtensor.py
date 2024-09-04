@@ -61,6 +61,7 @@ from bittensor.core.extrinsics.serving import (
     get_metadata,
 )
 from bittensor.core.extrinsics.set_weights import (
+    do_set_weights,
     set_weights_extrinsic,
 )
 from bittensor.core.extrinsics.transfer import (
@@ -840,72 +841,8 @@ class Subtensor:
         else:
             return self.is_hotkey_registered_on_subnet(hotkey_ss58, netuid, block)
 
-    @networking.ensure_connected
-    def do_set_weights(
-        self,
-        wallet: "Wallet",
-        uids: List[int],
-        vals: List[int],
-        netuid: int,
-        version_key: int = settings.version_as_int,
-        wait_for_inclusion: bool = False,
-        wait_for_finalization: bool = False,
-    ) -> Tuple[bool, Optional[str]]:  # (success, error_message)
-        """
-        Internal method to send a transaction to the Bittensor blockchain, setting weights for specified neurons. This method constructs and submits the transaction, handling retries and blockchain communication.
-
-        Args:
-            wallet (bittensor_wallet.Wallet): The wallet associated with the neuron setting the weights.
-            uids (List[int]): List of neuron UIDs for which weights are being set.
-            vals (List[int]): List of weight values corresponding to each UID.
-            netuid (int): Unique identifier for the network.
-            version_key (int, optional): Version key for compatibility with the network.
-            wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
-            wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
-
-        Returns:
-            Tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
-
-        This method is vital for the dynamic weighting mechanism in Bittensor, where neurons adjust their trust in other neurons based on observed performance and contributions.
-        """
-
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=logging)
-        def make_substrate_call_with_retry():
-            call = self.substrate.compose_call(
-                call_module="SubtensorModule",
-                call_function="set_weights",
-                call_params={
-                    "dests": uids,
-                    "weights": vals,
-                    "netuid": netuid,
-                    "version_key": version_key,
-                },
-            )
-            # Period dictates how long the extrinsic will stay as part of waiting pool
-            extrinsic = self.substrate.create_signed_extrinsic(
-                call=call,
-                keypair=wallet.hotkey,
-                era={"period": 5},
-            )
-            response = self.substrate.submit_extrinsic(
-                extrinsic,
-                wait_for_inclusion=wait_for_inclusion,
-                wait_for_finalization=wait_for_finalization,
-            )
-            # We only wait here if we expect finalization.
-            if not wait_for_finalization and not wait_for_inclusion:
-                return True, "Not waiting for finalization or inclusion."
-
-            response.process_events()
-            if response.is_success:
-                return True, "Successfully set weights."
-            else:
-                return False, format_error_message(response.error_message)
-
-        return make_substrate_call_with_retry()
-
     # keep backwards compatibility for the community
-    _do_set_weights = do_set_weights
+    do_set_weights = do_set_weights
 
     # Not used in Bittensor, but is actively used by the community in almost all subnets
     def set_weights(
