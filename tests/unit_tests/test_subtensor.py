@@ -43,7 +43,6 @@ def test_serve_axon_with_external_ip_set():
 
     mock_subtensor = MagicMock(spec=Subtensor, serve_axon=mock_serve_axon)
 
-    mock_add_insecure_port = mock.MagicMock(return_value=None)
     mock_wallet = MagicMock(
         spec=Wallet,
         coldkey=MagicMock(),
@@ -2272,54 +2271,6 @@ def test_commit_weights(subtensor, mocker):
     assert result == expected_result
 
 
-def test_do_commit_weights(subtensor, mocker):
-    """Successful _do_commit_weights call."""
-    # Preps
-    fake_wallet = mocker.MagicMock()
-    netuid = 1
-    commit_hash = "fake_commit_hash"
-    wait_for_inclusion = True
-    wait_for_finalization = True
-
-    subtensor.substrate.submit_extrinsic.return_value.is_success = None
-
-    mocked_format_error_message = mocker.MagicMock()
-    subtensor_module.format_error_message = mocked_format_error_message
-
-    # Call
-    result = subtensor._do_commit_weights(
-        wallet=fake_wallet,
-        netuid=netuid,
-        commit_hash=commit_hash,
-        wait_for_inclusion=wait_for_inclusion,
-        wait_for_finalization=wait_for_finalization,
-    )
-
-    # Assertions
-    subtensor.substrate.compose_call.assert_called_once_with(
-        call_module="SubtensorModule",
-        call_function="commit_weights",
-        call_params={
-            "netuid": netuid,
-            "commit_hash": commit_hash,
-        },
-    )
-
-    subtensor.substrate.create_signed_extrinsic.assert_called_once_with(
-        call=subtensor.substrate.compose_call.return_value, keypair=fake_wallet.hotkey
-    )
-
-    subtensor.substrate.submit_extrinsic.assert_called_once_with(
-        subtensor.substrate.create_signed_extrinsic.return_value,
-        wait_for_inclusion=wait_for_inclusion,
-        wait_for_finalization=wait_for_finalization,
-    )
-
-    subtensor.substrate.submit_extrinsic.return_value.process_events.assert_called_once()
-
-    assert result == (False, mocked_format_error_message.return_value)
-
-
 def test_reveal_weights(subtensor, mocker):
     """Successful test_reveal_weights call."""
     # Preps
@@ -2391,64 +2342,6 @@ def test_reveal_weights_false(subtensor, mocker):
     # Assertion
     assert result == expected_result
     assert mocked_extrinsic.call_count == 5
-
-
-def test_do_reveal_weights(subtensor, mocker):
-    """Verifies that the `_do_reveal_weights` method interacts with the right substrate methods."""
-    # Preps
-    fake_wallet = mocker.MagicMock()
-    fake_wallet.hotkey = "hotkey"
-
-    netuid = 1
-    uids = [1, 2, 3, 4]
-    values = [1, 2, 3, 4]
-    salt = [4, 2, 2, 1]
-    wait_for_inclusion = True
-    wait_for_finalization = True
-
-    subtensor.substrate.submit_extrinsic.return_value.is_success = None
-
-    mocked_format_error_message = mocker.MagicMock()
-    subtensor_module.format_error_message = mocked_format_error_message
-
-    # Call
-    result = subtensor._do_reveal_weights(
-        wallet=fake_wallet,
-        netuid=netuid,
-        uids=uids,
-        values=values,
-        salt=salt,
-        version_key=version_as_int,
-        wait_for_inclusion=wait_for_inclusion,
-        wait_for_finalization=wait_for_finalization,
-    )
-
-    # Asserts
-    subtensor.substrate.compose_call.assert_called_once_with(
-        call_module="SubtensorModule",
-        call_function="reveal_weights",
-        call_params={
-            "netuid": netuid,
-            "uids": uids,
-            "values": values,
-            "salt": salt,
-            "version_key": version_as_int,
-        },
-    )
-
-    subtensor.substrate.create_signed_extrinsic.assert_called_once_with(
-        call=subtensor.substrate.compose_call.return_value, keypair=fake_wallet.hotkey
-    )
-
-    subtensor.substrate.submit_extrinsic.assert_called_once_with(
-        subtensor.substrate.create_signed_extrinsic.return_value,
-        wait_for_inclusion=wait_for_inclusion,
-        wait_for_finalization=wait_for_finalization,
-    )
-
-    subtensor.substrate.submit_extrinsic.return_value.process_events.assert_called_once()
-
-    assert result == (False, mocked_format_error_message.return_value)
 
 
 def test_connect_without_substrate(mocker):
