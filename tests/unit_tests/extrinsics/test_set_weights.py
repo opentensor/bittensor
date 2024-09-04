@@ -47,7 +47,17 @@ def mock_wallet():
             True,
             "Not waiting for finalization or inclusion.",
         ),
-        ([1, 2], [0.5, 0.5], 0, True, False, True, True, False, "Subtensor returned `UnknownError (UnknownType)` error. This means: `Unknown Description`"),
+        (
+            [1, 2],
+            [0.5, 0.5],
+            0,
+            True,
+            False,
+            True,
+            True,
+            False,
+            "Subtensor returned `UnknownError (UnknownType)` error. This means: `Unknown Description`",
+        ),
         ([1, 2], [0.5, 0.5], 0, True, True, True, False, False, "Prompt refused."),
     ],
     ids=[

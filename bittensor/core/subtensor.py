@@ -1010,59 +1010,6 @@ class Subtensor:
         )
         return None if call is None else int(call)
 
-    @networking.ensure_connected
-    def do_transfer(
-        self,
-        wallet: "Wallet",
-        dest: str,
-        transfer_balance: "Balance",
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = False,
-    ) -> Tuple[bool, Optional[str], Optional[str]]:
-        """Sends a transfer extrinsic to the chain.
-
-        Args:
-            wallet (bittensor_wallet.Wallet): Wallet object.
-            dest (str): Destination public key address.
-            transfer_balance (bittensor.utils.balance.Balance): Amount to transfer.
-            wait_for_inclusion (bool): If ``true``, waits for inclusion.
-            wait_for_finalization (bool): If ``true``, waits for finalization.
-
-        Returns:
-            success (bool): ``True`` if transfer was successful.
-            block_hash (str): Block hash of the transfer. On success and if wait_for_ finalization/inclusion is ``True``.
-            error (str): Error message if transfer failed.
-        """
-
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=logging)
-        def make_substrate_call_with_retry():
-            call = self.substrate.compose_call(
-                call_module="Balances",
-                call_function="transfer_allow_death",
-                call_params={"dest": dest, "value": transfer_balance.rao},
-            )
-            extrinsic = self.substrate.create_signed_extrinsic(
-                call=call, keypair=wallet.coldkey
-            )
-            response = self.substrate.submit_extrinsic(
-                extrinsic,
-                wait_for_inclusion=wait_for_inclusion,
-                wait_for_finalization=wait_for_finalization,
-            )
-            # We only wait here if we expect finalization.
-            if not wait_for_finalization and not wait_for_inclusion:
-                return True, None, None
-
-            # Otherwise continue with finalization.
-            response.process_events()
-            if response.is_success:
-                block_hash = response.block_hash
-                return True, block_hash, None
-            else:
-                return False, None, format_error_message(response.error_message)
-
-        return make_substrate_call_with_retry()
-
     # Community uses this method
     def transfer(
         self,

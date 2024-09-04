@@ -3,7 +3,10 @@ import pytest
 from bittensor.core import subtensor as subtensor_module
 from bittensor.core.settings import version_as_int
 from bittensor.core.subtensor import Subtensor
-from bittensor.core.extrinsics.commit_weights import do_commit_weights, do_reveal_weights
+from bittensor.core.extrinsics.commit_weights import (
+    do_commit_weights,
+    do_reveal_weights,
+)
 
 
 @pytest.fixture
@@ -62,7 +65,10 @@ def test_do_commit_weights(subtensor, mocker):
 
     subtensor.substrate.submit_extrinsic.return_value.process_events.assert_called_once()
 
-    assert result == (False, subtensor.substrate.submit_extrinsic.return_value.error_message)
+    assert result == (
+        False,
+        subtensor.substrate.submit_extrinsic.return_value.error_message,
+    )
 
 
 def test_do_reveal_weights(subtensor, mocker):
@@ -121,5 +127,7 @@ def test_do_reveal_weights(subtensor, mocker):
 
     subtensor.substrate.submit_extrinsic.return_value.process_events.assert_called_once()
 
-    assert result == (False, subtensor.substrate.submit_extrinsic.return_value.error_message)
-
+    assert result == (
+        False,
+        subtensor.substrate.submit_extrinsic.return_value.error_message,
+    )
