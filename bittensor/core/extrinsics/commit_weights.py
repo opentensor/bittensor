@@ -26,6 +26,7 @@ from bittensor.utils import format_error_message
 from bittensor.utils.btlogging import logging
 from bittensor.utils.networking import ensure_connected
 
+# For annotation purposes
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
     from bittensor.core.subtensor import Subtensor

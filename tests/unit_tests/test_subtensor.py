@@ -1611,9 +1611,6 @@ def test_do_serve_prometheus_is_not_success(subtensor, mocker):
 
     subtensor.substrate.submit_extrinsic.return_value.is_success = None
 
-    mocked_format_error_message = mocker.MagicMock()
-    subtensor_module.format_error_message = mocked_format_error_message
-
     # Call
     result = subtensor._do_serve_prometheus(
         wallet=fake_wallet,
@@ -1641,10 +1638,10 @@ def test_do_serve_prometheus_is_not_success(subtensor, mocker):
     )
 
     subtensor.substrate.submit_extrinsic.return_value.process_events.assert_called_once()
-    mocked_format_error_message.assert_called_once_with(
-        subtensor.substrate.submit_extrinsic.return_value.error_message
+    assert result == (
+        False,
+        subtensor.substrate.submit_extrinsic.return_value.error_message,
     )
-    assert result == (False, mocked_format_error_message.return_value)
 
 
 def test_do_serve_prometheus_no_waits(subtensor, mocker):
@@ -1768,9 +1765,6 @@ def test_do_serve_axon_is_not_success(subtensor, mocker):
 
     subtensor.substrate.submit_extrinsic.return_value.is_success = None
 
-    mocked_format_error_message = mocker.MagicMock()
-    subtensor_module.format_error_message = mocked_format_error_message
-
     # Call
     result = subtensor._do_serve_axon(
         wallet=fake_wallet,
@@ -1798,10 +1792,10 @@ def test_do_serve_axon_is_not_success(subtensor, mocker):
     )
 
     subtensor.substrate.submit_extrinsic.return_value.process_events.assert_called_once()
-    mocked_format_error_message.assert_called_once_with(
-        subtensor.substrate.submit_extrinsic.return_value.error_message
+    assert result == (
+        False,
+        subtensor.substrate.submit_extrinsic.return_value.error_message,
     )
-    assert result == (False, mocked_format_error_message.return_value)
 
 
 def test_do_serve_axon_no_waits(subtensor, mocker):
@@ -1838,51 +1832,6 @@ def test_do_serve_axon_no_waits(subtensor, mocker):
         wait_for_finalization=fake_wait_for_finalization,
     )
     assert result == (True, None)
-
-
-def test_serve(subtensor, mocker):
-    """Successful serve call."""
-    # Prep
-    fake_wallet = mocker.MagicMock()
-    fake_ip = "fake_ip"
-    fake_port = 1234
-    fake_protocol = 1
-    fake_netuid = 1
-    fake_placeholder1 = 0
-    fake_placeholder2 = 1
-    fake_wait_for_inclusion = True
-    fake_wait_for_finalization = True
-
-    mocked_serve_extrinsic = mocker.patch.object(subtensor_module, "serve_extrinsic")
-
-    # Call
-    result = subtensor.serve(
-        fake_wallet,
-        fake_ip,
-        fake_port,
-        fake_protocol,
-        fake_netuid,
-        fake_placeholder1,
-        fake_placeholder2,
-        fake_wait_for_inclusion,
-        fake_wait_for_finalization,
-    )
-
-    # Asserts
-    mocked_serve_extrinsic.assert_called_once_with(
-        subtensor,
-        fake_wallet,
-        fake_ip,
-        fake_port,
-        fake_protocol,
-        fake_netuid,
-        fake_placeholder1,
-        fake_placeholder2,
-        fake_wait_for_inclusion,
-        fake_wait_for_finalization,
-    )
-
-    assert result == mocked_serve_extrinsic.return_value
 
 
 def test_immunity_period(subtensor, mocker):

@@ -16,9 +16,8 @@
 # DEALINGS IN THE SOFTWARE.
 
 import json
-from typing import Optional, TYPE_CHECKING
+from typing import Optional, Tuple, TYPE_CHECKING
 
-from bittensor_wallet import Wallet
 from retry import retry
 from rich.prompt import Confirm
 
@@ -28,13 +27,65 @@ from bittensor.core.settings import version_as_int, bt_console
 from bittensor.core.types import AxonServeCallParams
 from bittensor.utils import format_error_message, networking as net
 from bittensor.utils.btlogging import logging
+from bittensor.utils.networking import ensure_connected
 
 # For annotation purposes
 if TYPE_CHECKING:
     from bittensor.core.subtensor import Subtensor
+    from bittensor_wallet import Wallet
 
 
-# Community uses this extrinsic via `subtensor.serve`
+@ensure_connected
+def do_serve_axon(
+    self: "Subtensor",
+    wallet: "Wallet",
+    call_params: AxonServeCallParams,
+    wait_for_inclusion: bool = False,
+    wait_for_finalization: bool = True,
+) -> Tuple[bool, Optional[dict]]:
+    """
+    Internal method to submit a serve axon transaction to the Bittensor blockchain. This method creates and submits a transaction, enabling a neuron's Axon to serve requests on the network.
+
+    Args:
+        self (bittensor.core.subtensor.Subtensor): Subtensor instance object.
+        wallet (bittensor_wallet.Wallet): The wallet associated with the neuron.
+        call_params (AxonServeCallParams): Parameters required for the serve axon call.
+        wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
+        wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
+
+    Returns:
+        Tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
+
+    This function is crucial for initializing and announcing a neuron's Axon service on the network, enhancing the decentralized computation capabilities of Bittensor.
+    """
+
+    @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=logging)
+    def make_substrate_call_with_retry():
+        call = self.substrate.compose_call(
+            call_module="SubtensorModule",
+            call_function="serve_axon",
+            call_params=call_params,
+        )
+        extrinsic = self.substrate.create_signed_extrinsic(
+            call=call, keypair=wallet.hotkey
+        )
+        response = self.substrate.submit_extrinsic(
+            extrinsic,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+        if wait_for_inclusion or wait_for_finalization:
+            response.process_events()
+            if response.is_success:
+                return True, None
+            else:
+                return False, response.error_message
+        else:
+            return True, None
+
+    return make_substrate_call_with_retry()
+
+
 def serve_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
@@ -117,7 +168,7 @@ def serve_extrinsic(
     logging.debug(
         f"Serving axon with: AxonInfo({wallet.hotkey.ss58_address},{ip}:{port}) -> {subtensor.network}:{netuid}"
     )
-    success, error_message = subtensor.do_serve_axon(
+    success, error_message = do_serve_axon(
         wallet=wallet,
         call_params=params,
         wait_for_finalization=wait_for_finalization,
@@ -131,13 +182,12 @@ def serve_extrinsic(
             )
             return True
         else:
-            logging.error(f"Failed: {error_message}")
+            logging.error(f"Failed: {format_error_message(error_message)}")
             return False
     else:
         return True
 
 
-# Community uses this extrinsic via `subtensor.set_weights`
 def serve_axon_extrinsic(
     subtensor: "Subtensor",
     netuid: int,
@@ -177,7 +227,8 @@ def serve_axon_extrinsic(
         external_ip = axon.external_ip
 
     # ---- Subscribe to chain ----
-    serve_success = subtensor.serve(
+    serve_success = serve_extrinsic(
+        subtensor=subtensor,
         wallet=axon.wallet,
         ip=external_ip,
         port=external_port,

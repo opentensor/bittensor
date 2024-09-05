@@ -21,12 +21,8 @@ import pytest
 from bittensor_wallet import Wallet
 
 from bittensor.core.axon import Axon
-from bittensor.core.extrinsics.serving import (
-    serve_extrinsic,
-    publish_metadata,
-    serve_axon_extrinsic,
-)
 from bittensor.core.subtensor import Subtensor
+from bittensor.core.extrinsics import serving
 
 
 @pytest.fixture
@@ -116,15 +112,16 @@ def test_serve_extrinsic_happy_path(
     prompt,
     expected,
     test_id,
+    mocker,
 ):
     # Arrange
-    mock_subtensor.do_serve_axon.return_value = (True, "")
+    serving.do_serve_axon = mocker.MagicMock(return_value=(True, ""))
     with patch(
         "bittensor.core.extrinsics.serving.Confirm.ask",
         return_value=True,
     ):
         # Act
-        result = serve_extrinsic(
+        result = serving.serve_extrinsic(
             mock_subtensor,
             mock_wallet,
             ip,
@@ -176,15 +173,16 @@ def test_serve_extrinsic_edge_cases(
     prompt,
     expected,
     test_id,
+    mocker,
 ):
     # Arrange
-    mock_subtensor.do_serve_axon.return_value = (True, "")
+    serving.do_serve_axon = mocker.MagicMock(return_value=(True, ""))
     with patch(
         "bittensor.core.extrinsics.serving.Confirm.ask",
         return_value=True,
     ):
         # Act
-        result = serve_extrinsic(
+        result = serving.serve_extrinsic(
             mock_subtensor,
             mock_wallet,
             ip,
@@ -236,15 +234,16 @@ def test_serve_extrinsic_error_cases(
     prompt,
     expected_error_message,
     test_id,
+    mocker,
 ):
     # Arrange
-    mock_subtensor.do_serve_axon.return_value = (False, "Error serving axon")
+    serving.do_serve_axon = mocker.MagicMock(return_value=(False, "Error serving axon"))
     with patch(
         "bittensor.core.extrinsics.serving.Confirm.ask",
         return_value=True,
     ):
         # Act
-        result = serve_extrinsic(
+        result = serving.serve_extrinsic(
             mock_subtensor,
             mock_wallet,
             ip,
@@ -304,6 +303,7 @@ def test_serve_axon_extrinsic(
     serve_success,
     expected_result,
     test_id,
+    mocker,
 ):
     mock_axon.external_ip = external_ip
     # Arrange
@@ -312,11 +312,12 @@ def test_serve_axon_extrinsic(
         side_effect=Exception("Failed to fetch IP")
         if not external_ip_success
         else MagicMock(return_value="192.168.1.1"),
-    ), patch.object(mock_subtensor, "serve", return_value=serve_success):
+    ):
+        serving.do_serve_axon = mocker.MagicMock(return_value=(serve_success, ""))
         # Act
         if not external_ip_success:
             with pytest.raises(RuntimeError):
-                serve_axon_extrinsic(
+                serving.serve_axon_extrinsic(
                     mock_subtensor,
                     netuid,
                     mock_axon,
@@ -324,7 +325,7 @@ def test_serve_axon_extrinsic(
                     wait_for_finalization=wait_for_finalization,
                 )
         else:
-            result = serve_axon_extrinsic(
+            result = serving.serve_axon_extrinsic(
                 mock_subtensor,
                 netuid,
                 mock_axon,
@@ -387,7 +388,7 @@ def test_publish_metadata(
         ),
     ):
         # Act
-        result = publish_metadata(
+        result = serving.publish_metadata(
             subtensor=mock_subtensor,
             wallet=mock_wallet,
             netuid=net_uid,

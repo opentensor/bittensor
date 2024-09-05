@@ -55,7 +55,7 @@ from bittensor.core.extrinsics.prometheus import (
     prometheus_extrinsic,
 )
 from bittensor.core.extrinsics.serving import (
-    serve_extrinsic,
+    do_serve_axon,
     serve_axon_extrinsic,
     publish_metadata,
     get_metadata,
@@ -68,7 +68,7 @@ from bittensor.core.extrinsics.transfer import (
     transfer_extrinsic,
 )
 from bittensor.core.metagraph import Metagraph
-from bittensor.core.types import AxonServeCallParams, PrometheusServeCallParams
+from bittensor.core.types import PrometheusServeCallParams
 from bittensor.utils import torch, format_error_message
 from bittensor.utils import u16_normalized_float, networking
 from bittensor.utils.balance import Balance
@@ -1190,103 +1190,8 @@ class Subtensor:
             wait_for_finalization=wait_for_finalization,
         )
 
-    # Community uses this method as part of `subtensor.serve_axon`
-    @networking.ensure_connected
-    def do_serve_axon(
-        self,
-        wallet: "Wallet",
-        call_params: AxonServeCallParams,
-        wait_for_inclusion: bool = False,
-        wait_for_finalization: bool = True,
-    ) -> Tuple[bool, Optional[str]]:
-        """
-        Internal method to submit a serve axon transaction to the Bittensor blockchain. This method creates and submits a transaction, enabling a neuron's Axon to serve requests on the network.
-
-        Args:
-            wallet (bittensor_wallet.Wallet): The wallet associated with the neuron.
-            call_params (AxonServeCallParams): Parameters required for the serve axon call.
-            wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
-            wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
-
-        Returns:
-            Tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
-
-        This function is crucial for initializing and announcing a neuron's Axon service on the network, enhancing the decentralized computation capabilities of Bittensor.
-        """
-
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=logging)
-        def make_substrate_call_with_retry():
-            call = self.substrate.compose_call(
-                call_module="SubtensorModule",
-                call_function="serve_axon",
-                call_params=call_params,
-            )
-            extrinsic = self.substrate.create_signed_extrinsic(
-                call=call, keypair=wallet.hotkey
-            )
-            response = self.substrate.submit_extrinsic(
-                extrinsic,
-                wait_for_inclusion=wait_for_inclusion,
-                wait_for_finalization=wait_for_finalization,
-            )
-            if wait_for_inclusion or wait_for_finalization:
-                response.process_events()
-                if response.is_success:
-                    return True, None
-                else:
-                    return False, format_error_message(response.error_message)
-            else:
-                return True, None
-
-        return make_substrate_call_with_retry()
-
-    # keep backwards compatibility for the community
+    # keep backwards compatibility for the community (Subnet 27)
     _do_serve_axon = do_serve_axon
-
-    # Community uses this method
-    def serve(
-        self,
-        wallet: "Wallet",
-        ip: str,
-        port: int,
-        protocol: int,
-        netuid: int,
-        placeholder1: int = 0,
-        placeholder2: int = 0,
-        wait_for_inclusion: bool = False,
-        wait_for_finalization=True,
-    ) -> bool:
-        """
-        Registers a neuron's serving endpoint on the Bittensor network. This function announces the IP address and port where the neuron is available to serve requests, facilitating peer-to-peer communication within the network.
-
-        Args:
-            wallet (bittensor_wallet.Wallet): The wallet associated with the neuron being served.
-            ip (str): The IP address of the serving neuron.
-            port (int): The port number on which the neuron is serving.
-            protocol (int): The protocol type used by the neuron (e.g., GRPC, HTTP).
-            netuid (int): The unique identifier of the subnetwork.
-            placeholder1 (int, optional): Placeholder parameter for future extensions. Default is ``0``.
-            placeholder2 (int, optional): Placeholder parameter for future extensions. Default is ``0``.
-            wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block. Default is ``False``.
-            wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain. Default is ``True``.
-
-        Returns:
-            bool: ``True`` if the serve registration is successful, False otherwise.
-
-        This function is essential for establishing the neuron's presence in the network, enabling it to participate in the decentralized machine learning processes of Bittensor.
-        """
-        return serve_extrinsic(
-            self,
-            wallet,
-            ip,
-            port,
-            protocol,
-            netuid,
-            placeholder1,
-            placeholder2,
-            wait_for_inclusion,
-            wait_for_finalization,
-        )
 
     # Community uses this method
     def get_subnet_hyperparameters(
