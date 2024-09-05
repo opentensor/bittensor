@@ -169,6 +169,7 @@ def serve_extrinsic(
         f"Serving axon with: AxonInfo({wallet.hotkey.ss58_address},{ip}:{port}) -> {subtensor.network}:{netuid}"
     )
     success, error_message = do_serve_axon(
+        self=subtensor,
         wallet=wallet,
         call_params=params,
         wait_for_finalization=wait_for_finalization,
@@ -241,8 +242,9 @@ def serve_axon_extrinsic(
 
 
 # Community uses this extrinsic directly and via `subtensor.commit`
+@net.ensure_connected
 def publish_metadata(
-    subtensor,
+    self: "Subtensor",
     wallet: "Wallet",
     netuid: int,
     data_type: str,
@@ -254,7 +256,7 @@ def publish_metadata(
     Publishes metadata on the Bittensor network using the specified wallet and network identifier.
 
     Args:
-        subtensor (bittensor.subtensor): The subtensor instance representing the Bittensor blockchain connection.
+        self (bittensor.subtensor): The subtensor instance representing the Bittensor blockchain connection.
         wallet (bittensor.wallet): The wallet object used for authentication in the transaction.
         netuid (int): Network UID on which the metadata is to be published.
         data_type (str): The data type of the information being submitted. It should be one of the following: ``'Sha256'``, ``'Blake256'``, ``'Keccak256'``, or ``'Raw0-128'``. This specifies the format or hashing algorithm used for the data.
@@ -271,7 +273,7 @@ def publish_metadata(
 
     wallet.unlock_hotkey()
 
-    with subtensor.substrate as substrate:
+    with self.substrate as substrate:
         call = substrate.compose_call(
             call_module="Commitments",
             call_function="set_commitment",

@@ -149,7 +149,7 @@ async def test_incentive(local_chain):
     await wait_epoch(subtensor)
 
     # Set weights by Alice on the subnet
-    subtensor._do_set_weights(
+    subtensor.do_set_weights(
         wallet=alice_wallet,
         uids=[1],
         vals=[65535],

@@ -178,7 +178,7 @@ def transfer_extrinsic(
             self=subtensor,
             wallet=wallet,
             dest=dest,
-            amount=transfer_balance,
+            transfer_balance=transfer_balance,
             wait_for_finalization=wait_for_finalization,
             wait_for_inclusion=wait_for_inclusion,
         )

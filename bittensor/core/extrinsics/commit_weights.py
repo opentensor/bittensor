@@ -125,7 +125,7 @@ def commit_weights_extrinsic(
         return False, "User cancelled the operation."
 
     success, error_message = do_commit_weights(
-        subtensor=subtensor,
+        self=subtensor,
         wallet=wallet,
         netuid=netuid,
         commit_hash=commit_hash,
@@ -250,7 +250,7 @@ def reveal_weights_extrinsic(
         return False, "User cancelled the operation."
 
     success, error_message = do_reveal_weights(
-        subtensor=subtensor,
+        self=subtensor,
         wallet=wallet,
         netuid=netuid,
         uids=uids,

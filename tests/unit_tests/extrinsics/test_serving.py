@@ -389,7 +389,7 @@ def test_publish_metadata(
     ):
         # Act
         result = serving.publish_metadata(
-            subtensor=mock_subtensor,
+            self=mock_subtensor,
             wallet=mock_wallet,
             netuid=net_uid,
             data_type=type_u,
