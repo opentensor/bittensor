@@ -1123,6 +1123,7 @@ def test_is_hotkey_registered_with_netuid(subtensor, mocker):
     )
     assert result == mocked_is_hotkey_registered_on_subnet.return_value
 
+
 def test_set_weights(subtensor, mocker):
     """Successful set_weights call."""
     # Preps
