@@ -38,7 +38,7 @@ if TYPE_CHECKING:
 # Chain call for `do_set_weights`
 @ensure_connected
 def do_set_weights(
-    self,
+    self: "Subtensor",
     wallet: "Wallet",
     uids: List[int],
     vals: List[int],
