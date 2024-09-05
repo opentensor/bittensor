@@ -31,6 +31,7 @@ if TYPE_CHECKING:
     from bittensor.core.subtensor import Subtensor
 
 
+# Chain call for `prometheus_extrinsic`
 @ensure_connected
 def do_serve_prometheus(
     self: "Subtensor",

@@ -36,6 +36,7 @@ if TYPE_CHECKING:
     from bittensor_wallet import Wallet
 
 
+# Chain call for `transfer_extrinsic`
 @ensure_connected
 def do_transfer(
     self: "Subtensor",

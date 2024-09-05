@@ -35,6 +35,7 @@ if TYPE_CHECKING:
     from bittensor_wallet import Wallet
 
 
+# Chain call for `do_set_weights`
 @ensure_connected
 def do_set_weights(
     self,

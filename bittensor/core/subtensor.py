@@ -61,15 +61,11 @@ from bittensor.core.extrinsics.serving import (
     publish_metadata,
     get_metadata,
 )
-from bittensor.core.extrinsics.set_weights import (
-    do_set_weights,
-    set_weights_extrinsic,
-)
+from bittensor.core.extrinsics.set_weights import set_weights_extrinsic
 from bittensor.core.extrinsics.transfer import (
     transfer_extrinsic,
 )
 from bittensor.core.metagraph import Metagraph
-
 from bittensor.utils import torch
 from bittensor.utils import u16_normalized_float, networking
 from bittensor.utils.balance import Balance
@@ -842,9 +838,6 @@ class Subtensor:
         else:
             return self.is_hotkey_registered_on_subnet(hotkey_ss58, netuid, block)
 
-    # keep backwards compatibility for the community
-    do_set_weights = do_set_weights
-
     # Not used in Bittensor, but is actively used by the community in almost all subnets
     def set_weights(
         self,
@@ -1108,9 +1101,6 @@ class Subtensor:
 
         return NeuronInfo.from_vec_u8(result)
 
-    # Community uses this method name
-    _do_serve_prometheus = do_serve_prometheus
-
     # Community uses this method
     def serve_prometheus(
         self,
@@ -1141,9 +1131,6 @@ class Subtensor:
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
         )
-
-    # keep backwards compatibility for the community (Subnet 27)
-    _do_serve_axon = do_serve_axon
 
     # Community uses this method
     def get_subnet_hyperparameters(
@@ -1741,3 +1728,8 @@ class Subtensor:
                 retries += 1
 
         return success, message
+
+    # Subnet 27 uses this method
+    _do_serve_prometheus = do_serve_prometheus
+    # Subnet 27 uses this method name
+    _do_serve_axon = do_serve_axon

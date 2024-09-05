@@ -32,7 +32,7 @@ if TYPE_CHECKING:
     from bittensor.core.subtensor import Subtensor
 
 
-# Community uses this method
+# # Chain call for `commit_weights_extrinsic`
 @ensure_connected
 def do_commit_weights(
     self: "Subtensor",
@@ -118,6 +118,7 @@ def commit_weights_extrinsic(
     Returns:
         Tuple[bool, str]: ``True`` if the weight commitment is successful, False otherwise. And `msg`, a string
         value describing the success or potential error.
+
     This function provides a user-friendly interface for committing weights to the Bittensor blockchain, ensuring proper
     error handling and user interaction when required.
     """
@@ -143,7 +144,7 @@ def commit_weights_extrinsic(
         return False, error_message
 
 
-# Community uses this method
+# Chain call for `reveal_weights_extrinsic`
 @ensure_connected
 def do_reveal_weights(
     self: "Subtensor",
@@ -242,6 +243,7 @@ def reveal_weights_extrinsic(
     Returns:
         Tuple[bool, str]: ``True`` if the weight revelation is successful, False otherwise. And `msg`, a string
         value describing the success or potential error.
+
     This function provides a user-friendly interface for revealing weights on the Bittensor blockchain, ensuring proper
     error handling and user interaction when required.
     """

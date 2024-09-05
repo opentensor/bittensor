@@ -35,6 +35,7 @@ if TYPE_CHECKING:
     from bittensor_wallet import Wallet
 
 
+# Chain call for `serve_extrinsic` and `serve_axon_extrinsic`
 @ensure_connected
 def do_serve_axon(
     self: "Subtensor",
