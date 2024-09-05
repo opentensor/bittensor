@@ -52,6 +52,7 @@ from bittensor.core.extrinsics.commit_weights import (
     reveal_weights_extrinsic,
 )
 from bittensor.core.extrinsics.prometheus import (
+    do_serve_prometheus,
     prometheus_extrinsic,
 )
 from bittensor.core.extrinsics.serving import (
@@ -68,8 +69,8 @@ from bittensor.core.extrinsics.transfer import (
     transfer_extrinsic,
 )
 from bittensor.core.metagraph import Metagraph
-from bittensor.core.types import PrometheusServeCallParams
-from bittensor.utils import torch, format_error_message
+
+from bittensor.utils import torch
 from bittensor.utils import u16_normalized_float, networking
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
@@ -1106,55 +1107,6 @@ class Subtensor:
             return NeuronInfo.get_null_neuron()
 
         return NeuronInfo.from_vec_u8(result)
-
-    # Community uses this method via `bittensor.api.extrinsics.prometheus.prometheus_extrinsic`
-    @networking.ensure_connected
-    def do_serve_prometheus(
-        self,
-        wallet: "Wallet",
-        call_params: PrometheusServeCallParams,
-        wait_for_inclusion: bool = False,
-        wait_for_finalization: bool = True,
-    ) -> Tuple[bool, Optional[str]]:
-        """
-        Sends a serve prometheus extrinsic to the chain.
-
-        Args:
-            wallet (:func:`bittensor_wallet.Wallet`): Wallet object.
-            call_params (:func:`PrometheusServeCallParams`): Prometheus serve call parameters.
-            wait_for_inclusion (bool): If ``true``, waits for inclusion.
-            wait_for_finalization (bool): If ``true``, waits for finalization.
-
-        Returns:
-            success (bool): ``True`` if serve prometheus was successful.
-            error (:func:`Optional[str]`): Error message if serve prometheus failed, ``None`` otherwise.
-        """
-
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=logging)
-        def make_substrate_call_with_retry():
-            call = self.substrate.compose_call(
-                call_module="SubtensorModule",
-                call_function="serve_prometheus",
-                call_params=call_params,
-            )
-            extrinsic = self.substrate.create_signed_extrinsic(
-                call=call, keypair=wallet.hotkey
-            )
-            response = self.substrate.submit_extrinsic(
-                extrinsic,
-                wait_for_inclusion=wait_for_inclusion,
-                wait_for_finalization=wait_for_finalization,
-            )
-            if wait_for_inclusion or wait_for_finalization:
-                response.process_events()
-                if response.is_success:
-                    return True, None
-                else:
-                    return False, format_error_message(response.error_message)
-            else:
-                return True, None
-
-        return make_substrate_call_with_retry()
 
     # Community uses this method name
     _do_serve_prometheus = do_serve_prometheus
