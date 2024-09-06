@@ -23,7 +23,6 @@ blockchain, facilitating a range of operations essential for the decentralized m
 import argparse
 import copy
 import socket
-import sys
 from typing import List, Dict, Union, Optional, Tuple, TypedDict, Any
 
 import numpy as np
