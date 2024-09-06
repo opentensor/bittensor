@@ -26,7 +26,6 @@ from __future__ import annotations
 import argparse
 import copy
 import socket
-import sys
 import time
 from typing import List, Dict, Union, Optional, Tuple, TypedDict, Any
 
@@ -293,7 +292,7 @@ class Subtensor:
                 "You can check if you have connectivity by running this command: nc -vz localhost "
                 f"{self.chain_endpoint.split(':')[2]}"
             )
-            sys.exit(1)
+            return
 
         try:
             self.substrate.websocket.settimeout(self._connection_timeout)
