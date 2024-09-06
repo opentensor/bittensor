@@ -229,7 +229,7 @@ class Subtensor:
 
         except ConnectionRefusedError:
             logging.error(
-                f"Could not connect to {self.network} network with {self.chain_endpoint} chain endpoint. Exiting...",
+                f"Could not connect to {self.network} network with {self.chain_endpoint} chain endpoint.",
             )
             logging.info(
                 "You can check if you have connectivity by running this command: nc -vz localhost "
