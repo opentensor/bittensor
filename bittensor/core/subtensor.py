@@ -23,7 +23,6 @@ blockchain, facilitating a range of operations essential for the decentralized m
 import argparse
 import copy
 import socket
-import sys
 from typing import List, Dict, Union, Optional, Tuple, TypedDict, Any
 
 import numpy as np
@@ -221,24 +220,19 @@ class Subtensor:
                     f"Connected to {self.network} network and {self.chain_endpoint}."
                 )
 
+            try:
+                self.substrate.websocket.settimeout(self._connection_timeout)
+            except (AttributeError, TypeError, socket.error, OSError) as e:
+                logging.warning(f"Error setting timeout: {e}")
+
         except ConnectionRefusedError:
             logging.error(
-                f"Could not connect to {self.network} network with {self.chain_endpoint} chain endpoint. Exiting...",
+                f"Could not connect to {self.network} network with {self.chain_endpoint} chain endpoint.",
             )
             logging.info(
                 "You can check if you have connectivity by running this command: nc -vz localhost "
                 f"{self.chain_endpoint.split(':')[2]}"
             )
-            sys.exit(1)
-
-        try:
-            self.substrate.websocket.settimeout(self._connection_timeout)
-        except AttributeError as e:
-            logging.warning(f"AttributeError: {e}")
-        except TypeError as e:
-            logging.warning(f"TypeError: {e}")
-        except (socket.error, OSError) as e:
-            logging.warning(f"Socket error: {e}")
 
     @staticmethod
     def config() -> "Config":
