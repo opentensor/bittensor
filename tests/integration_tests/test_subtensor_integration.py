@@ -173,7 +173,10 @@ class TestSubtensor(unittest.TestCase):
 
     def test_transfer_dest_as_bytes(self):
         fake_coldkey = get_mock_coldkey(1)
-        with patch("bittensor.core.extrinsics.transfer.do_transfer", return_value=(True, "0x", None)):
+        with patch(
+            "bittensor.core.extrinsics.transfer.do_transfer",
+            return_value=(True, "0x", None),
+        ):
             self.subtensor.get_neuron_for_pubkey_and_subnet = MagicMock(
                 return_value=self.mock_neuron
             )
