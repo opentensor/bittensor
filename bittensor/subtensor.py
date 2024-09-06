@@ -294,7 +294,6 @@ class Subtensor:
             )
             return
 
-
         try:
             self.substrate.websocket.settimeout(self._connection_timeout)
         except AttributeError as e:
