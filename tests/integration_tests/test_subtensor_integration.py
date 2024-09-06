@@ -173,21 +173,20 @@ class TestSubtensor(unittest.TestCase):
 
     def test_transfer_dest_as_bytes(self):
         fake_coldkey = get_mock_coldkey(1)
-        self.subtensor.do_transfer = MagicMock(return_value=(True, "0x", None))
+        with patch("bittensor.core.extrinsics.transfer.do_transfer", return_value=(True, "0x", None)):
+            self.subtensor.get_neuron_for_pubkey_and_subnet = MagicMock(
+                return_value=self.mock_neuron
+            )
+            self.subtensor.get_balance = MagicMock(return_value=self.balance)
 
-        self.subtensor.get_neuron_for_pubkey_and_subnet = MagicMock(
-            return_value=self.mock_neuron
-        )
-        self.subtensor.get_balance = MagicMock(return_value=self.balance)
-
-        dest_as_bytes: bytes = Keypair(fake_coldkey).public_key
-        success = self.subtensor.transfer(
-            self.wallet,
-            dest_as_bytes,  # invalid dest
-            amount=200,
-            wait_for_inclusion=True,
-        )
-        self.assertTrue(success, msg="Transfer should succeed")
+            dest_as_bytes: bytes = Keypair(fake_coldkey).public_key
+            success = self.subtensor.transfer(
+                self.wallet,
+                dest_as_bytes,  # invalid dest
+                amount=200,
+                wait_for_inclusion=True,
+            )
+            self.assertTrue(success, msg="Transfer should succeed")
 
     def test_set_weights(self):
         chain_weights = [0]
