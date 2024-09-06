@@ -189,12 +189,11 @@ def test_log_sanity(logging_machine, caplog):
         {"suffix": "suff"},
         {"prefix": "pref", "suffix": "suff"},
     ]
-    cookiejar = {}
     for i, nfix in enumerate(nfixtests):
         prefix = nfix.get("prefix", "")
         suffix = nfix.get("suffix", "")
         use_cookie = f"{cookie} #{i}#"
-        logging_machine.info(basemsg, i, use_cookie, prefix=prefix, suffix=suffix)
+        logging_machine.info(basemsg, prefix, suffix, i, use_cookie)
         # Check to see if all elements are present, regardless of downstream formatting.
         expect = f"INFO.*{os.path.basename(__file__)}.* "
         if prefix != "":
