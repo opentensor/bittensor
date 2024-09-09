@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from typing import List, Dict, Optional, Any, Union
 
+import bt_decode
+
 from bittensor.core.chain_data.utils import from_scale_encoding, ChainDataType
 from bittensor.utils.registration import torch, use_torch
 
@@ -38,16 +40,37 @@ class SubnetHyperparameters:
     liquid_alpha_enabled: bool
 
     @classmethod
-    def from_vec_u8(cls, vec_u8: List[int]) -> Optional["SubnetHyperparameters"]:
-        """Returns a SubnetHyperparameters object from a ``vec_u8``."""
-        if len(vec_u8) == 0:
-            return None
-
-        decoded = from_scale_encoding(vec_u8, ChainDataType.SubnetHyperparameters)
-        if decoded is None:
-            return None
-
-        return SubnetHyperparameters.fix_decoded_values(decoded)
+    def from_vec_u8(cls, vec_u8: bytes) -> Optional["SubnetHyperparameters"]:
+        decoded = bt_decode.SubnetHyperparameters.decode(vec_u8)
+        return SubnetHyperparameters(
+            rho=decoded.rho,
+            kappa=decoded.kappa,
+            immunity_period=decoded.immunity_period,
+            min_allowed_weights=decoded.min_allowed_weights,
+            max_weight_limit=decoded.max_weights_limit,
+            tempo=decoded.tempo,
+            min_difficulty=decoded.min_difficulty,
+            max_difficulty=decoded.max_difficulty,
+            weights_version=decoded.weights_version,
+            weights_rate_limit=decoded.weights_rate_limit,
+            adjustment_interval=decoded.adjustment_interval,
+            activity_cutoff=decoded.activity_cutoff,
+            registration_allowed=decoded.registration_allowed,
+            target_regs_per_interval=decoded.target_regs_per_interval,
+            min_burn=decoded.min_burn,
+            max_burn=decoded.max_burn,
+            bonds_moving_avg=decoded.bonds_moving_avg,
+            max_regs_per_block=decoded.max_regs_per_block,
+            serving_rate_limit=decoded.serving_rate_limit,
+            max_validators=decoded.max_validators,
+            adjustment_alpha=decoded.adjustment_alpha,
+            difficulty=decoded.difficulty,
+            commit_reveal_weights_interval=decoded.commit_reveal_weights_interval,
+            commit_reveal_weights_enabled=decoded.commit_reveal_weights_enabled,
+            alpha_high=decoded.alpha_high,
+            alpha_low=decoded.alpha_low,
+            liquid_alpha_enabled=decoded.liquid_alpha_enabled,
+        )
 
     @classmethod
     def list_from_vec_u8(cls, vec_u8: List[int]) -> List["SubnetHyperparameters"]:

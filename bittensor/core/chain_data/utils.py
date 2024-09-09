@@ -5,6 +5,10 @@ from typing import Dict, List, Optional, Union
 
 from scalecodec.base import RuntimeConfiguration, ScaleBytes
 from scalecodec.type_registry import load_type_registry_preset
+from scalecodec.utils.ss58 import ss58_encode
+
+from bittensor.core.settings import SS58_FORMAT
+from bittensor.utils.balance import Balance
 
 
 class ChainDataType(Enum):
@@ -241,3 +245,16 @@ custom_rpc_type_registry = {
         },
     }
 }
+
+
+def decode_account_id(account_id_bytes):
+    # Convert the AccountId bytes to a Base64 string
+    return ss58_encode(bytes(account_id_bytes).hex(), SS58_FORMAT)
+
+
+def process_stake_data(stake_data):
+    decoded_stake_data = {}
+    for account_id_bytes, stake_ in stake_data:
+        account_id = decode_account_id(account_id_bytes)
+        decoded_stake_data.update({account_id: Balance.from_rao(stake_)})
+    return decoded_stake_data
