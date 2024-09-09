@@ -3,6 +3,7 @@ import functools
 import hashlib
 import math
 import multiprocessing
+import multiprocessing.queues  # this must be imported separately, or could break type annotations
 import os
 import random
 import time
@@ -73,7 +74,7 @@ def _get_real_torch():
 
 
 def log_no_torch_error():
-    bittensor.btlogging.error(
+    bittensor.logging.error(
         "This command requires torch. You can install torch for bittensor"
         ' with `pip install bittensor[torch]` or `pip install ".[torch]"`'
         " if installing from source, and then run the command with USE_TORCH=1 {command}"
@@ -561,7 +562,7 @@ def _solve_for_difficulty_fast(
         while still updating the block information after a different number of nonces,
         to increase the transparency of the process while still keeping the speed.
     """
-    if num_processes == None:
+    if num_processes is None:
         # get the number of allowed processes for this process
         num_processes = min(1, get_cpu_count())
 
@@ -779,7 +780,7 @@ class _UsingSpawnStartMethod:
 
     def __enter__(self):
         self._old_start_method = multiprocessing.get_start_method(allow_none=True)
-        if self._old_start_method == None:
+        if self._old_start_method is None:
             self._old_start_method = "spawn"  # default to spawn
 
         multiprocessing.set_start_method("spawn", force=self._force)
@@ -1082,11 +1083,15 @@ def _solve_for_difficulty_fast_cuda(
 
 
 def _terminate_workers_and_wait_for_exit(
-    workers: List[multiprocessing.Process],
+    workers: List[Union[multiprocessing.Process, multiprocessing.queues.Queue]],
 ) -> None:
     for worker in workers:
-        worker.terminate()
-        worker.join()
+        if isinstance(worker, multiprocessing.queues.Queue):
+            worker.join_thread()
+        else:
+            worker.terminate()
+            worker.join()
+        worker.close()
 
 
 def create_pow(

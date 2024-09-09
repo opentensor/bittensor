@@ -4,15 +4,16 @@ import sys
 import pytest
 
 import bittensor
-from bittensor.utils import networking
+from bittensor import logging
 from bittensor.commands import (
     RegisterCommand,
     RegisterSubnetworkCommand,
 )
+from bittensor.utils import networking
 from tests.e2e_tests.utils import (
     setup_wallet,
     template_path,
-    repo_name,
+    templates_repo,
 )
 
 """
@@ -31,12 +32,16 @@ are set correctly, and that the miner is currently running
 
 @pytest.mark.asyncio
 async def test_axon(local_chain):
+    logging.info("Testing test_axon")
+    netuid = 1
     # Register root as Alice
     alice_keypair, exec_command, wallet = setup_wallet("//Alice")
     exec_command(RegisterSubnetworkCommand, ["s", "create"])
 
-    # Verify subnet 1 created successfully
-    assert local_chain.query("SubtensorModule", "NetworksAdded", [1]).serialize()
+    # Verify subnet <netuid> created successfully
+    assert local_chain.query(
+        "SubtensorModule", "NetworksAdded", [netuid]
+    ).serialize(), "Subnet wasn't created successfully"
 
     # Register a neuron to the subnet
     exec_command(
@@ -45,16 +50,16 @@ async def test_axon(local_chain):
             "s",
             "register",
             "--netuid",
-            "1",
+            str(netuid),
         ],
     )
 
-    metagraph = bittensor.metagraph(netuid=1, network="ws://localhost:9945")
+    metagraph = bittensor.metagraph(netuid=netuid, network="ws://localhost:9945")
 
     # validate one miner with ip of none
     old_axon = metagraph.axons[0]
 
-    assert len(metagraph.axons) == 1
+    assert len(metagraph.axons) == 1, "Expected 1 axon, but got len(metagraph.axons)"
     assert old_axon.hotkey == alice_keypair.ss58_address
     assert old_axon.coldkey == alice_keypair.ss58_address
     assert old_axon.ip == "0.0.0.0"
@@ -66,10 +71,10 @@ async def test_axon(local_chain):
     cmd = " ".join(
         [
             f"{sys.executable}",
-            f'"{template_path}{repo_name}/neurons/miner.py"',
+            f'"{template_path}{templates_repo}/neurons/miner.py"',
             "--no_prompt",
             "--netuid",
-            "1",
+            str(netuid),
             "--subtensor.network",
             "local",
             "--subtensor.chain_endpoint",
@@ -88,13 +93,13 @@ async def test_axon(local_chain):
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
-
+    logging.info("Neuron Alice is now mining")
     await asyncio.sleep(
         5
     )  # wait for 5 seconds for the metagraph to refresh with latest data
 
     # refresh metagraph
-    metagraph = bittensor.metagraph(netuid=1, network="ws://localhost:9945")
+    metagraph = bittensor.metagraph(netuid=netuid, network="ws://localhost:9945")
     updated_axon = metagraph.axons[0]
     external_ip = networking.get_external_ip()
 
@@ -104,3 +109,4 @@ async def test_axon(local_chain):
     assert updated_axon.port == 8091
     assert updated_axon.hotkey == alice_keypair.ss58_address
     assert updated_axon.coldkey == alice_keypair.ss58_address
+    logging.info("Passed test_axon")

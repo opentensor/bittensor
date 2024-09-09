@@ -523,7 +523,21 @@ class RunFaucetCommand:
 class SwapHotkeyCommand:
     @staticmethod
     def run(cli: "bittensor.cli"):
-        r"""Swap your hotkey for all registered axons on the network."""
+        """
+        Executes the ``swap_hotkey`` command to swap the hotkeys for a neuron on the network.
+
+        Usage:
+            The command is used to swap the hotkey of a wallet for another hotkey on that same wallet.
+
+        Optional arguments:
+            - ``--wallet.name`` (str): Specifies the wallet for which the hotkey is to be swapped.
+            - ``--wallet.hotkey`` (str): The original hotkey name that is getting swapped out.
+            - ``--wallet.hotkey_b`` (str): The new hotkey name for which the old is getting swapped out for.
+
+        Example usage::
+
+            btcli wallet swap_hotkey --wallet.name your_wallet_name --wallet.hotkey original_hotkey --wallet.hotkey_b new_hotkey
+        """
         try:
             subtensor: "bittensor.subtensor" = bittensor.subtensor(
                 config=cli.config, log_verbose=False

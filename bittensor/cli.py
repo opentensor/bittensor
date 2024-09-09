@@ -70,6 +70,11 @@ from .commands import (
     CommitWeightCommand,
     RevealWeightCommand,
     CheckColdKeySwapCommand,
+    SetChildrenCommand,
+    GetChildrenCommand,
+    RevokeChildrenCommand,
+    SetChildKeyTakeCommand,
+    GetChildKeyTakeCommand,
 )
 
 # Create a console instance for CLI display.
@@ -164,11 +169,16 @@ COMMANDS = {
     "stake": {
         "name": "stake",
         "aliases": ["st", "stakes"],
-        "help": "Commands for staking and removing stake from hotkey accounts.",
+        "help": "Commands for staking and removing stake and setting child hotkey accounts.",
         "commands": {
             "show": StakeShow,
             "add": StakeCommand,
             "remove": UnStakeCommand,
+            "get_children": GetChildrenCommand,
+            "set_children": SetChildrenCommand,
+            "revoke_children": RevokeChildrenCommand,
+            "set_childkey_take": SetChildKeyTakeCommand,
+            "get_childkey_take": GetChildKeyTakeCommand,
         },
     },
     "weights": {

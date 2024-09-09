@@ -1,3 +1,5 @@
+import typing
+
 from aiohttp import ClientResponse
 import bittensor
 
@@ -49,16 +51,24 @@ class StreamingSynapse(bittensor.Synapse, ABC):
         provided by the subclass.
         """
 
-        def __init__(self, model: BTStreamingResponseModel, **kwargs):
+        def __init__(
+            self,
+            model: BTStreamingResponseModel,
+            *,
+            synapse: typing.Optional["StreamingSynapse"] = None,
+            **kwargs,
+        ):
             """
             Initializes the BTStreamingResponse with the given token streamer model.
 
             Args:
                 model: A BTStreamingResponseModel instance containing the token streamer callable, which is responsible for generating the content of the response.
+                synapse: The response Synapse to be used to update the response headers etc.
                 **kwargs: Additional keyword arguments passed to the parent StreamingResponse class.
             """
             super().__init__(content=iter(()), **kwargs)
             self.token_streamer = model.token_streamer
+            self.synapse = synapse
 
         async def stream_response(self, send: Send):
             """
@@ -139,4 +149,4 @@ class StreamingSynapse(bittensor.Synapse, ABC):
         """
         model_instance = BTStreamingResponseModel(token_streamer=token_streamer)
 
-        return self.BTStreamingResponse(model_instance)
+        return self.BTStreamingResponse(model_instance, synapse=self)
