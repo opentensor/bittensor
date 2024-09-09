@@ -3,7 +3,6 @@ import sys
 
 import pytest
 
-# import bittensor
 from bittensor import Subtensor, logging
 from tests.e2e_tests.utils.chain_interactions import (
     add_stake,

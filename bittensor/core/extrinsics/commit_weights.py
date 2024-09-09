@@ -104,7 +104,7 @@ def commit_weights_extrinsic(
 ) -> Tuple[bool, str]:
     """
     Commits a hash of the neuron's weights to the Bittensor blockchain using the provided wallet.
-    This function is a wrapper around the `_do_commit_weights` method, handling user prompts and error messages.
+    This function is a wrapper around the `do_commit_weights` method, handling user prompts and error messages.
 
     Args:
         subtensor (bittensor.subtensor): The subtensor instance used for blockchain interaction.
