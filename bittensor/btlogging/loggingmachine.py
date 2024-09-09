@@ -29,6 +29,7 @@ import multiprocessing as mp
 import os
 import sys
 from logging.handlers import QueueHandler, QueueListener, RotatingFileHandler
+from logging import Logger
 from typing import NamedTuple
 
 from statemachine import State, StateMachine
@@ -55,7 +56,7 @@ class LoggingConfig(NamedTuple):
     logging_dir: str
 
 
-class LoggingMachine(StateMachine):
+class LoggingMachine(StateMachine, Logger):
     """Handles logger states for bittensor and 3rd party libraries."""
 
     Default = State(initial=True)
@@ -360,58 +361,45 @@ class LoggingMachine(StateMachine):
         """
         return self.current_state_value == "Trace"
 
-    @staticmethod
-    def _concat_msg(*args):
-        return " - ".join(str(el) for el in args if el != "")
-
-    def trace(self, msg="", *args, prefix="", suffix="", **kwargs):
+    def trace(self, msg="", prefix="", suffix="", *args, **kwargs):
         """Wraps trace message with prefix and suffix."""
-        msg = self._concat_msg(prefix, msg, suffix)
-        self._logger.trace(msg, *args, **kwargs, stacklevel=2)
+        msg = f"{prefix} - {msg} - {suffix}"
+        self._logger.trace(msg, *args, **kwargs)
 
-    def debug(self, msg="", *args, prefix="", suffix="", **kwargs):
+    def debug(self, msg="", prefix="", suffix="", *args, **kwargs):
         """Wraps debug message with prefix and suffix."""
-        msg = self._concat_msg(prefix, msg, suffix)
-        self._logger.debug(msg, *args, **kwargs, stacklevel=2)
+        msg = f"{prefix} - {msg} - {suffix}"
+        self._logger.debug(msg, *args, **kwargs)
 
-    def info(self, msg="", *args, prefix="", suffix="", **kwargs):
+    def info(self, msg="", prefix="", suffix="", *args, **kwargs):
         """Wraps info message with prefix and suffix."""
-        msg = self._concat_msg(prefix, msg, suffix)
-        self._logger.info(msg, *args, **kwargs, stacklevel=2)
+        msg = f"{prefix} - {msg} - {suffix}"
+        self._logger.info(msg, *args, **kwargs)
 
-    def success(self, msg="", *args, prefix="", suffix="", **kwargs):
+    def success(self, msg="", prefix="", suffix="", *args, **kwargs):
         """Wraps success message with prefix and suffix."""
-        msg = self._concat_msg(prefix, msg, suffix)
-        self._logger.success(msg, *args, **kwargs, stacklevel=2)
+        msg = f"{prefix} - {msg} - {suffix}"
+        self._logger.success(msg, *args, **kwargs)
 
-    def warning(self, msg="", *args, prefix="", suffix="", **kwargs):
+    def warning(self, msg="", prefix="", suffix="", *args, **kwargs):
         """Wraps warning message with prefix and suffix."""
-        msg = self._concat_msg(prefix, msg, suffix)
-        self._logger.warning(msg, *args, **kwargs, stacklevel=2)
+        msg = f"{prefix} - {msg} - {suffix}"
+        self._logger.warning(msg, *args, **kwargs)
 
-    def error(self, msg="", *args, prefix="", suffix="", **kwargs):
+    def error(self, msg="", prefix="", suffix="", *args, **kwargs):
         """Wraps error message with prefix and suffix."""
-        msg = self._concat_msg(prefix, msg, suffix)
-        self._logger.error(msg, *args, **kwargs, stacklevel=2)
+        msg = f"{prefix} - {msg} - {suffix}"
+        self._logger.error(msg, *args, **kwargs)
 
-    def critical(self, msg="", *args, prefix="", suffix="", **kwargs):
+    def critical(self, msg="", prefix="", suffix="", *args, **kwargs):
         """Wraps critical message with prefix and suffix."""
-        msg = self._concat_msg(prefix, msg, suffix)
-        self._logger.critical(msg, *args, **kwargs, stacklevel=2)
+        msg = f"{prefix} - {msg} - {suffix}"
+        self._logger.critical(msg, *args, **kwargs)
 
-    def exception(self, msg="", *args, prefix="", suffix="", **kwargs):
+    def exception(self, msg="", prefix="", suffix="", *args, **kwargs):
         """Wraps exception message with prefix and suffix."""
-        msg = self._concat_msg(prefix, msg, suffix)
-        stacklevel = 2
-        if (
-            sys.implementation.name == "cpython"
-            and sys.version_info.major == 3
-            and sys.version_info.minor < 11
-        ):
-            # Note that, on CPython < 3.11, exception() calls through to
-            # error() without adjusting stacklevel, so we have to increment it.
-            stacklevel += 1
-        self._logger.exception(msg, *args, **kwargs, stacklevel=stacklevel)
+        msg = f"{prefix} - {msg} - {suffix}"
+        self._logger.exception(msg, *args, **kwargs)
 
     def on(self):
         """Enable default state."""
