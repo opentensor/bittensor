@@ -28,6 +28,7 @@ import logging as stdlogging
 import multiprocessing as mp
 import os
 import sys
+from logging import Logger
 from logging.handlers import QueueHandler, QueueListener, RotatingFileHandler
 from typing import NamedTuple
 
@@ -55,7 +56,7 @@ class LoggingConfig(NamedTuple):
     logging_dir: str
 
 
-class LoggingMachine(StateMachine):
+class LoggingMachine(StateMachine, Logger):
     """Handles logger states for bittensor and 3rd party libraries."""
 
     Default = State(initial=True)
