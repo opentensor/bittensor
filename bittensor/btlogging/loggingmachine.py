@@ -360,48 +360,44 @@ class LoggingMachine(StateMachine):
         """
         return self.current_state_value == "Trace"
 
-    @staticmethod
-    def _concat_msg(*args):
-        return " - ".join(str(el) for el in args if el != "")
-
     def trace(self, msg="", *args, prefix="", suffix="", **kwargs):
         """Wraps trace message with prefix and suffix."""
-        msg = self._concat_msg(prefix, msg, suffix)
+        msg = f"{prefix} - {msg} - {suffix}"
         self._logger.trace(msg, *args, **kwargs, stacklevel=2)
 
     def debug(self, msg="", *args, prefix="", suffix="", **kwargs):
         """Wraps debug message with prefix and suffix."""
-        msg = self._concat_msg(prefix, msg, suffix)
+        msg = f"{prefix} - {msg} - {suffix}"
         self._logger.debug(msg, *args, **kwargs, stacklevel=2)
 
     def info(self, msg="", *args, prefix="", suffix="", **kwargs):
         """Wraps info message with prefix and suffix."""
-        msg = self._concat_msg(prefix, msg, suffix)
+        msg = f"{prefix} - {msg} - {suffix}"
         self._logger.info(msg, *args, **kwargs, stacklevel=2)
 
     def success(self, msg="", *args, prefix="", suffix="", **kwargs):
         """Wraps success message with prefix and suffix."""
-        msg = self._concat_msg(prefix, msg, suffix)
+        msg = f"{prefix} - {msg} - {suffix}"
         self._logger.success(msg, *args, **kwargs, stacklevel=2)
 
     def warning(self, msg="", *args, prefix="", suffix="", **kwargs):
         """Wraps warning message with prefix and suffix."""
-        msg = self._concat_msg(prefix, msg, suffix)
+        msg = f"{prefix} - {msg} - {suffix}"
         self._logger.warning(msg, *args, **kwargs, stacklevel=2)
 
     def error(self, msg="", *args, prefix="", suffix="", **kwargs):
         """Wraps error message with prefix and suffix."""
-        msg = self._concat_msg(prefix, msg, suffix)
+        msg = f"{prefix} - {msg} - {suffix}"
         self._logger.error(msg, *args, **kwargs, stacklevel=2)
 
     def critical(self, msg="", *args, prefix="", suffix="", **kwargs):
         """Wraps critical message with prefix and suffix."""
-        msg = self._concat_msg(prefix, msg, suffix)
+        msg = f"{prefix} - {msg} - {suffix}"
         self._logger.critical(msg, *args, **kwargs, stacklevel=2)
 
     def exception(self, msg="", *args, prefix="", suffix="", **kwargs):
         """Wraps exception message with prefix and suffix."""
-        msg = self._concat_msg(prefix, msg, suffix)
+        msg = f"{prefix} - {msg} - {suffix}"
         stacklevel = 2
         if (
             sys.implementation.name == "cpython"
