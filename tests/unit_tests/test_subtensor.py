@@ -2333,3 +2333,39 @@ def test_get_remaining_arbitration_period_happy(subtensor, mocker):
     )
     # if we change the methods logic in the future we have to be make sure the returned type is correct
     assert result == 1800  # 2000 - 200
+
+
+def test_connect_without_substrate(mocker):
+    """Ensure re-connection is called when using an alive substrate."""
+    # Prep
+    fake_substrate = mocker.MagicMock()
+    fake_substrate.websocket.sock.getsockopt.return_value = 1
+    mocker.patch.object(
+        subtensor_module, "SubstrateInterface", return_value=fake_substrate
+    )
+    fake_subtensor = Subtensor()
+    spy_get_substrate = mocker.spy(Subtensor, "_get_substrate")
+
+    # Call
+    _ = fake_subtensor.block
+
+    # Assertions
+    assert spy_get_substrate.call_count == 1
+
+
+def test_connect_with_substrate(mocker):
+    """Ensure re-connection is non called when using an alive substrate."""
+    # Prep
+    fake_substrate = mocker.MagicMock()
+    fake_substrate.websocket.sock.getsockopt.return_value = 0
+    mocker.patch.object(
+        subtensor_module, "SubstrateInterface", return_value=fake_substrate
+    )
+    fake_subtensor = Subtensor()
+    spy_get_substrate = mocker.spy(Subtensor, "_get_substrate")
+
+    # Call
+    _ = fake_subtensor.block
+
+    # Assertions
+    assert spy_get_substrate.call_count == 0
