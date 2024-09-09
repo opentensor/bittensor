@@ -22,7 +22,7 @@
 import json
 import logging
 import os
-from typing import Dict, Optional, Union, Any
+from typing import Dict, Optional, Union, Any, List, Tuple
 
 from substrateinterface.base import SubstrateInterface
 
@@ -137,3 +137,37 @@ def get_subtensor_errors(
         return subtensor_errors_map
     else:
         return cached_errors_map.get("errors", {})
+
+
+def format_parent(proportion, parent) -> Tuple[str, str]:
+    """
+    Formats raw parent data into a list of tuples.
+    Args:
+        parent: The raw parent data.
+        proportion: proportion of parent data.
+    Returns:
+        list: List of (proportion, child_address) tuples.
+    """
+    int_proportion = (
+        proportion.value if hasattr(proportion, "value") else int(proportion)
+    )
+    return int_proportion, parent.value
+
+
+def format_children(children) -> List[Tuple[int, str]]:
+    """
+    Formats raw children data into a list of tuples.
+    Args:
+        children: The raw children data.
+    Returns:
+        list: List of (proportion, child_address) tuples.
+    """
+    formatted_children = []
+    for proportion, child in children:
+        # Convert U64 to int
+        int_proportion = (
+            proportion.value if hasattr(proportion, "value") else int(proportion)
+        )
+        if int_proportion > 0:
+            formatted_children.append((int_proportion, child.value))
+    return formatted_children

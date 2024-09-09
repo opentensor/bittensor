@@ -25,6 +25,7 @@ from rich.prompt import Confirm
 import bittensor
 import bittensor.utils.networking as net
 from bittensor.utils import format_error_message
+from bittensor.utils.networking import ensure_connected
 from ..errors import MetadataError
 
 
@@ -269,6 +270,7 @@ def publish_metadata(
             raise MetadataError(format_error_message(response.error_message))
 
 
+@ensure_connected
 def get_metadata(self, netuid: int, hotkey: str, block: Optional[int] = None) -> str:
     @retry(delay=2, tries=3, backoff=2, max_delay=4)
     def make_substrate_call_with_retry():

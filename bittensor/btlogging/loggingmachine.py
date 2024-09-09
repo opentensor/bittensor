@@ -29,20 +29,21 @@ import multiprocessing as mp
 import os
 import sys
 from logging.handlers import QueueHandler, QueueListener, RotatingFileHandler
+from logging import Logger
 from typing import NamedTuple
 
-from statemachine import StateMachine, State
+from statemachine import State, StateMachine
 
 import bittensor.config
 from bittensor.btlogging.defines import (
-    TRACE_LOG_FORMAT,
-    DATE_FORMAT,
     BITTENSOR_LOGGER_NAME,
+    DATE_FORMAT,
+    DEFAULT_LOG_BACKUP_COUNT,
     DEFAULT_LOG_FILE_NAME,
     DEFAULT_MAX_ROTATING_LOG_FILE_SIZE,
-    DEFAULT_LOG_BACKUP_COUNT,
+    TRACE_LOG_FORMAT,
 )
-from bittensor.btlogging.format import BtStreamFormatter, BtFileFormatter
+from bittensor.btlogging.format import BtFileFormatter, BtStreamFormatter
 from bittensor.btlogging.helpers import all_loggers
 
 
@@ -55,7 +56,7 @@ class LoggingConfig(NamedTuple):
     logging_dir: str
 
 
-class LoggingMachine(StateMachine):
+class LoggingMachine(StateMachine, Logger):
     """Handles logger states for bittensor and 3rd party libraries."""
 
     Default = State(initial=True)
@@ -70,19 +71,19 @@ class LoggingMachine(StateMachine):
         | Default.to(Default)
     )
 
-    enable_trace: Trace = (
+    enable_trace = (
         Default.to(Trace) | Debug.to(Trace) | Disabled.to(Trace) | Trace.to(Trace)
     )
 
-    enable_debug: Debug = (
+    enable_debug = (
         Default.to(Debug) | Trace.to(Debug) | Disabled.to(Debug) | Debug.to(Debug)
     )
 
-    disable_trace: Default = Trace.to(Default)
+    disable_trace = Trace.to(Default)
 
-    disable_debug: Default = Debug.to(Default)
+    disable_debug = Debug.to(Default)
 
-    disable_logging: Disabled = (
+    disable_logging = (
         Trace.to(Disabled)
         | Debug.to(Disabled)
         | Default.to(Disabled)
@@ -94,7 +95,7 @@ class LoggingMachine(StateMachine):
         super(LoggingMachine, self).__init__()
         self._queue = mp.Queue(-1)
         self._primary_loggers = {name}
-        self._config = config
+        self._config = self._extract_logging_config(config)
 
         # Formatters
         #
@@ -107,7 +108,7 @@ class LoggingMachine(StateMachine):
         #
         # In the future, we may want to add options to introduce other handlers
         # for things like log aggregation by external services.
-        self._handlers = self._configure_handlers(config)
+        self._handlers = self._configure_handlers(self._config)
 
         # configure and start the queue listener
         self._listener = self._create_and_start_listener(self._handlers)
@@ -115,6 +116,23 @@ class LoggingMachine(StateMachine):
         # set up all the loggers
         self._logger = self._initialize_bt_logger(name)
         self.disable_third_party_loggers()
+        self._enable_initial_state(self._config)
+
+    def _enable_initial_state(self, config):
+        """Set correct state action on initializing"""
+        if config.trace:
+            self.enable_trace()
+        elif config.debug:
+            self.enable_debug()
+        else:
+            self.enable_default()
+
+    def _extract_logging_config(self, config) -> dict:
+        """Extract btlogging's config from bittensor config"""
+        if hasattr(config, "logging"):
+            return config.logging
+        else:
+            return config
 
     def _configure_handlers(self, config) -> list[stdlogging.Handler]:
         handlers = list()

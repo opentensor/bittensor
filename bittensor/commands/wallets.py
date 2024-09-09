@@ -16,15 +16,18 @@
 # DEALINGS IN THE SOFTWARE.
 
 import argparse
-import bittensor
 import os
 import sys
-from rich.prompt import Prompt, Confirm
-from rich.table import Table
-from typing import Optional, List, Tuple
-from . import defaults
+from typing import List, Optional, Tuple
+
 import requests
+from rich.prompt import Confirm, Prompt
+from rich.table import Table
+
+import bittensor
+
 from ..utils import RAOPERTAO
+from . import defaults
 
 
 class RegenColdkeyCommand:
@@ -637,7 +640,6 @@ class UpdateWalletCommand:
 
     Optional arguments:
         - ``--all`` (bool): When set, updates all legacy wallets.
-        - ``--no_prompt`` (bool): Disables user prompting during the update process.
 
     Example usage::
 

@@ -1,19 +1,21 @@
+import asyncio
 import re
-import time
 
 import numpy as np
+import pytest
 
 import bittensor
 import bittensor.utils.weight_utils as weight_utils
+from bittensor import logging
 from bittensor.commands import (
-    RegisterCommand,
-    StakeCommand,
-    RegisterSubnetworkCommand,
     CommitWeightCommand,
+    RegisterCommand,
+    RegisterSubnetworkCommand,
     RevealWeightCommand,
+    StakeCommand,
+    SubnetSudoCommand,
 )
-from tests.e2e_tests.utils import setup_wallet
-
+from tests.e2e_tests.utils import setup_wallet, wait_interval
 
 """
 Test the Commit/Reveal weights mechanism. 
@@ -28,7 +30,9 @@ Verify that:
 """
 
 
-def test_commit_and_reveal_weights(local_chain):
+@pytest.mark.asyncio
+async def test_commit_and_reveal_weights(local_chain):
+    logging.info("Testing test_commit_and_reveal_weights")
     # Register root as Alice
     keypair, exec_command, wallet = setup_wallet("//Alice")
 
@@ -40,12 +44,19 @@ def test_commit_and_reveal_weights(local_chain):
     salt = "18, 179, 107, 0, 165, 211, 141, 197"
 
     # Verify subnet 1 created successfully
-    assert local_chain.query("SubtensorModule", "NetworksAdded", [1]).serialize()
+    assert local_chain.query(
+        "SubtensorModule", "NetworksAdded", [1]
+    ).serialize(), "Subnet wasn't created successfully"
 
     # Register a neuron to the subnet
     exec_command(
         RegisterCommand,
-        ["s", "register", "--netuid", "1", "--wallet.path", "/tmp/btcli-wallet"],
+        [
+            "s",
+            "register",
+            "--netuid",
+            "1",
+        ],
     )
 
     # Stake to become to top neuron after the first epoch
@@ -54,8 +65,6 @@ def test_commit_and_reveal_weights(local_chain):
         [
             "stake",
             "add",
-            "--wallet.path",
-            "/tmp/btcli-wallet2",
             "--amount",
             "100000",
         ],
@@ -64,40 +73,86 @@ def test_commit_and_reveal_weights(local_chain):
     subtensor = bittensor.subtensor(network="ws://localhost:9945")
 
     # Enable Commit Reveal
-    result = subtensor.set_hyperparameter(
-        wallet=wallet,
-        netuid=1,
-        parameter="commit_reveal_weights_enabled",
-        value=True,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
-        prompt=False,
+    exec_command(
+        SubnetSudoCommand,
+        [
+            "sudo",
+            "set",
+            "hyperparameters",
+            "--netuid",
+            "1",
+            "--wallet.name",
+            wallet.name,
+            "--param",
+            "commit_reveal_weights_enabled",
+            "--value",
+            "True",
+            "--wait_for_inclusion",
+            "True",
+            "--wait_for_finalization",
+            "True",
+        ],
     )
-    assert result, "Failed to enable commit/reveal"
+
+    subtensor = bittensor.subtensor(network="ws://localhost:9945")
+    assert subtensor.get_subnet_hyperparameters(
+        netuid=1
+    ).commit_reveal_weights_enabled, "Failed to enable commit/reveal"
 
     # Lower the interval
-    result = subtensor.set_hyperparameter(
-        wallet=wallet,
-        netuid=1,
-        parameter="commit_reveal_weights_interval",
-        value=370,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
-        prompt=False,
+    exec_command(
+        SubnetSudoCommand,
+        [
+            "sudo",
+            "set",
+            "hyperparameters",
+            "--netuid",
+            "1",
+            "--wallet.name",
+            wallet.name,
+            "--param",
+            "commit_reveal_weights_interval",
+            "--value",
+            "370",
+            "--wait_for_inclusion",
+            "True",
+            "--wait_for_finalization",
+            "True",
+        ],
     )
-    assert result, "Failed to set commit/reveal interval"
 
-    # Lower the rate lmit
-    result = subtensor.set_hyperparameter(
-        wallet=wallet,
-        netuid=1,
-        parameter="weights_rate_limit",
-        value=0,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
-        prompt=False,
+    subtensor = bittensor.subtensor(network="ws://localhost:9945")
+    assert (
+        subtensor.get_subnet_hyperparameters(netuid=1).commit_reveal_weights_interval
+        == 370
+    ), "Failed to set commit/reveal interval"
+
+    # Lower the rate limit
+    exec_command(
+        SubnetSudoCommand,
+        [
+            "sudo",
+            "set",
+            "hyperparameters",
+            "--netuid",
+            "1",
+            "--wallet.name",
+            wallet.name,
+            "--param",
+            "weights_rate_limit",
+            "--value",
+            "0",
+            "--wait_for_inclusion",
+            "True",
+            "--wait_for_finalization",
+            "True",
+        ],
     )
-    assert result, "Failed to set weights rate limit"
+
+    subtensor = bittensor.subtensor(network="ws://localhost:9945")
+    assert (
+        subtensor.get_subnet_hyperparameters(netuid=1).weights_rate_limit == 0
+    ), "Failed to set commit/reveal rate limit"
 
     # Configure the CLI arguments for the CommitWeightCommand
     exec_command(
@@ -142,13 +197,7 @@ def test_commit_and_reveal_weights(local_chain):
     assert interval > 0, "Invalid WeightCommitRevealInterval"
 
     # Wait until the reveal block range
-    current_block = subtensor.get_current_block()
-    reveal_block_start = (commit_block - (commit_block % interval)) + interval
-    while current_block < reveal_block_start:
-        time.sleep(1)  # Wait for 1 second before checking the block number again
-        current_block = subtensor.get_current_block()
-        if current_block % 10 == 0:
-            print(f"Current Block: {current_block}  Revealing at: {reveal_block_start}")
+    await wait_interval(interval, subtensor)
 
     # Configure the CLI arguments for the RevealWeightCommand
     exec_command(
@@ -194,3 +243,4 @@ def test_commit_and_reveal_weights(local_chain):
     assert (
         expected_weights[0] == revealed_weights.value[0][1]
     ), f"Incorrect revealed weights. Expected: {expected_weights[0]}, Actual: {revealed_weights.value[0][1]}"
+    logging.info("Passed test_commit_and_reveal_weights")

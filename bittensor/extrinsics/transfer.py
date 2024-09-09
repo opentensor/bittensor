@@ -68,8 +68,15 @@ def transfer_extrinsic(
         # Convert bytes to hex string.
         dest = "0x" + dest.hex()
 
-    # Unlock wallet coldkey.
-    wallet.coldkey
+    try:
+        # Unlock wallet coldkey.
+        wallet.coldkey
+
+    except bittensor.KeyFileError:
+        bittensor.__console__.print(
+            ":cross_mark: [red]Keyfile is corrupt, non-writable, non-readable or the password used to decrypt is invalid[/red]:[bold white]\n  [/bold white]"
+        )
+        return False
 
     # Convert to bittensor.Balance
     if not isinstance(amount, bittensor.Balance):

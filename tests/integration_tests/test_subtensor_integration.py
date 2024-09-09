@@ -115,6 +115,16 @@ class TestSubtensor(unittest.TestCase):
         block = self.subtensor.get_current_block()
         assert type(block) == int
 
+    def test_do_block_step(self):
+        self.subtensor.do_block_step()
+        block = self.subtensor.get_current_block()
+        assert type(block) == int
+
+    def test_do_block_step_query_previous_block(self):
+        self.subtensor.do_block_step()
+        block = self.subtensor.get_current_block()
+        self.subtensor.query_subtensor("NetworksAdded", block)
+
     def test_unstake(self):
         self.subtensor._do_unstake = MagicMock(return_value=True)
 
