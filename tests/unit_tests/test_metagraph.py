@@ -124,6 +124,37 @@ def test_process_weights_or_bonds(mock_environment):
     # TODO: Add more checks to ensure the bonds have been processed correctly
 
 
+def test_process_weights_or_bonds_torch(
+    mock_environment, force_legacy_torch_compat_api
+):
+    _, neurons = mock_environment
+    metagraph = bittensor.metagraph(1, sync=False)
+    metagraph.neurons = neurons
+
+    # Test weights processing
+    weights = metagraph._process_weights_or_bonds(
+        data=[neuron.weights for neuron in neurons], attribute="weights"
+    )
+    assert weights.shape[0] == len(
+        neurons
+    )  # Number of rows should be equal to number of neurons
+    assert weights.shape[1] == len(
+        neurons
+    )  # Number of columns should be equal to number of neurons
+    # TODO: Add more checks to ensure the weights have been processed correctly
+
+    # Test bonds processing
+    bonds = metagraph._process_weights_or_bonds(
+        data=[neuron.bonds for neuron in neurons], attribute="bonds"
+    )
+    assert bonds.shape[0] == len(
+        neurons
+    )  # Number of rows should be equal to number of neurons
+    assert bonds.shape[1] == len(
+        neurons
+    )  # Number of columns should be equal to number of neurons
+
+
 # Mocking the bittensor.subtensor class for testing purposes
 @pytest.fixture
 def mock_subtensor():
