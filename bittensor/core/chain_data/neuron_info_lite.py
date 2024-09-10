@@ -1,13 +1,13 @@
 from dataclasses import dataclass
-from typing import List, Dict, Optional, Any
+from typing import Dict, Optional
 
-from scalecodec.utils.ss58 import ss58_encode
+import bt_decode
+import netaddr
 
 from bittensor.core.chain_data.axon_info import AxonInfo
 from bittensor.core.chain_data.prometheus_info import PrometheusInfo
-from bittensor.core.chain_data.utils import from_scale_encoding, ChainDataType
-from bittensor.core.settings import SS58_FORMAT
-from bittensor.utils import RAOPERTAO, u16_normalized_float
+from bittensor.core.chain_data.utils import decode_account_id, process_stake_data
+from bittensor.utils import u16_normalized_float
 from bittensor.utils.balance import Balance
 
 
@@ -38,74 +38,6 @@ class NeuronInfoLite:
     pruning_score: int
     is_null: bool = False
 
-    @classmethod
-    def fix_decoded_values(cls, neuron_info_decoded: Any) -> "NeuronInfoLite":
-        """Fixes the values of the NeuronInfoLite object."""
-        neuron_info_decoded["hotkey"] = ss58_encode(
-            neuron_info_decoded["hotkey"], SS58_FORMAT
-        )
-        neuron_info_decoded["coldkey"] = ss58_encode(
-            neuron_info_decoded["coldkey"], SS58_FORMAT
-        )
-        stake_dict = {
-            ss58_encode(coldkey, SS58_FORMAT): Balance.from_rao(int(stake))
-            for coldkey, stake in neuron_info_decoded["stake"]
-        }
-        neuron_info_decoded["stake_dict"] = stake_dict
-        neuron_info_decoded["stake"] = sum(stake_dict.values())
-        neuron_info_decoded["total_stake"] = neuron_info_decoded["stake"]
-        neuron_info_decoded["rank"] = u16_normalized_float(neuron_info_decoded["rank"])
-        neuron_info_decoded["emission"] = neuron_info_decoded["emission"] / RAOPERTAO
-        neuron_info_decoded["incentive"] = u16_normalized_float(
-            neuron_info_decoded["incentive"]
-        )
-        neuron_info_decoded["consensus"] = u16_normalized_float(
-            neuron_info_decoded["consensus"]
-        )
-        neuron_info_decoded["trust"] = u16_normalized_float(
-            neuron_info_decoded["trust"]
-        )
-        neuron_info_decoded["validator_trust"] = u16_normalized_float(
-            neuron_info_decoded["validator_trust"]
-        )
-        neuron_info_decoded["dividends"] = u16_normalized_float(
-            neuron_info_decoded["dividends"]
-        )
-        neuron_info_decoded["prometheus_info"] = PrometheusInfo.fix_decoded_values(
-            neuron_info_decoded["prometheus_info"]
-        )
-        neuron_info_decoded["axon_info"] = AxonInfo.from_neuron_info(
-            neuron_info_decoded
-        )
-        return cls(**neuron_info_decoded)
-
-    @classmethod
-    def from_vec_u8(cls, vec_u8: List[int]) -> "NeuronInfoLite":
-        """Returns a NeuronInfoLite object from a ``vec_u8``."""
-        if len(vec_u8) == 0:
-            return NeuronInfoLite.get_null_neuron()
-
-        decoded = from_scale_encoding(vec_u8, ChainDataType.NeuronInfoLite)
-        if decoded is None:
-            return NeuronInfoLite.get_null_neuron()
-
-        return NeuronInfoLite.fix_decoded_values(decoded)
-
-    @classmethod
-    def list_from_vec_u8(cls, vec_u8: List[int]) -> List["NeuronInfoLite"]:
-        """Returns a list of NeuronInfoLite objects from a ``vec_u8``."""
-
-        decoded_list = from_scale_encoding(
-            vec_u8, ChainDataType.NeuronInfoLite, is_vec=True
-        )
-        if decoded_list is None:
-            return []
-
-        decoded_list = [
-            NeuronInfoLite.fix_decoded_values(decoded) for decoded in decoded_list
-        ]
-        return decoded_list
-
     @staticmethod
     def get_null_neuron() -> "NeuronInfoLite":
         neuron = NeuronInfoLite(
@@ -132,3 +64,69 @@ class NeuronInfoLite:
             pruning_score=0,
         )
         return neuron
+
+    @classmethod
+    def list_from_vec_u8(cls, vec_u8: bytes) -> list["NeuronInfoLite"]:
+        decoded = bt_decode.NeuronInfoLite.decode_vec(vec_u8)
+        results = []
+        for item in decoded:
+            active = item.active
+            axon_info = item.axon_info
+            coldkey = decode_account_id(item.coldkey)
+            consensus = item.consensus
+            dividends = item.dividends
+            emission = item.emission
+            hotkey = decode_account_id(item.hotkey)
+            incentive = item.incentive
+            last_update = item.last_update
+            netuid = item.netuid
+            prometheus_info = item.prometheus_info
+            pruning_score = item.pruning_score
+            rank = item.rank
+            stake_dict = process_stake_data(item.stake)
+            stake = sum(stake_dict.values()) if stake_dict else Balance(0)
+            trust = item.trust
+            uid = item.uid
+            validator_permit = item.validator_permit
+            validator_trust = item.validator_trust
+            results.append(
+                NeuronInfoLite(
+                    active=active,
+                    axon_info=AxonInfo(
+                        version=axon_info.version,
+                        ip=str(netaddr.IPAddress(axon_info.ip)),
+                        port=axon_info.port,
+                        ip_type=axon_info.ip_type,
+                        placeholder1=axon_info.placeholder1,
+                        placeholder2=axon_info.placeholder2,
+                        protocol=axon_info.protocol,
+                        hotkey=hotkey,
+                        coldkey=coldkey,
+                    ),
+                    coldkey=coldkey,
+                    consensus=u16_normalized_float(consensus),
+                    dividends=u16_normalized_float(dividends),
+                    emission=emission / 1e9,
+                    hotkey=hotkey,
+                    incentive=u16_normalized_float(incentive),
+                    last_update=last_update,
+                    netuid=netuid,
+                    prometheus_info=PrometheusInfo(
+                        version=prometheus_info.version,
+                        ip=str(netaddr.IPAddress(prometheus_info.ip)),
+                        port=prometheus_info.port,
+                        ip_type=prometheus_info.ip_type,
+                        block=prometheus_info.block,
+                    ),
+                    pruning_score=pruning_score,
+                    rank=u16_normalized_float(rank),
+                    stake_dict=stake_dict,
+                    stake=stake,
+                    total_stake=stake,
+                    trust=u16_normalized_float(trust),
+                    uid=uid,
+                    validator_permit=validator_permit,
+                    validator_trust=u16_normalized_float(validator_trust),
+                )
+            )
+        return results
