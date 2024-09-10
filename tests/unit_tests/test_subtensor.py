@@ -43,7 +43,6 @@ def test_serve_axon_with_external_ip_set():
 
     mock_subtensor = MagicMock(spec=Subtensor, serve_axon=mock_serve_axon)
 
-    mock_add_insecure_port = mock.MagicMock(return_value=None)
     mock_wallet = MagicMock(
         spec=Wallet,
         coldkey=MagicMock(),
@@ -1125,160 +1124,6 @@ def test_is_hotkey_registered_with_netuid(subtensor, mocker):
     assert result == mocked_is_hotkey_registered_on_subnet.return_value
 
 
-def test_do_set_weights_is_success(subtensor, mocker):
-    """Successful _do_set_weights call."""
-    # Prep
-    fake_wallet = mocker.MagicMock()
-    fake_uids = [1, 2, 3]
-    fake_vals = [4, 5, 6]
-    fake_netuid = 1
-    fake_wait_for_inclusion = True
-    fake_wait_for_finalization = True
-
-    subtensor.substrate.submit_extrinsic.return_value.is_success = True
-
-    # Call
-    result = subtensor._do_set_weights(
-        wallet=fake_wallet,
-        uids=fake_uids,
-        vals=fake_vals,
-        netuid=fake_netuid,
-        version_key=settings.version_as_int,
-        wait_for_inclusion=fake_wait_for_inclusion,
-        wait_for_finalization=fake_wait_for_finalization,
-    )
-
-    # Asserts
-    subtensor.substrate.compose_call.assert_called_once_with(
-        call_module="SubtensorModule",
-        call_function="set_weights",
-        call_params={
-            "dests": fake_uids,
-            "weights": fake_vals,
-            "netuid": fake_netuid,
-            "version_key": settings.version_as_int,
-        },
-    )
-
-    subtensor.substrate.create_signed_extrinsic.assert_called_once_with(
-        call=subtensor.substrate.compose_call.return_value,
-        keypair=fake_wallet.hotkey,
-        era={"period": 5},
-    )
-
-    subtensor.substrate.submit_extrinsic.assert_called_once_with(
-        subtensor.substrate.create_signed_extrinsic.return_value,
-        wait_for_inclusion=fake_wait_for_inclusion,
-        wait_for_finalization=fake_wait_for_finalization,
-    )
-
-    subtensor.substrate.submit_extrinsic.return_value.process_events.assert_called_once()
-    assert result == (True, "Successfully set weights.")
-
-
-def test_do_set_weights_is_not_success(subtensor, mocker):
-    """Unsuccessful _do_set_weights call."""
-    # Prep
-    fake_wallet = mocker.MagicMock()
-    fake_uids = [1, 2, 3]
-    fake_vals = [4, 5, 6]
-    fake_netuid = 1
-    fake_wait_for_inclusion = True
-    fake_wait_for_finalization = True
-
-    subtensor.substrate.submit_extrinsic.return_value.is_success = False
-    mocked_format_error_message = mocker.MagicMock()
-    subtensor_module.format_error_message = mocked_format_error_message
-
-    # Call
-    result = subtensor._do_set_weights(
-        wallet=fake_wallet,
-        uids=fake_uids,
-        vals=fake_vals,
-        netuid=fake_netuid,
-        version_key=settings.version_as_int,
-        wait_for_inclusion=fake_wait_for_inclusion,
-        wait_for_finalization=fake_wait_for_finalization,
-    )
-
-    # Asserts
-    subtensor.substrate.compose_call.assert_called_once_with(
-        call_module="SubtensorModule",
-        call_function="set_weights",
-        call_params={
-            "dests": fake_uids,
-            "weights": fake_vals,
-            "netuid": fake_netuid,
-            "version_key": settings.version_as_int,
-        },
-    )
-
-    subtensor.substrate.create_signed_extrinsic.assert_called_once_with(
-        call=subtensor.substrate.compose_call.return_value,
-        keypair=fake_wallet.hotkey,
-        era={"period": 5},
-    )
-
-    subtensor.substrate.submit_extrinsic.assert_called_once_with(
-        subtensor.substrate.create_signed_extrinsic.return_value,
-        wait_for_inclusion=fake_wait_for_inclusion,
-        wait_for_finalization=fake_wait_for_finalization,
-    )
-
-    subtensor.substrate.submit_extrinsic.return_value.process_events.assert_called_once()
-    mocked_format_error_message.assert_called_once_with(
-        subtensor.substrate.submit_extrinsic.return_value.error_message
-    )
-    assert result == (False, mocked_format_error_message.return_value)
-
-
-def test_do_set_weights_no_waits(subtensor, mocker):
-    """Successful _do_set_weights call without wait flags for fake_wait_for_inclusion and fake_wait_for_finalization."""
-    # Prep
-    fake_wallet = mocker.MagicMock()
-    fake_uids = [1, 2, 3]
-    fake_vals = [4, 5, 6]
-    fake_netuid = 1
-    fake_wait_for_inclusion = False
-    fake_wait_for_finalization = False
-
-    # Call
-    result = subtensor._do_set_weights(
-        wallet=fake_wallet,
-        uids=fake_uids,
-        vals=fake_vals,
-        netuid=fake_netuid,
-        version_key=settings.version_as_int,
-        wait_for_inclusion=fake_wait_for_inclusion,
-        wait_for_finalization=fake_wait_for_finalization,
-    )
-
-    # Asserts
-    subtensor.substrate.compose_call.assert_called_once_with(
-        call_module="SubtensorModule",
-        call_function="set_weights",
-        call_params={
-            "dests": fake_uids,
-            "weights": fake_vals,
-            "netuid": fake_netuid,
-            "version_key": settings.version_as_int,
-        },
-    )
-
-    subtensor.substrate.create_signed_extrinsic.assert_called_once_with(
-        call=subtensor.substrate.compose_call.return_value,
-        keypair=fake_wallet.hotkey,
-        era={"period": 5},
-    )
-
-    subtensor.substrate.submit_extrinsic.assert_called_once_with(
-        subtensor.substrate.create_signed_extrinsic.return_value,
-        wait_for_inclusion=fake_wait_for_inclusion,
-        wait_for_finalization=fake_wait_for_finalization,
-    )
-    assert result == (True, "Not waiting for finalization or inclusion.")
-
-
 def test_set_weights(subtensor, mocker):
     """Successful set_weights call."""
     # Preps
@@ -1419,127 +1264,6 @@ def test_subnetwork_n(subtensor, mocker):
         param_name="SubnetworkN", netuid=fake_netuid, block=fake_block
     )
     assert result == mocked_get_hyperparameter.return_value
-
-
-def test_do_transfer_is_success_true(subtensor, mocker):
-    """Successful do_transfer call."""
-    # Prep
-    fake_wallet = mocker.MagicMock()
-    fake_dest = "SS58PUBLICKEY"
-    fake_transfer_balance = Balance(1)
-    fake_wait_for_inclusion = True
-    fake_wait_for_finalization = True
-
-    subtensor.substrate.submit_extrinsic.return_value.is_success = True
-
-    # Call
-    result = subtensor.do_transfer(
-        fake_wallet,
-        fake_dest,
-        fake_transfer_balance,
-        fake_wait_for_inclusion,
-        fake_wait_for_finalization,
-    )
-
-    # Asserts
-    subtensor.substrate.compose_call.assert_called_once_with(
-        call_module="Balances",
-        call_function="transfer_allow_death",
-        call_params={"dest": fake_dest, "value": fake_transfer_balance.rao},
-    )
-    subtensor.substrate.create_signed_extrinsic.assert_called_once_with(
-        call=subtensor.substrate.compose_call.return_value, keypair=fake_wallet.coldkey
-    )
-    subtensor.substrate.submit_extrinsic.assert_called_once_with(
-        subtensor.substrate.create_signed_extrinsic.return_value,
-        wait_for_inclusion=fake_wait_for_inclusion,
-        wait_for_finalization=fake_wait_for_finalization,
-    )
-    subtensor.substrate.submit_extrinsic.return_value.process_events.assert_called_once()
-    assert result == (
-        True,
-        subtensor.substrate.submit_extrinsic.return_value.block_hash,
-        None,
-    )
-
-
-def test_do_transfer_is_success_false(subtensor, mocker):
-    """Successful do_transfer call."""
-    # Prep
-    fake_wallet = mocker.MagicMock()
-    fake_dest = "SS58PUBLICKEY"
-    fake_transfer_balance = Balance(1)
-    fake_wait_for_inclusion = True
-    fake_wait_for_finalization = True
-
-    subtensor.substrate.submit_extrinsic.return_value.is_success = False
-
-    mocked_format_error_message = mocker.MagicMock()
-    subtensor_module.format_error_message = mocked_format_error_message
-
-    # Call
-    result = subtensor.do_transfer(
-        fake_wallet,
-        fake_dest,
-        fake_transfer_balance,
-        fake_wait_for_inclusion,
-        fake_wait_for_finalization,
-    )
-
-    # Asserts
-    subtensor.substrate.compose_call.assert_called_once_with(
-        call_module="Balances",
-        call_function="transfer_allow_death",
-        call_params={"dest": fake_dest, "value": fake_transfer_balance.rao},
-    )
-    subtensor.substrate.create_signed_extrinsic.assert_called_once_with(
-        call=subtensor.substrate.compose_call.return_value, keypair=fake_wallet.coldkey
-    )
-    subtensor.substrate.submit_extrinsic.assert_called_once_with(
-        subtensor.substrate.create_signed_extrinsic.return_value,
-        wait_for_inclusion=fake_wait_for_inclusion,
-        wait_for_finalization=fake_wait_for_finalization,
-    )
-    subtensor.substrate.submit_extrinsic.return_value.process_events.assert_called_once()
-    mocked_format_error_message.assert_called_once_with(
-        subtensor.substrate.submit_extrinsic.return_value.error_message
-    )
-    assert result == (False, None, mocked_format_error_message.return_value)
-
-
-def test_do_transfer_no_waits(subtensor, mocker):
-    """Successful do_transfer call."""
-    # Prep
-    fake_wallet = mocker.MagicMock()
-    fake_dest = "SS58PUBLICKEY"
-    fake_transfer_balance = Balance(1)
-    fake_wait_for_inclusion = False
-    fake_wait_for_finalization = False
-
-    # Call
-    result = subtensor.do_transfer(
-        fake_wallet,
-        fake_dest,
-        fake_transfer_balance,
-        fake_wait_for_inclusion,
-        fake_wait_for_finalization,
-    )
-
-    # Asserts
-    subtensor.substrate.compose_call.assert_called_once_with(
-        call_module="Balances",
-        call_function="transfer_allow_death",
-        call_params={"dest": fake_dest, "value": fake_transfer_balance.rao},
-    )
-    subtensor.substrate.create_signed_extrinsic.assert_called_once_with(
-        call=subtensor.substrate.compose_call.return_value, keypair=fake_wallet.coldkey
-    )
-    subtensor.substrate.submit_extrinsic.assert_called_once_with(
-        subtensor.substrate.create_signed_extrinsic.return_value,
-        wait_for_inclusion=fake_wait_for_inclusion,
-        wait_for_finalization=fake_wait_for_finalization,
-    )
-    assert result == (True, None, None)
 
 
 def test_transfer(subtensor, mocker):
@@ -1733,9 +1457,6 @@ def test_do_serve_prometheus_is_not_success(subtensor, mocker):
 
     subtensor.substrate.submit_extrinsic.return_value.is_success = None
 
-    mocked_format_error_message = mocker.MagicMock()
-    subtensor_module.format_error_message = mocked_format_error_message
-
     # Call
     result = subtensor._do_serve_prometheus(
         wallet=fake_wallet,
@@ -1763,10 +1484,10 @@ def test_do_serve_prometheus_is_not_success(subtensor, mocker):
     )
 
     subtensor.substrate.submit_extrinsic.return_value.process_events.assert_called_once()
-    mocked_format_error_message.assert_called_once_with(
-        subtensor.substrate.submit_extrinsic.return_value.error_message
+    assert result == (
+        False,
+        subtensor.substrate.submit_extrinsic.return_value.error_message,
     )
-    assert result == (False, mocked_format_error_message.return_value)
 
 
 def test_do_serve_prometheus_no_waits(subtensor, mocker):
@@ -1890,9 +1611,6 @@ def test_do_serve_axon_is_not_success(subtensor, mocker):
 
     subtensor.substrate.submit_extrinsic.return_value.is_success = None
 
-    mocked_format_error_message = mocker.MagicMock()
-    subtensor_module.format_error_message = mocked_format_error_message
-
     # Call
     result = subtensor._do_serve_axon(
         wallet=fake_wallet,
@@ -1920,10 +1638,10 @@ def test_do_serve_axon_is_not_success(subtensor, mocker):
     )
 
     subtensor.substrate.submit_extrinsic.return_value.process_events.assert_called_once()
-    mocked_format_error_message.assert_called_once_with(
-        subtensor.substrate.submit_extrinsic.return_value.error_message
+    assert result == (
+        False,
+        subtensor.substrate.submit_extrinsic.return_value.error_message,
     )
-    assert result == (False, mocked_format_error_message.return_value)
 
 
 def test_do_serve_axon_no_waits(subtensor, mocker):
@@ -1960,51 +1678,6 @@ def test_do_serve_axon_no_waits(subtensor, mocker):
         wait_for_finalization=fake_wait_for_finalization,
     )
     assert result == (True, None)
-
-
-def test_serve(subtensor, mocker):
-    """Successful serve call."""
-    # Prep
-    fake_wallet = mocker.MagicMock()
-    fake_ip = "fake_ip"
-    fake_port = 1234
-    fake_protocol = 1
-    fake_netuid = 1
-    fake_placeholder1 = 0
-    fake_placeholder2 = 1
-    fake_wait_for_inclusion = True
-    fake_wait_for_finalization = True
-
-    mocked_serve_extrinsic = mocker.patch.object(subtensor_module, "serve_extrinsic")
-
-    # Call
-    result = subtensor.serve(
-        fake_wallet,
-        fake_ip,
-        fake_port,
-        fake_protocol,
-        fake_netuid,
-        fake_placeholder1,
-        fake_placeholder2,
-        fake_wait_for_inclusion,
-        fake_wait_for_finalization,
-    )
-
-    # Asserts
-    mocked_serve_extrinsic.assert_called_once_with(
-        subtensor,
-        fake_wallet,
-        fake_ip,
-        fake_port,
-        fake_protocol,
-        fake_netuid,
-        fake_placeholder1,
-        fake_placeholder2,
-        fake_wait_for_inclusion,
-        fake_wait_for_finalization,
-    )
-
-    assert result == mocked_serve_extrinsic.return_value
 
 
 def test_immunity_period(subtensor, mocker):
@@ -2272,54 +1945,6 @@ def test_commit_weights(subtensor, mocker):
     assert result == expected_result
 
 
-def test_do_commit_weights(subtensor, mocker):
-    """Successful _do_commit_weights call."""
-    # Preps
-    fake_wallet = mocker.MagicMock()
-    netuid = 1
-    commit_hash = "fake_commit_hash"
-    wait_for_inclusion = True
-    wait_for_finalization = True
-
-    subtensor.substrate.submit_extrinsic.return_value.is_success = None
-
-    mocked_format_error_message = mocker.MagicMock()
-    subtensor_module.format_error_message = mocked_format_error_message
-
-    # Call
-    result = subtensor._do_commit_weights(
-        wallet=fake_wallet,
-        netuid=netuid,
-        commit_hash=commit_hash,
-        wait_for_inclusion=wait_for_inclusion,
-        wait_for_finalization=wait_for_finalization,
-    )
-
-    # Assertions
-    subtensor.substrate.compose_call.assert_called_once_with(
-        call_module="SubtensorModule",
-        call_function="commit_weights",
-        call_params={
-            "netuid": netuid,
-            "commit_hash": commit_hash,
-        },
-    )
-
-    subtensor.substrate.create_signed_extrinsic.assert_called_once_with(
-        call=subtensor.substrate.compose_call.return_value, keypair=fake_wallet.hotkey
-    )
-
-    subtensor.substrate.submit_extrinsic.assert_called_once_with(
-        subtensor.substrate.create_signed_extrinsic.return_value,
-        wait_for_inclusion=wait_for_inclusion,
-        wait_for_finalization=wait_for_finalization,
-    )
-
-    subtensor.substrate.submit_extrinsic.return_value.process_events.assert_called_once()
-
-    assert result == (False, mocked_format_error_message.return_value)
-
-
 def test_reveal_weights(subtensor, mocker):
     """Successful test_reveal_weights call."""
     # Preps
@@ -2391,64 +2016,6 @@ def test_reveal_weights_false(subtensor, mocker):
     # Assertion
     assert result == expected_result
     assert mocked_extrinsic.call_count == 5
-
-
-def test_do_reveal_weights(subtensor, mocker):
-    """Verifies that the `_do_reveal_weights` method interacts with the right substrate methods."""
-    # Preps
-    fake_wallet = mocker.MagicMock()
-    fake_wallet.hotkey = "hotkey"
-
-    netuid = 1
-    uids = [1, 2, 3, 4]
-    values = [1, 2, 3, 4]
-    salt = [4, 2, 2, 1]
-    wait_for_inclusion = True
-    wait_for_finalization = True
-
-    subtensor.substrate.submit_extrinsic.return_value.is_success = None
-
-    mocked_format_error_message = mocker.MagicMock()
-    subtensor_module.format_error_message = mocked_format_error_message
-
-    # Call
-    result = subtensor._do_reveal_weights(
-        wallet=fake_wallet,
-        netuid=netuid,
-        uids=uids,
-        values=values,
-        salt=salt,
-        version_key=version_as_int,
-        wait_for_inclusion=wait_for_inclusion,
-        wait_for_finalization=wait_for_finalization,
-    )
-
-    # Asserts
-    subtensor.substrate.compose_call.assert_called_once_with(
-        call_module="SubtensorModule",
-        call_function="reveal_weights",
-        call_params={
-            "netuid": netuid,
-            "uids": uids,
-            "values": values,
-            "salt": salt,
-            "version_key": version_as_int,
-        },
-    )
-
-    subtensor.substrate.create_signed_extrinsic.assert_called_once_with(
-        call=subtensor.substrate.compose_call.return_value, keypair=fake_wallet.hotkey
-    )
-
-    subtensor.substrate.submit_extrinsic.assert_called_once_with(
-        subtensor.substrate.create_signed_extrinsic.return_value,
-        wait_for_inclusion=wait_for_inclusion,
-        wait_for_finalization=wait_for_finalization,
-    )
-
-    subtensor.substrate.submit_extrinsic.return_value.process_events.assert_called_once()
-
-    assert result == (False, mocked_format_error_message.return_value)
 
 
 def test_connect_without_substrate(mocker):

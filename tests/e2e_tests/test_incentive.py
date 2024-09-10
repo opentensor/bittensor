@@ -3,7 +3,6 @@ import sys
 
 import pytest
 
-import bittensor
 from bittensor import Subtensor, logging
 from tests.e2e_tests.utils.chain_interactions import (
     add_stake,
@@ -16,6 +15,9 @@ from tests.e2e_tests.utils.test_utils import (
     template_path,
     templates_repo,
 )
+from bittensor.utils.balance import Balance
+from bittensor.core.extrinsics.set_weights import do_set_weights
+from bittensor.core.metagraph import Metagraph
 
 
 @pytest.mark.asyncio
@@ -61,7 +63,7 @@ async def test_incentive(local_chain):
     ), "Alice & Bob not registered in the subnet"
 
     # Alice to stake to become to top neuron after the first epoch
-    add_stake(local_chain, alice_wallet, bittensor.Balance.from_tao(10_000))
+    add_stake(local_chain, alice_wallet, Balance.from_tao(10_000))
 
     # Prepare to run Bob as miner
     cmd = " ".join(
@@ -130,7 +132,7 @@ async def test_incentive(local_chain):
     )  # wait for 5 seconds for the metagraph and subtensor to refresh with latest data
 
     # Get latest metagraph
-    metagraph = bittensor.metagraph(netuid=netuid, network="ws://localhost:9945")
+    metagraph = Metagraph(netuid=netuid, network="ws://localhost:9945")
 
     # Get current miner/validator stats
     bob_neuron = metagraph.neurons[1]
@@ -149,7 +151,8 @@ async def test_incentive(local_chain):
     await wait_epoch(subtensor)
 
     # Set weights by Alice on the subnet
-    subtensor._do_set_weights(
+    do_set_weights(
+        self=subtensor,
         wallet=alice_wallet,
         uids=[1],
         vals=[65535],
@@ -163,7 +166,7 @@ async def test_incentive(local_chain):
     await wait_epoch(subtensor)
 
     # Refresh metagraph
-    metagraph = bittensor.metagraph(netuid=netuid, network="ws://localhost:9945")
+    metagraph = Metagraph(netuid=netuid, network="ws://localhost:9945")
 
     # Get current emissions and validate that Alice has gotten tao
     bob_neuron = metagraph.neurons[1]

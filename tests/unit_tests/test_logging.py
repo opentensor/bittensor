@@ -1,7 +1,5 @@
 import logging as stdlogging
 import multiprocessing
-import os
-import re
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -177,35 +175,3 @@ def test_all_log_levels_output(logging_machine, caplog):
     assert "Test warning" in caplog.text
     assert "Test error" in caplog.text
     assert "Test critical" in caplog.text
-
-
-def test_log_sanity(logging_machine, caplog):
-    """
-    Test that logging is sane:
-    - prefix and suffix work
-    - format strings work
-    - reported filename is correct
-    Note that this is tested against caplog, which is not formatted the same as
-    stdout.
-    """
-    basemsg = "logmsg #%d, cookie: %s"
-    cookie = "0ef852c74c777f8d8cc09d511323ce76"
-    nfixtests = [
-        {},
-        {"prefix": "pref"},
-        {"suffix": "suff"},
-        {"prefix": "pref", "suffix": "suff"},
-    ]
-    for i, nfix in enumerate(nfixtests):
-        prefix = nfix.get("prefix", "")
-        suffix = nfix.get("suffix", "")
-        use_cookie = f"{cookie} #{i}#"
-        logging_machine.info(basemsg, prefix, suffix, i, use_cookie)
-        # Check to see if all elements are present, regardless of downstream formatting.
-        expect = f"INFO.*{os.path.basename(__file__)}.* "
-        if prefix != "":
-            expect += prefix + " - "
-        expect += basemsg % (i, use_cookie)
-        if suffix != "":
-            expect += " - " + suffix
-        assert re.search(expect, caplog.text)

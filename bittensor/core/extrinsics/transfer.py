@@ -15,19 +15,81 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from typing import Union, TYPE_CHECKING
+from typing import Dict, Tuple, Optional, Union, TYPE_CHECKING
 
-from bittensor_wallet import Wallet
+from retry import retry
 from rich.prompt import Confirm
 
 from bittensor.core.settings import bt_console, NETWORK_EXPLORER_MAP
-from bittensor.utils import get_explorer_url_for_network
-from bittensor.utils import is_valid_bittensor_address_or_public_key
+from bittensor.utils import (
+    get_explorer_url_for_network,
+    format_error_message,
+    is_valid_bittensor_address_or_public_key,
+)
 from bittensor.utils.balance import Balance
+from bittensor.utils.btlogging import logging
+from bittensor.utils.networking import ensure_connected
 
 # For annotation purposes
 if TYPE_CHECKING:
     from bittensor.core.subtensor import Subtensor
+    from bittensor_wallet import Wallet
+
+
+# Chain call for `transfer_extrinsic`
+@ensure_connected
+def do_transfer(
+    self: "Subtensor",
+    wallet: "Wallet",
+    dest: str,
+    transfer_balance: "Balance",
+    wait_for_inclusion: bool = True,
+    wait_for_finalization: bool = False,
+) -> Tuple[bool, Optional[str], Optional[Dict]]:
+    """Sends a transfer extrinsic to the chain.
+
+    Args:
+        self (subtensor.core.subtensor.Subtensor): The Subtensor instance object.
+        wallet (bittensor_wallet.Wallet): Wallet object.
+        dest (str): Destination public key address.
+        transfer_balance (bittensor.utils.balance.Balance): Amount to transfer.
+        wait_for_inclusion (bool): If ``true``, waits for inclusion.
+        wait_for_finalization (bool): If ``true``, waits for finalization.
+
+    Returns:
+        success (bool): ``True`` if transfer was successful.
+        block_hash (str): Block hash of the transfer. On success and if wait_for_ finalization/inclusion is ``True``.
+        error (Dict): Error message from subtensor if transfer failed.
+    """
+
+    @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=logging)
+    def make_substrate_call_with_retry():
+        call = self.substrate.compose_call(
+            call_module="Balances",
+            call_function="transfer_allow_death",
+            call_params={"dest": dest, "value": transfer_balance.rao},
+        )
+        extrinsic = self.substrate.create_signed_extrinsic(
+            call=call, keypair=wallet.coldkey
+        )
+        response = self.substrate.submit_extrinsic(
+            extrinsic,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+        # We only wait here if we expect finalization.
+        if not wait_for_finalization and not wait_for_inclusion:
+            return True, None, None
+
+        # Otherwise continue with finalization.
+        response.process_events()
+        if response.is_success:
+            block_hash = response.block_hash
+            return True, block_hash, None
+        else:
+            return False, None, response.error_message
+
+    return make_substrate_call_with_retry()
 
 
 # Community uses this extrinsic directly and via `subtensor.transfer`
@@ -113,10 +175,11 @@ def transfer_extrinsic(
             return False
 
     with bt_console.status(":satellite: Transferring..."):
-        success, block_hash, err_msg = subtensor.do_transfer(
-            wallet,
-            dest,
-            transfer_balance,
+        success, block_hash, error_message = do_transfer(
+            self=subtensor,
+            wallet=wallet,
+            dest=dest,
+            transfer_balance=transfer_balance,
             wait_for_finalization=wait_for_finalization,
             wait_for_inclusion=wait_for_inclusion,
         )
@@ -136,7 +199,9 @@ def transfer_extrinsic(
                     f"[green]Taostats   Explorer Link: {explorer_urls.get('taostats')}[/green]"
                 )
         else:
-            bt_console.print(f":cross_mark: [red]Failed[/red]: {err_msg}")
+            bt_console.print(
+                f":cross_mark: [red]Failed[/red]: {format_error_message(error_message)}"
+            )
 
     if success:
         with bt_console.status(":satellite: Checking Balance..."):

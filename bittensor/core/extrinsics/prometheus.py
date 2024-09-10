@@ -16,21 +16,72 @@
 # DEALINGS IN THE SOFTWARE.
 
 import json
-from typing import TYPE_CHECKING
-
-from bittensor_wallet import Wallet
+from typing import Tuple, Optional, TYPE_CHECKING
+from retry import retry
 
 from bittensor.core.settings import version_as_int, bt_console
 from bittensor.core.types import PrometheusServeCallParams
-from bittensor.utils import networking as net
+from bittensor.utils import networking as net, format_error_message
 from bittensor.utils.btlogging import logging
+from bittensor.utils.networking import ensure_connected
 
 # For annotation purposes
 if TYPE_CHECKING:
+    from bittensor_wallet import Wallet
     from bittensor.core.subtensor import Subtensor
 
 
-# Community uses this extrinsic
+# Chain call for `prometheus_extrinsic`
+@ensure_connected
+def do_serve_prometheus(
+    self: "Subtensor",
+    wallet: "Wallet",
+    call_params: PrometheusServeCallParams,
+    wait_for_inclusion: bool = False,
+    wait_for_finalization: bool = True,
+) -> Tuple[bool, Optional[dict]]:
+    """
+    Sends a serve prometheus extrinsic to the chain.
+
+    Args:
+        self (bittensor.subtensor): Bittensor subtensor object
+        wallet (:func:`bittensor_wallet.Wallet`): Wallet object.
+        call_params (:func:`PrometheusServeCallParams`): Prometheus serve call parameters.
+        wait_for_inclusion (bool): If ``true``, waits for inclusion.
+        wait_for_finalization (bool): If ``true``, waits for finalization.
+
+    Returns:
+        success (bool): ``True`` if serve prometheus was successful.
+        error (:func:`Optional[str]`): Error message if serve prometheus failed, ``None`` otherwise.
+    """
+
+    @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=logging)
+    def make_substrate_call_with_retry():
+        call = self.substrate.compose_call(
+            call_module="SubtensorModule",
+            call_function="serve_prometheus",
+            call_params=call_params,
+        )
+        extrinsic = self.substrate.create_signed_extrinsic(
+            call=call, keypair=wallet.hotkey
+        )
+        response = self.substrate.submit_extrinsic(
+            extrinsic,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+        if wait_for_inclusion or wait_for_finalization:
+            response.process_events()
+            if response.is_success:
+                return True, None
+            else:
+                return False, response.error_message
+        else:
+            return True, None
+
+    return make_substrate_call_with_retry()
+
+
 def prometheus_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
@@ -109,7 +160,8 @@ def prometheus_extrinsic(
     with bt_console.status(
         f":satellite: Serving prometheus on: [white]{subtensor.network}:{netuid}[/white] ..."
     ):
-        success, error_message = subtensor.do_serve_prometheus(
+        success, error_message = do_serve_prometheus(
+            self=subtensor,
             wallet=wallet,
             call_params=call_params,
             wait_for_finalization=wait_for_finalization,
@@ -124,7 +176,9 @@ def prometheus_extrinsic(
                 )
                 return True
             else:
-                bt_console.print(f":cross_mark: [red]Failed[/red]: {error_message}")
+                bt_console.print(
+                    f":cross_mark: [red]Failed[/red]: {format_error_message(error_message)}"
+                )
                 return False
         else:
             return True
