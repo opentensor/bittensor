@@ -17,17 +17,85 @@
 
 """Module commit weights and reveal weights extrinsic."""
 
-from typing import List, Tuple
+from typing import List, Tuple, Optional, TYPE_CHECKING
 
+from retry import retry
 from rich.prompt import Confirm
 
-import bittensor
 from bittensor.utils import format_error_message
+from bittensor.utils.btlogging import logging
+from bittensor.utils.networking import ensure_connected
+
+# For annotation purposes
+if TYPE_CHECKING:
+    from bittensor_wallet import Wallet
+    from bittensor.core.subtensor import Subtensor
+
+
+# # Chain call for `commit_weights_extrinsic`
+@ensure_connected
+def do_commit_weights(
+    self: "Subtensor",
+    wallet: "Wallet",
+    netuid: int,
+    commit_hash: str,
+    wait_for_inclusion: bool = False,
+    wait_for_finalization: bool = False,
+) -> Tuple[bool, Optional[dict]]:
+    """
+    Internal method to send a transaction to the Bittensor blockchain, committing the hash of a neuron's weights.
+    This method constructs and submits the transaction, handling retries and blockchain communication.
+
+    Args:
+        self (bittensor.subtensor): The subtensor instance used for blockchain interaction.
+        wallet (bittensor.wallet): The wallet associated with the neuron committing the weights.
+        netuid (int): The unique identifier of the subnet.
+        commit_hash (str): The hash of the neuron's weights to be committed.
+        wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
+        wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
+
+    Returns:
+        Tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
+
+    This method ensures that the weight commitment is securely recorded on the Bittensor blockchain, providing a
+    verifiable record of the neuron's weight distribution at a specific point in time.
+    """
+
+    @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=logging)
+    def make_substrate_call_with_retry():
+        call = self.substrate.compose_call(
+            call_module="SubtensorModule",
+            call_function="commit_weights",
+            call_params={
+                "netuid": netuid,
+                "commit_hash": commit_hash,
+            },
+        )
+        extrinsic = self.substrate.create_signed_extrinsic(
+            call=call,
+            keypair=wallet.hotkey,
+        )
+        response = self.substrate.submit_extrinsic(
+            extrinsic,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+
+        if not wait_for_finalization and not wait_for_inclusion:
+            return True, None
+
+        response.process_events()
+        if response.is_success:
+            return True, None
+        else:
+            return False, response.error_message
+
+    return make_substrate_call_with_retry()
 
 
 def commit_weights_extrinsic(
-    subtensor: "bittensor.subtensor",
-    wallet: "bittensor.wallet",
+    subtensor: "Subtensor",
+    wallet: "Wallet",
     netuid: int,
     commit_hash: str,
     wait_for_inclusion: bool = False,
@@ -36,7 +104,8 @@ def commit_weights_extrinsic(
 ) -> Tuple[bool, str]:
     """
     Commits a hash of the neuron's weights to the Bittensor blockchain using the provided wallet.
-    This function is a wrapper around the `_do_commit_weights` method, handling user prompts and error messages.
+    This function is a wrapper around the `do_commit_weights` method, handling user prompts and error messages.
+
     Args:
         subtensor (bittensor.subtensor): The subtensor instance used for blockchain interaction.
         wallet (bittensor.wallet): The wallet associated with the neuron committing the weights.
@@ -45,16 +114,19 @@ def commit_weights_extrinsic(
         wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
         wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
         prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
+
     Returns:
         Tuple[bool, str]: ``True`` if the weight commitment is successful, False otherwise. And `msg`, a string
         value describing the success or potential error.
+
     This function provides a user-friendly interface for committing weights to the Bittensor blockchain, ensuring proper
     error handling and user interaction when required.
     """
     if prompt and not Confirm.ask(f"Would you like to commit weights?"):
         return False, "User cancelled the operation."
 
-    success, error_message = subtensor._do_commit_weights(
+    success, error_message = do_commit_weights(
+        self=subtensor,
         wallet=wallet,
         netuid=netuid,
         commit_hash=commit_hash,
@@ -63,16 +135,88 @@ def commit_weights_extrinsic(
     )
 
     if success:
-        bittensor.logging.info("Successfully committed weights.")
-        return True, "Successfully committed weights."
+        success_message = "Successfully committed weights."
+        logging.info(success_message)
+        return True, success_message
     else:
-        bittensor.logging.error(f"Failed to commit weights: {error_message}")
-        return False, format_error_message(error_message)
+        error_message = format_error_message(error_message)
+        logging.error(f"Failed to commit weights: {error_message}")
+        return False, error_message
+
+
+# Chain call for `reveal_weights_extrinsic`
+@ensure_connected
+def do_reveal_weights(
+    self: "Subtensor",
+    wallet: "Wallet",
+    netuid: int,
+    uids: List[int],
+    values: List[int],
+    salt: List[int],
+    version_key: int,
+    wait_for_inclusion: bool = False,
+    wait_for_finalization: bool = False,
+) -> Tuple[bool, Optional[dict]]:
+    """
+    Internal method to send a transaction to the Bittensor blockchain, revealing the weights for a specific subnet.
+    This method constructs and submits the transaction, handling retries and blockchain communication.
+
+    Args:
+        self (bittensor.subtensor): The subtensor instance used for blockchain interaction.
+        wallet (bittensor.wallet): The wallet associated with the neuron revealing the weights.
+        netuid (int): The unique identifier of the subnet.
+        uids (List[int]): List of neuron UIDs for which weights are being revealed.
+        values (List[int]): List of weight values corresponding to each UID.
+        salt (List[int]): List of salt values corresponding to the hash function.
+        version_key (int): Version key for compatibility with the network.
+        wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
+        wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
+
+    Returns:
+        Tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
+
+    This method ensures that the weight revelation is securely recorded on the Bittensor blockchain, providing transparency
+    and accountability for the neuron's weight distribution.
+    """
+
+    @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=logging)
+    def make_substrate_call_with_retry():
+        call = self.substrate.compose_call(
+            call_module="SubtensorModule",
+            call_function="reveal_weights",
+            call_params={
+                "netuid": netuid,
+                "uids": uids,
+                "values": values,
+                "salt": salt,
+                "version_key": version_key,
+            },
+        )
+        extrinsic = self.substrate.create_signed_extrinsic(
+            call=call,
+            keypair=wallet.hotkey,
+        )
+        response = self.substrate.submit_extrinsic(
+            extrinsic,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+
+        if not wait_for_finalization and not wait_for_inclusion:
+            return True, None
+
+        response.process_events()
+        if response.is_success:
+            return True, None
+        else:
+            return False, response.error_message
+
+    return make_substrate_call_with_retry()
 
 
 def reveal_weights_extrinsic(
-    subtensor: "bittensor.subtensor",
-    wallet: "bittensor.wallet",
+    subtensor: "Subtensor",
+    wallet: "Wallet",
     netuid: int,
     uids: List[int],
     weights: List[int],
@@ -99,6 +243,7 @@ def reveal_weights_extrinsic(
     Returns:
         Tuple[bool, str]: ``True`` if the weight revelation is successful, False otherwise. And `msg`, a string
         value describing the success or potential error.
+
     This function provides a user-friendly interface for revealing weights on the Bittensor blockchain, ensuring proper
     error handling and user interaction when required.
     """
@@ -106,7 +251,8 @@ def reveal_weights_extrinsic(
     if prompt and not Confirm.ask(f"Would you like to reveal weights?"):
         return False, "User cancelled the operation."
 
-    success, error_message = subtensor._do_reveal_weights(
+    success, error_message = do_reveal_weights(
+        self=subtensor,
         wallet=wallet,
         netuid=netuid,
         uids=uids,
@@ -118,8 +264,10 @@ def reveal_weights_extrinsic(
     )
 
     if success:
-        bittensor.logging.info("Successfully revealed weights.")
-        return True, "Successfully revealed weights."
+        success_message = "Successfully revealed weights."
+        logging.info(success_message)
+        return True, success_message
     else:
-        bittensor.logging.error(f"Failed to reveal weights: {error_message}")
+        error_message = format_error_message(error_message)
+        logging.error(f"Failed to reveal weights: {error_message}")
         return False, error_message

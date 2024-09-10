@@ -70,6 +70,7 @@ def test_prometheus_extrinsic_happy_path(
     # Arrange
     subtensor = MagicMock(spec=Subtensor)
     subtensor.network = "test_network"
+    subtensor.substrate = MagicMock()
     wallet = MagicMock(spec=Wallet)
     mock_net.get_external_ip.return_value = "192.168.0.1"
     mock_net.ip_to_int.return_value = 3232235521  # IP in integer form
@@ -81,7 +82,7 @@ def test_prometheus_extrinsic_happy_path(
     neuron.prometheus_info.port = port
     neuron.prometheus_info.ip_type = 4
     subtensor.get_neuron_for_pubkey_and_subnet.return_value = neuron
-    subtensor.do_serve_prometheus.return_value = (True, None)
+    subtensor._do_serve_prometheus.return_value = (True, None)
 
     # Act
     result = prometheus_extrinsic(
@@ -112,6 +113,7 @@ def test_prometheus_extrinsic_edge_cases(
     # Arrange
     subtensor = MagicMock(spec=Subtensor)
     subtensor.network = "test_network"
+    subtensor.substrate = MagicMock()
     wallet = MagicMock(spec=Wallet)
     mock_net.get_external_ip.return_value = ip
     mock_net.ip_to_int.return_value = 3232235521  # IP in integer form
@@ -119,7 +121,7 @@ def test_prometheus_extrinsic_edge_cases(
     neuron = MagicMock()
     neuron.is_null = True
     subtensor.get_neuron_for_pubkey_and_subnet.return_value = neuron
-    subtensor.do_serve_prometheus.return_value = (True, None)
+    subtensor._do_serve_prometheus.return_value = (True, None)
 
     # Act
     result = prometheus_extrinsic(
@@ -137,39 +139,29 @@ def test_prometheus_extrinsic_edge_cases(
 
 
 # Error cases
-@pytest.mark.parametrize(
-    "ip, port, netuid, exception, test_id",
-    [
-        (
-            None,
-            9221,
-            0,
-            RuntimeError("Unable to attain your external ip."),
-            "error-case-no-external-ip",
-        ),
-    ],
-)
-def test_prometheus_extrinsic_error_cases(
-    mock_bittensor, mock_wallet, mock_net, ip, port, netuid, exception, test_id
-):
+def test_prometheus_extrinsic_error_cases(mock_bittensor, mock_wallet, mocker):
     # Arrange
     subtensor = MagicMock(spec=Subtensor)
     subtensor.network = "test_network"
+    subtensor.substrate = MagicMock()
+    subtensor.substrate.websocket.sock.getsockopt.return_value = 0
     wallet = MagicMock(spec=Wallet)
-    mock_net.get_external_ip.side_effect = exception
     neuron = MagicMock()
     neuron.is_null = True
     subtensor.get_neuron_for_pubkey_and_subnet.return_value = neuron
     subtensor._do_serve_prometheus.return_value = (True,)
 
-    # Act & Assert
-    with pytest.raises(ValueError):
-        prometheus_extrinsic(
-            subtensor=subtensor,
-            wallet=wallet,
-            ip=ip,
-            port=port,
-            netuid=netuid,
-            wait_for_inclusion=False,
-            wait_for_finalization=True,
-        )
+    with mocker.patch(
+        "bittensor.utils.networking.get_external_ip", side_effect=RuntimeError
+    ):
+        # Act & Assert
+        with pytest.raises(RuntimeError):
+            prometheus_extrinsic(
+                subtensor=subtensor,
+                wallet=wallet,
+                ip=None,
+                port=9221,
+                netuid=1,
+                wait_for_inclusion=False,
+                wait_for_finalization=True,
+            )

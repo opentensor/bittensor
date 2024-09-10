@@ -51,23 +51,21 @@ from bittensor.core.extrinsics.commit_weights import (
     reveal_weights_extrinsic,
 )
 from bittensor.core.extrinsics.prometheus import (
+    do_serve_prometheus,
     prometheus_extrinsic,
 )
 from bittensor.core.extrinsics.serving import (
-    serve_extrinsic,
+    do_serve_axon,
     serve_axon_extrinsic,
     publish_metadata,
     get_metadata,
 )
-from bittensor.core.extrinsics.set_weights import (
-    set_weights_extrinsic,
-)
+from bittensor.core.extrinsics.set_weights import set_weights_extrinsic
 from bittensor.core.extrinsics.transfer import (
     transfer_extrinsic,
 )
 from bittensor.core.metagraph import Metagraph
-from bittensor.core.types import AxonServeCallParams, PrometheusServeCallParams
-from bittensor.utils import torch, format_error_message
+from bittensor.utils import torch
 from bittensor.utils import u16_normalized_float, networking
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
@@ -834,73 +832,6 @@ class Subtensor:
         else:
             return self.is_hotkey_registered_on_subnet(hotkey_ss58, netuid, block)
 
-    @networking.ensure_connected
-    def do_set_weights(
-        self,
-        wallet: "Wallet",
-        uids: List[int],
-        vals: List[int],
-        netuid: int,
-        version_key: int = settings.version_as_int,
-        wait_for_inclusion: bool = False,
-        wait_for_finalization: bool = False,
-    ) -> Tuple[bool, Optional[str]]:  # (success, error_message)
-        """
-        Internal method to send a transaction to the Bittensor blockchain, setting weights for specified neurons. This method constructs and submits the transaction, handling retries and blockchain communication.
-
-        Args:
-            wallet (bittensor_wallet.Wallet): The wallet associated with the neuron setting the weights.
-            uids (List[int]): List of neuron UIDs for which weights are being set.
-            vals (List[int]): List of weight values corresponding to each UID.
-            netuid (int): Unique identifier for the network.
-            version_key (int, optional): Version key for compatibility with the network.
-            wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
-            wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
-
-        Returns:
-            Tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
-
-        This method is vital for the dynamic weighting mechanism in Bittensor, where neurons adjust their trust in other neurons based on observed performance and contributions.
-        """
-
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=logging)
-        def make_substrate_call_with_retry():
-            call = self.substrate.compose_call(
-                call_module="SubtensorModule",
-                call_function="set_weights",
-                call_params={
-                    "dests": uids,
-                    "weights": vals,
-                    "netuid": netuid,
-                    "version_key": version_key,
-                },
-            )
-            # Period dictates how long the extrinsic will stay as part of waiting pool
-            extrinsic = self.substrate.create_signed_extrinsic(
-                call=call,
-                keypair=wallet.hotkey,
-                era={"period": 5},
-            )
-            response = self.substrate.submit_extrinsic(
-                extrinsic,
-                wait_for_inclusion=wait_for_inclusion,
-                wait_for_finalization=wait_for_finalization,
-            )
-            # We only wait here if we expect finalization.
-            if not wait_for_finalization and not wait_for_inclusion:
-                return True, "Not waiting for finalization or inclusion."
-
-            response.process_events()
-            if response.is_success:
-                return True, "Successfully set weights."
-            else:
-                return False, format_error_message(response.error_message)
-
-        return make_substrate_call_with_retry()
-
-    # keep backwards compatibility for the community
-    _do_set_weights = do_set_weights
-
     # Not used in Bittensor, but is actively used by the community in almost all subnets
     def set_weights(
         self,
@@ -1067,59 +998,6 @@ class Subtensor:
         )
         return None if call is None else int(call)
 
-    @networking.ensure_connected
-    def do_transfer(
-        self,
-        wallet: "Wallet",
-        dest: str,
-        transfer_balance: "Balance",
-        wait_for_inclusion: bool = True,
-        wait_for_finalization: bool = False,
-    ) -> Tuple[bool, Optional[str], Optional[str]]:
-        """Sends a transfer extrinsic to the chain.
-
-        Args:
-            wallet (bittensor_wallet.Wallet): Wallet object.
-            dest (str): Destination public key address.
-            transfer_balance (bittensor.utils.balance.Balance): Amount to transfer.
-            wait_for_inclusion (bool): If ``true``, waits for inclusion.
-            wait_for_finalization (bool): If ``true``, waits for finalization.
-
-        Returns:
-            success (bool): ``True`` if transfer was successful.
-            block_hash (str): Block hash of the transfer. On success and if wait_for_ finalization/inclusion is ``True``.
-            error (str): Error message if transfer failed.
-        """
-
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=logging)
-        def make_substrate_call_with_retry():
-            call = self.substrate.compose_call(
-                call_module="Balances",
-                call_function="transfer_allow_death",
-                call_params={"dest": dest, "value": transfer_balance.rao},
-            )
-            extrinsic = self.substrate.create_signed_extrinsic(
-                call=call, keypair=wallet.coldkey
-            )
-            response = self.substrate.submit_extrinsic(
-                extrinsic,
-                wait_for_inclusion=wait_for_inclusion,
-                wait_for_finalization=wait_for_finalization,
-            )
-            # We only wait here if we expect finalization.
-            if not wait_for_finalization and not wait_for_inclusion:
-                return True, None, None
-
-            # Otherwise continue with finalization.
-            response.process_events()
-            if response.is_success:
-                block_hash = response.block_hash
-                return True, block_hash, None
-            else:
-                return False, None, format_error_message(response.error_message)
-
-        return make_substrate_call_with_retry()
-
     # Community uses this method
     def transfer(
         self,
@@ -1217,58 +1095,6 @@ class Subtensor:
 
         return NeuronInfo.from_vec_u8(result)
 
-    # Community uses this method via `bittensor.api.extrinsics.prometheus.prometheus_extrinsic`
-    @networking.ensure_connected
-    def do_serve_prometheus(
-        self,
-        wallet: "Wallet",
-        call_params: PrometheusServeCallParams,
-        wait_for_inclusion: bool = False,
-        wait_for_finalization: bool = True,
-    ) -> Tuple[bool, Optional[str]]:
-        """
-        Sends a serve prometheus extrinsic to the chain.
-
-        Args:
-            wallet (:func:`bittensor_wallet.Wallet`): Wallet object.
-            call_params (:func:`PrometheusServeCallParams`): Prometheus serve call parameters.
-            wait_for_inclusion (bool): If ``true``, waits for inclusion.
-            wait_for_finalization (bool): If ``true``, waits for finalization.
-
-        Returns:
-            success (bool): ``True`` if serve prometheus was successful.
-            error (:func:`Optional[str]`): Error message if serve prometheus failed, ``None`` otherwise.
-        """
-
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=logging)
-        def make_substrate_call_with_retry():
-            call = self.substrate.compose_call(
-                call_module="SubtensorModule",
-                call_function="serve_prometheus",
-                call_params=call_params,
-            )
-            extrinsic = self.substrate.create_signed_extrinsic(
-                call=call, keypair=wallet.hotkey
-            )
-            response = self.substrate.submit_extrinsic(
-                extrinsic,
-                wait_for_inclusion=wait_for_inclusion,
-                wait_for_finalization=wait_for_finalization,
-            )
-            if wait_for_inclusion or wait_for_finalization:
-                response.process_events()
-                if response.is_success:
-                    return True, None
-                else:
-                    return False, format_error_message(response.error_message)
-            else:
-                return True, None
-
-        return make_substrate_call_with_retry()
-
-    # Community uses this method name
-    _do_serve_prometheus = do_serve_prometheus
-
     # Community uses this method
     def serve_prometheus(
         self,
@@ -1298,104 +1124,6 @@ class Subtensor:
             netuid=netuid,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
-        )
-
-    # Community uses this method as part of `subtensor.serve_axon`
-    @networking.ensure_connected
-    def do_serve_axon(
-        self,
-        wallet: "Wallet",
-        call_params: AxonServeCallParams,
-        wait_for_inclusion: bool = False,
-        wait_for_finalization: bool = True,
-    ) -> Tuple[bool, Optional[str]]:
-        """
-        Internal method to submit a serve axon transaction to the Bittensor blockchain. This method creates and submits a transaction, enabling a neuron's Axon to serve requests on the network.
-
-        Args:
-            wallet (bittensor_wallet.Wallet): The wallet associated with the neuron.
-            call_params (AxonServeCallParams): Parameters required for the serve axon call.
-            wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
-            wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
-
-        Returns:
-            Tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
-
-        This function is crucial for initializing and announcing a neuron's Axon service on the network, enhancing the decentralized computation capabilities of Bittensor.
-        """
-
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=logging)
-        def make_substrate_call_with_retry():
-            call = self.substrate.compose_call(
-                call_module="SubtensorModule",
-                call_function="serve_axon",
-                call_params=call_params,
-            )
-            extrinsic = self.substrate.create_signed_extrinsic(
-                call=call, keypair=wallet.hotkey
-            )
-            response = self.substrate.submit_extrinsic(
-                extrinsic,
-                wait_for_inclusion=wait_for_inclusion,
-                wait_for_finalization=wait_for_finalization,
-            )
-            if wait_for_inclusion or wait_for_finalization:
-                response.process_events()
-                if response.is_success:
-                    return True, None
-                else:
-                    return False, format_error_message(response.error_message)
-            else:
-                return True, None
-
-        return make_substrate_call_with_retry()
-
-    # keep backwards compatibility for the community
-    _do_serve_axon = do_serve_axon
-
-    # Community uses this method
-    def serve(
-        self,
-        wallet: "Wallet",
-        ip: str,
-        port: int,
-        protocol: int,
-        netuid: int,
-        placeholder1: int = 0,
-        placeholder2: int = 0,
-        wait_for_inclusion: bool = False,
-        wait_for_finalization=True,
-    ) -> bool:
-        """
-        Registers a neuron's serving endpoint on the Bittensor network. This function announces the IP address and port where the neuron is available to serve requests, facilitating peer-to-peer communication within the network.
-
-        Args:
-            wallet (bittensor_wallet.Wallet): The wallet associated with the neuron being served.
-            ip (str): The IP address of the serving neuron.
-            port (int): The port number on which the neuron is serving.
-            protocol (int): The protocol type used by the neuron (e.g., GRPC, HTTP).
-            netuid (int): The unique identifier of the subnetwork.
-            placeholder1 (int, optional): Placeholder parameter for future extensions. Default is ``0``.
-            placeholder2 (int, optional): Placeholder parameter for future extensions. Default is ``0``.
-            wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block. Default is ``False``.
-            wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain. Default is ``True``.
-
-        Returns:
-            bool: ``True`` if the serve registration is successful, False otherwise.
-
-        This function is essential for establishing the neuron's presence in the network, enabling it to participate in the decentralized machine learning processes of Bittensor.
-        """
-        return serve_extrinsic(
-            self,
-            wallet,
-            ip,
-            port,
-            protocol,
-            netuid,
-            placeholder1,
-            placeholder2,
-            wait_for_inclusion,
-            wait_for_finalization,
         )
 
     # Community uses this method
@@ -1931,65 +1659,6 @@ class Subtensor:
         return success, message
 
     # Community uses this method
-    @networking.ensure_connected
-    def _do_commit_weights(
-        self,
-        wallet: "Wallet",
-        netuid: int,
-        commit_hash: str,
-        wait_for_inclusion: bool = False,
-        wait_for_finalization: bool = False,
-    ) -> Tuple[bool, Optional[str]]:
-        """
-        Internal method to send a transaction to the Bittensor blockchain, committing the hash of a neuron's weights.
-        This method constructs and submits the transaction, handling retries and blockchain communication.
-
-        Args:
-            wallet (bittensor.wallet): The wallet associated with the neuron committing the weights.
-            netuid (int): The unique identifier of the subnet.
-            commit_hash (str): The hash of the neuron's weights to be committed.
-            wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
-            wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
-
-        Returns:
-            Tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
-
-        This method ensures that the weight commitment is securely recorded on the Bittensor blockchain, providing a
-        verifiable record of the neuron's weight distribution at a specific point in time.
-        """
-
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=logging)
-        def make_substrate_call_with_retry():
-            call = self.substrate.compose_call(
-                call_module="SubtensorModule",
-                call_function="commit_weights",
-                call_params={
-                    "netuid": netuid,
-                    "commit_hash": commit_hash,
-                },
-            )
-            extrinsic = self.substrate.create_signed_extrinsic(
-                call=call,
-                keypair=wallet.hotkey,
-            )
-            response = self.substrate.submit_extrinsic(
-                extrinsic,
-                wait_for_inclusion=wait_for_inclusion,
-                wait_for_finalization=wait_for_finalization,
-            )
-
-            if not wait_for_finalization and not wait_for_inclusion:
-                return True, None
-
-            response.process_events()
-            if response.is_success:
-                return True, None
-            else:
-                return False, format_error_message(response.error_message)
-
-        return make_substrate_call_with_retry()
-
-    # Community uses this method
     def reveal_weights(
         self,
         wallet: "Wallet",
@@ -2054,70 +1723,7 @@ class Subtensor:
 
         return success, message
 
-    # Community uses this method
-    @networking.ensure_connected
-    def _do_reveal_weights(
-        self,
-        wallet: "Wallet",
-        netuid: int,
-        uids: List[int],
-        values: List[int],
-        salt: List[int],
-        version_key: int,
-        wait_for_inclusion: bool = False,
-        wait_for_finalization: bool = False,
-    ) -> Tuple[bool, Optional[str]]:
-        """
-        Internal method to send a transaction to the Bittensor blockchain, revealing the weights for a specific subnet.
-        This method constructs and submits the transaction, handling retries and blockchain communication.
-
-        Args:
-            wallet (bittensor.wallet): The wallet associated with the neuron revealing the weights.
-            netuid (int): The unique identifier of the subnet.
-            uids (List[int]): List of neuron UIDs for which weights are being revealed.
-            values (List[int]): List of weight values corresponding to each UID.
-            salt (List[int]): List of salt values corresponding to the hash function.
-            version_key (int): Version key for compatibility with the network.
-            wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
-            wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
-
-        Returns:
-            Tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
-
-        This method ensures that the weight revelation is securely recorded on the Bittensor blockchain, providing transparency
-        and accountability for the neuron's weight distribution.
-        """
-
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=logging)
-        def make_substrate_call_with_retry():
-            call = self.substrate.compose_call(
-                call_module="SubtensorModule",
-                call_function="reveal_weights",
-                call_params={
-                    "netuid": netuid,
-                    "uids": uids,
-                    "values": values,
-                    "salt": salt,
-                    "version_key": version_key,
-                },
-            )
-            extrinsic = self.substrate.create_signed_extrinsic(
-                call=call,
-                keypair=wallet.hotkey,
-            )
-            response = self.substrate.submit_extrinsic(
-                extrinsic,
-                wait_for_inclusion=wait_for_inclusion,
-                wait_for_finalization=wait_for_finalization,
-            )
-
-            if not wait_for_finalization and not wait_for_inclusion:
-                return True, None
-
-            response.process_events()
-            if response.is_success:
-                return True, None
-            else:
-                return False, format_error_message(response.error_message)
-
-        return make_substrate_call_with_retry()
+    # Subnet 27 uses this method
+    _do_serve_prometheus = do_serve_prometheus
+    # Subnet 27 uses this method name
+    _do_serve_axon = do_serve_axon

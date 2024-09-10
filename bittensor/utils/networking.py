@@ -178,6 +178,7 @@ def ensure_connected(func):
 
     @wraps(func)
     def wrapper(self, *args, **kwargs):
+        """Wrapper function where `self` argument is Subtensor instance with the substrate connection."""
         # Check the socket state before method execution
         if (
             # connection was closed correctly

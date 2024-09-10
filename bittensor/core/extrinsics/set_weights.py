@@ -16,21 +16,90 @@
 # DEALINGS IN THE SOFTWARE.
 
 import logging
-from typing import Union, Tuple, TYPE_CHECKING
+from typing import List, Union, Tuple, Optional, TYPE_CHECKING
 
 import numpy as np
-from bittensor_wallet import Wallet
 from numpy.typing import NDArray
+from retry import retry
 from rich.prompt import Confirm
 
-from bittensor.core.settings import bt_console
-from bittensor.utils import weight_utils
+from bittensor.core.settings import bt_console, version_as_int
+from bittensor.utils import format_error_message, weight_utils
 from bittensor.utils.btlogging import logging
+from bittensor.utils.networking import ensure_connected
 from bittensor.utils.registration import torch, use_torch
 
 # For annotation purposes
 if TYPE_CHECKING:
     from bittensor.core.subtensor import Subtensor
+    from bittensor_wallet import Wallet
+
+
+# Chain call for `do_set_weights`
+@ensure_connected
+def do_set_weights(
+    self: "Subtensor",
+    wallet: "Wallet",
+    uids: List[int],
+    vals: List[int],
+    netuid: int,
+    version_key: int = version_as_int,
+    wait_for_inclusion: bool = False,
+    wait_for_finalization: bool = False,
+) -> Tuple[bool, Optional[dict]]:  # (success, error_message)
+    """
+    Internal method to send a transaction to the Bittensor blockchain, setting weights for specified neurons. This method constructs and submits the transaction, handling retries and blockchain communication.
+
+    Args:
+        self (bittensor.core.subtensor.Subtensor): Subtensor interface
+        wallet (bittensor_wallet.Wallet): The wallet associated with the neuron setting the weights.
+        uids (List[int]): List of neuron UIDs for which weights are being set.
+        vals (List[int]): List of weight values corresponding to each UID.
+        netuid (int): Unique identifier for the network.
+        version_key (int, optional): Version key for compatibility with the network.
+        wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
+        wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
+
+    Returns:
+        Tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
+
+    This method is vital for the dynamic weighting mechanism in Bittensor, where neurons adjust their trust in other neurons based on observed performance and contributions.
+    """
+
+    @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=logging)
+    def make_substrate_call_with_retry():
+        call = self.substrate.compose_call(
+            call_module="SubtensorModule",
+            call_function="set_weights",
+            call_params={
+                "dests": uids,
+                "weights": vals,
+                "netuid": netuid,
+                "version_key": version_key,
+            },
+        )
+        # Period dictates how long the extrinsic will stay as part of waiting pool
+        extrinsic = self.substrate.create_signed_extrinsic(
+            call=call,
+            keypair=wallet.hotkey,
+            era={"period": 5},
+        )
+        response = self.substrate.submit_extrinsic(
+            extrinsic,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+        # We only wait here if we expect finalization.
+        if not wait_for_finalization and not wait_for_inclusion:
+            return True, "Not waiting for finalization or inclusion."
+
+        response.process_events()
+        if response.is_success:
+            return True, "Successfully set weights."
+        else:
+            return False, response.error_message
+
+    return make_substrate_call_with_retry()
 
 
 # Community uses this extrinsic directly and via `subtensor.set_weights`
@@ -90,7 +159,8 @@ def set_weights_extrinsic(
         f":satellite: Setting weights on [white]{subtensor.network}[/white] ..."
     ):
         try:
-            success, error_message = subtensor.do_set_weights(
+            success, error_message = do_set_weights(
+                self=subtensor,
                 wallet=wallet,
                 netuid=netuid,
                 uids=weight_uids,
@@ -112,16 +182,11 @@ def set_weights_extrinsic(
                 )
                 return True, "Successfully set weights and Finalized."
             else:
-                logging.error(
-                    msg=error_message,
-                    prefix="Set weights",
-                    suffix="<red>Failed: </red>",
-                )
+                error_message = format_error_message(error_message)
+                logging.error(error_message)
                 return False, error_message
 
         except Exception as e:
             bt_console.print(f":cross_mark: [red]Failed[/red]: error:{e}")
-            logging.warning(
-                msg=str(e), prefix="Set weights", suffix="<red>Failed: </red>"
-            )
+            logging.warning(str(e))
             return False, str(e)
