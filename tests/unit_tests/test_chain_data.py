@@ -18,7 +18,7 @@
 import pytest
 import torch
 
-from bittensor.core.chain_data import AxonInfo, DelegateInfo, NeuronInfo
+from bittensor.core.chain_data import AxonInfo, DelegateInfo
 from bittensor.core.chain_data.utils import ChainDataType
 
 RAOPERTAO = 10**18

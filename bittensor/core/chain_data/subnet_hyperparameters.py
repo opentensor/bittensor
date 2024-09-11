@@ -1,10 +1,7 @@
 from dataclasses import dataclass
-from typing import List, Dict, Optional, Any, Union
+from typing import Optional
 
 import bt_decode
-
-from bittensor.core.chain_data.utils import from_scale_encoding, ChainDataType
-from bittensor.utils.registration import torch, use_torch
 
 
 @dataclass
