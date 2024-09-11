@@ -3,7 +3,6 @@ requires = ["setuptools~=70.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-where = ["."]
 include = ["bittensor"]
 
 [project]
@@ -13,6 +12,7 @@ description = "Bittensor SDK"
 readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.9"
 license = { text = "MIT License" }
+keywords = ["bittensor", "blockchain", "decentralized", "bittensor sdk"]
 authors = [
     { name = "bittensor.com", email = "info@bittensor.com" }
 ]
@@ -33,10 +33,31 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 
-[project.urls]
-source = "https://github.com/opentensor/bittensor"
-documentation = "https://docs.bittensor.com/btsdk"
-
+dependencies = [
+    "wheel",
+    "setuptools~=70.0.0",
+    "aiohttp~=3.9",
+    "bt-decode",
+    "colorama~=0.4.6",
+    "fastapi~=0.110.1",
+    "munch~=2.5.0",
+    "numpy~=2.0.1",
+    "msgpack-numpy-opentensor~=0.5.0",
+    "nest_asyncio",
+    "netaddr",
+    "packaging",
+    "python-statemachine~=2.1",
+    "pyyaml",
+    "retry",
+    "requests",
+    "rich",
+    "pydantic>=2.3, <3",
+    "python-Levenshtein",
+    "scalecodec==1.2.11",
+    "substrate-interface~=1.7.9",
+    "uvicorn",
+    "bittensor-wallet @ git+https://github.com/opentensor/btwallet.git"
+]
 [project.optional-dependencies]
 btcli = [
     "bittensor-cli @ git+https://github.com/opentensor/btcli.git"
@@ -71,28 +92,6 @@ torch = [
     "torch>=1.13.1"
 ]
 
-dependencies = [
-    "wheel",
-    "setuptools~=70.0.0",
-    "aiohttp~=3.9",
-    "bt-decode",
-    "colorama~=0.4.6",
-    "fastapi~=0.110.1",
-    "munch~=2.5.0",
-    "numpy~=2.0.1",
-    "msgpack-numpy-opentensor~=0.5.0",
-    "nest_asyncio",
-    "netaddr",
-    "packaging",
-    "python-statemachine~=2.1",
-    "pyyaml",
-    "retry",
-    "requests",
-    "rich",
-    "pydantic>=2.3, <3",
-    "python-Levenshtein",
-    "scalecodec==1.2.11",
-    "substrate-interface~=1.7.9",
-    "uvicorn",
-    "bittensor-wallet @ git+https://github.com/opentensor/btwallet.git"
-]
+[project.urls]
+"Homepage" = "https://github.com/opentensor/bittensor"
+"Source" = "https://docs.bittensor.com/btsdk"
