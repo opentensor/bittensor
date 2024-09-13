@@ -20,6 +20,7 @@ from typing import Dict, Tuple, Optional, Union, TYPE_CHECKING
 from retry import retry
 from rich.prompt import Confirm
 
+from bittensor.core.extrinsics.utils import submit_extrinsic
 from bittensor.core.settings import bt_console, NETWORK_EXPLORER_MAP
 from bittensor.utils import (
     get_explorer_url_for_network,
@@ -62,7 +63,7 @@ def do_transfer(
         error (Dict): Error message from subtensor if transfer failed.
     """
 
-    @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=logging)
+    @retry(delay=1, tries=3, backoff=2, max_delay=4)
     def make_substrate_call_with_retry():
         call = self.substrate.compose_call(
             call_module="Balances",
@@ -72,8 +73,9 @@ def do_transfer(
         extrinsic = self.substrate.create_signed_extrinsic(
             call=call, keypair=wallet.coldkey
         )
-        response = self.substrate.submit_extrinsic(
-            extrinsic,
+        response = submit_extrinsic(
+            substrate=self.substrate,
+            extrinsic=extrinsic,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
         )
