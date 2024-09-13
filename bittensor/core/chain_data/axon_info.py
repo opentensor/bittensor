@@ -18,11 +18,6 @@
 """
 This module defines the `AxonInfo` class, a data structure used to represent information about an axon endpoint
 in the bittensor network.
-
-The `AxonInfo` class includes attributes such as version, IP address, port, IP type, hotkey, coldkey, and protocol,
-along with additional placeholders to accommodate future expansion. It provides various methods to facilitate handling
-and interacting with axon information, including methods for converting to and from JSON strings, checking the
-serving status, generating string representations, and creating instances from a dictionary or a parameter dictionary.
 """
 
 import json
@@ -36,6 +31,22 @@ from bittensor.utils.registration import torch, use_torch
 
 @dataclass
 class AxonInfo:
+    """
+    The `AxonInfo` class represents information about an axon endpoint in the bittensor network. This includes
+    properties such as IP address, ports, and relevant keys.
+
+    Attributes:
+        version (int): The version of the axon endpoint.
+        ip (str): The IP address of the axon endpoint.
+        port (int): The port number the axon endpoint uses.
+        ip_type (int): The type of IP protocol (e.g., IPv4 or IPv6).
+        hotkey (str): The hotkey associated with the axon endpoint.
+        coldkey (str): The coldkey associated with the axon endpoint.
+        protocol (int): The protocol version (default is 4).
+        placeholder1 (int): Reserved field (default is 0).
+        placeholder2 (int): Reserved field (default is 0).
+    """
+
     version: int
     ip: str
     port: int
@@ -78,7 +89,7 @@ class AxonInfo:
         return self.__str__()
 
     def to_string(self) -> str:
-        """Converts the AxonInfo object to a string representation using JSON."""
+        """Converts the `AxonInfo` object to a string representation using JSON."""
         try:
             return json.dumps(asdict(self))
         except (TypeError, ValueError) as e:
@@ -88,13 +99,13 @@ class AxonInfo:
     @classmethod
     def from_string(cls, json_string: str) -> "AxonInfo":
         """
-        Creates an AxonInfo object from its string representation using JSON.
+        Creates an `AxonInfo` object from its string representation using JSON.
 
         Args:
             json_string (str): The JSON string representation of the AxonInfo object.
 
         Returns:
-            AxonInfo: An instance of AxonInfo created from the JSON string. If decoding fails, returns a default AxonInfo object with default values.
+            AxonInfo: An instance of AxonInfo created from the JSON string. If decoding fails, returns a default `AxonInfo` object with default values.
 
         Raises:
             json.JSONDecodeError: If there is an error in decoding the JSON string.
@@ -115,7 +126,7 @@ class AxonInfo:
     @classmethod
     def from_neuron_info(cls, neuron_info: dict) -> "AxonInfo":
         """
-        Converts a dictionary to an AxonInfo object.
+        Converts a dictionary to an `AxonInfo` object.
 
         Args:
             neuron_info (dict): A dictionary containing the neuron information.
