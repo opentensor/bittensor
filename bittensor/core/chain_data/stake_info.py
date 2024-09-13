@@ -50,7 +50,7 @@ class StakeInfo:
 
     @classmethod
     def list_of_tuple_from_vec_u8(
-            cls, vec_u8: List[int]
+        cls, vec_u8: List[int]
     ) -> Dict[str, List["StakeInfo"]]:
         """Returns a list of StakeInfo objects from a ``vec_u8``."""
         decoded: Optional[list[tuple[str, list[object]]]] = (

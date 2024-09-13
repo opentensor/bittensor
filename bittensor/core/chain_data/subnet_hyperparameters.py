@@ -6,7 +6,38 @@ import bt_decode
 
 @dataclass
 class SubnetHyperparameters:
-    """Dataclass for subnet hyperparameters."""
+    """
+    This class represents the hyperparameters for a subnet.
+
+    Attributes:
+        rho (int): The rate of decay of some value.
+        kappa (int): A constant multiplier used in calculations.
+        immunity_period (int): The period during which immunity is active.
+        min_allowed_weights (int): Minimum allowed weights.
+        max_weight_limit (float): Maximum weight limit.
+        tempo (int): The tempo or rate of operation.
+        min_difficulty (int): Minimum difficulty for some operations.
+        max_difficulty (int): Maximum difficulty for some operations.
+        weights_version (int): The version number of the weights used.
+        weights_rate_limit (int): Rate limit for processing weights.
+        adjustment_interval (int): Interval at which adjustments are made.
+        activity_cutoff (int): Activity cutoff threshold.
+        registration_allowed (bool): Indicates if registration is allowed.
+        target_regs_per_interval (int): Target number of registrations per interval.
+        min_burn (int): Minimum burn value.
+        max_burn (int): Maximum burn value.
+        bonds_moving_avg (int): Moving average of bonds.
+        max_regs_per_block (int): Maximum number of registrations per block.
+        serving_rate_limit (int): Limit on the rate of service.
+        max_validators (int): Maximum number of validators.
+        adjustment_alpha (int): Alpha value for adjustments.
+        difficulty (int): Difficulty level.
+        commit_reveal_weights_interval (int): Interval for commit-reveal weights.
+        commit_reveal_weights_enabled (bool): Flag indicating if commit-reveal weights are enabled.
+        alpha_high (int): High value of alpha.
+        alpha_low (int): Low value of alpha.
+        liquid_alpha_enabled (bool): Flag indicating if liquid alpha is enabled.
+    """
 
     rho: int
     kappa: int
@@ -38,6 +69,17 @@ class SubnetHyperparameters:
 
     @classmethod
     def from_vec_u8(cls, vec_u8: bytes) -> Optional["SubnetHyperparameters"]:
+        """
+        Create a `SubnetHyperparameters` instance from a vector of bytes.
+
+        This method decodes the given vector of bytes using the `bt_decode` module and creates a new instance of `SubnetHyperparameters` with the decoded values.
+
+        Args:
+            vec_u8 (bytes): A vector of bytes to decode into `SubnetHyperparameters`.
+
+        Returns:
+            Optional[SubnetHyperparameters]: An instance of `SubnetHyperparameters` if decoding is successful, None otherwise.
+        """
         decoded = bt_decode.SubnetHyperparameters.decode(vec_u8)
         return SubnetHyperparameters(
             rho=decoded.rho,
