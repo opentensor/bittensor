@@ -77,6 +77,17 @@ class NeuronInfo:
         weights_as_dict: dict[int, list[tuple[int, int]]],
         bonds_as_dict: dict[int, list[tuple[int, int]]],
     ) -> "NeuronInfo":
+        """
+        Creates an instance of NeuronInfo from NeuronInfoLite and dictionaries of weights and bonds.
+
+        Args:
+            neuron_lite (NeuronInfoLite): A lite version of the neuron containing basic attributes.
+            weights_as_dict (dict[int, list[tuple[int, int]]]): A dictionary where the key is the UID and the value is a list of weight tuples associated with the neuron.
+            bonds_as_dict (dict[int, list[tuple[int, int]]]): A dictionary where the key is the UID and the value is a list of bond tuples associated with the neuron.
+
+        Returns:
+            NeuronInfo: An instance of NeuronInfo populated with the provided weights and bonds.
+        """
         n_dict = neuron_lite.__dict__
         n_dict["weights"] = weights_as_dict.get(neuron_lite.uid, [])
         n_dict["bonds"] = bonds_as_dict.get(neuron_lite.uid, [])
@@ -85,7 +96,7 @@ class NeuronInfo:
 
     @staticmethod
     def get_null_neuron() -> "NeuronInfo":
-        """Returns a null neuron instance."""
+        """Returns a null NeuronInfo instance."""
         neuron = NeuronInfo(
             uid=0,
             netuid=0,
