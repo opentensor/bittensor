@@ -1,4 +1,5 @@
 """Module with helper functions for extrinsics."""
+
 from typing import TYPE_CHECKING
 from substrateinterface.exceptions import SubstrateRequestException
 from bittensor.utils.btlogging import logging
@@ -9,7 +10,12 @@ if TYPE_CHECKING:
     from scalecodec.types import GenericExtrinsic
 
 
-def submit_extrinsic(substrate: "SubstrateInterface", extrinsic: "GenericExtrinsic", wait_for_inclusion: bool, wait_for_finalization: bool):
+def submit_extrinsic(
+    substrate: "SubstrateInterface",
+    extrinsic: "GenericExtrinsic",
+    wait_for_inclusion: bool,
+    wait_for_finalization: bool,
+):
     """
     Submits an extrinsic to the substrate blockchain and handles potential exceptions.
 
