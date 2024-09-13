@@ -9,7 +9,7 @@ from bittensor.utils.btlogging.defines import (
     DEFAULT_LOG_FILE_NAME,
     BITTENSOR_LOGGER_NAME,
 )
-from bittensor.utils.btlogging.loggingmachine import LoggingConfig
+from bittensor.utils.btlogging.loggingmachine import LoggingConfig, _concat_message
 
 
 @pytest.fixture(autouse=True, scope="session")
@@ -175,3 +175,23 @@ def test_all_log_levels_output(logging_machine, caplog):
     assert "Test warning" in caplog.text
     assert "Test error" in caplog.text
     assert "Test critical" in caplog.text
+
+
+@pytest.mark.parametrize(
+    "msg, prefix, suffix, expected_result",
+    [
+        ("msg", None, None, "msg"),
+        ("msg", "prefix", None, "prefix - msg"),
+        ("msg", None, "suffix", "msg - suffix"),
+        ("msg", "prefix", "suffix", "prefix - msg - suffix"),
+    ],
+    ids=[
+        "message, no prefix, no suffix",
+        "message and prefix only",
+        "message and suffix only",
+        "message, prefix, and suffix",
+    ],
+)
+def test_concat(msg, prefix, suffix, expected_result):
+    """Test different options of message concatenation with prefix and suffix."""
+    assert _concat_message(msg, prefix, suffix) == expected_result
