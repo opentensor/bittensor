@@ -10,23 +10,50 @@ from bittensor.core.chain_data.utils import decode_account_id, process_stake_dat
 from bittensor.utils import u16_normalized_float
 from bittensor.utils.balance import Balance
 
+# for annotation purposes
 if TYPE_CHECKING:
     from bittensor.core.chain_data.neuron_info_lite import NeuronInfoLite
 
 
 @dataclass
 class NeuronInfo:
-    """Dataclass for neuron metadata."""
+    """Represents the metadata of a neuron including keys, UID, stake, rankings, and other attributes.
+
+    Attributes:
+        hotkey (str): The hotkey associated with the neuron.
+        coldkey (str): The coldkey associated with the neuron.
+        uid (int): The unique identifier for the neuron.
+        netuid (int): The network unique identifier for the neuron.
+        active (int): The active status of the neuron.
+        stake (Balance): The balance staked to this neuron.
+        stake_dict (dict[str, Balance]): A dictionary mapping coldkey to the amount staked.
+        total_stake (Balance): The total amount of stake.
+        rank (float): The rank score of the neuron.
+        emission (float): The emission rate.
+        incentive (float): The incentive value.
+        consensus (float): The consensus score.
+        trust (float): The trust score.
+        validator_trust (float): The validation trust score.
+        dividends (float): The dividends value.
+        last_update (int): The timestamp of the last update.
+        validator_permit (bool): Validator permit status.
+        weights (list[list[int]]): List of weights associated with the neuron.
+        bonds (list[list[int]]): List of bonds associated with the neuron.
+        pruning_score (int): The pruning score of the neuron.
+        prometheus_info (Optional[PrometheusInfo]): Information related to Prometheus.
+        axon_info (Optional[AxonInfo]): Information related to Axon.
+        is_null (bool): Indicator if this is a null neuron.
+    """
 
     hotkey: str
     coldkey: str
     uid: int
     netuid: int
     active: int
-    stake: Balance
+    stake: "Balance"
     # mapping of coldkey to amount staked to this Neuron
-    stake_dict: dict[str, Balance]
-    total_stake: Balance
+    stake_dict: dict[str, "Balance"]
+    total_stake: "Balance"
     rank: float
     emission: float
     incentive: float
@@ -40,7 +67,7 @@ class NeuronInfo:
     bonds: list[list[int]]
     pruning_score: int
     prometheus_info: Optional["PrometheusInfo"] = None
-    axon_info: Optional[AxonInfo] = None
+    axon_info: Optional["AxonInfo"] = None
     is_null: bool = False
 
     @classmethod
@@ -58,6 +85,7 @@ class NeuronInfo:
 
     @staticmethod
     def get_null_neuron() -> "NeuronInfo":
+        """Returns a null neuron instance."""
         neuron = NeuronInfo(
             uid=0,
             netuid=0,
@@ -87,6 +115,7 @@ class NeuronInfo:
 
     @classmethod
     def from_vec_u8(cls, vec_u8: bytes) -> "NeuronInfo":
+        """Instantiates NeuronInfo from a byte vector."""
         n = bt_decode.NeuronInfo.decode(bytes(vec_u8))
         stake_dict = process_stake_data(n.stake)
         total_stake = sum(stake_dict.values()) if stake_dict else Balance(0)
