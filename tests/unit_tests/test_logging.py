@@ -180,13 +180,15 @@ def test_all_log_levels_output(logging_machine, caplog):
 @pytest.mark.parametrize(
     "msg, prefix, suffix, expected_result",
     [
+        ("msg", "", "", "msg"),
         ("msg", None, None, "msg"),
         ("msg", "prefix", None, "prefix - msg"),
         ("msg", None, "suffix", "msg - suffix"),
         ("msg", "prefix", "suffix", "prefix - msg - suffix"),
     ],
     ids=[
-        "message, no prefix, no suffix",
+        "message, no prefix (str), no suffix (str)",
+        "message, no prefix (None), no suffix (None)",
         "message and prefix only",
         "message and suffix only",
         "message, prefix, and suffix",
