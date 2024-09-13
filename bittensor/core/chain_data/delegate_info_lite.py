@@ -5,7 +5,7 @@ from typing import List
 @dataclass
 class DelegateInfoLite:
     """
-    Dataclass for DelegateLiteInfo. This is a lighter version of :func:`DelegateInfo`.
+    Dataclass for `DelegateLiteInfo`. This is a lighter version of :func:``DelegateInfo``.
 
     Args:
         delegate_ss58 (str): Hotkey of the delegate for which the information is being fetched.
