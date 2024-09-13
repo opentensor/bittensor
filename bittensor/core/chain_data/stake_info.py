@@ -14,7 +14,14 @@ from bittensor.utils.balance import Balance
 
 @dataclass
 class StakeInfo:
-    """Dataclass for stake info."""
+    """
+    Dataclass for representing stake information linked to hotkey and coldkey pairs.
+
+    Attributes:
+        hotkey_ss58 (str): The SS58 encoded hotkey address.
+        coldkey_ss58 (str): The SS58 encoded coldkey address.
+        stake (Balance): The stake associated with the hotkey-coldkey pair, represented as a Balance object.
+    """
 
     hotkey_ss58: str  # Hotkey address
     coldkey_ss58: str  # Coldkey address
@@ -43,7 +50,7 @@ class StakeInfo:
 
     @classmethod
     def list_of_tuple_from_vec_u8(
-        cls, vec_u8: List[int]
+            cls, vec_u8: List[int]
     ) -> Dict[str, List["StakeInfo"]]:
         """Returns a list of StakeInfo objects from a ``vec_u8``."""
         decoded: Optional[list[tuple[str, list[object]]]] = (
