@@ -28,7 +28,6 @@ from bittensor.utils import (
     is_valid_bittensor_address_or_public_key,
 )
 from bittensor.utils.balance import Balance
-from bittensor.utils.btlogging import logging
 from bittensor.utils.networking import ensure_connected
 
 # For annotation purposes
