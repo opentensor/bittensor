@@ -12,7 +12,7 @@ from bittensor.utils.balance import Balance
 @dataclass
 class DelegateInfo:
     """
-    Dataclass for delegate information. For a lighter version of this class, see :func:`DelegateInfoLite`.
+    Dataclass for delegate information. For a lighter version of this class, see ``DelegateInfoLite``.
 
     Args:
         hotkey_ss58 (str): Hotkey of the delegate for which the information is being fetched.
