@@ -6,7 +6,16 @@ from bittensor.utils import networking
 
 @dataclass
 class PrometheusInfo:
-    """Dataclass for prometheus info."""
+    """
+    Dataclass representing information related to Prometheus.
+
+    Attributes:
+        block (int): The block number associated with the Prometheus data.
+        version (int): The version of the Prometheus data.
+        ip (str): The IP address associated with Prometheus.
+        port (int): The port number for Prometheus.
+        ip_type (int): The type of IP address (e.g., IPv4, IPv6).
+    """
 
     block: int
     version: int
