@@ -30,7 +30,7 @@ import os
 import sys
 from logging import Logger
 from logging.handlers import QueueHandler, QueueListener, RotatingFileHandler
-from typing import NamedTuple, Optional
+from typing import NamedTuple
 
 from statemachine import State, StateMachine
 
@@ -47,7 +47,7 @@ from .format import BtFileFormatter, BtStreamFormatter
 from .helpers import all_loggers
 
 
-def _concat_message(msg: str, prefix: Optional[str] = None, suffix: Optional[str] = None):
+def _concat_message(msg="", prefix="", suffix=""):
     """Concatenates a message with optional prefix and suffix."""
     msg = f"{f'{prefix} - ' if prefix else ''}{msg}{f' - {suffix}' if suffix else ''}"
     return msg
@@ -367,42 +367,42 @@ class LoggingMachine(StateMachine, Logger):
         """
         return self.current_state_value == "Trace"
 
-    def trace(self, msg: str = "", prefix: Optional[str] = None, suffix: Optional[str] = None, *args, **kwargs):
+    def trace(self, msg="", prefix="", suffix="", *args, **kwargs):
         """Wraps trace message with prefix and suffix."""
         msg = _concat_message(msg, prefix, suffix)
         self._logger.trace(msg, *args, **kwargs)
 
-    def debug(self, msg="", prefix: Optional[str] = None, suffix: Optional[str] = None, *args, **kwargs):
+    def debug(self, msg="", prefix="", suffix="", *args, **kwargs):
         """Wraps debug message with prefix and suffix."""
         msg = _concat_message(msg, prefix, suffix)
         self._logger.debug(msg, *args, **kwargs)
 
-    def info(self, msg: str = "", prefix: Optional[str] = None, suffix: Optional[str] = None, *args, **kwargs):
+    def info(self, msg="", prefix="", suffix="", *args, **kwargs):
         """Wraps info message with prefix and suffix."""
         msg = _concat_message(msg, prefix, suffix)
         self._logger.info(msg, *args, **kwargs)
 
-    def success(self, msg: str = "", prefix: Optional[str] = None, suffix: Optional[str] = None, *args, **kwargs):
+    def success(self, msg="", prefix="", suffix="", *args, **kwargs):
         """Wraps success message with prefix and suffix."""
         msg = f"{prefix} - {msg} - {suffix}"
         self._logger.success(msg, *args, **kwargs)
 
-    def warning(self, msg: str = "", prefix: Optional[str] = None, suffix: Optional[str] = None, *args, **kwargs):
+    def warning(self, msg="", prefix="", suffix="", *args, **kwargs):
         """Wraps warning message with prefix and suffix."""
         msg = f"{prefix} - {msg} - {suffix}"
         self._logger.warning(msg, *args, **kwargs)
 
-    def error(self, msg: str = "", prefix: Optional[str] = None, suffix: Optional[str] = None, *args, **kwargs):
+    def error(self, msg="", prefix="", suffix="", *args, **kwargs):
         """Wraps error message with prefix and suffix."""
         msg = f"{prefix} - {msg} - {suffix}"
         self._logger.error(msg, *args, **kwargs)
 
-    def critical(self, msg: str = "", prefix: Optional[str] = None, suffix: Optional[str] = None, *args, **kwargs):
+    def critical(self, msg="", prefix="", suffix="", *args, **kwargs):
         """Wraps critical message with prefix and suffix."""
         msg = f"{prefix} - {msg} - {suffix}"
         self._logger.critical(msg, *args, **kwargs)
 
-    def exception(self, msg: str = "", prefix: Optional[str] = None, suffix: Optional[str] = None, *args, **kwargs):
+    def exception(self, msg="", prefix="", suffix="", *args, **kwargs):
         """Wraps exception message with prefix and suffix."""
         msg = f"{prefix} - {msg} - {suffix}"
         self._logger.exception(msg, *args, **kwargs)
