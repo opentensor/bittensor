@@ -8,7 +8,14 @@ from bittensor.utils.registration import torch, use_torch
 
 @dataclass
 class IPInfo:
-    """Dataclass for associated IP Info."""
+    """
+    Dataclass representing IP information.
+
+    Attributes:
+        ip (str): The IP address as a string.
+        ip_type (int): The type of the IP address (e.g., IPv4, IPv6).
+        protocol (int): The protocol associated with the IP (e.g., TCP, UDP).
+    """
 
     ip: str
     ip_type: int
