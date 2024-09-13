@@ -13,6 +13,7 @@ class ProposalVoteData(TypedDict):
         nays (List[str]): List of senators who voted 'nay'.
         end (int): The ending timestamp of the voting period.
     """
+
     index: int
     threshold: int
     ayes: List[str]
