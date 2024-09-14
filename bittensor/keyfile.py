@@ -20,6 +20,8 @@ import base64
 import json
 import stat
 import getpass
+import warnings
+
 import bittensor
 from bittensor.errors import KeyFileError
 from typing import Optional
@@ -282,7 +284,19 @@ def get_coldkey_password_from_environment(coldkey_name: str) -> Optional[str]:
         for env_name, env_value in os.environ.items()
         if (normalized_env_name := env_name.upper()).startswith("BT_COLD_PW_")
     }
-    return envs.get(f"BT_COLD_PW_{coldkey_name.replace('-', '_').upper()}")
+    pass_ = envs.get(f"BT_COLD_PW_{coldkey_name.upper()}")
+    if "-" in coldkey_name:
+        if pass_ is None:
+            return envs.get(f"BT_COLD_PW_{coldkey_name.replace('-', '_').upper()}")
+        else:
+            warnings.warn(
+                "Cold key name contains a hyphen. "
+                "Please use an underscore instead in enviornment variable name. "
+                "In future versions all environment variables with hypens will be ignored.",
+                DeprecationWarning,
+            )
+            return pass_
+    return pass_
 
 
 def decrypt_keyfile_data(
