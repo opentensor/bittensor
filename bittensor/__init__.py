@@ -24,10 +24,22 @@ from .utils.deprecated import *
 
 # Logging helpers.
 def trace(on: bool = True):
+    """
+    Enables or disables trace logging.
+    
+    Args:
+        on (bool): If True, enables trace logging. If False, disables trace logging.
+    """
     logging.set_trace(on)
 
 
 def debug(on: bool = True):
+    """
+    Enables or disables debug logging.
+
+    Args:
+        on (bool): If True, enables debug logging. If False, disables debug logging.
+    """
     logging.set_debug(on)
 
 
