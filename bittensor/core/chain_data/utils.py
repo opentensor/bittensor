@@ -25,8 +25,8 @@ class ChainDataType(Enum):
 
 
 def from_scale_encoding(
-    input_: Union[List[int], bytes, ScaleBytes],
-    type_name: ChainDataType,
+    input_: Union[List[int], bytes, "ScaleBytes"],
+    type_name: "ChainDataType",
     is_vec: bool = False,
     is_option: bool = False,
 ) -> Optional[Dict]:
@@ -57,6 +57,19 @@ def from_scale_encoding(
 def from_scale_encoding_using_type_string(
     input_: Union[List[int], bytes, ScaleBytes], type_string: str
 ) -> Optional[Dict]:
+    """
+    Decodes SCALE encoded data to a dictionary based on the provided type string.
+
+    Args:
+        input_ (Union[List[int], bytes, ScaleBytes]): The SCALE encoded input data.
+        type_string (str): The type string defining the structure of the data.
+
+    Returns:
+        Optional[Dict]: The decoded data as a dictionary, or ``None`` if the decoding fails.
+
+    Raises:
+        TypeError: If the input_ is not a List[int], bytes, or ScaleBytes.
+    """
     if isinstance(input_, ScaleBytes):
         as_scale_bytes = input_
     else:
@@ -247,12 +260,30 @@ custom_rpc_type_registry = {
 }
 
 
-def decode_account_id(account_id_bytes):
+def decode_account_id(account_id_bytes: List) -> str:
+    """
+    Decodes an AccountId from bytes to a Base64 string using SS58 encoding.
+
+    Args:
+        account_id_bytes (bytes): The AccountId in bytes that needs to be decoded.
+
+    Returns:
+        str: The decoded AccountId as a Base64 string.
+    """
     # Convert the AccountId bytes to a Base64 string
     return ss58_encode(bytes(account_id_bytes).hex(), SS58_FORMAT)
 
 
-def process_stake_data(stake_data):
+def process_stake_data(stake_data: List) -> Dict:
+    """
+    Processes stake data to decode account IDs and convert stakes from rao to Balance objects.
+
+    Args:
+        stake_data (list): A list of tuples where each tuple contains an account ID in bytes and a stake in rao.
+
+    Returns:
+        dict: A dictionary with account IDs as keys and their corresponding Balance objects as values.
+    """
     decoded_stake_data = {}
     for account_id_bytes, stake_ in stake_data:
         account_id = decode_account_id(account_id_bytes)
