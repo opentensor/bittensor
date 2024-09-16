@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Dict, Optional
+from typing import Optional
 
 import bt_decode
 import netaddr
@@ -51,7 +51,7 @@ class NeuronInfoLite:
     active: int
     stake: "Balance"
     # mapping of coldkey to amount staked to this Neuron
-    stake_dict: Dict[str, "Balance"]
+    stake_dict: dict[str, "Balance"]
     total_stake: "Balance"
     rank: float
     emission: float

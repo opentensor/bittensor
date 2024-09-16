@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import List
 
 
 @dataclass
@@ -22,8 +21,8 @@ class DelegateInfoLite:
     take: float  # Take of the delegate as a percentage
     nominators: int  # Count of the nominators of the delegate.
     owner_ss58: str  # Coldkey of owner
-    registrations: List[int]  # List of subnets that the delegate is registered on
-    validator_permits: List[
+    registrations: list[int]  # List of subnets that the delegate is registered on
+    validator_permits: list[
         int
     ]  # List of subnets that the delegate is allowed to validate on
     return_per_1000: int  # Return per 1000 tao for the delegate over a day

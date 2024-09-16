@@ -27,10 +27,10 @@ class Balance:
     It provides methods to convert between these units, as well as to perform arithmetic and comparison operations.
 
     Attributes:
-        unit: A string representing the symbol for the tao unit.
-        rao_unit: A string representing the symbol for the rao unit.
-        rao: An integer that stores the balance in rao units.
-        tao: A float property that gives the balance in tao units.
+        unit (str): A string representing the symbol for the tao unit.
+        rao_unit (str): A string representing the symbol for the rao unit.
+        rao (int): An integer that stores the balance in rao units.
+        tao (float): A float property that gives the balance in tao units.
     """
 
     unit: str = settings.TAO_SYMBOL  # This is the tao unit
@@ -230,9 +230,9 @@ class Balance:
     @staticmethod
     def from_float(amount: float):
         """
-        Given tao (float), return Balance object with rao(int) and tao(float), where rao = int(tao*pow(10,9))
+        Given tao, return :func:`Balance` object with rao(``int``) and tao(``float``), where rao = int(tao*pow(10,9))
         Args:
-            amount: The amount in tao.
+            amount (float): The amount in tao.
 
         Returns:
             A Balance object representing the given amount.
@@ -243,10 +243,10 @@ class Balance:
     @staticmethod
     def from_tao(amount: float):
         """
-        Given tao (float), return Balance object with rao(int) and tao(float), where rao = int(tao*pow(10,9))
+        Given tao, return Balance object with rao(``int``) and tao(``float``), where rao = int(tao*pow(10,9))
 
         Args:
-            amount: The amount in tao.
+            amount (float): The amount in tao.
 
         Returns:
             A Balance object representing the given amount.
@@ -257,10 +257,10 @@ class Balance:
     @staticmethod
     def from_rao(amount: int):
         """
-        Given rao (int), return Balance object with rao(int) and tao(float), where rao = int(tao*pow(10,9))
+        Given rao, return Balance object with rao(``int``) and tao(``float``), where rao = int(tao*pow(10,9))
 
         Args:
-            amount: The amount in rao.
+            amount (int): The amount in rao.
 
         Returns:
             A Balance object representing the given amount.

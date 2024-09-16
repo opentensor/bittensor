@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List, Tuple, Optional, Any
+from typing import Optional, Any
 
 from scalecodec.utils.ss58 import ss58_encode
 
@@ -29,15 +29,15 @@ class DelegateInfo:
 
     hotkey_ss58: str  # Hotkey of delegate
     total_stake: Balance  # Total stake of the delegate
-    nominators: List[
-        Tuple[str, Balance]
+    nominators: list[
+        tuple[str, Balance]
     ]  # List of nominators of the delegate and their stake
     owner_ss58: str  # Coldkey of owner
     take: float  # Take of the delegate as a percentage
-    validator_permits: List[
+    validator_permits: list[
         int
     ]  # List of subnets that the delegate is allowed to validate on
-    registrations: List[int]  # List of subnets that the delegate is registered on
+    registrations: tuple[int]  # List of subnets that the delegate is registered on
     return_per_1000: Balance  # Return per 1000 tao of the delegate over a day
     total_daily_return: Balance  # Total daily return of the delegate
 
@@ -66,7 +66,7 @@ class DelegateInfo:
         )
 
     @classmethod
-    def from_vec_u8(cls, vec_u8: List[int]) -> Optional["DelegateInfo"]:
+    def from_vec_u8(cls, vec_u8: list[int]) -> Optional["DelegateInfo"]:
         """Returns a DelegateInfo object from a ``vec_u8``."""
         if len(vec_u8) == 0:
             return None
@@ -78,7 +78,7 @@ class DelegateInfo:
         return DelegateInfo.fix_decoded_values(decoded)
 
     @classmethod
-    def list_from_vec_u8(cls, vec_u8: List[int]) -> List["DelegateInfo"]:
+    def list_from_vec_u8(cls, vec_u8: list[int]) -> list["DelegateInfo"]:
         """Returns a list of DelegateInfo objects from a ``vec_u8``."""
         decoded = from_scale_encoding(vec_u8, ChainDataType.DelegateInfo, is_vec=True)
 
@@ -89,8 +89,8 @@ class DelegateInfo:
 
     @classmethod
     def delegated_list_from_vec_u8(
-        cls, vec_u8: List[int]
-    ) -> List[Tuple["DelegateInfo", "Balance"]]:
+        cls, vec_u8: list[int]
+    ) -> list[tuple["DelegateInfo", "Balance"]]:
         """Returns a list of Tuples of DelegateInfo objects, and Balance, from a ``vec_u8``.
 
         This is the list of delegates that the user has delegated to, and the amount of stake delegated.

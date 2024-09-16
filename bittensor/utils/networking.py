@@ -22,6 +22,7 @@ import os
 import socket
 import urllib
 from functools import wraps
+from typing import Optional
 
 import netaddr
 import requests
@@ -32,16 +33,15 @@ from bittensor.utils.btlogging import logging
 def int_to_ip(int_val: int) -> str:
     """Maps an integer to a unique ip-string
     Args:
-        int_val  (:type:`int128`, `required`):
+        int_val  (int):
             The integer representation of an ip. Must be in the range (0, 3.4028237e+38).
 
     Returns:
-        str_val (:tyep:`str`, `required):
+        str_val (str):
             The string representation of an ip. Of form *.*.*.* for ipv4 or *::*:*:*:* for ipv6
 
     Raises:
-        netaddr.core.AddrFormatError (Exception):
-            Raised when the passed int_vals is not a valid ip int value.
+        netaddr.core.AddrFormatError (Exception): Raised when the passed int_vals is not a valid ip int value.
     """
     return str(netaddr.IPAddress(int_val))
 
@@ -156,17 +156,19 @@ def get_external_ip() -> str:
     raise ExternalIPNotFound
 
 
-def get_formatted_ws_endpoint_url(endpoint_url: str) -> str:
+def get_formatted_ws_endpoint_url(endpoint_url: Optional[str]) -> Optional[str]:
     """
     Returns a formatted websocket endpoint url.
     Note: The port (or lack thereof) is left unchanged
     Args:
-        endpoint_url (str, `required`):
+        endpoint_url (Optional[str]):
             The endpoint url to format.
     Returns:
-        formatted_endpoint_url (str, `required`):
-            The formatted endpoint url. In the form of ws://<endpoint_url> or wss://<endpoint_url>
+        formatted_endpoint_url (Optional[str]): The formatted endpoint url. In the form of ws://<endpoint_url> or wss://<endpoint_url>
     """
+    if endpoint_url is None:
+        return None
+
     if endpoint_url[0:6] != "wss://" and endpoint_url[0:5] != "ws://":
         endpoint_url = f"ws://{endpoint_url}"
 

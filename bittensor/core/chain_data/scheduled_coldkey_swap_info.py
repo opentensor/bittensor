@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List, Optional, Any
+from typing import Optional, Any
 
 from scalecodec.utils.ss58 import ss58_encode
 
@@ -32,7 +32,7 @@ class ScheduledColdkeySwapInfo:
         )
 
     @classmethod
-    def from_vec_u8(cls, vec_u8: List[int]) -> Optional["ScheduledColdkeySwapInfo"]:
+    def from_vec_u8(cls, vec_u8: list[int]) -> Optional["ScheduledColdkeySwapInfo"]:
         """Returns a ScheduledColdkeySwapInfo object from a ``vec_u8``."""
         if len(vec_u8) == 0:
             return None
@@ -44,7 +44,7 @@ class ScheduledColdkeySwapInfo:
         return ScheduledColdkeySwapInfo.fix_decoded_values(decoded)
 
     @classmethod
-    def list_from_vec_u8(cls, vec_u8: List[int]) -> List["ScheduledColdkeySwapInfo"]:
+    def list_from_vec_u8(cls, vec_u8: list[int]) -> list["ScheduledColdkeySwapInfo"]:
         """Returns a list of ScheduledColdkeySwapInfo objects from a ``vec_u8``."""
         decoded = from_scale_encoding(
             vec_u8, ChainDataType.ScheduledColdkeySwapInfo, is_vec=True
@@ -55,7 +55,7 @@ class ScheduledColdkeySwapInfo:
         return [ScheduledColdkeySwapInfo.fix_decoded_values(d) for d in decoded]
 
     @classmethod
-    def decode_account_id_list(cls, vec_u8: List[int]) -> Optional[List[str]]:
+    def decode_account_id_list(cls, vec_u8: list[int]) -> Optional[list[str]]:
         """Decodes a list of AccountIds from vec_u8."""
         decoded = from_scale_encoding(
             vec_u8, ChainDataType.ScheduledColdkeySwapInfo.AccountId, is_vec=True

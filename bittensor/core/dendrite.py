@@ -20,7 +20,7 @@ from __future__ import annotations
 import asyncio
 import time
 import uuid
-from typing import Any, AsyncGenerator, Dict, List, Optional, Union, Type
+from typing import Any, AsyncGenerator, Optional, Union, Type
 
 import aiohttp
 from bittensor_wallet import Wallet
@@ -35,7 +35,7 @@ from bittensor.utils import networking
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import torch, use_torch
 
-DENDRITE_ERROR_MAPPING: Dict[Type[Exception], tuple] = {
+DENDRITE_ERROR_MAPPING: dict[Type[Exception], tuple] = {
     aiohttp.ClientConnectorError: ("503", "Service unavailable"),
     asyncio.TimeoutError: ("408", "Request timeout"),
     aiohttp.ClientResponseError: (None, "Client response error"),
@@ -328,7 +328,7 @@ class DendriteMixin:
 
     def query(
         self, *args, **kwargs
-    ) -> List[Union["AsyncGenerator[Any, Any]", "Synapse", "StreamingSynapse"]]:
+    ) -> list[Union["AsyncGenerator[Any, Any]", "Synapse", "StreamingSynapse"]]:
         """
         Makes a synchronous request to multiple target Axons and returns the server responses.
 
@@ -357,13 +357,13 @@ class DendriteMixin:
 
     async def forward(
         self,
-        axons: Union[List[Union["AxonInfo", "Axon"]], Union["AxonInfo", "Axon"]],
+        axons: Union[list[Union["AxonInfo", "Axon"]], Union["AxonInfo", "Axon"]],
         synapse: "Synapse" = Synapse(),
         timeout: float = 12,
         deserialize: bool = True,
         run_async: bool = True,
         streaming: bool = False,
-    ) -> List[Union["AsyncGenerator[Any, Any]", "Synapse", "StreamingSynapse"]]:
+    ) -> list[Union["AsyncGenerator[Any, Any]", "Synapse", "StreamingSynapse"]]:
         """
         Asynchronously sends requests to one or multiple Axons and collates their responses.
 

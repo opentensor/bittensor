@@ -1,7 +1,7 @@
 """Chain data helper functions and data."""
 
 from enum import Enum
-from typing import Dict, List, Optional, Union
+from typing import Optional, Union
 
 from scalecodec.base import RuntimeConfiguration, ScaleBytes
 from scalecodec.type_registry import load_type_registry_preset
@@ -25,11 +25,11 @@ class ChainDataType(Enum):
 
 
 def from_scale_encoding(
-    input_: Union[List[int], bytes, "ScaleBytes"],
+    input_: Union[list[int], bytes, "ScaleBytes"],
     type_name: "ChainDataType",
     is_vec: bool = False,
     is_option: bool = False,
-) -> Optional[Dict]:
+) -> Optional[dict]:
     """
     Decodes input_ data from SCALE encoding based on the specified type name and modifiers.
 
@@ -55,8 +55,8 @@ def from_scale_encoding(
 
 
 def from_scale_encoding_using_type_string(
-    input_: Union[List[int], bytes, ScaleBytes], type_string: str
-) -> Optional[Dict]:
+    input_: Union[list[int], bytes, ScaleBytes], type_string: str
+) -> Optional[dict]:
     """
     Decodes SCALE encoded data to a dictionary based on the provided type string.
 
@@ -260,7 +260,7 @@ custom_rpc_type_registry = {
 }
 
 
-def decode_account_id(account_id_bytes: List) -> str:
+def decode_account_id(account_id_bytes: list) -> str:
     """
     Decodes an AccountId from bytes to a Base64 string using SS58 encoding.
 
@@ -274,7 +274,7 @@ def decode_account_id(account_id_bytes: List) -> str:
     return ss58_encode(bytes(account_id_bytes).hex(), SS58_FORMAT)
 
 
-def process_stake_data(stake_data: List) -> Dict:
+def process_stake_data(stake_data: list) -> dict:
     """
     Processes stake data to decode account IDs and convert stakes from rao to Balance objects.
 

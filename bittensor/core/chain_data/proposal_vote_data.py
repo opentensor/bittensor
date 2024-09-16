@@ -1,4 +1,4 @@
-from typing import List, TypedDict
+from typing import TypedDict
 
 
 # Senate / Proposal data
@@ -16,6 +16,6 @@ class ProposalVoteData(TypedDict):
 
     index: int
     threshold: int
-    ayes: List[str]
-    nays: List[str]
+    ayes: list[str]
+    nays: list[str]
     end: int

@@ -22,7 +22,7 @@ import copy
 import os
 import sys
 from copy import deepcopy
-from typing import List, Optional, Dict, Any, TypeVar, Type
+from typing import Any, TypeVar, Type, Optional
 
 import yaml
 from munch import DefaultMunch
@@ -48,12 +48,12 @@ class Config(DefaultMunch):
         config (bittensor.config): Nested config object created from parser arguments.
     """
 
-    __is_set: Dict[str, bool]
+    __is_set: dict[str, bool]
 
     def __init__(
         self,
         parser: argparse.ArgumentParser = None,
-        args: Optional[List[str]] = None,
+        args: Optional[list[str]] = None,
         strict: bool = False,
         default: Optional[Any] = None,
     ) -> None:
@@ -243,7 +243,7 @@ class Config(DefaultMunch):
 
     @staticmethod
     def __parse_args__(
-        args: List[str], parser: argparse.ArgumentParser = None, strict: bool = False
+        args: list[str], parser: argparse.ArgumentParser = None, strict: bool = False
     ) -> argparse.Namespace:
         """Parses the passed args use the passed parser.
 
@@ -343,13 +343,13 @@ class Config(DefaultMunch):
         self._merge(self, b)
 
     @classmethod
-    def merge_all(cls, configs: List["Config"]) -> "Config":
+    def merge_all(cls, configs: list["Config"]) -> "Config":
         """
         Merge all configs in the list into one config.
         If there is a conflict, the value from the last configuration in the list will take precedence.
 
         Args:
-            configs (list of bittensor.core.config.Config): List of configs to be merged.
+            configs (list[bittensor.core.config.Config]): List of configs to be merged.
 
         Returns:
             config (bittensor.core.config.Config): Merged config object.
@@ -367,14 +367,14 @@ class Config(DefaultMunch):
             return self.get("__is_set")[param_name]
 
     def __check_for_missing_required_args(
-        self, parser: argparse.ArgumentParser, args: List[str]
-    ) -> List[str]:
+        self, parser: argparse.ArgumentParser, args: list[str]
+    ) -> list[str]:
         required_args = self.__get_required_args_from_parser(parser)
         missing_args = [arg for arg in required_args if not any(arg in s for s in args)]
         return missing_args
 
     @staticmethod
-    def __get_required_args_from_parser(parser: argparse.ArgumentParser) -> List[str]:
+    def __get_required_args_from_parser(parser: argparse.ArgumentParser) -> list[str]:
         required_args = []
         for action in parser._actions:
             if action.required:

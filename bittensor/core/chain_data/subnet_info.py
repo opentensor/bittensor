@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List, Dict, Optional, Any, Union
+from typing import Any, Optional, Union
 
 from scalecodec.utils.ss58 import ss58_encode
 
@@ -29,13 +29,13 @@ class SubnetInfo:
     tempo: int
     modality: int
     # netuid -> topk percentile prunning score requirement (u16:MAX normalized.)
-    connection_requirements: Dict[str, float]
+    connection_requirements: dict[str, float]
     emission_value: float
     burn: Balance
     owner_ss58: str
 
     @classmethod
-    def from_vec_u8(cls, vec_u8: List[int]) -> Optional["SubnetInfo"]:
+    def from_vec_u8(cls, vec_u8: list[int]) -> Optional["SubnetInfo"]:
         """Returns a SubnetInfo object from a ``vec_u8``."""
         if len(vec_u8) == 0:
             return None
@@ -47,7 +47,7 @@ class SubnetInfo:
         return SubnetInfo.fix_decoded_values(decoded)
 
     @classmethod
-    def list_from_vec_u8(cls, vec_u8: List[int]) -> List["SubnetInfo"]:
+    def list_from_vec_u8(cls, vec_u8: list[int]) -> list["SubnetInfo"]:
         """Returns a list of SubnetInfo objects from a ``vec_u8``."""
         decoded = from_scale_encoding(
             vec_u8, ChainDataType.SubnetInfo, is_vec=True, is_option=True
@@ -59,7 +59,7 @@ class SubnetInfo:
         return [SubnetInfo.fix_decoded_values(d) for d in decoded]
 
     @classmethod
-    def fix_decoded_values(cls, decoded: Dict) -> "SubnetInfo":
+    def fix_decoded_values(cls, decoded: dict) -> "SubnetInfo":
         """Returns a SubnetInfo object from a decoded SubnetInfo dictionary."""
         return SubnetInfo(
             netuid=decoded["netuid"],

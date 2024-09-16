@@ -16,7 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 from abc import ABC, abstractmethod
-from typing import Any, List, Union, Optional, TYPE_CHECKING
+from typing import Any, Union, Optional, TYPE_CHECKING
 
 from bittensor.core.axon import Axon
 from bittensor.core.dendrite import Dendrite
@@ -44,12 +44,12 @@ class SubnetsAPI(ABC):
         """Prepare the synapse-specific payload."""
 
     @abstractmethod
-    def process_responses(self, responses: List[Union["Synapse", Any]]) -> Any:
+    def process_responses(self, responses: list[Union["Synapse", Any]]) -> Any:
         """Process the responses from the network."""
 
     async def query_api(
         self,
-        axons: Union["Axon", List["Axon"]],
+        axons: Union["Axon", list["Axon"]],
         deserialize: Optional[bool] = False,
         timeout: Optional[int] = 12,
         **kwargs: Optional[Any],

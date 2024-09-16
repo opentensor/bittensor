@@ -16,7 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import hashlib
-from typing import List, Dict, Literal, Union, Optional
+from typing import Literal, Union, Optional
 
 import scalecodec
 from substrateinterface import Keypair as Keypair
@@ -31,9 +31,9 @@ U16_MAX = 65535
 U64_MAX = 18446744073709551615
 
 
-def ss58_to_vec_u8(ss58_address: str) -> List[int]:
+def ss58_to_vec_u8(ss58_address: str) -> list[int]:
     ss58_bytes: bytes = ss58_address_to_bytes(ss58_address)
-    encoded_address: List[int] = [int(byte) for byte in ss58_bytes]
+    encoded_address: list[int] = [int(byte) for byte in ss58_bytes]
     return encoded_address
 
 
@@ -56,20 +56,20 @@ def strtobool(val: str) -> Union[bool, Literal["==SUPRESS=="]]:
 
 
 def _get_explorer_root_url_by_network_from_map(
-    network: str, network_map: Dict[str, Dict[str, str]]
-) -> Optional[Dict[str, str]]:
+    network: str, network_map: dict[str, dict[str, str]]
+) -> Optional[dict[str, str]]:
     """
     Returns the explorer root url for the given network name from the given network map.
 
     Args:
         network(str): The network to get the explorer url for.
-        network_map(Dict[str, str]): The network map to get the explorer url from.
+        network_map(dict[str, str]): The network map to get the explorer url from.
 
     Returns:
         The explorer url for the given network.
         Or None if the network is not in the network map.
     """
-    explorer_urls: Optional[Dict[str, str]] = {}
+    explorer_urls: Optional[dict[str, str]] = {}
     for entity_nm, entity_network_map in network_map.items():
         if network in entity_network_map:
             explorer_urls[entity_nm] = entity_network_map[network]
@@ -78,24 +78,24 @@ def _get_explorer_root_url_by_network_from_map(
 
 
 def get_explorer_url_for_network(
-    network: str, block_hash: str, network_map: Dict[str, Dict[str, str]]
-) -> Optional[Dict[str, str]]:
+    network: str, block_hash: str, network_map: dict[str, dict[str, str]]
+) -> Optional[dict[str, str]]:
     """
     Returns the explorer url for the given block hash and network.
 
     Args:
         network(str): The network to get the explorer url for.
         block_hash(str): The block hash to get the explorer url for.
-        network_map(Dict[str, Dict[str, str]]): The network maps to get the explorer urls from.
+        network_map(dict[str, dict[str, str]]): The network maps to get the explorer urls from.
 
     Returns:
         The explorer url for the given block hash and network.
         Or None if the network is not known.
     """
 
-    explorer_urls: Optional[Dict[str, str]] = {}
+    explorer_urls: Optional[dict[str, str]] = {}
     # Will be None if the network is not known. i.e. not in network_map
-    explorer_root_urls: Optional[Dict[str, str]] = (
+    explorer_root_urls: Optional[dict[str, str]] = (
         _get_explorer_root_url_by_network_from_map(network, network_map)
     )
 

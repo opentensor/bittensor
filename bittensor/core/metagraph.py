@@ -21,7 +21,7 @@ import typing
 from abc import ABC, abstractmethod
 from os import listdir
 from os.path import join
-from typing import List, Optional, Union, Tuple
+from typing import Optional, Union
 
 import numpy as np
 from numpy.typing import NDArray
@@ -172,7 +172,7 @@ class MetagraphMixin(ABC):
 
     netuid: int
     network: str
-    version: Union["torch.nn.Parameter", Tuple[NDArray]]
+    version: Union["torch.nn.Parameter", tuple[NDArray]]
     n: Union["torch.nn.Parameter", NDArray]
     block: Union["torch.nn.Parameter", NDArray]
     stake: Union["torch.nn.Parameter", NDArray]
@@ -190,7 +190,7 @@ class MetagraphMixin(ABC):
     weights: Union["torch.nn.Parameter", NDArray]
     bonds: Union["torch.nn.Parameter", NDArray]
     uids: Union["torch.nn.Parameter", NDArray]
-    axons: List[AxonInfo]
+    axons: list[AxonInfo]
 
     @property
     def S(self) -> Union[NDArray, "torch.nn.Parameter"]:
@@ -335,7 +335,7 @@ class MetagraphMixin(ABC):
         return self.weights
 
     @property
-    def hotkeys(self) -> List[str]:
+    def hotkeys(self) -> list[str]:
         """
         Represents a list of ``hotkeys`` for each neuron in the Bittensor network.
 
@@ -353,7 +353,7 @@ class MetagraphMixin(ABC):
         return [axon.hotkey for axon in self.axons]
 
     @property
-    def coldkeys(self) -> List[str]:
+    def coldkeys(self) -> list[str]:
         """
         Contains a list of ``coldkeys`` for each neuron in the Bittensor network.
 
@@ -369,7 +369,7 @@ class MetagraphMixin(ABC):
         return [axon.coldkey for axon in self.axons]
 
     @property
-    def addresses(self) -> List[str]:
+    def addresses(self) -> list[str]:
         """
         Provides a list of IP addresses for each neuron in the Bittensor network. These addresses are used for
         network communication, allowing neurons to connect, interact, and exchange information with each other.
@@ -723,7 +723,7 @@ class MetagraphMixin(ABC):
         pass
 
     def _process_root_weights(
-        self, data: List, attribute: str, subtensor: "Subtensor"
+        self, data: list, attribute: str, subtensor: "Subtensor"
     ) -> Union[NDArray, "torch.nn.Parameter"]:
         """
         Specifically processes the root weights data for the metagraph. This method is similar to :func:`_process_weights_or_bonds` but is tailored for processing root weights, which have a different structure and significance in the network.
@@ -955,7 +955,7 @@ class TorchMetaGraph(MetagraphMixin, BaseClass):
         self.uids = torch.nn.Parameter(
             torch.tensor([], dtype=torch.int64), requires_grad=False
         )
-        self.axons: List[AxonInfo] = []
+        self.axons: list[AxonInfo] = []
         if sync:
             self.sync(block=None, lite=lite)
 
@@ -1130,7 +1130,7 @@ class NonTorchMetagraph(MetagraphMixin):
         self.weights = np.array([], dtype=np.float32)
         self.bonds = np.array([], dtype=np.int64)
         self.uids = np.array([], dtype=np.int64)
-        self.axons: List[AxonInfo] = []
+        self.axons: list[AxonInfo] = []
         if sync:
             self.sync(block=None, lite=lite)
 
