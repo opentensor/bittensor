@@ -272,7 +272,7 @@ class Subtensor:
                 evaluated_endpoint,
             ) = Subtensor.determine_chain_endpoint_and_network(network)
         else:
-            if config.get("__is_set", {}).get("subtensor.chain_endpoint"):
+            if config.is_set("subtensor.chain_endpoint"):
                 (
                     evaluated_network,
                     evaluated_endpoint,
@@ -280,7 +280,7 @@ class Subtensor:
                     config.subtensor.chain_endpoint
                 )
 
-            elif config.get("__is_set", {}).get("subtensor.network"):
+            elif config.is_set("subtensor.network"):
                 (
                     evaluated_network,
                     evaluated_endpoint,

@@ -309,7 +309,7 @@ class Config(DefaultMunch):
 
     @staticmethod
     def to_string(items) -> str:
-        """Get string from items"""
+        """Get string from items."""
         return "\n" + yaml.dump(items.toDict())
 
     def update_with_kwargs(self, kwargs):
@@ -333,11 +333,12 @@ class Config(DefaultMunch):
                 a[key] = b[key]
         return a
 
-    def merge(self, b):
+    def merge(self, b: "Config"):
         """
         Merges the current config with another config.
 
-        Args: b: Another config to merge.
+        Args:
+            b (bittensor.core.config.Config): Another config to merge.
         """
         self._merge(self, b)
 
@@ -348,10 +349,10 @@ class Config(DefaultMunch):
         If there is a conflict, the value from the last configuration in the list will take precedence.
 
         Args:
-            configs (list of config): List of configs to be merged.
+            configs (list of bittensor.core.config.Config): List of configs to be merged.
 
         Returns:
-            config: Merged config object.
+            config (bittensor.core.config.Config): Merged config object.
         """
         result = cls()
         for cfg in configs:
@@ -359,9 +360,7 @@ class Config(DefaultMunch):
         return result
 
     def is_set(self, param_name: str) -> bool:
-        """
-        Returns a boolean indicating whether the parameter has been set or is still the default.
-        """
+        """Returns a boolean indicating whether the parameter has been set or is still the default."""
         if param_name not in self.get("__is_set"):
             return False
         else:
