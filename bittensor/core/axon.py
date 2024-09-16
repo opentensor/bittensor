@@ -953,10 +953,10 @@ class Axon:
 
 def create_error_response(synapse: "Synapse") -> "JSONResponse":
     """Creates an error response based on the provided synapse object.
-    
+
     Args:
         synapse (bittensor.core.synapse.Synapse): The synapse object containing details about the request and the associated axon.
-    
+
     Returns:
         JSONResponse: A JSON response with a status code and content indicating the error message.
     """
