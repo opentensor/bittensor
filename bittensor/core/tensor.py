@@ -16,7 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import base64
-from typing import Optional, Union, List
+from typing import Optional, Union
 
 import msgpack
 import msgpack_numpy
@@ -104,7 +104,7 @@ def cast_dtype(raw: Union[None, np.dtype, "torch.dtype", str]) -> Optional[str]:
         )
 
 
-def cast_shape(raw: Union[None, List[int], str]) -> Optional[Union[str, list]]:
+def cast_shape(raw: Union[None, list[int], str]) -> Optional[Union[str, list]]:
     """
     Casts the raw value to a string representing the tensor shape.
 
@@ -134,7 +134,7 @@ def cast_shape(raw: Union[None, List[int], str]) -> Optional[Union[str, list]]:
 
 
 class tensor:
-    def __new__(cls, tensor: Union[list, np.ndarray, "torch.Tensor"]):
+    def __new__(cls, tensor: Union[list, "np.ndarray", "torch.Tensor"]):
         if isinstance(tensor, list) or isinstance(tensor, np.ndarray):
             tensor = torch.tensor(tensor) if use_torch() else np.array(tensor)
         return Tensor.serialize(tensor_=tensor)
@@ -155,10 +155,10 @@ class Tensor(BaseModel):
     def tensor(self) -> Union[np.ndarray, "torch.Tensor"]:
         return self.deserialize()
 
-    def tolist(self) -> List[object]:
+    def tolist(self) -> list[object]:
         return self.deserialize().tolist()
 
-    def numpy(self) -> "numpy.ndarray":
+    def numpy(self) -> "np.ndarray":
         return (
             self.deserialize().detach().numpy() if use_torch() else self.deserialize()
         )
@@ -199,7 +199,7 @@ class Tensor(BaseModel):
             tensor_ (np.array or torch.Tensor): The tensor to serialize.
 
         Returns:
-            Tensor: The serialized tensor.
+            :func:`Tensor`: The serialized tensor.
 
         Raises:
             Exception: If the serialization process encounters an error.
@@ -234,7 +234,7 @@ class Tensor(BaseModel):
     )
 
     # Represents the shape of the tensor.
-    shape: List[int] = Field(
+    shape: list[int] = Field(
         title="shape",
         description="Tensor shape. This field defines the dimensions of the tensor as a list of integers, such as [10, 10] for a 2D tensor with shape (10, 10).",
         examples=[10, 10],
