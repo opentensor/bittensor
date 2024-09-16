@@ -92,7 +92,9 @@ def normalize_max_weight(
 def convert_weight_uids_and_vals_to_tensor(
     n: int, uids: list[int], weights: list[int]
 ) -> Union[NDArray[np.float32], "torch.FloatTensor"]:
-    """Converts weights and uids from chain representation into a np.array (inverse operation from convert_weights_and_uids_for_emit)
+    """
+    Converts weights and uids from chain representation into a np.array (inverse operation from convert_weights_and_uids_for_emit).
+
     Args:
         n (int): number of neurons on network.
         uids (list[int]): Tensor of uids as destinations for passed weights.
