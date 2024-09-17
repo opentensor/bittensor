@@ -615,10 +615,12 @@ def test_get_coldkey_password_from_environment(monkeypatch):
         "WALLET": "password",
         "my_wallet": "password2",
         "my-wallet": "password2",
+        "my-wallet3": "password3",
     }
 
     monkeypatch.setenv("bt_cold_pw_wallet", password_by_wallet["WALLET"])
     monkeypatch.setenv("BT_COLD_PW_My_Wallet", password_by_wallet["my_wallet"])
+    monkeypatch.setenv("BT_COLD_PW_My-Wallet3", password_by_wallet["my-wallet3"])
 
     for wallet, password in password_by_wallet.items():
         assert get_coldkey_password_from_environment(wallet) == password
