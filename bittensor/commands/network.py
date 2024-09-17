@@ -248,7 +248,7 @@ class SubnetListCommand:
         rows = []
         total_neurons = 0
         delegate_info: Optional[Dict[str, DelegatesDetails]] = get_delegates_details(
-            url=bittensor.__delegates_details_url__
+            subtensor=subtensor
         )
 
         for subnet in subnets:
@@ -262,7 +262,7 @@ class SubnetListCommand:
                     str(subnet.tempo),
                     f"{subnet.burn!s:8.8}",
                     str(bittensor.utils.formatting.millify(subnet.difficulty)),
-                    f"{delegate_info[subnet.owner_ss58].name if subnet.owner_ss58 in delegate_info else subnet.owner_ss58}",
+                    f"{delegate_info[subnet.owner_ss58].display if subnet.owner_ss58 in delegate_info else subnet.owner_ss58}",
                 )
             )
         table = Table(

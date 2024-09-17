@@ -1,30 +1,31 @@
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
-
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
 # the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
+#
 # The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
-
+#
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
 # THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import sys
 import os
-import bittensor
-import requests
-from bittensor.utils.registration import torch
-from bittensor.utils.balance import Balance
-from bittensor.utils import U64_NORMALIZED_FLOAT, U16_NORMALIZED_FLOAT
-from typing import List, Dict, Any, Optional, Tuple
-from rich.prompt import Confirm, PromptBase
+import sys
 from dataclasses import dataclass
+from typing import Any, List, Dict, Optional, Tuple
+
+from rich.prompt import Confirm, PromptBase
+
+import bittensor
+from bittensor.utils import U64_NORMALIZED_FLOAT, U16_NORMALIZED_FLOAT
+from bittensor.utils.balance import Balance
+from bittensor.utils.registration import torch
 from . import defaults
 
 console = bittensor.__console__
@@ -244,40 +245,38 @@ def normalize_hyperparameters(
 
 @dataclass
 class DelegatesDetails:
-    name: str
-    url: str
-    description: str
-    signature: str
+    display: str
+    additional: List[Tuple[str, str]]
+    web: str
+    legal: Optional[str] = None
+    riot: Optional[str] = None
+    email: Optional[str] = None
+    pgp_fingerprint: Optional[str] = None
+    image: Optional[str] = None
+    twitter: Optional[str] = None
 
     @classmethod
-    def from_json(cls, json: Dict[str, any]) -> "DelegatesDetails":
+    def from_chain_data(cls, data: Dict[str, Any]) -> "DelegatesDetails":
         return cls(
-            name=json["name"],
-            url=json["url"],
-            description=json["description"],
-            signature=json["signature"],
+            display=data.get("display", ""),
+            additional=data.get("additional", []),
+            web=data.get("web", ""),
+            legal=data.get("legal"),
+            riot=data.get("riot"),
+            email=data.get("email"),
+            pgp_fingerprint=data.get("pgp_fingerprint"),
+            image=data.get("image"),
+            twitter=data.get("image"),
         )
 
 
-def _get_delegates_details_from_github(
-    requests_get, url: str
-) -> Dict[str, DelegatesDetails]:
-    response = requests_get(url)
-
-    if response.status_code == 200:
-        all_delegates: Dict[str, Any] = response.json()
-        all_delegates_details = {}
-        for delegate_hotkey, delegates_details in all_delegates.items():
-            all_delegates_details[delegate_hotkey] = DelegatesDetails.from_json(
-                delegates_details
-            )
-        return all_delegates_details
-    else:
-        return {}
-
-
-def get_delegates_details(url: str) -> Optional[Dict[str, DelegatesDetails]]:
+def get_delegates_details(
+    subtensor: "bittensor.subtensor",
+) -> Optional[Dict[str, DelegatesDetails]]:
     try:
-        return _get_delegates_details_from_github(requests.get, url)
-    except Exception:
+        return subtensor.get_delegate_identities()
+    except Exception as error:
+        bittensor.logging.exception(
+            f"Unable to get Delegates Identities. Error: {error}"
+        )
         return None  # Fail silently

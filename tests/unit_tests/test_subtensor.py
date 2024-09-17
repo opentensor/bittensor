@@ -17,7 +17,9 @@
 
 # Standard Lib
 import argparse
+import dataclasses
 import unittest.mock as mock
+from typing import Any
 from unittest.mock import MagicMock
 
 # 3rd Party
@@ -25,14 +27,15 @@ import pytest
 
 # Application
 import bittensor
+from bittensor import subtensor_module
+from bittensor.chain_data import SubnetHyperparameters
+from bittensor.commands import utils
+from bittensor.commands.utils import normalize_hyperparameters
 from bittensor.subtensor import (
     Subtensor,
     _logger,
-    Balance,
 )
-from bittensor.chain_data import SubnetHyperparameters
-from bittensor.commands.utils import normalize_hyperparameters
-from bittensor import subtensor_module
+from bittensor.utils import wallet_utils
 from bittensor.utils.balance import Balance
 
 U16_MAX = 65535
@@ -2315,6 +2318,64 @@ def test_get_remaining_arbitration_period_happy(subtensor, mocker):
     )
     # if we change the methods logic in the future we have to be make sure the returned type is correct
     assert result == 1800  # 2000 - 200
+
+
+def test_get_delegate_identities(subtensor, mocker):
+    """Tests the get_delegate_identities method to ensure it correctly retrieves and decodes delegate identities."""
+    # Preps
+
+    subtensor.substrate = mocker.MagicMock()
+    fake_info_dictionary = {
+        "additional": [
+            (
+                {"Raw11": "0x6465736372697074696f6e"},
+                {"Raw64": "0x46616b65206465736372697074696f6e"},
+            )
+        ],
+        "display": {"Raw17": "0x46616b654e616d65"},
+        "legal": "None",
+        "web": {"Raw22": "0x687474703a2f2f7777772e626c61626c612d746573742e636f6d"},
+        "riot": "None",
+        "email": "None",
+        "pgp_fingerprint": None,
+        "image": "None",
+        "twitter": "None",
+    }
+
+    expected_return = {
+        "additional": [("description", "Fake description")],
+        "display": "FakeName",
+        "legal": "None",
+        "web": "http://www.blabla-test.com",
+        "riot": "None",
+        "email": "None",
+        "pgp_fingerprint": None,
+        "image": "None",
+        "twitter": "None",
+    }
+
+    @dataclasses.dataclass
+    class FakeQueryReturn:
+        value: Any
+
+    fake_value = {"info": fake_info_dictionary}
+    mocked_query_map = [
+        [FakeQueryReturn("fake_address"), FakeQueryReturn(fake_value)],
+    ]
+
+    mocker.patch.object(subtensor.substrate, "query_map", return_value=mocked_query_map)
+    spy_from_chain_data = mocker.spy(utils.DelegatesDetails, "from_chain_data")
+    spy_decode_hex_identity_dict = mocker.spy(wallet_utils, "decode_hex_identity_dict")
+
+    # Calls
+    result = subtensor.get_delegate_identities()
+
+    # Assertions
+    spy_decode_hex_identity_dict.assert_called_once_with(fake_info_dictionary)
+    spy_from_chain_data.assert_called_once_with(expected_return)
+    assert result == {
+        "fake_address": utils.DelegatesDetails.from_chain_data(expected_return)
+    }
 
 
 def test_connect_without_substrate(mocker):
