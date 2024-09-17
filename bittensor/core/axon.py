@@ -30,7 +30,7 @@ import typing
 import uuid
 import warnings
 from inspect import signature, Signature, Parameter
-from typing import Any, Awaitable, Callable, Optional, Tuple
+from typing import Any, Awaitable, Callable, Optional
 
 import uvicorn
 from bittensor_wallet import Wallet
