@@ -104,7 +104,7 @@ def serve_extrinsic(
 
     Args:
         subtensor (bittensor.core.subtensor.Subtensor): Subtensor instance object.
-        wallet (bittensor.wallet): Bittensor wallet object.
+        wallet (bittensor_wallet.Wallet): Bittensor wallet object.
         ip (str): Endpoint host port i.e., ``192.122.31.4``.
         port (int): Endpoint port number i.e., ``9221``.
         protocol (int): An ``int`` representation of the protocol.
@@ -257,8 +257,8 @@ def publish_metadata(
     Publishes metadata on the Bittensor network using the specified wallet and network identifier.
 
     Args:
-        self (bittensor.subtensor): The subtensor instance representing the Bittensor blockchain connection.
-        wallet (bittensor.wallet): The wallet object used for authentication in the transaction.
+        self (bittensor.core.subtensor.Subtensor): The subtensor instance representing the Bittensor blockchain connection.
+        wallet (bittensor_wallet.Wallet): The wallet object used for authentication in the transaction.
         netuid (int): Network UID on which the metadata is to be published.
         data_type (str): The data type of the information being submitted. It should be one of the following: ``'Sha256'``, ``'Blake256'``, ``'Keccak256'``, or ``'Raw0-128'``. This specifies the format or hashing algorithm used for the data.
         data (str): The actual metadata content to be published. This should be formatted or hashed according to the ``type`` specified. (Note: max ``str`` length is 128 bytes)

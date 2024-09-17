@@ -117,8 +117,8 @@ def set_weights_extrinsic(
     """Sets the given weights and values on chain for wallet hotkey account.
 
     Args:
-        subtensor (bittensor.subtensor): Subtensor endpoint to use.
-        wallet (bittensor.wallet): Bittensor wallet object.
+        subtensor (bittensor.core.subtensor.Subtensor): Subtensor endpoint to use.
+        wallet (bittensor_wallet.Wallet): Bittensor wallet object.
         netuid (int): The ``netuid`` of the subnet to set weights for.
         uids (Union[NDArray[np.int64], torch.LongTensor, list]): The ``uint64`` uids of destination neurons.
         weights (Union[NDArray[np.float32], torch.FloatTensor, list]): The weights to set. These must be ``float`` s and correspond to the passed ``uid`` s.

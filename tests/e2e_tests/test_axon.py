@@ -47,7 +47,7 @@ async def test_axon(local_chain):
         local_chain, wallet, netuid
     ), f"Neuron wasn't registered to subnet {netuid}"
 
-    metagraph = bittensor.metagraph(netuid=netuid, network="ws://localhost:9945")
+    metagraph = bittensor.Metagraph(netuid=netuid, network="ws://localhost:9945")
 
     # Validate current metagraph stats
     old_axon = metagraph.axons[0]
@@ -94,7 +94,7 @@ async def test_axon(local_chain):
     await asyncio.sleep(5)
 
     # Refresh the metagraph
-    metagraph = bittensor.metagraph(netuid=netuid, network="ws://localhost:9945")
+    metagraph = bittensor.Metagraph(netuid=netuid, network="ws://localhost:9945")
     updated_axon = metagraph.axons[0]
     external_ip = networking.get_external_ip()
 

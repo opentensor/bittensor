@@ -1601,7 +1601,7 @@ class Subtensor:
         This action serves as a commitment or snapshot of the neuron's current weight distribution.
 
         Args:
-            wallet (bittensor.wallet): The wallet associated with the neuron committing the weights.
+            wallet (bittensor_wallet.Wallet): The wallet associated with the neuron committing the weights.
             netuid (int): The unique identifier of the subnet.
             salt (list[int]): list of randomly generated integers as salt to generated weighted hash.
             uids (np.ndarray): NumPy array of neuron UIDs for which weights are being committed.
@@ -1678,7 +1678,7 @@ class Subtensor:
         This action serves as a revelation of the neuron's previously committed weight distribution.
 
         Args:
-            wallet (bittensor.wallet): The wallet associated with the neuron revealing the weights.
+            wallet (bittensor_wallet.Wallet): The wallet associated with the neuron revealing the weights.
             netuid (int): The unique identifier of the subnet.
             uids (np.ndarray): NumPy array of neuron UIDs for which weights are being revealed.
             weights (np.ndarray): NumPy array of weight values corresponding to each UID.

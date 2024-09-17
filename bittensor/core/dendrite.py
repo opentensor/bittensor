@@ -145,7 +145,7 @@ class DendriteMixin:
 
             import bittensor                          # Import bittensor
             wallet = bittensor.Wallet( ... )          # Initialize a wallet
-            dendrite = bittensor.dendrite( wallet )   # Initialize a dendrite instance with the wallet
+            dendrite = bittensor.Dendrite(wallet=wallet)   # Initialize a dendrite instance with the wallet
 
             async with (await dendrite.session).post( # Use the session to make an HTTP POST request
                 url,                                  # URL to send the request to
@@ -382,7 +382,7 @@ class DendriteMixin:
             import bittensor
             wallet = bittensor.Wallet()                     # Initialize a wallet
             synapse = bittensor.Synapse(...)                # Create a synapse object that contains query data
-            dendrite = bittensor.dendrite(wallet = wallet)  # Initialize a dendrite instance
+            dendrite = bittensor.Dendrite(wallet = wallet)  # Initialize a dendrite instance
             netuid = ...                                    # Provide subnet ID
             metagraph = bittensor.Metagraph(netuid)         # Initialize a metagraph instance
             axons = metagraph.axons                         # Create a list of axons to query
@@ -395,7 +395,7 @@ class DendriteMixin:
         For example::
 
             ...
-            dendrite = bittensor.dendrite(wallet = wallet)
+            dendrite = bittensor.Dendrite(wallet = wallet)
             async for chunk in dendrite.forward(axons, synapse, timeout, deserialize, run_async, streaming):
                 # Process each chunk here
                 print(chunk)
@@ -786,7 +786,7 @@ class DendriteMixin:
             import bittensor
 
             wallet = bittensor.Wallet()
-            async with bittensor.dendrite( wallet ) as dendrite:
+            async with bittensor.Dendrite(wallet=wallet) as dendrite:
                 await dendrite.some_async_method()
 
         Note:

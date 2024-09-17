@@ -33,7 +33,7 @@ def setUpModule():
 class TestMetagraph:
     def setup_method(self):
         self.sub = MockSubtensor()
-        self.metagraph = bittensor.metagraph(netuid=3, network="mock", sync=False)
+        self.metagraph = bittensor.Metagraph(netuid=3, network="mock", sync=False)
 
     def test_print_empty(self):
         print(self.metagraph)

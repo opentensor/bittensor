@@ -17,7 +17,7 @@
 
 """Module commit weights and reveal weights extrinsic."""
 
-from typing import List, Tuple, Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
 
 from retry import retry
 from rich.prompt import Confirm
@@ -41,14 +41,14 @@ def do_commit_weights(
     commit_hash: str,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
-) -> Tuple[bool, Optional[dict]]:
+) -> tuple[bool, Optional[dict]]:
     """
     Internal method to send a transaction to the Bittensor blockchain, committing the hash of a neuron's weights.
     This method constructs and submits the transaction, handling retries and blockchain communication.
 
     Args:
-        self (bittensor.subtensor): The subtensor instance used for blockchain interaction.
-        wallet (bittensor.wallet): The wallet associated with the neuron committing the weights.
+        self (bittensor.core.subtensor.Subtensor): The subtensor instance used for blockchain interaction.
+        wallet (bittensor_wallet.Wallet): The wallet associated with the neuron committing the weights.
         netuid (int): The unique identifier of the subnet.
         commit_hash (str): The hash of the neuron's weights to be committed.
         wait_for_inclusion (bool): Waits for the transaction to be included in a block.
@@ -101,14 +101,14 @@ def commit_weights_extrinsic(
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
     prompt: bool = False,
-) -> Tuple[bool, str]:
+) -> tuple[bool, str]:
     """
     Commits a hash of the neuron's weights to the Bittensor blockchain using the provided wallet.
     This function is a wrapper around the `do_commit_weights` method, handling user prompts and error messages.
 
     Args:
-        subtensor (bittensor.subtensor): The subtensor instance used for blockchain interaction.
-        wallet (bittensor.wallet): The wallet associated with the neuron committing the weights.
+        subtensor (bittensor.core.subtensor.Subtensor): The subtensor instance used for blockchain interaction.
+        wallet (bittensor_wallet.Wallet): The wallet associated with the neuron committing the weights.
         netuid (int): The unique identifier of the subnet.
         commit_hash (str): The hash of the neuron's weights to be committed.
         wait_for_inclusion (bool): Waits for the transaction to be included in a block.
@@ -150,20 +150,20 @@ def do_reveal_weights(
     self: "Subtensor",
     wallet: "Wallet",
     netuid: int,
-    uids: List[int],
-    values: List[int],
-    salt: List[int],
+    uids: list[int],
+    values: list[int],
+    salt: list[int],
     version_key: int,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
-) -> Tuple[bool, Optional[dict]]:
+) -> tuple[bool, Optional[dict]]:
     """
     Internal method to send a transaction to the Bittensor blockchain, revealing the weights for a specific subnet.
     This method constructs and submits the transaction, handling retries and blockchain communication.
 
     Args:
-        self (bittensor.subtensor): The subtensor instance used for blockchain interaction.
-        wallet (bittensor.wallet): The wallet associated with the neuron revealing the weights.
+        self (bittensor.core.subtensor.Subtensor): The subtensor instance used for blockchain interaction.
+        wallet (bittensor_wallet.Wallet): The wallet associated with the neuron revealing the weights.
         netuid (int): The unique identifier of the subnet.
         uids (List[int]): List of neuron UIDs for which weights are being revealed.
         values (List[int]): List of weight values corresponding to each UID.
@@ -218,20 +218,20 @@ def reveal_weights_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
     netuid: int,
-    uids: List[int],
-    weights: List[int],
-    salt: List[int],
+    uids: list[int],
+    weights: list[int],
+    salt: list[int],
     version_key: int,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
     prompt: bool = False,
-) -> Tuple[bool, str]:
+) -> tuple[bool, str]:
     """
     Reveals the weights for a specific subnet on the Bittensor blockchain using the provided wallet.
     This function is a wrapper around the `_do_reveal_weights` method, handling user prompts and error messages.
     Args:
-        subtensor (bittensor.subtensor): The subtensor instance used for blockchain interaction.
-        wallet (bittensor.wallet): The wallet associated with the neuron revealing the weights.
+        subtensor (bittensor.core.subtensor.Subtensor): The subtensor instance used for blockchain interaction.
+        wallet (bittensor_wallet.Wallet): The wallet associated with the neuron revealing the weights.
         netuid (int): The unique identifier of the subnet.
         uids (List[int]): List of neuron UIDs for which weights are being revealed.
         weights (List[int]): List of weight values corresponding to each UID.
@@ -240,6 +240,7 @@ def reveal_weights_extrinsic(
         wait_for_inclusion (bool): Waits for the transaction to be included in a block.
         wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
         prompt (bool): If ``True``, prompts for user confirmation before proceeding.
+
     Returns:
         Tuple[bool, str]: ``True`` if the weight revelation is successful, False otherwise. And `msg`, a string
         value describing the success or potential error.

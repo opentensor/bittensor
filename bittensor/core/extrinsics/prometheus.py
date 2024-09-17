@@ -44,8 +44,8 @@ def do_serve_prometheus(
     Sends a serve prometheus extrinsic to the chain.
 
     Args:
-        self (bittensor.subtensor): Bittensor subtensor object
-        wallet (:func:`bittensor_wallet.Wallet`): Wallet object.
+        self (bittensor.core.subtensor.Subtensor): Bittensor subtensor object
+        wallet (bittensor_wallet.Wallet): Wallet object.
         call_params (:func:`PrometheusServeCallParams`): Prometheus serve call parameters.
         wait_for_inclusion (bool): If ``true``, waits for inclusion.
         wait_for_finalization (bool): If ``true``, waits for finalization.
@@ -94,8 +94,8 @@ def prometheus_extrinsic(
     """Subscribes a Bittensor endpoint to the substensor chain.
 
     Args:
-        subtensor (bittensor.subtensor): Bittensor subtensor object.
-        wallet (bittensor.wallet): Bittensor wallet object.
+        subtensor (bittensor.core.subtensor.Subtensor): Bittensor subtensor object.
+        wallet (bittensor_wallet.Wallet): Bittensor wallet object.
         ip (str): Endpoint host port i.e., ``192.122.31.4``.
         port (int): Endpoint port number i.e., `9221`.
         netuid (int): Network `uid` to serve on.

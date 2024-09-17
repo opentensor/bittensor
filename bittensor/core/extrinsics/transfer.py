@@ -107,7 +107,7 @@ def transfer_extrinsic(
 
     Args:
         subtensor (subtensor.core.subtensor.Subtensor): The Subtensor instance object.
-        wallet (bittensor.wallet): Bittensor wallet object to make transfer from.
+        wallet (bittensor_wallet.Wallet): Bittensor wallet object to make transfer from.
         dest (str, ss58_address or ed25519): Destination public key address of receiver.
         amount (Union[Balance, int]): Amount to stake as Bittensor balance, or ``float`` interpreted as Tao.
         wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.

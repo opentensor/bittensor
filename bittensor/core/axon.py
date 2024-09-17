@@ -232,7 +232,7 @@ class Axon:
             return 1.0
 
         # Initialize Axon object with a custom configuration
-        my_axon = bittensor.axon(
+        my_axon = bittensor.Axon(
             config=my_config,
             wallet=my_wallet,
             port=9090,
@@ -319,13 +319,13 @@ class Axon:
         """Creates a new bittensor.Axon object from passed arguments.
 
         Args:
-            config (:obj:`Optional[bittensor.core.config.Config]`, `optional`): bittensor.axon.config()
-            wallet (:obj:`Optional[bittensor_wallet.Wallet]`, `optional`): bittensor wallet with hotkey and coldkeypub.
-            port (:type:`Optional[int]`, `optional`): Binding port.
-            ip (:type:`Optional[str]`, `optional`): Binding ip.
-            external_ip (:type:`Optional[str]`, `optional`): The external ip of the server to broadcast to the network.
-            external_port (:type:`Optional[int]`, `optional`): The external port of the server to broadcast to the network.
-            max_workers (:type:`Optional[int]`, `optional`): Used to create the threadpool if not passed, specifies the number of active threads servicing requests.
+            config (:obj:`Optional[bittensor.core.config.Config]`): bittensor.Axon.config()
+            wallet (:obj:`Optional[bittensor_wallet.Wallet]`): bittensor wallet with hotkey and coldkeypub.
+            port (:type:`Optional[int]`): Binding port.
+            ip (:type:`Optional[str]`): Binding ip.
+            external_ip (:type:`Optional[str]`): The external ip of the server to broadcast to the network.
+            external_port (:type:`Optional[int]`): The external port of the server to broadcast to the network.
+            max_workers (:type:`Optional[int]`): Used to create the threadpool if not passed, specifies the number of active threads servicing requests.
         """
         # Build and check config.
         if config is None:
@@ -464,7 +464,7 @@ class Axon:
                 # Custom logic for verifying the request
                 pass
 
-            my_axon = bittensor.axon(...)
+            my_axon = bittensor.Axon(...)
             my_axon.attach(forward_fn=forward_custom, verify_fn=verify_custom)
 
         Note:
@@ -767,7 +767,7 @@ class Axon:
 
         Example::
 
-            my_axon = bittensor.axon(...)
+            my_axon = bittensor.Axon(...)
             ... # setup axon, attach functions, etc.
             my_axon.start()  # Starts the axon server
 
@@ -793,7 +793,7 @@ class Axon:
 
         Example::
 
-            my_axon = bittensor.axon(...)
+            my_axon = bittensor.Axon(...)
             my_axon.start()
             ...
             my_axon.stop()  # Stops the axon server
@@ -822,7 +822,7 @@ class Axon:
 
         Example::
 
-            my_axon = bittensor.axon(...)
+            my_axon = bittensor.Axon(...)
             subtensor = bt.subtensor(network="local") # Local by default
             my_axon.serve(netuid=1, subtensor=subtensor)  # Serves the axon on subnet with netuid 1
 
@@ -1056,7 +1056,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
 
     Args:
         app (FastAPI): An instance of the FastAPI application to which this middleware is attached.
-        axon (bittensor.axon): The Axon instance that will process the requests.
+        axon (bittensor.core.axon.Axon): The Axon instance that will process the requests.
 
     The middleware operates by intercepting incoming requests, performing necessary preprocessing
     (like verification and priority assessment), executing the request through the Axon's endpoints, and

@@ -186,7 +186,9 @@ class BtFileFormatter(logging.Formatter):
     centers the level name.
     """
 
-    def formatTime(self, record: "logging.LogRecord", datefmt: Optional[str] = None) -> str:
+    def formatTime(
+        self, record: "logging.LogRecord", datefmt: Optional[str] = None
+    ) -> str:
         """
         Override formatTime to add milliseconds.
 

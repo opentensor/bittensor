@@ -45,7 +45,7 @@ class Config(DefaultMunch):
         default (Optional[Any]): Default value for the Config. Defaults to ``None``. This default will be returned for attributes that are undefined.
 
     Returns:
-        config (bittensor.config): Nested config object created from parser arguments.
+        config (bittensor.core.config.Config): Nested config object created from parser arguments.
     """
 
     __is_set: dict[str, bool]

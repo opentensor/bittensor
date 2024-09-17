@@ -64,7 +64,7 @@ def test_metagraph(local_chain):
     ).serialize(), "Subnet wasn't created successfully"
 
     # Initialize metagraph
-    subtensor = bittensor.subtensor(network="ws://localhost:9945")
+    subtensor = bittensor.Subtensor(network="ws://localhost:9945")
     metagraph = subtensor.metagraph(netuid=1)
 
     # Assert metagraph is empty

@@ -73,21 +73,21 @@ class TestSubtensor(unittest.TestCase):
     def test_network_overrides(self):
         """Tests that the network overrides the chain_endpoint."""
         # Argument importance: chain_endpoint (arg) > network (arg) > config.subtensor.chain_endpoint > config.subtensor.network
-        config0 = bittensor.subtensor.config()
+        config0 = bittensor.Subtensor.config()
         config0.subtensor.network = "finney"
         config0.subtensor.chain_endpoint = "wss://finney.subtensor.io"  # Should not match bittensor.core.settings.FINNEY_ENTRYPOINT
         assert config0.subtensor.chain_endpoint != settings.FINNEY_ENTRYPOINT
 
-        config1 = bittensor.subtensor.config()
+        config1 = bittensor.Subtensor.config()
         config1.subtensor.network = "local"
         config1.subtensor.chain_endpoint = None
 
         # Mock network calls
         with patch("substrateinterface.SubstrateInterface.connect_websocket"):
             with patch("substrateinterface.SubstrateInterface.reload_type_registry"):
-                print(bittensor.subtensor, type(bittensor.subtensor))
+                print(bittensor.Subtensor, type(bittensor.Subtensor))
                 # Choose network arg over config
-                sub1 = bittensor.subtensor(config=config1, network="local")
+                sub1 = bittensor.Subtensor(config=config1, network="local")
                 self.assertEqual(
                     sub1.chain_endpoint,
                     settings.LOCAL_ENTRYPOINT,
@@ -95,14 +95,14 @@ class TestSubtensor(unittest.TestCase):
                 )
 
                 # Choose network config over chain_endpoint config
-                sub2 = bittensor.subtensor(config=config0)
+                sub2 = bittensor.Subtensor(config=config0)
                 self.assertNotEqual(
                     sub2.chain_endpoint,
                     settings.FINNEY_ENTRYPOINT,  # Here we expect the endpoint corresponding to the network "finney"
                     msg="config.network should override config.chain_endpoint",
                 )
 
-                sub3 = bittensor.subtensor(config=config1)
+                sub3 = bittensor.Subtensor(config=config1)
                 # Should pick local instead of finney (default)
                 assert sub3.network == "local"
                 assert sub3.chain_endpoint == settings.LOCAL_ENTRYPOINT
@@ -241,7 +241,7 @@ class TestSubtensor(unittest.TestCase):
         assert type(balance) is bittensor.utils.balance.Balance
 
     def test_defaults_to_finney(self):
-        sub = bittensor.subtensor()
+        sub = bittensor.Subtensor()
         assert sub.network == "finney"
         assert sub.chain_endpoint == settings.FINNEY_ENTRYPOINT
 

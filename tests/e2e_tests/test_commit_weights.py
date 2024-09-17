@@ -59,7 +59,7 @@ async def test_commit_and_reveal_weights(local_chain):
         netuid,
     ), "Unable to enable commit reveal on the subnet"
 
-    subtensor = bittensor.subtensor(network="ws://localhost:9945")
+    subtensor = bittensor.Subtensor(network="ws://localhost:9945")
     assert subtensor.get_subnet_hyperparameters(
         netuid=netuid
     ).commit_reveal_weights_enabled, "Failed to enable commit/reveal"
@@ -73,7 +73,7 @@ async def test_commit_and_reveal_weights(local_chain):
         return_error_message=True,
     )
 
-    subtensor = bittensor.subtensor(network="ws://localhost:9945")
+    subtensor = bittensor.Subtensor(network="ws://localhost:9945")
     assert (
         subtensor.get_subnet_hyperparameters(
             netuid=netuid
@@ -92,7 +92,7 @@ async def test_commit_and_reveal_weights(local_chain):
         call_params={"netuid": netuid, "weights_set_rate_limit": "0"},
         return_error_message=True,
     )
-    subtensor = bittensor.subtensor(network="ws://localhost:9945")
+    subtensor = bittensor.Subtensor(network="ws://localhost:9945")
     assert (
         subtensor.get_subnet_hyperparameters(netuid=netuid).weights_rate_limit == 0
     ), "Failed to set weights_rate_limit"

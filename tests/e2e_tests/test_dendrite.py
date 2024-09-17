@@ -56,7 +56,7 @@ async def test_dendrite(local_chain):
         local_chain, bob_wallet, netuid
     ), f"Neuron wasn't registered to subnet {netuid}"
 
-    metagraph = bittensor.metagraph(netuid=netuid, network="ws://localhost:9945")
+    metagraph = bittensor.Metagraph(netuid=netuid, network="ws://localhost:9945")
     subtensor = Subtensor(network="ws://localhost:9945")
 
     # Assert one neuron is Bob
@@ -72,7 +72,7 @@ async def test_dendrite(local_chain):
     assert add_stake(local_chain, bob_wallet, bittensor.Balance.from_tao(10_000))
 
     # Refresh metagraph
-    metagraph = bittensor.metagraph(netuid=netuid, network="ws://localhost:9945")
+    metagraph = bittensor.Metagraph(netuid=netuid, network="ws://localhost:9945")
     old_neuron = metagraph.neurons[0]
 
     # Assert stake is 10000
@@ -121,7 +121,7 @@ async def test_dendrite(local_chain):
     await wait_epoch(subtensor, netuid=netuid)
 
     # Refresh metagraph
-    metagraph = bittensor.metagraph(netuid=netuid, network="ws://localhost:9945")
+    metagraph = bittensor.Metagraph(netuid=netuid, network="ws://localhost:9945")
 
     # Refresh validator neuron
     updated_neuron = metagraph.neurons[0]

@@ -1,20 +1,24 @@
 """
-This module provides functions interacting with the chain for end to end testing;
+This module provides functions interacting with the chain for end-to-end testing;
 these are not present in btsdk but are required for e2e tests
 """
 
 import asyncio
-from typing import Dict, List, Tuple, Union
+from typing import Union, Optional, TYPE_CHECKING
 
-from substrateinterface import SubstrateInterface
-
-import bittensor
 from bittensor import logging
+
+# for typing purposes
+if TYPE_CHECKING:
+    from bittensor import Wallet
+    from bittensor.core.subtensor import Subtensor
+    from bittensor.utils.balance import Balance
+    from substrateinterface import SubstrateInterface
 
 
 def sudo_set_hyperparameter_bool(
-    substrate: SubstrateInterface,
-    wallet: bittensor.wallet,
+    substrate: "SubstrateInterface",
+    wallet: "Wallet",
     call_function: str,
     value: bool,
     netuid: int,
@@ -38,12 +42,12 @@ def sudo_set_hyperparameter_bool(
 
 
 def sudo_set_hyperparameter_values(
-    substrate: SubstrateInterface,
-    wallet: bittensor.wallet,
+    substrate: "SubstrateInterface",
+    wallet: "Wallet",
     call_function: str,
-    call_params: Dict,
+    call_params: dict,
     return_error_message: bool = False,
-) -> Union[bool, Tuple[bool, str]]:
+) -> Union[bool, tuple[bool, Optional[str]]]:
     """
     Sets liquid alpha values using AdminUtils. Mimics setting hyperparams
     """
@@ -67,7 +71,7 @@ def sudo_set_hyperparameter_values(
 
 
 def add_stake(
-    substrate: SubstrateInterface, wallet: bittensor.wallet, amount: bittensor.Balance
+    substrate: "SubstrateInterface", wallet: "Wallet", amount: "Balance"
 ) -> bool:
     """
     Adds stake to a hotkey using SubtensorModule. Mimics command of adding stake
@@ -87,7 +91,7 @@ def add_stake(
     return response.is_success
 
 
-def register_subnet(substrate: SubstrateInterface, wallet: bittensor.wallet) -> bool:
+def register_subnet(substrate: "SubstrateInterface", wallet: "Wallet") -> bool:
     """
     Registers a subnet on the chain using wallet. Mimics register subnet command.
     """
@@ -107,7 +111,7 @@ def register_subnet(substrate: SubstrateInterface, wallet: bittensor.wallet) -> 
 
 
 def register_neuron(
-    substrate: SubstrateInterface, wallet: bittensor.wallet, netuid: int
+    substrate: "SubstrateInterface", wallet: "Wallet", netuid: int
 ) -> bool:
     """
     Registers a neuron on a subnet. Mimics subnet register command.
@@ -130,7 +134,7 @@ def register_neuron(
     return response.is_success
 
 
-async def wait_epoch(subtensor, netuid=1):
+async def wait_epoch(subtensor: "Subtensor", netuid: int = 1):
     """
     Waits for the next epoch to start on a specific subnet.
 
@@ -153,7 +157,7 @@ async def wait_epoch(subtensor, netuid=1):
     await wait_interval(tempo, subtensor, netuid)
 
 
-async def wait_interval(tempo, subtensor, netuid=1):
+async def wait_interval(tempo: int, subtensor: "Subtensor", netuid: int = 1):
     """
     Waits until the next tempo interval starts for a specific subnet.
 
@@ -166,6 +170,7 @@ async def wait_interval(tempo, subtensor, netuid=1):
     last_epoch = current_block - 1 - (current_block + netuid + 1) % interval
     next_tempo_block_start = last_epoch + interval
     last_reported = None
+
     while current_block < next_tempo_block_start:
         await asyncio.sleep(
             1

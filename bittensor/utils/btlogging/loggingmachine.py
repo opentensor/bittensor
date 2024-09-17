@@ -461,9 +461,9 @@ class LoggingMachine(StateMachine, Logger):
             default_logging_debug = os.getenv("BT_LOGGING_DEBUG") or False
             default_logging_trace = os.getenv("BT_LOGGING_TRACE") or False
             default_logging_record_log = os.getenv("BT_LOGGING_RECORD_LOG") or False
-            default_logging_logging_dir = (
-                os.getenv("BT_LOGGING_LOGGING_DIR") or os.path.join("~", ".bittensor", "miners")
-            )
+            default_logging_logging_dir = os.getenv(
+                "BT_LOGGING_LOGGING_DIR"
+            ) or os.path.join("~", ".bittensor", "miners")
             parser.add_argument(
                 "--" + prefix_str + "logging.debug",
                 action="store_true",
@@ -497,7 +497,7 @@ class LoggingMachine(StateMachine, Logger):
         """Get config from the argument parser.
 
         Return:
-            config (bittensor.config): config object
+            config (bittensor.core.config.Config): config object
         """
         parser = argparse.ArgumentParser()
         cls.add_args(parser)
