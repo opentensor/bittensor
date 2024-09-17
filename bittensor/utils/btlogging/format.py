@@ -23,7 +23,7 @@ This module defines custom logging formatters for the Bittensor project.
 
 import logging
 import time
-
+from typing import Optional
 from colorama import init, Fore, Back, Style
 
 init(autoreset=True)
@@ -115,13 +115,13 @@ class BtStreamFormatter(logging.Formatter):
         super().__init__(*args, **kwargs)
         self.trace = False
 
-    def formatTime(self, record, datefmt=None) -> str:
+    def formatTime(self, record, datefmt: Optional[str] = None) -> str:
         """
         Override formatTime to add milliseconds.
 
         Args:
             record (logging.LogRecord): The log record.
-            datefmt (str, optional): The date format string.
+            datefmt (Optional[str]): The date format string.
 
         Returns:
             s (str): The formatted time string with milliseconds.
@@ -135,7 +135,7 @@ class BtStreamFormatter(logging.Formatter):
         s += f".{int(record.msecs):03d}"
         return s
 
-    def format(self, record) -> str:
+    def format(self, record: "logging.LogRecord") -> str:
         """
         Override format to apply custom formatting including emojis and colors.
 
@@ -186,13 +186,13 @@ class BtFileFormatter(logging.Formatter):
     centers the level name.
     """
 
-    def formatTime(self, record, datefmt=None) -> str:
+    def formatTime(self, record: "logging.LogRecord", datefmt: Optional[str] = None) -> str:
         """
         Override formatTime to add milliseconds.
 
         Args:
             record (logging.LogRecord): The log record.
-            datefmt (str, optional): The date format string.
+            datefmt (Optional[str]): The date format string.
 
         Returns:
             s (str): The formatted time string with milliseconds.
@@ -206,7 +206,7 @@ class BtFileFormatter(logging.Formatter):
         s += f".{int(record.msecs):03d}"
         return s
 
-    def format(self, record) -> str:
+    def format(self, record: "logging.LogRecord") -> str:
         """
         Override format to center the level name.
 

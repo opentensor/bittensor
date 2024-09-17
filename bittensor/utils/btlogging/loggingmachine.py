@@ -127,8 +127,15 @@ class LoggingMachine(StateMachine, Logger):
         else:
             self.enable_default()
 
-    def _extract_logging_config(self, config) -> dict:
-        """Extract btlogging's config from bittensor config"""
+    def _extract_logging_config(self, config: "Config") -> dict:
+        """Extract btlogging's config from bittensor config
+
+        Args:
+            config (bittensor.core.config.Config): Bittensor config instance.
+
+        Returns:
+            (dict): btlogging's config from Bittensor config or Bittensor config.
+        """
         if hasattr(config, "logging"):
             return config.logging
         else:
@@ -154,8 +161,12 @@ class LoggingMachine(StateMachine, Logger):
     def get_config(self):
         return self._config
 
-    def set_config(self, config):
-        """Set config after initialization, if desired."""
+    def set_config(self, config: "Config"):
+        """Set config after initialization, if desired.
+
+        Args:
+            config (bittensor.core.config.Config): Bittensor config instance.
+        """
         self._config = config
         if config.logging_dir and config.record_log:
             expanded_dir = os.path.expanduser(config.logging_dir)
@@ -186,7 +197,7 @@ class LoggingMachine(StateMachine, Logger):
         """
         return self._queue
 
-    def _initialize_bt_logger(self, name):
+    def _initialize_bt_logger(self, name: str):
         """
         Initialize logging for bittensor.
 
@@ -198,7 +209,7 @@ class LoggingMachine(StateMachine, Logger):
         logger.addHandler(queue_handler)
         return logger
 
-    def _deinitialize_bt_logger(self, name):
+    def _deinitialize_bt_logger(self, name: str):
         """Find the logger by name and remove the queue handler associated with it."""
         logger = stdlogging.getLogger(name)
         for handler in list(logger.handlers):
@@ -223,6 +234,9 @@ class LoggingMachine(StateMachine, Logger):
         This adds a logger to the _primary_loggers set to ensure
         it doesn't get disabled when disabling third-party loggers.
         A queue handler is also associated with it.
+
+        Args:
+            name (str): the name for primary logger.
         """
         self._primary_loggers.add(name)
         self._initialize_bt_logger(name)
@@ -233,6 +247,9 @@ class LoggingMachine(StateMachine, Logger):
 
         This function removes the logger from the _primary_loggers
         set and deinitializes its queue handler
+
+        Args:
+            name (str): the name of primary logger.
         """
         self._primary_loggers.remove(name)
         self._deinitialize_bt_logger(name)
@@ -445,7 +462,7 @@ class LoggingMachine(StateMachine, Logger):
             default_logging_trace = os.getenv("BT_LOGGING_TRACE") or False
             default_logging_record_log = os.getenv("BT_LOGGING_RECORD_LOG") or False
             default_logging_logging_dir = (
-                os.getenv("BT_LOGGING_LOGGING_DIR") or "~/.bittensor/miners"
+                os.getenv("BT_LOGGING_LOGGING_DIR") or os.path.join("~", ".bittensor", "miners")
             )
             parser.add_argument(
                 "--" + prefix_str + "logging.debug",

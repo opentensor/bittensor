@@ -23,7 +23,7 @@ import logging
 from typing import Generator
 
 
-def all_loggers() -> Generator[logging.Logger, None, None]:
+def all_loggers() -> Generator["logging.Logger", None, None]:
     """Generator that yields all logger instances in the application.
 
     Iterates through the logging root manager's logger dictionary and yields all active `Logger` instances. It skips
