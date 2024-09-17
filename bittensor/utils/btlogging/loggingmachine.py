@@ -47,6 +47,12 @@ from .format import BtFileFormatter, BtStreamFormatter
 from .helpers import all_loggers
 
 
+def _concat_message(msg="", prefix="", suffix=""):
+    """Concatenates a message with optional prefix and suffix."""
+    msg = f"{f'{prefix} - ' if prefix else ''}{msg}{f' - {suffix}' if suffix else ''}"
+    return msg
+
+
 class LoggingConfig(NamedTuple):
     """Named tuple to hold the logging configuration."""
 
@@ -363,17 +369,17 @@ class LoggingMachine(StateMachine, Logger):
 
     def trace(self, msg="", prefix="", suffix="", *args, **kwargs):
         """Wraps trace message with prefix and suffix."""
-        msg = f"{prefix} - {msg} - {suffix}"
+        msg = _concat_message(msg, prefix, suffix)
         self._logger.trace(msg, *args, **kwargs)
 
     def debug(self, msg="", prefix="", suffix="", *args, **kwargs):
         """Wraps debug message with prefix and suffix."""
-        msg = f"{prefix} - {msg} - {suffix}"
+        msg = _concat_message(msg, prefix, suffix)
         self._logger.debug(msg, *args, **kwargs)
 
     def info(self, msg="", prefix="", suffix="", *args, **kwargs):
         """Wraps info message with prefix and suffix."""
-        msg = f"{prefix} - {msg} - {suffix}"
+        msg = _concat_message(msg, prefix, suffix)
         self._logger.info(msg, *args, **kwargs)
 
     def success(self, msg="", prefix="", suffix="", *args, **kwargs):
