@@ -104,7 +104,7 @@ class DendriteMixin:
         Initializes the Dendrite object, setting up essential properties.
 
         Args:
-            wallet (Optional[Union[bittensor_wallet.Wallet, substrateinterface.Keypair]], optional): The user's wallet or keypair used for signing messages. Defaults to ``None``, in which case a new :func:`bittensor_wallet.Wallet().hotkey` is generated and used.
+            wallet (Optional[Union[bittensor_wallet.Wallet, substrateinterface.Keypair]]): The user's wallet or keypair used for signing messages. Defaults to ``None``, in which case a new :func:`bittensor_wallet.Wallet().hotkey` is generated and used.
         """
         # Initialize the parent class
         super(DendriteMixin, self).__init__()
@@ -336,8 +336,8 @@ class DendriteMixin:
 
         Args:
             axons (Union[List[Union[bittensor.core.chain_data.axon_info.AxonInfo, 'bittensor.core.axon.Axon']], Union['bittensor.core.chain_data.axon_info.AxonInfo', 'bittensor.core.axon.Axon']]): The list of target Axon information.
-            synapse (bittensor.core.synapse.Synapse, optional): The Synapse object. Defaults to :func:`Synapse()`.
-            timeout (float, optional): The request timeout duration in seconds. Defaults to ``12.0`` seconds.
+            synapse (Optional[bittensor.core.synapse.Synapse]): The Synapse object. Defaults to :func:`Synapse()`.
+            timeout (Optional[float]): The request timeout duration in seconds. Defaults to ``12.0`` seconds.
 
         Returns:
             Union[bittensor.core.synapse.Synapse, List[bittensor.core.synapse.Synapse]]: If a single target axon is provided, returns the response from that axon. If multiple target axons are provided, returns a list of responses from all target axons.
@@ -402,11 +402,11 @@ class DendriteMixin:
 
         Args:
             axons (Union[List[Union[bittensor.core.chain_data.axon_info.AxonInfo, bittensor.core.axon.Axon]], Union[bittensor.core.chain_data.axon_info.AxonInfo, bittensor.core.axon.Axon]]): The target Axons to send requests to. Can be a single Axon or a list of Axons.
-            synapse (bittensor.core.synapse.Synapse, optional): The Synapse object encapsulating the data. Defaults to a new :func:`Synapse` instance.
-            timeout (float, optional): Maximum duration to wait for a response from an Axon in seconds. Defaults to ``12.0``.
-            deserialize (bool, optional): Determines if the received response should be deserialized. Defaults to ``True``.
-            run_async (bool, optional): If ``True``, sends requests concurrently. Otherwise, sends requests sequentially. Defaults to ``True``.
-            streaming (bool, optional): Indicates if the response is expected to be in streaming format. Defaults to ``False``.
+            synapse (bittensor.core.synapse.Synapse): The Synapse object encapsulating the data. Defaults to a new :func:`Synapse` instance.
+            timeout (float): Maximum duration to wait for a response from an Axon in seconds. Defaults to ``12.0``.
+            deserialize (bool): Determines if the received response should be deserialized. Defaults to ``True``.
+            run_async (bool): If ``True``, sends requests concurrently. Otherwise, sends requests sequentially. Defaults to ``True``.
+            streaming (bool): Indicates if the response is expected to be in streaming format. Defaults to ``False``.
 
         Returns:
             Union[AsyncGenerator, bittensor.core.synapse.Synapse, List[bittensor.core.synapse.Synapse]]: If a single `Axon` is targeted, returns its response.
@@ -504,9 +504,9 @@ class DendriteMixin:
 
         Args:
             target_axon (Union[bittensor.core.chain_data.axon_info.AxonInfo, bittensor.core.axon.Axon]): The target Axon to send the request to.
-            synapse (bittensor.core.synapse.Synapse, optional): The Synapse object encapsulating the data. Defaults to a new :func:`Synapse` instance.
-            timeout (float, optional): Maximum duration to wait for a response from the Axon in seconds. Defaults to ``12.0``.
-            deserialize (bool, optional): Determines if the received response should be deserialized. Defaults to ``True``.
+            synapse (bittensor.core.synapse.Synapse): The Synapse object encapsulating the data. Defaults to a new :func:`Synapse` instance.
+            timeout (float): Maximum duration to wait for a response from the Axon in seconds. Defaults to ``12.0``.
+            deserialize (bool): Determines if the received response should be deserialized. Defaults to ``True``.
 
         Returns:
             bittensor.core.synapse.Synapse: The Synapse object, updated with the response data from the Axon.
@@ -573,9 +573,9 @@ class DendriteMixin:
 
         Args:
             target_axon (Union[bittensor.core.chain_data.axon_info.AxonInfo, bittensor.core.axon.Axon]): The target Axon to send the request to.
-            synapse (bittensor.core.synapse.Synapse, optional): The Synapse object encapsulating the data. Defaults to a new :func:`Synapse` instance.
-            timeout (float, optional): Maximum duration to wait for a response (or a chunk of the response) from the Axon in seconds. Defaults to ``12.0``.
-            deserialize (bool, optional): Determines if each received chunk should be deserialized. Defaults to ``True``.
+            synapse (bittensor.core.synapse.Synapse): The Synapse object encapsulating the data. Defaults to a new :func:`Synapse` instance.
+            timeout (float): Maximum duration to wait for a response (or a chunk of the response) from the Axon in seconds. Defaults to ``12.0``.
+            deserialize (bool): Determines if each received chunk should be deserialized. Defaults to ``True``.
 
         Yields:
             object: Each yielded object contains a chunk of the arbitrary response data from the Axon.
@@ -649,7 +649,7 @@ class DendriteMixin:
         Args:
             target_axon_info (bittensor.core.chain_data.axon_info.AxonInfo): The target axon information.
             synapse (bittensor.core.synapse.Synapse): The synapse object to be preprocessed.
-            timeout (float, optional): The request timeout duration in seconds. Defaults to ``12.0`` seconds.
+            timeout (float): The request timeout duration in seconds. Defaults to ``12.0`` seconds.
 
         Returns:
             bittensor.core.synapse.Synapse: The preprocessed synapse.
@@ -778,13 +778,13 @@ class DendriteMixin:
         Ensures proper cleanup when exiting the ``async with`` context. This method will close the `aiohttp <https://github.com/aio-libs/aiohttp>`_ client session asynchronously, releasing any tied resources.
 
         Args:
-            exc_type (Type[BaseException], optional): The type of exception that was raised.
-            exc_value (BaseException, optional): The instance of exception that was raised.
-            traceback (TracebackType, optional): A traceback object encapsulating the call stack at the point where the exception was raised.
+            exc_type (Type[BaseException]): The type of exception that was raised.
+            exc_value (BaseException): The instance of exception that was raised.
+            traceback (TracebackType): A traceback object encapsulating the call stack at the point where the exception was raised.
 
         Usage::
-
             import bittensor
+
             wallet = bittensor.Wallet()
             async with bittensor.dendrite( wallet ) as dendrite:
                 await dendrite.some_async_method()

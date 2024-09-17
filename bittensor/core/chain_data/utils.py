@@ -36,11 +36,11 @@ def from_scale_encoding(
     Args:
         input_ (Union[List[int], bytes, ScaleBytes]): The input_ data to decode.
         type_name (ChainDataType): The type of data being decoded.
-        is_vec (bool, optional): Whether the data is a vector of the specified type. Default is ``False``.
-        is_option (bool, optional): Whether the data is an optional value of the specified type. Default is ``False``.
+        is_vec (bool): Whether the data is a vector of the specified type. Default is ``False``.
+        is_option (bool): Whether the data is an optional value of the specified type. Default is ``False``.
 
     Returns:
-        Optional[Dict]: The decoded data as a dictionary, or ``None`` if the decoding fails.
+        Optional[dict]: The decoded data as a dictionary, or ``None`` if the decoding fails.
     """
     type_string = type_name.name
     if type_name == ChainDataType.DelegatedInfo:

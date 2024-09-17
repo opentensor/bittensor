@@ -23,6 +23,7 @@ import typing
 from typing import Union
 
 import numpy as np
+from docopt import Optional
 from numpy.typing import NDArray
 from scalecodec import U16, ScaleBytes, Vec
 from substrateinterface import Keypair
@@ -233,7 +234,7 @@ def process_weights_for_netuid(
     weights: Union[NDArray[np.float32], "torch.Tensor"],
     netuid: int,
     subtensor: "Subtensor",
-    metagraph: "Metagraph" = None,
+    metagraph: Optional["Metagraph"] = None,
     exclude_quantile: int = 0,
 ) -> Union[
     tuple["torch.Tensor", "torch.FloatTensor"],
@@ -247,8 +248,8 @@ def process_weights_for_netuid(
         weights (Union[NDArray[np.float32], "torch.Tensor"]): Array of weights associated with the user IDs.
         netuid (int): The network uid to process weights for.
         subtensor (Subtensor): Subtensor instance to access blockchain data.
-        metagraph (Metagraph, optional): Metagraph instance for additional network data. If None, it is fetched from the subtensor using the netuid.
-        exclude_quantile (int, optional): Quantile threshold for excluding lower weights. Defaults to ``0``.
+        metagraph (Optional[Metagraph]): Metagraph instance for additional network data. If None, it is fetched from the subtensor using the netuid.
+        exclude_quantile (int): Quantile threshold for excluding lower weights. Defaults to ``0``.
 
     Returns:
         Union[tuple["torch.Tensor", "torch.FloatTensor"], tuple[NDArray[np.int64], NDArray[np.float32]]]: tuple containing the array of user IDs and the corresponding normalized weights. The data type of the return matches the type of the input weights (NumPy or PyTorch).

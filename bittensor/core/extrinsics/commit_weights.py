@@ -51,8 +51,8 @@ def do_commit_weights(
         wallet (bittensor.wallet): The wallet associated with the neuron committing the weights.
         netuid (int): The unique identifier of the subnet.
         commit_hash (str): The hash of the neuron's weights to be committed.
-        wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
-        wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
+        wait_for_inclusion (bool): Waits for the transaction to be included in a block.
+        wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
 
     Returns:
         Tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
@@ -111,9 +111,9 @@ def commit_weights_extrinsic(
         wallet (bittensor.wallet): The wallet associated with the neuron committing the weights.
         netuid (int): The unique identifier of the subnet.
         commit_hash (str): The hash of the neuron's weights to be committed.
-        wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
-        wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
-        prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
+        wait_for_inclusion (bool): Waits for the transaction to be included in a block.
+        wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
+        prompt (bool): If ``True``, prompts for user confirmation before proceeding.
 
     Returns:
         Tuple[bool, str]: ``True`` if the weight commitment is successful, False otherwise. And `msg`, a string
@@ -169,8 +169,8 @@ def do_reveal_weights(
         values (List[int]): List of weight values corresponding to each UID.
         salt (List[int]): List of salt values corresponding to the hash function.
         version_key (int): Version key for compatibility with the network.
-        wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
-        wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
+        wait_for_inclusion (bool): Waits for the transaction to be included in a block.
+        wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
 
     Returns:
         Tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
@@ -237,9 +237,9 @@ def reveal_weights_extrinsic(
         weights (List[int]): List of weight values corresponding to each UID.
         salt (List[int]): List of salt values corresponding to the hash function.
         version_key (int): Version key for compatibility with the network.
-        wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
-        wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
-        prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding.
+        wait_for_inclusion (bool): Waits for the transaction to be included in a block.
+        wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
+        prompt (bool): If ``True``, prompts for user confirmation before proceeding.
     Returns:
         Tuple[bool, str]: ``True`` if the weight revelation is successful, False otherwise. And `msg`, a string
         value describing the success or potential error.

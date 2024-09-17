@@ -51,8 +51,8 @@ def do_serve_axon(
         self (bittensor.core.subtensor.Subtensor): Subtensor instance object.
         wallet (bittensor_wallet.Wallet): The wallet associated with the neuron.
         call_params (AxonServeCallParams): Parameters required for the serve axon call.
-        wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
-        wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
+        wait_for_inclusion (bool): Waits for the transaction to be included in a block.
+        wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
 
     Returns:
         Tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
@@ -262,8 +262,8 @@ def publish_metadata(
         netuid (int): Network UID on which the metadata is to be published.
         data_type (str): The data type of the information being submitted. It should be one of the following: ``'Sha256'``, ``'Blake256'``, ``'Keccak256'``, or ``'Raw0-128'``. This specifies the format or hashing algorithm used for the data.
         data (str): The actual metadata content to be published. This should be formatted or hashed according to the ``type`` specified. (Note: max ``str`` length is 128 bytes)
-        wait_for_inclusion (bool, optional): If ``True``, the function will wait for the extrinsic to be included in a block before returning. Defaults to ``False``.
-        wait_for_finalization (bool, optional): If ``True``, the function will wait for the extrinsic to be finalized on the chain before returning. Defaults to ``True``.
+        wait_for_inclusion (bool): If ``True``, the function will wait for the extrinsic to be included in a block before returning. Defaults to ``False``.
+        wait_for_finalization (bool): If ``True``, the function will wait for the extrinsic to be finalized on the chain before returning. Defaults to ``True``.
 
     Returns:
         bool: ``True`` if the metadata was successfully published (and finalized if specified). ``False`` otherwise.

@@ -272,16 +272,16 @@ class Axon:
         ).start()
 
     Args:
-        wallet (bittensor_wallet.Wallet, optional): Wallet with hotkey and coldkeypub.
-        config (bittensor.core.config.Config, optional): Configuration parameters for the axon.
-        port (int, optional): Port for server binding.
-        ip (str, optional): Binding IP address.
-        external_ip (str, optional): External IP address to broadcast.
-        external_port (int, optional): External port to broadcast.
-        max_workers (int, optional): Number of active threads for request handling.
+        wallet (Optional[bittensor_wallet.Wallet]): Wallet with hotkey and coldkeypub.
+        config (Optional[bittensor.core.config.Config]): Configuration parameters for the axon.
+        port (Optional[int]): Port for server binding.
+        ip (Optional[str]): Binding IP address.
+        external_ip (Optional[str]): External IP address to broadcast.
+        external_port (Optional[int]): External port to broadcast.
+        max_workers (Optional[int]): Number of active threads for request handling.
 
     Returns:
-        bittensor.axon: An instance of the axon class configured as per the provided arguments.
+        bittensor.core.axon.Axon: An instance of the axon class configured as per the provided arguments.
 
     Note:
         This class is a core part of Bittensor's decentralized network for machine intelligence,
@@ -432,9 +432,9 @@ class Axon:
 
         Args:
             forward_fn (Callable): Function to be called when the API endpoint is accessed. It should have at least one argument.
-            blacklist_fn (Callable, optional): Function to filter out undesired requests. It should take the same arguments as :func:`forward_fn` and return a boolean value. Defaults to ``None``, meaning no blacklist filter will be used.
-            priority_fn (Callable, optional): Function to rank requests based on their priority. It should take the same arguments as :func:`forward_fn` and return a numerical value representing the request's priority. Defaults to ``None``, meaning no priority sorting will be applied.
-            verify_fn (Callable, optional): Function to verify requests. It should take the same arguments as :func:`forward_fn` and return a boolean value. If ``None``, :func:`self.default_verify` function will be used.
+            blacklist_fn (Optional[Callable]): Function to filter out undesired requests. It should take the same arguments as :func:`forward_fn` and return a boolean value. Defaults to ``None``, meaning no blacklist filter will be used.
+            priority_fn (Optional[Callable]): Function to rank requests based on their priority. It should take the same arguments as :func:`forward_fn` and return a numerical value representing the request's priority. Defaults to ``None``, meaning no priority sorting will be applied.
+            verify_fn (Optional[Callable]): Function to verify requests. It should take the same arguments as :func:`forward_fn` and return a boolean value. If ``None``, :func:`self.default_verify` function will be used.
 
         Note:
             The methods :func:`forward_fn`, :func:`blacklist_fn`, :func:`priority_fn`, and :func:`verify_fn` should be designed to receive the same parameters.
@@ -610,7 +610,7 @@ class Axon:
 
         Args:
             parser (argparse.ArgumentParser): Argument parser to which the arguments will be added.
-            prefix (str, optional): Prefix to add to the argument names. Defaults to None.
+            prefix (Optional[str]): Prefix to add to the argument names. Defaults to None.
 
         Note:
             Environment variables are used to define default values for the arguments.
@@ -815,7 +815,7 @@ class Axon:
 
         Args:
             netuid (int): The unique identifier of the subnet to register on. This ID is essential for the Axon to correctly position itself within the Bittensor network topology.
-            subtensor (bittensor.core.subtensor.Subtensor, optional): The subtensor connection to use for serving. If not provided, a new connection is established based on default configurations.
+            subtensor (Optional[bittensor.core.subtensor.Subtensor]): The subtensor connection to use for serving. If not provided, a new connection is established based on default configurations.
 
         Returns:
             bittensor.core.axon.Axon: The Axon instance that is now actively serving on the specified subtensor.
@@ -986,8 +986,8 @@ def log_and_handle_error(
     Args:
         synapse (bittensor.core.synapse.Synapse): The synapse object to be updated with error information.
         exception (Exception): The exception that was raised and needs to be logged and handled.
-        status_code (Optional[int], optional): The HTTP status code to be set on the synapse object. Defaults to None.
-        start_time (Optional[float], optional): The timestamp marking the start of the processing, used to calculate process time. Defaults to None.
+        status_code (Optional[int]): The HTTP status code to be set on the synapse object. Defaults to None.
+        start_time (Optional[float]): The timestamp marking the start of the processing, used to calculate process time. Defaults to None.
 
     Returns:
         Synapse: The updated synapse object with error details.

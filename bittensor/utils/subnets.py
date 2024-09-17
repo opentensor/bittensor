@@ -52,15 +52,15 @@ class SubnetsAPI(ABC):
         axons: Union["Axon", list["Axon"]],
         deserialize: Optional[bool] = False,
         timeout: Optional[int] = 12,
-        **kwargs: Optional[Any],
+        **kwargs,
     ) -> Any:
         """
         Queries the API nodes of a subnet using the given synapse and bespoke query function.
 
         Args:
             axons (Union[bt.axon, List[bt.axon]]): The list of axon(s) to query.
-            deserialize (bool, optional): Whether to deserialize the responses. Defaults to False.
-            timeout (int, optional): The timeout in seconds for the query. Defaults to 12.
+            deserialize (Optional[bool]): Whether to deserialize the responses. Defaults to False.
+            timeout (Optional[int]): The timeout in seconds for the query. Defaults to 12.
             **kwargs: Keyword arguments for the prepare_synapse_fn.
 
         Returns:

@@ -56,9 +56,9 @@ def do_set_weights(
         uids (List[int]): List of neuron UIDs for which weights are being set.
         vals (List[int]): List of weight values corresponding to each UID.
         netuid (int): Unique identifier for the network.
-        version_key (int, optional): Version key for compatibility with the network.
-        wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
-        wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
+        version_key (int): Version key for compatibility with the network.
+        wait_for_inclusion (bool): Waits for the transaction to be included in a block.
+        wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
 
     Returns:
         Tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
