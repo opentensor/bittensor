@@ -1,16 +1,16 @@
 import asyncio
-import logging
 import sys
 
 import pytest
 
 import bittensor
+from bittensor import logging
 from bittensor.commands import (
     RegisterCommand,
     RegisterSubnetworkCommand,
-    StakeCommand,
     RootRegisterCommand,
     RootSetBoostCommand,
+    StakeCommand,
 )
 from tests.e2e_tests.utils import (
     setup_wallet,
@@ -18,9 +18,6 @@ from tests.e2e_tests.utils import (
     templates_repo,
     wait_epoch,
 )
-
-
-logging.basicConfig(level=logging.INFO)
 
 """
 Test the dendrites mechanism. 
@@ -35,13 +32,16 @@ Verify that:
 
 @pytest.mark.asyncio
 async def test_dendrite(local_chain):
+    logging.info("Testing test_dendrite")
     netuid = 1
     # Register root as Alice - the subnet owner
     alice_keypair, exec_command, wallet = setup_wallet("//Alice")
     exec_command(RegisterSubnetworkCommand, ["s", "create"])
 
     # Verify subnet <netuid> created successfully
-    assert local_chain.query("SubtensorModule", "NetworksAdded", [netuid]).serialize()
+    assert local_chain.query(
+        "SubtensorModule", "NetworksAdded", [netuid]
+    ).serialize(), "Subnet wasn't created successfully"
 
     bob_keypair, exec_command, wallet_path = setup_wallet("//Bob")
 
@@ -83,7 +83,9 @@ async def test_dendrite(local_chain):
     metagraph = bittensor.metagraph(netuid=netuid, network="ws://localhost:9945")
     neuron = metagraph.neurons[0]
     # assert stake is 10000
-    assert neuron.stake.tao == 10_000.0
+    assert (
+        neuron.stake.tao == 10_000.0
+    ), f"Expected 10_000.0 staked TAO, but got {neuron.stake.tao}"
 
     # assert neuron is not validator
     assert neuron.active is True
@@ -118,7 +120,7 @@ async def test_dendrite(local_chain):
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
-
+    logging.info("Neuron Alice is now validating")
     await asyncio.sleep(
         5
     )  # wait for 5 seconds for the metagraph and subtensor to refresh with latest data
@@ -159,3 +161,4 @@ async def test_dendrite(local_chain):
     assert neuron.validator_permit is True
     assert neuron.hotkey == bob_keypair.ss58_address
     assert neuron.coldkey == bob_keypair.ss58_address
+    logging.info("Passed test_dendrite")

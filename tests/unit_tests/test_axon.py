@@ -23,20 +23,21 @@ import re
 import time
 from dataclasses import dataclass
 
-from typing import Any
+from typing import Any, Optional
 from unittest import IsolatedAsyncioTestCase
 from unittest.mock import AsyncMock, MagicMock, patch
 
 # Third Party
+import fastapi
 import netaddr
-
+import pydantic
 import pytest
 from starlette.requests import Request
 from fastapi.testclient import TestClient
 
 # Bittensor
 import bittensor
-from bittensor import Synapse, RunException
+from bittensor import Synapse, RunException, StreamingSynapse
 from bittensor.axon import AxonMiddleware
 from bittensor.axon import axon as Axon
 from bittensor.utils.axon_utils import allowed_nonce_window_ns, calculate_diff_seconds
@@ -538,6 +539,39 @@ class TestAxonHTTPAPIResponses:
     async def no_verify_fn(self, synapse):
         return
 
+    class NonDeterministicHeaders(pydantic.BaseModel):
+        """
+        Helper class to verify headers.
+
+        Size headers are non-determistic as for example, header_size depends on non-deterministic
+        processing-time value.
+        """
+
+        bt_header_axon_process_time: float = pydantic.Field(gt=0, lt=30)
+        timeout: float = pydantic.Field(gt=0, lt=30)
+        header_size: int = pydantic.Field(None, gt=10, lt=400)
+        total_size: int = pydantic.Field(gt=100, lt=10000)
+        content_length: Optional[int] = pydantic.Field(
+            None, alias="content-length", gt=100, lt=10000
+        )
+
+    def assert_headers(self, response, expected_headers):
+        expected_headers = {
+            "bt_header_axon_status_code": "200",
+            "bt_header_axon_status_message": "Success",
+            **expected_headers,
+        }
+        headers = dict(response.headers)
+        non_deterministic_headers_names = {
+            field.alias or field_name
+            for field_name, field in self.NonDeterministicHeaders.model_fields.items()
+        }
+        non_deterministic_headers = {
+            field: headers.pop(field, None) for field in non_deterministic_headers_names
+        }
+        assert headers == expected_headers
+        self.NonDeterministicHeaders.model_validate(non_deterministic_headers)
+
     async def test_unknown_path(self, http_client):
         response = http_client.get("/no_such_path")
         assert (response.status_code, response.json()) == (
@@ -563,6 +597,14 @@ class TestAxonHTTPAPIResponses:
         assert response.status_code == 200
         response_synapse = Synapse(**response.json())
         assert response_synapse.axon.status_code == 200
+        self.assert_headers(
+            response,
+            {
+                "computed_body_hash": "a7ffc6f8bf1ed76651c14756a061d662f580ff4de43b49fa82d80a4b80f8434a",
+                "content-type": "application/json",
+                "name": "Synapse",
+            },
+        )
 
     @pytest.fixture
     def custom_synapse_cls(self):
@@ -570,6 +612,17 @@ class TestAxonHTTPAPIResponses:
             pass
 
         return CustomSynapse
+
+    @pytest.fixture
+    def streaming_synapse_cls(self):
+        class CustomStreamingSynapse(StreamingSynapse):
+            async def process_streaming_response(self, response):
+                pass
+
+            def extract_response_json(self, response) -> dict:
+                return {}
+
+        return CustomStreamingSynapse
 
     async def test_synapse__explicitly_set_status_code(
         self, http_client, axon, custom_synapse_cls, no_verify_axon
@@ -678,3 +731,51 @@ def test_nonce_within_allowed_window(nonce_offset_seconds, expected_result):
     result = is_nonce_within_allowed_window(synapse_nonce, allowed_window_ns)
 
     assert result == expected_result, f"Expected {expected_result} but got {result}"
+
+    @pytest.mark.parametrize(
+        "forward_fn_return_annotation",
+        [
+            None,
+            fastapi.Response,
+            bittensor.StreamingSynapse,
+        ],
+    )
+    async def test_streaming_synapse(
+        self,
+        http_client,
+        axon,
+        streaming_synapse_cls,
+        no_verify_axon,
+        forward_fn_return_annotation,
+    ):
+        tokens = [f"data{i}\n" for i in range(10)]
+
+        async def streamer(send):
+            for token in tokens:
+                await send(
+                    {
+                        "type": "http.response.body",
+                        "body": token.encode(),
+                        "more_body": True,
+                    }
+                )
+            await send({"type": "http.response.body", "body": b"", "more_body": False})
+
+        async def forward_fn(synapse: streaming_synapse_cls):
+            return synapse.create_streaming_response(token_streamer=streamer)
+
+        if forward_fn_return_annotation is not None:
+            forward_fn.__annotations__["return"] = forward_fn_return_annotation
+
+        axon.attach(forward_fn)
+
+        response = http_client.post_synapse(streaming_synapse_cls())
+        assert (response.status_code, response.text) == (200, "".join(tokens))
+        self.assert_headers(
+            response,
+            {
+                "content-type": "text/event-stream",
+                "name": "CustomStreamingSynapse",
+                "computed_body_hash": "a7ffc6f8bf1ed76651c14756a061d662f580ff4de43b49fa82d80a4b80f8434a",
+            },
+        )

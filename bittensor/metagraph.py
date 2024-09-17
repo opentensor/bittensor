@@ -25,10 +25,11 @@ from numpy.typing import NDArray
 import bittensor
 from os import listdir
 from os.path import join
-from typing import List, Optional, Union, Tuple
+from typing import List, Optional, Union, Tuple, cast
 
 from bittensor.chain_data import AxonInfo
 from bittensor.utils.registration import torch, use_torch
+from bittensor.utils import weight_utils
 
 METAGRAPH_STATE_DICT_NDARRAY_KEYS = [
     "version",
@@ -467,6 +468,7 @@ class MetagraphMixin(ABC):
             "bonds": self.bonds,
             "uids": self.uids,
             "axons": self.axons,
+            "neurons": self.neurons,
         }
 
     def sync(
@@ -648,33 +650,40 @@ class MetagraphMixin(ABC):
 
                 self.weights = self._process_weights_or_bonds(raw_weights_data, "weights")
         """
-        data_array = []
+        data_array: list[Union[NDArray[np.float32], "torch.Tensor"]] = []
         for item in data:
             if len(item) == 0:
                 if use_torch():
-                    data_array.append(torch.zeros(len(self.neurons)))  # type: ignore
+                    data_array.append(torch.zeros(len(self.neurons)))
                 else:
-                    data_array.append(np.zeros(len(self.neurons), dtype=np.float32))  # type: ignore
+                    data_array.append(np.zeros(len(self.neurons), dtype=np.float32))
             else:
                 uids, values = zip(*item)
                 # TODO: Validate and test the conversion of uids and values to tensor
                 if attribute == "weights":
                     data_array.append(
-                        bittensor.utils.weight_utils.convert_weight_uids_and_vals_to_tensor(
+                        weight_utils.convert_weight_uids_and_vals_to_tensor(
                             len(self.neurons),
                             list(uids),
-                            list(values),  # type: ignore
+                            list(values),
                         )
                     )
                 else:
-                    data_array.append(
-                        bittensor.utils.weight_utils.convert_bond_uids_and_vals_to_tensor(  # type: ignore
-                            len(self.neurons), list(uids), list(values)
-                        ).astype(np.float32)
+                    da_item = weight_utils.convert_bond_uids_and_vals_to_tensor(
+                        len(self.neurons), list(uids), list(values)
                     )
+                    if use_torch():
+                        data_array.append(cast("torch.LongTensor", da_item))
+                    else:
+                        data_array.append(
+                            cast(NDArray[np.float32], da_item).astype(np.float32)
+                        )
         tensor_param: Union["torch.nn.Parameter", NDArray] = (
             (
-                torch.nn.Parameter(torch.stack(data_array), requires_grad=False)
+                torch.nn.Parameter(
+                    torch.stack(cast(list["torch.Tensor"], data_array)),
+                    requires_grad=False,
+                )
                 if len(data_array)
                 else torch.nn.Parameter()
             )
@@ -730,7 +739,7 @@ class MetagraphMixin(ABC):
                 uids, values = zip(*item)
                 # TODO: Validate and test the conversion of uids and values to tensor
                 data_array.append(
-                    bittensor.utils.weight_utils.convert_root_weight_uids_and_vals_to_tensor(  # type: ignore
+                    weight_utils.convert_root_weight_uids_and_vals_to_tensor(  # type: ignore
                         n_subnets, list(uids), list(values), subnets
                     )
                 )
@@ -782,6 +791,7 @@ class MetagraphMixin(ABC):
             graph_filename = f"{save_directory}/block-{self.block.item()}.pt"
             state_dict = self.state_dict()
             state_dict["axons"] = self.axons
+            state_dict["neurons"] = self.neurons
             torch.save(state_dict, graph_filename)
             state_dict = torch.load(
                 graph_filename
@@ -1029,6 +1039,7 @@ class TorchMetaGraph(MetagraphMixin, BaseClass):  # type: ignore
         )
         self.uids = torch.nn.Parameter(state_dict["uids"], requires_grad=False)
         self.axons = state_dict["axons"]
+        self.neurons = state_dict["neurons"]
         if "weights" in state_dict:
             self.weights = torch.nn.Parameter(
                 state_dict["weights"], requires_grad=False
@@ -1173,6 +1184,7 @@ class NonTorchMetagraph(MetagraphMixin):
         self.last_update = state_dict["last_update"]
         self.validator_permit = state_dict["validator_permit"]
         self.axons = state_dict["axons"]
+        self.neurons = state_dict["neurons"]
         if "weights" in state_dict:
             self.weights = state_dict["weights"]
         if "bonds" in state_dict:

@@ -33,6 +33,7 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from nacl import pwhash, secret
+from nacl.exceptions import CryptoError
 from password_strength import PasswordPolicy
 from substrateinterface.utils.ss58 import ss58_encode
 from termcolor import colored
@@ -321,7 +322,10 @@ def decrypt_keyfile_data(
                     memlimit=pwhash.argon2i.MEMLIMIT_SENSITIVE,
                 )
                 box = secret.SecretBox(key)
-                decrypted_keyfile_data = box.decrypt(keyfile_data[len("$NACL") :])
+                try:
+                    decrypted_keyfile_data = box.decrypt(keyfile_data[len("$NACL") :])
+                except CryptoError:
+                    raise bittensor.KeyFileError("Invalid password")
             # Ansible decrypt.
             elif keyfile_data_is_encrypted_ansible(keyfile_data):
                 vault = Vault(password)

@@ -3,6 +3,7 @@ import re
 import time
 from typing import Dict, Optional, Tuple
 
+from bittensor import logging
 from bittensor.commands.list import ListCommand
 from bittensor.commands.wallets import (
     NewColdkeyCommand,
@@ -183,6 +184,7 @@ def test_wallet_creations(local_chain: subtensor, capsys):
         AssertionError: If any of the checks or verifications fail
     """
 
+    logging.info("Testing test_wallet_creations (create, new_hotkey, new_coldkey)")
     wallet_path_name = "//Alice"
     base_path = f"/tmp/btcli-e2e-wallet-{wallet_path_name.strip('/')}"
     keypair, exec_command, wallet = setup_wallet(wallet_path_name)
@@ -197,7 +199,9 @@ def test_wallet_creations(local_chain: subtensor, capsys):
 
     captured = capsys.readouterr()
     # Assert the coldkey and hotkey are present in the display with keys
-    assert "default" and "└── default" in captured.out
+    assert (
+        "default" and "└── default" in captured.out
+    ), "Default wallet not found in wallet list"
     wallet_status, message = verify_wallet_dir(
         base_path, "default", hotkey_name="default"
     )
@@ -207,6 +211,7 @@ def test_wallet_creations(local_chain: subtensor, capsys):
     # Command 1: <btcli w create>
     # -----------------------------
     # Create a new wallet (coldkey + hotkey)
+    logging.info("Testing wallet create command")
     exec_command(
         WalletCreateCommand,
         [
@@ -254,6 +259,7 @@ def test_wallet_creations(local_chain: subtensor, capsys):
     # Command 2: <btcli w new_coldkey>
     # -----------------------------
     # Create a new wallet (coldkey)
+    logging.info("Testing wallet new_coldkey command")
     exec_command(
         NewColdkeyCommand,
         [
@@ -293,6 +299,7 @@ def test_wallet_creations(local_chain: subtensor, capsys):
     # Command 3: <btcli w new_hotkey>
     # -----------------------------
     # Create a new hotkey for alice_new_coldkey wallet
+    logging.info("Testing wallet new_hotkey command")
     exec_command(
         NewHotkeyCommand,
         [
@@ -329,6 +336,7 @@ def test_wallet_creations(local_chain: subtensor, capsys):
         base_path, "new_coldkey", hotkey_name="new_hotkey"
     )
     assert wallet_status, message
+    logging.info("Passed test_wallet_creations")
 
 
 def test_wallet_regen(local_chain: subtensor, capsys):
@@ -344,6 +352,9 @@ def test_wallet_regen(local_chain: subtensor, capsys):
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
+    logging.info(
+        "Testing test_wallet_regen (regen_coldkey, regen_hotkey, regen_coldkeypub)"
+    )
     wallet_path_name = "//Bob"
     base_path = f"/tmp/btcli-e2e-wallet-{wallet_path_name.strip('/')}"
     keypair, exec_command, wallet = setup_wallet(wallet_path_name)
@@ -382,6 +393,7 @@ def test_wallet_regen(local_chain: subtensor, capsys):
     # Command 1: <btcli w regen_coldkey>
     # -----------------------------
 
+    logging.info("Testing w regen_coldkey")
     coldkey_path = os.path.join(base_path, "new_wallet", "coldkey")
     initial_coldkey_mod_time = os.path.getmtime(coldkey_path)
 
@@ -415,6 +427,7 @@ def test_wallet_regen(local_chain: subtensor, capsys):
     # Command 2: <btcli w regen_coldkeypub>
     # -----------------------------
 
+    logging.info("Testing w regen_coldkeypub")
     coldkeypub_path = os.path.join(base_path, "new_wallet", "coldkeypub.txt")
     initial_coldkeypub_mod_time = os.path.getmtime(coldkeypub_path)
 
@@ -458,6 +471,7 @@ def test_wallet_regen(local_chain: subtensor, capsys):
     # Command 3: <btcli w regen_hotkey>
     # -----------------------------
 
+    logging.info("Testing w regen_hotkey")
     hotkey_path = os.path.join(base_path, "new_wallet", "hotkeys", "new_hotkey")
     initial_hotkey_mod_time = os.path.getmtime(hotkey_path)
 
@@ -487,3 +501,5 @@ def test_wallet_regen(local_chain: subtensor, capsys):
     assert (
         initial_hotkey_mod_time != new_hotkey_mod_time
     ), "Hotkey file was not regenerated as expected"
+
+    logging.info("Passed test_wallet_regen")

@@ -272,7 +272,7 @@ def test_argument_error_handling(monkeypatch, parser):
         ("localhost", "local", "localhost"),
         # Edge cases
         (None, None, None),
-        ("unknown", "unknown", "unknown"),
+        ("unknown", "unknown network", "unknown"),
     ],
 )
 def test_determine_chain_endpoint_and_network(
@@ -2376,3 +2376,39 @@ def test_get_delegate_identities(subtensor, mocker):
     assert result == {
         "fake_address": utils.DelegatesDetails.from_chain_data(expected_return)
     }
+
+
+def test_connect_without_substrate(mocker):
+    """Ensure re-connection is called when using an alive substrate."""
+    # Prep
+    fake_substrate = mocker.MagicMock()
+    fake_substrate.websocket.sock.getsockopt.return_value = 1
+    mocker.patch.object(
+        subtensor_module, "SubstrateInterface", return_value=fake_substrate
+    )
+    fake_subtensor = Subtensor()
+    spy_get_substrate = mocker.spy(Subtensor, "_get_substrate")
+
+    # Call
+    _ = fake_subtensor.block
+
+    # Assertions
+    assert spy_get_substrate.call_count == 1
+
+
+def test_connect_with_substrate(mocker):
+    """Ensure re-connection is non called when using an alive substrate."""
+    # Prep
+    fake_substrate = mocker.MagicMock()
+    fake_substrate.websocket.sock.getsockopt.return_value = 0
+    mocker.patch.object(
+        subtensor_module, "SubstrateInterface", return_value=fake_substrate
+    )
+    fake_subtensor = Subtensor()
+    spy_get_substrate = mocker.spy(Subtensor, "_get_substrate")
+
+    # Call
+    _ = fake_subtensor.block
+
+    # Assertions
+    assert spy_get_substrate.call_count == 0
