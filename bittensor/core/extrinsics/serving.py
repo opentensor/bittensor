@@ -23,6 +23,7 @@ from rich.prompt import Confirm
 
 from bittensor.core.axon import Axon
 from bittensor.core.errors import MetadataError
+from bittensor.core.extrinsics.utils import submit_extrinsic
 from bittensor.core.settings import version_as_int, bt_console
 from bittensor.core.types import AxonServeCallParams
 from bittensor.utils import format_error_message, networking as net
@@ -60,7 +61,7 @@ def do_serve_axon(
     This function is crucial for initializing and announcing a neuron's Axon service on the network, enhancing the decentralized computation capabilities of Bittensor.
     """
 
-    @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=logging)
+    @retry(delay=1, tries=3, backoff=2, max_delay=4)
     def make_substrate_call_with_retry():
         call = self.substrate.compose_call(
             call_module="SubtensorModule",
@@ -70,8 +71,9 @@ def do_serve_axon(
         extrinsic = self.substrate.create_signed_extrinsic(
             call=call, keypair=wallet.hotkey
         )
-        response = self.substrate.submit_extrinsic(
-            extrinsic,
+        response = submit_extrinsic(
+            substrate=self.substrate,
+            extrinsic=extrinsic,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
         )

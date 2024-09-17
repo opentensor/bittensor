@@ -16,15 +16,19 @@
 # DEALINGS IN THE SOFTWARE.
 
 import hashlib
-from typing import List, Dict, Literal, Union, Optional
+from typing import List, Dict, Literal, Union, Optional, TYPE_CHECKING
 
 import scalecodec
-from substrateinterface import Keypair as Keypair
+from substrateinterface import Keypair
 from substrateinterface.utils import ss58
 
 from bittensor.core.settings import SS58_FORMAT
+from bittensor.utils.btlogging import logging
 from .registration import torch, use_torch
 from .version import version_checking, check_version, VersionCheckError
+
+if TYPE_CHECKING:
+    from substrateinterface import SubstrateInterface
 
 RAOPERTAO = 1e9
 U16_MAX = 65535
@@ -137,26 +141,66 @@ def get_hash(content, encoding="utf-8"):
     return sha3.hexdigest()
 
 
-def format_error_message(error_message: dict) -> str:
+def format_error_message(
+    error_message: dict, substrate: "SubstrateInterface" = None
+) -> str:
     """
-    Formats an error message from the Subtensor error information to using in extrinsics.
+    Formats an error message from the Subtensor error information for use in extrinsics.
 
     Args:
         error_message (dict): A dictionary containing the error information from Subtensor.
+        substrate (SubstrateInterface, optional): The substrate interface to use.
 
     Returns:
         str: A formatted error message string.
     """
-    err_type = "UnknownType"
     err_name = "UnknownError"
+    err_type = "UnknownType"
     err_description = "Unknown Description"
 
     if isinstance(error_message, dict):
-        err_type = error_message.get("type", err_type)
-        err_name = error_message.get("name", err_name)
-        err_docs = error_message.get("docs", [])
-        err_description = err_docs[0] if len(err_docs) > 0 else err_description
-    return f"Subtensor returned `{err_name} ({err_type})` error. This means: `{err_description}`"
+        # subtensor error structure
+        if (
+            error_message.get("code")
+            and error_message.get("message")
+            and error_message.get("data")
+        ):
+            err_name = "SubstrateRequestException"
+            err_type = error_message.get("message")
+            err_data = error_message.get("data")
+
+            # subtensor custom error marker
+            if err_data.startswith("Custom error:") and substrate:
+                if not substrate.metadata:
+                    substrate.get_metadata()
+
+                if substrate.metadata:
+                    try:
+                        pallet = substrate.metadata.get_metadata_pallet(
+                            "SubtensorModule"
+                        )
+                        error_index = int(err_data.split("Custom error:")[-1])
+
+                        error_dict = pallet.errors[error_index].value
+                        err_type = error_dict.get("message", err_type)
+                        err_docs = error_dict.get("docs", [])
+                        err_description = err_docs[0] if err_docs else err_description
+                    except Exception:
+                        logging.error("Substrate pallets data unavailable.")
+            else:
+                err_description = err_data
+
+        elif (
+            error_message.get("type")
+            and error_message.get("name")
+            and error_message.get("docs")
+        ):
+            err_type = error_message.get("type", err_type)
+            err_name = error_message.get("name", err_name)
+            err_docs = error_message.get("docs", [err_description])
+            err_description = err_docs[0] if err_docs else err_description
+
+    return f"Subtensor returned `{err_name}({err_type})` error. This means: `{err_description}`."
 
 
 # Subnet 24 uses this function
