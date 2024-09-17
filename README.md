@@ -26,9 +26,6 @@
   - [Install using a Bash command](#install-using-a-bash-command)
   - [Install using `pip3 install`](#install-using-pip3-install)
   - [Install from source](#install-from-source)
-- [Install on Windows](#install-on-windows)
-- [Verify the installation](#verify-the-installation)
-  - [Verify using `btsdk` version](#verify-using-btsdk-version)
   - [Verify using Python interpreter](#verify-using-python-interpreter)
   - [Verify by listing axon information](#verify-by-listing-axon-information)
 - [Release Guidelines](#release-guidelines)
@@ -114,8 +111,8 @@ If you are using Ubuntu-Linux, the script will prompt for `sudo` access to insta
 ### Install using `pip3 install`
 
 ```bash
-python3 -m venv myvenv
-source myvenv/bin/activate
+python3 -m venv bt_venv
+source bt_venv/bin/activate
 pip install bittensor
 ```
 
@@ -132,19 +129,35 @@ pip install bittensor
 ```bash
 git clone https://github.com/opentensor/bittensor.git
 ```
-3.  Change to the Bittensor directory:
 
-```bash
-cd bittensor
-```
+3.  Install
 
-4. Install
+You can install using any of the below options:
 
-Run the below command to install Bittensor SDK in the above virtual environment.
+- **Install only SDK**: Run the below command to install Bittensor SDK in the above virtual environment.
 
-```python
-pip install .
-```
+    ```python
+    pip install bittensor
+    ```
+
+- **Install SDK with `btcli`**: Install Bittensor SDK with `btcli`. The `btcli` will be installed as an independent tool and its Python package is `bittensor-cli`.
+
+   ```python
+    pip install bittensor[btcli]
+    ```
+
+- **Install SDK with `torch`**: Install Bittensor SDK with [`torch`](https://pytorch.org/docs/stable/torch.html).
+
+   ```python
+    pip install bittensor[torch]
+    ```
+
+- **Install SDK with `cubit`**: Install Bittensor SDK with [`cubit`](https://pytorch.org/docs/stable/torch.html).
+
+   ```python
+    pip install bittensor[cubit]
+    ```
+
 
 ---
 
