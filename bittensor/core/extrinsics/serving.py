@@ -21,17 +21,17 @@ from typing import Optional, Tuple, TYPE_CHECKING
 from retry import retry
 from rich.prompt import Confirm
 
-from bittensor.core.axon import Axon
 from bittensor.core.errors import MetadataError
 from bittensor.core.settings import version_as_int, bt_console
-from bittensor.core.types import AxonServeCallParams
 from bittensor.utils import format_error_message, networking as net
 from bittensor.utils.btlogging import logging
 from bittensor.utils.networking import ensure_connected
 
 # For annotation purposes
 if TYPE_CHECKING:
+    from bittensor.core.axon import Axon
     from bittensor.core.subtensor import Subtensor
+    from bittensor.core.types import AxonServeCallParams
     from bittensor_wallet import Wallet
 
 
@@ -40,24 +40,24 @@ if TYPE_CHECKING:
 def do_serve_axon(
     self: "Subtensor",
     wallet: "Wallet",
-    call_params: AxonServeCallParams,
+    call_params: "AxonServeCallParams",
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = True,
 ) -> Tuple[bool, Optional[dict]]:
     """
-    Internal method to submit a serve axon transaction to the Bittensor blockchain. This method creates and submits a transaction, enabling a neuron's Axon to serve requests on the network.
+    Internal method to submit a serve axon transaction to the Bittensor blockchain. This method creates and submits a transaction, enabling a neuron's ``Axon`` to serve requests on the network.
 
     Args:
         self (bittensor.core.subtensor.Subtensor): Subtensor instance object.
         wallet (bittensor_wallet.Wallet): The wallet associated with the neuron.
-        call_params (AxonServeCallParams): Parameters required for the serve axon call.
+        call_params (bittensor.core.types.AxonServeCallParams): Parameters required for the serve axon call.
         wait_for_inclusion (bool): Waits for the transaction to be included in a block.
         wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
 
     Returns:
         Tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
 
-    This function is crucial for initializing and announcing a neuron's Axon service on the network, enhancing the decentralized computation capabilities of Bittensor.
+    This function is crucial for initializing and announcing a neuron's ``Axon`` service on the network, enhancing the decentralized computation capabilities of Bittensor.
     """
 
     @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=logging)
