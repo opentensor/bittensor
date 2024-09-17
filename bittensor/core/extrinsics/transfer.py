@@ -59,7 +59,7 @@ def do_transfer(
     Returns:
         success (bool): ``True`` if transfer was successful.
         block_hash (str): Block hash of the transfer. On success and if wait_for_ finalization/inclusion is ``True``.
-        error (Dict): Error message from subtensor if transfer failed.
+        error (dict): Error message from subtensor if transfer failed.
     """
 
     @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=logging)

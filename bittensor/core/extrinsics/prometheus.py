@@ -16,7 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import json
-from typing import Tuple, Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
 
 from retry import retry
 
@@ -40,7 +40,7 @@ def do_serve_prometheus(
     call_params: "PrometheusServeCallParams",
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = True,
-) -> Tuple[bool, Optional[dict]]:
+) -> tuple[bool, Optional[dict]]:
     """
     Sends a serve prometheus extrinsic to the chain.
 

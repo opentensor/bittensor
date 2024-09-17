@@ -55,7 +55,7 @@ def do_commit_weights(
         wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
 
     Returns:
-        Tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
+        tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
 
     This method ensures that the weight commitment is securely recorded on the Bittensor blockchain, providing a verifiable record of the neuron's weight distribution at a specific point in time.
     """
@@ -115,7 +115,7 @@ def commit_weights_extrinsic(
         prompt (bool): If ``True``, prompts for user confirmation before proceeding.
 
     Returns:
-        Tuple[bool, str]: ``True`` if the weight commitment is successful, False otherwise. And `msg`, a string
+        tuple[bool, str]: ``True`` if the weight commitment is successful, False otherwise. And `msg`, a string
         value describing the success or potential error.
 
     This function provides a user-friendly interface for committing weights to the Bittensor blockchain, ensuring proper error handling and user interaction when required.
@@ -163,15 +163,15 @@ def do_reveal_weights(
         self (bittensor.core.subtensor.Subtensor): The subtensor instance used for blockchain interaction.
         wallet (bittensor_wallet.Wallet): The wallet associated with the neuron revealing the weights.
         netuid (int): The unique identifier of the subnet.
-        uids (List[int]): List of neuron UIDs for which weights are being revealed.
-        values (List[int]): List of weight values corresponding to each UID.
-        salt (List[int]): List of salt values corresponding to the hash function.
+        uids (list[int]): List of neuron UIDs for which weights are being revealed.
+        values (list[int]): List of weight values corresponding to each UID.
+        salt (list[int]): List of salt values corresponding to the hash function.
         version_key (int): Version key for compatibility with the network.
         wait_for_inclusion (bool): Waits for the transaction to be included in a block.
         wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
 
     Returns:
-        Tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
+        tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
 
     This method ensures that the weight revelation is securely recorded on the Bittensor blockchain, providing transparency and accountability for the neuron's weight distribution.
     """
@@ -231,16 +231,16 @@ def reveal_weights_extrinsic(
         subtensor (bittensor.core.subtensor.Subtensor): The subtensor instance used for blockchain interaction.
         wallet (bittensor_wallet.Wallet): The wallet associated with the neuron revealing the weights.
         netuid (int): The unique identifier of the subnet.
-        uids (List[int]): List of neuron UIDs for which weights are being revealed.
-        weights (List[int]): List of weight values corresponding to each UID.
-        salt (List[int]): List of salt values corresponding to the hash function.
+        uids (list[int]): List of neuron UIDs for which weights are being revealed.
+        weights (list[int]): List of weight values corresponding to each UID.
+        salt (list[int]): List of salt values corresponding to the hash function.
         version_key (int): Version key for compatibility with the network.
         wait_for_inclusion (bool): Waits for the transaction to be included in a block.
         wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
         prompt (bool): If ``True``, prompts for user confirmation before proceeding.
 
     Returns:
-        Tuple[bool, str]: ``True`` if the weight revelation is successful, False otherwise. And `msg`, a string
+        tuple[bool, str]: ``True`` if the weight revelation is successful, False otherwise. And `msg`, a string
         value describing the success or potential error.
 
     This function provides a user-friendly interface for revealing weights on the Bittensor blockchain, ensuring proper error handling and user interaction when required.

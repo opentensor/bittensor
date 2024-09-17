@@ -68,7 +68,7 @@ class DendriteMixin:
     Methods:
         __str__(): Returns a string representation of the Dendrite object.
         __repr__(): Returns a string representation of the Dendrite object, acting as a fallback for __str__().
-        query(self, *args, **kwargs) -> Union[Synapse, List[Synapse]]: Makes synchronous requests to one or multiple target Axons and returns responses.
+        query(self, *args, **kwargs) -> Union[Synapse, list[Synapse]]: Makes synchronous requests to one or multiple target Axons and returns responses.
         forward(self, axons, synapse=Synapse(), timeout=12, deserialize=True, run_async=True, streaming=False) -> Synapse: Asynchronously sends requests to one or multiple Axons and collates their responses.
         call(self, target_axon, synapse=Synapse(), timeout=12.0, deserialize=True) -> Synapse: Asynchronously sends a request to a specified Axon and processes the response.
         call_stream(self, target_axon, synapse=Synapse(), timeout=12.0, deserialize=True) -> AsyncGenerator[Synapse, None]: Sends a request to a specified Axon and yields an AsyncGenerator that contains streaming response chunks before finally yielding the filled Synapse as the final element.
@@ -335,12 +335,12 @@ class DendriteMixin:
         Cleanup is automatically handled and sessions are closed upon completed requests.
 
         Args:
-            axons (Union[List[Union[bittensor.core.chain_data.axon_info.AxonInfo, 'bittensor.core.axon.Axon']], Union['bittensor.core.chain_data.axon_info.AxonInfo', 'bittensor.core.axon.Axon']]): The list of target Axon information.
+            axons (Union[list[Union[bittensor.core.chain_data.axon_info.AxonInfo, 'bittensor.core.axon.Axon']], Union['bittensor.core.chain_data.axon_info.AxonInfo', 'bittensor.core.axon.Axon']]): The list of target Axon information.
             synapse (Optional[bittensor.core.synapse.Synapse]): The Synapse object. Defaults to :func:`Synapse()`.
             timeout (Optional[float]): The request timeout duration in seconds. Defaults to ``12.0`` seconds.
 
         Returns:
-            Union[bittensor.core.synapse.Synapse, List[bittensor.core.synapse.Synapse]]: If a single target axon is provided, returns the response from that axon. If multiple target axons are provided, returns a list of responses from all target axons.
+            Union[bittensor.core.synapse.Synapse, list[bittensor.core.synapse.Synapse]]: If a single target axon is provided, returns the response from that axon. If multiple target axons are provided, returns a list of responses from all target axons.
         """
         result = None
         try:
@@ -401,7 +401,7 @@ class DendriteMixin:
                 print(chunk)
 
         Args:
-            axons (Union[List[Union[bittensor.core.chain_data.axon_info.AxonInfo, bittensor.core.axon.Axon]], Union[bittensor.core.chain_data.axon_info.AxonInfo, bittensor.core.axon.Axon]]): The target Axons to send requests to. Can be a single Axon or a list of Axons.
+            axons (Union[list[Union[bittensor.core.chain_data.axon_info.AxonInfo, bittensor.core.axon.Axon]], Union[bittensor.core.chain_data.axon_info.AxonInfo, bittensor.core.axon.Axon]]): The target Axons to send requests to. Can be a single Axon or a list of Axons.
             synapse (bittensor.core.synapse.Synapse): The Synapse object encapsulating the data. Defaults to a new :func:`Synapse` instance.
             timeout (float): Maximum duration to wait for a response from an Axon in seconds. Defaults to ``12.0``.
             deserialize (bool): Determines if the received response should be deserialized. Defaults to ``True``.
@@ -409,7 +409,7 @@ class DendriteMixin:
             streaming (bool): Indicates if the response is expected to be in streaming format. Defaults to ``False``.
 
         Returns:
-            Union[AsyncGenerator, bittensor.core.synapse.Synapse, List[bittensor.core.synapse.Synapse]]: If a single `Axon` is targeted, returns its response.
+            Union[AsyncGenerator, bittensor.core.synapse.Synapse, list[bittensor.core.synapse.Synapse]]: If a single `Axon` is targeted, returns its response.
             If multiple Axons are targeted, returns a list of their responses.
         """
         is_list = True
@@ -441,7 +441,7 @@ class DendriteMixin:
                 If ``True``, responses are handled in streaming mode.
 
             Returns:
-                List[Union[AsyncGenerator, bittensor.core.synapse.Synapse, bittensor.core.stream.StreamingSynapse]]: A list containing the responses from each axon. The type of each response depends on the streaming mode and the type of synapse used.
+                list[Union[AsyncGenerator, bittensor.core.synapse.Synapse, bittensor.core.stream.StreamingSynapse]]: A list containing the responses from each axon. The type of each response depends on the streaming mode and the type of synapse used.
             """
 
             async def single_axon_response(

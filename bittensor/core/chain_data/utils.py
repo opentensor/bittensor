@@ -65,10 +65,10 @@ def from_scale_encoding_using_type_string(
         type_string (str): The type string defining the structure of the data.
 
     Returns:
-        Optional[Dict]: The decoded data as a dictionary, or ``None`` if the decoding fails.
+        Optional[dict]: The decoded data as a dictionary, or ``None`` if the decoding fails.
 
     Raises:
-        TypeError: If the input_ is not a List[int], bytes, or ScaleBytes.
+        TypeError: If the input_ is not a list[int], bytes, or ScaleBytes.
     """
     if isinstance(input_, ScaleBytes):
         as_scale_bytes = input_
@@ -79,7 +79,7 @@ def from_scale_encoding_using_type_string(
         elif isinstance(input_, bytes):
             as_bytes = input_
         else:
-            raise TypeError("input_ must be a List[int], bytes, or ScaleBytes")
+            raise TypeError("input_ must be a list[int], bytes, or ScaleBytes")
 
         as_scale_bytes = ScaleBytes(as_bytes)
 

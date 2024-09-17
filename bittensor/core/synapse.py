@@ -41,7 +41,7 @@ def get_size(obj: Any, seen: Optional[set] = None) -> int:
 
     Args:
         obj (Any): The object to get the size of.
-        seen (Optional[Set]): Set of object ids that have been calculated.
+        seen (Optional[set]): Set of object ids that have been calculated.
 
     Returns:
         int: The total size of the object.
@@ -358,7 +358,7 @@ class Synapse(BaseModel):
         dendrite (:func:`TerminalInfo`): Information about the dendrite terminal.
         axon (:func:`TerminalInfo`): Information about the axon terminal.
         computed_body_hash (str): Computed hash of the request body.
-        required_hash_fields (List[str]): Fields required to compute the body hash.
+        required_hash_fields (list[str]): Fields required to compute the body hash.
 
     Methods:
         deserialize: Custom deserialization logic for subclasses.

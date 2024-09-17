@@ -248,7 +248,7 @@ class Config(DefaultMunch):
         """Parses the passed args use the passed parser.
 
         Args:
-            args (List[str]): List of arguments to parse.
+            args (list[str]): List of arguments to parse.
             parser (argparse.ArgumentParser): Command line parser object.
             strict (bool): If ``true``, the command line arguments are strictly parsed.
 

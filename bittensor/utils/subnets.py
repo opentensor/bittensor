@@ -58,7 +58,7 @@ class SubnetsAPI(ABC):
         Queries the API nodes of a subnet using the given synapse and bespoke query function.
 
         Args:
-            axons (Union[bt.axon, List[bt.axon]]): The list of axon(s) to query.
+            axons (Union[bt.axon, list[bt.axon]]): The list of axon(s) to query.
             deserialize (Optional[bool]): Whether to deserialize the responses. Defaults to False.
             timeout (Optional[int]): The timeout in seconds for the query. Defaults to 12.
             **kwargs: Keyword arguments for the prepare_synapse_fn.

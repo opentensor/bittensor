@@ -454,7 +454,7 @@ class Axon:
                 # Custom logic for processing the request
                 return synapse
 
-            def blacklist_custom(synapse: MyCustomSynapse) -> Tuple[bool, str]:
+            def blacklist_custom(synapse: MyCustomSynapse) -> tuple[bool, str]:
                 return True, "Allowed!"
 
             def priority_custom(synapse: MyCustomSynapse) -> float:
@@ -560,7 +560,7 @@ class Axon:
             )
             assert (
                 signature(blacklist_fn) == blacklist_sig
-            ), f"The blacklist_fn function must have the signature: blacklist( synapse: {request_name} ) -> Tuple[bool, str]"
+            ), f"The blacklist_fn function must have the signature: blacklist( synapse: {request_name} ) -> tuple[bool, str]"
         if priority_fn:
             priority_sig = Signature(expected_params, return_annotation=float)
             assert (

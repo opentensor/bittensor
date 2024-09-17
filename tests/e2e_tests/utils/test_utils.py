@@ -2,7 +2,6 @@ import os
 import shutil
 import subprocess
 import sys
-from typing import Tuple
 
 from substrateinterface import Keypair
 
@@ -12,7 +11,7 @@ template_path = os.getcwd() + "/neurons/"
 templates_repo = "templates repository"
 
 
-def setup_wallet(uri: str) -> Tuple[Keypair, bittensor.Wallet]:
+def setup_wallet(uri: str) -> tuple[Keypair, bittensor.Wallet]:
     """
     Sets up a wallet using the provided URI.
 

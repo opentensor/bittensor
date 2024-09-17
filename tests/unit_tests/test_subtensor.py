@@ -17,7 +17,6 @@
 
 import argparse
 import unittest.mock as mock
-from typing import List, Tuple
 from unittest.mock import MagicMock
 
 import pytest
@@ -336,7 +335,7 @@ def sample_hyperparameters():
 
 def normalize_hyperparameters(
     subnet: "SubnetHyperparameters",
-) -> List[Tuple[str, str, str]]:
+) -> list[tuple[str, str, str]]:
     """
     Normalizes the hyperparameters of a subnet.
 
@@ -360,7 +359,7 @@ def normalize_hyperparameters(
         "max_burn": Balance.from_rao,
     }
 
-    normalized_values: List[Tuple[str, str, str]] = []
+    normalized_values: list[tuple[str, str, str]] = []
     subnet_dict = subnet.__dict__
 
     for param, value in subnet_dict.items():

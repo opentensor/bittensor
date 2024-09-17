@@ -109,7 +109,7 @@ def cast_shape(raw: Union[None, list[int], str]) -> Optional[Union[str, list]]:
     Casts the raw value to a string representing the tensor shape.
 
     Args:
-        raw (Union[None, List[int], str]): The raw value to cast.
+        raw (Union[None, list[int], str]): The raw value to cast.
 
     Returns:
         str: The string representing the tensor shape.
@@ -129,7 +129,7 @@ def cast_shape(raw: Union[None, list[int], str]) -> Optional[Union[str, list]]:
         return shape
     else:
         raise Exception(
-            f"{raw} of type {type(raw)} does not have a valid type in Union[None, List[int], str]"
+            f"{raw} of type {type(raw)} does not have a valid type in Union[None, list[int], str]"
         )
 
 
@@ -147,7 +147,7 @@ class Tensor(BaseModel):
     Args:
         buffer (Optional[str]): Tensor buffer data.
         dtype (str): Tensor data type.
-        shape (List[int]): Tensor shape.
+        shape (list[int]): Tensor shape.
     """
 
     model_config = ConfigDict(validate_assignment=True)

@@ -16,7 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import json
-from typing import Optional, Tuple, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
 
 from retry import retry
 from rich.prompt import Confirm
@@ -43,7 +43,7 @@ def do_serve_axon(
     call_params: "AxonServeCallParams",
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = True,
-) -> Tuple[bool, Optional[dict]]:
+) -> tuple[bool, Optional[dict]]:
     """
     Internal method to submit a serve axon transaction to the Bittensor blockchain. This method creates and submits a transaction, enabling a neuron's ``Axon`` to serve requests on the network.
 
@@ -55,7 +55,7 @@ def do_serve_axon(
         wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
 
     Returns:
-        Tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
+        tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
 
     This function is crucial for initializing and announcing a neuron's ``Axon`` service on the network, enhancing the decentralized computation capabilities of Bittensor.
     """

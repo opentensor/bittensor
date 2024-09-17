@@ -17,7 +17,7 @@ class DelegateInfo:
     Args:
         hotkey_ss58 (str): Hotkey of the delegate for which the information is being fetched.
         total_stake (int): Total stake of the delegate.
-        nominators (list[Tuple[str, int]]): List of nominators of the delegate and their stake.
+        nominators (list[tuple[str, int]]): List of nominators of the delegate and their stake.
         take (float): Take of the delegate as a percentage.
         owner_ss58 (str): Coldkey of the owner.
         registrations (list[int]): List of subnets that the delegate is registered on.
