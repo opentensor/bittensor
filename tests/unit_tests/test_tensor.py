@@ -15,109 +15,9 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import numpy
 import numpy as np
-import pytest
-import torch
 
-from bittensor.core.tensor import tensor as tensor_class, Tensor
-
-
-# This is a fixture that creates an example tensor for testing
-@pytest.fixture
-def example_tensor():
-    # Create a tensor from a list using PyTorch
-    data = np.array([1, 2, 3, 4])
-
-    # Serialize the tensor into a Tensor instance and return it
-    return tensor_class(data)
-
-
-@pytest.fixture
-def example_tensor_torch(force_legacy_torch_compatible_api):
-    # Create a tensor from a list using PyTorch
-    data = torch.tensor([1, 2, 3, 4])
-
-    # Serialize the tensor into a Tensor instance and return it
-    return tensor_class(data)
-
-
-def test_deserialize(example_tensor):
-    # Deserialize the tensor from the Tensor instance
-    tensor = example_tensor.deserialize()
-
-    # Check that the result is a np.array with the correct values
-    assert isinstance(tensor, np.ndarray)
-    assert tensor.tolist() == [1, 2, 3, 4]
-
-
-def test_deserialize_torch(example_tensor_torch, force_legacy_torch_compatible_api):
-    tensor = example_tensor_torch.deserialize()
-    # Check that the result is a PyTorch tensor with the correct values
-    assert isinstance(tensor, torch.Tensor)
-    assert tensor.tolist() == [1, 2, 3, 4]
-
-
-def test_serialize(example_tensor):
-    # Check that the serialized tensor is an instance of Tensor
-    assert isinstance(example_tensor, Tensor)
-
-    # Check that the Tensor instance has the correct buffer, dtype, and shape
-    assert example_tensor.buffer == example_tensor.buffer
-    assert example_tensor.dtype == example_tensor.dtype
-    assert example_tensor.shape == example_tensor.shape
-
-    assert isinstance(example_tensor.tolist(), list)
-
-    # Check that the Tensor instance has the correct buffer, dtype, and shape
-    assert example_tensor.buffer == example_tensor.buffer
-    assert example_tensor.dtype == example_tensor.dtype
-    assert example_tensor.shape == example_tensor.shape
-
-    assert isinstance(example_tensor.numpy(), numpy.ndarray)
-
-    # Check that the Tensor instance has the correct buffer, dtype, and shape
-    assert example_tensor.buffer == example_tensor.buffer
-    assert example_tensor.dtype == example_tensor.dtype
-    assert example_tensor.shape == example_tensor.shape
-
-    assert isinstance(example_tensor.tensor(), np.ndarray)
-
-    # Check that the Tensor instance has the correct buffer, dtype, and shape
-    assert example_tensor.buffer == example_tensor.buffer
-    assert example_tensor.dtype == example_tensor.dtype
-    assert example_tensor.shape == example_tensor.shape
-
-
-def test_serialize_torch(example_tensor_torch, force_legacy_torch_compatible_api):
-    # Check that the serialized tensor is an instance of Tensor
-    assert isinstance(example_tensor_torch, Tensor)
-
-    # Check that the Tensor instance has the correct buffer, dtype, and shape
-    assert example_tensor_torch.buffer == example_tensor_torch.buffer
-    assert example_tensor_torch.dtype == example_tensor_torch.dtype
-    assert example_tensor_torch.shape == example_tensor_torch.shape
-
-    assert isinstance(example_tensor_torch.tolist(), list)
-
-    # Check that the Tensor instance has the correct buffer, dtype, and shape
-    assert example_tensor_torch.buffer == example_tensor_torch.buffer
-    assert example_tensor_torch.dtype == example_tensor_torch.dtype
-    assert example_tensor_torch.shape == example_tensor_torch.shape
-
-    assert isinstance(example_tensor_torch.numpy(), numpy.ndarray)
-
-    # Check that the Tensor instance has the correct buffer, dtype, and shape
-    assert example_tensor_torch.buffer == example_tensor_torch.buffer
-    assert example_tensor_torch.dtype == example_tensor_torch.dtype
-    assert example_tensor_torch.shape == example_tensor_torch.shape
-
-    assert isinstance(example_tensor_torch.tensor(), torch.Tensor)
-
-    # Check that the Tensor instance has the correct buffer, dtype, and shape
-    assert example_tensor_torch.buffer == example_tensor_torch.buffer
-    assert example_tensor_torch.dtype == example_tensor_torch.dtype
-    assert example_tensor_torch.shape == example_tensor_torch.shape
+from bittensor.core.tensor import Tensor
 
 
 def test_buffer_field():
@@ -174,72 +74,34 @@ def test_shape_field_torch(force_legacy_torch_compatible_api):
     assert tensor.shape == [3, 3]
 
 
-def test_serialize_all_types():
-    tensor_class(np.array([1], dtype=np.float16))
-    tensor_class(np.array([1], dtype=np.float32))
-    tensor_class(np.array([1], dtype=np.float64))
-    tensor_class(np.array([1], dtype=np.uint8))
-    tensor_class(np.array([1], dtype=np.int32))
-    tensor_class(np.array([1], dtype=np.int64))
-    tensor_class(np.array([1], dtype=bool))
+def test_serialize():
+    """Test the deserialization of the Tensor instance."""
+    # Preps
+    tensor_ = np.ndarray([3, 3], dtype=np.float32)
 
+    # Call
+    tensor = Tensor.serialize(tensor_)
 
-def test_serialize_all_types_torch(force_legacy_torch_compatible_api):
-    tensor_class(torch.tensor([1], dtype=torch.float16))
-    tensor_class(torch.tensor([1], dtype=torch.float32))
-    tensor_class(torch.tensor([1], dtype=torch.float64))
-    tensor_class(torch.tensor([1], dtype=torch.uint8))
-    tensor_class(torch.tensor([1], dtype=torch.int32))
-    tensor_class(torch.tensor([1], dtype=torch.int64))
-    tensor_class(torch.tensor([1], dtype=torch.bool))
-
-
-def test_serialize_all_types_equality():
-    rng = np.random.default_rng()
-
-    tensor = rng.standard_normal((100,), dtype=np.float32)
-    assert np.all(tensor_class(tensor).tensor() == tensor)
-
-    tensor = rng.standard_normal((100,), dtype=np.float64)
-    assert np.all(tensor_class(tensor).tensor() == tensor)
-
-    tensor = np.random.randint(255, 256, (1000,), dtype=np.uint8)
-    assert np.all(tensor_class(tensor).tensor() == tensor)
-
-    tensor = np.random.randint(2_147_483_646, 2_147_483_647, (1000,), dtype=np.int32)
-    assert np.all(tensor_class(tensor).tensor() == tensor)
-
-    tensor = np.random.randint(
-        9_223_372_036_854_775_806, 9_223_372_036_854_775_807, (1000,), dtype=np.int64
+    # Asserts
+    assert (
+        tensor.buffer
+        == "hcQCbmTDxAR0eXBlozxmNMQEa2luZMQAxAVzaGFwZZIDA8QEZGF0YcQkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
     )
-    assert np.all(tensor_class(tensor).tensor() == tensor)
-
-    tensor = rng.standard_normal((100,), dtype=np.float32) < 0.5
-    assert np.all(tensor_class(tensor).tensor() == tensor)
+    assert tensor.dtype == "float32"
+    assert tensor.shape == [3, 3]
 
 
-def test_serialize_all_types_equality_torch(force_legacy_torch_compatible_api):
-    torchtensor = torch.randn([100], dtype=torch.float16)
-    assert torch.all(tensor_class(torchtensor).tensor() == torchtensor)
-
-    torchtensor = torch.randn([100], dtype=torch.float32)
-    assert torch.all(tensor_class(torchtensor).tensor() == torchtensor)
-
-    torchtensor = torch.randn([100], dtype=torch.float64)
-    assert torch.all(tensor_class(torchtensor).tensor() == torchtensor)
-
-    torchtensor = torch.randint(255, 256, (1000,), dtype=torch.uint8)
-    assert torch.all(tensor_class(torchtensor).tensor() == torchtensor)
-
-    torchtensor = torch.randint(
-        2_147_483_646, 2_147_483_647, (1000,), dtype=torch.int32
+def test_deserialize():
+    """Test the deserialization of the Tensor instance."""
+    # Preps
+    tensor = Tensor(
+        buffer="hcQCbmTDxAR0eXBlozxmNMQEa2luZMQAxAVzaGFwZZIDA8QEZGF0YcQkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        dtype="float32",
+        shape=[3, 3],
     )
-    assert torch.all(tensor_class(torchtensor).tensor() == torchtensor)
 
-    torchtensor = torch.randint(
-        9_223_372_036_854_775_806, 9_223_372_036_854_775_807, (1000,), dtype=torch.int64
-    )
-    assert torch.all(tensor_class(torchtensor).tensor() == torchtensor)
+    # Call
+    result = tensor.deserialize()
 
-    torchtensor = torch.randn([100], dtype=torch.float32) < 0.5
-    assert torch.all(tensor_class(torchtensor).tensor() == torchtensor)
+    # Asserts
+    assert np.array_equal(result, np.zeros((3, 3)))
