@@ -2506,8 +2506,6 @@ class TestCLIWithNetworkUsingArgs(unittest.TestCase):
                     "delegate",
                     "--subtensor.network",
                     "mock",  # Mock network
-                    "--wallet.name",
-                    "mock",
                     "--delegate_ss58key",
                     delegate_wallet.hotkey.ss58_address,
                     "--amount",

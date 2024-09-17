@@ -1324,7 +1324,7 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
                         cli = bittensor.cli(
                             args=base_args
                             + [
-                                "--proposal_hash",
+                                "--proposal",
                                 mock_proposal_hash,
                             ]
                         )
@@ -1384,7 +1384,6 @@ class TestCLIDefaultsNoNetwork(unittest.TestCase):
                 args=[
                     "sudo",
                     "set",
-                    "hyperparameters",
                     "--netuid",
                     "1",
                     "--param",
