@@ -880,7 +880,7 @@ class TorchMetaGraph(MetagraphMixin, BaseClass):
     ):
         """
         Initializes a new instance of the metagraph object, setting up the basic structure and parameters based on the provided arguments.
-        This class require installed Torch.
+        This class requires Torch to be installed.
         This method is the entry point for creating a metagraph object, which is a central component in representing the state of the Bittensor network.
 
         Args:
