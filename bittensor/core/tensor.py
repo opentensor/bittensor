@@ -133,13 +133,6 @@ def cast_shape(raw: Union[None, List[int], str]) -> Optional[Union[str, list]]:
         )
 
 
-class tensor:
-    def __new__(cls, tensor: Union[list, np.ndarray, "torch.Tensor"]):
-        if isinstance(tensor, list) or isinstance(tensor, np.ndarray):
-            tensor = torch.tensor(tensor) if use_torch() else np.array(tensor)
-        return Tensor.serialize(tensor_=tensor)
-
-
 class Tensor(BaseModel):
     """
     Represents a Tensor object.
@@ -158,7 +151,7 @@ class Tensor(BaseModel):
     def tolist(self) -> List[object]:
         return self.deserialize().tolist()
 
-    def numpy(self) -> "numpy.ndarray":
+    def numpy(self) -> "np.ndarray":
         return (
             self.deserialize().detach().numpy() if use_torch() else self.deserialize()
         )

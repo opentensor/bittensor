@@ -96,7 +96,7 @@ from bittensor.core.settings import BLOCKTIME
 from bittensor.core.stream import StreamingSynapse  # noqa: F401
 from bittensor.core.subtensor import Subtensor
 from bittensor.core.synapse import TerminalInfo, Synapse  # noqa: F401
-from bittensor.core.tensor import tensor, Tensor  # noqa: F401
+from bittensor.core.tensor import Tensor  # noqa: F401
 from bittensor.core.threadpool import (  # noqa: F401
     PriorityThreadPoolExecutor as PriorityThreadPoolExecutor,
 )
