@@ -4413,11 +4413,15 @@ class Subtensor:
         available for neuron participation and collaboration.
         """
         result = self.query_map_subtensor("NetworksAdded", block)
-        return (
-            [network[0].value for network in result.records]
-            if result and hasattr(result, "records")
-            else []
-        )
+        subnets = []
+
+        for data in result:
+            continue
+        # Check if the 'records' attribute exists and is not None
+        if hasattr(result, "records") and result.records:
+            subnets = [subnet[0].value for subnet in result.records]
+
+        return subnets
 
     @networking.ensure_connected
     def get_all_subnets_info(self, block: Optional[int] = None) -> List[SubnetInfo]:
