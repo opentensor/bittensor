@@ -45,6 +45,7 @@ from bittensor.btlogging import logging as _logger
 from bittensor.utils import torch, weight_utils, format_error_message
 from .chain_data import (
     DelegateInfoLite,
+    NeuronCertificate,
     NeuronInfo,
     DelegateInfo,
     PrometheusInfo,
@@ -116,6 +117,7 @@ from .utils import (
     ss58_to_vec_u8,
     U64_NORMALIZED_FLOAT,
     networking,
+    Certificate,
 )
 from .utils.balance import Balance
 from .utils.registration import POWSolution
@@ -1827,6 +1829,7 @@ class Subtensor:
         placeholder2: int = 0,
         wait_for_inclusion: bool = False,
         wait_for_finalization=True,
+        certificate: Optional[Certificate] = None,
     ) -> bool:
         """
         Registers a neuron's serving endpoint on the Bittensor network. This function announces the
@@ -1863,6 +1866,7 @@ class Subtensor:
             placeholder2,
             wait_for_inclusion,
             wait_for_finalization,
+            certificate=certificate,
         )
 
     def serve_axon(
@@ -1871,6 +1875,7 @@ class Subtensor:
         axon: "bittensor.axon",
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
+        certificate: Optional[Certificate] = None,
     ) -> bool:
         """
         Registers an Axon serving endpoint on the Bittensor network for a specific neuron. This function
@@ -1890,7 +1895,12 @@ class Subtensor:
         computing infrastructure, contributing to the collective intelligence of Bittensor.
         """
         return serve_axon_extrinsic(
-            self, netuid, axon, wait_for_inclusion, wait_for_finalization
+            self,
+            netuid,
+            axon,
+            wait_for_inclusion,
+            wait_for_finalization,
+            certificate=certificate,
         )
 
     @networking.ensure_connected
@@ -1918,11 +1928,17 @@ class Subtensor:
         enhancing the decentralized computation capabilities of Bittensor.
         """
 
+        if call_params["certificate"] is None:
+            del call_params["certificate"]
+            call_function = "serve_axon"
+        else:
+            call_function = "serve_axon_tls"
+
         @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
         def make_substrate_call_with_retry():
             call = self.substrate.compose_call(
                 call_module="SubtensorModule",
-                call_function="serve_axon",
+                call_function=call_function,
                 call_params=call_params,
             )
             extrinsic = self.substrate.create_signed_extrinsic(
@@ -5221,6 +5237,36 @@ class Subtensor:
             return NeuronInfo.get_null_neuron()
 
         return NeuronInfo.from_vec_u8(result)
+
+    def get_neuron_certificate(
+        self, hotkey: str, netuid: int, block: Optional[int] = None
+    ) -> Optional[Certificate]:
+        """
+        Retrieves the TLS certificate for a specific neuron identified by its unique identifier (UID)
+        within a specified subnet (netuid) of the Bittensor network.
+        Args:
+            hotkey (str): The hotkey to query.
+            netuid (int): The unique identifier of the subnet.
+            block (Optional[int], optional): The blockchain block number for the query.
+
+        Returns:
+            Optional[Certificate]: the certificate of the neuron if found, ``None`` otherwise.
+
+        This function is used for certificate discovery for setting up mutual tls communication between neurons
+        """
+
+        certificate = self.query_module(
+            module="SubtensorModule",
+            name="NeuronCertificates",
+            block=block,
+            params=[netuid, hotkey],
+        )
+        if not hasattr(certificate, "serialize"):
+            return None
+        certificate = certificate.serialize()
+        if not certificate:
+            return None
+        return certificate.get("certificate", None)
 
     def neurons(self, netuid: int, block: Optional[int] = None) -> List[NeuronInfo]:
         """

@@ -34,6 +34,7 @@ import bittensor
 from .utils import networking as net, RAOPERTAO, U16_NORMALIZED_FLOAT
 from .utils.balance import Balance
 from .utils.registration import torch, use_torch
+from .utils import Certificate
 
 custom_rpc_type_registry = {
     "types": {
@@ -71,6 +72,12 @@ custom_rpc_type_registry = {
                 ["validator_permits", "Vec<Compact<u16>>"],
                 ["return_per_1000", "Compact<u64>"],
                 ["total_daily_return", "Compact<u64>"],
+            ],
+        },
+        "NeuronCertificate": {
+            "type": "struct",
+            "type_mapping": [
+                ["certificate", "Vec<u8>"],
             ],
         },
         "NeuronInfo": {
@@ -333,6 +340,7 @@ class ChainDataType(Enum):
     IPInfo = 7
     SubnetHyperparameters = 8
     ScheduledColdkeySwapInfo = 9
+    NeuronCertificate = 10
 
 
 def from_scale_encoding(
@@ -538,6 +546,21 @@ class NeuronInfo:
         n_dict["bonds"] = bonds_as_dict.get(neuron_lite.uid, [])
 
         return cls(**n_dict)
+
+
+# Dataclasses for chain data.
+@dataclass
+class NeuronCertificate:
+    r"""
+    Dataclass for neuron certificate.
+    """
+
+    certificate: Certificate
+
+    @classmethod
+    def from_vec_u8(cls, vec_u8: List[int]) -> "NeuronCertificate":
+        r"""Returns a NeuronCertificate object from a ``vec_u8``."""
+        return from_scale_encoding(vec_u8, ChainDataType.NeuronCertificate)
 
 
 @dataclass
