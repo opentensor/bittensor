@@ -291,7 +291,7 @@ def get_coldkey_password_from_environment(coldkey_name: str) -> Optional[str]:
         else:
             warnings.warn(
                 "Cold key name contains a hyphen. "
-                "Please use an underscore instead in enviornment variable name. "
+                "Please use an underscore instead in environment variable name. "
                 "In future versions all environment variables with hypens will be ignored.",
                 DeprecationWarning,
             )
