@@ -13,6 +13,31 @@
 
 </div>
 
+- [Overview of Bittensor](#overview-of-bittensor)
+- [The Bittensor SDK](#the-bittensor-sdk)
+- [Is Bittensor a blockchain or an AI platform?](#is-bittensor-a-blockchain-or-an-ai-platform)
+- [Subnets](#subnets)
+- [Subnet validators and subnet miners](#subnet-validators-and-subnet-miners)
+- [Yuma Consensus](#yuma-consensus)
+- [Release Notes](#release-notes)
+- [Install Bittensor SDK](#install-bittensor-sdk)
+- [Upgrade](#upgrade)
+- [Install on macOS and Linux](#install-on-macos-and-linux)
+  - [Install using a Bash command](#install-using-a-bash-command)
+  - [Install using `pip3 install`](#install-using-pip3-install)
+  - [Install from source](#install-from-source)
+- [Install on Windows](#install-on-windows)
+- [Verify the installation](#verify-the-installation)
+  - [Verify using `btsdk` version](#verify-using-btsdk-version)
+  - [Verify using Python interpreter](#verify-using-python-interpreter)
+  - [Verify by listing axon information](#verify-by-listing-axon-information)
+- [Release Guidelines](#release-guidelines)
+- [Contributions](#contributions)
+- [License](#license)
+- [Acknowledgments](#acknowledgments)
+
+---
+
 ## Overview of Bittensor
 
 Welcome! Bittensor is an open source platform on which you can produce competitive digital commodities. These digital commodities can be machine intelligence, storage space, compute power, protein folding, financial markets prediction, and many more. You are rewarded in **TAO** when you produce best digital commodities.
@@ -89,7 +114,9 @@ If you are using Ubuntu-Linux, the script will prompt for `sudo` access to insta
 ### Install using `pip3 install`
 
 ```bash
-pip3 install bittensor
+python3 -m venv myvenv
+source myvenv/bin/activate
+pip install bittensor
 ```
 
 ### Install from source
@@ -134,23 +161,15 @@ While wallet transactions like delegating, transfer, registering, staking can be
 
 ## Verify the installation
 
-You can verify your installation in either of the two ways as shown below:
+You can verify your installation in either of the below ways:
 
-### Verify using the `btcli` command
-
-Using the [Bittensor Command Line Interface](https://docs.bittensor.com/btcli).
+### Verify using `btsdk` version
 
 ```bash
-btcli --help
+python3 -m bittensor
 ```
-which will give you the below output:
 
-```text
-usage: btcli <command> <command args>
-bittensor cli <version number>
-...
-```
-You will see the version number you installed in place of `<version number>`. 
+The above command will show you the version of the `btsdk` you just installed.
 
 ### Verify using Python interpreter
 
@@ -198,11 +217,11 @@ The Python interpreter output will look like below.
 Instructions for the release manager: [RELEASE_GUIDELINES.md](./contrib/RELEASE_GUIDELINES.md) document.
 
 ## Contributions
-Ready to contributre? Read the [contributing guide](./contrib/CONTRIBUTING.md) before making a pull request.
+Ready to contribute? Read the [contributing guide](./contrib/CONTRIBUTING.md) before making a pull request.
 
 ## License
 The MIT License (MIT)
-Copyright © 2021 Yuma Rao
+Copyright © 2024 The Opentensor Foundation
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
