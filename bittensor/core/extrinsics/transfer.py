@@ -15,7 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from typing import Dict, Tuple, Optional, Union, TYPE_CHECKING
+from typing import Optional, Union, TYPE_CHECKING
 
 from retry import retry
 from rich.prompt import Confirm
@@ -45,7 +45,7 @@ def do_transfer(
     transfer_balance: "Balance",
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
-) -> Tuple[bool, Optional[str], Optional[Dict]]:
+) -> tuple[bool, Optional[str], Optional[dict]]:
     """Sends a transfer extrinsic to the chain.
 
     Args:
@@ -97,7 +97,7 @@ def transfer_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
     dest: str,
-    amount: Union[Balance, float],
+    amount: Union["Balance", float],
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
     keep_alive: bool = True,
