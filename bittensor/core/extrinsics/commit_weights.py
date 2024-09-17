@@ -57,8 +57,7 @@ def do_commit_weights(
     Returns:
         Tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
 
-    This method ensures that the weight commitment is securely recorded on the Bittensor blockchain, providing a
-    verifiable record of the neuron's weight distribution at a specific point in time.
+    This method ensures that the weight commitment is securely recorded on the Bittensor blockchain, providing a verifiable record of the neuron's weight distribution at a specific point in time.
     """
 
     @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=logging)
@@ -119,8 +118,7 @@ def commit_weights_extrinsic(
         Tuple[bool, str]: ``True`` if the weight commitment is successful, False otherwise. And `msg`, a string
         value describing the success or potential error.
 
-    This function provides a user-friendly interface for committing weights to the Bittensor blockchain, ensuring proper
-    error handling and user interaction when required.
+    This function provides a user-friendly interface for committing weights to the Bittensor blockchain, ensuring proper error handling and user interaction when required.
     """
     if prompt and not Confirm.ask(f"Would you like to commit weights?"):
         return False, "User cancelled the operation."
@@ -175,8 +173,7 @@ def do_reveal_weights(
     Returns:
         Tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
 
-    This method ensures that the weight revelation is securely recorded on the Bittensor blockchain, providing transparency
-    and accountability for the neuron's weight distribution.
+    This method ensures that the weight revelation is securely recorded on the Bittensor blockchain, providing transparency and accountability for the neuron's weight distribution.
     """
 
     @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=logging)
@@ -229,6 +226,7 @@ def reveal_weights_extrinsic(
     """
     Reveals the weights for a specific subnet on the Bittensor blockchain using the provided wallet.
     This function is a wrapper around the `_do_reveal_weights` method, handling user prompts and error messages.
+
     Args:
         subtensor (bittensor.core.subtensor.Subtensor): The subtensor instance used for blockchain interaction.
         wallet (bittensor_wallet.Wallet): The wallet associated with the neuron revealing the weights.
@@ -245,8 +243,7 @@ def reveal_weights_extrinsic(
         Tuple[bool, str]: ``True`` if the weight revelation is successful, False otherwise. And `msg`, a string
         value describing the success or potential error.
 
-    This function provides a user-friendly interface for revealing weights on the Bittensor blockchain, ensuring proper
-    error handling and user interaction when required.
+    This function provides a user-friendly interface for revealing weights on the Bittensor blockchain, ensuring proper error handling and user interaction when required.
     """
 
     if prompt and not Confirm.ask(f"Would you like to reveal weights?"):
