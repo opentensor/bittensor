@@ -26,7 +26,7 @@ from .utils.deprecated import *
 def trace(on: bool = True):
     """
     Enables or disables trace logging.
-    
+
     Args:
         on (bool): If True, enables trace logging. If False, disables trace logging.
     """
