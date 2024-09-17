@@ -556,7 +556,7 @@ class Axon:
         ]
         if blacklist_fn:
             blacklist_sig = Signature(
-                expected_params, return_annotation=Tuple[bool, str]
+                expected_params, return_annotation=tuple[bool, str]
             )
             assert (
                 signature(blacklist_fn) == blacklist_sig
