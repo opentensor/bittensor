@@ -151,7 +151,7 @@ class Tensor(BaseModel):
     def tolist(self) -> List[object]:
         return self.deserialize().tolist()
 
-    def numpy(self) -> "numpy.ndarray":
+    def numpy(self) -> "np.ndarray":
         return (
             self.deserialize().detach().numpy() if use_torch() else self.deserialize()
         )
