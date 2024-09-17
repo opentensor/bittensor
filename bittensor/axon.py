@@ -26,6 +26,7 @@ import copy
 import inspect
 import json
 import os
+import socket
 import threading
 import time
 import traceback
@@ -60,6 +61,12 @@ from bittensor.errors import (
 )
 from bittensor.threadpool import PriorityThreadPoolExecutor
 from bittensor.utils import networking
+
+
+"""
+The quantum of time to sleep in waiting loops, in seconds.
+"""
+TIME_SLEEP_INTERVAL: float = 1e-3
 
 
 class FastAPIThreadedServer(uvicorn.Server):
@@ -100,11 +107,59 @@ class FastAPIThreadedServer(uvicorn.Server):
     should_exit: bool = False
     is_running: bool = False
 
+    """
+    Provide a channel to signal exceptions from the thread to our caller.
+    """
+    _exception: Optional[Exception] = None
+    _lock: threading.Lock = threading.Lock()
+    _thread: Optional[threading.Thread] = None
+    _started: bool = False
+
+    def set_exception(self, exception: Exception) -> None:
+        """
+        Set self._exception in a thread safe manner, so the worker thread can communicate exceptions to the main thread.
+        """
+        with self._lock:
+            self._exception = exception
+
+    def get_exception(self) -> Optional[Exception]:
+        with self._lock:
+            return self._exception
+
+    def set_thread(self, thread: threading.Thread):
+        """
+        Set self._thread in a thread safe manner, so the main thread can get the worker thread object.
+        """
+        with self._lock:
+            self._thread = thread
+
+    def get_thread(self) -> Optional[threading.Thread]:
+        with self._lock:
+            return self._thread
+
+    def set_started(self, started: bool) -> None:
+        """
+        Set self._started in a thread safe manner, so the main thread can get the worker thread status.
+        """
+        with self._lock:
+            self._started = started
+
+    def get_started(self) -> bool:
+        with self._lock:
+            return self._started
+
     def install_signal_handlers(self):
         """
         Overrides the default signal handlers provided by ``uvicorn.Server``. This method is essential to ensure that the signal handling in the threaded server does not interfere with the main application's flow, especially in a complex asynchronous environment like the Axon server.
         """
         pass
+
+    async def startup(self, sockets: Optional[List[socket.socket]] = None) -> None:
+        """
+        Adds a thread-safe call to set a 'started' flag on the object.
+        """
+        await super().startup(sockets)
+        self.set_started(True)
 
     @contextlib.contextmanager
     def run_in_thread(self):
@@ -112,14 +167,20 @@ class FastAPIThreadedServer(uvicorn.Server):
         Manages the execution of the server in a separate thread, allowing the FastAPI application to run asynchronously without blocking the main thread of the Axon server. This method is a key component in enabling concurrent request handling in the Axon server.
 
         Yields:
-            None: This method yields control back to the caller while the server is running in the background thread.
+            thread: a running thread
+
+        Raises:
+            Exception: in case the server did not start (as signalled by self.get_started())
         """
         thread = threading.Thread(target=self.run, daemon=True)
         thread.start()
         try:
-            while not self.started:
-                time.sleep(1e-3)
-            yield
+            time_start = time.time()
+            while not self.get_started() and time.time() - time_start < 1:
+                time.sleep(TIME_SLEEP_INTERVAL)
+            if not self.get_started():
+                raise Exception("failed to start server")
+            yield thread
         finally:
             self.should_exit = True
             thread.join()
@@ -128,9 +189,15 @@ class FastAPIThreadedServer(uvicorn.Server):
         """
         A wrapper method for the :func:`run_in_thread` context manager. This method is used internally by the ``start`` method to initiate the server's execution in a separate thread.
         """
-        with self.run_in_thread():
-            while not self.should_exit:
-                time.sleep(1e-3)
+        try:
+            with self.run_in_thread() as thread:
+                self.set_thread(thread)
+                while not self.should_exit:
+                    if not thread.is_alive():
+                        raise Exception("worker thread died")
+                    time.sleep(TIME_SLEEP_INTERVAL)
+        except Exception as e:
+            self.set_exception(e)
 
     def start(self):
         """
@@ -404,6 +471,26 @@ class axon:
             placeholder1=0,
             placeholder2=0,
         )
+
+    @property
+    def exception(self) -> Optional[Exception]:
+        """
+        Axon objects expose exceptions that occurred internally through the .exception property.
+        """
+        # for future use: setting self._exception to signal an exception
+        exception = getattr(self, "_exception", None)
+        if exception:
+            return exception
+        return self.fast_server.get_exception()
+
+    def is_running(self) -> bool:
+        """
+        Axon objects can be queried using .is_running() to test whether worker threads are running.
+        """
+        thread = self.fast_server.get_thread()
+        if thread is None:
+            return False
+        return thread.is_alive()
 
     def attach(
         self,
