@@ -13,8 +13,25 @@ from bittensor.commands.senate import SenateCommand
 from ...utils import setup_wallet
 
 
+def assert_sequence(lines, sequence):
+    sequence_ptr = 0
+    for line in lines:
+        words_in_line = set(line.split())
+        current_seq_set = sequence[sequence_ptr]
+        if current_seq_set.issubset(words_in_line):
+            sequence_ptr += 1
+            if sequence_ptr == len(sequence):
+                break
+
+    assert sequence_ptr == len(
+        sequence
+    ), f"Did not find sequence[{sequence_ptr}] = '{sequence[sequence_ptr]}' in output"
+
+
 def test_root_register_add_member_senate(local_chain, capsys):
     logging.info("Testing test_root_register_add_member_senate")
+    netuid = 1
+
     # Register root as Alice - the subnet owner
     alice_keypair, exec_command, wallet = setup_wallet("//Alice")
     exec_command(RegisterSubnetworkCommand, ["s", "create"])
@@ -26,7 +43,7 @@ def test_root_register_add_member_senate(local_chain, capsys):
             "s",
             "register",
             "--netuid",
-            "1",
+            str(netuid),
         ],
     )
 
@@ -45,9 +62,8 @@ def test_root_register_add_member_senate(local_chain, capsys):
 
     exec_command(SetTakeCommand, ["r", "set_take", "--take", "0.8"])
 
-    captured = capsys.readouterr()
-    # Verify subnet 1 created successfully
-    assert local_chain.query("SubtensorModule", "NetworksAdded", [1]).serialize()
+    # Verify subnet <netuid> created successfully
+    assert local_chain.query("SubtensorModule", "NetworksAdded", [netuid]).serialize()
     # Query local chain for senate members
     members = local_chain.query("SenateMembers", "Members").serialize()
     assert len(members) == 3, f"Expected 3 senate members, found {len(members)}"
@@ -68,12 +84,16 @@ def test_root_register_add_member_senate(local_chain, capsys):
     captured = capsys.readouterr()
 
     # assert output is graph Titling "Senate" with names and addresses
-    assert "Senate" in captured.out
-    assert "NAME" in captured.out
-    assert "ADDRESS" in captured.out
-    assert "5CiPPseXPECbkjWCa6MnjNokrgYjMqmKndv2rSnekmSK2DjL" in captured.out
-    assert "5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy" in captured.out
-    assert "5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw" in captured.out
+    assert_sequence(
+        captured.out.split("\n"),
+        (
+            {"Senate"},
+            {"NAME", "ADDRESS"},
+            {"5CiPPseXPECbkjWCa6MnjNokrgYjMqmKndv2rSnekmSK2DjL"},
+            {"5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy"},
+            {"5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw"},
+        ),
+    )
 
     exec_command(
         RootRegisterCommand,
@@ -110,11 +130,14 @@ def test_root_register_add_member_senate(local_chain, capsys):
     captured = capsys.readouterr()
 
     # assert output is graph Titling "Senate" with names and addresses
-
-    assert "Senate" in captured.out
-    assert "NAME" in captured.out
-    assert "ADDRESS" in captured.out
-    assert "5CiPPseXPECbkjWCa6MnjNokrgYjMqmKndv2rSnekmSK2DjL" in captured.out
-    assert "5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy" in captured.out
-    assert "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY" in captured.out
-    assert "5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw" in captured.out
+    assert_sequence(
+        captured.out.split("\n"),
+        (
+            {"Senate"},
+            {"NAME", "ADDRESS"},
+            {"5CiPPseXPECbkjWCa6MnjNokrgYjMqmKndv2rSnekmSK2DjL"},
+            {"5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy"},
+            {"5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"},
+            {"5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw"},
+        ),
+    )
