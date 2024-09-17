@@ -20,10 +20,10 @@
 import hashlib
 import logging
 import typing
-from typing import Union
+from typing import Union, Optional
 
 import numpy as np
-from docopt import Optional
+
 from numpy.typing import NDArray
 from scalecodec import U16, ScaleBytes, Vec
 from substrateinterface import Keypair
