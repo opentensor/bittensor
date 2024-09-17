@@ -16,7 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import logging
-from typing import List, Union, Tuple, Optional, TYPE_CHECKING
+from typing import Union, Optional, TYPE_CHECKING
 
 import numpy as np
 from numpy.typing import NDArray
@@ -40,28 +40,28 @@ if TYPE_CHECKING:
 def do_set_weights(
     self: "Subtensor",
     wallet: "Wallet",
-    uids: List[int],
-    vals: List[int],
+    uids: list[int],
+    vals: list[int],
     netuid: int,
     version_key: int = version_as_int,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
-) -> Tuple[bool, Optional[dict]]:  # (success, error_message)
+) -> tuple[bool, Optional[dict]]:  # (success, error_message)
     """
     Internal method to send a transaction to the Bittensor blockchain, setting weights for specified neurons. This method constructs and submits the transaction, handling retries and blockchain communication.
 
     Args:
         self (bittensor.core.subtensor.Subtensor): Subtensor interface
         wallet (bittensor_wallet.Wallet): The wallet associated with the neuron setting the weights.
-        uids (List[int]): List of neuron UIDs for which weights are being set.
-        vals (List[int]): List of weight values corresponding to each UID.
+        uids (list[int]): List of neuron UIDs for which weights are being set.
+        vals (list[int]): List of weight values corresponding to each UID.
         netuid (int): Unique identifier for the network.
         version_key (int): Version key for compatibility with the network.
         wait_for_inclusion (bool): Waits for the transaction to be included in a block.
         wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
 
     Returns:
-        Tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
+        tuple[bool, Optional[str]]: A tuple containing a success flag and an optional response message.
 
     This method is vital for the dynamic weighting mechanism in Bittensor, where neurons adjust their trust in other neurons based on observed performance and contributions.
     """
@@ -113,7 +113,7 @@ def set_weights_extrinsic(
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
     prompt: bool = False,
-) -> Tuple[bool, str]:
+) -> tuple[bool, str]:
     """Sets the given weights and values on chain for wallet hotkey account.
 
     Args:
@@ -128,7 +128,7 @@ def set_weights_extrinsic(
         prompt (bool): If ``true``, the call waits for confirmation from the user before proceeding.
 
     Returns:
-        success (bool): Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
+        tuple[bool, str]: A tuple containing a success flag and an optional response message.
     """
     # First convert types.
     if use_torch():
