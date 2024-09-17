@@ -735,14 +735,12 @@ class SetChildKeyTakeCommand:
         set_childkey_take_parser.add_argument(
             "--wait_for_inclusion",
             dest="wait_for_inclusion",
-            action="store_true",
             default=True,
             help="""Wait for the transaction to be included in a block.""",
         )
         set_childkey_take_parser.add_argument(
             "--wait_for_finalization",
             dest="wait_for_finalization",
-            action="store_true",
             default=True,
             help="""Wait for the transaction to be finalized.""",
         )
@@ -1053,14 +1051,12 @@ class SetChildrenCommand:
         set_children_parser.add_argument(
             "--wait_for_inclusion",
             dest="wait_for_inclusion",
-            action="store_true",
             default=True,
             help="""Wait for the transaction to be included in a block.""",
         )
         set_children_parser.add_argument(
             "--wait_for_finalization",
             dest="wait_for_finalization",
-            action="store_true",
             default=True,
             help="""Wait for the transaction to be finalized.""",
         )
