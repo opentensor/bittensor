@@ -125,7 +125,7 @@ def test_process_weights_or_bonds(mock_environment):
     # TODO: Add more checks to ensure the bonds have been processed correctly
 
 
-# Mocking the bittensor.subtensor class for testing purposes
+# Mocking the bittensor.Subtensor class for testing purposes
 @pytest.fixture
 def mock_subtensor():
     subtensor = MagicMock()

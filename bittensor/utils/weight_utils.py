@@ -20,9 +20,10 @@
 import hashlib
 import logging
 import typing
-from typing import List, Tuple, Union
+from typing import Union, Optional
 
 import numpy as np
+
 from numpy.typing import NDArray
 from scalecodec import U16, ScaleBytes, Vec
 from substrateinterface import Keypair
@@ -90,13 +91,15 @@ def normalize_max_weight(
 
 # Metagraph uses this function.
 def convert_weight_uids_and_vals_to_tensor(
-    n: int, uids: List[int], weights: List[int]
+    n: int, uids: list[int], weights: list[int]
 ) -> Union[NDArray[np.float32], "torch.FloatTensor"]:
-    """Converts weights and uids from chain representation into a np.array (inverse operation from convert_weights_and_uids_for_emit)
+    """
+    Converts weights and uids from chain representation into a np.array (inverse operation from convert_weights_and_uids_for_emit).
+
     Args:
         n (int): number of neurons on network.
-        uids (List[int]): Tensor of uids as destinations for passed weights.
-        weights (List[int]): Tensor of weights.
+        uids (list[int]): Tensor of uids as destinations for passed weights.
+        weights (list[int]): Tensor of weights.
 
     Returns:
         row_weights (np.float32 or torch.FloatTensor): Converted row weights.
@@ -118,14 +121,14 @@ def convert_weight_uids_and_vals_to_tensor(
 
 # Metagraph uses this function.
 def convert_root_weight_uids_and_vals_to_tensor(
-    n: int, uids: List[int], weights: List[int], subnets: List[int]
+    n: int, uids: list[int], weights: list[int], subnets: list[int]
 ) -> Union[NDArray[np.float32], "torch.FloatTensor"]:
     """Converts root weights and uids from chain representation into a np.array or torch FloatTensor (inverse operation from convert_weights_and_uids_for_emit)
     Args:
         n (int): number of neurons on network.
-        uids (List[int]): Tensor of uids as destinations for passed weights.
-        weights (List[int]): Tensor of weights.
-        subnets (List[int]): List of subnets on the network.
+        uids (list[int]): Tensor of uids as destinations for passed weights.
+        weights (list[int]): Tensor of weights.
+        subnets (list[int]): list of subnets on the network.
 
     Returns:
         row_weights (np.float32): Converted row weights.
@@ -154,14 +157,14 @@ def convert_root_weight_uids_and_vals_to_tensor(
 
 # Metagraph uses this function.
 def convert_bond_uids_and_vals_to_tensor(
-    n: int, uids: List[int], bonds: List[int]
+    n: int, uids: list[int], bonds: list[int]
 ) -> Union[NDArray[np.int64], "torch.LongTensor"]:
     """Converts bond and uids from chain representation into a np.array.
 
     Args:
         n (int): number of neurons on network.
-        uids (List[int]): Tensor of uids as destinations for passed bonds.
-        bonds (List[int]): Tensor of bonds.
+        uids (list[int]): Tensor of uids as destinations for passed bonds.
+        bonds (list[int]): Tensor of bonds.
 
     Returns:
         row_bonds (np.float32): Converted row bonds.
@@ -180,7 +183,7 @@ def convert_bond_uids_and_vals_to_tensor(
 def convert_weights_and_uids_for_emit(
     uids: Union[NDArray[np.int64], "torch.LongTensor"],
     weights: Union[NDArray[np.float32], "torch.FloatTensor"],
-) -> Tuple[List[int], List[int]]:
+) -> tuple[list[int], list[int]]:
     """Converts weights into integer u32 representation that sum to MAX_INT_WEIGHT.
 
     Args:
@@ -188,8 +191,8 @@ def convert_weights_and_uids_for_emit(
         weights (np.float32):Tensor of weights.
 
     Returns:
-        weight_uids (List[int]): Uids as a list.
-        weight_vals (List[int]): Weights as a list.
+        weight_uids (list[int]): Uids as a list.
+        weight_vals (list[int]): Weights as a list.
     """
     # Checks.
     weights = weights.tolist()
@@ -231,11 +234,11 @@ def process_weights_for_netuid(
     weights: Union[NDArray[np.float32], "torch.Tensor"],
     netuid: int,
     subtensor: "Subtensor",
-    metagraph: "Metagraph" = None,
+    metagraph: Optional["Metagraph"] = None,
     exclude_quantile: int = 0,
 ) -> Union[
-    Tuple["torch.Tensor", "torch.FloatTensor"],
-    Tuple[NDArray[np.int64], NDArray[np.float32]],
+    tuple["torch.Tensor", "torch.FloatTensor"],
+    tuple[NDArray[np.int64], NDArray[np.float32]],
 ]:
     """
     Processes weight tensors for a given subnet id using the provided weight and UID arrays, applying constraints and normalization based on the subtensor and metagraph data. This function can handle both NumPy arrays and PyTorch tensors.
@@ -245,11 +248,11 @@ def process_weights_for_netuid(
         weights (Union[NDArray[np.float32], "torch.Tensor"]): Array of weights associated with the user IDs.
         netuid (int): The network uid to process weights for.
         subtensor (Subtensor): Subtensor instance to access blockchain data.
-        metagraph (Metagraph, optional): Metagraph instance for additional network data. If None, it is fetched from the subtensor using the netuid.
-        exclude_quantile (int, optional): Quantile threshold for excluding lower weights. Defaults to ``0``.
+        metagraph (Optional[Metagraph]): Metagraph instance for additional network data. If None, it is fetched from the subtensor using the netuid.
+        exclude_quantile (int): Quantile threshold for excluding lower weights. Defaults to ``0``.
 
     Returns:
-        Union[Tuple["torch.Tensor", "torch.FloatTensor"], Tuple[NDArray[np.int64], NDArray[np.float32]]]: Tuple containing the array of user IDs and the corresponding normalized weights. The data type of the return matches the type of the input weights (NumPy or PyTorch).
+        Union[tuple["torch.Tensor", "torch.FloatTensor"], tuple[NDArray[np.int64], NDArray[np.float32]]]: tuple containing the array of user IDs and the corresponding normalized weights. The data type of the return matches the type of the input weights (NumPy or PyTorch).
     """
 
     logging.debug("process_weights_for_netuid()")
@@ -361,10 +364,10 @@ def process_weights_for_netuid(
 def generate_weight_hash(
     address: str,
     netuid: int,
-    uids: List[int],
-    values: List[int],
+    uids: list[int],
+    values: list[int],
     version_key: int,
-    salt: List[int],
+    salt: list[int],
 ) -> str:
     """
     Generate a valid commit hash from the provided weights.
@@ -372,9 +375,9 @@ def generate_weight_hash(
     Args:
         address (str): The account identifier. Wallet ss58_address.
         netuid (int): The network unique identifier.
-        uids (List[int]): The list of UIDs.
-        salt (List[int]): The salt to add to hash.
-        values (List[int]): The list of weight values.
+        uids (list[int]): The list of UIDs.
+        salt (list[int]): The salt to add to hash.
+        values (list[int]): The list of weight values.
         version_key (int): The version key.
 
     Returns:

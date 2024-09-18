@@ -52,7 +52,7 @@ def test_liquid_alpha(local_chain):
     add_stake(local_chain, alice_wallet, bittensor.Balance.from_tao(100_000))
 
     # Assert liquid alpha is disabled
-    subtensor = bittensor.subtensor(network="ws://localhost:9945")
+    subtensor = bittensor.Subtensor(network="ws://localhost:9945")
     assert (
         subtensor.get_subnet_hyperparameters(netuid=netuid).liquid_alpha_enabled
         is False

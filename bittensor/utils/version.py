@@ -71,7 +71,7 @@ def get_and_save_latest_version(timeout: int = 15) -> str:
     Retrieves and saves the latest version of Bittensor.
 
     Args:
-        timeout (int, optional): The timeout for the request to PyPI in seconds. Default is ``15``.
+        timeout (int): The timeout for the request to PyPI in seconds. Default is ``15``.
 
     Returns:
         str: The latest version of Bittensor.
@@ -95,6 +95,9 @@ def check_version(timeout: int = 15):
     """
     Check if the current version of Bittensor is up-to-date with the latest version on PyPi.
     Raises a VersionCheckError if the version check fails.
+
+    Args:
+        timeout (int): The timeout for the request to PyPI in seconds. Default is ``15``.
     """
 
     try:
@@ -112,7 +115,11 @@ def check_version(timeout: int = 15):
 
 
 def version_checking(timeout: int = 15):
-    """Deprecated, kept for backwards compatibility. Use check_version() instead."""
+    """Deprecated, kept for backwards compatibility. Use check_version() instead.
+
+    Args:
+        timeout (int): The timeout for calling :func:``check_version`` function. Default is ``15``.
+    """
 
     from warnings import warn
 

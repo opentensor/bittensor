@@ -22,7 +22,7 @@ import copy
 import os
 import sys
 from copy import deepcopy
-from typing import List, Optional, Dict, Any, TypeVar, Type
+from typing import Any, TypeVar, Type, Optional
 
 import yaml
 from munch import DefaultMunch
@@ -45,15 +45,15 @@ class Config(DefaultMunch):
         default (Optional[Any]): Default value for the Config. Defaults to ``None``. This default will be returned for attributes that are undefined.
 
     Returns:
-        config (bittensor.config): Nested config object created from parser arguments.
+        config (bittensor.core.config.Config): Nested config object created from parser arguments.
     """
 
-    __is_set: Dict[str, bool]
+    __is_set: dict[str, bool]
 
     def __init__(
         self,
         parser: argparse.ArgumentParser = None,
-        args: Optional[List[str]] = None,
+        args: Optional[list[str]] = None,
         strict: bool = False,
         default: Optional[Any] = None,
     ) -> None:
@@ -243,12 +243,12 @@ class Config(DefaultMunch):
 
     @staticmethod
     def __parse_args__(
-        args: List[str], parser: argparse.ArgumentParser = None, strict: bool = False
+        args: list[str], parser: argparse.ArgumentParser = None, strict: bool = False
     ) -> argparse.Namespace:
         """Parses the passed args use the passed parser.
 
         Args:
-            args (List[str]): List of arguments to parse.
+            args (list[str]): List of arguments to parse.
             parser (argparse.ArgumentParser): Command line parser object.
             strict (bool): If ``true``, the command line arguments are strictly parsed.
 
@@ -309,7 +309,7 @@ class Config(DefaultMunch):
 
     @staticmethod
     def to_string(items) -> str:
-        """Get string from items"""
+        """Get string from items."""
         return "\n" + yaml.dump(items.toDict())
 
     def update_with_kwargs(self, kwargs):
@@ -333,25 +333,26 @@ class Config(DefaultMunch):
                 a[key] = b[key]
         return a
 
-    def merge(self, b):
+    def merge(self, b: "Config"):
         """
         Merges the current config with another config.
 
-        Args: b: Another config to merge.
+        Args:
+            b (bittensor.core.config.Config): Another config to merge.
         """
         self._merge(self, b)
 
     @classmethod
-    def merge_all(cls, configs: List["Config"]) -> "Config":
+    def merge_all(cls, configs: list["Config"]) -> "Config":
         """
         Merge all configs in the list into one config.
         If there is a conflict, the value from the last configuration in the list will take precedence.
 
         Args:
-            configs (list of config): List of configs to be merged.
+            configs (list[bittensor.core.config.Config]): List of configs to be merged.
 
         Returns:
-            config: Merged config object.
+            config (bittensor.core.config.Config): Merged config object.
         """
         result = cls()
         for cfg in configs:
@@ -359,23 +360,21 @@ class Config(DefaultMunch):
         return result
 
     def is_set(self, param_name: str) -> bool:
-        """
-        Returns a boolean indicating whether the parameter has been set or is still the default.
-        """
+        """Returns a boolean indicating whether the parameter has been set or is still the default."""
         if param_name not in self.get("__is_set"):
             return False
         else:
             return self.get("__is_set")[param_name]
 
     def __check_for_missing_required_args(
-        self, parser: argparse.ArgumentParser, args: List[str]
-    ) -> List[str]:
+        self, parser: argparse.ArgumentParser, args: list[str]
+    ) -> list[str]:
         required_args = self.__get_required_args_from_parser(parser)
         missing_args = [arg for arg in required_args if not any(arg in s for s in args)]
         return missing_args
 
     @staticmethod
-    def __get_required_args_from_parser(parser: argparse.ArgumentParser) -> List[str]:
+    def __get_required_args_from_parser(parser: argparse.ArgumentParser) -> list[str]:
         required_args = []
         for action in parser._actions:
             if action.required:

@@ -15,7 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from typing import Dict, Tuple, Optional, Union, TYPE_CHECKING
+from typing import Optional, Union, TYPE_CHECKING
 
 from retry import retry
 from rich.prompt import Confirm
@@ -45,7 +45,7 @@ def do_transfer(
     transfer_balance: "Balance",
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
-) -> Tuple[bool, Optional[str], Optional[Dict]]:
+) -> tuple[bool, Optional[str], Optional[dict]]:
     """Sends a transfer extrinsic to the chain.
 
     Args:
@@ -59,7 +59,7 @@ def do_transfer(
     Returns:
         success (bool): ``True`` if transfer was successful.
         block_hash (str): Block hash of the transfer. On success and if wait_for_ finalization/inclusion is ``True``.
-        error (Dict): Error message from subtensor if transfer failed.
+        error (dict): Error message from subtensor if transfer failed.
     """
 
     @retry(delay=1, tries=3, backoff=2, max_delay=4)
@@ -98,7 +98,7 @@ def transfer_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
     dest: str,
-    amount: Union[Balance, float],
+    amount: Union["Balance", float],
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
     keep_alive: bool = True,
@@ -108,7 +108,7 @@ def transfer_extrinsic(
 
     Args:
         subtensor (subtensor.core.subtensor.Subtensor): The Subtensor instance object.
-        wallet (bittensor.wallet): Bittensor wallet object to make transfer from.
+        wallet (bittensor_wallet.Wallet): Bittensor wallet object to make transfer from.
         dest (str, ss58_address or ed25519): Destination public key address of receiver.
         amount (Union[Balance, int]): Amount to stake as Bittensor balance, or ``float`` interpreted as Tao.
         wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.

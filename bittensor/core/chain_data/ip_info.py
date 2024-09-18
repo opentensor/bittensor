@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List, Dict, Optional, Any, Union
+from typing import Optional, Any, Union
 
 from bittensor.core.chain_data.utils import from_scale_encoding, ChainDataType
 from bittensor.utils import networking as net
@@ -8,13 +8,20 @@ from bittensor.utils.registration import torch, use_torch
 
 @dataclass
 class IPInfo:
-    """Dataclass for associated IP Info."""
+    """
+    Dataclass representing IP information.
+
+    Attributes:
+        ip (str): The IP address as a string.
+        ip_type (int): The type of the IP address (e.g., IPv4, IPv6).
+        protocol (int): The protocol associated with the IP (e.g., TCP, UDP).
+    """
 
     ip: str
     ip_type: int
     protocol: int
 
-    def encode(self) -> Dict[str, Any]:
+    def encode(self) -> dict[str, Any]:
         """Returns a dictionary of the IPInfo object that can be encoded."""
         return {
             "ip": net.ip_to_int(
@@ -24,7 +31,7 @@ class IPInfo:
         }
 
     @classmethod
-    def from_vec_u8(cls, vec_u8: List[int]) -> Optional["IPInfo"]:
+    def from_vec_u8(cls, vec_u8: list[int]) -> Optional["IPInfo"]:
         """Returns a IPInfo object from a ``vec_u8``."""
         if len(vec_u8) == 0:
             return None
@@ -36,7 +43,7 @@ class IPInfo:
         return IPInfo.fix_decoded_values(decoded)
 
     @classmethod
-    def list_from_vec_u8(cls, vec_u8: List[int]) -> List["IPInfo"]:
+    def list_from_vec_u8(cls, vec_u8: list[int]) -> list["IPInfo"]:
         """Returns a list of IPInfo objects from a ``vec_u8``."""
         decoded = from_scale_encoding(vec_u8, ChainDataType.IPInfo, is_vec=True)
 
@@ -46,7 +53,7 @@ class IPInfo:
         return [IPInfo.fix_decoded_values(d) for d in decoded]
 
     @classmethod
-    def fix_decoded_values(cls, decoded: Dict) -> "IPInfo":
+    def fix_decoded_values(cls, decoded: dict) -> "IPInfo":
         """Returns a SubnetInfo object from a decoded IPInfo dictionary."""
         return IPInfo(
             ip=net.int_to_ip(decoded["ip"]),

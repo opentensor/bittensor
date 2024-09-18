@@ -16,13 +16,12 @@
 # DEALINGS IN THE SOFTWARE.
 
 import json
-from typing import Tuple, Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
 
 from retry import retry
 
 from bittensor.core.extrinsics.utils import submit_extrinsic
 from bittensor.core.settings import version_as_int, bt_console
-from bittensor.core.types import PrometheusServeCallParams
 from bittensor.utils import networking as net, format_error_message
 from bittensor.utils.btlogging import logging
 from bittensor.utils.networking import ensure_connected
@@ -31,6 +30,7 @@ from bittensor.utils.networking import ensure_connected
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
     from bittensor.core.subtensor import Subtensor
+    from bittensor.core.types import PrometheusServeCallParams
 
 
 # Chain call for `prometheus_extrinsic`
@@ -38,23 +38,23 @@ if TYPE_CHECKING:
 def do_serve_prometheus(
     self: "Subtensor",
     wallet: "Wallet",
-    call_params: PrometheusServeCallParams,
+    call_params: "PrometheusServeCallParams",
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = True,
-) -> Tuple[bool, Optional[dict]]:
+) -> tuple[bool, Optional[dict]]:
     """
     Sends a serve prometheus extrinsic to the chain.
 
     Args:
-        self (bittensor.subtensor): Bittensor subtensor object
-        wallet (:func:`bittensor_wallet.Wallet`): Wallet object.
-        call_params (:func:`PrometheusServeCallParams`): Prometheus serve call parameters.
+        self (bittensor.core.subtensor.Subtensor): Bittensor subtensor object
+        wallet (bittensor_wallet.Wallet): Wallet object.
+        call_params (bittensor.core.types.PrometheusServeCallParams): Prometheus serve call parameters.
         wait_for_inclusion (bool): If ``true``, waits for inclusion.
         wait_for_finalization (bool): If ``true``, waits for finalization.
 
     Returns:
         success (bool): ``True`` if serve prometheus was successful.
-        error (:func:`Optional[str]`): Error message if serve prometheus failed, ``None`` otherwise.
+        error (Optional[str]): Error message if serve prometheus failed, ``None`` otherwise.
     """
 
     @retry(delay=1, tries=3, backoff=2, max_delay=4)
@@ -94,11 +94,11 @@ def prometheus_extrinsic(
     wait_for_inclusion: bool = False,
     wait_for_finalization=True,
 ) -> bool:
-    """Subscribes a Bittensor endpoint to the substensor chain.
+    """Subscribes a Bittensor endpoint to the Subtensor chain.
 
     Args:
-        subtensor (bittensor.subtensor): Bittensor subtensor object.
-        wallet (bittensor.wallet): Bittensor wallet object.
+        subtensor (bittensor.core.subtensor.Subtensor): Bittensor subtensor object.
+        wallet (bittensor_wallet.Wallet): Bittensor wallet object.
         ip (str): Endpoint host port i.e., ``192.122.31.4``.
         port (int): Endpoint port number i.e., `9221`.
         netuid (int): Network `uid` to serve on.

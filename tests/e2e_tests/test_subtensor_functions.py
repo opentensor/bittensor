@@ -31,7 +31,7 @@ async def test_subtensor_extrinsics(local_chain):
         AssertionError: If any of the checks or verifications fail
     """
     netuid = 1
-    subtensor = bittensor.subtensor(network="ws://localhost:9945")
+    subtensor = bittensor.Subtensor(network="ws://localhost:9945")
 
     # Subnets 0 and 3 are bootstrapped from the start
     assert subtensor.get_subnets() == [0, 3]
@@ -139,7 +139,7 @@ async def test_subtensor_extrinsics(local_chain):
     await asyncio.sleep(
         5
     )  # wait for 5 seconds for the metagraph and subtensor to refresh with latest data
-    subtensor = bittensor.subtensor(network="ws://localhost:9945")
+    subtensor = bittensor.Subtensor(network="ws://localhost:9945")
 
     # Verify neuron info is updated after running as a validator
     neuron_info = subtensor.get_neuron_for_pubkey_and_subnet(

@@ -17,7 +17,7 @@
 
 import functools
 import os
-import typing
+from typing import TYPE_CHECKING
 
 import numpy
 
@@ -93,7 +93,7 @@ class LazyLoadedTorch:
             raise ImportError("torch not installed")
 
 
-if typing.TYPE_CHECKING:
+if TYPE_CHECKING:
     import torch
 else:
     torch = LazyLoadedTorch()

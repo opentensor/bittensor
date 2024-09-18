@@ -2,7 +2,6 @@ import os
 import shutil
 import subprocess
 import sys
-from typing import Tuple
 
 from substrateinterface import Keypair
 
@@ -12,7 +11,7 @@ template_path = os.getcwd() + "/neurons/"
 templates_repo = "templates repository"
 
 
-def setup_wallet(uri: str) -> Tuple[Keypair, bittensor.wallet]:
+def setup_wallet(uri: str) -> tuple[Keypair, bittensor.Wallet]:
     """
     Sets up a wallet using the provided URI.
 
@@ -26,7 +25,7 @@ def setup_wallet(uri: str) -> Tuple[Keypair, bittensor.wallet]:
     """
     keypair = Keypair.create_from_uri(uri)
     wallet_path = f"/tmp/btcli-e2e-wallet-{uri.strip('/')}"
-    wallet = bittensor.wallet(path=wallet_path)
+    wallet = bittensor.Wallet(path=wallet_path)
     wallet.set_coldkey(keypair=keypair, encrypt=False, overwrite=True)
     wallet.set_coldkeypub(keypair=keypair, encrypt=False, overwrite=True)
     wallet.set_hotkey(keypair=keypair, encrypt=False, overwrite=True)

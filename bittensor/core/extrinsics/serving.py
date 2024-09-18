@@ -16,23 +16,23 @@
 # DEALINGS IN THE SOFTWARE.
 
 import json
-from typing import Optional, Tuple, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
 
 from retry import retry
 from rich.prompt import Confirm
 
-from bittensor.core.axon import Axon
 from bittensor.core.errors import MetadataError
 from bittensor.core.extrinsics.utils import submit_extrinsic
 from bittensor.core.settings import version_as_int, bt_console
-from bittensor.core.types import AxonServeCallParams
 from bittensor.utils import format_error_message, networking as net
 from bittensor.utils.btlogging import logging
 from bittensor.utils.networking import ensure_connected
 
 # For annotation purposes
 if TYPE_CHECKING:
+    from bittensor.core.axon import Axon
     from bittensor.core.subtensor import Subtensor
+    from bittensor.core.types import AxonServeCallParams
     from bittensor_wallet import Wallet
 
 
@@ -41,24 +41,24 @@ if TYPE_CHECKING:
 def do_serve_axon(
     self: "Subtensor",
     wallet: "Wallet",
-    call_params: AxonServeCallParams,
+    call_params: "AxonServeCallParams",
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = True,
-) -> Tuple[bool, Optional[dict]]:
+) -> tuple[bool, Optional[dict]]:
     """
-    Internal method to submit a serve axon transaction to the Bittensor blockchain. This method creates and submits a transaction, enabling a neuron's Axon to serve requests on the network.
+    Internal method to submit a serve axon transaction to the Bittensor blockchain. This method creates and submits a transaction, enabling a neuron's ``Axon`` to serve requests on the network.
 
     Args:
         self (bittensor.core.subtensor.Subtensor): Subtensor instance object.
         wallet (bittensor_wallet.Wallet): The wallet associated with the neuron.
-        call_params (AxonServeCallParams): Parameters required for the serve axon call.
-        wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block.
-        wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain.
+        call_params (bittensor.core.types.AxonServeCallParams): Parameters required for the serve axon call.
+        wait_for_inclusion (bool): Waits for the transaction to be included in a block.
+        wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
 
     Returns:
-        Tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
+        tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
 
-    This function is crucial for initializing and announcing a neuron's Axon service on the network, enhancing the decentralized computation capabilities of Bittensor.
+    This function is crucial for initializing and announcing a neuron's ``Axon`` service on the network, enhancing the decentralized computation capabilities of Bittensor.
     """
 
     @retry(delay=1, tries=3, backoff=2, max_delay=4)
@@ -106,7 +106,7 @@ def serve_extrinsic(
 
     Args:
         subtensor (bittensor.core.subtensor.Subtensor): Subtensor instance object.
-        wallet (bittensor.wallet): Bittensor wallet object.
+        wallet (bittensor_wallet.Wallet): Bittensor wallet object.
         ip (str): Endpoint host port i.e., ``192.122.31.4``.
         port (int): Endpoint port number i.e., ``9221``.
         protocol (int): An ``int`` representation of the protocol.
@@ -259,13 +259,13 @@ def publish_metadata(
     Publishes metadata on the Bittensor network using the specified wallet and network identifier.
 
     Args:
-        self (bittensor.subtensor): The subtensor instance representing the Bittensor blockchain connection.
-        wallet (bittensor.wallet): The wallet object used for authentication in the transaction.
+        self (bittensor.core.subtensor.Subtensor): The subtensor instance representing the Bittensor blockchain connection.
+        wallet (bittensor_wallet.Wallet): The wallet object used for authentication in the transaction.
         netuid (int): Network UID on which the metadata is to be published.
         data_type (str): The data type of the information being submitted. It should be one of the following: ``'Sha256'``, ``'Blake256'``, ``'Keccak256'``, or ``'Raw0-128'``. This specifies the format or hashing algorithm used for the data.
         data (str): The actual metadata content to be published. This should be formatted or hashed according to the ``type`` specified. (Note: max ``str`` length is 128 bytes)
-        wait_for_inclusion (bool, optional): If ``True``, the function will wait for the extrinsic to be included in a block before returning. Defaults to ``False``.
-        wait_for_finalization (bool, optional): If ``True``, the function will wait for the extrinsic to be finalized on the chain before returning. Defaults to ``True``.
+        wait_for_inclusion (bool): If ``True``, the function will wait for the extrinsic to be included in a block before returning. Defaults to ``False``.
+        wait_for_finalization (bool): If ``True``, the function will wait for the extrinsic to be finalized on the chain before returning. Defaults to ``True``.
 
     Returns:
         bool: ``True`` if the metadata was successfully published (and finalized if specified). ``False`` otherwise.

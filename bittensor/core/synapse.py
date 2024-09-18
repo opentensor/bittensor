@@ -19,7 +19,7 @@ import base64
 import json
 import sys
 import warnings
-from typing import cast, Any, ClassVar, Dict, Optional, Tuple, Union
+from typing import cast, Any, ClassVar, Optional, Union
 
 from pydantic import (
     BaseModel,
@@ -33,15 +33,15 @@ from bittensor.utils import get_hash
 from bittensor.utils.btlogging import logging
 
 
-def get_size(obj, seen=None) -> int:
+def get_size(obj: Any, seen: Optional[set] = None) -> int:
     """
     Recursively finds size of objects.
 
     This function traverses every item of a given object and sums their sizes to compute the total size.
 
     Args:
-        obj (any type): The object to get the size of.
-        seen (set): Set of object ids that have been calculated.
+        obj (Any): The object to get the size of.
+        seen (Optional[set]): Set of object ids that have been calculated.
 
     Returns:
         int: The total size of the object.
@@ -82,7 +82,7 @@ def cast_int(raw: str) -> int:
     return int(raw) if raw is not None else raw
 
 
-def cast_float(raw: str) -> float:
+def cast_float(raw: str) -> Optional[float]:
     """
     Converts a string to a float, if the string is not ``None``.
 
@@ -128,6 +128,8 @@ class TerminalInfo(BaseModel):
     Usage::
 
         # Creating a TerminalInfo instance
+        from bittensor.core.synapse import TerminalInfo
+
         terminal_info = TerminalInfo(
             status_code=200,
             status_message="Success",
@@ -317,11 +319,14 @@ class Synapse(BaseModel):
     Example usage::
 
         # Creating a Synapse instance with default values
+        from bittensor.core.synapse import Synapse
+
         synapse = Synapse()
 
         # Setting properties and input
         synapse.timeout = 15.0
         synapse.name = "MySynapse"
+
         # Not setting fields that are not defined in your synapse class will result in an error, e.g.:
         synapse.dummy_input = 1 # This will raise an error because dummy_input is not defined in the Synapse class
 
@@ -350,10 +355,10 @@ class Synapse(BaseModel):
         timeout (float): Total query length, set by the dendrite terminal.
         total_size (int): Total size of request body in bytes.
         header_size (int): Size of request header in bytes.
-        dendrite (TerminalInfo): Information about the dendrite terminal.
-        axon (TerminalInfo): Information about the axon terminal.
+        dendrite (:func:`TerminalInfo`): Information about the dendrite terminal.
+        axon (:func:`TerminalInfo`): Information about the axon terminal.
         computed_body_hash (str): Computed hash of the request body.
-        required_hash_fields (List[str]): Fields required to compute the body hash.
+        required_hash_fields (list[str]): Fields required to compute the body hash.
 
     Methods:
         deserialize: Custom deserialization logic for subclasses.
@@ -408,7 +413,7 @@ class Synapse(BaseModel):
         return self
 
     @model_validator(mode="before")
-    def set_name_type(cls, values) -> dict:
+    def set_name_type(cls, values: dict) -> dict:
         values["name"] = cls.__name__  # type: ignore
         return values
 
@@ -481,7 +486,7 @@ class Synapse(BaseModel):
         repr=False,
     )
 
-    required_hash_fields: ClassVar[Tuple[str, ...]] = ()
+    required_hash_fields: ClassVar[tuple[str, ...]] = ()
 
     _extract_total_size = field_validator("total_size", mode="before")(cast_int)
 
@@ -756,7 +761,7 @@ class Synapse(BaseModel):
         """
 
         # Initialize the input dictionary with empty sub-dictionaries for 'axon' and 'dendrite'
-        inputs_dict: Dict[str, Union[Dict, Optional[str]]] = {
+        inputs_dict: dict[str, Union[dict, Optional[str]]] = {
             "axon": {},
             "dendrite": {},
         }
@@ -835,7 +840,7 @@ class Synapse(BaseModel):
             headers (dict): The dictionary of headers containing serialized Synapse information.
 
         Returns:
-            Synapse: A new instance of Synapse, reconstructed from the parsed header information, replicating the original instance's state.
+            bittensor.core.synapse.Synapse: A new instance of Synapse, reconstructed from the parsed header information, replicating the original instance's state.
         """
 
         # Get the inputs dictionary from the headers

@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List, Dict, Optional, Any
+from typing import Optional, Any
 
 from scalecodec.utils.ss58 import ss58_encode
 
@@ -14,7 +14,14 @@ from bittensor.utils.balance import Balance
 
 @dataclass
 class StakeInfo:
-    """Dataclass for stake info."""
+    """
+    Dataclass for representing stake information linked to hotkey and coldkey pairs.
+
+    Attributes:
+        hotkey_ss58 (str): The SS58 encoded hotkey address.
+        coldkey_ss58 (str): The SS58 encoded coldkey address.
+        stake (Balance): The stake associated with the hotkey-coldkey pair, represented as a Balance object.
+    """
 
     hotkey_ss58: str  # Hotkey address
     coldkey_ss58: str  # Coldkey address
@@ -30,7 +37,7 @@ class StakeInfo:
         )
 
     @classmethod
-    def from_vec_u8(cls, vec_u8: List[int]) -> Optional["StakeInfo"]:
+    def from_vec_u8(cls, vec_u8: list[int]) -> Optional["StakeInfo"]:
         """Returns a StakeInfo object from a ``vec_u8``."""
         if len(vec_u8) == 0:
             return None
@@ -43,8 +50,8 @@ class StakeInfo:
 
     @classmethod
     def list_of_tuple_from_vec_u8(
-        cls, vec_u8: List[int]
-    ) -> Dict[str, List["StakeInfo"]]:
+        cls, vec_u8: list[int]
+    ) -> dict[str, list["StakeInfo"]]:
         """Returns a list of StakeInfo objects from a ``vec_u8``."""
         decoded: Optional[list[tuple[str, list[object]]]] = (
             from_scale_encoding_using_type_string(
@@ -63,7 +70,7 @@ class StakeInfo:
         }
 
     @classmethod
-    def list_from_vec_u8(cls, vec_u8: List[int]) -> List["StakeInfo"]:
+    def list_from_vec_u8(cls, vec_u8: list[int]) -> list["StakeInfo"]:
         """Returns a list of StakeInfo objects from a ``vec_u8``."""
         decoded = from_scale_encoding(vec_u8, ChainDataType.StakeInfo, is_vec=True)
         if decoded is None:

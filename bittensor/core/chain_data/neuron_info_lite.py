@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Dict, Optional
+from typing import Optional
 
 import bt_decode
 import netaddr
@@ -13,7 +13,36 @@ from bittensor.utils.balance import Balance
 
 @dataclass
 class NeuronInfoLite:
-    """Dataclass for neuron metadata, but without the weights and bonds."""
+    """
+    NeuronInfoLite is a dataclass representing neuron metadata without weights and bonds.
+
+    Attributes:
+        hotkey (str): The hotkey string for the neuron.
+        coldkey (str): The coldkey string for the neuron.
+        uid (int): A unique identifier for the neuron.
+        netuid (int): Network unique identifier for the neuron.
+        active (int): Indicates whether the neuron is active.
+        stake (Balance): The stake amount associated with the neuron.
+        stake_dict (dict): Mapping of coldkey to the amount staked to this Neuron.
+        total_stake (Balance): Total amount of the stake.
+        rank (float): The rank of the neuron.
+        emission (float): The emission value of the neuron.
+        incentive (float): The incentive value of the neuron.
+        consensus (float): The consensus value of the neuron.
+        trust (float): Trust value of the neuron.
+        validator_trust (float): Validator trust value of the neuron.
+        dividends (float): Dividends associated with the neuron.
+        last_update (int): Timestamp of the last update.
+        validator_permit (bool): Indicates if the neuron has a validator permit.
+        prometheus_info (Optional[PrometheusInfo]): Prometheus information associated with the neuron.
+        axon_info (Optional[AxonInfo]): Axon information associated with the neuron.
+        pruning_score (int): The pruning score of the neuron.
+        is_null (bool): Indicates whether the neuron is null.
+
+    Methods:
+        get_null_neuron: Returns a NeuronInfoLite object representing a null neuron.
+        list_from_vec_u8: Decodes a bytes object into a list of NeuronInfoLite instances.
+    """
 
     hotkey: str
     coldkey: str
@@ -22,7 +51,7 @@ class NeuronInfoLite:
     active: int
     stake: "Balance"
     # mapping of coldkey to amount staked to this Neuron
-    stake_dict: Dict[str, "Balance"]
+    stake_dict: dict[str, "Balance"]
     total_stake: "Balance"
     rank: float
     emission: float
@@ -40,6 +69,7 @@ class NeuronInfoLite:
 
     @staticmethod
     def get_null_neuron() -> "NeuronInfoLite":
+        """Returns a null NeuronInfoLite instance."""
         neuron = NeuronInfoLite(
             uid=0,
             netuid=0,
@@ -67,6 +97,15 @@ class NeuronInfoLite:
 
     @classmethod
     def list_from_vec_u8(cls, vec_u8: bytes) -> list["NeuronInfoLite"]:
+        """
+        Decodes a bytes object into a list of NeuronInfoLite instances.
+
+        Args:
+            vec_u8 (bytes): The bytes object to decode into NeuronInfoLite instances.
+
+        Returns:
+            list[NeuronInfoLite]: A list of NeuronInfoLite instances decoded from the provided bytes object.
+        """
         decoded = bt_decode.NeuronInfoLite.decode_vec(vec_u8)
         results = []
         for item in decoded:
