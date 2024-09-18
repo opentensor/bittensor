@@ -68,7 +68,7 @@ Subnets, which exist outside the blockchain and are connected to it, are off-cha
 Scores are assigned to the top-performing subnet miners and subnet validators. The on-chain Yuma Consensus determines the TAO rewards for these top performers. The Bittensor blockchain, the subtensor, runs on decentralized validation nodes, just like any blockchain.
 
 **This SDK repo is for Bittensor platform only**
-This Bittensor SDK codebase is for the Bittensor platform only. For subnets and applications, refer to subnet-specific websites, which are maintained by subnet owners.
+This Bittensor SDK codebase is for the Bittensor platform only, designed to help developers create subnets and build tools on Bittensor. For subnets and applications, refer to subnet-specific websites, which are maintained by subnet owners.
 
 ## Release Notes
 
