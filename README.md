@@ -53,7 +53,7 @@ This Bittensor SDK contains ready-to-use Python packages for interacting with th
 
 ## Is Bittensor a blockchain or an AI platform?
 
-In Bittensor there is one blockchain, and many platforms that are connected to this one blockchain. We call these platforms as **subnets**, and this one blockchain as **subtensor**. So, a subnet can be AI-related or it can be something else. The Bittensor network has a number of distinct subnets. All these subnets interact with subtensor blockchain. If you are thinking, "So, subnets are not part of the blockchain but only interact with it?" then the answer is "yes, exactly."
+In Bittensor there is one blockchain, and many platforms that are connected to this one blockchain. We call these platforms as **subnets**, and this one blockchain  **subtensor**. So, a subnet can be AI-related or it can be something else. The Bittensor network has a number of distinct subnets. All these subnets interact with subtensor blockchain. If you are thinking, "So, subnets are not part of the blockchain but only interact with it?" then the answer is "yes, exactly."
 
 ## Subnets
 
