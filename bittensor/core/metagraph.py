@@ -168,15 +168,15 @@ class MetagraphMixin(ABC):
     and collaborative intelligence, ensuring that the network remains adaptive, secure, and efficient.
 
     Example:
-        Initializing the metagraph to represent the current state of the Bittensor network::  
+        Initializing the metagraph to represent the current state of the Bittensor network::
 
             from bittensor.core.metagraph import Metagraph
             metagraph = Metagraph(netuid=config.netuid, network=subtensor.network, sync=False)
-    
+
         Synchronizing the metagraph with the network to reflect the latest state and neuron data::
 
             metagraph.sync(subtensor=subtensor)
-    
+
         Accessing metagraph properties to inform network interactions and decisions::
 
             total_stake = metagraph.S
