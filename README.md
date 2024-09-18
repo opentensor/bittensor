@@ -213,8 +213,8 @@ You will see the version number you installed in place of `<version number>`.
 You can also verify the Bittensor SDK installation by listing the axon information for the neurons. Enter the following lines in the Python interpreter.
 
 ```python
-import bittensor as bt
-metagraph = bt.metagraph(1)
+import bittensor
+metagraph = bittensor.Metagraph(1)
 metagraph.axons[:10]
 ```
 The Python interpreter output will look like below.
