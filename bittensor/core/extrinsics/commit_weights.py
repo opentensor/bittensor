@@ -22,6 +22,7 @@ from typing import Optional, TYPE_CHECKING
 from retry import retry
 from rich.prompt import Confirm
 
+from bittensor.core.extrinsics.utils import submit_extrinsic
 from bittensor.utils import format_error_message
 from bittensor.utils.btlogging import logging
 from bittensor.utils.networking import ensure_connected
@@ -60,7 +61,7 @@ def do_commit_weights(
     This method ensures that the weight commitment is securely recorded on the Bittensor blockchain, providing a verifiable record of the neuron's weight distribution at a specific point in time.
     """
 
-    @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=logging)
+    @retry(delay=1, tries=3, backoff=2, max_delay=4)
     def make_substrate_call_with_retry():
         call = self.substrate.compose_call(
             call_module="SubtensorModule",
@@ -74,8 +75,9 @@ def do_commit_weights(
             call=call,
             keypair=wallet.hotkey,
         )
-        response = self.substrate.submit_extrinsic(
-            extrinsic,
+        response = submit_extrinsic(
+            substrate=self.substrate,
+            extrinsic=extrinsic,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
         )
@@ -176,7 +178,7 @@ def do_reveal_weights(
     This method ensures that the weight revelation is securely recorded on the Bittensor blockchain, providing transparency and accountability for the neuron's weight distribution.
     """
 
-    @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=logging)
+    @retry(delay=1, tries=3, backoff=2, max_delay=4)
     def make_substrate_call_with_retry():
         call = self.substrate.compose_call(
             call_module="SubtensorModule",
@@ -193,8 +195,9 @@ def do_reveal_weights(
             call=call,
             keypair=wallet.hotkey,
         )
-        response = self.substrate.submit_extrinsic(
-            extrinsic,
+        response = submit_extrinsic(
+            substrate=self.substrate,
+            extrinsic=extrinsic,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
         )

@@ -874,6 +874,9 @@ class Subtensor:
             and retries < max_retries
         ):
             try:
+                logging.info(
+                    f"Setting weights for subnet #{netuid}. Attempt {retries + 1} of {max_retries}."
+                )
                 success, message = set_weights_extrinsic(
                     subtensor=self,
                     wallet=wallet,

@@ -20,6 +20,7 @@ from typing import Optional, TYPE_CHECKING
 
 from retry import retry
 
+from bittensor.core.extrinsics.utils import submit_extrinsic
 from bittensor.core.settings import version_as_int, bt_console
 from bittensor.utils import networking as net, format_error_message
 from bittensor.utils.btlogging import logging
@@ -56,7 +57,7 @@ def do_serve_prometheus(
         error (Optional[str]): Error message if serve prometheus failed, ``None`` otherwise.
     """
 
-    @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=logging)
+    @retry(delay=1, tries=3, backoff=2, max_delay=4)
     def make_substrate_call_with_retry():
         call = self.substrate.compose_call(
             call_module="SubtensorModule",
@@ -66,8 +67,9 @@ def do_serve_prometheus(
         extrinsic = self.substrate.create_signed_extrinsic(
             call=call, keypair=wallet.hotkey
         )
-        response = self.substrate.submit_extrinsic(
-            extrinsic,
+        response = submit_extrinsic(
+            substrate=self.substrate,
+            extrinsic=extrinsic,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
         )

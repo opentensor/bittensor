@@ -23,6 +23,7 @@ from numpy.typing import NDArray
 from retry import retry
 from rich.prompt import Confirm
 
+from bittensor.core.extrinsics.utils import submit_extrinsic
 from bittensor.core.settings import bt_console, version_as_int
 from bittensor.utils import format_error_message, weight_utils
 from bittensor.utils.btlogging import logging
@@ -66,7 +67,7 @@ def do_set_weights(
     This method is vital for the dynamic weighting mechanism in Bittensor, where neurons adjust their trust in other neurons based on observed performance and contributions.
     """
 
-    @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=logging)
+    @retry(delay=1, tries=3, backoff=2, max_delay=4)
     def make_substrate_call_with_retry():
         call = self.substrate.compose_call(
             call_module="SubtensorModule",
@@ -84,8 +85,9 @@ def do_set_weights(
             keypair=wallet.hotkey,
             era={"period": 5},
         )
-        response = self.substrate.submit_extrinsic(
-            extrinsic,
+        response = submit_extrinsic(
+            substrate=self.substrate,
+            extrinsic=extrinsic,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
         )
@@ -188,5 +190,5 @@ def set_weights_extrinsic(
 
         except Exception as e:
             bt_console.print(f":cross_mark: [red]Failed[/red]: error:{e}")
-            logging.warning(str(e))
+            logging.debug(str(e))
             return False, str(e)

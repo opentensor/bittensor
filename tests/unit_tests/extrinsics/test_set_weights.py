@@ -61,7 +61,7 @@ def mock_wallet():
             True,
             True,
             False,
-            "Subtensor returned `UnknownError (UnknownType)` error. This means: `Unknown Description`",
+            "Subtensor returned `UnknownError(UnknownType)` error. This means: `Unknown Description`.",
         ),
         ([1, 2], [0.5, 0.5], 0, True, True, True, False, False, "Prompt refused."),
     ],
