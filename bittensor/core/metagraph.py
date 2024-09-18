@@ -59,11 +59,32 @@ METAGRAPH_STATE_DICT_NDARRAY_KEYS = [
     "validator_permit",
     "uids",
 ]
+"""List of keys for the metagraph state dictionary used in NDArray serialization.
+
+This list defines the set of keys expected in the metagraph's state dictionary when serializing and deserializing NumPy ndarray objects. Each key corresponds to a specific attribute or metric associated with the nodes in the metagraph.
+
+- **version** (`str`): The version identifier of the metagraph state.
+- **n** (`int`): The total number of nodes in the metagraph.
+- **block** (`int`): The current block number in the blockchain or ledger.
+- **stake** (`ndarray`): An array representing the stake of each node.
+- **total_stake** (`float`): The sum of all individual stakes in the metagraph.
+- **ranks** (`ndarray`): An array of rank scores assigned to each node.
+- **trust** (`ndarray`): An array of trust scores for the nodes.
+- **consensus** (`ndarray`): An array indicating consensus levels among nodes.
+- **validator_trust** (`ndarray`): Trust scores specific to validator nodes.
+- **incentive** (`ndarray`): Incentive values allocated to nodes.
+- **emission** (`float`): The rate of emission for new tokens or units.
+- **dividends** (`ndarray`): Dividend amounts distributed to nodes.
+- **active** (`ndarray`): Boolean array indicating active (`True`) or inactive (`False`) nodes.
+- **last_update** (`int`): Timestamp of the last state update.
+- **validator_permit** (`ndarray`): Boolean array indicating nodes permitted to validate.
+- **uids** (`ndarray`): Unique identifiers for each node in the metagraph.
+"""
 
 
 def get_save_dir(network: str, netuid: int) -> str:
     """
-    Return directory path from ``network`` and ``netuid``.
+    Returns a directory path given ``network`` and ``netuid`` inputs.
 
     Args:
         network (str): Network name.
@@ -85,7 +106,7 @@ def get_save_dir(network: str, netuid: int) -> str:
 
 def latest_block_path(dir_path: str) -> str:
     """
-    Get the latest block path from the directory.
+    Get the latest block path from the provided directory path.
 
     Args:
         dir_path (str): Directory path.
@@ -393,14 +414,18 @@ class MetagraphMixin(ABC):
         Initializes a new instance of the metagraph object, setting up the basic structure and parameters based on the provided arguments.
         This method is the entry point for creating a metagraph object,
         which is a central component in representing the state of the Bittensor network.
+        
         Args:
             netuid (int): The unique identifier for the network, distinguishing this instance of the metagraph within potentially multiple network configurations.
             network (str): The name of the network, which can indicate specific configurations or versions of the Bittensor network.
             lite (bool): A flag indicating whether to use a lite version of the metagraph. The lite version may contain less detailed information but can be quicker to initialize and sync.
             sync (bool): A flag indicating whether to synchronize the metagraph with the network upon initialization. Synchronization involves updating the metagraph's parameters to reflect the current state of the network.
+        
         Example:
             Initializing a metagraph object for the Bittensor network with a specific network UID::
+
                 metagraph = metagraph(netuid=123, network="finney", lite=True, sync=True)
+
         """
 
     def __str__(self) -> str:
@@ -414,7 +439,7 @@ class MetagraphMixin(ABC):
         Example:
             When printing the metagraph object or using it in a string context, this method is automatically invoked::
 
-            print(metagraph)  # Output: "metagraph(netuid:1, n:100, block:500, network:finney)"
+                print(metagraph)  # Output: "metagraph(netuid:1, n:100, block:500, network:finney)"
         """
         return f"metagraph(netuid:{self.netuid}, n:{self.n.item()}, block:{self.block.item()}, network:{self.network})"
 
@@ -510,6 +535,7 @@ class MetagraphMixin(ABC):
                 metagraph.sync(subtensor=subtensor)
 
             Sync with a specific block number for detailed analysis::
+
                 from bittensor.core.subtensor import Subtensor
 
                 subtensor = Subtensor()
@@ -519,6 +545,7 @@ class MetagraphMixin(ABC):
             If attempting to access data beyond the previous 300 blocks, you **must** use the ``archive`` network for subtensor. Light nodes are configured only to store the previous 300 blocks if connecting to finney or test networks.
 
             For example::
+
                 from bittensor.core.subtensor import Subtensor
 
                 subtensor = Subtensor(network='archive')
@@ -739,7 +766,7 @@ class MetagraphMixin(ABC):
         Internal Usage:
             Used internally to process and set root weights for the metagraph::
 
-            self.root_weights = self._process_root_weights(raw_root_weights_data, "weights", subtensor)
+                self.root_weights = self._process_root_weights(raw_root_weights_data, "weights", subtensor)
         """
         data_array = []
         n_subnets = subtensor.get_total_subnets() or 0
@@ -872,6 +899,9 @@ class MetagraphMixin(ABC):
 
 
 BaseClass: Union["torch.nn.Module", object] = torch.nn.Module if use_torch() else object
+"""
+Base class that extends :class:`torch.nn.Module` if PyTorch is used; otherwise, it defaults to object.
+"""
 
 
 class TorchMetaGraph(MetagraphMixin, BaseClass):
@@ -971,6 +1001,7 @@ class TorchMetaGraph(MetagraphMixin, BaseClass):
 
         Internal Usage:
             Used internally during the sync process to update the metagraph's attributes::
+
                 from bittensor.core.subtensor import Subtensor
 
                 subtensor = Subtensor()
@@ -1034,14 +1065,17 @@ class TorchMetaGraph(MetagraphMixin, BaseClass):
         Returns:
             metagraph (bittensor.core.metagraph.Metagraph): The current metagraph instance with the loaded state.
 
-        Example:
+        Example::
+
             from bittensor.core.metagraph import Metagraph
 
             netuid = 1
             metagraph = Metagraph(netuid=netuid)
 
             metagraph.load_from_path("/path/to/dir")
+        
         """
+
         graph_file = latest_block_path(dir_path)
         state_dict = torch.load(graph_file)
         self.n = torch.nn.Parameter(state_dict["n"], requires_grad=False)
@@ -1204,7 +1238,7 @@ class NonTorchMetagraph(MetagraphMixin):
             dir_path (str): The directory path where the metagraph's state file is located.
 
         Returns:
-            metagraph (bittensor.core.metagraph.Metagraph): An instance of the Metagraph with the state loaded from the file.
+            metagraph (:func:`bittensor.core.metagraph.Metagraph`): An instance of the Metagraph with the state loaded from the file.
 
         Raises:
             pickle.UnpicklingError: If there is an error unpickling the state file.
@@ -1259,3 +1293,8 @@ class NonTorchMetagraph(MetagraphMixin):
 
 
 Metagraph = TorchMetaGraph if use_torch() else NonTorchMetagraph
+"""Metagraph class that uses :class:`TorchMetaGraph` if PyTorch is available; otherwise, it falls back to :class:`NonTorchMetagraph`.
+
+- **With PyTorch**: When `use_torch()` returns `True`, `Metagraph` is set to :class:`TorchMetaGraph`, which utilizes PyTorch functionalities.
+- **Without PyTorch**: When `use_torch()` returns `False`, `Metagraph` is set to :class:`NonTorchMetagraph`, which does not rely on PyTorch.
+"""
