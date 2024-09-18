@@ -143,17 +143,17 @@ class DendriteMixin:
 
         Example usage::
 
-            import bittensor                          # Import bittensor
-            wallet = bittensor.Wallet( ... )          # Initialize a wallet
+            import bittensor                                # Import bittensor
+            wallet = bittensor.Wallet( ... )                # Initialize a wallet
             dendrite = bittensor.Dendrite(wallet=wallet)   # Initialize a dendrite instance with the wallet
 
-            async with (await dendrite.session).post( # Use the session to make an HTTP POST request
-                url,                                  # URL to send the request to
-                headers={...},                        # Headers dict to be sent with the request
-                json={...},                           # JSON body data to be sent with the request
-                timeout=10,                           # Timeout duration in seconds
+            async with (await dendrite.session).post(       # Use the session to make an HTTP POST request
+                url,                                        # URL to send the request to
+                headers={...},                              # Headers dict to be sent with the request
+                json={...},                                 # JSON body data to be sent with the request
+                timeout=10,                                 # Timeout duration in seconds
             ) as response:
-                json_response = await response.json() # Extract the JSON response from the server
+                json_response = await response.json()       # Extract the JSON response from the server
 
         """
         if self._session is None:
@@ -189,16 +189,17 @@ class DendriteMixin:
         releases resources associated with the session, such as open connections and internal buffers,
         which is essential for resource management in asynchronous applications.
 
-        Usage:
-            When finished with dendrite in an asynchronous context
-            await :func:`dendrite_instance.aclose_session()`.
+        Example:
+            Usage::
+                When finished with dendrite in an asynchronous context
+                await :func:`dendrite_instance.aclose_session()`.
 
-        Example::
-
-            async with dendrite_instance:
-                # Operations using dendrite
-                pass
-            # The session will be closed automatically after the above block
+        Example:
+            Usage::
+                async with dendrite_instance:
+                    # Operations using dendrite
+                    pass
+                # The session will be closed automatically after the above block
         """
         if self._session:
             await self._session.close()
