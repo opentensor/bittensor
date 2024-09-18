@@ -20,7 +20,7 @@ The token based mechanism under which the miners are incentivized ensures that t
 To learn more about Bittensor, please read our [paper](https://bittensor.com/whitepaper).
 
 # Install
-There are three ways to install Bittensor
+There are four ways to install Bittensor
 
 1. Through the installer:
 ```bash
