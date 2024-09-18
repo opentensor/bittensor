@@ -54,20 +54,26 @@ def root_register_extrinsic(
             Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
 
-    wallet.coldkey  # unlock coldkey
+    try:
+        wallet.coldkey  # unlock coldkey
+    except bittensor.KeyFileError:
+        bittensor.__console__.print(
+            ":cross_mark: [red]Keyfile is corrupt, non-writable, non-readable or the password used to decrypt is invalid[/red]:[bold white]\n  [/bold white]"
+        )
+        return False
 
     is_registered = subtensor.is_hotkey_registered(
         netuid=0, hotkey_ss58=wallet.hotkey.ss58_address
     )
     if is_registered:
         bittensor.__console__.print(
-            f":white_heavy_check_mark: [green]Already registered on root network.[/green]"
+            ":white_heavy_check_mark: [green]Already registered on root network.[/green]"
         )
         return True
 
     if prompt:
         # Prompt user for confirmation.
-        if not Confirm.ask(f"Register to root network?"):
+        if not Confirm.ask("Register to root network?"):
             return False
 
     with bittensor.__console__.status(":satellite: Registering to root network..."):
@@ -77,10 +83,8 @@ def root_register_extrinsic(
             wait_for_finalization=wait_for_finalization,
         )
 
-        if success != True or success == False:
-            bittensor.__console__.print(
-                ":cross_mark: [red]Failed[/red]: error:{}".format(err_msg)
-            )
+        if not success:
+            bittensor.__console__.print(f":cross_mark: [red]Failed[/red]: {err_msg}")
             time.sleep(0.5)
 
         # Successful registration, final check for neuron and pubkey
@@ -133,6 +137,14 @@ def set_root_weights_extrinsic(
             Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
 
+    try:
+        wallet.coldkey  # unlock coldkey
+    except bittensor.KeyFileError:
+        bittensor.__console__.print(
+            ":cross_mark: [red]Keyfile is corrupt, non-writable, non-readable or the password used to decrypt is invalid[/red]:[bold white]\n  [/bold white]"
+        )
+        return False
+
     # First convert types.
     if isinstance(netuids, list):
         netuids = np.array(netuids, dtype=np.int64)
@@ -180,7 +192,7 @@ def set_root_weights_extrinsic(
             weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(
                 netuids, weights
             )
-            success, error_message = subtensor._do_set_weights(
+            success, error_message = subtensor._do_set_root_weights(
                 wallet=wallet,
                 netuid=0,
                 uids=weight_uids,
@@ -206,7 +218,7 @@ def set_root_weights_extrinsic(
                 return True
             else:
                 bittensor.__console__.print(
-                    ":cross_mark: [red]Failed[/red]: error:{}".format(error_message)
+                    f":cross_mark: [red]Failed[/red]: {error_message}"
                 )
                 bittensor.logging.warning(
                     prefix="Set weights",

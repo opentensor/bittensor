@@ -62,8 +62,15 @@ defaults: Munch = munchify(
     }
 )
 
-from .stake import StakeCommand, StakeShow
-from .unstake import UnStakeCommand
+from .stake import (
+    StakeCommand,
+    StakeShow,
+    SetChildrenCommand,
+    GetChildrenCommand,
+    SetChildKeyTakeCommand,
+    GetChildKeyTakeCommand,
+)
+from .unstake import UnStakeCommand, RevokeChildrenCommand
 from .overview import OverviewCommand
 from .register import (
     PowRegisterCommand,
@@ -90,6 +97,7 @@ from .wallets import (
     WalletBalanceCommand,
     GetWalletHistoryCommand,
 )
+from .weights import CommitWeightCommand, RevealWeightCommand
 from .transfer import TransferCommand
 from .inspect import InspectCommand
 from .metagraph import MetagraphCommand
@@ -120,3 +128,4 @@ from .root import (
     RootSetSlashCommand,
 )
 from .identity import GetIdentityCommand, SetIdentityCommand
+from .check_coldkey_swap import CheckColdKeySwapCommand

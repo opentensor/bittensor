@@ -16,16 +16,14 @@
 # DEALINGS IN THE SOFTWARE.
 import json
 import base64
-from typing import List, Optional
-
-import pydantic_core
 import pytest
 import bittensor
+from typing import Optional, ClassVar
 
 
 def test_parse_headers_to_inputs():
     class Test(bittensor.Synapse):
-        key1: List[int]
+        key1: list[int]
 
     # Define a mock headers dictionary to use for testing
     headers = {
@@ -60,7 +58,7 @@ def test_parse_headers_to_inputs():
 
 def test_from_headers():
     class Test(bittensor.Synapse):
-        key1: List[int]
+        key1: list[int]
 
     # Define a mock headers dictionary to use for testing
     headers = {
@@ -131,14 +129,14 @@ def test_custom_synapse():
         a: int  # Carried through because required.
         b: int = None  # Not carried through headers
         c: Optional[int]  # Required, carried through headers, cannot be None
-        d: Optional[List[int]]  # Required, carried though headers, cannot be None
-        e: List[int]  # Carried through headers
-        f: Optional[
-            int
-        ] = None  # Not Required, Not carried through headers, can be None
-        g: Optional[
-            List[int]
-        ] = None  # Not Required, Not carried though headers, can be None
+        d: Optional[list[int]]  # Required, carried though headers, cannot be None
+        e: list[int]  # Carried through headers
+        f: Optional[int] = (
+            None  # Not Required, Not carried through headers, can be None
+        )
+        g: Optional[list[int]] = (
+            None  # Not Required, Not carried though headers, can be None
+        )
 
     # Create an instance of the custom Synapse subclass
     synapse = Test(
@@ -152,12 +150,12 @@ def test_custom_synapse():
     assert isinstance(synapse, Test)
     assert synapse.name == "Test"
     assert synapse.a == 1
-    assert synapse.b == None
+    assert synapse.b is None
     assert synapse.c == 3
     assert synapse.d == [1, 2, 3, 4]
     assert synapse.e == [1, 2, 3, 4]
-    assert synapse.f == None
-    assert synapse.g == None
+    assert synapse.f is None
+    assert synapse.g is None
 
     # Convert the Test instance to a headers dictionary
     headers = synapse.to_headers()
@@ -169,12 +167,12 @@ def test_custom_synapse():
     # Create a new Test from the headers and check its properties
     next_synapse = synapse.from_headers(synapse.to_headers())
     assert next_synapse.a == 0  # Default value is 0
-    assert next_synapse.b == None
+    assert next_synapse.b is None
     assert next_synapse.c == 0  # Default is 0
     assert next_synapse.d == []  # Default is []
     assert next_synapse.e == []  # Empty list is default for list types
-    assert next_synapse.f == None
-    assert next_synapse.g == None
+    assert next_synapse.f is None
+    assert next_synapse.g is None
 
 
 def test_body_hash_override():
@@ -187,18 +185,6 @@ def test_body_hash_override():
         match="body_hash property is read-only and cannot be overridden.",
     ):
         synapse_instance.body_hash = []
-
-
-def test_required_fields_override():
-    # Create a Synapse instance
-    synapse_instance = bittensor.Synapse()
-
-    # Try to set the required_hash_fields property and expect a TypeError
-    with pytest.raises(
-        pydantic_core.ValidationError,
-        match="required_hash_fields\n  Field is frozen",
-    ):
-        synapse_instance.required_hash_fields = []
 
 
 def test_default_instance_fields_dict_consistency():
@@ -233,5 +219,48 @@ def test_default_instance_fields_dict_consistency():
             "signature": None,
         },
         "computed_body_hash": "",
-        "required_hash_fields": [],
     }
+
+
+class LegacyHashedSynapse(bittensor.Synapse):
+    """Legacy Synapse subclass that serialized `required_hash_fields`."""
+
+    a: int
+    b: int
+    c: Optional[int] = None
+    d: Optional[list[str]] = None
+    required_hash_fields: Optional[list[str]] = ["b", "a", "d"]
+
+
+class HashedSynapse(bittensor.Synapse):
+    a: int
+    b: int
+    c: Optional[int] = None
+    d: Optional[list[str]] = None
+    required_hash_fields: ClassVar[tuple[str, ...]] = ("a", "b", "d")
+
+
+@pytest.mark.parametrize("synapse_cls", [LegacyHashedSynapse, HashedSynapse])
+def test_synapse_body_hash(synapse_cls):
+    synapse_instance = synapse_cls(a=1, b=2, d=["foobar"])
+    assert (
+        synapse_instance.body_hash
+        == "ae06397d08f30f75c91395c59f05c62ac3b62b88250eb78b109213258e6ced0c"
+    )
+
+    # Extra non-hashed values should not influence the body hash
+    synapse_instance_slightly_different = synapse_cls(d=["foobar"], c=3, a=1, b=2)
+    assert synapse_instance.body_hash == synapse_instance_slightly_different.body_hash
+
+    # Even if someone tries to override the required_hash_fields, it should still be the same
+    synapse_instance_try_override_hash_fields = synapse_cls(
+        a=1, b=2, d=["foobar"], required_hash_fields=["a"]
+    )
+    assert (
+        synapse_instance.body_hash
+        == synapse_instance_try_override_hash_fields.body_hash
+    )
+
+    # Different hashed values should result in different body hashes
+    synapse_different = synapse_cls(a=1, b=2)
+    assert synapse_instance.body_hash != synapse_different.body_hash

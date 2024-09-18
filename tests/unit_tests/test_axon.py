@@ -17,20 +17,31 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+
 # Standard Lib
-import pytest
-import unittest
-from typing import Any
+import re
+import time
+from dataclasses import dataclass
+
+from typing import Any, Optional
 from unittest import IsolatedAsyncioTestCase
 from unittest.mock import AsyncMock, MagicMock, patch
 
 # Third Party
+import fastapi
+import netaddr
+import pydantic
+import pytest
 from starlette.requests import Request
+from fastapi.testclient import TestClient
 
 # Bittensor
 import bittensor
+from bittensor import Synapse, RunException, StreamingSynapse
 from bittensor.axon import AxonMiddleware
 from bittensor.axon import axon as Axon
+from bittensor.utils.axon_utils import allowed_nonce_window_ns, calculate_diff_seconds
+from bittensor.constants import ALLOWED_DELTA, NANOSECONDS_IN_SECOND
 
 
 def test_attach():
@@ -117,7 +128,7 @@ def test_log_and_handle_error():
 
     synapse = log_and_handle_error(synapse, Exception("Error"), 500, 100)
     assert synapse.axon.status_code == 500
-    assert synapse.axon.status_message == "Error"
+    assert re.match(r"Internal Server Error #[\da-f\-]+", synapse.axon.status_message)
     assert synapse.axon.process_time is not None
 
 
@@ -161,14 +172,19 @@ def axon_instance():
 
 
 # Mocks
+@dataclass
 class MockWallet:
-    def __init__(self, hotkey):
-        self.hotkey = hotkey
+    hotkey: Any
+    coldkey: Any = None
+    coldkeypub: Any = None
 
 
 class MockHotkey:
     def __init__(self, ss58_address):
         self.ss58_address = ss58_address
+
+    def sign(self, *args, **kwargs):
+        return f"Signed: {args!r} {kwargs!r}".encode()
 
 
 class MockInfo:
@@ -270,6 +286,7 @@ async def test_priority_pass(middleware):
         ),
     ],
 )
+@pytest.mark.asyncio
 async def test_verify_body_integrity_happy_path(
     mock_request, axon_instance, body, expected
 ):
@@ -286,11 +303,12 @@ async def test_verify_body_integrity_happy_path(
 @pytest.mark.parametrize(
     "body, expected_exception_message",
     [
-        (b"", "EOFError"),  # Empty body
-        (b"not_json", "JSONDecodeError"),  # Non-JSON body
+        (b"", "Expecting value: line 1 column 1 (char 0)"),  # Empty body
+        (b"not_json", "Expecting value: line 1 column 1 (char 0)"),  # Non-JSON body
     ],
     ids=["empty_body", "non_json_body"],
 )
+@pytest.mark.asyncio
 async def test_verify_body_integrity_edge_cases(
     mock_request, axon_instance, body, expected_exception_message
 ):
@@ -311,6 +329,7 @@ async def test_verify_body_integrity_edge_cases(
         ("incorrect_hash", ValueError),
     ],
 )
+@pytest.mark.asyncio
 async def test_verify_body_integrity_error_cases(
     mock_request, axon_instance, computed_hash, expected_error
 ):
@@ -339,6 +358,55 @@ def test_to_string(info_return, expected_output, test_id):
 
         # Assert
         assert output == expected_output, f"Test ID: {test_id}"
+
+
+@pytest.mark.parametrize(
+    "ip, port, expected_ip_type, test_id",
+    [
+        # Happy path
+        (
+            "127.0.0.1",
+            8080,
+            4,
+            "valid_ipv4",
+        ),
+        (
+            "2001:0db8:85a3:0000:0000:8a2e:0370:7334",
+            3030,
+            6,
+            "valid_ipv6",
+        ),
+    ],
+)
+def test_valid_ipv4_and_ipv6_address(ip, port, expected_ip_type, test_id):
+    # Arrange
+    axon = Axon()
+    axon.ip = ip
+    axon.external_ip = ip
+    axon.port = port
+
+    # Act
+    ip_type = axon.info().ip_type
+
+    # Assert
+    assert ip_type == expected_ip_type, f"Test ID: {test_id}"
+
+
+@pytest.mark.parametrize(
+    "ip, port, expected_exception",
+    [
+        (
+            "This Is not a valid address",
+            65534,
+            netaddr.core.AddrFormatError,
+        ),
+    ],
+    ids=["failed to detect a valid IP " "address from %r"],
+)
+def test_invalid_ip_address(ip, port, expected_exception):
+    # Assert
+    with pytest.raises(expected_exception):
+        Axon(ip=ip, external_ip=ip, port=port).info()
 
 
 @pytest.mark.parametrize(
@@ -428,8 +496,8 @@ class TestAxonMiddleware(IsolatedAsyncioTestCase):
         assert synapse.axon.version == str(bittensor.__version_as_int__)
         assert synapse.axon.uuid == "1234"
         assert synapse.axon.nonce is not None
-        assert synapse.axon.status_message == "Success"
-        assert synapse.axon.status_code == "100"
+        assert synapse.axon.status_message is None
+        assert synapse.axon.status_code == 100
         assert synapse.axon.signature == "0xaabbccdd"
 
         # Check if the preprocess function fills the dendrite information into the synapse
@@ -440,5 +508,274 @@ class TestAxonMiddleware(IsolatedAsyncioTestCase):
         assert synapse.name == "request_name"
 
 
-if __name__ == "__main__":
-    unittest.main()
+class SynapseHTTPClient(TestClient):
+    def post_synapse(self, synapse: Synapse):
+        return self.post(
+            f"/{synapse.__class__.__name__}",
+            json=synapse.model_dump(),
+            headers={"computed_body_hash": synapse.body_hash},
+        )
+
+
+@pytest.mark.asyncio
+class TestAxonHTTPAPIResponses:
+    @pytest.fixture
+    def axon(self):
+        return Axon(
+            ip="192.0.2.1",
+            external_ip="192.0.2.1",
+            wallet=MockWallet(MockHotkey("A"), MockHotkey("B"), MockHotkey("PUB")),
+        )
+
+    @pytest.fixture
+    def no_verify_axon(self, axon):
+        axon.default_verify = self.no_verify_fn
+        return axon
+
+    @pytest.fixture
+    def http_client(self, axon):
+        return SynapseHTTPClient(axon.app)
+
+    async def no_verify_fn(self, synapse):
+        return
+
+    class NonDeterministicHeaders(pydantic.BaseModel):
+        """
+        Helper class to verify headers.
+
+        Size headers are non-determistic as for example, header_size depends on non-deterministic
+        processing-time value.
+        """
+
+        bt_header_axon_process_time: float = pydantic.Field(gt=0, lt=30)
+        timeout: float = pydantic.Field(gt=0, lt=30)
+        header_size: int = pydantic.Field(None, gt=10, lt=400)
+        total_size: int = pydantic.Field(gt=100, lt=10000)
+        content_length: Optional[int] = pydantic.Field(
+            None, alias="content-length", gt=100, lt=10000
+        )
+
+    def assert_headers(self, response, expected_headers):
+        expected_headers = {
+            "bt_header_axon_status_code": "200",
+            "bt_header_axon_status_message": "Success",
+            **expected_headers,
+        }
+        headers = dict(response.headers)
+        non_deterministic_headers_names = {
+            field.alias or field_name
+            for field_name, field in self.NonDeterministicHeaders.model_fields.items()
+        }
+        non_deterministic_headers = {
+            field: headers.pop(field, None) for field in non_deterministic_headers_names
+        }
+        assert headers == expected_headers
+        self.NonDeterministicHeaders.model_validate(non_deterministic_headers)
+
+    async def test_unknown_path(self, http_client):
+        response = http_client.get("/no_such_path")
+        assert (response.status_code, response.json()) == (
+            404,
+            {
+                "message": "Synapse name 'no_such_path' not found. Available synapses ['Synapse']"
+            },
+        )
+
+    async def test_ping__no_dendrite(self, http_client):
+        response = http_client.post_synapse(bittensor.Synapse())
+        assert (response.status_code, response.json()) == (
+            401,
+            {
+                "message": "Not Verified with error: No SS58 formatted address or public key provided"
+            },
+        )
+
+    async def test_ping__without_verification(self, http_client, axon):
+        axon.verify_fns["Synapse"] = self.no_verify_fn
+        request_synapse = Synapse()
+        response = http_client.post_synapse(request_synapse)
+        assert response.status_code == 200
+        response_synapse = Synapse(**response.json())
+        assert response_synapse.axon.status_code == 200
+        self.assert_headers(
+            response,
+            {
+                "computed_body_hash": "a7ffc6f8bf1ed76651c14756a061d662f580ff4de43b49fa82d80a4b80f8434a",
+                "content-type": "application/json",
+                "name": "Synapse",
+            },
+        )
+
+    @pytest.fixture
+    def custom_synapse_cls(self):
+        class CustomSynapse(Synapse):
+            pass
+
+        return CustomSynapse
+
+    @pytest.fixture
+    def streaming_synapse_cls(self):
+        class CustomStreamingSynapse(StreamingSynapse):
+            async def process_streaming_response(self, response):
+                pass
+
+            def extract_response_json(self, response) -> dict:
+                return {}
+
+        return CustomStreamingSynapse
+
+    async def test_synapse__explicitly_set_status_code(
+        self, http_client, axon, custom_synapse_cls, no_verify_axon
+    ):
+        error_message = "Essential resource for CustomSynapse not found"
+
+        async def forward_fn(synapse: custom_synapse_cls):
+            synapse.axon.status_code = 404
+            synapse.axon.status_message = error_message
+            return synapse
+
+        axon.attach(forward_fn)
+
+        response = http_client.post_synapse(custom_synapse_cls())
+        assert response.status_code == 404
+        response_synapse = custom_synapse_cls(**response.json())
+        assert (
+            response_synapse.axon.status_code,
+            response_synapse.axon.status_message,
+        ) == (404, error_message)
+
+    async def test_synapse__exception_with_set_status_code(
+        self, http_client, axon, custom_synapse_cls, no_verify_axon
+    ):
+        error_message = "Conflicting request"
+
+        async def forward_fn(synapse: custom_synapse_cls):
+            synapse.axon.status_code = 409
+            raise RunException(message=error_message, synapse=synapse)
+
+        axon.attach(forward_fn)
+
+        response = http_client.post_synapse(custom_synapse_cls())
+        assert response.status_code == 409
+        assert response.json() == {"message": error_message}
+
+    async def test_synapse__internal_error(
+        self, http_client, axon, custom_synapse_cls, no_verify_axon
+    ):
+        async def forward_fn(synapse: custom_synapse_cls):
+            raise ValueError("error with potentially sensitive information")
+
+        axon.attach(forward_fn)
+
+        response = http_client.post_synapse(custom_synapse_cls())
+        assert response.status_code == 500
+        response_data = response.json()
+        assert sorted(response_data.keys()) == ["message"]
+        assert re.match(r"Internal Server Error #[\da-f\-]+", response_data["message"])
+
+
+def test_allowed_nonce_window_ns():
+    mock_synapse = SynapseMock()
+    current_time = time.time_ns()
+    allowed_window_ns = allowed_nonce_window_ns(current_time, mock_synapse.timeout)
+    expected_window_ns = (
+        current_time - ALLOWED_DELTA - (mock_synapse.timeout * NANOSECONDS_IN_SECOND)
+    )
+    assert (
+        allowed_window_ns < current_time
+    ), "Allowed window should be less than the current time"
+    assert (
+        allowed_window_ns == expected_window_ns
+    ), f"Expected {expected_window_ns} but got {allowed_window_ns}"
+
+
+@pytest.mark.parametrize("nonce_offset_seconds", [1, 3, 5, 10])
+def test_nonce_diff_seconds(nonce_offset_seconds):
+    mock_synapse = SynapseMock()
+    current_time_ns = time.time_ns()
+    synapse_nonce = current_time_ns - (nonce_offset_seconds * NANOSECONDS_IN_SECOND)
+    diff_seconds, allowed_delta_seconds = calculate_diff_seconds(
+        current_time_ns, mock_synapse.timeout, synapse_nonce
+    )
+
+    expected_diff_seconds = nonce_offset_seconds  # Because we subtracted nonce_offset_seconds from current_time_ns
+    expected_allowed_delta_seconds = (
+        ALLOWED_DELTA + (mock_synapse.timeout * NANOSECONDS_IN_SECOND)
+    ) / NANOSECONDS_IN_SECOND
+
+    assert (
+        diff_seconds == expected_diff_seconds
+    ), f"Expected {expected_diff_seconds} but got {diff_seconds}"
+    assert (
+        allowed_delta_seconds == expected_allowed_delta_seconds
+    ), f"Expected {expected_allowed_delta_seconds} but got {allowed_delta_seconds}"
+
+
+# Mimicking axon default_verify nonce verification
+# True: Nonce is fresh, False: Nonce is old
+def is_nonce_within_allowed_window(synapse_nonce, allowed_window_ns):
+    return not (synapse_nonce <= allowed_window_ns)
+
+
+# Test assuming synapse timeout is the default 12 seconds
+@pytest.mark.parametrize(
+    "nonce_offset_seconds, expected_result",
+    [(1, True), (3, True), (5, True), (15, True), (18, False), (19, False)],
+)
+def test_nonce_within_allowed_window(nonce_offset_seconds, expected_result):
+    mock_synapse = SynapseMock()
+    current_time_ns = time.time_ns()
+    synapse_nonce = current_time_ns - (nonce_offset_seconds * NANOSECONDS_IN_SECOND)
+    allowed_window_ns = allowed_nonce_window_ns(current_time_ns, mock_synapse.timeout)
+
+    result = is_nonce_within_allowed_window(synapse_nonce, allowed_window_ns)
+
+    assert result == expected_result, f"Expected {expected_result} but got {result}"
+
+    @pytest.mark.parametrize(
+        "forward_fn_return_annotation",
+        [
+            None,
+            fastapi.Response,
+            bittensor.StreamingSynapse,
+        ],
+    )
+    async def test_streaming_synapse(
+        self,
+        http_client,
+        axon,
+        streaming_synapse_cls,
+        no_verify_axon,
+        forward_fn_return_annotation,
+    ):
+        tokens = [f"data{i}\n" for i in range(10)]
+
+        async def streamer(send):
+            for token in tokens:
+                await send(
+                    {
+                        "type": "http.response.body",
+                        "body": token.encode(),
+                        "more_body": True,
+                    }
+                )
+            await send({"type": "http.response.body", "body": b"", "more_body": False})
+
+        async def forward_fn(synapse: streaming_synapse_cls):
+            return synapse.create_streaming_response(token_streamer=streamer)
+
+        if forward_fn_return_annotation is not None:
+            forward_fn.__annotations__["return"] = forward_fn_return_annotation
+
+        axon.attach(forward_fn)
+
+        response = http_client.post_synapse(streaming_synapse_cls())
+        assert (response.status_code, response.text) == (200, "".join(tokens))
+        self.assert_headers(
+            response,
+            {
+                "content-type": "text/event-stream",
+                "name": "CustomStreamingSynapse",
+                "computed_body_hash": "a7ffc6f8bf1ed76651c14756a061d662f580ff4de43b49fa82d80a4b80f8434a",
+            },
+        )

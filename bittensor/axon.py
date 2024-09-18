@@ -1,5 +1,4 @@
-""" Create and initialize Axon, which services the forward and backward requests from other neurons.
-"""
+"""Create and initialize Axon, which services the forward and backward requests from other neurons."""
 
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
@@ -30,32 +29,37 @@ import os
 import threading
 import time
 import traceback
+import typing
 import uuid
+import warnings
 from inspect import signature, Signature, Parameter
-from typing import List, Optional, Tuple, Callable, Any, Dict
+from typing import List, Optional, Tuple, Callable, Any, Dict, Awaitable
 
 import uvicorn
-from fastapi import FastAPI, APIRouter, Depends
+from fastapi import APIRouter, Depends, FastAPI
 from fastapi.responses import JSONResponse
+from fastapi.routing import serialize_response
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
 from starlette.responses import Response
 from substrateinterface import Keypair
 
 import bittensor
+from bittensor.utils.axon_utils import allowed_nonce_window_ns, calculate_diff_seconds
+from bittensor.constants import V_7_2_0
 from bittensor.errors import (
+    BlacklistedException,
     InvalidRequestNameError,
+    NotVerifiedException,
+    PostProcessException,
+    PriorityException,
     SynapseDendriteNoneException,
+    SynapseException,
     SynapseParsingError,
     UnknownSynapseError,
-    NotVerifiedException,
-    BlacklistedException,
-    PriorityException,
-    RunException,
-    PostProcessException,
-    InternalServerError,
 )
 from bittensor.threadpool import PriorityThreadPoolExecutor
+from bittensor.utils import networking
 
 
 class FastAPIThreadedServer(uvicorn.Server):
@@ -341,12 +345,12 @@ class axon:
         self.port = self.config.axon.port
         self.external_ip = (
             self.config.axon.external_ip
-            if self.config.axon.external_ip != None
+            if self.config.axon.external_ip is not None
             else bittensor.utils.networking.get_external_ip()
         )
         self.external_port = (
             self.config.axon.external_port
-            if self.config.axon.external_port != None
+            if self.config.axon.external_port is not None
             else self.config.axon.port
         )
         self.full_address = str(self.config.axon.ip) + ":" + str(self.config.axon.port)
@@ -364,7 +368,6 @@ class axon:
         self.priority_fns: Dict[str, Optional[Callable]] = {}
         self.forward_fns: Dict[str, Optional[Callable]] = {}
         self.verify_fns: Dict[str, Optional[Callable]] = {}
-        self.required_hash_fields: Dict[str, str] = {}
 
         # Instantiate FastAPI
         self.app = FastAPI()
@@ -377,7 +380,8 @@ class axon:
         self.app.include_router(self.router)
 
         # Build ourselves as the middleware.
-        self.app.add_middleware(AxonMiddleware, axon=self)
+        self.middleware_cls = AxonMiddleware
+        self.app.add_middleware(self.middleware_cls, axon=self)
 
         # Attach default forward.
         def ping(r: bittensor.Synapse) -> bittensor.Synapse:
@@ -392,7 +396,7 @@ class axon:
         return bittensor.AxonInfo(
             version=bittensor.__version_as_int__,
             ip=self.external_ip,
-            ip_type=4,
+            ip_type=networking.ip_version(self.external_ip),
             port=self.external_port,
             hotkey=self.wallet.hotkey.ss58_address,
             coldkey=self.wallet.coldkeypub.ss58_address,
@@ -466,89 +470,105 @@ class axon:
             offered by this method allows developers to tailor the Axon's behavior to specific requirements and
             use cases.
         """
-
-        # Assert 'forward_fn' has exactly one argument
         forward_sig = signature(forward_fn)
-        assert (
-            len(list(forward_sig.parameters)) == 1
-        ), "The passed function must have exactly one argument"
+        try:
+            first_param = next(iter(forward_sig.parameters.values()))
+        except StopIteration:
+            raise ValueError(
+                "The forward_fn first argument must be a subclass of bittensor.Synapse, but it has no arguments"
+            )
 
-        # Obtain the class of the first argument of 'forward_fn'
-        request_class = forward_sig.parameters[
-            list(forward_sig.parameters)[0]
-        ].annotation
-
-        # Assert that the first argument of 'forward_fn' is a subclass of 'bittensor.Synapse'
+        param_class = first_param.annotation
         assert issubclass(
-            request_class, bittensor.Synapse
-        ), "The argument of forward_fn must inherit from bittensor.Synapse"
+            param_class, bittensor.Synapse
+        ), "The first argument of forward_fn must inherit from bittensor.Synapse"
+        request_name = param_class.__name__
 
-        # Obtain the class name of the first argument of 'forward_fn'
-        request_name = forward_sig.parameters[
-            list(forward_sig.parameters)[0]
-        ].annotation.__name__
+        async def endpoint(*args, **kwargs):
+            start_time = time.time()
+            response = forward_fn(*args, **kwargs)
+            if isinstance(response, Awaitable):
+                response = await response
+            if isinstance(response, bittensor.Synapse):
+                return await self.middleware_cls.synapse_to_response(
+                    synapse=response, start_time=start_time
+                )
+            else:
+                response_synapse = getattr(response, "synapse", None)
+                if response_synapse is None:
+                    warnings.warn(
+                        "The response synapse is None. The input synapse will be used as the response synapse. "
+                        "Reliance on forward_fn modifying input synapse as a side-effects is deprecated. "
+                        "Explicitly set `synapse` on response object instead.",
+                        DeprecationWarning,
+                    )
+                    # Replace with `return response` in next major version
+                    response_synapse = args[0]
+
+                return await self.middleware_cls.synapse_to_response(
+                    synapse=response_synapse,
+                    start_time=start_time,
+                    response_override=response,
+                )
+
+        return_annotation = forward_sig.return_annotation
+
+        if isinstance(return_annotation, type) and issubclass(
+            return_annotation, bittensor.Synapse
+        ):
+            if issubclass(
+                return_annotation,
+                bittensor.StreamingSynapse,
+            ):
+                warnings.warn(
+                    "The forward_fn return annotation is a subclass of bittensor.StreamingSynapse. "
+                    "Most likely the correct return annotation would be BTStreamingResponse."
+                )
+            else:
+                return_annotation = JSONResponse
+
+        endpoint.__signature__ = Signature(  # type: ignore
+            parameters=list(forward_sig.parameters.values()),
+            return_annotation=return_annotation,
+        )
 
         # Add the endpoint to the router, making it available on both GET and POST methods
         self.router.add_api_route(
             f"/{request_name}",
-            forward_fn,
+            endpoint,
             methods=["GET", "POST"],
             dependencies=[Depends(self.verify_body_integrity)],
         )
         self.app.include_router(self.router)
 
-        # Expected signatures for 'blacklist_fn', 'priority_fn' and 'verify_fn'
-        blacklist_sig = Signature(
-            [
-                Parameter(
-                    "synapse",
-                    Parameter.POSITIONAL_OR_KEYWORD,
-                    annotation=forward_sig.parameters[
-                        list(forward_sig.parameters)[0]
-                    ].annotation,
-                )
-            ],
-            return_annotation=Tuple[bool, str],
-        )
-        priority_sig = Signature(
-            [
-                Parameter(
-                    "synapse",
-                    Parameter.POSITIONAL_OR_KEYWORD,
-                    annotation=forward_sig.parameters[
-                        list(forward_sig.parameters)[0]
-                    ].annotation,
-                )
-            ],
-            return_annotation=float,
-        )
-        verify_sig = Signature(
-            [
-                Parameter(
-                    "synapse",
-                    Parameter.POSITIONAL_OR_KEYWORD,
-                    annotation=forward_sig.parameters[
-                        list(forward_sig.parameters)[0]
-                    ].annotation,
-                )
-            ],
-            return_annotation=None,
-        )
-
         # Check the signature of blacklist_fn, priority_fn and verify_fn if they are provided
+        expected_params = [
+            Parameter(
+                "synapse",
+                Parameter.POSITIONAL_OR_KEYWORD,
+                annotation=forward_sig.parameters[
+                    list(forward_sig.parameters)[0]
+                ].annotation,
+            )
+        ]
         if blacklist_fn:
+            blacklist_sig = Signature(
+                expected_params, return_annotation=Tuple[bool, str]
+            )
             assert (
                 signature(blacklist_fn) == blacklist_sig
             ), "The blacklist_fn function must have the signature: blacklist( synapse: {} ) -> Tuple[bool, str]".format(
                 request_name
             )
         if priority_fn:
+            priority_sig = Signature(expected_params, return_annotation=float)
             assert (
                 signature(priority_fn) == priority_sig
             ), "The priority_fn function must have the signature: priority( synapse: {} ) -> float".format(
                 request_name
             )
         if verify_fn:
+            verify_sig = Signature(expected_params, return_annotation=None)
             assert (
                 signature(verify_fn) == verify_sig
             ), "The verify_fn function must have the signature: verify( synapse: {} ) -> None".format(
@@ -556,21 +576,13 @@ class axon:
             )
 
         # Store functions in appropriate attribute dictionaries
-        self.forward_class_types[request_name] = forward_sig.parameters[
-            list(forward_sig.parameters)[0]
-        ].annotation
+        self.forward_class_types[request_name] = param_class
         self.blacklist_fns[request_name] = blacklist_fn
         self.priority_fns[request_name] = priority_fn
         self.verify_fns[request_name] = (
             verify_fn or self.default_verify
         )  # Use 'default_verify' if 'verify_fn' is None
         self.forward_fns[request_name] = forward_fn
-
-        # Parse required hash fields from the forward function protocol defaults
-        required_hash_fields = request_class.__dict__["model_fields"][
-            "required_hash_fields"
-        ].default
-        self.required_hash_fields[request_name] = required_hash_fields
 
         return self
 
@@ -696,9 +708,7 @@ class axon:
         body = await request.body()
         request_body = body.decode() if isinstance(body, bytes) else body
 
-        # Gather the required field names from the axon's required_hash_fields dict
         request_name = request.url.path.split("/")[1]
-        required_hash_fields = self.required_hash_fields[request_name]
 
         # Load the body dict and check if all required field hashes match
         body_dict = json.loads(request_body)
@@ -872,6 +882,8 @@ class axon:
                 The method checks for increasing nonce values, which is a vital
                 step in preventing replay attacks. A replay attack involves an adversary reusing or
                 delaying the transmission of a valid data transmission to deceive the receiver.
+                The first time a nonce is seen, it is checked for freshness by ensuring it is
+                within an acceptable delta time range.
 
             Authenticity and Integrity Checks
                 By verifying that the message's digital signature matches
@@ -914,14 +926,47 @@ class axon:
             # Build the unique endpoint key.
             endpoint_key = f"{synapse.dendrite.hotkey}:{synapse.dendrite.uuid}"
 
-            # Check the nonce from the endpoint key.
+            # Requests must have nonces to be safe from replays
+            if synapse.dendrite.nonce is None:
+                raise Exception("Missing Nonce")
+
+            # Newer nonce structure post v7.2
             if (
-                endpoint_key in self.nonces.keys()
-                and self.nonces[endpoint_key] is not None
-                and synapse.dendrite.nonce is not None
-                and synapse.dendrite.nonce <= self.nonces[endpoint_key]
+                synapse.dendrite.version is not None
+                and synapse.dendrite.version >= V_7_2_0
             ):
-                raise Exception("Nonce is too small")
+                # If we don't have a nonce stored, ensure that the nonce falls within
+                # a reasonable delta.
+                current_time_ns = time.time_ns()
+                allowed_window_ns = allowed_nonce_window_ns(
+                    current_time_ns, synapse.timeout
+                )
+
+                if (
+                    self.nonces.get(endpoint_key) is None
+                    and synapse.dendrite.nonce <= allowed_window_ns
+                ):
+                    diff_seconds, allowed_delta_seconds = calculate_diff_seconds(
+                        current_time_ns, synapse.timeout, synapse.dendrite.nonce
+                    )
+                    raise Exception(
+                        f"Nonce is too old: acceptable delta is {allowed_delta_seconds:.2f} seconds but request was {diff_seconds:.2f} seconds old"
+                    )
+
+                # If a nonce is stored, ensure the new nonce
+                # is greater than the previous nonce
+                if (
+                    self.nonces.get(endpoint_key) is not None
+                    and synapse.dendrite.nonce <= self.nonces[endpoint_key]
+                ):
+                    raise Exception("Nonce is too old, a newer one was last processed")
+            # Older nonce structure pre v7.2
+            else:
+                if (
+                    self.nonces.get(endpoint_key) is not None
+                    and synapse.dendrite.nonce <= self.nonces[endpoint_key]
+                ):
+                    raise Exception("Nonce is too old, a newer one was last processed")
 
             if not keypair.verify(message, synapse.dendrite.signature):
                 raise Exception(
@@ -931,7 +976,7 @@ class axon:
             # Success
             self.nonces[endpoint_key] = synapse.dendrite.nonce  # type: ignore
         else:
-            raise SynapseDendriteNoneException()
+            raise SynapseDendriteNoneException(synapse=synapse)
 
 
 def create_error_response(synapse: bittensor.Synapse):
@@ -952,28 +997,55 @@ def create_error_response(synapse: bittensor.Synapse):
 def log_and_handle_error(
     synapse: bittensor.Synapse,
     exception: Exception,
-    status_code: int,
-    start_time: float,
-):
-    # Display the traceback for user clarity.
-    bittensor.logging.trace(f"Forward exception: {traceback.format_exc()}")
+    status_code: typing.Optional[int] = None,
+    start_time: typing.Optional[float] = None,
+) -> bittensor.Synapse:
+    if isinstance(exception, SynapseException):
+        synapse = exception.synapse or synapse
 
-    # Set the status code of the synapse to the given status code.
-    error_type = exception.__class__.__name__
-    error_message = str(exception)
-    detailed_error_message = f"{error_type}: {error_message}"
-
-    # Log the detailed error message for internal use
-    bittensor.logging.error(detailed_error_message)
+        bittensor.logging.trace(f"Forward handled exception: {exception}")
+    else:
+        bittensor.logging.trace(f"Forward exception: {traceback.format_exc()}")
 
     if synapse.axon is None:
-        raise SynapseParsingError(detailed_error_message)
+        synapse.axon = bittensor.TerminalInfo()
+
+    # Set the status code of the synapse to the given status code.
+    error_id = str(uuid.uuid4())
+    error_type = exception.__class__.__name__
+
+    # Log the detailed error message for internal use
+    bittensor.logging.error(f"{error_type}#{error_id}: {exception}")
+
+    if not status_code and synapse.axon.status_code != 100:
+        status_code = synapse.axon.status_code
+    status_message = synapse.axon.status_message
+    if isinstance(exception, SynapseException):
+        if not status_code:
+            if isinstance(exception, PriorityException):
+                status_code = 503
+            elif isinstance(exception, UnknownSynapseError):
+                status_code = 404
+            elif isinstance(exception, BlacklistedException):
+                status_code = 403
+            elif isinstance(exception, NotVerifiedException):
+                status_code = 401
+            elif isinstance(exception, (InvalidRequestNameError, SynapseParsingError)):
+                status_code = 400
+            else:
+                status_code = 500
+        status_message = status_message or str(exception)
+    else:
+        status_code = status_code or 500
+        status_message = status_message or f"Internal Server Error #{error_id}"
+
     # Set a user-friendly error message
     synapse.axon.status_code = status_code
-    synapse.axon.status_message = error_message
+    synapse.axon.status_message = status_message
 
-    # Calculate the processing time by subtracting the start time from the current time.
-    synapse.axon.process_time = str(time.time() - start_time)  # type: ignore
+    if start_time:
+        # Calculate the processing time by subtracting the start time from the current time.
+        synapse.axon.process_time = str(time.time() - start_time)  # type: ignore
 
     return synapse
 
@@ -1043,7 +1115,14 @@ class AxonMiddleware(BaseHTTPMiddleware):
 
         try:
             # Set up the synapse from its headers.
-            synapse: bittensor.Synapse = await self.preprocess(request)
+            try:
+                synapse: bittensor.Synapse = await self.preprocess(request)
+            except Exception as exc:
+                if isinstance(exc, SynapseException) and exc.synapse is not None:
+                    synapse = exc.synapse
+                else:
+                    synapse = bittensor.Synapse()
+                raise
 
             # Logs the start of the request processing
             if synapse.dendrite is not None:
@@ -1067,56 +1146,22 @@ class AxonMiddleware(BaseHTTPMiddleware):
             # Call the run function
             response = await self.run(synapse, call_next, request)
 
-            # Call the postprocess function
-            response = await self.postprocess(synapse, response, start_time)
-
         # Handle errors related to preprocess.
         except InvalidRequestNameError as e:
-            if "synapse" not in locals():
-                synapse: bittensor.Synapse = bittensor.Synapse()  # type: ignore
-            log_and_handle_error(synapse, e, 400, start_time)
+            if synapse.axon is None:
+                synapse.axon = bittensor.TerminalInfo()
+            synapse.axon.status_code = 400
+            synapse.axon.status_message = str(e)
+            synapse = log_and_handle_error(synapse, e, start_time=start_time)
             response = create_error_response(synapse)
-
-        except SynapseParsingError as e:
-            if "synapse" not in locals():
-                synapse = bittensor.Synapse()
-            log_and_handle_error(synapse, e, 400, start_time)
-            response = create_error_response(synapse)
-
-        except UnknownSynapseError as e:
-            if "synapse" not in locals():
-                synapse = bittensor.Synapse()
-            log_and_handle_error(synapse, e, 404, start_time)
-            response = create_error_response(synapse)
-
-        # Handle errors related to verify.
-        except NotVerifiedException as e:
-            log_and_handle_error(synapse, e, 401, start_time)
-            response = create_error_response(synapse)
-
-        # Handle errors related to blacklist.
-        except BlacklistedException as e:
-            log_and_handle_error(synapse, e, 403, start_time)
-            response = create_error_response(synapse)
-
-        # Handle errors related to priority.
-        except PriorityException as e:
-            log_and_handle_error(synapse, e, 503, start_time)
-            response = create_error_response(synapse)
-
-        # Handle errors related to run.
-        except RunException as e:
-            log_and_handle_error(synapse, e, 500, start_time)
-            response = create_error_response(synapse)
-
-        # Handle errors related to postprocess.
-        except PostProcessException as e:
-            log_and_handle_error(synapse, e, 500, start_time)
+        except SynapseException as e:
+            synapse = e.synapse or synapse
+            synapse = log_and_handle_error(synapse, e, start_time=start_time)
             response = create_error_response(synapse)
 
         # Handle all other errors.
         except Exception as e:
-            log_and_handle_error(synapse, InternalServerError(str(e)), 500, start_time)
+            synapse = log_and_handle_error(synapse, e, start_time=start_time)
             response = create_error_response(synapse)
 
         # Logs the end of request processing and returns the response
@@ -1164,7 +1209,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
         # Extracts the request name from the URL path.
         try:
             request_name = request.url.path.split("/")[1]
-        except:
+        except Exception:
             raise InvalidRequestNameError(
                 f"Improperly formatted request. Could not parser request {request.url.path}."
             )
@@ -1179,7 +1224,7 @@ class AxonMiddleware(BaseHTTPMiddleware):
 
         try:
             synapse = request_synapse.from_headers(request.headers)  # type: ignore
-        except Exception as e:
+        except Exception:
             raise SynapseParsingError(
                 f"Improperly formatted request. Could not parse headers {request.headers} into synapse of type {request_name}."
             )
@@ -1190,9 +1235,8 @@ class AxonMiddleware(BaseHTTPMiddleware):
             {
                 "version": str(bittensor.__version_as_int__),
                 "uuid": str(self.axon.uuid),
-                "nonce": f"{time.monotonic_ns()}",
-                "status_message": "Success",
-                "status_code": "100",
+                "nonce": time.time_ns(),
+                "status_code": 100,
             }
         )
 
@@ -1261,7 +1305,9 @@ class AxonMiddleware(BaseHTTPMiddleware):
 
                 # We raise an exception to stop the process and return the error to the requester.
                 # The error message includes the original exception message.
-                raise NotVerifiedException(f"Not Verified with error: {str(e)}")
+                raise NotVerifiedException(
+                    f"Not Verified with error: {str(e)}", synapse=synapse
+                )
 
     async def blacklist(self, synapse: bittensor.Synapse):
         """
@@ -1315,7 +1361,9 @@ class AxonMiddleware(BaseHTTPMiddleware):
                     raise Exception("Synapse.axon object is None")
 
                 # We raise an exception to halt the process and return the error message to the requester.
-                raise BlacklistedException(f"Forbidden. Key is blacklisted: {reason}.")
+                raise BlacklistedException(
+                    f"Forbidden. Key is blacklisted: {reason}.", synapse=synapse
+                )
 
     async def priority(self, synapse: bittensor.Synapse):
         """
@@ -1378,7 +1426,9 @@ class AxonMiddleware(BaseHTTPMiddleware):
                     synapse.axon.status_code = 408
 
                 # Raise an exception to stop the process and return an appropriate error message to the requester.
-                raise PriorityException(f"Response timeout after: {synapse.timeout}s")
+                raise PriorityException(
+                    f"Response timeout after: {synapse.timeout}s", synapse=synapse
+                )
 
     async def run(
         self,
@@ -1408,33 +1458,30 @@ class AxonMiddleware(BaseHTTPMiddleware):
             response = await call_next(request)
 
         except Exception as e:
-            # If an exception occurs during the execution of the requested function,
-            # it is caught and handled here.
-
             # Log the exception for debugging purposes.
             bittensor.logging.trace(f"Run exception: {str(e)}")
-
-            # Set the status code of the synapse to "500" which indicates an internal server error.
-            if synapse.axon is not None:
-                synapse.axon.status_code = 500
-
-            # Raise an exception to stop the process and return an appropriate error message to the requester.
-            raise RunException(f"Internal server error with error: {str(e)}")
+            raise
 
         # Return the starlet response
         return response
 
-    async def postprocess(
-        self, synapse: bittensor.Synapse, response: Response, start_time: float
+    @classmethod
+    async def synapse_to_response(
+        cls,
+        synapse: bittensor.Synapse,
+        start_time: float,
+        *,
+        response_override: Optional[Response] = None,
     ) -> Response:
         """
-        Performs the final processing on the response before sending it back to the client. This method
-        updates the response headers and logs the end of the request processing.
+        Converts the Synapse object into a JSON response with HTTP headers.
 
         Args:
-            synapse (bittensor.Synapse): The Synapse object representing the request.
-            response (Response): The response generated by processing the request.
-            start_time (float): The timestamp when the request processing started.
+            synapse: The Synapse object representing the request.
+            start_time: The timestamp when the request processing started.
+            response_override:
+                Instead of serializing the synapse, mutate the provided response object.
+                This is only really useful for StreamingSynapse responses.
 
         Returns:
             Response: The final HTTP response, with updated headers, ready to be sent back to the client.
@@ -1442,24 +1489,40 @@ class AxonMiddleware(BaseHTTPMiddleware):
         Postprocessing is the last step in the request handling process, ensuring that the response is
         properly formatted and contains all necessary information.
         """
-        # Set the status code of the synapse to "200" which indicates a successful response.
-        if synapse.axon is not None:
+        if synapse.axon is None:
+            synapse.axon = bittensor.TerminalInfo()
+
+        if synapse.axon.status_code is None:
             synapse.axon.status_code = 200
 
-            # Set the status message of the synapse to "Success".
+        if synapse.axon.status_code == 200 and not synapse.axon.status_message:
             synapse.axon.status_message = "Success"
 
-        try:
-            # Update the response headers with the headers from the synapse.
-            updated_headers = synapse.to_headers()
-            response.headers.update(updated_headers)
-        except Exception as e:
-            # If there is an exception during the response header update, we log the exception.
-            raise PostProcessException(
-                f"Error while parsing or updating response headers. Postprocess exception: {str(e)}."
+        synapse.axon.process_time = time.time() - start_time
+
+        if response_override:
+            response = response_override
+        else:
+            serialized_synapse = await serialize_response(response_content=synapse)
+            response = JSONResponse(
+                status_code=synapse.axon.status_code,
+                content=serialized_synapse,
             )
 
-        # Calculate the processing time by subtracting the start time from the current time.
-        synapse.axon.process_time = str(time.time() - start_time)  # type: ignore
+        try:
+            updated_headers = synapse.to_headers()
+        except Exception as e:
+            raise PostProcessException(
+                f"Error while parsing response headers. Postprocess exception: {str(e)}.",
+                synapse=synapse,
+            ) from e
+
+        try:
+            response.headers.update(updated_headers)
+        except Exception as e:
+            raise PostProcessException(
+                f"Error while updating response headers. Postprocess exception: {str(e)}.",
+                synapse=synapse,
+            ) from e
 
         return response

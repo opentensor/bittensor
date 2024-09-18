@@ -16,13 +16,17 @@
 # DEALINGS IN THE SOFTWARE.
 
 import sys
-import bittensor
-from tqdm import tqdm
-from rich.prompt import Confirm, Prompt
-from bittensor.utils.balance import Balance
+import argparse
 from typing import List, Union, Optional, Tuple
+
+from rich.prompt import Confirm, Prompt
+from tqdm import tqdm
+
+import bittensor
+from bittensor.utils.balance import Balance
+from . import defaults, GetChildrenCommand
 from .utils import get_hotkey_wallets_for_wallet
-from . import defaults
+from ..utils import wallet_utils
 
 console = bittensor.__console__
 
@@ -294,3 +298,146 @@ class UnStakeCommand:
             wait_for_inclusion=True,
             prompt=False,
         )
+
+
+class RevokeChildrenCommand:
+    """
+    Executes the ``revoke_children`` command to remove all children hotkeys on a specified subnet on the Bittensor network.
+
+    This command is used to remove delegated authority from all child hotkeys, removing their position and influence on the subnet.
+
+    Usage:
+        Users need to specify the parent hotkey and the subnet ID (netuid).
+        The user needs to have sufficient authority to make this call.
+
+    The command prompts for confirmation before executing the revoke_children operation.
+
+    Example usage::
+
+        btcli stake revoke_children --hotkey <parent_hotkey> --netuid 1
+
+    Note:
+        This command is critical for users who wish to remove children hotkeys on the network.
+        It allows for a complete removal of delegated authority to enhance network participation and influence.
+    """
+
+    @staticmethod
+    def run(cli: "bittensor.cli"):
+        """Revokes all children hotkeys."""
+        try:
+            subtensor: "bittensor.subtensor" = bittensor.subtensor(
+                config=cli.config, log_verbose=False
+            )
+            RevokeChildrenCommand._run(cli, subtensor)
+        finally:
+            if "subtensor" in locals():
+                subtensor.close()
+                bittensor.logging.debug("closing subtensor connection")
+
+    @staticmethod
+    def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
+        wallet = bittensor.wallet(config=cli.config)
+
+        # Get values if not set.
+        if not cli.config.is_set("netuid"):
+            cli.config.netuid = int(Prompt.ask("Enter netuid"))
+
+        netuid = cli.config.netuid
+        total_subnets = subtensor.get_total_subnets()
+        if total_subnets is not None and not (0 <= netuid < total_subnets):
+            console.print("Netuid is outside the current subnet range")
+            return
+
+        # get parent hotkey
+        if wallet and wallet.hotkey:
+            hotkey = wallet.hotkey.ss58_address
+        elif cli.config.is_set("hotkey"):
+            hotkey = cli.config.hotkey
+        elif cli.config.is_set("ss58"):
+            hotkey = cli.config.ss58
+        else:
+            hotkey = Prompt.ask("Enter parent hotkey (ss58)")
+
+        if not wallet_utils.is_valid_ss58_address(hotkey):
+            console.print(f":cross_mark:[red] Invalid SS58 address: {hotkey}[/red]")
+            return
+
+        success, message = subtensor.set_children(
+            wallet=wallet,
+            netuid=netuid,
+            children_with_proportions=[],
+            hotkey=hotkey,
+            wait_for_inclusion=cli.config.wait_for_inclusion,
+            wait_for_finalization=cli.config.wait_for_finalization,
+            prompt=cli.config.prompt,
+        )
+
+        # Result
+        if success:
+            if cli.config.wait_for_finalization and cli.config.wait_for_inclusion:
+                GetChildrenCommand.retrieve_children(
+                    subtensor=subtensor,
+                    hotkey=hotkey,
+                    netuid=netuid,
+                    render_table=True,
+                )
+            console.print(
+                ":white_heavy_check_mark: [green]Revoked all children hotkeys.[/green]"
+            )
+        else:
+            console.print(
+                f":cross_mark:[red] Unable to revoke children hotkeys.[/red] {message}"
+            )
+
+    @staticmethod
+    def check_config(config: "bittensor.config"):
+        if not config.is_set("wallet.name") and not config.no_prompt:
+            wallet_name = Prompt.ask("Enter wallet name", default=defaults.wallet.name)
+            config.wallet.name = str(wallet_name)
+        if not config.is_set("wallet.hotkey") and not config.no_prompt:
+            hotkey_or_ss58 = Prompt.ask(
+                "Enter hotkey name or ss58", default=defaults.wallet.hotkey
+            )
+            if wallet_utils.is_valid_ss58_address(hotkey_or_ss58):
+                config.ss58 = str(hotkey_or_ss58)
+            else:
+                config.wallet.hotkey = str(hotkey_or_ss58)
+
+    @staticmethod
+    def add_args(parser: argparse.ArgumentParser):
+        parser = parser.add_parser(
+            "revoke_children", help="""Revoke all children hotkeys."""
+        )
+        parser.add_argument("--netuid", dest="netuid", type=int, required=False)
+        parser.add_argument("--hotkey", dest="hotkey", type=str, required=False)
+        parser.add_argument(
+            "--wait_for_inclusion",
+            dest="wait_for_inclusion",
+            action="store_true",
+            default=True,
+            help="""Wait for the transaction to be included in a block.""",
+        )
+        parser.add_argument(
+            "--wait_for_finalization",
+            dest="wait_for_finalization",
+            action="store_true",
+            default=True,
+            help="""Wait for the transaction to be finalized.""",
+        )
+        parser.add_argument(
+            "--prompt",
+            dest="prompt",
+            action="store_true",
+            default=True,
+            help="""Prompt for confirmation before proceeding.""",
+        )
+        parser.add_argument(
+            "--y",
+            "--yes",
+            "--no_prompt",
+            dest="prompt",
+            action="store_false",
+            help="""Disable prompt for confirmation before proceeding. Defaults to Yes for all prompts.""",
+        )
+        bittensor.wallet.add_args(parser)
+        bittensor.subtensor.add_args(parser)

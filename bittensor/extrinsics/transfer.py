@@ -68,8 +68,15 @@ def transfer_extrinsic(
         # Convert bytes to hex string.
         dest = "0x" + dest.hex()
 
-    # Unlock wallet coldkey.
-    wallet.coldkey
+    try:
+        # Unlock wallet coldkey.
+        wallet.coldkey
+
+    except bittensor.KeyFileError:
+        bittensor.__console__.print(
+            ":cross_mark: [red]Keyfile is corrupt, non-writable, non-readable or the password used to decrypt is invalid[/red]:[bold white]\n  [/bold white]"
+        )
+        return False
 
     # Convert to bittensor.Balance
     if not isinstance(amount, bittensor.Balance):
@@ -130,7 +137,7 @@ def transfer_extrinsic(
             explorer_urls = bittensor.utils.get_explorer_url_for_network(
                 subtensor.network, block_hash, bittensor.__network_explorer_map__
             )
-            if explorer_urls != {}:
+            if explorer_urls != {} and explorer_urls:
                 bittensor.__console__.print(
                     "[green]Opentensor Explorer Link: {}[/green]".format(
                         explorer_urls.get("opentensor")
@@ -142,9 +149,7 @@ def transfer_extrinsic(
                     )
                 )
         else:
-            bittensor.__console__.print(
-                ":cross_mark: [red]Failed[/red]: error:{}".format(err_msg)
-            )
+            bittensor.__console__.print(f":cross_mark: [red]Failed[/red]: {err_msg}")
 
     if success:
         with bittensor.__console__.status(":satellite: Checking Balance..."):

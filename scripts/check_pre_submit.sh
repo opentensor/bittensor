@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# black checks formating
-echo ">>> Run the pre-submit format check with \`black .\`."
-python3 -m black --exclude '(env|venv|.eggs|.git)' .
+# ruff checks formating
+echo ">>> Run the pre-submit format check with \`ruff format .\`."
+ruff format .
 
 echo ">>> Run the pre-submit format check with \`mypy\`."
 

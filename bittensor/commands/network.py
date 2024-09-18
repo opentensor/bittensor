@@ -17,11 +17,16 @@
 
 import argparse
 import bittensor
-from . import defaults
+from . import defaults  # type: ignore
 from rich.prompt import Prompt
 from rich.table import Table
-from typing import List, Optional, Dict
-from .utils import get_delegates_details, DelegatesDetails, check_netuid_set
+from typing import List, Optional, Dict, Union, Tuple
+from .utils import (
+    get_delegates_details,
+    DelegatesDetails,
+    check_netuid_set,
+    normalize_hyperparameters,
+)
 from .identity import SetIdentityCommand
 
 console = bittensor.__console__
@@ -323,6 +328,10 @@ HYPERPARAMS = {
     "kappa": "sudo_set_kappa",
     "difficulty": "sudo_set_difficulty",
     "bonds_moving_avg": "sudo_set_bonds_moving_average",
+    "commit_reveal_weights_interval": "sudo_set_commit_reveal_weights_interval",
+    "commit_reveal_weights_enabled": "sudo_set_commit_reveal_weights_enabled",
+    "alpha_values": "sudo_set_alpha_values",
+    "liquid_alpha_enabled": "sudo_set_liquid_alpha_enabled",
 }
 
 
@@ -380,14 +389,26 @@ class SubnetSudoCommand:
         if (
             cli.config.param == "network_registration_allowed"
             or cli.config.param == "network_pow_registration_allowed"
+            or cli.config.param == "commit_reveal_weights_enabled"
+            or cli.config.param == "liquid_alpha_enabled"
         ):
-            cli.config.value = True if cli.config.value.lower() == "true" else False
+            cli.config.value = (
+                True
+                if (cli.config.value.lower() == "true" or cli.config.value == "1")
+                else False
+            )
+
+        is_allowed_value, value = allowed_value(cli.config.param, cli.config.value)
+        if not is_allowed_value:
+            raise ValueError(
+                f"Hyperparameter {cli.config.param} value is not within bounds. Value is {cli.config.value} but must be {value}"
+            )
 
         subtensor.set_hyperparameter(
             wallet,
             netuid=cli.config.netuid,
             parameter=cli.config.param,
-            value=cli.config.value,
+            value=value,
             prompt=not cli.config.no_prompt,
         )
 
@@ -487,11 +508,14 @@ class SubnetHyperparamsCommand:
         table.title = "[white]Subnet Hyperparameters - NETUID: {} - {}".format(
             cli.config.netuid, subtensor.network
         )
-        table.add_column("[overline white]HYPERPARAMETER", style="bold white")
+        table.add_column("[overline white]HYPERPARAMETER", style="white")
         table.add_column("[overline white]VALUE", style="green")
+        table.add_column("[overline white]NORMALIZED", style="cyan")
 
-        for param in subnet.__dict__:
-            table.add_row("  " + param, str(subnet.__dict__[param]))
+        normalized_values = normalize_hyperparameters(subnet)
+
+        for param, value, norm_value in normalized_values:
+            table.add_row("  " + param, value, norm_value)
 
         bittensor.__console__.print(table)
 
@@ -509,13 +533,6 @@ class SubnetHyperparamsCommand:
         )
         parser.add_argument(
             "--netuid", dest="netuid", type=int, required=False, default=False
-        )
-        parser.add_argument(
-            "--no_prompt",
-            dest="no_prompt",
-            action="store_true",
-            help="""Set true to avoid prompting the user.""",
-            default=False,
         )
         bittensor.subtensor.add_args(parser)
 
@@ -593,9 +610,12 @@ class SubnetGetHyperparamsCommand:
         )
         table.add_column("[overline white]HYPERPARAMETER", style="white")
         table.add_column("[overline white]VALUE", style="green")
+        table.add_column("[overline white]NORMALIZED", style="cyan")
 
-        for param in subnet.__dict__:
-            table.add_row(param, str(subnet.__dict__[param]))
+        normalized_values = normalize_hyperparameters(subnet)
+
+        for param, value, norm_value in normalized_values:
+            table.add_row("  " + param, value, norm_value)
 
         bittensor.__console__.print(table)
 
@@ -612,11 +632,41 @@ class SubnetGetHyperparamsCommand:
         parser.add_argument(
             "--netuid", dest="netuid", type=int, required=False, default=False
         )
-        parser.add_argument(
-            "--no_prompt",
-            dest="no_prompt",
-            action="store_true",
-            help="""Set true to avoid prompting the user.""",
-            default=False,
-        )
         bittensor.subtensor.add_args(parser)
+
+
+def allowed_value(
+    param: str, value: Union[str, bool, float]
+) -> Tuple[bool, Union[str, list[float], float]]:
+    """
+    Check the allowed values on hyperparameters. Return False if value is out of bounds.
+    """
+    # Reminder error message ends like:  Value is {value} but must be {error_message}. (the second part of return statement)
+    # Check if value is a boolean, only allow boolean and floats
+    try:
+        if not isinstance(value, bool):
+            if param == "alpha_values":
+                # Split the string into individual values
+                alpha_low_str, alpha_high_str = value.split(",")
+                alpha_high = float(alpha_high_str)
+                alpha_low = float(alpha_low_str)
+
+                # Check alpha_high value
+                if alpha_high <= 52428 or alpha_high >= 65535:
+                    return (
+                        False,
+                        f"between 52428 and 65535 for alpha_high (but is {alpha_high})",
+                    )
+
+                # Check alpha_low value
+                if alpha_low < 0 or alpha_low > 52428:
+                    return (
+                        False,
+                        f"between 0 and 52428 for alpha_low (but is {alpha_low})",
+                    )
+
+                return True, [alpha_low, alpha_high]
+    except ValueError:
+        return False, "a number or a boolean"
+
+    return True, value

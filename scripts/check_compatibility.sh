@@ -22,7 +22,7 @@ check_compatibility() {
             continue
         fi
 
-        package_name=$(echo "$requirement" | awk -F'[!=<>]' '{print $1}' | awk -F'[' '{print $1}') # Strip off brackets
+        package_name=$(echo "$requirement" | awk -F'[!=<>~]' '{print $1}' | awk -F'[' '{print $1}') # Strip off brackets
         echo -n "Checking $package_name... "
 
         url="https://pypi.org/pypi/$package_name/json"

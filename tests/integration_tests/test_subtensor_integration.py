@@ -17,20 +17,19 @@
 # DEALINGS IN THE SOFTWARE.
 
 import random
-import socket
-import os
 import unittest
 from queue import Empty as QueueEmpty
 from unittest.mock import MagicMock, patch
-from types import SimpleNamespace
+
+import numpy as np
+import pytest
+from substrateinterface import Keypair
 
 import bittensor
 from bittensor.mock import MockSubtensor
-import pytest
+from bittensor.utils import weight_utils
 from bittensor.utils.balance import Balance
-from substrateinterface import Keypair
 from tests.helpers import (
-    _get_mock_hotkey,
     _get_mock_coldkey,
     MockConsole,
     _get_mock_keypair,
@@ -115,6 +114,16 @@ class TestSubtensor(unittest.TestCase):
     def test_get_current_block(self):
         block = self.subtensor.get_current_block()
         assert type(block) == int
+
+    def test_do_block_step(self):
+        self.subtensor.do_block_step()
+        block = self.subtensor.get_current_block()
+        assert type(block) == int
+
+    def test_do_block_step_query_previous_block(self):
+        self.subtensor.do_block_step()
+        block = self.subtensor.get_current_block()
+        self.subtensor.query_subtensor("NetworksAdded", block)
 
     def test_unstake(self):
         self.subtensor._do_unstake = MagicMock(return_value=True)
@@ -362,6 +371,250 @@ class TestSubtensor(unittest.TestCase):
         )
         assert fail == False
 
+    def test_commit_weights(self):
+        weights = np.array([0.1, 0.2, 0.3, 0.4], dtype=np.float32)
+        uids = np.array([1, 2, 3, 4], dtype=np.int64)
+        salt = np.array([1, 2, 3, 4, 5, 6, 7, 8], dtype=np.int64)
+        weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(
+            uids=uids, weights=weights
+        )
+        commit_hash = bittensor.utils.weight_utils.generate_weight_hash(
+            address=self.wallet.hotkey.ss58_address,
+            netuid=3,
+            uids=weight_uids,
+            values=weight_vals,
+            salt=salt.tolist(),
+            version_key=0,
+        )
+
+        self.subtensor.commit_weights = MagicMock(
+            return_value=(True, "Successfully committed weights.")
+        )
+        self.subtensor._do_commit_weights = MagicMock(return_value=(True, None))
+
+        success, message = self.subtensor.commit_weights(
+            wallet=self.wallet, netuid=3, uids=uids, weights=weights, salt=salt
+        )
+        assert success is True
+        assert message == "Successfully committed weights."
+
+    def test_commit_weights_inclusion(self):
+        weights = np.array([0.1, 0.2, 0.3, 0.4], dtype=np.float32)
+        uids = np.array([1, 2, 3, 4], dtype=np.int64)
+        salt = np.array([1, 2, 3, 4, 5, 6, 7, 8], dtype=np.int64)
+
+        weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(
+            uids=uids, weights=weights
+        )
+
+        commit_hash = bittensor.utils.weight_utils.generate_weight_hash(
+            address=self.wallet.hotkey.ss58_address,
+            netuid=1,
+            uids=weight_uids,
+            values=weight_vals,
+            salt=salt.tolist(),
+            version_key=0,
+        )
+
+        self.subtensor._do_commit_weights = MagicMock(return_value=(True, None))
+        self.subtensor.commit_weights = MagicMock(
+            return_value=(True, "Successfully committed weights.")
+        )
+
+        success, message = self.subtensor.commit_weights(
+            wallet=self.wallet,
+            netuid=1,
+            uids=uids,
+            weights=weights,
+            salt=salt,
+            wait_for_inclusion=True,
+        )
+        assert success is True
+        assert message == "Successfully committed weights."
+
+    def test_commit_weights_failed(self):
+        weights = np.array([0.1, 0.2, 0.3, 0.4], dtype=np.float32)
+        uids = np.array([1, 2, 3, 4], dtype=np.int64)
+        salt = np.array([1, 2, 3, 4, 5, 6, 7, 8], dtype=np.int64)
+
+        weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(
+            uids=uids, weights=weights
+        )
+
+        commit_hash = bittensor.utils.weight_utils.generate_weight_hash(
+            address=self.wallet.hotkey.ss58_address,
+            netuid=3,
+            uids=weight_uids,
+            values=weight_vals,
+            salt=salt.tolist(),
+            version_key=0,
+        )
+
+        self.subtensor._do_commit_weights = MagicMock(
+            return_value=(False, "Mock failure message")
+        )
+        self.subtensor.commit_weights = MagicMock(
+            return_value=(False, "Mock failure message")
+        )
+
+        success, message = self.subtensor.commit_weights(
+            wallet=self.wallet,
+            netuid=3,
+            uids=uids,
+            weights=weights,
+            salt=salt,
+            wait_for_inclusion=True,
+        )
+        assert success is False
+        assert message == "Mock failure message"
+
+    def test_reveal_weights(self):
+        weights = np.array([0.1, 0.2, 0.3, 0.4], dtype=np.float32)
+        uids = np.array([1, 2, 3, 4], dtype=np.int64)
+        salt = np.array([1, 2, 3, 4, 5, 6, 7, 8], dtype=np.int64)
+
+        self.subtensor.reveal_weights = MagicMock(
+            return_value=(True, "Successfully revealed weights.")
+        )
+        self.subtensor._do_reveal_weights = MagicMock(return_value=(True, None))
+
+        success, message = self.subtensor.reveal_weights(
+            wallet=self.wallet,
+            netuid=3,
+            uids=uids,
+            weights=weights,
+            salt=salt,
+            version_key=0,
+        )
+        assert success is True
+        assert message == "Successfully revealed weights."
+
+    def test_reveal_weights_inclusion(self):
+        weights = np.array([0.1, 0.2, 0.3, 0.4], dtype=np.float32)
+        uids = np.array([1, 2, 3, 4], dtype=np.int64)
+        salt = np.array([1, 2, 3, 4, 5, 6, 7, 8], dtype=np.int64)
+
+        self.subtensor._do_reveal_weights = MagicMock(return_value=(True, None))
+        self.subtensor.reveal_weights = MagicMock(
+            return_value=(True, "Successfully revealed weights.")
+        )
+
+        success, message = self.subtensor.reveal_weights(
+            wallet=self.wallet,
+            netuid=1,
+            uids=uids,
+            weights=weights,
+            salt=salt,
+            version_key=0,
+            wait_for_inclusion=True,
+        )
+        assert success is True
+        assert message == "Successfully revealed weights."
+
+    def test_reveal_weights_failed(self):
+        weights = np.array([0.1, 0.2, 0.3, 0.4], dtype=np.float32)
+        uids = np.array([1, 2, 3, 4], dtype=np.int64)
+        salt = np.array([1, 2, 3, 4, 5, 6, 7, 8], dtype=np.int64)
+
+        self.subtensor._do_reveal_weights = MagicMock(
+            return_value=(False, "Mock failure message")
+        )
+        self.subtensor.reveal_weights = MagicMock(
+            return_value=(False, "Mock failure message")
+        )
+
+        success, message = self.subtensor.reveal_weights(
+            wallet=self.wallet,
+            netuid=3,
+            uids=uids,
+            weights=weights,
+            salt=salt,
+            version_key=0,
+            wait_for_inclusion=True,
+        )
+        assert success is False
+        assert message == "Mock failure message"
+
+    def test_commit_and_reveal_weights(self):
+        weights = np.array([0.1, 0.2, 0.3, 0.4], dtype=np.float32)
+        uids = np.array([1, 2, 3, 4], dtype=np.int64)
+        salt = np.array([1, 2, 3, 4, 5, 6, 7, 8], dtype=np.int64)
+        version_key = 0
+
+        # Mock the commit_weights and reveal_weights functions
+        self.subtensor.commit_weights = MagicMock(
+            return_value=(True, "Successfully committed weights.")
+        )
+        self.subtensor._do_commit_weights = MagicMock(return_value=(True, None))
+        self.subtensor.reveal_weights = MagicMock(
+            return_value=(True, "Successfully revealed weights.")
+        )
+        self.subtensor._do_reveal_weights = MagicMock(return_value=(True, None))
+
+        # Commit weights
+        commit_success, commit_message = self.subtensor.commit_weights(
+            wallet=self.wallet,
+            netuid=3,
+            uids=uids,
+            weights=weights,
+            salt=salt,
+        )
+        assert commit_success is True
+        assert commit_message == "Successfully committed weights."
+
+        # Reveal weights
+        reveal_success, reveal_message = self.subtensor.reveal_weights(
+            wallet=self.wallet,
+            netuid=3,
+            uids=uids,
+            weights=weights,
+            salt=salt,
+            version_key=version_key,
+        )
+        assert reveal_success is True
+        assert reveal_message == "Successfully revealed weights."
+
+    def test_commit_and_reveal_weights_inclusion(self):
+        weights = np.array([0.1, 0.2, 0.3, 0.4], dtype=np.float32)
+        uids = np.array([1, 2, 3, 4], dtype=np.int64)
+        salt = np.array([1, 2, 3, 4, 5, 6, 7, 8], dtype=np.int64)
+        version_key = 0
+
+        # Mock the commit_weights and reveal_weights functions
+        self.subtensor.commit_weights = MagicMock(
+            return_value=(True, "Successfully committed weights.")
+        )
+        self.subtensor._do_commit_weights = MagicMock(return_value=(True, None))
+        self.subtensor.reveal_weights = MagicMock(
+            return_value=(True, "Successfully revealed weights.")
+        )
+        self.subtensor._do_reveal_weights = MagicMock(return_value=(True, None))
+
+        # Commit weights with wait_for_inclusion
+        commit_success, commit_message = self.subtensor.commit_weights(
+            wallet=self.wallet,
+            netuid=1,
+            uids=uids,
+            weights=weights,
+            salt=salt,
+            wait_for_inclusion=True,
+        )
+        assert commit_success is True
+        assert commit_message == "Successfully committed weights."
+
+        # Reveal weights with wait_for_inclusion
+        reveal_success, reveal_message = self.subtensor.reveal_weights(
+            wallet=self.wallet,
+            netuid=1,
+            uids=uids,
+            weights=weights,
+            salt=salt,
+            version_key=version_key,
+            wait_for_inclusion=True,
+        )
+        assert reveal_success is True
+        assert reveal_message == "Successfully revealed weights."
+
     def test_get_balance(self):
         fake_coldkey = _get_mock_coldkey(0)
         balance = self.subtensor.get_balance(address=fake_coldkey)
@@ -463,11 +716,8 @@ class TestSubtensor(unittest.TestCase):
                     mock_set_status.__exit__ = MagicMock(return_value=True)
 
                     # should return True
-                    assert (
-                        self.subtensor.register(
-                            wallet=wallet, netuid=3, num_processes=3, update_interval=5
-                        )
-                        == True
+                    assert self.subtensor.register(
+                        wallet=wallet, netuid=3, num_processes=3, update_interval=5
                     )
 
                 # calls until True and once again before exiting subtensor class
@@ -494,7 +744,7 @@ class TestSubtensor(unittest.TestCase):
         )
 
         self.subtensor.get_neuron_for_pubkey_and_subnet = MagicMock(
-            return_value=bittensor.NeuronInfo._null_neuron()
+            return_value=bittensor.NeuronInfo.get_null_neuron()
         )
         self.subtensor.is_hotkey_registered = MagicMock(
             side_effect=is_registered_side_effect
@@ -576,7 +826,7 @@ class TestSubtensor(unittest.TestCase):
             # then should create a new pow and check if it is stale
             # then should enter substrate and exit early because of test
             self.subtensor.get_neuron_for_pubkey_and_subnet = MagicMock(
-                return_value=bittensor.NeuronInfo._null_neuron()
+                return_value=bittensor.NeuronInfo.get_null_neuron()
             )
             with pytest.raises(ExitEarly):
                 bittensor.subtensor.register(mock_subtensor_self, mock_wallet, netuid=3)

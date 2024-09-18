@@ -45,6 +45,112 @@ def _get_coldkey_wallets_for_path(path: str) -> List["bittensor.wallet"]:
 console = bittensor.__console__
 
 
+def show_delegates_lite(
+    delegates_lite: List["bittensor.DelegateInfoLite"], width: Optional[int] = None
+):
+    """
+    This method is a lite version of the :func:`show_delegates`. This method displays a formatted table of Bittensor network delegates with detailed statistics to the console.
+
+    The table is sorted by total stake in descending order and provides
+    a snapshot of delegate performance and status, helping users make informed decisions for staking or nominating.
+
+    This helper function is not intended to be used directly in user code unless specifically required.
+
+    Args:
+        delegates_lite (List[bittensor.DelegateInfoLite]): A list of delegate information objects to be displayed.
+        width (Optional[int]): The width of the console output table. Defaults to ``None``, which will make the table expand to the maximum width of the console.
+
+    The output table contains the following columns. To display more columns, use the :func:`show_delegates` function.
+
+    - INDEX: The numerical index of the delegate.
+    - DELEGATE: The name of the delegate.
+    - SS58: The truncated SS58 address of the delegate.
+    - NOMINATORS: The number of nominators supporting the delegate.
+    - VPERMIT: Validator permits held by the delegate for the subnets.
+    - TAKE: The percentage of the delegate's earnings taken by the network.
+    - DELEGATE/(24h): The earnings of the delegate in the last 24 hours.
+    - Desc: A brief description provided by the delegate.
+
+    Usage:
+        This function is typically used within the Bittensor CLI to show current delegate options to users who are considering where to stake their tokens.
+
+    Example usage::
+
+        show_delegates_lite(delegates_lite, width=80)
+
+    Note:
+        This function is primarily for display purposes within a command-line interface and does not return any values. It relies on the `rich <https://github.com/Textualize/rich>`_ Python library to render
+        the table in the console.
+    """
+
+    registered_delegate_info: Optional[Dict[str, DelegatesDetails]] = (
+        get_delegates_details(url=bittensor.__delegates_details_url__)
+    )
+    if registered_delegate_info is None:
+        bittensor.__console__.print(
+            ":warning:[yellow]Could not get delegate info from chain.[/yellow]"
+        )
+        registered_delegate_info = {}
+
+    table = Table(show_footer=True, width=width, pad_edge=False, box=None, expand=True)
+    table.add_column(
+        "[overline white]INDEX",
+        str(len(delegates_lite)),
+        footer_style="overline white",
+        style="bold white",
+    )
+    table.add_column(
+        "[overline white]DELEGATE",
+        style="rgb(50,163,219)",
+        no_wrap=True,
+        justify="left",
+    )
+    table.add_column(
+        "[overline white]SS58",
+        str(len(delegates_lite)),
+        footer_style="overline white",
+        style="bold yellow",
+    )
+    table.add_column(
+        "[overline white]NOMINATORS", justify="center", style="green", no_wrap=True
+    )
+    table.add_column("[overline white]VPERMIT", justify="right", no_wrap=False)
+    table.add_column("[overline white]TAKE", style="white", no_wrap=True)
+    table.add_column("[overline white]DELEGATE/(24h)", style="green", justify="center")
+    table.add_column("[overline white]Desc", style="rgb(50,163,219)")
+
+    for i, d in enumerate(delegates_lite):
+        if d.delegate_ss58 in registered_delegate_info:
+            delegate_name = registered_delegate_info[d.delegate_ss58].name
+            delegate_url = registered_delegate_info[d.delegate_ss58].url
+            delegate_description = registered_delegate_info[d.delegate_ss58].description
+        else:
+            delegate_name = ""
+            delegate_url = ""
+            delegate_description = ""
+
+        table.add_row(
+            # `INDEX` column
+            str(i),
+            # `DELEGATE` column
+            Text(delegate_name, style=f"link {delegate_url}"),
+            # `SS58` column
+            f"{d.delegate_ss58:8.8}...",
+            # `NOMINATORS` column
+            str(d.nominators),
+            # `VPERMIT` column
+            str(d.registrations),
+            # `TAKE` column
+            f"{d.take * 100:.1f}%",
+            # `DELEGATE/(24h)` column
+            f"τ{bittensor.Balance.from_tao(d.total_daily_return * 0.18) !s:6.6}",
+            # `Desc` column
+            str(delegate_description),
+            end_section=True,
+        )
+    bittensor.__console__.print(table)
+
+
 # Uses rich console to pretty print a table of delegates.
 def show_delegates(
     delegates: List["bittensor.DelegateInfo"],
@@ -100,9 +206,9 @@ def show_delegates(
         for prev_delegate in prev_delegates:
             prev_delegates_dict[prev_delegate.hotkey_ss58] = prev_delegate
 
-    registered_delegate_info: Optional[
-        Dict[str, DelegatesDetails]
-    ] = get_delegates_details(url=bittensor.__delegates_details_url__)
+    registered_delegate_info: Optional[Dict[str, DelegatesDetails]] = (
+        get_delegates_details(url=bittensor.__delegates_details_url__)
+    )
     if registered_delegate_info is None:
         bittensor.__console__.print(
             ":warning:[yellow]Could not get delegate info from chain.[/yellow]"
@@ -132,10 +238,10 @@ def show_delegates(
         "[overline white]NOMINATORS", justify="center", style="green", no_wrap=True
     )
     table.add_column(
-        "[overline white]DELEGATE STAKE(\u03C4)", justify="right", no_wrap=True
+        "[overline white]DELEGATE STAKE(\u03c4)", justify="right", no_wrap=True
     )
     table.add_column(
-        "[overline white]TOTAL STAKE(\u03C4)",
+        "[overline white]TOTAL STAKE(\u03c4)",
         justify="right",
         style="green",
         no_wrap=True,
@@ -144,7 +250,7 @@ def show_delegates(
     table.add_column("[overline white]VPERMIT", justify="right", no_wrap=False)
     table.add_column("[overline white]TAKE", style="white", no_wrap=True)
     table.add_column(
-        "[overline white]NOMINATOR/(24h)/k\u03C4", style="green", justify="center"
+        "[overline white]NOMINATOR/(24h)/k\u03c4", style="green", justify="center"
     )
     table.add_column("[overline white]DELEGATE/(24h)", style="green", justify="center")
     table.add_column("[overline white]Desc", style="rgb(50,163,219)")
@@ -646,7 +752,13 @@ class NominateCommand:
 
         # Unlock the wallet.
         wallet.hotkey
-        wallet.coldkey
+        try:
+            wallet.coldkey
+        except bittensor.KeyFileError:
+            bittensor.__console__.print(
+                ":cross_mark: [red]Keyfile is corrupt, non-writable, non-readable or the password used to decrypt is invalid[/red]:[bold white]\n  [/bold white]"
+            )
+            return
 
         # Check if the hotkey is already a delegate.
         if subtensor.is_hotkey_delegate(wallet.hotkey.ss58_address):
@@ -799,7 +911,7 @@ class MyDelegatesCommand:
             style="bold green",
         )
         table.add_column(
-            "[overline green]\u03C4/24h",
+            "[overline green]\u03c4/24h",
             footer_style="overline green",
             style="bold green",
         )
@@ -807,10 +919,10 @@ class MyDelegatesCommand:
             "[overline white]NOMS", justify="center", style="green", no_wrap=True
         )
         table.add_column(
-            "[overline white]OWNER STAKE(\u03C4)", justify="right", no_wrap=True
+            "[overline white]OWNER STAKE(\u03c4)", justify="right", no_wrap=True
         )
         table.add_column(
-            "[overline white]TOTAL STAKE(\u03C4)",
+            "[overline white]TOTAL STAKE(\u03c4)",
             justify="right",
             style="green",
             no_wrap=True,
@@ -819,7 +931,7 @@ class MyDelegatesCommand:
             "[overline white]SUBNETS", justify="right", style="white", no_wrap=True
         )
         table.add_column("[overline white]VPERMIT", justify="right", no_wrap=True)
-        table.add_column("[overline white]24h/k\u03C4", style="green", justify="center")
+        table.add_column("[overline white]24h/k\u03c4", style="green", justify="center")
         table.add_column("[overline white]Desc", style="rgb(50,163,219)")
         total_delegated = 0
 
@@ -842,9 +954,9 @@ class MyDelegatesCommand:
             delegates.sort(key=lambda delegate: delegate[0].total_stake, reverse=True)
             total_delegated += sum(my_delegates.values())
 
-            registered_delegate_info: Optional[
-                DelegatesDetails
-            ] = get_delegates_details(url=bittensor.__delegates_details_url__)
+            registered_delegate_info: Optional[DelegatesDetails] = (
+                get_delegates_details(url=bittensor.__delegates_details_url__)
+            )
             if registered_delegate_info is None:
                 bittensor.__console__.print(
                     ":warning:[yellow]Could not get delegate info from chain.[/yellow]"

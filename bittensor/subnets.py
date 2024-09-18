@@ -49,8 +49,6 @@ class SubnetsAPI(ABC):
         axons: Union[bt.axon, List[bt.axon]],
         deserialize: Optional[bool] = False,
         timeout: Optional[int] = 12,
-        n: Optional[float] = 0.1,
-        uid: Optional[int] = None,
         **kwargs: Optional[Any],
     ) -> Any:
         """
@@ -60,15 +58,13 @@ class SubnetsAPI(ABC):
             axons (Union[bt.axon, List[bt.axon]]): The list of axon(s) to query.
             deserialize (bool, optional): Whether to deserialize the responses. Defaults to False.
             timeout (int, optional): The timeout in seconds for the query. Defaults to 12.
-            n (float, optional): The fraction of top nodes to consider based on stake. Defaults to 0.1.
-            uid (int, optional): The specific UID of the API node to query. Defaults to None.
             **kwargs: Keyword arguments for the prepare_synapse_fn.
 
         Returns:
             Any: The result of the process_responses_fn.
         """
         synapse = self.prepare_synapse(**kwargs)
-        bt.logging.debug(f"Quering valdidator axons with synapse {synapse.name}...")
+        bt.logging.debug(f"Querying validator axons with synapse {synapse.name}...")
         responses = await self.dendrite(
             axons=axons,
             synapse=synapse,

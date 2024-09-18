@@ -16,25 +16,41 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
+import os
+import warnings
 
 from rich.console import Console
 from rich.traceback import install
 
-# Install and apply nest asyncio to allow the async functions
-# to run in a .ipynb
-import nest_asyncio
 
-nest_asyncio.apply()
+if (NEST_ASYNCIO_ENV := os.getenv("NEST_ASYNCIO")) in ("1", None):
+    if NEST_ASYNCIO_ENV is None:
+        warnings.warn(
+            "NEST_ASYNCIO implicitly set to '1'. In the future, the default value will be '0'."
+            "If you use `nest_asyncio` make sure to add it explicitly to your project dependencies,"
+            "as it will be removed from `bittensor` package dependencies in the future."
+            "To silence this warning, explicitly set the environment variable, e.g. `export NEST_ASYNCIO=0`.",
+            DeprecationWarning,
+        )
+    # Install and apply nest asyncio to allow the async functions
+    # to run in a .ipynb
+    import nest_asyncio
+
+    nest_asyncio.apply()
+
 
 # Bittensor code and protocol version.
-__version__ = "7.0.0"
+__version__ = "7.4.0"
 
-version_split = __version__.split(".")
-__version_as_int__: int = (
-    (100 * int(version_split[0]))
-    + (10 * int(version_split[1]))
-    + (1 * int(version_split[2]))
+_version_split = __version__.split(".")
+__version_info__ = tuple(int(part) for part in _version_split)
+_version_int_base = 1000
+assert max(__version_info__) < _version_int_base
+
+__version_as_int__: int = sum(
+    e * (_version_int_base**i) for i, e in enumerate(reversed(__version_info__))
 )
+assert __version_as_int__ < 2**31  # fits in int32
 __new_signature_version__ = 360
 
 # Rich console.
@@ -43,6 +59,16 @@ __use_console__ = True
 
 # Remove overdue locals in debug training.
 install(show_locals=False)
+
+
+def __getattr__(name):
+    if name == "version_split":
+        warnings.warn(
+            "version_split is deprecated and will be removed in future versions. Use __version__ instead.",
+            DeprecationWarning,
+        )
+        return _version_split
+    raise AttributeError(f"module {__name__} has no attribute {name}")
 
 
 def turn_console_off():
@@ -79,7 +105,7 @@ __blocktime__ = 12
 # Pip address for versioning
 __pipaddress__ = "https://pypi.org/pypi/bittensor/json"
 
-# Raw github url for delegates registry file
+# Raw GitHub url for delegates registry file
 __delegates_details_url__: str = "https://raw.githubusercontent.com/opentensor/bittensor-delegates/main/public/delegates.json"
 
 # Substrate ss58_format
@@ -99,14 +125,21 @@ __archive_entrypoint__ = "wss://archive.chain.opentensor.ai:443/"
 # Needs to use wss://
 __bellagene_entrypoint__ = "wss://parachain.opentensor.ai:443"
 
-__local_entrypoint__ = "ws://127.0.0.1:9944"
+
+if (
+    BT_SUBTENSOR_CHAIN_ENDPOINT := os.getenv("BT_SUBTENSOR_CHAIN_ENDPOINT")
+) is not None:
+    __local_entrypoint__ = BT_SUBTENSOR_CHAIN_ENDPOINT
+else:
+    __local_entrypoint__ = "ws://127.0.0.1:9944"
+
 
 __tao_symbol__: str = chr(0x03C4)
 
 __rao_symbol__: str = chr(0x03C1)
 
 # Block Explorers map network to explorer url
-## Must all be polkadotjs explorer urls
+# Must all be polkadotjs explorer urls
 __network_explorer_map__ = {
     "opentensor": {
         "local": "https://polkadot.js.org/apps/?rpc=wss%3A%2F%2Fentrypoint-finney.opentensor.ai%3A443#/explorer",
@@ -174,19 +207,6 @@ __type_registry__ = {
                 },
             },
         },
-        "ValidatorIPRuntimeApi": {
-            "methods": {
-                "get_associated_validator_ip_info_for_subnet": {
-                    "params": [
-                        {
-                            "name": "netuid",
-                            "type": "u16",
-                        },
-                    ],
-                    "type": "Vec<u8>",
-                },
-            },
-        },
         "SubnetInfoRuntimeApi": {
             "methods": {
                 "get_subnet_hyperparams": {
@@ -202,6 +222,37 @@ __type_registry__ = {
         },
         "SubnetRegistrationRuntimeApi": {
             "methods": {"get_network_registration_cost": {"params": [], "type": "u64"}}
+        },
+        "ColdkeySwapRuntimeApi": {
+            "methods": {
+                "get_scheduled_coldkey_swap": {
+                    "params": [
+                        {
+                            "name": "coldkey_account_vec",
+                            "type": "Vec<u8>",
+                        },
+                    ],
+                    "type": "Vec<u8>",
+                },
+                "get_remaining_arbitration_period": {
+                    "params": [
+                        {
+                            "name": "coldkey_account_vec",
+                            "type": "Vec<u8>",
+                        },
+                    ],
+                    "type": "Vec<u8>",
+                },
+                "get_coldkey_swap_destinations": {
+                    "params": [
+                        {
+                            "name": "coldkey_account_vec",
+                            "type": "Vec<u8>",
+                        },
+                    ],
+                    "type": "Vec<u8>",
+                },
+            }
         },
     },
 }
@@ -233,7 +284,7 @@ from .errors import (
     UnstakeError,
 )
 
-from substrateinterface import Keypair as Keypair
+from substrateinterface import Keypair  # noqa: F401
 from .config import InvalidConfigFile, DefaultConfig, config, T
 from .keyfile import (
     serialized_keypair_to_keyfile_data,
@@ -261,7 +312,6 @@ from .utils import (
     strtobool,
     strtobool_with_default,
     get_explorer_root_url_by_network_from_map,
-    get_explorer_root_url_by_network_from_map,
     get_explorer_url_for_network,
     ss58_address_to_bytes,
     U16_NORMALIZED_FLOAT,
@@ -286,8 +336,14 @@ from .chain_data import (
     ProposalVoteData,
 )
 
+# Allows avoiding name spacing conflicts and continue access to the `subtensor` module with `subtensor_module` name
 from . import subtensor as subtensor_module
-from .subtensor import subtensor as subtensor
+
+# Double import allows using class `Subtensor` by referencing `bittensor.Subtensor` and `bittensor.subtensor`.
+# This will be available for a while until we remove reference `bittensor.subtensor`
+from .subtensor import Subtensor
+from .subtensor import Subtensor as subtensor
+
 from .cli import cli as cli, COMMANDS as ALL_COMMANDS
 from .btlogging import logging
 from .metagraph import metagraph as metagraph
