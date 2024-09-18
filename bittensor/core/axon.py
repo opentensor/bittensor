@@ -66,6 +66,7 @@ from bittensor.utils.btlogging import logging
 if typing.TYPE_CHECKING:
     from bittensor.core.subtensor import Subtensor
 
+# Latest version with old style nonce structure (this in not a current SDK version)
 V_7_2_0 = 7002000
 
 
