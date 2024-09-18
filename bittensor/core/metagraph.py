@@ -414,13 +414,13 @@ class MetagraphMixin(ABC):
         Initializes a new instance of the metagraph object, setting up the basic structure and parameters based on the provided arguments.
         This method is the entry point for creating a metagraph object,
         which is a central component in representing the state of the Bittensor network.
-        
+
         Args:
             netuid (int): The unique identifier for the network, distinguishing this instance of the metagraph within potentially multiple network configurations.
             network (str): The name of the network, which can indicate specific configurations or versions of the Bittensor network.
             lite (bool): A flag indicating whether to use a lite version of the metagraph. The lite version may contain less detailed information but can be quicker to initialize and sync.
             sync (bool): A flag indicating whether to synchronize the metagraph with the network upon initialization. Synchronization involves updating the metagraph's parameters to reflect the current state of the network.
-        
+
         Example:
             Initializing a metagraph object for the Bittensor network with a specific network UID::
 
@@ -1073,7 +1073,7 @@ class TorchMetaGraph(MetagraphMixin, BaseClass):
             metagraph = Metagraph(netuid=netuid)
 
             metagraph.load_from_path("/path/to/dir")
-        
+
         """
 
         graph_file = latest_block_path(dir_path)
