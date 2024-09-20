@@ -75,6 +75,7 @@ from .commands import (
     RevokeChildrenCommand,
     SetChildKeyTakeCommand,
     GetChildKeyTakeCommand,
+    WalletSignCommand,
 )
 
 # Create a console instance for CLI display.
@@ -164,6 +165,7 @@ COMMANDS = {
             "get_identity": GetIdentityCommand,
             "history": GetWalletHistoryCommand,
             "check_coldkey_swap": CheckColdKeySwapCommand,
+            "sign": WalletSignCommand,
         },
     },
     "stake": {
