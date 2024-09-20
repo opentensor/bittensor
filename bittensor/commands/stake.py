@@ -425,13 +425,13 @@ class StakeShow:
 
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
-        r"""Show all stake accounts."""
-        if cli.config.get("all", d=False) == True:
+        """Show all stake accounts."""
+        if cli.config.get("all", d=False) is True:
             wallets = _get_coldkey_wallets_for_path(cli.config.wallet.path)
         else:
             wallets = [bittensor.wallet(config=cli.config)]
         registered_delegate_info: Optional[Dict[str, DelegatesDetails]] = (
-            get_delegates_details(url=bittensor.__delegates_details_url__)
+            get_delegates_details(subtensor=subtensor)
         )
 
         def get_stake_accounts(
@@ -515,7 +515,7 @@ class StakeShow:
                 for nom in dele.nominators:
                     if nom[0] == wallet.coldkeypub.ss58_address:
                         delegate_name = (
-                            registered_delegate_info[dele.hotkey_ss58].name
+                            registered_delegate_info[dele.hotkey_ss58].display
                             if dele.hotkey_ss58 in registered_delegate_info
                             else dele.hotkey_ss58
                         )

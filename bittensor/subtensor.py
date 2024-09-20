@@ -1,15 +1,15 @@
 # The MIT License (MIT)
 # Copyright © 2021 Yuma Rao
 # Copyright © 2023 Opentensor Foundation
-
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
 # the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
+#
 # The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
-
+#
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
 # THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
@@ -57,6 +57,7 @@ from .chain_data import (
     IPInfo,
     custom_rpc_type_registry,
 )
+from .commands.utils import DelegatesDetails
 from .errors import (
     IdentityError,
     NominationError,
@@ -2935,7 +2936,7 @@ class Subtensor:
             Tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
 
         This method is vital for the dynamic weighting mechanism in Bittensor, where neurons adjust their
-        trust in other neurons based on observed performance and contributions on the root network.
+        trust in other neurons based on observed performance and contributions to the root network.
         """
 
         @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=_logger)
@@ -2964,7 +2965,7 @@ class Subtensor:
             )
             # We only wait here if we expect finalization.
             if not wait_for_finalization and not wait_for_inclusion:
-                return True, "Not waiting for finalziation or inclusion."
+                return True, "Not waiting for finalization or inclusion."
 
             response.process_events()
             if response.is_success:
@@ -3086,6 +3087,43 @@ class Subtensor:
                 raise IdentityError(response.error_message)
 
         return make_substrate_call_with_retry()
+
+    def get_delegate_identities(
+        self, block: Optional[int] = None
+    ) -> Dict[str, DelegatesDetails]:
+        """
+        Retrieves the identities of all delegates from the blockchain.
+
+        This method makes a substrate call to retrieve the identities of all delegates and retries the call up to three times with exponential backoff in case of failures.
+
+        Args:
+            block (Optional[int], optional): The block number to retrieve the delegate identities from. If ``None``, the latest block is used. Default is ``None``.
+
+        Returns:
+            Dict[str, DelegatesDetails]: A dictionary where the keys are delegate SS58 addresses and the values are DelegatesDetails objects containing the details of each delegate.
+        """
+
+        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
+        def make_substrate_call_with_retry() -> "QueryMapResult":
+            return self.substrate.query_map(
+                module="Registry",
+                storage_function="IdentityOf",
+                block_hash=(
+                    None if block is None else self.substrate.get_block_hash(block)
+                ),
+            )
+
+        identities_info = make_substrate_call_with_retry()
+
+        result = {
+            ss58_address.value: DelegatesDetails.from_chain_data(
+                bittensor.utils.wallet_utils.decode_hex_identity_dict(
+                    identity.value["info"]
+                )
+            )
+            for ss58_address, identity in identities_info
+        }
+        return result
 
     # Make some commitment on-chain about arbitrary data.
     def commit(self, wallet, netuid: int, data: str):
