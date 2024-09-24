@@ -32,4 +32,11 @@ def test_transfer(local_chain):
     assert (
         expected_transfer <= actual_difference <= expected_transfer + tolerance
     ), f"Expected transfer with tolerance: {expected_transfer} <= {actual_difference} <= {expected_transfer + tolerance}"
+
+    # Ensure the transaction fees are withdrawn
+    fees_lower_boundary = 50_000   # Transfer fees should be at least 50 microTAO
+    assert (
+        expected_transfer + fees_lower_boundary <= actual_difference
+    ), f"Expected transfer fees: {expected_transfer + fees_lower_boundary} <= {actual_difference}"
+
     logging.info("Passed test_transfer")
