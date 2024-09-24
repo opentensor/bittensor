@@ -1,6 +1,6 @@
 from bittensor import Subtensor, logging
 from bittensor.core.subtensor import transfer_extrinsic
-from tests.e2e_tests.utils.test_utils import setup_wallet
+from tests.e2e_tests.utils.e2e_test_utils import setup_wallet
 
 
 def test_transfer(local_chain):

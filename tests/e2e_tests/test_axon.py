@@ -7,7 +7,7 @@ import bittensor
 from bittensor import logging
 from bittensor.utils import networking
 from tests.e2e_tests.utils.chain_interactions import register_neuron, register_subnet
-from tests.e2e_tests.utils.test_utils import (
+from tests.e2e_tests.utils.e2e_test_utils import (
     setup_wallet,
     template_path,
     templates_repo,

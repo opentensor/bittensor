@@ -6,7 +6,7 @@ import pytest
 import bittensor
 from bittensor import logging, Subtensor
 
-from tests.e2e_tests.utils.test_utils import (
+from tests.e2e_tests.utils.e2e_test_utils import (
     setup_wallet,
     template_path,
     templates_repo,
