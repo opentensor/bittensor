@@ -1,0 +1,10 @@
+version: "3.2"
+
+services:
+  dev:
+    container_name: node-bittensor
+    image: "bittensor/bittensor:latest"
+    ports:
+      - "8091:8091"
+    volumes:
+      - ~/.bittensor:/root/.bittensor

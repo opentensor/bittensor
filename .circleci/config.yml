@@ -1,0 +1,359 @@
+version: 2.1
+
+orbs:
+  python: circleci/python@2.1.1
+  python-lib: dialogue/python-lib@0.1.55
+
+jobs:
+  check-if-pr-is-draft:
+    docker:
+      - image: cimg/python:3.10
+    steps:
+      - checkout
+      - run:
+          name: Install jq
+          command: sudo apt-get update && sudo apt-get install -y jq
+      - run:
+          name: Check if PR is a draft
+          command: .circleci/check_pr_status.sh
+
+  ruff:
+    resource_class: small
+    parameters:
+      python-version:
+        type: string
+    docker:
+      - image: cimg/python:<< parameters.python-version >>
+
+    steps:
+      - checkout
+
+      - restore_cache:
+          name: Restore cached ruff venv
+          keys:
+            - v2-pypi-py-ruff-<< parameters.python-version >>
+
+      - run:
+          name: Update & Activate ruff venv
+          command: |
+            python -m venv .venv
+            . .venv/bin/activate
+            python -m pip install --upgrade pip
+            pip install ruff -c requirements/dev.txt
+
+      - save_cache:
+          name: Save cached ruff venv
+          paths:
+            - ".venv/"
+          key: v2-pypi-py-ruff-<< parameters.python-version >>
+
+      - run:
+          name: Ruff format check
+          command: |
+            . .venv/bin/activate
+            ruff format --diff .
+
+  check_compatibility:
+    parameters:
+      python_version:
+        type: string
+    docker:
+      - image: cimg/python:3.10
+    steps:
+      - checkout
+      - run:
+          name: Check if requirements files have changed
+          command: ./scripts/check_requirements_changes.sh
+      - run:
+          name: Install dependencies and Check compatibility
+          command: |
+            if [ "$REQUIREMENTS_CHANGED" == "true" ]; then
+              sudo apt-get update
+              sudo apt-get install -y jq curl
+              ./scripts/check_compatibility.sh << parameters.python_version >>
+            else
+              echo "Skipping compatibility checks..."
+            fi
+
+  build-and-test:
+    resource_class: medium
+    parallelism: 2
+    parameters:
+      python-version:
+        type: string
+    docker:
+      - image: cimg/python:<< parameters.python-version >>
+
+    steps:
+      - checkout
+
+      - restore_cache:
+          name: Restore cached venv
+          keys:
+            - v2-pypi-py<< parameters.python-version >>-{{ checksum "requirements/prod.txt" }}+{{ checksum "requirements/dev.txt" }}
+            - v2-pypi-py<< parameters.python-version >>
+
+      - run:
+          name: Update & Activate venv
+          command: |
+            python -m venv .venv
+            . .venv/bin/activate
+            python -m pip install --upgrade pip
+            python -m pip install '.[dev]'
+
+      - save_cache:
+          name: Save cached venv
+          paths:
+            - "env/"
+          key: v2-pypi-py<< parameters.python-version >>-{{ checksum "requirements/prod.txt" }}+{{ checksum "requirements/dev.txt" }}
+
+      - run:
+          name: Install Bittensor
+          command: |
+            . .venv/bin/activate
+            pip install -e '.[dev]'
+
+      - run:
+          name: Instantiate Mock Wallet
+          command: |
+            . .venv/bin/activate
+            ./scripts/create_wallet.sh
+
+      - run:
+          name: Unit Tests
+          no_output_timeout: 20m
+          command: |
+            . .venv/bin/activate
+            export PYTHONUNBUFFERED=1
+            pytest -n2 --reruns 3 --durations=0 --verbose --junitxml=test-results/unit_tests.xml \
+            --cov=. --cov-append --cov-config .coveragerc \
+            --splits $CIRCLE_NODE_TOTAL --group $((CIRCLE_NODE_INDEX + 1)) \
+            --splitting-algorithm duration_based_chunks --store-durations --durations-path .test_durations \
+            tests/unit_tests/
+
+      - run:
+          name: Integration Tests
+          no_output_timeout: 30m
+          command: |
+            . .venv/bin/activate
+            export PYTHONUNBUFFERED=1
+            pytest -n2 --reruns 3 --reruns-delay 15 --durations=0 --verbose --junitxml=test-results/integration_tests.xml \
+            --cov=. --cov-append --cov-config .coveragerc \
+            --splits $CIRCLE_NODE_TOTAL --group $((CIRCLE_NODE_INDEX + 1)) \
+            --splitting-algorithm duration_based_chunks --store-durations --durations-path .test_durations \
+            tests/integration_tests/
+
+      - store_test_results:
+          path: test-results
+      - store_artifacts:
+          path: test-results
+
+
+      #- when:
+          #condition:
+            #equal: ["3.10.5", << parameters.python-version >> ]
+          #steps:
+            #- run:
+                #name: Upload Coverage
+                #command: |
+                  #. .venv/bin/activate && coveralls
+                #env:
+                  #CI_NAME: circleci
+                  #CI_BUILD_NUMBER: $CIRCLE_BUILD_NUM
+                  #CI_BUILD_URL: $CIRCLE_BUILD_URL
+                  #CI_BRANCH: $CIRCLE_BRANCH
+                  #CI_JOB_ID: $CIRCLE_NODE_INDEX
+                  #COVERALLS_PARALLEL: true
+
+
+  lint-and-type-check:
+    resource_class: medium
+    parallelism: 2
+    parameters:
+      python-version:
+        type: string
+    docker:
+      - image: cimg/python:<< parameters.python-version >>
+
+    steps:
+      - checkout
+
+      - restore_cache:
+          name: Restore cached venv
+          keys:
+            - v2-pypi-py<< parameters.python-version >>-{{ checksum "requirements/prod.txt" }}+{{ checksum "requirements/dev.txt" }}
+            - v2-pypi-py<< parameters.python-version >>
+
+      - run:
+          name: Update & Activate venv
+          command: |
+            python -m venv .venv
+            . .venv/bin/activate
+            python -m pip install --upgrade pip
+            python -m pip install '.[dev]'
+            pip install flake8
+
+      - save_cache:
+          name: Save cached venv
+          paths:
+            - "env/"
+          key: v2-pypi-py<< parameters.python-version >>-{{ checksum "requirements/prod.txt" }}+{{ checksum "requirements/dev.txt" }}
+
+      - run:
+          name: Install Bittensor
+          command: |
+            . .venv/bin/activate
+            pip install -e '.[dev]'
+
+      - run:
+          name: Lint with flake8
+          command: |
+            . .venv/bin/activate
+            python -m flake8 bittensor/ --count
+
+      - run:
+          name: Type check with mypy
+          command: |
+            . .venv/bin/activate
+            python -m mypy --ignore-missing-imports bittensor/
+
+  unit-tests-all-python-versions:
+    docker:
+      - image: cimg/python:3.10
+    steps:
+      - run:
+          name: Placeholder command
+          command: echo "Success, only runs if all python versions ran"
+
+  coveralls:
+    docker:
+      - image: cimg/python:3.10
+    steps:
+      - run:
+          name: Combine Coverage
+          command: |
+            pip3 install --upgrade coveralls
+            coveralls --finish --rcfile .coveragerc || echo "Failed to upload coverage"
+
+  check-version-updated:
+    docker:
+      - image: cimg/python:3.10
+    steps:
+      - checkout
+
+      - run:
+          name: Version is updated
+          command: |
+            [[ $(git diff-tree --no-commit-id --name-only -r HEAD..master | grep bittensor/__init__.py | wc -l) == 1 ]] && echo "bittensor/__init__.py has changed"
+            [[ $(git diff-tree --no-commit-id --name-only -r HEAD..master | grep VERSION | wc -l) == 1 ]] && echo "VERSION has changed"
+
+  check-changelog-updated:
+    docker:
+      - image: cimg/python:3.10
+    steps:
+      - checkout
+      - run:
+          name: File CHANGELOG.md is updated
+          command: |
+            [[ $(git diff-tree --no-commit-id --name-only -r HEAD..master | grep CHANGELOG.md | wc -l) == 1 ]] && echo "CHANGELOG.md has changed"
+
+  check-version-not-released:
+    docker:
+      - image: cimg/python:3.10
+    steps:
+      - checkout
+      - run:
+          name: Git tag does not exist for the current version
+          command: |
+            [[ $(git tag | grep `cat VERSION` | wc -l) == 0 ]] && echo "VERSION is not a tag"
+      - run:
+          name: Pypi package 'bittensor' does not exist for the current version
+          command: |
+            [[ $(pip index versions bittensor | grep `cat VERSION` | wc -l) == 0 ]] && echo "Pypi package 'bittensor' does not exist"
+      - run:
+          name: Docker image 'opentensorfdn/bittensor' does not exist for the current version
+          command: |
+            [[ $(docker manifest inspect opentensorfdn/bittensor:`cat VERSION` > /dev/null 2> /dev/null ; echo $?) == 1 ]] && echo "Docker image 'opentensorfdn/bittensor:`cat VERSION`' does not exist in dockerhub"
+
+  release-dry-run:
+    docker:
+      - image: cimg/python:3.10
+    steps:
+      - checkout
+      - setup_remote_docker:
+          version: 20.10.14
+          docker_layer_caching: true
+      - run:
+          name: Executing release script
+          command: |
+            ./scripts/release/release.sh --github-token ${GH_API_ACCESS_TOKEN}
+
+workflows:
+  compatibility_checks:
+    jobs:
+      - check_compatibility:
+          python_version: "3.9"
+          name: check-compatibility-3.9
+      - check_compatibility:
+          python_version: "3.10"
+          name: check-compatibility-3.10
+      - check_compatibility:
+          python_version: "3.11"
+          name: check-compatibility-3.11
+
+  pr-requirements:
+    jobs:
+      - check-if-pr-is-draft
+      - ruff:
+          python-version: "3.9.13"
+          requires:
+            - check-if-pr-is-draft
+      - build-and-test:
+          matrix:
+            parameters:
+              python-version: ["3.9.13", "3.10.6", "3.11.4"]
+          requires:
+            - check-if-pr-is-draft
+      - unit-tests-all-python-versions:
+          requires:
+            - build-and-test
+      - lint-and-type-check:
+          matrix:
+            parameters:
+              python-version: ["3.9.13", "3.10.6", "3.11.4"]
+          requires:
+            - check-if-pr-is-draft
+      #- coveralls:
+          #requires:
+            #- build-and-test
+
+  release-branches-requirements:
+    jobs:
+      - check-version-updated:
+          filters:
+            branches:
+              only:
+                - /^(release|hotfix)/.*/
+      - check-changelog-updated:
+          filters:
+            branches:
+              only:
+                - /^(release|hotfix)/.*/
+      - release-dry-run:
+          filters:
+            branches:
+              only:
+                - /^(release|hotfix)/.*/
+
+  release-requirements:
+    jobs:
+      - check-version-not-released:
+          filters:
+            branches:
+              only:
+                - master
+      - release-dry-run:
+          filters:
+            branches:
+              only:
+                - master
