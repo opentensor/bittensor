@@ -1,7 +1,0 @@
-[run]
-omit = 
-  ./nuclei/*
-  ./routers/*
-  ./setup.py
-  ./tests/*
-  ./env/*
