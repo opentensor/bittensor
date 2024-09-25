@@ -73,7 +73,8 @@ def test_stake_add(local_chain):
     # Ensure fees are not withdrawn for the add_stake extrinsic, i.e. balance is exactly lower by stake amount
     acc_after = local_chain.query("System", "Account", [wallet.coldkey.ss58_address])
     assert (
-        acc_before.value["data"]["free"] - acc_after.value["data"]["free"] == stake_amount * 1_000_000_000
+        acc_before.value["data"]["free"] - acc_after.value["data"]["free"]
+        == stake_amount * 1_000_000_000
     ), f"Expected no transaction fees for add_stake"
 
     # we can test remove after set the stake rate limit larger than 1
