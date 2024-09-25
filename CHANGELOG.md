@@ -1,5 +1,15 @@
 # Changelog
 
+## 8.0.0 /2024-09-24
+
+## What's Changed
+
+* Removes Bittensor CLI and Wallet functionalities
+* Changes the Bittensor SDK package to be light while maintaining backwards compatibility
+* Bittensor SDK development by @RomanCh-OT in https://github.com/opentensor/bittensor/tree/btsdk 
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v7.4.0...v8.0.0 
+
 ## 7.4.0 /2024-08-29
 
 ## What's Changed
