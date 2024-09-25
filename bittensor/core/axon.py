@@ -29,7 +29,7 @@ import typing
 import uuid
 import warnings
 from inspect import signature, Signature, Parameter
-from typing import Any, Awaitable, Callable, Optional
+from typing import Any, Awaitable, Callable, Optional, Tuple
 
 import uvicorn
 from bittensor_wallet import Wallet
@@ -556,7 +556,7 @@ class Axon:
         ]
         if blacklist_fn:
             blacklist_sig = Signature(
-                expected_params, return_annotation=tuple[bool, str]
+                expected_params, return_annotation=Tuple[bool, str]
             )
             assert (
                 signature(blacklist_fn) == blacklist_sig

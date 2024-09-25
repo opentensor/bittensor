@@ -19,7 +19,7 @@
 import re
 import time
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any, Optional, Tuple
 from unittest import IsolatedAsyncioTestCase
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -56,7 +56,7 @@ def test_attach_initial():
     def forward_fn(synapse: TestSynapse) -> Any:
         pass
 
-    def blacklist_fn(synapse: TestSynapse) -> tuple[bool, str]:
+    def blacklist_fn(synapse: TestSynapse) -> Tuple[bool, str]:
         return True, ""
 
     def priority_fn(synapse: TestSynapse) -> float:
