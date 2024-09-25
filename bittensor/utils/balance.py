@@ -1,16 +1,14 @@
 # The MIT License (MIT)
-# Copyright © 2021-2022 Yuma Rao
-# Copyright © 2022 Opentensor Foundation
-# Copyright © 2023 Opentensor Technologies Inc
-
+# Copyright © 2024 Opentensor Foundation
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
 # the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
+#
 # The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
-
+#
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
 # THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
@@ -19,7 +17,7 @@
 
 from typing import Union
 
-import bittensor
+from bittensor.core import settings
 
 
 class Balance:
@@ -29,14 +27,14 @@ class Balance:
     It provides methods to convert between these units, as well as to perform arithmetic and comparison operations.
 
     Attributes:
-        unit: A string representing the symbol for the tao unit.
-        rao_unit: A string representing the symbol for the rao unit.
-        rao: An integer that stores the balance in rao units.
-        tao: A float property that gives the balance in tao units.
+        unit (str): A string representing the symbol for the tao unit.
+        rao_unit (str): A string representing the symbol for the rao unit.
+        rao (int): An integer that stores the balance in rao units.
+        tao (float): A float property that gives the balance in tao units.
     """
 
-    unit: str = bittensor.__tao_symbol__  # This is the tao unit
-    rao_unit: str = bittensor.__rao_symbol__  # This is the rao unit
+    unit: str = settings.TAO_SYMBOL  # This is the tao unit
+    rao_unit: str = settings.RAO_SYMBOL  # This is the rao unit
     rao: int
     tao: float
 
@@ -61,29 +59,20 @@ class Balance:
         return self.rao / pow(10, 9)
 
     def __int__(self):
-        """
-        Convert the Balance object to an int. The resulting value is in rao.
-        """
+        """Convert the Balance object to an int. The resulting value is in rao."""
         return self.rao
 
     def __float__(self):
-        """
-        Convert the Balance object to a float. The resulting value is in tao.
-        """
+        """Convert the Balance object to a float. The resulting value is in tao."""
         return self.tao
 
     def __str__(self):
-        """
-        Returns the Balance object as a string in the format "symbolvalue", where the value is in tao.
-        """
+        """Returns the Balance object as a string in the format "symbolvalue", where the value is in tao."""
         return f"{self.unit}{float(self.tao):,.9f}"
 
     def __rich__(self):
-        return "[green]{}[/green][green]{}[/green][green].[/green][dim green]{}[/dim green]".format(
-            self.unit,
-            format(float(self.tao), "f").split(".")[0],
-            format(float(self.tao), "f").split(".")[1],
-        )
+        int_tao, fract_tao = format(float(self.tao), "f").split(".")
+        return f"[green]{self.unit}[/green][green]{int_tao}[/green][green].[/green][dim green]{fract_tao}[/dim green]"
 
     def __str_rao__(self):
         return f"{self.rao_unit}{int(self.rao)}"
@@ -226,12 +215,6 @@ class Balance:
             except (ValueError, TypeError):
                 raise NotImplementedError("Unsupported type")
 
-    def __int__(self) -> int:
-        return self.rao
-
-    def __float__(self) -> float:
-        return self.tao
-
     def __nonzero__(self) -> bool:
         return bool(self.rao)
 
@@ -247,9 +230,9 @@ class Balance:
     @staticmethod
     def from_float(amount: float):
         """
-        Given tao (float), return Balance object with rao(int) and tao(float), where rao = int(tao*pow(10,9))
+        Given tao, return :func:`Balance` object with rao(``int``) and tao(``float``), where rao = int(tao*pow(10,9))
         Args:
-            amount: The amount in tao.
+            amount (float): The amount in tao.
 
         Returns:
             A Balance object representing the given amount.
@@ -260,10 +243,10 @@ class Balance:
     @staticmethod
     def from_tao(amount: float):
         """
-        Given tao (float), return Balance object with rao(int) and tao(float), where rao = int(tao*pow(10,9))
+        Given tao, return Balance object with rao(``int``) and tao(``float``), where rao = int(tao*pow(10,9))
 
         Args:
-            amount: The amount in tao.
+            amount (float): The amount in tao.
 
         Returns:
             A Balance object representing the given amount.
@@ -274,10 +257,10 @@ class Balance:
     @staticmethod
     def from_rao(amount: int):
         """
-        Given rao (int), return Balance object with rao(int) and tao(float), where rao = int(tao*pow(10,9))
+        Given rao, return Balance object with rao(``int``) and tao(``float``), where rao = int(tao*pow(10,9))
 
         Args:
-            amount: The amount in rao.
+            amount (int): The amount in rao.
 
         Returns:
             A Balance object representing the given amount.

@@ -1,14 +1,15 @@
+"""Test the Balance class."""
+
+from typing import Union
+
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from typing import Union
 
-from bittensor import Balance
+from bittensor.utils.balance import Balance
 from tests.helpers import CLOSE_IN_VALUE
 
-"""
-Test the Balance class
-"""
+
 valid_tao_numbers_strategy = st.one_of(
     st.integers(max_value=21_000_000, min_value=-21_000_000),
     st.floats(
@@ -439,7 +440,7 @@ def test_balance_not_eq_none(balance: Union[int, float]):
     Test the inequality (!=) of a Balance object and None.
     """
     balance_ = Balance(balance)
-    assert not balance_ == None
+    assert balance_ is not None
 
 
 @given(balance=valid_tao_numbers_strategy)
@@ -448,7 +449,7 @@ def test_balance_neq_none(balance: Union[int, float]):
     Test the inequality (!=) of a Balance object and None.
     """
     balance_ = Balance(balance)
-    assert balance_ != None
+    assert balance_ is not None
 
 
 def test_balance_init_from_invalid_value():
@@ -507,3 +508,13 @@ def test_balance_eq_invalid_type(balance: Union[int, float]):
     balance_ = Balance(balance)
     with pytest.raises(NotImplementedError):
         balance_ == ""
+
+
+def test_from_float():
+    """Tests from_float method call."""
+    assert Balance.from_tao(1.0) == Balance(1000000000)
+
+
+def test_from_rao():
+    """Tests from_rao method call."""
+    assert Balance.from_tao(1) == Balance(1000000000)
