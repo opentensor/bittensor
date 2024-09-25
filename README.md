@@ -152,13 +152,11 @@ You can install using any of the below options:
     pip install bittensor[torch]
     ```
 
-- **Install SDK with `cubit`**: Install Bittensor SDK with [`cubit`](https://pytorch.org/docs/stable/torch.html).
+- **Install SDK with `cubit`**: Install Bittensor SDK with [`cubit`](https://github.com/opentensor/cubit).
 
-   ```python
-    pip install bittensor[cubit]
-    ```
-
-
+  1. Install `cubit` first. See the [Install](https://github.com/opentensor/cubit?tab=readme-ov-file#install) section. **Only Python 3.9 and 3.10 versions are supported**. 
+  2. Then install SDK with `pip install bittensor`.
+  
 ---
 
 ## Install on Windows
