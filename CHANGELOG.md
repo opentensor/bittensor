@@ -4,9 +4,41 @@
 
 ## What's Changed
 
-* Removes Bittensor CLI and Wallet functionalities
-* Changes the Bittensor SDK package to be light while maintaining backwards compatibility
-* Bittensor SDK development by @RomanCh-OT in https://github.com/opentensor/bittensor/tree/btsdk 
+Removes Bittensor CLI and Wallet functionalities and changes the Bittensor SDK package to be light while maintaining backwards compatibility
+
+* Update README.md by @rajkaramchedu in https://github.com/opentensor/bittensor/pull/2320
+* remove unused code (tensor.py-> class tensor), remove old tests, add new tests by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2311
+* Updating/improving/creating docstring codebase by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2310
+* README updates for SDK by @rajkaramchedu in https://github.com/opentensor/bittensor/pull/2309
+* Improved logic for concatenating message, prefix, and suffix in bittensor logging + test by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2306
+* BTSDK: Implementation of substrait custom errors handler for bittensor by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2305
+* btsdk cleanup by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2303
+* Fix mypy error for btlogging by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2299
+* Integrate `bt_decode` into BTSDK by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2298
+* BTSDK: Corrected arguments order in logging methods + test by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2292
+* BTSDK: removed exit sys call for ConnectionRefusedError in _get_substrate by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2288
+* BTSDK: Move `do*` methods to related extrinsic by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2286
+* add reconnection logic for correctly closed connection by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2283
+* Move extrinsics, update `deprecated.py` module. by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2278
+* Add substrate reconnection logic by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2269
+* Prod requirements cleanup by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2266
+* Decoupling chain_data.py to sub-package by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2264
+* Increase Bittensor SDK test coverage by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2262
+* Increase SDK test coverage (Part3) by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2257
+* Increase bittensor SDK test coverage by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2256
+* Increase test coverage for subtensor.py by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2252
+* Adds e2e and fixes metagraph save()/load() by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2231
+* feat/roman/reafctoring-before-test-coverage by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2230
+* Enhance: Switch from format() to f-strings by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2228
+* Commit-reveal re-added & e2e coverage by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2224
+* Adds e2e setup & tests by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2221
+* Updates after review session by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2220
+* Fix the usage of env vars in default settings. by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2218
+* Add dendrite reference to backwords compatibility by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2217
+* Bringing `btsdk` up-to-date with `staging` branch. by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2210
+* Part 3: Create new 'bittensor-sdk` package by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2206
+* Part 2: Redesign, fix namespace conflicts, remove btcli by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2204
+* Part1: Removing content related to the wallet. Start use the pip installable package. by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2191
 
 **Full Changelog**: https://github.com/opentensor/bittensor/compare/v7.4.0...v8.0.0 
 
