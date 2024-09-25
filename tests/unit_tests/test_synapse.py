@@ -1,28 +1,31 @@
 # The MIT License (MIT)
-# Copyright © 2022 Opentensor Foundation
-
+# Copyright © 2024 Opentensor Foundation
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
 # the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
+#
 # The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
-
+#
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
 # THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
-import json
+
 import base64
-import pytest
-import bittensor
+import json
 from typing import Optional, ClassVar
+
+import pytest
+
+from bittensor.core.synapse import Synapse
 
 
 def test_parse_headers_to_inputs():
-    class Test(bittensor.Synapse):
+    class Test(Synapse):
         key1: list[int]
 
     # Define a mock headers dictionary to use for testing
@@ -57,7 +60,7 @@ def test_parse_headers_to_inputs():
 
 
 def test_from_headers():
-    class Test(bittensor.Synapse):
+    class Test(Synapse):
         key1: list[int]
 
     # Define a mock headers dictionary to use for testing
@@ -93,10 +96,10 @@ def test_from_headers():
 
 def test_synapse_create():
     # Create an instance of Synapse
-    synapse = bittensor.Synapse()
+    synapse = Synapse()
 
     # Ensure the instance created is of type Synapse
-    assert isinstance(synapse, bittensor.Synapse)
+    assert isinstance(synapse, Synapse)
 
     # Check default properties of a newly created Synapse
     assert synapse.name == "Synapse"
@@ -125,7 +128,7 @@ def test_synapse_create():
 
 def test_custom_synapse():
     # Define a custom Synapse subclass
-    class Test(bittensor.Synapse):
+    class Test(Synapse):
         a: int  # Carried through because required.
         b: int = None  # Not carried through headers
         c: Optional[int]  # Required, carried through headers, cannot be None
@@ -177,7 +180,7 @@ def test_custom_synapse():
 
 def test_body_hash_override():
     # Create a Synapse instance
-    synapse_instance = bittensor.Synapse()
+    synapse_instance = Synapse()
 
     # Try to set the body_hash property and expect an AttributeError
     with pytest.raises(
@@ -188,7 +191,7 @@ def test_body_hash_override():
 
 
 def test_default_instance_fields_dict_consistency():
-    synapse_instance = bittensor.Synapse()
+    synapse_instance = Synapse()
     assert synapse_instance.model_dump() == {
         "name": "Synapse",
         "timeout": 12.0,
@@ -222,7 +225,7 @@ def test_default_instance_fields_dict_consistency():
     }
 
 
-class LegacyHashedSynapse(bittensor.Synapse):
+class LegacyHashedSynapse(Synapse):
     """Legacy Synapse subclass that serialized `required_hash_fields`."""
 
     a: int
@@ -232,7 +235,7 @@ class LegacyHashedSynapse(bittensor.Synapse):
     required_hash_fields: Optional[list[str]] = ["b", "a", "d"]
 
 
-class HashedSynapse(bittensor.Synapse):
+class HashedSynapse(Synapse):
     a: int
     b: int
     c: Optional[int] = None

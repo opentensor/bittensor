@@ -1,9 +1,26 @@
-import pytest
-import bittensor
-import torch
-from bittensor.chain_data import AxonInfo, ChainDataType, DelegateInfo, NeuronInfo
+# The MIT License (MIT)
+# Copyright © 2024 Opentensor Foundation
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
+# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+# the Software.
+#
+# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
 
-SS58_FORMAT = bittensor.__ss58_format__
+import pytest
+import torch
+
+from bittensor.core.chain_data import AxonInfo, DelegateInfo
+from bittensor.core.chain_data.utils import ChainDataType
+
 RAOPERTAO = 10**18
 
 
@@ -224,7 +241,7 @@ def test_to_parameter_dict(axon_info, test_case):
 def test_to_parameter_dict_torch(
     axon_info,
     test_case,
-    force_legacy_torch_compat_api,
+    force_legacy_torch_compatible_api,
 ):
     result = axon_info.to_parameter_dict()
 
@@ -294,7 +311,7 @@ def test_from_parameter_dict(parameter_dict, expected, test_case):
     ],
 )
 def test_from_parameter_dict_torch(
-    parameter_dict, expected, test_case, force_legacy_torch_compat_api
+    parameter_dict, expected, test_case, force_legacy_torch_compatible_api
 ):
     # Act
     result = AxonInfo.from_parameter_dict(parameter_dict)
@@ -349,175 +366,16 @@ def create_neuron_info_decoded(
     }
 
 
-@pytest.mark.parametrize(
-    "test_id, neuron_info_decoded,",
-    [
-        (
-            "happy-path-1",
-            create_neuron_info_decoded(
-                hotkey=b"\x01" * 32,
-                coldkey=b"\x02" * 32,
-                stake=[(b"\x02" * 32, 1000)],
-                weights=[(1, 2)],
-                bonds=[(3, 4)],
-                rank=100,
-                emission=1000,
-                incentive=200,
-                consensus=300,
-                trust=400,
-                validator_trust=500,
-                dividends=600,
-                uid=1,
-                netuid=2,
-                active=True,
-                last_update=1000,
-                validator_permit=100,
-                pruning_score=1000,
-                prometheus_info={
-                    "version": 1,
-                    "ip": 2130706433,
-                    "port": 8080,
-                    "ip_type": 4,
-                    "block": 100,
-                },
-                axon_info={
-                    "version": 1,
-                    "ip": 2130706433,
-                    "port": 8080,
-                    "ip_type": 4,
-                },
-            ),
-        ),
-    ],
-)
-def test_fix_decoded_values_happy_path(test_id, neuron_info_decoded):
-    # Act
-    result = NeuronInfo.fix_decoded_values(neuron_info_decoded)
-
-    # Assert
-    assert result.hotkey == neuron_info_decoded["hotkey"], f"Test case: {test_id}"
-    assert result.coldkey == neuron_info_decoded["coldkey"], f"Test case: {test_id}"
-    assert result.stake == neuron_info_decoded["stake"], f"Test case: {test_id}"
-    assert result.weights == neuron_info_decoded["weights"], f"Test case: {test_id}"
-    assert result.bonds == neuron_info_decoded["bonds"], f"Test case: {test_id}"
-    assert result.rank == neuron_info_decoded["rank"], f"Test case: {test_id}"
-    assert result.emission == neuron_info_decoded["emission"], f"Test case: {test_id}"
-    assert result.incentive == neuron_info_decoded["incentive"], f"Test case: {test_id}"
-    assert result.consensus == neuron_info_decoded["consensus"], f"Test case: {test_id}"
-    assert result.trust == neuron_info_decoded["trust"], f"Test case: {test_id}"
-    assert (
-        result.validator_trust == neuron_info_decoded["validator_trust"]
-    ), f"Test case: {test_id}"
-    assert result.dividends == neuron_info_decoded["dividends"], f"Test case: {test_id}"
-    assert result.uid == neuron_info_decoded["uid"], f"Test case: {test_id}"
-    assert result.netuid == neuron_info_decoded["netuid"], f"Test case: {test_id}"
-    assert result.active == neuron_info_decoded["active"], f"Test case: {test_id}"
-    assert (
-        result.last_update == neuron_info_decoded["last_update"]
-    ), f"Test case: {test_id}"
-
-
-@pytest.mark.parametrize(
-    "test_id, neuron_info_decoded",
-    [
-        (
-            "edge-1",
-            create_neuron_info_decoded(
-                hotkey=b"\x01" * 32,
-                coldkey=b"\x02" * 32,
-                stake=[],
-                weights=[(1, 2)],
-                bonds=[(3, 4)],
-                rank=100,
-                emission=1000,
-                incentive=200,
-                consensus=300,
-                trust=400,
-                validator_trust=500,
-                dividends=600,
-                uid=1,
-                netuid=2,
-                active=True,
-                last_update=1000,
-                validator_permit=100,
-                pruning_score=1000,
-                prometheus_info={
-                    "version": 1,
-                    "ip": 2130706433,
-                    "port": 8080,
-                    "ip_type": 4,
-                    "block": 100,
-                },
-                axon_info={
-                    "version": 1,
-                    "ip": 2130706433,
-                    "port": 8080,
-                    "ip_type": 4,
-                },
-            ),
-        ),
-    ],
-)
-def test_fix_decoded_values_edge_cases(test_id, neuron_info_decoded):
-    # Act
-    result = NeuronInfo.fix_decoded_values(neuron_info_decoded)
-
-    # Assert
-    assert result.stake == 0, f"Test case: {test_id}"
-    assert result.weights == neuron_info_decoded["weights"], f"Test case: {test_id}"
-
-
-@pytest.mark.parametrize(
-    "test_id, neuron_info_decoded, expected_exception",
-    [
-        (
-            "error-1",
-            create_neuron_info_decoded(
-                hotkey="not_bytes",
-                coldkey=b"\x02" * 32,
-                stake=[(b"\x02" * 32, 1000)],
-                weights=[(1, 2)],
-                bonds=[(3, 4)],
-                rank=100,
-                emission=1000,
-                incentive=200,
-                consensus=300,
-                trust=400,
-                validator_trust=500,
-                dividends=600,
-                uid=1,
-                netuid=2,
-                active=True,
-                last_update=1000,
-                validator_permit=100,
-                pruning_score=1000,
-                prometheus_info={},
-                axon_info={},
-            ),
-            ValueError,
-        ),
-    ],
-)
-def test_fix_decoded_values_error_cases(
-    test_id, neuron_info_decoded, expected_exception
-):
-    # Arrange
-    # (Omitted since all input values are provided via test parameters)
-
-    # Act / Assert
-    with pytest.raises(expected_exception):
-        NeuronInfo.fix_decoded_values(neuron_info_decoded), f"Test case: {test_id}"
-
-
 @pytest.fixture
 def mock_from_scale_encoding(mocker):
-    return mocker.patch("bittensor.chain_data.from_scale_encoding")
+    return mocker.patch("bittensor.core.chain_data.delegate_info.from_scale_encoding")
 
 
 @pytest.fixture
 def mock_fix_decoded_values(mocker):
     return mocker.patch(
-        "bittensor.DelegateInfo.fix_decoded_values", side_effect=lambda x: x
+        "bittensor.core.chain_data.DelegateInfo.fix_decoded_values",
+        side_effect=lambda x: x,
     )
 
 

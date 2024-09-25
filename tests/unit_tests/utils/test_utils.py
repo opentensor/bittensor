@@ -1,328 +1,169 @@
 # The MIT License (MIT)
-# Copyright © 2021 Yuma Rao
-# Copyright © 2022 Opentensor Foundation
-# Copyright © 2023 Opentensor Technologies Inc
-
+# Copyright © 2024 Opentensor Foundation
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
 # the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
+#
 # The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
-
+#
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
 # THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import logging
-
-import numpy as np
-import bittensor.utils.weight_utils as weight_utils
+from bittensor import utils
+from bittensor.core.settings import SS58_FORMAT
 import pytest
 
 
-def test_convert_weight_and_uids():
-    uids = np.arange(10)
-    weights = np.random.rand(10)
-    weight_utils.convert_weights_and_uids_for_emit(uids, weights)
-
-    # min weight < 0
-    weights[5] = -1
-    with pytest.raises(ValueError) as pytest_wrapped_e:
-        weight_utils.convert_weights_and_uids_for_emit(uids, weights)
-
-    # min uid < 0
-    weights[5] = 0
-    uids[3] = -1
-    with pytest.raises(ValueError) as pytest_wrapped_e:
-        weight_utils.convert_weights_and_uids_for_emit(uids, weights)
-
-    # len(uids) != len(weights)
-    uids[3] = 3
-    with pytest.raises(ValueError) as pytest_wrapped_e:
-        weight_utils.convert_weights_and_uids_for_emit(uids, weights[1:])
-
-    # sum(weights) == 0
-    weights = np.zeros(10)
-    weight_utils.convert_weights_and_uids_for_emit(uids, weights)
-
-    # test for overflow and underflow
-    for _ in range(5):
-        uids = np.arange(10)
-        weights = np.random.rand(10)
-        weight_utils.convert_weights_and_uids_for_emit(uids, weights)
-
-
-def test_normalize_with_max_weight():
-    weights = np.random.rand(1000)
-    wn = weight_utils.normalize_max_weight(weights, limit=0.01)
-    assert wn.max() <= 0.01
-
-    weights = np.zeros(1000)
-    wn = weight_utils.normalize_max_weight(weights, limit=0.01)
-    assert wn.max() <= 0.01
-
-    weights = np.random.rand(1000)
-    wn = weight_utils.normalize_max_weight(weights, limit=0.02)
-    assert wn.max() <= 0.02
-
-    weights = np.zeros(1000)
-    wn = weight_utils.normalize_max_weight(weights, limit=0.02)
-    assert wn.max() <= 0.02
-
-    weights = np.random.rand(1000)
-    wn = weight_utils.normalize_max_weight(weights, limit=0.03)
-    assert wn.max() <= 0.03
-
-    weights = np.zeros(1000)
-    wn = weight_utils.normalize_max_weight(weights, limit=0.03)
-    assert wn.max() <= 0.03
-
-    # Check for Limit
-    limit = 0.001
-    weights = np.random.rand(2000)
-    w = weights / weights.sum()
-    wn = weight_utils.normalize_max_weight(weights, limit=limit)
-    assert (w.max() >= limit and np.abs(limit - wn.max()) < 0.001) or (
-        w.max() < limit and wn.max() < limit
+def test_ss58_to_vec_u8(mocker):
+    """Tests `utils.ss58_to_vec_u8` function."""
+    # Prep
+    test_ss58_address = "5DD26kC2kxajmwfbbZmVmxhrY9VeeyR1Gpzy9i8wxLUg6zxm"
+    fake_return = b"2\xa6?"
+    mocked_ss58_address_to_bytes = mocker.patch.object(
+        utils, "ss58_address_to_bytes", return_value=fake_return
     )
 
-    # Check for Zeros
-    limit = 0.01
-    weights = np.zeros(2000)
-    wn = weight_utils.normalize_max_weight(weights, limit=limit)
-    assert wn.max() == 1 / 2000
+    # Call
+    result = utils.ss58_to_vec_u8(test_ss58_address)
 
-    # Check for Ordering after normalization
-    weights = np.random.rand(100)
-    wn = weight_utils.normalize_max_weight(weights, limit=1)
-    assert np.array_equal(wn, weights / weights.sum())
-
-    # Check for epsilon changes
-    epsilon = 0.01
-    weights = np.sort(np.random.rand(100))
-    x = weights / weights.sum()
-    limit = x[-10]
-    change = epsilon * limit
-    y = weight_utils.normalize_max_weight(x, limit=limit - change)
-    z = weight_utils.normalize_max_weight(x, limit=limit + change)
-    assert np.abs(y - z).sum() < epsilon
+    # Asserts
+    mocked_ss58_address_to_bytes.assert_called_once_with(test_ss58_address)
+    assert result == [int(byte) for byte in fake_return]
 
 
 @pytest.mark.parametrize(
-    "test_id, n, uids, weights, expected",
+    "test_input,expected",
     [
-        ("happy-path-1", 3, [0, 1, 2], [15, 5, 80], np.array([0.15, 0.05, 0.8])),
-        ("happy-path-2", 4, [1, 3], [50, 50], np.array([0.0, 0.5, 0.0, 0.5])),
+        ("y", True),
+        ("yes", True),
+        ("t", True),
+        ("true", True),
+        ("on", True),
+        ("1", True),
+        ("n", False),
+        ("no", False),
+        ("f", False),
+        ("false", False),
+        ("off", False),
+        ("0", False),
     ],
 )
-def test_convert_weight_uids_and_vals_to_tensor_happy_path(
-    test_id, n, uids, weights, expected
-):
-    # Act
-    result = weight_utils.convert_weight_uids_and_vals_to_tensor(n, uids, weights)
-
-    # Assert
-    assert np.allclose(result, expected), f"Failed {test_id}"
+def test_strtobool(test_input, expected):
+    """Test truthy values."""
+    assert utils.strtobool(test_input) is expected
 
 
 @pytest.mark.parametrize(
-    "test_id, n, uids, weights, expected",
+    "test_input",
     [
-        ("edge_case_empty", 5, [], [], np.zeros(5)),
-        ("edge_case_single", 1, [0], [100], np.array([1.0])),
-        ("edge_case_all_zeros", 4, [0, 1, 2, 3], [0, 0, 0, 0], np.zeros(4)),
+        "maybe",
+        "2",
+        "onoff",
     ],
 )
-def test_convert_weight_uids_and_vals_to_tensor_edge_cases(
-    test_id, n, uids, weights, expected
-):
-    # Act
-    result = weight_utils.convert_weight_uids_and_vals_to_tensor(n, uids, weights)
-
-    # Assert
-    assert np.allclose(result, expected), f"Failed {test_id}"
+def test_strtobool_raise_error(test_input):
+    """Tests invalid values."""
+    with pytest.raises(ValueError):
+        utils.strtobool(test_input)
 
 
-@pytest.mark.parametrize(
-    "test_id, n, uids, weights, exception",
-    [
-        ("error-case-mismatched-lengths", 3, [0, 1, 3, 4, 5], [10, 20, 30], IndexError),
-        ("error-case-negative-n", -1, [0, 1], [10, 20], ValueError),
-        ("error-case-invalid-uids", 3, [0, 3], [10, 20], IndexError),
-    ],
-)
-def test_convert_weight_uids_and_vals_to_tensor_error_cases(
-    test_id, n, uids, weights, exception
-):
-    # Act / Assert
-    with pytest.raises(exception):
-        weight_utils.convert_weight_uids_and_vals_to_tensor(n, uids, weights)
+def test_get_explorer_root_url_by_network_from_map():
+    """Tests private utils._get_explorer_root_url_by_network_from_map function."""
+    # Prep
+    # Test with a known network
+    network_map = {
+        "entity1": {"network1": "url1", "network2": "url2"},
+        "entity2": {"network1": "url3", "network3": "url4"},
+    }
+    # Test with no matching network in the map
+    network_map_empty = {
+        "entity1": {},
+        "entity2": {},
+    }
 
-
-@pytest.mark.parametrize(
-    "test_id, n, uids, weights, subnets, expected",
-    [
-        (
-            "happy-path-1",
-            3,
-            [0, 1, 2],
-            [15, 5, 80],
-            [0, 1, 2],
-            np.array([0.15, 0.05, 0.8]),
-        ),
-        (
-            "happy-path-2",
-            3,
-            [0, 2],
-            [300, 300],
-            [0, 1, 2],
-            np.array([0.5, 0.0, 0.5]),
-        ),
-    ],
-)
-def test_convert_root_weight_uids_and_vals_to_tensor_happy_paths(
-    test_id, n, uids, weights, subnets, expected
-):
-    # Act
-    result = weight_utils.convert_root_weight_uids_and_vals_to_tensor(
-        n, uids, weights, subnets
+    # Assertions
+    assert utils._get_explorer_root_url_by_network_from_map(
+        "network1", network_map
+    ) == {
+        "entity1": "url1",
+        "entity2": "url3",
+    }
+    # Test with an unknown network
+    assert (
+        utils._get_explorer_root_url_by_network_from_map("unknown_network", network_map)
+        == {}
+    )
+    assert (
+        utils._get_explorer_root_url_by_network_from_map("network1", network_map_empty)
+        == {}
     )
 
+
+def test_get_explorer_url_for_network():
+    """Tests `utils.get_explorer_url_for_network` function."""
+    # Prep
+    fake_block_hash = "0x1234567890abcdef"
+    fake_map = {"opentensor": {"network": "url"}, "taostats": {"network": "url2"}}
+
+    # Call
+    result = utils.get_explorer_url_for_network("network", fake_block_hash, fake_map)
+
     # Assert
-    assert np.allclose(result, expected, atol=1e-4), f"Failed {test_id}"
+    assert result == {
+        "opentensor": f"url/query/{fake_block_hash}",
+        "taostats": f"url2/extrinsic/{fake_block_hash}",
+    }
 
 
-@pytest.mark.parametrize(
-    "test_id, n, uids, weights, subnets, expected",
-    [
-        (
-            "edge-1",
-            1,
-            [0],
-            [0],
-            [0],
-            np.array([0.0]),
-        ),  # Single neuron with zero weight
-        (
-            "edge-2",
-            2,
-            [0, 1],
-            [0, 0],
-            [0, 1],
-            np.array([0.0, 0.0]),
-        ),  # All zero weights
-    ],
-)
-def test_convert_root_weight_uids_and_vals_to_tensor_edge_cases(
-    test_id, n, uids, weights, subnets, expected
-):
-    # Act
-    result = weight_utils.convert_root_weight_uids_and_vals_to_tensor(
-        n, uids, weights, subnets
+def test_ss58_address_to_bytes(mocker):
+    """Tests utils.ss58_address_to_bytes function."""
+    # Prep
+    fake_ss58_address = "ss58_address"
+    mocked_scalecodec_ss58_decode = mocker.patch.object(
+        utils.scalecodec, "ss58_decode", return_value=""
     )
 
-    # Assert
-    assert np.allclose(result, expected, atol=1e-4), f"Failed {test_id}"
+    # Call
+    result = utils.ss58_address_to_bytes(fake_ss58_address)
+
+    # Asserts
+    mocked_scalecodec_ss58_decode.assert_called_once_with(
+        fake_ss58_address, SS58_FORMAT
+    )
+    assert result == bytes.fromhex(mocked_scalecodec_ss58_decode.return_value)
 
 
 @pytest.mark.parametrize(
-    "test_id, n, uids, weights, subnets, exception",
+    "test_input, expected_result",
     [
-        # uid not in subnets
-        (
-            "error-1",
-            3,
-            [1, 3],
-            [100, 200],
-            [1, 2],
-            "The subnet is unavailable at the moment.",
-        ),
-        # More uids than subnets
-        (
-            "error-2",
-            3,
-            [1, 2, 3],
-            [100, 200],
-            [1],
-            "The subnet is unavailable at the moment.",
-        ),
+        (123, False),
+        ("0x234SD", True),
+        ("5D34SD", True),
+        (b"0x234SD", True),
     ],
 )
-def test_convert_root_weight_uids_and_vals_to_tensor_error_cases(
-    test_id, n, uids, weights, subnets, exception, caplog
-):
-    with caplog.at_level(logging.WARNING):
-        weight_utils.convert_root_weight_uids_and_vals_to_tensor(
-            n, uids, weights, subnets
-        )
+def test_is_valid_bittensor_address_or_public_key(mocker, test_input, expected_result):
+    """Tests utils.is_valid_bittensor_address_or_public_key function."""
+    # Prep
+    mocked_is_valid_ed25519_pubkey = mocker.patch.object(
+        utils, "_is_valid_ed25519_pubkey", return_value=True
+    )
+    mocked_ss58_is_valid_ss58_address = mocker.patch.object(
+        utils.ss58, "is_valid_ss58_address", side_effect=[False, True]
+    )
 
-        assert any(
-            exception in record.message and record.levelname == "WARNING"
-            for record in caplog.records
-        )
+    # Call
+    result = utils.is_valid_bittensor_address_or_public_key(test_input)
 
-
-@pytest.mark.parametrize(
-    "test_id, n, uids, bonds, expected_output",
-    [
-        (
-            "happy-path-1",
-            5,
-            [1, 3, 4],
-            [10, 20, 30],
-            np.array([0, 10, 0, 20, 30], dtype=np.int64),
-        ),
-        (
-            "happy-path-2",
-            3,
-            [0, 1, 2],
-            [7, 8, 9],
-            np.array([7, 8, 9], dtype=np.int64),
-        ),
-        ("happy-path-3", 4, [2], [15], np.array([0, 0, 15, 0], dtype=np.int64)),
-    ],
-)
-def test_happy_path(test_id, n, uids, bonds, expected_output):
-    # Act
-    result = weight_utils.convert_bond_uids_and_vals_to_tensor(n, uids, bonds)
-
-    # Assert
-    assert np.array_equal(result, expected_output), f"Failed {test_id}"
-
-
-@pytest.mark.parametrize(
-    "test_id, n, uids, bonds, expected_output",
-    [
-        ("edge-1", 1, [0], [0], np.array([0], dtype=np.int64)),  # Single element
-        (
-            "edge-2",
-            10,
-            [],
-            [],
-            np.zeros(10, dtype=np.int64),
-        ),  # Empty uids and bonds
-    ],
-)
-def test_edge_cases(test_id, n, uids, bonds, expected_output):
-    # Act
-    result = weight_utils.convert_bond_uids_and_vals_to_tensor(n, uids, bonds)
-
-    # Assert
-    assert np.array_equal(result, expected_output), f"Failed {test_id}"
-
-
-@pytest.mark.parametrize(
-    "test_id, n, uids, bonds, exception",
-    [
-        ("error-1", 5, [1, 3, 6], [10, 20, 30], IndexError),  # uid out of bounds
-        ("error-2", -1, [0], [10], ValueError),  # Negative number of neurons
-    ],
-)
-def test_error_cases(test_id, n, uids, bonds, exception):
-    # Act / Assert
-    with pytest.raises(exception):
-        weight_utils.convert_bond_uids_and_vals_to_tensor(n, uids, bonds)
+    # Asserts
+    if not isinstance(test_input, int) and isinstance(test_input, bytes):
+        mocked_is_valid_ed25519_pubkey.assert_called_with(test_input)
+    if isinstance(test_input, str) and not test_input.startswith("0x"):
+        assert mocked_ss58_is_valid_ss58_address.call_count == 2
+    assert result == expected_result
