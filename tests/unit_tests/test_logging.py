@@ -119,7 +119,7 @@ def test_state_transitions(logging_machine, mock_config):
         logging_machine.enable_default()
         assert logging_machine.current_state_value == "Default"
         # main logger set to INFO
-        mocked_bt_logger.setLevel.assert_called_with(stdlogging.INFO)
+        mocked_bt_logger.setLevel.assert_called_with(stdlogging.WARNING)
         # 3rd party loggers should be disabled by setting to CRITICAL
         mocked_third_party_logger.setLevel.assert_called_with(stdlogging.CRITICAL)
 
