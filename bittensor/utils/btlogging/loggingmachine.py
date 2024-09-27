@@ -433,9 +433,6 @@ class LoggingMachine(StateMachine, Logger):
 
     def debug(self, msg="", prefix="", suffix="", *args, **kwargs):
         """Wraps debug message with prefix and suffix."""
-        print(
-            f">>> msg {msg} | prefix {prefix} | suffix {suffix} | args {args} | kwargs {kwargs}"
-        )
         msg = _concat_message(msg, prefix, suffix)
         self._logger.debug(msg, *args, **kwargs)
 
