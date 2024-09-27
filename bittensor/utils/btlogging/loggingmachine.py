@@ -79,6 +79,8 @@ class LoggingMachine(StateMachine, Logger):
         | Warning.to(Default)
     )
 
+    enable_info = enable_default
+
     enable_trace = (
         Default.to(Trace) | Debug.to(Trace) | Disabled.to(Trace) | Trace.to(Trace) | Warning.to(Trace)
     )
@@ -95,7 +97,7 @@ class LoggingMachine(StateMachine, Logger):
 
     disable_debug = Debug.to(Default)
 
-    disable_warning = Debug.to(Default)
+    disable_warning = Warning.to(Default)
 
     disable_logging = (
         Trace.to(Disabled)
@@ -316,6 +318,15 @@ class LoggingMachine(StateMachine, Logger):
                 continue
             logger.setLevel(stdlogging.CRITICAL)
 
+    def before_enable_info(self):
+        """Logs status before enable Default."""
+        self._logger.info(f"Enabling default logging.")
+        self._logger.setLevel(stdlogging.INFO)
+        for logger in all_loggers():
+            if logger.name in self._primary_loggers:
+                continue
+            logger.setLevel(stdlogging.CRITICAL)
+
     def after_enable_default(self):
         pass
 
@@ -483,7 +494,10 @@ class LoggingMachine(StateMachine, Logger):
             self.enable_default()
 
     # as an option to be more obvious. `bittensor.logging.set_info()` is the same `bittensor.logging.set_default()`
-    set_info = set_default
+    def set_info(self):
+        """Sets Default state."""
+        if not self.current_state_value == "Default":
+            self.enable_info()
 
     def get_level(self) -> int:
         """Returns Logging level."""
