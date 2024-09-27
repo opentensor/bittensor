@@ -82,15 +82,27 @@ class LoggingMachine(StateMachine, Logger):
     enable_info = enable_default
 
     enable_trace = (
-        Default.to(Trace) | Debug.to(Trace) | Disabled.to(Trace) | Trace.to(Trace) | Warning.to(Trace)
+        Default.to(Trace)
+        | Debug.to(Trace)
+        | Disabled.to(Trace)
+        | Trace.to(Trace)
+        | Warning.to(Trace)
     )
 
     enable_debug = (
-        Default.to(Debug) | Trace.to(Debug) | Disabled.to(Debug) | Debug.to(Debug) | Warning.to(Debug)
+        Default.to(Debug)
+        | Trace.to(Debug)
+        | Disabled.to(Debug)
+        | Debug.to(Debug)
+        | Warning.to(Debug)
     )
 
     enable_warning = (
-            Default.to(Warning) | Trace.to(Warning) | Disabled.to(Warning) | Debug.to(Warning) | Warning.to(Warning)
+        Default.to(Warning)
+        | Trace.to(Warning)
+        | Disabled.to(Warning)
+        | Debug.to(Warning)
+        | Warning.to(Warning)
     )
 
     disable_trace = Trace.to(Default)
@@ -421,7 +433,9 @@ class LoggingMachine(StateMachine, Logger):
 
     def debug(self, msg="", prefix="", suffix="", *args, **kwargs):
         """Wraps debug message with prefix and suffix."""
-        print(f">>> msg {msg} | prefix {prefix} | suffix {suffix} | args {args} | kwargs {kwargs}")
+        print(
+            f">>> msg {msg} | prefix {prefix} | suffix {suffix} | args {args} | kwargs {kwargs}"
+        )
         msg = _concat_message(msg, prefix, suffix)
         self._logger.debug(msg, *args, **kwargs)
 
