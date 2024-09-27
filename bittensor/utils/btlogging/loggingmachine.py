@@ -69,25 +69,33 @@ class LoggingMachine(StateMachine, Logger):
     Debug = State()
     Trace = State()
     Disabled = State()
+    Warning = State()
 
     enable_default = (
         Debug.to(Default)
         | Trace.to(Default)
         | Disabled.to(Default)
         | Default.to(Default)
+        | Warning.to(Default)
     )
 
     enable_trace = (
-        Default.to(Trace) | Debug.to(Trace) | Disabled.to(Trace) | Trace.to(Trace)
+        Default.to(Trace) | Debug.to(Trace) | Disabled.to(Trace) | Trace.to(Trace) | Warning.to(Trace)
     )
 
     enable_debug = (
-        Default.to(Debug) | Trace.to(Debug) | Disabled.to(Debug) | Debug.to(Debug)
+        Default.to(Debug) | Trace.to(Debug) | Disabled.to(Debug) | Debug.to(Debug) | Warning.to(Debug)
+    )
+
+    enable_warning = (
+            Default.to(Warning) | Trace.to(Warning) | Disabled.to(Warning) | Debug.to(Warning) | Warning.to(Warning)
     )
 
     disable_trace = Trace.to(Default)
 
     disable_debug = Debug.to(Default)
+
+    disable_warning = Debug.to(Default)
 
     disable_logging = (
         Trace.to(Disabled)
@@ -302,7 +310,7 @@ class LoggingMachine(StateMachine, Logger):
     def before_enable_default(self):
         """Logs status before enable Default."""
         self._logger.info(f"Enabling default logging.")
-        self._logger.setLevel(stdlogging.WARNING)
+        self._logger.setLevel(stdlogging.INFO)
         for logger in all_loggers():
             if logger.name in self._primary_loggers:
                 continue
@@ -310,6 +318,17 @@ class LoggingMachine(StateMachine, Logger):
 
     def after_enable_default(self):
         pass
+
+    def before_enable_warning(self):
+        """Logs status before enable Warning."""
+        self._logger.info("Enabling warning.")
+        self._stream_formatter.set_trace(True)
+        for logger in all_loggers():
+            logger.setLevel(stdlogging.WARNING)
+
+    def after_enable_warning(self):
+        """Logs status after enable Warning."""
+        self._logger.info("Warning enabled.")
 
     # Trace
     def before_enable_trace(self):
@@ -391,6 +410,7 @@ class LoggingMachine(StateMachine, Logger):
 
     def debug(self, msg="", prefix="", suffix="", *args, **kwargs):
         """Wraps debug message with prefix and suffix."""
+        print(f">>> msg {msg} | prefix {prefix} | suffix {suffix} | args {args} | kwargs {kwargs}")
         msg = _concat_message(msg, prefix, suffix)
         self._logger.debug(msg, *args, **kwargs)
 
@@ -448,6 +468,22 @@ class LoggingMachine(StateMachine, Logger):
         elif not on:
             if self.current_state_value == "Trace":
                 self.disable_trace()
+
+    def set_warning(self, on: bool = True):
+        """Sets Warning state."""
+        if on and not self.current_state_value == "Warning":
+            self.enable_warning()
+        elif not on:
+            if self.current_state_value == "Warning":
+                self.disable_warning()
+
+    def set_default(self):
+        """Sets Default state."""
+        if not self.current_state_value == "Default":
+            self.enable_default()
+
+    # as an option to be more obvious. `bittensor.logging.set_info()` is the same `bittensor.logging.set_default()`
+    set_info = set_default
 
     def get_level(self) -> int:
         """Returns Logging level."""
