@@ -76,7 +76,6 @@ setup(
     install_requires=requirements,
     extras_require={
         "btcli": extra_requirements_btcli,
-        "cubit": extra_requirements_cubit,
         "dev": extra_requirements_dev,
         "torch": extra_requirements_torch,
     },

@@ -7,7 +7,7 @@ from tests.e2e_tests.utils.chain_interactions import (
     sudo_set_hyperparameter_bool,
     sudo_set_hyperparameter_values,
 )
-from tests.e2e_tests.utils.test_utils import setup_wallet
+from tests.e2e_tests.utils.e2e_test_utils import setup_wallet
 
 
 def liquid_alpha_call_params(netuid: int, alpha_values: str):
