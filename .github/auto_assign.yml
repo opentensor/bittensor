@@ -1,0 +1,7 @@
+addReviewers: true
+
+# A list of team slugs to add as assignees
+reviewers:
+  - opentensor/cortex
+
+numberOfReviewers: 0
