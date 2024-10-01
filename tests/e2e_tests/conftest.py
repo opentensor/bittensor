@@ -9,7 +9,7 @@ import pytest
 from substrateinterface import SubstrateInterface
 
 from bittensor import logging
-from tests.e2e_tests.utils.test_utils import (
+from tests.e2e_tests.utils.e2e_test_utils import (
     clone_or_update_templates,
     install_templates,
     template_path,

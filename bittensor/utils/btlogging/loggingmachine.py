@@ -324,7 +324,7 @@ class LoggingMachine(StateMachine, Logger):
     def before_enable_default(self):
         """Logs status before enable Default."""
         self._logger.info(f"Enabling default logging.")
-        self._logger.setLevel(stdlogging.INFO)
+        self._logger.setLevel(stdlogging.WARNING)
         for logger in all_loggers():
             if logger.name in self._primary_loggers:
                 continue

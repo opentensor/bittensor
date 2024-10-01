@@ -14,7 +14,7 @@ from tests.e2e_tests.utils.chain_interactions import (
     sudo_set_hyperparameter_values,
     wait_interval,
 )
-from tests.e2e_tests.utils.test_utils import setup_wallet
+from tests.e2e_tests.utils.e2e_test_utils import setup_wallet
 
 
 @pytest.mark.asyncio
