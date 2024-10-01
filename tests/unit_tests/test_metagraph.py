@@ -1,27 +1,28 @@
 # The MIT License (MIT)
-# Copyright © 2023 Opentensor Technologies Inc
-
+# Copyright © 2024 Opentensor Foundation
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
 # the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
+#
 # The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
-
+#
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
 # THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from unittest.mock import Mock
-import pytest
-import numpy as np
-import bittensor
-
-from bittensor.metagraph import metagraph as Metagraph
 from unittest.mock import MagicMock
+from unittest.mock import Mock
+
+import numpy as np
+import pytest
+
+from bittensor.core import settings
+from bittensor.core.metagraph import Metagraph
 
 
 @pytest.fixture
@@ -57,7 +58,7 @@ def mock_environment():
 
 def test_set_metagraph_attributes(mock_environment):
     subtensor, neurons = mock_environment
-    metagraph = bittensor.metagraph(1, sync=False)
+    metagraph = Metagraph(1, sync=False)
     metagraph.neurons = neurons
     metagraph._set_metagraph_attributes(block=5, subtensor=subtensor)
 
@@ -95,7 +96,7 @@ def test_set_metagraph_attributes(mock_environment):
 
 def test_process_weights_or_bonds(mock_environment):
     _, neurons = mock_environment
-    metagraph = bittensor.metagraph(1, sync=False)
+    metagraph = Metagraph(1, sync=False)
     metagraph.neurons = neurons
 
     # Test weights processing
@@ -124,42 +125,11 @@ def test_process_weights_or_bonds(mock_environment):
     # TODO: Add more checks to ensure the bonds have been processed correctly
 
 
-def test_process_weights_or_bonds_torch(
-    mock_environment, force_legacy_torch_compat_api
-):
-    _, neurons = mock_environment
-    metagraph = bittensor.metagraph(1, sync=False)
-    metagraph.neurons = neurons
-
-    # Test weights processing
-    weights = metagraph._process_weights_or_bonds(
-        data=[neuron.weights for neuron in neurons], attribute="weights"
-    )
-    assert weights.shape[0] == len(
-        neurons
-    )  # Number of rows should be equal to number of neurons
-    assert weights.shape[1] == len(
-        neurons
-    )  # Number of columns should be equal to number of neurons
-    # TODO: Add more checks to ensure the weights have been processed correctly
-
-    # Test bonds processing
-    bonds = metagraph._process_weights_or_bonds(
-        data=[neuron.bonds for neuron in neurons], attribute="bonds"
-    )
-    assert bonds.shape[0] == len(
-        neurons
-    )  # Number of rows should be equal to number of neurons
-    assert bonds.shape[1] == len(
-        neurons
-    )  # Number of columns should be equal to number of neurons
-
-
-# Mocking the bittensor.subtensor class for testing purposes
+# Mocking the bittensor.Subtensor class for testing purposes
 @pytest.fixture
 def mock_subtensor():
     subtensor = MagicMock()
-    subtensor.chain_endpoint = bittensor.__finney_entrypoint__
+    subtensor.chain_endpoint = settings.FINNEY_ENTRYPOINT
     subtensor.network = "finney"
     subtensor.get_current_block.return_value = 601
     return subtensor
