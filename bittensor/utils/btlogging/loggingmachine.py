@@ -509,7 +509,7 @@ class LoggingMachine(StateMachine, Logger):
         """Sets Default state."""
         if not self.current_state_value == "Default":
             self.enable_info()
-d
+
     def get_level(self) -> int:
         """Returns Logging level."""
         return self._logger.level
