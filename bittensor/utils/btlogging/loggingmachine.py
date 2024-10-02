@@ -367,7 +367,7 @@ class LoggingMachine(StateMachine, Logger):
 
     def before_disable_trace(self):
         """Logs status before disable Trace."""
-        self._logger.info(f"Disabling trace.")
+        self._logger.info("Disabling trace.")
         self._stream_formatter.set_trace(False)
         self.enable_default()
 
@@ -490,7 +490,7 @@ class LoggingMachine(StateMachine, Logger):
         elif not on:
             if self.current_state_value == "Trace":
                 self.disable_trace()
-    
+
     def set_warning(self, on: bool = True):
         """Sets Warning state."""
         if on and not self.current_state_value == "Warning":
