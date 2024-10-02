@@ -1,5 +1,11 @@
 # Changelog
 
+## 8.1.0 /2024-10-02
+
+## What's Changed
+* Implements new logging level 'warning' by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2323
+* Adds ConnectionRefusedError in-case of connection error by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2326
+
 ## 8.0.0 /2024-09-25
 
 ## What's Changed
