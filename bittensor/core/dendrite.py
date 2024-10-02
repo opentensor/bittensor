@@ -24,7 +24,7 @@ from typing import Any, AsyncGenerator, Optional, Union, Type
 
 import aiohttp
 from bittensor_wallet import Wallet
-from substrateinterface import Keypair
+from bittensor_wallet import Keypair
 
 from bittensor.core.axon import Axon
 from bittensor.core.chain_data import AxonInfo

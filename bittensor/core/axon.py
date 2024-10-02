@@ -32,14 +32,14 @@ from inspect import signature, Signature, Parameter
 from typing import Any, Awaitable, Callable, Optional, Tuple
 
 import uvicorn
-from bittensor_wallet import Wallet
+from bittensor_wallet import Wallet, Keypair
 from fastapi import APIRouter, Depends, FastAPI
 from fastapi.responses import JSONResponse
 from fastapi.routing import serialize_response
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
 from starlette.responses import Response
-from substrateinterface import Keypair
+
 
 from bittensor.core.chain_data import AxonInfo
 from bittensor.core.config import Config
