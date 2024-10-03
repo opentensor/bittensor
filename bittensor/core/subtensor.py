@@ -134,7 +134,7 @@ class Subtensor:
         network: Optional[str] = None,
         config: Optional["Config"] = None,
         _mock: bool = False,
-        log_verbose: bool = True,
+        log_verbose: bool = False,
         connection_timeout: int = 600,
     ) -> None:
         """
@@ -216,7 +216,7 @@ class Subtensor:
                 type_registry=settings.TYPE_REGISTRY,
             )
             if self.log_verbose:
-                logging.info(
+                logging.debug(
                     f"Connected to {self.network} network and {self.chain_endpoint}."
                 )
 
