@@ -175,17 +175,18 @@ class Subtensor:
             logging.info(
                 f"You are connecting to {self.network} network with endpoint {self.chain_endpoint}."
             )
-            logging.warning(
+            logging.debug(
                 "We strongly encourage running a local subtensor node whenever possible. "
                 "This increases decentralization and resilience of the network."
             )
-            logging.warning(
+            logging.debug(
                 "In a future release, local subtensor will become the default endpoint. "
                 "To get ahead of this change, please run a local subtensor node and point to it."
             )
 
         self.log_verbose = log_verbose
         self._connection_timeout = connection_timeout
+        self.substrate: "SubstrateInterface" = None
         self._get_substrate()
 
     def __str__(self) -> str:
@@ -201,7 +202,8 @@ class Subtensor:
 
     def close(self):
         """Cleans up resources for this subtensor instance like active websocket connection and active extensions."""
-        self.substrate.close()
+        if self.substrate:
+            self.substrate.close()
 
     def _get_substrate(self):
         """Establishes a connection to the Substrate node using configured parameters."""
@@ -223,14 +225,15 @@ class Subtensor:
             except (AttributeError, TypeError, socket.error, OSError) as e:
                 logging.warning(f"Error setting timeout: {e}")
 
-        except ConnectionRefusedError:
+        except ConnectionRefusedError as error:
             logging.error(
                 f"Could not connect to {self.network} network with {self.chain_endpoint} chain endpoint.",
             )
             logging.info(
                 "You can check if you have connectivity by running this command: nc -vz localhost "
-                f"{self.chain_endpoint.split(':')[2]}"
+                f"{self.chain_endpoint}"
             )
+            raise ConnectionRefusedError(error.args)
 
     @staticmethod
     def config() -> "Config":
