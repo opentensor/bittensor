@@ -172,7 +172,7 @@ class TestSubtensor(unittest.TestCase):
         )
         self.assertFalse(fail, msg="Transfer should fail because of invalid dest")
 
-    def test_transfer_dest_as_bytes(self):
+    def test_transfer_dest_as_bytes_fails(self):
         fake_coldkey = get_mock_coldkey(1)
         with patch(
             "bittensor.core.extrinsics.transfer.do_transfer",
