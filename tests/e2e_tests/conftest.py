@@ -45,7 +45,8 @@ def local_chain(request):
 
     # install neuron templates
     logging.info("downloading and installing neuron templates from github")
-    templates_dir = clone_or_update_templates()
+    # commit with subnet-template-repo changes for rust wallet
+    templates_dir = clone_or_update_templates("334d3da101279218b3a4c9d72a12d517f6e39be3")
     install_templates(templates_dir)
 
     timestamp = int(time.time())

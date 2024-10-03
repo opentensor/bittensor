@@ -16,7 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import hashlib
-from typing import List, Dict, Literal, Union, Optional, TYPE_CHECKING
+from typing import Literal, Union, Optional, TYPE_CHECKING
 
 import scalecodec
 from bittensor_wallet import Keypair

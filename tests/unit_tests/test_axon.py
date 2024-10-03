@@ -586,7 +586,7 @@ class TestAxonHTTPAPIResponses:
         assert (response.status_code, response.json()) == (
             401,
             {
-                "message": "Not Verified with error: No SS58 formatted address or public key provided"
+                "message": "Not Verified with error: No SS58 formatted address or public key provided."
             },
         )
 
