@@ -112,6 +112,7 @@ from bittensor.utils import (  # noqa: F401
 )
 from bittensor.utils.balance import Balance as Balance  # noqa: F401
 from bittensor.utils.mock.subtensor_mock import MockSubtensor as MockSubtensor  # noqa: F401
+from bittensor.utils.btlogging import logging
 from bittensor.utils.subnets import SubnetsAPI  # noqa: F401
 
 # Backwards compatibility with previous bittensor versions.
@@ -148,3 +149,35 @@ sys.modules["bittensor.mock"] = mock_subpackage
 # Makes the `bittensor.core.extrinsics` subpackage available as `bittensor.extrinsics` for backwards compatibility.
 extrinsics_subpackage = importlib.import_module("bittensor.core.extrinsics")
 sys.modules["bittensor.extrinsics"] = extrinsics_subpackage
+
+
+# Logging helpers.
+def trace(on: bool = True):
+    """
+    Enables or disables trace logging.
+    Args:
+        on (bool): If True, enables trace logging. If False, disables trace logging.
+    """
+    logging.set_trace(on)
+
+
+def debug(on: bool = True):
+    """
+    Enables or disables debug logging.
+    Args:
+        on (bool): If True, enables debug logging. If False, disables debug logging.
+    """
+    logging.set_debug(on)
+
+
+def warning(on: bool = True):
+    """
+    Enables or disables warning logging.
+    Args:
+        on (bool): If True, enables warning logging. If False, disables warning logging and sets default (INFO) level.
+    """
+    logging.set_warning(on)
+
+
+# set Warning logging level for bittensor SDK
+warning()
