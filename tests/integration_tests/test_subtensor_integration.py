@@ -18,10 +18,12 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-from substrateinterface import Keypair
+import pytest
+from bittensor_wallet import Keypair
 
 import bittensor
 from bittensor.core import settings
+from bittensor.core.extrinsics import transfer
 from bittensor.utils.balance import Balance
 from bittensor.utils.mock import MockSubtensor
 from tests.helpers import (
@@ -30,7 +32,6 @@ from tests.helpers import (
     get_mock_keypair,
     get_mock_wallet,
 )
-from bittensor.core.extrinsics import transfer
 
 
 class TestSubtensor(unittest.TestCase):
@@ -171,7 +172,7 @@ class TestSubtensor(unittest.TestCase):
         )
         self.assertFalse(fail, msg="Transfer should fail because of invalid dest")
 
-    def test_transfer_dest_as_bytes(self):
+    def test_transfer_dest_as_bytes_fails(self):
         fake_coldkey = get_mock_coldkey(1)
         with patch(
             "bittensor.core.extrinsics.transfer.do_transfer",
@@ -183,13 +184,14 @@ class TestSubtensor(unittest.TestCase):
             self.subtensor.get_balance = MagicMock(return_value=self.balance)
 
             dest_as_bytes: bytes = Keypair(fake_coldkey).public_key
-            success = self.subtensor.transfer(
-                self.wallet,
-                dest_as_bytes,  # invalid dest
-                amount=200,
-                wait_for_inclusion=True,
-            )
-            self.assertTrue(success, msg="Transfer should succeed")
+
+            with pytest.raises(TypeError):
+                self.subtensor.transfer(
+                    self.wallet,
+                    dest_as_bytes,  # invalid dest
+                    amount=200,
+                    wait_for_inclusion=True,
+                )
 
     def test_set_weights(self):
         chain_weights = [0]

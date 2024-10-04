@@ -73,7 +73,8 @@ def axon_info():
 
 @pytest.fixture(scope="session")
 def setup_axon():
-    axon = Axon()
+    wallet = get_mock_wallet()
+    axon = Axon(wallet)
     axon.attach(forward_fn=dummy)
     axon.start()
     yield axon
