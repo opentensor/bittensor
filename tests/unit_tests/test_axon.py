@@ -380,10 +380,17 @@ def test_to_string(info_return, expected_output, test_id):
 )
 def test_valid_ipv4_and_ipv6_address(ip, port, expected_ip_type, test_id):
     # Arrange
+    hotkey = MockHotkey("5EemgxS7cmYbD34esCFoBgUZZC8JdnGtQvV5Qw3QFUCRRtGP")
+    coldkey = MockHotkey("5EemgxS7cmYbD34esCFoBgUZZC8JdnGtQvV5Qw3QFUCRRtGP")
+    coldkeypub = MockHotkey("5EemgxS7cmYbD34esCFoBgUZZC8JdnGtQvV5Qw3QFUCRRtGP")
+    wallet = MockWallet(hotkey, coldkey, coldkeypub)
+
     axon = Axon()
     axon.ip = ip
     axon.external_ip = ip
     axon.port = port
+    axon.wallet = wallet
+
 
     # Act
     ip_type = axon.info().ip_type

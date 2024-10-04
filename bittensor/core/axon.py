@@ -398,11 +398,9 @@ class Axon:
 
     def info(self) -> "AxonInfo":
         """Returns the axon info object associated with this axon."""
-        print(">>> wallet dir:", os.listdir(os.path.join(os.path.expanduser("~"), self.wallet.path, self.wallet.name)))
-        print(">>> wallet hotkeys dir:", os.listdir(os.path.join(os.path.expanduser("~"), self.wallet.path, self.wallet.name, "hotkeys")))
-        print(">>> Axon test self.wallet", self.wallet)
-        print(">>> Axon test self.wallet.hotkey", self.wallet.hotkey)
-        print(">>> Axon test self.wallet.coldkey", self.wallet.coldkey)
+        print(">>> wallet dir:", os.listdir(os.path.join(os.path.expanduser("~"), ".bittensor/wallets/default")))
+        print(">>> wallet hotkeys dir:", os.listdir(os.path.join(os.path.expanduser("~"), ".bittensor/wallets/default", "hotkeys")))
+
         return AxonInfo(
             version=version_as_int,
             ip=self.external_ip,
