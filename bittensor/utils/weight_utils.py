@@ -26,7 +26,7 @@ import numpy as np
 
 from numpy.typing import NDArray
 from scalecodec import U16, ScaleBytes, Vec
-from substrateinterface import Keypair
+from bittensor_wallet import Keypair
 
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import legacy_torch_api_compat, torch, use_torch
