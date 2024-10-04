@@ -42,7 +42,7 @@ from bittensor_wallet.keyfile import (  # noqa: F401
     Keyfile,
 )
 from bittensor_wallet.wallet import display_mnemonic_msg, Wallet  # noqa: F401
-from substrateinterface import Keypair  # noqa: F401
+from bittensor_wallet import Keypair  # noqa: F401
 
 from bittensor.core import settings
 from bittensor.core.axon import Axon
