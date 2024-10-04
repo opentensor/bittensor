@@ -16,10 +16,10 @@
 # DEALINGS IN THE SOFTWARE.
 
 import hashlib
-from typing import List, Dict, Literal, Union, Optional, TYPE_CHECKING
+from typing import Literal, Union, Optional, TYPE_CHECKING
 
 import scalecodec
-from substrateinterface import Keypair
+from bittensor_wallet import Keypair
 from substrateinterface.utils import ss58
 
 from bittensor.core.settings import SS58_FORMAT
@@ -245,7 +245,7 @@ def _is_valid_ed25519_pubkey(public_key: Union[str, bytes]) -> bool:
         else:
             raise ValueError("public_key must be a string or bytes")
 
-        keypair = Keypair(public_key=public_key, ss58_format=SS58_FORMAT)
+        keypair = Keypair(public_key=public_key)
 
         ss58_addr = keypair.ss58_address
         return ss58_addr is not None

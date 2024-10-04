@@ -3,7 +3,7 @@ import shutil
 import subprocess
 import sys
 
-from substrateinterface import Keypair
+from bittensor_wallet import Keypair
 
 import bittensor
 
