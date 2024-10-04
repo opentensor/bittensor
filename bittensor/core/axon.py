@@ -32,8 +32,7 @@ from inspect import signature, Signature, Parameter
 from typing import Any, Awaitable, Callable, Optional, Tuple
 
 import uvicorn
-from bittensor_wallet import Wallet  # , Keypair
-from substrateinterface import Keypair
+from bittensor_wallet import Wallet, Keypair
 
 from fastapi import APIRouter, Depends, FastAPI
 from fastapi.responses import JSONResponse
