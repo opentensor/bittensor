@@ -16,7 +16,6 @@
 # DEALINGS IN THE SOFTWARE.
 """Create and initialize Axon, which services the forward and backward requests from other neurons."""
 
-import os
 import argparse
 import asyncio
 import contextlib
@@ -398,9 +397,6 @@ class Axon:
 
     def info(self) -> "AxonInfo":
         """Returns the axon info object associated with this axon."""
-        print(">>> wallet dir:", os.listdir(os.path.join(os.path.expanduser("~"), ".bittensor/wallets/default")))
-        print(">>> wallet hotkeys dir:", os.listdir(os.path.join(os.path.expanduser("~"), ".bittensor/wallets/default", "hotkeys")))
-
         return AxonInfo(
             version=version_as_int,
             ip=self.external_ip,

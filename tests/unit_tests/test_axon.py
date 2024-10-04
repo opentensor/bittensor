@@ -391,7 +391,6 @@ def test_valid_ipv4_and_ipv6_address(ip, port, expected_ip_type, test_id):
     axon.port = port
     axon.wallet = wallet
 
-
     # Act
     ip_type = axon.info().ip_type
 
