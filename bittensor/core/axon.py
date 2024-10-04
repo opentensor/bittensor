@@ -32,7 +32,9 @@ from inspect import signature, Signature, Parameter
 from typing import Any, Awaitable, Callable, Optional, Tuple
 
 import uvicorn
-from bittensor_wallet import Wallet, Keypair
+from bittensor_wallet import Wallet  # , Keypair
+from substrateinterface import Keypair
+
 from fastapi import APIRouter, Depends, FastAPI
 from fastapi.responses import JSONResponse
 from fastapi.routing import serialize_response
@@ -397,8 +399,8 @@ class Axon:
     def info(self) -> "AxonInfo":
         """Returns the axon info object associated with this axon."""
         print(">>> Axon test self.wallet", self.wallet)
-        print(">>> Axon test self.wallet.coldkeypub", self.wallet.coldkeypub)
-        print(">>> Axon test self.wallet.coldkeypub.ss58_address", self.wallet.coldkeypub.ss58_address)
+        print(">>> Axon test self.wallet.hotkey", self.wallet.hotkey)
+        print(">>> Axon test self.wallet.coldkey", self.wallet.coldkey)
         return AxonInfo(
             version=version_as_int,
             ip=self.external_ip,
