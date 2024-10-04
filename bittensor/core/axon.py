@@ -396,6 +396,9 @@ class Axon:
 
     def info(self) -> "AxonInfo":
         """Returns the axon info object associated with this axon."""
+        print(">>> Axon test self.wallet", self.wallet)
+        print(">>> Axon test self.wallet.coldkeypub", self.wallet.coldkeypub)
+        print(">>> Axon test self.wallet.coldkeypub.ss58_address", self.wallet.coldkeypub.ss58_address)
         return AxonInfo(
             version=version_as_int,
             ip=self.external_ip,
