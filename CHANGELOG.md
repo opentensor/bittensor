@@ -1,10 +1,12 @@
 # Changelog
 
-## 8.1.0 /2024-10-02
+## 8.1.0 /2024-10-03
 
 ## What's Changed
 * Implements new logging level 'warning' by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2323
 * Adds ConnectionRefusedError in-case of connection error by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2326
+* Subtensor verbose False by default, debug logging for subtensor connected by @thewhaleking in https://github.com/opentensor/bittensor/pull/2335
+* Fix tests to be ready for rust-based bittensor-wallet by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2336
 
 ## 8.0.0 /2024-09-25
 
