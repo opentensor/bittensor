@@ -1,5 +1,14 @@
 # Changelog
 
+## 8.1.1 /2024-10-04
+
+## What's Changed
+* Release/8.1.0 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2332
+* Backmerge/8.1.0 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2341
+* Bumps version and wallet by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2342
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v8.1.0...v8.1.1
+
 ## 8.1.0 /2024-10-03
 
 ## What's Changed
