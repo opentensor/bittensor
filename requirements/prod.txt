@@ -1,5 +1,6 @@
 wheel
 setuptools~=70.0.0
+bittensor-cli
 aiohttp~=3.9
 bt-decode
 colorama~=0.4.6
