@@ -61,9 +61,8 @@ from bittensor.core.extrinsics.serving import (
     get_metadata,
 )
 from bittensor.core.extrinsics.set_weights import set_weights_extrinsic
-from bittensor.core.extrinsics.transfer import (
-    transfer_extrinsic,
-)
+from bittensor.core.extrinsics.transfer import transfer_extrinsic
+from bittensor.core.extrinsics.register_neuron import register_neuron_extrinsic
 from bittensor.core.metagraph import Metagraph
 from bittensor.utils import torch
 from bittensor.utils import u16_normalized_float, networking
@@ -897,6 +896,65 @@ class Subtensor:
                 retries += 1
 
         return success, message
+
+    def register_neuron(
+        self,
+        wallet: "Wallet",
+        netuid: int,
+        hotkey_ss58: Optional[str] = None,
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = False,
+        max_retries: int = 3,
+    ) -> tuple[bool, Optional[int], str]:
+        """
+        Registers a neuron on a specified subnet of the Bittensor network.
+
+        Args:
+            wallet (bittensor_wallet.Wallet): The wallet associated with the neuron being registered.
+            netuid (int): The unique identifier of the subnet to register on.
+            hotkey_ss58 (Optional[str]): The SS58 address of the hotkey to register. Defaults to the wallet's hotkey.
+            wait_for_inclusion (bool): Waits for the transaction to be included in a block. Default is False.
+            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Default is False.
+            max_retries (int): The maximum number of registration attempts. Default is 3.
+
+        Returns:
+            tuple[bool, Optional[int], str]: A tuple containing:
+                - bool: True if registration is successful, False otherwise.
+                - Optional[int]: The UID of the registered neuron if successful, None otherwise.
+                - str: A message describing the result or error.
+
+        This function is essential for adding new neurons to the Bittensor network, enabling participation in subnet consensus and learning processes.
+        """
+        retries = 0
+        success = False
+        uid = None
+        message = "No attempt made to register neuron."
+
+        while retries < max_retries:
+            try:
+                logging.info(
+                    f"Registering neuron on subnet #{netuid}. Attempt {retries + 1} of {max_retries}."
+                )
+                success, uid, message = register_neuron_extrinsic(
+                    subtensor=self,
+                    wallet=wallet,
+                    netuid=netuid,
+                    hotkey_ss58=hotkey_ss58,
+                    wait_for_inclusion=wait_for_inclusion,
+                    wait_for_finalization=wait_for_finalization,
+                )
+                if success:
+                    break
+            except Exception as e:
+                logging.error(f"Error registering neuron: {e}")
+                message = str(e)
+            finally:
+                retries += 1
+
+        if not success:
+            logging.warning(f"Failed to register neuron after {max_retries} attempts.")
+
+        return success, uid, message
 
     def serve_axon(
         self,
