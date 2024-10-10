@@ -134,21 +134,10 @@ git clone https://github.com/opentensor/bittensor.git
 
 You can install using any of the below options:
 
-- **Install only SDK**: Run the below command to install Bittensor SDK in the above virtual environment.
+- **Install SDK**: Run the below command to install Bittensor SDK in the above virtual environment. This will also install `btcli`.
 
     ```python
     pip install bittensor
-    ```
-
-- **Install SDK with `btcli`**: Install Bittensor SDK with `btcli`. The `btcli` will be installed as an independent tool and its Python package is `bittensor-cli`.
-
-   ```python
-    pip install bittensor[btcli]
-    ```
-   In some environments the above command may fail, in which case run the command with added quotes as shown below:
-  
-  ```python
-    pip install "bittensor[btcli]"
     ```
 
 - **Install SDK with `torch`**: Install Bittensor SDK with [`torch`](https://pytorch.org/docs/stable/torch.html).
