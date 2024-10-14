@@ -82,7 +82,7 @@ from .extrinsics.senate import (
 )
 from .extrinsics.root import root_register_extrinsic, set_root_weights_extrinsic
 from .types import AxonServeCallParams, PrometheusServeCallParams
-from .utils import U16_NORMALIZED_FLOAT, ss58_to_vec_u8, U64_NORMALIZED_FLOAT
+from .utils import U16_NORMALIZED_FLOAT, ss58_to_vec_u8, U64_NORMALIZED_FLOAT, networking
 from .utils.balance import Balance
 from .utils.registration import POWSolution
 
@@ -541,7 +541,8 @@ class subtensor:
             wait_for_finalization=wait_for_finalization,
             prompt=prompt,
         )
-
+        
+    @networking.ensure_connected
     def send_extrinsic(
         self,
         wallet: "bittensor.wallet",
@@ -708,7 +709,8 @@ class subtensor:
                 retries += 1
 
         return success, message
-
+    
+    @networking.ensure_connected
     def _do_set_weights(
         self,
         wallet: "bittensor.wallet",
@@ -927,6 +929,7 @@ class subtensor:
             prompt=prompt,
         )
 
+    @networking.ensure_connected
     def _do_pow_register(
         self,
         netuid: int,
@@ -986,6 +989,7 @@ class subtensor:
 
         return make_substrate_call_with_retry()
 
+    @networking.ensure_connected
     def _do_burned_register(
         self,
         netuid: int,
@@ -1027,6 +1031,7 @@ class subtensor:
 
         return make_substrate_call_with_retry()
 
+    @networking.ensure_connected
     def _do_swap_hotkey(
         self,
         wallet: "bittensor.wallet",
@@ -1109,6 +1114,7 @@ class subtensor:
             prompt=prompt,
         )
 
+    @networking.ensure_connected
     def get_transfer_fee(
         self, wallet: "bittensor.wallet", dest: str, value: Union[Balance, float, int]
     ) -> Balance:
@@ -1155,6 +1161,7 @@ class subtensor:
         fee = Balance.from_rao(payment_info["partialFee"])
         return fee
 
+    @networking.ensure_connected
     def _do_transfer(
         self,
         wallet: "bittensor.wallet",
@@ -1387,6 +1394,7 @@ class subtensor:
             self, netuid, axon, wait_for_inclusion, wait_for_finalization
         )
 
+    @networking.ensure_connected
     def _do_serve_axon(
         self,
         wallet: "bittensor.wallet",
@@ -1454,6 +1462,7 @@ class subtensor:
             wait_for_finalization=wait_for_finalization,
         )
 
+    @networking.ensure_connected
     def _do_serve_prometheus(
         self,
         wallet: "bittensor.wallet",
@@ -1499,6 +1508,7 @@ class subtensor:
 
         return make_substrate_call_with_retry()
 
+    @networking.ensure_connected
     def _do_associate_ips(
         self,
         wallet: "bittensor.wallet",
@@ -1629,6 +1639,7 @@ class subtensor:
             prompt,
         )
 
+    @networking.ensure_connected
     def _do_stake(
         self,
         wallet: "bittensor.wallet",
@@ -1755,6 +1766,7 @@ class subtensor:
             prompt,
         )
 
+    @networking.ensure_connected
     def _do_unstake(
         self,
         wallet: "bittensor.wallet",
@@ -2089,6 +2101,7 @@ class subtensor:
             prompt=prompt,
         )
 
+    @networking.ensure_connected
     def _do_root_register(
         self,
         wallet: "bittensor.wallet",
@@ -2172,6 +2185,7 @@ class subtensor:
 
     """ Queries subtensor registry named storage with params and block. """
 
+    @networking.ensure_connected
     def query_identity(
         self,
         key: str,
@@ -2212,6 +2226,7 @@ class subtensor:
             identity_info.value["info"]
         )
 
+    @networking.ensure_connected
     def update_identity(
         self,
         wallet: "bittensor.wallet",
@@ -2293,6 +2308,7 @@ class subtensor:
 
     """ Queries subtensor named storage with params and block. """
 
+    @networking.ensure_connected
     def query_subtensor(
         self,
         name: str,
@@ -2330,6 +2346,7 @@ class subtensor:
 
     """ Queries subtensor map storage with params and block. """
 
+    @networking.ensure_connected
     def query_map_subtensor(
         self,
         name: str,
@@ -2365,6 +2382,7 @@ class subtensor:
 
         return make_substrate_call_with_retry()
 
+    @networking.ensure_connected
     def query_constant(
         self, module_name: str, constant_name: str, block: Optional[int] = None
     ) -> Optional[object]:
@@ -2400,6 +2418,7 @@ class subtensor:
 
     """ Queries any module storage with params and block. """
 
+    @networking.ensure_connected
     def query_module(
         self,
         module: str,
@@ -2440,6 +2459,7 @@ class subtensor:
 
     """ Queries any module map storage with params and block. """
 
+    @networking.ensure_connected
     def query_map(
         self,
         module: str,
@@ -2477,6 +2497,7 @@ class subtensor:
 
         return make_substrate_call_with_retry()
 
+    @networking.ensure_connected
     def state_call(
         self,
         method: str,
@@ -2566,6 +2587,7 @@ class subtensor:
 
         return obj.decode()
 
+    @networking.ensure_connected
     def _encode_params(
         self,
         call_definition: List[ParamWithTypes],
@@ -3276,6 +3298,7 @@ class subtensor:
         else:
             return []
 
+    @networking.ensure_connected
     def get_all_subnets_info(self, block: Optional[int] = None) -> List[SubnetInfo]:
         """
         Retrieves detailed information about all subnets within the Bittensor network. This function
@@ -3310,6 +3333,7 @@ class subtensor:
 
         return SubnetInfo.list_from_vec_u8(result)
 
+    @networking.ensure_connected
     def get_subnet_info(
         self, netuid: int, block: Optional[int] = None
     ) -> Optional[SubnetInfo]:
@@ -3470,6 +3494,7 @@ class subtensor:
         else:
             return 0
 
+    @networking.ensure_connected
     def get_delegate_by_hotkey(
         self, hotkey_ss58: str, block: Optional[int] = None
     ) -> Optional[DelegateInfo]:
@@ -3508,6 +3533,7 @@ class subtensor:
 
         return DelegateInfo.from_vec_u8(result)
 
+    @networking.ensure_connected
     def get_delegates(self, block: Optional[int] = None) -> List[DelegateInfo]:
         """
         Retrieves a list of all delegate neurons within the Bittensor network. This function provides an
@@ -3542,6 +3568,7 @@ class subtensor:
 
         return DelegateInfo.list_from_vec_u8(result)
 
+    @networking.ensure_connected
     def get_delegated(
         self, coldkey_ss58: str, block: Optional[int] = None
     ) -> List[Tuple[DelegateInfo, Balance]]:
@@ -3885,6 +3912,7 @@ class subtensor:
             wallet.hotkey.ss58_address, netuid=netuid, block=block
         )
 
+    @networking.ensure_connected
     def neuron_for_uid(
         self, uid: Optional[int], netuid: int, block: Optional[int] = None
     ) -> Optional[NeuronInfo]:
@@ -4209,6 +4237,7 @@ class subtensor:
     ## Extrinsics ##
     ################
 
+    @networking.ensure_connected
     def _do_delegation(
         self,
         wallet: "bittensor.wallet",
@@ -4243,6 +4272,7 @@ class subtensor:
 
         return make_substrate_call_with_retry()
 
+    @networking.ensure_connected
     def _do_undelegation(
         self,
         wallet: "bittensor.wallet",
@@ -4280,6 +4310,7 @@ class subtensor:
 
         return make_substrate_call_with_retry()
 
+    @networking.ensure_connected
     def _do_nominate(
         self,
         wallet: "bittensor.wallet",
@@ -4316,6 +4347,7 @@ class subtensor:
     #### Legacy ####
     ################
 
+    @networking.ensure_connected
     def get_balance(self, address: str, block: Optional[int] = None) -> Balance:
         """
         Retrieves the token balance of a specific address within the Bittensor network. This function queries
@@ -4352,6 +4384,7 @@ class subtensor:
             return Balance(1000)
         return Balance(result.value["data"]["free"])
 
+    @networking.ensure_connected
     def get_current_block(self) -> int:
         """
         Returns the current block number on the Bittensor blockchain. This function provides the latest block
@@ -4370,6 +4403,7 @@ class subtensor:
 
         return make_substrate_call_with_retry()
 
+    @networking.ensure_connected
     def get_balances(self, block: Optional[int] = None) -> Dict[str, Balance]:
         """
         Retrieves the token balances of all accounts within the Bittensor network as of a specific blockchain block.
@@ -4428,6 +4462,7 @@ class subtensor:
         )
         return neuron
 
+    @networking.ensure_connected
     def get_block_hash(self, block_id: int) -> str:
         """
         Retrieves the hash of a specific block on the Bittensor blockchain. The block hash is a unique
