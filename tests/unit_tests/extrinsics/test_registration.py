@@ -63,59 +63,6 @@ def mock_new_wallet(mocker):
     return mock
 
 
-# @pytest.mark.parametrize(
-#     "subnet_exists, neuron_is_null, recycle_success, prompt, prompt_response, is_registered, expected_result, test_id",
-#     [
-#         # Happy paths
-#         (True, False, None, False, None, None, True, "neuron-not-null"),
-#         (True, True, True, True, True, True, True, "happy-path-wallet-registered"),
-#         # Error paths
-#         (False, True, False, False, None, None, False, "subnet-non-existence"),
-#         (True, True, True, True, False, None, False, "prompt-declined"),
-#         (True, True, False, True, True, False, False, "error-path-recycling-failed"),
-#         (True, True, True, True, True, False, False, "error-path-not-registered"),
-#     ],
-# )
-# def test_burned_register_extrinsic(
-#     mock_subtensor,
-#     mock_wallet,
-#     subnet_exists,
-#     neuron_is_null,
-#     recycle_success,
-#     prompt,
-#     prompt_response,
-#     is_registered,
-#     expected_result,
-#     test_id,
-# ):
-#     # Arrange
-#     with patch.object(
-#         mock_subtensor, "subnet_exists", return_value=subnet_exists
-#     ), patch.object(
-#         mock_subtensor,
-#         "get_neuron_for_pubkey_and_subnet",
-#         return_value=MagicMock(is_null=neuron_is_null),
-#     ), patch.object(
-#         mock_subtensor,
-#         "_do_burned_register",
-#         return_value=(recycle_success, "Mock error message"),
-#     ), patch.object(
-#         mock_subtensor, "is_hotkey_registered", return_value=is_registered
-#     ), patch("rich.prompt.Confirm.ask", return_value=prompt_response) as mock_confirm:
-#         # Act
-#         result = burned_register_extrinsic(
-#             subtensor=mock_subtensor, wallet=mock_wallet, netuid=123, prompt=True
-#         )
-#
-#         # Assert
-#         assert result == expected_result, f"Test failed for test_id: {test_id}"
-#
-#         if prompt:
-#             mock_confirm.assert_called_once()
-#         else:
-#             mock_confirm.assert_not_called()
-
-
 @pytest.mark.parametrize(
     "subnet_exists, neuron_is_null, prompt, prompt_response, cuda_available, expected_result, test_id",
     [
