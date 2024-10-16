@@ -54,7 +54,10 @@ from bittensor.core.extrinsics.prometheus import (
     do_serve_prometheus,
     prometheus_extrinsic,
 )
-from bittensor.core.extrinsics.registration import register_extrinsic
+from bittensor.core.extrinsics.registration import (
+    burned_register_extrinsic,
+    register_extrinsic,
+)
 from bittensor.core.extrinsics.serving import (
     do_serve_axon,
     serve_axon_extrinsic,
@@ -958,6 +961,36 @@ class Subtensor:
             log_verbose=log_verbose,
         )
 
+    def burned_register(
+        self,
+        wallet: "Wallet",
+        netuid: int,
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = True,
+        prompt: bool = False,
+    ) -> bool:
+        """
+        Registers a neuron on the Bittensor network by recycling TAO. This method of registration involves recycling TAO tokens, allowing them to be re-mined by performing work on the network.
+
+        Args:
+            wallet (bittensor_wallet.Wallet): The wallet associated with the neuron to be registered.
+            netuid (int): The unique identifier of the subnet.
+            wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block. Defaults to `False`.
+            wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain. Defaults to `True`.
+            prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding. Defaults to `False`.
+
+        Returns:
+            bool: ``True`` if the registration is successful, False otherwise.
+        """
+        return burned_register_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            netuid=netuid,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            prompt=prompt,
+        )
+
     def serve_axon(
         self,
         netuid: int,
@@ -1412,6 +1445,30 @@ class Subtensor:
 
         return b_map
 
+    def get_subnet_burn_cost(self, block: Optional[int] = None) -> Optional[str]:
+        """
+        Retrieves the burn cost for registering a new subnet within the Bittensor network. This cost represents the amount of Tao that needs to be locked or burned to establish a new subnet.
+
+        Args:
+            block (Optional[int]): The blockchain block number for the query.
+
+        Returns:
+            int: The burn cost for subnet registration.
+
+        The subnet burn cost is an important economic parameter, reflecting the network's mechanisms for controlling the proliferation of subnets and ensuring their commitment to the network's long-term viability.
+        """
+        lock_cost = self.query_runtime_api(
+            runtime_api="SubnetRegistrationRuntimeApi",
+            method="get_network_registration_cost",
+            params=[],
+            block=block,
+        )
+
+        if lock_cost is None:
+            return None
+
+        return lock_cost
+
     # Metagraph uses this method
     def neurons(self, netuid: int, block: Optional[int] = None) -> list["NeuronInfo"]:
         """
@@ -1811,6 +1868,22 @@ class Subtensor:
         if call is None:
             return None
         return int(call)
+
+    def recycle(self, netuid: int, block: Optional[int] = None) -> Optional["Balance"]:
+        """
+        Retrieves the 'Burn' hyperparameter for a specified subnet. The 'Burn' parameter represents the amount of Tao that is effectively recycled within the Bittensor network.
+
+        Args:
+            netuid (int): The unique identifier of the subnet.
+            block (Optional[int]): The blockchain block number for the query.
+
+        Returns:
+            Optional[Balance]: The value of the 'Burn' hyperparameter if the subnet exists, None otherwise.
+
+        Understanding the 'Burn' rate is essential for analyzing the network registration usage, particularly how it is correlated with user activity and the overall cost of participation in a given subnet.
+        """
+        call = self._get_hyperparameter(param_name="Burn", netuid=netuid, block=block)
+        return None if call is None else Balance.from_rao(int(call))
 
     # Subnet 27 uses this method
     _do_serve_prometheus = do_serve_prometheus
