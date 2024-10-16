@@ -378,7 +378,7 @@ def burned_register_extrinsic(
         return False
 
     try:
-        wallet.coldkey  # unlock coldkey
+        wallet.unlock_coldkey()
     except KeyFileError:
         bt_console.print(
             ":cross_mark: [red]Keyfile is corrupt, non-writable, non-readable or the password used to decrypt is invalid[/red]:[bold white]\n  [/bold white]"
