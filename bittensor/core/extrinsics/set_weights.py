@@ -17,7 +17,7 @@
 
 import logging
 from typing import Union, Optional, TYPE_CHECKING
-
+import random
 import numpy as np
 from numpy.typing import NDArray
 from retry import retry
@@ -144,54 +144,99 @@ def set_weights_extrinsic(
         if isinstance(weights, list):
             weights = np.array(weights, dtype=np.float32)
 
-    # Reformat and normalize.
-    weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(
-        uids, weights
-    )
+    if subtensor.get_subnet_hyperparameters(netuid=netuid).commit_reveal_weights_enabled:
+        # if cr is enabled, commit instead of setting the weights.
+        salt = [random.randint(0, 350) for _ in range(8)]
 
-    # Ask before moving on.
-    if prompt:
-        if not Confirm.ask(
-            f"Do you want to set weights:\n[bold white]  weights: {[float(v / 65535) for v in weight_vals]}\n"
-            f"uids: {weight_uids}[/bold white ]?"
+        # Ask before moving on.
+        if prompt:
+            if not Confirm.ask(
+                    f"Do you want to commit weights:\n[bold white]  weights: {weights}\n"
+                    f"uids: {uids}[/bold white ]?"
+            ):
+                return False, "Prompt refused."
+
+        with bt_console.status(
+                f":satellite: Committing weights on [white]{subtensor.network}[/white] ..."
         ):
-            return False, "Prompt refused."
-
-    with bt_console.status(
-        f":satellite: Setting weights on [white]{subtensor.network}[/white] ..."
-    ):
-
-        # TODO: Check if CR is enabled, do commit instead if yes.
-
-        try:
-            success, error_message = do_set_weights(
-                self=subtensor,
-                wallet=wallet,
-                netuid=netuid,
-                uids=weight_uids,
-                vals=weight_vals,
-                version_key=version_key,
-                wait_for_finalization=wait_for_finalization,
-                wait_for_inclusion=wait_for_inclusion,
-            )
-
-            if not wait_for_finalization and not wait_for_inclusion:
-                return True, "Not waiting for finalization or inclusion."
-
-            if success is True:
-                bt_console.print(":white_heavy_check_mark: [green]Finalized[/green]")
-                logging.success(
-                    msg=str(success),
-                    prefix="Set weights",
-                    suffix="<green>Finalized: </green>",
+            try:
+                success, message = subtensor.commit_weights(
+                    wallet=wallet,
+                    netuid=netuid,
+                    salt=salt,
+                    uids=uids,
+                    weights=weights,
+                    wait_for_inclusion=wait_for_inclusion,
+                    wait_for_finalization=wait_for_finalization,
+                    prompt=prompt,
                 )
-                return True, "Successfully set weights and Finalized."
-            else:
-                error_message = format_error_message(error_message)
-                logging.error(error_message)
-                return False, error_message
+                if not wait_for_finalization and not wait_for_inclusion:
+                    return True, "Not waiting for finalization or inclusion."
 
-        except Exception as e:
-            bt_console.print(f":cross_mark: [red]Failed[/red]: error:{e}")
-            logging.debug(str(e))
+                if success is True:
+                    bt_console.print(":white_heavy_check_mark: [green]Finalized[/green]")
+                    logging.success(
+                        msg=str(success),
+                        prefix="Committed weights",
+                        suffix="<green>Finalized: </green>",
+                    )
+                    return True, "Successfully committed weights and Finalized."
+                else:
+                    error_message = format_error_message(message)
+                    logging.error(error_message)
+                    return False, error_message
+
+            except Exception as e:
+                bt_console.print(f":cross_mark: [red]Failed[/red]: error:{e}")
+                logging.debug(str(e))
             return False, str(e)
+    else:
+        # Reformat and normalize.
+        weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(
+            uids, weights
+        )
+
+        # Ask before moving on.
+        if prompt:
+            if not Confirm.ask(
+                f"Do you want to set weights:\n[bold white]  weights: {[float(v / 65535) for v in weight_vals]}\n"
+                f"uids: {weight_uids}[/bold white ]?"
+            ):
+                return False, "Prompt refused."
+
+        with bt_console.status(
+            f":satellite: Setting weights on [white]{subtensor.network}[/white] ..."
+        ):
+
+            try:
+                success, error_message = do_set_weights(
+                    self=subtensor,
+                    wallet=wallet,
+                    netuid=netuid,
+                    uids=weight_uids,
+                    vals=weight_vals,
+                    version_key=version_key,
+                    wait_for_finalization=wait_for_finalization,
+                    wait_for_inclusion=wait_for_inclusion,
+                )
+
+                if not wait_for_finalization and not wait_for_inclusion:
+                    return True, "Not waiting for finalization or inclusion."
+
+                if success is True:
+                    bt_console.print(":white_heavy_check_mark: [green]Finalized[/green]")
+                    logging.success(
+                        msg=str(success),
+                        prefix="Set weights",
+                        suffix="<green>Finalized: </green>",
+                    )
+                    return True, "Successfully set weights and Finalized."
+                else:
+                    error_message = format_error_message(error_message)
+                    logging.error(error_message)
+                    return False, error_message
+
+            except Exception as e:
+                bt_console.print(f":cross_mark: [red]Failed[/red]: error:{e}")
+                logging.debug(str(e))
+                return False, str(e)

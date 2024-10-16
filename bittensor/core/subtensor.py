@@ -1661,7 +1661,6 @@ class Subtensor:
                 )
                 if success:
                     # add to local db if called directly
-                    # committed(self, wallet.hotkey, commit_hash, netuid, uids, weights, salt)
                     if subprocess_utils.is_process_running(COMMIT_REVEAL_PROCESS):
                         commit_weights_process(
                             self,
@@ -1670,7 +1669,7 @@ class Subtensor:
                             commit_hash=commit_hash,
                             uids=list(uids),
                             weights=list(weights),
-                            salt=list(salt)
+                            salt=salt
                         )
                     break
             except Exception as e:

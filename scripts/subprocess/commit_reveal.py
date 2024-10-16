@@ -217,7 +217,7 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run the Bittensor commit-reveal subprocess script.")
     parser.add_argument("--network", type=str, default="ws://localhost:9945", help="Subtensor network address")
-    parser.add_argument("--sleep_interval", type=int, default=2, help="Interval between block checks in seconds")
+    parser.add_argument("--sleep_interval", type=int, default=12, help="Interval between block checks in seconds")
     # Add more arguments as needed
     args = parser.parse_args()
     main(args)
