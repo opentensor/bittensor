@@ -21,7 +21,6 @@ import os
 import re
 import warnings
 from pathlib import Path
-from typing import Union
 
 from munch import munchify
 from rich.console import Console
