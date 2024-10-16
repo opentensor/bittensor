@@ -21,6 +21,7 @@ import os
 import re
 import warnings
 from pathlib import Path
+from typing import Union
 
 from munch import munchify
 from rich.console import Console
@@ -112,7 +113,16 @@ NETWORK_EXPLORER_MAP = {
 }
 
 # --- Type Registry ---
-TYPE_REGISTRY = {
+TYPE_REGISTRY: dict[
+    str,
+    dict[
+        str,
+        Union[
+            dict[str, str],
+            dict[str, dict[str, dict[str, Union[list[dict[str, str]], str]]]],
+        ],
+    ],
+] = {
     "types": {
         "Balance": "u64",  # Need to override default u128
     },
