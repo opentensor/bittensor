@@ -113,16 +113,7 @@ NETWORK_EXPLORER_MAP = {
 }
 
 # --- Type Registry ---
-TYPE_REGISTRY: dict[
-    str,
-    dict[
-        str,
-        Union[
-            dict[str, str],
-            dict[str, dict[str, dict[str, Union[list[dict[str, str]], str]]]],
-        ],
-    ],
-] = {
+TYPE_REGISTRY: dict[str, dict] = {
     "types": {
         "Balance": "u64",  # Need to override default u128
     },
