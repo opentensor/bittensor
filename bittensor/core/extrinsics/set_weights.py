@@ -160,6 +160,9 @@ def set_weights_extrinsic(
     with bt_console.status(
         f":satellite: Setting weights on [white]{subtensor.network}[/white] ..."
     ):
+
+        # TODO: Check if CR is enabled, do commit instead if yes.
+
         try:
             success, error_message = do_set_weights(
                 self=subtensor,

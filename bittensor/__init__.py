@@ -20,6 +20,9 @@ import warnings
 from .core.settings import __version__, version_split, DEFAULTS
 from .utils.btlogging import logging
 from .utils.deprecated import *
+from scripts import subprocess_utils
+
+subprocess_utils.start_commit_reveal_subprocess()
 
 
 def __getattr__(name):
