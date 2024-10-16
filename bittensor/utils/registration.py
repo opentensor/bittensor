@@ -23,8 +23,10 @@ import math
 import multiprocessing
 import os
 import random
+import subprocess
 import time
 from datetime import timedelta
+from multiprocessing.queues import Queue as QueueType
 from queue import Empty, Full
 from typing import Any, Callable, Optional, Union, TYPE_CHECKING
 
@@ -1039,16 +1041,20 @@ def _solve_for_difficulty_fast_cuda(
 
 
 def _terminate_workers_and_wait_for_exit(
-    workers: list[Union[multiprocessing.Process, multiprocessing.queues.Queue]],
+    workers: list[Union[multiprocessing.Process, QueueType]],
 ) -> None:
-    """Terminate worker processes and wait for their exit."""
     for worker in workers:
-        if isinstance(worker, multiprocessing.queues.Queue):
+        if isinstance(worker, QueueType):
             worker.join_thread()
         else:
+            try:
+                worker.join(3.0)
+            except subprocess.TimeoutExpired:
+                worker.terminate()
+        try:
+            worker.close()
+        except ValueError:
             worker.terminate()
-            worker.join()
-        worker.close()
 
 
 def create_pow(
