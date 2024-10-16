@@ -5,6 +5,8 @@ from typing import Optional
 import subprocess
 import psutil
 
+STDOUT_PATH = "scripts/subprocess/logs/commit_reveal_stdout.log"
+STDERR_PATH = "scripts/subprocess/logs/commit_reveal_stderr.log"
 
 def is_process_running(process_name: str) -> bool:
     """Check if a process with a given name is currently running."""
@@ -31,8 +33,8 @@ def start_commit_reveal_subprocess():
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
     if not is_process_running(process_name):
-        stdout_file = open("/Users/daniel/repos/bittensor-sdk/scripts/subprocess/logs/commit_reveal_stdout.log", "w")
-        stderr_file = open("/Users/daniel/repos/bittensor-sdk/scripts/subprocess/logs/commit_reveal_stderr.log", "w")
+        stdout_file = open(STDOUT_PATH, "w")
+        stderr_file = open(STDERR_PATH, "w")
         print(f"Starting subprocess '{process_name}'...")
         env = os.environ.copy()
         env["PYTHONPATH"] = project_root + ":" + env.get("PYTHONPATH", "")
@@ -45,15 +47,6 @@ def start_commit_reveal_subprocess():
             env=env
         )
         print(f"Subprocess '{process_name}' started with PID {process.pid}.")
-
-        # Read and print what was captured to files
-        with open("/Users/daniel/repos/bittensor-sdk/scripts/subprocess/logs/commit_reveal_stdout.log") as f:
-            print("Subprocess output:")
-            print(f.read())
-
-        with open("/Users/daniel/repos/bittensor-sdk/scripts/subprocess/logs/commit_reveal_stderr.log") as f:
-            print("Subprocess errors:")
-            print(f.read())
 
     else:
         print(f"Subprocess '{process_name}' is already running.")
