@@ -2076,7 +2076,9 @@ def test_get_subnet_burn_cost_success(subtensor, mocker):
 def test_get_subnet_burn_cost_none(subtensor, mocker):
     """Tests get_subnet_burn_cost method with None result."""
     # Preps
-    mocked_query_runtime_api = mocker.patch.object(subtensor, "query_runtime_api", return_value=None)
+    mocked_query_runtime_api = mocker.patch.object(
+        subtensor, "query_runtime_api", return_value=None
+    )
     fake_block = 123
 
     # Call
@@ -2116,7 +2118,9 @@ def test_difficulty_success(subtensor, mocker):
 def test_difficulty_none(subtensor, mocker):
     """Tests difficulty method with None result."""
     # Preps
-    mocked_get_hyperparameter = mocker.patch.object(subtensor, "_get_hyperparameter", return_value=None)
+    mocked_get_hyperparameter = mocker.patch.object(
+        subtensor, "_get_hyperparameter", return_value=None
+    )
     fake_netuid = 1
     fake_block = 2
 
@@ -2136,7 +2140,9 @@ def test_difficulty_none(subtensor, mocker):
 def test_recycle_success(subtensor, mocker):
     """Tests recycle method with successfully result."""
     # Preps
-    mocked_get_hyperparameter = mocker.patch.object(subtensor, "_get_hyperparameter", return_value=0.1)
+    mocked_get_hyperparameter = mocker.patch.object(
+        subtensor, "_get_hyperparameter", return_value=0.1
+    )
     fake_netuid = 1
     fake_block = 2
     mocked_balance = mocker.patch("bittensor.utils.balance.Balance")
@@ -2158,7 +2164,9 @@ def test_recycle_success(subtensor, mocker):
 def test_recycle_none(subtensor, mocker):
     """Tests recycle method with None result."""
     # Preps
-    mocked_get_hyperparameter = mocker.patch.object(subtensor, "_get_hyperparameter", return_value=None)
+    mocked_get_hyperparameter = mocker.patch.object(
+        subtensor, "_get_hyperparameter", return_value=None
+    )
     fake_netuid = 1
     fake_block = 2
 
