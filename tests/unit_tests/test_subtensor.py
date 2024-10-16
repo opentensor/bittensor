@@ -2051,3 +2051,133 @@ def test_connect_with_substrate(mocker):
 
     # Assertions
     assert spy_get_substrate.call_count == 0
+
+
+def test_get_subnet_burn_cost_success(subtensor, mocker):
+    """Tests get_subnet_burn_cost method with successfully result."""
+    # Preps
+    mocked_query_runtime_api = mocker.patch.object(subtensor, "query_runtime_api")
+    fake_block = 123
+
+    # Call
+    result = subtensor.get_subnet_burn_cost(fake_block)
+
+    # Asserts
+    mocked_query_runtime_api.assert_called_once_with(
+        runtime_api="SubnetRegistrationRuntimeApi",
+        method="get_network_registration_cost",
+        params=[],
+        block=fake_block,
+    )
+
+    assert result == mocked_query_runtime_api.return_value
+
+
+def test_get_subnet_burn_cost_none(subtensor, mocker):
+    """Tests get_subnet_burn_cost method with None result."""
+    # Preps
+    mocked_query_runtime_api = mocker.patch.object(
+        subtensor, "query_runtime_api", return_value=None
+    )
+    fake_block = 123
+
+    # Call
+    result = subtensor.get_subnet_burn_cost(fake_block)
+
+    # Asserts
+    mocked_query_runtime_api.assert_called_once_with(
+        runtime_api="SubnetRegistrationRuntimeApi",
+        method="get_network_registration_cost",
+        params=[],
+        block=fake_block,
+    )
+
+    assert result is None
+
+
+def test_difficulty_success(subtensor, mocker):
+    """Tests difficulty method with successfully result."""
+    # Preps
+    mocked_get_hyperparameter = mocker.patch.object(subtensor, "_get_hyperparameter")
+    fake_netuid = 1
+    fake_block = 2
+
+    # Call
+    result = subtensor.difficulty(fake_netuid, fake_block)
+
+    # Asserts
+    mocked_get_hyperparameter.assert_called_once_with(
+        param_name="Difficulty",
+        netuid=fake_netuid,
+        block=fake_block,
+    )
+
+    assert result == int(mocked_get_hyperparameter.return_value)
+
+
+def test_difficulty_none(subtensor, mocker):
+    """Tests difficulty method with None result."""
+    # Preps
+    mocked_get_hyperparameter = mocker.patch.object(
+        subtensor, "_get_hyperparameter", return_value=None
+    )
+    fake_netuid = 1
+    fake_block = 2
+
+    # Call
+    result = subtensor.difficulty(fake_netuid, fake_block)
+
+    # Asserts
+    mocked_get_hyperparameter.assert_called_once_with(
+        param_name="Difficulty",
+        netuid=fake_netuid,
+        block=fake_block,
+    )
+
+    assert result is None
+
+
+def test_recycle_success(subtensor, mocker):
+    """Tests recycle method with successfully result."""
+    # Preps
+    mocked_get_hyperparameter = mocker.patch.object(
+        subtensor, "_get_hyperparameter", return_value=0.1
+    )
+    fake_netuid = 1
+    fake_block = 2
+    mocked_balance = mocker.patch("bittensor.utils.balance.Balance")
+
+    # Call
+    result = subtensor.recycle(fake_netuid, fake_block)
+
+    # Asserts
+    mocked_get_hyperparameter.assert_called_once_with(
+        param_name="Burn",
+        netuid=fake_netuid,
+        block=fake_block,
+    )
+
+    mocked_balance.assert_called_once_with(int(mocked_get_hyperparameter.return_value))
+    assert result == mocked_balance.return_value
+
+
+def test_recycle_none(subtensor, mocker):
+    """Tests recycle method with None result."""
+    # Preps
+    mocked_get_hyperparameter = mocker.patch.object(
+        subtensor, "_get_hyperparameter", return_value=None
+    )
+    fake_netuid = 1
+    fake_block = 2
+
+    # Call
+    result = subtensor.recycle(fake_netuid, fake_block)
+
+    # Asserts
+    mocked_get_hyperparameter.assert_called_once_with(
+        param_name="Burn",
+        netuid=fake_netuid,
+        block=fake_block,
+    )
+
+    assert result is None
