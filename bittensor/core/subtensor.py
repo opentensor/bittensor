@@ -54,6 +54,7 @@ from bittensor.core.extrinsics.prometheus import (
     do_serve_prometheus,
     prometheus_extrinsic,
 )
+from bittensor.core.extrinsics.registration import register_extrinsic
 from bittensor.core.extrinsics.serving import (
     do_serve_axon,
     serve_axon_extrinsic,
@@ -898,6 +899,65 @@ class Subtensor:
 
         return success, message
 
+    def register(
+        self,
+        wallet: "Wallet",
+        netuid: int,
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = True,
+        prompt: bool = False,
+        max_allowed_attempts: int = 3,
+        output_in_place: bool = True,
+        cuda: bool = False,
+        dev_id: Union[list[int], int] = 0,
+        tpb: int = 256,
+        num_processes: Optional[int] = None,
+        update_interval: Optional[int] = None,
+        log_verbose: bool = False,
+    ) -> bool:
+        """
+        Registers a neuron on the Bittensor network using the provided wallet.
+
+        Registration is a critical step for a neuron to become an active participant in the network, enabling it to stake, set weights, and receive incentives.
+
+        Args:
+            wallet (bittensor_wallet.Wallet): The wallet associated with the neuron to be registered.
+            netuid (int): The unique identifier of the subnet.
+            wait_for_inclusion (bool): Waits for the transaction to be included in a block. Defaults to `False`.
+            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Defaults to `True`.
+            prompt (bool): If ``True``, prompts for user confirmation before proceeding.
+            max_allowed_attempts (int): Maximum number of attempts to register the wallet.
+            output_in_place (bool): If true, prints the progress of the proof of work to the console in-place. Meaning the progress is printed on the same lines. Defaults to `True`.
+            cuda (bool): If ``true``, the wallet should be registered using CUDA device(s). Defaults to `False`.
+            dev_id (Union[List[int], int]): The CUDA device id to use, or a list of device ids. Defaults to `0` (zero).
+            tpb (int): The number of threads per block (CUDA). Default to `256`.
+            num_processes (Optional[int]): The number of processes to use to register. Default to `None`.
+            update_interval (Optional[int]): The number of nonces to solve between updates.  Default to `None`.
+            log_verbose (bool): If ``true``, the registration process will log more information.  Default to `False`.
+
+        Returns:
+            bool: ``True`` if the registration is successful, False otherwise.
+
+        This function facilitates the entry of new neurons into the network, supporting the decentralized
+        growth and scalability of the Bittensor ecosystem.
+        """
+        return register_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            netuid=netuid,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            prompt=prompt,
+            max_allowed_attempts=max_allowed_attempts,
+            output_in_place=output_in_place,
+            cuda=cuda,
+            dev_id=dev_id,
+            tpb=tpb,
+            num_processes=num_processes,
+            update_interval=update_interval,
+            log_verbose=log_verbose,
+        )
+
     def serve_axon(
         self,
         netuid: int,
@@ -1729,6 +1789,28 @@ class Subtensor:
                 retries += 1
 
         return success, message
+
+    def difficulty(self, netuid: int, block: Optional[int] = None) -> Optional[int]:
+        """
+        Retrieves the 'Difficulty' hyperparameter for a specified subnet in the Bittensor network.
+
+        This parameter is instrumental in determining the computational challenge required for neurons to participate in consensus and validation processes.
+
+        Args:
+            netuid (int): The unique identifier of the subnet.
+            block (Optional[int]): The blockchain block number for the query.
+
+        Returns:
+            Optional[int]: The value of the 'Difficulty' hyperparameter if the subnet exists, ``None`` otherwise.
+
+        The 'Difficulty' parameter directly impacts the network's security and integrity by setting the computational effort required for validating transactions and participating in the network's consensus mechanism.
+        """
+        call = self._get_hyperparameter(
+            param_name="Difficulty", netuid=netuid, block=block
+        )
+        if call is None:
+            return None
+        return int(call)
 
     # Subnet 27 uses this method
     _do_serve_prometheus = do_serve_prometheus
