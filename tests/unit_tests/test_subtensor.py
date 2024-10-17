@@ -21,7 +21,6 @@ from unittest.mock import MagicMock
 
 import pytest
 from bittensor_wallet import Wallet
-from torch.utils.hipify.hipify_python import value
 
 from bittensor.core import subtensor as subtensor_module, settings
 from bittensor.core.axon import Axon
