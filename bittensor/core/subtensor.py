@@ -59,6 +59,7 @@ from bittensor.core.extrinsics.registration import (
     burned_register_extrinsic,
     register_extrinsic,
 )
+from bittensor.core.extrinsics.root import root_register_extrinsic, set_root_weights_extrinsic
 from bittensor.core.extrinsics.serving import (
     do_serve_axon,
     serve_axon_extrinsic,
@@ -73,6 +74,7 @@ from bittensor.core.metagraph import Metagraph
 from bittensor.utils import networking, torch, ss58_to_vec_u8, u16_normalized_float
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
+from bittensor.utils.registration import legacy_torch_api_compat
 from bittensor.utils.weight_utils import generate_weight_hash
 
 KEY_NONCE: dict[str, int] = {}
@@ -902,6 +904,45 @@ class Subtensor:
 
         return success, message
 
+    @legacy_torch_api_compat
+    def root_set_weights(
+        self,
+        wallet: "Wallet",
+        netuids: Union[NDArray[np.int64], "torch.LongTensor", list],
+        weights: Union[NDArray[np.float32], "torch.FloatTensor", list],
+        version_key: int = 0,
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = False,
+        prompt: bool = False,
+    ) -> bool:
+        """
+        Sets the weights for neurons on the root network. This action is crucial for defining the influence and interactions of neurons at the root level of the Bittensor network.
+
+        Args:
+            wallet (bittensor_wallet.Wallet): The wallet associated with the neuron setting the weights.
+            netuids (Union[NDArray[np.int64], torch.LongTensor, list]): The list of neuron UIDs for which weights are being set.
+            weights (Union[NDArray[np.float32], torch.FloatTensor, list]): The corresponding weights to be set for each UID.
+            version_key (int, optional): Version key for compatibility with the network. Default is ``0``.
+            wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block. Defaults to ``False``.
+            wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain. Defaults to ``False``.
+            prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding. Defaults to ``False``.
+
+        Returns:
+            bool: ``True`` if the setting of root-level weights is successful, False otherwise.
+
+        This function plays a pivotal role in shaping the root network's collective intelligence and decision-making processes, reflecting the principles of decentralized governance and collaborative learning in Bittensor.
+        """
+        return set_root_weights_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            netuids=netuids,
+            weights=weights,
+            version_key=version_key,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            prompt=prompt,
+        )
+
     def register(
         self,
         wallet: "Wallet",
@@ -959,6 +1000,35 @@ class Subtensor:
             num_processes=num_processes,
             update_interval=update_interval,
             log_verbose=log_verbose,
+        )
+
+    def root_register(
+        self,
+        wallet: "Wallet",
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = True,
+        prompt: bool = False,
+    ) -> bool:
+        """
+        Registers the neuron associated with the wallet on the root network. This process is integral for participating in the highest layer of decision-making and governance within the Bittensor network.
+
+        Args:
+            wallet (bittensor.wallet): The wallet associated with the neuron to be registered on the root network.
+            wait_for_inclusion (bool): Waits for the transaction to be included in a block. Defaults to `False`.
+            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Defaults to `True`.
+            prompt (bool): If ``True``, prompts for user confirmation before proceeding. Defaults to `False`.
+
+        Returns:
+            bool: ``True`` if the registration on the root network is successful, False otherwise.
+
+        This function enables neurons to engage in the most critical and influential aspects of the network's governance, signifying a high level of commitment and responsibility in the Bittensor ecosystem.
+        """
+        return root_register_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            prompt=prompt,
         )
 
     def burned_register(
