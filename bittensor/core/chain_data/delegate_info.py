@@ -1,10 +1,9 @@
+import bt_decode
+
 from dataclasses import dataclass
-from typing import Optional, Any
+from typing import Optional
 
-from scalecodec.utils.ss58 import ss58_encode
-
-from bittensor.core.chain_data.utils import from_scale_encoding, ChainDataType
-from bittensor.core.settings import SS58_FORMAT
+from bittensor.core.chain_data.utils import decode_account_id
 from bittensor.utils import u16_normalized_float
 from bittensor.utils.balance import Balance
 
@@ -24,7 +23,6 @@ class DelegateInfo:
         validator_permits (list[int]): List of subnets that the delegate is allowed to validate on.
         return_per_1000 (int): Return per 1000 TAO, for the delegate over a day.
         total_daily_return (int): Total daily return of the delegate.
-
     """
 
     hotkey_ss58: str  # Hotkey of delegate
@@ -37,69 +35,78 @@ class DelegateInfo:
     validator_permits: list[
         int
     ]  # List of subnets that the delegate is allowed to validate on
-    registrations: tuple[int]  # List of subnets that the delegate is registered on
+    registrations: list[int]  # list of subnets that the delegate is registered on
     return_per_1000: Balance  # Return per 1000 tao of the delegate over a day
     total_daily_return: Balance  # Total daily return of the delegate
 
     @classmethod
-    def fix_decoded_values(cls, decoded: Any) -> "DelegateInfo":
-        """Fixes the decoded values."""
-
-        return cls(
-            hotkey_ss58=ss58_encode(decoded["delegate_ss58"], SS58_FORMAT),
-            owner_ss58=ss58_encode(decoded["owner_ss58"], SS58_FORMAT),
-            take=u16_normalized_float(decoded["take"]),
-            nominators=[
-                (
-                    ss58_encode(nom[0], SS58_FORMAT),
-                    Balance.from_rao(nom[1]),
-                )
-                for nom in decoded["nominators"]
-            ],
-            total_stake=Balance.from_rao(
-                sum([nom[1] for nom in decoded["nominators"]])
-            ),
-            validator_permits=decoded["validator_permits"],
-            registrations=decoded["registrations"],
-            return_per_1000=Balance.from_rao(decoded["return_per_1000"]),
-            total_daily_return=Balance.from_rao(decoded["total_daily_return"]),
+    def from_vec_u8(cls, vec_u8: bytes) -> Optional["DelegateInfo"]:
+        decoded = bt_decode.DelegateInfo.decode(vec_u8)
+        hotkey = decode_account_id(decoded.delegate_ss58)
+        owner = decode_account_id(decoded.owner_ss58)
+        nominators = [
+            (decode_account_id(x), Balance.from_rao(y)) for x, y in decoded.nominators
+        ]
+        total_stake = sum((x[1] for x in nominators)) if nominators else Balance(0)
+        return DelegateInfo(
+            hotkey_ss58=hotkey,
+            total_stake=total_stake,
+            nominators=nominators,
+            owner_ss58=owner,
+            take=u16_normalized_float(decoded.take),
+            validator_permits=decoded.validator_permits,
+            registrations=decoded.registrations,
+            return_per_1000=Balance.from_rao(decoded.return_per_1000),
+            total_daily_return=Balance.from_rao(decoded.total_daily_return),
         )
 
     @classmethod
-    def from_vec_u8(cls, vec_u8: list[int]) -> Optional["DelegateInfo"]:
-        """Returns a DelegateInfo object from a ``vec_u8``."""
-        if len(vec_u8) == 0:
-            return None
-
-        decoded = from_scale_encoding(vec_u8, ChainDataType.DelegateInfo)
-        if decoded is None:
-            return None
-
-        return DelegateInfo.fix_decoded_values(decoded)
-
-    @classmethod
-    def list_from_vec_u8(cls, vec_u8: list[int]) -> list["DelegateInfo"]:
-        """Returns a list of DelegateInfo objects from a ``vec_u8``."""
-        decoded = from_scale_encoding(vec_u8, ChainDataType.DelegateInfo, is_vec=True)
-
-        if decoded is None:
-            return []
-
-        return [DelegateInfo.fix_decoded_values(d) for d in decoded]
+    def list_from_vec_u8(cls, vec_u8: bytes) -> list["DelegateInfo"]:
+        decoded = bt_decode.DelegateInfo.decode_vec(vec_u8)
+        results = []
+        for d in decoded:
+            hotkey = decode_account_id(d.delegate_ss58)
+            owner = decode_account_id(d.owner_ss58)
+            nominators = [
+                (decode_account_id(x), Balance.from_rao(y)) for x, y in d.nominators
+            ]
+            total_stake = sum((x[1] for x in nominators)) if nominators else Balance(0)
+            results.append(
+                DelegateInfo(
+                    hotkey_ss58=hotkey,
+                    total_stake=total_stake,
+                    nominators=nominators,
+                    owner_ss58=owner,
+                    take=u16_normalized_float(d.take),
+                    validator_permits=d.validator_permits,
+                    registrations=d.registrations,
+                    return_per_1000=Balance.from_rao(d.return_per_1000),
+                    total_daily_return=Balance.from_rao(d.total_daily_return),
+                )
+            )
+        return results
 
     @classmethod
     def delegated_list_from_vec_u8(
-        cls, vec_u8: list[int]
-    ) -> list[tuple["DelegateInfo", "Balance"]]:
-        """Returns a list of Tuples of DelegateInfo objects, and Balance, from a ``vec_u8``.
-
-        This is the list of delegates that the user has delegated to, and the amount of stake delegated.
-        """
-        decoded = from_scale_encoding(vec_u8, ChainDataType.DelegatedInfo, is_vec=True)
-        if decoded is None:
-            return []
-
-        return [
-            (DelegateInfo.fix_decoded_values(d), Balance.from_rao(s))
-            for d, s in decoded
-        ]
+        cls, vec_u8: bytes
+    ) -> list[tuple["DelegateInfo", Balance]]:
+        decoded = bt_decode.DelegateInfo.decode_delegated(vec_u8)
+        results = []
+        for d, b in decoded:
+            nominators = [
+                (decode_account_id(x), Balance.from_rao(y)) for x, y in d.nominators
+            ]
+            total_stake = sum((x[1] for x in nominators)) if nominators else Balance(0)
+            delegate = DelegateInfo(
+                hotkey_ss58=decode_account_id(d.delegate_ss58),
+                total_stake=total_stake,
+                nominators=nominators,
+                owner_ss58=decode_account_id(d.owner_ss58),
+                take=u16_normalized_float(d.take),
+                validator_permits=d.validator_permits,
+                registrations=d.registrations,
+                return_per_1000=Balance.from_rao(d.return_per_1000),
+                total_daily_return=Balance.from_rao(d.total_daily_return),
+            )
+            results.append((delegate, Balance.from_rao(b)))
+        return results

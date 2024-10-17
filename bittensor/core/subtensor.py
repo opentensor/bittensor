@@ -39,11 +39,13 @@ from substrateinterface.base import QueryMapResult, SubstrateInterface
 from bittensor.core import settings
 from bittensor.core.axon import Axon
 from bittensor.core.chain_data import (
+    custom_rpc_type_registry,
+    DelegateInfo,
     NeuronInfo,
+    NeuronInfoLite,
     PrometheusInfo,
     SubnetHyperparameters,
-    NeuronInfoLite,
-    custom_rpc_type_registry,
+    SubnetInfo,
 )
 from bittensor.core.config import Config
 from bittensor.core.extrinsics.commit_weights import (
@@ -58,6 +60,10 @@ from bittensor.core.extrinsics.registration import (
     burned_register_extrinsic,
     register_extrinsic,
 )
+from bittensor.core.extrinsics.root import (
+    root_register_extrinsic,
+    set_root_weights_extrinsic,
+)
 from bittensor.core.extrinsics.serving import (
     do_serve_axon,
     serve_axon_extrinsic,
@@ -69,10 +75,10 @@ from bittensor.core.extrinsics.transfer import (
     transfer_extrinsic,
 )
 from bittensor.core.metagraph import Metagraph
-from bittensor.utils import torch
-from bittensor.utils import u16_normalized_float, networking
+from bittensor.utils import networking, torch, ss58_to_vec_u8, u16_normalized_float
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
+from bittensor.utils.registration import legacy_torch_api_compat
 from bittensor.utils.weight_utils import generate_weight_hash
 
 KEY_NONCE: dict[str, int] = {}
@@ -902,6 +908,45 @@ class Subtensor:
 
         return success, message
 
+    @legacy_torch_api_compat
+    def root_set_weights(
+        self,
+        wallet: "Wallet",
+        netuids: Union[NDArray[np.int64], "torch.LongTensor", list],
+        weights: Union[NDArray[np.float32], "torch.FloatTensor", list],
+        version_key: int = 0,
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = False,
+        prompt: bool = False,
+    ) -> bool:
+        """
+        Sets the weights for neurons on the root network. This action is crucial for defining the influence and interactions of neurons at the root level of the Bittensor network.
+
+        Args:
+            wallet (bittensor_wallet.Wallet): The wallet associated with the neuron setting the weights.
+            netuids (Union[NDArray[np.int64], torch.LongTensor, list]): The list of neuron UIDs for which weights are being set.
+            weights (Union[NDArray[np.float32], torch.FloatTensor, list]): The corresponding weights to be set for each UID.
+            version_key (int, optional): Version key for compatibility with the network. Default is ``0``.
+            wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block. Defaults to ``False``.
+            wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain. Defaults to ``False``.
+            prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding. Defaults to ``False``.
+
+        Returns:
+            bool: ``True`` if the setting of root-level weights is successful, False otherwise.
+
+        This function plays a pivotal role in shaping the root network's collective intelligence and decision-making processes, reflecting the principles of decentralized governance and collaborative learning in Bittensor.
+        """
+        return set_root_weights_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            netuids=netuids,
+            weights=weights,
+            version_key=version_key,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            prompt=prompt,
+        )
+
     def register(
         self,
         wallet: "Wallet",
@@ -959,6 +1004,35 @@ class Subtensor:
             num_processes=num_processes,
             update_interval=update_interval,
             log_verbose=log_verbose,
+        )
+
+    def root_register(
+        self,
+        wallet: "Wallet",
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = True,
+        prompt: bool = False,
+    ) -> bool:
+        """
+        Registers the neuron associated with the wallet on the root network. This process is integral for participating in the highest layer of decision-making and governance within the Bittensor network.
+
+        Args:
+            wallet (bittensor.wallet): The wallet associated with the neuron to be registered on the root network.
+            wait_for_inclusion (bool): Waits for the transaction to be included in a block. Defaults to `False`.
+            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Defaults to `True`.
+            prompt (bool): If ``True``, prompts for user confirmation before proceeding. Defaults to `False`.
+
+        Returns:
+            bool: ``True`` if the registration on the root network is successful, False otherwise.
+
+        This function enables neurons to engage in the most critical and influential aspects of the network's governance, signifying a high level of commitment and responsibility in the Bittensor ecosystem.
+        """
+        return root_register_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+            prompt=prompt,
         )
 
     def burned_register(
@@ -1418,6 +1492,36 @@ class Subtensor:
         """
         _result = self.query_subtensor("NetworksAdded", block, [netuid])
         return getattr(_result, "value", False)
+
+    @networking.ensure_connected
+    def get_all_subnets_info(self, block: Optional[int] = None) -> list[SubnetInfo]:
+        """
+        Retrieves detailed information about all subnets within the Bittensor network. This function provides comprehensive data on each subnet, including its characteristics and operational parameters.
+
+        Args:
+            block (Optional[int]): The blockchain block number for the query.
+
+        Returns:
+            list[SubnetInfo]: A list of SubnetInfo objects, each containing detailed information about a subnet.
+
+        Gaining insights into the subnets' details assists in understanding the network's composition, the roles of different subnets, and their unique features.
+        """
+
+        @retry(delay=1, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            block_hash = None if block is None else self.substrate.get_block_hash(block)
+
+            return self.substrate.rpc_request(
+                method="subnetInfo_getSubnetsInfo",  # custom rpc method
+                params=[block_hash] if block_hash else [],
+            )
+
+        json_body = make_substrate_call_with_retry()
+
+        if not (result := json_body.get("result", None)):
+            return []
+
+        return SubnetInfo.list_from_vec_u8(result)
 
     # Metagraph uses this method
     def bonds(
@@ -1884,6 +1988,64 @@ class Subtensor:
         """
         call = self._get_hyperparameter(param_name="Burn", netuid=netuid, block=block)
         return None if call is None else Balance.from_rao(int(call))
+
+    def get_delegate_take(
+        self, hotkey_ss58: str, block: Optional[int] = None
+    ) -> Optional[float]:
+        """
+        Retrieves the delegate 'take' percentage for a neuron identified by its hotkey. The 'take' represents the percentage of rewards that the delegate claims from its nominators' stakes.
+
+        Args:
+            hotkey_ss58 (str): The ``SS58`` address of the neuron's hotkey.
+            block (Optional[int]): The blockchain block number for the query.
+
+        Returns:
+            Optional[float]: The delegate take percentage, None if not available.
+
+        The delegate take is a critical parameter in the network's incentive structure, influencing the distribution of rewards among neurons and their nominators.
+        """
+        _result = self.query_subtensor("Delegates", block, [hotkey_ss58])
+        return (
+            None
+            if getattr(_result, "value", None) is None
+            else u16_normalized_float(_result.value)
+        )
+
+    @networking.ensure_connected
+    def get_delegate_by_hotkey(
+        self, hotkey_ss58: str, block: Optional[int] = None
+    ) -> Optional[DelegateInfo]:
+        """
+        Retrieves detailed information about a delegate neuron based on its hotkey. This function provides a comprehensive view of the delegate's status, including its stakes, nominators, and reward distribution.
+
+        Args:
+            hotkey_ss58 (str): The ``SS58`` address of the delegate's hotkey.
+            block (Optional[int]): The blockchain block number for the query. Default is ``None``.
+
+        Returns:
+            Optional[DelegateInfo]: Detailed information about the delegate neuron, ``None`` if not found.
+
+        This function is essential for understanding the roles and influence of delegate neurons within the Bittensor network's consensus and governance structures.
+        """
+
+        @retry(delay=1, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry(encoded_hotkey_: list[int]):
+            block_hash = None if block is None else self.substrate.get_block_hash(block)
+
+            return self.substrate.rpc_request(
+                method="delegateInfo_getDelegate",  # custom rpc method
+                params=(
+                    [encoded_hotkey_, block_hash] if block_hash else [encoded_hotkey_]
+                ),
+            )
+
+        encoded_hotkey = ss58_to_vec_u8(hotkey_ss58)
+        json_body = make_substrate_call_with_retry(encoded_hotkey)
+
+        if not (result := json_body.get("result", None)):
+            return None
+
+        return DelegateInfo.from_vec_u8(result)
 
     # Subnet 27 uses this method
     _do_serve_prometheus = do_serve_prometheus
