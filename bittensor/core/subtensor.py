@@ -39,11 +39,12 @@ from substrateinterface.base import QueryMapResult, SubstrateInterface
 from bittensor.core import settings
 from bittensor.core.axon import Axon
 from bittensor.core.chain_data import (
+    custom_rpc_type_registry,
+    DelegateInfo,
     NeuronInfo,
+    NeuronInfoLite,
     PrometheusInfo,
     SubnetHyperparameters,
-    NeuronInfoLite,
-    custom_rpc_type_registry,
 )
 from bittensor.core.config import Config
 from bittensor.core.extrinsics.commit_weights import (
@@ -69,8 +70,7 @@ from bittensor.core.extrinsics.transfer import (
     transfer_extrinsic,
 )
 from bittensor.core.metagraph import Metagraph
-from bittensor.utils import torch
-from bittensor.utils import u16_normalized_float, networking
+from bittensor.utils import networking, torch, ss58_to_vec_u8, u16_normalized_float
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 from bittensor.utils.weight_utils import generate_weight_hash
@@ -1884,6 +1884,42 @@ class Subtensor:
         """
         call = self._get_hyperparameter(param_name="Burn", netuid=netuid, block=block)
         return None if call is None else Balance.from_rao(int(call))
+
+    @networking.ensure_connected
+    def get_delegate_by_hotkey(
+        self, hotkey_ss58: str, block: Optional[int] = None
+    ) -> Optional[DelegateInfo]:
+        """
+        Retrieves detailed information about a delegate neuron based on its hotkey. This function provides a comprehensive view of the delegate's status, including its stakes, nominators, and reward distribution.
+
+        Args:
+            hotkey_ss58 (str): The ``SS58`` address of the delegate's hotkey.
+            block (Optional[int]): The blockchain block number for the query. Default is ``None``.
+
+        Returns:
+            Optional[DelegateInfo]: Detailed information about the delegate neuron, ``None`` if not found.
+
+        This function is essential for understanding the roles and influence of delegate neurons within the Bittensor network's consensus and governance structures.
+        """
+
+        @retry(delay=1, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry(encoded_hotkey_: list[int]):
+            block_hash = None if block is None else self.substrate.get_block_hash(block)
+
+            return self.substrate.rpc_request(
+                method="delegateInfo_getDelegate",  # custom rpc method
+                params=(
+                    [encoded_hotkey_, block_hash] if block_hash else [encoded_hotkey_]
+                ),
+            )
+
+        encoded_hotkey = ss58_to_vec_u8(hotkey_ss58)
+        json_body = make_substrate_call_with_retry(encoded_hotkey)
+
+        if not (result := json_body.get("result", None)):
+            return None
+
+        return DelegateInfo.from_vec_u8(result)
 
     # Subnet 27 uses this method
     _do_serve_prometheus = do_serve_prometheus
