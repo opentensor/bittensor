@@ -2181,3 +2181,83 @@ def test_recycle_none(subtensor, mocker):
     )
 
     assert result is None
+
+
+# `get_all_subnets_info` tests
+def test_get_all_subnets_info_success(mocker, subtensor):
+    """Test get_all_subnets_info returns correct data when subnet information is found."""
+    # Prep
+    block = 123
+    subnet_data = [1, 2, 3]  # Mocked response data
+    mocker.patch.object(
+        subtensor.substrate, "get_block_hash", return_value="mock_block_hash"
+    )
+    mock_response = {"result": subnet_data}
+    mocker.patch.object(subtensor.substrate, "rpc_request", return_value=mock_response)
+    mocker.patch.object(
+        subtensor_module.SubnetInfo,
+        "list_from_vec_u8",
+        return_value="list_from_vec_u80",
+    )
+
+    # Call
+    result = subtensor.get_all_subnets_info(block)
+
+    # Asserts
+    subtensor.substrate.get_block_hash.assert_called_once_with(block)
+    subtensor.substrate.rpc_request.assert_called_once_with(
+        method="subnetInfo_getSubnetsInfo", params=["mock_block_hash"]
+    )
+    subtensor_module.SubnetInfo.list_from_vec_u8.assert_called_once_with(subnet_data)
+
+
+@pytest.mark.parametrize("result_", [[], None])
+def test_get_all_subnets_info_no_data(mocker, subtensor, result_):
+    """Test get_all_subnets_info returns empty list when no subnet information is found."""
+    # Prep
+    block = 123
+    mocker.patch.object(
+        subtensor.substrate, "get_block_hash", return_value="mock_block_hash"
+    )
+    mock_response = {"result": result_}
+    mocker.patch.object(subtensor.substrate, "rpc_request", return_value=mock_response)
+    mocker.patch.object(subtensor_module.SubnetInfo, "list_from_vec_u8")
+
+    # Call
+    result = subtensor.get_all_subnets_info(block)
+
+    # Asserts
+    assert result == []
+    subtensor.substrate.get_block_hash.assert_called_once_with(block)
+    subtensor.substrate.rpc_request.assert_called_once_with(
+        method="subnetInfo_getSubnetsInfo", params=["mock_block_hash"]
+    )
+    subtensor_module.SubnetInfo.list_from_vec_u8.assert_not_called()
+
+
+def test_get_all_subnets_info_retry(mocker, subtensor):
+    """Test get_all_subnets_info retries on failure."""
+    # Prep
+    block = 123
+    subnet_data = [1, 2, 3]
+    mocker.patch.object(
+        subtensor.substrate, "get_block_hash", return_value="mock_block_hash"
+    )
+    mock_response = {"result": subnet_data}
+    mock_rpc_request = mocker.patch.object(
+        subtensor.substrate,
+        "rpc_request",
+        side_effect=[Exception, Exception, mock_response],
+    )
+    mocker.patch.object(
+        subtensor_module.SubnetInfo, "list_from_vec_u8", return_value=["some_data"]
+    )
+
+    # Call
+    result = subtensor.get_all_subnets_info(block)
+
+    # Asserts
+    subtensor.substrate.get_block_hash.assert_called_with(block)
+    assert mock_rpc_request.call_count == 3
+    subtensor_module.SubnetInfo.list_from_vec_u8.assert_called_once_with(subnet_data)
+    assert result == ["some_data"]

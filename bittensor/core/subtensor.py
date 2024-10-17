@@ -45,6 +45,7 @@ from bittensor.core.chain_data import (
     NeuronInfoLite,
     PrometheusInfo,
     SubnetHyperparameters,
+    SubnetInfo
 )
 from bittensor.core.config import Config
 from bittensor.core.extrinsics.commit_weights import (
@@ -1488,6 +1489,36 @@ class Subtensor:
         """
         _result = self.query_subtensor("NetworksAdded", block, [netuid])
         return getattr(_result, "value", False)
+
+    @networking.ensure_connected
+    def get_all_subnets_info(self, block: Optional[int] = None) -> list[SubnetInfo]:
+        """
+        Retrieves detailed information about all subnets within the Bittensor network. This function provides comprehensive data on each subnet, including its characteristics and operational parameters.
+
+        Args:
+            block (Optional[int]): The blockchain block number for the query.
+
+        Returns:
+            list[SubnetInfo]: A list of SubnetInfo objects, each containing detailed information about a subnet.
+
+        Gaining insights into the subnets' details assists in understanding the network's composition, the roles of different subnets, and their unique features.
+        """
+
+        @retry(delay=1, tries=3, backoff=2, max_delay=4)
+        def make_substrate_call_with_retry():
+            block_hash = None if block is None else self.substrate.get_block_hash(block)
+
+            return self.substrate.rpc_request(
+                method="subnetInfo_getSubnetsInfo",  # custom rpc method
+                params=[block_hash] if block_hash else [],
+            )
+
+        json_body = make_substrate_call_with_retry()
+
+        if not (result := json_body.get("result", None)):
+            return []
+
+        return SubnetInfo.list_from_vec_u8(result)
 
     # Metagraph uses this method
     def bonds(
