@@ -16,8 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 """
-The ``bittensor.core.subtensor.Subtensor`` module in Bittensor serves as a crucial interface for interacting with the Bittensor
-blockchain, facilitating a range of operations essential for the decentralized machine learning network.
+Async version of `bittensor.core.subtensor.Subtensor` module.
 """
 
 import argparse
