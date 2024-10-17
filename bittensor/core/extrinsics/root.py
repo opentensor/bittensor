@@ -19,7 +19,12 @@ if TYPE_CHECKING:
 
 
 @ensure_connected
-def _do_root_register(self: "Subtensor", wallet: "Wallet", wait_for_inclusion: bool = False, wait_for_finalization: bool = True) -> tuple[bool, Optional[str]]:
+def _do_root_register(
+    self: "Subtensor",
+    wallet: "Wallet",
+    wait_for_inclusion: bool = False,
+    wait_for_finalization: bool = True,
+) -> tuple[bool, Optional[str]]:
     @retry(delay=1, tries=3, backoff=2, max_delay=4)
     def make_substrate_call_with_retry():
         # create extrinsic call
@@ -28,8 +33,14 @@ def _do_root_register(self: "Subtensor", wallet: "Wallet", wait_for_inclusion: b
             call_function="root_register",
             call_params={"hotkey": wallet.hotkey.ss58_address},
         )
-        extrinsic = self.substrate.create_signed_extrinsic(call=call, keypair=wallet.coldkey)
-        response = self.substrate.submit_extrinsic(extrinsic, wait_for_inclusion=wait_for_inclusion, wait_for_finalization=wait_for_finalization)
+        extrinsic = self.substrate.create_signed_extrinsic(
+            call=call, keypair=wallet.coldkey
+        )
+        response = self.substrate.submit_extrinsic(
+            extrinsic,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
 
         # We only wait here if we expect finalization.
         if not wait_for_finalization and not wait_for_inclusion:
@@ -46,7 +57,13 @@ def _do_root_register(self: "Subtensor", wallet: "Wallet", wait_for_inclusion: b
     return make_substrate_call_with_retry()
 
 
-def root_register_extrinsic(subtensor: "Subtensor", wallet: "Wallet", wait_for_inclusion: bool = False, wait_for_finalization: bool = True, prompt: bool = False) -> bool:
+def root_register_extrinsic(
+    subtensor: "Subtensor",
+    wallet: "Wallet",
+    wait_for_inclusion: bool = False,
+    wait_for_finalization: bool = True,
+    prompt: bool = False,
+) -> bool:
     """Registers the wallet to root network.
 
     Args:
@@ -55,7 +72,7 @@ def root_register_extrinsic(subtensor: "Subtensor", wallet: "Wallet", wait_for_i
         wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout. Default is ``False``.
         wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout. Default is ``True``.
         prompt (bool): If ``true``, the call waits for confirmation from the user before proceeding. Default is ``False``.
-        
+
     Returns:
         success (bool): Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
@@ -99,9 +116,7 @@ def root_register_extrinsic(subtensor: "Subtensor", wallet: "Wallet", wait_for_i
                 netuid=0, hotkey_ss58=wallet.hotkey.ss58_address
             )
             if is_registered:
-                bt_console.print(
-                    ":white_heavy_check_mark: [green]Registered[/green]"
-                )
+                bt_console.print(":white_heavy_check_mark: [green]Registered[/green]")
                 return True
             else:
                 # neuron not found, try again
@@ -199,7 +214,7 @@ def set_root_weights_extrinsic(
         wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.  Default is ``False``.
         wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout. Default is ``False``.
         prompt (bool): If ``true``, the call waits for confirmation from the user before proceeding. Default is ``False``.
-        
+
     Returns:
         success (bool): Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
@@ -207,7 +222,9 @@ def set_root_weights_extrinsic(
     try:
         wallet.unlock_coldkey()
     except KeyFileError:
-        bt_console.print(":cross_mark: [red]Keyfile is corrupt, non-writable, non-readable or the password used to decrypt is invalid[/red]:[bold white]\n  [/bold white]")
+        bt_console.print(
+            ":cross_mark: [red]Keyfile is corrupt, non-writable, non-readable or the password used to decrypt is invalid[/red]:[bold white]\n  [/bold white]"
+        )
         return False
 
     # First convert types.
@@ -225,20 +242,38 @@ def set_root_weights_extrinsic(
     non_zero_weight_uids = netuids[non_zero_weight_idx]
     non_zero_weights = weights[non_zero_weight_idx]
     if non_zero_weights.size < min_allowed_weights:
-        raise ValueError("The minimum number of weights required to set weights is {}, got {}".format(min_allowed_weights, non_zero_weights.size))
+        raise ValueError(
+            "The minimum number of weights required to set weights is {}, got {}".format(
+                min_allowed_weights, non_zero_weights.size
+            )
+        )
 
     # Normalize the weights to max value.
-    formatted_weights = weight_utils.normalize_max_weight(x=weights, limit=max_weight_limit)
-    bt_console.print(f"\nRaw Weights -> Normalized weights: \n\t{weights} -> \n\t{formatted_weights}\n")
+    formatted_weights = weight_utils.normalize_max_weight(
+        x=weights, limit=max_weight_limit
+    )
+    bt_console.print(
+        f"\nRaw Weights -> Normalized weights: \n\t{weights} -> \n\t{formatted_weights}\n"
+    )
 
     # Ask before moving on.
     if prompt:
-        if not Confirm.ask("Do you want to set the following root weights?:\n[bold white]  weights: {}\n  uids: {}[/bold white ]?".format(formatted_weights, netuids)):
+        if not Confirm.ask(
+            "Do you want to set the following root weights?:\n[bold white]  weights: {}\n  uids: {}[/bold white ]?".format(
+                formatted_weights, netuids
+            )
+        ):
             return False
 
-    with bt_console.status(":satellite: Setting root weights on [white]{}[/white] ...".format(subtensor.network)):
+    with bt_console.status(
+        ":satellite: Setting root weights on [white]{}[/white] ...".format(
+            subtensor.network
+        )
+    ):
         try:
-            weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(netuids, weights)
+            weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(
+                netuids, weights
+            )
             success, error_message = _do_set_root_weights(
                 wallet=wallet,
                 netuid=0,
@@ -256,11 +291,17 @@ def set_root_weights_extrinsic(
 
             if success is True:
                 bt_console.print(":white_heavy_check_mark: [green]Finalized[/green]")
-                logging.success(prefix="Set weights", suffix="<green>Finalized: </green>" + str(success))
+                logging.success(
+                    prefix="Set weights",
+                    suffix="<green>Finalized: </green>" + str(success),
+                )
                 return True
             else:
                 bt_console.print(f":cross_mark: [red]Failed[/red]: {error_message}")
-                logging.warning(prefix="Set weights", suffix="<red>Failed: </red>" + str(error_message))
+                logging.warning(
+                    prefix="Set weights",
+                    suffix="<red>Failed: </red>" + str(error_message),
+                )
                 return False
 
         except Exception as e:

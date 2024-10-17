@@ -45,7 +45,7 @@ from bittensor.core.chain_data import (
     NeuronInfoLite,
     PrometheusInfo,
     SubnetHyperparameters,
-    SubnetInfo
+    SubnetInfo,
 )
 from bittensor.core.config import Config
 from bittensor.core.extrinsics.commit_weights import (
@@ -60,7 +60,10 @@ from bittensor.core.extrinsics.registration import (
     burned_register_extrinsic,
     register_extrinsic,
 )
-from bittensor.core.extrinsics.root import root_register_extrinsic, set_root_weights_extrinsic
+from bittensor.core.extrinsics.root import (
+    root_register_extrinsic,
+    set_root_weights_extrinsic,
+)
 from bittensor.core.extrinsics.serving import (
     do_serve_axon,
     serve_axon_extrinsic,
@@ -1986,7 +1989,9 @@ class Subtensor:
         call = self._get_hyperparameter(param_name="Burn", netuid=netuid, block=block)
         return None if call is None else Balance.from_rao(int(call))
 
-    def get_delegate_take(self, hotkey_ss58: str, block: Optional[int] = None) -> Optional[float]:
+    def get_delegate_take(
+        self, hotkey_ss58: str, block: Optional[int] = None
+    ) -> Optional[float]:
         """
         Retrieves the delegate 'take' percentage for a neuron identified by its hotkey. The 'take' represents the percentage of rewards that the delegate claims from its nominators' stakes.
 

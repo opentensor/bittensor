@@ -364,4 +364,3 @@ def create_neuron_info_decoded(
         "prometheus_info": prometheus_info,
         "axon_info": axon_info,
     }
-

@@ -2277,8 +2277,12 @@ def test_get_delegate_take_success(subtensor, mocker):
     result = subtensor.get_delegate_take(hotkey_ss58=fake_hotkey_ss58, block=fake_block)
 
     # Asserts
-    subtensor.query_subtensor.assert_called_once_with("Delegates", fake_block, [fake_hotkey_ss58])
-    subtensor_module.u16_normalized_float.assert_called_once_with(subtensor.query_subtensor.return_value.value)
+    subtensor.query_subtensor.assert_called_once_with(
+        "Delegates", fake_block, [fake_hotkey_ss58]
+    )
+    subtensor_module.u16_normalized_float.assert_called_once_with(
+        subtensor.query_subtensor.return_value.value
+    )
     assert result == subtensor_module.u16_normalized_float.return_value
 
 
@@ -2295,7 +2299,9 @@ def test_get_delegate_take_none(subtensor, mocker):
     result = subtensor.get_delegate_take(hotkey_ss58=fake_hotkey_ss58, block=fake_block)
 
     # Asserts
-    subtensor.query_subtensor.assert_called_once_with("Delegates", fake_block, [fake_hotkey_ss58])
+    subtensor.query_subtensor.assert_called_once_with(
+        "Delegates", fake_block, [fake_hotkey_ss58]
+    )
 
     subtensor_module.u16_normalized_float.assert_not_called()
     assert result is None

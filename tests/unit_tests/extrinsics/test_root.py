@@ -76,14 +76,16 @@ def test_root_register_extrinsic(
     prompt,
     user_response,
     expected_result,
-    mocker
+    mocker,
 ):
     # Arrange
     mock_subtensor.is_hotkey_registered.side_effect = hotkey_registered
 
     with mocker.patch("rich.prompt.Confirm.ask", return_value=user_response):
         # Preps
-        mock_register = mocker.Mock(return_value=(registration_success, "Error registering"))
+        mock_register = mocker.Mock(
+            return_value=(registration_success, "Error registering")
+        )
         root._do_root_register = mock_register
 
         # Act
@@ -180,10 +182,12 @@ def test_set_root_weights_extrinsic(
     prompt,
     user_response,
     expected_success,
-    mocker
+    mocker,
 ):
     # Preps
-    root._do_set_root_weights = mocker.Mock(return_value=(expected_success, "Mock error"))
+    root._do_set_root_weights = mocker.Mock(
+        return_value=(expected_success, "Mock error")
+    )
     mock_subtensor.min_allowed_weights = mocker.Mock(return_value=0)
     mock_subtensor.max_weight_limit = mocker.Mock(return_value=1)
     mock_confirm = mocker.Mock(return_value=(expected_success, "Mock error"))
@@ -289,7 +293,7 @@ def test_set_root_weights_extrinsic_torch(
     user_response,
     expected_success,
     force_legacy_torch_compatible_api,
-    mocker
+    mocker,
 ):
     test_set_root_weights_extrinsic(
         mock_subtensor,
@@ -301,5 +305,5 @@ def test_set_root_weights_extrinsic_torch(
         prompt,
         user_response,
         expected_success,
-        mocker
+        mocker,
     )
