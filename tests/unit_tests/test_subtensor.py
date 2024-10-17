@@ -21,6 +21,7 @@ from unittest.mock import MagicMock
 
 import pytest
 from bittensor_wallet import Wallet
+from torch.utils.hipify.hipify_python import value
 
 from bittensor.core import subtensor as subtensor_module, settings
 from bittensor.core.axon import Axon
@@ -2261,3 +2262,40 @@ def test_get_all_subnets_info_retry(mocker, subtensor):
     assert mock_rpc_request.call_count == 3
     subtensor_module.SubnetInfo.list_from_vec_u8.assert_called_once_with(subnet_data)
     assert result == ["some_data"]
+
+
+def test_get_delegate_take_success(subtensor, mocker):
+    """Verify `get_delegate_take` method successful path."""
+    # Preps
+    fake_hotkey_ss58 = "FAKE_SS58"
+    fake_block = 123
+
+    subtensor_module.u16_normalized_float = mocker.Mock()
+    subtensor.query_subtensor = mocker.Mock(return_value=mocker.Mock(value="value"))
+
+    # Call
+    result = subtensor.get_delegate_take(hotkey_ss58=fake_hotkey_ss58, block=fake_block)
+
+    # Asserts
+    subtensor.query_subtensor.assert_called_once_with("Delegates", fake_block, [fake_hotkey_ss58])
+    subtensor_module.u16_normalized_float.assert_called_once_with(subtensor.query_subtensor.return_value.value)
+    assert result == subtensor_module.u16_normalized_float.return_value
+
+
+def test_get_delegate_take_none(subtensor, mocker):
+    """Verify `get_delegate_take` method returns None."""
+    # Preps
+    fake_hotkey_ss58 = "FAKE_SS58"
+    fake_block = 123
+
+    subtensor.query_subtensor = mocker.Mock(return_value=mocker.Mock(value=None))
+    subtensor_module.u16_normalized_float = mocker.Mock()
+
+    # Call
+    result = subtensor.get_delegate_take(hotkey_ss58=fake_hotkey_ss58, block=fake_block)
+
+    # Asserts
+    subtensor.query_subtensor.assert_called_once_with("Delegates", fake_block, [fake_hotkey_ss58])
+
+    subtensor_module.u16_normalized_float.assert_not_called()
+    assert result is None

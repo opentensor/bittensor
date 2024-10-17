@@ -1986,6 +1986,26 @@ class Subtensor:
         call = self._get_hyperparameter(param_name="Burn", netuid=netuid, block=block)
         return None if call is None else Balance.from_rao(int(call))
 
+    def get_delegate_take(self, hotkey_ss58: str, block: Optional[int] = None) -> Optional[float]:
+        """
+        Retrieves the delegate 'take' percentage for a neuron identified by its hotkey. The 'take' represents the percentage of rewards that the delegate claims from its nominators' stakes.
+
+        Args:
+            hotkey_ss58 (str): The ``SS58`` address of the neuron's hotkey.
+            block (Optional[int]): The blockchain block number for the query.
+
+        Returns:
+            Optional[float]: The delegate take percentage, None if not available.
+
+        The delegate take is a critical parameter in the network's incentive structure, influencing the distribution of rewards among neurons and their nominators.
+        """
+        _result = self.query_subtensor("Delegates", block, [hotkey_ss58])
+        return (
+            None
+            if getattr(_result, "value", None) is None
+            else u16_normalized_float(_result.value)
+        )
+
     @networking.ensure_connected
     def get_delegate_by_hotkey(
         self, hotkey_ss58: str, block: Optional[int] = None
