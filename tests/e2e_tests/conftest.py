@@ -9,7 +9,7 @@ import time
 
 import pytest
 from substrateinterface import SubstrateInterface
-
+from scripts import subprocess_utils
 from bittensor import logging
 from tests.e2e_tests.utils.e2e_test_utils import (
     clone_or_update_templates,
@@ -99,3 +99,6 @@ def local_chain(request):
     # TODO: uncomment templates when done
     # logging.info("Uninstalling neuron templates")
     # uninstall_templates(templates_dir)
+
+    # kill subprocess if its running
+    subprocess_utils.stop_commit_reveal_subprocess()

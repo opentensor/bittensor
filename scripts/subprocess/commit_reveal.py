@@ -1,6 +1,7 @@
 import argparse
 import json
 import os
+import shlex
 import time
 import utils  # Ensure this import works
 import socket
@@ -45,7 +46,8 @@ def is_table_empty(table_name: str) -> bool:
 def initialize_db():
     # Create 'commits' table if it doesn't exist
     columns = [
-        ("wallet_hotkey", "TEXT"),
+        ("wallet_hotkey_name", "TEXT"),
+        ("wallet_hotkey_ss58", "TEXT"),
         ("wallet_path", "TEXT"),
         ("wallet_name", "TEXT"),
         ("commit_hash", "TEXT"),
@@ -69,18 +71,35 @@ def reveal(subtensor, data):
     # create wallet
     wallet_name = data["wallet_name"]
     wallet_path = data["wallet_path"]
-    wallet_hotkey = data["wallet_hotkey"]
+    wallet_hotkey_name = data["wallet_hotkey_name"]
 
-    wallet = Wallet(name=wallet_name, path=wallet_path, hotkey=wallet_hotkey)
+    wallet = Wallet(name=wallet_name, path=wallet_path, hotkey=wallet_hotkey_name)
+
+    print(f"the data: {data}")
+    print(f"wallet: {wallet}")
+
+    commit_hash = data["commit_hash"]
+    uids = list(map(int, json.loads(data["uids"])))
+    weights = list(map(int, json.loads(data["weights"])))
+    netuid = data["netuid"]
+    salt = list(map(int, json.loads(data["salt"])))
+
+    print(f"commit_hash: {commit_hash}")
+    print(f"uids: {uids}")
+    print(f"weights: {weights}")
+    print(f"netuid: {netuid}")
+    print(f"salt: {salt}")
 
     # Calls subtensor.reveal_weights
     success, message = subtensor.reveal_weights(
         wallet=wallet,
-        commit_hash=data["commit_hash"],
-        uids=list(map(int, json.loads(data["uids"]))),
-        weights=list(map(int, json.loads(data["weights"]))),
+        netuid=netuid,
+        uids=uids,
+        weights=weights,
+        salt=salt,
         wait_for_inclusion=True,
-        wait_for_finalization=True)
+        wait_for_finalization=True
+    )
 
     # delete wallet object
     del wallet
@@ -109,10 +128,11 @@ def revealed(wallet_name, wallet_path, wallet_hotkey, netuid, uids, weights, sal
             print("No existing row found with specified data")
 
 
-def committed(wallet_name, wallet_path, wallet_hotkey, curr_block, reveal_block, commit_hash, netuid, uids, weights, salt):
+def committed(wallet_name, wallet_path, wallet_hotkey_name, wallet_hotkey_ss58, curr_block, reveal_block, commit_hash, netuid, uids, weights, salt):
 
     commit_data = {
-        "wallet_hotkey": wallet_hotkey,
+        "wallet_hotkey_name": wallet_hotkey_name,
+        "wallet_hotkey_ss58": wallet_hotkey_ss58,
         "wallet_name": wallet_name,
         "wallet_path": wallet_path,
         "commit_hash": commit_hash,
@@ -152,7 +172,7 @@ def check_reveal(subtensor, curr_block: int):
         # Delete the row after revealing, and delete all older reveals
         with utils.DB(db_path=DB_PATH) as (conn, cursor):
             cursor.execute('DELETE FROM commits WHERE reveal_block <= ?', (curr_block,))
-            conn.committed()
+            conn.commit()
         return True
 
     return False
@@ -164,15 +184,15 @@ def handle_client_connection(client_socket):
             request = client_socket.recv(1024).decode()
             if not request:
                 break
-            args = request.split()
+            args = shlex.split(request)
             command = args[0]
             if command == 'revealed':
                 # wallet_name, wallet_path, wallet_hotkey, netuid, uids, weights, salt
                 revealed(args[1], args[2], args[3], args[4], json.loads(args[5]), json.loads(args[6]), json.loads(args[7]))
             elif command == 'committed':
-                # wallet_name, wallet_path, wallet_hotkey, curr_block, reveal_block, commit_hash, netuid, uids, weights, salt
-                committed(args[1], args[2], args[3], args[4], args[5], args[6], args[7], json.loads(args[8]), json.loads(args[9]),
-                          json.loads(args[10]))
+                # wallet_name, wallet_path, wallet_hotkey_name, wallet_hotkey_ss58, curr_block, reveal_block, commit_hash, netuid, uids, weights, salt
+                committed(args[1], args[2], args[3], args[4], args[5], args[6], args[7], args[8], json.loads(args[9]), json.loads(args[10]),
+                          json.loads(args[11]))
             else:
                 print("Command not recognized")
     except Exception as e:
@@ -217,7 +237,7 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run the Bittensor commit-reveal subprocess script.")
     parser.add_argument("--network", type=str, default="ws://localhost:9945", help="Subtensor network address")
-    parser.add_argument("--sleep_interval", type=int, default=12, help="Interval between block checks in seconds")
+    parser.add_argument("--sleep_interval", type=float, default=0.25, help="Interval between block checks in seconds")
     # Add more arguments as needed
     args = parser.parse_args()
     main(args)

@@ -139,6 +139,7 @@ class Subtensor:
             _mock: bool = False,
             log_verbose: bool = False,
             connection_timeout: int = 600,
+            subprocess_initialization: bool = True,
     ) -> None:
         """
         Initializes a Subtensor interface for interacting with the Bittensor blockchain.
@@ -186,6 +187,9 @@ class Subtensor:
                 "In a future release, local subtensor will become the default endpoint. "
                 "To get ahead of this change, please run a local subtensor node and point to it."
             )
+
+        if subprocess_initialization:
+            subprocess_utils.start_commit_reveal_subprocess(network=network)
 
         self.log_verbose = log_verbose
         self._connection_timeout = connection_timeout

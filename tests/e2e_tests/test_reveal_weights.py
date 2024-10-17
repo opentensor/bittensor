@@ -128,7 +128,7 @@ async def test_commit_and_reveal_weights(local_chain):
 
     # Assert that the committed weights are set correctly
     assert weight_commits.value is not None, "Weight commit not found in storage"
-    commit_hash, commit_block = weight_commits.value
+    commit_hash, commit_block = weight_commits.value[0]
     assert commit_block > 0, f"Invalid block number: {commit_block}"
 
     # Query the WeightCommitRevealInterval storage map
@@ -145,7 +145,7 @@ async def test_commit_and_reveal_weights(local_chain):
     await wait_interval(interval, subtensor)
 
     # allow one more block to pass
-    time.sleep(12)
+    time.sleep(30)
 
     # Verify that subprocess did the reveal and deleted entry from local table
     assert commit_reveal_subprocess.is_table_empty("commits")

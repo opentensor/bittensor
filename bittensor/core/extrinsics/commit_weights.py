@@ -163,7 +163,7 @@ def commit_weights_process(
     cr_interval = subtensor.get_subnet_hyperparameters(netuid=netuid).commit_reveal_weights_interval
     reveal_block = curr_block + cr_interval
 
-    command = f'committed "{wallet.name}" "{wallet.path}" "{wallet.hotkey}" "{curr_block}" "{reveal_block}" "{commit_hash}" "{netuid}" "{uids}" "{weights}" "{salt}"'
+    command = f'committed "{wallet.name}" "{wallet.path}" "{wallet.hotkey_str}" "{wallet.hotkey.ss58_address}" "{curr_block}" "{reveal_block}" "{commit_hash}" "{netuid}" "{uids}" "{weights}" "{salt}"'
     send_command(command)
 
 # Chain call for `reveal_weights_extrinsic`

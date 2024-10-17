@@ -5,8 +5,10 @@ from typing import Optional
 import subprocess
 import psutil
 
-STDOUT_PATH = "scripts/subprocess/logs/commit_reveal_stdout.log"
-STDERR_PATH = "scripts/subprocess/logs/commit_reveal_stderr.log"
+STDOUT_LOG = "/commit_reveal_stdout.log"
+STDERR_LOG = "/commit_reveal_stderr.log"
+PROCESS_NAME = "commit_reveal.py"
+
 
 def is_process_running(process_name: str) -> bool:
     """Check if a process with a given name is currently running."""
@@ -26,30 +28,48 @@ def get_process(process_name: str) -> Optional[int]:
     return None
 
 
-def start_commit_reveal_subprocess():
+def start_commit_reveal_subprocess(network: Optional[str] = None, sleep_interval: Optional[str] = None):
     """Start the commit reveal subprocess if not already running."""
-    process_name = 'commit_reveal.py'
+    log_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "subprocess", "logs"))
     script_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "subprocess", "commit_reveal.py"))
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
-    if not is_process_running(process_name):
-        stdout_file = open(STDOUT_PATH, "w")
-        stderr_file = open(STDERR_PATH, "w")
-        print(f"Starting subprocess '{process_name}'...")
+    if not is_process_running(PROCESS_NAME):
+        stdout_file = open(log_path + STDOUT_LOG, "w")
+        stderr_file = open(log_path + STDERR_LOG, "w")
+        print(f"Starting subprocess '{PROCESS_NAME}'...")
         env = os.environ.copy()
         env["PYTHONPATH"] = project_root + ":" + env.get("PYTHONPATH", "")
 
+        args = ['python3', script_path]
+        if network:
+            args.extend(['--network', network])
+        if sleep_interval:
+            args.extend(['--sleep-interval', sleep_interval])
+
         process = subprocess.Popen(
-            ['python3', script_path],
+            args=args,
             stdout=stdout_file,
             stderr=stderr_file,
             preexec_fn=os.setsid,
             env=env
         )
-        print(f"Subprocess '{process_name}' started with PID {process.pid}.")
+        print(f"Subprocess '{PROCESS_NAME}' started with PID {process.pid}.")
 
     else:
-        print(f"Subprocess '{process_name}' is already running.")
+        print(f"Subprocess '{PROCESS_NAME}' is already running.")
+
+
+def stop_commit_reveal_subprocess():
+    """Stop the commit reveal subprocess if it is running."""
+    pid = get_process(PROCESS_NAME)
+
+    if pid is not None:
+        print(f"Stopping subprocess '{PROCESS_NAME}' with PID {pid}...")
+        os.kill(pid, 15)  # SIGTERM
+        print(f"Subprocess '{PROCESS_NAME}' stopped.")
+    else:
+        print(f"Subprocess '{PROCESS_NAME}' is not running.")
 
 
 class DB:
@@ -58,10 +78,13 @@ class DB:
     """
 
     def __init__(
-        self,
-        db_path: str = os.path.expanduser("~/.bittensor/bittensor.db"),
-        row_factory=None,
+            self,
+            db_path: str = os.path.expanduser("~/.bittensor/bittensor.db"),
+            row_factory=None,
     ):
+        if not os.path.exists(os.path.dirname(db_path)):
+            os.makedirs(os.path.dirname(db_path))
+
         self.db_path = db_path
         self.conn: Optional[sqlite3.Connection] = None
         self.row_factory = row_factory
@@ -74,6 +97,7 @@ class DB:
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self.conn:
             self.conn.close()
+
 
 
 def create_table(title: str, columns: list[tuple[str, str]], rows: list[list]) -> None:

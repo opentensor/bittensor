@@ -182,9 +182,8 @@ def set_weights_extrinsic(
                     )
                     return True, "Successfully committed weights and Finalized."
                 else:
-                    error_message = format_error_message(message)
-                    logging.error(error_message)
-                    return False, error_message
+                    logging.error(message)
+                    return False, message
 
             except Exception as e:
                 bt_console.print(f":cross_mark: [red]Failed[/red]: error:{e}")
