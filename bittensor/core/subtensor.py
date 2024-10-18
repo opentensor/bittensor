@@ -1762,6 +1762,25 @@ class Subtensor:
 
         return success, message
 
+    def blocks_until_next_epoch(self, netuid: int) -> int:
+        """
+        Calculates the number of blocks remaining until the next epoch for a specific subnet.
+
+        Args:
+            netuid (int): The unique identifier of the subnet.
+
+        Returns:
+            int: The number of blocks remaining until the next epoch.
+
+        This function is useful for determining the time remaining until the next epoch, which is important
+        for network governance and operational planning within the Bittensor blockchain.
+        """
+        # formula is (block_number + netuid + 1 ) % (tempo + 1) = 0
+        curr_block = self.get_current_block()
+        tempo = self.get_subnet_hyperparameters(netuid=netuid).tempo
+        remainder = (curr_block + netuid + 1) % (tempo + 1)
+        return remainder
+
     # Subnet 27 uses this method
     _do_serve_prometheus = do_serve_prometheus
     # Subnet 27 uses this method name
