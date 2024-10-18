@@ -204,9 +204,48 @@ def reveal(subtensor: Subtensor, commit: Commit) -> None:
     )
     del wallet
     if success:
+        revealed_hash(commit.commit_hash)
         print(f"Reveal success for commit {commit}")
     else:
         print(f"Reveal failure for commit: {message}")
+
+
+def reveal_batch(subtensor: Subtensor, commits: List[Commit]) -> None:
+    """
+    Reveals the weights for a batch of commits to the subtensor network.
+
+    Args:
+        subtensor (Subtensor): The subtensor network object.
+        commits (List[Commit]): A list of commit objects to be revealed.
+
+    Returns:
+        None
+    """
+    wallet = Wallet(name=commits[0].wallet_name, path=commits[0].wallet_path, hotkey=commits[0].wallet_hotkey_name)
+    netuid = commits[0].netuid
+    uids = [commit.uids for commit in commits]
+    weights = [commit.weights for commit in commits]
+    salt = [commit.salt for commit in commits]
+    version_keys = [commit.version_key for commit in commits]
+
+    success, message = subtensor.batch_reveal_weights(
+        wallet=wallet,
+        netuid=netuid,
+        uids=uids,
+        weights=weights,
+        salt=salt,
+        version_keys=version_keys,
+        wait_for_inclusion=True,
+        wait_for_finalization=True
+    )
+    del wallet
+
+    if success:
+        for commit in commits:
+            revealed_hash(commit.commit_hash)
+            print(f"Reveal success for batch commit: {commit}")
+    else:
+        print(f"Reveal failure for batch commits: {message}")
 
 
 def revealed(wallet_name: str, wallet_path: str, wallet_hotkey_str: str, wallet_hotkey_ss58: str, netuid: int,
@@ -281,6 +320,33 @@ def revealed_hash(commit_hash: str) -> None:
         print(f"Error removing from table 'commits': {e}")
 
 
+def revealed_batch_hash(commit_hashes: List[str]) -> None:
+    """
+    Handles the revealed_batch_hash command by removing the corresponding commits from the database using the commit hashes.
+
+    Args:
+        commit_hashes (List[str]): The list of commit hashes.
+
+    Returns:
+        None
+    """
+    try:
+        with utils.DB(db_path=DB_PATH) as (conn, cursor):
+            for commit_hash in commit_hashes:
+                sql = "SELECT COUNT(*) FROM commits WHERE commit_hash=?"
+                cursor.execute(sql, (commit_hash,))
+                count = cursor.fetchone()[0]
+                if count > 0:
+                    delete_sql = "DELETE FROM commits WHERE commit_hash=?"
+                    cursor.execute(delete_sql, (commit_hash,))
+                    conn.commit()
+                    print(f"\nDeleted existing row with commit hash {commit_hash}")
+                else:
+                    print(f"\nNo existing row found with commit hash {commit_hash}")
+    except Exception as e:
+        print(f"Error removing from table 'commits': {e}")
+
+
 def committed(commit: Commit) -> None:
     """
     Commits a new commit object to the database.
@@ -319,12 +385,32 @@ def check_reveal(subtensor: Subtensor) -> bool:
         return False
 
     if commits:
-        commits.sort(key=lambda commit: (commit.reveal_block, commit.commit_block))
-        next_reveal = commits[0]
         curr_block = subtensor.get_current_block()
-        if next_reveal.reveal_block <= curr_block:
-            reveal(subtensor, next_reveal)
-            revealed_hash(next_reveal.commit_hash)
+
+        # Filter for commits that are ready to be revealed
+        reveal_candidates = [commit for commit in commits if commit.reveal_block <= curr_block]
+
+        if reveal_candidates:
+            # Group commits by wallet_hotkey_ss58
+            grouped_reveals = {}
+            for commit in reveal_candidates:
+                key = commit.wallet_hotkey_ss58
+                if key not in grouped_reveals:
+                    grouped_reveals[key] = []
+                grouped_reveals[key].append(commit)
+
+            # Process each group separately
+            for hotkey_ss58, group in grouped_reveals.items():
+                if len(group) > 1:
+                    # Batch reveal if there are 2 or more reveal candidates
+                    print("Revealing with batch")
+                    reveal_batch(subtensor, group)
+                else:
+                    # Otherwise, reveal individually
+                    print("Revealing without batch")
+                    reveal(subtensor, group[0])
+                # for commit in group:
+                #     revealed_hash(commit.commit_hash)
             return True
     return False
 

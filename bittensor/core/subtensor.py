@@ -48,7 +48,8 @@ from bittensor.core.chain_data import (
 from bittensor.core.config import Config
 from bittensor.core.extrinsics.commit_weights import (
     commit_weights_extrinsic,
-    reveal_weights_extrinsic, reveal_weights_process, commit_weights_process,
+    reveal_weights_extrinsic, reveal_weights_process, commit_weights_process, batch_reveal_weights_extrinsic,
+    batch_reveal_weights_process,
 )
 from bittensor.core.extrinsics.prometheus import (
     do_serve_prometheus,
@@ -65,7 +66,7 @@ from bittensor.core.extrinsics.transfer import (
     transfer_extrinsic,
 )
 from bittensor.core.metagraph import Metagraph
-from bittensor.utils import torch
+from bittensor.utils import torch, U64_MAX
 from bittensor.utils import u16_normalized_float, networking
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
@@ -1744,8 +1745,6 @@ class Subtensor:
                 )
                 if success:
                     # remove from local db if called directly
-                    # Call the subprocess using parameters (signal or something else)
-                    # revealed(wallet.hotkey, wallet.name, wallet.path, netuid, uids, weights, salt)
                     if subprocess_utils.is_process_running(COMMIT_REVEAL_PROCESS):
                         reveal_weights_process(
                             wallet=wallet,
@@ -1779,8 +1778,83 @@ class Subtensor:
         # formula is (block_number + netuid + 1 ) % (tempo + 1) = 0
         curr_block = self.get_current_block()
         tempo = self.get_subnet_hyperparameters(netuid=netuid).tempo
+        if tempo == 0:
+            return U64_MAX
         remainder = (curr_block + netuid + 1) % (tempo + 1)
-        return remainder
+        return tempo - remainder
+
+    def batch_reveal_weights(
+        self,
+        wallet: "Wallet",
+        netuid: int,
+        uids: list[list[int]],
+        weights: list[list[int]],
+        salt: list[list[int]],
+        version_keys: list[int],
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = False,
+        prompt: bool = False,
+        max_retries: int = 5,
+    ) -> tuple[bool, str]:
+        """
+        Reveals the weights for a specific subnet on the Bittensor blockchain using the provided wallet.
+        This action serves as a revelation of the neuron's previously committed weight distribution.
+
+        Args:
+            wallet (bittensor_wallet.Wallet): The wallet associated with the neuron revealing the weights.
+            netuid (int): The unique identifier of the subnet.
+            uids (list[list[int]]): Nested list of neuron UIDs for which weights are being revealed.
+            weights (list[list[int]]): Nested list of weight values corresponding to each UID.
+            salt (list[list[int]]): Nested list of salt values corresponding to the hash function.
+            version_keys (list[int]): List of version keys for compatibility with the network. Default is ``int representation of Bittensor version``.
+            wait_for_inclusion (bool): Waits for the transaction to be included in a block. Default is ``False``.
+            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Default is ``False``.
+            prompt (bool): If ``True``, prompts for user confirmation before proceeding. Default is ``False``.
+            max_retries (int): The number of maximum attempts to reveal weights. Default is ``5``.
+
+        Returns:
+            tuple[bool, str]: ``True`` if the batch weight revelation is successful, False otherwise. And `msg`, a string
+            value describing the success or potential error.
+
+        This function allows neurons to reveal their previously committed weight distribution, ensuring transparency
+        and accountability within the Bittensor network.
+        """
+        retries = 0
+        success = False
+        message = "No attempt made. Perhaps it is too soon to reveal weights!"
+
+        while retries < max_retries:
+            try:
+                success, message = batch_reveal_weights_extrinsic(
+                    subtensor=self,
+                    wallet=wallet,
+                    netuid=netuid,
+                    uids=uids,
+                    weights=weights,
+                    salt=salt,
+                    version_keys=version_keys,
+                    wait_for_inclusion=wait_for_inclusion,
+                    wait_for_finalization=wait_for_finalization,
+                    prompt=prompt,
+                )
+                if success:
+                    # remove from local db if called directly
+                    if subprocess_utils.is_process_running(COMMIT_REVEAL_PROCESS):
+                        batch_reveal_weights_process(
+                            wallet=wallet,
+                            netuid=netuid,
+                            uids=uids,
+                            weights=weights,
+                            salt=salt,
+                            version_keys=version_keys
+                        )
+                return success, message
+            except Exception as e:
+                logging.error(f"Error revealing weights: {e}")
+            finally:
+                retries += 1
+
+        return success, message
 
     # Subnet 27 uses this method
     _do_serve_prometheus = do_serve_prometheus

@@ -241,7 +241,7 @@ custom_rpc_type_registry = {
                 ["max_validators", "Compact<u16>"],
                 ["adjustment_alpha", "Compact<u64>"],
                 ["difficulty", "Compact<u64>"],
-                ["commit_reveal_weights_interval", "Compact<u64>"],
+                ["commit_reveal_periods", "Compact<u64>"],
                 ["commit_reveal_weights_enabled", "bool"],
                 ["alpha_high", "Compact<u16>"],
                 ["alpha_low", "Compact<u16>"],
