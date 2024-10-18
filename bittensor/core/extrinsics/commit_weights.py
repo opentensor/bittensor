@@ -18,14 +18,16 @@
 """Module commit weights and reveal weights extrinsic."""
 
 from typing import Optional, TYPE_CHECKING
-
+import socket
 from retry import retry
 from rich.prompt import Confirm
 
+from bittensor.core import settings
 from bittensor.core.extrinsics.utils import submit_extrinsic
 from bittensor.utils import format_error_message
 from bittensor.utils.btlogging import logging
 from bittensor.utils.networking import ensure_connected
+from bittensor.utils.weight_utils import generate_weight_hash
 
 # For annotation purposes
 if TYPE_CHECKING:
@@ -36,12 +38,12 @@ if TYPE_CHECKING:
 # # Chain call for `commit_weights_extrinsic`
 @ensure_connected
 def do_commit_weights(
-    self: "Subtensor",
-    wallet: "Wallet",
-    netuid: int,
-    commit_hash: str,
-    wait_for_inclusion: bool = False,
-    wait_for_finalization: bool = False,
+        self: "Subtensor",
+        wallet: "Wallet",
+        netuid: int,
+        commit_hash: str,
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = False,
 ) -> tuple[bool, Optional[dict]]:
     """
     Internal method to send a transaction to the Bittensor blockchain, committing the hash of a neuron's weights.
@@ -143,6 +145,28 @@ def commit_weights_extrinsic(
         logging.error(f"Failed to commit weights: {error_message}")
         return False, error_message
 
+
+def commit_weights_process(
+        subtensor: "Subtensor",
+        wallet: "Wallet",
+        netuid: int,
+        commit_hash: str,
+        uids: list[int],
+        weights: list[int],
+        salt: list[int],
+):
+    def send_command(command):
+        client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        client.connect(('127.0.0.1', 9949))
+        client.send(command.encode())
+        client.close()
+
+    curr_block = subtensor.get_current_block()
+    cr_interval = subtensor.get_subnet_hyperparameters(netuid=netuid).commit_reveal_weights_interval
+    reveal_block = curr_block + cr_interval
+
+    command = f'committed "{wallet.name}" "{wallet.path}" "{wallet.hotkey_str}" "{wallet.hotkey.ss58_address}" "{curr_block}" "{reveal_block}" "{commit_hash}" "{netuid}" "{uids}" "{weights}" "{salt}"'
+    send_command(command)
 
 # Chain call for `reveal_weights_extrinsic`
 @ensure_connected
@@ -272,3 +296,33 @@ def reveal_weights_extrinsic(
         error_message = format_error_message(error_message)
         logging.error(f"Failed to reveal weights: {error_message}")
         return False, error_message
+
+
+def reveal_weights_process(
+        wallet: "Wallet",
+        netuid: int,
+        uids: list[int],
+        weights: list[int],
+        salt: list[int],
+        version_key: int = settings.version_as_int,
+):
+    def send_command(command):
+        client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        client.connect(('127.0.0.1', 9949))
+        client.send(command.encode())
+        client.close()
+
+    try:
+        # Generate the hash of the weights - so we can remove from local reveal subprocess
+        commit_hash = generate_weight_hash(
+            address=wallet.hotkey.ss58_address,
+            netuid=netuid,
+            uids=list(uids),
+            values=list(weights),
+            salt=salt,
+            version_key=version_key,
+        )
+        command = f'revealed_hash "{commit_hash}"'
+    except Exception as e:
+        command = f'revealed "{wallet.name}" "{wallet.path}" "{wallet.hotkey_str}" "{wallet.hotkey.ss58_address}" "{netuid}" "{uids}" "{weights}" "{salt}"'
+    send_command(command)
