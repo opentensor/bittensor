@@ -154,6 +154,7 @@ def commit_weights_process(
         uids: list[int],
         weights: list[int],
         salt: list[int],
+        version_key: int = settings.version_as_int,
 ):
     def send_command(command):
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -161,11 +162,12 @@ def commit_weights_process(
         client.send(command.encode())
         client.close()
 
+    # TODO: Recalculate reveal interval with tempos
     curr_block = subtensor.get_current_block()
     cr_interval = subtensor.get_subnet_hyperparameters(netuid=netuid).commit_reveal_weights_interval
     reveal_block = curr_block + cr_interval
 
-    command = f'committed "{wallet.name}" "{wallet.path}" "{wallet.hotkey_str}" "{wallet.hotkey.ss58_address}" "{curr_block}" "{reveal_block}" "{commit_hash}" "{netuid}" "{uids}" "{weights}" "{salt}"'
+    command = f'committed "{wallet.name}" "{wallet.path}" "{wallet.hotkey_str}" "{wallet.hotkey.ss58_address}" "{curr_block}" "{reveal_block}" "{commit_hash}" "{netuid}" "{uids}" "{weights}" "{salt}" "{version_key}"'
     send_command(command)
 
 # Chain call for `reveal_weights_extrinsic`
@@ -324,5 +326,5 @@ def reveal_weights_process(
         )
         command = f'revealed_hash "{commit_hash}"'
     except Exception as e:
-        command = f'revealed "{wallet.name}" "{wallet.path}" "{wallet.hotkey_str}" "{wallet.hotkey.ss58_address}" "{netuid}" "{uids}" "{weights}" "{salt}"'
+        command = f'revealed "{wallet.name}" "{wallet.path}" "{wallet.hotkey_str}" "{wallet.hotkey.ss58_address}" "{netuid}" "{uids}" "{weights}" "{salt}" "{version_key}"'
     send_command(command)

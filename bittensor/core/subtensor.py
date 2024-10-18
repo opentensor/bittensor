@@ -1675,7 +1675,8 @@ class Subtensor:
                             commit_hash=commit_hash,
                             uids=list(uids),
                             weights=list(weights),
-                            salt=salt
+                            salt=salt,
+                            version_key=version_key
                         )
                     break
             except Exception as e:
