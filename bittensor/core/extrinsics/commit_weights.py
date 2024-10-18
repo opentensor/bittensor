@@ -22,10 +22,12 @@ import socket
 from retry import retry
 from rich.prompt import Confirm
 
+from bittensor.core import settings
 from bittensor.core.extrinsics.utils import submit_extrinsic
 from bittensor.utils import format_error_message
 from bittensor.utils.btlogging import logging
 from bittensor.utils.networking import ensure_connected
+from bittensor.utils.weight_utils import generate_weight_hash
 
 # For annotation purposes
 if TYPE_CHECKING:
@@ -155,7 +157,7 @@ def commit_weights_process(
 ):
     def send_command(command):
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        client.connect(('localhost', 9999))
+        client.connect(('127.0.0.1', 9949))
         client.send(command.encode())
         client.close()
 
@@ -302,12 +304,25 @@ def reveal_weights_process(
         uids: list[int],
         weights: list[int],
         salt: list[int],
+        version_key: int = settings.version_as_int,
 ):
     def send_command(command):
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        client.connect(('localhost', 9999))
+        client.connect(('127.0.0.1', 9949))
         client.send(command.encode())
         client.close()
 
-    command = f'revealed "{wallet.name}" "{wallet.path}" "{wallet.hotkey}" "{netuid}" "{uids}" "{weights}" "{salt}"'
+    try:
+        # Generate the hash of the weights - so we can remove from local reveal subprocess
+        commit_hash = generate_weight_hash(
+            address=wallet.hotkey.ss58_address,
+            netuid=netuid,
+            uids=list(uids),
+            values=list(weights),
+            salt=salt,
+            version_key=version_key,
+        )
+        command = f'revealed_hash "{commit_hash}"'
+    except Exception as e:
+        command = f'revealed "{wallet.name}" "{wallet.path}" "{wallet.hotkey_str}" "{wallet.hotkey.ss58_address}" "{netuid}" "{uids}" "{weights}" "{salt}"'
     send_command(command)

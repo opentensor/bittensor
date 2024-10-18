@@ -140,6 +140,7 @@ class Subtensor:
             log_verbose: bool = False,
             connection_timeout: int = 600,
             subprocess_initialization: bool = True,
+            subprocess_sleep_interval: float = 12,
     ) -> None:
         """
         Initializes a Subtensor interface for interacting with the Bittensor blockchain.
@@ -189,7 +190,7 @@ class Subtensor:
             )
 
         if subprocess_initialization:
-            subprocess_utils.start_commit_reveal_subprocess(network=network)
+            subprocess_utils.start_commit_reveal_subprocess(network=network, sleep_interval=subprocess_sleep_interval)
 
         self.log_verbose = log_verbose
         self._connection_timeout = connection_timeout
@@ -880,8 +881,9 @@ class Subtensor:
         success = False
         message = "No attempt made. Perhaps it is too soon to set weights!"
         while (
-                self.blocks_since_last_update(netuid, uid) > self.weights_rate_limit(netuid)  # type: ignore
-                and retries < max_retries
+            self.blocks_since_last_update(netuid, uid) > self.weights_rate_limit(netuid)  # type: ignore
+            and retries < max_retries
+            and not success
         ):
             try:
                 logging.info(
@@ -1749,7 +1751,8 @@ class Subtensor:
                             netuid=netuid,
                             uids=list(uids),
                             weights=list(weights),
-                            salt=list(salt)
+                            salt=list(salt),
+                            version_key=version_key
                         )
                     break
             except Exception as e:

@@ -20,7 +20,7 @@ from tests.e2e_tests.utils.e2e_test_utils import setup_wallet
 @pytest.mark.asyncio
 async def test_commit_and_reveal_weights(local_chain):
     """
-    Tests the commit/reveal weights mechanism
+    Tests the commit/reveal weights mechanism with subprocess disabled (CR1.0)
 
     Steps:
         1. Register a subnet through Alice
@@ -59,7 +59,7 @@ async def test_commit_and_reveal_weights(local_chain):
         netuid,
     ), "Unable to enable commit reveal on the subnet"
 
-    subtensor = bittensor.Subtensor(network="ws://localhost:9945")
+    subtensor = bittensor.Subtensor(network="ws://localhost:9945", subprocess_initialization=False)
     assert subtensor.get_subnet_hyperparameters(
         netuid=netuid
     ).commit_reveal_weights_enabled, "Failed to enable commit/reveal"
@@ -73,7 +73,6 @@ async def test_commit_and_reveal_weights(local_chain):
         return_error_message=True,
     )
 
-    subtensor = bittensor.Subtensor(network="ws://localhost:9945")
     assert (
         subtensor.get_subnet_hyperparameters(
             netuid=netuid
@@ -92,7 +91,7 @@ async def test_commit_and_reveal_weights(local_chain):
         call_params={"netuid": netuid, "weights_set_rate_limit": "0"},
         return_error_message=True,
     )
-    subtensor = bittensor.Subtensor(network="ws://localhost:9945")
+
     assert (
         subtensor.get_subnet_hyperparameters(netuid=netuid).weights_rate_limit == 0
     ), "Failed to set weights_rate_limit"
@@ -124,7 +123,7 @@ async def test_commit_and_reveal_weights(local_chain):
     )
     # Assert that the committed weights are set correctly
     assert weight_commits.value is not None, "Weight commit not found in storage"
-    commit_hash, commit_block = weight_commits.value
+    commit_hash, commit_block = weight_commits.value[0]
     assert commit_block > 0, f"Invalid block number: {commit_block}"
 
     # Query the WeightCommitRevealInterval storage map

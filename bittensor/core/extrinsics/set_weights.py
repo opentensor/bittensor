@@ -132,17 +132,6 @@ def set_weights_extrinsic(
     Returns:
         tuple[bool, str]: A tuple containing a success flag and an optional response message.
     """
-    # First convert types.
-    if use_torch():
-        if isinstance(uids, list):
-            uids = torch.tensor(uids, dtype=torch.int64)
-        if isinstance(weights, list):
-            weights = torch.tensor(weights, dtype=torch.float32)
-    else:
-        if isinstance(uids, list):
-            uids = np.array(uids, dtype=np.int64)
-        if isinstance(weights, list):
-            weights = np.array(weights, dtype=np.float32)
 
     if subtensor.get_subnet_hyperparameters(netuid=netuid).commit_reveal_weights_enabled:
         # if cr is enabled, commit instead of setting the weights.
@@ -190,6 +179,18 @@ def set_weights_extrinsic(
                 logging.debug(str(e))
             return False, str(e)
     else:
+        # First convert types.
+        if use_torch():
+            if isinstance(uids, list):
+                uids = torch.tensor(uids, dtype=torch.int64)
+            if isinstance(weights, list):
+                weights = torch.tensor(weights, dtype=torch.float32)
+        else:
+            if isinstance(uids, list):
+                uids = np.array(uids, dtype=np.int64)
+            if isinstance(weights, list):
+                weights = np.array(weights, dtype=np.float32)
+
         # Reformat and normalize.
         weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(
             uids, weights

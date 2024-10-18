@@ -28,7 +28,7 @@ def get_process(process_name: str) -> Optional[int]:
     return None
 
 
-def start_commit_reveal_subprocess(network: Optional[str] = None, sleep_interval: Optional[str] = None):
+def start_commit_reveal_subprocess(network: Optional[str] = None, sleep_interval: Optional[float] = None):
     """Start the commit reveal subprocess if not already running."""
     log_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "subprocess", "logs"))
     script_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "subprocess", "commit_reveal.py"))
@@ -45,7 +45,7 @@ def start_commit_reveal_subprocess(network: Optional[str] = None, sleep_interval
         if network:
             args.extend(['--network', network])
         if sleep_interval:
-            args.extend(['--sleep-interval', sleep_interval])
+            args.extend(['--sleep-interval', str(sleep_interval)])
 
         process = subprocess.Popen(
             args=args,
@@ -97,7 +97,6 @@ class DB:
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self.conn:
             self.conn.close()
-
 
 
 def create_table(title: str, columns: list[tuple[str, str]], rows: list[list]) -> None:
