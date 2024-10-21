@@ -11,7 +11,11 @@ PROCESS_NAME = "commit_reveal.py"
 
 
 def is_process_running(process_name: str) -> bool:
-    """Check if a process with a given name is currently running."""
+    """Check if a process with a given name is currently running.
+
+    :param process_name: Name of the process to check
+    :return: True if the process is running, False otherwise
+    """
     for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
         cmdline = proc.info['cmdline']
         if cmdline and (process_name in proc.info['name'] or any(process_name in cmd for cmd in cmdline)):
@@ -20,7 +24,11 @@ def is_process_running(process_name: str) -> bool:
 
 
 def get_process(process_name: str) -> Optional[int]:
-    """Check if a process with a given name is currently running, and return its PID if found."""
+    """Check if a process with a given name is currently running, and return its PID if found.
+
+    :param process_name: Name of the process to check
+    :return: PID of the process if found, None otherwise
+    """
     for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
         cmdline = proc.info['cmdline']
         if cmdline and (process_name in proc.info['name'] or any(process_name in cmd for cmd in cmdline)):
@@ -28,8 +36,40 @@ def get_process(process_name: str) -> Optional[int]:
     return None
 
 
-def start_commit_reveal_subprocess(network: Optional[str] = None, sleep_interval: Optional[float] = None):
-    """Start the commit reveal subprocess if not already running."""
+def read_commit_reveal_logs() -> None:
+    """Read and print the last 50 lines of logs from the log path.
+
+    :return: None
+    """
+    log_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "subprocess", "logs"))
+    stdout_path = os.path.join(log_path, STDOUT_LOG.lstrip("/"))
+    stderr_path = os.path.join(log_path, STDERR_LOG.lstrip("/"))
+
+    def read_last_n_lines(file_path: str, n: int) -> list:
+        """Reads the last N lines from a file."""
+        with open(file_path, 'r') as file:
+            return file.readlines()[-n:]
+
+    if os.path.exists(stdout_path):
+        print("----- STDOUT LOG -----")
+        print(''.join(read_last_n_lines(stdout_path, 50)))
+    else:
+        print(f"STDOUT log file not found at {stdout_path}")
+
+    if os.path.exists(stderr_path):
+        print("----- STDERR LOG -----")
+        print(''.join(read_last_n_lines(stderr_path, 50)))
+    else:
+        print(f"STDERR log file not found at {stderr_path}")
+
+
+def start_commit_reveal_subprocess(network: Optional[str] = None, sleep_interval: Optional[float] = None) -> None:
+    """Start the commit reveal subprocess if not already running.
+
+    :param network: Network name if any, optional
+    :param sleep_interval: Sleep interval if any, optional
+    :return: None
+    """
     log_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "subprocess", "logs"))
     script_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "subprocess", "commit_reveal.py"))
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -60,8 +100,11 @@ def start_commit_reveal_subprocess(network: Optional[str] = None, sleep_interval
         print(f"Subprocess '{PROCESS_NAME}' is already running.")
 
 
-def stop_commit_reveal_subprocess():
-    """Stop the commit reveal subprocess if it is running."""
+def stop_commit_reveal_subprocess() -> None:
+    """Stop the commit reveal subprocess if it is running.
+
+    :return: None
+    """
     pid = get_process(PROCESS_NAME)
 
     if pid is not None:
@@ -89,7 +132,7 @@ class DB:
         self.conn: Optional[sqlite3.Connection] = None
         self.row_factory = row_factory
 
-    def __enter__(self):
+    def __enter__(self) -> tuple[sqlite3.Connection, sqlite3.Cursor]:
         self.conn = sqlite3.connect(self.db_path)
         self.conn.row_factory = self.row_factory
         return self.conn, self.conn.cursor()
@@ -134,6 +177,7 @@ def create_table(title: str, columns: list[tuple[str, str]], rows: list[list]) -
 def read_table(table_name: str, order_by: str = "") -> tuple[list, list]:
     """
     Reads a table from a SQLite database, returning back a column names and rows as a tuple
+
     :param table_name: the table name in the database
     :param order_by: the order of the columns in the table, optional
     :return: ([column names], [rows])

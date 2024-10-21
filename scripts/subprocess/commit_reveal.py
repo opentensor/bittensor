@@ -9,7 +9,7 @@ import threading
 from bittensor.core.subtensor import Subtensor
 from bittensor_wallet import Wallet
 from scripts import subprocess_utils as utils
-from typing import List, Any, Dict, Tuple, Optional
+from typing import List, Any, Dict, Optional
 
 # Path to the SQLite database
 DB_PATH = os.path.expanduser("~/.bittensor/bittensor.db")
@@ -248,6 +248,57 @@ def reveal_batch(subtensor: Subtensor, commits: List[Commit]) -> None:
         print(f"Reveal failure for batch commits: {message}")
 
 
+def chain_hash_check(subtensor: Subtensor) -> None:
+    """
+    Perform a verification to check if the local reveal list is consistent with the chain.
+
+    Args:
+        subtensor (Subtensor): The subtensor network object.
+
+    Returns:
+        None
+    """
+    try:
+        # Retrieve all commits from the local database
+        commits = get_all_commits()
+
+        # Group commits by wallet_hotkey_ss58
+        commits_by_ss58 = {}
+        for commit in commits:
+            ss58 = commit.wallet_hotkey_ss58
+            if ss58 not in commits_by_ss58:
+                commits_by_ss58[ss58] = []
+            commits_by_ss58[ss58].append(commit)
+
+        if commits_by_ss58:
+            for ss58, ss58_commits in commits_by_ss58.items():
+                # Get a set of unique netuids from the commits
+                netuids = set(commit.netuid for commit in ss58_commits)
+                for netuid in netuids:
+                    # Query the subtensor backend for commit hashes and blocks
+                    response = subtensor.query_module(
+                        module="SubtensorModule",
+                        name="WeightCommits",
+                        params=[netuid, ss58],
+                    )
+
+                    for commit_hash, commit_block in response.value:
+                        # Check if any commit on Subtensor is absent in local database
+                        if not any(c.commit_hash == commit_hash for c in ss58_commits):
+                            print(f"There is a commit on Subtensor (hash: {commit_hash}) that we don't have locally.")
+
+                    # Check if any local commit is absent in Subtensor
+                    local_commit_hashes = {c.commit_hash for c in ss58_commits}
+                    subtensor_commit_hashes = {commit_hash for commit_hash, _ in response.value}
+
+                    for local_commit_hash in local_commit_hashes:
+                        if local_commit_hash not in subtensor_commit_hashes:
+                            print(f"There is a local commit (hash: {local_commit_hash}) that is not on Subtensor.")
+                            revealed_hash(local_commit_hash)
+    except Exception as e:
+        print(f"Error during chain_hash_check: {e}")
+
+
 def revealed(wallet_name: str, wallet_path: str, wallet_hotkey_str: str, wallet_hotkey_ss58: str, netuid: int,
              uids: List[int], weights: List[int], salt: List[int], version_key: int) -> None:
     """
@@ -367,6 +418,17 @@ def committed(commit: Commit) -> None:
     print(f"Committed commit data: {commit_data}")
 
 
+def get_all_commits() -> List[Commit]:
+    """
+    Retrieves all commits from the database.
+
+    Returns:
+        List[Commit]: A list of all commits in the database.
+    """
+    columns, rows = utils.read_table("commits")
+    return [Commit.from_dict(dict(zip(columns, commit))) for commit in rows]
+
+
 def check_reveal(subtensor: Subtensor) -> bool:
     """
     Checks if there are any commits to reveal and performs the reveal if necessary.
@@ -378,8 +440,7 @@ def check_reveal(subtensor: Subtensor) -> bool:
         bool: True if a commit was revealed, False otherwise.
     """
     try:
-        columns, rows = utils.read_table("commits")
-        commits = [Commit.from_dict(dict(zip(columns, commit))) for commit in rows]
+        commits = get_all_commits()
     except Exception as e:
         print(f"Error reading table 'commits': {e}")
         return False
@@ -389,11 +450,34 @@ def check_reveal(subtensor: Subtensor) -> bool:
 
         # Filter for commits that are ready to be revealed
         reveal_candidates = [commit for commit in commits if commit.reveal_block <= curr_block]
+        return len(reveal_candidates) > 0
+    return False
 
-        if reveal_candidates:
+
+def reveal_candidates(subtensor: Subtensor) -> None:
+    """
+    Checks if there are any commits to reveal and performs the reveal if necessary.
+
+    Args:
+        subtensor (Subtensor): The subtensor network object.
+
+    Returns:
+        bool: True if a commit was revealed, False otherwise.
+    """
+    try:
+        commits = get_all_commits()
+    except Exception as e:
+        print(f"Error reading table 'commits': {e}")
+
+    if commits:
+        curr_block = subtensor.get_current_block()
+
+        # Filter for commits that are ready to be revealed
+        ready_for_reveal = [commit for commit in commits if commit.reveal_block <= curr_block]
+        if ready_for_reveal:
             # Group commits by wallet_hotkey_ss58
             grouped_reveals = {}
-            for commit in reveal_candidates:
+            for commit in ready_for_reveal:
                 key = commit.wallet_hotkey_ss58
                 if key not in grouped_reveals:
                     grouped_reveals[key] = []
@@ -403,16 +487,10 @@ def check_reveal(subtensor: Subtensor) -> bool:
             for hotkey_ss58, group in grouped_reveals.items():
                 if len(group) > 1:
                     # Batch reveal if there are 2 or more reveal candidates
-                    print("Revealing with batch")
                     reveal_batch(subtensor, group)
                 else:
                     # Otherwise, reveal individually
-                    print("Revealing without batch")
                     reveal(subtensor, group[0])
-                # for commit in group:
-                #     revealed_hash(commit.commit_hash)
-            return True
-    return False
 
 
 def handle_client_connection(client_socket: socket.socket) -> None:
@@ -510,23 +588,31 @@ def main(args: argparse.Namespace) -> None:
     Returns:
         None
     """
-    print("Initializing database...")
     initialize_db()
     subtensor = Subtensor(network=args.network, subprocess_initialization=False)
     server_thread = threading.Thread(target=start_socket_server)
     server_thread.start()
 
+    counter = 0  # Initialize counter
+
     while running:
+        counter += 1
+
         if check_reveal(subtensor=subtensor):
-            print(f"Revealing commit for block {subtensor.get_current_block()}")
-        else:
-            print(f"Nothing to reveal for block {subtensor.get_current_block()}")
+            reveal_candidates(subtensor=subtensor)
+            print(f"Revealing commit on block {subtensor.get_current_block()}")
+
+        # Every 100th run, perform an additional check to verify reveal list alignment with the backend
+        if counter % 100 == 0:
+            chain_hash_check(subtensor=subtensor)
+
         time.sleep(args.sleep_interval)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run the Bittensor commit-reveal subprocess script.")
-    parser.add_argument("--network", type=str, default="ws://localhost:9945", help="Subtensor network address")
+    parser.add_argument("--network", type=str, default="wss://entrypoint-finney.opentensor.ai:443",
+                        help="Subtensor network address")
     parser.add_argument("--sleep-interval", type=float, default=12, help="Interval between block checks in seconds")
     args = parser.parse_args()
     main(args)

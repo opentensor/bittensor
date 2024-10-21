@@ -1777,7 +1777,7 @@ class Subtensor:
         """
         # formula is (block_number + netuid + 1 ) % (tempo + 1) = 0
         curr_block = self.get_current_block()
-        tempo = self.get_subnet_hyperparameters(netuid=netuid).tempo
+        tempo = self.get_subnet_hyperparameters(netuid=netuid).tempo  # type: ignore
         if tempo == 0:
             return U64_MAX
         remainder = (curr_block + netuid + 1) % (tempo + 1)
