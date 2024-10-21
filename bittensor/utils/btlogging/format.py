@@ -26,7 +26,7 @@ import time
 from typing import Optional
 from colorama import init, Fore, Back, Style
 
-init(autoreset=True, strip=False)
+init(wrap=False)
 
 TRACE_LEVEL_NUM: int = 5
 SUCCESS_LEVEL_NUM: int = 21
