@@ -79,12 +79,11 @@ from bittensor.core.extrinsics.transfer import (
     transfer_extrinsic,
 )
 from bittensor.core.metagraph import Metagraph
-from bittensor.utils import ss58_to_vec_u8, torch, U64_MAX, u16_normalized_float, networking
+from bittensor.utils import ss58_to_vec_u8, torch, U64_MAX, u16_normalized_float, networking, subprocess_utils
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import legacy_torch_api_compat
 from bittensor.utils.weight_utils import generate_weight_hash
-from scripts import subprocess_utils
 
 KEY_NONCE: dict[str, int] = {}
 
@@ -153,7 +152,7 @@ class Subtensor:
         _mock: bool = False,
         log_verbose: bool = False,
         connection_timeout: int = 600,
-        subprocess_initialization: bool = False,
+        subprocess_initialization: bool = True,
         subprocess_sleep_interval: float = 12,
     ) -> None:
         """

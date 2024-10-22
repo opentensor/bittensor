@@ -63,7 +63,7 @@ async def test_commit_and_reveal_weights(local_chain):
         network="ws://localhost:9945", subprocess_initialization=False
     )
     assert subtensor.get_subnet_hyperparameters(
-        netuid=netuid
+        netuid=netuid,
     ).commit_reveal_weights_enabled, "Failed to enable commit/reveal"
 
     # Lower the commit_reveal interval
@@ -126,14 +126,16 @@ async def test_commit_and_reveal_weights(local_chain):
     assert commit_block > 0, f"Invalid block number: {commit_block}"
 
     # Query the WeightCommitRevealInterval storage map
-    weight_commit_reveal_interval = subtensor.query_module(
-        module="SubtensorModule", name="WeightCommitRevealInterval", params=[netuid]
+    reveal_periods = subtensor.query_module(
+        module="SubtensorModule", name="RevealPeriodEpochs", params=[netuid]
     )
-    interval = weight_commit_reveal_interval.value
-    assert interval > 0, "Invalid WeightCommitRevealInterval"
+    periods = reveal_periods.value
+    assert periods > 0, "Invalid RevealPeriodEpochs"
 
     # Wait until the reveal block range
-    await wait_interval(interval, subtensor)
+    await wait_interval(
+        subtensor.get_subnet_hyperparameters(netuid=netuid).tempo, subtensor
+    )
 
     # Reveal weights
     success, message = subtensor.reveal_weights(

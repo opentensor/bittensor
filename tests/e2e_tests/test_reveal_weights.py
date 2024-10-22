@@ -1,9 +1,8 @@
 import time
-from time import sleep
 
 import numpy as np
 import pytest
-import scripts.subprocess.commit_reveal as commit_reveal_subprocess
+import bittensor.utils.subprocess.commit_reveal as commit_reveal_subprocess
 import bittensor
 from bittensor import logging
 from bittensor.utils.weight_utils import convert_weights_and_uids_for_emit
@@ -357,7 +356,7 @@ async def test_set_and_reveal_batch_weights(local_chain):
     ), "Unable to enable commit reveal on the subnet"
 
     subtensor = bittensor.Subtensor(
-        network="ws://localhost:9945", subprocess_sleep_interval=2
+        network="ws://localhost:9945", subprocess_sleep_interval=0.25
     )  # Subprocess works with fast blocks
     assert subtensor.get_subnet_hyperparameters(
         netuid=netuid

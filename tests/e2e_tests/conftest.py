@@ -8,12 +8,11 @@ import time
 
 import pytest
 from substrateinterface import SubstrateInterface
-from scripts import subprocess_utils
+from bittensor.utils import subprocess_utils
 from bittensor import logging
 from tests.e2e_tests.utils.e2e_test_utils import (
     clone_or_update_templates,
     install_templates,
-    template_path,
     uninstall_templates,
 )
 

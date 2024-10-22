@@ -5,9 +5,26 @@ from typing import Optional
 import subprocess
 import psutil
 
-STDOUT_LOG = "/commit_reveal_stdout.log"
-STDERR_LOG = "/commit_reveal_stderr.log"
+LOG_DIR = os.path.expanduser("~/.bittensor/logs")
 PROCESS_NAME = "commit_reveal.py"
+
+# Ensure the log directory exists
+os.makedirs(LOG_DIR, exist_ok=True)
+
+
+def get_pid_log_files() -> tuple[str, str]:
+    """
+    Get the log files for the current running process.
+    Returns:
+        tuple[str, str]: Paths to the stdout log file and stderr log file.
+    """
+    pid = get_process(PROCESS_NAME)
+    if pid is None:
+        raise RuntimeError(f"Process '{PROCESS_NAME}' is not running.")
+
+    stdout_log = os.path.join(LOG_DIR, f"commit_reveal_stdout_{pid}.log")
+    stderr_log = os.path.join(LOG_DIR, f"commit_reveal_stderr_{pid}.log")
+    return stdout_log, stderr_log
 
 
 def is_process_running(process_name: str) -> bool:
@@ -52,34 +69,34 @@ def get_process(process_name: str) -> Optional[int]:
 
 def read_commit_reveal_logs():
     """
-    Read and print the last 50 lines of logs from the log path.
+    Read and print the last 50 lines of logs from the most recent subprocess log.
     """
-    log_path = os.path.abspath(
-        os.path.join(os.path.dirname(__file__), "subprocess", "logs")
-    )
-    stdout_path = os.path.join(log_path, STDOUT_LOG.lstrip("/"))
-    stderr_path = os.path.join(log_path, STDERR_LOG.lstrip("/"))
+    try:
+        stdout_log, stderr_log = get_pid_log_files()
+    except RuntimeError as e:
+        print(str(e))
+        return
 
     def read_last_n_lines(file_path: str, n: int) -> list:
         """Reads the last N lines from a file."""
         with open(file_path, "r") as file:
             return file.readlines()[-n:]
 
-    if os.path.exists(stdout_path):
+    if os.path.exists(stdout_log):
         print("----- STDOUT LOG -----")
-        print("".join(read_last_n_lines(stdout_path, 50)))
+        print("".join(read_last_n_lines(stdout_log, 50)))
     else:
-        print(f"STDOUT log file not found at {stdout_path}")
+        print(f"STDOUT log file not found at {stdout_log}")
 
-    if os.path.exists(stderr_path):
+    if os.path.exists(stderr_log):
         print("----- STDERR LOG -----")
-        print("".join(read_last_n_lines(stderr_path, 50)))
+        print("".join(read_last_n_lines(stderr_log, 50)))
     else:
-        print(f"STDERR log file not found at {stderr_path}")
+        print(f"STDERR log file not found at {stderr_log}")
 
 
 def start_commit_reveal_subprocess(
-    network: Optional[str] = None, sleep_interval: Optional[float] = None
+        network: Optional[str] = None, sleep_interval: Optional[float] = None
 ):
     """
     Start the commit reveal subprocess if not already running.
@@ -88,17 +105,21 @@ def start_commit_reveal_subprocess(
         network (Optional[str]): Network name if any, optional.
         sleep_interval (Optional[float]): Sleep interval if any, optional.
     """
-    log_path = os.path.abspath(
-        os.path.join(os.path.dirname(__file__), "subprocess", "logs")
-    )
     script_path = os.path.abspath(
         os.path.join(os.path.dirname(__file__), "subprocess", "commit_reveal.py")
     )
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
     if not is_process_running(PROCESS_NAME):
-        stdout_file = open(log_path + STDOUT_LOG, "w")
-        stderr_file = open(log_path + STDERR_LOG, "w")
+        # Correctly construct the paths for STDOUT and STDERR log files
+        stdout_log = os.path.join(LOG_DIR, "commit_reveal_stdout.log")
+        stderr_log = os.path.join(LOG_DIR, "commit_reveal_stderr.log")
+
+        os.makedirs(LOG_DIR, exist_ok=True)
+
+        stdout_file = open(stdout_log, "w")
+        stderr_file = open(stderr_log, "w")
+
         print(f"Starting subprocess '{PROCESS_NAME}'...")
         env = os.environ.copy()
         env["PYTHONPATH"] = project_root + ":" + env.get("PYTHONPATH", "")
@@ -109,6 +130,7 @@ def start_commit_reveal_subprocess(
         if sleep_interval:
             args.extend(["--sleep-interval", str(sleep_interval)])
 
+        # Create a new subprocess
         process = subprocess.Popen(
             args=args,
             stdout=stdout_file,

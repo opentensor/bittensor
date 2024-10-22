@@ -10,7 +10,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from bittensor.core.subtensor import Subtensor
 from bittensor_wallet import Wallet
-from scripts import subprocess_utils as utils
+from bittensor.utils import subprocess_utils as utils
 from typing import List, Any, Dict, Optional
 
 # Path to the SQLite database
@@ -612,7 +612,8 @@ def start_socket_server():
                 print(f"Accepted connection from {addr[0]}.")
                 executor.submit(handle_client_connection, client_sock)
             except socket.timeout:
-                print("Socket timeout, continuing to listen...")
+                # print("Socket timeout, continuing to listen...")
+                continue
             except Exception as e:
                 print(f"Error accepting connection: {e}.")
                 break
@@ -648,10 +649,10 @@ def main(args: argparse.Namespace):
 
     while running:
         counter += 1
-
+        curr_block = subtensor.get_current_block()
         if check_reveal(subtensor=subtensor):
             reveal_candidates(subtensor=subtensor)
-            print(f"Revealing commit on block {subtensor.get_current_block()}")
+            print(f"Revealing commit on block {curr_block}")
 
         # Every 100th run, perform an additional check to verify reveal list alignment with the backend
         if counter % 100 == 0:
