@@ -248,9 +248,6 @@ async def test_set_and_reveal_weights(local_chain):
     # Commit-reveal values
     uids = np.array([0], dtype=np.int64)
     weights = np.array([0.1], dtype=np.float32)
-    weight_uids, weight_vals = convert_weights_and_uids_for_emit(
-        uids=uids, weights=weights
-    )
 
     # Assert no local CR processes in table
     assert commit_reveal_subprocess.is_table_empty("commits")
@@ -259,10 +256,14 @@ async def test_set_and_reveal_weights(local_chain):
     success, message = subtensor.set_weights(
         alice_wallet,
         netuid,
-        uids=weight_uids,
-        weights=weight_vals,
+        uids=uids,
+        weights=weights,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+    )
+
+    weight_uids, weight_vals = convert_weights_and_uids_for_emit(
+        uids=uids, weights=weights
     )
 
     weight_commits = subtensor.query_module(
@@ -394,9 +395,7 @@ async def test_set_and_reveal_batch_weights(local_chain):
     # Commit-reveal values
     uids = np.array([0], dtype=np.int64)
     weights = np.array([0.1], dtype=np.float32)
-    weight_uids, weight_vals = convert_weights_and_uids_for_emit(
-        uids=uids, weights=weights
-    )
+
 
     # Assert no local CR processes in table
     assert commit_reveal_subprocess.is_table_empty("commits")
@@ -405,8 +404,8 @@ async def test_set_and_reveal_batch_weights(local_chain):
     success, message = subtensor.set_weights(
         alice_wallet,
         netuid,
-        uids=weight_uids,
-        weights=weight_vals,
+        uids=uids,
+        weights=weights,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
@@ -416,16 +415,14 @@ async def test_set_and_reveal_batch_weights(local_chain):
     # Commit-reveal values
     uids = np.array([0], dtype=np.int64)
     weights = np.array([0.2], dtype=np.float32)
-    weight_uids, weight_vals = convert_weights_and_uids_for_emit(
-        uids=uids, weights=weights
-    )
+
 
     # add second weights with CR enabled
     success, message = subtensor.set_weights(
         alice_wallet,
         netuid,
-        uids=weight_uids,
-        weights=weight_vals,
+        uids=uids,
+        weights=weights,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
@@ -435,16 +432,14 @@ async def test_set_and_reveal_batch_weights(local_chain):
     # Commit-reveal values
     uids = np.array([0], dtype=np.int64)
     weights = np.array([0.3], dtype=np.float32)
-    weight_uids, weight_vals = convert_weights_and_uids_for_emit(
-        uids=uids, weights=weights
-    )
+
 
     # add second weights with CR enabled
     success, message = subtensor.set_weights(
         alice_wallet,
         netuid,
-        uids=weight_uids,
-        weights=weight_vals,
+        uids=uids,
+        weights=weights,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
@@ -453,6 +448,10 @@ async def test_set_and_reveal_batch_weights(local_chain):
         module="SubtensorModule",
         name="WeightCommits",
         params=[netuid, alice_wallet.hotkey.ss58_address],
+    )
+
+    weight_uids, weight_vals = convert_weights_and_uids_for_emit(
+        uids=uids, weights=weights
     )
 
     # Assert that the committed weights are set correctly

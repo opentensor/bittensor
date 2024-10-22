@@ -29,6 +29,7 @@ from bittensor.utils import format_error_message, weight_utils
 from bittensor.utils.btlogging import logging
 from bittensor.utils.networking import ensure_connected
 from bittensor.utils.registration import torch, use_torch
+from bittensor.utils.weight_utils import convert_weights_and_uids_for_emit
 
 # For annotation purposes
 if TYPE_CHECKING:
@@ -138,6 +139,9 @@ def set_weights_extrinsic(
     ).commit_reveal_weights_enabled:
         # if cr is enabled, commit instead of setting the weights.
         salt = [random.randint(0, 350) for _ in range(8)]
+        uids, vals = convert_weights_and_uids_for_emit(
+            uids=uids, weights=weights
+        )
 
         # Ask before moving on.
         if prompt:
@@ -156,7 +160,7 @@ def set_weights_extrinsic(
                     netuid=netuid,
                     salt=salt,
                     uids=uids,
-                    weights=weights,
+                    weights=vals,
                     wait_for_inclusion=wait_for_inclusion,
                     wait_for_finalization=wait_for_finalization,
                     prompt=prompt,
