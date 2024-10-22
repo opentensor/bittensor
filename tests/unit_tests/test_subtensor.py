@@ -2051,3 +2051,256 @@ def test_connect_with_substrate(mocker):
 
     # Assertions
     assert spy_get_substrate.call_count == 0
+
+
+def test_get_subnet_burn_cost_success(subtensor, mocker):
+    """Tests get_subnet_burn_cost method with successfully result."""
+    # Preps
+    mocked_query_runtime_api = mocker.patch.object(subtensor, "query_runtime_api")
+    fake_block = 123
+
+    # Call
+    result = subtensor.get_subnet_burn_cost(fake_block)
+
+    # Asserts
+    mocked_query_runtime_api.assert_called_once_with(
+        runtime_api="SubnetRegistrationRuntimeApi",
+        method="get_network_registration_cost",
+        params=[],
+        block=fake_block,
+    )
+
+    assert result == mocked_query_runtime_api.return_value
+
+
+def test_get_subnet_burn_cost_none(subtensor, mocker):
+    """Tests get_subnet_burn_cost method with None result."""
+    # Preps
+    mocked_query_runtime_api = mocker.patch.object(
+        subtensor, "query_runtime_api", return_value=None
+    )
+    fake_block = 123
+
+    # Call
+    result = subtensor.get_subnet_burn_cost(fake_block)
+
+    # Asserts
+    mocked_query_runtime_api.assert_called_once_with(
+        runtime_api="SubnetRegistrationRuntimeApi",
+        method="get_network_registration_cost",
+        params=[],
+        block=fake_block,
+    )
+
+    assert result is None
+
+
+def test_difficulty_success(subtensor, mocker):
+    """Tests difficulty method with successfully result."""
+    # Preps
+    mocked_get_hyperparameter = mocker.patch.object(subtensor, "_get_hyperparameter")
+    fake_netuid = 1
+    fake_block = 2
+
+    # Call
+    result = subtensor.difficulty(fake_netuid, fake_block)
+
+    # Asserts
+    mocked_get_hyperparameter.assert_called_once_with(
+        param_name="Difficulty",
+        netuid=fake_netuid,
+        block=fake_block,
+    )
+
+    assert result == int(mocked_get_hyperparameter.return_value)
+
+
+def test_difficulty_none(subtensor, mocker):
+    """Tests difficulty method with None result."""
+    # Preps
+    mocked_get_hyperparameter = mocker.patch.object(
+        subtensor, "_get_hyperparameter", return_value=None
+    )
+    fake_netuid = 1
+    fake_block = 2
+
+    # Call
+    result = subtensor.difficulty(fake_netuid, fake_block)
+
+    # Asserts
+    mocked_get_hyperparameter.assert_called_once_with(
+        param_name="Difficulty",
+        netuid=fake_netuid,
+        block=fake_block,
+    )
+
+    assert result is None
+
+
+def test_recycle_success(subtensor, mocker):
+    """Tests recycle method with successfully result."""
+    # Preps
+    mocked_get_hyperparameter = mocker.patch.object(
+        subtensor, "_get_hyperparameter", return_value=0.1
+    )
+    fake_netuid = 1
+    fake_block = 2
+    mocked_balance = mocker.patch("bittensor.utils.balance.Balance")
+
+    # Call
+    result = subtensor.recycle(fake_netuid, fake_block)
+
+    # Asserts
+    mocked_get_hyperparameter.assert_called_once_with(
+        param_name="Burn",
+        netuid=fake_netuid,
+        block=fake_block,
+    )
+
+    mocked_balance.assert_called_once_with(int(mocked_get_hyperparameter.return_value))
+    assert result == mocked_balance.return_value
+
+
+def test_recycle_none(subtensor, mocker):
+    """Tests recycle method with None result."""
+    # Preps
+    mocked_get_hyperparameter = mocker.patch.object(
+        subtensor, "_get_hyperparameter", return_value=None
+    )
+    fake_netuid = 1
+    fake_block = 2
+
+    # Call
+    result = subtensor.recycle(fake_netuid, fake_block)
+
+    # Asserts
+    mocked_get_hyperparameter.assert_called_once_with(
+        param_name="Burn",
+        netuid=fake_netuid,
+        block=fake_block,
+    )
+
+    assert result is None
+
+
+# `get_all_subnets_info` tests
+def test_get_all_subnets_info_success(mocker, subtensor):
+    """Test get_all_subnets_info returns correct data when subnet information is found."""
+    # Prep
+    block = 123
+    subnet_data = [1, 2, 3]  # Mocked response data
+    mocker.patch.object(
+        subtensor.substrate, "get_block_hash", return_value="mock_block_hash"
+    )
+    mock_response = {"result": subnet_data}
+    mocker.patch.object(subtensor.substrate, "rpc_request", return_value=mock_response)
+    mocker.patch.object(
+        subtensor_module.SubnetInfo,
+        "list_from_vec_u8",
+        return_value="list_from_vec_u80",
+    )
+
+    # Call
+    result = subtensor.get_all_subnets_info(block)
+
+    # Asserts
+    subtensor.substrate.get_block_hash.assert_called_once_with(block)
+    subtensor.substrate.rpc_request.assert_called_once_with(
+        method="subnetInfo_getSubnetsInfo", params=["mock_block_hash"]
+    )
+    subtensor_module.SubnetInfo.list_from_vec_u8.assert_called_once_with(subnet_data)
+
+
+@pytest.mark.parametrize("result_", [[], None])
+def test_get_all_subnets_info_no_data(mocker, subtensor, result_):
+    """Test get_all_subnets_info returns empty list when no subnet information is found."""
+    # Prep
+    block = 123
+    mocker.patch.object(
+        subtensor.substrate, "get_block_hash", return_value="mock_block_hash"
+    )
+    mock_response = {"result": result_}
+    mocker.patch.object(subtensor.substrate, "rpc_request", return_value=mock_response)
+    mocker.patch.object(subtensor_module.SubnetInfo, "list_from_vec_u8")
+
+    # Call
+    result = subtensor.get_all_subnets_info(block)
+
+    # Asserts
+    assert result == []
+    subtensor.substrate.get_block_hash.assert_called_once_with(block)
+    subtensor.substrate.rpc_request.assert_called_once_with(
+        method="subnetInfo_getSubnetsInfo", params=["mock_block_hash"]
+    )
+    subtensor_module.SubnetInfo.list_from_vec_u8.assert_not_called()
+
+
+def test_get_all_subnets_info_retry(mocker, subtensor):
+    """Test get_all_subnets_info retries on failure."""
+    # Prep
+    block = 123
+    subnet_data = [1, 2, 3]
+    mocker.patch.object(
+        subtensor.substrate, "get_block_hash", return_value="mock_block_hash"
+    )
+    mock_response = {"result": subnet_data}
+    mock_rpc_request = mocker.patch.object(
+        subtensor.substrate,
+        "rpc_request",
+        side_effect=[Exception, Exception, mock_response],
+    )
+    mocker.patch.object(
+        subtensor_module.SubnetInfo, "list_from_vec_u8", return_value=["some_data"]
+    )
+
+    # Call
+    result = subtensor.get_all_subnets_info(block)
+
+    # Asserts
+    subtensor.substrate.get_block_hash.assert_called_with(block)
+    assert mock_rpc_request.call_count == 3
+    subtensor_module.SubnetInfo.list_from_vec_u8.assert_called_once_with(subnet_data)
+    assert result == ["some_data"]
+
+
+def test_get_delegate_take_success(subtensor, mocker):
+    """Verify `get_delegate_take` method successful path."""
+    # Preps
+    fake_hotkey_ss58 = "FAKE_SS58"
+    fake_block = 123
+
+    subtensor_module.u16_normalized_float = mocker.Mock()
+    subtensor.query_subtensor = mocker.Mock(return_value=mocker.Mock(value="value"))
+
+    # Call
+    result = subtensor.get_delegate_take(hotkey_ss58=fake_hotkey_ss58, block=fake_block)
+
+    # Asserts
+    subtensor.query_subtensor.assert_called_once_with(
+        "Delegates", fake_block, [fake_hotkey_ss58]
+    )
+    subtensor_module.u16_normalized_float.assert_called_once_with(
+        subtensor.query_subtensor.return_value.value
+    )
+    assert result == subtensor_module.u16_normalized_float.return_value
+
+
+def test_get_delegate_take_none(subtensor, mocker):
+    """Verify `get_delegate_take` method returns None."""
+    # Preps
+    fake_hotkey_ss58 = "FAKE_SS58"
+    fake_block = 123
+
+    subtensor.query_subtensor = mocker.Mock(return_value=mocker.Mock(value=None))
+    subtensor_module.u16_normalized_float = mocker.Mock()
+
+    # Call
+    result = subtensor.get_delegate_take(hotkey_ss58=fake_hotkey_ss58, block=fake_block)
+
+    # Asserts
+    subtensor.query_subtensor.assert_called_once_with(
+        "Delegates", fake_block, [fake_hotkey_ss58]
+    )
+
+    subtensor_module.u16_normalized_float.assert_not_called()
+    assert result is None

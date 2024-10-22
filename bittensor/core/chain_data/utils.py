@@ -260,7 +260,7 @@ custom_rpc_type_registry = {
 }
 
 
-def decode_account_id(account_id_bytes: list) -> str:
+def decode_account_id(account_id_bytes: Union[bytes, str]) -> str:
     """
     Decodes an AccountId from bytes to a Base64 string using SS58 encoding.
 
