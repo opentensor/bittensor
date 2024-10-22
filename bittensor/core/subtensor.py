@@ -83,7 +83,7 @@ from bittensor.utils import ss58_to_vec_u8, torch, U64_MAX, u16_normalized_float
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import legacy_torch_api_compat
-from bittensor.utils.weight_utils import generate_weight_hash
+from bittensor.utils.weight_utils import generate_weight_hash, convert_weights_and_uids_for_emit
 
 KEY_NONCE: dict[str, int] = {}
 
@@ -1867,6 +1867,9 @@ class Subtensor:
         logging.info(
             f"Committing weights with params: netuid={netuid}, uids={uids}, weights={weights}, version_key={version_key}"
         )
+
+        if isinstance(weights, list) and all(isinstance(w, float) for w in weights):
+            _, weights = convert_weights_and_uids_for_emit(uids, weights)
 
         # Generate the hash of the weights
         commit_hash = generate_weight_hash(
