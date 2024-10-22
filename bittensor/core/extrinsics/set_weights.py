@@ -152,12 +152,30 @@ def set_weights_extrinsic(
             f":satellite: Committing weights on [white]{subtensor.network}[/white] ..."
         ):
             try:
+
+                # First convert types.
+                if use_torch():
+                    if isinstance(uids, list):
+                        uids = torch.tensor(uids, dtype=torch.int64)
+                    if isinstance(weights, list):
+                        weights = torch.tensor(weights, dtype=torch.float32)
+                else:
+                    if isinstance(uids, list):
+                        uids = np.array(uids, dtype=np.int64)
+                    if isinstance(weights, list):
+                        weights = np.array(weights, dtype=np.float32)
+
+                # Reformat and normalize.
+                weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(
+                    uids, weights
+                )
+
                 success, message = subtensor.commit_weights(
                     wallet=wallet,
                     netuid=netuid,
                     salt=salt,
-                    uids=uids,
-                    weights=weights,
+                    uids=weight_uids,
+                    weights=weight_vals,
                     wait_for_inclusion=wait_for_inclusion,
                     wait_for_finalization=wait_for_finalization,
                     prompt=prompt,
