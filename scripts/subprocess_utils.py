@@ -20,9 +20,12 @@ def is_process_running(process_name: str) -> bool:
     Returns:
         bool: True if the process is running, False otherwise.
     """
-    for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
-        cmdline = proc.info['cmdline']
-        if cmdline and (process_name in proc.info['name'] or any(process_name in cmd for cmd in cmdline)):
+    for proc in psutil.process_iter(["pid", "name", "cmdline"]):
+        cmdline = proc.info["cmdline"]
+        if cmdline and (
+            process_name in proc.info["name"]
+            or any(process_name in cmd for cmd in cmdline)
+        ):
             return True
     return False
 
@@ -37,10 +40,13 @@ def get_process(process_name: str) -> Optional[int]:
     Returns:
         Optional[int]: PID of the process if found, None otherwise.
     """
-    for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
-        cmdline = proc.info['cmdline']
-        if cmdline and (process_name in proc.info['name'] or any(process_name in cmd for cmd in cmdline)):
-            return proc.info['pid']
+    for proc in psutil.process_iter(["pid", "name", "cmdline"]):
+        cmdline = proc.info["cmdline"]
+        if cmdline and (
+            process_name in proc.info["name"]
+            or any(process_name in cmd for cmd in cmdline)
+        ):
+            return proc.info["pid"]
     return None
 
 
@@ -48,29 +54,33 @@ def read_commit_reveal_logs():
     """
     Read and print the last 50 lines of logs from the log path.
     """
-    log_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "subprocess", "logs"))
+    log_path = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "subprocess", "logs")
+    )
     stdout_path = os.path.join(log_path, STDOUT_LOG.lstrip("/"))
     stderr_path = os.path.join(log_path, STDERR_LOG.lstrip("/"))
 
     def read_last_n_lines(file_path: str, n: int) -> list:
         """Reads the last N lines from a file."""
-        with open(file_path, 'r') as file:
+        with open(file_path, "r") as file:
             return file.readlines()[-n:]
 
     if os.path.exists(stdout_path):
         print("----- STDOUT LOG -----")
-        print(''.join(read_last_n_lines(stdout_path, 50)))
+        print("".join(read_last_n_lines(stdout_path, 50)))
     else:
         print(f"STDOUT log file not found at {stdout_path}")
 
     if os.path.exists(stderr_path):
         print("----- STDERR LOG -----")
-        print(''.join(read_last_n_lines(stderr_path, 50)))
+        print("".join(read_last_n_lines(stderr_path, 50)))
     else:
         print(f"STDERR log file not found at {stderr_path}")
 
 
-def start_commit_reveal_subprocess(network: Optional[str] = None, sleep_interval: Optional[float] = None):
+def start_commit_reveal_subprocess(
+    network: Optional[str] = None, sleep_interval: Optional[float] = None
+):
     """
     Start the commit reveal subprocess if not already running.
 
@@ -78,9 +88,13 @@ def start_commit_reveal_subprocess(network: Optional[str] = None, sleep_interval
         network (Optional[str]): Network name if any, optional.
         sleep_interval (Optional[float]): Sleep interval if any, optional.
     """
-    log_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "subprocess", "logs"))
-    script_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "subprocess", "commit_reveal.py"))
-    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    log_path = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "subprocess", "logs")
+    )
+    script_path = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "subprocess", "commit_reveal.py")
+    )
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
     if not is_process_running(PROCESS_NAME):
         stdout_file = open(log_path + STDOUT_LOG, "w")
@@ -89,18 +103,18 @@ def start_commit_reveal_subprocess(network: Optional[str] = None, sleep_interval
         env = os.environ.copy()
         env["PYTHONPATH"] = project_root + ":" + env.get("PYTHONPATH", "")
 
-        args = ['python3', script_path]
+        args = ["python3", script_path]
         if network:
-            args.extend(['--network', network])
+            args.extend(["--network", network])
         if sleep_interval:
-            args.extend(['--sleep-interval', str(sleep_interval)])
+            args.extend(["--sleep-interval", str(sleep_interval)])
 
         process = subprocess.Popen(
             args=args,
             stdout=stdout_file,
             stderr=stderr_file,
             preexec_fn=os.setsid,
-            env=env
+            env=env,
         )
         print(f"Subprocess '{PROCESS_NAME}' started with PID {process.pid}.")
 
@@ -110,8 +124,8 @@ def start_commit_reveal_subprocess(network: Optional[str] = None, sleep_interval
 
 def stop_commit_reveal_subprocess():
     """
-     Stop the commit reveal subprocess if it is running.
-     """
+    Stop the commit reveal subprocess if it is running.
+    """
     pid = get_process(PROCESS_NAME)
 
     if pid is not None:
@@ -128,9 +142,9 @@ class DB:
     """
 
     def __init__(
-            self,
-            db_path: str = os.path.expanduser("~/.bittensor/bittensor.db"),
-            row_factory=None,
+        self,
+        db_path: str = os.path.expanduser("~/.bittensor/bittensor.db"),
+        row_factory=None,
     ):
         if not os.path.exists(os.path.dirname(db_path)):
             os.makedirs(os.path.dirname(db_path))

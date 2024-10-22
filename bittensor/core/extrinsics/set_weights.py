@@ -133,20 +133,22 @@ def set_weights_extrinsic(
         tuple[bool, str]: A tuple containing a success flag and an optional response message.
     """
 
-    if subtensor.get_subnet_hyperparameters(netuid=netuid).commit_reveal_weights_enabled:
+    if subtensor.get_subnet_hyperparameters(
+        netuid=netuid
+    ).commit_reveal_weights_enabled:
         # if cr is enabled, commit instead of setting the weights.
         salt = [random.randint(0, 350) for _ in range(8)]
 
         # Ask before moving on.
         if prompt:
             if not Confirm.ask(
-                    f"Do you want to commit weights:\n[bold white]  weights: {weights}\n"
-                    f"uids: {uids}[/bold white ]?"
+                f"Do you want to commit weights:\n[bold white]  weights: {weights}\n"
+                f"uids: {uids}[/bold white ]?"
             ):
                 return False, "Prompt refused."
 
         with bt_console.status(
-                f":satellite: Committing weights on [white]{subtensor.network}[/white] ..."
+            f":satellite: Committing weights on [white]{subtensor.network}[/white] ..."
         ):
             try:
                 success, message = subtensor.commit_weights(
@@ -163,7 +165,9 @@ def set_weights_extrinsic(
                     return True, "Not waiting for finalization or inclusion."
 
                 if success is True:
-                    bt_console.print(":white_heavy_check_mark: [green]Finalized[/green]")
+                    bt_console.print(
+                        ":white_heavy_check_mark: [green]Finalized[/green]"
+                    )
                     logging.success(
                         msg=str(success),
                         prefix="Committed weights",
@@ -207,7 +211,6 @@ def set_weights_extrinsic(
         with bt_console.status(
             f":satellite: Setting weights on [white]{subtensor.network}[/white] ..."
         ):
-
             try:
                 success, error_message = do_set_weights(
                     self=subtensor,
@@ -224,7 +227,9 @@ def set_weights_extrinsic(
                     return True, "Not waiting for finalization or inclusion."
 
                 if success is True:
-                    bt_console.print(":white_heavy_check_mark: [green]Finalized[/green]")
+                    bt_console.print(
+                        ":white_heavy_check_mark: [green]Finalized[/green]"
+                    )
                     logging.success(
                         msg=str(success),
                         prefix="Set weights",

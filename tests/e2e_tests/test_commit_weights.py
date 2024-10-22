@@ -59,7 +59,9 @@ async def test_commit_and_reveal_weights(local_chain):
         netuid,
     ), "Unable to enable commit reveal on the subnet"
 
-    subtensor = bittensor.Subtensor(network="ws://localhost:9945", subprocess_initialization=False)
+    subtensor = bittensor.Subtensor(
+        network="ws://localhost:9945", subprocess_initialization=False
+    )
     assert subtensor.get_subnet_hyperparameters(
         netuid=netuid
     ).commit_reveal_weights_enabled, "Failed to enable commit/reveal"
@@ -74,10 +76,7 @@ async def test_commit_and_reveal_weights(local_chain):
     )
 
     assert (
-        subtensor.get_subnet_hyperparameters(
-            netuid=netuid
-        ).commit_reveal_periods
-        == 1
+        subtensor.get_subnet_hyperparameters(netuid=netuid).commit_reveal_periods == 1
     ), "Failed to set commit/reveal periods"
 
     assert (

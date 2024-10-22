@@ -60,7 +60,9 @@ async def test_commit_and_reveal_weights(local_chain):
         netuid,
     ), "Unable to enable commit reveal on the subnet"
 
-    subtensor = bittensor.Subtensor(network="ws://localhost:9945", subprocess_sleep_interval=0.25)
+    subtensor = bittensor.Subtensor(
+        network="ws://localhost:9945", subprocess_sleep_interval=0.25
+    )
     assert subtensor.get_subnet_hyperparameters(
         netuid=netuid
     ).commit_reveal_weights_enabled, "Failed to enable commit/reveal"
@@ -75,14 +77,11 @@ async def test_commit_and_reveal_weights(local_chain):
     )
 
     assert (
-            subtensor.get_subnet_hyperparameters(
-                netuid=netuid
-            ).commit_reveal_periods
-            == 1
+        subtensor.get_subnet_hyperparameters(netuid=netuid).commit_reveal_periods == 1
     ), "Failed to set commit/reveal interval"
 
     assert (
-            subtensor.weights_rate_limit(netuid=netuid) > 0
+        subtensor.weights_rate_limit(netuid=netuid) > 0
     ), "Weights rate limit is below 0"
     # Lower the rate limit
     assert sudo_set_hyperparameter_values(
@@ -94,7 +93,7 @@ async def test_commit_and_reveal_weights(local_chain):
     )
 
     assert (
-            subtensor.get_subnet_hyperparameters(netuid=netuid).weights_rate_limit == 0
+        subtensor.get_subnet_hyperparameters(netuid=netuid).weights_rate_limit == 0
     ), "Failed to set weights_rate_limit"
     assert subtensor.weights_rate_limit(netuid=netuid) == 0
 
@@ -142,7 +141,9 @@ async def test_commit_and_reveal_weights(local_chain):
     assert commit_reveal_subprocess.is_table_empty("commits") is False
 
     # Wait until the reveal block range
-    await wait_interval(subtensor.get_subnet_hyperparameters(netuid=netuid).tempo, subtensor)
+    await wait_interval(
+        subtensor.get_subnet_hyperparameters(netuid=netuid).tempo, subtensor
+    )
 
     # allow one more block to pass
     time.sleep(12)
@@ -161,7 +162,7 @@ async def test_commit_and_reveal_weights(local_chain):
     assert revealed_weights.value is not None, "Weight reveal not found in storage"
 
     assert (
-            weight_vals[0] == revealed_weights.value[0][1]
+        weight_vals[0] == revealed_weights.value[0][1]
     ), f"Incorrect revealed weights. Expected: {weights[0]}, Actual: {revealed_weights.value[0][1]}"
     logging.info("✅ Passed test_commit_and_reveal_weights")
 
@@ -208,7 +209,9 @@ async def test_set_and_reveal_weights(local_chain):
         netuid,
     ), "Unable to enable commit reveal on the subnet"
 
-    subtensor = bittensor.Subtensor(network="ws://localhost:9945", subprocess_sleep_interval=0.25)  # Subprocess works with fast blocks
+    subtensor = bittensor.Subtensor(
+        network="ws://localhost:9945", subprocess_sleep_interval=0.25
+    )  # Subprocess works with fast blocks
     assert subtensor.get_subnet_hyperparameters(
         netuid=netuid
     ).commit_reveal_weights_enabled, "Failed to enable commit/reveal"
@@ -223,14 +226,11 @@ async def test_set_and_reveal_weights(local_chain):
     )
 
     assert (
-            subtensor.get_subnet_hyperparameters(
-                netuid=netuid
-            ).commit_reveal_periods
-            == 1
+        subtensor.get_subnet_hyperparameters(netuid=netuid).commit_reveal_periods == 1
     ), "Failed to set commit/reveal period"
 
     assert (
-            subtensor.weights_rate_limit(netuid=netuid) > 0
+        subtensor.weights_rate_limit(netuid=netuid) > 0
     ), "Weights rate limit is below 0"
     # Lower the rate limit
     assert sudo_set_hyperparameter_values(
@@ -242,7 +242,7 @@ async def test_set_and_reveal_weights(local_chain):
     )
 
     assert (
-            subtensor.get_subnet_hyperparameters(netuid=netuid).weights_rate_limit == 0
+        subtensor.get_subnet_hyperparameters(netuid=netuid).weights_rate_limit == 0
     ), "Failed to set weights_rate_limit"
     assert subtensor.weights_rate_limit(netuid=netuid) == 0
 
@@ -288,7 +288,9 @@ async def test_set_and_reveal_weights(local_chain):
     assert commit_reveal_subprocess.is_table_empty("commits") is False
 
     # Wait until the reveal block range
-    await wait_interval(subtensor.get_subnet_hyperparameters(netuid=netuid).tempo, subtensor)
+    await wait_interval(
+        subtensor.get_subnet_hyperparameters(netuid=netuid).tempo, subtensor
+    )
 
     # allow one more block to pass
     time.sleep(12)
@@ -307,7 +309,7 @@ async def test_set_and_reveal_weights(local_chain):
     assert revealed_weights.value is not None, "Weight reveal not found in storage"
 
     assert (
-            weight_vals[0] == revealed_weights.value[0][1]
+        weight_vals[0] == revealed_weights.value[0][1]
     ), f"Incorrect revealed weights. Expected: {weights[0]}, Actual: {revealed_weights.value[0][1]}"
     logging.info("✅ Passed test_commit_and_reveal_weights")
 
@@ -354,7 +356,9 @@ async def test_set_and_reveal_batch_weights(local_chain):
         netuid,
     ), "Unable to enable commit reveal on the subnet"
 
-    subtensor = bittensor.Subtensor(network="ws://localhost:9945", subprocess_sleep_interval=2)  # Subprocess works with fast blocks
+    subtensor = bittensor.Subtensor(
+        network="ws://localhost:9945", subprocess_sleep_interval=2
+    )  # Subprocess works with fast blocks
     assert subtensor.get_subnet_hyperparameters(
         netuid=netuid
     ).commit_reveal_weights_enabled, "Failed to enable commit/reveal"
@@ -369,14 +373,11 @@ async def test_set_and_reveal_batch_weights(local_chain):
     )
 
     assert (
-            subtensor.get_subnet_hyperparameters(
-                netuid=netuid
-            ).commit_reveal_periods
-            == 1
+        subtensor.get_subnet_hyperparameters(netuid=netuid).commit_reveal_periods == 1
     ), "Failed to set commit/reveal periods"
 
     assert (
-            subtensor.weights_rate_limit(netuid=netuid) > 0
+        subtensor.weights_rate_limit(netuid=netuid) > 0
     ), "Weights rate limit is below 0"
     # Lower the rate limit
     assert sudo_set_hyperparameter_values(
@@ -387,7 +388,7 @@ async def test_set_and_reveal_batch_weights(local_chain):
         return_error_message=True,
     )
     assert (
-            subtensor.get_subnet_hyperparameters(netuid=netuid).weights_rate_limit == 0
+        subtensor.get_subnet_hyperparameters(netuid=netuid).weights_rate_limit == 0
     ), "Failed to set weights_rate_limit"
     assert subtensor.weights_rate_limit(netuid=netuid) == 0
 
@@ -471,7 +472,9 @@ async def test_set_and_reveal_batch_weights(local_chain):
     assert commit_reveal_subprocess.is_table_empty("commits") is False
 
     # Wait until the reveal block range
-    await wait_interval(subtensor.get_subnet_hyperparameters(netuid=netuid).tempo, subtensor)
+    await wait_interval(
+        subtensor.get_subnet_hyperparameters(netuid=netuid).tempo, subtensor
+    )
 
     # allow one more block to pass
     time.sleep(12)
@@ -490,6 +493,6 @@ async def test_set_and_reveal_batch_weights(local_chain):
     assert revealed_weights.value is not None, "Weight reveal not found in storage"
 
     assert (
-            weight_vals[0] == revealed_weights.value[0][1]
+        weight_vals[0] == revealed_weights.value[0][1]
     ), f"Incorrect revealed weights. Expected: {weights[0]}, Actual: {revealed_weights.value[0][1]}"
     logging.info("✅ Passed test_commit_and_reveal_weights")

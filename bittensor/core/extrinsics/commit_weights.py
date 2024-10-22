@@ -172,9 +172,10 @@ def commit_weights_process(
     The function calculates the necessary blocks until the next epoch and the reveal block, then the subprocess will
     wait until the appropriate time to reveal the weights.
     """
+
     def send_command(command):
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        client.connect(('127.0.0.1', 9949))
+        client.connect(("127.0.0.1", 9949))
         client.send(command.encode())
         client.close()
 
@@ -182,7 +183,9 @@ def commit_weights_process(
     blocks_until_next_epoch = subtensor.blocks_until_next_epoch(netuid=netuid)
     subnet_tempo_blocks = subtensor.get_subnet_hyperparameters(netuid=netuid).tempo
     epoch_start_block = curr_block + blocks_until_next_epoch
-    cr_periods = subtensor.get_subnet_hyperparameters(netuid=netuid).commit_reveal_periods
+    cr_periods = subtensor.get_subnet_hyperparameters(
+        netuid=netuid
+    ).commit_reveal_periods
     reveal_block = epoch_start_block + ((cr_periods - 1) * subnet_tempo_blocks) + 1
 
     command = f'committed "{wallet.name}" "{wallet.path}" "{wallet.hotkey_str}" "{wallet.hotkey.ss58_address}" "{curr_block}" "{reveal_block}" "{commit_hash}" "{netuid}" "{uids}" "{weights}" "{salt}" "{version_key}"'
@@ -320,21 +323,21 @@ def reveal_weights_extrinsic(
 
 
 def reveal_weights_process(
-        wallet: "Wallet",
-        netuid: int,
-        uids: list[int],
-        weights: list[int],
-        salt: list[int],
-        version_key: int = settings.version_as_int,
+    wallet: "Wallet",
+    netuid: int,
+    uids: list[int],
+    weights: list[int],
+    salt: list[int],
+    version_key: int = settings.version_as_int,
 ):
     """
     Coordinates the process of revealing weights with the background subprocess.
-    
-    This method generates a hash of the weights using the provided wallet and network 
-    parameters, and sends a command to a local subprocess that this commit was revealed. 
-    In case of any exception during hash generation, it sends a command with detailed information 
+
+    This method generates a hash of the weights using the provided wallet and network
+    parameters, and sends a command to a local subprocess that this commit was revealed.
+    In case of any exception during hash generation, it sends a command with detailed information
     including wallet details and weight parameters.
-    
+
     Args:
         wallet (bittensor_wallet.Wallet): The wallet associated with the neuron revealing the weights.
         netuid (int): The unique identifier of the subnet.
@@ -343,9 +346,10 @@ def reveal_weights_process(
         salt (list[int]): List of salt values corresponding to the hash function.
         version_key (int): Version key for compatibility with the network. Defaults to `settings.version_as_int`.
     """
+
     def send_command(command):
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        client.connect(('127.0.0.1', 9949))
+        client.connect(("127.0.0.1", 9949))
         client.send(command.encode())
         client.close()
 
@@ -503,7 +507,7 @@ def batch_reveal_weights_process(
     uids: list[list[int]],
     weights: list[list[int]],
     salt: list[list[int]],
-    version_keys: list[int]
+    version_keys: list[int],
 ):
     """
     Processes a batch reveal of weights for a specific subnet on the Bittensor blockchain using the provided wallet.
@@ -522,12 +526,14 @@ def batch_reveal_weights_process(
 
     def send_command(command):
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        client.connect(('127.0.0.1', 9949))
+        client.connect(("127.0.0.1", 9949))
         client.send(command.encode())
         client.close()
 
     try:
-        for batch_uids, batch_weights, batch_salt, batch_version_key in zip(uids, weights, salt, version_keys):
+        for batch_uids, batch_weights, batch_salt, batch_version_key in zip(
+            uids, weights, salt, version_keys
+        ):
             # Generate the hash of the weights for each individual batch
             commit_hash = generate_weight_hash(
                 address=wallet.hotkey.ss58_address,

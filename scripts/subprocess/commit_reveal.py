@@ -38,9 +38,21 @@ class Commit:
         version_key (int): The version key.
     """
 
-    def __init__(self, wallet_hotkey_name: str, wallet_hotkey_ss58: str, wallet_name: str, wallet_path: str,
-                 commit_hash: str, netuid: int, commit_block: int, reveal_block: int, uids: List[int],
-                 weights: List[int], salt: List[int], version_key: int):
+    def __init__(
+        self,
+        wallet_hotkey_name: str,
+        wallet_hotkey_ss58: str,
+        wallet_name: str,
+        wallet_path: str,
+        commit_hash: str,
+        netuid: int,
+        commit_block: int,
+        reveal_block: int,
+        uids: List[int],
+        weights: List[int],
+        salt: List[int],
+        version_key: int,
+    ):
         self.wallet_hotkey_name = wallet_hotkey_name
         self.wallet_hotkey_ss58 = wallet_hotkey_ss58
         self.wallet_name = wallet_name
@@ -73,11 +85,11 @@ class Commit:
             "uids": json.dumps(self.uids),
             "weights": json.dumps(self.weights),
             "salt": json.dumps(self.salt),
-            "version_key": self.version_key
+            "version_key": self.version_key,
         }
 
     @staticmethod
-    def from_dict(data: Dict[str, Any]) -> 'Commit':
+    def from_dict(data: Dict[str, Any]) -> "Commit":
         """
         Creates a Commit object from a dictionary.
 
@@ -99,7 +111,7 @@ class Commit:
             uids=json.loads(data["uids"]),
             weights=json.loads(data["weights"]),
             salt=json.loads(data["salt"]),
-            version_key=data["version_key"]
+            version_key=data["version_key"],
         )
 
     def __str__(self) -> str:
@@ -170,7 +182,7 @@ def initialize_db():
         ("uids", "TEXT"),
         ("weights", "TEXT"),
         ("salt", "TEXT"),
-        ("version_key", "INTEGER")
+        ("version_key", "INTEGER"),
     ]
     if not table_exists("commits"):
         print("Creating table 'commits'...")
@@ -187,7 +199,11 @@ def reveal(subtensor: Subtensor, commit: Commit):
         subtensor (Subtensor): The subtensor network object.
         commit (Commit): The commit object containing the data to be revealed.
     """
-    wallet = Wallet(name=commit.wallet_name, path=commit.wallet_path, hotkey=commit.wallet_hotkey_name)
+    wallet = Wallet(
+        name=commit.wallet_name,
+        path=commit.wallet_path,
+        hotkey=commit.wallet_hotkey_name,
+    )
     success, message = subtensor.reveal_weights(
         wallet=wallet,
         netuid=commit.netuid,
@@ -196,7 +212,7 @@ def reveal(subtensor: Subtensor, commit: Commit):
         salt=commit.salt,
         version_key=commit.version_key,
         wait_for_inclusion=True,
-        wait_for_finalization=True
+        wait_for_finalization=True,
     )
     del wallet
     if success:
@@ -218,7 +234,11 @@ def reveal_batch(subtensor: Subtensor, commits: List[Commit]):
         print("reveal_batch has no commits to reveal.")
         return
 
-    wallet = Wallet(name=commits[0].wallet_name, path=commits[0].wallet_path, hotkey=commits[0].wallet_hotkey_name)
+    wallet = Wallet(
+        name=commits[0].wallet_name,
+        path=commits[0].wallet_path,
+        hotkey=commits[0].wallet_hotkey_name,
+    )
     netuid = commits[0].netuid
     uids = [commit.uids for commit in commits]
     weights = [commit.weights for commit in commits]
@@ -233,7 +253,7 @@ def reveal_batch(subtensor: Subtensor, commits: List[Commit]):
         salt=salt,
         version_keys=version_keys,
         wait_for_inclusion=True,
-        wait_for_finalization=True
+        wait_for_finalization=True,
     )
     del wallet
 
@@ -279,22 +299,37 @@ def chain_hash_check(subtensor: Subtensor):
                     for commit_hash, commit_block in response.value:
                         # Check if any commit on Subtensor is absent in local database
                         if not any(c.commit_hash == commit_hash for c in ss58_commits):
-                            print(f"There is a commit on Subtensor (hash: {commit_hash}) that we don't have locally.")
+                            print(
+                                f"There is a commit on Subtensor (hash: {commit_hash}) that we don't have locally."
+                            )
 
                     # Check if any local commit is absent in Subtensor
                     local_commit_hashes = {c.commit_hash for c in ss58_commits}
-                    subtensor_commit_hashes = {commit_hash for commit_hash, _ in response.value}
+                    subtensor_commit_hashes = {
+                        commit_hash for commit_hash, _ in response.value
+                    }
 
                     for local_commit_hash in local_commit_hashes:
                         if local_commit_hash not in subtensor_commit_hashes:
-                            print(f"There is a local commit (hash: {local_commit_hash}) that is not on Subtensor.")
+                            print(
+                                f"There is a local commit (hash: {local_commit_hash}) that is not on Subtensor."
+                            )
                             revealed_hash(local_commit_hash)
     except Exception as e:
         print(f"Error during chain_hash_check: {e}")
 
 
-def revealed(wallet_name: str, wallet_path: str, wallet_hotkey_str: str, wallet_hotkey_ss58: str, netuid: int,
-             uids: List[int], weights: List[int], salt: List[int], version_key: int):
+def revealed(
+    wallet_name: str,
+    wallet_path: str,
+    wallet_hotkey_str: str,
+    wallet_hotkey_ss58: str,
+    netuid: int,
+    uids: List[int],
+    weights: List[int],
+    salt: List[int],
+    version_key: int,
+):
     """
     Handles the revealed command by removing the corresponding commit from the database.
 
@@ -313,25 +348,50 @@ def revealed(wallet_name: str, wallet_path: str, wallet_hotkey_str: str, wallet_
         with utils.DB(db_path=DB_PATH) as (conn, cursor):
             sql = (
                 "SELECT COUNT(*) FROM commits WHERE wallet_hotkey_str=? AND wallet_hotkey_ss58=? AND wallet_name=? AND wallet_path=? AND netuid=? AND "
-                "uids=? AND weights=? AND salt=? AND version_key=?")
-            cursor.execute(sql, (
-                wallet_hotkey_str, wallet_hotkey_ss58, wallet_name, wallet_path, netuid, json.dumps(uids),
-                json.dumps(weights),
-                json.dumps(salt), version_key))
+                "uids=? AND weights=? AND salt=? AND version_key=?"
+            )
+            cursor.execute(
+                sql,
+                (
+                    wallet_hotkey_str,
+                    wallet_hotkey_ss58,
+                    wallet_name,
+                    wallet_path,
+                    netuid,
+                    json.dumps(uids),
+                    json.dumps(weights),
+                    json.dumps(salt),
+                    version_key,
+                ),
+            )
             count = cursor.fetchone()[0]
             if count > 0:
                 delete_sql = (
                     "DELETE FROM commits WHERE wallet_hotkey_str=? AND wallet_hotkey_ss58=? AND wallet_name=? AND wallet_path=? AND netuid=? AND "
-                    "uids=? AND weights=? AND salt=? AND version_key=?")
-                cursor.execute(delete_sql, (
-                    wallet_hotkey_str, wallet_hotkey_ss58, wallet_name, wallet_path, netuid, json.dumps(uids),
-                    json.dumps(weights), json.dumps(salt), version_key))
+                    "uids=? AND weights=? AND salt=? AND version_key=?"
+                )
+                cursor.execute(
+                    delete_sql,
+                    (
+                        wallet_hotkey_str,
+                        wallet_hotkey_ss58,
+                        wallet_name,
+                        wallet_path,
+                        netuid,
+                        json.dumps(uids),
+                        json.dumps(weights),
+                        json.dumps(salt),
+                        version_key,
+                    ),
+                )
                 conn.commit()
                 print(
-                    f"Deleted existing row with specified data: wallet_hotkey_str={wallet_hotkey_str}, wallet_hotkey_ss58={wallet_hotkey_ss58}, wallet_name={wallet_name}, wallet_path={wallet_path}, netuid={netuid}, uids={uids}, weights={weights}, salt={salt}, version_key={version_key}")
+                    f"Deleted existing row with specified data: wallet_hotkey_str={wallet_hotkey_str}, wallet_hotkey_ss58={wallet_hotkey_ss58}, wallet_name={wallet_name}, wallet_path={wallet_path}, netuid={netuid}, uids={uids}, weights={weights}, salt={salt}, version_key={version_key}"
+                )
             else:
                 print(
-                    f"No existing row found with specified data: wallet_hotkey_str={wallet_hotkey_str}, wallet_hotkey_ss58={wallet_hotkey_ss58}, wallet_name={wallet_name}, wallet_path={wallet_path}, netuid={netuid}, uids={uids}, weights={weights}, salt={salt}, version_key={version_key}")
+                    f"No existing row found with specified data: wallet_hotkey_str={wallet_hotkey_str}, wallet_hotkey_ss58={wallet_hotkey_ss58}, wallet_name={wallet_name}, wallet_path={wallet_path}, netuid={netuid}, uids={uids}, weights={weights}, salt={salt}, version_key={version_key}"
+                )
     except Exception as e:
         print(f"Error removing from table 'commits': {e}")
 
@@ -431,7 +491,9 @@ def check_reveal(subtensor: Subtensor) -> bool:
         curr_block = subtensor.get_current_block()
 
         # Filter for commits that are ready to be revealed
-        reveal_candidates = [commit for commit in commits if commit.reveal_block <= curr_block]
+        reveal_candidates = [
+            commit for commit in commits if commit.reveal_block <= curr_block
+        ]
         return len(reveal_candidates) > 0
     return False
 
@@ -452,7 +514,9 @@ def reveal_candidates(subtensor: Subtensor):
         curr_block = subtensor.get_current_block()
 
         # Filter for commits that are ready to be revealed
-        ready_for_reveal = [commit for commit in commits if commit.reveal_block <= curr_block]
+        ready_for_reveal = [
+            commit for commit in commits if commit.reveal_block <= curr_block
+        ]
         if ready_for_reveal:
             # Group commits by wallet_hotkey_ss58
             grouped_reveals = {}
@@ -486,27 +550,35 @@ def handle_client_connection(client_socket: socket.socket):
             args = shlex.split(request)
             command = args[0]
             commands = {
-                'revealed': lambda: revealed(
-                    args[1], args[2], args[3], args[4], int(args[5]),
-                    json.loads(args[6]), json.loads(args[7]),
-                    json.loads(args[8]), int(args[9])
+                "revealed": lambda: revealed(
+                    args[1],
+                    args[2],
+                    args[3],
+                    args[4],
+                    int(args[5]),
+                    json.loads(args[6]),
+                    json.loads(args[7]),
+                    json.loads(args[8]),
+                    int(args[9]),
                 ),
-                'revealed_hash': lambda: revealed_hash(args[1]),
-                'committed': lambda: committed(Commit(
-                    wallet_hotkey_name=args[3],
-                    wallet_hotkey_ss58=args[4],
-                    wallet_name=args[1],
-                    wallet_path=args[2],
-                    commit_hash=args[7],
-                    netuid=int(args[8]),
-                    commit_block=int(args[5]),
-                    reveal_block=int(args[6]),
-                    uids=json.loads(args[9]),
-                    weights=json.loads(args[10]),
-                    salt=json.loads(args[11]),
-                    version_key=int(args[12])
-                )),
-                'terminate': lambda: terminate_process(None, None)
+                "revealed_hash": lambda: revealed_hash(args[1]),
+                "committed": lambda: committed(
+                    Commit(
+                        wallet_hotkey_name=args[3],
+                        wallet_hotkey_ss58=args[4],
+                        wallet_name=args[1],
+                        wallet_path=args[2],
+                        commit_hash=args[7],
+                        netuid=int(args[8]),
+                        commit_block=int(args[5]),
+                        reveal_block=int(args[6]),
+                        uids=json.loads(args[9]),
+                        weights=json.loads(args[10]),
+                        salt=json.loads(args[11]),
+                        version_key=int(args[12]),
+                    )
+                ),
+                "terminate": lambda: terminate_process(None, None),
             }
             if command in commands:
                 try:
@@ -528,10 +600,10 @@ def start_socket_server():
     Starts the socket server to listen for incoming connections.
     """
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server.bind(('127.0.0.1', 9949))
+    server.bind(("127.0.0.1", 9949))
     server.listen(5)
-    server.settimeout(2) # Set timeout for any incoming requests to 2 seconds
-    print('Listening on port 9949...')
+    server.settimeout(2)  # Set timeout for any incoming requests to 2 seconds
+    print("Listening on port 9949...")
 
     with ThreadPoolExecutor(max_workers=10) as executor:  # limit of workers amount
         while running:
@@ -589,9 +661,20 @@ def main(args: argparse.Namespace):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Run the Bittensor commit-reveal subprocess script.")
-    parser.add_argument("--network", type=str, default="wss://entrypoint-finney.opentensor.ai:443",
-                        help="Subtensor network address")
-    parser.add_argument("--sleep-interval", type=float, default=12, help="Interval between block checks in seconds")
+    parser = argparse.ArgumentParser(
+        description="Run the Bittensor commit-reveal subprocess script."
+    )
+    parser.add_argument(
+        "--network",
+        type=str,
+        default="wss://entrypoint-finney.opentensor.ai:443",
+        help="Subtensor network address",
+    )
+    parser.add_argument(
+        "--sleep-interval",
+        type=float,
+        default=12,
+        help="Interval between block checks in seconds",
+    )
     args = parser.parse_args()
     main(args)
