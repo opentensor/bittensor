@@ -156,6 +156,22 @@ def commit_weights_process(
     salt: list[int],
     version_key: int = settings.version_as_int,
 ):
+    """
+    Lets the subprocess know what a commit was submitted to the chain.
+
+    Args:
+        subtensor (bittensor.core.subtensor.Subtensor): The subtensor instance used for blockchain interaction.
+        wallet (bittensor_wallet.Wallet): The wallet associated with the neuron committing the weights.
+        netuid (int): The unique identifier of the subnet.
+        commit_hash (str): The hash of the neuron's weights to be committed.
+        uids (list[int]): List of neuron UIDs for which weights are being committed.
+        weights (list[int]): List of weight values corresponding to each UID.
+        salt (list[int]): List of salt values for the hash function.
+        version_key (int): Version key for network compatibility (default is settings.version_as_int).
+
+    The function calculates the necessary blocks until the next epoch and the reveal block, then the subprocess will
+    wait until the appropriate time to reveal the weights.
+    """
     def send_command(command):
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         client.connect(('127.0.0.1', 9949))
@@ -311,6 +327,22 @@ def reveal_weights_process(
         salt: list[int],
         version_key: int = settings.version_as_int,
 ):
+    """
+    Coordinates the process of revealing weights with the background subprocess.
+    
+    This method generates a hash of the weights using the provided wallet and network 
+    parameters, and sends a command to a local subprocess that this commit was revealed. 
+    In case of any exception during hash generation, it sends a command with detailed information 
+    including wallet details and weight parameters.
+    
+    Args:
+        wallet (bittensor_wallet.Wallet): The wallet associated with the neuron revealing the weights.
+        netuid (int): The unique identifier of the subnet.
+        uids (list[int]): List of neuron UIDs for which weights are being revealed.
+        weights (list[int]): List of weight values corresponding to each UID.
+        salt (list[int]): List of salt values corresponding to the hash function.
+        version_key (int): Version key for compatibility with the network. Defaults to `settings.version_as_int`.
+    """
     def send_command(command):
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         client.connect(('127.0.0.1', 9949))

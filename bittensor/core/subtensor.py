@@ -140,7 +140,7 @@ class Subtensor:
             _mock: bool = False,
             log_verbose: bool = False,
             connection_timeout: int = 600,
-            subprocess_initialization: bool = True,
+            subprocess_initialization: bool = False,
             subprocess_sleep_interval: float = 12,
     ) -> None:
         """

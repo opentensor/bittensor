@@ -11,10 +11,14 @@ PROCESS_NAME = "commit_reveal.py"
 
 
 def is_process_running(process_name: str) -> bool:
-    """Check if a process with a given name is currently running.
+    """
+    Check if a process with a given name is currently running.
 
-    :param process_name: Name of the process to check
-    :return: True if the process is running, False otherwise
+    Args:
+        process_name (str): Name of the process to check.
+
+    Returns:
+        bool: True if the process is running, False otherwise.
     """
     for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
         cmdline = proc.info['cmdline']
@@ -24,10 +28,14 @@ def is_process_running(process_name: str) -> bool:
 
 
 def get_process(process_name: str) -> Optional[int]:
-    """Check if a process with a given name is currently running, and return its PID if found.
+    """
+    Check if a process with a given name is currently running, and return its PID if found.
 
-    :param process_name: Name of the process to check
-    :return: PID of the process if found, None otherwise
+    Args:
+        process_name (str): Name of the process to check.
+
+    Returns:
+        Optional[int]: PID of the process if found, None otherwise.
     """
     for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
         cmdline = proc.info['cmdline']
@@ -36,10 +44,9 @@ def get_process(process_name: str) -> Optional[int]:
     return None
 
 
-def read_commit_reveal_logs() -> None:
-    """Read and print the last 50 lines of logs from the log path.
-
-    :return: None
+def read_commit_reveal_logs():
+    """
+    Read and print the last 50 lines of logs from the log path.
     """
     log_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "subprocess", "logs"))
     stdout_path = os.path.join(log_path, STDOUT_LOG.lstrip("/"))
@@ -63,12 +70,13 @@ def read_commit_reveal_logs() -> None:
         print(f"STDERR log file not found at {stderr_path}")
 
 
-def start_commit_reveal_subprocess(network: Optional[str] = None, sleep_interval: Optional[float] = None) -> None:
-    """Start the commit reveal subprocess if not already running.
+def start_commit_reveal_subprocess(network: Optional[str] = None, sleep_interval: Optional[float] = None):
+    """
+    Start the commit reveal subprocess if not already running.
 
-    :param network: Network name if any, optional
-    :param sleep_interval: Sleep interval if any, optional
-    :return: None
+    Args:
+        network (Optional[str]): Network name if any, optional.
+        sleep_interval (Optional[float]): Sleep interval if any, optional.
     """
     log_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "subprocess", "logs"))
     script_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "subprocess", "commit_reveal.py"))
@@ -100,11 +108,10 @@ def start_commit_reveal_subprocess(network: Optional[str] = None, sleep_interval
         print(f"Subprocess '{PROCESS_NAME}' is already running.")
 
 
-def stop_commit_reveal_subprocess() -> None:
-    """Stop the commit reveal subprocess if it is running.
-
-    :return: None
+def stop_commit_reveal_subprocess():
     """
+     Stop the commit reveal subprocess if it is running.
+     """
     pid = get_process(PROCESS_NAME)
 
     if pid is not None:
@@ -142,14 +149,14 @@ class DB:
             self.conn.close()
 
 
-def create_table(title: str, columns: list[tuple[str, str]], rows: list[list]) -> None:
+def create_table(title: str, columns: list[tuple[str, str]], rows: list[list]):
     """
     Creates and populates the rows of a table in the SQLite database.
 
-    :param title: title of the table
-    :param columns: [(column name, column type), ...]
-    :param rows: [[element, element, ...], ...]
-    :return: None
+    Args:
+        title (str): title of the table.
+        columns (list[tuple[str, str]]): List of tuples where each tuple contains column name and column type.
+        rows (list[list]): List of lists where each sublist contains elements representing a row.
     """
     blob_cols = []
     for idx, (_, col_type) in enumerate(columns):
@@ -176,17 +183,27 @@ def create_table(title: str, columns: list[tuple[str, str]], rows: list[list]) -
 
 def read_table(table_name: str, order_by: str = "") -> tuple[list, list]:
     """
-    Reads a table from a SQLite database, returning back a column names and rows as a tuple
+    Reads a table from a SQLite database, returning back a column names and rows.
 
-    :param table_name: the table name in the database
-    :param order_by: the order of the columns in the table, optional
-    :return: ([column names], [rows])
+    Args:
+        table_name (str): The table name in the database.
+        order_by (str): The order of the columns in the table, optional.
+
+    Returns:
+        tuple[list, list]: A tuple containing a list of column names and a list of rows.
     """
     with DB() as (conn, cursor):
         cursor.execute(f"PRAGMA table_info({table_name})")
         columns_info = cursor.fetchall()
-        column_names = [info[1] for info in columns_info]
-        column_types = [info[2] for info in columns_info]
+        column_names = []
+        column_types = []
+        for info in columns_info:
+            try:
+                column_names.append(info[1])
+                column_types.append(info[2])
+            except IndexError:
+                print(f"Error retrieving column info: {info}")
+
         cursor.execute(f"SELECT * FROM {table_name} {order_by}")
         rows = cursor.fetchall()
     blob_cols = []

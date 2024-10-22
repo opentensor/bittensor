@@ -6,6 +6,8 @@ import sys
 import time
 import socket
 import threading
+from concurrent.futures import ThreadPoolExecutor
+
 from bittensor.core.subtensor import Subtensor
 from bittensor_wallet import Wallet
 from scripts import subprocess_utils as utils
@@ -152,12 +154,9 @@ def is_table_empty(table_name: str) -> bool:
         return False
 
 
-def initialize_db() -> None:
+def initialize_db():
     """
     Initializes the database by creating the 'commits' table if it does not exist.
-
-    Returns:
-        None
     """
     columns = [
         ("wallet_hotkey_name", "TEXT"),
@@ -180,16 +179,13 @@ def initialize_db() -> None:
         print("Table 'commits' already exists.")
 
 
-def reveal(subtensor: Subtensor, commit: Commit) -> None:
+def reveal(subtensor: Subtensor, commit: Commit):
     """
     Reveals the weights for a commit to the subtensor network.
 
     Args:
         subtensor (Subtensor): The subtensor network object.
         commit (Commit): The commit object containing the data to be revealed.
-
-    Returns:
-        None
     """
     wallet = Wallet(name=commit.wallet_name, path=commit.wallet_path, hotkey=commit.wallet_hotkey_name)
     success, message = subtensor.reveal_weights(
@@ -210,17 +206,18 @@ def reveal(subtensor: Subtensor, commit: Commit) -> None:
         print(f"Reveal failure for commit: {message}")
 
 
-def reveal_batch(subtensor: Subtensor, commits: List[Commit]) -> None:
+def reveal_batch(subtensor: Subtensor, commits: List[Commit]):
     """
     Reveals the weights for a batch of commits to the subtensor network.
 
     Args:
         subtensor (Subtensor): The subtensor network object.
         commits (List[Commit]): A list of commit objects to be revealed.
-
-    Returns:
-        None
     """
+    if not commits:
+        print("reveal_batch has no commits to reveal.")
+        return
+
     wallet = Wallet(name=commits[0].wallet_name, path=commits[0].wallet_path, hotkey=commits[0].wallet_hotkey_name)
     netuid = commits[0].netuid
     uids = [commit.uids for commit in commits]
@@ -248,15 +245,12 @@ def reveal_batch(subtensor: Subtensor, commits: List[Commit]) -> None:
         print(f"Reveal failure for batch commits: {message}")
 
 
-def chain_hash_check(subtensor: Subtensor) -> None:
+def chain_hash_check(subtensor: Subtensor):
     """
     Perform a verification to check if the local reveal list is consistent with the chain.
 
     Args:
         subtensor (Subtensor): The subtensor network object.
-
-    Returns:
-        None
     """
     try:
         # Retrieve all commits from the local database
@@ -300,7 +294,7 @@ def chain_hash_check(subtensor: Subtensor) -> None:
 
 
 def revealed(wallet_name: str, wallet_path: str, wallet_hotkey_str: str, wallet_hotkey_ss58: str, netuid: int,
-             uids: List[int], weights: List[int], salt: List[int], version_key: int) -> None:
+             uids: List[int], weights: List[int], salt: List[int], version_key: int):
     """
     Handles the revealed command by removing the corresponding commit from the database.
 
@@ -314,9 +308,6 @@ def revealed(wallet_name: str, wallet_path: str, wallet_hotkey_str: str, wallet_
         weights (List[int]): The list of weights.
         salt (List[int]): The salt used for the commit.
         version_key (int): The version key.
-
-    Returns:
-        None
     """
     try:
         with utils.DB(db_path=DB_PATH) as (conn, cursor):
@@ -345,15 +336,12 @@ def revealed(wallet_name: str, wallet_path: str, wallet_hotkey_str: str, wallet_
         print(f"Error removing from table 'commits': {e}")
 
 
-def revealed_hash(commit_hash: str) -> None:
+def revealed_hash(commit_hash: str):
     """
     Handles the revealed_hash command by removing the corresponding commit from the database using the commit hash.
 
     Args:
         commit_hash (str): The commit hash.
-
-    Returns:
-        None
     """
     try:
         with utils.DB(db_path=DB_PATH) as (conn, cursor):
@@ -371,15 +359,12 @@ def revealed_hash(commit_hash: str) -> None:
         print(f"Error removing from table 'commits': {e}")
 
 
-def revealed_batch_hash(commit_hashes: List[str]) -> None:
+def revealed_batch_hash(commit_hashes: List[str]):
     """
     Handles the revealed_batch_hash command by removing the corresponding commits from the database using the commit hashes.
 
     Args:
         commit_hashes (List[str]): The list of commit hashes.
-
-    Returns:
-        None
     """
     try:
         with utils.DB(db_path=DB_PATH) as (conn, cursor):
@@ -398,15 +383,12 @@ def revealed_batch_hash(commit_hashes: List[str]) -> None:
         print(f"Error removing from table 'commits': {e}")
 
 
-def committed(commit: Commit) -> None:
+def committed(commit: Commit):
     """
     Commits a new commit object to the database.
 
     Args:
         commit (Commit): The commit object to save.
-
-    Returns:
-        None
     """
     with utils.DB(db_path=DB_PATH) as (conn, cursor):
         commit_data = commit.to_dict()
@@ -454,15 +436,12 @@ def check_reveal(subtensor: Subtensor) -> bool:
     return False
 
 
-def reveal_candidates(subtensor: Subtensor) -> None:
+def reveal_candidates(subtensor: Subtensor):
     """
-    Checks if there are any commits to reveal and performs the reveal if necessary.
+    Performs reveal on commits that are ready to be revealed.
 
     Args:
         subtensor (Subtensor): The subtensor network object.
-
-    Returns:
-        bool: True if a commit was revealed, False otherwise.
     """
     try:
         commits = get_all_commits()
@@ -493,15 +472,11 @@ def reveal_candidates(subtensor: Subtensor) -> None:
                     reveal(subtensor, group[0])
 
 
-def handle_client_connection(client_socket: socket.socket) -> None:
+def handle_client_connection(client_socket: socket.socket):
     """
     Handles incoming client connections for the socket server.
-
     Args:
         client_socket (socket.socket): The client socket connection.
-
-    Returns:
-        None
     """
     try:
         while True:
@@ -510,13 +485,14 @@ def handle_client_connection(client_socket: socket.socket) -> None:
                 break
             args = shlex.split(request)
             command = args[0]
-            if command == 'revealed':
-                revealed(args[1], args[2], args[3], args[4], int(args[5]), json.loads(args[6]), json.loads(args[7]),
-                         json.loads(args[8]), int(args[9]))
-            elif command == 'revealed_hash':
-                revealed_hash(args[1])
-            elif command == 'committed':
-                commit = Commit(
+            commands = {
+                'revealed': lambda: revealed(
+                    args[1], args[2], args[3], args[4], int(args[5]),
+                    json.loads(args[6]), json.loads(args[7]),
+                    json.loads(args[8]), int(args[9])
+                ),
+                'revealed_hash': lambda: revealed_hash(args[1]),
+                'committed': lambda: committed(Commit(
                     wallet_hotkey_name=args[3],
                     wallet_hotkey_ss58=args[4],
                     wallet_name=args[1],
@@ -529,64 +505,67 @@ def handle_client_connection(client_socket: socket.socket) -> None:
                     weights=json.loads(args[10]),
                     salt=json.loads(args[11]),
                     version_key=int(args[12])
-                )
-                committed(commit)
-            elif command == 'terminate':
-                terminate_process(None, None)
+                )),
+                'terminate': lambda: terminate_process(None, None)
+            }
+            if command in commands:
+                try:
+                    commands[command]()
+                except (IndexError, ValueError, json.JSONDecodeError) as e:
+                    print(f"Error in processing command {command}: {e}")
             else:
-                print("Command not recognized")
+                print(f"Command not recognized: {command}")
+    except socket.error as e:
+        print(f"Socket error: {e}")
     except Exception as e:
         print(f"Error: {e}")
     finally:
         client_socket.close()
 
 
-def start_socket_server() -> None:
+def start_socket_server():
     """
     Starts the socket server to listen for incoming connections.
-
-    Returns:
-        None
     """
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.bind(('127.0.0.1', 9949))
     server.listen(5)
+    server.settimeout(2) # Set timeout for any incoming requests to 2 seconds
     print('Listening on port 9949...')
-    while running:
-        client_sock, addr = server.accept()
-        client_handler = threading.Thread(
-            target=handle_client_connection,
-            args=(client_sock,)
-        )
-        client_handler.start()
+
+    with ThreadPoolExecutor(max_workers=10) as executor:  # limit of workers amount
+        while running:
+            try:
+                client_sock, addr = server.accept()
+                print(f"Accepted connection from {addr[0]}.")
+                executor.submit(handle_client_connection, client_sock)
+            except socket.timeout:
+                print("Socket timeout, continuing to listen...")
+            except Exception as e:
+                print(f"Error accepting connection: {e}.")
+                break
 
 
-def terminate_process(signal_number: Optional[int], frame: Optional[Any]) -> None:
+def terminate_process(signal_number: Optional[int], frame: Optional[Any]):
     """
     Terminates the process gracefully.
 
     Args:
         signal_number (Optional[int]): The signal number causing the termination.
         frame (Optional[Any]): The current stack frame.
-
-    Returns:
-        None
     """
     global running
-    print(f"Terminating process with signal {signal_number}")
+    print(f"Terminating process with signal {signal_number} and/or frame {frame}")
     running = False
     sys.exit(0)
 
 
-def main(args: argparse.Namespace) -> None:
+def main(args: argparse.Namespace):
     """
     The main function to run the Bittensor commit-reveal subprocess script.
 
     Args:
         args (argparse.Namespace): The command-line arguments.
-
-    Returns:
-        None
     """
     initialize_db()
     subtensor = Subtensor(network=args.network, subprocess_initialization=False)

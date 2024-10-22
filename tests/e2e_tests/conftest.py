@@ -1,4 +1,3 @@
-import logging
 import os
 import re
 import shlex
@@ -45,11 +44,10 @@ def local_chain(request):
     # Determine the port to check based on `param`
     port = 9945  # Default port if `param` is None
 
-    # TODO: uncomment templates when done
     # Always perform template installation
-    # logging.info("Downloading and installing neuron templates from GitHub")
-    # templates_dir = clone_or_update_templates()
-    # install_templates(templates_dir)
+    logging.info("Downloading and installing neuron templates from GitHub")
+    templates_dir = clone_or_update_templates()
+    install_templates(templates_dir)
 
     already_running = False
     if is_chain_running(port):
@@ -96,9 +94,8 @@ def local_chain(request):
         # Ensure the process has terminated
         process.wait()
 
-    # TODO: uncomment templates when done
-    # logging.info("Uninstalling neuron templates")
-    # uninstall_templates(templates_dir)
+    logging.info("Uninstalling neuron templates")
+    uninstall_templates(templates_dir)
 
     # kill subprocess if its running
     subprocess_utils.stop_commit_reveal_subprocess()
