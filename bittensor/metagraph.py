@@ -17,17 +17,20 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from abc import ABC, abstractmethod
 import os
 import pickle
-import numpy as np
-from numpy.typing import NDArray
-import bittensor
+from abc import ABC, abstractmethod
 from os import listdir
 from os.path import join
 from typing import List, Optional, Union, Tuple
 
-from bittensor.chain_data import AxonInfo
+import numpy as np
+from numpy.typing import NDArray
+
+import bittensor
+from bittensor import logging
+from bittensor.chain_data import AxonInfo, SubnetState
+from bittensor.utils.balance import Balance
 from bittensor.utils.registration import torch, use_torch
 
 METAGRAPH_STATE_DICT_NDARRAY_KEYS = [
@@ -170,20 +173,55 @@ class MetagraphMixin(ABC):
     weights: Union["torch.nn.Parameter", NDArray]
     bonds: Union["torch.nn.Parameter", NDArray]
     uids: Union["torch.nn.Parameter", NDArray]
+    local_stake: Union["torch.nn.Parameter", NDArray]
+    global_stake: Union["torch.nn.Parameter", NDArray]
+    stake_weights: Union["torch.nn.Parameter", NDArray]
     axons: List[AxonInfo]
 
     @property
-    def S(self) -> Union[NDArray, "torch.nn.Parameter"]:
+    def GS(self) -> List[Balance]:
         """
-        Represents the stake of each neuron in the Bittensor network. Stake is an important concept in the
-        Bittensor ecosystem, signifying the amount of network weight (or “stake”) each neuron holds,
-        represented on a digital ledger. The stake influences a neuron's ability to contribute to and benefit
-        from the network, playing a crucial role in the distribution of incentives and decision-making processes.
+        Represents the global stake of each neuron in the Bittensor network.
 
         Returns:
-            NDArray: A tensor representing the stake of each neuron in the network. Higher values signify a greater stake held by the respective neuron.
+            List[Balance]: The list of global stake of each neuron in the network.
         """
-        return self.total_stake
+        return self.global_stake
+
+    @property
+    def LS(self) -> List[Balance]:
+        """
+        Represents the local stake of each neuron in the Bittensor network.
+
+        Returns:
+            List[Balance]: The list of local stake of each neuron in the network.
+        """
+        return self.local_stake
+
+    @property
+    def SW(self) -> List[float]:
+        """
+        Represents the stake weights of each neuron in the Bittensor network.
+
+        Returns:
+            List[float]: Each value is calculated based on local_stake and global_stake.
+        """
+        return self.stake_weights
+
+    @property
+    def S(self) -> float:
+        """
+        Represents the value between 0.0 and 1.0. This gives the users do blacklists in terms of stake values.
+
+        Returns:
+            float: The value between 0.0 and 1.0 or None if stake_weights doesn't have zero index value.
+        """
+        try:
+            value = self.stake_weights[0] * max(self.global_stake).tao
+        except IndexError:
+            logging.warning("Stake weights is empty.")
+            value = None
+        return value
 
     @property
     def R(self) -> Union[NDArray, "torch.nn.Parameter"]:
@@ -531,6 +569,9 @@ class MetagraphMixin(ABC):
         if not lite:
             self._set_weights_and_bonds(subtensor=subtensor)
 
+        # Fills in the stake associated attributes of a class instance from a chain response.
+        self._get_all_stakes_from_chain(subtensor=subtensor)
+
     def _initialize_subtensor(self, subtensor):
         """
         Initializes the subtensor to be used for syncing the metagraph.
@@ -693,6 +734,15 @@ class MetagraphMixin(ABC):
     @abstractmethod
     def _set_metagraph_attributes(self, block, subtensor):
         pass
+
+    def _get_all_stakes_from_chain(self, subtensor: "bittensor.subtensor"):
+        """Fills in the stake associated attributes of a class instance from a chain response."""
+        subnet_state: "SubnetState" = SubnetState.from_vec_u8(
+            subtensor.substrate.rpc_request(method="subnetInfo_getSubnetState", params=[self.netuid, None])['result']
+        )
+        self.global_stake = subnet_state.global_stake
+        self.local_stake = subnet_state.local_stake
+        self.stake_weights = subnet_state.stake_weight
 
     def _process_root_weights(
         self, data, attribute: str, subtensor: bittensor.subtensor
@@ -928,6 +978,11 @@ class TorchMetaGraph(MetagraphMixin, BaseClass):  # type: ignore
             torch.tensor([], dtype=torch.int64), requires_grad=False
         )
         self.axons: List[AxonInfo] = []
+
+        self.local_stake: List[Balance] = []
+        self.global_stake: List[Balance] = []
+        self.stake_weights: List[float] = []
+
         if sync:
             self.sync(block=None, lite=lite)
 
@@ -1064,6 +1119,11 @@ class NonTorchMetagraph(MetagraphMixin):
         self.bonds = np.array([], dtype=np.int64)
         self.uids = np.array([], dtype=np.int64)
         self.axons: List[AxonInfo] = []
+
+        self.local_stake: List[Balance] = []
+        self.global_stake: List[Balance] = []
+        self.stake_weights: List[float] = []
+
         if sync:
             self.sync(block=None, lite=lite)
 
