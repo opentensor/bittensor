@@ -139,9 +139,6 @@ def set_weights_extrinsic(
     ).commit_reveal_weights_enabled:
         # if cr is enabled, commit instead of setting the weights.
         salt = [random.randint(0, 350) for _ in range(8)]
-        uids, vals = convert_weights_and_uids_for_emit(
-            uids=uids, weights=weights
-        )
 
         # Ask before moving on.
         if prompt:
@@ -160,7 +157,7 @@ def set_weights_extrinsic(
                     netuid=netuid,
                     salt=salt,
                     uids=uids,
-                    weights=vals,
+                    weights=weights,
                     wait_for_inclusion=wait_for_inclusion,
                     wait_for_finalization=wait_for_finalization,
                     prompt=prompt,
