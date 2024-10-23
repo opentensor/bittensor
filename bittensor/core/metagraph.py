@@ -248,17 +248,18 @@ class MetagraphMixin(ABC):
         return self.stake_weights
 
     @property
-    def S(self) -> Union[NDArray, "torch.nn.Parameter"]:
+    def S(self) -> float:
         """
-        Represents the stake of each neuron in the Bittensor network. Stake is an important concept in the
-        Bittensor ecosystem, signifying the amount of network weight (or “stake”) each neuron holds,
-        represented on a digital ledger. The stake influences a neuron's ability to contribute to and benefit
-        from the network, playing a crucial role in the distribution of incentives and decision-making processes.
-
+        Represents the value between 0.0 and 1.0. This gives the users do blacklists in terms of stake values.
         Returns:
-            NDArray: A tensor representing the stake of each neuron in the network. Higher values signify a greater stake held by the respective neuron.
+            float: The value between 0.0 and 1.0 or None if stake_weights doesn't have zero index value.
         """
-        return self.total_stake
+        try:
+            value = self.stake_weights[0] * max(self.global_stake).tao
+        except IndexError:
+            logging.warning("Stake weights is empty.")
+            value = None
+        return value
 
     @property
     def R(self) -> Union[NDArray, "torch.nn.Parameter"]:
