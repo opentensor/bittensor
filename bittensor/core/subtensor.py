@@ -1869,7 +1869,7 @@ class Subtensor:
         )
 
         if isinstance(weights, list) and all(isinstance(w, float) for w in weights):
-            _, weights = convert_weights_and_uids_for_emit(uids, weights)
+            _, weights = convert_weights_and_uids_for_emit(uids, weights)  # type: ignore
 
         # Generate the hash of the weights
         commit_hash = generate_weight_hash(
