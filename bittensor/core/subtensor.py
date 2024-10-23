@@ -718,7 +718,7 @@ class Subtensor:
 
         if network is None:
             return None, None
-        if network in ["finney", "local", "test", "archive"]:
+        if network in ["finney", "local", "test", "archive", "rao"]:
             if network == "finney":
                 # Kiru Finney staging network.
                 return network, settings.FINNEY_ENTRYPOINT
@@ -728,6 +728,8 @@ class Subtensor:
                 return network, settings.FINNEY_TEST_ENTRYPOINT
             elif network == "archive":
                 return network, settings.ARCHIVE_ENTRYPOINT
+            elif network == "rao":
+                return network, settings.RAO_ENDPOINT
         else:
             if (
                 network == settings.FINNEY_ENTRYPOINT
@@ -744,6 +746,11 @@ class Subtensor:
                 or "archive.chain.opentensor.ai" in network
             ):
                 return "archive", settings.ARCHIVE_ENTRYPOINT
+            elif (
+                network == settings.RAO_ENDPOINT
+                or "rao.chain.opentensor.ai" in network
+            ):
+                return "rao", settings.RAO_ENDPOINT
             elif "127.0.0.1" in network or "localhost" in network:
                 return "local", network
             else:

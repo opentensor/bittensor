@@ -25,7 +25,11 @@ from typing import Optional, Union
 
 import numpy as np
 from numpy.typing import NDArray
+from substrateinterface.exceptions import SubstrateRequestException
 
+from bittensor.core import settings
+from bittensor.core.chain_data import AxonInfo, SubnetState
+from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import torch, use_torch
 from bittensor.utils.weight_utils import (
@@ -33,8 +37,6 @@ from bittensor.utils.weight_utils import (
     convert_bond_uids_and_vals_to_tensor,
     convert_root_weight_uids_and_vals_to_tensor,
 )
-from . import settings
-from .chain_data import AxonInfo
 
 # For annotation purposes
 if typing.TYPE_CHECKING:
@@ -210,7 +212,40 @@ class MetagraphMixin(ABC):
     weights: Union["torch.nn.Parameter", NDArray]
     bonds: Union["torch.nn.Parameter", NDArray]
     uids: Union["torch.nn.Parameter", NDArray]
+    local_stake: Union["torch.nn.Parameter", NDArray]
+    global_stake: Union["torch.nn.Parameter", NDArray]
+    stake_weights: Union["torch.nn.Parameter", NDArray]
     axons: list[AxonInfo]
+
+    @property
+    def GS(self) -> list[Balance]:
+        """
+        Represents the global stake of each neuron in the Bittensor network.
+
+        Returns:
+            List[Balance]: The list of global stake of each neuron in the network.
+        """
+        return self.global_stake
+
+    @property
+    def LS(self) -> list[Balance]:
+        """
+        Represents the local stake of each neuron in the Bittensor network.
+
+        Returns:
+            List[Balance]: The list of local stake of each neuron in the network.
+        """
+        return self.local_stake
+
+    @property
+    def SW(self) -> list[float]:
+        """
+        Represents the stake weights of each neuron in the Bittensor network.
+
+        Returns:
+            List[float]: Each value is calculated based on local_stake and global_stake.
+        """
+        return self.stake_weights
 
     @property
     def S(self) -> Union[NDArray, "torch.nn.Parameter"]:
@@ -578,6 +613,9 @@ class MetagraphMixin(ABC):
         if not lite:
             self._set_weights_and_bonds(subtensor=subtensor)
 
+        # Fills in the stake associated attributes of a class instance from a chain response.
+        self._get_all_stakes_from_chain(subtensor=subtensor)
+
     def _initialize_subtensor(self, subtensor: "Subtensor"):
         """
         Initializes the subtensor to be used for syncing the metagraph.
@@ -747,6 +785,18 @@ class MetagraphMixin(ABC):
     @abstractmethod
     def _set_metagraph_attributes(self, block, subtensor):
         pass
+
+    def _get_all_stakes_from_chain(self, subtensor: "Subtensor"):
+        """Fills in the stake associated attributes of a class instance from a chain response."""
+        try:
+            subnet_state: "SubnetState" = SubnetState.from_vec_u8(
+                subtensor.substrate.rpc_request(method="subnetInfo_getSubnetState", params=[self.netuid, None])['result']
+            )
+            self.global_stake = subnet_state.global_stake
+            self.local_stake = subnet_state.local_stake
+            self.stake_weights = subnet_state.stake_weight
+        except (SubstrateRequestException, AttributeError):
+            logging.debug("Fields `global_stake`, `local_stake`, `stake_weights` can be obtained only from the RAO network.")
 
     def _process_root_weights(
         self, data: list, attribute: str, subtensor: "Subtensor"
@@ -984,6 +1034,9 @@ class TorchMetaGraph(MetagraphMixin, BaseClass):
         self.uids = torch.nn.Parameter(
             torch.tensor([], dtype=torch.int64), requires_grad=False
         )
+        self.local_stake: list[Balance] = []
+        self.global_stake: list[Balance] = []
+        self.stake_weights: list[float] = []
         self.axons: list[AxonInfo] = []
         if sync:
             self.sync(block=None, lite=lite)
@@ -1163,6 +1216,9 @@ class NonTorchMetagraph(MetagraphMixin):
         self.weights = np.array([], dtype=np.float32)
         self.bonds = np.array([], dtype=np.int64)
         self.uids = np.array([], dtype=np.int64)
+        self.local_stake: list[Balance] = []
+        self.global_stake: list[Balance] = []
+        self.stake_weights: list[float] = []
         self.axons: list[AxonInfo] = []
         if sync:
             self.sync(block=None, lite=lite)
