@@ -747,8 +747,7 @@ class Subtensor:
             ):
                 return "archive", settings.ARCHIVE_ENTRYPOINT
             elif (
-                network == settings.RAO_ENDPOINT
-                or "rao.chain.opentensor.ai" in network
+                network == settings.RAO_ENDPOINT or "rao.chain.opentensor.ai" in network
             ):
                 return "rao", settings.RAO_ENDPOINT
             elif "127.0.0.1" in network or "localhost" in network:

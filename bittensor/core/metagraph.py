@@ -790,13 +790,17 @@ class MetagraphMixin(ABC):
         """Fills in the stake associated attributes of a class instance from a chain response."""
         try:
             subnet_state: "SubnetState" = SubnetState.from_vec_u8(
-                subtensor.substrate.rpc_request(method="subnetInfo_getSubnetState", params=[self.netuid, None])['result']
+                subtensor.substrate.rpc_request(
+                    method="subnetInfo_getSubnetState", params=[self.netuid, None]
+                )["result"]
             )
             self.global_stake = subnet_state.global_stake
             self.local_stake = subnet_state.local_stake
             self.stake_weights = subnet_state.stake_weight
         except (SubstrateRequestException, AttributeError):
-            logging.debug("Fields `global_stake`, `local_stake`, `stake_weights` can be obtained only from the RAO network.")
+            logging.debug(
+                "Fields `global_stake`, `local_stake`, `stake_weights` can be obtained only from the RAO network."
+            )
 
     def _process_root_weights(
         self, data: list, attribute: str, subtensor: "Subtensor"
