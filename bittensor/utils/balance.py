@@ -68,17 +68,26 @@ class Balance:
 
     def __str__(self):
         """Returns the Balance object as a string in the format "symbolvalue", where the value is in tao."""
-        return f"{self.unit}{float(self.tao):,.9f}"
+        if self.unit == settings.units[0]:
+            return f"{self.unit} {float(self.tao):,.4f}"
+        else:
+            return f"{float(self.tao):,.4f} {self.unit}\u200e"
 
     def __rich__(self):
-        int_tao, fract_tao = format(float(self.tao), "f").split(".")
-        return f"[green]{self.unit}[/green][green]{int_tao}[/green][green].[/green][dim green]{fract_tao}[/dim green]"
+        return "[green]{}[/green][green]{}[/green][green].[/green][dim green]{}[/dim green]".format(
+            self.unit,
+            format(float(self.tao), "f").split(".")[0],
+            format(float(self.tao), "f").split(".")[1],
+        )
 
     def __str_rao__(self):
         return f"{self.rao_unit}{int(self.rao)}"
 
     def __rich_rao__(self):
-        return f"[green]{self.rao_unit}{int(self.rao)}[/green]"
+        if settings.units.index(self.unit) != 0:
+            return f"[green]{int(self.rao)}{self.unit}[/green]"
+        else:
+            return f"[green]{self.unit}\u200e{int(self.rao)}[/green]"
 
     def __repr__(self):
         return self.__str__()
@@ -265,4 +274,22 @@ class Balance:
         Returns:
             A Balance object representing the given amount.
         """
-        return Balance(amount)
+        return Balance(int(amount))
+
+    @staticmethod
+    def get_unit(netuid: int):
+        units = settings.units
+        base = len(units)
+        if netuid < base:
+            return units[netuid]
+        else:
+            result = ""
+            while netuid > 0:
+                result = units[netuid % base] + result
+                netuid //= base
+            return result
+
+    def set_unit(self, netuid: int):
+        self.unit = Balance.get_unit(netuid)
+        self.rao_unit = Balance.get_unit(netuid)
+        return self
