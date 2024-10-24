@@ -231,6 +231,12 @@ __type_registry__ = {
                     ],
                     "type": "Vec<u8>",
                 },
+                "get_subnet_state": {
+                    "params": [
+                        {"name": "netuid", "type": "u16"},
+                    ],
+                    "type": "Vec<u8>",
+                },
             }
         },
         "SubnetRegistrationRuntimeApi": {
