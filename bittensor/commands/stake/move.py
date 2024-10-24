@@ -140,6 +140,8 @@ class MoveStakeCommand:
                 netuid=destination_netuid,
             ).set_unit(destination_netuid)
         )
+        
+        bt.__console__.print(":warning: [yellow]This command moves all of your stake.[/yellow]")
 
         # TODO: Re-add In-case amount to stake is handled from subtensor
         # # Determine the amount we are moving.
