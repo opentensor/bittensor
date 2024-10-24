@@ -737,7 +737,7 @@ class MetagraphMixin(ABC):
 
     def _get_all_stakes_from_chain(self, subtensor: "bittensor.subtensor"):
         """Fills in the stake associated attributes of a class instance from a chain response."""
-        hex_bytes_result = self.query_runtime_api(
+        hex_bytes_result = subtensor.query_runtime_api(
             runtime_api="SubnetInfoRuntimeApi",
             method="get_subnet_state",
             params=[self.netuid],
