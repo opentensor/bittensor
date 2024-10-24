@@ -125,6 +125,7 @@ class ShowSubnet:
         table.add_column(f"Stake ({Balance.get_unit(0)})", style="dark_sea_green", no_wrap=True, justify="center")
         table.add_column(f"Emission ({Balance.get_unit(0)}/block)", style="rgb(42,161,152)", no_wrap=True, justify="center")
         table.add_column("Hotkey", style="light_salmon3", no_wrap=True, justify="center")
+        table.add_column("Coldkey", style="dark_orange", no_wrap=True, justify="center")
         sorted_hotkeys = sorted(
             enumerate(root_state.hotkeys),
             key=lambda x: root_state.global_stake[x[0]],
@@ -142,6 +143,7 @@ class ShowSubnet:
                 str(root_state.local_stake[idx]),
                 str(total_emission_per_block),
                 f"{root_state.hotkeys[idx]}",
+                f"{root_state.coldkeys[idx]}",
             )
 
         # Print the table
