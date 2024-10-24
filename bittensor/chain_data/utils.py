@@ -68,6 +68,14 @@ def from_scale_encoding_using_type_string(
 
 custom_rpc_type_registry = {
     "types": {
+        "SubnetIdentity": {
+            "type": "struct",
+            "type_mapping": [
+                ["subnet_name", "Vec<u8>"],
+                ["github_repo", "Vec<u8>"],
+                ["subnet_contact", "Vec<u8>"],
+            ],
+        },
         "SubnetInfo": {
             "type": "struct",
             "type_mapping": [
@@ -105,19 +113,25 @@ custom_rpc_type_registry = {
         "SubnetInfoV2": {
             "type": "struct",
             "type_mapping": [
-                ["netuid", "u16"],
-                ["owner", "AccountId"],
-                ["max_allowed_validators", "u16"],
-                ["scaling_law_power", "u16"],
-                ["subnetwork_n", "u16"],
-                ["max_allowed_uids", "u16"],
-                ["blocks_since_last_step", "Compact<u32>"],
-                ["network_modality", "u16"],
+                ["netuid", "Compact<u16>"],
+                ["rho", "Compact<u16>"],
+                ["kappa", "Compact<u16>"],
+                ["difficulty", "Compact<u64>"],
+                ["immunity_period", "Compact<u16>"],
+                ["max_allowed_validators", "Compact<u16>"],
+                ["min_allowed_weights", "Compact<u16>"],
+                ["max_weights_limit", "Compact<u16>"],
+                ["scaling_law_power", "Compact<u16>"],
+                ["subnetwork_n", "Compact<u16>"],
+                ["max_allowed_uids", "Compact<u16>"],
+                ["blocks_since_last_step", "Compact<u64>"],
+                ["tempo", "Compact<u16>"],
+                ["network_modality", "Compact<u16>"],
+                ["network_connect", "Vec<[u16; 2]>"],
                 ["emission_values", "Compact<u64>"],
                 ["burn", "Compact<u64>"],
-                ["tao_locked", "Compact<u64>"],
-                ["hyperparameters", "SubnetHyperparameters"],
-                ["dynamic_pool", "Option<DynamicPoolInfoV2>"],
+                ["owner", "AccountId"],
+                ["identity", "Option<SubnetIdentity>"],
             ],
         },
         "DelegateInfo": {

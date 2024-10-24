@@ -23,7 +23,6 @@ class SubnetInfoV2:
     burn: Balance
     tao_locked: Balance
     hyperparameters: "SubnetHyperparameters"
-    dynamic_pool: "DynamicPool"
 
     @classmethod
     def from_vec_u8(cls, vec_u8: List[int]) -> Optional["SubnetInfoV2"]:
@@ -55,20 +54,7 @@ class SubnetInfoV2:
     @classmethod
     def fix_decoded_values(cls, decoded: Dict) -> "SubnetInfoV2":
         """Returns a SubnetInfoV2 object from a decoded SubnetInfoV2 dictionary."""
-        # init dynamic pool object
-        pool_info = decoded["dynamic_pool"]
-        if pool_info:
-            pool = DynamicPool(
-                True,
-                pool_info["netuid"],
-                pool_info["alpha_issuance"],
-                pool_info["alpha_outstanding"],
-                pool_info["alpha_reserve"],
-                pool_info["tao_reserve"],
-                pool_info["k"],
-            )
-        else:
-            pool = DynamicPool(False, decoded["netuid"], 0, 0, 0, 0, 0)
+       
 
         return SubnetInfoV2(
             netuid=decoded["netuid"],
@@ -83,7 +69,12 @@ class SubnetInfoV2:
             burn=Balance.from_rao(decoded["burn"]),
             tao_locked=Balance.from_rao(decoded["tao_locked"]),
             hyperparameters=decoded["hyperparameters"],
-            dynamic_pool=pool,
+            rho=decoded["rho"],
+            kappa=decoded["kappa"],
+            difficulty=decoded["difficulty"],
+            immunity_period=decoded["immunity_period"],
+            min_allowed_weights=decoded["min_allowed_weights"],
+            max_weights_limit=decoded["max_weights_limit"],
         )
 
     def _to_parameter_dict(self, return_type: str) -> Union[dict[str, Any], "torch.nn.ParameterDict"]:
