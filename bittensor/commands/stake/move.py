@@ -33,7 +33,7 @@ class MoveStakeCommand:
             type=str,
             help="""Specify the destination hotkey by name or ss58 address.""",
         )
-        stake_parser.add_argument("--amount", dest="amount", type=float, required=False)
+        # stake_parser.add_argument("--amount", dest="amount", type=float, required=False)
         stake_parser.add_argument("--all", dest="stake_all", action="store_true")
         stake_parser.add_argument(
             "--no_prompt",
@@ -131,6 +131,7 @@ class MoveStakeCommand:
                 netuid=origin_netuid,
             ).set_unit(origin_netuid)
         )
+        amount_to_move_as_balance = origin_stake_balance
 
         destination_stake_balance: bt.Balance = (
             subtensor.get_stake_for_coldkey_and_hotkey_on_netuid(
@@ -140,36 +141,43 @@ class MoveStakeCommand:
             ).set_unit(destination_netuid)
         )
 
-        # Determine the amount we are moving.
-        amount_to_move_as_balance = None
-        if config.get("amount"):
-            amount_to_move_as_balance = bt.Balance.from_tao(config.amount)
-        elif config.get("stake_all"):
-            amount_to_move_as_balance = origin_stake_balance
-        elif not config.get("amount") and not config.get("max_stake"):
-            if Confirm.ask(f"Move all: [bold]{origin_stake_balance}[/bold]?"):
-                amount_to_move_as_balance = origin_stake_balance
-            else:
-                try:
-                    amount = float(
-                        Prompt.ask(
-                            f"Enter amount to move in {bt.Balance.get_unit(origin_netuid)}"
-                        )
-                    )
-                    amount_to_move_as_balance = bt.Balance.from_tao(amount)
-                except ValueError:
-                    bt.__console__.print(
-                        f":cross_mark:[red]Invalid amount: {amount}[/red]"
-                    )
-                    sys.exit(1)
+        # TODO: Re-add In-case amount to stake is handled from subtensor
+        # # Determine the amount we are moving.
+        # amount_to_move_as_balance = None
+        # if config.get("amount"):
+        #     amount_to_move_as_balance = bt.Balance.from_tao(config.amount)
+        # elif config.get("stake_all"):
+        #     amount_to_move_as_balance = origin_stake_balance
+        # elif not config.get("amount") and not config.get("max_stake"):
+        #     if Confirm.ask(f"Move all: [bold]{origin_stake_balance}[/bold]?"):
+        #         amount_to_move_as_balance = origin_stake_balance
+        #     else:
+        #         try:
+        #             amount = float(
+        #                 Prompt.ask(
+        #                     f"Enter amount to move in {bt.Balance.get_unit(origin_netuid)}"
+        #                 )
+        #             )
+        #             amount_to_move_as_balance = bt.Balance.from_tao(amount)
+        #         except ValueError:
+        #             bt.__console__.print(
+        #                 f":cross_mark:[red]Invalid amount: {amount}[/red]"
+        #             )
+        #             sys.exit(1)
+        # try:
+        #     amount_to_move_as_balance = bt.Balance.from_tao(origin_stake_balance)
+        #     amount_to_move_as_balance.set_unit(origin_netuid)
+        # except ValueError:
+        #     bt.__console__.print(f":cross_mark:[red]Invalid amount: {origin_stake_balance}[/red]")
+        #     sys.exit(1)
+        # # Check enough to move.
+        # amount_to_move_as_balance.set_unit(origin_netuid)
+        # if amount_to_move_as_balance > origin_stake_balance:
+        #     bt.__console__.print(
+        #         f"[red]Not enough stake[/red]:[bold white]\n stake balance:{origin_stake_balance} < moving amount: {amount_to_move_as_balance}[/bold white]"
+        #     )
+        #     sys.exit(1)
 
-        # Check enough to move.
-        amount_to_move_as_balance.set_unit(origin_netuid)
-        if amount_to_move_as_balance > origin_stake_balance:
-            bt.__console__.print(
-                f"[red]Not enough stake[/red]:[bold white]\n stake balance:{origin_stake_balance} < moving amount: {amount_to_move_as_balance}[/bold white]"
-            )
-            sys.exit(1)
 
         # Slippage warning
         if not config.no_prompt:
@@ -290,7 +298,7 @@ class MoveStakeCommand:
                     "origin_netuid": origin_netuid,
                     "destination_hotkey": destination_hotkey_ss58,
                     "destination_netuid": destination_netuid,
-                    "amount_moved": amount_to_move_as_balance.rao,
+                    # "amount_moved": amount_to_move_as_balance.rao,
                 },
             )
             extrinsic = subtensor.substrate.create_signed_extrinsic(
