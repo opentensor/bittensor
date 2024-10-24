@@ -3998,19 +3998,41 @@ class Subtensor:
         return SubnetInfoV2.list_from_vec_u8(result)
 
     def get_all_subnet_dynamic_info(self) -> List["DynamicInfo"]:
-        json = self.substrate.rpc_request(
-            method="subnetInfo_getAllDynamicInfo", params=[None]
+        hex_bytes_result = self.query_runtime_api(
+            runtime_api="SubnetInfoRuntimeApi",
+            method="get_all_dynamic_info",
+            params=[],
         )
-        subnets = DynamicInfo.list_from_vec_u8(json["result"])
+
+        if hex_bytes_result is None:
+            return []
+
+        if hex_bytes_result.startswith("0x"):
+            bytes_result = bytes.fromhex(hex_bytes_result[2:])
+        else:
+            bytes_result = bytes.fromhex(hex_bytes_result)
+
+        subnets = DynamicInfo.list_from_vec_u8(bytes_result)
         return subnets
 
     def get_subnet_dynamic_info(
         self, netuid: int
     ) -> "DynamicInfo":
-        json = self.substrate.rpc_request(
-            method="subnetInfo_getDynamicInfo", params=[netuid, None]
+        hex_bytes_result = self.query_runtime_api(
+            runtime_api="SubnetInfoRuntimeApi",
+            method="get_dynamic_info",
+            params=[netuid],
         )
-        subnets = DynamicInfo.from_vec_u8(json["result"])
+
+        if hex_bytes_result is None:
+            return None
+
+        if hex_bytes_result.startswith("0x"):
+            bytes_result = bytes.fromhex(hex_bytes_result[2:])
+        else:
+            bytes_result = bytes.fromhex(hex_bytes_result)
+        
+        subnets = DynamicInfo.from_vec_u8(bytes_result)
         return subnets
 
     def get_subnet_info_v2(
@@ -4033,17 +4055,24 @@ class Subtensor:
 
         @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
         def make_substrate_call_with_retry():
-            block_hash = None if block is None else self.substrate.get_block_hash(block)
-            params = [netuid]
-            if block_hash:
-                params = params + [block_hash]
-            return self.substrate.rpc_request(
-                method="subnetInfo_getSubnetInfoV2",  # custom rpc method
-                params=params,
+            hex_bytes_result = self.query_runtime_api(
+                runtime_api="SubnetInfoRuntimeApi",
+                method="get_subnet_info_v2",
+                params=[netuid],
+                block=block,
             )
 
-        json_body = make_substrate_call_with_retry()
-        result = json_body["result"]
+            if hex_bytes_result is None:
+                return []
+
+            if hex_bytes_result.startswith("0x"):
+                bytes_result = bytes.fromhex(hex_bytes_result[2:])
+            else:
+                bytes_result = bytes.fromhex(hex_bytes_result)
+
+            return bytes_result
+
+        result = make_substrate_call_with_retry()
 
         if result in (None, []):
             return None
