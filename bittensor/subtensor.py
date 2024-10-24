@@ -2821,17 +2821,12 @@ class Subtensor:
         The state call function provides a more direct and flexible way of querying blockchain data,
         useful for specific use cases where standard queries are insufficient.
         """
+        block_hash = None if block is None else self.substrate.get_block_hash(block)
 
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
-        def make_substrate_call_with_retry() -> Dict[Any, Any]:
-            block_hash = None if block is None else self.substrate.get_block_hash(block)
-
-            return self.substrate.rpc_request(
-                method="state_call",
-                params=[method, data, block_hash] if block_hash else [method, data],
-            )
-
-        return make_substrate_call_with_retry()
+        return self.substrate.rpc_request(
+            method="state_call",
+            params=[method, data, block_hash] if block_hash else [method, data],
+        )
 
     def query_runtime_api(
         self,
@@ -3429,35 +3424,31 @@ class Subtensor:
     #####################
 
     def get_total_stake_for_key(
-        self, ss58_address: str, method: str, block: Optional[int] = None
+        self, ss58_address: str, block: Optional[int] = None
     ) -> Optional["Balance"]:
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
-        def make_substrate_call_with_retry(encoded_hotkey: List[int]):
-            with self.substrate as substrate:
-                block_hash = None if block is None else substrate.get_block_hash(block)
-                params = [encoded_hotkey]
-                if block_hash:
-                    params = params + [block_hash]
-                return substrate.rpc_request(
-                    method,
-                    params=params,
-                )
+        # TODO: runtime api does not exist
+        pass
+    
+        encoded_hotkey = ss58_to_vec_u8(ss58_address)
 
-        encoded_key = ss58_to_vec_u8(ss58_address)
-        json_body = make_substrate_call_with_retry(encoded_key)
-        result = json_body["result"]
+        result = self.query_runtime_api(
+            runtime_api="DelegateInfoRuntimeApi",
+            method="get_total_stake_for_hotkey",
+            params=[encoded_hotkey],
+            block=block,
+        )
 
         if result in (None, []):
             return None
-        else:
-            return Balance.from_rao(result)
+
+        return Balance.from_rao(result)
 
     def get_total_stake_for_hotkey(
         self, ss58_address: str, block: Optional[int] = None
     ) -> Optional["Balance"]:
         """Returns the total stake held on a hotkey including delegative"""
         return self.get_total_stake_for_key(
-            ss58_address, "delegateInfo_getTotalStakeForHotkey", block
+            ss58_address, block
         )
 
     def get_total_stake_for_coldkey(
@@ -3977,25 +3968,22 @@ class Subtensor:
         Gaining insights into the subnets' details assists in understanding the network's composition,
         the roles of different subnets, and their unique features.
         """
+        hex_bytes_result = self.query_runtime_api(
+            runtime_api="SubnetInfoRuntimeApi",
+            method="get_subnets_info_v2",
+            params=[],
+            block=block,
+        )
 
-        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=_logger)
-        def make_substrate_call_with_retry():
-            block_hash = None if block is None else self.substrate.get_block_hash(block)
-            params = []
-            if block_hash:
-                params = params + [block_hash]
-            return self.substrate.rpc_request(
-                method="subnetInfo_getSubnetsInfoV2",  # custom rpc method
-                params=params,
-            )
-
-        json_body = make_substrate_call_with_retry()
-        result = json_body["result"]
-
-        if result in (None, []):
+        if hex_bytes_result in (None, []):
             return []
 
-        return SubnetInfoV2.list_from_vec_u8(result)
+        if hex_bytes_result.startswith("0x"):
+            bytes_result = bytes.fromhex(hex_bytes_result[2:])
+        else:
+            bytes_result = bytes.fromhex(hex_bytes_result)
+
+        return SubnetInfoV2.list_from_vec_u8(bytes_result)
 
     def get_all_subnet_dynamic_info(self) -> List["DynamicInfo"]:
         hex_bytes_result = self.query_runtime_api(
@@ -4052,32 +4040,22 @@ class Subtensor:
         This function is essential for neurons and stakeholders interested in the specifics of a particular
         subnet, including its governance, performance, and role within the broader network.
         """
+        hex_bytes_result = self.query_runtime_api(
+            runtime_api="SubnetInfoRuntimeApi",
+            method="get_subnet_info_v2",
+            params=[netuid],
+            block=block,
+        )
 
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
-        def make_substrate_call_with_retry():
-            hex_bytes_result = self.query_runtime_api(
-                runtime_api="SubnetInfoRuntimeApi",
-                method="get_subnet_info_v2",
-                params=[netuid],
-                block=block,
-            )
+        if hex_bytes_result in (None, []):
+            return []
 
-            if hex_bytes_result is None:
-                return []
+        if hex_bytes_result.startswith("0x"):
+            bytes_result = bytes.fromhex(hex_bytes_result[2:])
+        else:
+            bytes_result = bytes.fromhex(hex_bytes_result)
 
-            if hex_bytes_result.startswith("0x"):
-                bytes_result = bytes.fromhex(hex_bytes_result[2:])
-            else:
-                bytes_result = bytes.fromhex(hex_bytes_result)
-
-            return bytes_result
-
-        result = make_substrate_call_with_retry()
-
-        if result in (None, []):
-            return None
-
-        return SubnetInfoV2.from_vec_u8(result)
+        return SubnetInfoV2.from_vec_u8(bytes_result)
 
     def get_subnet_hyperparameters(
         self, netuid: int, block: Optional[int] = None
@@ -4103,7 +4081,7 @@ class Subtensor:
             block=block,
         )
 
-        if hex_bytes_result is None:
+        if hex_bytes_result in (None, []):
             return []
 
         if hex_bytes_result.startswith("0x"):
@@ -4162,70 +4140,20 @@ class Subtensor:
     def get_substake_for_hotkey(
         self, hotkey_ss58: str, block: Optional[int] = None
     ) -> Optional[List[Tuple[str, str, int, int]]]:
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
-        def make_substrate_call_with_retry(encoded_hotkey: List[int]):
-            with self.substrate as substrate:
-                block_hash = None if block is None else substrate.get_block_hash(block)
-                params = [encoded_hotkey]
-                if block_hash:
-                    params = params + [block_hash]
-                return substrate.rpc_request(
-                    method="delegateInfo_getSubStakeForHotkey",  # custom rpc method
-                    params=params,
-                )
-
-        encoded_hotkey = ss58_to_vec_u8(hotkey_ss58)
-        json_body = make_substrate_call_with_retry(encoded_hotkey)
-        result = json_body["result"]
-        if result in (None, []):
-            return None
-        else:
-            return SubstakeElements.decode(result)
+        # TODO: runtime api doesn't exist anymore
+        pass
 
     def get_substake_for_coldkey(
         self, coldkey_ss58: str, block: Optional[int] = None
     ) -> Optional[List[Tuple[str, str, int, int]]]:
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
-        def make_substrate_call_with_retry(encoded_coldkey: List[int]):
-            with self.substrate as substrate:
-                block_hash = None if block is None else substrate.get_block_hash(block)
-                params = [encoded_coldkey]
-                if block_hash:
-                    params = params + [block_hash]
-                return substrate.rpc_request(
-                    method="delegateInfo_getSubStakeForColdkey",  # custom rpc method
-                    params=params,
-                )
-
-        encoded_coldkey = ss58_to_vec_u8(coldkey_ss58)
-        json_body = make_substrate_call_with_retry(encoded_coldkey)
-        result = json_body["result"]
-        if result in (None, []):
-            return None
-        else:
-            return SubstakeElements.decode(result)
+        # TODO: runtime api doesn't exist anymore
+        pass
 
     def get_substake_for_netuid(
         self, netuid: int, block: Optional[int] = None
     ) -> Optional[List[Tuple[str, str, int, int]]]:
-        @retry(delay=2, tries=3, backoff=2, max_delay=4)
-        def make_substrate_call_with_retry():
-            with self.substrate as substrate:
-                block_hash = None if block is None else substrate.get_block_hash(block)
-                params = [netuid]
-                if block_hash:
-                    params = params + [block_hash]
-                return substrate.rpc_request(
-                    method="delegateInfo_getSubStakeForNetuid",  # custom rpc method
-                    params=params,
-                )
-
-        json_body = make_substrate_call_with_retry()
-        result = json_body["result"]
-        if result in (None, []):
-            return None
-        else:
-            return SubstakeElements.decode(result)
+        # TODO: runtime api doesn't exist anymore
+        pass
 
     def get_delegate_by_hotkey(
         self, hotkey_ss58: str, block: Optional[int] = None
@@ -4243,26 +4171,25 @@ class Subtensor:
 
         This function is essential for understanding the roles and influence of delegate neurons within
         the Bittensor network's consensus and governance structures.
-        """
-
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
-        def make_substrate_call_with_retry(encoded_hotkey_: List[int]):
-            block_hash = None if block is None else self.substrate.get_block_hash(block)
-
-            return self.substrate.rpc_request(
-                method="delegateInfo_getDelegate",  # custom rpc method
-                params=(
-                    [encoded_hotkey_, block_hash] if block_hash else [encoded_hotkey_]
-                ),
-            )
-
+        """        
         encoded_hotkey = ss58_to_vec_u8(hotkey_ss58)
-        json_body = make_substrate_call_with_retry(encoded_hotkey)
 
-        if not (result := json_body.get("result", None)):
+        hex_bytes_result = self.query_runtime_api(
+            runtime_api="DelegateInfoRuntimeApi",
+            method="get_delegate",
+            params=[encoded_hotkey],
+            block=block,
+        )
+
+        if not (result := hex_bytes_result):
             return None
+        
+        if result.startswith("0x"):
+            bytes_result = bytes.fromhex(result[2:])
+        else:
+            bytes_result = bytes.fromhex(result)
 
-        return DelegateInfo.from_vec_u8(result)
+        return DelegateInfo.from_vec_u8(bytes_result)
 
     def get_delegates(self, netuid, block: Optional[int] = None) -> List[DelegateInfo]:
         """
@@ -4279,25 +4206,22 @@ class Subtensor:
             List[DelegateInfo]: A list of DelegateInfo objects detailing each delegate's characteristics.
 
         """
+        hex_bytes_result = self.query_runtime_api(
+            runtime_api="DelegateInfoRuntimeApi",
+            method="get_delegates",
+            params=[netuid],
+            block=block,
+        )
 
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
-        def make_substrate_call_with_retry():
-            block_hash = None if block is None else self.substrate.get_block_hash(block)
-            params = [netuid]
-            if block_hash:
-                params.extend([block_hash])
-            return self.substrate.rpc_request(
-                method="delegateInfo_getDelegates",  # custom rpc method
-                params=params,
-            )
-
-        json_body = make_substrate_call_with_retry()
-        result = json_body["result"]
-
-        if result in (None, []):
+        if hex_bytes_result in (None, []):
             return []
-
-        return DelegateInfo.list_from_vec_u8(result)
+        
+        if hex_bytes_result.startswith("0x"):
+            bytes_result = bytes.fromhex(hex_bytes_result[2:])
+        else:
+            bytes_result = bytes.fromhex(hex_bytes_result)
+    
+        return DelegateInfo.list_from_vec_u8(bytes_result)
 
     def get_delegates_by_netuid_light(
         self, netuid, block: Optional[int] = None
@@ -4314,25 +4238,8 @@ class Subtensor:
             List[DelegateInfo]: A list of DelegateInfo objects detailing each delegate's characteristics.
 
         """
-
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
-        def make_substrate_call_with_retry():
-            block_hash = None if block is None else self.substrate.get_block_hash(block)
-            params = [netuid]
-            if block_hash:
-                params.extend([block_hash])
-            return self.substrate.rpc_request(
-                method="delegateInfo_getDelegatesLight",  # custom rpc method
-                params=params,
-            )
-
-        json_body = make_substrate_call_with_retry()
-        result = json_body["result"]
-
-        if result in (None, []):
-            return []
-
-        return DelegateInfoLite.list_from_vec_u8(result)
+        # TODO: runtime api doesn't exist anymore
+        pass
 
     def get_delegated(
         self, coldkey_ss58: str, block: Optional[int] = None
@@ -4352,25 +4259,24 @@ class Subtensor:
         This function is important for account holders to understand their stake allocations and their
         involvement in the network's delegation and consensus mechanisms.
         """
-
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
-        def make_substrate_call_with_retry(encoded_coldkey_: List[int]):
-            block_hash = None if block is None else self.substrate.get_block_hash(block)
-
-            return self.substrate.rpc_request(
-                method="delegateInfo_getDelegated",
-                params=(
-                    [block_hash, encoded_coldkey_] if block_hash else [encoded_coldkey_]
-                ),
-            )
-
         encoded_coldkey = ss58_to_vec_u8(coldkey_ss58)
-        json_body = make_substrate_call_with_retry(encoded_coldkey)
 
-        if not (result := json_body.get("result", None)):
+        hex_bytes_result = self.query_runtime_api(
+            runtime_api="DelegateInfoRuntimeApi",
+            method="get_delegated",
+            params=[encoded_coldkey],
+            block=block,
+        )
+
+        if hex_bytes_result in (None, []):
             return []
+        
+        if hex_bytes_result.startswith("0x"):
+            bytes_result = bytes.fromhex(hex_bytes_result[2:])
+        else:
+            bytes_result = bytes.fromhex(hex_bytes_result)
 
-        return DelegateInfo.delegated_list_from_vec_u8(result)
+        return DelegateInfo.delegated_list_from_vec_u8(bytes_result)
 
     def get_all_hotkey_stakes(
         self, block: Optional[int] = None
@@ -4384,33 +4290,8 @@ class Subtensor:
         Returns:
             List[Tuple[str, Balance]]: The list of tuples (hotkey, GDT balance).
         """
-
-        @retry(delay=2, tries=3, backoff=2, max_delay=4, logger=_logger)
-        def make_substrate_call_with_retry():
-            block_hash = None if block is None else self.substrate.get_block_hash(block)
-            params = []
-            if block_hash:
-                params = params + [block_hash]
-            return self.substrate.rpc_request(
-                method="delegateInfo_getAllDelegatesTotalStake",  # custom rpc method
-                params=params,
-            )
-
-        json_body = make_substrate_call_with_retry()
-        result = json_body["result"]
-
-        if result in (None, []):
-            return None
-
-        decoded = from_scale_encoding_using_type_string(
-            result, "Vec<(AccountId, Compact<u64>)>"
-        )
-
-        result = []
-        for pubkey, stake in decoded:
-            result.append((ss58_encode(pubkey, bittensor.__ss58_format__), stake))
-
-        return result
+        # TODO: runtime api doesn't exist anymore
+        pass
 
     def get_children(self, hotkey, netuid):
         """
@@ -4842,21 +4723,24 @@ class Subtensor:
 
         @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=_logger)
         def make_substrate_call_with_retry():
-            block_hash = None if block is None else self.substrate.get_block_hash(block)
-            params = [netuid, uid]
-            if block_hash:
-                params = params + [block_hash]
-            return self.substrate.rpc_request(
-                method="neuronInfo_getNeuron",
-                params=params,  # custom rpc method
+            return self.query_runtime_api(
+                runtime_api="NeuronInfoRuntimeApi",
+                method="get_neuron",
+                params=[netuid, uid],
+                block=block,
             )
 
-        json_body = make_substrate_call_with_retry()
+        result = make_substrate_call_with_retry()
 
-        if not (result := json_body.get("result", None)):
+        if not (hex_bytes_result := result):
             return NeuronInfo.get_null_neuron()
+        
+        if hex_bytes_result.startswith("0x"):
+            bytes_result = bytes.fromhex(hex_bytes_result[2:])
+        else:
+            bytes_result = bytes.fromhex(hex_bytes_result)
 
-        return NeuronInfo.from_vec_u8(result)
+        return NeuronInfo.from_vec_u8(bytes_result)
 
     def neurons(self, netuid: int, block: Optional[int] = None) -> List[NeuronInfo]:
         """
