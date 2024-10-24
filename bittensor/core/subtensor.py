@@ -203,10 +203,12 @@ class Subtensor:
             )
 
         if subprocess_initialization:
-            subprocess_utils.start_commit_reveal_subprocess(
+            subprocess_utils.start_if_existing_commits(
                 network=network, sleep_interval=subprocess_sleep_interval
             )
 
+        self.subprocess_initialization = subprocess_initialization
+        self.subprocess_sleep_interval = subprocess_sleep_interval
         self.log_verbose = log_verbose
         self._connection_timeout = connection_timeout
         self.substrate: "SubstrateInterface" = None
@@ -1869,7 +1871,7 @@ class Subtensor:
         )
 
         if isinstance(weights, list) and all(isinstance(w, float) for w in weights):
-            _, weights = convert_weights_and_uids_for_emit(uids, weights)  # type: ignore
+            uids, weights = convert_weights_and_uids_for_emit(uids, weights)  # type: ignore
 
         # Generate the hash of the weights
         commit_hash = generate_weight_hash(
@@ -1896,7 +1898,10 @@ class Subtensor:
                 )
                 if success:
                     # add to local db if called directly
-                    if subprocess_utils.is_process_running(COMMIT_REVEAL_PROCESS):
+                    if self.subprocess_initialization:
+                        if not subprocess_utils.is_process_running(COMMIT_REVEAL_PROCESS):
+                            logging.info("Starting commit_reveal subprocess from commit.")
+                            subprocess_utils.start_commit_reveal_subprocess(network=self.chain_endpoint, sleep_interval=self.subprocess_sleep_interval)
                         commit_weights_process(
                             self,
                             wallet=wallet,

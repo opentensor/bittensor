@@ -32,6 +32,7 @@ class Commit:
         netuid (int): The network UID.
         commit_block (int): The block number at which the commit was made.
         reveal_block (int): The block number at which the commit will be revealed.
+        expire_block (int): The block number at which the commit will be expired.
         uids (List[int]): The list of UIDs.
         weights (List[int]): The list of weights.
         salt (List[int]): The salt used for the commit.
@@ -48,6 +49,7 @@ class Commit:
         netuid: int,
         commit_block: int,
         reveal_block: int,
+        expire_block: int,
         uids: List[int],
         weights: List[int],
         salt: List[int],
@@ -61,6 +63,7 @@ class Commit:
         self.netuid = netuid
         self.commit_block = commit_block
         self.reveal_block = reveal_block
+        self.expire_block = expire_block
         self.uids = uids
         self.weights = weights
         self.salt = salt
@@ -82,6 +85,7 @@ class Commit:
             "netuid": self.netuid,
             "commit_block": self.commit_block,
             "reveal_block": self.reveal_block,
+            "expire_block": self.expire_block,
             "uids": json.dumps(self.uids),
             "weights": json.dumps(self.weights),
             "salt": json.dumps(self.salt),
@@ -108,6 +112,7 @@ class Commit:
             netuid=data["netuid"],
             commit_block=data["commit_block"],
             reveal_block=data["reveal_block"],
+            expire_block=data["expire_block"],
             uids=json.loads(data["uids"]),
             weights=json.loads(data["weights"]),
             salt=json.loads(data["salt"]),
@@ -121,7 +126,7 @@ class Commit:
         Returns:
             str: String representation of the commit.
         """
-        return f"Commit(wallet_hotkey_name={self.wallet_hotkey_name}, wallet_hotkey_ss58={self.wallet_hotkey_ss58}, wallet_name={self.wallet_name}, wallet_path={self.wallet_path}, commit_hash={self.commit_hash}, netuid={self.netuid}, commit_block={self.commit_block}, reveal_block={self.reveal_block}, uids={self.uids}, weights={self.weights}, salt={self.salt}, version_key={self.version_key})"
+        return f"Commit(wallet_hotkey_name={self.wallet_hotkey_name}, wallet_hotkey_ss58={self.wallet_hotkey_ss58}, wallet_name={self.wallet_name}, wallet_path={self.wallet_path}, commit_hash={self.commit_hash}, netuid={self.netuid}, commit_block={self.commit_block}, reveal_block={self.reveal_block}, expire_block={self.expire_block}, uids={self.uids}, weights={self.weights}, salt={self.salt}, version_key={self.version_key})"
 
 
 def table_exists(table_name: str) -> bool:
@@ -179,6 +184,7 @@ def initialize_db():
         ("netuid", "INTEGER"),
         ("commit_block", "INTEGER"),
         ("reveal_block", "INTEGER"),
+        ("expire_block", "INTEGER"),
         ("uids", "TEXT"),
         ("weights", "TEXT"),
         ("salt", "TEXT"),
@@ -317,6 +323,31 @@ def chain_hash_check(subtensor: Subtensor):
                             revealed_hash(local_commit_hash)
     except Exception as e:
         print(f"Error during chain_hash_check: {e}")
+
+
+def delete_expired_commits(current_block: int):
+    """
+    Deletes rows in the database where the current block is greater than the expire_block.
+    Prints each commit before deleting it.
+
+    Args:
+        current_block (int): The current block number.
+    """
+    try:
+        commits = get_all_commits()
+        if not commits:
+            print("No commits found in the database.")
+            return
+
+        with utils.DB(db_path=DB_PATH) as (conn, cursor):
+            for commit in commits:
+                if current_block > commit.expire_block:
+                    delete_sql = "DELETE FROM commits WHERE commit_hash=?"
+                    cursor.execute(delete_sql, (commit.commit_hash,))
+                    conn.commit()
+                    print(f"Current block: {current_block}. Deleting expired Commit: {commit}")
+    except Exception as e:
+        print(f"Error deleting expired commits: {e}")
 
 
 def revealed(
@@ -568,14 +599,15 @@ def handle_client_connection(client_socket: socket.socket):
                         wallet_hotkey_ss58=args[4],
                         wallet_name=args[1],
                         wallet_path=args[2],
-                        commit_hash=args[7],
-                        netuid=int(args[8]),
+                        commit_hash=args[8],
+                        netuid=int(args[9]),
                         commit_block=int(args[5]),
                         reveal_block=int(args[6]),
-                        uids=json.loads(args[9]),
-                        weights=json.loads(args[10]),
-                        salt=json.loads(args[11]),
-                        version_key=int(args[12]),
+                        expire_block=int(args[7]),
+                        uids=json.loads(args[10]),
+                        weights=json.loads(args[11]),
+                        salt=json.loads(args[12]),
+                        version_key=int(args[13]),
                     )
                 ),
                 "terminate": lambda: terminate_process(None, None),
@@ -641,6 +673,7 @@ def main(args: argparse.Namespace):
         args (argparse.Namespace): The command-line arguments.
     """
     initialize_db()
+    print(f"initializing subtensor with network: {args.network} and sleep time: {args.sleep_interval} seconds")
     subtensor = Subtensor(network=args.network, subprocess_initialization=False)
     server_thread = threading.Thread(target=start_socket_server)
     server_thread.start()
@@ -657,6 +690,7 @@ def main(args: argparse.Namespace):
         # Every 100th run, perform an additional check to verify reveal list alignment with the backend
         if counter % 100 == 0:
             chain_hash_check(subtensor=subtensor)
+            # delete_expired_commits(current_block=curr_block)
 
         time.sleep(args.sleep_interval)
 

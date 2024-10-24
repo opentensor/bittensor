@@ -5,6 +5,7 @@ import pytest
 import bittensor.utils.subprocess.commit_reveal as commit_reveal_subprocess
 import bittensor
 from bittensor import logging
+from bittensor.utils import subprocess_utils
 from bittensor.utils.weight_utils import convert_weights_and_uids_for_emit
 from tests.e2e_tests.utils.chain_interactions import (
     add_stake,
@@ -501,6 +502,7 @@ async def test_set_and_reveal_batch_weights(local_chain):
 
 
 @pytest.mark.asyncio
+@pytest.mark.timeout(120)  # 4 minute timeout
 async def test_set_and_reveal_batch_weights_over_limit(local_chain):
     """
     Tests the commit/reveal batch weights mechanism with 11 commits, which should throw an exception
@@ -554,16 +556,16 @@ async def test_set_and_reveal_batch_weights_over_limit(local_chain):
         local_chain,
         alice_wallet,
         call_function="sudo_set_commit_reveal_weights_periods",
-        call_params={"netuid": netuid, "periods": "2"},
+        call_params={"netuid": netuid, "periods": "1"},
         return_error_message=True,
     )
 
     assert (
-        subtensor.get_subnet_hyperparameters(netuid=netuid).commit_reveal_periods == 2
+            subtensor.get_subnet_hyperparameters(netuid=netuid).commit_reveal_periods == 1
     ), "Failed to set commit/reveal periods"
 
     assert (
-        subtensor.weights_rate_limit(netuid=netuid) > 0
+            subtensor.weights_rate_limit(netuid=netuid) > 0
     ), "Weights rate limit is below 0"
     # Lower the rate limit
     assert sudo_set_hyperparameter_values(
@@ -574,7 +576,7 @@ async def test_set_and_reveal_batch_weights_over_limit(local_chain):
         return_error_message=True,
     )
     assert (
-        subtensor.get_subnet_hyperparameters(netuid=netuid).weights_rate_limit == 0
+            subtensor.get_subnet_hyperparameters(netuid=netuid).weights_rate_limit == 0
     ), "Failed to set weights_rate_limit"
     assert subtensor.weights_rate_limit(netuid=netuid) == 0
 
@@ -607,10 +609,9 @@ async def test_set_and_reveal_batch_weights_over_limit(local_chain):
             wait_for_inclusion=True,
             wait_for_finalization=True,
         )
-        print(message)
         assert success
 
-        time.sleep(3)
+        time.sleep(1)
 
     # 11th time (should throw error)
     # Commit-reveal values
@@ -630,5 +631,6 @@ async def test_set_and_reveal_batch_weights_over_limit(local_chain):
         wait_for_finalization=True,
     )
 
-    print(message)
     assert success is False
+    # remove commits
+    subprocess_utils.delete_all_rows("commits")

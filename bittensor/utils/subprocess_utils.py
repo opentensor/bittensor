@@ -1,5 +1,6 @@
 import os
 import sqlite3
+import time
 from typing import Optional
 
 import subprocess
@@ -40,8 +41,8 @@ def is_process_running(process_name: str) -> bool:
     for proc in psutil.process_iter(["pid", "name", "cmdline"]):
         cmdline = proc.info["cmdline"]
         if cmdline and (
-            process_name in proc.info["name"]
-            or any(process_name in cmd for cmd in cmdline)
+                process_name in proc.info["name"]
+                or any(process_name in cmd for cmd in cmdline)
         ):
             return True
     return False
@@ -95,6 +96,39 @@ def read_commit_reveal_logs():
         print(f"STDERR log file not found at {stderr_log}")
 
 
+def is_table_empty(table_name: str) -> bool:
+    """
+    Checks if a table in the database is empty.
+
+    Args:
+        table_name (str): The name of the table to check.
+
+    Returns:
+        bool: True if the table is empty, False otherwise.
+    """
+    try:
+        columns, rows = read_table(table_name)
+        if not rows:
+            print(f"Table '{table_name}' is empty.")
+            return True
+        else:
+            print(f"Table '{table_name}' is not empty.")
+            return False
+    except Exception as e:
+        print(f"Error checking if table '{table_name}' is empty: {e}")
+        return False
+
+
+def start_if_existing_commits(network: Optional[str] = None, sleep_interval: Optional[float] = None):
+    # check if table is empty
+    if not is_table_empty("commits"):
+        start_commit_reveal_subprocess(network, sleep_interval)
+    else:
+        print(
+            "Existing commits table is empty. Skipping starting commit reveal subprocess until a commit is there."
+        )
+
+
 def start_commit_reveal_subprocess(
         network: Optional[str] = None, sleep_interval: Optional[float] = None
 ):
@@ -111,9 +145,12 @@ def start_commit_reveal_subprocess(
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
     if not is_process_running(PROCESS_NAME):
+        from datetime import datetime
+        current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
+
         # Correctly construct the paths for STDOUT and STDERR log files
-        stdout_log = os.path.join(LOG_DIR, "commit_reveal_stdout.log")
-        stderr_log = os.path.join(LOG_DIR, "commit_reveal_stderr.log")
+        stdout_log = os.path.join(LOG_DIR, f"commit_reveal_stdout_{current_time}.log")
+        stderr_log = os.path.join(LOG_DIR, f"commit_reveal_stderr_{current_time}.log")
 
         os.makedirs(LOG_DIR, exist_ok=True)
 
@@ -139,7 +176,7 @@ def start_commit_reveal_subprocess(
             env=env,
         )
         print(f"Subprocess '{PROCESS_NAME}' started with PID {process.pid}.")
-
+        time.sleep(1)  # wait a second for subprocess to initialize
     else:
         print(f"Subprocess '{PROCESS_NAME}' is already running.")
 
@@ -252,3 +289,16 @@ def read_table(table_name: str, order_by: str = "") -> tuple[list, list]:
             for idx in blob_cols:
                 row[idx] = int.from_bytes(row[idx], byteorder="big")
     return column_names, rows
+
+
+def delete_all_rows(table_name: str):
+    """
+    Deletes all rows from a table in the SQLite database.
+
+    Args:
+        table_name (str): The name of the table where all rows should be deleted.
+    """
+    with DB() as (conn, cursor):
+        delete_query = f"DELETE FROM {table_name}"
+        cursor.execute(delete_query)
+        conn.commit()

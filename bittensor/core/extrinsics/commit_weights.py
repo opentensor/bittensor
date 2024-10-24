@@ -187,8 +187,9 @@ def commit_weights_process(
         netuid=netuid
     ).commit_reveal_periods
     reveal_block = epoch_start_block + ((cr_periods - 1) * subnet_tempo_blocks) + 1
+    expire_block = reveal_block + subnet_tempo_blocks - 1
 
-    command = f'committed "{wallet.name}" "{wallet.path}" "{wallet.hotkey_str}" "{wallet.hotkey.ss58_address}" "{curr_block}" "{reveal_block}" "{commit_hash}" "{netuid}" "{uids}" "{weights}" "{salt}" "{version_key}"'
+    command = f'committed "{wallet.name}" "{wallet.path}" "{wallet.hotkey_str}" "{wallet.hotkey.ss58_address}" "{curr_block}" "{reveal_block}" "{expire_block}" "{commit_hash}" "{netuid}" "{uids}" "{weights}" "{salt}" "{version_key}"'
     send_command(command)
 
 
