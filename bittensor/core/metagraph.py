@@ -790,10 +790,22 @@ class MetagraphMixin(ABC):
     def _get_all_stakes_from_chain(self, subtensor: "Subtensor"):
         """Fills in the stake associated attributes of a class instance from a chain response."""
         try:
+            hex_bytes_result = subtensor.query_runtime_api(
+                runtime_api="SubnetInfoRuntimeApi",
+                method="get_subnet_state",
+                params=[self.netuid],
+            )
+
+            if hex_bytes_result is None:
+                return []
+
+            if hex_bytes_result.startswith("0x"):
+                bytes_result = bytes.fromhex(hex_bytes_result[2:])
+            else:
+                bytes_result = bytes.fromhex(hex_bytes_result)
+
             subnet_state: "SubnetState" = SubnetState.from_vec_u8(
-                subtensor.substrate.rpc_request(
-                    method="subnetInfo_getSubnetState", params=[self.netuid, None]
-                )["result"]
+                bytes_result
             )
             self.global_stake = subnet_state.global_stake
             self.local_stake = subnet_state.local_stake

@@ -229,17 +229,26 @@ TYPE_REGISTRY: dict[str, dict] = {
                     ],
                     "type": "Vec<u8>",
                 },
-                "get_subnet_info": {
+                "get_all_dynamic_info": {
+                    "params": [],
+                    "type": "Vec<u8>",
+                },
+                "get_subnet_info_v2": {
                     "params": [
-                        {
-                            "name": "netuid",
-                            "type": "u16",
-                        },
+                        {"name": "netuid", "type": "u16"},
                     ],
                     "type": "Vec<u8>",
                 },
-                "get_subnets_info": {
-                    "params": [],
+                "get_dynamic_info": {
+                    "params": [
+                        {"name": "netuid", "type": "u16"},
+                    ],
+                    "type": "Vec<u8>",
+                },
+                "get_subnet_state": {
+                    "params": [
+                        {"name": "netuid", "type": "u16"},
+                    ],
                     "type": "Vec<u8>",
                 },
             }
