@@ -22,6 +22,7 @@ class ChainDataType(Enum):
     SubnetHyperparameters = 8
     ScheduledColdkeySwapInfo = 9
     AccountId = 10
+    SubnetState = 11
 
 
 def from_scale_encoding(
@@ -206,6 +207,29 @@ custom_rpc_type_registry = {
             "type_mapping": [
                 ["ip", "Compact<u128>"],
                 ["ip_type_and_protocol", "Compact<u8>"],
+            ],
+        },
+        "SubnetState": {
+            "type": "struct",
+            "type_mapping": [
+                ["netuid", "Compact<u16>"],
+                ["hotkeys", "Vec<AccountId>"],
+                ["coldkeys", "Vec<AccountId>"],
+                ["active", "Vec<bool>"],
+                ["validator_permit", "Vec<bool>"],
+                ["pruning_score", "Vec<Compact<u16>>"],
+                ["last_update", "Vec<Compact<u64>>"],
+                ["emission", "Vec<Compact<u64>>"],
+                ["dividends", "Vec<Compact<u16>>"],
+                ["incentives", "Vec<Compact<u16>>"],
+                ["consensus", "Vec<Compact<u16>>"],
+                ["trust", "Vec<Compact<u16>>"],
+                ["rank", "Vec<Compact<u16>>"],
+                ["block_at_registration", "Vec<Compact<u64>>"],
+                ["local_stake", "Vec<Compact<u64>>"],
+                ["global_stake", "Vec<Compact<u64>>"],
+                ["stake_weight", "Vec<Compact<u16>>"],
+                ["emission_history", "Vec<Vec<Compact<u64>>>"],
             ],
         },
         "StakeInfo": {
