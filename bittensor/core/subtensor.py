@@ -357,7 +357,7 @@ class Subtensor:
         prefix_str = "" if prefix is None else f"{prefix}."
         try:
             default_network = settings.DEFAULT_NETWORK
-            default_chain_endpoint = settings.FINNEY_ENTRYPOINT
+            default_chain_endpoint = settings.DEFAULT_ENDPOINT
 
             parser.add_argument(
                 f"--{prefix_str}subtensor.network",

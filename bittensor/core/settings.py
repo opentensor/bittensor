@@ -63,20 +63,19 @@ MINERS_DIR = USER_BITTENSOR_DIR / "miners"
 # Bittensor networks name
 NETWORKS = ["local", "finney", "test", "archive"]
 
-DEFAULT_ENDPOINT = "wss://entrypoint-finney.opentensor.ai:443"
-DEFAULT_NETWORK = NETWORKS[1]
-
-# Create dirs if they don't exist
-WALLETS_DIR.mkdir(parents=True, exist_ok=True)
-MINERS_DIR.mkdir(parents=True, exist_ok=True)
-
-
 # Bittensor endpoints (Needs to use wss://)
 FINNEY_ENTRYPOINT = "wss://entrypoint-finney.opentensor.ai:443"
 FINNEY_TEST_ENTRYPOINT = "wss://test.finney.opentensor.ai:443/"
 ARCHIVE_ENTRYPOINT = "wss://archive.chain.opentensor.ai:443/"
 RAO_ENDPOINT = "wss://rao.chain.opentensor.ai:443/"
 LOCAL_ENTRYPOINT = os.getenv("BT_SUBTENSOR_CHAIN_ENDPOINT") or "ws://127.0.0.1:9946"
+
+DEFAULT_ENDPOINT = RAO_ENDPOINT
+DEFAULT_NETWORK = NETWORKS[1]
+
+# Create dirs if they don't exist
+WALLETS_DIR.mkdir(parents=True, exist_ok=True)
+MINERS_DIR.mkdir(parents=True, exist_ok=True)
 
 # Currency Symbols Bittensor
 TAO_SYMBOL: str = chr(0x03C4)
