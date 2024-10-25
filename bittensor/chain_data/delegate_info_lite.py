@@ -39,9 +39,7 @@ class DelegateInfoLite:
             fixed_take = U16_NORMALIZED_FLOAT(decoded_take)
 
         return cls(
-            hotkey_ss58=ss58_encode(
-                decoded["delegate_ss58"], SS58_FORMAT
-            ),
+            hotkey_ss58=ss58_encode(decoded["delegate_ss58"], SS58_FORMAT),
             owner_ss58=ss58_encode(decoded["owner_ss58"], SS58_FORMAT),
             take=fixed_take,
             total_stake=Balance.from_rao(decoded["total_stake"]),

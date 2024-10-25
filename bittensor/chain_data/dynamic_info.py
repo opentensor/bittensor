@@ -52,12 +52,8 @@ class DynamicInfo:
         alpha_out = Balance.from_rao(decoded["alpha_out"]).set_unit(netuid)
         alpha_in = Balance.from_rao(decoded["alpha_in"]).set_unit(netuid)
         tao_in = Balance.from_rao(decoded["tao_in"]).set_unit(0)
-        total_locked = Balance.from_rao(decoded["total_locked"]).set_unit(
-            netuid
-        )
-        owner_locked = Balance.from_rao(decoded["owner_locked"]).set_unit(
-            netuid
-        )
+        total_locked = Balance.from_rao(decoded["total_locked"]).set_unit(netuid)
+        owner_locked = Balance.from_rao(decoded["owner_locked"]).set_unit(netuid)
         price = (
             Balance.from_tao(tao_in.tao / alpha_in.tao)
             if alpha_in.tao > 0

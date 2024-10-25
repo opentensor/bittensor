@@ -10,7 +10,6 @@ import sys
 
 
 class RegisterCommand:
-
     @staticmethod
     def run(cli: "bittensor.cli"):
         r"""Register neuron by recycling some TAO."""
@@ -28,23 +27,27 @@ class RegisterCommand:
     @staticmethod
     def _run(cli: "bittensor.cli", subtensor: "bittensor.subtensor"):
         r"""Register neuron by recycling some TAO."""
-        
+
         # Create wallet.
         wallet = bittensor.wallet(config=cli.config)
-        
+
         # check coldkey
-        if not wallet.coldkeypub_file.exists_on_device(): 
-            bittensor.__console__.print(f"\n:cross_mark: [red]Failed[/red]: your coldkey: {wallet.name} does not exist on this device. To create it run:\n\n\tbtcli w new_coldkey --wallet.name {wallet.name}\n")
+        if not wallet.coldkeypub_file.exists_on_device():
+            bittensor.__console__.print(
+                f"\n:cross_mark: [red]Failed[/red]: your coldkey: {wallet.name} does not exist on this device. To create it run:\n\n\tbtcli w new_coldkey --wallet.name {wallet.name}\n"
+            )
             sys.exit(1)
 
         # check hotkey
-        if not wallet.hotkey_file.exists_on_device(): 
-            bittensor.__console__.print(f"\n:cross_mark: [red]Failed[/red]: your hotkey: {wallet.hotkey_str} does not exist on this device. To create it run:\n\n\tbtcli w new_hotkey --wallet.name {wallet.name} --wallet.hotkey {wallet.hotkey_str}\n")
+        if not wallet.hotkey_file.exists_on_device():
+            bittensor.__console__.print(
+                f"\n:cross_mark: [red]Failed[/red]: your hotkey: {wallet.hotkey_str} does not exist on this device. To create it run:\n\n\tbtcli w new_hotkey --wallet.name {wallet.name} --wallet.hotkey {wallet.hotkey_str}\n"
+            )
             sys.exit(1)
-            
+
         # Get netuid
         netuid = cli.config.netuid
-        
+
         # Check if subnet exists.
         if not subtensor.subnet_exists(netuid):
             bittensor.__console__.print(
@@ -53,7 +56,7 @@ class RegisterCommand:
                 )
             )
             return False
-        
+
         # Check if we are already registered.
         neuron = subtensor.get_neuron_for_pubkey_and_subnet(
             wallet.hotkey.ss58_address, netuid=netuid
@@ -69,13 +72,13 @@ class RegisterCommand:
                 )
             )
             return True
-        
+
         # Get my current balance.
         old_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
-        
+
         # Get the recycle amount.
         burn_cost = subtensor.recycle(netuid=netuid)
-        
+
         # Check enough balance.
         if old_balance < burn_cost:
             bittensor.__console__.print(
@@ -107,13 +110,26 @@ class RegisterCommand:
             title_justify="center",
             highlight=False,
         )
-        table.title = f"[white]Register - {subtensor.network}\n"        
-        table.add_column("Netuid", style="rgb(253,246,227)", no_wrap=True, justify="center")
-        table.add_column("Symbol", style="rgb(211,54,130)", no_wrap=True, justify="center")
-        table.add_column(f"Cost ({bittensor.Balance.get_unit(0)})", style="rgb(38,139,210)", no_wrap=True, justify="right")
-        table.add_column("Hotkey", style="light_salmon3", no_wrap=True, justify="center")
-        table.add_column("Coldkey", style="bold dark_green", no_wrap=True, justify="center")
-        
+        table.title = f"[white]Register - {subtensor.network}\n"
+        table.add_column(
+            "Netuid", style="rgb(253,246,227)", no_wrap=True, justify="center"
+        )
+        table.add_column(
+            "Symbol", style="rgb(211,54,130)", no_wrap=True, justify="center"
+        )
+        table.add_column(
+            f"Cost ({bittensor.Balance.get_unit(0)})",
+            style="rgb(38,139,210)",
+            no_wrap=True,
+            justify="right",
+        )
+        table.add_column(
+            "Hotkey", style="light_salmon3", no_wrap=True, justify="center"
+        )
+        table.add_column(
+            "Coldkey", style="bold dark_green", no_wrap=True, justify="center"
+        )
+
         table.add_row(
             str(netuid),
             f"[light_goldenrod1]{bittensor.Balance.get_unit(netuid)}[light_goldenrod1]",
@@ -127,9 +143,11 @@ class RegisterCommand:
                 f"Do you want to register on subnet: {netuid} for [green]{ burn_cost }[/green]?"
             ):
                 sys.exit(1)
-                
+
         wallet.coldkey  # unlock coldkey
-        with bittensor.__console__.status(f":satellite: Registering hotkey on [bold]subnet:{netuid}[/bold]..."):
+        with bittensor.__console__.status(
+            f":satellite: Registering hotkey on [bold]subnet:{netuid}[/bold]..."
+        ):
             call = subtensor.substrate.compose_call(
                 call_module="SubtensorModule",
                 call_function="burned_register",
@@ -147,12 +165,14 @@ class RegisterCommand:
                 wait_for_finalization=not cli.config.no_prompt,
             )
             if cli.config.no_prompt:
-                bittensor.__console__.print("Extrinsic submitted. Not waiting for inclusion.")
+                bittensor.__console__.print(
+                    "Extrinsic submitted. Not waiting for inclusion."
+                )
                 return
             response.process_events()
             if not response.is_success:
                 return False, format_error_message(response.error_message)
-            else:  
+            else:
                 # Get neuron if exists.
                 registerd_neuron = subtensor.get_neuron_for_pubkey_and_subnet(
                     wallet.hotkey.ss58_address, netuid=netuid
@@ -164,7 +184,10 @@ class RegisterCommand:
                         "netuid: [bold white]{}[/bold white]\n"
                         "hotkey: [bold white]{}[/bold white]\n"
                         "coldkey: [bold white]{}[/bold white]".format(
-                            registerd_neuron.uid, registerd_neuron.netuid, registerd_neuron.hotkey, registerd_neuron.coldkey
+                            registerd_neuron.uid,
+                            registerd_neuron.netuid,
+                            registerd_neuron.hotkey,
+                            registerd_neuron.coldkey,
                         )
                     )
                 else:
@@ -184,7 +207,15 @@ class RegisterCommand:
             help="netuid for subnet to serve this neuron on",
             default=argparse.SUPPRESS,
         )
-        register_parser.add_argument("--no_prompt", "--y", "-y", dest = 'no_prompt', required=False, action='store_true', help="""Specify this flag to delegate stake""" )
+        register_parser.add_argument(
+            "--no_prompt",
+            "--y",
+            "-y",
+            dest="no_prompt",
+            required=False,
+            action="store_true",
+            help="""Specify this flag to delegate stake""",
+        )
         bittensor.wallet.add_args(register_parser)
         bittensor.subtensor.add_args(register_parser)
 
@@ -211,9 +242,15 @@ class RegisterCommand:
         )
 
         if not config.is_set("wallet.name") and not config.no_prompt:
-            wallet_name = Prompt.ask("Enter [bold dark_green]coldkey[/bold dark_green] name", default=defaults.wallet.name)
+            wallet_name = Prompt.ask(
+                "Enter [bold dark_green]coldkey[/bold dark_green] name",
+                default=defaults.wallet.name,
+            )
             config.wallet.name = str(wallet_name)
 
         if not config.is_set("wallet.hotkey") and not config.no_prompt:
-            hotkey = Prompt.ask("Enter [light_salmon3]hotkey[/light_salmon3] name", default=defaults.wallet.hotkey)
+            hotkey = Prompt.ask(
+                "Enter [light_salmon3]hotkey[/light_salmon3] name",
+                default=defaults.wallet.hotkey,
+            )
             config.wallet.hotkey = str(hotkey)

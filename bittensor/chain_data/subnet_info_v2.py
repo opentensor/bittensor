@@ -11,6 +11,7 @@ from .dynamic_pool import DynamicPool
 @dataclass
 class SubnetInfoV2:
     """Dataclass for subnet info."""
+
     netuid: int
     owner_ss58: str
     max_allowed_validators: int
@@ -54,7 +55,6 @@ class SubnetInfoV2:
     @classmethod
     def fix_decoded_values(cls, decoded: Dict) -> "SubnetInfoV2":
         """Returns a SubnetInfoV2 object from a decoded SubnetInfoV2 dictionary."""
-       
 
         return SubnetInfoV2(
             netuid=decoded["netuid"],
@@ -77,7 +77,9 @@ class SubnetInfoV2:
             max_weights_limit=decoded["max_weights_limit"],
         )
 
-    def _to_parameter_dict(self, return_type: str) -> Union[dict[str, Any], "torch.nn.ParameterDict"]:
+    def _to_parameter_dict(
+        self, return_type: str
+    ) -> Union[dict[str, Any], "torch.nn.ParameterDict"]:
         if return_type == "torch":
             return torch.nn.ParameterDict(self.__dict__)
         else:
@@ -91,17 +93,23 @@ class SubnetInfoV2:
             return self._to_parameter_dict("numpy")
 
     @classmethod
-    def _from_parameter_dict_torch(cls, parameter_dict: "torch.nn.ParameterDict") -> "SubnetInfoV2":
+    def _from_parameter_dict_torch(
+        cls, parameter_dict: "torch.nn.ParameterDict"
+    ) -> "SubnetInfoV2":
         """Returns a SubnetInfoV2 object from a torch parameter_dict."""
         return cls(**dict(parameter_dict))
 
     @classmethod
-    def _from_parameter_dict_numpy(cls, parameter_dict: dict[str, Any]) -> "SubnetInfoV2":
+    def _from_parameter_dict_numpy(
+        cls, parameter_dict: dict[str, Any]
+    ) -> "SubnetInfoV2":
         """Returns a SubnetInfoV2 object from a parameter_dict."""
         return cls(**parameter_dict)
 
     @classmethod
-    def from_parameter_dict(cls, parameter_dict: Union[dict[str, Any], "torch.nn.ParameterDict"]) -> "SubnetInfoV2":
+    def from_parameter_dict(
+        cls, parameter_dict: Union[dict[str, Any], "torch.nn.ParameterDict"]
+    ) -> "SubnetInfoV2":
         if use_torch():
             return cls._from_parameter_dict_torch(parameter_dict)
         else:

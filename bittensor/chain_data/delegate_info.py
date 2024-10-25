@@ -45,9 +45,7 @@ class DelegateInfo:
         """Fixes the decoded values."""
 
         return cls(
-            hotkey_ss58=ss58_encode(
-                decoded["delegate_ss58"], SS58_FORMAT
-            ),
+            hotkey_ss58=ss58_encode(decoded["delegate_ss58"], SS58_FORMAT),
             owner_ss58=ss58_encode(decoded["owner_ss58"], SS58_FORMAT),
             take=U16_NORMALIZED_FLOAT(decoded["take"]),
             nominators=[

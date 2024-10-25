@@ -25,7 +25,6 @@ from rich.traceback import install
 
 
 if (NEST_ASYNCIO_ENV := os.getenv("NEST_ASYNCIO")) in ("1", None):
-    
     if NEST_ASYNCIO_ENV is None:
         warnings.warn(
             "NEST_ASYNCIO implicitly set to '1'. In the future, the default value will be '0'."

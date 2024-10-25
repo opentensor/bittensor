@@ -59,10 +59,12 @@ class DynamicPool:
             self.price = Balance.from_tao(1.0)
 
     def __str__(self) -> str:
-        return (f"DynamicPool( alpha_issuance={self.alpha_issuance}, "
-                f"alpha_outstanding={self.alpha_outstanding}, "
-                f"alpha_reserve={self.alpha_reserve}, "
-                f"tao_reserve={self.tao_reserve}, k={self.k}, price={self.price} )")
+        return (
+            f"DynamicPool( alpha_issuance={self.alpha_issuance}, "
+            f"alpha_outstanding={self.alpha_outstanding}, "
+            f"alpha_reserve={self.alpha_reserve}, "
+            f"tao_reserve={self.tao_reserve}, k={self.k}, price={self.price} )"
+        )
 
     def __repr__(self) -> str:
         return self.__str__()

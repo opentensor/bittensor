@@ -11,6 +11,7 @@ from bittensor.chain_data.prometheus_info import PrometheusInfo
 @dataclass
 class NeuronInfoLite:
     """Dataclass for neuron metadata, but without the weights and bonds."""
+
     hotkey: str
     coldkey: str
     uid: int
@@ -36,8 +37,12 @@ class NeuronInfoLite:
     @classmethod
     def fix_decoded_values(cls, neuron_info_decoded: Any) -> "NeuronInfoLite":
         """Fixes the values of the NeuronInfoLite object."""
-        neuron_info_decoded["hotkey"] = ss58_encode(neuron_info_decoded["hotkey"], SS58_FORMAT)
-        neuron_info_decoded["coldkey"] = ss58_encode(neuron_info_decoded["coldkey"], SS58_FORMAT)
+        neuron_info_decoded["hotkey"] = ss58_encode(
+            neuron_info_decoded["hotkey"], SS58_FORMAT
+        )
+        neuron_info_decoded["coldkey"] = ss58_encode(
+            neuron_info_decoded["coldkey"], SS58_FORMAT
+        )
         stake_dict = {
             ss58_encode(coldkey, SS58_FORMAT): Balance.from_rao(int(stake))
             for coldkey, stake in neuron_info_decoded["stake"]
@@ -47,13 +52,27 @@ class NeuronInfoLite:
         neuron_info_decoded["total_stake"] = neuron_info_decoded["stake"]
         neuron_info_decoded["rank"] = U16_NORMALIZED_FLOAT(neuron_info_decoded["rank"])
         neuron_info_decoded["emission"] = neuron_info_decoded["emission"] / RAOPERTAO
-        neuron_info_decoded["incentive"] = U16_NORMALIZED_FLOAT(neuron_info_decoded["incentive"])
-        neuron_info_decoded["consensus"] = U16_NORMALIZED_FLOAT(neuron_info_decoded["consensus"])
-        neuron_info_decoded["trust"] = U16_NORMALIZED_FLOAT(neuron_info_decoded["trust"])
-        neuron_info_decoded["validator_trust"] = U16_NORMALIZED_FLOAT(neuron_info_decoded["validator_trust"])
-        neuron_info_decoded["dividends"] = U16_NORMALIZED_FLOAT(neuron_info_decoded["dividends"])
-        neuron_info_decoded["prometheus_info"] = PrometheusInfo.fix_decoded_values(neuron_info_decoded["prometheus_info"])
-        neuron_info_decoded["axon_info"] = AxonInfo.from_neuron_info(neuron_info_decoded)
+        neuron_info_decoded["incentive"] = U16_NORMALIZED_FLOAT(
+            neuron_info_decoded["incentive"]
+        )
+        neuron_info_decoded["consensus"] = U16_NORMALIZED_FLOAT(
+            neuron_info_decoded["consensus"]
+        )
+        neuron_info_decoded["trust"] = U16_NORMALIZED_FLOAT(
+            neuron_info_decoded["trust"]
+        )
+        neuron_info_decoded["validator_trust"] = U16_NORMALIZED_FLOAT(
+            neuron_info_decoded["validator_trust"]
+        )
+        neuron_info_decoded["dividends"] = U16_NORMALIZED_FLOAT(
+            neuron_info_decoded["dividends"]
+        )
+        neuron_info_decoded["prometheus_info"] = PrometheusInfo.fix_decoded_values(
+            neuron_info_decoded["prometheus_info"]
+        )
+        neuron_info_decoded["axon_info"] = AxonInfo.from_neuron_info(
+            neuron_info_decoded
+        )
         return cls(**neuron_info_decoded)
 
     @classmethod

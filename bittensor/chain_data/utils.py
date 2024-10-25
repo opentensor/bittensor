@@ -300,7 +300,7 @@ custom_rpc_type_registry = {
                 ["arbitration_block", "Compact<u64>"],
             ],
         },
-          "SubnetState": {
+        "SubnetState": {
             "type": "struct",
             "type_mapping": [
                 ["netuid", "Compact<u16>"],

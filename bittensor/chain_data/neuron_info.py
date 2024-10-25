@@ -53,9 +53,7 @@ class NeuronInfo:
             neuron_info_decoded["coldkey"], SS58_FORMAT
         )
         stake_dict = {
-            ss58_encode(coldkey, SS58_FORMAT): Balance.from_rao(
-                int(stake)
-            )
+            ss58_encode(coldkey, SS58_FORMAT): Balance.from_rao(int(stake))
             for coldkey, stake in neuron_info_decoded["stake"]
         }
         neuron_info_decoded["stake_dict"] = stake_dict

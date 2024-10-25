@@ -62,7 +62,10 @@ from .chain_data import (
     IPInfo,
     DynamicPool,
 )
-from .chain_data.utils import custom_rpc_type_registry, from_scale_encoding_using_type_string
+from .chain_data.utils import (
+    custom_rpc_type_registry,
+    from_scale_encoding_using_type_string,
+)
 from .errors import (
     IdentityError,
     NominationError,
@@ -3428,7 +3431,7 @@ class Subtensor:
     ) -> Optional["Balance"]:
         # TODO: runtime api does not exist
         pass
-    
+
         encoded_hotkey = ss58_to_vec_u8(ss58_address)
 
         result = self.query_runtime_api(
@@ -3447,9 +3450,7 @@ class Subtensor:
         self, ss58_address: str, block: Optional[int] = None
     ) -> Optional["Balance"]:
         """Returns the total stake held on a hotkey including delegative"""
-        return self.get_total_stake_for_key(
-            ss58_address, block
-        )
+        return self.get_total_stake_for_key(ss58_address, block)
 
     def get_total_stake_for_coldkey(
         self, ss58_address: str, block: Optional[int] = None
@@ -4003,9 +4004,7 @@ class Subtensor:
         subnets = DynamicInfo.list_from_vec_u8(bytes_result)
         return subnets
 
-    def get_subnet_dynamic_info(
-        self, netuid: int
-    ) -> "DynamicInfo":
+    def get_subnet_dynamic_info(self, netuid: int) -> "DynamicInfo":
         hex_bytes_result = self.query_runtime_api(
             runtime_api="SubnetInfoRuntimeApi",
             method="get_dynamic_info",
@@ -4019,7 +4018,7 @@ class Subtensor:
             bytes_result = bytes.fromhex(hex_bytes_result[2:])
         else:
             bytes_result = bytes.fromhex(hex_bytes_result)
-        
+
         subnets = DynamicInfo.from_vec_u8(bytes_result)
         return subnets
 
@@ -4171,7 +4170,7 @@ class Subtensor:
 
         This function is essential for understanding the roles and influence of delegate neurons within
         the Bittensor network's consensus and governance structures.
-        """        
+        """
         encoded_hotkey = ss58_to_vec_u8(hotkey_ss58)
 
         hex_bytes_result = self.query_runtime_api(
@@ -4183,7 +4182,7 @@ class Subtensor:
 
         if not (result := hex_bytes_result):
             return None
-        
+
         if result.startswith("0x"):
             bytes_result = bytes.fromhex(result[2:])
         else:
@@ -4215,12 +4214,12 @@ class Subtensor:
 
         if hex_bytes_result in (None, []):
             return []
-        
+
         if hex_bytes_result.startswith("0x"):
             bytes_result = bytes.fromhex(hex_bytes_result[2:])
         else:
             bytes_result = bytes.fromhex(hex_bytes_result)
-    
+
         return DelegateInfo.list_from_vec_u8(bytes_result)
 
     def get_delegates_by_netuid_light(
@@ -4270,7 +4269,7 @@ class Subtensor:
 
         if hex_bytes_result in (None, []):
             return []
-        
+
         if hex_bytes_result.startswith("0x"):
             bytes_result = bytes.fromhex(hex_bytes_result[2:])
         else:
@@ -4734,7 +4733,7 @@ class Subtensor:
 
         if not (hex_bytes_result := result):
             return NeuronInfo.get_null_neuron()
-        
+
         if hex_bytes_result.startswith("0x"):
             bytes_result = bytes.fromhex(hex_bytes_result[2:])
         else:

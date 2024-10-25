@@ -68,6 +68,7 @@ defaults: Munch = munchify(
 
 # Subnets
 from .subnets.list import ListSubnetsCommand
+
 # from .subnets.metagraph import ShowMetagraph
 from .subnets.create import RegisterSubnetworkCommand
 from .subnets.pow_register import PowRegisterCommand
@@ -111,6 +112,7 @@ from .misc.misc import UpdateCommand, AutocompleteCommand
 
 # Weights
 from .weights import CommitWeightCommand, RevealWeightCommand
+
 # Children
 from .stake.children import (
     GetChildrenCommand,

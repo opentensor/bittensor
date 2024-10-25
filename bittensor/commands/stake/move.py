@@ -82,7 +82,8 @@ class MoveStakeCommand:
             wallet = bt.wallet(config=config)
         elif not config.no_prompt:
             wallet_name = Prompt.ask(
-                "Enter [bold dark_green]coldkey[/bold dark_green] name", default=bt.defaults.wallet.name
+                "Enter [bold dark_green]coldkey[/bold dark_green] name",
+                default=bt.defaults.wallet.name,
             )
             config.wallet.name = str(wallet_name)
             wallet = bt.wallet(config=config)
@@ -140,8 +141,10 @@ class MoveStakeCommand:
                 netuid=destination_netuid,
             ).set_unit(destination_netuid)
         )
-        
-        bt.__console__.print(":warning: [yellow]This command moves all of your stake.[/yellow]")
+
+        bt.__console__.print(
+            ":warning: [yellow]This command moves all of your stake.[/yellow]"
+        )
 
         # TODO: Re-add In-case amount to stake is handled from subtensor
         # # Determine the amount we are moving.
@@ -179,7 +182,6 @@ class MoveStakeCommand:
         #         f"[red]Not enough stake[/red]:[bold white]\n stake balance:{origin_stake_balance} < moving amount: {amount_to_move_as_balance}[/bold white]"
         #     )
         #     sys.exit(1)
-
 
         # Slippage warning
         if not config.no_prompt:

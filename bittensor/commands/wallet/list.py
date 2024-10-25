@@ -95,7 +95,11 @@ class ListCommand:
                                 hotkey_str = "?"
                         except:
                             hotkey_str = "?"
-                        wallet_tree.add("[bold yellow]Hotkey[/bold yellow] [name<[green]{}[/green]>, ss58_address<[green]{}[/green]>]\n".format(h_name, hotkey_str))
+                        wallet_tree.add(
+                            "[bold yellow]Hotkey[/bold yellow] [name<[green]{}[/green]>, ss58_address<[green]{}[/green]>]\n".format(
+                                h_name, hotkey_str
+                            )
+                        )
             except:
                 continue
 

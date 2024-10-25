@@ -3,20 +3,25 @@ from typing import Any, Dict, List, Optional
 
 from substrateinterface.utils.ss58 import ss58_encode
 
-from bittensor.chain_data.utils import SS58_FORMAT, ChainDataType, from_scale_encoding, \
-    from_scale_encoding_using_type_string
+from bittensor.chain_data.utils import (
+    SS58_FORMAT,
+    ChainDataType,
+    from_scale_encoding,
+    from_scale_encoding_using_type_string,
+)
 from bittensor.utils.balance import Balance
 
 
 @dataclass
 class StakeInfo:
     """Dataclass for stake info."""
+
     hotkey_ss58: str  # Hotkey address
     coldkey_ss58: str  # Coldkey address
     netuid: int
     stake: Balance  # Stake for the hotkey-coldkey pair
     locked: Balance  # Stake which is locked.
-    emission: Balance # Emission for the hotkey-coldkey pair
+    emission: Balance  # Emission for the hotkey-coldkey pair
     drain: int
     is_registered: bool
 
@@ -24,14 +29,14 @@ class StakeInfo:
     def fix_decoded_values(cls, decoded: Any) -> "StakeInfo":
         """Fixes the decoded values."""
         return cls(
-            hotkey_ss58 =ss58_encode(decoded["hotkey"], SS58_FORMAT),
-            coldkey_ss58 = ss58_encode(decoded["coldkey"], SS58_FORMAT),
-            netuid = int(decoded["netuid"]),
-            stake = Balance.from_rao(decoded["stake"]).set_unit(decoded["netuid"]),
-            locked = Balance.from_rao(decoded["locked"]).set_unit(decoded["netuid"]),
-            emission = Balance.from_rao(decoded["emission"]).set_unit(decoded["netuid"]),
-            drain = int(decoded["drain"]),
-            is_registered = bool(decoded["is_registered"])
+            hotkey_ss58=ss58_encode(decoded["hotkey"], SS58_FORMAT),
+            coldkey_ss58=ss58_encode(decoded["coldkey"], SS58_FORMAT),
+            netuid=int(decoded["netuid"]),
+            stake=Balance.from_rao(decoded["stake"]).set_unit(decoded["netuid"]),
+            locked=Balance.from_rao(decoded["locked"]).set_unit(decoded["netuid"]),
+            emission=Balance.from_rao(decoded["emission"]).set_unit(decoded["netuid"]),
+            drain=int(decoded["drain"]),
+            is_registered=bool(decoded["is_registered"]),
         )
 
     @classmethod
@@ -52,7 +57,9 @@ class StakeInfo:
     ) -> Dict[str, List["StakeInfo"]]:
         """Returns a list of StakeInfo objects from a ``vec_u8``."""
         decoded: Optional[list[tuple[str, list[object]]]] = (
-            from_scale_encoding_using_type_string(vec_u8, type_string="Vec<(AccountId, Vec<StakeInfo>)>")
+            from_scale_encoding_using_type_string(
+                vec_u8, type_string="Vec<(AccountId, Vec<StakeInfo>)>"
+            )
         )
 
         if decoded is None:
