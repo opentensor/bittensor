@@ -4,7 +4,7 @@ subnetwork states in the Bittensor network.
 """
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional
+from typing import Optional
 
 from scalecodec.utils.ss58 import ss58_encode
 
@@ -20,26 +20,26 @@ from bittensor.utils.balance import Balance
 @dataclass
 class SubnetState:
     netuid: int
-    hotkeys: List[str]
-    coldkeys: List[str]
-    active: List[bool]
-    validator_permit: List[bool]
-    pruning_score: List[float]
-    last_update: List[int]
-    emission: List[Balance]
-    dividends: List[float]
-    incentives: List[float]
-    consensus: List[float]
-    trust: List[float]
-    rank: List[float]
-    block_at_registration: List[int]
-    local_stake: List[Balance]
-    global_stake: List[Balance]
-    stake_weight: List[float]
-    emission_history: List[List[int]]
+    hotkeys: list[str]
+    coldkeys: list[str]
+    active: list[bool]
+    validator_permit: list[bool]
+    pruning_score: list[float]
+    last_update: list[int]
+    emission: list[Balance]
+    dividends: list[float]
+    incentives: list[float]
+    consensus: list[float]
+    trust: list[float]
+    rank: list[float]
+    block_at_registration: list[int]
+    local_stake: list[Balance]
+    global_stake: list[Balance]
+    stake_weight: list[float]
+    emission_history: list[list[int]]
 
     @classmethod
-    def from_vec_u8(cls, vec_u8: List[int]) -> Optional["SubnetState"]:
+    def from_vec_u8(cls, vec_u8: list[int]) -> Optional["SubnetState"]:
         if len(vec_u8) == 0:
             return None
         decoded = from_scale_encoding(vec_u8, ChainDataType.SubnetState, is_option=True)
@@ -48,7 +48,7 @@ class SubnetState:
         return SubnetState.fix_decoded_values(decoded)
 
     @classmethod
-    def list_from_vec_u8(cls, vec_u8: List[int]) -> List["SubnetState"]:
+    def list_from_vec_u8(cls, vec_u8: list[int]) -> list["SubnetState"]:
         decoded = from_scale_encoding(
             vec_u8, ChainDataType.SubnetState, is_vec=True, is_option=True
         )
@@ -58,7 +58,7 @@ class SubnetState:
         return decoded
 
     @classmethod
-    def fix_decoded_values(cls, decoded: Dict) -> "SubnetState":
+    def fix_decoded_values(cls, decoded: dict) -> "SubnetState":
         netuid = decoded["netuid"]
         return SubnetState(
             netuid=netuid,
