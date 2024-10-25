@@ -804,9 +804,7 @@ class MetagraphMixin(ABC):
             else:
                 bytes_result = bytes.fromhex(hex_bytes_result)
 
-            subnet_state: "SubnetState" = SubnetState.from_vec_u8(
-                bytes_result
-            )
+            subnet_state: "SubnetState" = SubnetState.from_vec_u8(bytes_result)
             self.global_stake = subnet_state.global_stake
             self.local_stake = subnet_state.local_stake
             self.stake_weights = subnet_state.stake_weight
