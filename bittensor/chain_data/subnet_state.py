@@ -12,10 +12,11 @@ from bittensor.chain_data.utils import ChainDataType, from_scale_encoding, SS58_
 from bittensor.utils import U16_NORMALIZED_FLOAT
 from bittensor.utils.balance import Balance
 
+
 @dataclass
 class SubnetState:
     netuid: int
-    hotkeys: List[str]  
+    hotkeys: List[str]
     coldkeys: List[str]
     active: List[bool]
     validator_permit: List[bool]
@@ -32,18 +33,23 @@ class SubnetState:
     global_stake: List[Balance]
     stake_weight: List[float]
     emission_history: List[List[int]]
-    
+
     @classmethod
     def from_vec_u8(cls, vec_u8: List[int]) -> Optional["SubnetState"]:
-        if len(vec_u8) == 0: return None
+        if len(vec_u8) == 0:
+            return None
         decoded = from_scale_encoding(vec_u8, ChainDataType.SubnetState, is_option=True)
-        if decoded is None: return None
+        if decoded is None:
+            return None
         return SubnetState.fix_decoded_values(decoded)
 
     @classmethod
     def list_from_vec_u8(cls, vec_u8: List[int]) -> List["SubnetState"]:
-        decoded = from_scale_encoding( vec_u8, ChainDataType.SubnetState, is_vec=True, is_option=True )
-        if decoded is None:return []
+        decoded = from_scale_encoding(
+            vec_u8, ChainDataType.SubnetState, is_vec=True, is_option=True
+        )
+        if decoded is None:
+            return []
         decoded = [SubnetState.fix_decoded_values(d) for d in decoded]
         return decoded
 
@@ -51,22 +57,30 @@ class SubnetState:
     def fix_decoded_values(cls, decoded: Dict) -> "SubnetState":
         netuid = decoded["netuid"]
         return SubnetState(
-            netuid = netuid,
-            hotkeys = [ss58_encode(val, SS58_FORMAT) for val in decoded["hotkeys"]],
-            coldkeys = [ss58_encode(val, SS58_FORMAT) for val in decoded["coldkeys"]],
-            active = decoded["active"],
-            validator_permit = decoded["validator_permit"],
-            pruning_score = [U16_NORMALIZED_FLOAT(val) for val in decoded["pruning_score"]],
-            last_update = decoded["last_update"],
-            emission = [Balance.from_rao( val ).set_unit(netuid) for val in decoded["emission"]],
-            dividends = [U16_NORMALIZED_FLOAT(val) for val in decoded["dividends"]],
-            incentives = [U16_NORMALIZED_FLOAT(val) for val in decoded["incentives"]],
-            consensus = [U16_NORMALIZED_FLOAT(val) for val in decoded["consensus"]],
-            trust = [U16_NORMALIZED_FLOAT(val) for val in decoded["trust"]],
-            rank = [U16_NORMALIZED_FLOAT(val) for val in decoded["rank"]],
-            block_at_registration = decoded["block_at_registration"],
-            local_stake = [Balance.from_rao( val ).set_unit(netuid) for val in decoded["local_stake"]],
-            global_stake = [Balance.from_rao( val ).set_unit(0) for val in decoded["global_stake"]],
-            stake_weight = [U16_NORMALIZED_FLOAT(val) for val in decoded["stake_weight"]],
-            emission_history = decoded["emission_history"]
+            netuid=netuid,
+            hotkeys=[ss58_encode(val, SS58_FORMAT) for val in decoded["hotkeys"]],
+            coldkeys=[ss58_encode(val, SS58_FORMAT) for val in decoded["coldkeys"]],
+            active=decoded["active"],
+            validator_permit=decoded["validator_permit"],
+            pruning_score=[
+                U16_NORMALIZED_FLOAT(val) for val in decoded["pruning_score"]
+            ],
+            last_update=decoded["last_update"],
+            emission=[
+                Balance.from_rao(val).set_unit(netuid) for val in decoded["emission"]
+            ],
+            dividends=[U16_NORMALIZED_FLOAT(val) for val in decoded["dividends"]],
+            incentives=[U16_NORMALIZED_FLOAT(val) for val in decoded["incentives"]],
+            consensus=[U16_NORMALIZED_FLOAT(val) for val in decoded["consensus"]],
+            trust=[U16_NORMALIZED_FLOAT(val) for val in decoded["trust"]],
+            rank=[U16_NORMALIZED_FLOAT(val) for val in decoded["rank"]],
+            block_at_registration=decoded["block_at_registration"],
+            local_stake=[
+                Balance.from_rao(val).set_unit(netuid) for val in decoded["local_stake"]
+            ],
+            global_stake=[
+                Balance.from_rao(val).set_unit(0) for val in decoded["global_stake"]
+            ],
+            stake_weight=[U16_NORMALIZED_FLOAT(val) for val in decoded["stake_weight"]],
+            emission_history=decoded["emission_history"],
         )

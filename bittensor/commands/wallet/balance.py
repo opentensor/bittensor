@@ -82,11 +82,7 @@ def _get_total_stake_for_coldkey(
         alpha_value = bittensor.Balance.from_rao(int(substake.stake.rao)).set_unit(
             netuid
         )
-        tao_locked = (
-            pool.tao_in
-            if pool.is_dynamic
-            else pool.tao_in
-        )
+        tao_locked = pool.tao_in if pool.is_dynamic else pool.tao_in
         issuance = pool.alpha_out if pool.is_dynamic else tao_locked
         tao_ownership = 0
 
@@ -302,7 +298,8 @@ class WalletBalanceCommand:
                 and not config.get("all", d=None)
             ):
                 wallet_name = Prompt.ask(
-                    "Enter [bold dark_green]coldkey[/bold dark_green] name", default=defaults.wallet.name
+                    "Enter [bold dark_green]coldkey[/bold dark_green] name",
+                    default=defaults.wallet.name,
                 )
                 config.wallet.name = str(wallet_name)
 

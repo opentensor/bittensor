@@ -76,7 +76,10 @@ class RegenColdkeyCommand:
     @staticmethod
     def check_config(config: "bittensor.config"):
         if not config.is_set("wallet.name") and not config.no_prompt:
-            wallet_name = Prompt.ask("Enter [bold dark_green]coldkey[/bold dark_green] name", default=defaults.wallet.name)
+            wallet_name = Prompt.ask(
+                "Enter [bold dark_green]coldkey[/bold dark_green] name",
+                default=defaults.wallet.name,
+            )
             config.wallet.name = str(wallet_name)
         if (
             config.mnemonic == None

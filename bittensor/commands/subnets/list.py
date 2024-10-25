@@ -18,6 +18,7 @@ import argparse
 import bittensor as bt
 from rich.table import Table
 
+
 class ListSubnetsCommand:
     @staticmethod
     def run(cli: "bt.cli"):
@@ -35,12 +36,12 @@ class ListSubnetsCommand:
     @staticmethod
     def _run(cli: "bt.cli", subtensor: "bt.subtensor"):
         r"""List all subnet netuids in the network."""
-        
+
         # Initialize variables to store aggregated data
         rows = []
         subnets = subtensor.get_all_subnet_dynamic_info()
         for subnet in subnets:
-            symbol = f"{subnet.symbol}\u200E"
+            symbol = f"{subnet.symbol}\u200e"
             rows.append(
                 (
                     str(subnet.netuid),
@@ -87,14 +88,40 @@ class ListSubnetsCommand:
         # price_total = f"τ{total_price.tao:.2f}/{bt.Balance.from_rao(dynamic_emission).tao:.2f}"
         # above_price_threshold = total_price.tao > bt.Balance.from_rao(dynamic_emission).tao
 
-        table.add_column("Netuid", style="rgb(253,246,227)", no_wrap=True, justify="center")
-        table.add_column("Symbol", style="rgb(211,54,130)", no_wrap=True, justify="center")
-        table.add_column(f"Emission ({bt.Balance.get_unit(0)})", style="rgb(38,139,210)", no_wrap=True, justify="right")
-        table.add_column(f"TAO({bt.Balance.get_unit(0)})", style="medium_purple", no_wrap=True, justify="right")
+        table.add_column(
+            "Netuid", style="rgb(253,246,227)", no_wrap=True, justify="center"
+        )
+        table.add_column(
+            "Symbol", style="rgb(211,54,130)", no_wrap=True, justify="center"
+        )
+        table.add_column(
+            f"Emission ({bt.Balance.get_unit(0)})",
+            style="rgb(38,139,210)",
+            no_wrap=True,
+            justify="right",
+        )
+        table.add_column(
+            f"TAO({bt.Balance.get_unit(0)})",
+            style="medium_purple",
+            no_wrap=True,
+            justify="right",
+        )
         # table.add_column(f"{bt.Balance.get_unit(1)})", style="rgb(42,161,152)", no_wrap=True, justify="left")
-        table.add_column(f"Stake({bt.Balance.get_unit(1)})", style="green", no_wrap=True, justify="right")
-        table.add_column(f"Rate ({bt.Balance.get_unit(1)}/{bt.Balance.get_unit(0)})", style="light_goldenrod2", no_wrap=True, justify="center")
-        table.add_column("Tempo (k/n)", style="light_salmon3", no_wrap=True, justify="center")
+        table.add_column(
+            f"Stake({bt.Balance.get_unit(1)})",
+            style="green",
+            no_wrap=True,
+            justify="right",
+        )
+        table.add_column(
+            f"Rate ({bt.Balance.get_unit(1)}/{bt.Balance.get_unit(0)})",
+            style="light_goldenrod2",
+            no_wrap=True,
+            justify="center",
+        )
+        table.add_column(
+            "Tempo (k/n)", style="light_salmon3", no_wrap=True, justify="center"
+        )
         # table.add_column(f"Locked ({bt.Balance.get_unit(1)})", style="rgb(38,139,210)", no_wrap=True, justify="center")
         # table.add_column("Owner", style="rgb(38,139,210)", no_wrap=True, justify="center")
 
@@ -120,8 +147,7 @@ class ListSubnetsCommand:
         - [bold white]Rate[/bold white]: The rate of conversion between TAO and the subnet's staking unit.
         - [bold white]Tempo[/bold white]: The number of blocks between epochs. Represented as (k/n) where k is the blocks since the last epoch and n is the total blocks in the epoch.
 """
-)
-
+        )
 
     @staticmethod
     def check_config(config: "bt.config"):

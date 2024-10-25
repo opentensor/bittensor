@@ -144,10 +144,16 @@ class SetChildrenCommand:
     @staticmethod
     def check_config(config: "bittensor.config"):
         if not config.is_set("wallet.name") and not config.no_prompt:
-            wallet_name = Prompt.ask("Enter [bold dark_green]coldkey[/bold dark_green] name", default=defaults.wallet.name)
+            wallet_name = Prompt.ask(
+                "Enter [bold dark_green]coldkey[/bold dark_green] name",
+                default=defaults.wallet.name,
+            )
             config.wallet.name = str(wallet_name)
         if not config.is_set("wallet.hotkey") and not config.no_prompt:
-            hotkey = Prompt.ask("Enter [light_salmon3]hotkey[/light_salmon3] name", default=defaults.wallet.hotkey)
+            hotkey = Prompt.ask(
+                "Enter [light_salmon3]hotkey[/light_salmon3] name",
+                default=defaults.wallet.hotkey,
+            )
             config.wallet.hotkey = str(hotkey)
 
     @staticmethod
@@ -275,10 +281,16 @@ class GetChildrenCommand:
     @staticmethod
     def check_config(config: "bittensor.config"):
         if not config.is_set("wallet.name") and not config.no_prompt:
-            wallet_name = Prompt.ask("Enter [bold dark_green]coldkey[/bold dark_green] name", default=defaults.wallet.name)
+            wallet_name = Prompt.ask(
+                "Enter [bold dark_green]coldkey[/bold dark_green] name",
+                default=defaults.wallet.name,
+            )
             config.wallet.name = str(wallet_name)
         if not config.is_set("wallet.hotkey") and not config.no_prompt:
-            hotkey = Prompt.ask("Enter [light_salmon3]hotkey[/light_salmon3] name", default=defaults.wallet.hotkey)
+            hotkey = Prompt.ask(
+                "Enter [light_salmon3]hotkey[/light_salmon3] name",
+                default=defaults.wallet.hotkey,
+            )
             config.wallet.hotkey = str(hotkey)
 
     @staticmethod
@@ -483,10 +495,16 @@ class RevokeChildrenCommand:
     @staticmethod
     def check_config(config: "bittensor.config"):
         if not config.is_set("wallet.name") and not config.no_prompt:
-            wallet_name = Prompt.ask("Enter [bold dark_green]coldkey[/bold dark_green] name", default=defaults.wallet.name)
+            wallet_name = Prompt.ask(
+                "Enter [bold dark_green]coldkey[/bold dark_green] name",
+                default=defaults.wallet.name,
+            )
             config.wallet.name = str(wallet_name)
         if not config.is_set("wallet.hotkey") and not config.no_prompt:
-            hotkey = Prompt.ask("Enter [light_salmon3]hotkey[/light_salmon3] name", default=defaults.wallet.hotkey)
+            hotkey = Prompt.ask(
+                "Enter [light_salmon3]hotkey[/light_salmon3] name",
+                default=defaults.wallet.hotkey,
+            )
             config.wallet.hotkey = str(hotkey)
 
     @staticmethod

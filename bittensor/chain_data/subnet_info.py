@@ -12,6 +12,7 @@ from bittensor.utils.registration import torch, use_torch
 @dataclass
 class SubnetInfo:
     """Dataclass for subnet info."""
+
     netuid: int
     rho: int
     kappa: int

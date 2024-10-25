@@ -9,6 +9,7 @@ from bittensor.chain_data.utils import ChainDataType, from_scale_encoding, SS58_
 @dataclass
 class ScheduledColdkeySwapInfo:
     """Dataclass for scheduled coldkey swap information."""
+
     old_coldkey: str
     new_coldkey: str
     arbitration_block: int
@@ -53,6 +54,4 @@ class ScheduledColdkeySwapInfo:
         )
         if decoded is None:
             return None
-        return [
-            ss58_encode(account_id, SS58_FORMAT) for account_id in decoded
-        ]
+        return [ss58_encode(account_id, SS58_FORMAT) for account_id in decoded]

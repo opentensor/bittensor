@@ -246,7 +246,10 @@ class InspectCommand:
             and not config.no_prompt
             and not config.get("all", d=None)
         ):
-            wallet_name = Prompt.ask("Enter [bold dark_green]coldkey[/bold dark_green] name", default=defaults.wallet.name)
+            wallet_name = Prompt.ask(
+                "Enter [bold dark_green]coldkey[/bold dark_green] name",
+                default=defaults.wallet.name,
+            )
             config.wallet.name = str(wallet_name)
 
         if config.netuids != [] and config.netuids != None:

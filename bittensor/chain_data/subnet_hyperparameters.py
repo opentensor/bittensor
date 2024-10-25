@@ -8,6 +8,7 @@ from bittensor.utils.registration import torch, use_torch
 @dataclass
 class SubnetHyperparameters:
     """Dataclass for subnet hyperparameters."""
+
     rho: int
     kappa: int
     immunity_period: int

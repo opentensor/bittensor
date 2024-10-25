@@ -25,7 +25,6 @@ from rich.traceback import install
 
 
 if (NEST_ASYNCIO_ENV := os.getenv("NEST_ASYNCIO")) in ("1", None):
-    
     if NEST_ASYNCIO_ENV is None:
         warnings.warn(
             "NEST_ASYNCIO implicitly set to '1'. In the future, the default value will be '0'."
@@ -214,7 +213,29 @@ __type_registry__ = {
                         },
                     ],
                     "type": "Vec<u8>",
-                }
+                },
+                "get_all_dynamic_info": {
+                    "params": [],
+                    "type": "Vec<u8>",
+                },
+                "get_subnet_info_v2": {
+                    "params": [
+                        {"name": "netuid", "type": "u16"},
+                    ],
+                    "type": "Vec<u8>",
+                },
+                "get_dynamic_info": {
+                    "params": [
+                        {"name": "netuid", "type": "u16"},
+                    ],
+                    "type": "Vec<u8>",
+                },
+                "get_subnet_state": {
+                    "params": [
+                        {"name": "netuid", "type": "u16"},
+                    ],
+                    "type": "Vec<u8>",
+                },
             }
         },
         "SubnetRegistrationRuntimeApi": {
@@ -248,6 +269,10 @@ __type_registry__ = {
                 },
                 "get_total_subnet_stake": {
                     "params": [{"name": "netuid", "type": "u16"}],
+                    "type": "Vec<u8>",
+                },
+                "get_all_dynamic_info": {
+                    "params": [],
                     "type": "Vec<u8>",
                 },
             }
@@ -418,11 +443,11 @@ units = [
     "\u1685",  # ᚅ (Nion, ash, 95)
     "\u169b",  # ᚛ (Forfeda, 96)
     # Brahmi Script
-    "\u11000",  # 𑀀 (A, 122)
-    "\u11001",  # 𑀁 (Aa, 123)
-    "\u11002",  # 𑀂 (I, 124)
-    "\u11003",  # 𑀃 (Ii, 125)
-    "\u11005",  # 𑀅 (U, 126)
+    chr(0x11000),  # 𑀀 (A, 122)
+    chr(0x11001),  # 𑀁 (Aa, 123)
+    chr(0x11002),  # 𑀂 (I, 124)
+    chr(0x11003),  # 𑀃 (Ii, 125)
+    chr(0x11005),  # 𑀅 (U, 126)
     # Tifinagh Alphabet
     "\u2d30",  # ⴰ (Ya, 127)
     "\u2d31",  # ⴱ (Yab, 128)
