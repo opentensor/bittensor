@@ -142,6 +142,7 @@ def metagraph_instance():
     metagraph._assign_neurons = MagicMock()
     metagraph._set_metagraph_attributes = MagicMock()
     metagraph._set_weights_and_bonds = MagicMock()
+    metagraph._get_all_stakes_from_chain = MagicMock()
     return metagraph
 
 
