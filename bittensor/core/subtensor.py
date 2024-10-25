@@ -75,7 +75,13 @@ from bittensor.core.extrinsics.transfer import (
     transfer_extrinsic,
 )
 from bittensor.core.metagraph import Metagraph
-from bittensor.utils import networking, torch, ss58_to_vec_u8, u16_normalized_float, u64_normalized_float
+from bittensor.utils import (
+    networking,
+    torch,
+    ss58_to_vec_u8,
+    u16_normalized_float,
+    u64_normalized_float,
+)
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import legacy_torch_api_compat
@@ -2053,7 +2059,9 @@ class Subtensor:
 
         return DelegateInfo.from_vec_u8(result)
 
-    def get_global_weight(self, netuid: int, block: Optional[str] = None) -> Optional[float]:
+    def get_global_weight(
+        self, netuid: int, block: Optional[str] = None
+    ) -> Optional[float]:
         """Returns the subnet Global Weight across all subnets."""
         result = self.substrate.query(
             module="SubtensorModule",

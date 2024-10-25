@@ -78,7 +78,9 @@ class TestSubtensor(unittest.TestCase):
         # Argument importance: chain_endpoint (arg) > network (arg) > config.subtensor.chain_endpoint > config.subtensor.network
         config0 = bittensor.Subtensor.config()
         config0.subtensor.network = settings.DEFAULT_NETWORK
-        config0.subtensor.chain_endpoint = settings.RAO_ENDPOINT  # Should not match bittensor.core.settings.FINNEY_ENTRYPOINT
+        config0.subtensor.chain_endpoint = (
+            settings.RAO_ENDPOINT
+        )  # Should not match bittensor.core.settings.FINNEY_ENTRYPOINT
         assert config0.subtensor.chain_endpoint != settings.FINNEY_ENTRYPOINT
 
         config1 = bittensor.Subtensor.config()
