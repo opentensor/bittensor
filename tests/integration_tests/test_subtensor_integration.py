@@ -77,8 +77,8 @@ class TestSubtensor(unittest.TestCase):
         """Tests that the network overrides the chain_endpoint."""
         # Argument importance: chain_endpoint (arg) > network (arg) > config.subtensor.chain_endpoint > config.subtensor.network
         config0 = bittensor.Subtensor.config()
-        config0.subtensor.network = "finney"
-        config0.subtensor.chain_endpoint = "wss://finney.subtensor.io"  # Should not match bittensor.core.settings.FINNEY_ENTRYPOINT
+        config0.subtensor.network = settings.DEFAULT_NETWORK
+        config0.subtensor.chain_endpoint = settings.RAO_ENDPOINT  # Should not match bittensor.core.settings.FINNEY_ENTRYPOINT
         assert config0.subtensor.chain_endpoint != settings.FINNEY_ENTRYPOINT
 
         config1 = bittensor.Subtensor.config()
@@ -246,8 +246,8 @@ class TestSubtensor(unittest.TestCase):
 
     def test_defaults_to_finney(self):
         sub = bittensor.Subtensor()
-        assert sub.network == "finney"
-        assert sub.chain_endpoint == settings.FINNEY_ENTRYPOINT
+        assert sub.network == settings.DEFAULT_NETWORK
+        assert sub.chain_endpoint == settings.DEFAULT_ENDPOINT
 
     def test_registration_multiprocessed_already_registered(self):
         work_blocks_before_is_registered = random.randint(5, 10)

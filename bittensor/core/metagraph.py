@@ -215,6 +215,7 @@ class MetagraphMixin(ABC):
     local_stake: Union["torch.nn.Parameter", NDArray]
     global_stake: Union["torch.nn.Parameter", NDArray]
     stake_weights: Union["torch.nn.Parameter", NDArray]
+    global_weight: Union["torch.nn.Parameter", NDArray]
     axons: list[AxonInfo]
 
     @property
@@ -251,6 +252,7 @@ class MetagraphMixin(ABC):
     def S(self) -> float:
         """
         Represents the value between 0.0 and 1.0. This gives the users do blacklists in terms of stake values.
+
         Returns:
             float: The value between 0.0 and 1.0 or None if stake_weights doesn't have zero index value.
         """
@@ -260,6 +262,16 @@ class MetagraphMixin(ABC):
             logging.warning("Stake weights is empty.")
             value = None
         return value
+
+    @property
+    def GW(self) -> float:
+        """
+        Represents Global Weights of subnet across all subnets.
+
+        Returns:
+            float: The value of Global Weights.
+        """
+        return self.global_weight
 
     @property
     def R(self) -> Union[NDArray, "torch.nn.Parameter"]:
@@ -613,6 +625,9 @@ class MetagraphMixin(ABC):
         # If not a 'lite' version, compute and set weights and bonds for each neuron
         if not lite:
             self._set_weights_and_bonds(subtensor=subtensor)
+
+        # Get global weight for netuid
+        self.global_weight = subtensor.get_global_weight(netuid=self.netuid)
 
         # Fills in the stake associated attributes of a class instance from a chain response.
         self._get_all_stakes_from_chain(subtensor=subtensor)
@@ -1055,6 +1070,7 @@ class TorchMetaGraph(MetagraphMixin, BaseClass):
         self.local_stake: list[Balance] = []
         self.global_stake: list[Balance] = []
         self.stake_weights: list[float] = []
+        self.global_weight: Optional[float] = None
         self.axons: list[AxonInfo] = []
         if sync:
             self.sync(block=None, lite=lite)
@@ -1237,6 +1253,7 @@ class NonTorchMetagraph(MetagraphMixin):
         self.local_stake: list[Balance] = []
         self.global_stake: list[Balance] = []
         self.stake_weights: list[float] = []
+        self.global_weight: Optional[float] = None
         self.axons: list[AxonInfo] = []
         if sync:
             self.sync(block=None, lite=lite)
