@@ -797,6 +797,7 @@ class MetagraphMixin(ABC):
             )
 
             if hex_bytes_result is None:
+                logging.debug(f"Unable to retrieve subnet state for netuid `{self.netuid}`.")
                 return []
 
             if hex_bytes_result.startswith("0x"):
