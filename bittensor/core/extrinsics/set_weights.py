@@ -179,6 +179,7 @@ def set_weights_extrinsic(
                     wait_for_inclusion=wait_for_inclusion,
                     wait_for_finalization=wait_for_finalization,
                     prompt=prompt,
+                    max_retries=1
                 )
                 if not wait_for_finalization and not wait_for_inclusion:
                     return True, "Not waiting for finalization or inclusion."

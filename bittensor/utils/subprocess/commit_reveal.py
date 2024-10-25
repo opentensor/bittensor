@@ -306,7 +306,7 @@ def chain_hash_check(subtensor: Subtensor):
                         # Check if any commit on Subtensor is absent in local database
                         if not any(c.commit_hash == commit_hash for c in ss58_commits):
                             print(
-                                f"There is a commit on Subtensor (hash: {commit_hash}) that we don't have locally."
+                                f"There is a commit on Subtensor (hash: {commit_hash}, commit_block: {commit_block}) that we don't have locally."
                             )
 
                     # Check if any local commit is absent in Subtensor
@@ -504,7 +504,7 @@ def get_all_commits() -> List[Commit]:
 
 def check_reveal(subtensor: Subtensor) -> bool:
     """
-    Checks if there are any commits to reveal and performs the reveal if necessary.
+    Checks if there are any commits to reveal.
 
     Args:
         subtensor (Subtensor): The subtensor network object.
