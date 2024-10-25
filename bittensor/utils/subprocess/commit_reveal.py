@@ -281,7 +281,7 @@ def chain_hash_check(subtensor: Subtensor):
     try:
         # Retrieve all commits from the local database
         commits = get_all_commits()
-
+        print(f"chain hash check commits:\n {commits}")
         # Group commits by wallet_hotkey_ss58
         commits_by_ss58 = {}
         for commit in commits:
@@ -294,6 +294,7 @@ def chain_hash_check(subtensor: Subtensor):
             for ss58, ss58_commits in commits_by_ss58.items():
                 # Get a set of unique netuids from the commits
                 netuids = set(commit.netuid for commit in ss58_commits)
+                print("Checking subtensor commits: ")
                 for netuid in netuids:
                     # Query the subtensor backend for commit hashes and blocks
                     response = subtensor.query_module(
@@ -303,6 +304,7 @@ def chain_hash_check(subtensor: Subtensor):
                     )
 
                     for commit_hash, commit_block in response.value:
+                        print(f"subtensor has commit: {commit_hash}, block: {commit_block}")
                         # Check if any commit on Subtensor is absent in local database
                         if not any(c.commit_hash == commit_hash for c in ss58_commits):
                             print(
@@ -458,11 +460,15 @@ def revealed_batch_hash(commit_hashes: List[str]):
         commit_hashes (List[str]): The list of commit hashes.
     """
     try:
+        if not commit_hashes:
+            print("No commit hashes")
+            return
         with utils.DB(db_path=DB_PATH) as (conn, cursor):
             for commit_hash in commit_hashes:
                 sql = "SELECT COUNT(*) FROM commits WHERE commit_hash=?"
                 cursor.execute(sql, (commit_hash,))
                 count = cursor.fetchone()[0]
+                print(f"count of revealed batch hash: {count}")
                 if count > 0:
                     delete_sql = "DELETE FROM commits WHERE commit_hash=?"
                     cursor.execute(delete_sql, (commit_hash,))
@@ -488,7 +494,7 @@ def committed(commit: Commit):
         sql = f"INSERT INTO commits ({column_names}) VALUES ({data})"
         cursor.execute(sql, tuple(commit_data.values()))
         conn.commit()
-    print(f"Committed commit data: {commit_data}")
+    print(f"Committed data: {commit_data}")
 
 
 def get_all_commits() -> List[Commit]:
@@ -529,7 +535,7 @@ def check_reveal(subtensor: Subtensor) -> bool:
     return False
 
 
-def reveal_candidates(subtensor: Subtensor):
+def reveal_commits(subtensor: Subtensor):
     """
     Performs reveal on commits that are ready to be revealed.
 
@@ -684,11 +690,12 @@ def main(args: argparse.Namespace):
         counter += 1
         curr_block = subtensor.get_current_block()
         if check_reveal(subtensor=subtensor):
-            reveal_candidates(subtensor=subtensor)
             print(f"Revealing commit on block {curr_block}")
+            reveal_commits(subtensor=subtensor)
 
         # Every 100th run, perform an additional check to verify reveal list alignment with the backend
         if counter % 100 == 0:
+            print("\nDoing chain hash check:")
             chain_hash_check(subtensor=subtensor)
             # delete_expired_commits(current_block=curr_block)
 

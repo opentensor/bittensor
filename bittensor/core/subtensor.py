@@ -1834,7 +1834,7 @@ class Subtensor:
         uids: Union[NDArray[np.int64], list],
         weights: Union[NDArray[np.int64], list],
         version_key: int = settings.version_as_int,
-        wait_for_inclusion: bool = False,
+        wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
         prompt: bool = False,
         max_retries: int = 5,
@@ -1885,7 +1885,7 @@ class Subtensor:
 
         logging.info(f"Commit Hash: {commit_hash}")
 
-        while retries < max_retries:
+        while retries < max_retries and not success:
             try:
                 success, message = commit_weights_extrinsic(
                     subtensor=self,
@@ -1912,6 +1912,14 @@ class Subtensor:
                             salt=salt,
                             version_key=version_key,
                         )
+                        print("This node has these commits now: ")
+                        response = self.query_module(
+                            module="SubtensorModule",
+                            name="WeightCommits",
+                            params=[netuid, wallet.hotkey.ss58_address],
+                        )
+                        for commit_hash, commit_block in response.value:
+                            print(f"commit: {commit_hash}, block: {commit_block}")
                     break
             except Exception as e:
                 logging.error(f"Error committing weights: {e}")
