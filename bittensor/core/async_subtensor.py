@@ -4,21 +4,6 @@ from typing import Optional, Any, Union, TypedDict, Iterable
 import aiohttp
 import scalecodec
 import typer
-from bittensor_cli.src import Constants, defaults, TYPE_REGISTRY
-from bittensor_cli.src import DelegatesDetails
-from bittensor_cli.src.bittensor.async_substrate_interface import (
-    AsyncSubstrateInterface,
-    TimeoutException,
-)
-from bittensor_cli.src.bittensor.balances import Balance
-from bittensor_cli.src.bittensor.utils import (
-    ss58_to_vec_u8,
-    format_error_message,
-    console,
-    err_console,
-    decode_hex_identity_dict,
-    validate_chain_endpoint,
-)
 from bittensor_wallet import Wallet
 from bittensor_wallet.utils import SS58_FORMAT
 from scalecodec import GenericCall
@@ -35,6 +20,20 @@ from bittensor.core.chain_data import (
     SubnetHyperparameters,
     decode_account_id,
 )
+from bittensor.core.settings import bt_console as console, bt_err_console as err_console, TYPE_REGISTRY, DEFAULTS, \
+    NETWORK_MAP, DELEGATES_DETAILS_URL, DEFAULT_NETWORK
+from bittensor.utils import (
+    ss58_to_vec_u8,
+    format_error_message,
+    decode_hex_identity_dict,
+    validate_chain_endpoint,
+)
+from bittensor.utils.async_substrate_interface import (
+    AsyncSubstrateInterface,
+    TimeoutException,
+)
+from bittensor.utils.balance import Balance
+from bittensor.utils.delegates_details import DelegatesDetails
 
 
 class ParamWithTypes(TypedDict):
@@ -57,19 +56,17 @@ class ProposalVoteData:
         self.end = proposal_dict["end"]
 
     @staticmethod
-    def decode_ss58_tuples(l: tuple):
-        """
-        Decodes a tuple of ss58 addresses formatted as bytes tuples
-        """
-        return [decode_account_id(l[x][0]) for x in range(len(l))]
+    def decode_ss58_tuples(line: tuple):
+        """Decodes a tuple of ss58 addresses formatted as bytes tuples."""
+        return [decode_account_id(line[x][0]) for x in range(len(line))]
 
 
 class AsyncSubtensor:
     """Thin layer for interacting with Substrate Interface. Mostly a collection of frequently-used calls."""
 
-    def __init__(self, network):
-        if network in Constants.network_map:
-            self.chain_endpoint = Constants.network_map[network]
+    def __init__(self, network: str = DEFAULT_NETWORK):
+        if network in NETWORK_MAP:
+            self.chain_endpoint = NETWORK_MAP[network]
             self.network = network
             if network == "local":
                 console.log(
@@ -79,10 +76,10 @@ class AsyncSubtensor:
             is_valid, _ = validate_chain_endpoint(network)
             if is_valid:
                 self.chain_endpoint = network
-                if network in Constants.network_map.values():
+                if network in NETWORK_MAP.values():
                     self.network = next(
                         key
-                        for key, value in Constants.network_map.items()
+                        for key, value in NETWORK_MAP.items()
                         if value == network
                     )
                 else:
@@ -90,12 +87,12 @@ class AsyncSubtensor:
             else:
                 console.log(
                     f"Network not specified or not valid. Using default chain endpoint: "
-                    f"{Constants.network_map[defaults.subtensor.network]}.\n"
+                    f"{NETWORK_MAP[DEFAULTS.subtensor.network]}.\n"
                     f"You can set this for commands with the `--network` flag, or by setting this"
                     f" in the config."
                 )
-                self.chain_endpoint = Constants.network_map[defaults.subtensor.network]
-                self.network = defaults.subtensor.network
+                self.chain_endpoint = NETWORK_MAP[DEFAULTS.subtensor.network]
+                self.network = DEFAULTS.subtensor.network
 
         self.substrate = AsyncSubstrateInterface(
             chain_endpoint=self.chain_endpoint,
@@ -752,7 +749,7 @@ class AsyncSubtensor:
         network-specific details, providing insights into the neuron's role and status within the Bittensor network.
         """
 
-        def decode_hex_identity_dict(info_dictionary):
+        def decode_hex_identity_dict_(info_dictionary):
             for k, v in info_dictionary.items():
                 if isinstance(v, dict):
                     item = next(iter(v.values()))
@@ -784,7 +781,7 @@ class AsyncSubtensor:
             reuse_block_hash=reuse_block,
         )
         try:
-            return decode_hex_identity_dict(identity_info["info"])
+            return decode_hex_identity_dict_(identity_info["info"])
         except TypeError:
             return {}
 
@@ -1045,7 +1042,7 @@ class AsyncSubtensor:
                     storage_function="IdentityOf",
                     block_hash=block_hash,
                 ),
-                session.get(Constants.delegates_detail_url),
+                session.get(DELEGATES_DETAILS_URL),
             )
 
             all_delegates_details = {
