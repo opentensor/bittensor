@@ -20,6 +20,8 @@ from bittensor.core.chain_data import (
     SubnetHyperparameters,
     decode_account_id,
 )
+from bittensor.core.extrinsics.async_registration import register_extrinsic
+from bittensor.core.extrinsics.async_transfer import transfer_extrinsic
 from bittensor.core.settings import bt_console as console, bt_err_console as err_console, TYPE_REGISTRY, DEFAULTS, \
     NETWORK_MAP, DELEGATES_DETAILS_URL, DEFAULT_NETWORK
 from bittensor.utils import (
@@ -34,7 +36,6 @@ from bittensor.utils.async_substrate_interface import (
 )
 from bittensor.utils.balance import Balance
 from bittensor.utils.delegates_details import DelegatesDetails
-from bittensor.core.extrinsics.async_transfer import transfer_extrinsic
 
 
 class ParamWithTypes(TypedDict):
@@ -1103,3 +1104,29 @@ class AsyncSubtensor:
             prompt=prompt,
         )
 
+    async def pow_register(
+        self: "AsyncSubtensor",
+        wallet: Wallet,
+        netuid,
+        processors,
+        update_interval,
+        output_in_place,
+        verbose,
+        use_cuda,
+        dev_id,
+        threads_per_block,
+    ):
+        """Register neuron."""
+        return await register_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            netuid=netuid,
+            prompt=True,
+            tpb=threads_per_block,
+            update_interval=update_interval,
+            num_processes=processors,
+            cuda=use_cuda,
+            dev_id=dev_id,
+            output_in_place=output_in_place,
+            log_verbose=verbose,
+        )
