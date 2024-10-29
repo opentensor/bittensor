@@ -75,7 +75,13 @@ from bittensor.core.extrinsics.transfer import (
     transfer_extrinsic,
 )
 from bittensor.core.metagraph import Metagraph
-from bittensor.utils import networking, torch, ss58_to_vec_u8, u16_normalized_float
+from bittensor.utils import (
+    networking,
+    torch,
+    ss58_to_vec_u8,
+    u16_normalized_float,
+    u64_normalized_float,
+)
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import legacy_torch_api_compat
@@ -357,7 +363,7 @@ class Subtensor:
         prefix_str = "" if prefix is None else f"{prefix}."
         try:
             default_network = settings.DEFAULT_NETWORK
-            default_chain_endpoint = settings.FINNEY_ENTRYPOINT
+            default_chain_endpoint = settings.DEFAULT_ENDPOINT
 
             parser.add_argument(
                 f"--{prefix_str}subtensor.network",
@@ -718,7 +724,7 @@ class Subtensor:
 
         if network is None:
             return None, None
-        if network in ["finney", "local", "test", "archive"]:
+        if network in ["finney", "local", "test", "archive", "rao"]:
             if network == "finney":
                 # Kiru Finney staging network.
                 return network, settings.FINNEY_ENTRYPOINT
@@ -728,6 +734,8 @@ class Subtensor:
                 return network, settings.FINNEY_TEST_ENTRYPOINT
             elif network == "archive":
                 return network, settings.ARCHIVE_ENTRYPOINT
+            elif network == "rao":
+                return network, settings.RAO_ENDPOINT
         else:
             if (
                 network == settings.FINNEY_ENTRYPOINT
@@ -744,6 +752,10 @@ class Subtensor:
                 or "archive.chain.opentensor.ai" in network
             ):
                 return "archive", settings.ARCHIVE_ENTRYPOINT
+            elif (
+                network == settings.RAO_ENDPOINT or "rao.chain.opentensor.ai" in network
+            ):
+                return "rao", settings.RAO_ENDPOINT
             elif "127.0.0.1" in network or "localhost" in network:
                 return "local", network
             else:
@@ -2046,6 +2058,21 @@ class Subtensor:
             return None
 
         return DelegateInfo.from_vec_u8(result)
+
+    def get_global_weight(
+        self, netuid: int, block: Optional[str] = None
+    ) -> Optional[float]:
+        """Returns the subnet Global Weight across all subnets."""
+        result = self.substrate.query(
+            module="SubtensorModule",
+            storage_function="GlobalWeight",
+            params=[netuid],
+            block_hash=None if block is None else self.substrate.get_block_hash(block),
+        )
+        if hasattr(result, "value"):
+            return u64_normalized_float(result.value)
+
+        return None
 
     # Subnet 27 uses this method
     _do_serve_prometheus = do_serve_prometheus

@@ -2,7 +2,8 @@ wheel
 setuptools~=70.0.0
 aiohttp~=3.9
 backoff
-bittensor-cli
+# bittensor-cli
+git+https://github.com/opentensor/btcli.git@rao  # only for rao games.
 bt-decode
 colorama~=0.4.6
 fastapi~=0.110.1

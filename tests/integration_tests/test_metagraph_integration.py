@@ -15,11 +15,13 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import bittensor
-import torch
 import os
-from bittensor.utils.mock import MockSubtensor
+
+import torch
+
 from bittensor.core.metagraph import METAGRAPH_STATE_DICT_NDARRAY_KEYS, get_save_dir
+from bittensor.core.metagraph import Metagraph
+from bittensor.utils.mock import MockSubtensor
 
 _subtensor_mock: MockSubtensor = MockSubtensor()
 
@@ -33,7 +35,7 @@ def setUpModule():
 class TestMetagraph:
     def setup_method(self):
         self.sub = MockSubtensor()
-        self.metagraph = bittensor.Metagraph(netuid=3, network="mock", sync=False)
+        self.metagraph = Metagraph(netuid=3, network="mock", sync=False)
 
     def test_print_empty(self):
         print(self.metagraph)
