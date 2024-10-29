@@ -53,6 +53,8 @@ def turn_console_on():
 turn_console_off()
 
 bt_console = __console__
+bt_err_console = Console(stderr=True)
+bt_verbose_console = Console(quiet=True)
 
 
 HOME_DIR = Path.home()
