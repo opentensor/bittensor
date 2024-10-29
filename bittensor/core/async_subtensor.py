@@ -34,6 +34,7 @@ from bittensor.utils.async_substrate_interface import (
 )
 from bittensor.utils.balance import Balance
 from bittensor.utils.delegates_details import DelegatesDetails
+from bittensor.core.extrinsics.async_transfer import transfer_extrinsic
 
 
 class ParamWithTypes(TypedDict):
@@ -1081,3 +1082,24 @@ class AsyncSubtensor:
                     )
 
         return all_delegates_details
+
+# extrinsics
+
+    async def transfer(
+        self,
+        wallet: Wallet,
+        destination: str,
+        amount: float,
+        transfer_all: bool,
+        prompt: bool,
+    ):
+        """Transfer token of amount to destination."""
+        await transfer_extrinsic(
+            self,
+            wallet,
+            destination,
+            Balance.from_tao(amount),
+            transfer_all,
+            prompt=prompt,
+        )
+
