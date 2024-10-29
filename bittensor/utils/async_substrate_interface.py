@@ -2286,7 +2286,7 @@ class AsyncSubstrateInterface:
         constant_name: str,
         block_hash: Optional[str] = None,
         reuse_block_hash: bool = False,
-    ) -> Optional["ScaleType"]:
+    ) -> "ScaleType":
         """
         Returns the decoded `ScaleType` object of the constant for given module name, call function name and block_hash
         (or chaintip if block_hash is omitted)
@@ -2365,7 +2365,7 @@ class AsyncSubstrateInterface:
         raw_storage_key: Optional[bytes] = None,
         subscription_handler=None,
         reuse_block_hash: bool = False,
-    ) -> "ScaleType":
+    ) -> Union["ScaleType"]:
         """
         Queries subtensor. This should only be used when making a single request. For multiple requests,
         you should use ``self.query_multiple``
