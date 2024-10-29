@@ -2,10 +2,12 @@ import asyncio
 from typing import Optional, Any, Union, TypedDict, Iterable
 
 import aiohttp
+import numpy as np
 import scalecodec
 import typer
 from bittensor_wallet import Wallet
 from bittensor_wallet.utils import SS58_FORMAT
+from rich.prompt import Confirm
 from scalecodec import GenericCall
 from scalecodec.base import RuntimeConfiguration
 from scalecodec.type_registry import load_type_registry_preset
@@ -21,9 +23,18 @@ from bittensor.core.chain_data import (
     decode_account_id,
 )
 from bittensor.core.extrinsics.async_registration import register_extrinsic
+from bittensor.core.extrinsics.async_root import set_root_weights_extrinsic, root_register_extrinsic
 from bittensor.core.extrinsics.async_transfer import transfer_extrinsic
-from bittensor.core.settings import bt_console as console, bt_err_console as err_console, TYPE_REGISTRY, DEFAULTS, \
-    NETWORK_MAP, DELEGATES_DETAILS_URL, DEFAULT_NETWORK
+from bittensor.core.settings import (
+    bt_console as console,
+    bt_err_console as err_console,
+    TYPE_REGISTRY,
+    DEFAULTS,
+    NETWORK_MAP,
+    DELEGATES_DETAILS_URL,
+    DEFAULT_NETWORK,
+    print_verbose
+)
 from bittensor.utils import (
     ss58_to_vec_u8,
     format_error_message,
@@ -1084,6 +1095,20 @@ class AsyncSubtensor:
 
         return all_delegates_details
 
+    async def is_hotkey_registered(
+            self, netuid: int, hotkey_ss58: str
+    ) -> bool:
+        """Checks to see if the hotkey is registered on a given netuid"""
+        _result = await self.substrate.query(
+            module="SubtensorModule",
+            storage_function="Uids",
+            params=[netuid, hotkey_ss58],
+        )
+        if _result is not None:
+            return True
+        else:
+            return False
+
 # extrinsics
 
     async def transfer(
@@ -1095,12 +1120,59 @@ class AsyncSubtensor:
         prompt: bool,
     ):
         """Transfer token of amount to destination."""
-        await transfer_extrinsic(
+        return await transfer_extrinsic(
             self,
             wallet,
             destination,
             Balance.from_tao(amount),
             transfer_all,
+            prompt=prompt,
+        )
+
+    async def register(self, wallet: Wallet, prompt: bool):
+        """Register neuron by recycling some TAO."""
+        console.print(
+            f"Registering on [dark_orange]netuid 0[/dark_orange] on network: [dark_orange]{self.network}"
+        )
+
+        # Check current recycle amount
+        print_verbose("Fetching recycle amount & balance")
+        recycle_call, balance_ = await asyncio.gather(
+            self.get_hyperparameter(param_name="Burn", netuid=0, reuse_block=True),
+            self.get_balance(wallet.coldkeypub.ss58_address, reuse_block=True),
+        )
+        current_recycle = Balance.from_rao(int(recycle_call))
+        try:
+            balance: Balance = balance_[wallet.coldkeypub.ss58_address]
+        except TypeError as e:
+            err_console.print(f"Unable to retrieve current recycle. {e}")
+            return False
+        except KeyError:
+            err_console.print("Unable to retrieve current balance.")
+            return False
+
+        # Check balance is sufficient
+        if balance < current_recycle:
+            err_console.print(
+                f"[red]Insufficient balance {balance} to register neuron. "
+                f"Current recycle is {current_recycle} TAO[/red]"
+            )
+            return False
+
+        if prompt:
+            if not Confirm.ask(
+                    f"Your balance is: [bold green]{balance}[/bold green]\n"
+                    f"The cost to register by recycle is [bold red]{current_recycle}[/bold red]\n"
+                    f"Do you want to continue?",
+                    default=False,
+            ):
+                return False
+
+        return await root_register_extrinsic(
+            self,
+            wallet,
+            wait_for_inclusion=True,
+            wait_for_finalization=True,
             prompt=prompt,
         )
 
@@ -1129,4 +1201,27 @@ class AsyncSubtensor:
             dev_id=dev_id,
             output_in_place=output_in_place,
             log_verbose=verbose,
+        )
+
+    async def set_weights(
+        self,
+        wallet: "Wallet",
+        netuids: list[int],
+        weights: list[float],
+        prompt: bool,
+    ):
+        """Set weights for root network."""
+        netuids_ = np.array(netuids, dtype=np.int64)
+        weights_ = np.array(weights, dtype=np.float32)
+        console.print(f"Setting weights in [dark_orange]network: {self.network}")
+        # Run the set weights operation.
+        return await set_root_weights_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            netuids=netuids_,
+            weights=weights_,
+            version_key=0,
+            prompt=prompt,
+            wait_for_finalization=True,
+            wait_for_inclusion=True,
         )
