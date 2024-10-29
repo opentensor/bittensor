@@ -23,6 +23,7 @@ blockchain, facilitating a range of operations essential for the decentralized m
 import argparse
 import copy
 import socket
+import time
 from typing import Union, Optional, TypedDict, Any
 
 import numpy as np
@@ -1870,6 +1871,11 @@ class Subtensor:
             f"Committing weights with params: netuid={netuid}, uids={uids}, weights={weights}, version_key={version_key}"
         )
 
+        # start subprocess if permitted and not yet running
+        if self.subprocess_initialization and not subprocess_utils.is_process_running(COMMIT_REVEAL_PROCESS):
+            logging.info("Starting commit_reveal subprocess from commit.")
+            subprocess_utils.start_commit_reveal_subprocess(network=self.chain_endpoint, sleep_interval=self.subprocess_sleep_interval)
+
         if isinstance(weights, list) and all(isinstance(w, float) for w in weights):
             uids, weights = convert_weights_and_uids_for_emit(uids, weights)  # type: ignore
 
@@ -1887,6 +1893,19 @@ class Subtensor:
 
         while retries < max_retries and not success:
             try:
+                if subprocess_utils.is_process_running(COMMIT_REVEAL_PROCESS):
+                    curr_block = self.get_current_block()
+                    commit_weights_process(
+                        self,
+                        wallet=wallet,
+                        netuid=netuid,
+                        commit_hash=commit_hash,
+                        uids=list(uids),
+                        weights=list(weights),
+                        salt=salt,
+                        version_key=version_key,
+                        block=curr_block
+                    )
                 success, message = commit_weights_extrinsic(
                     subtensor=self,
                     wallet=wallet,
@@ -1897,29 +1916,6 @@ class Subtensor:
                     prompt=prompt,
                 )
                 if success:
-                    # add to local db if called directly
-                    if self.subprocess_initialization:
-                        if not subprocess_utils.is_process_running(COMMIT_REVEAL_PROCESS):
-                            logging.info("Starting commit_reveal subprocess from commit.")
-                            subprocess_utils.start_commit_reveal_subprocess(network=self.chain_endpoint, sleep_interval=self.subprocess_sleep_interval)
-                        commit_weights_process(
-                            self,
-                            wallet=wallet,
-                            netuid=netuid,
-                            commit_hash=commit_hash,
-                            uids=list(uids),
-                            weights=list(weights),
-                            salt=salt,
-                            version_key=version_key,
-                        )
-                        print("This node has these commits now: ")
-                        response = self.query_module(
-                            module="SubtensorModule",
-                            name="WeightCommits",
-                            params=[netuid, wallet.hotkey.ss58_address],
-                        )
-                        for commit_hash, commit_block in response.value:
-                            print(f"commit: {commit_hash}, block: {commit_block}")
                     break
             except Exception as e:
                 logging.error(f"Error committing weights: {e}")

@@ -16,7 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 """Module commit weights and reveal weights extrinsic."""
-
+import json
 from typing import Optional, TYPE_CHECKING
 import socket
 from retry import retry
@@ -155,6 +155,7 @@ def commit_weights_process(
     weights: list[int],
     salt: list[int],
     version_key: int = settings.version_as_int,
+    block: Optional[int] = None,
 ):
     """
     Lets the subprocess know what a commit was submitted to the chain.
@@ -168,6 +169,7 @@ def commit_weights_process(
         weights (list[int]): List of weight values corresponding to each UID.
         salt (list[int]): List of salt values for the hash function.
         version_key (int): Version key for network compatibility (default is settings.version_as_int).
+        block (Optional[int]): Specific block number to use (default is None).
 
     The function calculates the necessary blocks until the next epoch and the reveal block, then the subprocess will
     wait until the appropriate time to reveal the weights.
@@ -179,7 +181,7 @@ def commit_weights_process(
         client.send(command.encode())
         client.close()
 
-    curr_block = subtensor.get_current_block()
+    curr_block = block if block is not None else subtensor.get_current_block()
     blocks_until_next_epoch = subtensor.blocks_until_next_epoch(netuid=netuid)
     subnet_tempo_blocks = subtensor.get_subnet_hyperparameters(netuid=netuid).tempo
     epoch_start_block = curr_block + blocks_until_next_epoch
@@ -187,7 +189,7 @@ def commit_weights_process(
         netuid=netuid
     ).commit_reveal_periods
     reveal_block = epoch_start_block + ((cr_periods - 1) * subnet_tempo_blocks) + 1
-    expire_block = reveal_block + subnet_tempo_blocks - 1
+    expire_block = reveal_block + subnet_tempo_blocks
 
     command = f'committed "{wallet.name}" "{wallet.path}" "{wallet.hotkey_str}" "{wallet.hotkey.ss58_address}" "{curr_block}" "{reveal_block}" "{expire_block}" "{commit_hash}" "{netuid}" "{uids}" "{weights}" "{salt}" "{version_key}"'
     send_command(command)
@@ -365,9 +367,9 @@ def reveal_weights_process(
             version_key=version_key,
         )
         command = f'revealed_hash "{commit_hash}"'
+        send_command(command)
     except Exception as e:
-        command = f'revealed "{wallet.name}" "{wallet.path}" "{wallet.hotkey_str}" "{wallet.hotkey.ss58_address}" "{netuid}" "{uids}" "{weights}" "{salt}" "{version_key}"'
-    send_command(command)
+        logging.error(f"Not able to generate hash to reveal weights on subprocess: {e}")
 
 
 # Chain call for `batch_reveal_weights_extrinsic`
@@ -532,8 +534,9 @@ def batch_reveal_weights_process(
         client.close()
 
     try:
+        commit_hashes = []
         for batch_uids, batch_weights, batch_salt, batch_version_key in zip(
-            uids, weights, salt, version_keys
+                uids, weights, salt, version_keys
         ):
             # Generate the hash of the weights for each individual batch
             commit_hash = generate_weight_hash(
@@ -544,7 +547,9 @@ def batch_reveal_weights_process(
                 salt=batch_salt,
                 version_key=batch_version_key,
             )
-            command = f'revealed_hash "{commit_hash}"'
-            send_command(command)
+            commit_hashes.append(commit_hash)
+
+        command = f'revealed_hash_batch {json.dumps(commit_hashes)}'
+        send_command(command)
     except Exception as e:
         logging.error(f"Failed batch reveal weights subprocess: {e}")

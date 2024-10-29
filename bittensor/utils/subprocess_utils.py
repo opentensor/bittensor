@@ -1,9 +1,11 @@
 import os
+import re
 import sqlite3
+import subprocess
 import time
+from datetime import datetime
 from typing import Optional
 
-import subprocess
 import psutil
 
 LOG_DIR = os.path.expanduser("~/.bittensor/logs")
@@ -13,7 +15,7 @@ PROCESS_NAME = "commit_reveal.py"
 os.makedirs(LOG_DIR, exist_ok=True)
 
 
-def get_pid_log_files() -> tuple[str, str]:
+def get_cr_log_files() -> tuple[str, str]:
     """
     Get the log files for the current running process.
     Returns:
@@ -23,8 +25,28 @@ def get_pid_log_files() -> tuple[str, str]:
     if pid is None:
         raise RuntimeError(f"Process '{PROCESS_NAME}' is not running.")
 
-    stdout_log = os.path.join(LOG_DIR, f"commit_reveal_stdout_{pid}.log")
-    stderr_log = os.path.join(LOG_DIR, f"commit_reveal_stderr_{pid}.log")
+    # Define a regex pattern to match log files with timestamps
+    log_pattern = re.compile(r"commit_reveal_(stdout|stderr)_(\d{8}_\d{6})\.log")
+
+    stdout_log = None
+    stderr_log = None
+    latest_timestamp = None
+
+    for log_file in os.listdir(LOG_DIR):
+        match = log_pattern.match(log_file)
+        if match:
+            log_type, timestamp = match.groups()
+            # Update latest log files if this file is more recent
+            if latest_timestamp is None or timestamp > latest_timestamp:
+                latest_timestamp = timestamp
+                if log_type == "stdout":
+                    stdout_log = os.path.join(LOG_DIR, log_file)
+                elif log_type == "stderr":
+                    stderr_log = os.path.join(LOG_DIR, log_file)
+
+    if not (stdout_log and stderr_log):
+        raise RuntimeError("Log files not found or incomplete.")
+
     return stdout_log, stderr_log
 
 
@@ -68,12 +90,38 @@ def get_process(process_name: str) -> Optional[int]:
     return None
 
 
+def is_commit_reveal_subprocess_ready() -> bool:
+    """
+    Check the logs for the message 'commit_reveal subprocess is ready' and return True if it's found.
+
+    Returns:
+        bool: True if the message is found in the logs, False otherwise.
+    """
+    try:
+        stdout_log, stderr_log = get_cr_log_files()
+    except RuntimeError as e:
+        print(str(e))
+        return False
+
+    def check_message_in_log(file_path: str, message: str) -> bool:
+        """Check if a specific message is present in the log file."""
+        if os.path.exists(file_path):
+            with open(file_path, "r") as file:
+                for line in file:
+                    if message in line:
+                        return True
+        return False
+
+    message = "commit_reveal subprocess is ready"
+    return check_message_in_log(stdout_log, message) or check_message_in_log(stderr_log, message)
+
+
 def read_commit_reveal_logs():
     """
     Read and print the last 50 lines of logs from the most recent subprocess log.
     """
     try:
-        stdout_log, stderr_log = get_pid_log_files()
+        stdout_log, stderr_log = get_cr_log_files()
     except RuntimeError as e:
         print(str(e))
         return
@@ -145,7 +193,6 @@ def start_commit_reveal_subprocess(
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
     if not is_process_running(PROCESS_NAME):
-        from datetime import datetime
         current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
 
         # Correctly construct the paths for STDOUT and STDERR log files
@@ -176,7 +223,16 @@ def start_commit_reveal_subprocess(
             env=env,
         )
         print(f"Subprocess '{PROCESS_NAME}' started with PID {process.pid}.")
-        time.sleep(1)  # wait a second for subprocess to initialize
+
+        attempt_count = 0
+
+        while not is_commit_reveal_subprocess_ready() and attempt_count < 5:
+            time.sleep(3)
+            print("Waiting for commit_reveal subprocess to be ready.")
+            attempt_count += 1
+
+        if attempt_count >= 5:
+            print("Max attempts reached. Subprocess may not be ready.")
     else:
         print(f"Subprocess '{PROCESS_NAME}' is already running.")
 

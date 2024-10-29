@@ -105,9 +105,6 @@ async def test_commit_and_reveal_weights(local_chain):
         uids=uids, weights=weights
     )
 
-    # Assert no local CR processes in table
-    assert commit_reveal_subprocess.is_table_empty("commits")
-
     # Commit weights
     success, message = subtensor.commit_weights(
         alice_wallet,
@@ -127,7 +124,7 @@ async def test_commit_and_reveal_weights(local_chain):
 
     # Assert that the committed weights are set correctly
     assert weight_commits.value is not None, "Weight commit not found in storage"
-    commit_hash, commit_block = weight_commits.value[0]
+    commit_hash, commit_block, reveal_block, expire_block = weight_commits.value[0]
     assert commit_block > 0, f"Invalid block number: {commit_block}"
 
     # Query the WeightCommitRevealInterval storage map
@@ -147,9 +144,6 @@ async def test_commit_and_reveal_weights(local_chain):
 
     # allow one more block to pass
     time.sleep(12)
-
-    # Verify that subprocess did the reveal and deleted entry from local table
-    assert commit_reveal_subprocess.is_table_empty("commits")
 
     # Query the Weights storage map
     revealed_weights = subtensor.query_module(
@@ -253,9 +247,6 @@ async def test_set_and_reveal_weights(local_chain):
         uids=uids, weights=weights
     )
 
-    # Assert no local CR processes in table
-    assert commit_reveal_subprocess.is_table_empty("commits")
-
     # Set weights with CR enabled
     success, message = subtensor.set_weights(
         alice_wallet,
@@ -274,7 +265,7 @@ async def test_set_and_reveal_weights(local_chain):
 
     # Assert that the committed weights are set correctly
     assert weight_commits.value is not None, "Weight commit not found in storage"
-    commit_hash, commit_block = weight_commits.value[0]
+    commit_hash, commit_block, reveal_block, expire_block = weight_commits.value[0]
     assert commit_block > 0, f"Invalid block number: {commit_block}"
 
     # Query the WeightCommitRevealInterval storage map
@@ -294,9 +285,6 @@ async def test_set_and_reveal_weights(local_chain):
 
     # allow one more block to pass
     time.sleep(12)
-
-    # Verify that subprocess did the reveal and deleted entry from local table
-    assert commit_reveal_subprocess.is_table_empty("commits")
 
     # Query the Weights storage map
     revealed_weights = subtensor.query_module(
@@ -392,62 +380,38 @@ async def test_set_and_reveal_batch_weights(local_chain):
     ), "Failed to set weights_rate_limit"
     assert subtensor.weights_rate_limit(netuid=netuid) == 0
 
-    # Commit-reveal values
-    uids = np.array([0], dtype=np.int64)
-    weights = np.array([0.1], dtype=np.float32)
-    # Customers run this before submitting weights
-    weight_uids, weight_vals = convert_weights_and_uids_for_emit(
-        uids=uids, weights=weights
-    )
+    # Commit-reveal values and weights for different steps
+    weights_steps = [
+        (np.array([0], dtype=np.int64), np.array([0.1], dtype=np.float32)),
+        (np.array([0], dtype=np.int64), np.array([0.2], dtype=np.float32)),
+        (np.array([0], dtype=np.int64), np.array([0.3], dtype=np.float32)),
+        (np.array([0], dtype=np.int64), np.array([0.4], dtype=np.float32)),
+        (np.array([0], dtype=np.int64), np.array([0.5], dtype=np.float32)),
+        (np.array([0], dtype=np.int64), np.array([0.6], dtype=np.float32)),
+        (np.array([0], dtype=np.int64), np.array([0.7], dtype=np.float32)),
+        (np.array([0], dtype=np.int64), np.array([0.8], dtype=np.float32)),
+        (np.array([0], dtype=np.int64), np.array([0.9], dtype=np.float32)),
+        (np.array([0], dtype=np.int64), np.array([0.10], dtype=np.float32)),
+    ]
 
-    # Assert no local CR processes in table
-    assert commit_reveal_subprocess.is_table_empty("commits")
+    for uids, weights in weights_steps:
+        # Customers run this before submitting weights
+        weight_uids, weight_vals = convert_weights_and_uids_for_emit(
+            uids=uids, weights=weights
+        )
 
-    # Set weights with CR enabled
-    success, message = subtensor.set_weights(
-        alice_wallet,
-        netuid,
-        uids=weight_uids,
-        weights=weight_vals,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
-    )
+        # Set weights with CR enabled
+        success, message = subtensor.set_weights(
+            alice_wallet,
+            netuid,
+            uids=weight_uids,
+            weights=weight_vals,
+            wait_for_inclusion=True,
+            wait_for_finalization=True,
+        )
+        assert success
 
-    time.sleep(3)
-
-    # Commit-reveal values
-    uids = np.array([0], dtype=np.int64)
-    weights = np.array([0.2], dtype=np.float32)
-    weight_uids, weight_vals = convert_weights_and_uids_for_emit(
-        uids=uids, weights=weights
-    )
-    # add second weights with CR enabled
-    success, message = subtensor.set_weights(
-        alice_wallet,
-        netuid,
-        uids=weight_uids,
-        weights=weight_vals,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
-    )
-
-    time.sleep(3)
-
-    # Commit-reveal values
-    uids = np.array([0], dtype=np.int64)
-    weights = np.array([0.3], dtype=np.float32)
-    weight_uids, weight_vals = convert_weights_and_uids_for_emit(
-        uids=uids, weights=weights
-    )
-    # add second weights with CR enabled
-    success, message = subtensor.set_weights(
-        alice_wallet,
-        netuid,
-        uids=weight_uids,
-        weights=weight_vals,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
-    )
+        time.sleep(2)
 
     weight_commits = subtensor.query_module(
         module="SubtensorModule",
@@ -455,13 +419,9 @@ async def test_set_and_reveal_batch_weights(local_chain):
         params=[netuid, alice_wallet.hotkey.ss58_address],
     )
 
-    weight_uids, weight_vals = convert_weights_and_uids_for_emit(
-        uids=uids, weights=weights
-    )
-
     # Assert that the committed weights are set correctly
     assert weight_commits.value is not None, "Weight commit not found in storage"
-    commit_hash, commit_block = weight_commits.value[0]
+    commit_hash, commit_block, reveal_block, expire_block = weight_commits.value[0]
     assert commit_block > 0, f"Invalid block number: {commit_block}"
 
     # Query the WeightCommitRevealInterval storage map
@@ -471,9 +431,6 @@ async def test_set_and_reveal_batch_weights(local_chain):
     periods = reveal_periods.value
     assert periods > 0, "Invalid RevealPeriodEpochs"
 
-    # Verify that sqlite has entry
-    assert commit_reveal_subprocess.is_table_empty("commits") is False
-
     # Wait until the reveal block range
     await wait_interval(
         subtensor.get_subnet_hyperparameters(netuid=netuid).tempo, subtensor
@@ -481,9 +438,6 @@ async def test_set_and_reveal_batch_weights(local_chain):
 
     # allow one more block to pass
     time.sleep(12)
-
-    # Verify that subprocess did the reveal and deleted all entry from local table
-    assert commit_reveal_subprocess.is_table_empty("commits")
 
     # Query the Weights storage map
     revealed_weights = subtensor.query_module(
@@ -632,5 +586,3 @@ async def test_set_and_reveal_batch_weights_over_limit(local_chain):
     )
 
     assert success is False
-    # remove commits
-    subprocess_utils.delete_all_rows("commits")

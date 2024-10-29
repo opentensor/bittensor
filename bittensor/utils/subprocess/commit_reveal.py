@@ -37,6 +37,7 @@ class Commit:
         weights (List[int]): The list of weights.
         salt (List[int]): The salt used for the commit.
         version_key (int): The version key.
+        revealed (bool): Whether the commit has been revealed.
     """
 
     def __init__(
@@ -54,6 +55,7 @@ class Commit:
         weights: List[int],
         salt: List[int],
         version_key: int,
+        revealed: bool = False,
     ):
         self.wallet_hotkey_name = wallet_hotkey_name
         self.wallet_hotkey_ss58 = wallet_hotkey_ss58
@@ -68,6 +70,7 @@ class Commit:
         self.weights = weights
         self.salt = salt
         self.version_key = version_key
+        self.revealed = revealed
 
     def to_dict(self) -> Dict[str, Any]:
         """
@@ -90,6 +93,7 @@ class Commit:
             "weights": json.dumps(self.weights),
             "salt": json.dumps(self.salt),
             "version_key": self.version_key,
+            "revealed": self.revealed,
         }
 
     @staticmethod
@@ -117,6 +121,7 @@ class Commit:
             weights=json.loads(data["weights"]),
             salt=json.loads(data["salt"]),
             version_key=data["version_key"],
+            revealed=data.get("revealed", False),  # Default to False if not present
         )
 
     def __str__(self) -> str:
@@ -126,7 +131,11 @@ class Commit:
         Returns:
             str: String representation of the commit.
         """
-        return f"Commit(wallet_hotkey_name={self.wallet_hotkey_name}, wallet_hotkey_ss58={self.wallet_hotkey_ss58}, wallet_name={self.wallet_name}, wallet_path={self.wallet_path}, commit_hash={self.commit_hash}, netuid={self.netuid}, commit_block={self.commit_block}, reveal_block={self.reveal_block}, expire_block={self.expire_block}, uids={self.uids}, weights={self.weights}, salt={self.salt}, version_key={self.version_key})"
+        return (f"Commit(wallet_hotkey_name={self.wallet_hotkey_name}, wallet_hotkey_ss58={self.wallet_hotkey_ss58}, "
+                f"wallet_name={self.wallet_name}, wallet_path={self.wallet_path}, commit_hash={self.commit_hash}, "
+                f"netuid={self.netuid}, commit_block={self.commit_block}, reveal_block={self.reveal_block}, "
+                f"expire_block={self.expire_block}, uids={self.uids}, weights={self.weights}, salt={self.salt}, "
+                f"version_key={self.version_key}, revealed={self.revealed})")
 
 
 def table_exists(table_name: str) -> bool:
@@ -189,6 +198,7 @@ def initialize_db():
         ("weights", "TEXT"),
         ("salt", "TEXT"),
         ("version_key", "INTEGER"),
+        ("revealed", "BOOLEAN DEFAULT FALSE"),
     ]
     if not table_exists("commits"):
         print("Creating table 'commits'...")
@@ -222,7 +232,7 @@ def reveal(subtensor: Subtensor, commit: Commit):
     )
     del wallet
     if success:
-        revealed_hash(commit.commit_hash)
+        revealed_commit(commit.commit_hash)
         print(f"Reveal success for commit {commit}")
     else:
         print(f"Reveal failure for commit: {message}")
@@ -265,74 +275,94 @@ def reveal_batch(subtensor: Subtensor, commits: List[Commit]):
 
     if success:
         for commit in commits:
-            revealed_hash(commit.commit_hash)
+            revealed_commit(commit.commit_hash)
             print(f"Reveal success for batch commit: {commit}")
     else:
         print(f"Reveal failure for batch commits: {message}")
 
 
-def chain_hash_check(subtensor: Subtensor):
+def sync_commit_data(matching_commit, commit_block, reveal_block, expire_block):
+    """
+    Sync the commit data with the given block details.
+
+    Args:
+        matching_commit (Commit): The local commit object to be synced.
+        commit_block (int): The block at which the commit occurred.
+        reveal_block (int): The block at which the commit was revealed.
+        expire_block (int): The block at which the commit will expire.
+    """
+    try:
+        matching_commit.commit_block = commit_block
+        matching_commit.reveal_block = reveal_block
+        matching_commit.expire_block = expire_block
+
+        with utils.DB(db_path=DB_PATH) as (conn, cursor):
+            update_sql = """
+                UPDATE commits
+                SET commit_block=?, reveal_block=?, expire_block=?
+                WHERE commit_hash=?
+            """
+            cursor.execute(update_sql,
+                           (commit_block, reveal_block, expire_block, matching_commit.commit_hash)
+                           )
+            conn.commit()
+        print(
+            f"Updated commit {matching_commit.commit_hash} with commit_block={commit_block}, reveal_block={reveal_block}, expire_block={expire_block}")
+    except Exception as e:
+        print(f"Error updating commit data: {e}")
+
+
+def chain_hash_sync(subtensor: Subtensor, current_block: int):
     """
     Perform a verification to check if the local reveal list is consistent with the chain.
 
     Args:
+        current_block (int): The current block number.
         subtensor (Subtensor): The subtensor network object.
     """
     try:
         # Retrieve all commits from the local database
         commits = get_all_commits()
-        print(f"chain hash check commits:\n {commits}")
-        # Group commits by wallet_hotkey_ss58
-        commits_by_ss58 = {}
-        for commit in commits:
-            ss58 = commit.wallet_hotkey_ss58
-            if ss58 not in commits_by_ss58:
-                commits_by_ss58[ss58] = []
-            commits_by_ss58[ss58].append(commit)
+        # Filter commits to only those that are not revealed
+        commits = [commit for commit in commits if not commit.revealed]
 
-        if commits_by_ss58:
-            for ss58, ss58_commits in commits_by_ss58.items():
-                # Get a set of unique netuids from the commits
-                netuids = set(commit.netuid for commit in ss58_commits)
-                print("Checking subtensor commits: ")
-                for netuid in netuids:
-                    # Query the subtensor backend for commit hashes and blocks
+        # Group commits by wallet_hotkey_ss58
+        if commits:
+            unique_combinations = list({(commit.wallet_hotkey_ss58, commit.netuid) for commit in commits})
+
+            for combination in unique_combinations:
+                ss58, netuid = combination
+                try:
                     response = subtensor.query_module(
                         module="SubtensorModule",
                         name="WeightCommits",
                         params=[netuid, ss58],
                     )
 
-                    for commit_hash, commit_block in response.value:
-                        print(f"subtensor has commit: {commit_hash}, block: {commit_block}")
-                        # Check if any commit on Subtensor is absent in local database
-                        if not any(c.commit_hash == commit_hash for c in ss58_commits):
-                            print(
-                                f"There is a commit on Subtensor (hash: {commit_hash}, commit_block: {commit_block}) that we don't have locally."
-                            )
-
-                    # Check if any local commit is absent in Subtensor
-                    local_commit_hashes = {c.commit_hash for c in ss58_commits}
-                    subtensor_commit_hashes = {
-                        commit_hash for commit_hash, _ in response.value
-                    }
-
-                    for local_commit_hash in local_commit_hashes:
-                        if local_commit_hash not in subtensor_commit_hashes:
-                            print(
-                                f"There is a local commit (hash: {local_commit_hash}) that is not on Subtensor."
-                            )
-                            revealed_hash(local_commit_hash)
+                    for commit_hash, commit_block, reveal_block, expire_block in response.value:
+                        if expire_block < current_block:
+                            continue
+                        if any(c.commit_hash == commit_hash for c in commits) and reveal_block <= current_block:
+                            matching_commit = next((commit for commit in commits if commit.commit_hash == commit_hash),
+                                                   None)
+                            if matching_commit:
+                                if commit_block != matching_commit.commit_block or reveal_block != matching_commit.reveal_block or expire_block != matching_commit.expire_block:
+                                    sync_commit_data(matching_commit, commit_block, reveal_block, expire_block)
+                            else:
+                                print(f"Could not find matching commit for hash: {commit_hash}")
+                except Exception as e:
+                    print(f"Error during subtensor query chain sync: {e}")
     except Exception as e:
-        print(f"Error during chain_hash_check: {e}")
+        print(f"Error during chain_hash_sync: {e}")
 
 
-def delete_expired_commits(current_block: int):
+def delete_old_commits(current_block: int, offset: int):
     """
     Deletes rows in the database where the current block is greater than the expire_block.
     Prints each commit before deleting it.
 
     Args:
+        offset (int): The expired block offset to delete expired commits.
         current_block (int): The current block number.
     """
     try:
@@ -343,7 +373,7 @@ def delete_expired_commits(current_block: int):
 
         with utils.DB(db_path=DB_PATH) as (conn, cursor):
             for commit in commits:
-                if current_block > commit.expire_block:
+                if current_block + offset < commit.expire_block:
                     delete_sql = "DELETE FROM commits WHERE commit_hash=?"
                     cursor.execute(delete_sql, (commit.commit_hash,))
                     conn.commit()
@@ -352,86 +382,9 @@ def delete_expired_commits(current_block: int):
         print(f"Error deleting expired commits: {e}")
 
 
-def revealed(
-    wallet_name: str,
-    wallet_path: str,
-    wallet_hotkey_str: str,
-    wallet_hotkey_ss58: str,
-    netuid: int,
-    uids: List[int],
-    weights: List[int],
-    salt: List[int],
-    version_key: int,
-):
+def revealed_commit(commit_hash: str):
     """
-    Handles the revealed command by removing the corresponding commit from the database.
-
-    Args:
-        wallet_name (str): The wallet name.
-        wallet_path (str): The path to the wallet.
-        wallet_hotkey_str (str): The wallet hotkey as a string.
-        wallet_hotkey_ss58 (str): The wallet hotkey SS58 address.
-        netuid (int): The network UID.
-        uids (List[int]): The list of UIDs.
-        weights (List[int]): The list of weights.
-        salt (List[int]): The salt used for the commit.
-        version_key (int): The version key.
-    """
-    try:
-        with utils.DB(db_path=DB_PATH) as (conn, cursor):
-            sql = (
-                "SELECT COUNT(*) FROM commits WHERE wallet_hotkey_str=? AND wallet_hotkey_ss58=? AND wallet_name=? AND wallet_path=? AND netuid=? AND "
-                "uids=? AND weights=? AND salt=? AND version_key=?"
-            )
-            cursor.execute(
-                sql,
-                (
-                    wallet_hotkey_str,
-                    wallet_hotkey_ss58,
-                    wallet_name,
-                    wallet_path,
-                    netuid,
-                    json.dumps(uids),
-                    json.dumps(weights),
-                    json.dumps(salt),
-                    version_key,
-                ),
-            )
-            count = cursor.fetchone()[0]
-            if count > 0:
-                delete_sql = (
-                    "DELETE FROM commits WHERE wallet_hotkey_str=? AND wallet_hotkey_ss58=? AND wallet_name=? AND wallet_path=? AND netuid=? AND "
-                    "uids=? AND weights=? AND salt=? AND version_key=?"
-                )
-                cursor.execute(
-                    delete_sql,
-                    (
-                        wallet_hotkey_str,
-                        wallet_hotkey_ss58,
-                        wallet_name,
-                        wallet_path,
-                        netuid,
-                        json.dumps(uids),
-                        json.dumps(weights),
-                        json.dumps(salt),
-                        version_key,
-                    ),
-                )
-                conn.commit()
-                print(
-                    f"Deleted existing row with specified data: wallet_hotkey_str={wallet_hotkey_str}, wallet_hotkey_ss58={wallet_hotkey_ss58}, wallet_name={wallet_name}, wallet_path={wallet_path}, netuid={netuid}, uids={uids}, weights={weights}, salt={salt}, version_key={version_key}"
-                )
-            else:
-                print(
-                    f"No existing row found with specified data: wallet_hotkey_str={wallet_hotkey_str}, wallet_hotkey_ss58={wallet_hotkey_ss58}, wallet_name={wallet_name}, wallet_path={wallet_path}, netuid={netuid}, uids={uids}, weights={weights}, salt={salt}, version_key={version_key}"
-                )
-    except Exception as e:
-        print(f"Error removing from table 'commits': {e}")
-
-
-def revealed_hash(commit_hash: str):
-    """
-    Handles the revealed_hash command by removing the corresponding commit from the database using the commit hash.
+    Handles the revealed_hash command by updating the revealed status on the corresponding commit from the database using the commit hash.
 
     Args:
         commit_hash (str): The commit hash.
@@ -442,17 +395,18 @@ def revealed_hash(commit_hash: str):
             cursor.execute(sql, (commit_hash,))
             count = cursor.fetchone()[0]
             if count > 0:
-                delete_sql = "DELETE FROM commits WHERE commit_hash=?"
-                cursor.execute(delete_sql, (commit_hash,))
+                # Update the revealed status in the database
+                update_sql = "UPDATE commits SET revealed = ? WHERE commit_hash = ?"
+                cursor.execute(update_sql, (True, commit_hash))
                 conn.commit()
-                print(f"\nDeleted existing row with commit hash {commit_hash}")
+                print(f"\nUpdated revealed status on existing row with commit hash {commit_hash}")
             else:
                 print(f"\nNo existing row found with commit hash {commit_hash}")
     except Exception as e:
-        print(f"Error removing from table 'commits': {e}")
+        print(f"Error updating from table 'commits': {e}")
 
 
-def revealed_batch_hash(commit_hashes: List[str]):
+def revealed_commit_batch(commit_hashes: List[str]):
     """
     Handles the revealed_batch_hash command by removing the corresponding commits from the database using the commit hashes.
 
@@ -461,23 +415,21 @@ def revealed_batch_hash(commit_hashes: List[str]):
     """
     try:
         if not commit_hashes:
-            print("No commit hashes")
             return
         with utils.DB(db_path=DB_PATH) as (conn, cursor):
             for commit_hash in commit_hashes:
                 sql = "SELECT COUNT(*) FROM commits WHERE commit_hash=?"
                 cursor.execute(sql, (commit_hash,))
                 count = cursor.fetchone()[0]
-                print(f"count of revealed batch hash: {count}")
                 if count > 0:
-                    delete_sql = "DELETE FROM commits WHERE commit_hash=?"
-                    cursor.execute(delete_sql, (commit_hash,))
+                    update_sql = "UPDATE commits SET revealed = ? WHERE commit_hash = ?"
+                    cursor.execute(update_sql, (True, commit_hash))
                     conn.commit()
-                    print(f"\nDeleted existing row with commit hash {commit_hash}")
+                    print(f"\nUpdated revealed status on existing row with commit hash {commit_hash}")
                 else:
                     print(f"\nNo existing row found with commit hash {commit_hash}")
     except Exception as e:
-        print(f"Error removing from table 'commits': {e}")
+        print(f"Error updating from table 'commits': {e}")
 
 
 def committed(commit: Commit):
@@ -508,25 +460,25 @@ def get_all_commits() -> List[Commit]:
     return [Commit.from_dict(dict(zip(columns, commit))) for commit in rows]
 
 
-def check_reveal(subtensor: Subtensor) -> bool:
+def check_reveal(curr_block: int) -> bool:
     """
     Checks if there are any commits to reveal.
 
     Args:
-        subtensor (Subtensor): The subtensor network object.
+        curr_block (int): The current block number.
 
     Returns:
         bool: True if a commit was revealed, False otherwise.
     """
     try:
         commits = get_all_commits()
+        commits = [commit for commit in commits if not commit.revealed]
+        
     except Exception as e:
         print(f"Error reading table 'commits': {e}")
         return False
 
     if commits:
-        curr_block = subtensor.get_current_block()
-
         # Filter for commits that are ready to be revealed
         reveal_candidates = [
             commit for commit in commits if commit.reveal_block <= curr_block
@@ -535,42 +487,58 @@ def check_reveal(subtensor: Subtensor) -> bool:
     return False
 
 
-def reveal_commits(subtensor: Subtensor):
+def reveal_commits(subtensor: Subtensor, current_block: int):
     """
     Performs reveal on commits that are ready to be revealed.
 
     Args:
+        current_block(int): The current block number.
         subtensor (Subtensor): The subtensor network object.
     """
     try:
         commits = get_all_commits()
+        commits = [commit for commit in commits if not commit.revealed]
+        if commits:
+            unique_combinations = list({(commit.wallet_hotkey_ss58, commit.netuid) for commit in commits})
+            print(f"Unique ss58,netuid combinations: {unique_combinations}")
+
+            for combination in unique_combinations:
+                ss58, netuid = combination
+                ready_to_reveal = []
+                try:
+                    response = subtensor.query_module(
+                        module="SubtensorModule",
+                        name="WeightCommits",
+                        params=[netuid, ss58],
+                    )
+
+                    if not response.value:
+                        print(f"No commits found for {combination}")
+                        continue
+
+                    for commit_hash, commit_block, reveal_block, expire_block in response.value:
+                        if expire_block < current_block:
+                            print(f"Commit {commit_hash} is expired.")
+                            continue
+                        if any(c.commit_hash == commit_hash for c in
+                               commits) and reveal_block <= current_block <= expire_block:
+                            matching_commit = next((commit for commit in commits if commit.commit_hash == commit_hash),
+                                                   None)
+                            if matching_commit:
+                                print(f"found matching commit {matching_commit}")
+                                ready_to_reveal.append(matching_commit)
+                            else:
+                                print(f"Could not find commit hash {commit_hash} locally.")
+
+                    if len(ready_to_reveal) > 1:
+                        reveal_batch(subtensor, ready_to_reveal)
+                    elif len(ready_to_reveal) == 1:
+                        reveal(subtensor, ready_to_reveal[0])
+
+                except Exception as e:
+                    print(f"Error querying expected hashes for {combination}: {e}")
     except Exception as e:
         print(f"Error reading table 'commits': {e}")
-
-    if commits:
-        curr_block = subtensor.get_current_block()
-
-        # Filter for commits that are ready to be revealed
-        ready_for_reveal = [
-            commit for commit in commits if commit.reveal_block <= curr_block
-        ]
-        if ready_for_reveal:
-            # Group commits by wallet_hotkey_ss58
-            grouped_reveals = {}
-            for commit in ready_for_reveal:
-                key = commit.wallet_hotkey_ss58
-                if key not in grouped_reveals:
-                    grouped_reveals[key] = []
-                grouped_reveals[key].append(commit)
-
-            # Process each group separately
-            for hotkey_ss58, group in grouped_reveals.items():
-                if len(group) > 1:
-                    # Batch reveal if there are 2 or more reveal candidates
-                    reveal_batch(subtensor, group)
-                else:
-                    # Otherwise, reveal individually
-                    reveal(subtensor, group[0])
 
 
 def handle_client_connection(client_socket: socket.socket):
@@ -584,47 +552,51 @@ def handle_client_connection(client_socket: socket.socket):
             request = client_socket.recv(1024).decode()
             if not request:
                 break
-            args = shlex.split(request)
-            command = args[0]
-            commands = {
-                "revealed": lambda: revealed(
-                    args[1],
-                    args[2],
-                    args[3],
-                    args[4],
-                    int(args[5]),
-                    json.loads(args[6]),
-                    json.loads(args[7]),
-                    json.loads(args[8]),
-                    int(args[9]),
-                ),
-                "revealed_hash": lambda: revealed_hash(args[1]),
-                "committed": lambda: committed(
-                    Commit(
-                        wallet_hotkey_name=args[3],
-                        wallet_hotkey_ss58=args[4],
-                        wallet_name=args[1],
-                        wallet_path=args[2],
-                        commit_hash=args[8],
-                        netuid=int(args[9]),
-                        commit_block=int(args[5]),
-                        reveal_block=int(args[6]),
-                        expire_block=int(args[7]),
-                        uids=json.loads(args[10]),
-                        weights=json.loads(args[11]),
-                        salt=json.loads(args[12]),
-                        version_key=int(args[13]),
-                    )
-                ),
-                "terminate": lambda: terminate_process(None, None),
-            }
-            if command in commands:
+            print(f"Received request: {request}")
+
+            if request.startswith('revealed_hash_batch'):
                 try:
-                    commands[command]()
-                except (IndexError, ValueError, json.JSONDecodeError) as e:
-                    print(f"Error in processing command {command}: {e}")
+                    command = 'revealed_hash_batch'
+                    json_start_index = request.index('[')
+                    json_payload = request[json_start_index:]
+                    args = json.loads(json_payload)
+                    revealed_commit_batch(args)
+                except json.JSONDecodeError as e:
+                    print(f"Error decoding JSON for {command}: {e}")
+                except Exception as e:
+                    print(f"Error processing {command}: {e}")
             else:
-                print(f"Command not recognized: {command}")
+                args = shlex.split(request)
+                command = args[0]
+                commands = {
+                    "revealed_hash": lambda: revealed_commit(args[1]),
+                    "revealed_hash_batch": lambda: revealed_commit_batch(json.loads(args[1])),
+                    "committed": lambda: committed(
+                        Commit(
+                            wallet_hotkey_name=args[3],
+                            wallet_hotkey_ss58=args[4],
+                            wallet_name=args[1],
+                            wallet_path=args[2],
+                            commit_hash=args[8],
+                            netuid=int(args[9]),
+                            commit_block=int(args[5]),
+                            reveal_block=int(args[6]),
+                            expire_block=int(args[7]),
+                            uids=json.loads(args[10]),
+                            weights=json.loads(args[11]),
+                            salt=json.loads(args[12]),
+                            version_key=int(args[13]),
+                        )
+                    ),
+                    "terminate": lambda: terminate_process(None, None),
+                }
+                if command in commands:
+                    try:
+                        commands[command]()
+                    except (IndexError, ValueError, json.JSONDecodeError) as e:
+                        print(f"Error in processing command {command}: {e}")
+                else:
+                    print(f"Command not recognized: {command}")
     except socket.error as e:
         print(f"Socket error: {e}")
     except Exception as e:
@@ -650,7 +622,6 @@ def start_socket_server():
                 print(f"Accepted connection from {addr[0]}.")
                 executor.submit(handle_client_connection, client_sock)
             except socket.timeout:
-                # print("Socket timeout, continuing to listen...")
                 continue
             except Exception as e:
                 print(f"Error accepting connection: {e}.")
@@ -685,19 +656,19 @@ def main(args: argparse.Namespace):
     server_thread.start()
 
     counter = 0  # Initialize counter
-
+    print("commit_reveal subprocess is ready")
     while running:
         counter += 1
         curr_block = subtensor.get_current_block()
-        if check_reveal(subtensor=subtensor):
+        if check_reveal(curr_block):
             print(f"Revealing commit on block {curr_block}")
-            reveal_commits(subtensor=subtensor)
+            reveal_commits(subtensor=subtensor, current_block=curr_block)
 
         # Every 100th run, perform an additional check to verify reveal list alignment with the backend
         if counter % 100 == 0:
-            print("\nDoing chain hash check:")
-            chain_hash_check(subtensor=subtensor)
-            # delete_expired_commits(current_block=curr_block)
+            print("\nDoing chain hash sync:")
+            chain_hash_sync(subtensor=subtensor, current_block=curr_block)
+            delete_old_commits(current_block=curr_block, offset=1000)
 
         time.sleep(args.sleep_interval)
 
