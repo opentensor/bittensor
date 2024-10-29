@@ -198,7 +198,7 @@ async def transfer_extrinsic(
             )
             console.print(
                 f"Balance:\n"
-                f"  [blue]{account_balance}[/blue] :arrow_right: [green]{new_balance[wallet.coldkey.ss58_address]}[/green]"
+                f"  [blue]{account_balance}[/blue] :arrow_right: [green]{new_balance[wallet.coldkeypub.ss58_address]}[/green]"
             )
             return True
 
