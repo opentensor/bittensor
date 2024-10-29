@@ -57,6 +57,32 @@ bt_err_console = Console(stderr=True)
 bt_verbose_console = Console(quiet=True)
 
 
+def print_console(message: str, colour: str, title: str, console: Console):
+    console.print(
+        f"[bold {colour}][{title}]:[/bold {colour}] [{colour}]{message}[/{colour}]\n"
+    )
+
+
+def print_verbose(message: str, status=None):
+    """Print verbose messages while temporarily pausing the status spinner."""
+    if status:
+        status.stop()
+        print_console(message, "green", "Verbose", bt_verbose_console)
+        status.start()
+    else:
+        print_console(message, "green", "Verbose", bt_verbose_console)
+
+
+def print_error(message: str, status=None):
+    """Print error messages while temporarily pausing the status spinner."""
+    if status:
+        status.stop()
+        print_console(message, "red", "Error", bt_err_console)
+        status.start()
+    else:
+        print_console(message, "red", "Error", bt_err_console)
+
+
 HOME_DIR = Path.home()
 USER_BITTENSOR_DIR = HOME_DIR / ".bittensor"
 WALLETS_DIR = USER_BITTENSOR_DIR / "wallets"
