@@ -144,7 +144,10 @@ def get_hash(content, encoding="utf-8"):
     return sha3.hexdigest()
 
 
-def format_error_message(error_message: Union[dict, Exception], substrate: Union["AsyncSubstrateInterface", "SubstrateInterface"]) -> str:
+def format_error_message(
+    error_message: Union[dict, Exception],
+    substrate: Union["AsyncSubstrateInterface", "SubstrateInterface"],
+) -> str:
     """
     Formats an error message from the Subtensor error information for use in extrinsics.
 

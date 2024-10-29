@@ -29,7 +29,12 @@ from rich.status import Status
 from substrateinterface.exceptions import SubstrateRequestException
 
 from bittensor.core.chain_data import NeuronInfo
-from bittensor.core.settings import bt_console as console, bt_err_console as err_console, print_verbose, print_error
+from bittensor.core.settings import (
+    bt_console as console,
+    bt_err_console as err_console,
+    print_verbose,
+    print_error,
+)
 from bittensor.utils import format_error_message
 from bittensor.utils.formatting import millify, get_human_readable
 
@@ -38,6 +43,7 @@ if typing.TYPE_CHECKING:
 
 
 # TODO: compair and remove existing code (bittensor.utils.registration)
+
 
 def use_torch() -> bool:
     """Force the use of torch over numpy for certain operations."""

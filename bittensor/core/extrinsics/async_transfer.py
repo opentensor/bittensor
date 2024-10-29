@@ -5,7 +5,13 @@ from bittensor_wallet.errors import KeyFileError
 from rich.prompt import Confirm
 from substrateinterface.exceptions import SubstrateRequestException
 
-from bittensor.core.settings import NETWORK_EXPLORER_MAP, bt_console as console, bt_err_console as err_console, print_verbose, print_error
+from bittensor.core.settings import (
+    NETWORK_EXPLORER_MAP,
+    bt_console as console,
+    bt_err_console as err_console,
+    print_verbose,
+    print_error,
+)
 from bittensor.utils.balance import Balance
 
 from bittensor.utils import (

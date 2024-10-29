@@ -184,7 +184,9 @@ def set_weights_extrinsic(
                 )
                 return True, "Successfully set weights and Finalized."
             else:
-                error_message = format_error_message(error_message, substrate=subtensor.substrate)
+                error_message = format_error_message(
+                    error_message, substrate=subtensor.substrate
+                )
                 logging.error(error_message)
                 return False, error_message
 

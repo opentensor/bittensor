@@ -23,7 +23,10 @@ from bittensor.core.chain_data import (
     decode_account_id,
 )
 from bittensor.core.extrinsics.async_registration import register_extrinsic
-from bittensor.core.extrinsics.async_root import set_root_weights_extrinsic, root_register_extrinsic
+from bittensor.core.extrinsics.async_root import (
+    set_root_weights_extrinsic,
+    root_register_extrinsic,
+)
 from bittensor.core.extrinsics.async_transfer import transfer_extrinsic
 from bittensor.core.settings import (
     bt_console as console,
@@ -33,7 +36,7 @@ from bittensor.core.settings import (
     NETWORK_MAP,
     DELEGATES_DETAILS_URL,
     DEFAULT_NETWORK,
-    print_verbose
+    print_verbose,
 )
 from bittensor.utils import (
     ss58_to_vec_u8,
@@ -91,9 +94,7 @@ class AsyncSubtensor:
                 self.chain_endpoint = network
                 if network in NETWORK_MAP.values():
                     self.network = next(
-                        key
-                        for key, value in NETWORK_MAP.items()
-                        if value == network
+                        key for key, value in NETWORK_MAP.items() if value == network
                     )
                 else:
                     self.network = "custom"
@@ -1095,9 +1096,7 @@ class AsyncSubtensor:
 
         return all_delegates_details
 
-    async def is_hotkey_registered(
-            self, netuid: int, hotkey_ss58: str
-    ) -> bool:
+    async def is_hotkey_registered(self, netuid: int, hotkey_ss58: str) -> bool:
         """Checks to see if the hotkey is registered on a given netuid"""
         _result = await self.substrate.query(
             module="SubtensorModule",
@@ -1109,7 +1108,7 @@ class AsyncSubtensor:
         else:
             return False
 
-# extrinsics
+    # extrinsics
 
     async def transfer(
         self,
@@ -1161,10 +1160,10 @@ class AsyncSubtensor:
 
         if prompt:
             if not Confirm.ask(
-                    f"Your balance is: [bold green]{balance}[/bold green]\n"
-                    f"The cost to register by recycle is [bold red]{current_recycle}[/bold red]\n"
-                    f"Do you want to continue?",
-                    default=False,
+                f"Your balance is: [bold green]{balance}[/bold green]\n"
+                f"The cost to register by recycle is [bold red]{current_recycle}[/bold red]\n"
+                f"Do you want to continue?",
+                default=False,
             ):
                 return False
 

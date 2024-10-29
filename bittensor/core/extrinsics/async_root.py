@@ -10,9 +10,16 @@ from rich.prompt import Confirm
 from rich.table import Table, Column
 from substrateinterface.exceptions import SubstrateRequestException
 
-from bittensor.core.settings import bt_console as console, bt_err_console as err_console, print_verbose
+from bittensor.core.settings import (
+    bt_console as console,
+    bt_err_console as err_console,
+    print_verbose,
+)
 from bittensor.utils import u16_normalized_float, format_error_message
-from bittensor.utils.weight_utils import normalize_max_weight, convert_weights_and_uids_for_emit
+from bittensor.utils.weight_utils import (
+    normalize_max_weight,
+    convert_weights_and_uids_for_emit,
+)
 
 
 if TYPE_CHECKING:

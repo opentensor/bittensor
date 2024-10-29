@@ -95,7 +95,9 @@ def _do_pow_register(
         # process if registration successful, try again if pow is still valid
         response.process_events()
         if not response.is_success:
-            return False, format_error_message(response.error_message, substrate=self.substrate)
+            return False, format_error_message(
+                response.error_message, substrate=self.substrate
+            )
         # Successful registration
         else:
             return True, None
@@ -340,7 +342,9 @@ def _do_burned_register(
         # process if registration successful, try again if pow is still valid
         response.process_events()
         if not response.is_success:
-            return False, format_error_message(response.error_message, substrate=self.substrate)
+            return False, format_error_message(
+                response.error_message, substrate=self.substrate
+            )
         # Successful registration
         else:
             return True, None
