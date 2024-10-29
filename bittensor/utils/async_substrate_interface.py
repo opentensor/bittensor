@@ -433,7 +433,7 @@ class RuntimeCache:
             self.block_hashes[block_hash] = runtime
 
     def retrieve(
-        self, block: Optional[int], block_hash: Optional[str]
+        self, block: Optional[int] = None, block_hash: Optional[str] = None
     ) -> Optional["Runtime"]:
         if block is not None:
             return self.blocks.get(block)
@@ -1543,7 +1543,7 @@ class AsyncSubstrateInterface:
         self,
         response: dict,
         subscription_id: Union[int, str],
-        value_scale_type: Optional[str],
+        value_scale_type: Optional[str] = None,
         storage_item: Optional[ScaleType] = None,
         runtime: Optional[Runtime] = None,
         result_handler: Optional[ResultHandler] = None,
@@ -2721,7 +2721,7 @@ class AsyncSubstrateInterface:
                         return call
         return None
 
-    async def get_block_number(self, block_hash: Optional[str]) -> int:
+    async def get_block_number(self, block_hash: Optional[str] = None) -> int:
         """Async version of `substrateinterface.base.get_block_number` method."""
         response = await self.rpc_request("chain_getHeader", [block_hash])
 
