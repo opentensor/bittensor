@@ -15,6 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+from urllib.parse import urlparse
 import ast
 import hashlib
 from typing import Any, Literal, Union, Optional, TYPE_CHECKING
@@ -352,3 +353,17 @@ def decode_hex_identity_dict(info_dictionary) -> dict[str, Any]:
             info_dictionary[key] = additional
 
     return info_dictionary
+
+
+def validate_chain_endpoint(endpoint_url: str) -> tuple[bool, str]:
+    """Validates if the provided endpoint URL is a valid WebSocket URL."""
+    parsed = urlparse(endpoint_url)
+    if parsed.scheme not in ("ws", "wss"):
+        return False, (
+            f"Invalid URL or network name provided: [bright_cyan]({endpoint_url})[/bright_cyan].\n"
+            "Allowed network names are [bright_cyan]finney, test, local[/bright_cyan]. "
+            "Valid chain endpoints should use the scheme [bright_cyan]`ws` or `wss`[/bright_cyan].\n"
+        )
+    if not parsed.netloc:
+        return False, "Invalid URL passed as the endpoint"
+    return True, ""
