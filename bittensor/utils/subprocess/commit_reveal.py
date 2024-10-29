@@ -498,8 +498,11 @@ def reveal_commits(subtensor: Subtensor, current_block: int):
     try:
         commits = get_all_commits()
         commits = [commit for commit in commits if not commit.revealed]
-        if commits:
-            unique_combinations = list({(commit.wallet_hotkey_ss58, commit.netuid) for commit in commits})
+        reveal_candidates = [
+            commit for commit in commits if commit.reveal_block <= current_block
+        ]
+        if reveal_candidates:
+            unique_combinations = list({(commit.wallet_hotkey_ss58, commit.netuid) for commit in reveal_candidates})
             print(f"Unique ss58,netuid combinations: {unique_combinations}")
 
             for combination in unique_combinations:
@@ -521,7 +524,7 @@ def reveal_commits(subtensor: Subtensor, current_block: int):
                             print(f"Commit {commit_hash} is expired.")
                             continue
                         if any(c.commit_hash == commit_hash for c in
-                               commits) and reveal_block <= current_block <= expire_block:
+                               reveal_candidates) and reveal_block <= current_block <= expire_block:
                             matching_commit = next((commit for commit in commits if commit.commit_hash == commit_hash),
                                                    None)
                             if matching_commit:
@@ -552,8 +555,6 @@ def handle_client_connection(client_socket: socket.socket):
             request = client_socket.recv(1024).decode()
             if not request:
                 break
-            print(f"Received request: {request}")
-
             if request.startswith('revealed_hash_batch'):
                 try:
                     command = 'revealed_hash_batch'
