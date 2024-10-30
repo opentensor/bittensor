@@ -64,19 +64,7 @@ def do_commit_weights(
     """
 
     @retry(delay=1, tries=3, backoff=2, max_delay=4)
-    def make_substrate_call_with_retry():
-        call = self.substrate.compose_call(
-            call_module="SubtensorModule",
-            call_function="commit_weights",
-            call_params={
-                "netuid": netuid,
-                "commit_hash": commit_hash,
-            },
-        )
-        extrinsic = self.substrate.create_signed_extrinsic(
-            call=call,
-            keypair=wallet.hotkey,
-        )
+    def make_substrate_call_with_retry(extrinsic):
         response = submit_extrinsic(
             substrate=self.substrate,
             extrinsic=extrinsic,
@@ -93,7 +81,19 @@ def do_commit_weights(
         else:
             return False, response.error_message
 
-    return make_substrate_call_with_retry()
+    call = self.substrate.compose_call(
+        call_module="SubtensorModule",
+        call_function="commit_weights",
+        call_params={
+            "netuid": netuid,
+            "commit_hash": commit_hash,
+        },
+    )
+    extrinsic = self.substrate.create_signed_extrinsic(
+        call=call,
+        keypair=wallet.hotkey,
+    )
+    return make_substrate_call_with_retry(extrinsic)
 
 
 def commit_weights_extrinsic(
@@ -230,22 +230,7 @@ def do_reveal_weights(
     """
 
     @retry(delay=1, tries=3, backoff=2, max_delay=4)
-    def make_substrate_call_with_retry():
-        call = self.substrate.compose_call(
-            call_module="SubtensorModule",
-            call_function="reveal_weights",
-            call_params={
-                "netuid": netuid,
-                "uids": uids,
-                "values": values,
-                "salt": salt,
-                "version_key": version_key,
-            },
-        )
-        extrinsic = self.substrate.create_signed_extrinsic(
-            call=call,
-            keypair=wallet.hotkey,
-        )
+    def make_substrate_call_with_retry(extrinsic):
         response = submit_extrinsic(
             substrate=self.substrate,
             extrinsic=extrinsic,
@@ -262,7 +247,22 @@ def do_reveal_weights(
         else:
             return False, response.error_message
 
-    return make_substrate_call_with_retry()
+    call = self.substrate.compose_call(
+        call_module="SubtensorModule",
+        call_function="reveal_weights",
+        call_params={
+            "netuid": netuid,
+            "uids": uids,
+            "values": values,
+            "salt": salt,
+            "version_key": version_key,
+        },
+    )
+    extrinsic = self.substrate.create_signed_extrinsic(
+        call=call,
+        keypair=wallet.hotkey,
+    )
+    return make_substrate_call_with_retry(extrinsic)
 
 
 def reveal_weights_extrinsic(
@@ -407,22 +407,7 @@ def do_batch_reveal_weights(
     """
 
     @retry(delay=1, tries=3, backoff=2, max_delay=4)
-    def make_substrate_call_with_retry():
-        call = self.substrate.compose_call(
-            call_module="SubtensorModule",
-            call_function="batch_reveal_weights",
-            call_params={
-                "netuid": netuid,
-                "uids_list": uids,
-                "values_list": values,
-                "salts_list": salt,
-                "version_keys": version_keys,
-            },
-        )
-        extrinsic = self.substrate.create_signed_extrinsic(
-            call=call,
-            keypair=wallet.hotkey,
-        )
+    def make_substrate_call_with_retry(extrinsic):
         response = submit_extrinsic(
             substrate=self.substrate,
             extrinsic=extrinsic,
@@ -439,7 +424,22 @@ def do_batch_reveal_weights(
         else:
             return False, response.error_message
 
-    return make_substrate_call_with_retry()
+    call = self.substrate.compose_call(
+        call_module="SubtensorModule",
+        call_function="batch_reveal_weights",
+        call_params={
+            "netuid": netuid,
+            "uids_list": uids,
+            "values_list": values,
+            "salts_list": salt,
+            "version_keys": version_keys,
+        },
+    )
+    extrinsic = self.substrate.create_signed_extrinsic(
+        call=call,
+        keypair=wallet.hotkey,
+    )
+    return make_substrate_call_with_retry(extrinsic=extrinsic)
 
 
 def batch_reveal_weights_extrinsic(

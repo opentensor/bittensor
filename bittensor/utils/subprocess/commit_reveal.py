@@ -41,21 +41,21 @@ class Commit:
     """
 
     def __init__(
-        self,
-        wallet_hotkey_name: str,
-        wallet_hotkey_ss58: str,
-        wallet_name: str,
-        wallet_path: str,
-        commit_hash: str,
-        netuid: int,
-        commit_block: int,
-        reveal_block: int,
-        expire_block: int,
-        uids: List[int],
-        weights: List[int],
-        salt: List[int],
-        version_key: int,
-        revealed: bool = False,
+            self,
+            wallet_hotkey_name: str,
+            wallet_hotkey_ss58: str,
+            wallet_name: str,
+            wallet_path: str,
+            commit_hash: str,
+            netuid: int,
+            commit_block: int,
+            reveal_block: int,
+            expire_block: int,
+            uids: List[int],
+            weights: List[int],
+            salt: List[int],
+            version_key: int,
+            revealed: bool = False,
     ):
         self.wallet_hotkey_name = wallet_hotkey_name
         self.wallet_hotkey_ss58 = wallet_hotkey_ss58
@@ -322,13 +322,13 @@ def chain_hash_sync(subtensor: Subtensor, current_block: int):
     """
     try:
         # Retrieve all commits from the local database
-        commits = get_all_commits()
+        local_commits = get_all_commits()
         # Filter commits to only those that are not revealed
-        commits = [commit for commit in commits if not commit.revealed]
-
+        local_commits = [commit for commit in local_commits if not commit.revealed]
+        chain_commits = []
         # Group commits by wallet_hotkey_ss58
-        if commits:
-            unique_combinations = list({(commit.wallet_hotkey_ss58, commit.netuid) for commit in commits})
+        if local_commits:
+            unique_combinations = list({(commit.wallet_hotkey_ss58, commit.netuid) for commit in local_commits})
 
             for combination in unique_combinations:
                 ss58, netuid = combination
@@ -339,12 +339,18 @@ def chain_hash_sync(subtensor: Subtensor, current_block: int):
                         params=[netuid, ss58],
                     )
 
+                    if not response.value:
+                        print(f"No commits found for {combination}")
+                        continue
+
                     for commit_hash, commit_block, reveal_block, expire_block in response.value:
+                        chain_commits.append(commit_hash)
                         if expire_block < current_block:
                             continue
-                        if any(c.commit_hash == commit_hash for c in commits) and reveal_block <= current_block:
-                            matching_commit = next((commit for commit in commits if commit.commit_hash == commit_hash),
-                                                   None)
+                        if any(c.commit_hash == commit_hash for c in local_commits) and reveal_block <= current_block:
+                            matching_commit = next(
+                                (commit for commit in local_commits if commit.commit_hash == commit_hash),
+                                None)
                             if matching_commit:
                                 if commit_block != matching_commit.commit_block or reveal_block != matching_commit.reveal_block or expire_block != matching_commit.expire_block:
                                     sync_commit_data(matching_commit, commit_block, reveal_block, expire_block)
@@ -460,12 +466,12 @@ def get_all_commits() -> List[Commit]:
     return [Commit.from_dict(dict(zip(columns, commit))) for commit in rows]
 
 
-def check_reveal(curr_block: int) -> bool:
+def check_reveal(current_block: int) -> bool:
     """
     Checks if there are any commits to reveal.
 
     Args:
-        curr_block (int): The current block number.
+        current_block(int): The current block number.
 
     Returns:
         bool: True if a commit was revealed, False otherwise.
@@ -473,7 +479,7 @@ def check_reveal(curr_block: int) -> bool:
     try:
         commits = get_all_commits()
         commits = [commit for commit in commits if not commit.revealed]
-        
+
     except Exception as e:
         print(f"Error reading table 'commits': {e}")
         return False
@@ -481,7 +487,7 @@ def check_reveal(curr_block: int) -> bool:
     if commits:
         # Filter for commits that are ready to be revealed
         reveal_candidates = [
-            commit for commit in commits if commit.reveal_block <= curr_block
+            commit for commit in commits if commit.reveal_block <= current_block <= commit.expire_block
         ]
         return len(reveal_candidates) > 0
     return False
@@ -496,15 +502,16 @@ def reveal_commits(subtensor: Subtensor, current_block: int):
         subtensor (Subtensor): The subtensor network object.
     """
     try:
-        commits = get_all_commits()
-        commits = [commit for commit in commits if not commit.revealed]
-        reveal_candidates = [
-            commit for commit in commits if commit.reveal_block <= current_block
+        local_commits = get_all_commits()
+        local_commits = [commit for commit in local_commits if not commit.revealed]
+        local_reveals = [
+            commit for commit in local_commits if commit.reveal_block <= current_block <= commit.expire_block
         ]
-        if reveal_candidates:
-            unique_combinations = list({(commit.wallet_hotkey_ss58, commit.netuid) for commit in reveal_candidates})
-            print(f"Unique ss58,netuid combinations: {unique_combinations}")
-
+        chain_reveals = []
+        if local_reveals:
+            unique_combinations = list({(commit.wallet_hotkey_ss58, commit.netuid) for commit in local_reveals})
+            # Dict that has ss58 as key, and latest commit block as value
+            commit_dict: Dict[str, int] = {}
             for combination in unique_combinations:
                 ss58, netuid = combination
                 ready_to_reveal = []
@@ -524,22 +531,39 @@ def reveal_commits(subtensor: Subtensor, current_block: int):
                             print(f"Commit {commit_hash} is expired.")
                             continue
                         if any(c.commit_hash == commit_hash for c in
-                               reveal_candidates) and reveal_block <= current_block <= expire_block:
-                            matching_commit = next((commit for commit in commits if commit.commit_hash == commit_hash),
-                                                   None)
+                               local_reveals) and reveal_block <= current_block <= expire_block:
+                            matching_commit = next(
+                                (commit for commit in local_commits if commit.commit_hash == commit_hash),
+                                None)
                             if matching_commit:
-                                print(f"found matching commit {matching_commit}")
                                 ready_to_reveal.append(matching_commit)
                             else:
                                 print(f"Could not find commit hash {commit_hash} locally.")
 
+                        if commit_block > commit_dict.get(ss58, 0):
+                            commit_dict[ss58] = commit_block
+
                     if len(ready_to_reveal) > 1:
+                        chain_reveals.extend(ready_to_reveal)
                         reveal_batch(subtensor, ready_to_reveal)
                     elif len(ready_to_reveal) == 1:
+                        chain_reveals.extend(ready_to_reveal)
                         reveal(subtensor, ready_to_reveal[0])
-
                 except Exception as e:
                     print(f"Error querying expected hashes for {combination}: {e}")
+
+            # Compare reveal candidates and ready_to_reveal
+            if set(chain_reveals) != set(local_reveals):  # there are left over local reveals
+                print("there is a difference between local commits and chain commits")
+                # Filter commits that are older than the newest one in commit_dict that was revealed
+                for ss58, newest_commit_block in commit_dict.items():
+                    for commit in local_reveals:
+                        if commit.wallet_hotkey_ss58 == ss58 and commit.commit_block <= newest_commit_block:
+                            # Mark the commit as revealed, as a newer commit as already been revealed
+                            print(f"revealing commit {commit.commit_hash} as a newer hash was submitted")
+                            commit.revealed = True
+                            revealed_commit(commit.commit_hash)
+
     except Exception as e:
         print(f"Error reading table 'commits': {e}")
 
@@ -665,9 +689,7 @@ def main(args: argparse.Namespace):
             print(f"Revealing commit on block {curr_block}")
             reveal_commits(subtensor=subtensor, current_block=curr_block)
 
-        # Every 100th run, perform an additional check to verify reveal list alignment with the backend
         if counter % 100 == 0:
-            print("\nDoing chain hash sync:")
             chain_hash_sync(subtensor=subtensor, current_block=curr_block)
             delete_old_commits(current_block=curr_block, offset=1000)
 

@@ -63,15 +63,7 @@ def do_transfer(
     """
 
     @retry(delay=1, tries=3, backoff=2, max_delay=4)
-    def make_substrate_call_with_retry():
-        call = self.substrate.compose_call(
-            call_module="Balances",
-            call_function="transfer_allow_death",
-            call_params={"dest": dest, "value": transfer_balance.rao},
-        )
-        extrinsic = self.substrate.create_signed_extrinsic(
-            call=call, keypair=wallet.coldkey
-        )
+    def make_substrate_call_with_retry(extrinsic):
         response = submit_extrinsic(
             substrate=self.substrate,
             extrinsic=extrinsic,
@@ -90,7 +82,15 @@ def do_transfer(
         else:
             return False, None, response.error_message
 
-    return make_substrate_call_with_retry()
+    call = self.substrate.compose_call(
+        call_module="Balances",
+        call_function="transfer_allow_death",
+        call_params={"dest": dest, "value": transfer_balance.rao},
+    )
+    extrinsic = self.substrate.create_signed_extrinsic(
+        call=call, keypair=wallet.coldkey
+    )
+    return make_substrate_call_with_retry(extrinsic)
 
 
 # Community uses this extrinsic directly and via `subtensor.transfer`

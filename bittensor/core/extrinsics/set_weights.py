@@ -69,23 +69,7 @@ def do_set_weights(
     """
 
     @retry(delay=1, tries=3, backoff=2, max_delay=4)
-    def make_substrate_call_with_retry():
-        call = self.substrate.compose_call(
-            call_module="SubtensorModule",
-            call_function="set_weights",
-            call_params={
-                "dests": uids,
-                "weights": vals,
-                "netuid": netuid,
-                "version_key": version_key,
-            },
-        )
-        # Period dictates how long the extrinsic will stay as part of waiting pool
-        extrinsic = self.substrate.create_signed_extrinsic(
-            call=call,
-            keypair=wallet.hotkey,
-            era={"period": 5},
-        )
+    def make_substrate_call_with_retry(extrinsic):
         response = submit_extrinsic(
             substrate=self.substrate,
             extrinsic=extrinsic,
@@ -102,7 +86,23 @@ def do_set_weights(
         else:
             return False, response.error_message
 
-    return make_substrate_call_with_retry()
+    call = self.substrate.compose_call(
+        call_module="SubtensorModule",
+        call_function="set_weights",
+        call_params={
+            "dests": uids,
+            "weights": vals,
+            "netuid": netuid,
+            "version_key": version_key,
+        },
+    )
+    # Period dictates how long the extrinsic will stay as part of waiting pool
+    extrinsic = self.substrate.create_signed_extrinsic(
+        call=call,
+        keypair=wallet.hotkey,
+        era={"period": 5},
+    )
+    return make_substrate_call_with_retry(extrinsic)
 
 
 # Community uses this extrinsic directly and via `subtensor.set_weights`
