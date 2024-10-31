@@ -152,7 +152,6 @@ def set_weights_extrinsic(
             f":satellite: Committing weights on [white]{subtensor.network}[/white] ..."
         ):
             try:
-
                 # First convert types.
                 if use_torch():
                     if isinstance(uids, list):
@@ -166,8 +165,8 @@ def set_weights_extrinsic(
                         weights = np.array(weights, dtype=np.float32)
 
                 # Reformat and normalize.
-                weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(
-                    uids, weights
+                weight_uids, weight_vals = (
+                    weight_utils.convert_weights_and_uids_for_emit(uids, weights)
                 )
 
                 success, message = subtensor.commit_weights(
@@ -179,7 +178,7 @@ def set_weights_extrinsic(
                     wait_for_inclusion=wait_for_inclusion,
                     wait_for_finalization=wait_for_finalization,
                     prompt=prompt,
-                    max_retries=1
+                    max_retries=1,
                 )
                 if not wait_for_finalization and not wait_for_inclusion:
                     return True, "Not waiting for finalization or inclusion."

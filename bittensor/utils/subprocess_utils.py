@@ -63,8 +63,8 @@ def is_process_running(process_name: str) -> bool:
     for proc in psutil.process_iter(["pid", "name", "cmdline"]):
         cmdline = proc.info["cmdline"]
         if cmdline and (
-                process_name in proc.info["name"]
-                or any(process_name in cmd for cmd in cmdline)
+            process_name in proc.info["name"]
+            or any(process_name in cmd for cmd in cmdline)
         ):
             return True
     return False
@@ -113,7 +113,9 @@ def is_commit_reveal_subprocess_ready() -> bool:
         return False
 
     message = "commit_reveal subprocess is ready"
-    return check_message_in_log(stdout_log, message) or check_message_in_log(stderr_log, message)
+    return check_message_in_log(stdout_log, message) or check_message_in_log(
+        stderr_log, message
+    )
 
 
 def read_commit_reveal_logs():
@@ -167,7 +169,9 @@ def is_table_empty(table_name: str) -> bool:
         return False
 
 
-def start_if_existing_commits(network: Optional[str] = None, sleep_interval: Optional[float] = None):
+def start_if_existing_commits(
+    network: Optional[str] = None, sleep_interval: Optional[float] = None
+):
     # check if table is empty
     if not is_table_empty("commits"):
         start_commit_reveal_subprocess(network, sleep_interval)
@@ -178,7 +182,7 @@ def start_if_existing_commits(network: Optional[str] = None, sleep_interval: Opt
 
 
 def start_commit_reveal_subprocess(
-        network: Optional[str] = None, sleep_interval: Optional[float] = None
+    network: Optional[str] = None, sleep_interval: Optional[float] = None
 ):
     """
     Start the commit reveal subprocess if not already running.

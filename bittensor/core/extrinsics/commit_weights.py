@@ -16,6 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 """Module commit weights and reveal weights extrinsic."""
+
 import json
 from typing import Optional, TYPE_CHECKING
 import socket
@@ -536,7 +537,7 @@ def batch_reveal_weights_process(
     try:
         commit_hashes = []
         for batch_uids, batch_weights, batch_salt, batch_version_key in zip(
-                uids, weights, salt, version_keys
+            uids, weights, salt, version_keys
         ):
             # Generate the hash of the weights for each individual batch
             commit_hash = generate_weight_hash(
@@ -549,7 +550,7 @@ def batch_reveal_weights_process(
             )
             commit_hashes.append(commit_hash)
 
-        command = f'revealed_hash_batch {json.dumps(commit_hashes)}'
+        command = f"revealed_hash_batch {json.dumps(commit_hashes)}"
         send_command(command)
     except Exception as e:
         logging.error(f"Failed batch reveal weights subprocess: {e}")

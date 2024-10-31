@@ -80,11 +80,21 @@ from bittensor.core.extrinsics.transfer import (
     transfer_extrinsic,
 )
 from bittensor.core.metagraph import Metagraph
-from bittensor.utils import ss58_to_vec_u8, torch, U64_MAX, u16_normalized_float, networking, subprocess_utils
+from bittensor.utils import (
+    ss58_to_vec_u8,
+    torch,
+    U64_MAX,
+    u16_normalized_float,
+    networking,
+    subprocess_utils,
+)
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import legacy_torch_api_compat
-from bittensor.utils.weight_utils import generate_weight_hash, convert_weights_and_uids_for_emit
+from bittensor.utils.weight_utils import (
+    generate_weight_hash,
+    convert_weights_and_uids_for_emit,
+)
 
 KEY_NONCE: dict[str, int] = {}
 
@@ -1872,9 +1882,14 @@ class Subtensor:
         )
 
         # start subprocess if permitted and not yet running
-        if self.subprocess_initialization and not subprocess_utils.is_process_running(COMMIT_REVEAL_PROCESS):
+        if self.subprocess_initialization and not subprocess_utils.is_process_running(
+            COMMIT_REVEAL_PROCESS
+        ):
             logging.info("Starting commit_reveal subprocess from commit.")
-            subprocess_utils.start_commit_reveal_subprocess(network=self.chain_endpoint, sleep_interval=self.subprocess_sleep_interval)
+            subprocess_utils.start_commit_reveal_subprocess(
+                network=self.chain_endpoint,
+                sleep_interval=self.subprocess_sleep_interval,
+            )
 
         if isinstance(weights, list) and all(isinstance(w, float) for w in weights):
             uids, weights = convert_weights_and_uids_for_emit(uids, weights)  # type: ignore
@@ -1904,7 +1919,7 @@ class Subtensor:
                         weights=list(weights),
                         salt=salt,
                         version_key=version_key,
-                        block=curr_block
+                        block=curr_block,
                     )
                 success, message = commit_weights_extrinsic(
                     subtensor=self,
