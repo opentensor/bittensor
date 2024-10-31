@@ -76,7 +76,10 @@ async def test_commit_and_reveal_weights(local_chain):
     )
 
     assert (
-        subtensor.get_subnet_hyperparameters(netuid=netuid).commit_reveal_weights_interval == 1
+        subtensor.get_subnet_hyperparameters(
+            netuid=netuid
+        ).commit_reveal_weights_interval
+        == 1
     ), "Failed to set commit/reveal periods"
 
     assert (

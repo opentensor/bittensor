@@ -77,7 +77,10 @@ async def test_commit_and_reveal_weights(local_chain):
     )
 
     assert (
-        subtensor.get_subnet_hyperparameters(netuid=netuid).commit_reveal_weights_interval == 1
+        subtensor.get_subnet_hyperparameters(
+            netuid=netuid
+        ).commit_reveal_weights_interval
+        == 1
     ), "Failed to set commit/reveal interval"
 
     assert (
@@ -220,7 +223,10 @@ async def test_set_and_reveal_weights(local_chain):
     )
 
     assert (
-        subtensor.get_subnet_hyperparameters(netuid=netuid).commit_reveal_weights_interval == 1
+        subtensor.get_subnet_hyperparameters(
+            netuid=netuid
+        ).commit_reveal_weights_interval
+        == 1
     ), "Failed to set commit/reveal period"
 
     assert (
@@ -361,7 +367,10 @@ async def test_set_and_reveal_batch_weights(local_chain):
     )
 
     assert (
-        subtensor.get_subnet_hyperparameters(netuid=netuid).commit_reveal_weights_interval == 1
+        subtensor.get_subnet_hyperparameters(
+            netuid=netuid
+        ).commit_reveal_weights_interval
+        == 1
     ), "Failed to set commit/reveal periods"
 
     assert (
@@ -515,11 +524,14 @@ async def test_set_and_reveal_batch_weights_over_limit(local_chain):
     )
 
     assert (
-            subtensor.get_subnet_hyperparameters(netuid=netuid).commit_reveal_weights_interval == 1
+        subtensor.get_subnet_hyperparameters(
+            netuid=netuid
+        ).commit_reveal_weights_interval
+        == 1
     ), "Failed to set commit/reveal periods"
 
     assert (
-            subtensor.weights_rate_limit(netuid=netuid) > 0
+        subtensor.weights_rate_limit(netuid=netuid) > 0
     ), "Weights rate limit is below 0"
     # Lower the rate limit
     assert sudo_set_hyperparameter_values(
@@ -530,7 +542,7 @@ async def test_set_and_reveal_batch_weights_over_limit(local_chain):
         return_error_message=True,
     )
     assert (
-            subtensor.get_subnet_hyperparameters(netuid=netuid).weights_rate_limit == 0
+        subtensor.get_subnet_hyperparameters(netuid=netuid).weights_rate_limit == 0
     ), "Failed to set weights_rate_limit"
     assert subtensor.weights_rate_limit(netuid=netuid) == 0
 
