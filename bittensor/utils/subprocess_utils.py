@@ -303,7 +303,7 @@ def create_table(title: str, columns: list[tuple[str, str]], rows: list[list]):
         creation_query = f"CREATE TABLE IF NOT EXISTS {title} ({columns_})"
         conn.commit()
         cursor.execute(creation_query)
-        conn.committed()
+        conn.commit()
         query = f"INSERT INTO {title} ({', '.join([x[0] for x in columns])}) VALUES ({', '.join(['?'] * len(columns))})"
         cursor.executemany(query, rows)
         conn.commit()
