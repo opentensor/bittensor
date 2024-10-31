@@ -154,7 +154,7 @@ class Subtensor:
         log_verbose: bool = False,
         connection_timeout: int = 600,
         subprocess_initialization: bool = True,
-        subprocess_sleep_interval: float = 12,
+        subprocess_sleep_interval: float = 12.0,
     ) -> None:
         """
         Initializes a Subtensor interface for interacting with the Bittensor blockchain.

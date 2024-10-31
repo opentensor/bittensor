@@ -187,7 +187,7 @@ def commit_weights_process(
     epoch_start_block = curr_block + blocks_until_next_epoch
     cr_periods = subtensor.get_subnet_hyperparameters(
         netuid=netuid
-    ).commit_reveal_periods
+    ).commit_reveal_weights_interval
     reveal_block = epoch_start_block + ((cr_periods - 1) * subnet_tempo_blocks) + 1
     expire_block = reveal_block + subnet_tempo_blocks
 

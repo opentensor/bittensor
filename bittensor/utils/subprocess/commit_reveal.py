@@ -511,7 +511,7 @@ def reveal_commits(subtensor: Subtensor, current_block: int):
         if local_reveals:
             unique_combinations = list({(commit.wallet_hotkey_ss58, commit.netuid) for commit in local_reveals})
             # Dict that has ss58 as key, and latest commit block as value
-            commit_dict: Dict[str, int] = {}
+            commit_dict: Dict[tuple[str, int], int] = {}
             for combination in unique_combinations:
                 ss58, netuid = combination
                 ready_to_reveal = []
@@ -540,8 +540,8 @@ def reveal_commits(subtensor: Subtensor, current_block: int):
                             else:
                                 print(f"Could not find commit hash {commit_hash} locally.")
 
-                        if commit_block > commit_dict.get(ss58, 0):
-                            commit_dict[ss58] = commit_block
+                        if commit_block > commit_dict.get(combination, 0):
+                            commit_dict[combination] = commit_block
 
                     if len(ready_to_reveal) > 1:
                         chain_reveals.extend(ready_to_reveal)
@@ -556,9 +556,9 @@ def reveal_commits(subtensor: Subtensor, current_block: int):
             if set(chain_reveals) != set(local_reveals):  # there are left over local reveals
                 print("there is a difference between local commits and chain commits")
                 # Filter commits that are older than the newest one in commit_dict that was revealed
-                for ss58, newest_commit_block in commit_dict.items():
+                for (ss58, netuid), newest_commit_block in commit_dict.items():
                     for commit in local_reveals:
-                        if commit.wallet_hotkey_ss58 == ss58 and commit.commit_block <= newest_commit_block:
+                        if commit.wallet_hotkey_ss58 == ss58 and commit.netuid == netuid and commit.commit_block <= newest_commit_block:
                             # Mark the commit as revealed, as a newer commit as already been revealed
                             print(f"revealing commit {commit.commit_hash} as a newer hash was submitted")
                             commit.revealed = True
@@ -709,7 +709,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--sleep-interval",
         type=float,
-        default=12,
+        default=12.0,
         help="Interval between block checks in seconds",
     )
     args = parser.parse_args()

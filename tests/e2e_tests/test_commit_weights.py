@@ -70,13 +70,13 @@ async def test_commit_and_reveal_weights(local_chain):
     assert sudo_set_hyperparameter_values(
         local_chain,
         alice_wallet,
-        call_function="sudo_set_commit_reveal_weights_periods",
-        call_params={"netuid": netuid, "periods": "1"},
+        call_function="sudo_set_commit_reveal_weights_interval",
+        call_params={"netuid": netuid, "interval": "1"},
         return_error_message=True,
     )
 
     assert (
-        subtensor.get_subnet_hyperparameters(netuid=netuid).commit_reveal_periods == 1
+        subtensor.get_subnet_hyperparameters(netuid=netuid).commit_reveal_weights_interval == 1
     ), "Failed to set commit/reveal periods"
 
     assert (
