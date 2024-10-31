@@ -48,7 +48,7 @@ async def test_commit_and_reveal_weights(local_chain):
     ), "Unable to register Alice as a neuron"
 
     # Stake to become to top neuron after the first epoch
-    add_stake(local_chain, alice_wallet, bittensor.Balance.from_tao(100_000))
+    add_stake(local_chain, alice_wallet, netuid, bittensor.Balance.from_tao(100_000))
 
     # Enable commit_reveal on the subnet
     assert sudo_set_hyperparameter_bool(

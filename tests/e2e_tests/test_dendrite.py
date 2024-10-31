@@ -69,7 +69,7 @@ async def test_dendrite(local_chain):
     assert neuron.stake.tao == 0
 
     # Stake to become to top neuron after the first epoch
-    assert add_stake(local_chain, bob_wallet, bittensor.Balance.from_tao(10_000))
+    assert add_stake(local_chain, bob_wallet, netuid, bittensor.Balance.from_tao(10_000))
 
     # Refresh metagraph
     metagraph = bittensor.Metagraph(netuid=netuid, network="ws://localhost:9945")

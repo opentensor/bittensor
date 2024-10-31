@@ -129,12 +129,12 @@ def test_metagraph(local_chain):
 
     # Test staking with low balance
     assert not add_stake(
-        local_chain, dave_wallet, bittensor.Balance.from_tao(10_000)
+        local_chain, dave_wallet, netuid, bittensor.Balance.from_tao(10_000)
     ), "Low balance stake should fail"
 
     # Add stake by Bob
     assert add_stake(
-        local_chain, bob_wallet, bittensor.Balance.from_tao(10_000)
+        local_chain, bob_wallet, netuid, bittensor.Balance.from_tao(10_000)
     ), "Failed to add stake for Bob"
 
     # Assert stake is added after updating metagraph

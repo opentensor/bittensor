@@ -63,7 +63,7 @@ async def test_incentive(local_chain):
     ), "Alice & Bob not registered in the subnet"
 
     # Alice to stake to become to top neuron after the first epoch
-    add_stake(local_chain, alice_wallet, Balance.from_tao(10_000))
+    add_stake(local_chain, alice_wallet, netuid, Balance.from_tao(10_000))
 
     # Prepare to run Bob as miner
     cmd = " ".join(
