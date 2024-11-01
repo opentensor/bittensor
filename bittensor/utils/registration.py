@@ -491,7 +491,9 @@ class RegistrationStatisticsLogger:
     status: Optional[rich_status.Status]
 
     def __init__(
-        self, console: Optional[rich_console.Console] = None, output_in_place: bool = True
+        self,
+        console: Optional[rich_console.Console] = None,
+        output_in_place: bool = True,
     ) -> None:
         if console is None:
             console = Console()
