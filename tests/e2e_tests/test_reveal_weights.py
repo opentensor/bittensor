@@ -413,8 +413,8 @@ async def test_set_and_reveal_batch_weights(local_chain):
         success, message = subtensor.set_weights(
             alice_wallet,
             netuid,
-            uids=weight_uids,
-            weights=weight_vals,
+            uids=uids,
+            weights=weights,
             wait_for_inclusion=True,
             wait_for_finalization=True,
         )

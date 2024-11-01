@@ -48,11 +48,13 @@ def do_set_weights(
     version_key: int = version_as_int,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
+    period: int = 5,
 ) -> tuple[bool, Optional[dict]]:  # (success, error_message)
     """
     Internal method to send a transaction to the Bittensor blockchain, setting weights for specified neurons. This method constructs and submits the transaction, handling retries and blockchain communication.
 
     Args:
+        period (int): Period dictates how long the extrinsic will stay as part of waiting pool
         self (bittensor.core.subtensor.Subtensor): Subtensor interface
         wallet (bittensor_wallet.Wallet): The wallet associated with the neuron setting the weights.
         uids (list[int]): List of neuron UIDs for which weights are being set.
@@ -100,7 +102,7 @@ def do_set_weights(
     extrinsic = self.substrate.create_signed_extrinsic(
         call=call,
         keypair=wallet.hotkey,
-        era={"period": 5},
+        era={"period": period},
     )
     return make_substrate_call_with_retry(extrinsic)
 

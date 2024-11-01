@@ -1891,8 +1891,7 @@ class Subtensor:
                 sleep_interval=self.subprocess_sleep_interval,
             )
 
-        if isinstance(weights, list) and all(isinstance(w, float) for w in weights):
-            uids, weights = convert_weights_and_uids_for_emit(uids, weights)  # type: ignore
+        uids, weights = convert_weights_and_uids_for_emit(uids, weights)  # type: ignore
 
         # Generate the hash of the weights
         commit_hash = generate_weight_hash(

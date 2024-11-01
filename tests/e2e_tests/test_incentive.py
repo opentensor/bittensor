@@ -160,6 +160,7 @@ async def test_incentive(local_chain):
         version_key=0,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        period=25,
     )
     logging.info("Alice neuron set weights successfully")
 

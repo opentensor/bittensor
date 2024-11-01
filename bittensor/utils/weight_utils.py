@@ -195,8 +195,10 @@ def convert_weights_and_uids_for_emit(
         weight_vals (list[int]): Weights as a list.
     """
     # Checks.
-    weights = weights.tolist()
-    uids = uids.tolist()
+    if isinstance(weights, (np.ndarray, torch.Tensor)):
+        weights = weights.tolist()
+    if isinstance(uids, (np.ndarray, torch.Tensor)):
+        uids = uids.tolist()
     if min(weights) < 0:
         raise ValueError(f"Passed weight is negative cannot exist on chain {weights}")
     if min(uids) < 0:

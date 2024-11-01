@@ -29,6 +29,7 @@ from bittensor.core.settings import version_as_int
 from bittensor.core.subtensor import Subtensor, logging
 from bittensor.utils import u16_normalized_float, u64_normalized_float
 from bittensor.utils.balance import Balance
+from bittensor.utils.weight_utils import convert_weights_and_uids_for_emit
 
 U16_MAX = 65535
 U64_MAX = 18446744073709551615
@@ -1922,12 +1923,16 @@ def test_commit_weights(subtensor, mocker):
         max_retries=max_retries,
     )
 
+    weight_uids, weight_vals = convert_weights_and_uids_for_emit(
+        uids=uids, weights=weights
+    )
+
     # Asserts
     mocked_generate_weight_hash.assert_called_once_with(
         address=fake_wallet.hotkey.ss58_address,
         netuid=netuid,
-        uids=list(uids),
-        values=list(weights),
+        uids=list(weight_uids),
+        values=list(weight_vals),
         salt=list(salt),
         version_key=settings.version_as_int,
     )
