@@ -48,7 +48,7 @@ def test_metagraph(local_chain):
         AssertionError: If any of the checks or verifications fail
     """
     logging.info("Testing test_metagraph_command")
-    netuid = 1
+    netuid = 2
 
     # Register Alice, Bob, and Dave
     alice_keypair, alice_wallet = setup_wallet("//Alice")
@@ -60,15 +60,15 @@ def test_metagraph(local_chain):
 
     # Verify subnet was created successfully
     assert local_chain.query(
-        "SubtensorModule", "NetworksAdded", [1]
+        "SubtensorModule", "NetworksAdded", [netuid]
     ).serialize(), "Subnet wasn't created successfully"
 
     # Initialize metagraph
     subtensor = bittensor.Subtensor(network="ws://localhost:9945")
-    metagraph = subtensor.metagraph(netuid=1)
+    metagraph = subtensor.metagraph(netuid=netuid)
 
     # Assert metagraph is empty
-    assert len(metagraph.uids) == 0, "Metagraph is not empty"
+    assert len(metagraph.uids) == 1, "Metagraph is not empty"
 
     # Register Bob to the subnet
     assert register_neuron(
@@ -79,14 +79,14 @@ def test_metagraph(local_chain):
     metagraph.sync(subtensor=subtensor)
 
     # Assert metagraph has Bob neuron
-    assert len(metagraph.uids) == 1, "Metagraph doesn't have exactly 1 neuron"
+    assert len(metagraph.uids) == 2, "Metagraph doesn't have exactly 1 neuron"
     assert (
-        metagraph.hotkeys[0] == bob_keypair.ss58_address
+        metagraph.hotkeys[1] == bob_keypair.ss58_address
     ), "Bob's hotkey doesn't match in metagraph"
-    assert len(metagraph.coldkeys) == 1, "Metagraph doesn't have exactly 1 coldkey"
-    assert metagraph.n.max() == 1, "Metagraph's max n is not 1"
-    assert metagraph.n.min() == 1, "Metagraph's min n is not 1"
-    assert len(metagraph.addresses) == 1, "Metagraph doesn't have exactly 1 address"
+    assert len(metagraph.coldkeys) == 2, "Metagraph doesn't have exactly 1 coldkey"
+    assert metagraph.n.max() == 2, "Metagraph's max n is not 1"
+    assert metagraph.n.min() == 2, "Metagraph's min n is not 1"
+    assert len(metagraph.addresses) == 2, "Metagraph doesn't have exactly 1 address"
 
     # Fetch UID of Bob
     uid = subtensor.get_uid_for_hotkey_on_subnet(
@@ -104,7 +104,7 @@ def test_metagraph(local_chain):
     ), "Neuron info of Bob doesn't match b/w metagraph & subtensor"
 
     # Create pre_dave metagraph for future verifications
-    metagraph_pre_dave = subtensor.metagraph(netuid=1)
+    metagraph_pre_dave = subtensor.metagraph(netuid=netuid)
 
     # Register Dave as a neuron
     assert register_neuron(
@@ -115,17 +115,17 @@ def test_metagraph(local_chain):
 
     # Assert metagraph now includes Dave's neuron
     assert (
-        len(metagraph.uids) == 2
+        len(metagraph.uids) == 3
     ), "Metagraph doesn't have exactly 2 neurons post Dave"
     assert (
-        metagraph.hotkeys[1] == dave_keypair.ss58_address
+        metagraph.hotkeys[2] == dave_keypair.ss58_address
     ), "Neuron's hotkey in metagraph doesn't match"
     assert (
-        len(metagraph.coldkeys) == 2
+        len(metagraph.coldkeys) == 3
     ), "Metagraph doesn't have exactly 2 coldkeys post Dave"
-    assert metagraph.n.max() == 2, "Metagraph's max n is not 2 post Dave"
-    assert metagraph.n.min() == 2, "Metagraph's min n is not 2 post Dave"
-    assert len(metagraph.addresses) == 2, "Metagraph doesn't have 2 addresses post Dave"
+    assert metagraph.n.max() == 3, "Metagraph's max n is not 2 post Dave"
+    assert metagraph.n.min() == 3, "Metagraph's min n is not 2 post Dave"
+    assert len(metagraph.addresses) == 3, "Metagraph doesn't have 2 addresses post Dave"
 
     # Test staking with low balance
     assert not add_stake(
@@ -139,7 +139,7 @@ def test_metagraph(local_chain):
 
     # Assert stake is added after updating metagraph
     metagraph.sync(subtensor=subtensor)
-    assert metagraph.neurons[0].stake == bittensor.Balance.from_tao(
+    assert metagraph.neurons[1].stake == bittensor.Balance.from_tao(
         10_000
     ), "Bob's stake not updated in metagraph"
 
@@ -161,7 +161,7 @@ def test_metagraph(local_chain):
         metagraph_pre_dave.axons
     ), "Axon count mismatch after save and load"
     assert (
-        metagraph.axons[1].hotkey == metagraph_pre_dave.axons[1].hotkey
+        metagraph.axons[2].hotkey == metagraph_pre_dave.axons[2].hotkey
     ), "Axon hotkey mismatch after save and load"
     assert (
         metagraph.axons == metagraph_pre_dave.axons
