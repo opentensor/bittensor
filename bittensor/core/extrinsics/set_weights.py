@@ -29,7 +29,6 @@ from bittensor.utils import format_error_message, weight_utils
 from bittensor.utils.btlogging import logging
 from bittensor.utils.networking import ensure_connected
 from bittensor.utils.registration import torch, use_torch
-from bittensor.utils.weight_utils import convert_weights_and_uids_for_emit
 
 # For annotation purposes
 if TYPE_CHECKING:
@@ -202,7 +201,7 @@ def set_weights_extrinsic(
             except Exception as e:
                 bt_console.print(f":cross_mark: [red]Failed[/red]: error:{e}")
                 logging.debug(str(e))
-            return False, str(e)
+                return False, str(e)
     else:
         # First convert types.
         if use_torch():
