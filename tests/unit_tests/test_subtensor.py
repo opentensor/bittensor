@@ -1910,6 +1910,7 @@ def test_commit_weights(subtensor, mocker):
     )
 
     # Call
+    subtensor.subprocess_initialization = False
     result = subtensor.commit_weights(
         wallet=fake_wallet,
         netuid=netuid,

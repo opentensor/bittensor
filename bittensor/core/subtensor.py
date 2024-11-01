@@ -1907,7 +1907,7 @@ class Subtensor:
 
         while retries < max_retries and not success:
             try:
-                if subprocess_utils.is_process_running(COMMIT_REVEAL_PROCESS):
+                if self.subprocess_initialization and subprocess_utils.is_process_running(COMMIT_REVEAL_PROCESS):
                     curr_block = self.get_current_block()
                     commit_weights_process(
                         self,
