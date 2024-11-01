@@ -20,7 +20,6 @@ from typing import Optional, Union, TYPE_CHECKING
 from retry import retry
 from rich.prompt import Confirm
 
-from bittensor import logging
 from bittensor.core.extrinsics.utils import submit_extrinsic
 from bittensor.core.settings import NETWORK_EXPLORER_MAP
 from bittensor.utils import (
@@ -29,6 +28,7 @@ from bittensor.utils import (
     is_valid_bittensor_address_or_public_key,
 )
 from bittensor.utils.balance import Balance
+from bittensor.utils.btlogging import logging
 from bittensor.utils.networking import ensure_connected
 
 # For annotation purposes
