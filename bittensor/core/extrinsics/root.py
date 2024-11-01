@@ -89,7 +89,9 @@ def root_register_extrinsic(
         netuid=0, hotkey_ss58=wallet.hotkey.ss58_address
     )
     if is_registered:
-        logging.info("<green>Already registered on root network.</green>")
+        logging.info(
+            ":white_heavy_check_mark: <green>Already registered on root network.</green>"
+        )
         return True
 
     if prompt:
@@ -97,7 +99,7 @@ def root_register_extrinsic(
         if not Confirm.ask("Register to root network?"):
             return False
 
-    logging.info(":satellite: Registering to root network...")
+    logging.info(":satellite: <magenta>Registering to root network...</magenta>")
     success, err_msg = _do_root_register(
         wallet=wallet,
         wait_for_inclusion=wait_for_inclusion,
@@ -105,7 +107,7 @@ def root_register_extrinsic(
     )
 
     if not success:
-        logging.error(f"<red>Failed</red>: {err_msg}")
+        logging.error(f":cross_mark: <red>Failed</red>: {err_msg}")
         time.sleep(0.5)
 
     # Successful registration, final check for neuron and pubkey

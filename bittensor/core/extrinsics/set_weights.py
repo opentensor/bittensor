@@ -157,7 +157,9 @@ def set_weights_extrinsic(
         ):
             return False, "Prompt refused."
 
-    logging.info(f":satellite: Setting weights on {subtensor.network} ...")
+    logging.info(
+        f":satellite: <magenta>Setting weights on </magenta><blue>{subtensor.network}<blue> <magenta>...</magenta>"
+    )
     try:
         success, error_message = do_set_weights(
             self=subtensor,

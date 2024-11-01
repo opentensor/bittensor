@@ -114,7 +114,7 @@ def prometheus_extrinsic(
         try:
             external_ip = net.get_external_ip()
             logging.success(
-                f":white_heavy_check_mark: <green>Found external ip: {external_ip}</green>"
+                f":white_heavy_check_mark: <green>Found external ip:</green> <blue>{external_ip}</blue>"
             )
         except Exception as e:
             raise RuntimeError(
@@ -146,17 +146,23 @@ def prometheus_extrinsic(
             ":white_heavy_check_mark: <magenta>Prometheus already Served</magenta>"
         )
         logging.info("<green>Status:</green>")
-        logging.info(f"<green>\tip: </green>{neuron.prometheus_info.ip}")
-        logging.info(f"<green>\tip_type: </green>{neuron.prometheus_info.ip_type}")
-        logging.info(f"<green>\tport: </green>{neuron.prometheus_info.port}")
-        logging.info(f"<green>\tversion: </green>{neuron.prometheus_info.version}")
+        logging.info(f"<green>\tip: </green><blue>{neuron.prometheus_info.ip}</blue>")
+        logging.info(
+            f"<green>\tip_type: </green><blue>{neuron.prometheus_info.ip_type}</blue>"
+        )
+        logging.info(
+            f"<green>\tport: </green><blue>{neuron.prometheus_info.port}</blue>"
+        )
+        logging.info(
+            f"<green>\tversion: </green><blue>{neuron.prometheus_info.version}</blue>"
+        )
         return True
 
     # Add netuid, not in prometheus_info
     call_params["netuid"] = netuid
 
     logging.info(
-        f":satellite: <magenta>Serving prometheus on: {subtensor.network}:{netuid} </magenta>"
+        f":satellite: <magenta>Serving prometheus on: <blue>{subtensor.network}:{netuid}</blue> </magenta>"
     )
     success, error_message = do_serve_prometheus(
         self=subtensor,
@@ -170,7 +176,7 @@ def prometheus_extrinsic(
         if success is True:
             json_ = json.dumps(call_params, indent=4, sort_keys=True)
             logging.info(
-                f":white_heavy_check_mark: <green>Served prometheus:</green> {json_}"
+                f":white_heavy_check_mark: <green>Served prometheus:</green> <blue>{json_}</blue>"
             )
             return True
         else:

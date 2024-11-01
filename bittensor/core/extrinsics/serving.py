@@ -219,7 +219,9 @@ def serve_axon_extrinsic(
     if axon.external_ip is None:
         try:
             external_ip = net.get_external_ip()
-            logging.success(prefix="External IP", suffix=f"<blue>{external_ip}</blue>")
+            logging.success(
+                f":white_heavy_check_mark: <green>Found external ip:</green> <blue>{external_ip}</blue>"
+            )
         except Exception as e:
             raise RuntimeError(
                 f"Unable to attain your external ip. Check your internet connection. error: {e}"

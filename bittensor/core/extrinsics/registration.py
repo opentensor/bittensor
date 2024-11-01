@@ -142,17 +142,19 @@ def register_extrinsic(
     """
     if not subtensor.subnet_exists(netuid):
         logging.error(
-            f":cross_mark: <red>Failed: </red> Subnet {netuid} does not exist."
+            f":cross_mark: <red>Failed: </red> Subnet <blue>{netuid}</blue> does not exist."
         )
         return False
 
-    logging.info(f":satellite: Checking Account on subnet <blue>{netuid}</blue>...")
+    logging.info(
+        f":satellite: <magenta>Checking Account on subnet</magenta> <blue>{netuid}</blue><magenta>...</magenta>"
+    )
     neuron = subtensor.get_neuron_for_pubkey_and_subnet(
         wallet.hotkey.ss58_address, netuid=netuid
     )
     if not neuron.is_null:
         logging.debug(
-            f"Wallet <blue>{wallet}</blue> is already registered on <blue>{neuron.netuid}</blue> with <blue>{neuron.uid}</blue>."
+            f"Wallet <green>{wallet}</green> is already registered on <blue>{neuron.netuid}</blue> with <blue>{neuron.uid}</blue>."
         )
         return True
 
@@ -174,7 +176,7 @@ def register_extrinsic(
     attempts = 1
     while True:
         logging.info(
-            f":satellite: <magenta>Registering...({attempts}/{max_allowed_attempts})</magenta>"
+            f":satellite: <magenta>Registering...</magenta> <blue>({attempts}/{max_allowed_attempts})</blue>"
         )
         # Solve latest POW.
         if cuda:
@@ -214,7 +216,7 @@ def register_extrinsic(
             )
             if is_registered:
                 logging.info(
-                    f":white_heavy_check_mark: <green>Already registered on netuid:{netuid}</green>"
+                    f":white_heavy_check_mark: <green>Already registered on netuid:</blue> <blue>{netuid}</blue>"
                 )
                 return True
 
@@ -273,7 +275,7 @@ def register_extrinsic(
             # Failed registration, retry pow
             attempts += 1
             logging.info(
-                f":satellite: <magenta>Failed registration, retrying pow ...({attempts}/{max_allowed_attempts})</magenta>"
+                f":satellite: <magenta>Failed registration, retrying pow ...</magenta> <blue>({attempts}/{max_allowed_attempts})</blue>"
             )
         else:
             # Failed to register after max attempts.
