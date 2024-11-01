@@ -771,7 +771,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--network",
         type=str,
-        default="wss://entrypoint-finney.opentensor.ai:443",
+        default="wss://test.finney.opentensor.ai:443",
         help="Subtensor network address",
     )
     parser.add_argument(

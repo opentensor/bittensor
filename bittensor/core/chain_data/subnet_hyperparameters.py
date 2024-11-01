@@ -32,7 +32,7 @@ class SubnetHyperparameters:
         max_validators (int): Maximum number of validators.
         adjustment_alpha (int): Alpha value for adjustments.
         difficulty (int): Difficulty level.
-        commit_reveal_weights_interval (int): Periods for commit-reveal weights.
+        commit_reveal_weights_interval (int): Intervals (tempo intervals) for commit-reveal weights.
         commit_reveal_weights_enabled (bool): Flag indicating if commit-reveal weights are enabled.
         alpha_high (int): High value of alpha.
         alpha_low (int): Low value of alpha.

@@ -214,7 +214,7 @@ class Subtensor:
 
         if subprocess_initialization:
             subprocess_utils.start_if_existing_commits(
-                network=network, sleep_interval=subprocess_sleep_interval
+                network=self.chain_endpoint, sleep_interval=subprocess_sleep_interval
             )
 
         self.subprocess_initialization = subprocess_initialization
