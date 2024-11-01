@@ -1,7 +1,6 @@
 wheel
 setuptools~=70.0.0
 aiohttp~=3.9
-backoff
 bittensor-cli
 bt-decode
 colorama~=0.4.6
