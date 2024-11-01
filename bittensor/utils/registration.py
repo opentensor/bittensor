@@ -35,16 +35,10 @@ from Crypto.Hash import keccak
 from retry import retry
 from rich import console as rich_console, status as rich_status
 from rich.console import Console
-from rich.traceback import install
 
 from bittensor.utils.btlogging import logging
 from bittensor.utils.formatting import get_human_readable, millify
 from bittensor.utils.register_cuda import solve_cuda
-
-# Console for `RegistrationStatisticsLogger` class
-bt_console = Console()
-# Remove overdue locals in debug training.
-install(show_locals=False)
 
 
 def use_torch() -> bool:
@@ -494,12 +488,14 @@ class RegistrationStatistics:
 class RegistrationStatisticsLogger:
     """Logs statistics for a registration."""
 
-    console: rich_console.Console
     status: Optional[rich_status.Status]
 
     def __init__(
-        self, console: rich_console.Console, output_in_place: bool = True
+        self, console: Optional[rich_console.Console] = None, output_in_place: bool = True
     ) -> None:
+        if console is None:
+            console = Console()
+
         self.console = console
 
         if output_in_place:
@@ -655,7 +651,7 @@ def _solve_for_difficulty_fast(
 
     start_time_perpetual = time.time()
 
-    logger = RegistrationStatisticsLogger(bt_console, output_in_place)
+    logger = RegistrationStatisticsLogger(output_in_place=output_in_place)
     logger.start()
 
     solution = None
@@ -959,7 +955,7 @@ def _solve_for_difficulty_fast_cuda(
 
         start_time_perpetual = time.time()
 
-        logger = RegistrationStatisticsLogger(bt_console, output_in_place)
+        logger = RegistrationStatisticsLogger(output_in_place=output_in_place)
         logger.start()
 
         hash_rates = [0] * n_samples  # The last n true hash_rates
