@@ -47,7 +47,7 @@ def do_set_weights(
     version_key: int = version_as_int,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
-) -> tuple[bool, Optional[dict]]:  # (success, error_message)
+) -> tuple[bool, Optional[str]]:  # (success, error_message)
     """
     Internal method to send a transaction to the Bittensor blockchain, setting weights for specified neurons. This method constructs and submits the transaction, handling retries and blockchain communication.
 
@@ -99,7 +99,9 @@ def do_set_weights(
         if response.is_success:
             return True, "Successfully set weights."
         else:
-            return False, response.error_message
+            return False, format_error_message(
+                response.error_message, substrate=self.substrate
+            )
 
     return make_substrate_call_with_retry()
 
@@ -184,9 +186,6 @@ def set_weights_extrinsic(
                 )
                 return True, "Successfully set weights and Finalized."
             else:
-                error_message = format_error_message(
-                    error_message, substrate=subtensor.substrate
-                )
                 logging.error(error_message)
                 return False, error_message
 

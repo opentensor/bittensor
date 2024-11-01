@@ -7,6 +7,7 @@ import scalecodec
 import typer
 from bittensor_wallet import Wallet
 from bittensor_wallet.utils import SS58_FORMAT
+from numpy.typing import NDArray
 from rich.prompt import Confirm
 from scalecodec import GenericCall
 from scalecodec.base import RuntimeConfiguration
@@ -28,6 +29,10 @@ from bittensor.core.extrinsics.async_root import (
     root_register_extrinsic,
 )
 from bittensor.core.extrinsics.async_transfer import transfer_extrinsic
+from bittensor.core.extrinsics.async_weights import (
+    commit_weights_extrinsic,
+    set_weights_extrinsic,
+)
 from bittensor.core.settings import (
     TYPE_REGISTRY,
     DEFAULTS,
@@ -35,7 +40,9 @@ from bittensor.core.settings import (
     DELEGATES_DETAILS_URL,
     DEFAULT_NETWORK,
 )
+from bittensor.core.settings import version_as_int
 from bittensor.utils import (
+    torch,
     ss58_to_vec_u8,
     format_error_message,
     decode_hex_identity_dict,
@@ -152,9 +159,79 @@ class AsyncSubtensor:
 
         return param_data.to_hex()
 
-    async def get_all_subnet_netuids(
-        self, block_hash: Optional[str] = None
-    ) -> list[int]:
+    async def get_current_block(self):
+        """
+        Returns the current block number on the Bittensor blockchain. This function provides the latest block number, indicating the most recent state of the blockchain.
+
+        Returns:
+            int: The current chain block number.
+
+        Knowing the current block number is essential for querying real-time data and performing time-sensitive operations on the blockchain. It serves as a reference point for network activities and data synchronization.
+        """
+        return await self.substrate.get_block_number()
+
+    async def is_hotkey_registered_any(
+        self, hotkey_ss58: str, block: Optional[int] = None
+    ) -> bool:
+        """
+        Checks if a neuron's hotkey is registered on any subnet within the Bittensor network.
+
+        Args:
+            hotkey_ss58 (str): The ``SS58`` address of the neuron's hotkey.
+            block (Optional[int]): The blockchain block number at which to perform the check.
+
+        Returns:
+            bool: ``True`` if the hotkey is registered on any subnet, False otherwise.
+
+        This function is essential for determining the network-wide presence and participation of a neuron.
+        """
+        return len(await self.get_netuids_for_hotkey(hotkey_ss58, block)) > 0
+
+    async def get_subnet_burn_cost(self, block: Optional[int] = None) -> Optional[str]:
+        """
+        Retrieves the burn cost for registering a new subnet within the Bittensor network. This cost represents the amount of Tao that needs to be locked or burned to establish a new subnet.
+
+        Args:
+            block (Optional[int]): The blockchain block number for the query.
+
+        Returns:
+            int: The burn cost for subnet registration.
+
+        The subnet burn cost is an important economic parameter, reflecting the network's mechanisms for controlling the proliferation of subnets and ensuring their commitment to the network's long-term viability.
+        """
+        lock_cost = await self.query_runtime_api(
+            runtime_api="SubnetRegistrationRuntimeApi",
+            method="get_network_registration_cost",
+            params=[],
+            block_hash=block,
+        )
+
+        if lock_cost is None:
+            return None
+
+        return lock_cost
+
+    async def get_total_subnets(self, block: Optional[int] = None) -> Optional[int]:
+        """
+        Retrieves the total number of subnets within the Bittensor network as of a specific blockchain block.
+
+        Args:
+            block (Optional[int]): The blockchain block number for the query.
+
+        Returns:
+            Optional[int]: The total number of subnets in the network.
+
+        Understanding the total number of subnets is essential for assessing the network's growth and the extent of its decentralized infrastructure.
+        """
+        result = await self.substrate.query(
+            module="SubtensorModule",
+            storage_function="TotalNetworks",
+            params=[],
+            block_hash=block,
+        )
+        return result
+
+    async def get_subnets(self, block_hash: Optional[str] = None) -> list[int]:
         """
         Retrieves the list of all subnet unique identifiers (netuids) currently present in the Bittensor network.
 
@@ -368,6 +445,56 @@ class AsyncSubtensor:
             value = item[1] or {"data": {"free": 0}}
             results.update({item[0].params[0]: Balance(value["data"]["free"])})
         return results
+
+    async def get_transfer_fee(
+        self, wallet: "Wallet", dest: str, value: Union["Balance", float, int]
+    ) -> "Balance":
+        """
+        Calculates the transaction fee for transferring tokens from a wallet to a specified destination address. This function simulates the transfer to estimate the associated cost, taking into account the current network conditions and transaction complexity.
+
+        Args:
+            wallet (bittensor_wallet.Wallet): The wallet from which the transfer is initiated.
+            dest (str): The ``SS58`` address of the destination account.
+            value (Union[bittensor.utils.balance.Balance, float, int]): The amount of tokens to be transferred, specified as a Balance object, or in Tao (float) or Rao (int) units.
+
+        Returns:
+            bittensor.utils.balance.Balance: The estimated transaction fee for the transfer, represented as a Balance object.
+
+        Estimating the transfer fee is essential for planning and executing token transactions, ensuring that the wallet has sufficient funds to cover both the transfer amount and the associated costs. This function provides a crucial tool for managing financial operations within the Bittensor network.
+        """
+        if isinstance(value, float):
+            value = Balance.from_tao(value)
+        elif isinstance(value, int):
+            value = Balance.from_rao(value)
+
+        if isinstance(value, Balance):
+            call = await self.substrate.compose_call(
+                call_module="Balances",
+                call_function="transfer_allow_death",
+                call_params={"dest": dest, "value": value.rao},
+            )
+
+            try:
+                payment_info = await self.substrate.get_payment_info(
+                    call=call, keypair=wallet.coldkeypub
+                )
+            except Exception as e:
+                logging.error(
+                    f":cross_mark: <red>Failed to get payment info: </red>{e}"
+                )
+                payment_info = {"partialFee": int(2e7)}  # assume  0.02 Tao
+
+            fee = Balance.from_rao(payment_info["partialFee"])
+            return fee
+        else:
+            fee = Balance.from_rao(int(2e7))
+            logging.error(
+                "To calculate the transaction fee, the value must be Balance, float, or int. Received type: %s. Fee "
+                "is %s",
+                type(value),
+                2e7,
+            )
+            return fee
 
     async def get_total_stake_for_coldkey(
         self,
@@ -1105,6 +1232,31 @@ class AsyncSubtensor:
         else:
             return False
 
+    async def get_uid_for_hotkey_on_subnet(
+        self, hotkey_ss58: str, netuid: int, block: Optional[int] = None
+    ):
+        """
+        Retrieves the unique identifier (UID) for a neuron's hotkey on a specific subnet.
+
+        Args:
+            hotkey_ss58 (str): The ``SS58`` address of the neuron's hotkey.
+            netuid (int): The unique identifier of the subnet.
+            block (Optional[int]): The blockchain block number for the query.
+
+        Returns:
+            Optional[int]: The UID of the neuron if it is registered on the subnet, ``None`` otherwise.
+
+        The UID is a critical identifier within the network, linking the neuron's hotkey to its operational and governance activities on a particular subnet.
+        """
+        return self.substrate.query(
+            module="SubtensorModule",
+            storage_function="Uids",
+            params=[netuid, hotkey_ss58],
+            block_hash=(
+                None if block is None else await self.substrate.get_block_hash(block)
+            ),
+        )
+
     # extrinsics
 
     async def transfer(
@@ -1201,6 +1353,64 @@ class AsyncSubtensor:
     async def set_weights(
         self,
         wallet: "Wallet",
+        netuid: int,
+        uids: Union[NDArray[np.int64], "torch.LongTensor", list],
+        weights: Union[NDArray[np.float32], "torch.FloatTensor", list],
+        version_key: int = version_as_int,
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = False,
+        max_retries: int = 5,
+    ):
+        """
+        Sets the inter-neuronal weights for the specified neuron. This process involves specifying the influence or trust a neuron places on other neurons in the network, which is a fundamental aspect of Bittensor's decentralized learning architecture.
+
+        Args:
+            wallet (bittensor_wallet.Wallet): The wallet associated with the neuron setting the weights.
+            netuid (int): The unique identifier of the subnet.
+            uids (Union[NDArray[np.int64], torch.LongTensor, list]): The list of neuron UIDs that the weights are being set for.
+            weights (Union[NDArray[np.float32], torch.FloatTensor, list]): The corresponding weights to be set for each UID.
+            version_key (int): Version key for compatibility with the network.  Default is ``int representation of Bittensor version.``.
+            wait_for_inclusion (bool): Waits for the transaction to be included in a block. Default is ``False``.
+            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Default is ``False``.
+            max_retries (int): The number of maximum attempts to set weights. Default is ``5``.
+
+        Returns:
+            tuple[bool, str]: ``True`` if the setting of weights is successful, False otherwise. And `msg`, a string value describing the success or potential error.
+
+        This function is crucial in shaping the network's collective intelligence, where each neuron's learning and contribution are influenced by the weights it sets towards others【81†source】.
+        """
+        uid = self.get_uid_for_hotkey_on_subnet(wallet.hotkey.ss58_address, netuid)
+        retries = 0
+        success = False
+        message = "No attempt made. Perhaps it is too soon to set weights!"
+        while (
+            self.blocks_since_last_update(netuid, uid) > self.weights_rate_limit(netuid)  # type: ignore
+            and retries < max_retries
+        ):
+            try:
+                logging.info(
+                    f"Setting weights for subnet #<blue>{netuid}</blue>. Attempt <blue>{retries + 1} of {max_retries}</blue>."
+                )
+                success, message = await set_weights_extrinsic(
+                    subtensor=self,
+                    wallet=wallet,
+                    netuid=netuid,
+                    uids=uids,
+                    weights=weights,
+                    version_key=version_key,
+                    wait_for_inclusion=wait_for_inclusion,
+                    wait_for_finalization=wait_for_finalization,
+                )
+            except Exception as e:
+                logging.error(f"Error setting weights: {e}")
+            finally:
+                retries += 1
+
+        return success, message
+
+    async def root_set_weights(
+        self,
+        wallet: "Wallet",
         netuids: list[int],
         weights: list[float],
         prompt: bool,
@@ -1220,3 +1430,65 @@ class AsyncSubtensor:
             wait_for_finalization=True,
             wait_for_inclusion=True,
         )
+
+    async def commit_weights(
+        self,
+        wallet: "Wallet",
+        netuid: int,
+        salt: list[int],
+        uids: Union[NDArray[np.int64], list],
+        weights: Union[NDArray[np.int64], list],
+        version_key: int = version_as_int,
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = False,
+        max_retries: int = 5,
+    ) -> tuple[bool, str]:
+        """
+        Commits a hash of the neuron's weights to the Bittensor blockchain using the provided wallet.
+        This action serves as a commitment or snapshot of the neuron's current weight distribution.
+
+        Args:
+            wallet (bittensor_wallet.Wallet): The wallet associated with the neuron committing the weights.
+            netuid (int): The unique identifier of the subnet.
+            salt (list[int]): list of randomly generated integers as salt to generated weighted hash.
+            uids (np.ndarray): NumPy array of neuron UIDs for which weights are being committed.
+            weights (np.ndarray): NumPy array of weight values corresponding to each UID.
+            version_key (int): Version key for compatibility with the network. Default is ``int representation of Bittensor version.``.
+            wait_for_inclusion (bool): Waits for the transaction to be included in a block. Default is ``False``.
+            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Default is ``False``.
+            max_retries (int): The number of maximum attempts to commit weights. Default is ``5``.
+
+        Returns:
+            tuple[bool, str]: ``True`` if the weight commitment is successful, False otherwise. And `msg`, a string value describing the success or potential error.
+
+        This function allows neurons to create a tamper-proof record of their weight distribution at a specific point in time, enhancing transparency and accountability within the Bittensor network.
+        """
+        retries = 0
+        success = False
+        message = "No attempt made. Perhaps it is too soon to commit weights!"
+
+        logging.info(
+            f"Committing weights with params: netuid={netuid}, uids={uids}, weights={weights}, version_key={version_key}"
+        )
+
+        while retries < max_retries:
+            try:
+                success, message = commit_weights_extrinsic(
+                    subtensor=self,
+                    wallet=wallet,
+                    netuid=netuid,
+                    uids=uids,
+                    weights=weights,
+                    salt=salt,
+                    version_key=version_key,
+                    wait_for_inclusion=wait_for_inclusion,
+                    wait_for_finalization=wait_for_finalization,
+                )
+                if success:
+                    break
+            except Exception as e:
+                logging.error(f"Error committing weights: {e}")
+            finally:
+                retries += 1
+
+        return success, message
