@@ -13,6 +13,7 @@ from scalecodec.base import RuntimeConfiguration
 from scalecodec.type_registry import load_type_registry_preset
 from substrateinterface.exceptions import SubstrateRequestException
 
+from bittensor import logging
 from bittensor.core.chain_data import (
     DelegateInfo,
     custom_rpc_type_registry,
@@ -29,14 +30,11 @@ from bittensor.core.extrinsics.async_root import (
 )
 from bittensor.core.extrinsics.async_transfer import transfer_extrinsic
 from bittensor.core.settings import (
-    bt_console as console,
-    bt_err_console as err_console,
     TYPE_REGISTRY,
     DEFAULTS,
     NETWORK_MAP,
     DELEGATES_DETAILS_URL,
     DEFAULT_NETWORK,
-    print_verbose,
 )
 from bittensor.utils import (
     ss58_to_vec_u8,
@@ -85,7 +83,7 @@ class AsyncSubtensor:
             self.chain_endpoint = NETWORK_MAP[network]
             self.network = network
             if network == "local":
-                console.log(
+                logging.warning(
                     "[yellow]Warning[/yellow]: Verify your local subtensor is running on port 9944."
                 )
         else:
@@ -99,11 +97,11 @@ class AsyncSubtensor:
                 else:
                     self.network = "custom"
             else:
-                console.log(
-                    f"Network not specified or not valid. Using default chain endpoint: "
-                    f"{NETWORK_MAP[DEFAULTS.subtensor.network]}.\n"
-                    f"You can set this for commands with the `--network` flag, or by setting this"
-                    f" in the config."
+                logging.info(
+                    f"Network not specified or not valid. Using default chain endpoint: <blue>{NETWORK_MAP[DEFAULTS.subtensor.network]}</blue>."
+                )
+                logging.info(
+                    "You can set this for commands with the <blue>--network</blue> flag, or by setting this in the config."
                 )
                 self.chain_endpoint = NETWORK_MAP[DEFAULTS.subtensor.network]
                 self.network = DEFAULTS.subtensor.network
@@ -119,18 +117,17 @@ class AsyncSubtensor:
         return f"Network: {self.network}, Chain: {self.chain_endpoint}"
 
     async def __aenter__(self):
-        with console.status(
-            f"[yellow]Connecting to Substrate:[/yellow][bold white] {self}..."
-        ):
-            try:
-                async with self.substrate:
-                    return self
-            except TimeoutException:
-                err_console.print(
-                    "\n[red]Error[/red]: Timeout occurred connecting to substrate. "
-                    f"Verify your chain and network settings: {self}"
-                )
-                raise typer.Exit(code=1)
+        logging.info(
+            f"<magenta>Connecting to Substrate:</magenta> <blue>{self}</blue><magenta>...</magenta>"
+        )
+        try:
+            async with self.substrate:
+                return self
+        except TimeoutException:
+            logging.error(
+                f"<red>Error</red>: Timeout occurred connecting to substrate. Verify your chain and network settings: {self}"
+            )
+            raise typer.Exit(code=1)
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         await self.substrate.close()
@@ -1130,12 +1127,12 @@ class AsyncSubtensor:
 
     async def register(self, wallet: Wallet, prompt: bool):
         """Register neuron by recycling some TAO."""
-        console.print(
-            f"Registering on [dark_orange]netuid 0[/dark_orange] on network: [dark_orange]{self.network}"
+        logging.info(
+            f"Registering on netuid <blue>0</blue> on network: <blue>{self.network}</blue>"
         )
 
         # Check current recycle amount
-        print_verbose("Fetching recycle amount & balance")
+        logging.info("Fetching recycle amount & balance.")
         recycle_call, balance_ = await asyncio.gather(
             self.get_hyperparameter(param_name="Burn", netuid=0, reuse_block=True),
             self.get_balance(wallet.coldkeypub.ss58_address, reuse_block=True),
@@ -1144,17 +1141,16 @@ class AsyncSubtensor:
         try:
             balance: Balance = balance_[wallet.coldkeypub.ss58_address]
         except TypeError as e:
-            err_console.print(f"Unable to retrieve current recycle. {e}")
+            logging.error(f"Unable to retrieve current recycle. {e}")
             return False
         except KeyError:
-            err_console.print("Unable to retrieve current balance.")
+            logging.error("Unable to retrieve current balance.")
             return False
 
         # Check balance is sufficient
         if balance < current_recycle:
-            err_console.print(
-                f"[red]Insufficient balance {balance} to register neuron. "
-                f"Current recycle is {current_recycle} TAO[/red]"
+            logging.error(
+                f"<red>Insufficient balance {balance} to register neuron. Current recycle is {current_recycle} TAO</red>"
             )
             return False
 
@@ -1212,7 +1208,7 @@ class AsyncSubtensor:
         """Set weights for root network."""
         netuids_ = np.array(netuids, dtype=np.int64)
         weights_ = np.array(weights, dtype=np.float32)
-        console.print(f"Setting weights in [dark_orange]network: {self.network}")
+        logging.info(f"Setting weights in network: <blue>{self.network}</blue>")
         # Run the set weights operation.
         return await set_root_weights_extrinsic(
             subtensor=self,

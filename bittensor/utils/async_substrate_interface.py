@@ -6,20 +6,20 @@ from dataclasses import dataclass
 from hashlib import blake2b
 from typing import Optional, Any, Union, Callable, Awaitable, cast
 
-from bt_decode import PortableRegistry, decode as decode_by_type_string, MetadataV15
+import websockets
 from async_property import async_property
+from bittensor_wallet import Keypair
+from bt_decode import PortableRegistry, decode as decode_by_type_string, MetadataV15
 from scalecodec import GenericExtrinsic
 from scalecodec.base import ScaleBytes, ScaleType, RuntimeConfigurationObject
 from scalecodec.type_registry import load_type_registry_preset
 from scalecodec.types import GenericCall
-from bittensor_wallet import Keypair
 from substrateinterface.exceptions import (
     SubstrateRequestException,
     ExtrinsicNotFound,
     BlockNotFound,
 )
 from substrateinterface.storage import StorageKey
-import websockets
 
 ResultHandler = Callable[[dict, Any], Awaitable[tuple[dict, bool]]]
 

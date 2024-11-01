@@ -68,6 +68,7 @@ from bittensor.core.extrinsics.transfer import (
     transfer_extrinsic,
 )
 from bittensor.core.metagraph import Metagraph
+from bittensor.utils import AsyncSubstrateInterface
 from bittensor.utils import torch
 from bittensor.utils import u16_normalized_float, networking
 from bittensor.utils.balance import Balance
@@ -189,7 +190,7 @@ class Subtensor:
 
         self.log_verbose = log_verbose
         self._connection_timeout = connection_timeout
-        self.substrate: "SubstrateInterface" = None
+        self.substrate: "AsyncSubstrateInterface" = None
         self._get_substrate()
 
     def __str__(self) -> str:
@@ -1665,8 +1666,8 @@ class Subtensor:
                     call=call, keypair=wallet.coldkeypub
                 )
             except Exception as e:
-                settings.bt_console.print(
-                    f":cross_mark: [red]Failed to get payment info[/red]:[bold white]\n  {e}[/bold white]"
+                logging.error(
+                    f":cross_mark: <red>Failed to get payment info</red>: {e}"
                 )
                 payment_info = {"partialFee": int(2e7)}  # assume  0.02 Tao
 

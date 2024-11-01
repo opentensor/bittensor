@@ -5,13 +5,8 @@ from bittensor_wallet.errors import KeyFileError
 from rich.prompt import Confirm
 from substrateinterface.exceptions import SubstrateRequestException
 
-from bittensor.core.settings import (
-    NETWORK_EXPLORER_MAP,
-    bt_console as console,
-    bt_err_console as err_console,
-    print_verbose,
-    print_error,
-)
+from bittensor import logging
+from bittensor.core.settings import NETWORK_EXPLORER_MAP
 from bittensor.utils.balance import Balance
 
 from bittensor.utils import (
@@ -70,10 +65,10 @@ async def transfer_extrinsic(
             )
         except SubstrateRequestException as e:
             payment_info = {"partialFee": int(2e7)}  # assume  0.02 Tao
-            err_console.print(
-                f":cross_mark: [red]Failed to get payment info[/red]:[bold white]\n"
-                f"  {format_error_message(e, subtensor.substrate)}[/bold white]\n"
-                f"  Defaulting to default transfer fee: {payment_info['partialFee']}"
+            logging.error(f":cross_mark: <red>Failed to get payment info</red>:")
+            logging.error(f"\t\t{format_error_message(e, subtensor.substrate)}")
+            logging.error(
+                f"\t\tDefaulting to default transfer fee: {payment_info['partialFee']}"
             )
 
         return Balance.from_rao(payment_info["partialFee"])
@@ -106,38 +101,41 @@ async def transfer_extrinsic(
             block_hash_ = response.block_hash
             return True, block_hash_, ""
         else:
-            return False, "", format_error_message(await response.error_message)
+            return (
+                False,
+                "",
+                format_error_message(
+                    await response.error_message, substrate=subtensor.substrate
+                ),
+            )
 
     # Validate destination address.
     if not is_valid_bittensor_address_or_public_key(destination):
-        err_console.print(
-            f":cross_mark: [red]Invalid destination SS58 address[/red]:[bold white]\n  {destination}[/bold white]"
+        logging.error(
+            f":cross_mark: <red>Invalid destination SS58 address</red>:[bold white]\n  {destination}[/bold white]"
         )
         return False
-    console.print(f"[dark_orange]Initiating transfer on network: {subtensor.network}")
+    logging.info(f"Initiating transfer on network: {subtensor.network}")
     # Unlock wallet coldkey.
     try:
         wallet.unlock_coldkey()
     except KeyFileError:
-        err_console.print("Error decrypting coldkey (possibly incorrect password)")
+        logging.error("Error decrypting coldkey (possibly incorrect password)")
         return False
 
     # Check balance.
-    with console.status(
-        f":satellite: Checking balance and fees on chain [white]{subtensor.network}[/white]",
-        spinner="aesthetic",
-    ) as status:
-        # check existential deposit and fee
-        print_verbose("Fetching existential and fee", status)
-        block_hash = await subtensor.substrate.get_chain_head()
-        account_balance_, existential_deposit = await asyncio.gather(
-            subtensor.get_balance(
-                wallet.coldkeypub.ss58_address, block_hash=block_hash
-            ),
-            subtensor.get_existential_deposit(block_hash=block_hash),
-        )
-        account_balance = account_balance_[wallet.coldkeypub.ss58_address]
-        fee = await get_transfer_fee()
+    logging.info(
+        f":satellite: <magenta>Checking balance and fees on chain </magenta> <blue>{subtensor.network}</blue>"
+    )
+    # check existential deposit and fee
+    logging.debug("Fetching existential and fee")
+    block_hash = await subtensor.substrate.get_chain_head()
+    account_balance_, existential_deposit = await asyncio.gather(
+        subtensor.get_balance(wallet.coldkeypub.ss58_address, block_hash=block_hash),
+        subtensor.get_existential_deposit(block_hash=block_hash),
+    )
+    account_balance = account_balance_[wallet.coldkeypub.ss58_address]
+    fee = await get_transfer_fee()
 
     if not keep_alive:
         # Check if the transfer should keep_alive the account
@@ -147,16 +145,14 @@ async def transfer_extrinsic(
     if transfer_all is True:
         amount = account_balance - fee - existential_deposit
         if amount < Balance(0):
-            print_error("Not enough balance to transfer")
+            logging.error("Not enough balance to transfer")
             return False
 
     if account_balance < (amount + fee + existential_deposit):
-        err_console.print(
-            ":cross_mark: [bold red]Not enough balance[/bold red]:\n\n"
-            f"  balance: [bright_cyan]{account_balance}[/bright_cyan]\n"
-            f"  amount: [bright_cyan]{amount}[/bright_cyan]\n"
-            f"  for fee: [bright_cyan]{fee}[/bright_cyan]"
-        )
+        logging.error(":cross_mark: <red>Not enough balance</red>")
+        logging.error(f"\t\tBalance:\t<blue>{account_balance}</blue>")
+        logging.error(f"\t\tAmount:\t<blue>{amount}</blue>")
+        logging.error(f"\t\tFor fee:\t<blue>{fee}</blue>")
         return False
 
     # Ask before moving on.
@@ -169,37 +165,36 @@ async def transfer_extrinsic(
         ):
             return False
 
-    with console.status(":satellite: Transferring...", spinner="earth") as status:
-        success, block_hash, err_msg = await do_transfer()
-
-        if success:
-            console.print(":white_heavy_check_mark: [green]Finalized[/green]")
-            console.print(f"[green]Block Hash: {block_hash}[/green]")
-
-            if subtensor.network == "finney":
-                print_verbose("Fetching explorer URLs", status)
-                explorer_urls = get_explorer_url_for_network(
-                    subtensor.network, block_hash, NETWORK_EXPLORER_MAP
-                )
-                if explorer_urls != {} and explorer_urls:
-                    console.print(
-                        f"[green]Opentensor Explorer Link: {explorer_urls.get('opentensor')}[/green]"
-                    )
-                    console.print(
-                        f"[green]Taostats Explorer Link: {explorer_urls.get('taostats')}[/green]"
-                    )
-        else:
-            console.print(f":cross_mark: [red]Failed[/red]: {err_msg}")
+    logging.info(":satellite: <magenta>Transferring...</magenta")
+    success, block_hash, err_msg = await do_transfer()
 
     if success:
-        with console.status(":satellite: Checking Balance...", spinner="aesthetic"):
-            new_balance = await subtensor.get_balance(
-                wallet.coldkeypub.ss58_address, reuse_block=False
+        logging.success(":white_heavy_check_mark: [green]Finalized</green>")
+        logging.info(f"[green]Block Hash:</green> <blue>{block_hash}</blue>")
+
+        if subtensor.network == "finney":
+            logging.debug("Fetching explorer URLs")
+            explorer_urls = get_explorer_url_for_network(
+                subtensor.network, block_hash, NETWORK_EXPLORER_MAP
             )
-            console.print(
-                f"Balance:\n"
-                f"  [blue]{account_balance}[/blue] :arrow_right: [green]{new_balance[wallet.coldkeypub.ss58_address]}[/green]"
-            )
-            return True
+            if explorer_urls != {} and explorer_urls:
+                logging.info(
+                    f"[green]Opentensor Explorer Link: {explorer_urls.get('opentensor')}</green>"
+                )
+                logging.info(
+                    f"[green]Taostats Explorer Link: {explorer_urls.get('taostats')}</green>"
+                )
+    else:
+        logging.error(f":cross_mark: <red>Failed</red>: {err_msg}")
+
+    if success:
+        logging.info(":satellite: <magenta>Checking Balance...<magenta>")
+        new_balance = await subtensor.get_balance(
+            wallet.coldkeypub.ss58_address, reuse_block=False
+        )
+        logging.info(
+            f"Balance: [blue]{account_balance}</blue> :arrow_right: [green]{new_balance[wallet.coldkeypub.ss58_address]}</green>"
+        )
+        return True
 
     return False

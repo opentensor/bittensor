@@ -10,17 +10,12 @@ from rich.prompt import Confirm
 from rich.table import Table, Column
 from substrateinterface.exceptions import SubstrateRequestException
 
-from bittensor.core.settings import (
-    bt_console as console,
-    bt_err_console as err_console,
-    print_verbose,
-)
 from bittensor.utils import u16_normalized_float, format_error_message
+from bittensor.utils.btlogging import logging
 from bittensor.utils.weight_utils import (
     normalize_max_weight,
     convert_weights_and_uids_for_emit,
 )
-
 
 if TYPE_CHECKING:
     from bittensor.core.async_subtensor import AsyncSubtensor
@@ -58,55 +53,55 @@ async def root_register_extrinsic(
     try:
         wallet.unlock_coldkey()
     except KeyFileError:
-        err_console.print("Error decrypting coldkey (possibly incorrect password)")
+        logging.error("Error decrypting coldkey (possibly incorrect password)")
         return False
 
-    print_verbose(f"Checking if hotkey ({wallet.hotkey_str}) is registered on root")
+    logging.debug(
+        f"Checking if hotkey (<blue>{wallet.hotkey_str}</blue>) is registered on root."
+    )
     is_registered = await subtensor.is_hotkey_registered(
         netuid=0, hotkey_ss58=wallet.hotkey.ss58_address
     )
     if is_registered:
-        console.print(
-            ":white_heavy_check_mark: [green]Already registered on root network.[/green]"
+        logging.error(
+            ":white_heavy_check_mark: <green>Already registered on root network.</green>"
         )
         return True
 
-    with console.status(":satellite: Registering to root network...", spinner="earth"):
-        call = await subtensor.substrate.compose_call(
-            call_module="SubtensorModule",
-            call_function="root_register",
-            call_params={"hotkey": wallet.hotkey.ss58_address},
-        )
-        success, err_msg = await subtensor.sign_and_send_extrinsic(
-            call,
-            wallet=wallet,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-        )
+    logging.info(":satellite: <magenta>Registering to root network...</magenta>")
+    call = await subtensor.substrate.compose_call(
+        call_module="SubtensorModule",
+        call_function="root_register",
+        call_params={"hotkey": wallet.hotkey.ss58_address},
+    )
+    success, err_msg = await subtensor.sign_and_send_extrinsic(
+        call,
+        wallet=wallet,
+        wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization,
+    )
 
-        if not success:
-            err_console.print(f":cross_mark: [red]Failed[/red]: {err_msg}")
-            time.sleep(0.5)
-            return False
+    if not success:
+        logging.error(f":cross_mark: <red>Failed</red>: {err_msg}")
+        time.sleep(0.5)
+        return False
 
-        # Successful registration, final check for neuron and pubkey
-        else:
-            uid = await subtensor.substrate.query(
-                module="SubtensorModule",
-                storage_function="Uids",
-                params=[0, wallet.hotkey.ss58_address],
+    # Successful registration, final check for neuron and pubkey
+    else:
+        uid = await subtensor.substrate.query(
+            module="SubtensorModule",
+            storage_function="Uids",
+            params=[0, wallet.hotkey.ss58_address],
+        )
+        if uid is not None:
+            logging.info(
+                f":white_heavy_check_mark: <green>Registered with UID</green> <blue>{uid}</blue>"
             )
-            if uid is not None:
-                console.print(
-                    f":white_heavy_check_mark: [green]Registered with UID {uid}[/green]"
-                )
-                return True
-            else:
-                # neuron not found, try again
-                err_console.print(
-                    ":cross_mark: [red]Unknown error. Neuron not found.[/red]"
-                )
-                return False
+            return True
+        else:
+            # neuron not found, try again
+            logging.error(":cross_mark: <red>Unknown error. Neuron not found.</red>")
+            return False
 
 
 async def set_root_weights_extrinsic(
@@ -173,13 +168,13 @@ async def set_root_weights_extrinsic(
     )
 
     if my_uid is None:
-        err_console.print("Your hotkey is not registered to the root network")
+        logging.error("Your hotkey is not registered to the root network")
         return False
 
     try:
         wallet.unlock_coldkey()
     except KeyFileError:
-        err_console.print("Error decrypting coldkey (possibly incorrect password)")
+        logging.error("Error decrypting coldkey (possibly incorrect password)")
         return False
 
     # First convert types.
@@ -188,7 +183,7 @@ async def set_root_weights_extrinsic(
     if isinstance(weights, list):
         weights = np.array(weights, dtype=np.float32)
 
-    print_verbose("Fetching weight limits")
+    logging.debug("Fetching weight limits")
     min_allowed_weights, max_weight_limit = await get_limits(subtensor)
 
     # Get non zero values.
@@ -202,10 +197,10 @@ async def set_root_weights_extrinsic(
         )
 
     # Normalize the weights to max value.
-    print_verbose("Normalizing weights")
+    logging.info("Normalizing weights")
     formatted_weights = normalize_max_weight(x=weights, limit=max_weight_limit)
-    console.print(
-        f"\nRaw weights -> Normalized weights: \n\t{weights} -> \n\t{formatted_weights}\n"
+    logging.info(
+        f"Raw weights -> Normalized weights: <blue>{weights}</blue> -> <green>{formatted_weights}</green>"
     )
 
     # Ask before moving on.
@@ -218,34 +213,33 @@ async def set_root_weights_extrinsic(
             expand=False,
             show_edge=False,
         )
+        print("Netuid | Weight")
 
         for netuid, weight in zip(netuids, formatted_weights):
             table.add_row(str(netuid), f"{weight:.8f}")
+            print(f"{netuid} | {weight}")
 
-        console.print(table)
         if not Confirm.ask("\nDo you want to set these root weights?"):
             return False
 
     try:
-        with console.status("Setting root weights...", spinner="earth"):
-            weight_uids, weight_vals = convert_weights_and_uids_for_emit(
-                netuids, weights
-            )
+        logging.info(":satellite: <magenta>Setting root weights...<magenta>")
+        weight_uids, weight_vals = convert_weights_and_uids_for_emit(netuids, weights)
 
-            success, error_message = await _do_set_weights()
+        success, error_message = await _do_set_weights()
 
-            if not wait_for_finalization and not wait_for_inclusion:
-                return True
+        if not wait_for_finalization and not wait_for_inclusion:
+            return True
 
-            if success is True:
-                console.print(":white_heavy_check_mark: [green]Finalized[/green]")
-                return True
-            else:
-                fmt_err = format_error_message(error_message, subtensor.substrate)
-                err_console.print(f":cross_mark: [red]Failed[/red]: {fmt_err}")
-                return False
+        if success is True:
+            logging.info(":white_heavy_check_mark: <green>Finalized</green>")
+            return True
+        else:
+            fmt_err = format_error_message(error_message, subtensor.substrate)
+            logging.error(f":cross_mark: <red>Failed</red>: {fmt_err}")
+            return False
 
     except SubstrateRequestException as e:
         fmt_err = format_error_message(e, subtensor.substrate)
-        err_console.print(":cross_mark: [red]Failed[/red]: error:{}".format(fmt_err))
+        logging.error(f":cross_mark: <red>Failed</red>: error:{fmt_err}")
         return False

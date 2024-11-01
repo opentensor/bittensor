@@ -24,7 +24,7 @@ import scalecodec
 from bittensor_wallet import Keypair
 from substrateinterface.utils import ss58
 
-from bittensor.core.settings import SS58_FORMAT, bt_err_console
+from bittensor.core.settings import SS58_FORMAT
 from bittensor.utils.btlogging import logging
 from .registration import torch, use_torch
 from .version import version_checking, check_version, VersionCheckError
@@ -209,8 +209,8 @@ def format_error_message(
                         err_docs = error_dict.get("docs", [])
                         err_description = err_docs[0] if err_docs else err_description
                     except (AttributeError, IndexError):
-                        bt_err_console.print(
-                            "Substrate pallets data unavailable. This is usually caused by an uninitialized substrate."
+                        logging.error(
+                            "<red>Substrate pallets data unavailable. This is usually caused by an uninitialized substrate.</red>"
                         )
             else:
                 err_description = err_data
