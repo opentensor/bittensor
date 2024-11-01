@@ -30,15 +30,21 @@ from multiprocessing.queues import Queue as QueueType
 from queue import Empty, Full
 from typing import Any, Callable, Optional, Union, TYPE_CHECKING
 
-import backoff
 import numpy
 from Crypto.Hash import keccak
+from retry import retry
 from rich import console as rich_console, status as rich_status
+from rich.console import Console
+from rich.traceback import install
 
-from bittensor.core.settings import bt_console
 from bittensor.utils.btlogging import logging
 from bittensor.utils.formatting import get_human_readable, millify
 from bittensor.utils.register_cuda import solve_cuda
+
+# Console for `RegistrationStatisticsLogger` class
+bt_console = Console()
+# Remove overdue locals in debug training.
+install(show_locals=False)
 
 
 def use_torch() -> bool:
@@ -735,7 +741,7 @@ def _solve_for_difficulty_fast(
     return solution
 
 
-@backoff.on_exception(backoff.constant, Exception, interval=1, max_tries=3)
+@retry(Exception, tries=3, delay=1)
 def _get_block_with_retry(
     subtensor: "Subtensor", netuid: int
 ) -> tuple[int, int, bytes]:

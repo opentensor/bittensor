@@ -22,14 +22,11 @@ from bittensor_wallet.mock.wallet_mock import get_mock_coldkey
 from bittensor_wallet.mock.wallet_mock import get_mock_hotkey
 from bittensor_wallet.mock.wallet_mock import get_mock_wallet
 
-from rich.console import Console
-from rich.text import Text
-
 from bittensor.utils.balance import Balance
 from bittensor.core.chain_data import AxonInfo, NeuronInfo, PrometheusInfo
 
 
-def __mock_wallet_factory__(*args, **kwargs) -> _MockWallet:
+def __mock_wallet_factory__(*_, **__) -> _MockWallet:
     """Returns a mock wallet object."""
 
     mock_wallet = get_mock_wallet()
@@ -120,51 +117,51 @@ def get_mock_neuron_by_uid(uid: int, **kwargs) -> NeuronInfo:
     )
 
 
-class MockStatus:
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        pass
-
-    def start(self):
-        pass
-
-    def stop(self):
-        pass
-
-    def update(self, *args, **kwargs):
-        MockConsole().print(*args, **kwargs)
-
-
-class MockConsole:
-    """
-    Mocks the console object for status and print.
-    Captures the last print output as a string.
-    """
-
-    captured_print = None
-
-    def status(self, *args, **kwargs):
-        return MockStatus()
-
-    def print(self, *args, **kwargs):
-        console = Console(
-            width=1000, no_color=True, markup=False
-        )  # set width to 1000 to avoid truncation
-        console.begin_capture()
-        console.print(*args, **kwargs)
-        self.captured_print = console.end_capture()
-
-    def clear(self, *args, **kwargs):
-        pass
-
-    @staticmethod
-    def remove_rich_syntax(text: str) -> str:
-        """
-        Removes rich syntax from the given text.
-        Removes markup and ansi syntax.
-        """
-        output_no_syntax = Text.from_ansi(Text.from_markup(text).plain).plain
-
-        return output_no_syntax
+# class MockStatus:
+#     def __enter__(self):
+#         return self
+#
+#     def __exit__(self, exc_type, exc_value, traceback):
+#         pass
+#
+#     def start(self):
+#         pass
+#
+#     def stop(self):
+#         pass
+#
+#     def update(self, *args, **kwargs):
+#         MockConsole().print(*args, **kwargs)
+#
+#
+# class MockConsole:
+#     """
+#     Mocks the console object for status and print.
+#     Captures the last print output as a string.
+#     """
+#
+#     captured_print = None
+#
+#     def status(self, *args, **kwargs):
+#         return MockStatus()
+#
+#     def print(self, *args, **kwargs):
+#         console = Console(
+#             width=1000, no_color=True, markup=False
+#         )  # set width to 1000 to avoid truncation
+#         console.begin_capture()
+#         console.print(*args, **kwargs)
+#         self.captured_print = console.end_capture()
+#
+#     def clear(self, *args, **kwargs):
+#         pass
+#
+#     @staticmethod
+#     def remove_rich_syntax(text: str) -> str:
+#         """
+#         Removes rich syntax from the given text.
+#         Removes markup and ansi syntax.
+#         """
+#         output_no_syntax = Text.from_ansi(Text.from_markup(text).plain).plain
+#
+#         return output_no_syntax

@@ -22,7 +22,6 @@ from bittensor_wallet.errors import KeyFileError
 from retry import retry
 from rich.prompt import Confirm
 
-from bittensor.core.settings import bt_console
 from bittensor.utils import format_error_message
 from bittensor.utils.btlogging import logging
 from bittensor.utils.networking import ensure_connected
@@ -142,24 +141,20 @@ def register_extrinsic(
             Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
     if not subtensor.subnet_exists(netuid):
-        bt_console.print(
-            ":cross_mark: [red]Failed[/red]: error: [bold white]subnet:{}[/bold white] does not exist.".format(
-                netuid
-            )
+        logging.error(
+            f":cross_mark: <red>Failed: </red> Subnet {netuid} does not exist."
         )
         return False
 
-    with bt_console.status(
-        f":satellite: Checking Account on [bold]subnet:{netuid}[/bold]..."
-    ):
-        neuron = subtensor.get_neuron_for_pubkey_and_subnet(
-            wallet.hotkey.ss58_address, netuid=netuid
+    logging.info(f":satellite: Checking Account on subnet <blue>{netuid}</blue>...")
+    neuron = subtensor.get_neuron_for_pubkey_and_subnet(
+        wallet.hotkey.ss58_address, netuid=netuid
+    )
+    if not neuron.is_null:
+        logging.debug(
+            f"Wallet <blue>{wallet}</blue> is already registered on <blue>{neuron.netuid}</blue> with <blue>{neuron.uid}</blue>."
         )
-        if not neuron.is_null:
-            logging.debug(
-                f"Wallet {wallet} is already registered on {neuron.netuid} with {neuron.uid}"
-            )
-            return True
+        return True
 
     if prompt:
         if not Confirm.ask(
@@ -178,14 +173,14 @@ def register_extrinsic(
     # Attempt rolling registration.
     attempts = 1
     while True:
-        bt_console.print(
-            ":satellite: Registering...({}/{})".format(attempts, max_allowed_attempts)
+        logging.info(
+            f":satellite: <magenta>Registering...({attempts}/{max_allowed_attempts})</magenta>"
         )
         # Solve latest POW.
         if cuda:
             if not torch.cuda.is_available():
                 if prompt:
-                    bt_console.print("CUDA is not available.")
+                    logging.info("CUDA is not available.")
                 return False
             pow_result: Optional[POWSolution] = create_pow(
                 subtensor,
@@ -218,73 +213,71 @@ def register_extrinsic(
                 netuid=netuid, hotkey_ss58=wallet.hotkey.ss58_address
             )
             if is_registered:
-                bt_console.print(
-                    f":white_heavy_check_mark: [green]Already registered on netuid:{netuid}[/green]"
+                logging.info(
+                    f":white_heavy_check_mark: <green>Already registered on netuid:{netuid}</green>"
                 )
                 return True
 
         # pow successful, proceed to submit pow to chain for registration
         else:
-            with bt_console.status(":satellite: Submitting POW..."):
-                # check if pow result is still valid
-                while not pow_result.is_stale(subtensor=subtensor):
-                    result: tuple[bool, Optional[str]] = _do_pow_register(
-                        self=subtensor,
-                        netuid=netuid,
-                        wallet=wallet,
-                        pow_result=pow_result,
-                        wait_for_inclusion=wait_for_inclusion,
-                        wait_for_finalization=wait_for_finalization,
-                    )
-                    success, err_msg = result
+            logging.info(":satellite: <magenta>Submitting POW...</magenta>")
+            # check if pow result is still valid
+            while not pow_result.is_stale(subtensor=subtensor):
+                result: tuple[bool, Optional[str]] = _do_pow_register(
+                    self=subtensor,
+                    netuid=netuid,
+                    wallet=wallet,
+                    pow_result=pow_result,
+                    wait_for_inclusion=wait_for_inclusion,
+                    wait_for_finalization=wait_for_finalization,
+                )
+                success, err_msg = result
 
-                    if not success:
-                        # Look error here
-                        # https://github.com/opentensor/subtensor/blob/development/pallets/subtensor/src/errors.rs
-                        if "HotKeyAlreadyRegisteredInSubNet" in err_msg:
-                            bt_console.print(
-                                f":white_heavy_check_mark: [green]Already Registered on [bold]subnet:{netuid}[/bold][/green]"
-                            )
-                            return True
-
-                        bt_console.print(f":cross_mark: [red]Failed[/red]: {err_msg}")
-                        time.sleep(0.5)
-
-                    # Successful registration, final check for neuron and pubkey
-                    else:
-                        bt_console.print(":satellite: Checking Balance...")
-                        is_registered = subtensor.is_hotkey_registered(
-                            hotkey_ss58=wallet.hotkey.ss58_address,
-                            netuid=netuid,
+                if not success:
+                    # Look error here
+                    # https://github.com/opentensor/subtensor/blob/development/pallets/subtensor/src/errors.rs
+                    if "HotKeyAlreadyRegisteredInSubNet" in err_msg:
+                        logging.info(
+                            f":white_heavy_check_mark: <green>Already Registered on subnet <blue>{netuid}</blue></green>."
                         )
-                        if is_registered:
-                            bt_console.print(
-                                ":white_heavy_check_mark: [green]Registered[/green]"
-                            )
-                            return True
-                        else:
-                            # neuron not found, try again
-                            bt_console.print(
-                                ":cross_mark: [red]Unknown error. Neuron not found.[/red]"
-                            )
-                            continue
+                        return True
+
+                    logging.error(f":cross_mark: <red>Failed:</red> {err_msg}")
+                    time.sleep(0.5)
+
+                # Successful registration, final check for neuron and pubkey
                 else:
-                    # Exited loop because pow is no longer valid.
-                    bt_console.print("[red]POW is stale.[/red]")
-                    # Try again.
-                    continue
+                    logging.info(":satellite: <magenta>Checking Balance...</magenta>")
+                    is_registered = subtensor.is_hotkey_registered(
+                        hotkey_ss58=wallet.hotkey.ss58_address,
+                        netuid=netuid,
+                    )
+                    if is_registered:
+                        logging.info(
+                            ":white_heavy_check_mark: <green>Registered</green>"
+                        )
+                        return True
+                    else:
+                        # neuron not found, try again
+                        logging.error(
+                            ":cross_mark: <red>Unknown error. Neuron not found.</red>"
+                        )
+                        continue
+            else:
+                # Exited loop because pow is no longer valid.
+                logging.error("<red>POW is stale.</red>")
+                # Try again.
+                continue
 
         if attempts < max_allowed_attempts:
             # Failed registration, retry pow
             attempts += 1
-            bt_console.print(
-                ":satellite: Failed registration, retrying pow ...({}/{})".format(
-                    attempts, max_allowed_attempts
-                )
+            logging.info(
+                f":satellite: <magenta>Failed registration, retrying pow ...({attempts}/{max_allowed_attempts})</magenta>"
             )
         else:
             # Failed to register after max attempts.
-            bt_console.print("[red]No more attempts.[/red]")
+            logging.error("<red>No more attempts.</red>")
             return False
 
 
@@ -370,82 +363,70 @@ def burned_register_extrinsic(
         success (bool): Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
     if not subtensor.subnet_exists(netuid):
-        bt_console.print(
-            ":cross_mark: [red]Failed[/red]: error: [bold white]subnet:{}[/bold white] does not exist.".format(
-                netuid
-            )
+        logging.error(
+            f":cross_mark: <red>Failed error:</red> subnet <blue>{netuid}</blue> does not exist."
         )
         return False
 
     try:
         wallet.unlock_coldkey()
     except KeyFileError:
-        bt_console.print(
-            ":cross_mark: [red]Keyfile is corrupt, non-writable, non-readable or the password used to decrypt is invalid[/red]:[bold white]\n  [/bold white]"
+        logging.error(
+            ":cross_mark: <red>Keyfile is corrupt, non-writable, non-readable or the password used to decrypt is invalid.</red>"
         )
         return False
-    with bt_console.status(
-        f":satellite: Checking Account on [bold]subnet:{netuid}[/bold]..."
-    ):
-        neuron = subtensor.get_neuron_for_pubkey_and_subnet(
-            wallet.hotkey.ss58_address, netuid=netuid
-        )
+    logging.info(
+        f":satellite: <magenta>Checking Account on subnet</magenta> <blue>{netuid}</blue><magenta> ...</magenta>"
+    )
+    neuron = subtensor.get_neuron_for_pubkey_and_subnet(
+        wallet.hotkey.ss58_address, netuid=netuid
+    )
 
-        old_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
+    old_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
 
-        recycle_amount = subtensor.recycle(netuid=netuid)
-        if not neuron.is_null:
-            bt_console.print(
-                ":white_heavy_check_mark: [green]Already Registered[/green]:\n"
-                "uid: [bold white]{}[/bold white]\n"
-                "netuid: [bold white]{}[/bold white]\n"
-                "hotkey: [bold white]{}[/bold white]\n"
-                "coldkey: [bold white]{}[/bold white]".format(
-                    neuron.uid, neuron.netuid, neuron.hotkey, neuron.coldkey
-                )
-            )
-            return True
+    recycle_amount = subtensor.recycle(netuid=netuid)
+    if not neuron.is_null:
+        logging.info(":white_heavy_check_mark: <green>Already Registered</green>")
+        logging.info(f"\t\tuid: <blue>{neuron.uid}</blue>")
+        logging.info(f"\t\tnetuid: <blue>{neuron.netuid}</blue>")
+        logging.info(f"\t\thotkey: <blue>{neuron.hotkey}</blue>")
+        logging.info(f"\t\tcoldkey: <blue>{neuron.coldkey}</blue>")
+        return True
 
     if prompt:
         # Prompt user for confirmation.
         if not Confirm.ask(f"Recycle {recycle_amount} to register on subnet:{netuid}?"):
             return False
 
-    with bt_console.status(":satellite: Recycling TAO for Registration..."):
-        success, err_msg = _do_burned_register(
-            self=subtensor,
-            netuid=netuid,
-            wallet=wallet,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
+    logging.info(":satellite: <magenta>Recycling TAO for Registration...</magenta>")
+    success, err_msg = _do_burned_register(
+        self=subtensor,
+        netuid=netuid,
+        wallet=wallet,
+        wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization,
+    )
+
+    if not success:
+        logging.error(f":cross_mark: <red>Failed:</red> {err_msg}")
+        time.sleep(0.5)
+        return False
+    # Successful registration, final check for neuron and pubkey
+    else:
+        logging.info(":satellite: <magenta>Checking Balance...</magenta>")
+        block = subtensor.get_current_block()
+        new_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address, block=block)
+
+        logging.info(
+            f"Balance: <blue>{old_balance}</blue> :arrow_right: <green>{new_balance}</green>"
         )
-
-        if not success:
-            bt_console.print(f":cross_mark: [red]Failed[/red]: {err_msg}")
-            time.sleep(0.5)
-            return False
-        # Successful registration, final check for neuron and pubkey
+        is_registered = subtensor.is_hotkey_registered(
+            netuid=netuid, hotkey_ss58=wallet.hotkey.ss58_address
+        )
+        if is_registered:
+            logging.info(":white_heavy_check_mark: <green>Registered</green>")
+            return True
         else:
-            bt_console.print(":satellite: Checking Balance...")
-            block = subtensor.get_current_block()
-            new_balance = subtensor.get_balance(
-                wallet.coldkeypub.ss58_address, block=block
-            )
-
-            bt_console.print(
-                "Balance:\n  [blue]{}[/blue] :arrow_right: [green]{}[/green]".format(
-                    old_balance, new_balance
-                )
-            )
-            is_registered = subtensor.is_hotkey_registered(
-                netuid=netuid, hotkey_ss58=wallet.hotkey.ss58_address
-            )
-            if is_registered:
-                bt_console.print(":white_heavy_check_mark: [green]Registered[/green]")
-                return True
-            else:
-                # neuron not found, try again
-                bt_console.print(
-                    ":cross_mark: [red]Unknown error. Neuron not found.[/red]"
-                )
-                return False
+            # neuron not found, try again
+            logging.error(":cross_mark: <red>Unknown error. Neuron not found.</red>")
+            return False

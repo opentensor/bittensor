@@ -21,7 +21,7 @@ from typing import Optional, TYPE_CHECKING
 from retry import retry
 
 from bittensor.core.extrinsics.utils import submit_extrinsic
-from bittensor.core.settings import version_as_int, bt_console
+from bittensor.core.settings import version_as_int
 from bittensor.utils import networking as net, format_error_message
 from bittensor.utils.btlogging import logging
 from bittensor.utils.networking import ensure_connected
@@ -113,10 +113,9 @@ def prometheus_extrinsic(
     if ip is None:
         try:
             external_ip = net.get_external_ip()
-            bt_console.print(
-                f":white_heavy_check_mark: [green]Found external ip: {external_ip}[/green]"
+            logging.success(
+                f":white_heavy_check_mark: <green>Found external ip: {external_ip}</green>"
             )
-            logging.success(prefix="External IP", suffix="<blue>{external_ip}</blue>")
         except Exception as e:
             raise RuntimeError(
                 f"Unable to attain your external ip. Check your internet connection. error: {e}"
@@ -131,57 +130,53 @@ def prometheus_extrinsic(
         "ip_type": net.ip_version(external_ip),
     }
 
-    with bt_console.status(":satellite: Checking Prometheus..."):
-        neuron = subtensor.get_neuron_for_pubkey_and_subnet(
-            wallet.hotkey.ss58_address, netuid=netuid
-        )
-        neuron_up_to_date = not neuron.is_null and call_params == {
-            "version": neuron.prometheus_info.version,
-            "ip": net.ip_to_int(neuron.prometheus_info.ip),
-            "port": neuron.prometheus_info.port,
-            "ip_type": neuron.prometheus_info.ip_type,
-        }
+    logging.info(":satellite: <magenta>Checking Prometheus...</magenta>")
+    neuron = subtensor.get_neuron_for_pubkey_and_subnet(
+        wallet.hotkey.ss58_address, netuid=netuid
+    )
+    neuron_up_to_date = not neuron.is_null and call_params == {
+        "version": neuron.prometheus_info.version,
+        "ip": net.ip_to_int(neuron.prometheus_info.ip),
+        "port": neuron.prometheus_info.port,
+        "ip_type": neuron.prometheus_info.ip_type,
+    }
 
     if neuron_up_to_date:
-        bt_console.print(
-            f":white_heavy_check_mark: [green]Prometheus already Served[/green]\n"
-            f"[green not bold]- Status: [/green not bold] |"
-            f"[green not bold] ip: [/green not bold][white not bold]{neuron.prometheus_info.ip}[/white not bold] |"
-            f"[green not bold] ip_type: [/green not bold][white not bold]{neuron.prometheus_info.ip_type}[/white not bold] |"
-            f"[green not bold] port: [/green not bold][white not bold]{neuron.prometheus_info.port}[/white not bold] | "
-            f"[green not bold] version: [/green not bold][white not bold]{neuron.prometheus_info.version}[/white not bold] |"
+        logging.info(
+            ":white_heavy_check_mark: <magenta>Prometheus already Served</magenta>"
         )
-
-        bt_console.print(
-            f":white_heavy_check_mark: [white]Prometheus already served.[/white]"
-        )
+        logging.info("<green>Status:</green>")
+        logging.info(f"<green>\tip: </green>{neuron.prometheus_info.ip}")
+        logging.info(f"<green>\tip_type: </green>{neuron.prometheus_info.ip_type}")
+        logging.info(f"<green>\tport: </green>{neuron.prometheus_info.port}")
+        logging.info(f"<green>\tversion: </green>{neuron.prometheus_info.version}")
         return True
 
     # Add netuid, not in prometheus_info
     call_params["netuid"] = netuid
 
-    with bt_console.status(
-        f":satellite: Serving prometheus on: [white]{subtensor.network}:{netuid}[/white] ..."
-    ):
-        success, error_message = do_serve_prometheus(
-            self=subtensor,
-            wallet=wallet,
-            call_params=call_params,
-            wait_for_finalization=wait_for_finalization,
-            wait_for_inclusion=wait_for_inclusion,
-        )
+    logging.info(
+        f":satellite: <magenta>Serving prometheus on: {subtensor.network}:{netuid} </magenta>"
+    )
+    success, error_message = do_serve_prometheus(
+        self=subtensor,
+        wallet=wallet,
+        call_params=call_params,
+        wait_for_finalization=wait_for_finalization,
+        wait_for_inclusion=wait_for_inclusion,
+    )
 
-        if wait_for_inclusion or wait_for_finalization:
-            if success is True:
-                json_ = json.dumps(call_params, indent=4, sort_keys=True)
-                bt_console.print(
-                    f":white_heavy_check_mark: [green]Served prometheus[/green]\n  [bold white]{json_}[/bold white]"
-                )
-                return True
-            else:
-                bt_console.print(
-                    f":cross_mark: [red]Failed[/red]: {format_error_message(error_message)}"
-                )
-                return False
-        else:
+    if wait_for_inclusion or wait_for_finalization:
+        if success is True:
+            json_ = json.dumps(call_params, indent=4, sort_keys=True)
+            logging.info(
+                f":white_heavy_check_mark: <green>Served prometheus:</green> {json_}"
+            )
             return True
+        else:
+            logging.error(
+                f":cross_mark: <red>Failed</red>: {format_error_message(error_message)}"
+            )
+            return False
+    else:
+        return True
