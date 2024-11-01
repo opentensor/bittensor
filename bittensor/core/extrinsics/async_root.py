@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from bittensor.core.async_subtensor import AsyncSubtensor
 
 
-async def get_limits(subtensor: AsyncSubtensor) -> tuple[int, float]:
+async def get_limits(subtensor: "AsyncSubtensor") -> tuple[int, float]:
     # Get weight restrictions.
     maw, mwl = await asyncio.gather(
         subtensor.get_hyperparameter("MinAllowedWeights", netuid=0),
@@ -33,7 +33,7 @@ async def get_limits(subtensor: AsyncSubtensor) -> tuple[int, float]:
 
 
 async def root_register_extrinsic(
-    subtensor: AsyncSubtensor,
+    subtensor: "AsyncSubtensor",
     wallet: Wallet,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
@@ -105,7 +105,7 @@ async def root_register_extrinsic(
 
 
 async def set_root_weights_extrinsic(
-    subtensor: AsyncSubtensor,
+    subtensor: "AsyncSubtensor",
     wallet: Wallet,
     netuids: Union[NDArray[np.int64], list[int]],
     weights: Union[NDArray[np.float32], list[float]],

@@ -13,7 +13,6 @@ from scalecodec.base import RuntimeConfiguration
 from scalecodec.type_registry import load_type_registry_preset
 from substrateinterface.exceptions import SubstrateRequestException
 
-from bittensor import logging
 from bittensor.core.chain_data import (
     DelegateInfo,
     custom_rpc_type_registry,
@@ -47,6 +46,7 @@ from bittensor.utils.async_substrate_interface import (
     TimeoutException,
 )
 from bittensor.utils.balance import Balance
+from bittensor.utils.btlogging import logging
 from bittensor.utils.delegates_details import DelegatesDetails
 
 

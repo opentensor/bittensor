@@ -1,19 +1,19 @@
 import asyncio
 from typing import TYPE_CHECKING
+
 from bittensor_wallet import Wallet
 from bittensor_wallet.errors import KeyFileError
 from rich.prompt import Confirm
 from substrateinterface.exceptions import SubstrateRequestException
 
-from bittensor import logging
 from bittensor.core.settings import NETWORK_EXPLORER_MAP
-from bittensor.utils.balance import Balance
-
 from bittensor.utils import (
     format_error_message,
     get_explorer_url_for_network,
     is_valid_bittensor_address_or_public_key,
 )
+from bittensor.utils.balance import Balance
+from bittensor.utils.btlogging import logging
 
 if TYPE_CHECKING:
     from bittensor.core.async_subtensor import AsyncSubtensor
