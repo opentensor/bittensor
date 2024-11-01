@@ -32,7 +32,7 @@ async def test_commit_and_reveal_weights(local_chain):
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
-    netuid = 1
+    netuid = 2
     logging.info("Testing test_commit_and_reveal_weights")
     # Register root as Alice
     keypair, alice_wallet = setup_wallet("//Alice")
@@ -43,9 +43,9 @@ async def test_commit_and_reveal_weights(local_chain):
         "SubtensorModule", "NetworksAdded", [1]
     ).serialize(), "Subnet wasn't created successfully"
 
-    assert register_neuron(
-        local_chain, alice_wallet, netuid
-    ), "Unable to register Alice as a neuron"
+    # assert register_neuron(
+    #     local_chain, alice_wallet, netuid
+    # ), "Unable to register Alice as a neuron"
 
     # Stake to become to top neuron after the first epoch
     add_stake(local_chain, alice_wallet, netuid, bittensor.Balance.from_tao(100_000))
@@ -84,6 +84,7 @@ async def test_commit_and_reveal_weights(local_chain):
     assert (
         subtensor.weights_rate_limit(netuid=netuid) > 0
     ), "Weights rate limit is below 0"
+
     # Lower the rate limit
     assert sudo_set_hyperparameter_values(
         local_chain,

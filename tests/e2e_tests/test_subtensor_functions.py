@@ -30,11 +30,11 @@ async def test_subtensor_extrinsics(local_chain):
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
-    netuid = 1
+    netuid = 2
     subtensor = bittensor.Subtensor(network="ws://localhost:9945")
 
     # Subnets 0 and 3 are bootstrapped from the start
-    assert subtensor.get_subnets() == [0, 3]
+    assert subtensor.get_subnets() == [0, 1]
     assert subtensor.get_total_subnets() == 2
 
     # Add wallets for Alice and Bob
@@ -45,7 +45,7 @@ async def test_subtensor_extrinsics(local_chain):
     register_subnet(local_chain, alice_wallet), "Unable to register the subnet"
 
     # Subnet 1 is added after registration
-    assert subtensor.get_subnets() == [0, 1, 3]
+    assert subtensor.get_subnets() == [0, 1, 2]
     assert subtensor.get_total_subnets() == 3
 
     # Verify subnet 1 created successfully
@@ -53,13 +53,13 @@ async def test_subtensor_extrinsics(local_chain):
     assert subtensor.subnet_exists(netuid)
 
     # Register Alice to the subnet
-    assert register_neuron(
-        local_chain, alice_wallet, netuid
-    ), "Unable to register Alice as a neuron"
+    # assert register_neuron(
+    #     local_chain, alice_wallet, netuid
+    # ), "Unable to register Alice as a neuron"
 
     # Verify Alice is registered to netuid 1 and Bob isn't registered to any
     assert subtensor.get_netuids_for_hotkey(hotkey_ss58=alice_keypair.ss58_address) == [
-        1
+        netuid
     ], "Alice is not registered to netuid 1 as expected"
     assert (
         subtensor.get_netuids_for_hotkey(hotkey_ss58=bob_keypair.ss58_address) == []

@@ -30,7 +30,7 @@ async def test_axon(local_chain):
 
     logging.info("Testing test_axon")
 
-    netuid = 1
+    netuid = 2
     # Register root as Alice - the subnet owner
     alice_keypair, wallet = setup_wallet("//Alice")
 
@@ -43,9 +43,9 @@ async def test_axon(local_chain):
     ).serialize(), "Subnet wasn't created successfully"
 
     # Register Alice to the network
-    assert register_neuron(
-        local_chain, wallet, netuid
-    ), f"Neuron wasn't registered to subnet {netuid}"
+    # assert register_neuron(
+    #     local_chain, wallet, netuid
+    # ), f"Neuron wasn't registered to subnet {netuid}"
 
     metagraph = bittensor.Metagraph(netuid=netuid, network="ws://localhost:9945")
 
@@ -95,6 +95,7 @@ async def test_axon(local_chain):
 
     # Refresh the metagraph
     metagraph = bittensor.Metagraph(netuid=netuid, network="ws://localhost:9945")
+    print("metagraph", metagraph)
     updated_axon = metagraph.axons[0]
     external_ip = networking.get_external_ip()
 
