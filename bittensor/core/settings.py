@@ -23,36 +23,6 @@ import warnings
 from pathlib import Path
 
 from munch import munchify
-from rich.console import Console
-from rich.traceback import install
-
-# Rich console.
-__console__ = Console()
-__use_console__ = True
-
-# Remove overdue locals in debug training.
-install(show_locals=False)
-
-
-def turn_console_off():
-    global __use_console__
-    global __console__
-    from io import StringIO
-
-    __use_console__ = False
-    __console__ = Console(file=StringIO(), stderr=False)
-
-
-def turn_console_on():
-    global __use_console__
-    global __console__
-    __use_console__ = True
-    __console__ = Console()
-
-
-turn_console_off()
-
-bt_console = __console__
 
 
 HOME_DIR = Path.home()
