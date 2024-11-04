@@ -126,10 +126,8 @@ async def test_commit_and_reveal_weights(local_chain):
     # Assert that the committed weights are set correctly
     assert weight_commits.value is not None, "Weight commit not found in storage"
     commit_queue = weight_commits.value
-    print("++++++++++++++++ ")
-    print(commit_queue[0])
-    print(commit_queue[0][0])
-    print(weight_commits.value)
+    
+    // need implement the commit epoch logic
     commit_hash = commit_queue[0]
     commit_block = commit_queue[0][1]
 
