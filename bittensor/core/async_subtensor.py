@@ -8,7 +8,6 @@ import typer
 from bittensor_wallet import Wallet
 from bittensor_wallet.utils import SS58_FORMAT
 from numpy.typing import NDArray
-from rich.prompt import Confirm
 from scalecodec import GenericCall
 from scalecodec.base import RuntimeConfiguration
 from scalecodec.type_registry import load_type_registry_preset
@@ -55,6 +54,7 @@ from bittensor.utils.async_substrate_interface import (
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 from bittensor.utils.delegates_details import DelegatesDetails
+from bittensor.utils.weight_utils import generate_weight_hash
 
 
 class ParamWithTypes(TypedDict):
@@ -170,29 +170,47 @@ class AsyncSubtensor:
         """
         return await self.substrate.get_block_number()
 
+    async def get_block_hash(self, block_id: Optional[int] = None):
+        """
+        Retrieves the hash of a specific block on the Bittensor blockchain. The block hash is a unique identifier representing the cryptographic hash of the block's content, ensuring its integrity and immutability.
+
+        Args:
+            block_id (int): The block number for which the hash is to be retrieved.
+
+        Returns:
+            str: The cryptographic hash of the specified block.
+
+        The block hash is a fundamental aspect of blockchain technology, providing a secure reference to each block's data. It is crucial for verifying transactions, ensuring data consistency, and maintaining the trustworthiness of the blockchain.
+        """
+        return await self.substrate.get_block_hash(
+            block_id if block_id else await self.get_current_block()
+        )
+
     async def is_hotkey_registered_any(
-        self, hotkey_ss58: str, block: Optional[int] = None
+        self, hotkey_ss58: str, block_hash: Optional[str] = None
     ) -> bool:
         """
         Checks if a neuron's hotkey is registered on any subnet within the Bittensor network.
 
         Args:
             hotkey_ss58 (str): The ``SS58`` address of the neuron's hotkey.
-            block (Optional[int]): The blockchain block number at which to perform the check.
+            block_hash (Optional[str]): The blockchain block_hash representation of block id.
 
         Returns:
             bool: ``True`` if the hotkey is registered on any subnet, False otherwise.
 
         This function is essential for determining the network-wide presence and participation of a neuron.
         """
-        return len(await self.get_netuids_for_hotkey(hotkey_ss58, block)) > 0
+        return len(await self.get_netuids_for_hotkey(hotkey_ss58, block_hash)) > 0
 
-    async def get_subnet_burn_cost(self, block: Optional[int] = None) -> Optional[str]:
+    async def get_subnet_burn_cost(
+        self, block_hash: Optional[str] = None
+    ) -> Optional[str]:
         """
         Retrieves the burn cost for registering a new subnet within the Bittensor network. This cost represents the amount of Tao that needs to be locked or burned to establish a new subnet.
 
         Args:
-            block (Optional[int]): The blockchain block number for the query.
+            block_hash (Optional[int]): The blockchain block_hash of the block id.
 
         Returns:
             int: The burn cost for subnet registration.
@@ -203,20 +221,22 @@ class AsyncSubtensor:
             runtime_api="SubnetRegistrationRuntimeApi",
             method="get_network_registration_cost",
             params=[],
-            block_hash=block,
+            block_hash=block_hash,
         )
 
         return lock_cost
 
-    async def get_total_subnets(self, block: Optional[int] = None) -> Optional[int]:
+    async def get_total_subnets(
+        self, block_hash: Optional[str] = None
+    ) -> Optional[int]:
         """
         Retrieves the total number of subnets within the Bittensor network as of a specific blockchain block.
 
         Args:
-            block (Optional[int]): The blockchain block number for the query.
+            block_hash (Optional[str]): The blockchain block_hash representation of block id.
 
         Returns:
-            Optional[int]: The total number of subnets in the network.
+            Optional[str]: The total number of subnets in the network.
 
         Understanding the total number of subnets is essential for assessing the network's growth and the extent of its decentralized infrastructure.
         """
@@ -224,7 +244,9 @@ class AsyncSubtensor:
             module="SubtensorModule",
             storage_function="TotalNetworks",
             params=[],
-            block_hash=block,
+            block_hash=block_hash
+            if block_hash is not None
+            else await self.get_block_hash(await self.get_current_block()),
         )
         return result
 
@@ -232,8 +254,11 @@ class AsyncSubtensor:
         """
         Retrieves the list of all subnet unique identifiers (netuids) currently present in the Bittensor network.
 
-        :param block_hash: The hash of the block to retrieve the subnet unique identifiers from.
-        :return: A list of subnet netuids.
+        Arguments:
+            block_hash (Optional[str]): The hash of the block to retrieve the subnet unique identifiers from.
+
+        Returns:
+            A list of subnet netuids.
 
         This function provides a comprehensive view of the subnets within the Bittensor network,
         offering insights into its diversity and scale.
@@ -254,20 +279,20 @@ class AsyncSubtensor:
         self,
         hotkey_ss58: str,
         block_hash: Optional[str] = None,
-        reuse_block: Optional[bool] = False,
+        reuse_block: bool = False,
     ) -> bool:
         """
-        Determines whether a given hotkey (public key) is a delegate on the Bittensor network. This function
-        checks if the neuron associated with the hotkey is part of the network's delegation system.
+        Determines whether a given hotkey (public key) is a delegate on the Bittensor network. This function checks if the neuron associated with the hotkey is part of the network's delegation system.
 
-        :param hotkey_ss58: The SS58 address of the neuron's hotkey.
-        :param block_hash: The hash of the blockchain block number for the query.
-        :param reuse_block: Whether to reuse the last-used block hash.
+        Arguments:
+            hotkey_ss58 (str): The SS58 address of the neuron's hotkey.
+            block_hash (Optional[str]): The hash of the blockchain block number for the query.
+            reuse_block (Optional[bool]): Whether to reuse the last-used block hash.
 
-        :return: `True` if the hotkey is a delegate, `False` otherwise.
+        Returns:
+            `True` if the hotkey is a delegate, `False` otherwise.
 
-        Being a delegate is a significant status within the Bittensor network, indicating a neuron's
-        involvement in consensus and governance processes.
+        Being a delegate is a significant status within the Bittensor network, indicating a neuron's involvement in consensus and governance processes.
         """
         delegates = await self.get_delegates(
             block_hash=block_hash, reuse_block=reuse_block
@@ -275,21 +300,24 @@ class AsyncSubtensor:
         return hotkey_ss58 in [info.hotkey_ss58 for info in delegates]
 
     async def get_delegates(
-        self, block_hash: Optional[str] = None, reuse_block: Optional[bool] = False
+        self, block_hash: Optional[str] = None, reuse_block: bool = False
     ) -> list[DelegateInfo]:
         """
         Fetches all delegates on the chain
 
-        :param block_hash: hash of the blockchain block number for the query.
-        :param reuse_block: whether to reuse the last-used block hash.
+        Arguments:
+            block_hash (Optional[str]): hash of the blockchain block number for the query.
+            reuse_block (Optional[bool]): whether to reuse the last-used block hash.
 
-        :return: List of DelegateInfo objects, or an empty list if there are no delegates.
+        Returns:
+            List of DelegateInfo objects, or an empty list if there are no delegates.
         """
         hex_bytes_result = await self.query_runtime_api(
             runtime_api="DelegateInfoRuntimeApi",
             method="get_delegates",
             params=[],
             block_hash=block_hash,
+            reuse_block=reuse_block,
         )
         if hex_bytes_result is not None:
             try:
@@ -308,17 +336,17 @@ class AsyncSubtensor:
         reuse_block: bool = False,
     ) -> list[StakeInfo]:
         """
-        Retrieves stake information associated with a specific coldkey. This function provides details
-        about the stakes held by an account, including the staked amounts and associated delegates.
+        Retrieves stake information associated with a specific coldkey. This function provides details about the stakes held by an account, including the staked amounts and associated delegates.
 
-        :param coldkey_ss58: The ``SS58`` address of the account's coldkey.
-        :param block_hash: The hash of the blockchain block number for the query.
-        :param reuse_block: Whether to reuse the last-used block hash.
+        Arguments:
+            coldkey_ss58 (str): The ``SS58`` address of the account's coldkey.
+            block_hash (Optional[str]): The hash of the blockchain block number for the query.
+            reuse_block (bool): Whether to reuse the last-used block hash.
 
-        :return: A list of StakeInfo objects detailing the stake allocations for the account.
+        Returns:
+            A list of StakeInfo objects detailing the stake allocations for the account.
 
-        Stake information is vital for account holders to assess their investment and participation
-        in the network's delegation and consensus processes.
+        Stake information is vital for account holders to assess their investment and participation in the network's delegation and consensus processes.
         """
         encoded_coldkey = ss58_to_vec_u8(coldkey_ss58)
 
@@ -341,14 +369,18 @@ class AsyncSubtensor:
         return StakeInfo.list_from_vec_u8(bytes_result)
 
     async def get_stake_for_coldkey_and_hotkey(
-        self, hotkey_ss58: str, coldkey_ss58: str, block_hash: Optional[str]
+        self, hotkey_ss58: str, coldkey_ss58: str, block_hash: Optional[str] = None
     ) -> Balance:
         """
         Retrieves stake information associated with a specific coldkey and hotkey.
-        :param hotkey_ss58: the hotkey SS58 address to query
-        :param coldkey_ss58: the coldkey SS58 address to query
-        :param block_hash: the hash of the blockchain block number for the query.
-        :return: Stake Balance for the given coldkey and hotkey
+
+        Arguments:
+            hotkey_ss58 (str): the hotkey SS58 address to query
+            coldkey_ss58 (str): the coldkey SS58 address to query
+            block_hash (Optional[str]): the hash of the blockchain block number for the query.
+
+        Returns:
+            Stake Balance for the given coldkey and hotkey
         """
         _result = await self.substrate.query(
             module="SubtensorModule",
@@ -362,25 +394,24 @@ class AsyncSubtensor:
         self,
         runtime_api: str,
         method: str,
-        params: Optional[Union[list[list[int]], dict[str, int]]],
+        params: Optional[Union[list[list[int]], dict[str, int], list[int]]],
         block_hash: Optional[str] = None,
-        reuse_block: Optional[bool] = False,
+        reuse_block: bool = False,
     ) -> Optional[str]:
         """
-        Queries the runtime API of the Bittensor blockchain, providing a way to interact with the underlying
-        runtime and retrieve data encoded in Scale Bytes format. This function is essential for advanced users
-        who need to interact with specific runtime methods and decode complex data types.
+        Queries the runtime API of the Bittensor blockchain, providing a way to interact with the underlying runtime and retrieve data encoded in Scale Bytes format. This function is essential for advanced users who need to interact with specific runtime methods and decode complex data types.
 
-        :param runtime_api: The name of the runtime API to query.
-        :param method: The specific method within the runtime API to call.
-        :param params: The parameters to pass to the method call.
-        :param block_hash: The hash of the blockchain block number at which to perform the query.
-        :param reuse_block: Whether to reuse the last-used block hash.
+        Arguments:
+            runtime_api (str): The name of the runtime API to query.
+            method (str): The specific method within the runtime API to call.
+            params (Optional[Union[list[list[int]], dict[str, int]]]): The parameters to pass to the method call.
+            block_hash (Optional[str]): The hash of the blockchain block number at which to perform the query.
+            reuse_block (bool): Whether to reuse the last-used block hash.
 
-        :return: The Scale Bytes encoded result from the runtime API call, or ``None`` if the call fails.
+        Returns:
+            The Scale Bytes encoded result from the runtime API call, or ``None`` if the call fails.
 
-        This function enables access to the deeper layers of the Bittensor blockchain, allowing for detailed
-        and specific interactions with the network's runtime environment.
+        This function enables access to the deeper layers of the Bittensor blockchain, allowing for detailed and specific interactions with the network's runtime environment.
         """
         call_definition = TYPE_REGISTRY["runtime_api"][runtime_api]["methods"][method]
 
@@ -396,6 +427,7 @@ class AsyncSubtensor:
         json_result = await self.substrate.rpc_request(
             method="state_call",
             params=[api_method, data, block_hash] if block_hash else [api_method, data],
+            reuse_block_hash=reuse_block,
         )
 
         if json_result is None:
@@ -419,14 +451,16 @@ class AsyncSubtensor:
         self,
         *addresses: str,
         block_hash: Optional[str] = None,
-        reuse_block: bool = False,
     ) -> dict[str, Balance]:
         """
         Retrieves the balance for given coldkey(s)
-        :param addresses: coldkey addresses(s)
-        :param block_hash: the block hash, optional
-        :param reuse_block: Whether to reuse the last-used block hash when retrieving info.
-        :return: dict of {address: Balance objects}
+
+        Arguments:
+            addresses (str): coldkey addresses(s).
+            block_hash (Optional[str]): the block hash, optional.
+
+        Returns:
+            Dict of {address: Balance objects}.
         """
         calls = [
             (
@@ -497,16 +531,16 @@ class AsyncSubtensor:
         self,
         *ss58_addresses,
         block_hash: Optional[str] = None,
-        reuse_block: bool = False,
     ) -> dict[str, Balance]:
         """
         Returns the total stake held on a coldkey.
 
-        :param ss58_addresses: The SS58 address(es) of the coldkey(s)
-        :param block_hash: The hash of the block number to retrieve the stake from.
-        :param reuse_block: Whether to reuse the last-used block hash when retrieving info.
+        Arguments:
+            ss58_addresses (tuple[str]): The SS58 address(es) of the coldkey(s)
+            block_hash (str): The hash of the block number to retrieve the stake from.
 
-        :return: {address: Balance objects}
+        Returns:
+            Dict in view {address: Balance objects}.
         """
         calls = [
             (
@@ -534,11 +568,13 @@ class AsyncSubtensor:
         """
         Returns the total stake held on a hotkey.
 
-        :param ss58_addresses: The SS58 address(es) of the hotkey(s)
-        :param block_hash: The hash of the block number to retrieve the stake from.
-        :param reuse_block: Whether to reuse the last-used block hash when retrieving info.
+        Arguments:
+            ss58_addresses (tuple[str]): The SS58 address(es) of the hotkey(s)
+            block_hash (str): The hash of the block number to retrieve the stake from.
+            reuse_block (bool): Whether to reuse the last-used block hash when retrieving info.
 
-        :return: {address: Balance objects}
+        Returns:
+            Dict {address: Balance objects}.
         """
         results = await self.substrate.query_multiple(
             params=[s for s in ss58_addresses],
@@ -556,15 +592,15 @@ class AsyncSubtensor:
         reuse_block: bool = False,
     ) -> list[int]:
         """
-        Retrieves a list of subnet UIDs (netuids) for which a given hotkey is a member. This function
-        identifies the specific subnets within the Bittensor network where the neuron associated with
-        the hotkey is active.
+        Retrieves a list of subnet UIDs (netuids) for which a given hotkey is a member. This function identifies the specific subnets within the Bittensor network where the neuron associated with the hotkey is active.
 
-        :param hotkey_ss58: The ``SS58`` address of the neuron's hotkey.
-        :param block_hash: The hash of the blockchain block number at which to perform the query.
-        :param reuse_block: Whether to reuse the last-used block hash when retrieving info.
+        Arguments:
+            hotkey_ss58 (str): The ``SS58`` address of the neuron's hotkey.
+            block_hash (Optional[str]): The hash of the blockchain block number at which to perform the query.
+            reuse_block (Optional[bool]): Whether to reuse the last-used block hash when retrieving info.
 
-        :return: A list of netuids where the neuron is a member.
+        Returns:
+            A list of netuids where the neuron is a member.
         """
 
         result = await self.substrate.query_map(
@@ -586,11 +622,13 @@ class AsyncSubtensor:
         """
         Checks if a subnet with the specified unique identifier (netuid) exists within the Bittensor network.
 
-        :param netuid: The unique identifier of the subnet.
-        :param block_hash: The hash of the blockchain block number at which to check the subnet existence.
-        :param reuse_block: Whether to reuse the last-used block hash.
+        Arguments:
+            netuid (int): The unique identifier of the subnet.
+            block_hash (Optional[str]): The hash of the blockchain block number at which to check the subnet existence.
+            reuse_block (bool): Whether to reuse the last-used block hash.
 
-        :return: `True` if the subnet exists, `False` otherwise.
+        Returns:
+            `True` if the subnet exists, `False` otherwise.
 
         This function is critical for verifying the presence of specific subnets in the network,
         enabling a deeper understanding of the network's structure and composition.
@@ -614,12 +652,14 @@ class AsyncSubtensor:
         """
         Retrieves a specified hyperparameter for a specific subnet.
 
-        :param param_name: The name of the hyperparameter to retrieve.
-        :param netuid: The unique identifier of the subnet.
-        :param block_hash: The hash of blockchain block number for the query.
-        :param reuse_block: Whether to reuse the last-used block hash.
+        Arguments:
+            param_name (str): The name of the hyperparameter to retrieve.
+            netuid (int): The unique identifier of the subnet.
+            block_hash (Optional[str]): The hash of blockchain block number for the query.
+            reuse_block (bool): Whether to reuse the last-used block hash.
 
-        :return: The value of the specified hyperparameter if the subnet exists, or None
+        Returns:
+            The value of the specified hyperparameter if the subnet exists, or None
         """
         if not await self.subnet_exists(netuid, block_hash):
             print("subnet does not exist")
@@ -649,13 +689,15 @@ class AsyncSubtensor:
         """
         Filters a given list of all netuids for certain specified netuids and hotkeys
 
-        :param all_netuids: A list of netuids to filter.
-        :param filter_for_netuids: A subset of all_netuids to filter from the main list
-        :param all_hotkeys: Hotkeys to filter from the main list
-        :param block_hash: hash of the blockchain block number at which to perform the query.
-        :param reuse_block: whether to reuse the last-used blockchain hash when retrieving info.
+        Argumens:
+            all_netuids (Iterable[int]): A list of netuids to filter.
+            filter_for_netuids (Iterable[int]): A subset of all_netuids to filter from the main list
+            all_hotkeys (Iterable[Wallet]): Hotkeys to filter from the main list
+            block_hash (str): hash of the blockchain block number at which to perform the query.
+            reuse_block (bool): whether to reuse the last-used blockchain hash when retrieving info.
 
-        :return: the filtered list of netuids.
+        Returns:
+            The filtered list of netuids.
         """
         netuids_with_registered_hotkeys = [
             item
@@ -695,17 +737,18 @@ class AsyncSubtensor:
         self, block_hash: Optional[str] = None, reuse_block: bool = False
     ) -> Balance:
         """
-        Retrieves the existential deposit amount for the Bittensor blockchain. The existential deposit
-        is the minimum amount of TAO required for an account to exist on the blockchain. Accounts with
-        balances below this threshold can be reaped to conserve network resources.
+        Retrieves the existential deposit amount for the Bittensor blockchain.
+        The existential deposit is the minimum amount of TAO required for an account to exist on the blockchain.
+        Accounts with balances below this threshold can be reaped to conserve network resources.
 
-        :param block_hash: Block hash at which to query the deposit amount. If `None`, the current block is used.
-        :param reuse_block: Whether to reuse the last-used blockchain block hash.
+        Arguments:
+            block_hash (str): Block hash at which to query the deposit amount. If `None`, the current block is used.
+            reuse_block (bool): Whether to reuse the last-used blockchain block hash.
 
-        :return: The existential deposit amount
+        Returns:
+            The existential deposit amount.
 
-        The existential deposit is a fundamental economic parameter in the Bittensor network, ensuring
-        efficient use of storage and preventing the proliferation of dust accounts.
+        The existential deposit is a fundamental economic parameter in the Bittensor network, ensuring efficient use of storage and preventing the proliferation of dust accounts.
         """
         result = await self.substrate.get_constant(
             module_name="Balances",
@@ -723,17 +766,17 @@ class AsyncSubtensor:
         self, netuid: int, block_hash: Optional[str] = None
     ) -> list[NeuronInfo]:
         """
-        Retrieves a list of all neurons within a specified subnet of the Bittensor network. This function
-        provides a snapshot of the subnet's neuron population, including each neuron's attributes and network
-        interactions.
+        Retrieves a list of all neurons within a specified subnet of the Bittensor network.
+        This function provides a snapshot of the subnet's neuron population, including each neuron's attributes and network interactions.
 
-        :param netuid: The unique identifier of the subnet.
-        :param block_hash: The hash of the blockchain block number for the query.
+        Arguments:
+            netuid (int): The unique identifier of the subnet.
+            block_hash (str): The hash of the blockchain block number for the query.
 
-        :return: A list of NeuronInfo objects detailing each neuron's characteristics in the subnet.
+        Returns:
+            A list of NeuronInfo objects detailing each neuron's characteristics in the subnet.
 
-        Understanding the distribution and status of neurons within a subnet is key to comprehending the
-        network's decentralized structure and the dynamics of its consensus and governance processes.
+        Understanding the distribution and status of neurons within a subnet is key to comprehending the network's decentralized structure and the dynamics of its consensus and governance processes.
         """
         neurons_lite, weights, bonds = await asyncio.gather(
             self.neurons_lite(netuid=netuid, block_hash=block_hash),
@@ -758,17 +801,17 @@ class AsyncSubtensor:
     ) -> list[NeuronInfoLite]:
         """
         Retrieves a list of neurons in a 'lite' format from a specific subnet of the Bittensor network.
-        This function provides a streamlined view of the neurons, focusing on key attributes such as stake
-        and network participation.
+        This function provides a streamlined view of the neurons, focusing on key attributes such as stake and network participation.
 
-        :param netuid: The unique identifier of the subnet.
-        :param block_hash: The hash of the blockchain block number for the query.
-        :param reuse_block: Whether to reuse the last-used blockchain block hash.
+        Arguments:
+            netuid (int): The unique identifier of the subnet.
+            block_hash (str): The hash of the blockchain block number for the query.
+            reuse_block (bool): Whether to reuse the last-used blockchain block hash.
 
-        :return: A list of simplified neuron information for the subnet.
+        Returns:
+            A list of simplified neuron information for the subnet.
 
-        This function offers a quick overview of the neuron population within a subnet, facilitating
-        efficient analysis of the network's decentralized structure and neuron dynamics.
+        This function offers a quick overview of the neuron population within a subnet, facilitating efficient analysis of the network's decentralized structure and neuron dynamics.
         """
         hex_bytes_result = await self.query_runtime_api(
             runtime_api="NeuronInfoRuntimeApi",
@@ -794,19 +837,17 @@ class AsyncSubtensor:
         self, uid: Optional[int], netuid: int, block_hash: Optional[str] = None
     ) -> NeuronInfo:
         """
-        Retrieves detailed information about a specific neuron identified by its unique identifier (UID)
-        within a specified subnet (netuid) of the Bittensor network. This function provides a comprehensive
-        view of a neuron's attributes, including its stake, rank, and operational status.
+        Retrieves detailed information about a specific neuron identified by its unique identifier (UID) within a specified subnet (netuid) of the Bittensor network. This function provides a comprehensive view of a neuron's attributes, including its stake, rank, and operational status.
 
+        Arguments:
+            uid (int): The unique identifier of the neuron.
+            netuid (int): The unique identifier of the subnet.
+            block_hash (str): The hash of the blockchain block number for the query.
 
-        :param uid: The unique identifier of the neuron.
-        :param netuid: The unique identifier of the subnet.
-        :param block_hash: The hash of the blockchain block number for the query.
+        Returns:
+            Detailed information about the neuron if found, a null neuron otherwise
 
-        :return: Detailed information about the neuron if found, a null neuron otherwise
-
-        This function is crucial for analyzing individual neurons' contributions and status within a specific
-        subnet, offering insights into their roles in the network's consensus and validation mechanisms.
+        This function is crucial for analyzing individual neurons' contributions and status within a specific subnet, offering insights into their roles in the network's consensus and validation mechanisms.
         """
         if uid is None:
             return NeuronInfo.get_null_neuron()
@@ -830,17 +871,17 @@ class AsyncSubtensor:
         reuse_block: bool = False,
     ) -> list[tuple[DelegateInfo, Balance]]:
         """
-        Retrieves a list of delegates and their associated stakes for a given coldkey. This function
-        identifies the delegates that a specific account has staked tokens on.
+        Retrieves a list of delegates and their associated stakes for a given coldkey. This function identifies the delegates that a specific account has staked tokens on.
 
-        :param coldkey_ss58: The `SS58` address of the account's coldkey.
-        :param block_hash: The hash of the blockchain block number for the query.
-        :param reuse_block: Whether to reuse the last-used blockchain block hash.
+        Arguments:
+            coldkey_ss58 (str): The `SS58` address of the account's coldkey.
+            block_hash (Optional[str]): The hash of the blockchain block number for the query.
+            reuse_block (bool): Whether to reuse the last-used blockchain block hash.
 
-        :return: A list of tuples, each containing a delegate's information and staked amount.
+        Returns:
+            A list of tuples, each containing a delegate's information and staked amount.
 
-        This function is important for account holders to understand their stake allocations and their
-        involvement in the network's delegation and consensus mechanisms.
+        This function is important for account holders to understand their stake allocations and their involvement in the network's delegation and consensus mechanisms.
         """
 
         block_hash = (
@@ -866,22 +907,20 @@ class AsyncSubtensor:
         reuse_block: bool = False,
     ) -> dict:
         """
-        Queries the identity of a neuron on the Bittensor blockchain using the given key. This function retrieves
-        detailed identity information about a specific neuron, which is a crucial aspect of the network's decentralized
-        identity and governance system.
+        Queries the identity of a neuron on the Bittensor blockchain using the given key. This function retrieves detailed identity information about a specific neuron, which is a crucial aspect of the network's decentralized identity and governance system.
+
+        Arguments:
+            key (str): The key used to query the neuron's identity, typically the neuron's SS58 address.
+            block_hash (str): The hash of the blockchain block number at which to perform the query.
+            reuse_block (bool): Whether to reuse the last-used blockchain block hash.
+
+        Returns:
+            An object containing the identity information of the neuron if found, ``None`` otherwise.
+
+        The identity information can include various attributes such as the neuron's stake, rank, and other network-specific details, providing insights into the neuron's role and status within the Bittensor network.
 
         Note:
-        See the `Bittensor CLI documentation <https://docs.bittensor.com/reference/btcli>`_ for supported identity
-        parameters.
-
-        :param key: The key used to query the neuron's identity, typically the neuron's SS58 address.
-        :param block_hash: The hash of the blockchain block number at which to perform the query.
-        :param reuse_block: Whether to reuse the last-used blockchain block hash.
-
-        :return: An object containing the identity information of the neuron if found, ``None`` otherwise.
-
-        The identity information can include various attributes such as the neuron's stake, rank, and other
-        network-specific details, providing insights into the neuron's role and status within the Bittensor network.
+            See the `Bittensor CLI documentation <https://docs.bittensor.com/reference/btcli>`_ for supported identity parameters.
         """
 
         def decode_hex_identity_dict_(info_dictionary):
@@ -925,17 +964,16 @@ class AsyncSubtensor:
     ) -> list[tuple[int, list[tuple[int, int]]]]:
         """
         Retrieves the weight distribution set by neurons within a specific subnet of the Bittensor network.
-        This function maps each neuron's UID to the weights it assigns to other neurons, reflecting the
-        network's trust and value assignment mechanisms.
+        This function maps each neuron's UID to the weights it assigns to other neurons, reflecting the network's trust and value assignment mechanisms.
 
-        Args:
-        :param netuid: The network UID of the subnet to query.
-        :param block_hash: The hash of the blockchain block for the query.
+        Arguments:
+            netuid (int): The network UID of the subnet to query.
+            block_hash (str): The hash of the blockchain block for the query.
 
-        :return: A list of tuples mapping each neuron's UID to its assigned weights.
+        Returns:
+            A list of tuples mapping each neuron's UID to its assigned weights.
 
-        The weight distribution is a key factor in the network's consensus algorithm and the ranking of neurons,
-        influencing their influence and reward allocation within the subnet.
+        The weight distribution is a key factor in the network's consensus algorithm and the ranking of neurons, influencing their influence and reward allocation within the subnet.
         """
         # TODO look into seeing if we can speed this up with storage query
         w_map_encoded = await self.substrate.query_map(
@@ -953,18 +991,16 @@ class AsyncSubtensor:
     ) -> list[tuple[int, list[tuple[int, int]]]]:
         """
         Retrieves the bond distribution set by neurons within a specific subnet of the Bittensor network.
-        Bonds represent the investments or commitments made by neurons in one another, indicating a level
-        of trust and perceived value. This bonding mechanism is integral to the network's market-based approach
-        to measuring and rewarding machine intelligence.
+        Bonds represent the investments or commitments made by neurons in one another, indicating a level of trust and perceived value. This bonding mechanism is integral to the network's market-based approach to measuring and rewarding machine intelligence.
 
-        :param netuid: The network UID of the subnet to query.
-        :param block_hash: The hash of the blockchain block number for the query.
+        Arguments:
+            netuid (int): The network UID of the subnet to query.
+            block_hash (Optional[str]): The hash of the blockchain block number for the query.
 
-        :return: list of tuples mapping each neuron's UID to its bonds with other neurons.
+        Returns:
+            List of tuples mapping each neuron's UID to its bonds with other neurons.
 
-        Understanding bond distributions is crucial for analyzing the trust dynamics and market behavior
-        within the subnet. It reflects how neurons recognize and invest in each other's intelligence and
-        contributions, supporting diverse and niche systems within the Bittensor ecosystem.
+        Understanding bond distributions is crucial for analyzing the trust dynamics and market behavior within the subnet. It reflects how neurons recognize and invest in each other's intelligence and contributions, supporting diverse and niche systems within the Bittensor ecosystem.
         """
         b_map_encoded = await self.substrate.query_map(
             module="SubtensorModule",
@@ -985,11 +1021,13 @@ class AsyncSubtensor:
         """
         Returns true if the hotkey is known by the chain and there are accounts.
 
-        :param hotkey_ss58: The SS58 address of the hotkey.
-        :param block_hash: The hash of the block number to check the hotkey against.
-        :param reuse_block: Whether to reuse the last-used blockchain hash.
+        Arguments:
+            hotkey_ss58 (str): The SS58 address of the hotkey.
+            block_hash (Optional[str]): The hash of the block number to check the hotkey against.
+            reuse_block (bool): Whether to reuse the last-used blockchain hash.
 
-        :return: `True` if the hotkey is known by the chain and there are accounts, `False` otherwise.
+        Returns:
+            `True` if the hotkey is known by the chain and there are accounts, `False` otherwise.
         """
         _result = await self.substrate.query(
             module="SubtensorModule",
@@ -1009,6 +1047,17 @@ class AsyncSubtensor:
     async def get_hotkey_owner(
         self, hotkey_ss58: str, block_hash: str
     ) -> Optional[str]:
+        """
+        Retrieves the owner of the given hotkey at a specific block hash.
+        This function queries the blockchain for the owner of the provided hotkey. If the hotkey does not exist at the specified block hash, it returns None.
+
+        Arguments:
+            hotkey_ss58 (str): The SS58 address of the hotkey.
+            block_hash (str): The hash of the block at which to check the hotkey ownership.
+
+        Returns:
+            Optional[str]: The SS58 address of the owner if the hotkey exists, or None if it doesn't.
+        """
         hk_owner_query = await self.substrate.query(
             module="SubtensorModule",
             storage_function="Owner",
@@ -1025,20 +1074,22 @@ class AsyncSubtensor:
 
     async def sign_and_send_extrinsic(
         self,
-        call: GenericCall,
-        wallet: Wallet,
+        call: "GenericCall",
+        wallet: "Wallet",
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
     ) -> tuple[bool, str]:
         """
         Helper method to sign and submit an extrinsic call to chain.
 
-        :param call: a prepared Call object
-        :param wallet: the wallet whose coldkey will be used to sign the extrinsic
-        :param wait_for_inclusion: whether to wait until the extrinsic call is included on the chain
-        :param wait_for_finalization: whether to wait until the extrinsic call is finalized on the chain
+        Arguments:
+            call (scalecodec.types.GenericCall): a prepared Call object
+            wallet (bittensor_wallet.Wallet): the wallet whose coldkey will be used to sign the extrinsic
+            wait_for_inclusion (bool): whether to wait until the extrinsic call is included on the chain
+            wait_for_finalization (bool): whether to wait until the extrinsic call is finalized on the chain
 
-        :return: (success, error message)
+        Returns:
+            (success, error message)
         """
         extrinsic = await self.substrate.create_signed_extrinsic(
             call=call, keypair=wallet.coldkey
@@ -1062,16 +1113,16 @@ class AsyncSubtensor:
         except SubstrateRequestException as e:
             return False, format_error_message(e, substrate=self.substrate)
 
-    async def get_children(self, hotkey, netuid) -> tuple[bool, list, str]:
+    async def get_children(self, hotkey: str, netuid: int) -> tuple[bool, list, str]:
         """
-        This method retrieves the children of a given hotkey and netuid. It queries the SubtensorModule's ChildKeys
-        storage function to get the children and formats them before returning as a tuple.
+        This method retrieves the children of a given hotkey and netuid. It queries the SubtensorModule's ChildKeys storage function to get the children and formats them before returning as a tuple.
 
-        :param hotkey: The hotkey value.
-        :param netuid: The netuid value.
+        Arguments:
+            hotkey (str): The hotkey value.
+            netuid (int): The netuid value.
 
-        :return: A tuple containing a boolean indicating success or failure, a list of formatted children, and an error
-        message (if applicable)
+        Returns:
+            A tuple containing a boolean indicating success or failure, a list of formatted children, and an error message (if applicable)
         """
         try:
             children = await self.substrate.query(
@@ -1096,16 +1147,16 @@ class AsyncSubtensor:
         self, netuid: int, block_hash: Optional[str] = None
     ) -> Optional[Union[list, SubnetHyperparameters]]:
         """
-        Retrieves the hyperparameters for a specific subnet within the Bittensor network. These hyperparameters
-        define the operational settings and rules governing the subnet's behavior.
+        Retrieves the hyperparameters for a specific subnet within the Bittensor network. These hyperparameters define the operational settings and rules governing the subnet's behavior.
 
-        :param netuid: The network UID of the subnet to query.
-        :param block_hash: The hash of the blockchain block number for the query.
+        Arguments:
+            netuid (int): The network UID of the subnet to query.
+            block_hash (Optional[str]): The hash of the blockchain block number for the query.
 
-        :return: The subnet's hyperparameters, or `None` if not available.
+        Returns:
+            The subnet's hyperparameters, or `None` if not available.
 
-        Understanding the hyperparameters is crucial for comprehending how subnets are configured and
-        managed, and how they interact with the network's consensus and incentive mechanisms.
+        Understanding the hyperparameters is crucial for comprehending how subnets are configured and managed, and how they interact with the network's consensus and incentive mechanisms.
         """
         hex_bytes_result = await self.query_runtime_api(
             runtime_api="SubnetInfoRuntimeApi",
@@ -1131,17 +1182,17 @@ class AsyncSubtensor:
         reuse_block: bool = False,
     ) -> Optional["ProposalVoteData"]:
         """
-        Retrieves the voting data for a specific proposal on the Bittensor blockchain. This data includes
-        information about how senate members have voted on the proposal.
+        Retrieves the voting data for a specific proposal on the Bittensor blockchain. This data includes information about how senate members have voted on the proposal.
 
-        :param proposal_hash: The hash of the proposal for which voting data is requested.
-        :param block_hash: The hash of the blockchain block number to query the voting data.
-        :param reuse_block: Whether to reuse the last-used blockchain block hash.
+        Arguments:
+            proposal_hash (str): The hash of the proposal for which voting data is requested.
+            block_hash (Optional[str]): The hash of the blockchain block number to query the voting data.
+            reuse_block (bool): Whether to reuse the last-used blockchain block hash.
 
-        :return: An object containing the proposal's voting data, or `None` if not found.
+        Returns:
+            An object containing the proposal's voting data, or `None` if not found.
 
-        This function is important for tracking and understanding the decision-making processes within
-        the Bittensor network, particularly how proposals are received and acted upon by the governing body.
+        This function is important for tracking and understanding the decision-making processes within the Bittensor network, particularly how proposals are received and acted upon by the governing body.
         """
         vote_data = await self.substrate.query(
             module="Triumvirate",
@@ -1159,14 +1210,13 @@ class AsyncSubtensor:
         self, block_hash: Optional[str] = None
     ) -> dict[str, DelegatesDetails]:
         """
-        Fetches delegates identities from the chain and GitHub. Preference is given to chain data, and missing info
-        is filled-in by the info from GitHub. At some point, we want to totally move away from fetching this info
-        from GitHub, but chain data is still limited in that regard.
+        Fetches delegates identities from the chain and GitHub. Preference is given to chain data, and missing info is filled-in by the info from GitHub. At some point, we want to totally move away from fetching this info from GitHub, but chain data is still limited in that regard.
 
         Args:
-            block_hash: the hash of the blockchain block for the query
+            block_hash (str): the hash of the blockchain block for the query
 
-        Returns: {ss58: DelegatesDetails, ...}
+        Returns:
+            Dict {ss58: DelegatesDetails, ...}
 
         """
         timeout = aiohttp.ClientTimeout(10.0)
@@ -1230,7 +1280,7 @@ class AsyncSubtensor:
             return False
 
     async def get_uid_for_hotkey_on_subnet(
-        self, hotkey_ss58: str, netuid: int, block: Optional[int] = None
+        self, hotkey_ss58: str, netuid: int, block_hash: Optional[str] = None
     ):
         """
         Retrieves the unique identifier (UID) for a neuron's hotkey on a specific subnet.
@@ -1238,7 +1288,7 @@ class AsyncSubtensor:
         Args:
             hotkey_ss58 (str): The ``SS58`` address of the neuron's hotkey.
             netuid (int): The unique identifier of the subnet.
-            block (Optional[int]): The blockchain block number for the query.
+            block_hash (Optional[str]): The blockchain block_hash representation of the block id.
 
         Returns:
             Optional[int]: The UID of the neuron if it is registered on the subnet, ``None`` otherwise.
@@ -1249,22 +1299,34 @@ class AsyncSubtensor:
             module="SubtensorModule",
             storage_function="Uids",
             params=[netuid, hotkey_ss58],
-            block_hash=(
-                None if block is None else await self.substrate.get_block_hash(block)
-            ),
+            block_hash=block_hash
+            if block_hash is not None
+            else await self.get_block_hash(),
         )
 
     # extrinsics
 
     async def transfer(
         self,
-        wallet: Wallet,
+        wallet: "Wallet",
         destination: str,
         amount: float,
         transfer_all: bool,
         prompt: bool,
-    ):
-        """Transfer token of amount to destination."""
+    ) -> bool:
+        """
+        Transfer token of amount to destination.
+
+        Arguments:
+            wallet (bittensor_wallet.Wallet): Source wallet for the transfer.
+            destination (str): Destination address for the transfer.
+            amount (float): Amount of tokens to transfer.
+            transfer_all (bool): Flag to transfer all tokens.
+            prompt (bool): Flag to prompt user for confirmation before transferring.
+
+        Returns:
+            `True` if the transferring was successful, otherwise `False`.
+        """
         return await transfer_extrinsic(
             self,
             wallet,
@@ -1274,17 +1336,37 @@ class AsyncSubtensor:
             prompt=prompt,
         )
 
-    async def register(self, wallet: Wallet, prompt: bool):
-        """Register neuron by recycling some TAO."""
+    async def register(
+        self,
+        wallet: "Wallet",
+        netuid: int,
+        block_hash: Optional[str] = None,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = True,
+    ) -> bool:
+        """
+        Register neuron by recycling some TAO.
+
+        Arguments:
+            wallet (bittensor_wallet.Wallet): Bittensor wallet instance.
+            netuid (int): Subnet uniq id.
+            block_hash (Optional[str]): The hash of the blockchain block for the query.
+            wait_for_inclusion (bool): Waits for the transaction to be included in a block. Default is ``False``.
+            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Default is ``False``.
+
+        Returns:
+            `True` if registration was successful, otherwise `False`.
+        """
         logging.info(
             f"Registering on netuid <blue>0</blue> on network: <blue>{self.network}</blue>"
         )
 
         # Check current recycle amount
         logging.info("Fetching recycle amount & balance.")
+        block_hash = block_hash if block_hash else await self.get_block_hash()
         recycle_call, balance_ = await asyncio.gather(
-            self.get_hyperparameter(param_name="Burn", netuid=0, reuse_block=True),
-            self.get_balance(wallet.coldkeypub.ss58_address, reuse_block=True),
+            self.get_hyperparameter(param_name="Burn", netuid=netuid, reuse_block=True),
+            self.get_balance(wallet.coldkeypub.ss58_address, block_hash=block_hash),
         )
         current_recycle = Balance.from_rao(int(recycle_call))
         try:
@@ -1299,25 +1381,16 @@ class AsyncSubtensor:
         # Check balance is sufficient
         if balance < current_recycle:
             logging.error(
-                f"<red>Insufficient balance {balance} to register neuron. Current recycle is {current_recycle} TAO</red>"
+                f"<red>Insufficient balance {balance} to register neuron. Current recycle is {current_recycle} TAO</red>."
             )
             return False
 
-        if prompt:
-            if not Confirm.ask(
-                f"Your balance is: [bold green]{balance}[/bold green]\n"
-                f"The cost to register by recycle is [bold red]{current_recycle}[/bold red]\n"
-                f"Do you want to continue?",
-                default=False,
-            ):
-                return False
-
         return await root_register_extrinsic(
-            self,
-            wallet,
-            wait_for_inclusion=True,
-            wait_for_finalization=True,
-            prompt=prompt,
+            subtensor=self,
+            wallet=wallet,
+            netuid=netuid,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
         )
 
     async def pow_register(
@@ -1410,9 +1483,18 @@ class AsyncSubtensor:
         wallet: "Wallet",
         netuids: list[int],
         weights: list[float],
-        prompt: bool,
-    ):
-        """Set weights for root network."""
+    ) -> bool:
+        """
+        Set weights for root network.
+
+        Arguments:
+            wallet (bittensor_wallet.Wallet): bittensor wallet instance.
+            netuids (list[int]): The list of subnet uids.
+            weights (list[float]): The list of weights to be set.
+
+        Returns:
+            `True` if the setting of weights is successful, `False` otherwise.
+        """
         netuids_ = np.array(netuids, dtype=np.int64)
         weights_ = np.array(weights, dtype=np.float32)
         logging.info(f"Setting weights in network: <blue>{self.network}</blue>")
@@ -1423,7 +1505,6 @@ class AsyncSubtensor:
             netuids=netuids_,
             weights=weights_,
             version_key=0,
-            prompt=prompt,
             wait_for_finalization=True,
             wait_for_inclusion=True,
         )
@@ -1468,16 +1549,23 @@ class AsyncSubtensor:
             f"Committing weights with params: netuid={netuid}, uids={uids}, weights={weights}, version_key={version_key}"
         )
 
+        # Generate the hash of the weights
+        commit_hash = generate_weight_hash(
+            address=wallet.hotkey.ss58_address,
+            netuid=netuid,
+            uids=list(uids),
+            values=list(weights),
+            salt=salt,
+            version_key=version_key,
+        )
+
         while retries < max_retries:
             try:
-                success, message = commit_weights_extrinsic(
+                success, message = await commit_weights_extrinsic(
                     subtensor=self,
                     wallet=wallet,
                     netuid=netuid,
-                    uids=uids,
-                    weights=weights,
-                    salt=salt,
-                    version_key=version_key,
+                    commit_hash=commit_hash,
                     wait_for_inclusion=wait_for_inclusion,
                     wait_for_finalization=wait_for_finalization,
                 )
