@@ -216,7 +216,7 @@ def register_extrinsic(
             )
             if is_registered:
                 logging.info(
-                    f":white_heavy_check_mark: <green>Already registered on netuid:</blue> <blue>{netuid}</blue>"
+                    f":white_heavy_check_mark: <green>Already registered on netuid:</green> <blue>{netuid}</blue>."
                 )
                 return True
 
@@ -240,7 +240,7 @@ def register_extrinsic(
                     # https://github.com/opentensor/subtensor/blob/development/pallets/subtensor/src/errors.rs
                     if "HotKeyAlreadyRegisteredInSubNet" in err_msg:
                         logging.info(
-                            f":white_heavy_check_mark: <green>Already Registered on subnet <blue>{netuid}</blue></green>."
+                            f":white_heavy_check_mark: <green>Already Registered on subnet </green><blue>{netuid}</blue>."
                         )
                         return True
 
