@@ -206,9 +206,6 @@ class AsyncSubtensor:
             block_hash=block,
         )
 
-        if lock_cost is None:
-            return None
-
         return lock_cost
 
     async def get_total_subnets(self, block: Optional[int] = None) -> Optional[int]:
