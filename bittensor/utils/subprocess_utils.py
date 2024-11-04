@@ -113,57 +113,39 @@ def is_commit_reveal_subprocess_ready() -> bool:
         return False
 
     message = "commit_reveal subprocess is ready"
-    return check_message_in_log(stdout_log, message) or check_message_in_log(
-        stderr_log, message
-    )
-
-
-def read_commit_reveal_logs():
-    """
-    Read and print the last 50 lines of logs from the most recent subprocess log.
-    """
-    try:
-        stdout_log, stderr_log = get_cr_log_files()
-    except RuntimeError as e:
-        print(str(e))
-        return
-
-    def read_last_n_lines(file_path: str, n: int) -> list:
-        """Reads the last N lines from a file."""
-        with open(file_path, "r") as file:
-            return file.readlines()[-n:]
-
-    if os.path.exists(stdout_log):
-        print("----- STDOUT LOG -----")
-        print("".join(read_last_n_lines(stdout_log, 50)))
-    else:
-        print(f"STDOUT log file not found at {stdout_log}")
-
-    if os.path.exists(stderr_log):
-        print("----- STDERR LOG -----")
-        print("".join(read_last_n_lines(stderr_log, 50)))
-    else:
-        print(f"STDERR log file not found at {stderr_log}")
+    return check_message_in_log(stdout_log, message)
 
 
 def is_table_empty(table_name: str) -> bool:
     """
-    Checks if a table in the database is empty.
+    Checks if a table in the database exists and is empty.
 
     Args:
         table_name (str): The name of the table to check.
 
     Returns:
-        bool: True if the table is empty, False otherwise.
+        bool: True if the table does not exist or is empty, False otherwise.
     """
     try:
-        columns, rows = read_table(table_name)
-        if not rows:
-            print(f"Table '{table_name}' is empty.")
-            return True
-        else:
-            print(f"Table '{table_name}' is not empty.")
-            return False
+        with DB() as (conn, cursor):
+            # Check if table exists
+            cursor.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table_name,)
+            )
+            table_exists = cursor.fetchone()
+            if not table_exists:
+                print(f"Table '{table_name}' does not exist.")
+                return True
+
+            # Check if table is empty
+            cursor.execute(f"SELECT COUNT(*) FROM {table_name}")
+            count = cursor.fetchone()[0]
+            if count == 0:
+                print(f"Table '{table_name}' is empty.")
+                return True
+            else:
+                print(f"Table '{table_name}' is not empty.")
+                return False
     except Exception as e:
         print(f"Error checking if table '{table_name}' is empty: {e}")
         return False
@@ -174,6 +156,8 @@ def start_if_existing_commits(
 ):
     # check if table is empty
     if not is_table_empty("commits"):
+        # Stop then restart in case there are updates to the code
+        stop_commit_reveal_subprocess()
         start_commit_reveal_subprocess(network, sleep_interval)
     else:
         print(
@@ -218,25 +202,29 @@ def start_commit_reveal_subprocess(
         if sleep_interval:
             args.extend(["--sleep-interval", str(sleep_interval)])
 
-        # Create a new subprocess
-        process = subprocess.Popen(
-            args=args,
-            stdout=stdout_file,
-            stderr=stderr_file,
-            preexec_fn=os.setsid,
-            env=env,
-        )
-        print(f"Subprocess '{PROCESS_NAME}' started with PID {process.pid}.")
+        try:
+            # Create a new subprocess
+            process = subprocess.Popen(
+                args=args,
+                stdout=open(stdout_log, "a"),  # Redirect subprocess stdout to log file
+                stderr=open(stderr_log, "a"),  # Redirect subprocess stderr to log file
+                preexec_fn=os.setsid,
+                env=env,
+            )
+            print(f"Subprocess '{PROCESS_NAME}' started with PID {process.pid}.")
 
-        attempt_count = 0
+            attempt_count = 0
+            while not is_commit_reveal_subprocess_ready() and attempt_count < 5:
+                time.sleep(5)
+                print(
+                    f"Waiting for commit_reveal subprocess to be ready. Attempt {attempt_count + 1}..."
+                )
+                attempt_count += 1
 
-        while not is_commit_reveal_subprocess_ready() and attempt_count < 5:
-            time.sleep(3)
-            print("Waiting for commit_reveal subprocess to be ready.")
-            attempt_count += 1
-
-        if attempt_count >= 5:
-            print("Max attempts reached. Subprocess may not be ready.")
+            if attempt_count >= 5:
+                print("Max attempts reached. Subprocess may not be ready.")
+        except Exception as e:
+            print(f"Failed to start subprocess '{PROCESS_NAME}': {e}")
     else:
         print(f"Subprocess '{PROCESS_NAME}' is already running.")
 
