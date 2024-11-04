@@ -30,12 +30,12 @@ from multiprocessing.queues import Queue as QueueType
 from queue import Empty, Full
 from typing import Any, Callable, Optional, Union, TYPE_CHECKING
 
-import backoff
 import numpy
 from Crypto.Hash import keccak
+from retry import retry
 from rich import console as rich_console, status as rich_status
+from rich.console import Console
 
-from bittensor.core.settings import bt_console
 from bittensor.utils.btlogging import logging
 from bittensor.utils.formatting import get_human_readable, millify
 from bittensor.utils.register_cuda import solve_cuda
@@ -488,12 +488,16 @@ class RegistrationStatistics:
 class RegistrationStatisticsLogger:
     """Logs statistics for a registration."""
 
-    console: rich_console.Console
     status: Optional[rich_status.Status]
 
     def __init__(
-        self, console: rich_console.Console, output_in_place: bool = True
+        self,
+        console: Optional[rich_console.Console] = None,
+        output_in_place: bool = True,
     ) -> None:
+        if console is None:
+            console = Console()
+
         self.console = console
 
         if output_in_place:
@@ -649,7 +653,7 @@ def _solve_for_difficulty_fast(
 
     start_time_perpetual = time.time()
 
-    logger = RegistrationStatisticsLogger(bt_console, output_in_place)
+    logger = RegistrationStatisticsLogger(output_in_place=output_in_place)
     logger.start()
 
     solution = None
@@ -735,7 +739,7 @@ def _solve_for_difficulty_fast(
     return solution
 
 
-@backoff.on_exception(backoff.constant, Exception, interval=1, max_tries=3)
+@retry(Exception, tries=3, delay=1)
 def _get_block_with_retry(
     subtensor: "Subtensor", netuid: int
 ) -> tuple[int, int, bytes]:
@@ -953,7 +957,7 @@ def _solve_for_difficulty_fast_cuda(
 
         start_time_perpetual = time.time()
 
-        logger = RegistrationStatisticsLogger(bt_console, output_in_place)
+        logger = RegistrationStatisticsLogger(output_in_place=output_in_place)
         logger.start()
 
         hash_rates = [0] * n_samples  # The last n true hash_rates

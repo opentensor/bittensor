@@ -23,36 +23,6 @@ import warnings
 from pathlib import Path
 
 from munch import munchify
-from rich.console import Console
-from rich.traceback import install
-
-# Rich console.
-__console__ = Console()
-__use_console__ = True
-
-# Remove overdue locals in debug training.
-install(show_locals=False)
-
-
-def turn_console_off():
-    global __use_console__
-    global __console__
-    from io import StringIO
-
-    __use_console__ = False
-    __console__ = Console(file=StringIO(), stderr=False)
-
-
-def turn_console_on():
-    global __use_console__
-    global __console__
-    __use_console__ = True
-    __console__ = Console()
-
-
-turn_console_off()
-
-bt_console = __console__
 
 
 HOME_DIR = Path.home()
@@ -75,7 +45,14 @@ DEFAULT_NETWORK = NETWORKS[0]
 FINNEY_ENTRYPOINT = "wss://entrypoint-finney.opentensor.ai:443"
 FINNEY_TEST_ENTRYPOINT = "wss://test.finney.opentensor.ai:443/"
 ARCHIVE_ENTRYPOINT = "wss://archive.chain.opentensor.ai:443/"
-LOCAL_ENTRYPOINT = os.getenv("BT_SUBTENSOR_CHAIN_ENDPOINT") or "ws://127.0.0.1:9946"
+LOCAL_ENTRYPOINT = os.getenv("BT_SUBTENSOR_CHAIN_ENDPOINT") or "ws://127.0.0.1:9944"
+
+NETWORK_MAP = {
+    NETWORKS[0]: FINNEY_ENTRYPOINT,
+    NETWORKS[1]: FINNEY_TEST_ENTRYPOINT,
+    NETWORKS[2]: ARCHIVE_ENTRYPOINT,
+    NETWORKS[3]: LOCAL_ENTRYPOINT,
+}
 
 NETWORK_MAP = {
     NETWORKS[0]: FINNEY_ENTRYPOINT,

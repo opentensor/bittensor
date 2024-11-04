@@ -52,10 +52,6 @@ from bittensor.core.extrinsics.commit_weights import (
     commit_weights_extrinsic,
     reveal_weights_extrinsic,
 )
-from bittensor.core.extrinsics.prometheus import (
-    do_serve_prometheus,
-    prometheus_extrinsic,
-)
 from bittensor.core.extrinsics.registration import (
     burned_register_extrinsic,
     register_extrinsic,
@@ -1270,37 +1266,6 @@ class Subtensor:
         return NeuronInfo.from_vec_u8(result)
 
     # Community uses this method
-    def serve_prometheus(
-        self,
-        wallet: "Wallet",
-        port: int,
-        netuid: int,
-        wait_for_inclusion: bool = False,
-        wait_for_finalization: bool = True,
-    ) -> bool:
-        """
-        Serves Prometheus metrics by submitting an extrinsic to a blockchain network via the specified wallet. The function allows configuring whether to wait for the transaction's inclusion in a block and its finalization.
-
-        Args:
-            wallet (bittensor_wallet.Wallet): Bittensor wallet instance used for submitting the extrinsic.
-            port (int): The port number on which Prometheus metrics are served.
-            netuid (int): The unique identifier of the subnetwork.
-            wait_for_inclusion (bool): If True, waits for the transaction to be included in a block. Defaults to ``False``.
-            wait_for_finalization (bool): If True, waits for the transaction to be finalized. Defaults to ``True``.
-
-        Returns:
-            bool: Returns True if the Prometheus extrinsic is successfully processed, otherwise False.
-        """
-        return prometheus_extrinsic(
-            self,
-            wallet=wallet,
-            port=port,
-            netuid=netuid,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-        )
-
-    # Community uses this method
     def get_subnet_hyperparameters(
         self, netuid: int, block: Optional[int] = None
     ) -> Optional[Union[list, "SubnetHyperparameters"]]:
@@ -1770,9 +1735,7 @@ class Subtensor:
                     call=call, keypair=wallet.coldkeypub
                 )
             except Exception as e:
-                settings.bt_console.print(
-                    f":cross_mark: [red]Failed to get payment info[/red]:[bold white]\n  {e}[/bold white]"
-                )
+                logging.error(f"<red>Failed to get payment info.</red> {e}")
                 payment_info = {"partialFee": int(2e7)}  # assume  0.02 Tao
 
             fee = Balance.from_rao(payment_info["partialFee"])
@@ -2047,7 +2010,5 @@ class Subtensor:
 
         return DelegateInfo.from_vec_u8(result)
 
-    # Subnet 27 uses this method
-    _do_serve_prometheus = do_serve_prometheus
     # Subnet 27 uses this method name
     _do_serve_axon = do_serve_axon
