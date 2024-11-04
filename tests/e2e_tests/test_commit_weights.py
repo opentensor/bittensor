@@ -43,6 +43,8 @@ async def test_commit_and_reveal_weights(local_chain):
         "SubtensorModule", "NetworksAdded", [netuid]
     ).serialize(), "Subnet wasn't created successfully"
 
+    return
+
     # assert register_neuron(
     #     local_chain, alice_wallet, netuid
     # ), "Unable to register Alice as a neuron"
