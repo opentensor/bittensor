@@ -254,7 +254,7 @@ class AsyncSubtensor:
         """
         Retrieves the list of all subnet unique identifiers (netuids) currently present in the Bittensor network.
 
-        Arguments:
+        Args:
             block_hash (Optional[str]): The hash of the block to retrieve the subnet unique identifiers from.
 
         Returns:
@@ -284,7 +284,7 @@ class AsyncSubtensor:
         """
         Determines whether a given hotkey (public key) is a delegate on the Bittensor network. This function checks if the neuron associated with the hotkey is part of the network's delegation system.
 
-        Arguments:
+        Args:
             hotkey_ss58 (str): The SS58 address of the neuron's hotkey.
             block_hash (Optional[str]): The hash of the blockchain block number for the query.
             reuse_block (Optional[bool]): Whether to reuse the last-used block hash.
@@ -305,7 +305,7 @@ class AsyncSubtensor:
         """
         Fetches all delegates on the chain
 
-        Arguments:
+        Args:
             block_hash (Optional[str]): hash of the blockchain block number for the query.
             reuse_block (Optional[bool]): whether to reuse the last-used block hash.
 
@@ -338,7 +338,7 @@ class AsyncSubtensor:
         """
         Retrieves stake information associated with a specific coldkey. This function provides details about the stakes held by an account, including the staked amounts and associated delegates.
 
-        Arguments:
+        Args:
             coldkey_ss58 (str): The ``SS58`` address of the account's coldkey.
             block_hash (Optional[str]): The hash of the blockchain block number for the query.
             reuse_block (bool): Whether to reuse the last-used block hash.
@@ -374,7 +374,7 @@ class AsyncSubtensor:
         """
         Retrieves stake information associated with a specific coldkey and hotkey.
 
-        Arguments:
+        Args:
             hotkey_ss58 (str): the hotkey SS58 address to query
             coldkey_ss58 (str): the coldkey SS58 address to query
             block_hash (Optional[str]): the hash of the blockchain block number for the query.
@@ -401,7 +401,7 @@ class AsyncSubtensor:
         """
         Queries the runtime API of the Bittensor blockchain, providing a way to interact with the underlying runtime and retrieve data encoded in Scale Bytes format. This function is essential for advanced users who need to interact with specific runtime methods and decode complex data types.
 
-        Arguments:
+        Args:
             runtime_api (str): The name of the runtime API to query.
             method (str): The specific method within the runtime API to call.
             params (Optional[Union[list[list[int]], dict[str, int]]]): The parameters to pass to the method call.
@@ -455,7 +455,7 @@ class AsyncSubtensor:
         """
         Retrieves the balance for given coldkey(s)
 
-        Arguments:
+        Args:
             addresses (str): coldkey addresses(s).
             block_hash (Optional[str]): the block hash, optional.
 
@@ -535,7 +535,7 @@ class AsyncSubtensor:
         """
         Returns the total stake held on a coldkey.
 
-        Arguments:
+        Args:
             ss58_addresses (tuple[str]): The SS58 address(es) of the coldkey(s)
             block_hash (str): The hash of the block number to retrieve the stake from.
 
@@ -568,7 +568,7 @@ class AsyncSubtensor:
         """
         Returns the total stake held on a hotkey.
 
-        Arguments:
+        Args:
             ss58_addresses (tuple[str]): The SS58 address(es) of the hotkey(s)
             block_hash (str): The hash of the block number to retrieve the stake from.
             reuse_block (bool): Whether to reuse the last-used block hash when retrieving info.
@@ -594,7 +594,7 @@ class AsyncSubtensor:
         """
         Retrieves a list of subnet UIDs (netuids) for which a given hotkey is a member. This function identifies the specific subnets within the Bittensor network where the neuron associated with the hotkey is active.
 
-        Arguments:
+        Args:
             hotkey_ss58 (str): The ``SS58`` address of the neuron's hotkey.
             block_hash (Optional[str]): The hash of the blockchain block number at which to perform the query.
             reuse_block (Optional[bool]): Whether to reuse the last-used block hash when retrieving info.
@@ -622,7 +622,7 @@ class AsyncSubtensor:
         """
         Checks if a subnet with the specified unique identifier (netuid) exists within the Bittensor network.
 
-        Arguments:
+        Args:
             netuid (int): The unique identifier of the subnet.
             block_hash (Optional[str]): The hash of the blockchain block number at which to check the subnet existence.
             reuse_block (bool): Whether to reuse the last-used block hash.
@@ -652,7 +652,7 @@ class AsyncSubtensor:
         """
         Retrieves a specified hyperparameter for a specific subnet.
 
-        Arguments:
+        Args:
             param_name (str): The name of the hyperparameter to retrieve.
             netuid (int): The unique identifier of the subnet.
             block_hash (Optional[str]): The hash of blockchain block number for the query.
@@ -741,7 +741,7 @@ class AsyncSubtensor:
         The existential deposit is the minimum amount of TAO required for an account to exist on the blockchain.
         Accounts with balances below this threshold can be reaped to conserve network resources.
 
-        Arguments:
+        Args:
             block_hash (str): Block hash at which to query the deposit amount. If `None`, the current block is used.
             reuse_block (bool): Whether to reuse the last-used blockchain block hash.
 
@@ -769,7 +769,7 @@ class AsyncSubtensor:
         Retrieves a list of all neurons within a specified subnet of the Bittensor network.
         This function provides a snapshot of the subnet's neuron population, including each neuron's attributes and network interactions.
 
-        Arguments:
+        Args:
             netuid (int): The unique identifier of the subnet.
             block_hash (str): The hash of the blockchain block number for the query.
 
@@ -803,7 +803,7 @@ class AsyncSubtensor:
         Retrieves a list of neurons in a 'lite' format from a specific subnet of the Bittensor network.
         This function provides a streamlined view of the neurons, focusing on key attributes such as stake and network participation.
 
-        Arguments:
+        Args:
             netuid (int): The unique identifier of the subnet.
             block_hash (str): The hash of the blockchain block number for the query.
             reuse_block (bool): Whether to reuse the last-used blockchain block hash.
@@ -839,7 +839,7 @@ class AsyncSubtensor:
         """
         Retrieves detailed information about a specific neuron identified by its unique identifier (UID) within a specified subnet (netuid) of the Bittensor network. This function provides a comprehensive view of a neuron's attributes, including its stake, rank, and operational status.
 
-        Arguments:
+        Args:
             uid (int): The unique identifier of the neuron.
             netuid (int): The unique identifier of the subnet.
             block_hash (str): The hash of the blockchain block number for the query.
@@ -873,7 +873,7 @@ class AsyncSubtensor:
         """
         Retrieves a list of delegates and their associated stakes for a given coldkey. This function identifies the delegates that a specific account has staked tokens on.
 
-        Arguments:
+        Args:
             coldkey_ss58 (str): The `SS58` address of the account's coldkey.
             block_hash (Optional[str]): The hash of the blockchain block number for the query.
             reuse_block (bool): Whether to reuse the last-used blockchain block hash.
@@ -909,7 +909,7 @@ class AsyncSubtensor:
         """
         Queries the identity of a neuron on the Bittensor blockchain using the given key. This function retrieves detailed identity information about a specific neuron, which is a crucial aspect of the network's decentralized identity and governance system.
 
-        Arguments:
+        Args:
             key (str): The key used to query the neuron's identity, typically the neuron's SS58 address.
             block_hash (str): The hash of the blockchain block number at which to perform the query.
             reuse_block (bool): Whether to reuse the last-used blockchain block hash.
@@ -966,7 +966,7 @@ class AsyncSubtensor:
         Retrieves the weight distribution set by neurons within a specific subnet of the Bittensor network.
         This function maps each neuron's UID to the weights it assigns to other neurons, reflecting the network's trust and value assignment mechanisms.
 
-        Arguments:
+        Args:
             netuid (int): The network UID of the subnet to query.
             block_hash (str): The hash of the blockchain block for the query.
 
@@ -993,7 +993,7 @@ class AsyncSubtensor:
         Retrieves the bond distribution set by neurons within a specific subnet of the Bittensor network.
         Bonds represent the investments or commitments made by neurons in one another, indicating a level of trust and perceived value. This bonding mechanism is integral to the network's market-based approach to measuring and rewarding machine intelligence.
 
-        Arguments:
+        Args:
             netuid (int): The network UID of the subnet to query.
             block_hash (Optional[str]): The hash of the blockchain block number for the query.
 
@@ -1021,7 +1021,7 @@ class AsyncSubtensor:
         """
         Returns true if the hotkey is known by the chain and there are accounts.
 
-        Arguments:
+        Args:
             hotkey_ss58 (str): The SS58 address of the hotkey.
             block_hash (Optional[str]): The hash of the block number to check the hotkey against.
             reuse_block (bool): Whether to reuse the last-used blockchain hash.
@@ -1051,7 +1051,7 @@ class AsyncSubtensor:
         Retrieves the owner of the given hotkey at a specific block hash.
         This function queries the blockchain for the owner of the provided hotkey. If the hotkey does not exist at the specified block hash, it returns None.
 
-        Arguments:
+        Args:
             hotkey_ss58 (str): The SS58 address of the hotkey.
             block_hash (str): The hash of the block at which to check the hotkey ownership.
 
@@ -1082,7 +1082,7 @@ class AsyncSubtensor:
         """
         Helper method to sign and submit an extrinsic call to chain.
 
-        Arguments:
+        Args:
             call (scalecodec.types.GenericCall): a prepared Call object
             wallet (bittensor_wallet.Wallet): the wallet whose coldkey will be used to sign the extrinsic
             wait_for_inclusion (bool): whether to wait until the extrinsic call is included on the chain
@@ -1117,7 +1117,7 @@ class AsyncSubtensor:
         """
         This method retrieves the children of a given hotkey and netuid. It queries the SubtensorModule's ChildKeys storage function to get the children and formats them before returning as a tuple.
 
-        Arguments:
+        Args:
             hotkey (str): The hotkey value.
             netuid (int): The netuid value.
 
@@ -1149,7 +1149,7 @@ class AsyncSubtensor:
         """
         Retrieves the hyperparameters for a specific subnet within the Bittensor network. These hyperparameters define the operational settings and rules governing the subnet's behavior.
 
-        Arguments:
+        Args:
             netuid (int): The network UID of the subnet to query.
             block_hash (Optional[str]): The hash of the blockchain block number for the query.
 
@@ -1184,7 +1184,7 @@ class AsyncSubtensor:
         """
         Retrieves the voting data for a specific proposal on the Bittensor blockchain. This data includes information about how senate members have voted on the proposal.
 
-        Arguments:
+        Args:
             proposal_hash (str): The hash of the proposal for which voting data is requested.
             block_hash (Optional[str]): The hash of the blockchain block number to query the voting data.
             reuse_block (bool): Whether to reuse the last-used blockchain block hash.
@@ -1317,7 +1317,7 @@ class AsyncSubtensor:
         """
         Transfer token of amount to destination.
 
-        Arguments:
+        Args:
             wallet (bittensor_wallet.Wallet): Source wallet for the transfer.
             destination (str): Destination address for the transfer.
             amount (float): Amount of tokens to transfer.
@@ -1347,7 +1347,7 @@ class AsyncSubtensor:
         """
         Register neuron by recycling some TAO.
 
-        Arguments:
+        Args:
             wallet (bittensor_wallet.Wallet): Bittensor wallet instance.
             netuid (int): Subnet uniq id.
             block_hash (Optional[str]): The hash of the blockchain block for the query.
@@ -1487,7 +1487,7 @@ class AsyncSubtensor:
         """
         Set weights for root network.
 
-        Arguments:
+        Args:
             wallet (bittensor_wallet.Wallet): bittensor wallet instance.
             netuids (list[int]): The list of subnet uids.
             weights (list[float]): The list of weights to be set.
