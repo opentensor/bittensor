@@ -18,7 +18,6 @@
 import os
 from .helpers import (  # noqa: F401
     CLOSE_IN_VALUE,
-    MockConsole,
     __mock_wallet_factory__,
 )
 from bittensor_wallet.mock.wallet_mock import (  # noqa: F401
