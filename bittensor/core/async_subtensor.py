@@ -159,7 +159,7 @@ class AsyncSubtensor:
 
         return param_data.to_hex()
 
-    async def get_current_block(self):
+    async def get_current_block(self) -> int:
         """
         Returns the current block number on the Bittensor blockchain. This function provides the latest block number, indicating the most recent state of the blockchain.
 
@@ -182,9 +182,10 @@ class AsyncSubtensor:
 
         The block hash is a fundamental aspect of blockchain technology, providing a secure reference to each block's data. It is crucial for verifying transactions, ensuring data consistency, and maintaining the trustworthiness of the blockchain.
         """
-        return await self.substrate.get_block_hash(
-            block_id if block_id else await self.get_current_block()
-        )
+        if block_id:
+            return await self.substrate.get_block_hash(block_id)
+        else:
+            return await self.substrate.get_chain_head()
 
     async def is_hotkey_registered_any(
         self, hotkey_ss58: str, block_hash: Optional[str] = None
@@ -245,8 +246,6 @@ class AsyncSubtensor:
             storage_function="TotalNetworks",
             params=[],
             block_hash=block_hash
-            if block_hash is not None
-            else await self.get_block_hash(await self.get_current_block()),
         )
         return result
 
@@ -1300,8 +1299,6 @@ class AsyncSubtensor:
             storage_function="Uids",
             params=[netuid, hotkey_ss58],
             block_hash=block_hash
-            if block_hash is not None
-            else await self.get_block_hash(),
         )
 
     # extrinsics
