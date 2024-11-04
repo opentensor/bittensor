@@ -139,7 +139,9 @@ def commit_weights_extrinsic(
         logging.info(success_message)
         return True, success_message
     else:
-        error_message = format_error_message(error_message)
+        error_message = format_error_message(
+            error_message, substrate=subtensor.substrate
+        )
         logging.error(f"Failed to commit weights: {error_message}")
         return False, error_message
 
@@ -269,6 +271,8 @@ def reveal_weights_extrinsic(
         logging.info(success_message)
         return True, success_message
     else:
-        error_message = format_error_message(error_message)
+        error_message = format_error_message(
+            error_message, substrate=subtensor.substrate
+        )
         logging.error(f"Failed to reveal weights: {error_message}")
         return False, error_message
