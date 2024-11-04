@@ -73,8 +73,8 @@ async def _do_set_weights(
     if not wait_for_finalization and not wait_for_inclusion:
         return True, "Not waiting for finalization or inclusion."
 
-    response.process_events()
-    if response.is_success:
+    await response.process_events()
+    if await response.is_success:
         return True, "Successfully set weights."
     else:
         return False, format_error_message(
