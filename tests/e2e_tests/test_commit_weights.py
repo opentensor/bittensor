@@ -40,7 +40,7 @@ async def test_commit_and_reveal_weights(local_chain):
 
     # Verify subnet 1 created successfully
     assert local_chain.query(
-        "SubtensorModule", "NetworksAdded", [1]
+        "SubtensorModule", "NetworksAdded", [netuid]
     ).serialize(), "Subnet wasn't created successfully"
 
     # assert register_neuron(
@@ -125,7 +125,14 @@ async def test_commit_and_reveal_weights(local_chain):
     )
     # Assert that the committed weights are set correctly
     assert weight_commits.value is not None, "Weight commit not found in storage"
-    commit_hash, commit_block = weight_commits.value
+    commit_queue = weight_commits.value
+    print("++++++++++++++++ ")
+    print(commit_queue[0])
+    print(commit_queue[0][0])
+    print(weight_commits.value)
+    commit_hash = commit_queue[0]
+    commit_block = commit_queue[0][1]
+
     assert commit_block > 0, f"Invalid block number: {commit_block}"
 
     # Query the WeightCommitRevealInterval storage map
