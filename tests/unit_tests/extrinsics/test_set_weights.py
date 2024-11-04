@@ -87,7 +87,12 @@ def test_set_weights_extrinsic(
 ):
     uids_tensor = torch.tensor(uids, dtype=torch.int64)
     weights_tensor = torch.tensor(weights, dtype=torch.float32)
-    with patch(
+    # Patch subtensor.get_subnet_hyperparameters to return an object with commit_reveal_weights_enabled=False
+    with patch.object(
+        mock_subtensor,
+        "get_subnet_hyperparameters",
+        return_value=type("obj", (object,), {"commit_reveal_weights_enabled": False}),
+    ), patch(
         "bittensor.utils.weight_utils.convert_weights_and_uids_for_emit",
         return_value=(uids_tensor, weights_tensor),
     ), patch("rich.prompt.Confirm.ask", return_value=user_accepts), patch(

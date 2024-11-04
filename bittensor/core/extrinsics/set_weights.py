@@ -17,7 +17,7 @@
 
 import logging
 from typing import Union, Optional, TYPE_CHECKING
-
+import random
 import numpy as np
 from numpy.typing import NDArray
 from retry import retry
@@ -47,11 +47,13 @@ def do_set_weights(
     version_key: int = version_as_int,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
+    period: int = 5,
 ) -> tuple[bool, Optional[dict]]:  # (success, error_message)
     """
     Internal method to send a transaction to the Bittensor blockchain, setting weights for specified neurons. This method constructs and submits the transaction, handling retries and blockchain communication.
 
     Args:
+        period (int): Period dictates how long the extrinsic will stay as part of waiting pool
         self (bittensor.core.subtensor.Subtensor): Subtensor interface
         wallet (bittensor_wallet.Wallet): The wallet associated with the neuron setting the weights.
         uids (list[int]): List of neuron UIDs for which weights are being set.
@@ -68,23 +70,7 @@ def do_set_weights(
     """
 
     @retry(delay=1, tries=3, backoff=2, max_delay=4)
-    def make_substrate_call_with_retry():
-        call = self.substrate.compose_call(
-            call_module="SubtensorModule",
-            call_function="set_weights",
-            call_params={
-                "dests": uids,
-                "weights": vals,
-                "netuid": netuid,
-                "version_key": version_key,
-            },
-        )
-        # Period dictates how long the extrinsic will stay as part of waiting pool
-        extrinsic = self.substrate.create_signed_extrinsic(
-            call=call,
-            keypair=wallet.hotkey,
-            era={"period": 5},
-        )
+    def make_substrate_call_with_retry(extrinsic):
         response = submit_extrinsic(
             substrate=self.substrate,
             extrinsic=extrinsic,
@@ -101,7 +87,23 @@ def do_set_weights(
         else:
             return False, response.error_message
 
-    return make_substrate_call_with_retry()
+    call = self.substrate.compose_call(
+        call_module="SubtensorModule",
+        call_function="set_weights",
+        call_params={
+            "dests": uids,
+            "weights": vals,
+            "netuid": netuid,
+            "version_key": version_key,
+        },
+    )
+    # Period dictates how long the extrinsic will stay as part of waiting pool
+    extrinsic = self.substrate.create_signed_extrinsic(
+        call=call,
+        keypair=wallet.hotkey,
+        era={"period": period},
+    )
+    return make_substrate_call_with_retry(extrinsic)
 
 
 # Community uses this extrinsic directly and via `subtensor.set_weights`
@@ -132,63 +134,134 @@ def set_weights_extrinsic(
     Returns:
         tuple[bool, str]: A tuple containing a success flag and an optional response message.
     """
-    # First convert types.
-    if use_torch():
-        if isinstance(uids, list):
-            uids = torch.tensor(uids, dtype=torch.int64)
-        if isinstance(weights, list):
-            weights = torch.tensor(weights, dtype=torch.float32)
-    else:
-        if isinstance(uids, list):
-            uids = np.array(uids, dtype=np.int64)
-        if isinstance(weights, list):
-            weights = np.array(weights, dtype=np.float32)
 
-    # Reformat and normalize.
-    weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(
-        uids, weights
-    )
+    if subtensor.get_subnet_hyperparameters(
+        netuid=netuid
+    ).commit_reveal_weights_enabled:
+        # if cr is enabled, commit instead of setting the weights.
+        salt = [random.randint(0, 350) for _ in range(8)]
 
-    # Ask before moving on.
-    if prompt:
-        if not Confirm.ask(
-            f"Do you want to set weights:\n[bold white]  weights: {[float(v / 65535) for v in weight_vals]}\n"
-            f"uids: {weight_uids}[/bold white ]?"
+        # Ask before moving on.
+        if prompt:
+            if not Confirm.ask(
+                f"Do you want to commit weights:\n[bold white]  weights: {weights}\n"
+                f"uids: {uids}[/bold white ]?"
+            ):
+                return False, "Prompt refused."
+
+        with bt_console.status(
+            f":satellite: Committing weights on [white]{subtensor.network}[/white] ..."
         ):
-            return False, "Prompt refused."
+            try:
+                # First convert types.
+                if use_torch():
+                    if isinstance(uids, list):
+                        uids = torch.tensor(uids, dtype=torch.int64)
+                    if isinstance(weights, list):
+                        weights = torch.tensor(weights, dtype=torch.float32)
+                else:
+                    if isinstance(uids, list):
+                        uids = np.array(uids, dtype=np.int64)
+                    if isinstance(weights, list):
+                        weights = np.array(weights, dtype=np.float32)
 
-    with bt_console.status(
-        f":satellite: Setting weights on [white]{subtensor.network}[/white] ..."
-    ):
-        try:
-            success, error_message = do_set_weights(
-                self=subtensor,
-                wallet=wallet,
-                netuid=netuid,
-                uids=weight_uids,
-                vals=weight_vals,
-                version_key=version_key,
-                wait_for_finalization=wait_for_finalization,
-                wait_for_inclusion=wait_for_inclusion,
-            )
-
-            if not wait_for_finalization and not wait_for_inclusion:
-                return True, "Not waiting for finalization or inclusion."
-
-            if success is True:
-                bt_console.print(":white_heavy_check_mark: [green]Finalized[/green]")
-                logging.success(
-                    msg=str(success),
-                    prefix="Set weights",
-                    suffix="<green>Finalized: </green>",
+                # Reformat and normalize.
+                weight_uids, weight_vals = (
+                    weight_utils.convert_weights_and_uids_for_emit(uids, weights)
                 )
-                return True, "Successfully set weights and Finalized."
-            else:
-                error_message = format_error_message(error_message)
-                logging.error(error_message)
-                return False, error_message
 
-        except Exception as e:
-            bt_console.print(f":cross_mark: [red]Failed[/red]: error:{e}")
-            logging.debug(str(e))
-            return False, str(e)
+                success, message = subtensor.commit_weights(
+                    wallet=wallet,
+                    netuid=netuid,
+                    salt=salt,
+                    uids=weight_uids,
+                    weights=weight_vals,
+                    wait_for_inclusion=wait_for_inclusion,
+                    wait_for_finalization=wait_for_finalization,
+                    prompt=prompt,
+                    max_retries=1,
+                )
+                if not wait_for_finalization and not wait_for_inclusion:
+                    return True, "Not waiting for finalization or inclusion."
+
+                if success is True:
+                    bt_console.print(
+                        ":white_heavy_check_mark: [green]Finalized[/green]"
+                    )
+                    logging.success(
+                        msg=str(success),
+                        prefix="Committed weights",
+                        suffix="<green>Finalized: </green>",
+                    )
+                    return True, "Successfully committed weights and Finalized."
+                else:
+                    logging.error(message)
+                    return False, message
+
+            except Exception as e:
+                bt_console.print(f":cross_mark: [red]Failed[/red]: error:{e}")
+                logging.debug(str(e))
+                return False, str(e)
+    else:
+        # First convert types.
+        if use_torch():
+            if isinstance(uids, list):
+                uids = torch.tensor(uids, dtype=torch.int64)
+            if isinstance(weights, list):
+                weights = torch.tensor(weights, dtype=torch.float32)
+        else:
+            if isinstance(uids, list):
+                uids = np.array(uids, dtype=np.int64)
+            if isinstance(weights, list):
+                weights = np.array(weights, dtype=np.float32)
+
+        # Reformat and normalize.
+        weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(
+            uids, weights
+        )
+
+        # Ask before moving on.
+        if prompt:
+            if not Confirm.ask(
+                f"Do you want to set weights:\n[bold white]  weights: {[float(v / 65535) for v in weight_vals]}\n"
+                f"uids: {weight_uids}[/bold white ]?"
+            ):
+                return False, "Prompt refused."
+
+        with bt_console.status(
+            f":satellite: Setting weights on [white]{subtensor.network}[/white] ..."
+        ):
+            try:
+                success, error_message = do_set_weights(
+                    self=subtensor,
+                    wallet=wallet,
+                    netuid=netuid,
+                    uids=weight_uids,
+                    vals=weight_vals,
+                    version_key=version_key,
+                    wait_for_finalization=wait_for_finalization,
+                    wait_for_inclusion=wait_for_inclusion,
+                )
+
+                if not wait_for_finalization and not wait_for_inclusion:
+                    return True, "Not waiting for finalization or inclusion."
+
+                if success is True:
+                    bt_console.print(
+                        ":white_heavy_check_mark: [green]Finalized[/green]"
+                    )
+                    logging.success(
+                        msg=str(success),
+                        prefix="Set weights",
+                        suffix="<green>Finalized: </green>",
+                    )
+                    return True, "Successfully set weights and Finalized."
+                else:
+                    error_message = format_error_message(error_message)
+                    logging.error(error_message)
+                    return False, error_message
+
+            except Exception as e:
+                bt_console.print(f":cross_mark: [red]Failed[/red]: error:{e}")
+                logging.debug(str(e))
+                return False, str(e)
