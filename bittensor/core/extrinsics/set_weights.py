@@ -151,6 +151,8 @@ def set_weights_extrinsic(
     logging.info(
         f":satellite: <magenta>Setting weights on </magenta><blue>{subtensor.network}<blue> <magenta>...</magenta>"
     )
+    logging.debug(f"Weights: {[float(v / 65535) for v in weight_vals]}")
+
     try:
         success, error_message = do_set_weights(
             self=subtensor,

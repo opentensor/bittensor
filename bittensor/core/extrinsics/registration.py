@@ -155,6 +155,10 @@ def register_extrinsic(
         )
         return True
 
+    logging.debug(
+        f"Registration hotkey: <blue>{wallet.hotkey.ss58_address}</blue>, <green>Public</green> coldkey: <blue>{wallet.coldkey.ss58_address}</blue> in the network: <blue>{subtensor.network}</blue>."
+    )
+
     if not torch:
         log_no_torch_error()
         return False
@@ -380,6 +384,10 @@ def burned_register_extrinsic(
         return True
 
     logging.info(":satellite: <magenta>Recycling TAO for Registration...</magenta>")
+
+    recycle_amount = subtensor.recycle(netuid=netuid)
+    logging.info(f"Recycling {recycle_amount} to register on subnet:{netuid}")
+
     success, err_msg = _do_burned_register(
         self=subtensor,
         netuid=netuid,
@@ -389,7 +397,7 @@ def burned_register_extrinsic(
     )
 
     if not success:
-        logging.error(f":cross_mark: <red>Failed:</red> {err_msg}")
+        logging.error(f":cross_mark: <red>Failed error:</red> {err_msg}")
         time.sleep(0.5)
         return False
     # Successful registration, final check for neuron and pubkey
