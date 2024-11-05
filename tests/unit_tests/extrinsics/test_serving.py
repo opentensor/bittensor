@@ -50,7 +50,7 @@ def mock_axon(mock_wallet, mocker):
 
 
 @pytest.mark.parametrize(
-    "ip,port,protocol,netuid,placeholder1,placeholder2,wait_for_inclusion,wait_for_finalization,prompt,expected,test_id,",
+    "ip,port,protocol,netuid,placeholder1,placeholder2,wait_for_inclusion,wait_for_finalization,expected,test_id,",
     [
         (
             "192.168.1.1",
@@ -61,7 +61,6 @@ def mock_axon(mock_wallet, mocker):
             0,
             False,
             True,
-            False,
             True,
             "happy-path-no-wait",
         ),
@@ -73,7 +72,6 @@ def mock_axon(mock_wallet, mocker):
             1,
             1,
             True,
-            False,
             False,
             True,
             "happy-path-wait-for-inclusion",
@@ -88,14 +86,13 @@ def mock_axon(mock_wallet, mocker):
             False,
             True,
             True,
-            True,
-            "happy-path-wait-for-finalization-and-prompt",
+            "happy-path-wait-for-finalization",
         ),
     ],
     ids=[
         "happy-path-no-wait",
         "happy-path-wait-for-inclusion",
-        "happy-path-wait-for-finalization-and-prompt",
+        "happy-path-wait-for-finalization",
     ],
 )
 def test_serve_extrinsic_happy_path(
@@ -109,7 +106,6 @@ def test_serve_extrinsic_happy_path(
     placeholder2,
     wait_for_inclusion,
     wait_for_finalization,
-    prompt,
     expected,
     test_id,
     mocker,
@@ -136,7 +132,7 @@ def test_serve_extrinsic_happy_path(
 
 # Various edge cases
 @pytest.mark.parametrize(
-    "ip,port,protocol,netuid,placeholder1,placeholder2,wait_for_inclusion,wait_for_finalization,prompt,expected,test_id,",
+    "ip,port,protocol,netuid,placeholder1,placeholder2,wait_for_inclusion,wait_for_finalization,expected,test_id,",
     [
         (
             "192.168.1.4",
@@ -147,7 +143,6 @@ def test_serve_extrinsic_happy_path(
             3,
             True,
             True,
-            False,
             True,
             "edge_case_max_values",
         ),
@@ -165,7 +160,6 @@ def test_serve_extrinsic_edge_cases(
     placeholder2,
     wait_for_inclusion,
     wait_for_finalization,
-    prompt,
     expected,
     test_id,
     mocker,
@@ -192,7 +186,7 @@ def test_serve_extrinsic_edge_cases(
 
 # Various error cases
 @pytest.mark.parametrize(
-    "ip,port,protocol,netuid,placeholder1,placeholder2,wait_for_inclusion,wait_for_finalization,prompt,expected_error_message,test_id,",
+    "ip,port,protocol,netuid,placeholder1,placeholder2,wait_for_inclusion,wait_for_finalization,expected_error_message,test_id,",
     [
         (
             "192.168.1.5",
@@ -203,7 +197,6 @@ def test_serve_extrinsic_edge_cases(
             4,
             True,
             True,
-            False,
             False,
             "error-case-failed-serve",
         ),
@@ -221,7 +214,6 @@ def test_serve_extrinsic_error_cases(
     placeholder2,
     wait_for_inclusion,
     wait_for_finalization,
-    prompt,
     expected_error_message,
     test_id,
     mocker,
@@ -247,20 +239,19 @@ def test_serve_extrinsic_error_cases(
 
 
 @pytest.mark.parametrize(
-    "netuid, wait_for_inclusion, wait_for_finalization, prompt, external_ip, external_ip_success, serve_success, expected_result, test_id",
+    "netuid, wait_for_inclusion, wait_for_finalization, external_ip, external_ip_success, serve_success, expected_result, test_id",
     [
         # Happy path test
-        (1, False, True, False, "192.168.1.1", True, True, True, "happy-ext-ip"),
-        (1, False, True, True, None, True, True, True, "happy-net-external-ip"),
+        (1, False, True, "192.168.1.1", True, True, True, "happy-ext-ip"),
+        (1, False, True, None, True, True, True, "happy-net-external-ip"),
         # Edge cases
-        (1, True, True, False, "192.168.1.1", True, True, True, "edge-case-wait"),
+        (1, True, True, "192.168.1.1", True, True, True, "edge-case-wait"),
         # Error cases
-        (1, False, True, False, None, False, True, False, "error-fetching-external-ip"),
+        (1, False, True, None, False, True, False, "error-fetching-external-ip"),
         (
             1,
             False,
             True,
-            False,
             "192.168.1.1",
             True,
             False,
@@ -282,7 +273,6 @@ def test_serve_axon_extrinsic(
     netuid,
     wait_for_inclusion,
     wait_for_finalization,
-    prompt,
     external_ip,
     external_ip_success,
     serve_success,

@@ -84,15 +84,14 @@ def test_root_register_extrinsic(
 
 
 @pytest.mark.parametrize(
-    "wait_for_inclusion, wait_for_finalization, netuids, weights, user_response, expected_success",
+    "wait_for_inclusion, wait_for_finalization, netuids, weights, expected_success",
     [
-        (True, False, [1, 2], [0.5, 0.5], True, True),  # Success - weights set
+        (True, False, [1, 2], [0.5, 0.5], True),  # Success - weights set
         (
             False,
             False,
             [1, 2],
             [0.5, 0.5],
-            None,
             True,
         ),  # Success - weights set no wait
         (
@@ -101,14 +100,12 @@ def test_root_register_extrinsic(
             [1, 2],
             [2000, 20],
             True,
-            True,
         ),  # Success - large value to be normalized
         (
             True,
             False,
             [1, 2],
             [2000, 0],
-            True,
             True,
         ),  # Success - single large value
         (
@@ -117,22 +114,12 @@ def test_root_register_extrinsic(
             [1, 2],
             [0.5, 0.5],
             False,
-            False,
-        ),  # Failure - prompt declined
-        (
-            True,
-            False,
-            [1, 2],
-            [0.5, 0.5],
-            None,
-            False,
         ),  # Failure - setting weights failed
         (
             True,
             False,
             [],
             [],
-            False,
             False,
         ),  # Exception catched - ValueError 'min() arg is an empty sequence'
     ],
@@ -141,7 +128,6 @@ def test_root_register_extrinsic(
         "success-not-wait",
         "success-large-value",
         "success-single-value",
-        "failure-user-declines",
         "failure-setting-weights",
         "failure-value-error-exception",
     ],
@@ -153,7 +139,6 @@ def test_set_root_weights_extrinsic(
     wait_for_finalization,
     netuids,
     weights,
-    user_response,
     expected_success,
     mocker,
 ):
@@ -212,14 +197,6 @@ def test_set_root_weights_extrinsic(
             False,
             [1, 2],
             [0.5, 0.5],
-            False,
-            False,
-        ),  # Failure - prompt declined
-        (
-            True,
-            False,
-            [1, 2],
-            [0.5, 0.5],
             None,
             False,
         ),  # Failure - setting weights failed
@@ -237,7 +214,6 @@ def test_set_root_weights_extrinsic(
         "success-not-wait",
         "success-large-value",
         "success-single-value",
-        "failure-user-declines",
         "failure-setting-weights",
         "failure-value-error-exception",
     ],
@@ -261,7 +237,6 @@ def test_set_root_weights_extrinsic_torch(
         wait_for_finalization,
         netuids,
         weights,
-        user_response,
         expected_success,
         mocker,
     )

@@ -66,7 +66,6 @@ def mock_new_wallet(mocker):
     [
         (False, True, True, False, "subnet-does-not-exist"),
         (True, False, True, True, "neuron-already-registered"),
-        (True, True, True, True, "user-declines-prompt"),
         (True, True, False, False, "cuda-unavailable"),
     ],
 )
@@ -189,7 +188,6 @@ def test_register_extrinsic_with_pow(
         (True, True, True, True, True, "happy-path-wallet-registered"),
         # Error paths
         (False, True, False, None, False, "subnet-non-existence"),
-        (True, True, True, None, False, "prompt-declined"),
         (True, True, False, False, False, "error-path-recycling-failed"),
         (True, True, True, False, False, "error-path-not-registered"),
     ],
