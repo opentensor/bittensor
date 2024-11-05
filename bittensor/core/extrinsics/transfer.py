@@ -159,6 +159,11 @@ def transfer_extrinsic(
         return False
 
     logging.info(":satellite: <magenta>Transferring...</magenta>")
+    logging.info(f"\tAmount: <blue>{transfer_balance}</blue>")
+    logging.info(f"\tfrom: <blue>{wallet.name}:{wallet.coldkey.ss58_address}</blue>")
+    logging.info(f"\tTo: <blue>{dest}</blue>")
+    logging.info(f"\tFor fee: <blue>{fee}</blue>")
+
     success, block_hash, error_message = do_transfer(
         self=subtensor,
         wallet=wallet,
