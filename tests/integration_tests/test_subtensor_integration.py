@@ -15,7 +15,9 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import random
 import unittest
+from queue import Empty as QueueEmpty
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -28,7 +30,6 @@ from bittensor.utils.balance import Balance
 from bittensor.utils.mock import MockSubtensor
 from tests.helpers import (
     get_mock_coldkey,
-    MockConsole,
     get_mock_keypair,
     get_mock_wallet,
 )
@@ -50,12 +51,6 @@ class TestSubtensor(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
-        # mock rich console status
-        mock_console = MockConsole()
-        cls._mock_console_patcher = patch(
-            "bittensor.core.settings.bt_console", mock_console
-        )
-        cls._mock_console_patcher.start()
         # Keeps the same mock network for all tests. This stops the network from being re-setup for each test.
         cls._mock_subtensor = MockSubtensor()
         cls._do_setup_subnet()
@@ -66,10 +61,6 @@ class TestSubtensor(unittest.TestCase):
         cls._mock_subtensor.reset()
         # Setup the mock subnet 3
         cls._mock_subtensor.create_subnet(netuid=3)
-
-    @classmethod
-    def tearDownClass(cls) -> None:
-        cls._mock_console_patcher.stop()
 
     def test_network_overrides(self):
         """Tests that the network overrides the chain_endpoint."""
@@ -246,6 +237,170 @@ class TestSubtensor(unittest.TestCase):
         sub = bittensor.Subtensor()
         assert sub.network == "finney"
         assert sub.chain_endpoint == settings.FINNEY_ENTRYPOINT
+
+    def test_registration_multiprocessed_already_registered(self):
+        work_blocks_before_is_registered = random.randint(5, 10)
+        # return False each work block but return True after a random number of blocks
+        is_registered_return_values = (
+            [False for _ in range(work_blocks_before_is_registered)]
+            + [True]
+            + [True, False]
+        )
+        # this should pass the initial False check in the subtensor class and then return True because the neuron is already registered
+
+        mock_neuron = MagicMock()
+        mock_neuron.is_null = True
+
+        # patch solution queue to return None
+        with patch(
+            "multiprocessing.queues.Queue.get", return_value=None
+        ) as mock_queue_get:
+            # patch time queue get to raise Empty exception
+            with patch(
+                "multiprocessing.queues.Queue.get_nowait", side_effect=QueueEmpty
+            ) as mock_queue_get_nowait:
+                wallet = get_mock_wallet(
+                    hotkey=get_mock_keypair(0, self.id()),
+                    coldkey=get_mock_keypair(1, self.id()),
+                )
+                self.subtensor.is_hotkey_registered = MagicMock(
+                    side_effect=is_registered_return_values
+                )
+
+                self.subtensor.difficulty = MagicMock(return_value=1)
+                self.subtensor.get_neuron_for_pubkey_and_subnet = MagicMock(
+                    side_effect=mock_neuron
+                )
+                self.subtensor._do_pow_register = MagicMock(return_value=(True, None))
+
+                # should return True
+                assert self.subtensor.register(
+                    wallet=wallet, netuid=3, num_processes=3, update_interval=5
+                )
+
+                # calls until True and once again before exiting subtensor class
+                # This assertion is currently broken when difficulty is too low
+                assert (
+                    self.subtensor.is_hotkey_registered.call_count
+                    == work_blocks_before_is_registered + 2
+                )
+
+    def test_registration_partly_failed(self):
+        do_pow_register_mock = MagicMock(
+            side_effect=[(False, "Failed"), (False, "Failed"), (True, None)]
+        )
+
+        def is_registered_side_effect(*args, **kwargs):
+            nonlocal do_pow_register_mock
+            return do_pow_register_mock.call_count < 3
+
+        current_block = [i for i in range(0, 100)]
+
+        wallet = get_mock_wallet(
+            hotkey=get_mock_keypair(0, self.id()),
+            coldkey=get_mock_keypair(1, self.id()),
+        )
+
+        self.subtensor.get_neuron_for_pubkey_and_subnet = MagicMock(
+            return_value=bittensor.NeuronInfo.get_null_neuron()
+        )
+        self.subtensor.is_hotkey_registered = MagicMock(
+            side_effect=is_registered_side_effect
+        )
+
+        self.subtensor.difficulty = MagicMock(return_value=1)
+        self.subtensor.get_current_block = MagicMock(side_effect=current_block)
+        self.subtensor._do_pow_register = do_pow_register_mock
+
+        # should return True
+        self.assertTrue(
+            self.subtensor.register(
+                wallet=wallet, netuid=3, num_processes=3, update_interval=5
+            ),
+            msg="Registration should succeed",
+        )
+
+    def test_registration_failed(self):
+        is_registered_return_values = [False for _ in range(100)]
+        current_block = [i for i in range(0, 100)]
+        mock_neuron = MagicMock()
+        mock_neuron.is_null = True
+
+        with patch(
+            "bittensor.core.extrinsics.registration.create_pow", return_value=None
+        ) as mock_create_pow:
+            wallet = get_mock_wallet(
+                hotkey=get_mock_keypair(0, self.id()),
+                coldkey=get_mock_keypair(1, self.id()),
+            )
+
+            self.subtensor.is_hotkey_registered = MagicMock(
+                side_effect=is_registered_return_values
+            )
+
+            self.subtensor.get_current_block = MagicMock(side_effect=current_block)
+            self.subtensor.get_neuron_for_pubkey_and_subnet = MagicMock(
+                return_value=mock_neuron
+            )
+            self.subtensor.substrate.get_block_hash = MagicMock(
+                return_value="0x" + "0" * 64
+            )
+            self.subtensor._do_pow_register = MagicMock(return_value=(False, "Failed"))
+
+            # should return True
+            self.assertIsNot(
+                self.subtensor.register(wallet=wallet, netuid=3),
+                True,
+                msg="Registration should fail",
+            )
+            self.assertEqual(mock_create_pow.call_count, 3)
+
+    def test_registration_stale_then_continue(self):
+        # verify that after a stale solution, to solve will continue without exiting
+
+        class ExitEarly(Exception):
+            pass
+
+        mock_is_stale = MagicMock(side_effect=[True, False])
+
+        mock_do_pow_register = MagicMock(side_effect=ExitEarly())
+
+        mock_subtensor_self = MagicMock(
+            neuron_for_pubkey=MagicMock(
+                return_value=MagicMock(is_null=True)
+            ),  # not registered
+            substrate=MagicMock(
+                get_block_hash=MagicMock(return_value="0x" + "0" * 64),
+            ),
+        )
+
+        mock_wallet = MagicMock()
+
+        mock_create_pow = MagicMock(return_value=MagicMock(is_stale=mock_is_stale))
+
+        with patch(
+            "bittensor.core.extrinsics.registration.create_pow", mock_create_pow
+        ), patch(
+            "bittensor.core.extrinsics.registration._do_pow_register",
+            mock_do_pow_register,
+        ):
+            # should create a pow and check if it is stale
+            # then should create a new pow and check if it is stale
+            # then should enter substrate and exit early because of test
+            self.subtensor.get_neuron_for_pubkey_and_subnet = MagicMock(
+                return_value=bittensor.NeuronInfo.get_null_neuron()
+            )
+            with pytest.raises(ExitEarly):
+                bittensor.subtensor.register(mock_subtensor_self, mock_wallet, netuid=3)
+            self.assertEqual(
+                mock_create_pow.call_count, 2, msg="must try another pow after stale"
+            )
+            self.assertEqual(mock_is_stale.call_count, 2)
+            self.assertEqual(
+                mock_do_pow_register.call_count,
+                1,
+                msg="only tries to submit once, then exits",
+            )
 
 
 if __name__ == "__main__":

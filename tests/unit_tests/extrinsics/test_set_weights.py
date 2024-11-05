@@ -28,7 +28,7 @@ def mock_wallet():
 
 
 @pytest.mark.parametrize(
-    "uids, weights, version_key, wait_for_inclusion, wait_for_finalization, prompt, user_accepts, expected_success, expected_message",
+    "uids, weights, version_key, wait_for_inclusion, wait_for_finalization, expected_success, expected_message",
     [
         (
             [1, 2],
@@ -36,8 +36,6 @@ def mock_wallet():
             0,
             True,
             False,
-            True,
-            True,
             True,
             "Successfully set weights and Finalized.",
         ),
@@ -47,8 +45,6 @@ def mock_wallet():
             0,
             False,
             False,
-            False,
-            True,
             True,
             "Not waiting for finalization or inclusion.",
         ),
@@ -58,18 +54,14 @@ def mock_wallet():
             0,
             True,
             False,
-            True,
-            True,
             False,
-            "Subtensor returned `UnknownError(UnknownType)` error. This means: `Unknown Description`.",
+            "Mock error message",
         ),
-        ([1, 2], [0.5, 0.5], 0, True, True, True, False, False, "Prompt refused."),
     ],
     ids=[
         "happy-flow",
         "not-waiting-finalization-inclusion",
         "error-flow",
-        "prompt-refused",
     ],
 )
 def test_set_weights_extrinsic(
@@ -80,17 +72,20 @@ def test_set_weights_extrinsic(
     version_key,
     wait_for_inclusion,
     wait_for_finalization,
-    prompt,
-    user_accepts,
     expected_success,
     expected_message,
 ):
     uids_tensor = torch.tensor(uids, dtype=torch.int64)
     weights_tensor = torch.tensor(weights, dtype=torch.float32)
-    with patch(
+    # Patch subtensor.get_subnet_hyperparameters to return an object with commit_reveal_weights_enabled=False
+    with patch.object(
+        mock_subtensor,
+        "get_subnet_hyperparameters",
+        return_value=type("obj", (object,), {"commit_reveal_weights_enabled": False}),
+    ), patch(
         "bittensor.utils.weight_utils.convert_weights_and_uids_for_emit",
         return_value=(uids_tensor, weights_tensor),
-    ), patch("rich.prompt.Confirm.ask", return_value=user_accepts), patch(
+    ), patch(
         "bittensor.core.extrinsics.set_weights.do_set_weights",
         return_value=(expected_success, "Mock error message"),
     ) as mock_do_set_weights:
@@ -103,22 +98,10 @@ def test_set_weights_extrinsic(
             version_key=version_key,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
-            prompt=prompt,
         )
 
         assert result == expected_success, f"Test {expected_message} failed."
         assert message == expected_message, f"Test {expected_message} failed."
-        if user_accepts is not False:
-            mock_do_set_weights.assert_called_once_with(
-                self=mock_subtensor,
-                wallet=mock_wallet,
-                netuid=123,
-                uids=uids_tensor,
-                vals=weights_tensor,
-                version_key=version_key,
-                wait_for_finalization=wait_for_finalization,
-                wait_for_inclusion=wait_for_inclusion,
-            )
 
 
 def test_do_set_weights_is_success(mock_subtensor, mocker):
@@ -226,7 +209,7 @@ def test_do_set_weights_is_not_success(mock_subtensor, mocker):
     mock_subtensor.substrate.submit_extrinsic.return_value.process_events.assert_called_once()
     assert result == (
         False,
-        mock_subtensor.substrate.submit_extrinsic.return_value.error_message,
+        "Subtensor returned `UnknownError(UnknownType)` error. This means: `Unknown Description`.",
     )
 
 

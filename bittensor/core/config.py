@@ -97,18 +97,6 @@ class Config(DefaultMunch):
             # this can fail if --no_version_checking has already been added.
             pass
 
-        try:
-            parser.add_argument(
-                "--no_prompt",
-                dest="no_prompt",
-                action="store_true",
-                help="Set ``true`` to stop cli from prompting the user.",
-                default=False,
-            )
-        except Exception:
-            # this can fail if --no_version_checking has already been added.
-            pass
-
         # Get args from argv if not passed in.
         if args is None:
             args = sys.argv[1:]

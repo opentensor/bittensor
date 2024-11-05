@@ -49,7 +49,8 @@ from .helpers import all_loggers
 
 def _concat_message(msg="", prefix="", suffix=""):
     """Concatenates a message with optional prefix and suffix."""
-    msg = f"{f'{prefix} - ' if prefix else ''}{msg}{f' - {suffix}' if suffix else ''}"
+    empty_pref_suf = [None, ""]
+    msg = f"{f'{prefix} - ' if prefix not in empty_pref_suf else ''}{msg}{f' - {suffix}' if suffix not in empty_pref_suf else ''}"
     return msg
 
 
@@ -443,27 +444,27 @@ class LoggingMachine(StateMachine, Logger):
 
     def success(self, msg="", prefix="", suffix="", *args, **kwargs):
         """Wraps success message with prefix and suffix."""
-        msg = f"{prefix} - {msg} - {suffix}"
+        msg = _concat_message(msg, prefix, suffix)
         self._logger.success(msg, *args, **kwargs)
 
     def warning(self, msg="", prefix="", suffix="", *args, **kwargs):
         """Wraps warning message with prefix and suffix."""
-        msg = f"{prefix} - {msg} - {suffix}"
+        msg = _concat_message(msg, prefix, suffix)
         self._logger.warning(msg, *args, **kwargs)
 
     def error(self, msg="", prefix="", suffix="", *args, **kwargs):
         """Wraps error message with prefix and suffix."""
-        msg = f"{prefix} - {msg} - {suffix}"
+        msg = _concat_message(msg, prefix, suffix)
         self._logger.error(msg, *args, **kwargs)
 
     def critical(self, msg="", prefix="", suffix="", *args, **kwargs):
         """Wraps critical message with prefix and suffix."""
-        msg = f"{prefix} - {msg} - {suffix}"
+        msg = _concat_message(msg, prefix, suffix)
         self._logger.critical(msg, *args, **kwargs)
 
     def exception(self, msg="", prefix="", suffix="", *args, **kwargs):
         """Wraps exception message with prefix and suffix."""
-        msg = f"{prefix} - {msg} - {suffix}"
+        msg = _concat_message(msg, prefix, suffix)
         self._logger.exception(msg, *args, **kwargs)
 
     def on(self):

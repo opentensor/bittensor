@@ -1,9 +1,10 @@
 """Tests for bittensor/extrinsics/__ini__ module."""
 
 from bittensor.utils import format_error_message
+from tests.unit_tests.extrinsics.test_commit_weights import subtensor
 
 
-def test_format_error_message_with_right_error_message():
+def test_format_error_message_with_right_error_message(mocker):
     """Verify that error message from extrinsic response parses correctly."""
     # Prep
     fake_error_message = {
@@ -13,7 +14,7 @@ def test_format_error_message_with_right_error_message():
     }
 
     # Call
-    result = format_error_message(fake_error_message)
+    result = format_error_message(fake_error_message, substrate=mocker.MagicMock())
 
     # Assertions
 
@@ -22,13 +23,13 @@ def test_format_error_message_with_right_error_message():
     assert "Some error description." in result
 
 
-def test_format_error_message_with_empty_error_message():
+def test_format_error_message_with_empty_error_message(mocker):
     """Verify that empty error message from extrinsic response parses correctly."""
     # Prep
     fake_error_message = {}
 
     # Call
-    result = format_error_message(fake_error_message)
+    result = format_error_message(fake_error_message, substrate=mocker.MagicMock())
 
     # Assertions
 
@@ -37,13 +38,13 @@ def test_format_error_message_with_empty_error_message():
     assert "Unknown Description" in result
 
 
-def test_format_error_message_with_wrong_type_error_message():
+def test_format_error_message_with_wrong_type_error_message(mocker):
     """Verify that error message from extrinsic response with wrong type parses correctly."""
     # Prep
     fake_error_message = None
 
     # Call
-    result = format_error_message(fake_error_message)
+    result = format_error_message(fake_error_message, substrate=mocker.MagicMock())
 
     # Assertions
 

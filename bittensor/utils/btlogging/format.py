@@ -54,6 +54,8 @@ emoji_map: dict[str, str] = {
     ":white_heavy_check_mark:": "✅",
     ":cross_mark:": "❌",
     ":satellite:": "🛰️",
+    ":warning:": "⚠️",
+    ":arrow_right:": "➡️",
 }
 
 
@@ -64,6 +66,8 @@ color_map: dict[str, str] = {
     "</blue>": Style.RESET_ALL,
     "<green>": Fore.GREEN,
     "</green>": Style.RESET_ALL,
+    "<magenta>": Fore.MAGENTA,
+    "</magenta>": Style.RESET_ALL,
 }
 
 
