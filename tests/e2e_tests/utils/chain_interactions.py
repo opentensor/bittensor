@@ -6,7 +6,7 @@ these are not present in btsdk but are required for e2e tests
 import asyncio
 from typing import Union, Optional, TYPE_CHECKING
 
-from bittensor import logging
+from bittensor.utils.btlogging import logging
 
 # for typing purposes
 if TYPE_CHECKING:

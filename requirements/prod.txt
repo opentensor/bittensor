@@ -1,7 +1,9 @@
 wheel
 setuptools~=70.0.0
-bittensor-cli
 aiohttp~=3.9
+async-property==0.2.2
+backoff
+bittensor-cli
 bt-decode
 colorama~=0.4.6
 fastapi~=0.110.1
@@ -12,6 +14,7 @@ nest_asyncio
 netaddr
 packaging
 python-statemachine~=2.1
+pycryptodome>=3.18.0,<4.0.0
 pyyaml
 retry
 requests
