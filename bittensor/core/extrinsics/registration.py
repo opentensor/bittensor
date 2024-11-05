@@ -19,7 +19,6 @@ import time
 from typing import Union, Optional, TYPE_CHECKING
 
 from bittensor_wallet.errors import KeyFileError
-from retry import retry
 
 from bittensor.utils import format_error_message
 from bittensor.utils.btlogging import logging
@@ -59,46 +58,39 @@ def _do_pow_register(
         success (bool): ``True`` if the extrinsic was included in a block.
         error (Optional[str]): ``None`` on success or not waiting for inclusion/finalization, otherwise the error message.
     """
+    # create extrinsic call
+    call = self.substrate.compose_call(
+        call_module="SubtensorModule",
+        call_function="register",
+        call_params={
+            "netuid": netuid,
+            "block_number": pow_result.block_number,
+            "nonce": pow_result.nonce,
+            "work": [int(byte_) for byte_ in pow_result.seal],
+            "hotkey": wallet.hotkey.ss58_address,
+            "coldkey": wallet.coldkeypub.ss58_address,
+        },
+    )
+    extrinsic = self.substrate.create_signed_extrinsic(call=call, keypair=wallet.hotkey)
+    response = self.substrate.submit_extrinsic(
+        extrinsic,
+        wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization,
+    )
 
-    @retry(delay=1, tries=3, backoff=2, max_delay=4)
-    def make_substrate_call_with_retry():
-        # create extrinsic call
-        call = self.substrate.compose_call(
-            call_module="SubtensorModule",
-            call_function="register",
-            call_params={
-                "netuid": netuid,
-                "block_number": pow_result.block_number,
-                "nonce": pow_result.nonce,
-                "work": [int(byte_) for byte_ in pow_result.seal],
-                "hotkey": wallet.hotkey.ss58_address,
-                "coldkey": wallet.coldkeypub.ss58_address,
-            },
+    # We only wait here if we expect finalization.
+    if not wait_for_finalization and not wait_for_inclusion:
+        return True, None
+
+    # process if registration successful, try again if pow is still valid
+    response.process_events()
+    if not response.is_success:
+        return False, format_error_message(
+            response.error_message, substrate=self.substrate
         )
-        extrinsic = self.substrate.create_signed_extrinsic(
-            call=call, keypair=wallet.hotkey
-        )
-        response = self.substrate.submit_extrinsic(
-            extrinsic,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-        )
-
-        # We only wait here if we expect finalization.
-        if not wait_for_finalization and not wait_for_inclusion:
-            return True, None
-
-        # process if registration successful, try again if pow is still valid
-        response.process_events()
-        if not response.is_success:
-            return False, format_error_message(
-                response.error_message, substrate=self.substrate
-            )
-        # Successful registration
-        else:
-            return True, None
-
-    return make_substrate_call_with_retry()
+    # Successful registration
+    else:
+        return True, None
 
 
 def register_extrinsic(
@@ -297,41 +289,37 @@ def _do_burned_register(
         Tuple[bool, Optional[str]]: A tuple containing a boolean indicating success or failure, and an optional error message.
     """
 
-    @retry(delay=1, tries=3, backoff=2, max_delay=4)
-    def make_substrate_call_with_retry():
-        # create extrinsic call
-        call = self.substrate.compose_call(
-            call_module="SubtensorModule",
-            call_function="burned_register",
-            call_params={
-                "netuid": netuid,
-                "hotkey": wallet.hotkey.ss58_address,
-            },
-        )
-        extrinsic = self.substrate.create_signed_extrinsic(
-            call=call, keypair=wallet.coldkey
-        )
-        response = self.substrate.submit_extrinsic(
-            extrinsic,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-        )
+    # create extrinsic call
+    call = self.substrate.compose_call(
+        call_module="SubtensorModule",
+        call_function="burned_register",
+        call_params={
+            "netuid": netuid,
+            "hotkey": wallet.hotkey.ss58_address,
+        },
+    )
+    extrinsic = self.substrate.create_signed_extrinsic(
+        call=call, keypair=wallet.coldkey
+    )
+    response = self.substrate.submit_extrinsic(
+        extrinsic,
+        wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization,
+    )
 
-        # We only wait here if we expect finalization.
-        if not wait_for_finalization and not wait_for_inclusion:
-            return True, None
+    # We only wait here if we expect finalization.
+    if not wait_for_finalization and not wait_for_inclusion:
+        return True, None
 
-        # process if registration successful, try again if pow is still valid
-        response.process_events()
-        if not response.is_success:
-            return False, format_error_message(
-                response.error_message, substrate=self.substrate
-            )
-        # Successful registration
-        else:
-            return True, None
-
-    return make_substrate_call_with_retry()
+    # process if registration successful, try again if pow is still valid
+    response.process_events()
+    if not response.is_success:
+        return False, format_error_message(
+            response.error_message, substrate=self.substrate
+        )
+    # Successful registration
+    else:
+        return True, None
 
 
 def burned_register_extrinsic(
