@@ -7,7 +7,7 @@ from numpy.typing import NDArray
 from retry import retry
 from rich.prompt import Confirm
 
-from bittensor.core.settings import bt_console, version_as_int
+from bittensor.core.settings import version_as_int
 from bittensor.utils import format_error_message, weight_utils
 from bittensor.utils.btlogging import logging
 from bittensor.utils.networking import ensure_connected
@@ -49,7 +49,9 @@ def _do_root_register(
         # process if registration successful, try again if pow is still valid
         response.process_events()
         if not response.is_success:
-            return False, format_error_message(response.error_message)
+            return False, format_error_message(
+                response.error_message, substrate=self.substrate
+            )
         # Successful registration
         else:
             return True, None
@@ -80,8 +82,8 @@ def root_register_extrinsic(
     try:
         wallet.unlock_coldkey()
     except KeyFileError:
-        bt_console.print(
-            ":cross_mark: [red]Keyfile is corrupt, non-writable, non-readable or the password used to decrypt is invalid[/red]:[bold white]\n  [/bold white]"
+        logging.error(
+            "<red>Keyfile is corrupt, non-writable, non-readable or the password used to decrypt is invalid.</red>"
         )
         return False
 
@@ -89,8 +91,8 @@ def root_register_extrinsic(
         netuid=0, hotkey_ss58=wallet.hotkey.ss58_address
     )
     if is_registered:
-        bt_console.print(
-            ":white_heavy_check_mark: [green]Already registered on root network.[/green]"
+        logging.info(
+            ":white_heavy_check_mark: <green>Already registered on root network.</green>"
         )
         return True
 
@@ -99,30 +101,28 @@ def root_register_extrinsic(
         if not Confirm.ask("Register to root network?"):
             return False
 
-    with bt_console.status(":satellite: Registering to root network..."):
-        success, err_msg = _do_root_register(
-            wallet=wallet,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
+    logging.info(":satellite: <magenta>Registering to root network...</magenta>")
+    success, err_msg = _do_root_register(
+        wallet=wallet,
+        wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization,
+    )
+
+    if not success:
+        logging.error(f":cross_mark: <red>Failed</red>: {err_msg}")
+        time.sleep(0.5)
+
+    # Successful registration, final check for neuron and pubkey
+    else:
+        is_registered = subtensor.is_hotkey_registered(
+            netuid=0, hotkey_ss58=wallet.hotkey.ss58_address
         )
-
-        if not success:
-            bt_console.print(f":cross_mark: [red]Failed[/red]: {err_msg}")
-            time.sleep(0.5)
-
-        # Successful registration, final check for neuron and pubkey
+        if is_registered:
+            logging.success(":white_heavy_check_mark: <green>Registered</green>")
+            return True
         else:
-            is_registered = subtensor.is_hotkey_registered(
-                netuid=0, hotkey_ss58=wallet.hotkey.ss58_address
-            )
-            if is_registered:
-                bt_console.print(":white_heavy_check_mark: [green]Registered[/green]")
-                return True
-            else:
-                # neuron not found, try again
-                bt_console.print(
-                    ":cross_mark: [red]Unknown error. Neuron not found.[/red]"
-                )
+            # neuron not found, try again
+            logging.error(":cross_mark: <red>Unknown error. Neuron not found.</red>")
 
 
 @ensure_connected
@@ -222,8 +222,8 @@ def set_root_weights_extrinsic(
     try:
         wallet.unlock_coldkey()
     except KeyFileError:
-        bt_console.print(
-            ":cross_mark: [red]Keyfile is corrupt, non-writable, non-readable or the password used to decrypt is invalid[/red]:[bold white]\n  [/bold white]"
+        logging.error(
+            ":cross_mark: <red>Keyfile is corrupt, non-writable, non-readable or the password used to decrypt is invalid.</red>"
         )
         return False
 
@@ -252,8 +252,8 @@ def set_root_weights_extrinsic(
     formatted_weights = weight_utils.normalize_max_weight(
         x=weights, limit=max_weight_limit
     )
-    bt_console.print(
-        f"\nRaw Weights -> Normalized weights: \n\t{weights} -> \n\t{formatted_weights}\n"
+    logging.info(
+        f"Raw Weights -> Normalized weights: <blue>{weights}</blue> -> <green>{formatted_weights}</green>"
     )
 
     # Ask before moving on.
@@ -265,46 +265,36 @@ def set_root_weights_extrinsic(
         ):
             return False
 
-    with bt_console.status(
-        ":satellite: Setting root weights on [white]{}[/white] ...".format(
-            subtensor.network
+    logging.info(
+        f":satellite: <magenta>Setting root weights on</magenta> <blue>{subtensor.network}</blue> <magenta>...</magenta>"
+    )
+    try:
+        weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(
+            netuids, weights
         )
-    ):
-        try:
-            weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(
-                netuids, weights
+        success, error_message = _do_set_root_weights(
+            wallet=wallet,
+            netuid=0,
+            uids=weight_uids,
+            vals=weight_vals,
+            version_key=version_key,
+            wait_for_finalization=wait_for_finalization,
+            wait_for_inclusion=wait_for_inclusion,
+        )
+
+        if not wait_for_finalization and not wait_for_inclusion:
+            return True
+
+        if success is True:
+            logging.info(":white_heavy_check_mark: <green>Finalized</green>")
+            logging.success(f"Set weights {str(success)}")
+            return True
+        else:
+            logging.error(
+                f":cross_mark: <red>Failed </red> set weights. {str(error_message)}"
             )
-            success, error_message = _do_set_root_weights(
-                wallet=wallet,
-                netuid=0,
-                uids=weight_uids,
-                vals=weight_vals,
-                version_key=version_key,
-                wait_for_finalization=wait_for_finalization,
-                wait_for_inclusion=wait_for_inclusion,
-            )
-
-            bt_console.print(success, error_message)
-
-            if not wait_for_finalization and not wait_for_inclusion:
-                return True
-
-            if success is True:
-                bt_console.print(":white_heavy_check_mark: [green]Finalized[/green]")
-                logging.success(
-                    prefix="Set weights",
-                    suffix="<green>Finalized: </green>" + str(success),
-                )
-                return True
-            else:
-                bt_console.print(f":cross_mark: [red]Failed[/red]: {error_message}")
-                logging.warning(
-                    prefix="Set weights",
-                    suffix="<red>Failed: </red>" + str(error_message),
-                )
-                return False
-
-        except Exception as e:
-            bt_console.print(":cross_mark: [red]Failed[/red]: error:{}".format(e))
-            logging.warning(prefix="Set weights", suffix="<red>Failed: </red>" + str(e))
             return False
+
+    except Exception as e:
+        logging.error(f":cross_mark: <red>Failed </red> set weights. {str(e)}")
+        return False

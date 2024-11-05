@@ -1,5 +1,6 @@
-import bittensor
-from bittensor import logging
+from bittensor.core.subtensor import Subtensor
+from bittensor.utils.balance import Balance
+from bittensor.utils.btlogging import logging
 from tests.e2e_tests.utils.chain_interactions import (
     add_stake,
     register_neuron,
@@ -49,10 +50,10 @@ def test_liquid_alpha(local_chain):
     # ), "Unable to register Alice as a neuron"
 
     # Stake to become to top neuron after the first epoch
-    add_stake(local_chain, alice_wallet, netuid, bittensor.Balance.from_tao(100_000))
+    add_stake(local_chain, alice_wallet, netuid, Balance.from_tao(100_000))
 
     # Assert liquid alpha is disabled
-    subtensor = bittensor.Subtensor(network="ws://localhost:9945")
+    subtensor = Subtensor(network="ws://localhost:9945")
     assert (
         subtensor.get_subnet_hyperparameters(netuid=netuid).liquid_alpha_enabled
         is False
@@ -118,7 +119,7 @@ def test_liquid_alpha(local_chain):
     alpha_high_too_high = u16_max + 1  # One more than the max acceptable value
     call_params = liquid_alpha_call_params(netuid, f"6553, {alpha_high_too_high}")
     try:
-        result, error_message = sudo_set_hyperparameter_values(
+        sudo_set_hyperparameter_values(
             local_chain,
             alice_wallet,
             call_function="sudo_set_alpha_values",

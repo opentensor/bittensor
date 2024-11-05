@@ -1,7 +1,8 @@
 import time
 
-import bittensor
-from bittensor import logging
+from bittensor.core.subtensor import Subtensor
+from bittensor.utils.balance import Balance
+from bittensor.utils.btlogging import logging
 from tests.e2e_tests.utils.chain_interactions import (
     add_stake,
     register_neuron,
@@ -64,7 +65,7 @@ def test_metagraph(local_chain):
     ).serialize(), "Subnet wasn't created successfully"
 
     # Initialize metagraph
-    subtensor = bittensor.Subtensor(network="ws://localhost:9945")
+    subtensor = Subtensor(network="ws://localhost:9945")
     metagraph = subtensor.metagraph(netuid=netuid)
 
     # Assert metagraph is empty
@@ -129,17 +130,17 @@ def test_metagraph(local_chain):
 
     # Test staking with low balance
     assert not add_stake(
-        local_chain, dave_wallet, netuid, bittensor.Balance.from_tao(10_000)
+        local_chain, dave_wallet, netuid, Balance.from_tao(10_000)
     ), "Low balance stake should fail"
 
     # Add stake by Bob
     assert add_stake(
-        local_chain, bob_wallet, netuid, bittensor.Balance.from_tao(10_000)
+        local_chain, bob_wallet, netuid, Balance.from_tao(10_000)
     ), "Failed to add stake for Bob"
 
     # Assert stake is added after updating metagraph
     metagraph.sync(subtensor=subtensor)
-    assert metagraph.neurons[1].stake == bittensor.Balance.from_tao(
+    assert metagraph.neurons[1].stake == Balance.from_tao(
         10_000
     ), "Bob's stake not updated in metagraph"
 

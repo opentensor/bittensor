@@ -3,8 +3,8 @@ import sys
 
 import pytest
 
-import bittensor
-from bittensor import logging
+from bittensor.core.subtensor import Subtensor
+from bittensor.utils.btlogging import logging
 from tests.e2e_tests.utils.chain_interactions import (
     register_neuron,
     register_subnet,
@@ -31,7 +31,7 @@ async def test_subtensor_extrinsics(local_chain):
         AssertionError: If any of the checks or verifications fail
     """
     netuid = 2
-    subtensor = bittensor.Subtensor(network="ws://localhost:9945")
+    subtensor = Subtensor(network="ws://localhost:9945")
 
     # Subnets 0 and 3 are bootstrapped from the start
     assert subtensor.get_subnets() == [0, 1]
@@ -139,7 +139,7 @@ async def test_subtensor_extrinsics(local_chain):
     await asyncio.sleep(
         5
     )  # wait for 5 seconds for the metagraph and subtensor to refresh with latest data
-    subtensor = bittensor.Subtensor(network="ws://localhost:9945")
+    subtensor = Subtensor(network="ws://localhost:9945")
 
     # Verify neuron info is updated after running as a validator
     neuron_info = subtensor.get_neuron_for_pubkey_and_subnet(
