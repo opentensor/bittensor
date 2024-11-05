@@ -9,14 +9,13 @@ import os
 import random
 import subprocess
 import time
-import typing
 from contextlib import redirect_stdout
 from dataclasses import dataclass
 from datetime import timedelta
 from multiprocessing import Process, Event, Lock, Array, Value, Queue
 from multiprocessing.queues import Queue as Queue_Type
 from queue import Empty, Full
-from typing import Optional
+from typing import Optional, Union, TYPE_CHECKING, Callable, Any
 
 import backoff
 import numpy as np
@@ -24,7 +23,6 @@ from Crypto.Hash import keccak
 from bittensor_wallet import Wallet
 from bittensor_wallet.errors import KeyFileError
 from rich.console import Console
-from rich.prompt import Confirm
 from rich.status import Status
 from substrateinterface.exceptions import SubstrateRequestException
 
@@ -33,7 +31,7 @@ from bittensor.utils import format_error_message
 from bittensor.utils.btlogging import logging
 from bittensor.utils.formatting import millify, get_human_readable
 
-if typing.TYPE_CHECKING:
+if TYPE_CHECKING:
     from bittensor.core.async_subtensor import AsyncSubtensor
 
 
@@ -45,13 +43,15 @@ def use_torch() -> bool:
     return True if os.getenv("USE_TORCH") == "1" else False
 
 
-def legacy_torch_api_compat(func: typing.Callable):
+def legacy_torch_api_compat(func: Callable):
     """
     Convert function operating on numpy Input&Output to legacy torch Input&Output API if `use_torch()` is True.
 
-    :param func: Function with numpy Input/Output to be decorated.
+    Args:
+        func: Function with numpy Input/Output to be decorated.
 
-    :return: Decorated function
+    Returns:
+        Decorated function
     """
 
     @functools.wraps(func)
@@ -101,7 +101,9 @@ class POWSolution:
     seal: bytes
 
     async def is_stale(self, subtensor: "AsyncSubtensor") -> bool:
-        """Returns True if the POW is stale.
+        """
+        Returns True if the POW is stale.
+
         This means the block the POW is solved for is within 3 blocks of the current block.
         """
         current_block = await subtensor.substrate.get_block_number(None)
@@ -153,9 +155,7 @@ class RegistrationStatisticsLogger:
     def get_status_message(
         cls, stats: RegistrationStatistics, verbose: bool = False
     ) -> str:
-        """
-        Provides a message of the current status of the block solving as a str for a logger or stdout
-        """
+        """Provides a message of the current status of the block solving as a str for a logger or stdout."""
         message = (
             "Solving\n"
             + f"Time Spent (total): [bold white]{timedelta(seconds=stats.time_spent_total)}[/bold white]\n"
@@ -174,9 +174,7 @@ class RegistrationStatisticsLogger:
         return message
 
     def update(self, stats: RegistrationStatistics, verbose: bool = False) -> None:
-        """
-        Passes the current status to the logger
-        """
+        """Passes the current status to the logger."""
         if self.status is not None:
             self.status.update(self.get_status_message(stats, verbose=verbose))
         else:
@@ -187,34 +185,21 @@ class _SolverBase(Process):
     """
     A process that solves the registration PoW problem.
 
-    :param proc_num: The number of the process being created.
-    :param num_proc: The total number of processes running.
-    :param update_interval: The number of nonces to try to solve before checking for a new block.
-    :param finished_queue: The queue to put the process number when a process finishes each update_interval.
-                           Used for calculating the average time per update_interval across all processes.
-    :param solution_queue: The queue to put the solution the process has found during the pow solve.
-    :param stop_event: The event to set by the main process when all the solver processes should stop.
-                       The solver process will check for the event after each update_interval.
-                       The solver process will stop when the event is set.
-                       Used to stop the solver processes when a solution is found.
-    :param curr_block: The array containing this process's current block hash.
-                       The main process will set the array to the new block hash when a new block is finalized in the
-                       network. The solver process will get the new block hash from this array when newBlockEvent is set
-    :param curr_block_num: The value containing this process's current block number.
-                           The main process will set the value to the new block number when a new block is finalized in
-                           the network. The solver process will get the new block number from this value when
-                           new_block_event is set.
-    :param curr_diff: The array containing this process's current difficulty. The main process will set the array to
-                      the new difficulty when a new block is finalized in the network. The solver process will get the
-                      new difficulty from this array when newBlockEvent is set.
-    :param check_block: The lock to prevent this process from getting the new block data while the main process is
-                        updating the data.
-    :param limit: The limit of the pow solve for a valid solution.
+    Args:
+        proc_num: The number of the process being created.
+        num_proc: The total number of processes running.
+        update_interval: The number of nonces to try to solve before checking for a new block.
+        finished_queue: The queue to put the process number when a process finishes each update_interval. Used for calculating the average time per update_interval across all processes.
+        solution_queue: The queue to put the solution the process has found during the pow solve.
+        stop_event: The event to set by the main process when all the solver processes should stop. The solver process will check for the event after each update_interval. The solver process will stop when the event is set. Used to stop the solver processes when a solution is found.
+        curr_block: The array containing this process's current block hash. The main process will set the array to the new block hash when a new block is finalized in the network. The solver process will get the new block hash from this array when newBlockEvent is set
+        curr_block_num: The value containing this process's current block number. The main process will set the value to the new block number when a new block is finalized in the network. The solver process will get the new block number from this value when new_block_event is set.
+        curr_diff: The array containing this process's current difficulty. The main process will set the array to the new difficulty when a new block is finalized in the network. The solver process will get the new difficulty from this array when newBlockEvent is set.
+        check_block: The lock to prevent this process from getting the new block data while the main process is updating the data.
+        limit: The limit of the pow solve for a valid solution.
 
-    :var new_block_event: The event to set by the main process when a new block is finalized in the network.
-                          The solver process will check for the event after each update_interval.
-                          The solver process will get the new block hash and difficulty and start solving for a new
-                          nonce.
+    Returns:
+        new_block_event: The event to set by the main process when a new block is finalized in the network. The solver process will check for the event after each update_interval. The solver process will get the new block hash and difficulty and start solving for a new nonce.
     """
 
     proc_num: int
@@ -274,9 +259,7 @@ class _SolverBase(Process):
 
 
 class _Solver(_SolverBase):
-    """
-    Performs POW Solution
-    """
+    """Performs POW Solution."""
 
     def run(self):
         block_number: int
@@ -320,9 +303,7 @@ class _Solver(_SolverBase):
 
 
 class _CUDASolver(_SolverBase):
-    """
-    Performs POW Solution using CUDA
-    """
+    """Performs POW Solution using CUDA."""
 
     dev_id: int
     tpb: int
@@ -414,22 +395,18 @@ class LazyLoadedTorch:
             raise ImportError("torch not installed")
 
 
-if typing.TYPE_CHECKING:
+if TYPE_CHECKING:
     import torch
 else:
     torch = LazyLoadedTorch()
 
 
 class MaxSuccessException(Exception):
-    """
-    Raised when the POW Solver has reached the max number of successful solutions
-    """
+    """Raised when the POW Solver has reached the max number of successful solutions."""
 
 
 class MaxAttemptsException(Exception):
-    """
-    Raised when the POW Solver has reached the max number of attempts
-    """
+    """Raised when the POW Solver has reached the max number of attempts."""
 
 
 async def is_hotkey_registered(
@@ -453,11 +430,10 @@ async def register_extrinsic(
     netuid: int,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = True,
-    prompt: bool = False,
     max_allowed_attempts: int = 3,
     output_in_place: bool = True,
     cuda: bool = False,
-    dev_id: typing.Union[list[int], int] = 0,
+    dev_id: Union[list[int], int] = 0,
     tpb: int = 256,
     num_processes: Optional[int] = None,
     update_interval: Optional[int] = None,
@@ -465,25 +441,23 @@ async def register_extrinsic(
 ) -> bool:
     """Registers the wallet to the chain.
 
-    :param subtensor: initialized AsyncSubtensor object to use for chain interactions
-    :param wallet: Bittensor wallet object.
-    :param netuid: The ``netuid`` of the subnet to register on.
-    :param wait_for_inclusion: If set, waits for the extrinsic to enter a block before returning `True`, or returns
-                               `False` if the extrinsic fails to enter the block within the timeout.
-    :param wait_for_finalization: If set, waits for the extrinsic to be finalized on the chain before returning `True`,
-                                 or returns `False` if the extrinsic fails to be finalized within the timeout.
-    :param prompt: If `True`, the call waits for confirmation from the user before proceeding.
-    :param max_allowed_attempts: Maximum number of attempts to register the wallet.
-    :param output_in_place: Whether the POW solving should be outputted to the console as it goes along.
-    :param cuda: If `True`, the wallet should be registered using CUDA device(s).
-    :param dev_id: The CUDA device id to use, or a list of device ids.
-    :param tpb: The number of threads per block (CUDA).
-    :param num_processes: The number of processes to use to register.
-    :param update_interval: The number of nonces to solve between updates.
-    :param log_verbose: If `True`, the registration process will log more information.
+    Args:
+        subtensor (bittensor.core.async_subtensor.AsyncSubtensor): initialized AsyncSubtensor object to use for chain interactions
+        wallet (bittensor_wallet.Wallet): Bittensor wallet object.
+        netuid (int): The ``netuid`` of the subnet to register on.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning `True`, or returns `False` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning `True`, or returns `False` if the extrinsic fails to be finalized within the timeout.
+        max_allowed_attempts (int): Maximum number of attempts to register the wallet.
+        output_in_place (bool): Whether the POW solving should be outputted to the console as it goes along.
+        cuda (bool): If `True`, the wallet should be registered using CUDA device(s).
+        dev_id: The CUDA device id to use, or a list of device ids.
+        tpb: The number of threads per block (CUDA).
+        num_processes: The number of processes to use to register.
+        update_interval: The number of nonces to solve between updates.
+        log_verbose: If `True`, the registration process will log more information.
 
-    :return: `True` if extrinsic was finalized or included in the block. If we did not wait for finalization/inclusion,
-             the response is `True`.
+    Returns:
+        `True` if extrinsic was finalized or included in the block. If we did not wait for finalization/inclusion, the response is `True`.
     """
 
     async def get_neuron_for_pubkey_and_subnet():
@@ -521,15 +495,6 @@ async def register_extrinsic(
         )
         return True
 
-    if prompt:
-        if not Confirm.ask(
-            f"Continue Registration?\n"
-            f"  hotkey ({wallet.hotkey_str}):\t[bold white]{wallet.hotkey.ss58_address}[/bold white]\n"
-            f"  coldkey ({wallet.name}):\t[bold white]{wallet.coldkeypub.ss58_address}[/bold white]\n"
-            f"  network:\t\t[bold white]{subtensor.network}[/bold white]"
-        ):
-            return False
-
     if not torch:
         log_no_torch_error()
         return False
@@ -544,8 +509,6 @@ async def register_extrinsic(
         # Solve latest POW.
         if cuda:
             if not torch.cuda.is_available():
-                if prompt:
-                    logging.info("CUDA is not available.")
                 return False
             pow_result = await create_pow(
                 subtensor,
@@ -674,7 +637,6 @@ async def run_faucet_extrinsic(
     wallet: Wallet,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = True,
-    prompt: bool = False,
     max_allowed_attempts: int = 3,
     output_in_place: bool = True,
     cuda: bool = False,
@@ -685,36 +647,26 @@ async def run_faucet_extrinsic(
     log_verbose: bool = False,
     max_successes: int = 3,
 ) -> tuple[bool, str]:
-    r"""Runs a continual POW to get a faucet of TAO on the test net.
+    """Runs a continual POW to get a faucet of TAO on the test net.
 
-    :param subtensor: The subtensor interface object used to run the extrinsic
-    :param wallet: Bittensor wallet object.
-    :param prompt: If `True`, the call waits for confirmation from the user before proceeding.
-    :param wait_for_inclusion: If set, waits for the extrinsic to enter a block before returning `True`,
-                               or returns `False` if the extrinsic fails to enter the block within the timeout.
-    :param wait_for_finalization: If set, waits for the extrinsic to be finalized on the chain before returning `True`,
-                                  or returns `False` if the extrinsic fails to be finalized within the timeout.
-    :param max_allowed_attempts: Maximum number of attempts to register the wallet.
-    :param output_in_place: Whether to output logging data as the process runs.
-    :param cuda: If `True`, the wallet should be registered using CUDA device(s).
-    :param dev_id: The CUDA device id to use
-    :param tpb: The number of threads per block (CUDA).
-    :param num_processes: The number of processes to use to register.
-    :param update_interval: The number of nonces to solve between updates.
-    :param log_verbose: If `True`, the registration process will log more information.
-    :param max_successes: The maximum number of successful faucet runs for the wallet.
+    Args:
+        subtensor: The subtensor interface object used to run the extrinsic
+        wallet: Bittensor wallet object.
+        wait_for_inclusion: If set, waits for the extrinsic to enter a block before returning `True`, or returns `False` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization: If set, waits for the extrinsic to be finalized on the chain before returning `True`, or returns `False` if the extrinsic fails to be finalized within the timeout.
+        max_allowed_attempts: Maximum number of attempts to register the wallet.
+        output_in_place: Whether to output logging data as the process runs.
+        cuda: If `True`, the wallet should be registered using CUDA device(s).
+        dev_id: The CUDA device id to use
+        tpb: The number of threads per block (CUDA).
+        num_processes: The number of processes to use to register.
+        update_interval: The number of nonces to solve between updates.
+        log_verbose: If `True`, the registration process will log more information.
+        max_successes: The maximum number of successful faucet runs for the wallet.
 
-    :return: `True` if extrinsic was finalized or included in the block. If we did not wait for
-                    finalization/inclusion, the response is also `True`
+    Returns:
+        `True` if extrinsic was finalized or included in the block. If we did not wait for finalization/inclusion, the response is also `True`
     """
-    if prompt:
-        if not Confirm.ask(
-            "Run Faucet?\n"
-            f" wallet name: [bold white]{wallet.name}[/bold white]\n"
-            f" coldkey:    [bold white]{wallet.coldkeypub.ss58_address}[/bold white]\n"
-            f" network:    [bold white]{subtensor}[/bold white]"
-        ):
-            return False, ""
 
     if not torch:
         log_no_torch_error()
@@ -739,8 +691,6 @@ async def run_faucet_extrinsic(
                 # Solve latest POW.
                 if cuda:
                     if not torch.cuda.is_available():
-                        if prompt:
-                            logging.error("CUDA is not available.")
                         return False, "CUDA is not available."
                     pow_result: Optional[POWSolution] = await create_pow(
                         subtensor,
@@ -829,27 +779,29 @@ async def _check_for_newest_block_and_update(
     curr_diff: Array,
     curr_block: Array,
     curr_block_num: Value,
-    update_curr_block: typing.Callable,
+    update_curr_block: "Callable",
     check_block: Lock,
     solvers: list[_Solver],
-    curr_stats: RegistrationStatistics,
+    curr_stats: "RegistrationStatistics",
 ) -> int:
     """
     Checks for a new block and updates the current block information if a new block is found.
 
-    :param subtensor: The subtensor object to use for getting the current block.
-    :param netuid: The netuid to use for retrieving the difficulty.
-    :param old_block_number: The old block number to check against.
-    :param hotkey_bytes: The bytes of the hotkey's pubkey.
-    :param curr_diff: The current difficulty as a multiprocessing array.
-    :param curr_block: Where the current block is stored as a multiprocessing array.
-    :param curr_block_num: Where the current block number is stored as a multiprocessing value.
-    :param update_curr_block: A function that updates the current block.
-    :param check_block: A mp lock that is used to check for a new block.
-    :param solvers: A list of solvers to update the current block for.
-    :param curr_stats: The current registration statistics to update.
+    Args:
+        subtensor: The subtensor object to use for getting the current block.
+        netuid: The netuid to use for retrieving the difficulty.
+        old_block_number: The old block number to check against.
+        hotkey_bytes: The bytes of the hotkey's pubkey.
+        curr_diff: The current difficulty as a multiprocessing array.
+        curr_block: Where the current block is stored as a multiprocessing array.
+        curr_block_num: Where the current block number is stored as a multiprocessing value.
+        update_curr_block: A function that updates the current block.
+        check_block: A mp lock that is used to check for a new block.
+        solvers: A list of solvers to update the current block for.
+        curr_stats: The current registration statistics to update.
 
-    :return: The current block number.
+    Returns:
+        The current block number.
     """
     block_number = await subtensor.substrate.get_block_number(None)
     if block_number != old_block_number:
@@ -900,13 +852,11 @@ async def _block_solver(
     log_verbose,
     cuda: bool,
 ):
-    """
-    Shared code used by the Solvers to solve the POW solution
-    """
+    """Shared code used by the Solvers to solve the POW solution."""
     limit = int(math.pow(2, 256)) - 1
 
     # Establish communication queues
-    ## See the _Solver class for more information on the queues.
+    # See the _Solver class for more information on the queues.
     stop_event = Event()
     stop_event.clear()
 
@@ -919,7 +869,7 @@ async def _block_solver(
     )
 
     if cuda:
-        ## Create a worker per CUDA device
+        # Create a worker per CUDA device
         num_processes = len(dev_id)
         solvers = [
             _CUDASolver(
@@ -1103,27 +1053,28 @@ async def _solve_for_difficulty_fast_cuda(
     output_in_place: bool = True,
     update_interval: int = 50_000,
     tpb: int = 512,
-    dev_id: typing.Union[list[int], int] = 0,
+    dev_id: Union[list[int], int] = 0,
     n_samples: int = 10,
     alpha_: float = 0.80,
     log_verbose: bool = False,
-) -> Optional[POWSolution]:
+) -> Optional["POWSolution"]:
     """
     Solves the registration fast using CUDA
 
-    :param subtensor: The subtensor node to grab blocks
-    :param wallet: The wallet to register
-    :param netuid: The netuid of the subnet to register to.
-    :param output_in_place: If true, prints the output in place, otherwise prints to new lines
-    :param update_interval: The number of nonces to try before checking for more blocks
-    :param tpb: The number of threads per block. CUDA param that should match the GPU capability
-    :param dev_id: The CUDA device IDs to execute the registration on, either a single device or a list of devices
-    :param n_samples: The number of samples of the hash_rate to keep for the EWMA
-    :param alpha_: The alpha for the EWMA for the hash_rate calculation
-    :param log_verbose: If true, prints more verbose logging of the registration metrics.
+    Args:
+        subtensor: The subtensor node to grab blocks
+        wallet: The wallet to register
+        netuid: The netuid of the subnet to register to.
+        output_in_place: If true, prints the output in place, otherwise prints to new lines
+        update_interval: The number of nonces to try before checking for more blocks
+        tpb: The number of threads per block. CUDA param that should match the GPU capability
+        dev_id: The CUDA device IDs to execute the registration on, either a single device or a list of devices
+        n_samples: The number of samples of the hash_rate to keep for the EWMA
+        alpha_: The alpha for the EWMA for the hash_rate calculation
+        log_verbose: If true, prints more verbose logging of the registration metrics.
 
-    Note: The hash rate is calculated as an exponentially weighted moving average in order to make the measure more
-          robust.
+    Note:
+        The hash rate is calculated as an exponentially weighted moving average in order to make the measure more robust.
     """
     if isinstance(dev_id, int):
         dev_id = [dev_id]
@@ -1175,21 +1126,20 @@ async def _solve_for_difficulty_fast(
     """
     Solves the POW for registration using multiprocessing.
 
-    :param subtensor: Subtensor to connect to for block information and to submit.
-    :param wallet: wallet to use for registration.
-    :param netuid: The netuid of the subnet to register to.
-    :param output_in_place: If true, prints the status in place. Otherwise, prints the status on a new line.
-    :param num_processes: Number of processes to use.
-    :param update_interval: Number of nonces to solve before updating block information.
-    :param n_samples: The number of samples of the hash_rate to keep for the EWMA
-    :param alpha_: The alpha for the EWMA for the hash_rate calculation
-    :param log_verbose: If true, prints more verbose logging of the registration metrics.
+    Args:
+        subtensor: Subtensor to connect to for block information and to submit.
+        wallet: wallet to use for registration.
+        netuid: The netuid of the subnet to register to.
+        output_in_place: If true, prints the status in place. Otherwise, prints the status on a new line.
+        num_processes: Number of processes to use.
+        update_interval: Number of nonces to solve before updating block information.
+        n_samples: The number of samples of the hash_rate to keep for the EWMA
+        alpha_: The alpha for the EWMA for the hash_rate calculation
+        log_verbose: If true, prints more verbose logging of the registration metrics.
 
     Notes:
-
-    - The hash rate is calculated as an exponentially weighted moving average in order to make the measure more robust.
-    - We can also modify the update interval to do smaller blocks of work, while still updating the block information
-      after a different number of nonces, to increase the transparency of the process while still keeping the speed.
+        The hash rate is calculated as an exponentially weighted moving average in order to make the measure more robust.
+        We can also modify the update interval to do smaller blocks of work, while still updating the block information after a different number of nonces, to increase the transparency of the process while still keeping the speed.
     """
     if not num_processes:
         # get the number of allowed processes for this process
@@ -1222,7 +1172,7 @@ async def _solve_for_difficulty_fast(
 
 
 def _terminate_workers_and_wait_for_exit(
-    workers: list[typing.Union[Process, Queue_Type]],
+    workers: list[Union[Process, Queue_Type]],
 ) -> None:
     for worker in workers:
         if isinstance(worker, Queue_Type):
@@ -1246,13 +1196,16 @@ async def _get_block_with_retry(
     """
     Gets the current block number, difficulty, and block hash from the substrate node.
 
-    :param subtensor: The subtensor object to use to get the block number, difficulty, and block hash.
-    :param netuid: The netuid of the network to get the block number, difficulty, and block hash from.
+    Args:
+        subtensor: The subtensor object to use to get the block number, difficulty, and block hash.
+        netuid: The netuid of the network to get the block number, difficulty, and block hash from.
 
-    :return: The current block number, difficulty of the subnet, block hash
+    Returns:
+        The current block number, difficulty of the subnet, block hash
 
-    :raises Exception: If the block hash is None.
-    :raises ValueError: If the difficulty is None.
+    Raises:
+        Exception: If the block hash is None.
+        ValueError: If the difficulty is None.
     """
     block_number = await subtensor.substrate.get_block_number(None)
     block_hash = await subtensor.substrate.get_block_hash(
@@ -1311,32 +1264,32 @@ async def create_pow(
     netuid: int,
     output_in_place: bool = True,
     cuda: bool = False,
-    dev_id: typing.Union[list[int], int] = 0,
+    dev_id: Union[list[int], int] = 0,
     tpb: int = 256,
     num_processes: int = None,
     update_interval: int = None,
     log_verbose: bool = False,
-) -> Optional[dict[str, typing.Any]]:
+) -> Optional[dict[str, Any]]:
     """
     Creates a proof of work for the given subtensor and wallet.
 
-    :param subtensor: The subtensor to create a proof of work for.
-    :param wallet: The wallet to create a proof of work for.
-    :param netuid: The netuid for the subnet to create a proof of work for.
-    :param output_in_place: If true, prints the progress of the proof of work to the console
-                            in-place. Meaning the progress is printed on the same lines.
-    :param cuda: If true, uses CUDA to solve the proof of work.
-    :param dev_id: The CUDA device id(s) to use. If cuda is true and dev_id is a list,
-                   then multiple CUDA devices will be used to solve the proof of work.
-    :param tpb: The number of threads per block to use when solving the proof of work. Should be a multiple of 32.
-    :param num_processes: The number of processes to use when solving the proof of work.
-                          If None, then the number of processes is equal to the number of CPU cores.
-    :param update_interval: The number of nonces to run before checking for a new block.
-    :param log_verbose: If true, prints the progress of the proof of work more verbosely.
+    Args:
+        subtensor: The subtensor to create a proof of work for.
+        wallet: The wallet to create a proof of work for.
+        netuid: The netuid for the subnet to create a proof of work for.
+        output_in_place: If true, prints the progress of the proof of work to the console in-place. Meaning the progress is printed on the same lines.
+        cuda: If true, uses CUDA to solve the proof of work.
+        dev_id: The CUDA device id(s) to use. If cuda is true and dev_id is a list, then multiple CUDA devices will be used to solve the proof of work.
+        tpb: The number of threads per block to use when solving the proof of work. Should be a multiple of 32.
+        num_processes: The number of processes to use when solving the proof of work. If None, then the number of processes is equal to the number of CPU cores.
+        update_interval: The number of nonces to run before checking for a new block.
+        log_verbose: If true, prints the progress of the proof of work more verbosely.
 
-    :return: The proof of work solution or None if the wallet is already registered or there is a different error.
+    Returns:
+        The proof of work solution or None if the wallet is already registered or there is a different error.
 
-    :raises ValueError: If the subnet does not exist.
+    Raises:
+        ValueError: If the subnet does not exist.
     """
     if netuid != -1:
         if not await subtensor.subnet_exists(netuid=netuid):
@@ -1434,14 +1387,14 @@ def _create_seal_hash(block_and_hotkey_hash_bytes: bytes, nonce: int) -> bytes:
     Create a cryptographic seal hash from the given block and hotkey hash bytes and nonce.
 
     This function generates a seal hash by combining the given block and hotkey hash bytes with a nonce.
-    It first converts the nonce to a byte representation, then concatenates it with the first 64 hex
-    characters of the block and hotkey hash bytes. The result is then hashed using SHA-256 followed by
-    the Keccak-256 algorithm to produce the final seal hash.
+    It first converts the nonce to a byte representation, then concatenates it with the first 64 hex characters of the block and hotkey hash bytes. The result is then hashed using SHA-256 followed by the Keccak-256 algorithm to produce the final seal hash.
 
-    :param block_and_hotkey_hash_bytes: The combined hash bytes of the block and hotkey.
-    :param nonce: The nonce value used for hashing.
+    Args:
+        block_and_hotkey_hash_bytes (bytes): The combined hash bytes of the block and hotkey.
+        nonce (int): The nonce value used for hashing.
 
-    :return: The resulting seal hash.
+    Returns:
+        The resulting seal hash.
     """
     nonce_bytes = binascii.hexlify(nonce.to_bytes(8, "little"))
     pre_seal = nonce_bytes + binascii.hexlify(block_and_hotkey_hash_bytes)[:64]
@@ -1482,14 +1435,14 @@ def _update_curr_block(
     This function updates the current block and its difficulty in a thread-safe manner. It sets the current block
     number, hashes the block with the hotkey, updates the current block bytes, and packs the difficulty.
 
-    :param curr_diff: Shared array to store the current difficulty.
-    :param curr_block: Shared array to store the current block data.
-    :param curr_block_num: Shared value to store the current block number.
-    :param block_number: The block number to set as the current block number.
-    :param block_bytes: The block data bytes to be hashed with the hotkey.
-    :param diff: The difficulty value to be packed into the current difficulty array.
-    :param hotkey_bytes: The hotkey bytes used for hashing the block.
-    :param lock: A lock to ensure thread-safe updates.
+    curr_diff: Shared array to store the current difficulty.
+    curr_block: Shared array to store the current block data.
+    curr_block_num: Shared value to store the current block number.
+    block_number: The block number to set as the current block number.
+    block_bytes: The block data bytes to be hashed with the hotkey.
+    diff: The difficulty value to be packed into the current difficulty array.
+    hotkey_bytes: The hotkey bytes used for hashing the block.
+    lock: A lock to ensure thread-safe updates.
     """
     with lock:
         curr_block_num.value = block_number
@@ -1535,13 +1488,13 @@ def solve_cuda(
     """
     Solves the PoW problem using CUDA.
 
-    :param nonce_start: Starting nonce.
-    :param update_interval: Number of nonces to solve before updating block information.
-    :param tpb: Threads per block.
-    :param block_and_hotkey_hash_bytes: Keccak(Bytes of the block hash + bytes of the hotkey) 64 bytes.
-    :param difficulty: Difficulty of the PoW problem.
-    :param limit: Upper limit of the nonce.
-    :param dev_id: The CUDA device ID
+    nonce_start: Starting nonce.
+    update_interval: Number of nonces to solve before updating block information.
+    tpb: Threads per block.
+    block_and_hotkey_hash_bytes: Keccak(Bytes of the block hash + bytes of the hotkey) 64 bytes.
+    difficulty: Difficulty of the PoW problem.
+    limit: Upper limit of the nonce.
+    dev_id: The CUDA device ID
 
     :return: (nonce, seal) corresponding to the solution. Returns -1 for nonce if no solution is found.
     """

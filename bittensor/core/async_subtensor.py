@@ -694,7 +694,7 @@ class AsyncSubtensor:
         """
         Filters a given list of all netuids for certain specified netuids and hotkeys
 
-        Argumens:
+        Args:
             all_netuids (Iterable[int]): A list of netuids to filter.
             filter_for_netuids (Iterable[int]): A subset of all_netuids to filter from the main list
             all_hotkeys (Iterable[Wallet]): Hotkeys to filter from the main list
@@ -1315,7 +1315,6 @@ class AsyncSubtensor:
         destination: str,
         amount: float,
         transfer_all: bool,
-        prompt: bool,
     ) -> bool:
         """
         Transfer token of amount to destination.
@@ -1325,7 +1324,6 @@ class AsyncSubtensor:
             destination (str): Destination address for the transfer.
             amount (float): Amount of tokens to transfer.
             transfer_all (bool): Flag to transfer all tokens.
-            prompt (bool): Flag to prompt user for confirmation before transferring.
 
         Returns:
             `True` if the transferring was successful, otherwise `False`.
@@ -1336,7 +1334,6 @@ class AsyncSubtensor:
             destination,
             Balance.from_tao(amount),
             transfer_all,
-            prompt=prompt,
         )
 
     async def register(
@@ -1413,7 +1410,6 @@ class AsyncSubtensor:
             subtensor=self,
             wallet=wallet,
             netuid=netuid,
-            prompt=True,
             tpb=threads_per_block,
             update_interval=update_interval,
             num_processes=processors,

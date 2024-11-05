@@ -3,7 +3,6 @@ from typing import TYPE_CHECKING
 
 from bittensor_wallet import Wallet
 from bittensor_wallet.errors import KeyFileError
-from rich.prompt import Confirm
 from substrateinterface.exceptions import SubstrateRequestException
 
 from bittensor.core.settings import NETWORK_EXPLORER_MAP
@@ -23,28 +22,26 @@ async def transfer_extrinsic(
     subtensor: "AsyncSubtensor",
     wallet: Wallet,
     destination: str,
-    amount: Balance,
+    amount: "Balance",
     transfer_all: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
     keep_alive: bool = True,
-    prompt: bool = False,
 ) -> bool:
     """Transfers funds from this wallet to the destination public key address.
 
-    :param subtensor: initialized AsyncSubtensor object used for transfer
-    :param wallet: Bittensor wallet object to make transfer from.
-    :param destination: Destination public key address (ss58_address or ed25519) of recipient.
-    :param amount: Amount to stake as Bittensor balance.
-    :param transfer_all: Whether to transfer all funds from this wallet to the destination address.
-    :param wait_for_inclusion: If set, waits for the extrinsic to enter a block before returning `True`,
-                               or returns `False` if the extrinsic fails to enter the block within the timeout.
-    :param wait_for_finalization:  If set, waits for the extrinsic to be finalized on the chain before returning
-                                   `True`, or returns `False` if the extrinsic fails to be finalized within the timeout.
-    :param keep_alive: If set, keeps the account alive by keeping the balance above the existential deposit.
-    :param prompt: If `True`, the call waits for confirmation from the user before proceeding.
-    :return: success: Flag is `True` if extrinsic was finalized or included in the block. If we did not wait for
-                      finalization / inclusion, the response is `True`, regardless of its inclusion.
+    Args:
+        subtensor (bittensor.core.async_subtensor.AsyncSubtensor): initialized AsyncSubtensor object used for transfer
+        wallet (bittensor_wallet.Wallet): Bittensor wallet object to make transfer from.
+        destination (str): Destination public key address (ss58_address or ed25519) of recipient.
+        amount (bittensor.utils.balance.Balance): Amount to stake as Bittensor balance.
+        transfer_all (bool): Whether to transfer all funds from this wallet to the destination address.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning `True`, or returns `False` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool):  If set, waits for the extrinsic to be finalized on the chain before returning `True`, or returns `False` if the extrinsic fails to be finalized within the timeout.
+        keep_alive (bool): If set, keeps the account alive by keeping the balance above the existential deposit.
+
+    Returns:
+        success (bool): Flag is `True` if extrinsic was finalized or included in the block. If we did not wait for finalization / inclusion, the response is `True`, regardless of its inclusion.
     """
 
     async def get_transfer_fee() -> Balance:
@@ -76,7 +73,9 @@ async def transfer_extrinsic(
     async def do_transfer() -> tuple[bool, str, str]:
         """
         Makes transfer from wallet to destination public key address.
-        :return: success, block hash, formatted error message
+
+        Returns:
+            success, block hash, formatted error message
         """
         call = await subtensor.substrate.compose_call(
             call_module="Balances",
@@ -154,16 +153,6 @@ async def transfer_extrinsic(
         logging.error(f"\t\tAmount:\t<blue>{amount}</blue>")
         logging.error(f"\t\tFor fee:\t<blue>{fee}</blue>")
         return False
-
-    # Ask before moving on.
-    if prompt:
-        if not Confirm.ask(
-            "Do you want to transfer:[bold white]\n"
-            f"  amount: [bright_cyan]{amount}[/bright_cyan]\n"
-            f"  from: [light_goldenrod2]{wallet.name}[/light_goldenrod2] : [bright_magenta]{wallet.coldkey.ss58_address}\n[/bright_magenta]"
-            f"  to: [bright_magenta]{destination}[/bright_magenta]\n  for fee: [bright_cyan]{fee}[/bright_cyan]"
-        ):
-            return False
 
     logging.info(":satellite: <magenta>Transferring...</magenta")
     success, block_hash, err_msg = await do_transfer()
