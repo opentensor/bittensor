@@ -23,7 +23,7 @@ from rich.prompt import Confirm
 
 from bittensor.core.errors import MetadataError
 from bittensor.core.extrinsics.utils import submit_extrinsic
-from bittensor.core.settings import version_as_int, bt_console
+from bittensor.core.settings import version_as_int
 from bittensor.utils import format_error_message, networking as net
 from bittensor.utils.btlogging import logging
 from bittensor.utils.networking import ensure_connected
@@ -186,7 +186,9 @@ def serve_extrinsic(
             )
             return True
         else:
-            logging.error(f"Failed: {format_error_message(error_message)}")
+            logging.error(
+                f"Failed: {format_error_message(error_message, substrate=subtensor.substrate)}"
+            )
             return False
     else:
         return True
@@ -219,10 +221,9 @@ def serve_axon_extrinsic(
     if axon.external_ip is None:
         try:
             external_ip = net.get_external_ip()
-            bt_console.print(
-                f":white_heavy_check_mark: [green]Found external ip: {external_ip}[/green]"
+            logging.success(
+                f":white_heavy_check_mark: <green>Found external ip:</green> <blue>{external_ip}</blue>"
             )
-            logging.success(prefix="External IP", suffix=f"<blue>{external_ip}</blue>")
         except Exception as e:
             raise RuntimeError(
                 f"Unable to attain your external ip. Check your internet connection. error: {e}"
@@ -299,7 +300,9 @@ def publish_metadata(
         if response.is_success:
             return True
         else:
-            raise MetadataError(format_error_message(response.error_message))
+            raise MetadataError(
+                format_error_message(response.error_message, substrate=self.substrate)
+            )
 
 
 # Community uses this function directly

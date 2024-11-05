@@ -8,8 +8,9 @@ import time
 
 import pytest
 from substrateinterface import SubstrateInterface
+
+from bittensor.utils.btlogging import logging
 from bittensor.utils.subprocess import utils
-from bittensor import logging
 from tests.e2e_tests.utils.e2e_test_utils import (
     clone_or_update_templates,
     install_templates,
@@ -97,4 +98,4 @@ def local_chain(request):
     uninstall_templates(templates_dir)
 
     # kill subprocess if its running
-    subprocess_utils.stop_commit_reveal_subprocess()
+    utils.stop_commit_reveal_subprocess()

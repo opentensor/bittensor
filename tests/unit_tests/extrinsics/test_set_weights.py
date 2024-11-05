@@ -61,7 +61,7 @@ def mock_wallet():
             True,
             True,
             False,
-            "Subtensor returned `UnknownError(UnknownType)` error. This means: `Unknown Description`.",
+            "Mock error message",
         ),
         ([1, 2], [0.5, 0.5], 0, True, True, True, False, False, "Prompt refused."),
     ],
@@ -231,7 +231,7 @@ def test_do_set_weights_is_not_success(mock_subtensor, mocker):
     mock_subtensor.substrate.submit_extrinsic.return_value.process_events.assert_called_once()
     assert result == (
         False,
-        mock_subtensor.substrate.submit_extrinsic.return_value.error_message,
+        "Subtensor returned `UnknownError(UnknownType)` error. This means: `Unknown Description`.",
     )
 
 

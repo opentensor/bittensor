@@ -16,8 +16,9 @@
 # DEALINGS IN THE SOFTWARE.
 
 import logging
-from typing import Union, Optional, TYPE_CHECKING
 import random
+from typing import Union, Optional, TYPE_CHECKING
+
 import numpy as np
 from numpy.typing import NDArray
 from retry import retry
@@ -47,7 +48,7 @@ def do_set_weights(
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
     period: int = 5,
-) -> tuple[bool, Optional[dict]]:  # (success, error_message)
+) -> tuple[bool, Optional[str]]:  # (success, error_message)
     """
     Internal method to send a transaction to the Bittensor blockchain, setting weights for specified neurons. This method constructs and submits the transaction, handling retries and blockchain communication.
 
@@ -84,7 +85,9 @@ def do_set_weights(
         if response.is_success:
             return True, "Successfully set weights."
         else:
-            return False, response.error_message
+            return False, format_error_message(
+                response.error_message, substrate=self.substrate
+            )
 
     call = self.substrate.compose_call(
         call_module="SubtensorModule",
@@ -219,7 +222,6 @@ def set_weights_extrinsic(
                 logging.success(f"<green>Finalized!</green> Set weights: {str(success)}")
                 return True, "Successfully set weights and Finalized."
             else:
-                error_message = format_error_message(error_message)
                 logging.error(error_message)
                 return False, error_message
 
