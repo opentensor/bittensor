@@ -21,7 +21,6 @@ import json
 from typing import Optional, TYPE_CHECKING
 import socket
 from retry import retry
-from rich.prompt import Confirm
 
 from bittensor.core import settings
 from bittensor.core.extrinsics.utils import submit_extrinsic
