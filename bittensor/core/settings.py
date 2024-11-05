@@ -15,7 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-__version__ = "8.2.0"
+__version__ = "8.3.0rc3"
 
 import os
 import re
@@ -306,9 +306,7 @@ DEFAULTS = munchify(
 
 
 # Parsing version without any literals.
-__version__ = re.match(r"^\d+\.\d+\.\d+", __version__).group(0)
-
-version_split = __version__.split(".")
+version_split = re.match(r"^\d+\.\d+\.\d+", __version__).group(0).split(".")
 _version_info = tuple(int(part) for part in version_split)
 _version_int_base = 1000
 assert max(_version_info) < _version_int_base

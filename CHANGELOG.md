@@ -1,5 +1,38 @@
 # Changelog
 
+## 8.3.0rc3 /2024-11-05
+
+## What's Changed
+* Further improvements in Commit-reveal V2, new subprocess, and related utilities by @opendansor in https://github.com/opentensor/bittensor/pull/2355
+* remove unused prometheus extrinsic by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2378
+* Replace rich.console to btlogging.loggin by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2377
+* SDK (AsyncSubtensor) Part 1 by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2374
+* SDK (AsyncSubtensor) Part 2 by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2380
+* Handle SSL Error on Connection by @thewhaleking in https://github.com/opentensor/bittensor/pull/2384
+* Avoid using `prompt` in SDK by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2382
+* Backmerge/8.2.0 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2389
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v8.3.0rc2...v8.3.0rc3
+
+## 8.3.0rc2 /2024-11-04
+
+## What's Changed
+* Tweaks in Commit-reveal V2, new subprocess, and related utilities by @opendansor in https://github.com/opentensor/bittensor/pull/2355
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v8.3.0rc1...v8.3.0rc2
+
+## 8.3.0rc1 /2024-11-01
+
+## What's Changed
+* Expands the type registry to include all the available options by @thewhaleking in https://github.com/opentensor/bittensor/pull/2353
+* add `Subtensor.register`, `Subtensor.difficulty` and related staff with tests by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2352
+* added to Subtensor: `burned_register`, `get_subnet_burn_cost`, `recycle` and related extrinsics by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2359
+* Poem "Risen from the Past". Act 3. by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2363
+* default port from 9946 to 9944 by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2376
+* Commit-reveal V2, new subprocess, and related utilities by @opendansor in https://github.com/opentensor/bittensor/pull/2355
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v8.2.0...v8.3.0rc1
+
 ## 8.2.0 /2024-10-10
 
 ## What's Changed
