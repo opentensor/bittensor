@@ -852,7 +852,6 @@ class Subtensor:
         version_key: int = settings.version_as_int,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
-        prompt: bool = False,
         max_retries: int = 5,
     ) -> tuple[bool, str]:
         """
@@ -866,7 +865,6 @@ class Subtensor:
             version_key (int): Version key for compatibility with the network.  Default is ``int representation of Bittensor version.``.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block. Default is ``False``.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Default is ``False``.
-            prompt (bool): If ``True``, prompts for user confirmation before proceeding. Default is ``False``.
             max_retries (int): The number of maximum attempts to set weights. Default is ``5``.
 
         Returns:
@@ -895,7 +893,6 @@ class Subtensor:
                     version_key=version_key,
                     wait_for_inclusion=wait_for_inclusion,
                     wait_for_finalization=wait_for_finalization,
-                    prompt=prompt,
                 )
             except Exception as e:
                 logging.error(f"Error setting weights: {e}")
@@ -913,7 +910,6 @@ class Subtensor:
         version_key: int = 0,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
-        prompt: bool = False,
     ) -> bool:
         """
         Sets the weights for neurons on the root network. This action is crucial for defining the influence and interactions of neurons at the root level of the Bittensor network.
@@ -925,7 +921,6 @@ class Subtensor:
             version_key (int, optional): Version key for compatibility with the network. Default is ``0``.
             wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block. Defaults to ``False``.
             wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain. Defaults to ``False``.
-            prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding. Defaults to ``False``.
 
         Returns:
             bool: ``True`` if the setting of root-level weights is successful, False otherwise.
@@ -940,7 +935,6 @@ class Subtensor:
             version_key=version_key,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
-            prompt=prompt,
         )
 
     def register(
@@ -949,7 +943,6 @@ class Subtensor:
         netuid: int,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
-        prompt: bool = False,
         max_allowed_attempts: int = 3,
         output_in_place: bool = True,
         cuda: bool = False,
@@ -969,7 +962,6 @@ class Subtensor:
             netuid (int): The unique identifier of the subnet.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block. Defaults to `False`.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Defaults to `True`.
-            prompt (bool): If ``True``, prompts for user confirmation before proceeding.
             max_allowed_attempts (int): Maximum number of attempts to register the wallet.
             output_in_place (bool): If true, prints the progress of the proof of work to the console in-place. Meaning the progress is printed on the same lines. Defaults to `True`.
             cuda (bool): If ``true``, the wallet should be registered using CUDA device(s). Defaults to `False`.
@@ -991,7 +983,6 @@ class Subtensor:
             netuid=netuid,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
-            prompt=prompt,
             max_allowed_attempts=max_allowed_attempts,
             output_in_place=output_in_place,
             cuda=cuda,
@@ -1007,7 +998,6 @@ class Subtensor:
         wallet: "Wallet",
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
-        prompt: bool = False,
     ) -> bool:
         """
         Registers the neuron associated with the wallet on the root network. This process is integral for participating in the highest layer of decision-making and governance within the Bittensor network.
@@ -1016,7 +1006,6 @@ class Subtensor:
             wallet (bittensor.wallet): The wallet associated with the neuron to be registered on the root network.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block. Defaults to `False`.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Defaults to `True`.
-            prompt (bool): If ``True``, prompts for user confirmation before proceeding. Defaults to `False`.
 
         Returns:
             bool: ``True`` if the registration on the root network is successful, False otherwise.
@@ -1028,7 +1017,6 @@ class Subtensor:
             wallet=wallet,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
-            prompt=prompt,
         )
 
     def burned_register(
@@ -1037,7 +1025,6 @@ class Subtensor:
         netuid: int,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
-        prompt: bool = False,
     ) -> bool:
         """
         Registers a neuron on the Bittensor network by recycling TAO. This method of registration involves recycling TAO tokens, allowing them to be re-mined by performing work on the network.
@@ -1047,7 +1034,6 @@ class Subtensor:
             netuid (int): The unique identifier of the subnet.
             wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block. Defaults to `False`.
             wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain. Defaults to `True`.
-            prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding. Defaults to `False`.
 
         Returns:
             bool: ``True`` if the registration is successful, False otherwise.
@@ -1058,7 +1044,6 @@ class Subtensor:
             netuid=netuid,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
-            prompt=prompt,
         )
 
     def serve_axon(
@@ -1176,7 +1161,6 @@ class Subtensor:
         amount: Union["Balance", float],
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
-        prompt: bool = False,
     ) -> bool:
         """
         Executes a transfer of funds from the provided wallet to the specified destination address. This function is used to move TAO tokens within the Bittensor network, facilitating transactions between neurons.
@@ -1187,7 +1171,6 @@ class Subtensor:
             amount (Union[bittensor.utils.balance.Balance, float]): The amount of TAO to be transferred.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block.  Default is ``True``.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.  Default is ``False``.
-            prompt (bool): If ``True``, prompts for user confirmation before proceeding. Default is ``False``.
 
         Returns:
             transfer_extrinsic (bool): ``True`` if the transfer is successful, False otherwise.
@@ -1201,7 +1184,6 @@ class Subtensor:
             amount=amount,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
-            prompt=prompt,
         )
 
     # Community uses this method via `bittensor.api.extrinsics.prometheus.prometheus_extrinsic`
@@ -1783,7 +1765,6 @@ class Subtensor:
         version_key: int = settings.version_as_int,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
-        prompt: bool = False,
         max_retries: int = 5,
     ) -> tuple[bool, str]:
         """
@@ -1799,7 +1780,6 @@ class Subtensor:
             version_key (int): Version key for compatibility with the network. Default is ``int representation of Bittensor version.``.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block. Default is ``False``.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Default is ``False``.
-            prompt (bool): If ``True``, prompts for user confirmation before proceeding. Default is ``False``.
             max_retries (int): The number of maximum attempts to commit weights. Default is ``5``.
 
         Returns:
@@ -1838,7 +1818,6 @@ class Subtensor:
                     commit_hash=commit_hash,
                     wait_for_inclusion=wait_for_inclusion,
                     wait_for_finalization=wait_for_finalization,
-                    prompt=prompt,
                 )
                 if success:
                     break
@@ -1860,7 +1839,6 @@ class Subtensor:
         version_key: int = settings.version_as_int,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
-        prompt: bool = False,
         max_retries: int = 5,
     ) -> tuple[bool, str]:
         """
@@ -1876,7 +1854,6 @@ class Subtensor:
             version_key (int): Version key for compatibility with the network. Default is ``int representation of Bittensor version``.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block. Default is ``False``.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Default is ``False``.
-            prompt (bool): If ``True``, prompts for user confirmation before proceeding. Default is ``False``.
             max_retries (int): The number of maximum attempts to reveal weights. Default is ``5``.
 
         Returns:
@@ -1903,7 +1880,6 @@ class Subtensor:
                     version_key=version_key,
                     wait_for_inclusion=wait_for_inclusion,
                     wait_for_finalization=wait_for_finalization,
-                    prompt=prompt,
                 )
                 if success:
                     break
