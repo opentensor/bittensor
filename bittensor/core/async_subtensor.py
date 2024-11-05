@@ -1,10 +1,10 @@
 import asyncio
+import ssl
 from typing import Optional, Any, Union, TypedDict, Iterable
 
 import aiohttp
 import numpy as np
 import scalecodec
-import typer
 from bittensor_wallet import Wallet
 from bittensor_wallet.utils import SS58_FORMAT
 from numpy.typing import NDArray
@@ -134,7 +134,13 @@ class AsyncSubtensor:
             logging.error(
                 f"<red>Error</red>: Timeout occurred connecting to substrate. Verify your chain and network settings: {self}"
             )
-            raise typer.Exit(code=1)
+            raise ConnectionError
+        except (ConnectionRefusedError, ssl.SSLError) as error:
+            logging.error(
+                f"<red>Error</red>: Connection refused when connecting to substrate. "
+                f"Verify your chain and network settings: {self}. Error: {error}"
+            )
+            raise ConnectionError
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         await self.substrate.close()
@@ -245,7 +251,7 @@ class AsyncSubtensor:
             module="SubtensorModule",
             storage_function="TotalNetworks",
             params=[],
-            block_hash=block_hash
+            block_hash=block_hash,
         )
         return result
 
@@ -1298,7 +1304,7 @@ class AsyncSubtensor:
             module="SubtensorModule",
             storage_function="Uids",
             params=[netuid, hotkey_ss58],
-            block_hash=block_hash
+            block_hash=block_hash,
         )
 
     # extrinsics
