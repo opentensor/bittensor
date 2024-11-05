@@ -6,8 +6,6 @@ import numpy as np
 from bittensor_wallet import Wallet
 from bittensor_wallet.errors import KeyFileError
 from numpy.typing import NDArray
-from rich.prompt import Confirm
-from rich.table import Table, Column
 from substrateinterface.exceptions import SubstrateRequestException
 
 from bittensor.utils import u16_normalized_float, format_error_message
@@ -34,20 +32,20 @@ async def get_limits(subtensor: "AsyncSubtensor") -> tuple[int, float]:
 
 async def root_register_extrinsic(
     subtensor: "AsyncSubtensor",
-    wallet: Wallet,
+    wallet: "Wallet",
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
-    prompt: bool = False,
 ) -> bool:
     """Registers the wallet to root network.
 
-    :param subtensor: The AsyncSubtensor object
-    :param wallet: Bittensor wallet object.
-    :param wait_for_inclusion: If set, waits for the extrinsic to enter a block before returning `True`, or returns `False` if the extrinsic fails to enter the block within the timeout.
-    :param wait_for_finalization: If set, waits for the extrinsic to be finalized on the chain before returning `True`, or returns `False` if the extrinsic fails to be finalized within the timeout.
-    :param prompt: If `True`, the call waits for confirmation from the user before proceeding.
+    Args:
+        subtensor (bittensor.core.async_subtensor.AsyncSubtensor): The AsyncSubtensor object
+        wallet (bittensor_wallet.Wallet): Bittensor wallet object.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning `True`, or returns `False` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning `True`, or returns `False` if the extrinsic fails to be finalized within the timeout.
 
-    :return: `True` if extrinsic was finalized or included in the block. If we did not wait for finalization/inclusion, the response is `True`.
+    Returns:
+        `True` if extrinsic was finalized or included in the block. If we did not wait for finalization/inclusion, the response is `True`.
     """
 
     try:
@@ -112,22 +110,20 @@ async def set_root_weights_extrinsic(
     version_key: int = 0,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
-    prompt: bool = False,
 ) -> bool:
     """Sets the given weights and values on chain for wallet hotkey account.
 
-    :param subtensor: The AsyncSubtensor object
-    :param wallet: Bittensor wallet object.
-    :param netuids: The `netuid` of the subnet to set weights for.
-    :param weights: Weights to set. These must be `float` s and must correspond to the passed `netuid` s.
-    :param version_key: The version key of the validator.
-    :param wait_for_inclusion: If set, waits for the extrinsic to enter a block before returning `True`, or returns
-                              `False` if the extrinsic fails to enter the block within the timeout.
-    :param wait_for_finalization: If set, waits for the extrinsic to be finalized on the chain before returning `True`,
-                                  or returns `False` if the extrinsic fails to be finalized within the timeout.
-    :param prompt: If `True`, the call waits for confirmation from the user before proceeding.
-    :return: `True` if extrinsic was finalized or included in the block. If we did not wait for finalization/inclusion,
-             the response is `True`.
+    Args:
+        subtensor (bittensor.core.async_subtensor.AsyncSubtensor): The AsyncSubtensor object
+        wallet (bittensor_wallet.Wallet): Bittensor wallet object.
+        netuids (Union[NDArray[np.int64], list[int]]): The `netuid` of the subnet to set weights for.
+        weights (Union[NDArray[np.float32], list[float]]): Weights to set. These must be `float` s and must correspond to the passed `netuid` s.
+        version_key (int): The version key of the validator.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning `True`, or returns `False` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning `True`, or returns `False` if the extrinsic fails to be finalized within the timeout.
+
+    Returns:
+        `True` if extrinsic was finalized or included in the block. If we did not wait for finalization/inclusion, the response is `True`.
     """
 
     async def _do_set_weights():
@@ -202,25 +198,6 @@ async def set_root_weights_extrinsic(
     logging.info(
         f"Raw weights -> Normalized weights: <blue>{weights}</blue> -> <green>{formatted_weights}</green>"
     )
-
-    # Ask before moving on.
-    if prompt:
-        table = Table(
-            Column("[dark_orange]Netuid", justify="center", style="bold green"),
-            Column(
-                "[dark_orange]Weight", justify="center", style="bold light_goldenrod2"
-            ),
-            expand=False,
-            show_edge=False,
-        )
-        print("Netuid | Weight")
-
-        for netuid, weight in zip(netuids, formatted_weights):
-            table.add_row(str(netuid), f"{weight:.8f}")
-            print(f"{netuid} | {weight}")
-
-        if not Confirm.ask("\nDo you want to set these root weights?"):
-            return False
 
     try:
         logging.info(":satellite: <magenta>Setting root weights...<magenta>")

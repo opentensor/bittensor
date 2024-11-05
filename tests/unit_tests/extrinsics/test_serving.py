@@ -116,27 +116,22 @@ def test_serve_extrinsic_happy_path(
 ):
     # Arrange
     serving.do_serve_axon = mocker.MagicMock(return_value=(True, ""))
-    with patch(
-        "bittensor.core.extrinsics.serving.Confirm.ask",
-        return_value=True,
-    ):
-        # Act
-        result = serving.serve_extrinsic(
-            mock_subtensor,
-            mock_wallet,
-            ip,
-            port,
-            protocol,
-            netuid,
-            placeholder1,
-            placeholder2,
-            wait_for_inclusion,
-            wait_for_finalization,
-            prompt,
-        )
+    # Act
+    result = serving.serve_extrinsic(
+        mock_subtensor,
+        mock_wallet,
+        ip,
+        port,
+        protocol,
+        netuid,
+        placeholder1,
+        placeholder2,
+        wait_for_inclusion,
+        wait_for_finalization,
+    )
 
-        # Assert
-        assert result == expected, f"Test ID: {test_id}"
+    # Assert
+    assert result == expected, f"Test ID: {test_id}"
 
 
 # Various edge cases
@@ -177,27 +172,22 @@ def test_serve_extrinsic_edge_cases(
 ):
     # Arrange
     serving.do_serve_axon = mocker.MagicMock(return_value=(True, ""))
-    with patch(
-        "bittensor.core.extrinsics.serving.Confirm.ask",
-        return_value=True,
-    ):
-        # Act
-        result = serving.serve_extrinsic(
-            mock_subtensor,
-            mock_wallet,
-            ip,
-            port,
-            protocol,
-            netuid,
-            placeholder1,
-            placeholder2,
-            wait_for_inclusion,
-            wait_for_finalization,
-            prompt,
-        )
+    # Act
+    result = serving.serve_extrinsic(
+        mock_subtensor,
+        mock_wallet,
+        ip,
+        port,
+        protocol,
+        netuid,
+        placeholder1,
+        placeholder2,
+        wait_for_inclusion,
+        wait_for_finalization,
+    )
 
-        # Assert
-        assert result == expected, f"Test ID: {test_id}"
+    # Assert
+    assert result == expected, f"Test ID: {test_id}"
 
 
 # Various error cases
@@ -238,27 +228,22 @@ def test_serve_extrinsic_error_cases(
 ):
     # Arrange
     serving.do_serve_axon = mocker.MagicMock(return_value=(False, "Error serving axon"))
-    with patch(
-        "bittensor.core.extrinsics.serving.Confirm.ask",
-        return_value=True,
-    ):
-        # Act
-        result = serving.serve_extrinsic(
-            mock_subtensor,
-            mock_wallet,
-            ip,
-            port,
-            protocol,
-            netuid,
-            placeholder1,
-            placeholder2,
-            wait_for_inclusion,
-            wait_for_finalization,
-            prompt,
-        )
+    # Act
+    result = serving.serve_extrinsic(
+        mock_subtensor,
+        mock_wallet,
+        ip,
+        port,
+        protocol,
+        netuid,
+        placeholder1,
+        placeholder2,
+        wait_for_inclusion,
+        wait_for_finalization,
+    )
 
-        # Assert
-        assert result == expected_error_message, f"Test ID: {test_id}"
+    # Assert
+    assert result == expected_error_message, f"Test ID: {test_id}"
 
 
 @pytest.mark.parametrize(

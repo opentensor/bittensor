@@ -111,7 +111,6 @@ async def test_subtensor_extrinsics(local_chain):
         [
             f"{sys.executable}",
             f'"{template_path}{templates_repo}/neurons/validator.py"',
-            "--no_prompt",
             "--netuid",
             str(netuid),
             "--subtensor.network",

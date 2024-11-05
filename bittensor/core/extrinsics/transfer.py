@@ -18,7 +18,6 @@
 from typing import Optional, Union, TYPE_CHECKING
 
 from retry import retry
-from rich.prompt import Confirm
 
 from bittensor.core.extrinsics.utils import submit_extrinsic
 from bittensor.core.settings import NETWORK_EXPLORER_MAP
@@ -103,7 +102,6 @@ def transfer_extrinsic(
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
     keep_alive: bool = True,
-    prompt: bool = False,
 ) -> bool:
     """Transfers funds from this wallet to the destination public key address.
 
@@ -115,7 +113,6 @@ def transfer_extrinsic(
         wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
         keep_alive (bool): If set, keeps the account alive by keeping the balance above the existential deposit.
-        prompt (bool): If ``true``, the call waits for confirmation from the user before proceeding.
 
     Returns:
         success (bool): Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
@@ -160,17 +157,6 @@ def transfer_extrinsic(
         logging.info(f"\t\tAmount: \t<blue>{transfer_balance}</blue>")
         logging.info(f"\t\tFor fee: \t<blue>{fee}</blue>")
         return False
-
-    # Ask before moving on.
-    if prompt:
-        if not Confirm.ask(
-            "Do you want to transfer:[bold white]\n"
-            f"  amount: {transfer_balance}\n"
-            f"  from: {wallet.name}:{wallet.coldkey.ss58_address}\n"
-            f"  to: {dest}\n"
-            f"  for fee: {fee}[/bold white]"
-        ):
-            return False
 
     logging.info(":satellite: <magenta>Transferring...</magenta>")
     success, block_hash, error_message = do_transfer(
