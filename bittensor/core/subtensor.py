@@ -23,6 +23,7 @@ blockchain, facilitating a range of operations essential for the decentralized m
 import argparse
 import copy
 import socket
+import ssl
 from typing import Union, Optional, TypedDict, Any
 
 import numpy as np
@@ -254,7 +255,7 @@ class Subtensor:
             except (AttributeError, TypeError, socket.error, OSError) as e:
                 logging.warning(f"Error setting timeout: {e}")
 
-        except ConnectionRefusedError as error:
+        except (ConnectionRefusedError, ssl.SSLError) as error:
             logging.error(
                 f"Could not connect to {self.network} network with {self.chain_endpoint} chain endpoint.",
             )
