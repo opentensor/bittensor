@@ -60,9 +60,7 @@ async def test_commit_and_reveal_weights(local_chain):
         netuid,
     ), "Unable to enable commit reveal on the subnet"
 
-    subtensor = Subtensor(
-        network="ws://localhost:9945"
-    )
+    subtensor = Subtensor(network="ws://localhost:9945")
     assert subtensor.get_subnet_hyperparameters(
         netuid=netuid,
     ).commit_reveal_weights_enabled, "Failed to enable commit/reveal"
