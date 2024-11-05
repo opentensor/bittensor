@@ -5,7 +5,6 @@ import pytest
 import bittensor.utils.subprocess.commit_reveal as commit_reveal_subprocess
 import bittensor
 from bittensor import logging
-from bittensor.utils import subprocess_utils
 from bittensor.utils.weight_utils import convert_weights_and_uids_for_emit
 from tests.e2e_tests.utils.chain_interactions import (
     add_stake,

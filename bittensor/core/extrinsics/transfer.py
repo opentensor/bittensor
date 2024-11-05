@@ -63,10 +63,10 @@ def do_transfer(
     """
 
     @retry(delay=1, tries=3, backoff=2, max_delay=4)
-    def make_substrate_call_with_retry(extrinsic):
+    def make_substrate_call_with_retry(extrinsic_):
         response = submit_extrinsic(
             substrate=self.substrate,
-            extrinsic=extrinsic,
+            extrinsic=extrinsic_,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
         )

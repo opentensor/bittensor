@@ -85,8 +85,8 @@ from bittensor.utils import (
     U64_MAX,
     u16_normalized_float,
     networking,
-    subprocess_utils,
 )
+from bittensor.utils.subprocess import utils
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import legacy_torch_api_compat
@@ -96,8 +96,6 @@ from bittensor.utils.weight_utils import (
 )
 
 KEY_NONCE: dict[str, int] = {}
-
-COMMIT_REVEAL_PROCESS = "commit_reveal.py"
 
 
 class ParamWithTypes(TypedDict):
@@ -881,7 +879,6 @@ class Subtensor:
         version_key: int = settings.version_as_int,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
-        prompt: bool = False,
         max_retries: int = 1,
     ) -> tuple[bool, str]:
         """
@@ -895,7 +892,6 @@ class Subtensor:
             version_key (int): Version key for compatibility with the network.  Default is ``int representation of Bittensor version.``.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block. Default is ``False``.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Default is ``False``.
-            prompt (bool): If ``True``, prompts for user confirmation before proceeding. Default is ``False``.
             max_retries (int): The number of maximum attempts to set weights. Default is ``5``.
 
         Returns:
@@ -925,7 +921,6 @@ class Subtensor:
                     version_key=version_key,
                     wait_for_inclusion=wait_for_inclusion,
                     wait_for_finalization=wait_for_finalization,
-                    prompt=prompt,
                 )
             except Exception as e:
                 logging.error(f"Error setting weights: {e}")
@@ -1846,8 +1841,6 @@ class Subtensor:
         version_key: int = settings.version_as_int,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
-        prompt: bool = False,
-        max_retries: int = 1,
     ) -> tuple[bool, str]:
         """
         Commits a hash of the neuron's weights to the Bittensor blockchain using the provided wallet.
@@ -1862,8 +1855,6 @@ class Subtensor:
             version_key (int): Version key for compatibility with the network. Default is ``int representation of Bittensor version.``.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block. Default is ``False``.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Default is ``False``.
-            prompt (bool): If ``True``, prompts for user confirmation before proceeding. Default is ``False``.
-            max_retries (int): The number of maximum attempts to commit weights. Default is ``5``.
 
         Returns:
             tuple[bool, str]: ``True`` if the weight commitment is successful, False otherwise. And `msg`, a string
@@ -1872,19 +1863,17 @@ class Subtensor:
         This function allows neurons to create a tamper-proof record of their weight distribution at a specific point in time,
         enhancing transparency and accountability within the Bittensor network.
         """
-        retries = 0
-        success = False
-        message = "No attempt made. Perhaps it is too soon to commit weights!"
 
+        message = "No attempt made. Perhaps it is too soon to commit weights!"
+        success = False
         logging.info(
             f"Committing weights with params: netuid={netuid}, uids={uids}, weights={weights}, version_key={version_key}"
         )
 
         # start subprocess if permitted and not yet running
         if self.subprocess_initialization and not subprocess_utils.is_process_running(
-            COMMIT_REVEAL_PROCESS
+            subprocess_utils.COMMIT_REVEAL_PROCESS
         ):
-            logging.info("Starting commit_reveal subprocess from commit.")
             subprocess_utils.start_commit_reveal_subprocess(
                 network=self.chain_endpoint,
                 sleep_interval=self.subprocess_sleep_interval,
@@ -1902,41 +1891,35 @@ class Subtensor:
             version_key=version_key,
         )
 
-        logging.info(f"Commit Hash: {commit_hash}")
+        logging.info(
+            f"Committing weights with params: hash={commit_hash}, netuid={netuid}, uids={uids}, weights={weights}, version_key={version_key}"
+        )
 
-        while retries < max_retries and not success:
-            try:
-                if (
-                    self.subprocess_initialization
-                    and subprocess_utils.is_process_running(COMMIT_REVEAL_PROCESS)
-                ):
-                    curr_block = self.get_current_block()
-                    commit_weights_process(
-                        self,
-                        wallet=wallet,
-                        netuid=netuid,
-                        commit_hash=commit_hash,
-                        uids=list(uids),
-                        weights=list(weights),
-                        salt=salt,
-                        version_key=version_key,
-                        block=curr_block,
-                    )
-                success, message = commit_weights_extrinsic(
-                    subtensor=self,
+        try:
+            if (
+                self.subprocess_initialization
+                and subprocess_utils.is_process_running(subprocess_utils.COMMIT_REVEAL_PROCESS)
+            ):
+                commit_weights_process(
+                    self,
                     wallet=wallet,
                     netuid=netuid,
                     commit_hash=commit_hash,
-                    wait_for_inclusion=wait_for_inclusion,
-                    wait_for_finalization=wait_for_finalization,
-                    prompt=prompt,
+                    uids=list(uids),
+                    weights=list(weights),
+                    salt=salt,
+                    version_key=version_key,
                 )
-                if success:
-                    break
-            except Exception as e:
-                logging.error(f"Error committing weights: {e}")
-            finally:
-                retries += 1
+            success, message = commit_weights_extrinsic(
+                subtensor=self,
+                wallet=wallet,
+                netuid=netuid,
+                commit_hash=commit_hash,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
+        except Exception as e:
+            logging.error(f"Error committing weights: {e}")
 
         return success, message
 
@@ -1951,8 +1934,6 @@ class Subtensor:
         version_key: int = settings.version_as_int,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
-        prompt: bool = False,
-        max_retries: int = 5,
     ) -> tuple[bool, str]:
         """
         Reveals the weights for a specific subnet on the Bittensor blockchain using the provided wallet.
@@ -1967,8 +1948,6 @@ class Subtensor:
             version_key (int): Version key for compatibility with the network. Default is ``int representation of Bittensor version``.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block. Default is ``False``.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Default is ``False``.
-            prompt (bool): If ``True``, prompts for user confirmation before proceeding. Default is ``False``.
-            max_retries (int): The number of maximum attempts to reveal weights. Default is ``5``.
 
         Returns:
             tuple[bool, str]: ``True`` if the weight revelation is successful, False otherwise. And `msg`, a string
@@ -1978,40 +1957,33 @@ class Subtensor:
         and accountability within the Bittensor network.
         """
 
-        retries = 0
-        success = False
         message = "No attempt made. Perhaps it is too soon to reveal weights!"
-
-        while retries < max_retries:
-            try:
-                success, message = reveal_weights_extrinsic(
-                    subtensor=self,
-                    wallet=wallet,
-                    netuid=netuid,
-                    uids=list(uids),
-                    weights=list(weights),
-                    salt=list(salt),
-                    version_key=version_key,
-                    wait_for_inclusion=wait_for_inclusion,
-                    wait_for_finalization=wait_for_finalization,
-                    prompt=prompt,
-                )
-                if success:
-                    # remove from local db if called directly
-                    if subprocess_utils.is_process_running(COMMIT_REVEAL_PROCESS):
-                        reveal_weights_process(
-                            wallet=wallet,
-                            netuid=netuid,
-                            uids=list(uids),
-                            weights=list(weights),
-                            salt=list(salt),
-                            version_key=version_key,
-                        )
-                    break
-            except Exception as e:
-                logging.error(f"Error revealing weights: {e}")
-            finally:
-                retries += 1
+        success = False
+        try:
+            success, message = reveal_weights_extrinsic(
+                subtensor=self,
+                wallet=wallet,
+                netuid=netuid,
+                uids=list(uids),
+                weights=list(weights),
+                salt=list(salt),
+                version_key=version_key,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
+            if success:
+                # remove from local db if called directly
+                if subprocess_utils.is_process_running(subprocess_utils.COMMIT_REVEAL_PROCESS):
+                    reveal_weights_process(
+                        wallet=wallet,
+                        netuid=netuid,
+                        uids=list(uids),
+                        weights=list(weights),
+                        salt=list(salt),
+                        version_key=version_key,
+                    )
+        except Exception as e:
+            logging.error(f"Error revealing weights: {e}")
 
         return success, message
 
@@ -2046,8 +2018,6 @@ class Subtensor:
         version_keys: list[int],
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
-        prompt: bool = False,
-        max_retries: int = 5,
     ) -> tuple[bool, str]:
         """
         Reveals the weights for a specific subnet on the Bittensor blockchain using the provided wallet.
@@ -2062,8 +2032,6 @@ class Subtensor:
             version_keys (list[int]): List of version keys for compatibility with the network. Default is ``int representation of Bittensor version``.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block. Default is ``False``.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Default is ``False``.
-            prompt (bool): If ``True``, prompts for user confirmation before proceeding. Default is ``False``.
-            max_retries (int): The number of maximum attempts to reveal weights. Default is ``5``.
 
         Returns:
             tuple[bool, str]: ``True`` if the batch weight revelation is successful, False otherwise. And `msg`, a string
@@ -2072,40 +2040,34 @@ class Subtensor:
         This function allows neurons to reveal their previously committed weight distribution, ensuring transparency
         and accountability within the Bittensor network.
         """
-        retries = 0
         success = False
         message = "No attempt made. Perhaps it is too soon to reveal weights!"
 
-        while retries < max_retries:
-            try:
-                success, message = batch_reveal_weights_extrinsic(
-                    subtensor=self,
-                    wallet=wallet,
-                    netuid=netuid,
-                    uids=uids,
-                    weights=weights,
-                    salt=salt,
-                    version_keys=version_keys,
-                    wait_for_inclusion=wait_for_inclusion,
-                    wait_for_finalization=wait_for_finalization,
-                    prompt=prompt,
-                )
-                if success:
-                    # remove from local db if called directly
-                    if subprocess_utils.is_process_running(COMMIT_REVEAL_PROCESS):
-                        batch_reveal_weights_process(
-                            wallet=wallet,
-                            netuid=netuid,
-                            uids=uids,
-                            weights=weights,
-                            salt=salt,
-                            version_keys=version_keys,
-                        )
-                return success, message
-            except Exception as e:
-                logging.error(f"Error revealing weights: {e}")
-            finally:
-                retries += 1
+        try:
+            success, message = batch_reveal_weights_extrinsic(
+                subtensor=self,
+                wallet=wallet,
+                netuid=netuid,
+                uids=uids,
+                weights=weights,
+                salt=salt,
+                version_keys=version_keys,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
+            if success:
+                # remove from local db if called directly
+                if subprocess_utils.is_process_running(subprocess_utils.COMMIT_REVEAL_PROCESS):
+                    batch_reveal_weights_process(
+                        wallet=wallet,
+                        netuid=netuid,
+                        uids=uids,
+                        weights=weights,
+                        salt=salt,
+                        version_keys=version_keys,
+                    )
+        except Exception as e:
+            logging.error(f"Error revealing weights: {e}")
 
         return success, message
 

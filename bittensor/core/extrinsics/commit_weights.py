@@ -65,10 +65,10 @@ def do_commit_weights(
     """
 
     @retry(delay=1, tries=3, backoff=2, max_delay=4)
-    def make_substrate_call_with_retry(extrinsic):
+    def make_substrate_call_with_retry(extrinsic_):
         response = submit_extrinsic(
             substrate=self.substrate,
-            extrinsic=extrinsic,
+            extrinsic=extrinsic_,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
         )
@@ -104,7 +104,6 @@ def commit_weights_extrinsic(
     commit_hash: str,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
-    prompt: bool = False,
 ) -> tuple[bool, str]:
     """
     Commits a hash of the neuron's weights to the Bittensor blockchain using the provided wallet.
@@ -117,7 +116,6 @@ def commit_weights_extrinsic(
         commit_hash (str): The hash of the neuron's weights to be committed.
         wait_for_inclusion (bool): Waits for the transaction to be included in a block.
         wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
-        prompt (bool): If ``True``, prompts for user confirmation before proceeding.
 
     Returns:
         tuple[bool, str]: ``True`` if the weight commitment is successful, False otherwise. And `msg`, a string
@@ -125,8 +123,6 @@ def commit_weights_extrinsic(
 
     This function provides a user-friendly interface for committing weights to the Bittensor blockchain, ensuring proper error handling and user interaction when required.
     """
-    if prompt and not Confirm.ask(f"Would you like to commit weights?"):
-        return False, "User cancelled the operation."
 
     success, error_message = do_commit_weights(
         self=subtensor,
@@ -139,10 +135,10 @@ def commit_weights_extrinsic(
 
     if success:
         success_message = "Successfully committed weights."
-        logging.info(success_message)
+        logging.success(success_message)
         return True, success_message
     else:
-        error_message = format_error_message(error_message)
+        error_message = format_error_message(error_message, substrate=subtensor.substrate)
         logging.error(f"Failed to commit weights: {error_message}")
         return False, error_message
 
@@ -176,19 +172,20 @@ def commit_weights_process(
     wait until the appropriate time to reveal the weights.
     """
 
-    def send_command(command):
+    def send_command(command_):
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         client.connect(("127.0.0.1", 9949))
-        client.send(command.encode())
+        client.send(command_.encode())
         client.close()
 
     curr_block = block if block is not None else subtensor.get_current_block()
     blocks_until_next_epoch = subtensor.blocks_until_next_epoch(netuid=netuid)
-    subnet_tempo_blocks = subtensor.get_subnet_hyperparameters(netuid=netuid).tempo
+    subnet_hyperparams = subtensor.get_subnet_hyperparameters(netuid=netuid)
+    if subnet_hyperparams is None:
+        raise ValueError(f"Subnet hyperparameters for netuid {netuid} are None.")
+    subnet_tempo_blocks = subnet_hyperparams.tempo
     epoch_start_block = curr_block + blocks_until_next_epoch
-    cr_periods = subtensor.get_subnet_hyperparameters(
-        netuid=netuid
-    ).commit_reveal_weights_interval
+    cr_periods = subnet_hyperparams.commit_reveal_weights_interval
     reveal_block = epoch_start_block + ((cr_periods - 1) * subnet_tempo_blocks) + 1
     expire_block = reveal_block + subnet_tempo_blocks
 
@@ -231,10 +228,10 @@ def do_reveal_weights(
     """
 
     @retry(delay=1, tries=3, backoff=2, max_delay=4)
-    def make_substrate_call_with_retry(extrinsic):
+    def make_substrate_call_with_retry(extrinsic_):
         response = submit_extrinsic(
             substrate=self.substrate,
-            extrinsic=extrinsic,
+            extrinsic=extrinsic_,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
         )
@@ -276,7 +273,6 @@ def reveal_weights_extrinsic(
     version_key: int,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
-    prompt: bool = False,
 ) -> tuple[bool, str]:
     """
     Reveals the weights for a specific subnet on the Bittensor blockchain using the provided wallet.
@@ -292,7 +288,6 @@ def reveal_weights_extrinsic(
         version_key (int): Version key for compatibility with the network.
         wait_for_inclusion (bool): Waits for the transaction to be included in a block.
         wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
-        prompt (bool): If ``True``, prompts for user confirmation before proceeding.
 
     Returns:
         tuple[bool, str]: ``True`` if the weight revelation is successful, False otherwise. And `msg`, a string
@@ -300,10 +295,6 @@ def reveal_weights_extrinsic(
 
     This function provides a user-friendly interface for revealing weights on the Bittensor blockchain, ensuring proper error handling and user interaction when required.
     """
-
-    if prompt and not Confirm.ask(f"Would you like to reveal weights?"):
-        return False, "User cancelled the operation."
-
     success, error_message = do_reveal_weights(
         self=subtensor,
         wallet=wallet,
@@ -318,10 +309,10 @@ def reveal_weights_extrinsic(
 
     if success:
         success_message = "Successfully revealed weights."
-        logging.info(success_message)
+        logging.success(success_message)
         return True, success_message
     else:
-        error_message = format_error_message(error_message)
+        error_message = format_error_message(error_message, substrate=subtensor.substrate)
         logging.error(f"Failed to reveal weights: {error_message}")
         return False, error_message
 
@@ -351,10 +342,10 @@ def reveal_weights_process(
         version_key (int): Version key for compatibility with the network. Defaults to `settings.version_as_int`.
     """
 
-    def send_command(command):
+    def send_command(command_):
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         client.connect(("127.0.0.1", 9949))
-        client.send(command.encode())
+        client.send(command_.encode())
         client.close()
 
     try:
@@ -408,10 +399,10 @@ def do_batch_reveal_weights(
     """
 
     @retry(delay=1, tries=3, backoff=2, max_delay=4)
-    def make_substrate_call_with_retry(extrinsic):
+    def make_substrate_call_with_retry(extrinsic_):
         response = submit_extrinsic(
             substrate=self.substrate,
-            extrinsic=extrinsic,
+            extrinsic=extrinsic_,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
         )
@@ -453,7 +444,6 @@ def batch_reveal_weights_extrinsic(
     version_keys: list[int],
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
-    prompt: bool = False,
 ) -> tuple[bool, str]:
     """
     Reveals the weights for a specific subnet on the Bittensor blockchain using the provided wallet.
@@ -470,7 +460,6 @@ def batch_reveal_weights_extrinsic(
         version_keys (list[int]): List of version keys for compatibility with the network for each batch.
         wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block. Defaults to False.
         wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain. Defaults to False.
-        prompt (bool, optional): If ``True``, prompts for user confirmation before proceeding. Defaults to False.
 
     Returns:
         tuple[bool, str]: ``True`` if the weight revelation is successful, ``False`` otherwise. And `msg`, a string
@@ -479,9 +468,6 @@ def batch_reveal_weights_extrinsic(
     This function provides a user-friendly interface for revealing weights in batch on the Bittensor blockchain,
     ensuring proper error handling and user interaction when required.
     """
-
-    if prompt and not Confirm.ask(f"Would you like to batch reveal weights?"):
-        return False, "User cancelled the operation."
 
     success, error_message = do_batch_reveal_weights(
         self=subtensor,
@@ -497,10 +483,10 @@ def batch_reveal_weights_extrinsic(
 
     if success:
         success_message = "Successfully batch revealed weights."
-        logging.info(success_message)
+        logging.success(success_message)
         return True, success_message
     else:
-        error_message = format_error_message(error_message)
+        error_message = format_error_message(error_message, substrate=subtensor.substrate)
         logging.error(f"Failed batch reveal weights extrinsic: {error_message}")
         return False, error_message
 
@@ -528,10 +514,10 @@ def batch_reveal_weights_process(
     This function facilitates the batch reveal process, ensuring that the hashed weights are properly recorded and sent.
     """
 
-    def send_command(command):
+    def send_command(command_):
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         client.connect(("127.0.0.1", 9949))
-        client.send(command.encode())
+        client.send(command_.encode())
         client.close()
 
     try:

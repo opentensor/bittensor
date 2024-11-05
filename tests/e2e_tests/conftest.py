@@ -8,7 +8,7 @@ import time
 
 import pytest
 from substrateinterface import SubstrateInterface
-from bittensor.utils import subprocess_utils
+from bittensor.utils.subprocess import utils
 from bittensor import logging
 from tests.e2e_tests.utils.e2e_test_utils import (
     clone_or_update_templates,
@@ -65,12 +65,12 @@ def local_chain(request):
         pattern = re.compile(r"Imported #1")
         timestamp = int(time.time())
 
-        def wait_for_node_start(process, pattern):
-            for line in process.stdout:
+        def wait_for_node_start(process_, pattern_):
+            for line in process_.stdout:
                 print(line.strip())
                 if int(time.time()) - timestamp > 20 * 60:
                     pytest.fail("Subtensor not started in time")
-                if pattern.search(line):
+                if pattern_.search(line):
                     print("Node started!")
                     break
 

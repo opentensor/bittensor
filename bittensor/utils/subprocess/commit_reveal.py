@@ -10,13 +10,15 @@ from concurrent.futures import ThreadPoolExecutor
 
 from bittensor.core.subtensor import Subtensor
 from bittensor_wallet import Wallet
-from bittensor.utils import subprocess_utils as utils
+from bittensor.utils.subprocess import utils as utils
 from typing import List, Any, Dict, Optional
 
 # Path to the SQLite database
-DB_PATH = os.path.expanduser("~/.bittensor/bittensor.db")
+DB_PATH = os.path.join(os.path.expanduser("~"), ".bittensor", "bittensor.db")
 # Global variable to control the server loop
 running = True
+PORT = 9949
+HOST = "127.0.0.1"
 
 
 class Commit:
@@ -140,9 +142,9 @@ class Commit:
         )
 
 
-def table_exists(table_name: str) -> bool:
+def _table_exists(table_name: str) -> bool:
     """
-    Checks if a table exists in the database.
+    Checks if the database exists and if a table exists in the database.
 
     Args:
         table_name (str): The name of the table to check.
@@ -150,6 +152,10 @@ def table_exists(table_name: str) -> bool:
     Returns:
         bool: True if the table exists, False otherwise.
     """
+    if not os.path.exists(DB_PATH):
+        print(f"Database at path '{DB_PATH}' does not exist.")
+        return False
+
     try:
         columns, rows = utils.read_table(table_name)
         print(f"Table '{table_name}' exists with columns: {columns}")
@@ -182,7 +188,7 @@ def is_table_empty(table_name: str) -> bool:
         return False
 
 
-def initialize_db():
+def _initialize_db():
     """
     Initializes the database by creating the 'commits' table if it does not exist.
     """
@@ -202,14 +208,14 @@ def initialize_db():
         ("version_key", "INTEGER"),
         ("revealed", "BOOLEAN DEFAULT FALSE"),
     ]
-    if not table_exists("commits"):
+    if not _table_exists("commits"):
         print("Creating table 'commits'...")
-        utils.create_table("commits", columns, [])
+        assert utils.create_table("commits", columns, [])
     else:
         print("Table 'commits' already exists.")
 
 
-def reveal(subtensor: Subtensor, commit: Commit):
+def _reveal(subtensor: Subtensor, commit: Commit):
     """
     Reveals the weights for a commit to the subtensor network.
 
@@ -234,13 +240,13 @@ def reveal(subtensor: Subtensor, commit: Commit):
     )
     del wallet
     if success:
-        revealed_commit(commit.commit_hash)
+        _revealed_commit(commit.commit_hash)
         print(f"Reveal success for commit {commit}")
     else:
         print(f"Reveal failure for commit: {message}")
 
 
-def reveal_batch(subtensor: Subtensor, commits: List[Commit]):
+def _reveal_batch(subtensor: Subtensor, commits: List[Commit]):
     """
     Reveals the weights for a batch of commits to the subtensor network.
 
@@ -277,13 +283,13 @@ def reveal_batch(subtensor: Subtensor, commits: List[Commit]):
 
     if success:
         for commit in commits:
-            revealed_commit(commit.commit_hash)
+            _revealed_commit(commit.commit_hash)
             print(f"Reveal success for batch commit: {commit}")
     else:
         print(f"Reveal failure for batch commits: {message}")
 
 
-def sync_commit_data(matching_commit, commit_block, reveal_block, expire_block):
+def _sync_commit_data(matching_commit, commit_block, reveal_block, expire_block):
     """
     Sync the commit data with the given block details.
 
@@ -316,7 +322,7 @@ def sync_commit_data(matching_commit, commit_block, reveal_block, expire_block):
         print(f"Error updating commit data: {e}")
 
 
-def chain_hash_sync(subtensor: Subtensor, current_block: int):
+def _chain_hash_sync(subtensor: Subtensor, current_block: int):
     """
     Perform a verification to check if the local reveal list is consistent with the chain.
 
@@ -326,7 +332,7 @@ def chain_hash_sync(subtensor: Subtensor, current_block: int):
     """
     try:
         # Retrieve all commits from the local database
-        local_commits = get_all_commits()
+        local_commits = _get_all_commits()
         # Filter commits to only those that are not revealed
         local_commits = [commit for commit in local_commits if not commit.revealed]
         chain_commits = []
@@ -376,7 +382,7 @@ def chain_hash_sync(subtensor: Subtensor, current_block: int):
                                     or reveal_block != matching_commit.reveal_block
                                     or expire_block != matching_commit.expire_block
                                 ):
-                                    sync_commit_data(
+                                    _sync_commit_data(
                                         matching_commit,
                                         commit_block,
                                         reveal_block,
@@ -392,7 +398,7 @@ def chain_hash_sync(subtensor: Subtensor, current_block: int):
         print(f"Error during chain_hash_sync: {e}")
 
 
-def delete_old_commits(current_block: int, offset: int):
+def _delete_old_commits(current_block: int, offset: int):
     """
     Deletes rows in the database where the current block is greater than the expire_block.
     Prints each commit before deleting it.
@@ -402,7 +408,7 @@ def delete_old_commits(current_block: int, offset: int):
         current_block (int): The current block number.
     """
     try:
-        commits = get_all_commits()
+        commits = _get_all_commits()
         if not commits:
             print("No commits found in the database.")
             return
@@ -420,7 +426,7 @@ def delete_old_commits(current_block: int, offset: int):
         print(f"Error deleting expired commits: {e}")
 
 
-def revealed_commit(commit_hash: str):
+def _revealed_commit(commit_hash: str):
     """
     Handles the revealed_hash command by updating the revealed status on the corresponding commit from the database using the commit hash.
 
@@ -446,7 +452,7 @@ def revealed_commit(commit_hash: str):
         print(f"Error updating from table 'commits': {e}")
 
 
-def revealed_commit_batch(commit_hashes: List[str]):
+def _revealed_commit_batch(commit_hashes: List[str]):
     """
     Handles the revealed_batch_hash command by removing the corresponding commits from the database using the commit hashes.
 
@@ -474,7 +480,7 @@ def revealed_commit_batch(commit_hashes: List[str]):
         print(f"Error updating from table 'commits': {e}")
 
 
-def committed(commit: Commit):
+def _committed(commit: Commit):
     """
     Commits a new commit object to the database.
 
@@ -491,7 +497,7 @@ def committed(commit: Commit):
     print(f"Committed data: {commit_data}")
 
 
-def get_all_commits() -> List[Commit]:
+def _get_all_commits() -> List[Commit]:
     """
     Retrieves all commits from the database.
 
@@ -502,7 +508,7 @@ def get_all_commits() -> List[Commit]:
     return [Commit.from_dict(dict(zip(columns, commit))) for commit in rows]
 
 
-def check_reveal(current_block: int) -> bool:
+def _check_reveal(current_block: int) -> bool:
     """
     Checks if there are any commits to reveal.
 
@@ -513,7 +519,7 @@ def check_reveal(current_block: int) -> bool:
         bool: True if a commit was revealed, False otherwise.
     """
     try:
-        commits = get_all_commits()
+        commits = _get_all_commits()
         commits = [commit for commit in commits if not commit.revealed]
 
     except Exception as e:
@@ -531,7 +537,7 @@ def check_reveal(current_block: int) -> bool:
     return False
 
 
-def reveal_commits(subtensor: Subtensor, current_block: int):
+def _reveal_commits(subtensor: Subtensor, current_block: int):
     """
     Performs reveal on commits that are ready to be revealed.
 
@@ -540,7 +546,7 @@ def reveal_commits(subtensor: Subtensor, current_block: int):
         subtensor (Subtensor): The subtensor network object.
     """
     try:
-        local_commits = get_all_commits()
+        local_commits = _get_all_commits()
         local_commits = [commit for commit in local_commits if not commit.revealed]
         local_reveals = [
             commit
@@ -601,10 +607,10 @@ def reveal_commits(subtensor: Subtensor, current_block: int):
 
                     if len(ready_to_reveal) > 1:
                         chain_reveals.extend(ready_to_reveal)
-                        reveal_batch(subtensor, ready_to_reveal)
+                        _reveal_batch(subtensor, ready_to_reveal)
                     elif len(ready_to_reveal) == 1:
                         chain_reveals.extend(ready_to_reveal)
-                        reveal(subtensor, ready_to_reveal[0])
+                        _reveal(subtensor, ready_to_reveal[0])
                 except Exception as e:
                     print(f"Error querying expected hashes for {combination}: {e}")
 
@@ -626,7 +632,7 @@ def reveal_commits(subtensor: Subtensor, current_block: int):
                                 f"revealing commit {commit.commit_hash} as a newer hash was submitted"
                             )
                             commit.revealed = True
-                            revealed_commit(commit.commit_hash)
+                            _revealed_commit(commit.commit_hash)
 
     except Exception as e:
         print(f"Error reading table 'commits': {e}")
@@ -649,7 +655,7 @@ def handle_client_connection(client_socket: socket.socket):
                     json_start_index = request.index("[")
                     json_payload = request[json_start_index:]
                     args = json.loads(json_payload)
-                    revealed_commit_batch(args)
+                    _revealed_commit_batch(args)
                 except json.JSONDecodeError as e:
                     print(f"Error decoding JSON for {command}: {e}")
                 except Exception as e:
@@ -658,11 +664,11 @@ def handle_client_connection(client_socket: socket.socket):
                 args = shlex.split(request)
                 command = args[0]
                 commands = {
-                    "revealed_hash": lambda: revealed_commit(args[1]),
-                    "revealed_hash_batch": lambda: revealed_commit_batch(
+                    "revealed_hash": lambda: _revealed_commit(args[1]),
+                    "revealed_hash_batch": lambda: _revealed_commit_batch(
                         json.loads(args[1])
                     ),
-                    "committed": lambda: committed(
+                    "committed": lambda: _committed(
                         Commit(
                             wallet_hotkey_name=args[3],
                             wallet_hotkey_ss58=args[4],
@@ -679,7 +685,7 @@ def handle_client_connection(client_socket: socket.socket):
                             version_key=int(args[13]),
                         )
                     ),
-                    "terminate": lambda: terminate_process(None, None),
+                    "terminate": lambda: _terminate_process(None, None),
                 }
                 if command in commands:
                     try:
@@ -696,15 +702,15 @@ def handle_client_connection(client_socket: socket.socket):
         client_socket.close()
 
 
-def start_socket_server():
+def _start_socket_server():
     """
     Starts the socket server to listen for incoming connections.
     """
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server.bind(("127.0.0.1", 9949))
+    server.bind((HOST, PORT))
     server.listen(5)
     server.settimeout(2)  # Set timeout for any incoming requests to 2 seconds
-    print("Listening on port 9949...")
+    print(f"Listening on port {PORT}...")
 
     with ThreadPoolExecutor(max_workers=10) as executor:  # limit of workers amount
         while running:
@@ -719,7 +725,7 @@ def start_socket_server():
                 break
 
 
-def terminate_process(signal_number: Optional[int], frame: Optional[Any]):
+def _terminate_process(signal_number: Optional[int], frame: Optional[Any]):
     """
     Terminates the process gracefully.
 
@@ -733,19 +739,19 @@ def terminate_process(signal_number: Optional[int], frame: Optional[Any]):
     sys.exit(0)
 
 
-def main(args: argparse.Namespace):
+def main(parsed_args: argparse.Namespace):
     """
     The main function to run the Bittensor commit-reveal subprocess script.
 
     Args:
-        args (argparse.Namespace): The command-line arguments.
+        parsed_args (argparse.Namespace): The command-line arguments.
     """
-    initialize_db()
+    _initialize_db()
     print(
-        f"initializing subtensor with network: {args.network} and sleep time: {args.sleep_interval} seconds"
+        f"initializing subtensor with network: {parsed_args.network} and sleep time: {parsed_args.sleep_interval} seconds"
     )
-    subtensor = Subtensor(network=args.network, subprocess_initialization=False)
-    server_thread = threading.Thread(target=start_socket_server)
+    subtensor = Subtensor(network=parsed_args.network, subprocess_initialization=False)
+    server_thread = threading.Thread(target=_start_socket_server)
     server_thread.start()
 
     counter = 0  # Initialize counter
@@ -753,15 +759,15 @@ def main(args: argparse.Namespace):
     while running:
         counter += 1
         curr_block = subtensor.get_current_block()
-        if check_reveal(curr_block):
+        if _check_reveal(curr_block):
             print(f"Revealing commit on block {curr_block}")
-            reveal_commits(subtensor=subtensor, current_block=curr_block)
+            _reveal_commits(subtensor=subtensor, current_block=curr_block)
 
         if counter % 100 == 0:
-            chain_hash_sync(subtensor=subtensor, current_block=curr_block)
-            delete_old_commits(current_block=curr_block, offset=1000)
+            _chain_hash_sync(subtensor=subtensor, current_block=curr_block)
+            _delete_old_commits(current_block=curr_block, offset=1000)
 
-        time.sleep(args.sleep_interval)
+        time.sleep(parsed_args.sleep_interval)
 
 
 if __name__ == "__main__":

@@ -1,16 +1,18 @@
 import os
 import re
+import socket
 import sqlite3
 import subprocess
 import time
 from datetime import datetime
 from typing import Optional
-
+from bittensor.utils.btlogging import logging
 import psutil
 
-LOG_DIR = os.path.expanduser("~/.bittensor/logs")
-PROCESS_NAME = "commit_reveal.py"
-
+LOG_DIR = os.path.join(os.path.expanduser("~"), ".bittensor", "logs")
+COMMIT_REVEAL_PROCESS = "commit_reveal.py"
+PORT = 9949
+HOST = "127.0.0.1"
 # Ensure the log directory exists
 os.makedirs(LOG_DIR, exist_ok=True)
 
@@ -21,9 +23,9 @@ def get_cr_log_files() -> tuple[str, str]:
     Returns:
         tuple[str, str]: Paths to the stdout log file and stderr log file.
     """
-    pid = get_process(PROCESS_NAME)
+    pid = get_process(COMMIT_REVEAL_PROCESS)
     if pid is None:
-        raise RuntimeError(f"Process '{PROCESS_NAME}' is not running.")
+        raise RuntimeError(f"Process '{COMMIT_REVEAL_PROCESS}' is not running.")
 
     # Define a regex pattern to match log files with timestamps
     log_pattern = re.compile(r"commit_reveal_(stdout|stderr)_(\d{8}_\d{6})\.log")
@@ -100,15 +102,15 @@ def is_commit_reveal_subprocess_ready() -> bool:
     try:
         stdout_log, stderr_log = get_cr_log_files()
     except RuntimeError as e:
-        print(str(e))
+        logging.error(str(e))
         return False
 
-    def check_message_in_log(file_path: str, message: str) -> bool:
+    def check_message_in_log(file_path: str, message_: str) -> bool:
         """Check if a specific message is present in the log file."""
         if os.path.exists(file_path):
             with open(file_path, "r") as file:
                 for line in file:
-                    if message in line:
+                    if message_ in line:
                         return True
         return False
 
@@ -134,20 +136,20 @@ def is_table_empty(table_name: str) -> bool:
             )
             table_exists = cursor.fetchone()
             if not table_exists:
-                print(f"Table '{table_name}' does not exist.")
+                logging.debug(f"Table '{table_name}' does not exist.")
                 return True
 
             # Check if table is empty
             cursor.execute(f"SELECT COUNT(*) FROM {table_name}")
             count = cursor.fetchone()[0]
             if count == 0:
-                print(f"Table '{table_name}' is empty.")
+                logging.debug(f"Table '{table_name}' is empty.")
                 return True
             else:
-                print(f"Table '{table_name}' is not empty.")
+                logging.debug(f"Table '{table_name}' is not empty.")
                 return False
     except Exception as e:
-        print(f"Error checking if table '{table_name}' is empty: {e}")
+        logging.error(f"Error checking if table '{table_name}' is empty: {e}")
         return False
 
 
@@ -160,9 +162,19 @@ def start_if_existing_commits(
         stop_commit_reveal_subprocess()
         start_commit_reveal_subprocess(network, sleep_interval)
     else:
-        print(
+        logging.info(
             "Existing commits table is empty. Skipping starting commit reveal subprocess until a commit is there."
         )
+
+
+def _is_port_available(port: int = PORT, host: str = HOST) -> bool:
+    """Checks if the specified port is available."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        try:
+            s.bind((host, port))
+            return True
+        except socket.error:
+            return False
 
 
 def start_commit_reveal_subprocess(
@@ -180,19 +192,20 @@ def start_commit_reveal_subprocess(
     )
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
-    if not is_process_running(PROCESS_NAME):
+    if not is_process_running(COMMIT_REVEAL_PROCESS):
         current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
 
         # Correctly construct the paths for STDOUT and STDERR log files
         stdout_log = os.path.join(LOG_DIR, f"commit_reveal_stdout_{current_time}.log")
         stderr_log = os.path.join(LOG_DIR, f"commit_reveal_stderr_{current_time}.log")
 
+        if not _is_port_available():
+            logging.error(f":cross_mark: <red>Error: Port {PORT} is busy.</red>")
+            return
+
         os.makedirs(LOG_DIR, exist_ok=True)
 
-        stdout_file = open(stdout_log, "w")
-        stderr_file = open(stderr_log, "w")
-
-        print(f"Starting subprocess '{PROCESS_NAME}'...")
+        logging.info(f"Starting subprocess '{COMMIT_REVEAL_PROCESS}'...")
         env = os.environ.copy()
         env["PYTHONPATH"] = project_root + ":" + env.get("PYTHONPATH", "")
 
@@ -211,36 +224,36 @@ def start_commit_reveal_subprocess(
                 preexec_fn=os.setsid,
                 env=env,
             )
-            print(f"Subprocess '{PROCESS_NAME}' started with PID {process.pid}.")
+            logging.info(f"Subprocess '{COMMIT_REVEAL_PROCESS}' started with PID {process.pid}.")
 
             attempt_count = 0
             while not is_commit_reveal_subprocess_ready() and attempt_count < 5:
                 time.sleep(5)
-                print(
+                logging.debug(
                     f"Waiting for commit_reveal subprocess to be ready. Attempt {attempt_count + 1}..."
                 )
                 attempt_count += 1
 
             if attempt_count >= 5:
-                print("Max attempts reached. Subprocess may not be ready.")
+                logging.warning("Max start attempts reached. Subprocess may not be ready.")
         except Exception as e:
-            print(f"Failed to start subprocess '{PROCESS_NAME}': {e}")
+            logging.error(f"Failed to start subprocess '{COMMIT_REVEAL_PROCESS}': {e}")
     else:
-        print(f"Subprocess '{PROCESS_NAME}' is already running.")
+        logging.error(f"Subprocess '{COMMIT_REVEAL_PROCESS}' is already running.")
 
 
 def stop_commit_reveal_subprocess():
     """
     Stop the commit reveal subprocess if it is running.
     """
-    pid = get_process(PROCESS_NAME)
+    pid = get_process(COMMIT_REVEAL_PROCESS)
 
     if pid is not None:
-        print(f"Stopping subprocess '{PROCESS_NAME}' with PID {pid}...")
+        logging.debug(f"Stopping subprocess '{COMMIT_REVEAL_PROCESS}' with PID {pid}...")
         os.kill(pid, 15)  # SIGTERM
-        print(f"Subprocess '{PROCESS_NAME}' stopped.")
+        logging.debug(f"Subprocess '{COMMIT_REVEAL_PROCESS}' stopped.")
     else:
-        print(f"Subprocess '{PROCESS_NAME}' is not running.")
+        logging.debug(f"Subprocess '{COMMIT_REVEAL_PROCESS}' is not running.")
 
 
 class DB:
@@ -250,7 +263,7 @@ class DB:
 
     def __init__(
         self,
-        db_path: str = os.path.expanduser("~/.bittensor/bittensor.db"),
+        db_path: str = os.path.join(os.path.expanduser("~"), ".bittensor", "bittensor.db"),
         row_factory=None,
     ):
         if not os.path.exists(os.path.dirname(db_path)):
@@ -270,7 +283,7 @@ class DB:
             self.conn.close()
 
 
-def create_table(title: str, columns: list[tuple[str, str]], rows: list[list]):
+def create_table(title: str, columns: list[tuple[str, str]], rows: list[list]) -> bool:
     """
     Creates and populates the rows of a table in the SQLite database.
 
@@ -278,6 +291,9 @@ def create_table(title: str, columns: list[tuple[str, str]], rows: list[list]):
         title (str): title of the table.
         columns (list[tuple[str, str]]): List of tuples where each tuple contains column name and column type.
         rows (list[list]): List of lists where each sublist contains elements representing a row.
+
+    Returns:
+        bool: True if the table creation is successful, False otherwise.
     """
     blob_cols = []
     for idx, (_, col_type) in enumerate(columns):
@@ -287,19 +303,22 @@ def create_table(title: str, columns: list[tuple[str, str]], rows: list[list]):
         for row in rows:
             for idx in blob_cols:
                 row[idx] = row[idx].to_bytes(row[idx].bit_length() + 7, byteorder="big")
-    with DB() as (conn, cursor):
-        drop_query = f"DROP TABLE IF EXISTS {title}"
-        cursor.execute(drop_query)
-        conn.commit()
-        columns_ = ", ".join([" ".join(x) for x in columns])
-        creation_query = f"CREATE TABLE IF NOT EXISTS {title} ({columns_})"
-        conn.commit()
-        cursor.execute(creation_query)
-        conn.commit()
-        query = f"INSERT INTO {title} ({', '.join([x[0] for x in columns])}) VALUES ({', '.join(['?'] * len(columns))})"
-        cursor.executemany(query, rows)
-        conn.commit()
-    return
+    try:
+        with DB() as (conn, cursor):
+            drop_query = f"DROP TABLE IF EXISTS {title}"
+            cursor.execute(drop_query)
+            conn.commit()
+            columns_ = ", ".join([" ".join(x) for x in columns])
+            creation_query = f"CREATE TABLE IF NOT EXISTS {title} ({columns_})"
+            cursor.execute(creation_query)
+            conn.commit()
+            query = f"INSERT INTO {title} ({', '.join([x[0] for x in columns])}) VALUES ({', '.join(['?'] * len(columns))})"
+            cursor.executemany(query, rows)
+            conn.commit()
+        return True
+    except Exception as e:
+        logging.error(f"Error creating table '{title}': {e}")
+        return False
 
 
 def read_table(table_name: str, order_by: str = "") -> tuple[list, list]:
@@ -323,7 +342,7 @@ def read_table(table_name: str, order_by: str = "") -> tuple[list, list]:
                 column_names.append(info[1])
                 column_types.append(info[2])
             except IndexError:
-                print(f"Error retrieving column info: {info}")
+                logging.error(f"Error retrieving column info: {info}")
 
         cursor.execute(f"SELECT * FROM {table_name} {order_by}")
         rows = cursor.fetchall()
