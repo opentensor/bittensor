@@ -44,11 +44,6 @@ def test_liquid_alpha(local_chain):
     # Verify subnet 1 created successfully
     assert local_chain.query("SubtensorModule", "NetworksAdded", [1]).serialize()
 
-    # Register a neuron to the subnet
-    # assert register_neuron(
-    #     local_chain, alice_wallet, netuid
-    # ), "Unable to register Alice as a neuron"
-
     # Stake to become to top neuron after the first epoch
     add_stake(local_chain, alice_wallet, netuid, Balance.from_tao(100_000))
 

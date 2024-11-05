@@ -45,17 +45,12 @@ async def test_subtensor_extrinsics(local_chain):
     register_subnet(local_chain, alice_wallet), "Unable to register the subnet"
 
     # Subnet 1 is added after registration
-    assert subtensor.get_subnets() == [0, 1, 2]
+    assert subtensor.get_subnets() == [0, 1, netuid]
     assert subtensor.get_total_subnets() == 3
 
     # Verify subnet 1 created successfully
     assert local_chain.query("SubtensorModule", "NetworksAdded", [1]).serialize()
     assert subtensor.subnet_exists(netuid)
-
-    # Register Alice to the subnet
-    # assert register_neuron(
-    #     local_chain, alice_wallet, netuid
-    # ), "Unable to register Alice as a neuron"
 
     # Verify Alice is registered to netuid 1 and Bob isn't registered to any
     assert subtensor.get_netuids_for_hotkey(hotkey_ss58=alice_keypair.ss58_address) == [
@@ -145,8 +140,9 @@ async def test_subtensor_extrinsics(local_chain):
     neuron_info = subtensor.get_neuron_for_pubkey_and_subnet(
         alice_keypair.ss58_address, netuid=netuid
     )
-    # assert (
-    #     neuron_info_old.axon_info != neuron_info.axon_info
-    # ), "Neuron info not updated after running validator"
+    
+    assert (
+        neuron_info_old.axon_info != neuron_info.axon_info
+    ), "Neuron info not updated after running validator"
 
     logging.info("✅ Passed test_subtensor_extrinsics")

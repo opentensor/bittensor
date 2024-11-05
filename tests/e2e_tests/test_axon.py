@@ -34,18 +34,13 @@ async def test_axon(local_chain):
     # Register root as Alice - the subnet owner
     alice_keypair, wallet = setup_wallet("//Alice")
 
-    # Register a subnet, netuid 1
+    # Register a subnet, netuid 2
     assert register_subnet(local_chain, wallet), "Subnet wasn't created"
 
     # Verify subnet <netuid 1> created successfully
     assert local_chain.query(
         "SubtensorModule", "NetworksAdded", [netuid]
     ).serialize(), "Subnet wasn't created successfully"
-
-    # Register Alice to the network
-    # assert register_neuron(
-    #     local_chain, wallet, netuid
-    # ), f"Neuron wasn't registered to subnet {netuid}"
 
     metagraph = bittensor.Metagraph(netuid=netuid, network="ws://localhost:9945")
 
