@@ -60,8 +60,6 @@ async def test_axon(local_chain):
     assert old_axon.port == 0, f"Expected port 0, but got {old_axon.port}"
     assert old_axon.ip_type == 0, f"Expected IP type 0, but got {old_axon.ip_type}"
 
-    print("++++++++++++++++++ {template_path}{templates_repo}/neurons/miner.py")
-
     # Prepare to run the miner
     cmd = " ".join(
         [
@@ -97,7 +95,6 @@ async def test_axon(local_chain):
 
     # Refresh the metagraph
     metagraph = bittensor.Metagraph(netuid=netuid, network="ws://localhost:9945")
-    print("metagraph", metagraph.axons)
     updated_axon = metagraph.axons[0]
     external_ip = networking.get_external_ip()
 

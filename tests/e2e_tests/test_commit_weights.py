@@ -172,10 +172,6 @@ async def test_commit_and_reveal_weights(local_chain):
 
     # Assert that the revealed weights are set correctly
     assert revealed_weights.value is not None, "Weight reveal not found in storage"
-
-    print("+++++++ result")
-    print(weight_vals)
-    print(revealed_weights.value)
     assert (
         weight_vals[0] == revealed_weights.value[0][1]
     ), f"Incorrect revealed weights. Expected: {weights[0]}, Actual: {revealed_weights.value[0][1]}"
