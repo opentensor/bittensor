@@ -245,7 +245,7 @@ class AsyncSubtensor:
             module="SubtensorModule",
             storage_function="TotalNetworks",
             params=[],
-            block_hash=block_hash
+            block_hash=block_hash,
         )
         return result
 
@@ -1298,7 +1298,7 @@ class AsyncSubtensor:
             module="SubtensorModule",
             storage_function="Uids",
             params=[netuid, hotkey_ss58],
-            block_hash=block_hash
+            block_hash=block_hash,
         )
 
     # extrinsics

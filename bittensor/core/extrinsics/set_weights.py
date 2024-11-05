@@ -135,13 +135,14 @@ def set_weights_extrinsic(
         tuple[bool, str]: A tuple containing a success flag and an optional response message.
     """
     get_subnet_hyperparameters = subtensor.get_subnet_hyperparameters(netuid=netuid)
-    if get_subnet_hyperparameters and get_subnet_hyperparameters.commit_reveal_weights_enabled:
+    if (
+        get_subnet_hyperparameters
+        and get_subnet_hyperparameters.commit_reveal_weights_enabled
+    ):
         # if cr is enabled, commit instead of setting the weights.
         salt = [random.randint(0, 350) for _ in range(8)]
 
-        logging.info(
-            f":satellite: Committing weights on {subtensor.network}..."
-        )
+        logging.info(f":satellite: Committing weights on {subtensor.network}...")
         try:
             # First convert types.
             if use_torch():
@@ -156,8 +157,8 @@ def set_weights_extrinsic(
                     weights = np.array(weights, dtype=np.float32)
 
             # Reformat and normalize.
-            weight_uids, weight_vals = (
-                weight_utils.convert_weights_and_uids_for_emit(uids, weights)
+            weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(
+                uids, weights
             )
 
             success, message = subtensor.commit_weights(
@@ -173,7 +174,9 @@ def set_weights_extrinsic(
                 return True, "Not waiting for finalization or inclusion."
 
             if success is True:
-                logging.success(f"<green>Finalized!</green> Committed weights: {str(success)}")
+                logging.success(
+                    f"<green>Finalized!</green> Committed weights: {str(success)}"
+                )
                 return True, "Successfully committed weights and Finalized."
             else:
                 logging.error(message)
@@ -200,9 +203,7 @@ def set_weights_extrinsic(
             uids, weights
         )
 
-        logging.info(
-            f":satellite: Setting weights on {subtensor.network}..."
-        )
+        logging.info(f":satellite: Setting weights on {subtensor.network}...")
         try:
             success, error_message = do_set_weights(
                 self=subtensor,
@@ -219,7 +220,9 @@ def set_weights_extrinsic(
                 return True, "Not waiting for finalization or inclusion."
 
             if success is True:
-                logging.success(f"<green>Finalized!</green> Set weights: {str(success)}")
+                logging.success(
+                    f"<green>Finalized!</green> Set weights: {str(success)}"
+                )
                 return True, "Successfully set weights and Finalized."
             else:
                 logging.error(error_message)

@@ -132,7 +132,8 @@ def is_table_empty(table_name: str) -> bool:
         with DB() as (conn, cursor):
             # Check if table exists
             cursor.execute(
-                "SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table_name,)
+                "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+                (table_name,),
             )
             table_exists = cursor.fetchone()
             if not table_exists:
@@ -227,7 +228,9 @@ def start_commit_reveal_subprocess(
                 preexec_fn=os.setsid,
                 env=env,
             )
-            logging.info(f"Subprocess '{COMMIT_REVEAL_PROCESS}' started with PID {process.pid}.")
+            logging.info(
+                f"Subprocess '{COMMIT_REVEAL_PROCESS}' started with PID {process.pid}."
+            )
 
             attempt_count = 0
             while not is_commit_reveal_subprocess_ready() and attempt_count < 5:
@@ -238,9 +241,13 @@ def start_commit_reveal_subprocess(
                 attempt_count += 1
 
             if attempt_count >= 5:
-                logging.warning("Max start attempts reached. Subprocess may not be ready.")
+                logging.warning(
+                    "Max start attempts reached. Subprocess may not be ready."
+                )
         except Exception as e:
-            logging.error(f"Failed to start background_subprocess '{COMMIT_REVEAL_PROCESS}': {e}")
+            logging.error(
+                f"Failed to start background_subprocess '{COMMIT_REVEAL_PROCESS}': {e}"
+            )
     else:
         logging.error(f"Subprocess '{COMMIT_REVEAL_PROCESS}' is already running.")
 
@@ -252,7 +259,9 @@ def stop_commit_reveal_subprocess():
     pid = get_process(COMMIT_REVEAL_PROCESS)
 
     if pid is not None:
-        logging.debug(f"Stopping background_subprocess '{COMMIT_REVEAL_PROCESS}' with PID {pid}...")
+        logging.debug(
+            f"Stopping background_subprocess '{COMMIT_REVEAL_PROCESS}' with PID {pid}..."
+        )
         os.kill(pid, 15)  # SIGTERM
         logging.debug(f"Subprocess '{COMMIT_REVEAL_PROCESS}' stopped.")
     else:
@@ -266,7 +275,9 @@ class DB:
 
     def __init__(
         self,
-        db_path: str = os.path.join(os.path.expanduser("~"), ".bittensor", "bittensor.db"),
+        db_path: str = os.path.join(
+            os.path.expanduser("~"), ".bittensor", "bittensor.db"
+        ),
         row_factory=None,
     ):
         if not os.path.exists(os.path.dirname(db_path)):

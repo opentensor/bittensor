@@ -365,7 +365,9 @@ def reveal_weights_process(
         command = f'revealed_hash "{commit_hash}"'
         send_command(command)
     except Exception as e:
-        logging.error(f"Not able to generate hash to reveal weights on background_subprocess: {e}")
+        logging.error(
+            f"Not able to generate hash to reveal weights on background_subprocess: {e}"
+        )
 
 
 # Chain call for `batch_reveal_weights_extrinsic`
@@ -490,7 +492,9 @@ def batch_reveal_weights_extrinsic(
         logging.success(success_message)
         return True, success_message
     else:
-        error_message = format_error_message(error_message, substrate=subtensor.substrate)
+        error_message = format_error_message(
+            error_message, substrate=subtensor.substrate
+        )
         logging.error(f"Failed batch reveal weights extrinsic: {error_message}")
         return False, error_message
 

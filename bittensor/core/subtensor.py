@@ -1859,9 +1859,8 @@ class Subtensor:
         )
 
         try:
-            if (
-                self.subprocess_initialization
-                and subprocess_utils.is_process_running(subprocess_utils.COMMIT_REVEAL_PROCESS)
+            if self.subprocess_initialization and subprocess_utils.is_process_running(
+                subprocess_utils.COMMIT_REVEAL_PROCESS
             ):
                 commit_weights_process(
                     self,
@@ -1936,7 +1935,9 @@ class Subtensor:
             )
             if success:
                 # remove from local db if called directly
-                if subprocess_utils.is_process_running(subprocess_utils.COMMIT_REVEAL_PROCESS):
+                if subprocess_utils.is_process_running(
+                    subprocess_utils.COMMIT_REVEAL_PROCESS
+                ):
                     reveal_weights_process(
                         wallet=wallet,
                         netuid=netuid,
@@ -2020,7 +2021,9 @@ class Subtensor:
             )
             if success:
                 # remove from local db if called directly
-                if subprocess_utils.is_process_running(subprocess_utils.COMMIT_REVEAL_PROCESS):
+                if subprocess_utils.is_process_running(
+                    subprocess_utils.COMMIT_REVEAL_PROCESS
+                ):
                     batch_reveal_weights_process(
                         wallet=wallet,
                         netuid=netuid,
