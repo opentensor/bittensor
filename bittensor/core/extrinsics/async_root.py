@@ -20,6 +20,19 @@ if TYPE_CHECKING:
 
 
 async def get_limits(subtensor: "AsyncSubtensor") -> tuple[int, float]:
+    """
+    Retrieves the minimum allowed weights and maximum weight limit for the given subnet.
+
+    These values are fetched asynchronously using `asyncio.gather` to run both requests concurrently.
+
+    Args:
+        subtensor (AsyncSubtensor): The AsyncSubtensor object used to interface with the network's substrate node.
+
+    Returns:
+        tuple[int, float]: A tuple containing:
+            - `min_allowed_weights` (int): The minimum allowed weights.
+            - `max_weight_limit` (float): The maximum weight limit, normalized to a float value.
+    """
     # Get weight restrictions.
     maw, mwl = await asyncio.gather(
         subtensor.get_hyperparameter("MinAllowedWeights", netuid=0),
@@ -33,14 +46,16 @@ async def get_limits(subtensor: "AsyncSubtensor") -> tuple[int, float]:
 async def root_register_extrinsic(
     subtensor: "AsyncSubtensor",
     wallet: "Wallet",
+    netuid: int,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
 ) -> bool:
     """Registers the wallet to root network.
 
-    Args:
+    Arguments:
         subtensor (bittensor.core.async_subtensor.AsyncSubtensor): The AsyncSubtensor object
         wallet (bittensor_wallet.Wallet): Bittensor wallet object.
+        netuid (int): Subnet uid.
         wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning `True`, or returns `False` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning `True`, or returns `False` if the extrinsic fails to be finalized within the timeout.
 
@@ -58,7 +73,7 @@ async def root_register_extrinsic(
         f"Checking if hotkey (<blue>{wallet.hotkey_str}</blue>) is registered on root."
     )
     is_registered = await subtensor.is_hotkey_registered(
-        netuid=0, hotkey_ss58=wallet.hotkey.ss58_address
+        netuid=netuid, hotkey_ss58=wallet.hotkey.ss58_address
     )
     if is_registered:
         logging.error(
@@ -80,7 +95,7 @@ async def root_register_extrinsic(
     )
 
     if not success:
-        logging.error(f":cross_mark: <red>Failed</red>: {err_msg}")
+        logging.error(f":cross_mark: <red>Failed error:</red> {err_msg}")
         time.sleep(0.5)
         return False
 
@@ -89,11 +104,11 @@ async def root_register_extrinsic(
         uid = await subtensor.substrate.query(
             module="SubtensorModule",
             storage_function="Uids",
-            params=[0, wallet.hotkey.ss58_address],
+            params=[netuid, wallet.hotkey.ss58_address],
         )
         if uid is not None:
             logging.info(
-                f":white_heavy_check_mark: <green>Registered with UID</green> <blue>{uid}</blue>"
+                f":white_heavy_check_mark: <green>Registered with UID</green> <blue>{uid}</blue>."
             )
             return True
         else:
@@ -104,7 +119,7 @@ async def root_register_extrinsic(
 
 async def set_root_weights_extrinsic(
     subtensor: "AsyncSubtensor",
-    wallet: Wallet,
+    wallet: "Wallet",
     netuids: Union[NDArray[np.int64], list[int]],
     weights: Union[NDArray[np.float32], list[float]],
     version_key: int = 0,
@@ -113,7 +128,7 @@ async def set_root_weights_extrinsic(
 ) -> bool:
     """Sets the given weights and values on chain for wallet hotkey account.
 
-    Args:
+    Arguments:
         subtensor (bittensor.core.async_subtensor.AsyncSubtensor): The AsyncSubtensor object
         wallet (bittensor_wallet.Wallet): Bittensor wallet object.
         netuids (Union[NDArray[np.int64], list[int]]): The `netuid` of the subnet to set weights for.
@@ -164,13 +179,13 @@ async def set_root_weights_extrinsic(
     )
 
     if my_uid is None:
-        logging.error("Your hotkey is not registered to the root network")
+        logging.error("Your hotkey is not registered to the root network.")
         return False
 
     try:
         wallet.unlock_coldkey()
     except KeyFileError:
-        logging.error("Error decrypting coldkey (possibly incorrect password)")
+        logging.error("Error decrypting coldkey (possibly incorrect password).")
         return False
 
     # First convert types.
@@ -213,10 +228,10 @@ async def set_root_weights_extrinsic(
             return True
         else:
             fmt_err = format_error_message(error_message, subtensor.substrate)
-            logging.error(f":cross_mark: <red>Failed</red>: {fmt_err}")
+            logging.error(f":cross_mark: <red>Failed error:</red> {fmt_err}")
             return False
 
     except SubstrateRequestException as e:
         fmt_err = format_error_message(e, subtensor.substrate)
-        logging.error(f":cross_mark: <red>Failed</red>: error:{fmt_err}")
+        logging.error(f":cross_mark: <red>Failed error:</red> {fmt_err}")
         return False
