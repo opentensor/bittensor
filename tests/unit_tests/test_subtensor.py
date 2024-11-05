@@ -1132,7 +1132,6 @@ def test_set_weights(subtensor, mocker):
     fake_weights = [0.4, 0.6]
     fake_wait_for_inclusion = False
     fake_wait_for_finalization = False
-    fake_prompt = False
     fake_max_retries = 5
 
     expected_result = (True, None)
@@ -1159,7 +1158,6 @@ def test_set_weights(subtensor, mocker):
         version_key=settings.version_as_int,
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
-        prompt=fake_prompt,
         max_retries=fake_max_retries,
     )
 
@@ -1180,7 +1178,6 @@ def test_set_weights(subtensor, mocker):
         version_key=settings.version_as_int,
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
-        prompt=fake_prompt,
     )
     assert result == expected_result
 
