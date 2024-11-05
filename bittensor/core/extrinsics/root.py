@@ -4,7 +4,6 @@ from typing import Optional, Union, TYPE_CHECKING
 import numpy as np
 from bittensor_wallet.errors import KeyFileError
 from numpy.typing import NDArray
-from retry import retry
 
 from bittensor.core.settings import version_as_int
 from bittensor.utils import format_error_message, weight_utils
@@ -24,38 +23,34 @@ def _do_root_register(
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = True,
 ) -> tuple[bool, Optional[str]]:
-    @retry(delay=1, tries=3, backoff=2, max_delay=4)
-    def make_substrate_call_with_retry():
-        # create extrinsic call
-        call = self.substrate.compose_call(
-            call_module="SubtensorModule",
-            call_function="root_register",
-            call_params={"hotkey": wallet.hotkey.ss58_address},
-        )
-        extrinsic = self.substrate.create_signed_extrinsic(
-            call=call, keypair=wallet.coldkey
-        )
-        response = self.substrate.submit_extrinsic(
-            extrinsic,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-        )
+    # create extrinsic call
+    call = self.substrate.compose_call(
+        call_module="SubtensorModule",
+        call_function="root_register",
+        call_params={"hotkey": wallet.hotkey.ss58_address},
+    )
+    extrinsic = self.substrate.create_signed_extrinsic(
+        call=call, keypair=wallet.coldkey
+    )
+    response = self.substrate.submit_extrinsic(
+        extrinsic,
+        wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization,
+    )
 
-        # We only wait here if we expect finalization.
-        if not wait_for_finalization and not wait_for_inclusion:
-            return True
+    # We only wait here if we expect finalization.
+    if not wait_for_finalization and not wait_for_inclusion:
+        return True, None
 
-        # process if registration successful, try again if pow is still valid
-        response.process_events()
-        if not response.is_success:
-            return False, format_error_message(
-                response.error_message, substrate=self.substrate
-            )
-        # Successful registration
-        else:
-            return True, None
-
-    return make_substrate_call_with_retry()
+    # process if registration successful, try again if pow is still valid
+    response.process_events()
+    if not response.is_success:
+        return False, format_error_message(
+            response.error_message, substrate=self.substrate
+        )
+    # Successful registration
+    else:
+        return True, None
 
 
 def root_register_extrinsic(
@@ -147,41 +142,37 @@ def _do_set_root_weights(
     This method is vital for the dynamic weighting mechanism in Bittensor, where neurons adjust their trust in other neurons based on observed performance and contributions on the root network.
     """
 
-    @retry(delay=2, tries=3, backoff=2, max_delay=4)
-    def make_substrate_call_with_retry():
-        call = self.substrate.compose_call(
-            call_module="SubtensorModule",
-            call_function="set_root_weights",
-            call_params={
-                "dests": uids,
-                "weights": vals,
-                "netuid": netuid,
-                "version_key": version_key,
-                "hotkey": wallet.hotkey.ss58_address,
-            },
-        )
-        # Period dictates how long the extrinsic will stay as part of waiting pool
-        extrinsic = self.substrate.create_signed_extrinsic(
-            call=call,
-            keypair=wallet.coldkey,
-            era={"period": 5},
-        )
-        response = self.substrate.submit_extrinsic(
-            extrinsic,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-        )
-        # We only wait here if we expect finalization.
-        if not wait_for_finalization and not wait_for_inclusion:
-            return True, "Not waiting for finalziation or inclusion."
+    call = self.substrate.compose_call(
+        call_module="SubtensorModule",
+        call_function="set_root_weights",
+        call_params={
+            "dests": uids,
+            "weights": vals,
+            "netuid": netuid,
+            "version_key": version_key,
+            "hotkey": wallet.hotkey.ss58_address,
+        },
+    )
+    # Period dictates how long the extrinsic will stay as part of waiting pool
+    extrinsic = self.substrate.create_signed_extrinsic(
+        call=call,
+        keypair=wallet.coldkey,
+        era={"period": 5},
+    )
+    response = self.substrate.submit_extrinsic(
+        extrinsic,
+        wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization,
+    )
+    # We only wait here if we expect finalization.
+    if not wait_for_finalization and not wait_for_inclusion:
+        return True, "Not waiting for finalziation or inclusion."
 
-        response.process_events()
-        if response.is_success:
-            return True, "Successfully set weights."
-        else:
-            return False, response.error_message
-
-    return make_substrate_call_with_retry()
+    response.process_events()
+    if response.is_success:
+        return True, "Successfully set weights."
+    else:
+        return False, response.error_message
 
 
 @legacy_torch_api_compat

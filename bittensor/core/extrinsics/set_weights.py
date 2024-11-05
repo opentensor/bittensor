@@ -20,7 +20,6 @@ from typing import Union, Optional, TYPE_CHECKING
 
 import numpy as np
 from numpy.typing import NDArray
-from retry import retry
 
 from bittensor.core.extrinsics.utils import submit_extrinsic
 from bittensor.core.settings import version_as_int
@@ -66,43 +65,39 @@ def do_set_weights(
     This method is vital for the dynamic weighting mechanism in Bittensor, where neurons adjust their trust in other neurons based on observed performance and contributions.
     """
 
-    @retry(delay=1, tries=3, backoff=2, max_delay=4)
-    def make_substrate_call_with_retry():
-        call = self.substrate.compose_call(
-            call_module="SubtensorModule",
-            call_function="set_weights",
-            call_params={
-                "dests": uids,
-                "weights": vals,
-                "netuid": netuid,
-                "version_key": version_key,
-            },
-        )
-        # Period dictates how long the extrinsic will stay as part of waiting pool
-        extrinsic = self.substrate.create_signed_extrinsic(
-            call=call,
-            keypair=wallet.hotkey,
-            era={"period": 5},
-        )
-        response = submit_extrinsic(
-            substrate=self.substrate,
-            extrinsic=extrinsic,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-        )
-        # We only wait here if we expect finalization.
-        if not wait_for_finalization and not wait_for_inclusion:
-            return True, "Not waiting for finalization or inclusion."
+    call = self.substrate.compose_call(
+        call_module="SubtensorModule",
+        call_function="set_weights",
+        call_params={
+            "dests": uids,
+            "weights": vals,
+            "netuid": netuid,
+            "version_key": version_key,
+        },
+    )
+    # Period dictates how long the extrinsic will stay as part of waiting pool
+    extrinsic = self.substrate.create_signed_extrinsic(
+        call=call,
+        keypair=wallet.hotkey,
+        era={"period": 5},
+    )
+    response = submit_extrinsic(
+        substrate=self.substrate,
+        extrinsic=extrinsic,
+        wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization,
+    )
+    # We only wait here if we expect finalization.
+    if not wait_for_finalization and not wait_for_inclusion:
+        return True, "Not waiting for finalization or inclusion."
 
-        response.process_events()
-        if response.is_success:
-            return True, "Successfully set weights."
-        else:
-            return False, format_error_message(
-                response.error_message, substrate=self.substrate
-            )
-
-    return make_substrate_call_with_retry()
+    response.process_events()
+    if response.is_success:
+        return True, "Successfully set weights."
+    else:
+        return False, format_error_message(
+            response.error_message, substrate=self.substrate
+        )
 
 
 # Community uses this extrinsic directly and via `subtensor.set_weights`

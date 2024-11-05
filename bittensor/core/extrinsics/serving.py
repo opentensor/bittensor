@@ -17,8 +17,6 @@
 
 from typing import Optional, TYPE_CHECKING
 
-from retry import retry
-
 from bittensor.core.errors import MetadataError
 from bittensor.core.extrinsics.utils import submit_extrinsic
 from bittensor.core.settings import version_as_int
@@ -59,32 +57,26 @@ def do_serve_axon(
     This function is crucial for initializing and announcing a neuron's ``Axon`` service on the network, enhancing the decentralized computation capabilities of Bittensor.
     """
 
-    @retry(delay=1, tries=3, backoff=2, max_delay=4)
-    def make_substrate_call_with_retry():
-        call = self.substrate.compose_call(
-            call_module="SubtensorModule",
-            call_function="serve_axon",
-            call_params=call_params,
-        )
-        extrinsic = self.substrate.create_signed_extrinsic(
-            call=call, keypair=wallet.hotkey
-        )
-        response = submit_extrinsic(
-            substrate=self.substrate,
-            extrinsic=extrinsic,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-        )
-        if wait_for_inclusion or wait_for_finalization:
-            response.process_events()
-            if response.is_success:
-                return True, None
-            else:
-                return False, response.error_message
-        else:
+    call = self.substrate.compose_call(
+        call_module="SubtensorModule",
+        call_function="serve_axon",
+        call_params=call_params,
+    )
+    extrinsic = self.substrate.create_signed_extrinsic(call=call, keypair=wallet.hotkey)
+    response = submit_extrinsic(
+        substrate=self.substrate,
+        extrinsic=extrinsic,
+        wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization,
+    )
+    if wait_for_inclusion or wait_for_finalization:
+        response.process_events()
+        if response.is_success:
             return True, None
-
-    return make_substrate_call_with_retry()
+        else:
+            return False, response.error_message
+    else:
+        return True, None
 
 
 def serve_extrinsic(
@@ -295,15 +287,10 @@ def publish_metadata(
 # Community uses this function directly
 @net.ensure_connected
 def get_metadata(self, netuid: int, hotkey: str, block: Optional[int] = None) -> str:
-    @retry(delay=2, tries=3, backoff=2, max_delay=4)
-    def make_substrate_call_with_retry():
-        with self.substrate as substrate:
-            return substrate.query(
-                module="Commitments",
-                storage_function="CommitmentOf",
-                params=[netuid, hotkey],
-                block_hash=None if block is None else substrate.get_block_hash(block),
-            )
-
-    commit_data = make_substrate_call_with_retry()
-    return commit_data.value
+    with self.substrate as substrate:
+        return substrate.query(
+            module="Commitments",
+            storage_function="CommitmentOf",
+            params=[netuid, hotkey],
+            block_hash=None if block is None else substrate.get_block_hash(block),
+        ).value
