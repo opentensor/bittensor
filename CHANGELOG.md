@@ -1,5 +1,42 @@
 # Changelog
 
+## 8.3.0rc3 /2024-11-05
+
+## What's Changed
+* Further improvements in Commit-reveal V2, new subprocess, and related utilities by @opendansor in https://github.com/opentensor/bittensor/pull/2355
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v8.3.0rc2...v8.3.0rc3
+
+## 8.3.0rc2 /2024-11-04
+
+## What's Changed
+* Tweaks in Commit-reveal V2, new subprocess, and related utilities by @opendansor in https://github.com/opentensor/bittensor/pull/2355
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v8.3.0rc1...v8.3.0rc2
+
+## 8.3.0rc1 /2024-11-01
+
+## What's Changed
+* Expands the type registry to include all the available options by @thewhaleking in https://github.com/opentensor/bittensor/pull/2353
+* add `Subtensor.register`, `Subtensor.difficulty` and related staff with tests by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2352
+* added to Subtensor: `burned_register`, `get_subnet_burn_cost`, `recycle` and related extrinsics by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2359
+* Poem "Risen from the Past". Act 3. by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2363
+* default port from 9946 to 9944 by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2376
+* Commit-reveal V2, new subprocess, and related utilities by @opendansor in https://github.com/opentensor/bittensor/pull/2355
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v8.2.0...v8.3.0rc1
+
+## 8.2.0 /2024-10-10
+
+## What's Changed
+* remove commit from e2e tests by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2340
+* add bittensor-cli as prod deps for sdk by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2345
+* Fix the install command syntax by @rajkaramchedu in https://github.com/opentensor/bittensor/pull/2346
+* add config test by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2347
+* Bumps version for 8.2.0 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2348
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v8.1.1...v8.2.0
+
 ## 8.1.1 /2024-10-04
 
 ## What's Changed
