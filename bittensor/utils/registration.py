@@ -740,9 +740,7 @@ def _solve_for_difficulty_fast(
 
 
 @retry(Exception, tries=3, delay=1)
-def _get_block_with_retry(
-    subtensor: "Subtensor", netuid: int
-) -> tuple[int, int, bytes]:
+def _get_block_with_retry(subtensor: "Subtensor", netuid: int) -> tuple[int, int, str]:
     """
     Gets the current block number, difficulty, and block hash from the substrate node.
 
