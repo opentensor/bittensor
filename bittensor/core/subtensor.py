@@ -895,7 +895,6 @@ class Subtensor:
                     version_key=version_key,
                     wait_for_inclusion=wait_for_inclusion,
                     wait_for_finalization=wait_for_finalization,
-                    prompt=prompt,
                 )
             except Exception as e:
                 logging.error(f"Error setting weights: {e}")
