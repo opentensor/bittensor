@@ -2,7 +2,7 @@ import time
 
 import numpy as np
 import pytest
-import bittensor.utils.subprocess.commit_reveal as commit_reveal_subprocess
+import bittensor.utils.background_subprocess.commit_reveal as commit_reveal_subprocess
 import bittensor
 from bittensor import logging
 from bittensor.utils.weight_utils import convert_weights_and_uids_for_emit
@@ -20,7 +20,7 @@ from tests.e2e_tests.utils.e2e_test_utils import setup_wallet
 @pytest.mark.asyncio
 async def test_commit_and_reveal_weights(local_chain):
     """
-    Tests the commit/reveal weights mechanism with a subprocess doing the reveal function
+    Tests the commit/reveal weights mechanism with a background_subprocess doing the reveal function
 
     Steps:
         1. Register a subnet through Alice
@@ -28,7 +28,7 @@ async def test_commit_and_reveal_weights(local_chain):
         3. Enable commit-reveal mechanism on the subnet
         4. Lower the commit_reveal interval and rate limit
         5. Commit weights and verify
-        6. Wait interval & see if subprocess did the reveal weights and verify
+        6. Wait interval & see if background_subprocess did the reveal weights and verify
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
@@ -166,7 +166,7 @@ async def test_commit_and_reveal_weights(local_chain):
 @pytest.mark.asyncio
 async def test_set_and_reveal_weights(local_chain):
     """
-    Tests the commit/reveal weights mechanism with a subprocess doing the reveal function
+    Tests the commit/reveal weights mechanism with a background_subprocess doing the reveal function
 
     Steps:
         1. Register a subnet through Alice
@@ -174,7 +174,7 @@ async def test_set_and_reveal_weights(local_chain):
         3. Enable commit-reveal mechanism on the subnet
         4. Lower the commit_reveal interval and rate limit
         5. Commit weights and verify
-        6. Wait interval & see if subprocess did the reveal weights and verify
+        6. Wait interval & see if background_subprocess did the reveal weights and verify
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
@@ -310,7 +310,7 @@ async def test_set_and_reveal_weights(local_chain):
 @pytest.mark.asyncio
 async def test_set_and_reveal_batch_weights(local_chain):
     """
-    Tests the commit/reveal batch weights mechanism with a subprocess doing the reveal function
+    Tests the commit/reveal batch weights mechanism with a background_subprocess doing the reveal function
 
     Steps:
         1. Register a subnet through Alice
@@ -318,7 +318,7 @@ async def test_set_and_reveal_batch_weights(local_chain):
         3. Enable commit-reveal mechanism on the subnet
         4. Lower the commit_reveal interval and rate limit
         5. Commit weights and verify
-        6. Wait interval & see if subprocess did the reveal weights and verify
+        6. Wait interval & see if background_subprocess did the reveal weights and verify
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
@@ -475,7 +475,7 @@ async def test_set_and_reveal_batch_weights_over_limit(local_chain):
         3. Enable commit-reveal mechanism on the subnet
         4. Lower the commit_reveal interval and rate limit
         5. Commit weights and verify
-        6. Wait interval & see if subprocess did the reveal weights and verify
+        6. Wait interval & see if background_subprocess did the reveal weights and verify
     Raises:
         AssertionError: If any of the checks or verifications fail
     """

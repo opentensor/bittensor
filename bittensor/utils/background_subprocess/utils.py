@@ -94,7 +94,7 @@ def get_process(process_name: str) -> Optional[int]:
 
 def is_commit_reveal_subprocess_ready() -> bool:
     """
-    Check the logs for the message 'commit_reveal subprocess is ready' and return True if it's found.
+    Check the logs for the message 'commit_reveal background_subprocess is ready' and return True if it's found.
 
     Returns:
         bool: True if the message is found in the logs, False otherwise.
@@ -114,7 +114,7 @@ def is_commit_reveal_subprocess_ready() -> bool:
                         return True
         return False
 
-    message = "commit_reveal subprocess is ready"
+    message = "commit_reveal background_subprocess is ready"
     return check_message_in_log(stdout_log, message)
 
 
@@ -163,7 +163,7 @@ def start_if_existing_commits(
         start_commit_reveal_subprocess(network, sleep_interval)
     else:
         logging.info(
-            "Existing commits table is empty. Skipping starting commit reveal subprocess until a commit is there."
+            "Existing commits table is empty. Skipping starting commit reveal background_subprocess until a commit is there."
         )
 
 
@@ -181,14 +181,14 @@ def start_commit_reveal_subprocess(
     network: Optional[str] = None, sleep_interval: Optional[float] = None
 ):
     """
-    Start the commit reveal subprocess if not already running.
+    Start the commit reveal background_subprocess if not already running.
 
     Args:
         network (Optional[str]): Network name if any, optional.
         sleep_interval (Optional[float]): Sleep interval if any, optional.
     """
     script_path = os.path.abspath(
-        os.path.join(os.path.dirname(__file__), "subprocess", "commit_reveal.py")
+        os.path.join(os.path.dirname(__file__), "commit_reveal.py")
     )
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
@@ -205,7 +205,10 @@ def start_commit_reveal_subprocess(
 
         os.makedirs(LOG_DIR, exist_ok=True)
 
-        logging.info(f"Starting subprocess '{COMMIT_REVEAL_PROCESS}'...")
+        stdout_file = open(stdout_log, "w")
+        stderr_file = open(stderr_log, "w")
+
+        logging.info(f"Starting background_subprocess '{COMMIT_REVEAL_PROCESS}'...")
         env = os.environ.copy()
         env["PYTHONPATH"] = project_root + ":" + env.get("PYTHONPATH", "")
 
@@ -216,11 +219,11 @@ def start_commit_reveal_subprocess(
             args.extend(["--sleep-interval", str(sleep_interval)])
 
         try:
-            # Create a new subprocess
+            # Create a new background_subprocess
             process = subprocess.Popen(
                 args=args,
-                stdout=open(stdout_log, "a"),  # Redirect subprocess stdout to log file
-                stderr=open(stderr_log, "a"),  # Redirect subprocess stderr to log file
+                stdout=stdout_file,
+                stderr=stderr_file,
                 preexec_fn=os.setsid,
                 env=env,
             )
@@ -230,26 +233,26 @@ def start_commit_reveal_subprocess(
             while not is_commit_reveal_subprocess_ready() and attempt_count < 5:
                 time.sleep(5)
                 logging.debug(
-                    f"Waiting for commit_reveal subprocess to be ready. Attempt {attempt_count + 1}..."
+                    f"Waiting for commit_reveal background_subprocess to be ready. Attempt {attempt_count + 1}..."
                 )
                 attempt_count += 1
 
             if attempt_count >= 5:
                 logging.warning("Max start attempts reached. Subprocess may not be ready.")
         except Exception as e:
-            logging.error(f"Failed to start subprocess '{COMMIT_REVEAL_PROCESS}': {e}")
+            logging.error(f"Failed to start background_subprocess '{COMMIT_REVEAL_PROCESS}': {e}")
     else:
         logging.error(f"Subprocess '{COMMIT_REVEAL_PROCESS}' is already running.")
 
 
 def stop_commit_reveal_subprocess():
     """
-    Stop the commit reveal subprocess if it is running.
+    Stop the commit reveal background_subprocess if it is running.
     """
     pid = get_process(COMMIT_REVEAL_PROCESS)
 
     if pid is not None:
-        logging.debug(f"Stopping subprocess '{COMMIT_REVEAL_PROCESS}' with PID {pid}...")
+        logging.debug(f"Stopping background_subprocess '{COMMIT_REVEAL_PROCESS}' with PID {pid}...")
         os.kill(pid, 15)  # SIGTERM
         logging.debug(f"Subprocess '{COMMIT_REVEAL_PROCESS}' stopped.")
     else:

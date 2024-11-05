@@ -10,7 +10,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from bittensor.core.subtensor import Subtensor
 from bittensor_wallet import Wallet
-from bittensor.utils.subprocess import utils as utils
+from bittensor.utils.background_subprocess import utils as utils
 from typing import List, Any, Dict, Optional
 
 # Path to the SQLite database
@@ -741,7 +741,7 @@ def _terminate_process(signal_number: Optional[int], frame: Optional[Any]):
 
 def main(parsed_args: argparse.Namespace):
     """
-    The main function to run the Bittensor commit-reveal subprocess script.
+    The main function to run the Bittensor commit-reveal background_subprocess script.
 
     Args:
         parsed_args (argparse.Namespace): The command-line arguments.
@@ -755,7 +755,7 @@ def main(parsed_args: argparse.Namespace):
     server_thread.start()
 
     counter = 0  # Initialize counter
-    print("commit_reveal subprocess is ready")
+    print("commit_reveal background_subprocess is ready")
     while running:
         counter += 1
         curr_block = subtensor.get_current_block()
@@ -772,7 +772,7 @@ def main(parsed_args: argparse.Namespace):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Run the Bittensor commit-reveal subprocess script."
+        description="Run the Bittensor commit-reveal background_subprocess script."
     )
     parser.add_argument(
         "--network",

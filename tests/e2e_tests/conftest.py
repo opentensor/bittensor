@@ -10,7 +10,7 @@ import pytest
 from substrateinterface import SubstrateInterface
 
 from bittensor.utils.btlogging import logging
-from bittensor.utils.subprocess import utils
+from bittensor.utils.background_subprocess import utils
 from tests.e2e_tests.utils.e2e_test_utils import (
     clone_or_update_templates,
     install_templates,
@@ -97,5 +97,5 @@ def local_chain(request):
     logging.info("Uninstalling neuron templates")
     uninstall_templates(templates_dir)
 
-    # kill subprocess if its running
+    # kill background_subprocess if its running
     utils.stop_commit_reveal_subprocess()

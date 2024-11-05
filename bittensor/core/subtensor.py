@@ -82,7 +82,7 @@ from bittensor.utils import (
     u16_normalized_float,
     networking,
 )
-from bittensor.utils.subprocess import utils
+from bittensor.utils.background_subprocess import utils as subprocess_utils
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import legacy_torch_api_compat
@@ -1833,7 +1833,7 @@ class Subtensor:
             f"Committing weights with params: netuid={netuid}, uids={uids}, weights={weights}, version_key={version_key}"
         )
 
-        # start subprocess if permitted and not yet running
+        # start background_subprocess if permitted and not yet running
         if self.subprocess_initialization and not subprocess_utils.is_process_running(
             subprocess_utils.COMMIT_REVEAL_PROCESS
         ):

@@ -157,7 +157,7 @@ def commit_weights_process(
     block: Optional[int] = None,
 ):
     """
-    Lets the subprocess know what a commit was submitted to the chain.
+    Lets the background_subprocess know what a commit was submitted to the chain.
 
     Args:
         subtensor (bittensor.core.subtensor.Subtensor): The subtensor instance used for blockchain interaction.
@@ -170,7 +170,7 @@ def commit_weights_process(
         version_key (int): Version key for network compatibility (default is settings.version_as_int).
         block (Optional[int]): Specific block number to use (default is None).
 
-    The function calculates the necessary blocks until the next epoch and the reveal block, then the subprocess will
+    The function calculates the necessary blocks until the next epoch and the reveal block, then the background_subprocess will
     wait until the appropriate time to reveal the weights.
     """
 
@@ -330,10 +330,10 @@ def reveal_weights_process(
     version_key: int = settings.version_as_int,
 ):
     """
-    Coordinates the process of revealing weights with the background subprocess.
+    Coordinates the process of revealing weights with the background background_subprocess.
 
     This method generates a hash of the weights using the provided wallet and network
-    parameters, and sends a command to a local subprocess that this commit was revealed.
+    parameters, and sends a command to a local background_subprocess that this commit was revealed.
     In case of any exception during hash generation, it sends a command with detailed information
     including wallet details and weight parameters.
 
@@ -353,7 +353,7 @@ def reveal_weights_process(
         client.close()
 
     try:
-        # Generate the hash of the weights - so we can remove from local reveal subprocess
+        # Generate the hash of the weights - so we can remove from local reveal background_subprocess
         commit_hash = generate_weight_hash(
             address=wallet.hotkey.ss58_address,
             netuid=netuid,
@@ -365,7 +365,7 @@ def reveal_weights_process(
         command = f'revealed_hash "{commit_hash}"'
         send_command(command)
     except Exception as e:
-        logging.error(f"Not able to generate hash to reveal weights on subprocess: {e}")
+        logging.error(f"Not able to generate hash to reveal weights on background_subprocess: {e}")
 
 
 # Chain call for `batch_reveal_weights_extrinsic`
@@ -435,7 +435,7 @@ def do_batch_reveal_weights(
         call=call,
         keypair=wallet.hotkey,
     )
-    return make_substrate_call_with_retry(extrinsic=extrinsic)
+    return make_substrate_call_with_retry(extrinsic)
 
 
 def batch_reveal_weights_extrinsic(
@@ -543,4 +543,4 @@ def batch_reveal_weights_process(
         command = f"revealed_hash_batch {json.dumps(commit_hashes)}"
         send_command(command)
     except Exception as e:
-        logging.error(f"Failed batch reveal weights subprocess: {e}")
+        logging.error(f"Failed batch reveal weights background_subprocess: {e}")

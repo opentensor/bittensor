@@ -21,7 +21,7 @@ from tests.e2e_tests.utils.e2e_test_utils import setup_wallet
 @pytest.mark.asyncio
 async def test_commit_and_reveal_weights(local_chain):
     """
-    Tests the commit/reveal weights mechanism with subprocess disabled (CR1.0)
+    Tests the commit/reveal weights mechanism with background_subprocess disabled (CR1.0)
 
     Steps:
         1. Register a subnet through Alice
@@ -76,7 +76,6 @@ async def test_commit_and_reveal_weights(local_chain):
         return_error_message=True,
     )
 
-    subtensor = Subtensor(network="ws://localhost:9945")
     assert (
         subtensor.get_subnet_hyperparameters(
             netuid=netuid
@@ -95,7 +94,7 @@ async def test_commit_and_reveal_weights(local_chain):
         call_params={"netuid": netuid, "weights_set_rate_limit": "0"},
         return_error_message=True,
     )
-    subtensor = Subtensor(network="ws://localhost:9945")
+
     assert (
         subtensor.get_subnet_hyperparameters(netuid=netuid).weights_rate_limit == 0
     ), "Failed to set weights_rate_limit"
@@ -153,6 +152,8 @@ async def test_commit_and_reveal_weights(local_chain):
         wait_for_finalization=True,
     )
     time.sleep(10)
+
+    assert success
 
     # Query the Weights storage map
     revealed_weights = subtensor.query_module(

@@ -1133,7 +1133,6 @@ def test_set_weights(subtensor, mocker):
     fake_weights = [0.4, 0.6]
     fake_wait_for_inclusion = False
     fake_wait_for_finalization = False
-    fake_prompt = False
     fake_max_retries = 5
 
     expected_result = (True, None)
@@ -1160,7 +1159,6 @@ def test_set_weights(subtensor, mocker):
         version_key=settings.version_as_int,
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
-        prompt=fake_prompt,
         max_retries=fake_max_retries,
     )
 
@@ -1181,7 +1179,6 @@ def test_set_weights(subtensor, mocker):
         version_key=settings.version_as_int,
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
-        prompt=fake_prompt,
     )
     assert result == expected_result
 
@@ -1744,8 +1741,6 @@ def test_commit_weights(subtensor, mocker):
     weights = [0.4, 0.6]
     wait_for_inclusion = False
     wait_for_finalization = False
-    prompt = False
-    max_retries = 5
 
     expected_result = (True, None)
     mocked_generate_weight_hash = mocker.patch.object(
@@ -1766,8 +1761,6 @@ def test_commit_weights(subtensor, mocker):
         version_key=settings.version_as_int,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
-        prompt=prompt,
-        max_retries=max_retries,
     )
 
     weight_uids, weight_vals = convert_weights_and_uids_for_emit(
@@ -1791,7 +1784,6 @@ def test_commit_weights(subtensor, mocker):
         commit_hash=mocked_generate_weight_hash.return_value,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
-        prompt=prompt,
     )
     assert result == expected_result
 
@@ -1818,7 +1810,6 @@ def test_reveal_weights(subtensor, mocker):
         salt=salt,
         wait_for_inclusion=False,
         wait_for_finalization=False,
-        prompt=False,
     )
 
     # Assertions
@@ -1833,7 +1824,6 @@ def test_reveal_weights(subtensor, mocker):
         salt=salt,
         wait_for_inclusion=False,
         wait_for_finalization=False,
-        prompt=False,
     )
 
 
@@ -1861,12 +1851,11 @@ def test_reveal_weights_false(subtensor, mocker):
         salt=salt,
         wait_for_inclusion=False,
         wait_for_finalization=False,
-        prompt=False,
     )
 
     # Assertion
     assert result == expected_result
-    assert mocked_extrinsic.call_count == 5
+    assert mocked_extrinsic.call_count == 1
 
 
 def test_connect_without_substrate(mocker):
