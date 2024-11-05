@@ -32,7 +32,6 @@ def test_transfer(local_chain):
         amount=2,
         wait_for_finalization=True,
         wait_for_inclusion=True,
-        prompt=False,
     )
 
     # Account details after transfer

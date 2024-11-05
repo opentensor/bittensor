@@ -21,10 +21,9 @@ from typing import Union, Optional, TYPE_CHECKING
 import numpy as np
 from numpy.typing import NDArray
 from retry import retry
-from rich.prompt import Confirm
 
 from bittensor.core.extrinsics.utils import submit_extrinsic
-from bittensor.core.settings import bt_console, version_as_int
+from bittensor.core.settings import version_as_int
 from bittensor.utils import format_error_message, weight_utils
 from bittensor.utils.btlogging import logging
 from bittensor.utils.networking import ensure_connected
@@ -47,7 +46,7 @@ def do_set_weights(
     version_key: int = version_as_int,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
-) -> tuple[bool, Optional[dict]]:  # (success, error_message)
+) -> tuple[bool, Optional[str]]:  # (success, error_message)
     """
     Internal method to send a transaction to the Bittensor blockchain, setting weights for specified neurons. This method constructs and submits the transaction, handling retries and blockchain communication.
 
@@ -99,7 +98,9 @@ def do_set_weights(
         if response.is_success:
             return True, "Successfully set weights."
         else:
-            return False, response.error_message
+            return False, format_error_message(
+                response.error_message, substrate=self.substrate
+            )
 
     return make_substrate_call_with_retry()
 
@@ -114,7 +115,6 @@ def set_weights_extrinsic(
     version_key: int = 0,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
-    prompt: bool = False,
 ) -> tuple[bool, str]:
     """Sets the given weights and values on chain for wallet hotkey account.
 
@@ -127,7 +127,6 @@ def set_weights_extrinsic(
         version_key (int): The version key of the validator.
         wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
-        prompt (bool): If ``true``, the call waits for confirmation from the user before proceeding.
 
     Returns:
         tuple[bool, str]: A tuple containing a success flag and an optional response message.
@@ -149,46 +148,34 @@ def set_weights_extrinsic(
         uids, weights
     )
 
-    # Ask before moving on.
-    if prompt:
-        if not Confirm.ask(
-            f"Do you want to set weights:\n[bold white]  weights: {[float(v / 65535) for v in weight_vals]}\n"
-            f"uids: {weight_uids}[/bold white ]?"
-        ):
-            return False, "Prompt refused."
+    logging.info(
+        f":satellite: <magenta>Setting weights on </magenta><blue>{subtensor.network}<blue> <magenta>...</magenta>"
+    )
+    logging.debug(f"Weights: {[float(v / 65535) for v in weight_vals]}")
 
-    with bt_console.status(
-        f":satellite: Setting weights on [white]{subtensor.network}[/white] ..."
-    ):
-        try:
-            success, error_message = do_set_weights(
-                self=subtensor,
-                wallet=wallet,
-                netuid=netuid,
-                uids=weight_uids,
-                vals=weight_vals,
-                version_key=version_key,
-                wait_for_finalization=wait_for_finalization,
-                wait_for_inclusion=wait_for_inclusion,
-            )
+    try:
+        success, error_message = do_set_weights(
+            self=subtensor,
+            wallet=wallet,
+            netuid=netuid,
+            uids=weight_uids,
+            vals=weight_vals,
+            version_key=version_key,
+            wait_for_finalization=wait_for_finalization,
+            wait_for_inclusion=wait_for_inclusion,
+        )
 
-            if not wait_for_finalization and not wait_for_inclusion:
-                return True, "Not waiting for finalization or inclusion."
+        if not wait_for_finalization and not wait_for_inclusion:
+            return True, "Not waiting for finalization or inclusion."
 
-            if success is True:
-                bt_console.print(":white_heavy_check_mark: [green]Finalized[/green]")
-                logging.success(
-                    msg=str(success),
-                    prefix="Set weights",
-                    suffix="<green>Finalized: </green>",
-                )
-                return True, "Successfully set weights and Finalized."
-            else:
-                error_message = format_error_message(error_message)
-                logging.error(error_message)
-                return False, error_message
+        if success is True:
+            logging.success(f"<green>Finalized!</green> Set weights: {str(success)}")
+            return True, "Successfully set weights and Finalized."
+        else:
+            logging.error(error_message)
+            return False, error_message
 
-        except Exception as e:
-            bt_console.print(f":cross_mark: [red]Failed[/red]: error:{e}")
-            logging.debug(str(e))
-            return False, str(e)
+    except Exception as e:
+        logging.error(f":cross_mark: <red>Failed.</red>: Error: {e}")
+        logging.debug(str(e))
+        return False, str(e)
