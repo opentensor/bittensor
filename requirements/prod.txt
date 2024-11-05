@@ -19,10 +19,10 @@ pyyaml
 retry
 requests
 rich
+psutil
 pydantic>=2.3, <3
 python-Levenshtein
 scalecodec==1.2.11
 substrate-interface~=1.7.9
 uvicorn
 bittensor-wallet>=2.0.2
-psutil
