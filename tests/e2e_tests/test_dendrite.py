@@ -73,7 +73,7 @@ async def test_dendrite(local_chain):
     assert add_stake(local_chain, bob_wallet, netuid, Balance.from_tao(10_000))
 
     # Refresh metagraph
-    metagraph = bittensor.Metagraph(netuid=netuid, network="ws://localhost:9945")
+    metagraph = Metagraph(netuid=netuid, network="ws://localhost:9945")
     old_neuron = metagraph.neurons[1]
 
     # Assert stake is 10000
