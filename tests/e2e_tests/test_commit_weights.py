@@ -149,7 +149,7 @@ async def test_commit_and_reveal_weights(local_chain):
     assert interval > 0, "Invalid WeightCommitRevealInterval"
 
     # Wait until the reveal block range
-    await wait_interval(interval * 10 + 500, subtensor)
+    await wait_interval(interval * 10 + 300, subtensor)
 
     # Reveal weights
     success, message = subtensor.reveal_weights(
