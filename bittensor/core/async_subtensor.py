@@ -7,7 +7,6 @@ import scalecodec
 import typer
 from bittensor_wallet import Wallet
 from bittensor_wallet.utils import SS58_FORMAT
-from rich.prompt import Confirm
 from scalecodec import GenericCall
 from scalecodec.base import RuntimeConfiguration
 from scalecodec.type_registry import load_type_registry_preset
@@ -1113,7 +1112,6 @@ class AsyncSubtensor:
         destination: str,
         amount: float,
         transfer_all: bool,
-        prompt: bool,
     ):
         """Transfer token of amount to destination."""
         return await transfer_extrinsic(
@@ -1122,10 +1120,9 @@ class AsyncSubtensor:
             destination,
             Balance.from_tao(amount),
             transfer_all,
-            prompt=prompt,
         )
 
-    async def register(self, wallet: Wallet, prompt: bool):
+    async def register(self, wallet: Wallet):
         """Register neuron by recycling some TAO."""
         logging.info(
             f"Registering on netuid <blue>0</blue> on network: <blue>{self.network}</blue>"
@@ -1154,21 +1151,11 @@ class AsyncSubtensor:
             )
             return False
 
-        if prompt:
-            if not Confirm.ask(
-                f"Your balance is: [bold green]{balance}[/bold green]\n"
-                f"The cost to register by recycle is [bold red]{current_recycle}[/bold red]\n"
-                f"Do you want to continue?",
-                default=False,
-            ):
-                return False
-
         return await root_register_extrinsic(
             self,
             wallet,
             wait_for_inclusion=True,
             wait_for_finalization=True,
-            prompt=prompt,
         )
 
     async def pow_register(
@@ -1188,7 +1175,6 @@ class AsyncSubtensor:
             subtensor=self,
             wallet=wallet,
             netuid=netuid,
-            prompt=True,
             tpb=threads_per_block,
             update_interval=update_interval,
             num_processes=processors,
@@ -1203,7 +1189,6 @@ class AsyncSubtensor:
         wallet: "Wallet",
         netuids: list[int],
         weights: list[float],
-        prompt: bool,
     ):
         """Set weights for root network."""
         netuids_ = np.array(netuids, dtype=np.int64)
@@ -1216,7 +1201,6 @@ class AsyncSubtensor:
             netuids=netuids_,
             weights=weights_,
             version_key=0,
-            prompt=prompt,
             wait_for_finalization=True,
             wait_for_inclusion=True,
         )

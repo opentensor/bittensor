@@ -62,12 +62,12 @@ def mock_new_wallet(mocker):
 
 
 @pytest.mark.parametrize(
-    "subnet_exists, neuron_is_null, prompt, prompt_response, cuda_available, expected_result, test_id",
+    "subnet_exists, neuron_is_null, cuda_available, expected_result, test_id",
     [
-        (False, True, True, True, True, False, "subnet-does-not-exist"),
-        (True, False, True, True, True, True, "neuron-already-registered"),
-        (True, True, True, False, True, False, "user-declines-prompt"),
-        (True, True, False, None, False, False, "cuda-unavailable"),
+        (False, True, True, False, "subnet-does-not-exist"),
+        (True, False, True, True, "neuron-already-registered"),
+        (True, True, True, True, "user-declines-prompt"),
+        (True, True, False, False, "cuda-unavailable"),
     ],
 )
 def test_register_extrinsic_without_pow(
@@ -75,23 +75,27 @@ def test_register_extrinsic_without_pow(
     mock_wallet,
     subnet_exists,
     neuron_is_null,
-    prompt,
-    prompt_response,
     cuda_available,
     expected_result,
     test_id,
     mocker,
 ):
     # Arrange
-    with mocker.patch.object(
-        mock_subtensor, "subnet_exists", return_value=subnet_exists
-    ), mocker.patch.object(
-        mock_subtensor,
-        "get_neuron_for_pubkey_and_subnet",
-        return_value=mocker.MagicMock(is_null=neuron_is_null),
-    ), mocker.patch(
-        "rich.prompt.Confirm.ask", return_value=prompt_response
-    ), mocker.patch("torch.cuda.is_available", return_value=cuda_available):
+    with (
+        mocker.patch.object(
+            mock_subtensor, "subnet_exists", return_value=subnet_exists
+        ),
+        mocker.patch.object(
+            mock_subtensor,
+            "get_neuron_for_pubkey_and_subnet",
+            return_value=mocker.MagicMock(is_null=neuron_is_null),
+        ),
+        mocker.patch("torch.cuda.is_available", return_value=cuda_available),
+        mocker.patch(
+            "bittensor.utils.registration._get_block_with_retry",
+            return_value=(0, 0, "00ff11ee"),
+        ),
+    ):
         # Act
         result = registration.register_extrinsic(
             subtensor=mock_subtensor,
@@ -99,7 +103,6 @@ def test_register_extrinsic_without_pow(
             netuid=123,
             wait_for_inclusion=True,
             wait_for_finalization=True,
-            prompt=prompt,
             max_allowed_attempts=3,
             output_in_place=True,
             cuda=True,
@@ -164,7 +167,6 @@ def test_register_extrinsic_with_pow(
             netuid=123,
             wait_for_inclusion=True,
             wait_for_finalization=True,
-            prompt=False,
             max_allowed_attempts=3,
             output_in_place=True,
             cuda=cuda,
@@ -180,16 +182,16 @@ def test_register_extrinsic_with_pow(
 
 
 @pytest.mark.parametrize(
-    "subnet_exists, neuron_is_null, recycle_success, prompt, prompt_response, is_registered, expected_result, test_id",
+    "subnet_exists, neuron_is_null, recycle_success, is_registered, expected_result, test_id",
     [
         # Happy paths
-        (True, False, None, False, None, None, True, "neuron-not-null"),
-        (True, True, True, True, True, True, True, "happy-path-wallet-registered"),
+        (True, False, None, None, True, "neuron-not-null"),
+        (True, True, True, True, True, "happy-path-wallet-registered"),
         # Error paths
-        (False, True, False, False, None, None, False, "subnet-non-existence"),
-        (True, True, True, True, False, None, False, "prompt-declined"),
-        (True, True, False, True, True, False, False, "error-path-recycling-failed"),
-        (True, True, True, True, True, False, False, "error-path-not-registered"),
+        (False, True, False, None, False, "subnet-non-existence"),
+        (True, True, True, None, False, "prompt-declined"),
+        (True, True, False, False, False, "error-path-recycling-failed"),
+        (True, True, True, False, False, "error-path-not-registered"),
     ],
 )
 def test_burned_register_extrinsic(
@@ -198,8 +200,6 @@ def test_burned_register_extrinsic(
     subnet_exists,
     neuron_is_null,
     recycle_success,
-    prompt,
-    prompt_response,
     is_registered,
     expected_result,
     test_id,
@@ -218,16 +218,9 @@ def test_burned_register_extrinsic(
     ), mocker.patch.object(
         mock_subtensor, "is_hotkey_registered", return_value=is_registered
     ):
-        mock_confirm = mocker.MagicMock(return_value=prompt_response)
-        registration.Confirm.ask = mock_confirm
         # Act
         result = registration.burned_register_extrinsic(
-            subtensor=mock_subtensor, wallet=mock_wallet, netuid=123, prompt=prompt
+            subtensor=mock_subtensor, wallet=mock_wallet, netuid=123
         )
         # Assert
         assert result == expected_result, f"Test failed for test_id: {test_id}"
-
-        if prompt:
-            mock_confirm.assert_called_once()
-        else:
-            mock_confirm.assert_not_called()

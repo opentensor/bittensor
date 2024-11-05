@@ -39,7 +39,7 @@ async def transfer_extrinsic(
         wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning `True`, or returns `False` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool):  If set, waits for the extrinsic to be finalized on the chain before returning `True`, or returns `False` if the extrinsic fails to be finalized within the timeout.
         keep_alive (bool): If set, keeps the account alive by keeping the balance above the existential deposit.
-    
+
     Returns:
         success (bool): Flag is `True` if extrinsic was finalized or included in the block. If we did not wait for finalization / inclusion, the response is `True`, regardless of its inclusion.
     """

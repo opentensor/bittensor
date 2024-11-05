@@ -1270,7 +1270,6 @@ def test_transfer(subtensor, mocker):
     fake_amount = 1.1
     fake_wait_for_inclusion = True
     fake_wait_for_finalization = True
-    fake_prompt = False
     mocked_transfer_extrinsic = mocker.patch.object(
         subtensor_module, "transfer_extrinsic"
     )
@@ -1282,7 +1281,6 @@ def test_transfer(subtensor, mocker):
         fake_amount,
         fake_wait_for_inclusion,
         fake_wait_for_finalization,
-        fake_prompt,
     )
 
     # Asserts
@@ -1293,7 +1291,6 @@ def test_transfer(subtensor, mocker):
         amount=fake_amount,
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
-        prompt=fake_prompt,
     )
     assert result == mocked_transfer_extrinsic.return_value
 
@@ -1740,7 +1737,6 @@ def test_commit_weights(subtensor, mocker):
     weights = [0.4, 0.6]
     wait_for_inclusion = False
     wait_for_finalization = False
-    prompt = False
     max_retries = 5
 
     expected_result = (True, None)
@@ -1761,7 +1757,6 @@ def test_commit_weights(subtensor, mocker):
         version_key=settings.version_as_int,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
-        prompt=prompt,
         max_retries=max_retries,
     )
 
@@ -1782,7 +1777,6 @@ def test_commit_weights(subtensor, mocker):
         commit_hash=mocked_generate_weight_hash.return_value,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
-        prompt=prompt,
     )
     assert result == expected_result
 
@@ -1809,7 +1803,6 @@ def test_reveal_weights(subtensor, mocker):
         salt=salt,
         wait_for_inclusion=False,
         wait_for_finalization=False,
-        prompt=False,
     )
 
     # Assertions
@@ -1824,7 +1817,6 @@ def test_reveal_weights(subtensor, mocker):
         salt=salt,
         wait_for_inclusion=False,
         wait_for_finalization=False,
-        prompt=False,
     )
 
 
@@ -1852,7 +1844,6 @@ def test_reveal_weights_false(subtensor, mocker):
         salt=salt,
         wait_for_inclusion=False,
         wait_for_finalization=False,
-        prompt=False,
     )
 
     # Assertion
