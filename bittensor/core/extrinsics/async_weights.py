@@ -103,7 +103,6 @@ async def set_weights_extrinsic(
         version_key (int): The version key of the validator.
         wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
-        prompt (bool): If ``true``, the call waits for confirmation from the user before proceeding.
 
     Returns:
         success (bool): Flag is ``true`` if extrinsic was finalized or included in the block. If we did not wait for finalization / inclusion, the response is ``true``.
@@ -222,7 +221,7 @@ async def commit_weights_extrinsic(
 ) -> tuple[bool, str]:
     """
     Commits a hash of the neuron's weights to the Bittensor blockchain using the provided wallet.
-    This function is a wrapper around the `do_commit_weights` method, handling user prompts and error messages.
+    This function is a wrapper around the `do_commit_weights` method.
 
     Args:
         subtensor (bittensor.core.subtensor.Subtensor): The subtensor instance used for blockchain interaction.
