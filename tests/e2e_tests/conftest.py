@@ -83,5 +83,3 @@ def local_chain(request):
     # uninstall templates
     logging.info("uninstalling neuron templates")
     uninstall_templates(template_path)
-
-    
