@@ -5,7 +5,6 @@ import numpy as np
 from bittensor_wallet.errors import KeyFileError
 from numpy.typing import NDArray
 from retry import retry
-from rich.prompt import Confirm
 
 from bittensor.core.settings import version_as_int
 from bittensor.utils import format_error_message, weight_utils
@@ -64,7 +63,6 @@ def root_register_extrinsic(
     wallet: "Wallet",
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = True,
-    prompt: bool = False,
 ) -> bool:
     """Registers the wallet to root network.
 
@@ -73,7 +71,6 @@ def root_register_extrinsic(
         wallet (bittensor_wallet.Wallet): Bittensor wallet object.
         wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout. Default is ``False``.
         wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout. Default is ``True``.
-        prompt (bool): If ``true``, the call waits for confirmation from the user before proceeding. Default is ``False``.
 
     Returns:
         success (bool): Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
@@ -95,11 +92,6 @@ def root_register_extrinsic(
             ":white_heavy_check_mark: <green>Already registered on root network.</green>"
         )
         return True
-
-    if prompt:
-        # Prompt user for confirmation.
-        if not Confirm.ask("Register to root network?"):
-            return False
 
     logging.info(":satellite: <magenta>Registering to root network...</magenta>")
     success, err_msg = _do_root_register(
@@ -201,7 +193,6 @@ def set_root_weights_extrinsic(
     version_key: int = 0,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
-    prompt: bool = False,
 ) -> bool:
     """Sets the given weights and values on chain for wallet hotkey account.
 
@@ -213,7 +204,6 @@ def set_root_weights_extrinsic(
         version_key (int): The version key of the validator.  Default is ``0``.
         wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.  Default is ``False``.
         wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout. Default is ``False``.
-        prompt (bool): If ``true``, the call waits for confirmation from the user before proceeding. Default is ``False``.
 
     Returns:
         success (bool): Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
@@ -255,15 +245,6 @@ def set_root_weights_extrinsic(
     logging.info(
         f"Raw Weights -> Normalized weights: <blue>{weights}</blue> -> <green>{formatted_weights}</green>"
     )
-
-    # Ask before moving on.
-    if prompt:
-        if not Confirm.ask(
-            "Do you want to set the following root weights?:\n[bold white]  weights: {}\n  uids: {}[/bold white ]?".format(
-                formatted_weights, netuids
-            )
-        ):
-            return False
 
     logging.info(
         f":satellite: <magenta>Setting root weights on</magenta> <blue>{subtensor.network}</blue> <magenta>...</magenta>"

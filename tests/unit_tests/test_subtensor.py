@@ -1271,7 +1271,6 @@ def test_transfer(subtensor, mocker):
     fake_amount = 1.1
     fake_wait_for_inclusion = True
     fake_wait_for_finalization = True
-    fake_prompt = False
     mocked_transfer_extrinsic = mocker.patch.object(
         subtensor_module, "transfer_extrinsic"
     )
@@ -1283,7 +1282,6 @@ def test_transfer(subtensor, mocker):
         fake_amount,
         fake_wait_for_inclusion,
         fake_wait_for_finalization,
-        fake_prompt,
     )
 
     # Asserts
@@ -1294,7 +1292,6 @@ def test_transfer(subtensor, mocker):
         amount=fake_amount,
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
-        prompt=fake_prompt,
     )
     assert result == mocked_transfer_extrinsic.return_value
 
