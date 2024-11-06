@@ -165,10 +165,10 @@ def test_liquid_alpha(local_chain):
     ), "Unable to set liquid alpha values"
 
     assert (
-        subtensor.get_subnet_hyperparameters(netuid=1).alpha_high == 58982
+        subtensor.get_subnet_hyperparameters(netuid=netuid).alpha_high == 53083
     ), "Failed to set alpha high"
     assert (
-        subtensor.get_subnet_hyperparameters(netuid=1).alpha_low == 45875
+        subtensor.get_subnet_hyperparameters(netuid=netuid).alpha_low == 6553
     ), "Failed to set alpha low"
 
     # Disable Liquid Alpha
