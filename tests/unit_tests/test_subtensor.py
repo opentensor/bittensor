@@ -2123,4 +2123,3 @@ def test_networks_during_connection(mocker):
         # Assertions
         sub.network = network
         sub.chain_endpoint = settings.NETWORK_MAP.get(network)
-
