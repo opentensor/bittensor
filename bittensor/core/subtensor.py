@@ -715,16 +715,8 @@ class Subtensor:
 
         if network is None:
             return None, None
-        if network in ["finney", "local", "test", "archive"]:
-            if network == "finney":
-                # Kiru Finney staging network.
-                return network, settings.FINNEY_ENTRYPOINT
-            elif network == "local":
-                return network, settings.LOCAL_ENTRYPOINT
-            elif network == "test":
-                return network, settings.FINNEY_TEST_ENTRYPOINT
-            elif network == "archive":
-                return network, settings.ARCHIVE_ENTRYPOINT
+        if network in settings.NETWORKS:
+            return network, settings.NETWORK_MAP[network]
         else:
             if (
                 network == settings.FINNEY_ENTRYPOINT
@@ -745,7 +737,6 @@ class Subtensor:
                 return "local", network
             else:
                 return "unknown", network
-        return None, None
 
     def get_netuids_for_hotkey(
         self, hotkey_ss58: str, block: Optional[int] = None
