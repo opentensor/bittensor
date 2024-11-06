@@ -8,7 +8,7 @@ import time
 import pytest
 from substrateinterface import SubstrateInterface
 
-from bittensor import logging
+from bittensor.utils.btlogging import logging
 from tests.e2e_tests.utils.e2e_test_utils import (
     clone_or_update_templates,
     install_templates,

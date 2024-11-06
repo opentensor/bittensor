@@ -30,7 +30,6 @@ from bittensor.utils.balance import Balance
 from bittensor.utils.mock import MockSubtensor
 from tests.helpers import (
     get_mock_coldkey,
-    MockConsole,
     get_mock_keypair,
     get_mock_wallet,
 )
@@ -52,12 +51,6 @@ class TestSubtensor(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
-        # mock rich console status
-        mock_console = MockConsole()
-        cls._mock_console_patcher = patch(
-            "bittensor.core.settings.bt_console", mock_console
-        )
-        cls._mock_console_patcher.start()
         # Keeps the same mock network for all tests. This stops the network from being re-setup for each test.
         cls._mock_subtensor = MockSubtensor()
         cls._do_setup_subnet()
@@ -68,10 +61,6 @@ class TestSubtensor(unittest.TestCase):
         cls._mock_subtensor.reset()
         # Setup the mock subnet 3
         cls._mock_subtensor.create_subnet(netuid=3)
-
-    @classmethod
-    def tearDownClass(cls) -> None:
-        cls._mock_console_patcher.stop()
 
     def test_network_overrides(self):
         """Tests that the network overrides the chain_endpoint."""
@@ -284,15 +273,10 @@ class TestSubtensor(unittest.TestCase):
                 )
                 self.subtensor._do_pow_register = MagicMock(return_value=(True, None))
 
-                with patch("bittensor.core.settings.bt_console") as mock_set_status:
-                    # Need to patch the console status to avoid opening a parallel live display
-                    mock_set_status.__enter__ = MagicMock(return_value=True)
-                    mock_set_status.__exit__ = MagicMock(return_value=True)
-
-                    # should return True
-                    assert self.subtensor.register(
-                        wallet=wallet, netuid=3, num_processes=3, update_interval=5
-                    )
+                # should return True
+                assert self.subtensor.register(
+                    wallet=wallet, netuid=3, num_processes=3, update_interval=5
+                )
 
                 # calls until True and once again before exiting subtensor class
                 # This assertion is currently broken when difficulty is too low

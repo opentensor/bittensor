@@ -1,5 +1,16 @@
 # Changelog
 
+## 8.2.0 /2024-10-10
+
+## What's Changed
+* remove commit from e2e tests by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2340
+* add bittensor-cli as prod deps for sdk by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2345
+* Fix the install command syntax by @rajkaramchedu in https://github.com/opentensor/bittensor/pull/2346
+* add config test by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2347
+* Bumps version for 8.2.0 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2348
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v8.1.1...v8.2.0
+
 ## 8.1.1 /2024-10-04
 
 ## What's Changed
