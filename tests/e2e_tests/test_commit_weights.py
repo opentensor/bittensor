@@ -145,8 +145,8 @@ async def test_commit_and_reveal_weights(local_chain):
     periods = reveal_periods.value
     assert periods > 0, "Invalid RevealPeriodEpochs"
 
-    # Wait until the reveal block range
-    await wait_interval(interval * 10 + 300, subtensor)
+    # Wait until the reveal block range, the default temp is 300
+    await wait_interval(300, subtensor)
 
     # Reveal weights
     success, message = subtensor.reveal_weights(
