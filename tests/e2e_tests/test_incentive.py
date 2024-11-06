@@ -70,7 +70,6 @@ async def test_incentive(local_chain):
         [
             f"{sys.executable}",
             f'"{template_path}{templates_repo}/neurons/miner.py"',
-            "--no_prompt",
             "--netuid",
             str(netuid),
             "--subtensor.network",
@@ -103,7 +102,6 @@ async def test_incentive(local_chain):
         [
             f"{sys.executable}",
             f'"{template_path}{templates_repo}/neurons/validator.py"',
-            "--no_prompt",
             "--netuid",
             str(netuid),
             "--subtensor.network",

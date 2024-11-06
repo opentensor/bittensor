@@ -45,7 +45,7 @@ async def get_limits(subtensor: "AsyncSubtensor") -> tuple[int, float]:
 
 async def root_register_extrinsic(
     subtensor: "AsyncSubtensor",
-    wallet: Wallet,
+    wallet: "Wallet",
     netuid: int,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,

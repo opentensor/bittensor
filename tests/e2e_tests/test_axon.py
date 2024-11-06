@@ -60,7 +60,6 @@ async def test_axon(local_chain):
         [
             f"{sys.executable}",
             f'"{template_path}{templates_repo}/neurons/miner.py"',
-            "--no_prompt",
             "--netuid",
             str(netuid),
             "--subtensor.network",

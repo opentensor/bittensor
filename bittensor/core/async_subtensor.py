@@ -1,10 +1,10 @@
 import asyncio
+import ssl
 from typing import Optional, Any, Union, TypedDict, Iterable
 
 import aiohttp
 import numpy as np
 import scalecodec
-import typer
 from bittensor_wallet import Wallet
 from bittensor_wallet.utils import SS58_FORMAT
 from numpy.typing import NDArray
@@ -134,7 +134,13 @@ class AsyncSubtensor:
             logging.error(
                 f"<red>Error</red>: Timeout occurred connecting to substrate. Verify your chain and network settings: {self}"
             )
-            raise typer.Exit(code=1)
+            raise ConnectionError
+        except (ConnectionRefusedError, ssl.SSLError) as error:
+            logging.error(
+                f"<red>Error</red>: Connection refused when connecting to substrate. "
+                f"Verify your chain and network settings: {self}. Error: {error}"
+            )
+            raise ConnectionError
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         await self.substrate.close()
@@ -245,7 +251,7 @@ class AsyncSubtensor:
             module="SubtensorModule",
             storage_function="TotalNetworks",
             params=[],
-            block_hash=block_hash
+            block_hash=block_hash,
         )
         return result
 
@@ -688,7 +694,7 @@ class AsyncSubtensor:
         """
         Filters a given list of all netuids for certain specified netuids and hotkeys
 
-        Argumens:
+        Args:
             all_netuids (Iterable[int]): A list of netuids to filter.
             filter_for_netuids (Iterable[int]): A subset of all_netuids to filter from the main list
             all_hotkeys (Iterable[Wallet]): Hotkeys to filter from the main list
@@ -1298,7 +1304,7 @@ class AsyncSubtensor:
             module="SubtensorModule",
             storage_function="Uids",
             params=[netuid, hotkey_ss58],
-            block_hash=block_hash
+            block_hash=block_hash,
         )
 
     # extrinsics
@@ -1309,7 +1315,6 @@ class AsyncSubtensor:
         destination: str,
         amount: float,
         transfer_all: bool,
-        prompt: bool,
     ) -> bool:
         """
         Transfer token of amount to destination.
@@ -1319,7 +1324,6 @@ class AsyncSubtensor:
             destination (str): Destination address for the transfer.
             amount (float): Amount of tokens to transfer.
             transfer_all (bool): Flag to transfer all tokens.
-            prompt (bool): Flag to prompt user for confirmation before transferring.
 
         Returns:
             `True` if the transferring was successful, otherwise `False`.
@@ -1330,7 +1334,6 @@ class AsyncSubtensor:
             destination,
             Balance.from_tao(amount),
             transfer_all,
-            prompt=prompt,
         )
 
     async def register(
@@ -1407,7 +1410,6 @@ class AsyncSubtensor:
             subtensor=self,
             wallet=wallet,
             netuid=netuid,
-            prompt=True,
             tpb=threads_per_block,
             update_interval=update_interval,
             num_processes=processors,

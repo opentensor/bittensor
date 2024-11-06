@@ -15,11 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import json
 from typing import Optional, TYPE_CHECKING
-
-from retry import retry
-from rich.prompt import Confirm
 
 from bittensor.core.errors import MetadataError
 from bittensor.core.extrinsics.utils import submit_extrinsic
@@ -61,32 +57,26 @@ def do_serve_axon(
     This function is crucial for initializing and announcing a neuron's ``Axon`` service on the network, enhancing the decentralized computation capabilities of Bittensor.
     """
 
-    @retry(delay=1, tries=3, backoff=2, max_delay=4)
-    def make_substrate_call_with_retry():
-        call = self.substrate.compose_call(
-            call_module="SubtensorModule",
-            call_function="serve_axon",
-            call_params=call_params,
-        )
-        extrinsic = self.substrate.create_signed_extrinsic(
-            call=call, keypair=wallet.hotkey
-        )
-        response = submit_extrinsic(
-            substrate=self.substrate,
-            extrinsic=extrinsic,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-        )
-        if wait_for_inclusion or wait_for_finalization:
-            response.process_events()
-            if response.is_success:
-                return True, None
-            else:
-                return False, response.error_message
-        else:
+    call = self.substrate.compose_call(
+        call_module="SubtensorModule",
+        call_function="serve_axon",
+        call_params=call_params,
+    )
+    extrinsic = self.substrate.create_signed_extrinsic(call=call, keypair=wallet.hotkey)
+    response = submit_extrinsic(
+        substrate=self.substrate,
+        extrinsic=extrinsic,
+        wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization,
+    )
+    if wait_for_inclusion or wait_for_finalization:
+        response.process_events()
+        if response.is_success:
             return True, None
-
-    return make_substrate_call_with_retry()
+        else:
+            return False, response.error_message
+    else:
+        return True, None
 
 
 def serve_extrinsic(
@@ -100,7 +90,6 @@ def serve_extrinsic(
     placeholder2: int = 0,
     wait_for_inclusion: bool = False,
     wait_for_finalization=True,
-    prompt: bool = False,
 ) -> bool:
     """Subscribes a Bittensor endpoint to the subtensor chain.
 
@@ -115,7 +104,6 @@ def serve_extrinsic(
         placeholder2 (int): A placeholder for future use.
         wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
-        prompt (bool): If ``true``, the call waits for confirmation from the user before proceeding.
 
     Returns:
         success (bool): Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
@@ -158,15 +146,6 @@ def serve_extrinsic(
             f"Axon already served on: AxonInfo({wallet.hotkey.ss58_address},{ip}:{port}) "
         )
         return True
-
-    if prompt:
-        output = params.copy()
-        output["coldkey"] = wallet.coldkeypub.ss58_address
-        output["hotkey"] = wallet.hotkey.ss58_address
-        if not Confirm.ask(
-            f"Do you want to serve axon:\n  [bold white]{json.dumps(output, indent=4, sort_keys=True)}[/bold white]"
-        ):
-            return False
 
     logging.debug(
         f"Serving axon with: AxonInfo({wallet.hotkey.ss58_address},{ip}:{port}) -> {subtensor.network}:{netuid}"
@@ -308,15 +287,10 @@ def publish_metadata(
 # Community uses this function directly
 @net.ensure_connected
 def get_metadata(self, netuid: int, hotkey: str, block: Optional[int] = None) -> str:
-    @retry(delay=2, tries=3, backoff=2, max_delay=4)
-    def make_substrate_call_with_retry():
-        with self.substrate as substrate:
-            return substrate.query(
-                module="Commitments",
-                storage_function="CommitmentOf",
-                params=[netuid, hotkey],
-                block_hash=None if block is None else substrate.get_block_hash(block),
-            )
-
-    commit_data = make_substrate_call_with_retry()
-    return commit_data.value
+    with self.substrate as substrate:
+        return substrate.query(
+            module="Commitments",
+            storage_function="CommitmentOf",
+            params=[netuid, hotkey],
+            block_hash=None if block is None else substrate.get_block_hash(block),
+        ).value

@@ -17,9 +17,6 @@
 
 from typing import Optional, Union, TYPE_CHECKING
 
-from retry import retry
-from rich.prompt import Confirm
-
 from bittensor.core.extrinsics.utils import submit_extrinsic
 from bittensor.core.settings import NETWORK_EXPLORER_MAP
 from bittensor.utils import (
@@ -63,35 +60,31 @@ def do_transfer(
         error (dict): Error message from subtensor if transfer failed.
     """
 
-    @retry(delay=1, tries=3, backoff=2, max_delay=4)
-    def make_substrate_call_with_retry():
-        call = self.substrate.compose_call(
-            call_module="Balances",
-            call_function="transfer_allow_death",
-            call_params={"dest": dest, "value": transfer_balance.rao},
-        )
-        extrinsic = self.substrate.create_signed_extrinsic(
-            call=call, keypair=wallet.coldkey
-        )
-        response = submit_extrinsic(
-            substrate=self.substrate,
-            extrinsic=extrinsic,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-        )
-        # We only wait here if we expect finalization.
-        if not wait_for_finalization and not wait_for_inclusion:
-            return True, None, None
+    call = self.substrate.compose_call(
+        call_module="Balances",
+        call_function="transfer_allow_death",
+        call_params={"dest": dest, "value": transfer_balance.rao},
+    )
+    extrinsic = self.substrate.create_signed_extrinsic(
+        call=call, keypair=wallet.coldkey
+    )
+    response = submit_extrinsic(
+        substrate=self.substrate,
+        extrinsic=extrinsic,
+        wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization,
+    )
+    # We only wait here if we expect finalization.
+    if not wait_for_finalization and not wait_for_inclusion:
+        return True, None, None
 
-        # Otherwise continue with finalization.
-        response.process_events()
-        if response.is_success:
-            block_hash = response.block_hash
-            return True, block_hash, None
-        else:
-            return False, None, response.error_message
-
-    return make_substrate_call_with_retry()
+    # Otherwise continue with finalization.
+    response.process_events()
+    if response.is_success:
+        block_hash = response.block_hash
+        return True, block_hash, None
+    else:
+        return False, None, response.error_message
 
 
 # Community uses this extrinsic directly and via `subtensor.transfer`
@@ -103,7 +96,6 @@ def transfer_extrinsic(
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
     keep_alive: bool = True,
-    prompt: bool = False,
 ) -> bool:
     """Transfers funds from this wallet to the destination public key address.
 
@@ -115,7 +107,6 @@ def transfer_extrinsic(
         wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
         keep_alive (bool): If set, keeps the account alive by keeping the balance above the existential deposit.
-        prompt (bool): If ``true``, the call waits for confirmation from the user before proceeding.
 
     Returns:
         success (bool): Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
@@ -161,18 +152,12 @@ def transfer_extrinsic(
         logging.info(f"\t\tFor fee: \t<blue>{fee}</blue>")
         return False
 
-    # Ask before moving on.
-    if prompt:
-        if not Confirm.ask(
-            "Do you want to transfer:[bold white]\n"
-            f"  amount: {transfer_balance}\n"
-            f"  from: {wallet.name}:{wallet.coldkey.ss58_address}\n"
-            f"  to: {dest}\n"
-            f"  for fee: {fee}[/bold white]"
-        ):
-            return False
-
     logging.info(":satellite: <magenta>Transferring...</magenta>")
+    logging.info(f"\tAmount: <blue>{transfer_balance}</blue>")
+    logging.info(f"\tfrom: <blue>{wallet.name}:{wallet.coldkey.ss58_address}</blue>")
+    logging.info(f"\tTo: <blue>{dest}</blue>")
+    logging.info(f"\tFor fee: <blue>{fee}</blue>")
+
     success, block_hash, error_message = do_transfer(
         self=subtensor,
         wallet=wallet,
