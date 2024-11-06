@@ -40,12 +40,26 @@ DEFAULT_NETWORK = NETWORKS[1]
 WALLETS_DIR.mkdir(parents=True, exist_ok=True)
 MINERS_DIR.mkdir(parents=True, exist_ok=True)
 
+# Bittensor networks name
+NETWORKS = ["finney", "test", "archive", "local", "subvortex"]
+
+DEFAULT_ENDPOINT = "wss://entrypoint-finney.opentensor.ai:443"
+DEFAULT_NETWORK = NETWORKS[0]
 
 # Bittensor endpoints (Needs to use wss://)
 FINNEY_ENTRYPOINT = "wss://entrypoint-finney.opentensor.ai:443"
 FINNEY_TEST_ENTRYPOINT = "wss://test.finney.opentensor.ai:443/"
 ARCHIVE_ENTRYPOINT = "wss://archive.chain.opentensor.ai:443/"
 LOCAL_ENTRYPOINT = os.getenv("BT_SUBTENSOR_CHAIN_ENDPOINT") or "ws://127.0.0.1:9944"
+SUBVORTEX_ENTRYPOINT = "ws://subvortex.info:9944"
+
+NETWORK_MAP = {
+    NETWORKS[0]: FINNEY_ENTRYPOINT,
+    NETWORKS[1]: FINNEY_TEST_ENTRYPOINT,
+    NETWORKS[2]: ARCHIVE_ENTRYPOINT,
+    NETWORKS[3]: LOCAL_ENTRYPOINT,
+    NETWORKS[4]: SUBVORTEX_ENTRYPOINT,
+}
 
 # Currency Symbols Bittensor
 TAO_SYMBOL: str = chr(0x03C4)
