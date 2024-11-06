@@ -13,6 +13,7 @@ from tests.e2e_tests.utils.chain_interactions import (
     register_subnet,
     sudo_set_hyperparameter_bool,
     sudo_set_hyperparameter_values,
+    wait_epoch,
     wait_interval,
 )
 from tests.e2e_tests.utils.e2e_test_utils import setup_wallet
@@ -142,11 +143,11 @@ async def test_commit_and_reveal_weights(local_chain):
     weight_commit_reveal_interval = subtensor.query_module(
         module="SubtensorModule", name="RevealPeriodEpochs", params=[netuid]
     )
-    periods = reveal_periods.value
+
+    periods = weight_commit_reveal_interval.value
     assert periods > 0, "Invalid RevealPeriodEpochs"
 
-    # Wait until the reveal block range, the default temp is 300
-    await wait_interval(300, subtensor)
+    await wait_epoch(subtensor, netuid=netuid)
 
     # Reveal weights
     success, message = subtensor.reveal_weights(
