@@ -158,6 +158,7 @@ async def test_incentive(local_chain):
         version_key=0,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        # The default is 5 for slow blocks, but in the e2e test set it to 25 so it remains in the queue longer for fast blocks
         period=25,
     )
     logging.info("Alice neuron set weights successfully")
