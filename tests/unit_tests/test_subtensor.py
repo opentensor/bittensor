@@ -2110,3 +2110,16 @@ def test_get_delegate_take_none(subtensor, mocker):
 
     subtensor_module.u16_normalized_float.assert_not_called()
     assert result is None
+
+
+def test_networks_during_connection(mocker):
+    """Test networks during_connection."""
+    # Preps
+    subtensor_module.SubstrateInterface = mocker.Mock()
+    # Call
+    for network in list(settings.NETWORK_MAP.keys()) + ["undefined"]:
+        sub = Subtensor(network)
+
+        # Assertions
+        sub.network = network
+        sub.chain_endpoint = settings.NETWORK_MAP.get(network)
