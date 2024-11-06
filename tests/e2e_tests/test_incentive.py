@@ -19,6 +19,8 @@ from bittensor.utils.balance import Balance
 from bittensor.core.extrinsics.set_weights import do_set_weights
 from bittensor.core.metagraph import Metagraph
 
+FAST_BLOCKS_SPEEDUP_FACTOR = 5
+
 
 @pytest.mark.asyncio
 async def test_incentive(local_chain):
@@ -158,8 +160,7 @@ async def test_incentive(local_chain):
         version_key=0,
         wait_for_inclusion=True,
         wait_for_finalization=True,
-        # The default is 5 for slow blocks, but in the e2e test set it to 25 so it remains in the queue longer for fast blocks
-        period=25,
+        period=5 * FAST_BLOCKS_SPEEDUP_FACTOR,
     )
     logging.info("Alice neuron set weights successfully")
 
