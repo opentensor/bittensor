@@ -1,12 +1,14 @@
 import pytest
+from substrateinterface import SubstrateInterface
 
 from bittensor.core import async_subtensor
 
 
 @pytest.fixture
 def subtensor(mocker):
-    fake_async_substrate = mocker.AsyncMock()
-    fake_async_substrate.websocket.sock.getsockopt.return_value = 0
+    fake_async_substrate = mocker.AsyncMock(
+        spec=async_subtensor.AsyncSubstrateInterface
+    )
     mocker.patch.object(
         async_subtensor, "AsyncSubstrateInterface", return_value=fake_async_substrate
     )
@@ -93,3 +95,14 @@ async def test_encode_params_raises_error(subtensor, mocker):
         await subtensor.encode_params(call_definition=call_definition, params=params)
 
         subtensor.substrate.create_scale_object.return_value.encode.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_get_current_block(subtensor):
+    """Tests get_current_block method."""
+    # Call
+    result = await subtensor.get_current_block()
+
+    # Asserts
+    subtensor.substrate.get_block_number.assert_called_once()
+    assert result == subtensor.substrate.get_block_number.return_value
