@@ -15,15 +15,13 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import json
 from typing import Optional, TYPE_CHECKING
 
 from retry import retry
-from rich.prompt import Confirm
 
 from bittensor.core.errors import MetadataError
 from bittensor.core.extrinsics.utils import submit_extrinsic
-from bittensor.core.settings import version_as_int, bt_console
+from bittensor.core.settings import version_as_int
 from bittensor.utils import format_error_message, networking as net
 from bittensor.utils.btlogging import logging
 from bittensor.utils.networking import ensure_connected
@@ -100,7 +98,6 @@ def serve_extrinsic(
     placeholder2: int = 0,
     wait_for_inclusion: bool = False,
     wait_for_finalization=True,
-    prompt: bool = False,
 ) -> bool:
     """Subscribes a Bittensor endpoint to the subtensor chain.
 
@@ -115,7 +112,6 @@ def serve_extrinsic(
         placeholder2 (int): A placeholder for future use.
         wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
-        prompt (bool): If ``true``, the call waits for confirmation from the user before proceeding.
 
     Returns:
         success (bool): Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
@@ -158,15 +154,6 @@ def serve_extrinsic(
             f"Axon already served on: AxonInfo({wallet.hotkey.ss58_address},{ip}:{port}) "
         )
         return True
-
-    if prompt:
-        output = params.copy()
-        output["coldkey"] = wallet.coldkeypub.ss58_address
-        output["hotkey"] = wallet.hotkey.ss58_address
-        if not Confirm.ask(
-            f"Do you want to serve axon:\n  [bold white]{json.dumps(output, indent=4, sort_keys=True)}[/bold white]"
-        ):
-            return False
 
     logging.debug(
         f"Serving axon with: AxonInfo({wallet.hotkey.ss58_address},{ip}:{port}) -> {subtensor.network}:{netuid}"
@@ -219,10 +206,9 @@ def serve_axon_extrinsic(
     if axon.external_ip is None:
         try:
             external_ip = net.get_external_ip()
-            bt_console.print(
-                f":white_heavy_check_mark: [green]Found external ip: {external_ip}[/green]"
+            logging.success(
+                f":white_heavy_check_mark: <green>Found external ip:</green> <blue>{external_ip}</blue>"
             )
-            logging.success(prefix="External IP", suffix=f"<blue>{external_ip}</blue>")
         except Exception as e:
             raise RuntimeError(
                 f"Unable to attain your external ip. Check your internet connection. error: {e}"
