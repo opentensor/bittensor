@@ -1,0 +1,95 @@
+import pytest
+
+from bittensor.core import async_subtensor
+
+
+@pytest.fixture
+def subtensor(mocker):
+    fake_async_substrate = mocker.AsyncMock()
+    fake_async_substrate.websocket.sock.getsockopt.return_value = 0
+    mocker.patch.object(
+        async_subtensor, "AsyncSubstrateInterface", return_value=fake_async_substrate
+    )
+    return async_subtensor.AsyncSubtensor()
+
+
+def test_decode_ss58_tuples_in_proposal_vote_data(mocker):
+    """Tests that ProposalVoteData instance instantiation works properly,"""
+    # Preps
+    mocked_decode_account_id = mocker.patch.object(async_subtensor, "decode_account_id")
+    fake_proposal_dict = {
+        "index": "0",
+        "threshold": 1,
+        "ayes": ("0 line", "1 line"),
+        "nays": ("2 line", "3 line"),
+        "end": 123,
+    }
+
+    # Call
+    async_subtensor.ProposalVoteData(fake_proposal_dict)
+
+    # Asserts
+    assert mocked_decode_account_id.call_count == len(fake_proposal_dict["ayes"]) + len(
+        fake_proposal_dict["nays"]
+    )
+    assert mocked_decode_account_id.mock_calls == [
+        mocker.call("0"),
+        mocker.call("1"),
+        mocker.call("2"),
+        mocker.call("3"),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_encode_params(subtensor, mocker):
+    """Tests encode_params happy path."""
+    # Preps
+    subtensor.substrate.create_scale_object = mocker.AsyncMock()
+    subtensor.substrate.create_scale_object.return_value.encode = mocker.Mock(
+        return_value=b""
+    )
+
+    call_definition = {
+        "params": [
+            {"name": "coldkey", "type": "Vec<u8>"},
+            {"name": "uid", "type": "u16"},
+        ]
+    }
+    params = ["coldkey", "uid"]
+
+    # Call
+    decoded_params = await subtensor.encode_params(
+        call_definition=call_definition, params=params
+    )
+
+    # Asserts
+    subtensor.substrate.create_scale_object.call_args(
+        mocker.call("coldkey"),
+        mocker.call("Vec<u8>"),
+        mocker.call("uid"),
+        mocker.call("u16"),
+    )
+    assert decoded_params == "0x"
+
+
+@pytest.mark.asyncio
+async def test_encode_params_raises_error(subtensor, mocker):
+    """Tests encode_params with raised error."""
+    # Preps
+    subtensor.substrate.create_scale_object = mocker.AsyncMock()
+    subtensor.substrate.create_scale_object.return_value.encode = mocker.Mock(
+        return_value=b""
+    )
+
+    call_definition = {
+        "params": [
+            {"name": "coldkey", "type": "Vec<u8>"},
+        ]
+    }
+    params = {"undefined param": "some value"}
+
+    # Call and assert
+    with pytest.raises(ValueError):
+        await subtensor.encode_params(call_definition=call_definition, params=params)
+
+        subtensor.substrate.create_scale_object.return_value.encode.assert_not_called()

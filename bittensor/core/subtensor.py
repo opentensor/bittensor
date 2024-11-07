@@ -389,15 +389,15 @@ class Subtensor:
     @networking.ensure_connected
     def _encode_params(
         self,
-        call_definition: list["ParamWithTypes"],
+        call_definition: dict[str, list["ParamWithTypes"]],
         params: Union[list[Any], dict[str, Any]],
     ) -> str:
         """Returns a hex encoded string of the params using their types."""
         param_data = scalecodec.ScaleBytes(b"")
 
-        for i, param in enumerate(call_definition["params"]):  # type: ignore
+        for i, param in enumerate(call_definition["params"]):
             scale_obj = self.substrate.create_scale_object(param["type"])
-            if type(params) is list:
+            if isinstance(params, list):
                 param_data += scale_obj.encode(params[i])
             else:
                 if param["name"] not in params:
