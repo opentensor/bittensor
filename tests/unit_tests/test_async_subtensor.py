@@ -106,3 +106,23 @@ async def test_get_current_block(subtensor):
     # Asserts
     subtensor.substrate.get_block_number.assert_called_once()
     assert result == subtensor.substrate.get_block_number.return_value
+
+
+@pytest.mark.asyncio
+async def test_get_block_hash_without_block_id_aka_none(subtensor):
+    """Tests get_block_hash method without passed block_id."""
+    # Call
+    result = await subtensor.get_block_hash()
+
+    # Asserts
+    assert result == subtensor.substrate.get_chain_head.return_value
+
+
+@pytest.mark.asyncio
+async def test_get_block_hash_with_block_id(subtensor):
+    """Tests get_block_hash method with passed block_id."""
+    # Call
+    result = await subtensor.get_block_hash(block_id=1)
+
+    # Asserts
+    assert result == subtensor.substrate.get_block_hash.return_value
