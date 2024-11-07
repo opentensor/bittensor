@@ -15,7 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-__version__ = "8.2.0"
+__version__ = "8.2.1"
 
 import os
 import re
@@ -23,36 +23,6 @@ import warnings
 from pathlib import Path
 
 from munch import munchify
-from rich.console import Console
-from rich.traceback import install
-
-# Rich console.
-__console__ = Console()
-__use_console__ = True
-
-# Remove overdue locals in debug training.
-install(show_locals=False)
-
-
-def turn_console_off():
-    global __use_console__
-    global __console__
-    from io import StringIO
-
-    __use_console__ = False
-    __console__ = Console(file=StringIO(), stderr=False)
-
-
-def turn_console_on():
-    global __use_console__
-    global __console__
-    __use_console__ = True
-    __console__ = Console()
-
-
-turn_console_off()
-
-bt_console = __console__
 
 
 HOME_DIR = Path.home()
@@ -70,12 +40,26 @@ DEFAULT_NETWORK = NETWORKS[1]
 WALLETS_DIR.mkdir(parents=True, exist_ok=True)
 MINERS_DIR.mkdir(parents=True, exist_ok=True)
 
+# Bittensor networks name
+NETWORKS = ["finney", "test", "archive", "local", "subvortex"]
+
+DEFAULT_ENDPOINT = "wss://entrypoint-finney.opentensor.ai:443"
+DEFAULT_NETWORK = NETWORKS[0]
 
 # Bittensor endpoints (Needs to use wss://)
 FINNEY_ENTRYPOINT = "wss://entrypoint-finney.opentensor.ai:443"
 FINNEY_TEST_ENTRYPOINT = "wss://test.finney.opentensor.ai:443/"
 ARCHIVE_ENTRYPOINT = "wss://archive.chain.opentensor.ai:443/"
-LOCAL_ENTRYPOINT = os.getenv("BT_SUBTENSOR_CHAIN_ENDPOINT") or "ws://127.0.0.1:9946"
+LOCAL_ENTRYPOINT = os.getenv("BT_SUBTENSOR_CHAIN_ENDPOINT") or "ws://127.0.0.1:9944"
+SUBVORTEX_ENTRYPOINT = "ws://subvortex.info:9944"
+
+NETWORK_MAP = {
+    NETWORKS[0]: FINNEY_ENTRYPOINT,
+    NETWORKS[1]: FINNEY_TEST_ENTRYPOINT,
+    NETWORKS[2]: ARCHIVE_ENTRYPOINT,
+    NETWORKS[3]: LOCAL_ENTRYPOINT,
+    NETWORKS[4]: SUBVORTEX_ENTRYPOINT,
+}
 
 # Currency Symbols Bittensor
 TAO_SYMBOL: str = chr(0x03C4)
@@ -112,11 +96,28 @@ NETWORK_EXPLORER_MAP = {
 }
 
 # --- Type Registry ---
-TYPE_REGISTRY: dict = {
+TYPE_REGISTRY: dict[str, dict] = {
     "types": {
         "Balance": "u64",  # Need to override default u128
     },
     "runtime_api": {
+        "DelegateInfoRuntimeApi": {
+            "methods": {
+                "get_delegated": {
+                    "params": [
+                        {
+                            "name": "coldkey",
+                            "type": "Vec<u8>",
+                        },
+                    ],
+                    "type": "Vec<u8>",
+                },
+                "get_delegates": {
+                    "params": [],
+                    "type": "Vec<u8>",
+                },
+            }
+        },
         "NeuronInfoRuntimeApi": {
             "methods": {
                 "get_neuron_lite": {
@@ -141,7 +142,64 @@ TYPE_REGISTRY: dict = {
                     ],
                     "type": "Vec<u8>",
                 },
+                "get_neuron": {
+                    "params": [
+                        {
+                            "name": "netuid",
+                            "type": "u16",
+                        },
+                        {
+                            "name": "uid",
+                            "type": "u16",
+                        },
+                    ],
+                    "type": "Vec<u8>",
+                },
+                "get_neurons": {
+                    "params": [
+                        {
+                            "name": "netuid",
+                            "type": "u16",
+                        },
+                    ],
+                    "type": "Vec<u8>",
+                },
             }
+        },
+        "StakeInfoRuntimeApi": {
+            "methods": {
+                "get_stake_info_for_coldkey": {
+                    "params": [
+                        {
+                            "name": "coldkey_account_vec",
+                            "type": "Vec<u8>",
+                        },
+                    ],
+                    "type": "Vec<u8>",
+                },
+                "get_stake_info_for_coldkeys": {
+                    "params": [
+                        {
+                            "name": "coldkey_account_vecs",
+                            "type": "Vec<Vec<u8>>",
+                        },
+                    ],
+                    "type": "Vec<u8>",
+                },
+            },
+        },
+        "ValidatorIPRuntimeApi": {
+            "methods": {
+                "get_associated_validator_ip_info_for_subnet": {
+                    "params": [
+                        {
+                            "name": "netuid",
+                            "type": "u16",
+                        },
+                    ],
+                    "type": "Vec<u8>",
+                },
+            },
         },
         "SubnetInfoRuntimeApi": {
             "methods": {
@@ -153,11 +211,55 @@ TYPE_REGISTRY: dict = {
                         },
                     ],
                     "type": "Vec<u8>",
-                }
+                },
+                "get_subnet_info": {
+                    "params": [
+                        {
+                            "name": "netuid",
+                            "type": "u16",
+                        },
+                    ],
+                    "type": "Vec<u8>",
+                },
+                "get_subnets_info": {
+                    "params": [],
+                    "type": "Vec<u8>",
+                },
             }
         },
         "SubnetRegistrationRuntimeApi": {
             "methods": {"get_network_registration_cost": {"params": [], "type": "u64"}}
+        },
+        "ColdkeySwapRuntimeApi": {
+            "methods": {
+                "get_scheduled_coldkey_swap": {
+                    "params": [
+                        {
+                            "name": "coldkey_account_vec",
+                            "type": "Vec<u8>",
+                        },
+                    ],
+                    "type": "Vec<u8>",
+                },
+                "get_remaining_arbitration_period": {
+                    "params": [
+                        {
+                            "name": "coldkey_account_vec",
+                            "type": "Vec<u8>",
+                        },
+                    ],
+                    "type": "Vec<u8>",
+                },
+                "get_coldkey_swap_destinations": {
+                    "params": [
+                        {
+                            "name": "coldkey_account_vec",
+                            "type": "Vec<u8>",
+                        },
+                    ],
+                    "type": "Vec<u8>",
+                },
+            }
         },
     },
 }
