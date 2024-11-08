@@ -8,7 +8,7 @@ from bittensor.core import async_subtensor
 @pytest.fixture
 def subtensor(mocker):
     fake_async_substrate = mocker.AsyncMock(
-        spec=async_subtensor.AsyncSubstrateInterface
+        autospec=async_subtensor.AsyncSubstrateInterface
     )
     mocker.patch.object(
         async_subtensor, "AsyncSubstrateInterface", return_value=fake_async_substrate
@@ -48,7 +48,7 @@ async def test_encode_params(subtensor, mocker):
     """Tests encode_params happy path."""
     # Preps
     subtensor.substrate.create_scale_object = mocker.AsyncMock(
-        spec=async_subtensor.AsyncSubstrateInterface.create_scale_object
+        autospec=async_subtensor.AsyncSubstrateInterface.create_scale_object
     )
     subtensor.substrate.create_scale_object.return_value.encode = mocker.Mock(
         return_value=b""
@@ -82,7 +82,7 @@ async def test_encode_params_raises_error(subtensor, mocker):
     """Tests encode_params with raised error."""
     # Preps
     subtensor.substrate.create_scale_object = mocker.AsyncMock(
-        spec=async_subtensor.AsyncSubstrateInterface.create_scale_object
+        autospec=async_subtensor.AsyncSubstrateInterface.create_scale_object
     )
     subtensor.substrate.create_scale_object.return_value.encode = mocker.Mock(
         return_value=b""
@@ -138,7 +138,7 @@ async def test_is_hotkey_registered_any(subtensor, mocker):
     """Tests is_hotkey_registered_any method."""
     # Preps
     mocked_get_netuids_for_hotkey = mocker.AsyncMock(
-        return_value=[1, 2], spec=subtensor.get_netuids_for_hotkey
+        return_value=[1, 2], autospec=subtensor.get_netuids_for_hotkey
     )
     subtensor.get_netuids_for_hotkey = mocked_get_netuids_for_hotkey
 
@@ -155,7 +155,7 @@ async def test_is_hotkey_registered_any(subtensor, mocker):
 async def test_get_subnet_burn_cost(subtensor, mocker):
     """Tests get_subnet_burn_cost method."""
     # Preps
-    mocked_query_runtime_api = mocker.AsyncMock(spec=subtensor.query_runtime_api)
+    mocked_query_runtime_api = mocker.AsyncMock(autospec=subtensor.query_runtime_api)
     subtensor.query_runtime_api = mocked_query_runtime_api
     fake_block_hash = None
 
@@ -177,7 +177,7 @@ async def test_get_total_subnets(subtensor, mocker):
     """Tests get_total_subnets method."""
     # Preps
     mocked_substrate_query = mocker.AsyncMock(
-        spec=async_subtensor.AsyncSubstrateInterface.query
+        autospec=async_subtensor.AsyncSubstrateInterface.query
     )
     subtensor.substrate.query = mocked_substrate_query
     fake_block_hash = None
@@ -208,7 +208,7 @@ async def test_get_subnets(subtensor, mocker, records, result):
     fake_result.records = records
 
     mocked_substrate_query_map = mocker.AsyncMock(
-        spec=async_subtensor.AsyncSubstrateInterface.query_map,
+        autospec=async_subtensor.AsyncSubstrateInterface.query_map,
     )
 
     subtensor.substrate.query_map = mocked_substrate_query_map
@@ -262,7 +262,7 @@ async def test_get_delegates(subtensor, mocker, fake_hex_bytes_result, response)
     """Tests get_delegates method."""
     # Preps
     mocked_query_runtime_api = mocker.AsyncMock(
-        spec=subtensor.query_runtime_api, return_value=fake_hex_bytes_result
+        autospec=subtensor.query_runtime_api, return_value=fake_hex_bytes_result
     )
     subtensor.query_runtime_api = mocked_query_runtime_api
     mocked_delegate_info_list_from_vec_u8 = mocker.Mock()
