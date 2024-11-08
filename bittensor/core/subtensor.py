@@ -1232,7 +1232,7 @@ class Subtensor:
         else:
             bytes_result = bytes.fromhex(hex_bytes_result)
 
-        return SubnetHyperparameters.from_vec_u8(bytes_result)  # type: ignore
+        return SubnetHyperparameters.from_vec_u8(bytes_result)
 
     # Community uses this method
     # Returns network ImmunityPeriod hyper parameter.

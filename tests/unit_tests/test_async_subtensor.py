@@ -196,19 +196,21 @@ async def test_get_total_subnets(subtensor, mocker):
 
 
 @pytest.mark.parametrize(
-    "records, result",
-    [([(0, True), (1, False), (3, False), (3, True)], [0, 1, 3]), ([], [])],
+    "records, response",
+    [([(0, True), (1, False), (3, False), (3, True)], [0, 3]), ([], [])],
     ids=["with records", "empty-records"],
 )
 @pytest.mark.asyncio
-async def test_get_subnets(subtensor, mocker, records, result):
+async def test_get_subnets(subtensor, mocker, records, response):
     """Tests get_subnets method with any return."""
     # Preps
-    fake_result = mocker.AsyncMock()
+    fake_result = mocker.AsyncMock(autospec=list)
     fake_result.records = records
+    fake_result.__aiter__.return_value = iter(records)
 
     mocked_substrate_query_map = mocker.AsyncMock(
         autospec=async_subtensor.AsyncSubstrateInterface.query_map,
+        return_value=fake_result,
     )
 
     subtensor.substrate.query_map = mocked_substrate_query_map
@@ -224,7 +226,7 @@ async def test_get_subnets(subtensor, mocker, records, result):
         block_hash=fake_block_hash,
         reuse_block_hash=True,
     )
-    assert result == result
+    assert result == response
 
 
 @pytest.mark.parametrize(

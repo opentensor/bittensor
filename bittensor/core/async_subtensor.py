@@ -277,7 +277,7 @@ class AsyncSubtensor:
         return (
             []
             if result is None or not hasattr(result, "records")
-            else [netuid for netuid, exists in result.records if exists]
+            else [netuid async for netuid, exists in result if exists]
         )
 
     async def is_hotkey_delegate(
@@ -440,7 +440,7 @@ class AsyncSubtensor:
 
         return_type = call_definition["type"]
 
-        as_scale_bytes = scalecodec.ScaleBytes(json_result["result"])  # type: ignore
+        as_scale_bytes = scalecodec.ScaleBytes(json_result["result"])
 
         rpc_runtime_config = RuntimeConfiguration()
         rpc_runtime_config.update_type_registry(load_type_registry_preset("legacy"))
