@@ -45,6 +45,7 @@ def do_set_weights(
     version_key: int = version_as_int,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
+    period: int = 5,
 ) -> tuple[bool, Optional[str]]:  # (success, error_message)
     """
     Internal method to send a transaction to the Bittensor blockchain, setting weights for specified neurons. This method constructs and submits the transaction, handling retries and blockchain communication.
@@ -58,6 +59,7 @@ def do_set_weights(
         version_key (int): Version key for compatibility with the network.
         wait_for_inclusion (bool): Waits for the transaction to be included in a block.
         wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
+        period (int): Period dictates how long the extrinsic will stay as part of waiting pool.
 
     Returns:
         tuple[bool, Optional[str]]: A tuple containing a success flag and an optional response message.
@@ -79,7 +81,7 @@ def do_set_weights(
     extrinsic = self.substrate.create_signed_extrinsic(
         call=call,
         keypair=wallet.hotkey,
-        era={"period": 5},
+        era={"period": period},
     )
     response = submit_extrinsic(
         substrate=self.substrate,
