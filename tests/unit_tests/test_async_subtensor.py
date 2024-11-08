@@ -1,8 +1,12 @@
 from pickle import FALSE
 
 import pytest
+from markdown_it.rules_core import block
+from sympy.physics.vector.printing import params
 
+from bittensor import AsyncSubtensor
 from bittensor.core import async_subtensor
+from tests.unit_tests.test_dendrite import cast_int
 
 
 @pytest.fixture
@@ -464,3 +468,35 @@ async def test_query_runtime_api(subtensor, mocker):
         result
         == mocked_runtime_configuration.return_value.create_scale_object.return_value.decode.return_value
     )
+
+
+@pytest.mark.asyncio
+async def test_get_balance(subtensor, mocker):
+    """Tests get_balance method."""
+    # Preps
+    fake_addresses = ("a1", "a2")
+    fake_block_hash = None
+
+    mocked_substrate_create_storage_key = mocker.AsyncMock()
+    subtensor.substrate.create_storage_key = mocked_substrate_create_storage_key
+
+    mocked_batch_0_call = mocker.Mock(
+        params=[
+            0,
+        ]
+    )
+    mocked_batch_1_call = {"data": {"free": 1000}}
+    mocked_substrate_query_multi = mocker.AsyncMock(
+        return_value=[
+            (mocked_batch_0_call, mocked_batch_1_call),
+        ]
+    )
+
+    subtensor.substrate.query_multi = mocked_substrate_query_multi
+
+    # Call
+    result = await subtensor.get_balance(*fake_addresses, block_hash=fake_block_hash)
+
+    assert mocked_substrate_create_storage_key.call_count == len(fake_addresses)
+    mocked_substrate_query_multi.assert_called_once()
+    assert result == {0: async_subtensor.Balance(1000)}

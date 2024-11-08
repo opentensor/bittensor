@@ -454,14 +454,14 @@ class AsyncSubtensor:
 
     async def get_balance(
         self,
-        *addresses: str,
+        *addresses: tuple[str],
         block_hash: Optional[str] = None,
     ) -> dict[str, Balance]:
         """
         Retrieves the balance for given coldkey(s)
 
         Args:
-            addresses (str): coldkey addresses(s).
+            addresses (tuple): coldkey addresses(s).
             block_hash (Optional[str]): the block hash, optional.
 
         Returns:
