@@ -126,3 +126,20 @@ async def test_get_block_hash_with_block_id(subtensor):
 
     # Asserts
     assert result == subtensor.substrate.get_block_hash.return_value
+
+
+@pytest.mark.asyncio
+async def test_is_hotkey_registered_any(subtensor, mocker):
+    """Tests is_hotkey_registered_any method."""
+    # Preps
+    mocked_get_netuids_for_hotkey = mocker.AsyncMock(return_value=[1, 2])
+    subtensor.get_netuids_for_hotkey = mocked_get_netuids_for_hotkey
+
+    # Call
+    result = await subtensor.is_hotkey_registered_any(
+        hotkey_ss58="hotkey", block_hash="FAKE_HASH"
+    )
+
+    # Asserts
+    assert result == (len(mocked_get_netuids_for_hotkey.return_value) > 0)
+
