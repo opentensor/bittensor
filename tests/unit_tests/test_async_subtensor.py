@@ -143,3 +143,22 @@ async def test_is_hotkey_registered_any(subtensor, mocker):
     # Asserts
     assert result == (len(mocked_get_netuids_for_hotkey.return_value) > 0)
 
+
+@pytest.mark.asyncio
+async def test_get_subnet_burn_cost(subtensor, mocker):
+    # Preps
+    mocked_query_runtime_api = mocker.AsyncMock(spec=subtensor.query_runtime_api)
+    subtensor.query_runtime_api = mocked_query_runtime_api
+    fake_block_hash = None
+
+    # Call
+    result = await subtensor.get_subnet_burn_cost(block_hash=fake_block_hash)
+
+    # Assert
+    assert result == mocked_query_runtime_api.return_value
+    mocked_query_runtime_api.assert_called_once_with(
+        runtime_api="SubnetRegistrationRuntimeApi",
+        method="get_network_registration_cost",
+        params=[],
+        block_hash=fake_block_hash,
+    )
