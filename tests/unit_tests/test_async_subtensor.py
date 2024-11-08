@@ -234,7 +234,7 @@ async def test_get_subnets(subtensor, mocker, records, result):
 )
 @pytest.mark.asyncio
 async def test_is_hotkey_delegate(subtensor, mocker, hotkey_ss58_in_result):
-    """Tests is_hotkey_delegate method."""
+    """Tests is_hotkey_delegate method with any return."""
     # Preps
     fake_hotkey_ss58 = "hotkey_58"
     mocked_get_delegates = mocker.AsyncMock(
@@ -252,3 +252,40 @@ async def test_is_hotkey_delegate(subtensor, mocker, hotkey_ss58_in_result):
     # Asserts
     assert result == hotkey_ss58_in_result
     mocked_get_delegates.assert_called_once_with(block_hash=None, reuse_block=True)
+
+
+@pytest.mark.parametrize(
+    "fake_hex_bytes_result, response", [(None, []), ("0xaabbccdd", b"\xaa\xbb\xcc\xdd")]
+)
+@pytest.mark.asyncio
+async def test_get_delegates(subtensor, mocker, fake_hex_bytes_result, response):
+    """Tests get_delegates method."""
+    # Preps
+    mocked_query_runtime_api = mocker.AsyncMock(
+        spec=subtensor.query_runtime_api, return_value=fake_hex_bytes_result
+    )
+    subtensor.query_runtime_api = mocked_query_runtime_api
+    mocked_delegate_info_list_from_vec_u8 = mocker.Mock()
+    async_subtensor.DelegateInfo.list_from_vec_u8 = (
+        mocked_delegate_info_list_from_vec_u8
+    )
+
+    # Call
+    result = await subtensor.get_delegates(block_hash=None, reuse_block=True)
+
+    # Asserts
+    if fake_hex_bytes_result:
+        assert result == mocked_delegate_info_list_from_vec_u8.return_value
+        mocked_delegate_info_list_from_vec_u8.assert_called_once_with(
+            bytes.fromhex(fake_hex_bytes_result[2:])
+        )
+    else:
+        assert result == response
+
+    mocked_query_runtime_api.assert_called_once_with(
+        runtime_api="DelegateInfoRuntimeApi",
+        method="get_delegates",
+        params=[],
+        block_hash=None,
+        reuse_block=True,
+    )
