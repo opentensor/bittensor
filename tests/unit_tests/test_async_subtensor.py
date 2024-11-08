@@ -397,3 +397,70 @@ async def test_get_stake_for_coldkey_and_hotkey(subtensor, mocker):
     )
     assert result == mocked_balance.from_rao.return_value
     mocked_balance.from_rao.assert_called_once_with(mocked_substrate_query.return_value)
+
+
+@pytest.mark.asyncio
+async def test_query_runtime_api(subtensor, mocker):
+    """Tests query_runtime_api method."""
+    # Preps
+    fake_runtime_api = "DelegateInfoRuntimeApi"
+    fake_method = "get_delegated"
+    fake_params = [1, 2, 3]
+    fake_block_hash = None
+    reuse_block = False
+
+    mocked_encode_params = mocker.AsyncMock()
+    subtensor.encode_params = mocked_encode_params
+
+    mocked_rpc_request = mocker.AsyncMock(
+        autospec=async_subtensor.AsyncSubstrateInterface.rpc_request
+    )
+    subtensor.substrate.rpc_request = mocked_rpc_request
+
+    mocked_scalecodec = mocker.Mock(autospec=async_subtensor.scalecodec.ScaleBytes)
+    async_subtensor.scalecodec.ScaleBytes = mocked_scalecodec
+
+    mocked_runtime_configuration = mocker.Mock(
+        autospec=async_subtensor.RuntimeConfiguration
+    )
+    async_subtensor.RuntimeConfiguration = mocked_runtime_configuration
+
+    mocked_load_type_registry_preset = mocker.Mock()
+    async_subtensor.load_type_registry_preset = mocked_load_type_registry_preset
+
+    # Call
+    result = await subtensor.query_runtime_api(
+        runtime_api=fake_runtime_api,
+        method=fake_method,
+        params=fake_params,
+        block_hash=fake_block_hash,
+        reuse_block=reuse_block,
+    )
+
+    # Asserts
+
+    mocked_encode_params.assert_called_once_with(
+        call_definition={
+            "params": [{"name": "coldkey", "type": "Vec<u8>"}],
+            "type": "Vec<u8>",
+        },
+        params=[1, 2, 3],
+    )
+    mocked_rpc_request.assert_called_once_with(
+        method="state_call",
+        params=[f"{fake_runtime_api}_{fake_method}", mocked_encode_params.return_value],
+        reuse_block_hash=reuse_block,
+    )
+    mocked_runtime_configuration.assert_called_once()
+    assert (
+        mocked_runtime_configuration.return_value.update_type_registry.call_count == 2
+    )
+
+    mocked_runtime_configuration.return_value.create_scale_object.assert_called_once_with(
+        "Vec<u8>", mocked_scalecodec.return_value
+    )
+
+    assert (
+        result
+        == mocked_runtime_configuration.return_value.create_scale_object.return_value.decode.return_value
+    )
