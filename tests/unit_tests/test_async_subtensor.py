@@ -218,4 +218,37 @@ async def test_get_subnets(subtensor, mocker, records, result):
     result = await subtensor.get_subnets(block_hash=fake_block_hash)
 
     # Asserts
+    mocked_substrate_query_map.assert_called_once_with(
+        module="SubtensorModule",
+        storage_function="NetworksAdded",
+        block_hash=fake_block_hash,
+        reuse_block_hash=True,
+    )
     assert result == result
+
+
+@pytest.mark.parametrize(
+    "hotkey_ss58_in_result",
+    [True, False],
+    ids=["hotkey-exists", "hotkey-doesnt-exist"],
+)
+@pytest.mark.asyncio
+async def test_is_hotkey_delegate(subtensor, mocker, hotkey_ss58_in_result):
+    """Tests is_hotkey_delegate method."""
+    # Preps
+    fake_hotkey_ss58 = "hotkey_58"
+    mocked_get_delegates = mocker.AsyncMock(
+        return_value=[
+            mocker.Mock(hotkey_ss58=fake_hotkey_ss58 if hotkey_ss58_in_result else "")
+        ]
+    )
+    subtensor.get_delegates = mocked_get_delegates
+
+    # Call
+    result = await subtensor.is_hotkey_delegate(
+        hotkey_ss58=fake_hotkey_ss58, block_hash=None, reuse_block=True
+    )
+
+    # Asserts
+    assert result == hotkey_ss58_in_result
+    mocked_get_delegates.assert_called_once_with(block_hash=None, reuse_block=True)
