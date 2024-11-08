@@ -368,3 +368,32 @@ async def test_get_stake_info_for_coldkey(
         block_hash=None,
         reuse_block=True,
     )
+
+
+@pytest.mark.asyncio
+async def test_get_stake_for_coldkey_and_hotkey(subtensor, mocker):
+    """Tests get_stake_for_coldkey_and_hotkey method."""
+    # Preps
+    mocked_substrate_query = mocker.AsyncMock(
+        autospec=async_subtensor.AsyncSubstrateInterface.query
+    )
+    subtensor.substrate.query = mocked_substrate_query
+
+    mocked_balance = mocker.Mock(autospec=async_subtensor.Balance)
+    mocked_balance.from_rao = mocker.Mock()
+    async_subtensor.Balance = mocked_balance
+
+    # Call
+    result = await subtensor.get_stake_for_coldkey_and_hotkey(
+        hotkey_ss58="hotkey", coldkey_ss58="coldkey", block_hash=None
+    )
+
+    # Asserts
+    mocked_substrate_query.assert_called_once_with(
+        module="SubtensorModule",
+        storage_function="Stake",
+        params=["hotkey", "coldkey"],
+        block_hash=None,
+    )
+    assert result == mocked_balance.from_rao.return_value
+    mocked_balance.from_rao.assert_called_once_with(mocked_substrate_query.return_value)
