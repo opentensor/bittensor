@@ -1,3 +1,5 @@
+from pickle import FALSE
+
 import pytest
 
 from bittensor.core import async_subtensor
@@ -191,3 +193,29 @@ async def test_get_total_subnets(subtensor, mocker):
         params=[],
         block_hash=fake_block_hash,
     )
+
+
+@pytest.mark.parametrize(
+    "records, result",
+    [([(0, True), (1, False), (3, False), (3, True)], [0, 1, 3]), ([], [])],
+    ids=["with records", "empty-records"],
+)
+@pytest.mark.asyncio
+async def test_get_subnets(subtensor, mocker, records, result):
+    """Tests get_subnets method with any return."""
+    # Preps
+    fake_result = mocker.AsyncMock()
+    fake_result.records = records
+
+    mocked_substrate_query_map = mocker.AsyncMock(
+        spec=async_subtensor.AsyncSubstrateInterface.query_map,
+    )
+
+    subtensor.substrate.query_map = mocked_substrate_query_map
+    fake_block_hash = None
+
+    # Call
+    result = await subtensor.get_subnets(block_hash=fake_block_hash)
+
+    # Asserts
+    assert result == result

@@ -277,7 +277,7 @@ class AsyncSubtensor:
         return (
             []
             if result is None or not hasattr(result, "records")
-            else [netuid async for netuid, exists in result if exists]
+            else [netuid for netuid, exists in result.records if exists]
         )
 
     async def is_hotkey_delegate(
