@@ -43,6 +43,37 @@ def test_decode_ss58_tuples_in_proposal_vote_data(mocker):
     ]
 
 
+def test__str__return(subtensor):
+    """Simply tests the result if printing subtensor instance."""
+    # Asserts
+    assert (
+        str(subtensor)
+        == "Network: finney, Chain: wss://entrypoint-finney.opentensor.ai:443"
+    )
+
+
+@pytest.mark.asyncio
+async def test_async_subtensor_magic_methods(mocker):
+    """Tests async magic methods of AsyncSubtensor class."""
+    # Preps
+    fake_async_substrate = mocker.AsyncMock(
+        autospec=async_subtensor.AsyncSubstrateInterface
+    )
+    mocker.patch.object(
+        async_subtensor, "AsyncSubstrateInterface", return_value=fake_async_substrate
+    )
+
+    # Call
+    subtensor = async_subtensor.AsyncSubtensor(network="local")
+    async with subtensor:
+        pass
+
+    # Asserts
+    fake_async_substrate.__aenter__.assert_called_once()
+    fake_async_substrate.__aexit__.assert_called_once()
+    fake_async_substrate.close.assert_awaited_once()
+
+
 @pytest.mark.asyncio
 async def test_encode_params(subtensor, mocker):
     """Tests encode_params happy path."""
@@ -288,6 +319,52 @@ async def test_get_delegates(subtensor, mocker, fake_hex_bytes_result, response)
         runtime_api="DelegateInfoRuntimeApi",
         method="get_delegates",
         params=[],
+        block_hash=None,
+        reuse_block=True,
+    )
+
+
+@pytest.mark.parametrize(
+    "fake_hex_bytes_result, response", [(None, []), ("zz001122", b"\xaa\xbb\xcc\xdd")]
+)
+@pytest.mark.asyncio
+async def test_get_stake_info_for_coldkey(
+    subtensor, mocker, fake_hex_bytes_result, response
+):
+    """Tests get_stake_info_for_coldkey method."""
+    # Preps
+    fake_coldkey_ss58 = "fake_coldkey_58"
+
+    mocked_ss58_to_vec_u8 = mocker.Mock()
+    async_subtensor.ss58_to_vec_u8 = mocked_ss58_to_vec_u8
+
+    mocked_query_runtime_api = mocker.AsyncMock(
+        autospec=subtensor.query_runtime_api, return_value=fake_hex_bytes_result
+    )
+    subtensor.query_runtime_api = mocked_query_runtime_api
+
+    mocked_stake_info_list_from_vec_u8 = mocker.Mock()
+    async_subtensor.StakeInfo.list_from_vec_u8 = mocked_stake_info_list_from_vec_u8
+
+    # Call
+    result = await subtensor.get_stake_info_for_coldkey(
+        coldkey_ss58=fake_coldkey_ss58, block_hash=None, reuse_block=True
+    )
+
+    # Asserts
+    if fake_hex_bytes_result:
+        assert result == mocked_stake_info_list_from_vec_u8.return_value
+        mocked_stake_info_list_from_vec_u8.assert_called_once_with(
+            bytes.fromhex(fake_hex_bytes_result[2:])
+        )
+    else:
+        assert result == response
+
+    mocked_ss58_to_vec_u8.assert_called_once_with(fake_coldkey_ss58)
+    mocked_query_runtime_api.assert_called_once_with(
+        runtime_api="StakeInfoRuntimeApi",
+        method="get_stake_info_for_coldkey",
+        params=[mocked_ss58_to_vec_u8.return_value],
         block_hash=None,
         reuse_block=True,
     )
