@@ -1,5 +1,4 @@
 import pytest
-from substrateinterface import SubstrateInterface
 
 from bittensor.core import async_subtensor
 
@@ -46,7 +45,9 @@ def test_decode_ss58_tuples_in_proposal_vote_data(mocker):
 async def test_encode_params(subtensor, mocker):
     """Tests encode_params happy path."""
     # Preps
-    subtensor.substrate.create_scale_object = mocker.AsyncMock()
+    subtensor.substrate.create_scale_object = mocker.AsyncMock(
+        spec=async_subtensor.AsyncSubstrateInterface.create_scale_object
+    )
     subtensor.substrate.create_scale_object.return_value.encode = mocker.Mock(
         return_value=b""
     )
@@ -78,7 +79,9 @@ async def test_encode_params(subtensor, mocker):
 async def test_encode_params_raises_error(subtensor, mocker):
     """Tests encode_params with raised error."""
     # Preps
-    subtensor.substrate.create_scale_object = mocker.AsyncMock()
+    subtensor.substrate.create_scale_object = mocker.AsyncMock(
+        spec=async_subtensor.AsyncSubstrateInterface.create_scale_object
+    )
     subtensor.substrate.create_scale_object.return_value.encode = mocker.Mock(
         return_value=b""
     )
@@ -132,7 +135,9 @@ async def test_get_block_hash_with_block_id(subtensor):
 async def test_is_hotkey_registered_any(subtensor, mocker):
     """Tests is_hotkey_registered_any method."""
     # Preps
-    mocked_get_netuids_for_hotkey = mocker.AsyncMock(return_value=[1, 2])
+    mocked_get_netuids_for_hotkey = mocker.AsyncMock(
+        return_value=[1, 2], spec=subtensor.get_netuids_for_hotkey
+    )
     subtensor.get_netuids_for_hotkey = mocked_get_netuids_for_hotkey
 
     # Call
@@ -146,6 +151,7 @@ async def test_is_hotkey_registered_any(subtensor, mocker):
 
 @pytest.mark.asyncio
 async def test_get_subnet_burn_cost(subtensor, mocker):
+    """Tests get_subnet_burn_cost method."""
     # Preps
     mocked_query_runtime_api = mocker.AsyncMock(spec=subtensor.query_runtime_api)
     subtensor.query_runtime_api = mocked_query_runtime_api
@@ -159,6 +165,29 @@ async def test_get_subnet_burn_cost(subtensor, mocker):
     mocked_query_runtime_api.assert_called_once_with(
         runtime_api="SubnetRegistrationRuntimeApi",
         method="get_network_registration_cost",
+        params=[],
+        block_hash=fake_block_hash,
+    )
+
+
+@pytest.mark.asyncio
+async def test_get_total_subnets(subtensor, mocker):
+    """Tests get_total_subnets method."""
+    # Preps
+    mocked_substrate_query = mocker.AsyncMock(
+        spec=async_subtensor.AsyncSubstrateInterface.query
+    )
+    subtensor.substrate.query = mocked_substrate_query
+    fake_block_hash = None
+
+    # Call
+    result = await subtensor.get_total_subnets(block_hash=fake_block_hash)
+
+    # Assert
+    assert result == mocked_substrate_query.return_value
+    mocked_substrate_query.assert_called_once_with(
+        module="SubtensorModule",
+        storage_function="TotalNetworks",
         params=[],
         block_hash=fake_block_hash,
     )
