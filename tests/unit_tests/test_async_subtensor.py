@@ -148,7 +148,7 @@ async def test_is_hotkey_registered_any(subtensor, mocker):
     )
 
     # Asserts
-    assert result == (len(mocked_get_netuids_for_hotkey.return_value) > 0)
+    assert result is (len(mocked_get_netuids_for_hotkey.return_value) > 0)
 
 
 @pytest.mark.asyncio
