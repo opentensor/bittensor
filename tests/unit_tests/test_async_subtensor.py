@@ -1,15 +1,9 @@
-from pickle import FALSE
-
 import pytest
-from markdown_it.rules_core import block
-from sympy.physics.vector.printing import params
 
-from bittensor import AsyncSubtensor
 from bittensor.core import async_subtensor
-from tests.unit_tests.test_dendrite import cast_int
 
 
-@pytest.fixture
+@pytest.fixture(autouse=True)
 def subtensor(mocker):
     fake_async_substrate = mocker.AsyncMock(
         autospec=async_subtensor.AsyncSubstrateInterface
@@ -383,9 +377,7 @@ async def test_get_stake_for_coldkey_and_hotkey(subtensor, mocker):
     )
     subtensor.substrate.query = mocked_substrate_query
 
-    mocked_balance = mocker.Mock(autospec=async_subtensor.Balance)
-    mocked_balance.from_rao = mocker.Mock()
-    async_subtensor.Balance = mocked_balance
+    spy_balance = mocker.spy(async_subtensor, "Balance")
 
     # Call
     result = await subtensor.get_stake_for_coldkey_and_hotkey(
@@ -399,8 +391,8 @@ async def test_get_stake_for_coldkey_and_hotkey(subtensor, mocker):
         params=["hotkey", "coldkey"],
         block_hash=None,
     )
-    assert result == mocked_balance.from_rao.return_value
-    mocked_balance.from_rao.assert_called_once_with(mocked_substrate_query.return_value)
+    assert result == spy_balance.from_rao.return_value
+    spy_balance.from_rao.assert_called_once_with(mocked_substrate_query.return_value)
 
 
 @pytest.mark.asyncio
@@ -500,3 +492,77 @@ async def test_get_balance(subtensor, mocker):
     assert mocked_substrate_create_storage_key.call_count == len(fake_addresses)
     mocked_substrate_query_multi.assert_called_once()
     assert result == {0: async_subtensor.Balance(1000)}
+
+
+@pytest.mark.parametrize("balance", [100, 100.1])
+@pytest.mark.asyncio
+async def test_get_transfer_fee(subtensor, mocker, balance):
+    """Tests get_transfer_fee method."""
+    # Preps
+    fake_wallet = mocker.Mock(coldkeypub="coldkeypub", autospec=async_subtensor.Wallet)
+    fake_dest = "fake_dest"
+    fake_value = balance
+
+    mocked_compose_call = mocker.AsyncMock()
+    subtensor.substrate.compose_call = mocked_compose_call
+
+    mocked_get_payment_info = mocker.AsyncMock(return_value={"partialFee": 100})
+    subtensor.substrate.get_payment_info = mocked_get_payment_info
+
+    # Call
+    result = await subtensor.get_transfer_fee(
+        wallet=fake_wallet, dest=fake_dest, value=fake_value
+    )
+
+    # Assertions
+    mocked_compose_call.assert_awaited_once()
+    mocked_compose_call.assert_called_once_with(
+        call_module="Balances",
+        call_function="transfer_allow_death",
+        call_params={
+            "dest": fake_dest,
+            "value": async_subtensor.Balance.from_rao(fake_value),
+        },
+    )
+
+    assert isinstance(result, async_subtensor.Balance)
+    mocked_get_payment_info.assert_awaited_once()
+    mocked_get_payment_info.assert_called_once_with(
+        call=mocked_compose_call.return_value, keypair="coldkeypub"
+    )
+
+
+@pytest.mark.asyncio
+async def test_get_transfer_fee_with_non_balance_accepted_value_type(subtensor, mocker):
+    """Tests get_transfer_fee method with non balance accepted value type."""
+    # Preps
+    fake_wallet = mocker.Mock(coldkeypub="coldkeypub", autospec=async_subtensor.Wallet)
+    fake_dest = "fake_dest"
+    fake_value = "1000"
+
+    # Call
+    result = await subtensor.get_transfer_fee(
+        wallet=fake_wallet, dest=fake_dest, value=fake_value
+    )
+
+    # Assertions
+    assert result == async_subtensor.Balance.from_rao(int(2e7))
+
+
+@pytest.mark.asyncio
+async def test_get_transfer_with_exception(subtensor, mocker):
+    """Tests get_transfer_fee method handle Exception properly."""
+    # Preps
+    fake_value = 123
+
+    mocked_compose_call = mocker.AsyncMock()
+    subtensor.substrate.compose_call = mocked_compose_call
+    subtensor.substrate.get_payment_info.side_effect = Exception
+
+    # Call
+    result = await subtensor.get_transfer_fee(
+        wallet=mocker.Mock(), dest=mocker.Mock(), value=fake_value
+    )
+
+    # Assertions
+    assert result == async_subtensor.Balance.from_rao(int(2e7))
