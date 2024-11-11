@@ -191,7 +191,7 @@ def ensure_connected(func):
             )
             != 0
         ):
-            logging.debug("Reconnection substrate...")
+            logging.debug("Reconnecting to  substrate...")
             self._get_substrate()
         # Execute the method if the connection is active or after reconnecting
         return func(self, *args, **kwargs)
