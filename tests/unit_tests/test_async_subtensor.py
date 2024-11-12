@@ -593,7 +593,9 @@ async def test_get_total_stake_for_coldkey(subtensor, mocker):
     subtensor.substrate.query_multi = mocked_substrate_query_multi
 
     # Call
-    result = await subtensor.get_total_stake_for_coldkey(*fake_addresses, block_hash=fake_block_hash)
+    result = await subtensor.get_total_stake_for_coldkey(
+        *fake_addresses, block_hash=fake_block_hash
+    )
 
     assert mocked_substrate_create_storage_key.call_count == len(fake_addresses)
     mocked_substrate_query_multi.assert_called_once()
@@ -613,7 +615,9 @@ async def test_get_total_stake_for_hotkey(subtensor, mocker):
     subtensor.substrate.query_multiple = mocked_substrate_query_multiple
 
     # Call
-    result = await subtensor.get_total_stake_for_hotkey(*fake_addresses, block_hash=fake_block_hash, reuse_block=reuse_block)
+    result = await subtensor.get_total_stake_for_hotkey(
+        *fake_addresses, block_hash=fake_block_hash, reuse_block=reuse_block
+    )
 
     # Assertions
     mocked_substrate_query_multiple.assert_called_once_with(
