@@ -383,18 +383,16 @@ def unlock_key(wallet: "Wallet", unlock_type="cold") -> "UnlockStatus":
     Attempts to decrypt a wallet's coldkey or hotkey
     Args:
         wallet: a Wallet object
-        unlock_type: the key type, 'cold', 'hot', or 'coldkeypub'
+        unlock_type: the key type, 'cold' or 'hot'
     Returns: UnlockStatus for success status of unlock, with error message if unsuccessful
     """
     if unlock_type == "cold":
         unlocker = "unlock_coldkey"
     elif unlock_type == "hot":
         unlocker = "unlock_hotkey"
-    elif unlock_type == "coldkeypub":
-        unlocker = "unlock_coldkeypub"
     else:
         raise ValueError(
-            f"Invalid unlock type provided: {unlock_type}. Must be 'cold', 'hot', or 'coldkeypub'."
+            f"Invalid unlock type provided: {unlock_type}. Must be 'cold' or 'hot'."
         )
     try:
         getattr(wallet, unlocker)()

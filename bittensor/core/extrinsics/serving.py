@@ -198,9 +198,6 @@ def serve_axon_extrinsic(
     if not (unlock := unlock_key(axon.wallet, "hot")).success:
         logging.error(unlock.message)
         return False
-    if not (unlock := unlock_key(axon.wallet, "coldkeypub")).success:
-        logging.error(unlock.message)
-        return False
     external_port = axon.external_port
 
     # ---- Get external ip ----
