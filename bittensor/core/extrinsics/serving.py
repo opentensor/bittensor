@@ -20,7 +20,7 @@ from typing import Optional, TYPE_CHECKING
 from bittensor.core.errors import MetadataError
 from bittensor.core.extrinsics.utils import submit_extrinsic
 from bittensor.core.settings import version_as_int
-from bittensor.utils import format_error_message, networking as net
+from bittensor.utils import format_error_message, networking as net, unlock_key
 from bittensor.utils.btlogging import logging
 from bittensor.utils.networking import ensure_connected
 
@@ -109,7 +109,10 @@ def serve_extrinsic(
         success (bool): Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
     # Decrypt hotkey
-    wallet.unlock_hotkey()
+    if not (unlock := unlock_key(wallet, "hot")).success:
+        logging.error(unlock.message)
+        return False
+
     params: "AxonServeCallParams" = {
         "version": version_as_int,
         "ip": net.ip_to_int(ip),
@@ -192,8 +195,12 @@ def serve_axon_extrinsic(
     Returns:
         success (bool): Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
-    axon.wallet.unlock_hotkey()
-    axon.wallet.unlock_coldkeypub()
+    if not (unlock := unlock_key(axon.wallet)).success:
+        logging.error(unlock.message)
+        return False
+    if not (unlock := unlock_key(axon.wallet, "coldkeypub")).success:
+        logging.error(unlock.message)
+        return False
     external_port = axon.external_port
 
     # ---- Get external ip ----
@@ -254,7 +261,9 @@ def publish_metadata(
         MetadataError: If there is an error in submitting the extrinsic or if the response from the blockchain indicates failure.
     """
 
-    wallet.unlock_hotkey()
+    if not (unlock := unlock_key(wallet, "hot")).success:
+        logging.error(unlock.message)
+        return False
 
     with self.substrate as substrate:
         call = substrate.compose_call(
