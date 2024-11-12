@@ -520,8 +520,7 @@ class AsyncSubtensor:
                 )
                 payment_info = {"partialFee": int(2e7)}  # assume  0.02 Tao
 
-            fee = Balance.from_rao(payment_info["partialFee"])
-            return fee
+            return Balance.from_rao(payment_info["partialFee"])
         else:
             fee = Balance.from_rao(int(2e7))
             logging.error(
