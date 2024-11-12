@@ -461,7 +461,7 @@ class AsyncSubtensor:
         Retrieves the balance for given coldkey(s)
 
         Args:
-            addresses (tuple): coldkey addresses(s).
+            addresses (str): coldkey addresses(s).
             block_hash (Optional[str]): the block hash, optional.
 
         Returns:
