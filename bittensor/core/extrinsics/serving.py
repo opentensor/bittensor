@@ -195,7 +195,7 @@ def serve_axon_extrinsic(
     Returns:
         success (bool): Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
-    if not (unlock := unlock_key(axon.wallet)).success:
+    if not (unlock := unlock_key(axon.wallet, "hot")).success:
         logging.error(unlock.message)
         return False
     if not (unlock := unlock_key(axon.wallet, "coldkeypub")).success:
