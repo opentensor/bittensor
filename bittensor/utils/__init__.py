@@ -398,8 +398,8 @@ def unlock_key(wallet: "Wallet", unlock_type="coldkey") -> "UnlockStatus":
         getattr(wallet, unlocker)()
         return UnlockStatus(True, "")
     except PasswordError:
-        err_msg = f"The password used to decrypt your {unlock_type.capitalize()} Keyfile is invalid."
+        err_msg = f"The password used to decrypt your {unlock_type.capitalize()} keyfile is invalid."
         return UnlockStatus(False, err_msg)
     except KeyFileError:
-        err_msg = f"{unlock_type.capitalize()} Keyfile is corrupt, non-writable, or non-readable, or non-existent."
+        err_msg = f"{unlock_type.capitalize()} keyfile is corrupt, non-writable, or non-readable, or non-existent."
         return UnlockStatus(False, err_msg)
