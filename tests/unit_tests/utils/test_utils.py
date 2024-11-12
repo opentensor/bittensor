@@ -210,7 +210,7 @@ def test_unlock_key_raise_value_error(mocker):
         (
             utils.PasswordError("Simulated PasswordError exception"),
             utils.UnlockStatus(
-                False, "The password used to decrypt your Coldkey Keyfile is invalid."
+                False, "The password used to decrypt your Coldkey keyfile is invalid."
             ),
         ),
     ],
