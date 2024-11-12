@@ -454,7 +454,7 @@ class AsyncSubtensor:
 
     async def get_balance(
         self,
-        *addresses: tuple[str],
+        *addresses: str,
         block_hash: Optional[str] = None,
     ) -> dict[str, Balance]:
         """
