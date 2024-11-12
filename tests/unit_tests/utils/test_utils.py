@@ -195,3 +195,24 @@ def test_unlock_key_raise_value_error(mocker):
     """Test the unlock key function raises ValueError."""
     with pytest.raises(ValueError):
         utils.unlock_key(wallet=mocker.Mock(autospec=Wallet), unlock_type="coldkeypub")
+
+
+def test_unlock_key_errors(mocker):
+    mock_wallet_1 = mocker.Mock(autospec=Wallet)
+    mock_wallet_2 = mocker.Mock(autospec=Wallet)
+    mock_wallet_1.unlock_coldkey.side_effect = utils.PasswordError(
+        "Simulated PasswordError exception"
+    )
+    result = utils.unlock_key(wallet=mock_wallet_1, unlock_type="coldkey")
+    assert result.success is False
+    assert "The password used to decrypt your" in result.message
+
+    mock_wallet_2.unlock_coldkey.side_effect = utils.KeyFileError(
+        "Simulated KeyFileError exception"
+    )
+    result = utils.unlock_key(wallet=mock_wallet_2, unlock_type="coldkey")
+    assert result.success is False
+    assert (
+        "Keyfile is corrupt, non-writable, or non-readable, or non-existent."
+        in result.message
+    )
