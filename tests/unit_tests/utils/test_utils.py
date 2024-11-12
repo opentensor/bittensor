@@ -15,6 +15,8 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+from bittensor_wallet import Wallet, Keyfile, Keypair
+
 from bittensor import utils
 from bittensor.core.settings import SS58_FORMAT
 import pytest
@@ -167,3 +169,28 @@ def test_is_valid_bittensor_address_or_public_key(mocker, test_input, expected_r
     if isinstance(test_input, str) and not test_input.startswith("0x"):
         assert mocked_ss58_is_valid_ss58_address.call_count == 2
     assert result == expected_result
+
+
+def test_unlock_key(monkeypatch):
+    wallet = Wallet(path="/tmp/wallets")
+    cold_kf = Keyfile("/tmp/wallets/default/coldkey", name="default")
+    kp = Keypair.create_from_mnemonic(
+        "stool feel open east woman high can denial forget screen trust salt"
+    )
+    cold_kf.set_keypair(kp, False, False)
+    cold_kf.encrypt("1234password1234")
+    hot_kf = Keyfile("/tmp/wallets/default/hotkey", name="default")
+    hkp = Keypair.create_from_mnemonic(
+        "stool feel open east woman high can denial forget screen trust salt"
+    )
+    hot_kf.set_keypair(hkp, False, False)
+    hot_kf.encrypt("1234hotkey1234")
+    monkeypatch.setattr("getpass.getpass", lambda _: "badpassword1234")
+    result = utils.unlock_key(wallet)
+    assert result.success is False
+    monkeypatch.setattr("getpass.getpass", lambda _: "1234password1234")
+    result = utils.unlock_key(wallet)
+    assert result.success is True
+    monkeypatch.setattr("getpass.getpass", lambda _: "badpassword1234")
+    result = utils.unlock_key(wallet, "hot")
+    assert result.success is False
