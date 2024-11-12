@@ -174,9 +174,8 @@ def test_is_valid_bittensor_address_or_public_key(mocker, test_input, expected_r
 @pytest.mark.parametrize(
     "unlock_type, wallet_method",
     [
-        ("cold", "unlock_coldkey"),
-        ("hot", "unlock_hotkey"),
-        ("coldkeypub", "unlock_coldkeypub"),
+        ("coldkey", "unlock_coldkey"),
+        ("hotkey", "unlock_hotkey"),
     ],
 )
 def test_unlock_key(mocker, unlock_type, wallet_method):
@@ -195,4 +194,4 @@ def test_unlock_key(mocker, unlock_type, wallet_method):
 def test_unlock_key_raise_value_error(mocker):
     """Test the unlock key function raises ValueError."""
     with pytest.raises(ValueError):
-        utils.unlock_key(wallet=mocker.Mock(autospec=Wallet), unlock_type="coldkey")
+        utils.unlock_key(wallet=mocker.Mock(autospec=Wallet), unlock_type="coldkeypub")

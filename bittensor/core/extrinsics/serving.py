@@ -109,7 +109,7 @@ def serve_extrinsic(
         success (bool): Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
     # Decrypt hotkey
-    if not (unlock := unlock_key(wallet, "hot")).success:
+    if not (unlock := unlock_key(wallet, "hotkey")).success:
         logging.error(unlock.message)
         return False
 
@@ -195,7 +195,7 @@ def serve_axon_extrinsic(
     Returns:
         success (bool): Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
-    if not (unlock := unlock_key(axon.wallet, "hot")).success:
+    if not (unlock := unlock_key(axon.wallet, "hotkey")).success:
         logging.error(unlock.message)
         return False
     external_port = axon.external_port
@@ -258,7 +258,7 @@ def publish_metadata(
         MetadataError: If there is an error in submitting the extrinsic or if the response from the blockchain indicates failure.
     """
 
-    if not (unlock := unlock_key(wallet, "hot")).success:
+    if not (unlock := unlock_key(wallet, "hotkey")).success:
         logging.error(unlock.message)
         return False
 

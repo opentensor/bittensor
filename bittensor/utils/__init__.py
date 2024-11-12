@@ -378,21 +378,21 @@ def validate_chain_endpoint(endpoint_url: str) -> tuple[bool, str]:
     return True, ""
 
 
-def unlock_key(wallet: "Wallet", unlock_type="cold") -> "UnlockStatus":
+def unlock_key(wallet: "Wallet", unlock_type="coldkey") -> "UnlockStatus":
     """
     Attempts to decrypt a wallet's coldkey or hotkey
     Args:
         wallet: a Wallet object
-        unlock_type: the key type, 'cold' or 'hot'
+        unlock_type: the key type, 'coldkey' or 'hotkey'
     Returns: UnlockStatus for success status of unlock, with error message if unsuccessful
     """
-    if unlock_type == "cold":
+    if unlock_type == "coldkey":
         unlocker = "unlock_coldkey"
-    elif unlock_type == "hot":
+    elif unlock_type == "hotkey":
         unlocker = "unlock_hotkey"
     else:
         raise ValueError(
-            f"Invalid unlock type provided: {unlock_type}. Must be 'cold' or 'hot'."
+            f"Invalid unlock type provided: {unlock_type}. Must be 'coldkey' or 'hotkey'."
         )
     try:
         getattr(wallet, unlocker)()

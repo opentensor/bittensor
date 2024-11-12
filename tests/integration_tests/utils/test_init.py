@@ -32,7 +32,7 @@ def test_unlock_key(monkeypatch):
     result = utils.unlock_key(wallet)
     assert result.success is True
     monkeypatch.setattr("getpass.getpass", lambda _: "badpassword1234")
-    result = utils.unlock_key(wallet, "hot")
+    result = utils.unlock_key(wallet, "hotkey")
     assert result.success is False
     with pytest.raises(ValueError):
         utils.unlock_key(wallet, "mycoldkey")
