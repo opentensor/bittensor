@@ -566,3 +566,62 @@ async def test_get_transfer_with_exception(subtensor, mocker):
 
     # Assertions
     assert result == async_subtensor.Balance.from_rao(int(2e7))
+
+
+@pytest.mark.asyncio
+async def test_get_total_stake_for_coldkey(subtensor, mocker):
+    """Tests get_total_stake_for_coldkey method."""
+    # Preps
+    fake_addresses = ("a1", "a2")
+    fake_block_hash = None
+
+    mocked_substrate_create_storage_key = mocker.AsyncMock()
+    subtensor.substrate.create_storage_key = mocked_substrate_create_storage_key
+
+    mocked_batch_0_call = mocker.Mock(
+        params=[
+            0,
+        ]
+    )
+    mocked_batch_1_call = 0
+    mocked_substrate_query_multi = mocker.AsyncMock(
+        return_value=[
+            (mocked_batch_0_call, mocked_batch_1_call),
+        ]
+    )
+
+    subtensor.substrate.query_multi = mocked_substrate_query_multi
+
+    # Call
+    result = await subtensor.get_total_stake_for_coldkey(*fake_addresses, block_hash=fake_block_hash)
+
+    assert mocked_substrate_create_storage_key.call_count == len(fake_addresses)
+    mocked_substrate_query_multi.assert_called_once()
+    assert result == {0: async_subtensor.Balance(mocked_batch_1_call)}
+
+
+@pytest.mark.asyncio
+async def test_get_total_stake_for_hotkey(subtensor, mocker):
+    """Tests get_total_stake_for_hotkey method."""
+    # Preps
+    fake_addresses = ("a1", "a2")
+    fake_block_hash = None
+    reuse_block = True
+
+    mocked_substrate_query_multiple = mocker.AsyncMock(return_value={0: 1})
+
+    subtensor.substrate.query_multiple = mocked_substrate_query_multiple
+
+    # Call
+    result = await subtensor.get_total_stake_for_hotkey(*fake_addresses, block_hash=fake_block_hash, reuse_block=reuse_block)
+
+    # Assertions
+    mocked_substrate_query_multiple.assert_called_once_with(
+        params=list(fake_addresses),
+        module="SubtensorModule",
+        storage_function="TotalHotkeyStake",
+        block_hash=fake_block_hash,
+        reuse_block_hash=reuse_block,
+    )
+    mocked_substrate_query_multiple.assert_called_once()
+    assert result == {0: async_subtensor.Balance(1)}
