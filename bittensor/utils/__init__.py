@@ -378,15 +378,12 @@ def validate_chain_endpoint(endpoint_url: str) -> tuple[bool, str]:
     return True, ""
 
 
-def unlock_key(
-    wallet: "Wallet", unlock_type="cold"
-) -> "UnlockStatus":
+def unlock_key(wallet: "Wallet", unlock_type="cold") -> "UnlockStatus":
     """
     Attempts to decrypt a wallet's coldkey or hotkey
     Args:
         wallet: a Wallet object
-        unlock_type: the key type, 'cold' or 'hot'
-        print_out:  whether to print out the error message to the err_console
+        unlock_type: the key type, 'cold', 'hot', or 'coldkeypub'
     Returns: UnlockStatus for success status of unlock, with error message if unsuccessful
     """
     if unlock_type == "cold":

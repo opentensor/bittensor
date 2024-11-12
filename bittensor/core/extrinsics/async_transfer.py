@@ -8,7 +8,8 @@ from bittensor.core.settings import NETWORK_EXPLORER_MAP
 from bittensor.utils import (
     format_error_message,
     get_explorer_url_for_network,
-    is_valid_bittensor_address_or_public_key, unlock_key,
+    is_valid_bittensor_address_or_public_key,
+    unlock_key,
 )
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging

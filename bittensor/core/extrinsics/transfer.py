@@ -22,7 +22,8 @@ from bittensor.core.settings import NETWORK_EXPLORER_MAP
 from bittensor.utils import (
     get_explorer_url_for_network,
     format_error_message,
-    is_valid_bittensor_address_or_public_key, unlock_key,
+    is_valid_bittensor_address_or_public_key,
+    unlock_key,
 )
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
