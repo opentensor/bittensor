@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from hashlib import blake2b
 from typing import Optional, Any, Union, Callable, Awaitable, cast
 
+import websockets
 from async_property import async_property
 from bittensor_wallet import Keypair
 from bt_decode import PortableRegistry, decode as decode_by_type_string, MetadataV15
@@ -20,7 +21,6 @@ from substrateinterface.exceptions import (
     BlockNotFound,
 )
 from substrateinterface.storage import StorageKey
-import websockets
 
 ResultHandler = Callable[[dict, Any], Awaitable[tuple[dict, bool]]]
 
