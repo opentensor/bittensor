@@ -1498,3 +1498,655 @@ async def test_get_hotkey_owner_exists_but_does_not_exist_flag_false(subtensor, 
         fake_hotkey_ss58, block_hash=fake_block_hash
     )
     assert result is None
+
+
+@pytest.mark.asyncio
+async def test_sign_and_send_extrinsic_success_finalization(subtensor, mocker):
+    """Tests sign_and_send_extrinsic when the extrinsic is successfully finalized."""
+    # Preps
+    fake_call = mocker.Mock()
+    fake_wallet = mocker.Mock()
+    fake_extrinsic = mocker.Mock()
+    fake_response = mocker.Mock()
+
+    mocked_create_signed_extrinsic = mocker.AsyncMock(return_value=fake_extrinsic)
+    subtensor.substrate.create_signed_extrinsic = mocked_create_signed_extrinsic
+
+    mocked_submit_extrinsic = mocker.AsyncMock(return_value=fake_response)
+    subtensor.substrate.submit_extrinsic = mocked_submit_extrinsic
+
+    fake_response.process_events = mocker.AsyncMock()
+
+    async def fake_is_success():
+        return True
+
+    fake_response.is_success = fake_is_success()
+
+    # Call
+    result = await subtensor.sign_and_send_extrinsic(
+        call=fake_call,
+        wallet=fake_wallet,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+    # Asserts
+    mocked_create_signed_extrinsic.assert_called_once_with(
+        call=fake_call, keypair=fake_wallet.coldkey
+    )
+    mocked_submit_extrinsic.assert_called_once_with(
+        fake_extrinsic,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    fake_response.process_events.assert_awaited_once()
+    assert result == (True, "")
+
+
+@pytest.mark.asyncio
+async def test_sign_and_send_extrinsic_error_finalization(subtensor, mocker):
+    """Tests sign_and_send_extrinsic when the extrinsic is error finalized."""
+    # Preps
+    fake_call = mocker.Mock()
+    fake_wallet = mocker.Mock()
+    fake_extrinsic = mocker.Mock()
+    fake_response = mocker.Mock()
+
+    mocked_create_signed_extrinsic = mocker.AsyncMock(return_value=fake_extrinsic)
+    subtensor.substrate.create_signed_extrinsic = mocked_create_signed_extrinsic
+
+    mocked_submit_extrinsic = mocker.AsyncMock(return_value=fake_response)
+    subtensor.substrate.submit_extrinsic = mocked_submit_extrinsic
+
+    fake_response.process_events = mocker.AsyncMock()
+
+    async def fake_is_success():
+        return False
+
+    fake_response.is_success = fake_is_success()
+
+    async def fake_error_message():
+        return {"some error": "message"}
+
+    fake_response.error_message = fake_error_message()
+
+    mocked_format_error_message = mocker.Mock()
+    async_subtensor.format_error_message = mocked_format_error_message
+
+    # Call
+    result = await subtensor.sign_and_send_extrinsic(
+        call=fake_call,
+        wallet=fake_wallet,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+    # Asserts
+    mocked_create_signed_extrinsic.assert_called_once_with(
+        call=fake_call, keypair=fake_wallet.coldkey
+    )
+    mocked_submit_extrinsic.assert_called_once_with(
+        fake_extrinsic,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    fake_response.process_events.assert_awaited_once()
+    assert result == (False, mocked_format_error_message.return_value)
+
+
+@pytest.mark.asyncio
+async def test_sign_and_send_extrinsic_success_without_inclusion_finalization(
+    subtensor, mocker
+):
+    """Tests sign_and_send_extrinsic when extrinsic is submitted without waiting for inclusion or finalization."""
+    # Preps
+    fake_call = mocker.Mock()
+    fake_wallet = mocker.Mock()
+    fake_extrinsic = mocker.Mock()
+
+    mocked_create_signed_extrinsic = mocker.AsyncMock(return_value=fake_extrinsic)
+    subtensor.substrate.create_signed_extrinsic = mocked_create_signed_extrinsic
+
+    mocked_submit_extrinsic = mocker.AsyncMock()
+    subtensor.substrate.submit_extrinsic = mocked_submit_extrinsic
+
+    # Call
+    result = await subtensor.sign_and_send_extrinsic(
+        call=fake_call,
+        wallet=fake_wallet,
+        wait_for_inclusion=False,
+        wait_for_finalization=False,
+    )
+
+    # Asserts
+    mocked_create_signed_extrinsic.assert_awaited_once()
+    mocked_create_signed_extrinsic.assert_called_once_with(
+        call=fake_call, keypair=fake_wallet.coldkey
+    )
+    mocked_submit_extrinsic.assert_awaited_once()
+    mocked_submit_extrinsic.assert_called_once_with(
+        fake_extrinsic,
+        wait_for_inclusion=False,
+        wait_for_finalization=False,
+    )
+    assert result == (True, "")
+
+
+@pytest.mark.asyncio
+async def test_sign_and_send_extrinsic_substrate_request_exception(subtensor, mocker):
+    """Tests sign_and_send_extrinsic when SubstrateRequestException is raised."""
+    # Preps
+    fake_call = mocker.Mock()
+    fake_wallet = mocker.Mock()
+    fake_extrinsic = mocker.Mock()
+    fake_exception = async_subtensor.SubstrateRequestException("Test Exception")
+
+    mocked_create_signed_extrinsic = mocker.AsyncMock(return_value=fake_extrinsic)
+    subtensor.substrate.create_signed_extrinsic = mocked_create_signed_extrinsic
+
+    mocked_submit_extrinsic = mocker.AsyncMock(side_effect=fake_exception)
+    subtensor.substrate.submit_extrinsic = mocked_submit_extrinsic
+
+    mocker.patch.object(
+        async_subtensor,
+        "format_error_message",
+        return_value=str(fake_exception),
+    )
+
+    # Call
+    result = await subtensor.sign_and_send_extrinsic(
+        call=fake_call,
+        wallet=fake_wallet,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+    # Asserts
+    assert result == (False, str(fake_exception))
+
+
+@pytest.mark.asyncio
+async def test_get_children_success(subtensor, mocker):
+    """Tests get_children when children are successfully retrieved and formatted."""
+    # Preps
+    fake_hotkey = "valid_hotkey"
+    fake_netuid = 1
+    fake_children = [
+        (1000, ["child_key_1"]),
+        (2000, ["child_key_2"]),
+    ]
+
+    mocked_query = mocker.AsyncMock(return_value=fake_children)
+    subtensor.substrate.query = mocked_query
+
+    mocked_decode_account_id = mocker.Mock(
+        side_effect=["decoded_child_key_1", "decoded_child_key_2"]
+    )
+    mocker.patch.object(async_subtensor, "decode_account_id", mocked_decode_account_id)
+
+    expected_formatted_children = [
+        (1000, "decoded_child_key_1"),
+        (2000, "decoded_child_key_2"),
+    ]
+
+    # Call
+    result = await subtensor.get_children(hotkey=fake_hotkey, netuid=fake_netuid)
+
+    # Asserts
+    mocked_query.assert_called_once_with(
+        module="SubtensorModule",
+        storage_function="ChildKeys",
+        params=[fake_hotkey, fake_netuid],
+    )
+    mocked_decode_account_id.assert_has_calls(
+        [mocker.call("child_key_1"), mocker.call("child_key_2")]
+    )
+    assert result == (True, expected_formatted_children, "")
+
+
+@pytest.mark.asyncio
+async def test_get_children_no_children(subtensor, mocker):
+    """Tests get_children when there are no children to retrieve."""
+    # Preps
+    fake_hotkey = "valid_hotkey"
+    fake_netuid = 1
+    fake_children = []
+
+    mocked_query = mocker.AsyncMock(return_value=fake_children)
+    subtensor.substrate.query = mocked_query
+
+    # Call
+    result = await subtensor.get_children(hotkey=fake_hotkey, netuid=fake_netuid)
+
+    # Asserts
+    mocked_query.assert_called_once_with(
+        module="SubtensorModule",
+        storage_function="ChildKeys",
+        params=[fake_hotkey, fake_netuid],
+    )
+    assert result == (True, [], "")
+
+
+@pytest.mark.asyncio
+async def test_get_children_substrate_request_exception(subtensor, mocker):
+    """Tests get_children when SubstrateRequestException is raised."""
+    # Preps
+    fake_hotkey = "valid_hotkey"
+    fake_netuid = 1
+    fake_exception = async_subtensor.SubstrateRequestException("Test Exception")
+
+    mocked_query = mocker.AsyncMock(side_effect=fake_exception)
+    subtensor.substrate.query = mocked_query
+
+    mocked_format_error_message = mocker.Mock(return_value="Formatted error message")
+    mocker.patch.object(
+        async_subtensor, "format_error_message", mocked_format_error_message
+    )
+
+    # Call
+    result = await subtensor.get_children(hotkey=fake_hotkey, netuid=fake_netuid)
+
+    # Asserts
+    mocked_query.assert_called_once_with(
+        module="SubtensorModule",
+        storage_function="ChildKeys",
+        params=[fake_hotkey, fake_netuid],
+    )
+    mocked_format_error_message.assert_called_once_with(
+        fake_exception, subtensor.substrate
+    )
+    assert result == (False, [], "Formatted error message")
+
+
+@pytest.mark.asyncio
+async def test_get_subnet_hyperparameters_success(subtensor, mocker):
+    """Tests get_subnet_hyperparameters with successful hyperparameter retrieval."""
+    # Preps
+    fake_netuid = 1
+    fake_block_hash = "block_hash"
+    fake_hex_bytes_result = "0xaabbccdd"
+
+    mocked_query_runtime_api = mocker.AsyncMock(return_value=fake_hex_bytes_result)
+    subtensor.query_runtime_api = mocked_query_runtime_api
+
+    mocked_from_vec_u8 = mocker.Mock()
+    mocker.patch.object(
+        async_subtensor.SubnetHyperparameters, "from_vec_u8", mocked_from_vec_u8
+    )
+
+    # Call
+    result = await subtensor.get_subnet_hyperparameters(
+        netuid=fake_netuid, block_hash=fake_block_hash
+    )
+
+    # Asserts
+    mocked_query_runtime_api.assert_called_once_with(
+        runtime_api="SubnetInfoRuntimeApi",
+        method="get_subnet_hyperparams",
+        params=[fake_netuid],
+        block_hash=fake_block_hash,
+    )
+    bytes_result = bytes.fromhex(fake_hex_bytes_result[2:])
+    mocked_from_vec_u8.assert_called_once_with(bytes_result)
+    assert result == mocked_from_vec_u8.return_value
+
+
+@pytest.mark.asyncio
+async def test_get_subnet_hyperparameters_no_data(subtensor, mocker):
+    """Tests get_subnet_hyperparameters when no hyperparameters data is returned."""
+    # Preps
+    fake_netuid = 1
+
+    mocked_query_runtime_api = mocker.AsyncMock(return_value=None)
+    subtensor.query_runtime_api = mocked_query_runtime_api
+
+    # Call
+    result = await subtensor.get_subnet_hyperparameters(netuid=fake_netuid)
+
+    # Asserts
+    mocked_query_runtime_api.assert_called_once_with(
+        runtime_api="SubnetInfoRuntimeApi",
+        method="get_subnet_hyperparams",
+        params=[fake_netuid],
+        block_hash=None,
+    )
+    assert result == []
+
+
+@pytest.mark.asyncio
+async def test_get_subnet_hyperparameters_without_0x_prefix(subtensor, mocker):
+    """Tests get_subnet_hyperparameters when hex_bytes_result is without 0x prefix."""
+    # Preps
+    fake_netuid = 1
+    fake_hex_bytes_result = "aabbccdd"  # without "0x" prefix
+
+    mocked_query_runtime_api = mocker.AsyncMock(return_value=fake_hex_bytes_result)
+    subtensor.query_runtime_api = mocked_query_runtime_api
+
+    mocked_from_vec_u8 = mocker.Mock()
+    mocker.patch.object(
+        async_subtensor.SubnetHyperparameters, "from_vec_u8", mocked_from_vec_u8
+    )
+
+    # Call
+    result = await subtensor.get_subnet_hyperparameters(netuid=fake_netuid)
+
+    # Asserts
+    mocked_query_runtime_api.assert_called_once_with(
+        runtime_api="SubnetInfoRuntimeApi",
+        method="get_subnet_hyperparams",
+        params=[fake_netuid],
+        block_hash=None,
+    )
+    bytes_result = bytes.fromhex(fake_hex_bytes_result)
+    mocked_from_vec_u8.assert_called_once_with(bytes_result)
+    assert result == mocked_from_vec_u8.return_value
+
+
+@pytest.mark.asyncio
+async def test_get_vote_data_success(subtensor, mocker):
+    """Tests get_vote_data when voting data is successfully retrieved."""
+    # Preps
+    fake_proposal_hash = "valid_proposal_hash"
+    fake_block_hash = "block_hash"
+    fake_vote_data = {"ayes": ["senate_member_1"], "nays": ["senate_member_2"]}
+
+    mocked_query = mocker.AsyncMock(return_value=fake_vote_data)
+    subtensor.substrate.query = mocked_query
+
+    mocked_proposal_vote_data = mocker.Mock()
+    mocker.patch.object(
+        async_subtensor, "ProposalVoteData", return_value=mocked_proposal_vote_data
+    )
+
+    # Call
+    result = await subtensor.get_vote_data(
+        proposal_hash=fake_proposal_hash, block_hash=fake_block_hash
+    )
+
+    # Asserts
+    mocked_query.assert_called_once_with(
+        module="Triumvirate",
+        storage_function="Voting",
+        params=[fake_proposal_hash],
+        block_hash=fake_block_hash,
+        reuse_block_hash=False,
+    )
+    assert result == mocked_proposal_vote_data
+
+
+@pytest.mark.asyncio
+async def test_get_vote_data_no_data(subtensor, mocker):
+    """Tests get_vote_data when no voting data is available."""
+    # Preps
+    fake_proposal_hash = "invalid_proposal_hash"
+    fake_block_hash = "block_hash"
+
+    mocked_query = mocker.AsyncMock(return_value=None)
+    subtensor.substrate.query = mocked_query
+
+    # Call
+    result = await subtensor.get_vote_data(
+        proposal_hash=fake_proposal_hash, block_hash=fake_block_hash
+    )
+
+    # Asserts
+    mocked_query.assert_called_once_with(
+        module="Triumvirate",
+        storage_function="Voting",
+        params=[fake_proposal_hash],
+        block_hash=fake_block_hash,
+        reuse_block_hash=False,
+    )
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_get_delegate_identities(subtensor, mocker):
+    """Tests get_delegate_identities with successful data retrieval from both chain and GitHub."""
+    # Preps
+    fake_block_hash = "block_hash"
+    fake_chain_data = [
+        (["delegate1_ss58"], {"info": {"name": "Chain Delegate 1"}}),
+        (["delegate2_ss58"], {"info": {"name": "Chain Delegate 2"}}),
+    ]
+    fake_github_data = {
+        "delegate1_ss58": {
+            "name": "GitHub Delegate 1",
+            "url": "https://delegate1.com",
+            "description": "GitHub description 1",
+            "fingerprint": "fingerprint1",
+        },
+        "delegate3_ss58": {
+            "name": "GitHub Delegate 3",
+            "url": "https://delegate3.com",
+            "description": "GitHub description 3",
+            "fingerprint": "fingerprint3",
+        },
+    }
+
+    mocked_query_map = mocker.AsyncMock(return_value=fake_chain_data)
+    subtensor.substrate.query_map = mocked_query_map
+
+    mocked_decode_account_id = mocker.Mock(side_effect=lambda ss58: ss58)
+    mocker.patch.object(async_subtensor, "decode_account_id", mocked_decode_account_id)
+
+    mocked_decode_hex_identity_dict = mocker.Mock(side_effect=lambda data: data)
+    mocker.patch.object(
+        async_subtensor, "decode_hex_identity_dict", mocked_decode_hex_identity_dict
+    )
+
+    mock_response = mocker.Mock()
+    mock_response.ok = True
+    mock_response.json = mocker.AsyncMock(return_value=fake_github_data)
+
+    mock_session_get = mocker.AsyncMock(return_value=mock_response)
+    mocker.patch("aiohttp.ClientSession.get", mock_session_get)
+
+    # Call
+    result = await subtensor.get_delegate_identities(block_hash=fake_block_hash)
+
+    # Asserts
+    mocked_query_map.assert_called_once_with(
+        module="Registry",
+        storage_function="IdentityOf",
+        block_hash=fake_block_hash,
+    )
+    mock_session_get.assert_called_once_with(async_subtensor.DELEGATES_DETAILS_URL)
+
+    assert result["delegate1_ss58"].display == "GitHub Delegate 1"
+    assert result["delegate2_ss58"].display == ""
+    assert result["delegate3_ss58"].display == "GitHub Delegate 3"
+
+
+@pytest.mark.asyncio
+async def test_is_hotkey_registered_true(subtensor, mocker):
+    """Tests is_hotkey_registered when the hotkey is registered on the netuid."""
+    # Preps
+    fake_netuid = 1
+    fake_hotkey_ss58 = "registered_hotkey"
+    fake_result = "some_value"
+    mocked_query = mocker.AsyncMock(return_value=fake_result)
+    subtensor.substrate.query = mocked_query
+
+    # Call
+    result = await subtensor.is_hotkey_registered(
+        netuid=fake_netuid, hotkey_ss58=fake_hotkey_ss58
+    )
+
+    # Asserts
+    mocked_query.assert_called_once_with(
+        module="SubtensorModule",
+        storage_function="Uids",
+        params=[fake_netuid, fake_hotkey_ss58],
+    )
+    assert result is True
+
+
+@pytest.mark.asyncio
+async def test_is_hotkey_registered_false(subtensor, mocker):
+    """Tests is_hotkey_registered when the hotkey is not registered on the netuid."""
+    # Preps
+    fake_netuid = 1
+    fake_hotkey_ss58 = "unregistered_hotkey"
+    fake_result = None
+
+    mocked_query = mocker.AsyncMock(return_value=fake_result)
+    subtensor.substrate.query = mocked_query
+
+    # Call
+    result = await subtensor.is_hotkey_registered(
+        netuid=fake_netuid, hotkey_ss58=fake_hotkey_ss58
+    )
+
+    # Asserts
+    mocked_query.assert_called_once_with(
+        module="SubtensorModule",
+        storage_function="Uids",
+        params=[fake_netuid, fake_hotkey_ss58],
+    )
+    assert result is False
+
+
+@pytest.mark.asyncio
+async def test_get_uid_for_hotkey_on_subnet_registered(subtensor, mocker):
+    """Tests get_uid_for_hotkey_on_subnet when the hotkey is registered and has a UID."""
+    # Preps
+    fake_hotkey_ss58 = "registered_hotkey"
+    fake_netuid = 1
+    fake_block_hash = "block_hash"
+    fake_uid = 123
+
+    mocked_query = mocker.AsyncMock(return_value=fake_uid)
+    subtensor.substrate.query = mocked_query
+
+    # Call
+    result = await subtensor.get_uid_for_hotkey_on_subnet(
+        hotkey_ss58=fake_hotkey_ss58, netuid=fake_netuid, block_hash=fake_block_hash
+    )
+
+    # Asserts
+    mocked_query.assert_called_once_with(
+        module="SubtensorModule",
+        storage_function="Uids",
+        params=[fake_netuid, fake_hotkey_ss58],
+        block_hash=fake_block_hash,
+    )
+    assert result == fake_uid
+
+
+@pytest.mark.asyncio
+async def test_get_uid_for_hotkey_on_subnet_not_registered(subtensor, mocker):
+    """Tests get_uid_for_hotkey_on_subnet when the hotkey is not registered on the subnet."""
+    # Preps
+    fake_hotkey_ss58 = "unregistered_hotkey"
+    fake_netuid = 1
+    fake_block_hash = "block_hash"
+    fake_result = None
+
+    mocked_query = mocker.AsyncMock(return_value=fake_result)
+    subtensor.substrate.query = mocked_query
+
+    # Call
+    result = await subtensor.get_uid_for_hotkey_on_subnet(
+        hotkey_ss58=fake_hotkey_ss58, netuid=fake_netuid, block_hash=fake_block_hash
+    )
+
+    # Asserts
+    mocked_query.assert_called_once_with(
+        module="SubtensorModule",
+        storage_function="Uids",
+        params=[fake_netuid, fake_hotkey_ss58],
+        block_hash=fake_block_hash,
+    )
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_weights_rate_limit_success(subtensor, mocker):
+    """Tests weights_rate_limit when the hyperparameter value is successfully retrieved."""
+    # Preps
+    fake_netuid = 1
+    fake_rate_limit = 10
+
+    mocked_get_hyperparameter = mocker.AsyncMock(return_value=fake_rate_limit)
+    subtensor.get_hyperparameter = mocked_get_hyperparameter
+
+    # Call
+    result = await subtensor.weights_rate_limit(netuid=fake_netuid)
+
+    # Asserts
+    mocked_get_hyperparameter.assert_called_once_with(
+        param_name="WeightsSetRateLimit", netuid=fake_netuid
+    )
+    assert result == fake_rate_limit
+
+
+@pytest.mark.asyncio
+async def test_weights_rate_limit_none(subtensor, mocker):
+    """Tests weights_rate_limit when the hyperparameter value is not found."""
+    # Preps
+    fake_netuid = 1
+    fake_result = None
+
+    mocked_get_hyperparameter = mocker.AsyncMock(return_value=fake_result)
+    subtensor.get_hyperparameter = mocked_get_hyperparameter
+
+    # Call
+    result = await subtensor.weights_rate_limit(netuid=fake_netuid)
+
+    # Asserts
+    mocked_get_hyperparameter.assert_called_once_with(
+        param_name="WeightsSetRateLimit", netuid=fake_netuid
+    )
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_blocks_since_last_update_success(subtensor, mocker):
+    """Tests blocks_since_last_update when the data is successfully retrieved."""
+    # Preps
+    fake_netuid = 1
+    fake_uid = 5
+    last_update_block = 50
+    current_block = 100
+    fake_blocks_since_update = current_block - last_update_block
+
+    mocked_get_hyperparameter = mocker.AsyncMock(
+        return_value={fake_uid: last_update_block}
+    )
+    subtensor.get_hyperparameter = mocked_get_hyperparameter
+
+    mocked_get_current_block = mocker.AsyncMock(return_value=current_block)
+    subtensor.get_current_block = mocked_get_current_block
+
+    # Call
+    result = await subtensor.blocks_since_last_update(netuid=fake_netuid, uid=fake_uid)
+
+    # Asserts
+    mocked_get_hyperparameter.assert_called_once_with(
+        param_name="LastUpdate", netuid=fake_netuid
+    )
+    mocked_get_current_block.assert_called_once()
+    assert result == fake_blocks_since_update
+
+
+@pytest.mark.asyncio
+async def test_blocks_since_last_update_no_last_update(subtensor, mocker):
+    """Tests blocks_since_last_update when the last update data is not found."""
+    # Preps
+    fake_netuid = 1
+    fake_uid = 5
+    fake_result = None
+
+    mocked_get_hyperparameter = mocker.AsyncMock(return_value=fake_result)
+    subtensor.get_hyperparameter = mocked_get_hyperparameter
+
+    # Call
+    result = await subtensor.blocks_since_last_update(netuid=fake_netuid, uid=fake_uid)
+
+    # Asserts
+    mocked_get_hyperparameter.assert_called_once_with(
+        param_name="LastUpdate", netuid=fake_netuid
+    )
+    assert result is None
