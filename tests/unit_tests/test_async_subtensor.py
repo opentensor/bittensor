@@ -1898,3 +1898,110 @@ async def test_get_vote_data_no_data(subtensor, mocker):
         reuse_block_hash=False,
     )
     assert result is None
+
+
+@pytest.mark.asyncio
+async def test_get_delegate_identities(subtensor, mocker):
+    """Tests get_delegate_identities with successful data retrieval from both chain and GitHub."""
+    # Preps
+    fake_block_hash = "block_hash"
+    fake_chain_data = [
+        (["delegate1_ss58"], {"info": {"name": "Chain Delegate 1"}}),
+        (["delegate2_ss58"], {"info": {"name": "Chain Delegate 2"}}),
+    ]
+    fake_github_data = {
+        "delegate1_ss58": {
+            "name": "GitHub Delegate 1",
+            "url": "https://delegate1.com",
+            "description": "GitHub description 1",
+            "fingerprint": "fingerprint1",
+        },
+        "delegate3_ss58": {
+            "name": "GitHub Delegate 3",
+            "url": "https://delegate3.com",
+            "description": "GitHub description 3",
+            "fingerprint": "fingerprint3",
+        },
+    }
+
+    mocked_query_map = mocker.AsyncMock(return_value=fake_chain_data)
+    subtensor.substrate.query_map = mocked_query_map
+
+    mocked_decode_account_id = mocker.Mock(side_effect=lambda ss58: ss58)
+    mocker.patch.object(async_subtensor, "decode_account_id", mocked_decode_account_id)
+
+    mocked_decode_hex_identity_dict = mocker.Mock(side_effect=lambda data: data)
+    mocker.patch.object(
+        async_subtensor, "decode_hex_identity_dict", mocked_decode_hex_identity_dict
+    )
+
+    mock_response = mocker.Mock()
+    mock_response.ok = True
+    mock_response.json = mocker.AsyncMock(return_value=fake_github_data)
+
+    mock_session_get = mocker.AsyncMock(return_value=mock_response)
+    mocker.patch("aiohttp.ClientSession.get", mock_session_get)
+
+    # Call
+    result = await subtensor.get_delegate_identities(block_hash=fake_block_hash)
+
+    # Asserts
+    mocked_query_map.assert_called_once_with(
+        module="Registry",
+        storage_function="IdentityOf",
+        block_hash=fake_block_hash,
+    )
+    mock_session_get.assert_called_once_with(async_subtensor.DELEGATES_DETAILS_URL)
+
+    assert result["delegate1_ss58"].display == "GitHub Delegate 1"
+    assert result["delegate2_ss58"].display == ""
+    assert result["delegate3_ss58"].display == "GitHub Delegate 3"
+
+
+@pytest.mark.asyncio
+async def test_is_hotkey_registered_true(subtensor, mocker):
+    """Tests is_hotkey_registered when the hotkey is registered on the netuid."""
+    # Preps
+    fake_netuid = 1
+    fake_hotkey_ss58 = "registered_hotkey"
+    fake_result = "some_value"
+    mocked_query = mocker.AsyncMock(return_value=fake_result)
+    subtensor.substrate.query = mocked_query
+
+    # Call
+    result = await subtensor.is_hotkey_registered(
+        netuid=fake_netuid, hotkey_ss58=fake_hotkey_ss58
+    )
+
+    # Asserts
+    mocked_query.assert_called_once_with(
+        module="SubtensorModule",
+        storage_function="Uids",
+        params=[fake_netuid, fake_hotkey_ss58],
+    )
+    assert result is True
+
+
+@pytest.mark.asyncio
+async def test_is_hotkey_registered_false(subtensor, mocker):
+    """Tests is_hotkey_registered when the hotkey is not registered on the netuid."""
+    # Preps
+    fake_netuid = 1
+    fake_hotkey_ss58 = "unregistered_hotkey"
+    fake_result = None
+
+    mocked_query = mocker.AsyncMock(return_value=fake_result)
+    subtensor.substrate.query = mocked_query
+
+    # Call
+    result = await subtensor.is_hotkey_registered(
+        netuid=fake_netuid, hotkey_ss58=fake_hotkey_ss58
+    )
+
+    # Asserts
+    mocked_query.assert_called_once_with(
+        module="SubtensorModule",
+        storage_function="Uids",
+        params=[fake_netuid, fake_hotkey_ss58],
+    )
+    assert result is False
