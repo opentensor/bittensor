@@ -1755,3 +1755,88 @@ async def test_get_children_substrate_request_exception(subtensor, mocker):
         fake_exception, subtensor.substrate
     )
     assert result == (False, [], "Formatted error message")
+
+
+@pytest.mark.asyncio
+async def test_get_subnet_hyperparameters_success(subtensor, mocker):
+    """Tests get_subnet_hyperparameters with successful hyperparameter retrieval."""
+    # Preps
+    fake_netuid = 1
+    fake_block_hash = "block_hash"
+    fake_hex_bytes_result = "0xaabbccdd"
+
+    mocked_query_runtime_api = mocker.AsyncMock(return_value=fake_hex_bytes_result)
+    subtensor.query_runtime_api = mocked_query_runtime_api
+
+    mocked_from_vec_u8 = mocker.Mock()
+    mocker.patch.object(
+        async_subtensor.SubnetHyperparameters, "from_vec_u8", mocked_from_vec_u8
+    )
+
+    # Call
+    result = await subtensor.get_subnet_hyperparameters(
+        netuid=fake_netuid, block_hash=fake_block_hash
+    )
+
+    # Asserts
+    mocked_query_runtime_api.assert_called_once_with(
+        runtime_api="SubnetInfoRuntimeApi",
+        method="get_subnet_hyperparams",
+        params=[fake_netuid],
+        block_hash=fake_block_hash,
+    )
+    bytes_result = bytes.fromhex(fake_hex_bytes_result[2:])
+    mocked_from_vec_u8.assert_called_once_with(bytes_result)
+    assert result == mocked_from_vec_u8.return_value
+
+
+@pytest.mark.asyncio
+async def test_get_subnet_hyperparameters_no_data(subtensor, mocker):
+    """Tests get_subnet_hyperparameters when no hyperparameters data is returned."""
+    # Preps
+    fake_netuid = 1
+
+    mocked_query_runtime_api = mocker.AsyncMock(return_value=None)
+    subtensor.query_runtime_api = mocked_query_runtime_api
+
+    # Call
+    result = await subtensor.get_subnet_hyperparameters(netuid=fake_netuid)
+
+    # Asserts
+    mocked_query_runtime_api.assert_called_once_with(
+        runtime_api="SubnetInfoRuntimeApi",
+        method="get_subnet_hyperparams",
+        params=[fake_netuid],
+        block_hash=None,
+    )
+    assert result == []
+
+
+@pytest.mark.asyncio
+async def test_get_subnet_hyperparameters_without_0x_prefix(subtensor, mocker):
+    """Tests get_subnet_hyperparameters when hex_bytes_result is without 0x prefix."""
+    # Preps
+    fake_netuid = 1
+    fake_hex_bytes_result = "aabbccdd"  # without "0x" prefix
+
+    mocked_query_runtime_api = mocker.AsyncMock(return_value=fake_hex_bytes_result)
+    subtensor.query_runtime_api = mocked_query_runtime_api
+
+    mocked_from_vec_u8 = mocker.Mock()
+    mocker.patch.object(
+        async_subtensor.SubnetHyperparameters, "from_vec_u8", mocked_from_vec_u8
+    )
+
+    # Call
+    result = await subtensor.get_subnet_hyperparameters(netuid=fake_netuid)
+
+    # Asserts
+    mocked_query_runtime_api.assert_called_once_with(
+        runtime_api="SubnetInfoRuntimeApi",
+        method="get_subnet_hyperparams",
+        params=[fake_netuid],
+        block_hash=None,
+    )
+    bytes_result = bytes.fromhex(fake_hex_bytes_result)
+    mocked_from_vec_u8.assert_called_once_with(bytes_result)
+    assert result == mocked_from_vec_u8.return_value
