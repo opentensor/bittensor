@@ -41,6 +41,36 @@ def test_decode_ss58_tuples_in_proposal_vote_data(mocker):
     ]
 
 
+def test_decode_hex_identity_dict_with_single_byte_utf8():
+    """Tests _decode_hex_identity_dict when value is a single utf-8 decodable byte."""
+    info_dict = {"name": (b"Neuron",)}
+    result = async_subtensor._decode_hex_identity_dict(info_dict)
+    assert result["name"] == "Neuron"
+
+
+def test_decode_hex_identity_dict_with_non_utf8_data(capfd):
+    """Tests _decode_hex_identity_dict when value cannot be decoded as utf-8."""
+    info_dict = {"data": (b"\xff\xfe",)}
+    result = async_subtensor._decode_hex_identity_dict(info_dict)
+    captured = capfd.readouterr()
+    assert result["data"] == (b"\xff\xfe",)
+    assert "Could not decode: data: (b'\\xff\\xfe',)" in captured.out
+
+
+def test_decode_hex_identity_dict_with_non_tuple_value():
+    """Tests _decode_hex_identity_dict when value is not a tuple."""
+    info_dict = {"info": "regular_string"}
+    result = async_subtensor._decode_hex_identity_dict(info_dict)
+    assert result["info"] == "regular_string"
+
+
+def test_decode_hex_identity_dict_with_nested_dict():
+    """Tests _decode_hex_identity_dict with a nested dictionary."""
+    info_dict = {"identity": {"rank": (65, 66, 67)}}
+    result = async_subtensor._decode_hex_identity_dict(info_dict)
+    assert result["identity"] == "41 4243"
+
+
 def test__str__return(subtensor):
     """Simply tests the result if printing subtensor instance."""
     # Asserts
@@ -963,3 +993,285 @@ async def test_neurons_lite(subtensor, mocker, fake_hex_bytes_result, response):
     else:
         mocked_neuron_info_lite_list_from_vec_u8.assert_not_called()
         assert result == []
+
+
+@pytest.mark.asyncio
+async def test_neuron_for_uid_happy_path(subtensor, mocker):
+    """Tests neuron_for_uid method with happy path."""
+    # Preps
+    fake_uid = 1
+    fake_netuid = 2
+    fake_block_hash = "block_hash"
+
+    mocked_null_neuron = mocker.Mock()
+    async_subtensor.NeuronInfo.get_null_neuron = mocked_null_neuron
+
+    # no result in response
+    mocked_substrate_rpc_request = mocker.AsyncMock(
+        return_value={"result": b"some_result"}
+    )
+    subtensor.substrate.rpc_request = mocked_substrate_rpc_request
+
+    mocked_neuron_info_from_vec_u8 = mocker.Mock()
+    async_subtensor.NeuronInfo.from_vec_u8 = mocked_neuron_info_from_vec_u8
+
+    # Call
+    result = await subtensor.neuron_for_uid(
+        uid=fake_uid, netuid=fake_netuid, block_hash=fake_block_hash
+    )
+
+    # Asserts
+    mocked_null_neuron.assert_not_called()
+    mocked_neuron_info_from_vec_u8.assert_called_once_with(
+        bytes(mocked_substrate_rpc_request.return_value.get("result"))
+    )
+    assert result == mocked_neuron_info_from_vec_u8.return_value
+
+
+@pytest.mark.asyncio
+async def test_neuron_for_uid_with_none_uid(subtensor, mocker):
+    """Tests neuron_for_uid method when uid is None."""
+    # Preps
+    fake_uid = None
+    fake_netuid = 1
+    fake_block_hash = "block_hash"
+
+    mocked_null_neuron = mocker.Mock()
+    async_subtensor.NeuronInfo.get_null_neuron = mocked_null_neuron
+
+    # Call
+    result = await subtensor.neuron_for_uid(
+        uid=fake_uid, netuid=fake_netuid, block_hash=fake_block_hash
+    )
+
+    # Asserts
+    mocked_null_neuron.assert_called_once()
+    assert result == mocked_null_neuron.return_value
+
+
+@pytest.mark.asyncio
+async def test_neuron_for_uid(subtensor, mocker):
+    """Tests neuron_for_uid method."""
+    # Preps
+    fake_uid = 1
+    fake_netuid = 2
+    fake_block_hash = "block_hash"
+
+    mocked_null_neuron = mocker.Mock()
+    async_subtensor.NeuronInfo.get_null_neuron = mocked_null_neuron
+
+    # no result in response
+    mocked_substrate_rpc_request = mocker.AsyncMock(return_value={})
+    subtensor.substrate.rpc_request = mocked_substrate_rpc_request
+
+    mocked_neuron_info_from_vec_u8 = mocker.Mock()
+    async_subtensor.NeuronInfo.from_vec_u8 = mocked_neuron_info_from_vec_u8
+
+    # Call
+    result = await subtensor.neuron_for_uid(
+        uid=fake_uid, netuid=fake_netuid, block_hash=fake_block_hash
+    )
+
+    # Asserts
+    mocked_null_neuron.assert_called_once()
+    mocked_neuron_info_from_vec_u8.assert_not_called()
+    assert result == mocked_null_neuron.return_value
+
+
+@pytest.mark.asyncio
+async def test_get_delegated_no_block_hash_no_reuse(subtensor, mocker):
+    """Tests get_delegated method with no block_hash and reuse_block=False."""
+    # Preps
+    fake_coldkey_ss58 = "fake_ss58_address"
+
+    mocked_ss58_to_vec_u8 = mocker.Mock(return_value=b"encoded_coldkey")
+    mocker.patch("bittensor.core.async_subtensor.ss58_to_vec_u8", mocked_ss58_to_vec_u8)
+
+    mocked_rpc_request = mocker.AsyncMock(return_value={"result": b"mocked_result"})
+    subtensor.substrate.rpc_request = mocked_rpc_request
+
+    mocked_delegated_list_from_vec_u8 = mocker.Mock()
+    async_subtensor.DelegateInfo.delegated_list_from_vec_u8 = (
+        mocked_delegated_list_from_vec_u8
+    )
+
+    # Call
+    result = await subtensor.get_delegated(coldkey_ss58=fake_coldkey_ss58)
+
+    # Asserts
+    mocked_ss58_to_vec_u8.assert_called_once_with(fake_coldkey_ss58)
+    mocked_rpc_request.assert_called_once_with(
+        method="delegateInfo_getDelegated", params=[b"encoded_coldkey"]
+    )
+    mocked_delegated_list_from_vec_u8.assert_called_once_with(b"mocked_result")
+    assert result == mocked_delegated_list_from_vec_u8.return_value
+
+
+@pytest.mark.asyncio
+async def test_get_delegated_with_block_hash(subtensor, mocker):
+    """Tests get_delegated method with specified block_hash."""
+    # Preps
+    fake_coldkey_ss58 = "fake_ss58_address"
+    fake_block_hash = "fake_block_hash"
+
+    mocked_ss58_to_vec_u8 = mocker.Mock(return_value=b"encoded_coldkey")
+    mocker.patch("bittensor.core.async_subtensor.ss58_to_vec_u8", mocked_ss58_to_vec_u8)
+
+    mocked_rpc_request = mocker.AsyncMock(return_value={"result": b"mocked_result"})
+    subtensor.substrate.rpc_request = mocked_rpc_request
+
+    mocked_delegated_list_from_vec_u8 = mocker.Mock()
+    async_subtensor.DelegateInfo.delegated_list_from_vec_u8 = (
+        mocked_delegated_list_from_vec_u8
+    )
+
+    # Call
+    result = await subtensor.get_delegated(
+        coldkey_ss58=fake_coldkey_ss58, block_hash=fake_block_hash
+    )
+
+    # Asserts
+    mocked_ss58_to_vec_u8.assert_called_once_with(fake_coldkey_ss58)
+    mocked_rpc_request.assert_called_once_with(
+        method="delegateInfo_getDelegated", params=[fake_block_hash, b"encoded_coldkey"]
+    )
+    mocked_delegated_list_from_vec_u8.assert_called_once_with(b"mocked_result")
+    assert result == mocked_delegated_list_from_vec_u8.return_value
+
+
+@pytest.mark.asyncio
+async def test_get_delegated_with_reuse_block(subtensor, mocker):
+    """Tests get_delegated method with reuse_block=True."""
+    # Preps
+    fake_coldkey_ss58 = "fake_ss58_address"
+    subtensor.substrate.last_block_hash = "last_block_hash"
+
+    mocked_ss58_to_vec_u8 = mocker.Mock(return_value=b"encoded_coldkey")
+    mocker.patch("bittensor.core.async_subtensor.ss58_to_vec_u8", mocked_ss58_to_vec_u8)
+
+    mocked_rpc_request = mocker.AsyncMock(return_value={"result": b"mocked_result"})
+    subtensor.substrate.rpc_request = mocked_rpc_request
+
+    mocked_delegated_list_from_vec_u8 = mocker.Mock()
+    async_subtensor.DelegateInfo.delegated_list_from_vec_u8 = (
+        mocked_delegated_list_from_vec_u8
+    )
+
+    # Call
+    result = await subtensor.get_delegated(
+        coldkey_ss58=fake_coldkey_ss58, reuse_block=True
+    )
+
+    # Asserts
+    mocked_ss58_to_vec_u8.assert_called_once_with(fake_coldkey_ss58)
+    mocked_rpc_request.assert_called_once_with(
+        method="delegateInfo_getDelegated",
+        params=["last_block_hash", b"encoded_coldkey"],
+    )
+    mocked_delegated_list_from_vec_u8.assert_called_once_with(b"mocked_result")
+    assert result == mocked_delegated_list_from_vec_u8.return_value
+
+
+@pytest.mark.asyncio
+async def test_get_delegated_with_empty_result(subtensor, mocker):
+    """Tests get_delegated method when RPC request returns an empty result."""
+    # Preps
+    fake_coldkey_ss58 = "fake_ss58_address"
+
+    mocked_ss58_to_vec_u8 = mocker.Mock(return_value=b"encoded_coldkey")
+    mocker.patch("bittensor.core.async_subtensor.ss58_to_vec_u8", mocked_ss58_to_vec_u8)
+
+    mocked_rpc_request = mocker.AsyncMock(return_value={})
+    subtensor.substrate.rpc_request = mocked_rpc_request
+
+    # Call
+    result = await subtensor.get_delegated(coldkey_ss58=fake_coldkey_ss58)
+
+    # Asserts
+    mocked_ss58_to_vec_u8.assert_called_once_with(fake_coldkey_ss58)
+    mocked_rpc_request.assert_called_once_with(
+        method="delegateInfo_getDelegated", params=[b"encoded_coldkey"]
+    )
+    assert result == []
+
+
+@pytest.mark.asyncio
+async def test_query_identity_successful(subtensor, mocker):
+    """Tests query_identity method with successful identity query."""
+    # Preps
+    fake_key = "test_key"
+    fake_block_hash = "block_hash"
+    fake_identity_info = {"info": {"stake": (b"\x01\x02",)}}
+
+    mocked_query = mocker.AsyncMock(return_value=fake_identity_info)
+    subtensor.substrate.query = mocked_query
+
+    mocker.patch(
+        "bittensor.core.async_subtensor._decode_hex_identity_dict",
+        return_value={"stake": "01 02"},
+    )
+
+    # Call
+    result = await subtensor.query_identity(key=fake_key, block_hash=fake_block_hash)
+
+    # Asserts
+    mocked_query.assert_called_once_with(
+        module="Registry",
+        storage_function="IdentityOf",
+        params=[fake_key],
+        block_hash=fake_block_hash,
+        reuse_block_hash=False,
+    )
+    assert result == {"stake": "01 02"}
+
+
+@pytest.mark.asyncio
+async def test_query_identity_no_info(subtensor, mocker):
+    """Tests query_identity method when no identity info is returned."""
+    # Preps
+    fake_key = "test_key"
+
+    mocked_query = mocker.AsyncMock(return_value=None)
+    subtensor.substrate.query = mocked_query
+
+    # Call
+    result = await subtensor.query_identity(key=fake_key)
+
+    # Asserts
+    mocked_query.assert_called_once_with(
+        module="Registry",
+        storage_function="IdentityOf",
+        params=[fake_key],
+        block_hash=None,
+        reuse_block_hash=False,
+    )
+    assert result == {}
+
+
+@pytest.mark.asyncio
+async def test_query_identity_type_error(subtensor, mocker):
+    """Tests query_identity method when a TypeError occurs during decoding."""
+    # Preps
+    fake_key = "test_key"
+    fake_identity_info = {"info": {"rank": (b"\xff\xfe",)}}
+
+    mocked_query = mocker.AsyncMock(return_value=fake_identity_info)
+    subtensor.substrate.query = mocked_query
+
+    mocker.patch(
+        "bittensor.core.async_subtensor._decode_hex_identity_dict",
+        side_effect=TypeError,
+    )
+
+    # Call
+    result = await subtensor.query_identity(key=fake_key)
+
+    # Asserts
+    mocked_query.assert_called_once_with(
+        module="Registry",
+        storage_function="IdentityOf",
+        params=[fake_key],
+        block_hash=None,
+        reuse_block_hash=False,
+    )
+    assert result == {}
