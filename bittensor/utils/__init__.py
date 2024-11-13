@@ -369,9 +369,9 @@ def validate_chain_endpoint(endpoint_url: str) -> tuple[bool, str]:
     parsed = urlparse(endpoint_url)
     if parsed.scheme not in ("ws", "wss"):
         return False, (
-            f"Invalid URL or network name provided: [bright_cyan]({endpoint_url})[/bright_cyan].\n"
-            "Allowed network names are [bright_cyan]finney, test, local[/bright_cyan]. "
-            "Valid chain endpoints should use the scheme [bright_cyan]`ws` or `wss`[/bright_cyan].\n"
+            f"Invalid URL or network name provided: ({endpoint_url}).\n"
+            "Allowed network names are finney, test, local. "
+            "Valid chain endpoints should use the scheme `ws` or `wss`.\n"
         )
     if not parsed.netloc:
         return False, "Invalid URL passed as the endpoint"
