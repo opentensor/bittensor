@@ -82,6 +82,32 @@ class ProposalVoteData:
         return [decode_account_id(line[x][0]) for x in range(len(line))]
 
 
+def _decode_hex_identity_dict(info_dictionary: dict[str, Any]) -> dict[str, Any]:
+    """Decodes a dictionary of hexadecimal identities."""
+    for k, v in info_dictionary.items():
+        if isinstance(v, dict):
+            item = next(iter(v.values()))
+        else:
+            item = v
+        if isinstance(item, tuple) and item:
+            if len(item) > 1:
+                try:
+                    info_dictionary[k] = (
+                        bytes(item).hex(sep=" ", bytes_per_sep=2).upper()
+                    )
+                except UnicodeDecodeError:
+                    print(f"Could not decode: {k}: {item}")
+            else:
+                try:
+                    info_dictionary[k] = bytes(item[0]).decode("utf-8")
+                except UnicodeDecodeError:
+                    print(f"Could not decode: {k}: {item}")
+        else:
+            info_dictionary[k] = item
+
+    return info_dictionary
+
+
 class AsyncSubtensor:
     """Thin layer for interacting with Substrate Interface. Mostly a collection of frequently-used calls."""
 
@@ -858,7 +884,6 @@ class AsyncSubtensor:
             method="neuronInfo_getNeuron",
             params=params,  # custom rpc method
         )
-
         if not (result := json_body.get("result", None)):
             return NeuronInfo.get_null_neuron()
 
@@ -924,30 +949,6 @@ class AsyncSubtensor:
             See the `Bittensor CLI documentation <https://docs.bittensor.com/reference/btcli>`_ for supported identity parameters.
         """
 
-        def decode_hex_identity_dict_(info_dictionary):
-            for k, v in info_dictionary.items():
-                if isinstance(v, dict):
-                    item = next(iter(v.values()))
-                else:
-                    item = v
-                if isinstance(item, tuple) and item:
-                    if len(item) > 1:
-                        try:
-                            info_dictionary[k] = (
-                                bytes(item).hex(sep=" ", bytes_per_sep=2).upper()
-                            )
-                        except UnicodeDecodeError:
-                            print(f"Could not decode: {k}: {item}")
-                    else:
-                        try:
-                            info_dictionary[k] = bytes(item[0]).decode("utf-8")
-                        except UnicodeDecodeError:
-                            print(f"Could not decode: {k}: {item}")
-                else:
-                    info_dictionary[k] = item
-
-            return info_dictionary
-
         identity_info = await self.substrate.query(
             module="Registry",
             storage_function="IdentityOf",
@@ -956,7 +957,7 @@ class AsyncSubtensor:
             reuse_block_hash=reuse_block,
         )
         try:
-            return decode_hex_identity_dict_(identity_info["info"])
+            return _decode_hex_identity_dict(identity_info["info"])
         except TypeError:
             return {}
 
