@@ -111,7 +111,7 @@ async def transfer_extrinsic(
     # Validate destination address.
     if not is_valid_bittensor_address_or_public_key(destination):
         logging.error(
-            f":cross_mark: <red>Invalid destination SS58 address</red>:[bold white]\n  {destination}[/bold white]"
+            f":cross_mark: <red>Invalid destination SS58 address</red>: {destination}"
         )
         return False
     logging.info(f"Initiating transfer on network: {subtensor.network}")
