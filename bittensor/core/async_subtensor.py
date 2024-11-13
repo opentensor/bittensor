@@ -117,7 +117,7 @@ class AsyncSubtensor:
             self.network = network
             if network == "local":
                 logging.warning(
-                    "[yellow]Warning[/yellow]: Verify your local subtensor is running on port 9944."
+                    "Warning: Verify your local subtensor is running on port 9944."
                 )
         else:
             is_valid, _ = validate_chain_endpoint(network)
@@ -1271,19 +1271,19 @@ class AsyncSubtensor:
 
     async def is_hotkey_registered(self, netuid: int, hotkey_ss58: str) -> bool:
         """Checks to see if the hotkey is registered on a given netuid"""
-        _result = await self.substrate.query(
+        result = await self.substrate.query(
             module="SubtensorModule",
             storage_function="Uids",
             params=[netuid, hotkey_ss58],
         )
-        if _result is not None:
+        if result is not None:
             return True
         else:
             return False
 
     async def get_uid_for_hotkey_on_subnet(
         self, hotkey_ss58: str, netuid: int, block_hash: Optional[str] = None
-    ):
+    ) -> Optional[int]:
         """
         Retrieves the unique identifier (UID) for a neuron's hotkey on a specific subnet.
 
@@ -1297,12 +1297,42 @@ class AsyncSubtensor:
 
         The UID is a critical identifier within the network, linking the neuron's hotkey to its operational and governance activities on a particular subnet.
         """
-        return self.substrate.query(
+        result = await self.substrate.query(
             module="SubtensorModule",
             storage_function="Uids",
             params=[netuid, hotkey_ss58],
             block_hash=block_hash,
         )
+        return result
+
+    async def weights_rate_limit(self, netuid: int) -> Optional[int]:
+        """
+        Returns network WeightsSetRateLimit hyperparameter.
+
+        Args:
+            netuid (int): The unique identifier of the subnetwork.
+
+        Returns:
+            Optional[int]: The value of the WeightsSetRateLimit hyperparameter, or ``None`` if the subnetwork does not exist or the parameter is not found.
+        """
+        call = await self.get_hyperparameter(
+            param_name="WeightsSetRateLimit", netuid=netuid
+        )
+        return None if call is None else int(call)
+
+    async def blocks_since_last_update(self, netuid: int, uid: int) -> Optional[int]:
+        """
+        Returns the number of blocks since the last update for a specific UID in the subnetwork.
+
+        Args:
+            netuid (int): The unique identifier of the subnetwork.
+            uid (int): The unique identifier of the neuron.
+
+        Returns:
+            Optional[int]: The number of blocks since the last update, or ``None`` if the subnetwork or UID does not exist.
+        """
+        call = await self.get_hyperparameter(param_name="LastUpdate", netuid=netuid)
+        return None if call is None else await self.get_current_block() - int(call[uid])
 
     # extrinsics
 
@@ -1445,12 +1475,15 @@ class AsyncSubtensor:
 
         This function is crucial in shaping the network's collective intelligence, where each neuron's learning and contribution are influenced by the weights it sets towards others【81†source】.
         """
-        uid = self.get_uid_for_hotkey_on_subnet(wallet.hotkey.ss58_address, netuid)
+        uid = await self.get_uid_for_hotkey_on_subnet(
+            wallet.hotkey.ss58_address, netuid
+        )
         retries = 0
         success = False
         message = "No attempt made. Perhaps it is too soon to set weights!"
         while (
-            self.blocks_since_last_update(netuid, uid) > self.weights_rate_limit(netuid)  # type: ignore
+            await self.blocks_since_last_update(netuid, uid)
+            > await self.weights_rate_limit(netuid)
             and retries < max_retries
         ):
             try:
