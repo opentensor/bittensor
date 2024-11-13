@@ -1498,3 +1498,167 @@ async def test_get_hotkey_owner_exists_but_does_not_exist_flag_false(subtensor, 
         fake_hotkey_ss58, block_hash=fake_block_hash
     )
     assert result is None
+
+
+@pytest.mark.asyncio
+async def test_sign_and_send_extrinsic_success_finalization(subtensor, mocker):
+    """Tests sign_and_send_extrinsic when the extrinsic is successfully finalized."""
+    # Preps
+    fake_call = mocker.Mock()
+    fake_wallet = mocker.Mock()
+    fake_extrinsic = mocker.Mock()
+    fake_response = mocker.Mock()
+
+    mocked_create_signed_extrinsic = mocker.AsyncMock(return_value=fake_extrinsic)
+    subtensor.substrate.create_signed_extrinsic = mocked_create_signed_extrinsic
+
+    mocked_submit_extrinsic = mocker.AsyncMock(return_value=fake_response)
+    subtensor.substrate.submit_extrinsic = mocked_submit_extrinsic
+
+    fake_response.process_events = mocker.AsyncMock()
+
+    async def fake_is_success():
+        return True
+
+    fake_response.is_success = fake_is_success()
+
+    # Call
+    result = await subtensor.sign_and_send_extrinsic(
+        call=fake_call,
+        wallet=fake_wallet,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+    # Asserts
+    mocked_create_signed_extrinsic.assert_called_once_with(
+        call=fake_call, keypair=fake_wallet.coldkey
+    )
+    mocked_submit_extrinsic.assert_called_once_with(
+        fake_extrinsic,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    fake_response.process_events.assert_awaited_once()
+    assert result == (True, "")
+
+
+@pytest.mark.asyncio
+async def test_sign_and_send_extrinsic_error_finalization(subtensor, mocker):
+    """Tests sign_and_send_extrinsic when the extrinsic is error finalized."""
+    # Preps
+    fake_call = mocker.Mock()
+    fake_wallet = mocker.Mock()
+    fake_extrinsic = mocker.Mock()
+    fake_response = mocker.Mock()
+
+    mocked_create_signed_extrinsic = mocker.AsyncMock(return_value=fake_extrinsic)
+    subtensor.substrate.create_signed_extrinsic = mocked_create_signed_extrinsic
+
+    mocked_submit_extrinsic = mocker.AsyncMock(return_value=fake_response)
+    subtensor.substrate.submit_extrinsic = mocked_submit_extrinsic
+
+    fake_response.process_events = mocker.AsyncMock()
+
+    async def fake_is_success():
+        return False
+
+    fake_response.is_success = fake_is_success()
+
+    async def fake_error_message():
+        return {"some error": "message"}
+
+    fake_response.error_message = fake_error_message()
+
+    mocked_format_error_message = mocker.Mock()
+    async_subtensor.format_error_message = mocked_format_error_message
+
+    # Call
+    result = await subtensor.sign_and_send_extrinsic(
+        call=fake_call,
+        wallet=fake_wallet,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+    # Asserts
+    mocked_create_signed_extrinsic.assert_called_once_with(
+        call=fake_call, keypair=fake_wallet.coldkey
+    )
+    mocked_submit_extrinsic.assert_called_once_with(
+        fake_extrinsic,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    fake_response.process_events.assert_awaited_once()
+    assert result == (False, mocked_format_error_message.return_value)
+
+
+@pytest.mark.asyncio
+async def test_sign_and_send_extrinsic_success_without_inclusion_finalization(
+    subtensor, mocker
+):
+    """Tests sign_and_send_extrinsic when extrinsic is submitted without waiting for inclusion or finalization."""
+    # Preps
+    fake_call = mocker.Mock()
+    fake_wallet = mocker.Mock()
+    fake_extrinsic = mocker.Mock()
+
+    mocked_create_signed_extrinsic = mocker.AsyncMock(return_value=fake_extrinsic)
+    subtensor.substrate.create_signed_extrinsic = mocked_create_signed_extrinsic
+
+    mocked_submit_extrinsic = mocker.AsyncMock()
+    subtensor.substrate.submit_extrinsic = mocked_submit_extrinsic
+
+    # Call
+    result = await subtensor.sign_and_send_extrinsic(
+        call=fake_call,
+        wallet=fake_wallet,
+        wait_for_inclusion=False,
+        wait_for_finalization=False,
+    )
+
+    # Asserts
+    mocked_create_signed_extrinsic.assert_awaited_once()
+    mocked_create_signed_extrinsic.assert_called_once_with(
+        call=fake_call, keypair=fake_wallet.coldkey
+    )
+    mocked_submit_extrinsic.assert_awaited_once()
+    mocked_submit_extrinsic.assert_called_once_with(
+        fake_extrinsic,
+        wait_for_inclusion=False,
+        wait_for_finalization=False,
+    )
+    assert result == (True, "")
+
+
+@pytest.mark.asyncio
+async def test_sign_and_send_extrinsic_substrate_request_exception(subtensor, mocker):
+    """Tests sign_and_send_extrinsic when SubstrateRequestException is raised."""
+    # Preps
+    fake_call = mocker.Mock()
+    fake_wallet = mocker.Mock()
+    fake_extrinsic = mocker.Mock()
+    fake_exception = async_subtensor.SubstrateRequestException("Test Exception")
+
+    mocked_create_signed_extrinsic = mocker.AsyncMock(return_value=fake_extrinsic)
+    subtensor.substrate.create_signed_extrinsic = mocked_create_signed_extrinsic
+
+    mocked_submit_extrinsic = mocker.AsyncMock(side_effect=fake_exception)
+    subtensor.substrate.submit_extrinsic = mocked_submit_extrinsic
+
+    mocker.patch(
+        "bittensor.core.async_subtensor.format_error_message",
+        return_value=str(fake_exception),
+    )
+
+    # Call
+    result = await subtensor.sign_and_send_extrinsic(
+        call=fake_call,
+        wallet=fake_wallet,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+    # Asserts
+    assert result == (False, str(fake_exception))
