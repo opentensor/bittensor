@@ -629,3 +629,337 @@ async def test_get_total_stake_for_hotkey(subtensor, mocker):
     )
     mocked_substrate_query_multiple.assert_called_once()
     assert result == {0: async_subtensor.Balance(1)}
+
+
+@pytest.mark.parametrize(
+    "records, response",
+    [([(0, True), (1, False), (3, False), (3, True)], [0, 3]), ([], [])],
+    ids=["with records", "empty-records"],
+)
+@pytest.mark.asyncio
+async def test_get_netuids_for_hotkey(subtensor, mocker, records, response):
+    """Tests get_netuids_for_hotkey method."""
+    # Preps
+    fake_result = mocker.AsyncMock(autospec=list)
+    fake_result.records = records
+    fake_result.__aiter__.return_value = iter(records)
+
+    mocked_substrate_query_map = mocker.AsyncMock(
+        autospec=async_subtensor.AsyncSubstrateInterface.query_map,
+        return_value=fake_result,
+    )
+
+    subtensor.substrate.query_map = mocked_substrate_query_map
+    fake_hotkey_ss58 = "hotkey_58"
+    fake_block_hash = None
+
+    # Call
+    result = await subtensor.get_netuids_for_hotkey(
+        hotkey_ss58=fake_hotkey_ss58, block_hash=fake_block_hash, reuse_block=True
+    )
+
+    # Assertions
+    mocked_substrate_query_map.assert_called_once_with(
+        module="SubtensorModule",
+        storage_function="IsNetworkMember",
+        params=[fake_hotkey_ss58],
+        block_hash=fake_block_hash,
+        reuse_block_hash=True,
+    )
+    assert result == response
+
+
+@pytest.mark.asyncio
+async def test_subnet_exists(subtensor, mocker):
+    """Tests subnet_exists method ."""
+    # Preps
+    fake_netuid = 1
+    fake_block_hash = "block_hash"
+    fake_reuse_block_hash = True
+
+    mocked_substrate_query = mocker.AsyncMock(
+        autospec=async_subtensor.AsyncSubstrateInterface.query
+    )
+    subtensor.substrate.query = mocked_substrate_query
+
+    # Call
+    result = await subtensor.subnet_exists(
+        netuid=fake_netuid,
+        block_hash=fake_block_hash,
+        reuse_block=fake_reuse_block_hash,
+    )
+
+    # Asserts
+    mocked_substrate_query.assert_called_once_with(
+        module="SubtensorModule",
+        storage_function="NetworksAdded",
+        params=[fake_netuid],
+        block_hash=fake_block_hash,
+        reuse_block_hash=fake_reuse_block_hash,
+    )
+    assert result == mocked_substrate_query.return_value
+
+
+@pytest.mark.asyncio
+async def test_get_hyperparameter_happy_path(subtensor, mocker):
+    """Tests get_hyperparameter method with happy path."""
+    # Preps
+    fake_param_name = "param_name"
+    fake_netuid = 1
+    fake_block_hash = "block_hash"
+    fake_reuse_block_hash = True
+
+    # kind of fake subnet exists
+    mocked_subtensor_subnet_exists = mocker.AsyncMock(return_value=True)
+    subtensor.subnet_exists = mocked_subtensor_subnet_exists
+
+    mocked_substrate_query = mocker.AsyncMock(
+        autospec=async_subtensor.AsyncSubstrateInterface.query
+    )
+    subtensor.substrate.query = mocked_substrate_query
+
+    # Call
+    result = await subtensor.get_hyperparameter(
+        param_name=fake_param_name,
+        netuid=fake_netuid,
+        block_hash=fake_block_hash,
+        reuse_block=fake_reuse_block_hash,
+    )
+
+    # Assertions
+    mocked_subtensor_subnet_exists.assert_called_once()
+    mocked_substrate_query.assert_called_once_with(
+        module="SubtensorModule",
+        storage_function=fake_param_name,
+        params=[fake_netuid],
+        block_hash=fake_block_hash,
+        reuse_block_hash=fake_reuse_block_hash,
+    )
+    assert result == mocked_substrate_query.return_value
+
+
+@pytest.mark.asyncio
+async def test_get_hyperparameter_if_subnet_does_not_exist(subtensor, mocker):
+    """Tests get_hyperparameter method if subnet does not exist."""
+    # Preps
+    # kind of fake subnet doesn't exist
+    mocked_subtensor_subnet_exists = mocker.AsyncMock(return_value=False)
+    subtensor.subnet_exists = mocked_subtensor_subnet_exists
+
+    mocked_substrate_query = mocker.AsyncMock(
+        autospec=async_subtensor.AsyncSubstrateInterface.query
+    )
+    subtensor.substrate.query = mocked_substrate_query
+
+    # Call
+    result = await subtensor.get_hyperparameter(mocker.Mock(), mocker.Mock())
+
+    # Assertions
+    mocked_subtensor_subnet_exists.assert_called_once()
+    mocked_substrate_query.assert_not_called()
+    assert result is None
+
+
+@pytest.mark.parametrize(
+    "all_netuids, filter_for_netuids, response",
+    [([1, 2], [3, 4], []), ([1, 2], [1, 3], [1]), ([1, 2], None, [1, 2])],
+    ids=[
+        "all arguments -> no comparison",
+        "all arguments -> is comparison",
+        "not filter_for_netuids",
+    ],
+)
+@pytest.mark.asyncio
+async def test_filter_netuids_by_registered_hotkeys(
+    subtensor, mocker, all_netuids, filter_for_netuids, response
+):
+    """Tests filter_netuids_by_registered_hotkeys method."""
+    # Preps
+    fake_wallet_1 = mocker.Mock(autospec=async_subtensor.Wallet)
+    fake_wallet_1.hotkey.ss58_address = "ss58_address_1"
+    fake_wallet_2 = mocker.Mock(autospec=async_subtensor.Wallet)
+    fake_wallet_2.hotkey.ss58_address = "ss58_address_2"
+
+    fake_all_netuids = all_netuids
+    fake_filter_for_netuids = filter_for_netuids
+    fake_all_hotkeys = [fake_wallet_1, fake_wallet_2]
+    fake_block_hash = "fake_block_hash"
+    fake_reuse_block = True
+
+    mocked_get_netuids_for_hotkey = mocker.AsyncMock(
+        # returned subnets list
+        return_value=[1, 2]
+    )
+    subtensor.get_netuids_for_hotkey = mocked_get_netuids_for_hotkey
+
+    # Call
+
+    result = await subtensor.filter_netuids_by_registered_hotkeys(
+        all_netuids=fake_all_netuids,
+        filter_for_netuids=fake_filter_for_netuids,
+        all_hotkeys=fake_all_hotkeys,
+        block_hash=fake_block_hash,
+        reuse_block=fake_reuse_block,
+    )
+
+    # Asserts
+    mocked_get_netuids_for_hotkey.call_count = len(fake_all_netuids)
+    assert mocked_get_netuids_for_hotkey.mock_calls == [
+        mocker.call(
+            w.hotkey.ss58_address,
+            block_hash=fake_block_hash,
+            reuse_block=fake_reuse_block,
+        )
+        for w in fake_all_hotkeys
+    ]
+    assert result == response
+
+
+@pytest.mark.asyncio
+async def test_get_existential_deposit_happy_path(subtensor, mocker):
+    """Tests get_existential_deposit method."""
+    # Preps
+    fake_block_hash = "block_hash"
+    fake_reuse_block_hash = True
+
+    mocked_substrate_get_constant = mocker.AsyncMock(return_value=1)
+    subtensor.substrate.get_constant = mocked_substrate_get_constant
+
+    spy_balance_from_rao = mocker.spy(async_subtensor.Balance, "from_rao")
+
+    # Call
+    result = await subtensor.get_existential_deposit(
+        block_hash=fake_block_hash, reuse_block=fake_reuse_block_hash
+    )
+
+    # Asserts
+    mocked_substrate_get_constant.assert_awaited_once()
+    mocked_substrate_get_constant.assert_called_once_with(
+        module_name="Balances",
+        constant_name="ExistentialDeposit",
+        block_hash=fake_block_hash,
+        reuse_block_hash=fake_reuse_block_hash,
+    )
+    spy_balance_from_rao.assert_called_once_with(
+        mocked_substrate_get_constant.return_value
+    )
+    assert result == async_subtensor.Balance(mocked_substrate_get_constant.return_value)
+
+
+@pytest.mark.asyncio
+async def test_get_existential_deposit_raise_exception(subtensor, mocker):
+    """Tests get_existential_deposit method raise Exception."""
+    # Preps
+    fake_block_hash = "block_hash"
+    fake_reuse_block_hash = True
+
+    mocked_substrate_get_constant = mocker.AsyncMock(return_value=None)
+    subtensor.substrate.get_constant = mocked_substrate_get_constant
+
+    spy_balance_from_rao = mocker.spy(async_subtensor.Balance, "from_rao")
+
+    # Call
+    with pytest.raises(Exception):
+        await subtensor.get_existential_deposit(
+            block_hash=fake_block_hash, reuse_block=fake_reuse_block_hash
+        )
+
+    # Asserts
+    mocked_substrate_get_constant.assert_awaited_once()
+    mocked_substrate_get_constant.assert_called_once_with(
+        module_name="Balances",
+        constant_name="ExistentialDeposit",
+        block_hash=fake_block_hash,
+        reuse_block_hash=fake_reuse_block_hash,
+    )
+    spy_balance_from_rao.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_neurons(subtensor, mocker):
+    """Tests neurons method."""
+    # Preps
+    fake_netuid = 1
+    fake_block_hash = "block_hash"
+    fake_neurons = [mocker.Mock(), mocker.Mock()]
+    fake_weights = [(1, [(10, 20), (30, 40)]), (2, [(50, 60), (70, 80)])]
+    fake_bonds = [(1, [(10, 20), (30, 40)]), (2, [(50, 60), (70, 80)])]
+
+    mocked_neurons_lite = mocker.AsyncMock(return_value=fake_neurons)
+    subtensor.neurons_lite = mocked_neurons_lite
+
+    mocked_weights = mocker.AsyncMock(return_value=fake_weights)
+    subtensor.weights = mocked_weights
+
+    mocked_bonds = mocker.AsyncMock(return_value=fake_bonds)
+    subtensor.bonds = mocked_bonds
+
+    mocked_neuron_info_method = mocker.Mock()
+    async_subtensor.NeuronInfo.from_weights_bonds_and_neuron_lite = (
+        mocked_neuron_info_method
+    )
+
+    # Call
+    result = await subtensor.neurons(netuid=fake_netuid, block_hash=fake_block_hash)
+
+    # Asserts
+    mocked_neurons_lite.assert_awaited_once()
+    mocked_neurons_lite.assert_called_once_with(
+        netuid=fake_netuid, block_hash=fake_block_hash
+    )
+    mocked_weights.assert_awaited_once()
+    mocked_weights.assert_called_once_with(
+        netuid=fake_netuid, block_hash=fake_block_hash
+    )
+    mocked_bonds.assert_awaited_once()
+    mocked_bonds.assert_called_once_with(netuid=fake_netuid, block_hash=fake_block_hash)
+    assert result == [
+        mocked_neuron_info_method.return_value for _ in range(len(fake_neurons))
+    ]
+
+
+@pytest.mark.parametrize(
+    "fake_hex_bytes_result, response",
+    [(None, []), ("0xaabbccdd", b"\xaa\xbb\xcc\xdd")],
+    ids=["none", "with data"],
+)
+@pytest.mark.asyncio
+async def test_neurons_lite(subtensor, mocker, fake_hex_bytes_result, response):
+    """Tests neurons_lite method."""
+    # Preps
+    fake_netuid = 1
+    fake_block_hash = "block_hash"
+    fake_reuse_block_hash = True
+
+    mocked_query_runtime_api = mocker.AsyncMock(return_value=fake_hex_bytes_result)
+    subtensor.query_runtime_api = mocked_query_runtime_api
+
+    mocked_neuron_info_lite_list_from_vec_u8 = mocker.Mock()
+    async_subtensor.NeuronInfoLite.list_from_vec_u8 = (
+        mocked_neuron_info_lite_list_from_vec_u8
+    )
+
+    # Call
+    result = await subtensor.neurons_lite(
+        netuid=fake_netuid,
+        block_hash=fake_block_hash,
+        reuse_block=fake_reuse_block_hash,
+    )
+
+    # Assertions
+    mocked_query_runtime_api.assert_awaited_once()
+    mocked_query_runtime_api.assert_called_once_with(
+        runtime_api="NeuronInfoRuntimeApi",
+        method="get_neurons_lite",
+        params=[fake_netuid],
+        block_hash=fake_block_hash,
+        reuse_block=fake_reuse_block_hash,
+    )
+    if fake_hex_bytes_result:
+        mocked_neuron_info_lite_list_from_vec_u8.assert_called_once_with(
+            bytes.fromhex(fake_hex_bytes_result[2:])
+        )
+        assert result == mocked_neuron_info_lite_list_from_vec_u8.return_value
+    else:
+        mocked_neuron_info_lite_list_from_vec_u8.assert_not_called()
+        assert result == []
