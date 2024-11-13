@@ -4,7 +4,7 @@ aiohttp~=3.9
 async-property==0.2.2
 backoff
 bittensor-cli
-bt-decode
+bt-decode==0.2.0a0
 colorama~=0.4.6
 fastapi~=0.110.1
 munch~=2.5.0
