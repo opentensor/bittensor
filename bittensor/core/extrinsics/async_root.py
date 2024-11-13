@@ -4,11 +4,10 @@ from typing import Union, TYPE_CHECKING
 
 import numpy as np
 from bittensor_wallet import Wallet
-from bittensor_wallet.errors import KeyFileError
 from numpy.typing import NDArray
 from substrateinterface.exceptions import SubstrateRequestException
 
-from bittensor.utils import u16_normalized_float, format_error_message
+from bittensor.utils import u16_normalized_float, format_error_message, unlock_key
 from bittensor.utils.btlogging import logging
 from bittensor.utils.weight_utils import (
     normalize_max_weight,
@@ -63,10 +62,8 @@ async def root_register_extrinsic(
         `True` if extrinsic was finalized or included in the block. If we did not wait for finalization/inclusion, the response is `True`.
     """
 
-    try:
-        wallet.unlock_coldkey()
-    except KeyFileError:
-        logging.error("Error decrypting coldkey (possibly incorrect password)")
+    if not (unlock := unlock_key(wallet)).success:
+        logging.error(unlock.message)
         return False
 
     logging.debug(
@@ -182,10 +179,8 @@ async def set_root_weights_extrinsic(
         logging.error("Your hotkey is not registered to the root network.")
         return False
 
-    try:
-        wallet.unlock_coldkey()
-    except KeyFileError:
-        logging.error("Error decrypting coldkey (possibly incorrect password).")
+    if not (unlock := unlock_key(wallet)).success:
+        logging.error(unlock.message)
         return False
 
     # First convert types.

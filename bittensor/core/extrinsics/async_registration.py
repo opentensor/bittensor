@@ -21,13 +21,12 @@ import backoff
 import numpy as np
 from Crypto.Hash import keccak
 from bittensor_wallet import Wallet
-from bittensor_wallet.errors import KeyFileError
 from rich.console import Console
 from rich.status import Status
 from substrateinterface.exceptions import SubstrateRequestException
 
 from bittensor.core.chain_data import NeuronInfo
-from bittensor.utils import format_error_message
+from bittensor.utils import format_error_message, unlock_key
 from bittensor.utils.btlogging import logging
 from bittensor.utils.formatting import millify, get_human_readable
 
@@ -673,10 +672,8 @@ async def run_faucet_extrinsic(
         return False, "Requires torch"
 
     # Unlock coldkey
-    try:
-        wallet.unlock_coldkey()
-    except KeyFileError:
-        return False, "There was an error unlocking your coldkey"
+    if not (unlock := unlock_key(wallet)).success:
+        return False, unlock.message
 
     # Get previous balance.
     old_balance = await subtensor.get_balance(wallet.coldkeypub.ss58_address)
