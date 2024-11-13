@@ -677,9 +677,6 @@ class AsyncSubtensor:
             reuse_block_hash=reuse_block,
         )
 
-        if result is None:
-            return None
-
         return result
 
     async def filter_netuids_by_registered_hotkeys(
