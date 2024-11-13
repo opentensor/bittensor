@@ -48,13 +48,11 @@ def test_decode_hex_identity_dict_with_single_byte_utf8():
     assert result["name"] == "Neuron"
 
 
-def test_decode_hex_identity_dict_with_non_utf8_data(capfd):
+def test_decode_hex_identity_dict_with_non_utf8_data():
     """Tests _decode_hex_identity_dict when value cannot be decoded as utf-8."""
     info_dict = {"data": (b"\xff\xfe",)}
     result = async_subtensor._decode_hex_identity_dict(info_dict)
-    captured = capfd.readouterr()
     assert result["data"] == (b"\xff\xfe",)
-    assert "Could not decode: data: (b'\\xff\\xfe',)" in captured.out
 
 
 def test_decode_hex_identity_dict_with_non_tuple_value():

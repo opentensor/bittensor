@@ -96,12 +96,12 @@ def _decode_hex_identity_dict(info_dictionary: dict[str, Any]) -> dict[str, Any]
                         bytes(item).hex(sep=" ", bytes_per_sep=2).upper()
                     )
                 except UnicodeDecodeError:
-                    print(f"Could not decode: {k}: {item}")
+                    logging.error(f"Could not decode: {k}: {item}.")
             else:
                 try:
                     info_dictionary[k] = bytes(item[0]).decode("utf-8")
                 except UnicodeDecodeError:
-                    print(f"Could not decode: {k}: {item}")
+                    logging.error(f"Could not decode: {k}: {item}.")
         else:
             info_dictionary[k] = item
 
