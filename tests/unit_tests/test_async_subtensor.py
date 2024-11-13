@@ -1647,8 +1647,9 @@ async def test_sign_and_send_extrinsic_substrate_request_exception(subtensor, mo
     mocked_submit_extrinsic = mocker.AsyncMock(side_effect=fake_exception)
     subtensor.substrate.submit_extrinsic = mocked_submit_extrinsic
 
-    mocker.patch(
-        "bittensor.core.async_subtensor.format_error_message",
+    mocker.patch.object(
+        async_subtensor,
+        "format_error_message",
         return_value=str(fake_exception),
     )
 
@@ -2005,3 +2006,97 @@ async def test_is_hotkey_registered_false(subtensor, mocker):
         params=[fake_netuid, fake_hotkey_ss58],
     )
     assert result is False
+
+
+@pytest.mark.asyncio
+async def test_get_uid_for_hotkey_on_subnet_registered(subtensor, mocker):
+    """Tests get_uid_for_hotkey_on_subnet when the hotkey is registered and has a UID."""
+    # Preps
+    fake_hotkey_ss58 = "registered_hotkey"
+    fake_netuid = 1
+    fake_block_hash = "block_hash"
+    fake_uid = 123
+
+    mocked_query = mocker.AsyncMock(return_value=fake_uid)
+    subtensor.substrate.query = mocked_query
+
+    # Call
+    result = await subtensor.get_uid_for_hotkey_on_subnet(
+        hotkey_ss58=fake_hotkey_ss58, netuid=fake_netuid, block_hash=fake_block_hash
+    )
+
+    # Asserts
+    mocked_query.assert_called_once_with(
+        module="SubtensorModule",
+        storage_function="Uids",
+        params=[fake_netuid, fake_hotkey_ss58],
+        block_hash=fake_block_hash,
+    )
+    assert result == fake_uid
+
+
+@pytest.mark.asyncio
+async def test_get_uid_for_hotkey_on_subnet_not_registered(subtensor, mocker):
+    """Tests get_uid_for_hotkey_on_subnet when the hotkey is not registered on the subnet."""
+    # Preps
+    fake_hotkey_ss58 = "unregistered_hotkey"
+    fake_netuid = 1
+    fake_block_hash = "block_hash"
+    fake_result = None
+
+    mocked_query = mocker.AsyncMock(return_value=fake_result)
+    subtensor.substrate.query = mocked_query
+
+    # Call
+    result = await subtensor.get_uid_for_hotkey_on_subnet(
+        hotkey_ss58=fake_hotkey_ss58, netuid=fake_netuid, block_hash=fake_block_hash
+    )
+
+    # Asserts
+    mocked_query.assert_called_once_with(
+        module="SubtensorModule",
+        storage_function="Uids",
+        params=[fake_netuid, fake_hotkey_ss58],
+        block_hash=fake_block_hash,
+    )
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_weights_rate_limit_success(subtensor, mocker):
+    """Tests weights_rate_limit when the hyperparameter value is successfully retrieved."""
+    # Preps
+    fake_netuid = 1
+    fake_rate_limit = 10
+
+    mocked_get_hyperparameter = mocker.AsyncMock(return_value=fake_rate_limit)
+    subtensor.get_hyperparameter = mocked_get_hyperparameter
+
+    # Call
+    result = await subtensor.weights_rate_limit(netuid=fake_netuid)
+
+    # Asserts
+    mocked_get_hyperparameter.assert_called_once_with(
+        param_name="WeightsSetRateLimit", netuid=fake_netuid
+    )
+    assert result == fake_rate_limit
+
+
+@pytest.mark.asyncio
+async def test_weights_rate_limit_none(subtensor, mocker):
+    """Tests weights_rate_limit when the hyperparameter value is not found."""
+    # Preps
+    fake_netuid = 1
+    fake_result = None
+
+    mocked_get_hyperparameter = mocker.AsyncMock(return_value=fake_result)
+    subtensor.get_hyperparameter = mocked_get_hyperparameter
+
+    # Call
+    result = await subtensor.weights_rate_limit(netuid=fake_netuid)
+
+    # Asserts
+    mocked_get_hyperparameter.assert_called_once_with(
+        param_name="WeightsSetRateLimit", netuid=fake_netuid
+    )
+    assert result is None
