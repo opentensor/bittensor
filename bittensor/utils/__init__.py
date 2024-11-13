@@ -15,10 +15,11 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from urllib.parse import urlparse
 import ast
+from collections import namedtuple
 import hashlib
 from typing import Any, Literal, Union, Optional, TYPE_CHECKING
+from urllib.parse import urlparse
 
 import scalecodec
 from bittensor_wallet import Keypair
@@ -26,16 +27,21 @@ from substrateinterface.utils import ss58
 
 from bittensor.core.settings import SS58_FORMAT
 from bittensor.utils.btlogging import logging
+from bittensor_wallet.errors import KeyFileError, PasswordError
 from .registration import torch, use_torch
 from .version import version_checking, check_version, VersionCheckError
 
 if TYPE_CHECKING:
     from bittensor.utils.async_substrate_interface import AsyncSubstrateInterface
     from substrateinterface import SubstrateInterface
+    from bittensor_wallet import Wallet
 
 RAOPERTAO = 1e9
 U16_MAX = 65535
 U64_MAX = 18446744073709551615
+
+
+UnlockStatus = namedtuple("UnlockStatus", ["success", "message"])
 
 
 def ss58_to_vec_u8(ss58_address: str) -> list[int]:
@@ -370,3 +376,30 @@ def validate_chain_endpoint(endpoint_url: str) -> tuple[bool, str]:
     if not parsed.netloc:
         return False, "Invalid URL passed as the endpoint"
     return True, ""
+
+
+def unlock_key(wallet: "Wallet", unlock_type="coldkey") -> "UnlockStatus":
+    """
+    Attempts to decrypt a wallet's coldkey or hotkey
+    Args:
+        wallet: a Wallet object
+        unlock_type: the key type, 'coldkey' or 'hotkey'
+    Returns: UnlockStatus for success status of unlock, with error message if unsuccessful
+    """
+    if unlock_type == "coldkey":
+        unlocker = "unlock_coldkey"
+    elif unlock_type == "hotkey":
+        unlocker = "unlock_hotkey"
+    else:
+        raise ValueError(
+            f"Invalid unlock type provided: {unlock_type}. Must be 'coldkey' or 'hotkey'."
+        )
+    try:
+        getattr(wallet, unlocker)()
+        return UnlockStatus(True, "")
+    except PasswordError:
+        err_msg = f"The password used to decrypt your {unlock_type.capitalize()} keyfile is invalid."
+        return UnlockStatus(False, err_msg)
+    except KeyFileError:
+        err_msg = f"{unlock_type.capitalize()} keyfile is corrupt, non-writable, or non-readable, or non-existent."
+        return UnlockStatus(False, err_msg)

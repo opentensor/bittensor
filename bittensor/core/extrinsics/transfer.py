@@ -23,6 +23,7 @@ from bittensor.utils import (
     get_explorer_url_for_network,
     format_error_message,
     is_valid_bittensor_address_or_public_key,
+    unlock_key,
 )
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
@@ -120,8 +121,9 @@ def transfer_extrinsic(
         # Convert bytes to hex string.
         dest = "0x" + dest.hex()
 
-    # Unlock wallet coldkey.
-    wallet.unlock_coldkey()
+    if not (unlock := unlock_key(wallet)).success:
+        logging.error(unlock.message)
+        return False
 
     # Convert to bittensor.Balance
     if not isinstance(amount, Balance):
