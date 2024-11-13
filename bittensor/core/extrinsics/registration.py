@@ -18,9 +18,8 @@
 import time
 from typing import Union, Optional, TYPE_CHECKING
 
-from bittensor_wallet.errors import KeyFileError
 
-from bittensor.utils import format_error_message
+from bittensor.utils import format_error_message, unlock_key
 from bittensor.utils.btlogging import logging
 from bittensor.utils.networking import ensure_connected
 from bittensor.utils.registration import (
@@ -347,13 +346,10 @@ def burned_register_extrinsic(
         )
         return False
 
-    try:
-        wallet.unlock_coldkey()
-    except KeyFileError:
-        logging.error(
-            ":cross_mark: <red>Keyfile is corrupt, non-writable, non-readable or the password used to decrypt is invalid.</red>"
-        )
+    if not (unlock := unlock_key(wallet)).success:
+        logging.error(unlock.message)
         return False
+
     logging.info(
         f":satellite: <magenta>Checking Account on subnet</magenta> <blue>{netuid}</blue><magenta> ...</magenta>"
     )
