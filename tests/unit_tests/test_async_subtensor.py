@@ -1662,3 +1662,96 @@ async def test_sign_and_send_extrinsic_substrate_request_exception(subtensor, mo
 
     # Asserts
     assert result == (False, str(fake_exception))
+
+
+@pytest.mark.asyncio
+async def test_get_children_success(subtensor, mocker):
+    """Tests get_children when children are successfully retrieved and formatted."""
+    # Preps
+    fake_hotkey = "valid_hotkey"
+    fake_netuid = 1
+    fake_children = [
+        (1000, ["child_key_1"]),
+        (2000, ["child_key_2"]),
+    ]
+
+    mocked_query = mocker.AsyncMock(return_value=fake_children)
+    subtensor.substrate.query = mocked_query
+
+    mocked_decode_account_id = mocker.Mock(
+        side_effect=["decoded_child_key_1", "decoded_child_key_2"]
+    )
+    mocker.patch.object(async_subtensor, "decode_account_id", mocked_decode_account_id)
+
+    expected_formatted_children = [
+        (1000, "decoded_child_key_1"),
+        (2000, "decoded_child_key_2"),
+    ]
+
+    # Call
+    result = await subtensor.get_children(hotkey=fake_hotkey, netuid=fake_netuid)
+
+    # Asserts
+    mocked_query.assert_called_once_with(
+        module="SubtensorModule",
+        storage_function="ChildKeys",
+        params=[fake_hotkey, fake_netuid],
+    )
+    mocked_decode_account_id.assert_has_calls(
+        [mocker.call("child_key_1"), mocker.call("child_key_2")]
+    )
+    assert result == (True, expected_formatted_children, "")
+
+
+@pytest.mark.asyncio
+async def test_get_children_no_children(subtensor, mocker):
+    """Tests get_children when there are no children to retrieve."""
+    # Preps
+    fake_hotkey = "valid_hotkey"
+    fake_netuid = 1
+    fake_children = []
+
+    mocked_query = mocker.AsyncMock(return_value=fake_children)
+    subtensor.substrate.query = mocked_query
+
+    # Call
+    result = await subtensor.get_children(hotkey=fake_hotkey, netuid=fake_netuid)
+
+    # Asserts
+    mocked_query.assert_called_once_with(
+        module="SubtensorModule",
+        storage_function="ChildKeys",
+        params=[fake_hotkey, fake_netuid],
+    )
+    assert result == (True, [], "")
+
+
+@pytest.mark.asyncio
+async def test_get_children_substrate_request_exception(subtensor, mocker):
+    """Tests get_children when SubstrateRequestException is raised."""
+    # Preps
+    fake_hotkey = "valid_hotkey"
+    fake_netuid = 1
+    fake_exception = async_subtensor.SubstrateRequestException("Test Exception")
+
+    mocked_query = mocker.AsyncMock(side_effect=fake_exception)
+    subtensor.substrate.query = mocked_query
+
+    mocked_format_error_message = mocker.Mock(return_value="Formatted error message")
+    mocker.patch.object(
+        async_subtensor, "format_error_message", mocked_format_error_message
+    )
+
+    # Call
+    result = await subtensor.get_children(hotkey=fake_hotkey, netuid=fake_netuid)
+
+    # Asserts
+    mocked_query.assert_called_once_with(
+        module="SubtensorModule",
+        storage_function="ChildKeys",
+        params=[fake_hotkey, fake_netuid],
+    )
+    mocked_format_error_message.assert_called_once_with(
+        fake_exception, subtensor.substrate
+    )
+    assert result == (False, [], "Formatted error message")
