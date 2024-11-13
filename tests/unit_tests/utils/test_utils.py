@@ -217,7 +217,7 @@ def test_unlock_key_raise_value_error(mocker):
     ids=["PasswordError", "KeyFileError"],
 )
 def test_unlock_key_errors(mocker, side_effect, response):
-    """Test the unlock key function handle the errors."""
+    """Test the unlock key function handles the errors."""
     mock_wallet = mocker.Mock(autospec=Wallet)
     mock_wallet.unlock_coldkey.side_effect = side_effect
     result = utils.unlock_key(wallet=mock_wallet)
