@@ -1,5 +1,23 @@
 # Changelog
 
+## 8.2.1 /2024-11-06
+
+## What's Changed
+
+* Expands the type registry to include all the available options by @thewhaleking in https://github.com/opentensor/bittensor/pull/2353
+* add `Subtensor.register`, `Subtensor.difficulty` and related staff with tests by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2352
+* added to Subtensor: `burned_register`, `get_subnet_burn_cost`, `recycle` and related extrinsics by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2359
+* Poem "Risen from the Past". Act 3. by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2363
+* default port from 9946 to 9944 by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2376
+* remove unused prometheus extrinsic by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2378
+* Replace rich.console to btlogging.loggin by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2377
+* Backmerge 8.2.0 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2389
+* Add subvortex subnet and tests by @roman-opentensor  in https://github.com/opentensor/bittensor/pull/2395
+* Handle SSL Error on Connection by @thewhaleking  in https://github.com/opentensor/bittensor/pull/2384
+* Avoid using prompt in SDK by @roman-opentensor  in https://github.com/opentensor/bittensor/pull/2382
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v8.2.0...v8.2.1
+
 ## 8.2.0 /2024-10-10
 
 ## What's Changed
