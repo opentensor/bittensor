@@ -19,8 +19,6 @@
 
 from typing import Optional, TYPE_CHECKING
 
-from retry import retry
-
 from bittensor.core.extrinsics.utils import submit_extrinsic
 from bittensor.utils import format_error_message
 from bittensor.utils.btlogging import logging
@@ -60,37 +58,33 @@ def do_commit_weights(
     This method ensures that the weight commitment is securely recorded on the Bittensor blockchain, providing a verifiable record of the neuron's weight distribution at a specific point in time.
     """
 
-    @retry(delay=1, tries=3, backoff=2, max_delay=4)
-    def make_substrate_call_with_retry():
-        call = self.substrate.compose_call(
-            call_module="SubtensorModule",
-            call_function="commit_weights",
-            call_params={
-                "netuid": netuid,
-                "commit_hash": commit_hash,
-            },
-        )
-        extrinsic = self.substrate.create_signed_extrinsic(
-            call=call,
-            keypair=wallet.hotkey,
-        )
-        response = submit_extrinsic(
-            substrate=self.substrate,
-            extrinsic=extrinsic,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-        )
+    call = self.substrate.compose_call(
+        call_module="SubtensorModule",
+        call_function="commit_weights",
+        call_params={
+            "netuid": netuid,
+            "commit_hash": commit_hash,
+        },
+    )
+    extrinsic = self.substrate.create_signed_extrinsic(
+        call=call,
+        keypair=wallet.hotkey,
+    )
+    response = submit_extrinsic(
+        substrate=self.substrate,
+        extrinsic=extrinsic,
+        wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization,
+    )
 
-        if not wait_for_finalization and not wait_for_inclusion:
-            return True, None
+    if not wait_for_finalization and not wait_for_inclusion:
+        return True, None
 
-        response.process_events()
-        if response.is_success:
-            return True, None
-        else:
-            return False, response.error_message
-
-    return make_substrate_call_with_retry()
+    response.process_events()
+    if response.is_success:
+        return True, None
+    else:
+        return False, response.error_message
 
 
 def commit_weights_extrinsic(
@@ -133,7 +127,9 @@ def commit_weights_extrinsic(
         logging.info(success_message)
         return True, success_message
     else:
-        error_message = format_error_message(error_message)
+        error_message = format_error_message(
+            error_message, substrate=subtensor.substrate
+        )
         logging.error(f"Failed to commit weights: {error_message}")
         return False, error_message
 
@@ -172,40 +168,36 @@ def do_reveal_weights(
     This method ensures that the weight revelation is securely recorded on the Bittensor blockchain, providing transparency and accountability for the neuron's weight distribution.
     """
 
-    @retry(delay=1, tries=3, backoff=2, max_delay=4)
-    def make_substrate_call_with_retry():
-        call = self.substrate.compose_call(
-            call_module="SubtensorModule",
-            call_function="reveal_weights",
-            call_params={
-                "netuid": netuid,
-                "uids": uids,
-                "values": values,
-                "salt": salt,
-                "version_key": version_key,
-            },
-        )
-        extrinsic = self.substrate.create_signed_extrinsic(
-            call=call,
-            keypair=wallet.hotkey,
-        )
-        response = submit_extrinsic(
-            substrate=self.substrate,
-            extrinsic=extrinsic,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-        )
+    call = self.substrate.compose_call(
+        call_module="SubtensorModule",
+        call_function="reveal_weights",
+        call_params={
+            "netuid": netuid,
+            "uids": uids,
+            "values": values,
+            "salt": salt,
+            "version_key": version_key,
+        },
+    )
+    extrinsic = self.substrate.create_signed_extrinsic(
+        call=call,
+        keypair=wallet.hotkey,
+    )
+    response = submit_extrinsic(
+        substrate=self.substrate,
+        extrinsic=extrinsic,
+        wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization,
+    )
 
-        if not wait_for_finalization and not wait_for_inclusion:
-            return True, None
+    if not wait_for_finalization and not wait_for_inclusion:
+        return True, None
 
-        response.process_events()
-        if response.is_success:
-            return True, None
-        else:
-            return False, response.error_message
-
-    return make_substrate_call_with_retry()
+    response.process_events()
+    if response.is_success:
+        return True, None
+    else:
+        return False, response.error_message
 
 
 def reveal_weights_extrinsic(
@@ -257,6 +249,8 @@ def reveal_weights_extrinsic(
         logging.info(success_message)
         return True, success_message
     else:
-        error_message = format_error_message(error_message)
+        error_message = format_error_message(
+            error_message, substrate=subtensor.substrate
+        )
         logging.error(f"Failed to reveal weights: {error_message}")
         return False, error_message

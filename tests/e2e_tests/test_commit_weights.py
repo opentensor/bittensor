@@ -3,8 +3,9 @@ import time
 import numpy as np
 import pytest
 
-import bittensor
-from bittensor import logging
+from bittensor.core.subtensor import Subtensor
+from bittensor.utils.balance import Balance
+from bittensor.utils.btlogging import logging
 from bittensor.utils.weight_utils import convert_weights_and_uids_for_emit
 from tests.e2e_tests.utils.chain_interactions import (
     add_stake,
@@ -48,7 +49,7 @@ async def test_commit_and_reveal_weights(local_chain):
     ), "Unable to register Alice as a neuron"
 
     # Stake to become to top neuron after the first epoch
-    add_stake(local_chain, alice_wallet, bittensor.Balance.from_tao(100_000))
+    add_stake(local_chain, alice_wallet, Balance.from_tao(100_000))
 
     # Enable commit_reveal on the subnet
     assert sudo_set_hyperparameter_bool(
@@ -59,7 +60,7 @@ async def test_commit_and_reveal_weights(local_chain):
         netuid,
     ), "Unable to enable commit reveal on the subnet"
 
-    subtensor = bittensor.Subtensor(network="ws://localhost:9945")
+    subtensor = Subtensor(network="ws://localhost:9945")
     assert subtensor.get_subnet_hyperparameters(
         netuid=netuid,
     ).commit_reveal_weights_enabled, "Failed to enable commit/reveal"
@@ -91,6 +92,7 @@ async def test_commit_and_reveal_weights(local_chain):
         call_params={"netuid": netuid, "weights_set_rate_limit": "0"},
         return_error_message=True,
     )
+
     assert (
         subtensor.get_subnet_hyperparameters(netuid=netuid).weights_rate_limit == 0
     ), "Failed to set weights_rate_limit"

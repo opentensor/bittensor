@@ -298,7 +298,7 @@ def process_weights_for_netuid(
             if use_torch()
             else np.ones((metagraph.n), dtype=np.int64) / metagraph.n
         )
-        logging.debug("final_weights", final_weights)
+        logging.debug("final_weights", *final_weights)
         final_weights_count = (
             torch.tensor(list(range(len(final_weights))))
             if use_torch()
@@ -356,7 +356,7 @@ def process_weights_for_netuid(
     normalized_weights = normalize_max_weight(
         x=non_zero_weights, limit=max_weight_limit
     )
-    logging.debug("final_weights", normalized_weights)
+    logging.debug("final_weights", *normalized_weights)
 
     return non_zero_weight_uids, normalized_weights
 

@@ -15,12 +15,10 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import logging
 from typing import Union, Optional, TYPE_CHECKING
 
 import numpy as np
 from numpy.typing import NDArray
-from retry import retry
 
 from bittensor.core.extrinsics.utils import submit_extrinsic
 from bittensor.core.settings import version_as_int
@@ -46,7 +44,8 @@ def do_set_weights(
     version_key: int = version_as_int,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
-) -> tuple[bool, Optional[dict]]:  # (success, error_message)
+    period: int = 5,
+) -> tuple[bool, Optional[str]]:  # (success, error_message)
     """
     Internal method to send a transaction to the Bittensor blockchain, setting weights for specified neurons. This method constructs and submits the transaction, handling retries and blockchain communication.
 
@@ -59,6 +58,7 @@ def do_set_weights(
         version_key (int): Version key for compatibility with the network.
         wait_for_inclusion (bool): Waits for the transaction to be included in a block.
         wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
+        period (int): Period dictates how long the extrinsic will stay as part of waiting pool.
 
     Returns:
         tuple[bool, Optional[str]]: A tuple containing a success flag and an optional response message.
@@ -66,41 +66,39 @@ def do_set_weights(
     This method is vital for the dynamic weighting mechanism in Bittensor, where neurons adjust their trust in other neurons based on observed performance and contributions.
     """
 
-    @retry(delay=1, tries=3, backoff=2, max_delay=4)
-    def make_substrate_call_with_retry():
-        call = self.substrate.compose_call(
-            call_module="SubtensorModule",
-            call_function="set_weights",
-            call_params={
-                "dests": uids,
-                "weights": vals,
-                "netuid": netuid,
-                "version_key": version_key,
-            },
-        )
-        # Period dictates how long the extrinsic will stay as part of waiting pool
-        extrinsic = self.substrate.create_signed_extrinsic(
-            call=call,
-            keypair=wallet.hotkey,
-            era={"period": 5},
-        )
-        response = submit_extrinsic(
-            substrate=self.substrate,
-            extrinsic=extrinsic,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-        )
-        # We only wait here if we expect finalization.
-        if not wait_for_finalization and not wait_for_inclusion:
-            return True, "Not waiting for finalization or inclusion."
+    call = self.substrate.compose_call(
+        call_module="SubtensorModule",
+        call_function="set_weights",
+        call_params={
+            "dests": uids,
+            "weights": vals,
+            "netuid": netuid,
+            "version_key": version_key,
+        },
+    )
+    # Period dictates how long the extrinsic will stay as part of waiting pool
+    extrinsic = self.substrate.create_signed_extrinsic(
+        call=call,
+        keypair=wallet.hotkey,
+        era={"period": period},
+    )
+    response = submit_extrinsic(
+        substrate=self.substrate,
+        extrinsic=extrinsic,
+        wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization,
+    )
+    # We only wait here if we expect finalization.
+    if not wait_for_finalization and not wait_for_inclusion:
+        return True, "Not waiting for finalization or inclusion."
 
-        response.process_events()
-        if response.is_success:
-            return True, "Successfully set weights."
-        else:
-            return False, response.error_message
-
-    return make_substrate_call_with_retry()
+    response.process_events()
+    if response.is_success:
+        return True, "Successfully set weights."
+    else:
+        return False, format_error_message(
+            response.error_message, substrate=self.substrate
+        )
 
 
 # Community uses this extrinsic directly and via `subtensor.set_weights`
@@ -170,7 +168,6 @@ def set_weights_extrinsic(
             logging.success(f"<green>Finalized!</green> Set weights: {str(success)}")
             return True, "Successfully set weights and Finalized."
         else:
-            error_message = format_error_message(error_message)
             logging.error(error_message)
             return False, error_message
 

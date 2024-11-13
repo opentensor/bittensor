@@ -15,8 +15,11 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import ast
+from collections import namedtuple
 import hashlib
-from typing import Literal, Union, Optional, TYPE_CHECKING
+from typing import Any, Literal, Union, Optional, TYPE_CHECKING
+from urllib.parse import urlparse
 
 import scalecodec
 from bittensor_wallet import Keypair
@@ -24,15 +27,21 @@ from substrateinterface.utils import ss58
 
 from bittensor.core.settings import SS58_FORMAT
 from bittensor.utils.btlogging import logging
+from bittensor_wallet.errors import KeyFileError, PasswordError
 from .registration import torch, use_torch
 from .version import version_checking, check_version, VersionCheckError
 
 if TYPE_CHECKING:
+    from bittensor.utils.async_substrate_interface import AsyncSubstrateInterface
     from substrateinterface import SubstrateInterface
+    from bittensor_wallet import Wallet
 
 RAOPERTAO = 1e9
 U16_MAX = 65535
 U64_MAX = 18446744073709551615
+
+
+UnlockStatus = namedtuple("UnlockStatus", ["success", "message"])
 
 
 def ss58_to_vec_u8(ss58_address: str) -> list[int]:
@@ -142,14 +151,16 @@ def get_hash(content, encoding="utf-8"):
 
 
 def format_error_message(
-    error_message: dict, substrate: "SubstrateInterface" = None
+    error_message: Union[dict, Exception],
+    substrate: Union["AsyncSubstrateInterface", "SubstrateInterface"],
 ) -> str:
     """
     Formats an error message from the Subtensor error information for use in extrinsics.
 
     Args:
-        error_message (dict): A dictionary containing the error information from Subtensor.
-        substrate (SubstrateInterface, optional): The substrate interface to use.
+        error_message: A dictionary containing the error information from Subtensor, or a SubstrateRequestException
+                       containing dictionary literal args.
+        substrate: The initialised SubstrateInterface object to use.
 
     Returns:
         str: A formatted error message string.
@@ -157,6 +168,27 @@ def format_error_message(
     err_name = "UnknownError"
     err_type = "UnknownType"
     err_description = "Unknown Description"
+
+    if isinstance(error_message, Exception):
+        # generally gotten through SubstrateRequestException args
+        new_error_message = None
+        for arg in error_message.args:
+            try:
+                d = ast.literal_eval(arg)
+                if isinstance(d, dict):
+                    if "error" in d:
+                        new_error_message = d["error"]
+                        break
+                    elif all(x in d for x in ["code", "message", "data"]):
+                        new_error_message = d
+                        break
+            except ValueError:
+                pass
+        if new_error_message is None:
+            return_val = " ".join(error_message.args)
+            return f"Subtensor returned: {return_val}"
+        else:
+            error_message = new_error_message
 
     if isinstance(error_message, dict):
         # subtensor error structure
@@ -166,14 +198,11 @@ def format_error_message(
             and error_message.get("data")
         ):
             err_name = "SubstrateRequestException"
-            err_type = error_message.get("message")
-            err_data = error_message.get("data")
+            err_type = error_message.get("message", "")
+            err_data = error_message.get("data", "")
 
             # subtensor custom error marker
             if err_data.startswith("Custom error:") and substrate:
-                if not substrate.metadata:
-                    substrate.get_metadata()
-
                 if substrate.metadata:
                     try:
                         pallet = substrate.metadata.get_metadata_pallet(
@@ -185,8 +214,10 @@ def format_error_message(
                         err_type = error_dict.get("message", err_type)
                         err_docs = error_dict.get("docs", [])
                         err_description = err_docs[0] if err_docs else err_description
-                    except Exception:
-                        logging.error("Substrate pallets data unavailable.")
+                    except (AttributeError, IndexError):
+                        logging.error(
+                            "<red>Substrate pallets data unavailable. This is usually caused by an uninitialized substrate.</red>"
+                        )
             else:
                 err_description = err_data
 
@@ -277,3 +308,98 @@ def is_valid_bittensor_address_or_public_key(address: Union[str, bytes]) -> bool
     else:
         # Invalid address type
         return False
+
+
+def decode_hex_identity_dict(info_dictionary) -> dict[str, Any]:
+    """
+    Decodes hex-encoded strings in a dictionary.
+
+    This function traverses the given dictionary, identifies hex-encoded strings, and decodes them into readable strings. It handles nested dictionaries and lists within the dictionary.
+
+    Args:
+        info_dictionary (dict): The dictionary containing hex-encoded strings to decode.
+
+    Returns:
+        dict: The dictionary with decoded strings.
+
+    Examples:
+        input_dict = {
+        ...     "name": {"value": "0x6a6f686e"},
+        ...     "additional": [
+        ...         [{"data": "0x64617461"}]
+        ...     ]
+        ... }
+        decode_hex_identity_dict(input_dict)
+        {'name': 'john', 'additional': [('data', 'data')]}
+    """
+
+    def get_decoded(data: str) -> str:
+        """Decodes a hex-encoded string."""
+        try:
+            return bytes.fromhex(data[2:]).decode()
+        except UnicodeDecodeError:
+            print(f"Could not decode: {key}: {item}")
+
+    for key, value in info_dictionary.items():
+        if isinstance(value, dict):
+            item = list(value.values())[0]
+            if isinstance(item, str) and item.startswith("0x"):
+                try:
+                    info_dictionary[key] = get_decoded(item)
+                except UnicodeDecodeError:
+                    print(f"Could not decode: {key}: {item}")
+            else:
+                info_dictionary[key] = item
+        if key == "additional":
+            additional = []
+            for item in value:
+                additional.append(
+                    tuple(
+                        get_decoded(data=next(iter(sub_item.values())))
+                        for sub_item in item
+                    )
+                )
+            info_dictionary[key] = additional
+
+    return info_dictionary
+
+
+def validate_chain_endpoint(endpoint_url: str) -> tuple[bool, str]:
+    """Validates if the provided endpoint URL is a valid WebSocket URL."""
+    parsed = urlparse(endpoint_url)
+    if parsed.scheme not in ("ws", "wss"):
+        return False, (
+            f"Invalid URL or network name provided: ({endpoint_url}).\n"
+            "Allowed network names are finney, test, local. "
+            "Valid chain endpoints should use the scheme `ws` or `wss`.\n"
+        )
+    if not parsed.netloc:
+        return False, "Invalid URL passed as the endpoint"
+    return True, ""
+
+
+def unlock_key(wallet: "Wallet", unlock_type="coldkey") -> "UnlockStatus":
+    """
+    Attempts to decrypt a wallet's coldkey or hotkey
+    Args:
+        wallet: a Wallet object
+        unlock_type: the key type, 'coldkey' or 'hotkey'
+    Returns: UnlockStatus for success status of unlock, with error message if unsuccessful
+    """
+    if unlock_type == "coldkey":
+        unlocker = "unlock_coldkey"
+    elif unlock_type == "hotkey":
+        unlocker = "unlock_hotkey"
+    else:
+        raise ValueError(
+            f"Invalid unlock type provided: {unlock_type}. Must be 'coldkey' or 'hotkey'."
+        )
+    try:
+        getattr(wallet, unlocker)()
+        return UnlockStatus(True, "")
+    except PasswordError:
+        err_msg = f"The password used to decrypt your {unlock_type.capitalize()} keyfile is invalid."
+        return UnlockStatus(False, err_msg)
+    except KeyFileError:
+        err_msg = f"{unlock_type.capitalize()} keyfile is corrupt, non-writable, or non-readable, or non-existent."
+        return UnlockStatus(False, err_msg)

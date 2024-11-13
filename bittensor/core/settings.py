@@ -15,7 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-__version__ = "8.2.1"
+__version__ = "8.3.0"
 
 import os
 import re
@@ -30,11 +30,6 @@ USER_BITTENSOR_DIR = HOME_DIR / ".bittensor"
 WALLETS_DIR = USER_BITTENSOR_DIR / "wallets"
 MINERS_DIR = USER_BITTENSOR_DIR / "miners"
 
-# Bittensor networks name
-NETWORKS = ["local", "finney", "test", "archive"]
-
-DEFAULT_ENDPOINT = "wss://entrypoint-finney.opentensor.ai:443"
-DEFAULT_NETWORK = NETWORKS[1]
 
 # Create dirs if they don't exist
 WALLETS_DIR.mkdir(parents=True, exist_ok=True)
