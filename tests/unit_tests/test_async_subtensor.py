@@ -2100,3 +2100,53 @@ async def test_weights_rate_limit_none(subtensor, mocker):
         param_name="WeightsSetRateLimit", netuid=fake_netuid
     )
     assert result is None
+
+
+@pytest.mark.asyncio
+async def test_blocks_since_last_update_success(subtensor, mocker):
+    """Tests blocks_since_last_update when the data is successfully retrieved."""
+    # Preps
+    fake_netuid = 1
+    fake_uid = 5
+    last_update_block = 50
+    current_block = 100
+    fake_blocks_since_update = current_block - last_update_block
+
+    mocked_get_hyperparameter = mocker.AsyncMock(
+        return_value={fake_uid: last_update_block}
+    )
+    subtensor.get_hyperparameter = mocked_get_hyperparameter
+
+    mocked_get_current_block = mocker.AsyncMock(return_value=current_block)
+    subtensor.get_current_block = mocked_get_current_block
+
+    # Call
+    result = await subtensor.blocks_since_last_update(netuid=fake_netuid, uid=fake_uid)
+
+    # Asserts
+    mocked_get_hyperparameter.assert_called_once_with(
+        param_name="LastUpdate", netuid=fake_netuid
+    )
+    mocked_get_current_block.assert_called_once()
+    assert result == fake_blocks_since_update
+
+
+@pytest.mark.asyncio
+async def test_blocks_since_last_update_no_last_update(subtensor, mocker):
+    """Tests blocks_since_last_update when the last update data is not found."""
+    # Preps
+    fake_netuid = 1
+    fake_uid = 5
+    fake_result = None
+
+    mocked_get_hyperparameter = mocker.AsyncMock(return_value=fake_result)
+    subtensor.get_hyperparameter = mocked_get_hyperparameter
+
+    # Call
+    result = await subtensor.blocks_since_last_update(netuid=fake_netuid, uid=fake_uid)
+
+    # Asserts
+    mocked_get_hyperparameter.assert_called_once_with(
+        param_name="LastUpdate", netuid=fake_netuid
+    )
+    assert result is None
