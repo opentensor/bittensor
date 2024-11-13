@@ -954,7 +954,9 @@ async def test_neurons(subtensor, mocker):
     ids=["none", "with data"],
 )
 @pytest.mark.asyncio
-async def test_neurons_lite(subtensor, mocker, fake_hex_bytes_result, response):
+async def test_neurons_lite(
+    subtensor, mocker, fake_hex_bytes_result, response
+):
     """Tests neurons_lite method."""
     # Preps
     fake_netuid = 1
