@@ -16,7 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 """
-The ``bittensor.core.subtensor`` module in Bittensor serves as a crucial interface for interacting with the Bittensor
+The ``bittensor.core.subtensor.Subtensor`` module in Bittensor serves as a crucial interface for interacting with the Bittensor
 blockchain, facilitating a range of operations essential for the decentralized machine learning network.
 """
 
@@ -30,7 +30,6 @@ import numpy as np
 import scalecodec
 from bittensor_wallet import Wallet
 from numpy.typing import NDArray
-from retry import retry
 from scalecodec.base import RuntimeConfiguration
 from scalecodec.exceptions import RemainingScaleBytesNotEmptyException
 from scalecodec.type_registry import load_type_registry_preset
@@ -390,15 +389,15 @@ class Subtensor:
     @networking.ensure_connected
     def _encode_params(
         self,
-        call_definition: list["ParamWithTypes"],
+        call_definition: dict[str, list["ParamWithTypes"]],
         params: Union[list[Any], dict[str, Any]],
     ) -> str:
         """Returns a hex encoded string of the params using their types."""
         param_data = scalecodec.ScaleBytes(b"")
 
-        for i, param in enumerate(call_definition["params"]):  # type: ignore
+        for i, param in enumerate(call_definition["params"]):
             scale_obj = self.substrate.create_scale_object(param["type"])
-            if type(params) is list:
+            if isinstance(params, list):
                 param_data += scale_obj.encode(params[i])
             else:
                 if param["name"] not in params:
@@ -450,18 +449,14 @@ class Subtensor:
         This query function is essential for accessing detailed information about the network and its neurons, providing valuable insights into the state and dynamics of the Bittensor ecosystem.
         """
 
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=logging)
-        def make_substrate_call_with_retry() -> "ScaleType":
-            return self.substrate.query(
-                module="SubtensorModule",
-                storage_function=name,
-                params=params,
-                block_hash=(
-                    None if block is None else self.substrate.get_block_hash(block)
-                ),
-            )
-
-        return make_substrate_call_with_retry()
+        return self.substrate.query(
+            module="SubtensorModule",
+            storage_function=name,
+            params=params,
+            block_hash=(
+                None if block is None else self.substrate.get_block_hash(block)
+            ),
+        )
 
     @networking.ensure_connected
     def query_map_subtensor(
@@ -480,19 +475,14 @@ class Subtensor:
 
         This function is particularly useful for analyzing and understanding complex network structures and relationships within the Bittensor ecosystem, such as inter-neuronal connections and stake distributions.
         """
-
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=logging)
-        def make_substrate_call_with_retry():
-            return self.substrate.query_map(
-                module="SubtensorModule",
-                storage_function=name,
-                params=params,
-                block_hash=(
-                    None if block is None else self.substrate.get_block_hash(block)
-                ),
-            )
-
-        return make_substrate_call_with_retry()
+        return self.substrate.query_map(
+            module="SubtensorModule",
+            storage_function=name,
+            params=params,
+            block_hash=(
+                None if block is None else self.substrate.get_block_hash(block)
+            ),
+        )
 
     def query_runtime_api(
         self,
@@ -563,16 +553,11 @@ class Subtensor:
 
         The state call function provides a more direct and flexible way of querying blockchain data, useful for specific use cases where standard queries are insufficient.
         """
-
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=logging)
-        def make_substrate_call_with_retry() -> dict[Any, Any]:
-            block_hash = None if block is None else self.substrate.get_block_hash(block)
-            return self.substrate.rpc_request(
-                method="state_call",
-                params=[method, data, block_hash] if block_hash else [method, data],
-            )
-
-        return make_substrate_call_with_retry()
+        block_hash = None if block is None else self.substrate.get_block_hash(block)
+        return self.substrate.rpc_request(
+            method="state_call",
+            params=[method, data, block_hash] if block_hash else [method, data],
+        )
 
     @networking.ensure_connected
     def query_map(
@@ -596,19 +581,14 @@ class Subtensor:
 
         This function is particularly useful for retrieving detailed and structured data from various blockchain modules, offering insights into the network's state and the relationships between its different components.
         """
-
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=logging)
-        def make_substrate_call_with_retry() -> "QueryMapResult":
-            return self.substrate.query_map(
-                module=module,
-                storage_function=name,
-                params=params,
-                block_hash=(
-                    None if block is None else self.substrate.get_block_hash(block)
-                ),
-            )
-
-        return make_substrate_call_with_retry()
+        return self.substrate.query_map(
+            module=module,
+            storage_function=name,
+            params=params,
+            block_hash=(
+                None if block is None else self.substrate.get_block_hash(block)
+            ),
+        )
 
     @networking.ensure_connected
     def query_constant(
@@ -627,18 +607,13 @@ class Subtensor:
 
         Constants queried through this function can include critical network parameters such as inflation rates, consensus rules, or validation thresholds, providing a deeper understanding of the Bittensor network's operational parameters.
         """
-
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=logging)
-        def make_substrate_call_with_retry():
-            return self.substrate.get_constant(
-                module_name=module_name,
-                constant_name=constant_name,
-                block_hash=(
-                    None if block is None else self.substrate.get_block_hash(block)
-                ),
-            )
-
-        return make_substrate_call_with_retry()
+        return self.substrate.get_constant(
+            module_name=module_name,
+            constant_name=constant_name,
+            block_hash=(
+                None if block is None else self.substrate.get_block_hash(block)
+            ),
+        )
 
     @networking.ensure_connected
     def query_module(
@@ -662,19 +637,14 @@ class Subtensor:
 
         This versatile query function is key to accessing a wide range of data and insights from different parts of the Bittensor blockchain, enhancing the understanding and analysis of the network's state and dynamics.
         """
-
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=logging)
-        def make_substrate_call_with_retry() -> "ScaleType":
-            return self.substrate.query(
-                module=module,
-                storage_function=name,
-                params=params,
-                block_hash=(
-                    None if block is None else self.substrate.get_block_hash(block)
-                ),
-            )
-
-        return make_substrate_call_with_retry()
+        return self.substrate.query(
+            module=module,
+            storage_function=name,
+            params=params,
+            block_hash=(
+                None if block is None else self.substrate.get_block_hash(block)
+            ),
+        )
 
     # Common subtensor methods
     def metagraph(
@@ -768,12 +738,7 @@ class Subtensor:
 
         Knowing the current block number is essential for querying real-time data and performing time-sensitive operations on the blockchain. It serves as a reference point for network activities and data synchronization.
         """
-
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=logging)
-        def make_substrate_call_with_retry():
-            return self.substrate.get_block_number(None)  # type: ignore
-
-        return make_substrate_call_with_retry()
+        return self.substrate.get_block_number(None)  # type: ignore
 
     def is_hotkey_registered_any(
         self, hotkey_ss58: str, block: Optional[int] = None
@@ -1221,18 +1186,15 @@ class Subtensor:
         if uid is None:
             return NeuronInfo.get_null_neuron()
 
-        @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=logging)
-        def make_substrate_call_with_retry():
-            block_hash = None if block is None else self.substrate.get_block_hash(block)
-            params = [netuid, uid]
-            if block_hash:
-                params = params + [block_hash]
-            return self.substrate.rpc_request(
-                method="neuronInfo_getNeuron",
-                params=params,  # custom rpc method
-            )
+        block_hash = None if block is None else self.substrate.get_block_hash(block)
+        params = [netuid, uid]
+        if block_hash:
+            params = params + [block_hash]
 
-        json_body = make_substrate_call_with_retry()
+        json_body = self.substrate.rpc_request(
+            method="neuronInfo_getNeuron",
+            params=params,  # custom rpc method
+        )
 
         if not (result := json_body.get("result", None)):
             return NeuronInfo.get_null_neuron()
@@ -1270,7 +1232,7 @@ class Subtensor:
         else:
             bytes_result = bytes.fromhex(hex_bytes_result)
 
-        return SubnetHyperparameters.from_vec_u8(bytes_result)  # type: ignore
+        return SubnetHyperparameters.from_vec_u8(bytes_result)
 
     # Community uses this method
     # Returns network ImmunityPeriod hyper parameter.
@@ -1445,17 +1407,12 @@ class Subtensor:
 
         Gaining insights into the subnets' details assists in understanding the network's composition, the roles of different subnets, and their unique features.
         """
+        block_hash = None if block is None else self.substrate.get_block_hash(block)
 
-        @retry(delay=1, tries=3, backoff=2, max_delay=4)
-        def make_substrate_call_with_retry():
-            block_hash = None if block is None else self.substrate.get_block_hash(block)
-
-            return self.substrate.rpc_request(
-                method="subnetInfo_getSubnetsInfo",  # custom rpc method
-                params=[block_hash] if block_hash else [],
-            )
-
-        json_body = make_substrate_call_with_retry()
+        json_body = self.substrate.rpc_request(
+            method="subnetInfo_getSubnetsInfo",  # custom rpc method
+            params=[block_hash] if block_hash else [],
+        )
 
         if not (result := json_body.get("result", None)):
             return []
@@ -1653,25 +1610,21 @@ class Subtensor:
         This function is important for monitoring account holdings and managing financial transactions within the Bittensor ecosystem. It helps in assessing the economic status and capacity of network participants.
         """
         try:
-
-            @retry(delay=1, tries=3, backoff=2, max_delay=4, logger=logging)
-            def make_substrate_call_with_retry():
-                return self.substrate.query(
-                    module="System",
-                    storage_function="Account",
-                    params=[address],
-                    block_hash=(
-                        None if block is None else self.substrate.get_block_hash(block)
-                    ),
-                )
-
-            result = make_substrate_call_with_retry()
+            result = self.substrate.query(
+                module="System",
+                storage_function="Account",
+                params=[address],
+                block_hash=(
+                    None if block is None else self.substrate.get_block_hash(block)
+                ),
+            )
 
         except RemainingScaleBytesNotEmptyException:
             logging.error(
                 "Received a corrupted message. This likely points to an error with the network or subnet."
             )
             return Balance(1000)
+
         return Balance(result.value["data"]["free"])
 
     # Used in community via `bittensor.core.subtensor.Subtensor.transfer`
@@ -1958,20 +1911,14 @@ class Subtensor:
 
         This function is essential for understanding the roles and influence of delegate neurons within the Bittensor network's consensus and governance structures.
         """
-
-        @retry(delay=1, tries=3, backoff=2, max_delay=4)
-        def make_substrate_call_with_retry(encoded_hotkey_: list[int]):
-            block_hash = None if block is None else self.substrate.get_block_hash(block)
-
-            return self.substrate.rpc_request(
-                method="delegateInfo_getDelegate",  # custom rpc method
-                params=(
-                    [encoded_hotkey_, block_hash] if block_hash else [encoded_hotkey_]
-                ),
-            )
-
         encoded_hotkey = ss58_to_vec_u8(hotkey_ss58)
-        json_body = make_substrate_call_with_retry(encoded_hotkey)
+
+        block_hash = None if block is None else self.substrate.get_block_hash(block)
+
+        json_body = self.substrate.rpc_request(
+            method="delegateInfo_getDelegate",  # custom rpc method
+            params=([encoded_hotkey, block_hash] if block_hash else [encoded_hotkey]),
+        )
 
         if not (result := json_body.get("result", None)):
             return None

@@ -1144,4 +1144,3 @@ This release refactors the registration code for CPU registration to improve sol
 ### Synapse update
 
 ##
-

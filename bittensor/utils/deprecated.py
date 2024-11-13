@@ -45,6 +45,7 @@ from bittensor_wallet.wallet import display_mnemonic_msg, Wallet  # noqa: F401
 from bittensor_wallet import Keypair  # noqa: F401
 
 from bittensor.core import settings
+from bittensor.core.async_subtensor import AsyncSubtensor
 from bittensor.core.axon import Axon
 from bittensor.core.chain_data import (  # noqa: F401
     AxonInfo,
@@ -116,6 +117,7 @@ from bittensor.utils.btlogging import logging
 from bittensor.utils.subnets import SubnetsAPI  # noqa: F401
 
 # Backwards compatibility with previous bittensor versions.
+async_subtensor = AsyncSubtensor
 axon = Axon
 config = Config
 dendrite = Dendrite

@@ -20,6 +20,9 @@ from bittensor.core.extrinsics.set_weights import do_set_weights
 from bittensor.core.metagraph import Metagraph
 
 
+FAST_BLOCKS_SPEEDUP_FACTOR = 5
+
+
 @pytest.mark.asyncio
 async def test_incentive(local_chain):
     """
@@ -158,6 +161,7 @@ async def test_incentive(local_chain):
         version_key=0,
         wait_for_inclusion=True,
         wait_for_finalization=True,
+        period=5 * FAST_BLOCKS_SPEEDUP_FACTOR,
     )
     logging.info("Alice neuron set weights successfully")
 
