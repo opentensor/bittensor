@@ -85,6 +85,14 @@ class ParamWithTypes(TypedDict):
     type: str  # ScaleType string of the parameter.
 
 
+def hex_to_bytes(hex_str: str) -> bytes:
+    try:
+        bytes_result = bytes.fromhex(hex_str[2:])
+    except ValueError:
+        bytes_result = bytes.fromhex(hex_str)
+    return bytes_result
+
+
 class Subtensor:
     """
     The Subtensor class in Bittensor serves as a crucial interface for interacting with the Bittensor blockchain,
@@ -1227,12 +1235,7 @@ class Subtensor:
         if hex_bytes_result is None:
             return []
 
-        if hex_bytes_result.startswith("0x"):
-            bytes_result = bytes.fromhex(hex_bytes_result[2:])
-        else:
-            bytes_result = bytes.fromhex(hex_bytes_result)
-
-        return SubnetHyperparameters.from_vec_u8(bytes_result)
+        return SubnetHyperparameters.from_vec_u8(hex_to_bytes(hex_bytes_result))
 
     # Community uses this method
     # Returns network ImmunityPeriod hyper parameter.
@@ -1413,12 +1416,7 @@ class Subtensor:
         if not hex_bytes_result:
             return []
         else:
-            try:
-                bytes_result = bytes.fromhex(hex_bytes_result[2:])
-            except ValueError:
-                bytes_result = bytes.fromhex(hex_bytes_result)
-
-            return SubnetInfo.list_from_vec_u8(bytes_result)
+            return SubnetInfo.list_from_vec_u8(hex_to_bytes(hex_bytes_result))
 
     # Metagraph uses this method
     def bonds(
@@ -1562,12 +1560,7 @@ class Subtensor:
         if hex_bytes_result is None:
             return []
 
-        if hex_bytes_result.startswith("0x"):
-            bytes_result = bytes.fromhex(hex_bytes_result[2:])
-        else:
-            bytes_result = bytes.fromhex(hex_bytes_result)
-
-        return NeuronInfoLite.list_from_vec_u8(bytes_result)  # type: ignore
+        return NeuronInfoLite.list_from_vec_u8(hex_to_bytes(hex_bytes_result))  # type: ignore
 
     # Used in the `neurons` method which is used in metagraph.py
     def weights(
