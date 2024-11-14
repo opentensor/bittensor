@@ -1,5 +1,6 @@
 import pytest
 
+from bittensor import AsyncSubtensor
 from bittensor.core import async_subtensor
 
 
@@ -69,6 +70,53 @@ def test_decode_hex_identity_dict_with_nested_dict():
     assert result["identity"] == "41 4243"
 
 
+@pytest.mark.asyncio
+async def test_init_if_unknown_network_is_valid(mocker):
+    """Tests __init__ if passed network unknown and is valid."""
+    # Preps
+    fake_valid_endpoint = "wss://blabla.net"
+    mocker.patch.object(async_subtensor, "AsyncSubstrateInterface")
+
+    # Call
+    subtensor = AsyncSubtensor(fake_valid_endpoint)
+
+    # Asserts
+    assert subtensor.chain_endpoint == fake_valid_endpoint
+    assert subtensor.network == "custom"
+
+
+@pytest.mark.asyncio
+async def test_init_if_unknown_network_is_known_endpoint(mocker):
+    """Tests __init__ if passed network unknown and is valid."""
+    # Preps
+    fake_valid_endpoint = "ws://127.0.0.1:9944"
+    mocker.patch.object(async_subtensor, "AsyncSubstrateInterface")
+
+    # Call
+    subtensor = AsyncSubtensor(fake_valid_endpoint)
+
+    # Asserts
+    assert subtensor.chain_endpoint == fake_valid_endpoint
+    assert subtensor.network == "local"
+
+
+@pytest.mark.asyncio
+async def test_init_if_unknown_network_is_not_valid(mocker):
+    """Tests __init__ if passed network unknown and isn't valid."""
+    # Preps
+    mocker.patch.object(async_subtensor, "AsyncSubstrateInterface")
+
+    # Call
+    subtensor = AsyncSubtensor("blabla-net")
+
+    # Asserts
+    assert (
+        subtensor.chain_endpoint
+        == async_subtensor.NETWORK_MAP[async_subtensor.DEFAULTS.subtensor.network]
+    )
+    assert subtensor.network == async_subtensor.DEFAULTS.subtensor.network
+
+
 def test__str__return(subtensor):
     """Simply tests the result if printing subtensor instance."""
     # Asserts
@@ -98,6 +146,38 @@ async def test_async_subtensor_magic_methods(mocker):
     fake_async_substrate.__aenter__.assert_called_once()
     fake_async_substrate.__aexit__.assert_called_once()
     fake_async_substrate.close.assert_awaited_once()
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        ConnectionRefusedError,
+        async_subtensor.ssl.SSLError,
+        async_subtensor.TimeoutException,
+    ],
+)
+@pytest.mark.asyncio
+async def test_async_subtensor_aenter_connection_refused_error(
+    subtensor, mocker, error
+):
+    """Tests __aenter__ method handling all errors."""
+    # Preps
+    fake_async_substrate = mocker.AsyncMock(
+        autospec=async_subtensor.AsyncSubstrateInterface,
+        __aenter__=mocker.AsyncMock(side_effect=error),
+    )
+    mocker.patch.object(
+        async_subtensor, "AsyncSubstrateInterface", return_value=fake_async_substrate
+    )
+    # Call
+    subtensor = async_subtensor.AsyncSubtensor(network="local")
+
+    with pytest.raises(ConnectionError):
+        async with subtensor:
+            pass
+
+    # Asserts
+    fake_async_substrate.__aenter__.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -2150,3 +2230,436 @@ async def test_blocks_since_last_update_no_last_update(subtensor, mocker):
         param_name="LastUpdate", netuid=fake_netuid
     )
     assert result is None
+
+
+@pytest.mark.asyncio
+async def test_transfer_success(subtensor, mocker):
+    """Tests transfer when the transfer is successful."""
+    # Preps
+    fake_wallet = mocker.Mock()
+    fake_destination = "destination_address"
+    fake_amount = 100.0
+    fake_transfer_all = False
+
+    mocked_transfer_extrinsic = mocker.AsyncMock(return_value=True)
+    mocker.patch.object(
+        async_subtensor, "transfer_extrinsic", mocked_transfer_extrinsic
+    )
+
+    mocked_balance_from_tao = mocker.Mock()
+    mocker.patch.object(
+        async_subtensor.Balance, "from_tao", return_value=mocked_balance_from_tao
+    )
+
+    # Call
+    result = await subtensor.transfer(
+        wallet=fake_wallet,
+        destination=fake_destination,
+        amount=fake_amount,
+        transfer_all=fake_transfer_all,
+    )
+
+    # Asserts
+    mocked_transfer_extrinsic.assert_awaited_once()
+    mocked_transfer_extrinsic.assert_called_once_with(
+        subtensor,
+        fake_wallet,
+        fake_destination,
+        mocked_balance_from_tao,
+        fake_transfer_all,
+    )
+    assert result == mocked_transfer_extrinsic.return_value
+
+
+@pytest.mark.asyncio
+async def test_register_success(subtensor, mocker):
+    """Tests register when there is enough balance and registration succeeds."""
+    # Preps
+    fake_wallet = mocker.Mock(autospec=async_subtensor.Wallet)
+    fake_wallet.coldkeypub.ss58_address = "wallet_address"
+    fake_netuid = 1
+    fake_block_hash = "block_hash"
+    fake_recycle_amount = 100
+    fake_balance = 200
+
+    mocked_get_block_hash = mocker.AsyncMock(return_value=fake_block_hash)
+    subtensor.get_block_hash = mocked_get_block_hash
+
+    mocked_get_hyperparameter = mocker.AsyncMock(return_value=str(fake_recycle_amount))
+    subtensor.get_hyperparameter = mocked_get_hyperparameter
+
+    mocked_get_balance = mocker.AsyncMock(
+        return_value={fake_wallet.coldkeypub.ss58_address: fake_balance}
+    )
+    subtensor.get_balance = mocked_get_balance
+
+    mocked_balance_from_rao = mocker.Mock(return_value=fake_recycle_amount)
+    mocker.patch.object(async_subtensor.Balance, "from_rao", mocked_balance_from_rao)
+
+    # Call
+    result = await subtensor.register(wallet=fake_wallet, netuid=fake_netuid)
+
+    # Asserts
+    mocked_get_block_hash.assert_called_once()
+    mocked_get_hyperparameter.assert_called_once_with(
+        param_name="Burn", netuid=fake_netuid, reuse_block=True
+    )
+    mocked_get_balance.assert_called_once_with(
+        fake_wallet.coldkeypub.ss58_address, block_hash=fake_block_hash
+    )
+    assert result is True
+
+
+@pytest.mark.asyncio
+async def test_register_insufficient_balance(subtensor, mocker):
+    """Tests register when the wallet balance is insufficient."""
+    # Preps
+    fake_wallet = mocker.Mock(autospec=async_subtensor.Wallet)
+    fake_wallet.coldkeypub.ss58_address = "wallet_address"
+    fake_netuid = 1
+    fake_block_hash = "block_hash"
+    fake_recycle_amount = 200
+    fake_balance = 100
+
+    mocked_get_block_hash = mocker.AsyncMock(return_value=fake_block_hash)
+    subtensor.get_block_hash = mocked_get_block_hash
+
+    mocked_get_hyperparameter = mocker.AsyncMock(return_value=str(fake_recycle_amount))
+    subtensor.get_hyperparameter = mocked_get_hyperparameter
+
+    mocked_get_balance = mocker.AsyncMock(
+        return_value={fake_wallet.coldkeypub.ss58_address: fake_balance}
+    )
+    subtensor.get_balance = mocked_get_balance
+
+    mocked_balance_from_rao = mocker.Mock(return_value=fake_recycle_amount)
+    mocker.patch.object(async_subtensor.Balance, "from_rao", mocked_balance_from_rao)
+
+    # Call
+    result = await subtensor.register(wallet=fake_wallet, netuid=fake_netuid)
+
+    # Asserts
+    mocked_get_block_hash.assert_called_once()
+    mocked_get_hyperparameter.assert_called_once_with(
+        param_name="Burn", netuid=fake_netuid, reuse_block=True
+    )
+    mocked_get_balance.assert_called_once_with(
+        fake_wallet.coldkeypub.ss58_address, block_hash=fake_block_hash
+    )
+    assert result is False
+
+
+@pytest.mark.asyncio
+async def test_register_balance_retrieval_error(subtensor, mocker):
+    """Tests register when there is an error retrieving the balance."""
+    # Preps
+    fake_wallet = mocker.Mock(autospec=async_subtensor.Wallet)
+    fake_wallet.coldkeypub.ss58_address = "wallet_address"
+    fake_netuid = 1
+    fake_block_hash = "block_hash"
+    fake_recycle_amount = 100
+
+    mocked_get_block_hash = mocker.AsyncMock(return_value=fake_block_hash)
+    subtensor.get_block_hash = mocked_get_block_hash
+
+    mocked_get_hyperparameter = mocker.AsyncMock(return_value=str(fake_recycle_amount))
+    subtensor.get_hyperparameter = mocked_get_hyperparameter
+
+    mocked_get_balance = mocker.AsyncMock(return_value={})
+    subtensor.get_balance = mocked_get_balance
+
+    # Call
+    result = await subtensor.register(wallet=fake_wallet, netuid=fake_netuid)
+
+    # Asserts
+    mocked_get_block_hash.assert_called_once()
+    mocked_get_hyperparameter.assert_called_once_with(
+        param_name="Burn", netuid=fake_netuid, reuse_block=True
+    )
+    mocked_get_balance.assert_called_once_with(
+        fake_wallet.coldkeypub.ss58_address, block_hash=fake_block_hash
+    )
+    assert result is False
+
+
+@pytest.mark.asyncio
+async def test_pow_register_success(subtensor, mocker):
+    """Tests pow_register when the registration is successful."""
+    # Preps
+    fake_wallet = mocker.Mock(autospec=async_subtensor.Wallet)
+    fake_netuid = 1
+    fake_processors = 4
+    fake_update_interval = 10
+    fake_output_in_place = True
+    fake_verbose = True
+    fake_use_cuda = False
+    fake_dev_id = 0
+    fake_threads_per_block = 128
+
+    mocked_register_extrinsic = mocker.AsyncMock(return_value=True)
+    mocker.patch.object(
+        async_subtensor, "register_extrinsic", mocked_register_extrinsic
+    )
+
+    # Call
+    result = await subtensor.pow_register(
+        wallet=fake_wallet,
+        netuid=fake_netuid,
+        processors=fake_processors,
+        update_interval=fake_update_interval,
+        output_in_place=fake_output_in_place,
+        verbose=fake_verbose,
+        use_cuda=fake_use_cuda,
+        dev_id=fake_dev_id,
+        threads_per_block=fake_threads_per_block,
+    )
+
+    # Asserts
+    mocked_register_extrinsic.assert_awaited_once()
+    mocked_register_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        netuid=fake_netuid,
+        tpb=fake_threads_per_block,
+        update_interval=fake_update_interval,
+        num_processes=fake_processors,
+        cuda=fake_use_cuda,
+        dev_id=fake_dev_id,
+        output_in_place=fake_output_in_place,
+        log_verbose=fake_verbose,
+    )
+    assert result == mocked_register_extrinsic.return_value
+
+
+@pytest.mark.asyncio
+async def test_set_weights_success(subtensor, mocker):
+    """Tests set_weights with successful weight setting on the first try."""
+    # Preps
+    fake_wallet = mocker.Mock(autospec=async_subtensor.Wallet)
+    fake_netuid = 1
+    fake_uids = [1, 2, 3]
+    fake_weights = [0.3, 0.5, 0.2]
+    max_retries = 1
+
+    mocked_get_uid_for_hotkey_on_subnet = mocker.AsyncMock(return_value=fake_netuid)
+    subtensor.get_uid_for_hotkey_on_subnet = mocked_get_uid_for_hotkey_on_subnet
+
+    mocked_blocks_since_last_update = mocker.AsyncMock(return_value=2)
+    subtensor.blocks_since_last_update = mocked_blocks_since_last_update
+
+    mocked_weights_rate_limit = mocker.AsyncMock(return_value=1)
+    subtensor.weights_rate_limit = mocked_weights_rate_limit
+
+    mocked_set_weights_extrinsic = mocker.AsyncMock(return_value=(True, "Success"))
+    mocker.patch.object(
+        async_subtensor, "set_weights_extrinsic", mocked_set_weights_extrinsic
+    )
+
+    # Call
+    result, message = await subtensor.set_weights(
+        wallet=fake_wallet,
+        netuid=fake_netuid,
+        uids=fake_uids,
+        weights=fake_weights,
+        max_retries=max_retries,
+    )
+
+    # Asserts
+    mocked_get_uid_for_hotkey_on_subnet.assert_called_once_with(
+        fake_wallet.hotkey.ss58_address, fake_netuid
+    )
+    mocked_blocks_since_last_update.assert_called_once_with(
+        fake_netuid, mocked_get_uid_for_hotkey_on_subnet.return_value
+    )
+    mocked_weights_rate_limit.assert_called_once_with(fake_netuid)
+    mocked_set_weights_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        netuid=fake_netuid,
+        uids=fake_uids,
+        version_key=async_subtensor.version_as_int,
+        wait_for_finalization=False,
+        wait_for_inclusion=False,
+        weights=fake_weights,
+    )
+    mocked_weights_rate_limit.assert_called_once_with(fake_netuid)
+    assert result is True
+    assert message == "Success"
+
+
+@pytest.mark.asyncio
+async def test_set_weights_with_exception(subtensor, mocker):
+    """Tests set_weights when set_weights_extrinsic raises an exception."""
+    # Preps
+    fake_wallet = mocker.Mock(autospec=async_subtensor.Wallet)
+    fake_netuid = 1
+    fake_uids = [1, 2, 3]
+    fake_weights = [0.3, 0.5, 0.2]
+    fake_uid = 10
+    max_retries = 1
+
+    mocked_get_uid_for_hotkey_on_subnet = mocker.AsyncMock(return_value=fake_uid)
+    subtensor.get_uid_for_hotkey_on_subnet = mocked_get_uid_for_hotkey_on_subnet
+
+    mocked_blocks_since_last_update = mocker.AsyncMock(return_value=10)
+    subtensor.blocks_since_last_update = mocked_blocks_since_last_update
+
+    mocked_weights_rate_limit = mocker.AsyncMock(return_value=5)
+    subtensor.weights_rate_limit = mocked_weights_rate_limit
+
+    mocked_set_weights_extrinsic = mocker.AsyncMock(
+        side_effect=Exception("Test exception")
+    )
+    mocker.patch.object(
+        async_subtensor, "set_weights_extrinsic", mocked_set_weights_extrinsic
+    )
+
+    # Call
+    result, message = await subtensor.set_weights(
+        wallet=fake_wallet,
+        netuid=fake_netuid,
+        uids=fake_uids,
+        weights=fake_weights,
+        max_retries=max_retries,
+    )
+
+    # Asserts
+    assert mocked_get_uid_for_hotkey_on_subnet.call_count == 1
+    assert mocked_blocks_since_last_update.call_count == 1
+    assert mocked_weights_rate_limit.call_count == 1
+    assert mocked_set_weights_extrinsic.call_count == max_retries
+    assert result is False
+    assert message == "No attempt made. Perhaps it is too soon to set weights!"
+
+
+@pytest.mark.asyncio
+async def test_root_set_weights_success(subtensor, mocker):
+    """Tests root_set_weights when the setting of weights is successful."""
+    # Preps
+    fake_wallet = mocker.Mock(autospec=async_subtensor.Wallet)
+    fake_netuids = [1, 2, 3]
+    fake_weights = [0.3, 0.5, 0.2]
+
+    mocked_set_root_weights_extrinsic = mocker.AsyncMock()
+    mocker.patch.object(
+        async_subtensor, "set_root_weights_extrinsic", mocked_set_root_weights_extrinsic
+    )
+
+    mocked_np_array_netuids = mocker.Mock(autospec=async_subtensor.np.ndarray)
+    mocked_np_array_weights = mocker.Mock(autospec=async_subtensor.np.ndarray)
+    mocker.patch.object(
+        async_subtensor.np,
+        "array",
+        side_effect=[mocked_np_array_netuids, mocked_np_array_weights],
+    )
+
+    # Call
+    result = await subtensor.root_set_weights(
+        wallet=fake_wallet,
+        netuids=fake_netuids,
+        weights=fake_weights,
+    )
+
+    # Asserts
+    mocked_set_root_weights_extrinsic.assert_awaited_once()
+    mocked_set_root_weights_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        netuids=mocked_np_array_netuids,
+        weights=mocked_np_array_weights,
+        version_key=0,
+        wait_for_finalization=True,
+        wait_for_inclusion=True,
+    )
+    assert result == mocked_set_root_weights_extrinsic.return_value
+
+
+@pytest.mark.asyncio
+async def test_commit_weights_success(subtensor, mocker):
+    """Tests commit_weights when the weights are committed successfully."""
+    # Preps
+    fake_wallet = mocker.Mock(autospec=async_subtensor.Wallet)
+    fake_netuid = 1
+    fake_salt = [12345, 67890]
+    fake_uids = [1, 2, 3]
+    fake_weights = [100, 200, 300]
+    max_retries = 3
+
+    mocked_generate_weight_hash = mocker.Mock(return_value="fake_commit_hash")
+    mocker.patch.object(
+        async_subtensor, "generate_weight_hash", mocked_generate_weight_hash
+    )
+
+    mocked_commit_weights_extrinsic = mocker.AsyncMock(return_value=(True, "Success"))
+    mocker.patch.object(
+        async_subtensor, "commit_weights_extrinsic", mocked_commit_weights_extrinsic
+    )
+
+    # Call
+    result, message = await subtensor.commit_weights(
+        wallet=fake_wallet,
+        netuid=fake_netuid,
+        salt=fake_salt,
+        uids=fake_uids,
+        weights=fake_weights,
+        max_retries=max_retries,
+    )
+
+    # Asserts
+    mocked_generate_weight_hash.assert_called_once_with(
+        address=fake_wallet.hotkey.ss58_address,
+        netuid=fake_netuid,
+        uids=fake_uids,
+        values=fake_weights,
+        salt=fake_salt,
+        version_key=async_subtensor.version_as_int,
+    )
+    mocked_commit_weights_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        netuid=fake_netuid,
+        commit_hash="fake_commit_hash",
+        wait_for_inclusion=False,
+        wait_for_finalization=False,
+    )
+    assert result is True
+    assert message == "Success"
+
+
+@pytest.mark.asyncio
+async def test_commit_weights_with_exception(subtensor, mocker):
+    """Tests commit_weights when an exception is raised during weight commitment."""
+    # Preps
+    fake_wallet = mocker.Mock(autospec=async_subtensor.Wallet)
+    fake_netuid = 1
+    fake_salt = [12345, 67890]
+    fake_uids = [1, 2, 3]
+    fake_weights = [100, 200, 300]
+    max_retries = 1
+
+    mocked_generate_weight_hash = mocker.Mock(return_value="fake_commit_hash")
+    mocker.patch.object(
+        async_subtensor, "generate_weight_hash", mocked_generate_weight_hash
+    )
+
+    mocked_commit_weights_extrinsic = mocker.AsyncMock(
+        side_effect=Exception("Test exception")
+    )
+    mocker.patch.object(
+        async_subtensor, "commit_weights_extrinsic", mocked_commit_weights_extrinsic
+    )
+
+    # Call
+    result, message = await subtensor.commit_weights(
+        wallet=fake_wallet,
+        netuid=fake_netuid,
+        salt=fake_salt,
+        uids=fake_uids,
+        weights=fake_weights,
+        max_retries=max_retries,
+    )
+
+    # Asserts
+    assert mocked_commit_weights_extrinsic.call_count == max_retries
+    assert result is False
+    assert "No attempt made. Perhaps it is too soon to commit weights!" in message
