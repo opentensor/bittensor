@@ -1,5 +1,13 @@
 # Changelog
 
+## 8.3.1 /2024-11-14
+
+## What's Changed
+* Fixes broken Subtensor methods by @thewhaleking in https://github.com/opentensor/bittensor/pull/2420
+* [Tests] AsyncSubtensor (Part 7: The final race) by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2418
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v8.3.0...v8.3.1
+
 ## 8.3.0 /2024-11-13
 
 ## What's Changed
