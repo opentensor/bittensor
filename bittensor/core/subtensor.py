@@ -71,7 +71,13 @@ from bittensor.core.extrinsics.transfer import (
     transfer_extrinsic,
 )
 from bittensor.core.metagraph import Metagraph
-from bittensor.utils import networking, torch, ss58_to_vec_u8, u16_normalized_float
+from bittensor.utils import (
+    networking,
+    torch,
+    ss58_to_vec_u8,
+    u16_normalized_float,
+    hex_to_bytes,
+)
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import legacy_torch_api_compat
@@ -523,13 +529,11 @@ class Subtensor:
             return None
 
         return_type = call_definition["type"]
-
         as_scale_bytes = scalecodec.ScaleBytes(json_result["result"])
 
         rpc_runtime_config = RuntimeConfiguration()
         rpc_runtime_config.update_type_registry(load_type_registry_preset("legacy"))
         rpc_runtime_config.update_type_registry(custom_rpc_type_registry)
-
         obj = rpc_runtime_config.create_scale_object(return_type, as_scale_bytes)
         if obj.data.to_hex() == "0x0400":  # RPC returned None result
             return None
@@ -1227,12 +1231,7 @@ class Subtensor:
         if hex_bytes_result is None:
             return []
 
-        if hex_bytes_result.startswith("0x"):
-            bytes_result = bytes.fromhex(hex_bytes_result[2:])
-        else:
-            bytes_result = bytes.fromhex(hex_bytes_result)
-
-        return SubnetHyperparameters.from_vec_u8(bytes_result)
+        return SubnetHyperparameters.from_vec_u8(hex_to_bytes(hex_bytes_result))
 
     # Community uses this method
     # Returns network ImmunityPeriod hyper parameter.
@@ -1308,10 +1307,13 @@ class Subtensor:
         hotkey = metagraph.hotkeys[uid]  # type: ignore
 
         metadata = get_metadata(self, netuid, hotkey, block)
-        commitment = metadata["info"]["fields"][0]  # type: ignore
-        hex_data = commitment[list(commitment.keys())[0]][2:]  # type: ignore
+        try:
+            commitment = metadata["info"]["fields"][0]  # type: ignore
+            hex_data = commitment[list(commitment.keys())[0]][2:]  # type: ignore
+            return bytes.fromhex(hex_data).decode()
 
-        return bytes.fromhex(hex_data).decode()
+        except TypeError:
+            return ""
 
     # Community uses this via `bittensor.utils.weight_utils.process_weights_for_netuid` function.
     def min_allowed_weights(
@@ -1367,7 +1369,7 @@ class Subtensor:
             Optional[bittensor.core.chain_data.prometheus_info.PrometheusInfo]: A PrometheusInfo object containing the prometheus information, or ``None`` if the prometheus information is not found.
         """
         result = self.query_subtensor("Prometheus", block, [netuid, hotkey_ss58])
-        if result is not None and hasattr(result, "value"):
+        if result is not None and getattr(result, "value", None) is not None:
             return PrometheusInfo(
                 ip=networking.int_to_ip(result.value["ip"]),
                 ip_type=result.value["ip_type"],
@@ -1407,17 +1409,13 @@ class Subtensor:
 
         Gaining insights into the subnets' details assists in understanding the network's composition, the roles of different subnets, and their unique features.
         """
-        block_hash = None if block is None else self.substrate.get_block_hash(block)
-
-        json_body = self.substrate.rpc_request(
-            method="subnetInfo_getSubnetsInfo",  # custom rpc method
-            params=[block_hash] if block_hash else [],
+        hex_bytes_result = self.query_runtime_api(
+            "SubnetInfoRuntimeApi", "get_subnets_info", params=[], block=block
         )
-
-        if not (result := json_body.get("result", None)):
+        if not hex_bytes_result:
             return []
-
-        return SubnetInfo.list_from_vec_u8(result)
+        else:
+            return SubnetInfo.list_from_vec_u8(hex_to_bytes(hex_bytes_result))
 
     # Metagraph uses this method
     def bonds(
@@ -1561,12 +1559,7 @@ class Subtensor:
         if hex_bytes_result is None:
             return []
 
-        if hex_bytes_result.startswith("0x"):
-            bytes_result = bytes.fromhex(hex_bytes_result[2:])
-        else:
-            bytes_result = bytes.fromhex(hex_bytes_result)
-
-        return NeuronInfoLite.list_from_vec_u8(bytes_result)  # type: ignore
+        return NeuronInfoLite.list_from_vec_u8(hex_to_bytes(hex_bytes_result))  # type: ignore
 
     # Used in the `neurons` method which is used in metagraph.py
     def weights(
@@ -1923,7 +1916,7 @@ class Subtensor:
         if not (result := json_body.get("result", None)):
             return None
 
-        return DelegateInfo.from_vec_u8(result)
+        return DelegateInfo.from_vec_u8(bytes(result))
 
     # Subnet 27 uses this method name
     _do_serve_axon = do_serve_axon
