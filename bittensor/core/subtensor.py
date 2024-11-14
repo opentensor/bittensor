@@ -1407,17 +1407,18 @@ class Subtensor:
 
         Gaining insights into the subnets' details assists in understanding the network's composition, the roles of different subnets, and their unique features.
         """
-        block_hash = None if block is None else self.substrate.get_block_hash(block)
-
-        json_body = self.substrate.rpc_request(
-            method="subnetInfo_getSubnetsInfo",  # custom rpc method
-            params=[block_hash] if block_hash else [],
+        hex_bytes_result = self.query_runtime_api(
+            "SubnetInfoRuntimeApi", "get_subnets_info", params=[], block=block
         )
-
-        if not (result := json_body.get("result", None)):
+        if not hex_bytes_result:
             return []
+        else:
+            try:
+                bytes_result = bytes.fromhex(hex_bytes_result[2:])
+            except ValueError:
+                bytes_result = bytes.fromhex(hex_bytes_result)
 
-        return SubnetInfo.list_from_vec_u8(result)
+            return SubnetInfo.list_from_vec_u8(bytes_result)
 
     # Metagraph uses this method
     def bonds(
