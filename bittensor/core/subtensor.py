@@ -1308,12 +1308,14 @@ class Subtensor:
         metagraph = self.metagraph(netuid)
         hotkey = metagraph.hotkeys[uid]  # type: ignore
 
-        # TODO this breaks easily, should be improved. get_metadata frequently returns None
         metadata = get_metadata(self, netuid, hotkey, block)
-        commitment = metadata["info"]["fields"][0]  # type: ignore
-        hex_data = commitment[list(commitment.keys())[0]][2:]  # type: ignore
+        try:
+            commitment = metadata["info"]["fields"][0]  # type: ignore
+            hex_data = commitment[list(commitment.keys())[0]][2:]  # type: ignore
+            return bytes.fromhex(hex_data).decode()
 
-        return bytes.fromhex(hex_data).decode()
+        except TypeError:
+            return ""
 
     # Community uses this via `bittensor.utils.weight_utils.process_weights_for_netuid` function.
     def min_allowed_weights(
