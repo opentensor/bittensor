@@ -326,20 +326,10 @@ workflows:
             branches:
               only:
                 - /^(release|hotfix)/.*/
-      - release-dry-run:
-          filters:
-            branches:
-              only:
-                - /^(release|hotfix)/.*/
 
   release-requirements:
     jobs:
       - check-version-not-released:
-          filters:
-            branches:
-              only:
-                - master
-      - release-dry-run:
           filters:
             branches:
               only:
