@@ -529,13 +529,11 @@ class Subtensor:
             return None
 
         return_type = call_definition["type"]
-
         as_scale_bytes = scalecodec.ScaleBytes(json_result["result"])
 
         rpc_runtime_config = RuntimeConfiguration()
         rpc_runtime_config.update_type_registry(load_type_registry_preset("legacy"))
         rpc_runtime_config.update_type_registry(custom_rpc_type_registry)
-
         obj = rpc_runtime_config.create_scale_object(return_type, as_scale_bytes)
         if obj.data.to_hex() == "0x0400":  # RPC returned None result
             return None

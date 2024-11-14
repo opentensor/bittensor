@@ -2022,12 +2022,12 @@ def test_get_all_subnets_info_success(mocker, subtensor):
     """Test get_all_subnets_info returns correct data when subnet information is found."""
     # Prep
     block = 123
-    subnet_data = [1, 2, 3]  # Mocked response data
     mocker.patch.object(
         subtensor.substrate, "get_block_hash", return_value="mock_block_hash"
     )
-    mock_response = {"result": subnet_data}
-    mocker.patch.object(subtensor.substrate, "rpc_request", return_value=mock_response)
+    hex_bytes_result = "0x010203"
+    bytes_result = bytes.fromhex(hex_bytes_result[2:])
+    mocker.patch.object(subtensor, "query_runtime_api", return_value=hex_bytes_result)
     mocker.patch.object(
         subtensor_module.SubnetInfo,
         "list_from_vec_u8",
@@ -2035,14 +2035,13 @@ def test_get_all_subnets_info_success(mocker, subtensor):
     )
 
     # Call
-    result = subtensor.get_all_subnets_info(block)
+    subtensor.get_all_subnets_info(block)
 
     # Asserts
-    subtensor.substrate.get_block_hash.assert_called_once_with(block)
-    subtensor.substrate.rpc_request.assert_called_once_with(
-        method="subnetInfo_getSubnetsInfo", params=["mock_block_hash"]
+    subtensor.query_runtime_api.assert_called_once_with(
+        "SubnetInfoRuntimeApi", "get_subnets_info", params=[], block=block
     )
-    subtensor_module.SubnetInfo.list_from_vec_u8.assert_called_once_with(subnet_data)
+    subtensor_module.SubnetInfo.list_from_vec_u8.assert_called_once_with(bytes_result)
 
 
 @pytest.mark.parametrize("result_", [[], None])
@@ -2053,18 +2052,17 @@ def test_get_all_subnets_info_no_data(mocker, subtensor, result_):
     mocker.patch.object(
         subtensor.substrate, "get_block_hash", return_value="mock_block_hash"
     )
-    mock_response = {"result": result_}
-    mocker.patch.object(subtensor.substrate, "rpc_request", return_value=mock_response)
     mocker.patch.object(subtensor_module.SubnetInfo, "list_from_vec_u8")
+
+    mocker.patch.object(subtensor, "query_runtime_api", return_value=result_)
 
     # Call
     result = subtensor.get_all_subnets_info(block)
 
     # Asserts
     assert result == []
-    subtensor.substrate.get_block_hash.assert_called_once_with(block)
-    subtensor.substrate.rpc_request.assert_called_once_with(
-        method="subnetInfo_getSubnetsInfo", params=["mock_block_hash"]
+    subtensor.query_runtime_api.assert_called_once_with(
+        "SubnetInfoRuntimeApi", "get_subnets_info", params=[], block=block
     )
     subtensor_module.SubnetInfo.list_from_vec_u8.assert_not_called()
 
