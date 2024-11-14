@@ -351,7 +351,7 @@ async def test_get_delegates(subtensor, mocker, fake_hex_bytes_result, response)
 
 
 @pytest.mark.parametrize(
-    "fake_hex_bytes_result, response", [(None, []), ("zz001122", b"\xaa\xbb\xcc\xdd")]
+    "fake_hex_bytes_result, response", [(None, []), ("0x001122", b"\xaa\xbb\xcc\xdd")]
 )
 @pytest.mark.asyncio
 async def test_get_stake_info_for_coldkey(
