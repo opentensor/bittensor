@@ -76,10 +76,10 @@ async def test_dendrite(local_chain):
     metagraph = Metagraph(netuid=netuid, network="ws://localhost:9945")
     old_neuron = metagraph.neurons[1]
 
-    # Assert stake is 10000
-    assert (
-        old_neuron.stake.tao == 10_000.0
-    ), f"Expected 10_000.0 staked TAO, but got {neuron.stake.tao}"
+    # Assert stake is 10000 can't compare anymore. the stake value is the alpha now.
+    # assert (
+    #     old_neuron.stake.tao == 10_000.0
+    # ), f"Expected 10_000.0 staked TAO, but got {neuron.stake.tao}"
 
     # Assert neuron is not a validator yet
     assert old_neuron.active is True
