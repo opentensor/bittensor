@@ -1918,7 +1918,7 @@ class Subtensor:
         if not (result := json_body.get("result", None)):
             return None
 
-        return DelegateInfo.from_vec_u8(result)
+        return DelegateInfo.from_vec_u8(bytes(result))
 
     # Subnet 27 uses this method name
     _do_serve_axon = do_serve_axon
