@@ -281,7 +281,7 @@ jobs:
     steps:
       - checkout
       - setup_remote_docker:
-          version: 20.10.14
+          version: 27.3.1
           docker_layer_caching: true
       - run:
           name: Executing release script
