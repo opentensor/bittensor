@@ -223,3 +223,15 @@ def test_unlock_key_errors(mocker, side_effect, response):
     result = utils.unlock_key(wallet=mock_wallet)
 
     assert result == response
+
+
+@pytest.mark.parametrize(
+    "hex_str, response",
+    [
+        ("5461796c6f72205377696674", b"Taylor Swift"),
+        ("0x5461796c6f72205377696674", b"Taylor Swift"),
+    ],
+)
+def test_hex_to_bytes(hex_str, response):
+    result = utils.hex_to_bytes(hex_str)
+    assert result == response

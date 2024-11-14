@@ -46,6 +46,7 @@ from bittensor.utils import (
     format_error_message,
     decode_hex_identity_dict,
     validate_chain_endpoint,
+    hex_to_bytes,
 )
 from bittensor.utils.async_substrate_interface import (
     AsyncSubstrateInterface,
@@ -351,12 +352,7 @@ class AsyncSubtensor:
             reuse_block=reuse_block,
         )
         if hex_bytes_result is not None:
-            try:
-                bytes_result = bytes.fromhex(hex_bytes_result[2:])
-            except ValueError:
-                bytes_result = bytes.fromhex(hex_bytes_result)
-
-            return DelegateInfo.list_from_vec_u8(bytes_result)
+            return DelegateInfo.list_from_vec_u8(hex_to_bytes(hex_bytes_result))
         else:
             return []
 
@@ -392,12 +388,7 @@ class AsyncSubtensor:
         if hex_bytes_result is None:
             return []
 
-        try:
-            bytes_result = bytes.fromhex(hex_bytes_result[2:])
-        except ValueError:
-            bytes_result = bytes.fromhex(hex_bytes_result)
-
-        return StakeInfo.list_from_vec_u8(bytes_result)
+        return StakeInfo.list_from_vec_u8(hex_to_bytes(hex_bytes_result))
 
     async def get_stake_for_coldkey_and_hotkey(
         self, hotkey_ss58: str, coldkey_ss58: str, block_hash: Optional[str] = None
@@ -853,12 +844,7 @@ class AsyncSubtensor:
         if hex_bytes_result is None:
             return []
 
-        try:
-            bytes_result = bytes.fromhex(hex_bytes_result[2:])
-        except ValueError:
-            bytes_result = bytes.fromhex(hex_bytes_result)
-
-        return NeuronInfoLite.list_from_vec_u8(bytes_result)
+        return NeuronInfoLite.list_from_vec_u8(hex_to_bytes(hex_bytes_result))
 
     async def neuron_for_uid(
         self, uid: Optional[int], netuid: int, block_hash: Optional[str] = None
@@ -1170,12 +1156,7 @@ class AsyncSubtensor:
         if hex_bytes_result is None:
             return []
 
-        if hex_bytes_result.startswith("0x"):
-            bytes_result = bytes.fromhex(hex_bytes_result[2:])
-        else:
-            bytes_result = bytes.fromhex(hex_bytes_result)
-
-        return SubnetHyperparameters.from_vec_u8(bytes_result)
+        return SubnetHyperparameters.from_vec_u8(hex_to_bytes(hex_bytes_result))
 
     async def get_vote_data(
         self,
