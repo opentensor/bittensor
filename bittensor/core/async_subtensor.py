@@ -1403,15 +1403,15 @@ class AsyncSubtensor:
 
     async def pow_register(
         self: "AsyncSubtensor",
-        wallet: Wallet,
-        netuid,
-        processors,
-        update_interval,
-        output_in_place,
-        verbose,
-        use_cuda,
-        dev_id,
-        threads_per_block,
+        wallet: "Wallet",
+        netuid: int,
+        processors: int,
+        update_interval: int,
+        output_in_place: bool,
+        verbose: bool,
+        use_cuda: bool,
+        dev_id: Union[list[int], int],
+        threads_per_block: int,
     ):
         """Register neuron."""
         return await register_extrinsic(
@@ -1462,11 +1462,9 @@ class AsyncSubtensor:
         retries = 0
         success = False
         message = "No attempt made. Perhaps it is too soon to set weights!"
-        while (
-            await self.blocks_since_last_update(netuid, uid)
-            > await self.weights_rate_limit(netuid)
-            and retries < max_retries
-        ):
+        while retries < max_retries and await self.blocks_since_last_update(
+            netuid, uid
+        ) > await self.weights_rate_limit(netuid):
             try:
                 logging.info(
                     f"Setting weights for subnet #<blue>{netuid}</blue>. Attempt <blue>{retries + 1} of {max_retries}</blue>."
