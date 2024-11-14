@@ -1371,7 +1371,7 @@ class Subtensor:
             Optional[bittensor.core.chain_data.prometheus_info.PrometheusInfo]: A PrometheusInfo object containing the prometheus information, or ``None`` if the prometheus information is not found.
         """
         result = self.query_subtensor("Prometheus", block, [netuid, hotkey_ss58])
-        if result is not None and hasattr(result, "value"):
+        if result is not None and getattr(result, "value", None) is not None:
             return PrometheusInfo(
                 ip=networking.int_to_ip(result.value["ip"]),
                 ip_type=result.value["ip_type"],
