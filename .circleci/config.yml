@@ -275,19 +275,6 @@ jobs:
           command: |
             [[ $(docker manifest inspect opentensorfdn/bittensor:`cat VERSION` > /dev/null 2> /dev/null ; echo $?) == 1 ]] && echo "Docker image 'opentensorfdn/bittensor:`cat VERSION`' does not exist in dockerhub"
 
-  release-dry-run:
-    docker:
-      - image: cimg/python:3.10
-    steps:
-      - checkout
-      - setup_remote_docker:
-          version: default
-          docker_layer_caching: true
-      - run:
-          name: Executing release script
-          command: |
-            ./scripts/release/release.sh --github-token ${GH_API_ACCESS_TOKEN}
-
 workflows:
   compatibility_checks:
     jobs:
