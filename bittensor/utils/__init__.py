@@ -403,3 +403,14 @@ def unlock_key(wallet: "Wallet", unlock_type="coldkey") -> "UnlockStatus":
     except KeyFileError:
         err_msg = f"{unlock_type.capitalize()} keyfile is corrupt, non-writable, or non-readable, or non-existent."
         return UnlockStatus(False, err_msg)
+
+
+def hex_to_bytes(hex_str: str) -> bytes:
+    """
+    Converts a hex-encoded string into bytes. Handles 0x-prefixed and non-prefixed hex-encoded strings.
+    """
+    try:
+        bytes_result = bytes.fromhex(hex_str[2:])
+    except ValueError:
+        bytes_result = bytes.fromhex(hex_str)
+    return bytes_result
