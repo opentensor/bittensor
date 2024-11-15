@@ -151,3 +151,177 @@ async def test_do_set_weights_no_waiting(subtensor, mocker):
     assert message == "Not waiting for finalization or inclusion."
 
 
+@pytest.mark.asyncio
+async def test_set_weights_extrinsic_success_with_finalization(subtensor, mocker):
+    """Tests set_weights_extrinsic when weights are successfully set with finalization."""
+    # Preps
+    fake_wallet = mocker.Mock(autospec=Wallet)
+    fake_netuid = 1
+    fake_uids = [1, 2, 3]
+    fake_weights = [0.1, 0.2, 0.7]
+
+    mocked_do_set_weights = mocker.patch.object(
+        async_weights, "_do_set_weights", return_value=(True, "")
+    )
+
+    # Call
+    result, message = await async_weights.set_weights_extrinsic(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        netuid=fake_netuid,
+        uids=fake_uids,
+        weights=fake_weights,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+    # Asserts
+    mocked_do_set_weights.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        netuid=fake_netuid,
+        uids=mocker.ANY,
+        vals=mocker.ANY,
+        version_key=0,
+        wait_for_finalization=True,
+        wait_for_inclusion=True,
+    )
+    assert result is True
+    assert message == "Successfully set weights and Finalized."
+
+
+@pytest.mark.asyncio
+async def test_set_weights_extrinsic_no_waiting(subtensor, mocker):
+    """Tests set_weights_extrinsic when no waiting for inclusion or finalization."""
+    # Preps
+    fake_wallet = mocker.Mock(autospec=Wallet)
+    fake_netuid = 1
+    fake_uids = [1, 2, 3]
+    fake_weights = [0.1, 0.2, 0.7]
+
+    mocked_do_set_weights = mocker.patch.object(
+        async_weights, "_do_set_weights", return_value=(True, "")
+    )
+
+    # Call
+    result, message = await async_weights.set_weights_extrinsic(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        netuid=fake_netuid,
+        uids=fake_uids,
+        weights=fake_weights,
+        wait_for_inclusion=False,
+        wait_for_finalization=False,
+    )
+
+    # Asserts
+    mocked_do_set_weights.assert_called_once()
+    assert result is True
+    assert message == "Not waiting for finalization or inclusion."
+
+
+@pytest.mark.asyncio
+async def test_set_weights_extrinsic_failure(subtensor, mocker):
+    """Tests set_weights_extrinsic when setting weights fails."""
+    # Preps
+    fake_wallet = mocker.Mock(autospec=Wallet)
+    fake_netuid = 1
+    fake_uids = [1, 2, 3]
+    fake_weights = [0.1, 0.2, 0.7]
+
+    mocked_do_set_weights = mocker.patch.object(
+        async_weights, "_do_set_weights", return_value=(False, "Test error message")
+    )
+
+    # Call
+    result, message = await async_weights.set_weights_extrinsic(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        netuid=fake_netuid,
+        uids=fake_uids,
+        weights=fake_weights,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+    # Asserts
+    mocked_do_set_weights.assert_called_once()
+    assert result is False
+    assert message == "Test error message"
+
+
+@pytest.mark.asyncio
+async def test_set_weights_extrinsic_exception(subtensor, mocker):
+    """Tests set_weights_extrinsic when an exception is raised."""
+    # Preps
+    fake_wallet = mocker.Mock(autospec=Wallet)
+    fake_netuid = 1
+    fake_uids = [1, 2, 3]
+    fake_weights = [0.1, 0.2, 0.7]
+
+    mocked_do_set_weights = mocker.patch.object(
+        async_weights, "_do_set_weights", side_effect=Exception("Unexpected error")
+    )
+
+    # Call
+    result, message = await async_weights.set_weights_extrinsic(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        netuid=fake_netuid,
+        uids=fake_uids,
+        weights=fake_weights,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+    # Asserts
+    mocked_do_set_weights.assert_called_once()
+    assert result is False
+    assert message == "Unexpected error"
+
+
+@pytest.mark.asyncio
+async def test_set_weights_extrinsic_if_use_torch(subtensor, mocker):
+    """Tests set_weights_extrinsic when use_torch is True."""
+    # Preps
+    fake_wallet = mocker.Mock(autospec=Wallet)
+    fake_netuid = 1
+    fake_uids = [1, 2, 3]
+    fake_weights = [0.1, 0.2, 0.7]
+
+    mocked_use_torch = mocker.patch.object(
+        async_weights, "use_torch", return_value=True
+    )
+    mocked_torch_tensor = mocker.patch.object(
+        async_weights.torch, "tensor", return_value=mocker.Mock()
+    )
+
+    mocked_do_set_weights = mocker.patch.object(
+        async_weights, "_do_set_weights", return_value=(False, "Test error message")
+    )
+    mocked_convert_weights_and_uids_for_emit = mocker.patch.object(
+        async_weights.weight_utils,
+        "convert_weights_and_uids_for_emit",
+        return_value=(mocker.Mock(), mocker.Mock()),
+    )
+
+    # Call
+    result, message = await async_weights.set_weights_extrinsic(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        netuid=fake_netuid,
+        uids=fake_uids,
+        weights=fake_weights,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+    # Asserts
+    mocked_do_set_weights.assert_called_once()
+    mocked_use_torch.assert_called_once()
+    mocked_convert_weights_and_uids_for_emit.assert_called()
+    mocked_torch_tensor.assert_called_with(
+        fake_weights, dtype=async_weights.torch.float32
+    )
+    assert result is False
+    assert message == "Test error message"
