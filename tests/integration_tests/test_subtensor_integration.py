@@ -12,6 +12,19 @@ from bittensor.core.subtensor import Subtensor
 with open(os.path.join(os.path.dirname(__file__), '..', 'helpers', 'refined-output.json')) as f:
     WEBSOCKET_DICT = eval(f.read())
 
+# TODO new dict design:
+# {
+#     method: {
+#         params_list: result,
+#         params_list: result,
+#         ...
+#     },
+#     method: {
+#         params_list: result,
+#         ...
+#     },
+#     ...
+# }
 
 class FakeWebsocket(websocket.WebSocket):
     def __init__(self, *args, **kwargs):
