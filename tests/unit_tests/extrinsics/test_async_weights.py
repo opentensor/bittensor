@@ -477,3 +477,73 @@ async def test_do_commit_weights_exception(subtensor, mocker):
             wait_for_inclusion=True,
             wait_for_finalization=True,
         )
+
+
+@pytest.mark.asyncio
+async def test_commit_weights_extrinsic_success(subtensor, mocker):
+    """Tests commit_weights_extrinsic when the commit is successful."""
+    # Preps
+    fake_wallet = mocker.Mock(autospec=Wallet)
+    fake_netuid = 1
+    fake_commit_hash = "test_hash"
+
+    mocked_do_commit_weights = mocker.patch.object(
+        async_weights, "_do_commit_weights", return_value=(True, None)
+    )
+
+    # Call
+    result, message = await async_weights.commit_weights_extrinsic(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        netuid=fake_netuid,
+        commit_hash=fake_commit_hash,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+    # Asserts
+    mocked_do_commit_weights.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        netuid=fake_netuid,
+        commit_hash=fake_commit_hash,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    assert result is True
+    assert message == "Successfully committed weights."
+
+
+@pytest.mark.asyncio
+async def test_commit_weights_extrinsic_failure(subtensor, mocker):
+    """Tests commit_weights_extrinsic when the commit fails."""
+    # Preps
+    fake_wallet = mocker.Mock(autospec=Wallet)
+    fake_netuid = 1
+    fake_commit_hash = "test_hash"
+
+    mocked_do_commit_weights = mocker.patch.object(
+        async_weights, "_do_commit_weights", return_value=(False, "Commit failed.")
+    )
+
+    # Call
+    result, message = await async_weights.commit_weights_extrinsic(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        netuid=fake_netuid,
+        commit_hash=fake_commit_hash,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+    # Asserts
+    mocked_do_commit_weights.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        netuid=fake_netuid,
+        commit_hash=fake_commit_hash,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    assert result is False
+    assert message == "Commit failed."
