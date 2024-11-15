@@ -131,6 +131,7 @@ class Subtensor:
         _mock: bool = False,
         log_verbose: bool = False,
         connection_timeout: int = 600,
+        websocket = None
     ) -> None:
         """
         Initializes a Subtensor interface for interacting with the Bittensor blockchain.
@@ -182,6 +183,7 @@ class Subtensor:
         self.log_verbose = log_verbose
         self._connection_timeout = connection_timeout
         self.substrate: "SubstrateInterface" = None
+        self.websocket = websocket
         self._get_substrate()
 
     def __str__(self) -> str:
@@ -204,12 +206,20 @@ class Subtensor:
         """Establishes a connection to the Substrate node using configured parameters."""
         try:
             # Set up params.
-            self.substrate = SubstrateInterface(
-                ss58_format=settings.SS58_FORMAT,
-                use_remote_preset=True,
-                url=self.chain_endpoint,
-                type_registry=settings.TYPE_REGISTRY,
-            )
+            if not self.websocket:
+                self.substrate = SubstrateInterface(
+                    ss58_format=settings.SS58_FORMAT,
+                    use_remote_preset=True,
+                    url=self.chain_endpoint,
+                    type_registry=settings.TYPE_REGISTRY
+                )
+            else:
+                self.substrate = SubstrateInterface(
+                    ss58_format=settings.SS58_FORMAT,
+                    use_remote_preset=True,
+                    type_registry=settings.TYPE_REGISTRY,
+                    websocket=self.websocket
+                )
             if self.log_verbose:
                 logging.debug(
                     f"Connected to {self.network} network and {self.chain_endpoint}."
