@@ -122,7 +122,7 @@ async def _do_set_root_weights(
     version_key: int = 0,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
-):
+) -> tuple[bool, str]:
     """
     Sets the root weights on the Subnet for the given wallet hotkey account.
 
@@ -171,7 +171,9 @@ async def _do_set_root_weights(
     if await response.is_success:
         return True, "Successfully set weights."
     else:
-        return False, await response.error_message
+        return False, format_error_message(
+            await response.error_message, substrate=subtensor.substrate
+        )
 
 
 async def set_root_weights_extrinsic(
@@ -256,7 +258,7 @@ async def set_root_weights_extrinsic(
             logging.info(":white_heavy_check_mark: <green>Finalized</green>")
             return True
         else:
-            fmt_err = format_error_message(error_message, subtensor.substrate)
+            fmt_err = error_message
             logging.error(f":cross_mark: <red>Failed error:</red> {fmt_err}")
             return False
 
