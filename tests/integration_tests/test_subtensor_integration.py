@@ -1,12 +1,12 @@
 import json
-import os
 from collections import deque
-import random
-from unittest.mock import patch
 import websocket
 
 import pytest
-from bittensor.core import settings
+from bittensor.utils.balance import Balance
+from bittensor.core.chain_data.axon_info import AxonInfo
+
+from bittensor import NeuronInfo
 from bittensor.core.subtensor import Subtensor
 from tests.helpers.refined_output import WEBSOCKET_RESPONSES
 
@@ -61,6 +61,16 @@ class FakeWebsocket(websocket.WebSocket):
 #     subtensor_ = Subtensor(websocket=FakeWebsocket())
 #     yield subtensor_
 #     print("Subtensor closed")
+
+
+@pytest.fixture
+def hotkey():
+    yield "5DkzsviNQr4ZePXMmEfNPDcE7cQ9cVyepmQbgUw6YT3odcwh"
+
+
+@pytest.fixture
+def netuid():
+    yield 23
 
 
 # @pytest.mark.parametrize(
@@ -165,3 +175,21 @@ def test_get_block_hash():
     assert (
         result == "0xe89482ae7892ab5633f294179245f4058a99781e15f21da31eb625169da5d409"
     )
+
+
+def test_subnetwork_n():
+    subtensor = Subtensor(websocket=FakeWebsocket(seed="subnetwork_n"))
+    result = subtensor.subnetwork_n(1)
+    assert result == 94
+
+
+def test_get_neuron_for_pubkey_and_subnet(hotkey, netuid):
+    subtensor = Subtensor(
+        websocket=FakeWebsocket(seed="get_neuron_for_pubkey_and_subnet")
+    )
+    result = subtensor.get_neuron_for_pubkey_and_subnet(hotkey, netuid)
+    assert isinstance(result, NeuronInfo)
+    assert result.hotkey == hotkey
+    assert isinstance(result.total_stake, Balance)
+    assert isinstance(result.axon_info, AxonInfo)
+    assert result.is_null is False
