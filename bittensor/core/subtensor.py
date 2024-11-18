@@ -131,7 +131,7 @@ class Subtensor:
         _mock: bool = False,
         log_verbose: bool = False,
         connection_timeout: int = 600,
-        websocket = None
+        websocket=None,
     ) -> None:
         """
         Initializes a Subtensor interface for interacting with the Bittensor blockchain.
@@ -211,14 +211,14 @@ class Subtensor:
                     ss58_format=settings.SS58_FORMAT,
                     use_remote_preset=True,
                     url=self.chain_endpoint,
-                    type_registry=settings.TYPE_REGISTRY
+                    type_registry=settings.TYPE_REGISTRY,
                 )
             else:
                 self.substrate = SubstrateInterface(
                     ss58_format=settings.SS58_FORMAT,
                     use_remote_preset=True,
                     type_registry=settings.TYPE_REGISTRY,
-                    websocket=self.websocket
+                    websocket=self.websocket,
                 )
             if self.log_verbose:
                 logging.debug(

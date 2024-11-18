@@ -11,7 +11,6 @@ from bittensor.core.subtensor import Subtensor
 from tests.helpers.refined_output import WEBSOCKET_RESPONSES
 
 
-
 # TODO new dict design:
 # {
 #     method: {
@@ -25,6 +24,7 @@ from tests.helpers.refined_output import WEBSOCKET_RESPONSES
 #     },
 #     ...
 # }
+
 
 class FakeWebsocket(websocket.WebSocket):
     def __init__(self, *args, seed, **kwargs):
@@ -40,7 +40,9 @@ class FakeWebsocket(websocket.WebSocket):
     def recv(self):
         item, _id = self.received.pop()
         try:
-            response = WEBSOCKET_RESPONSES[self.seed][item["method"]][json.dumps(item["params"])]
+            response = WEBSOCKET_RESPONSES[self.seed][item["method"]][
+                json.dumps(item["params"])
+            ]
             response["id"] = _id
             return json.dumps(response)
         except KeyError:
@@ -113,7 +115,9 @@ def test_metagraph():
 
 def test_get_netuids_for_hotkey():
     subtensor = Subtensor(websocket=FakeWebsocket(seed="get_netuids_for_hotkey"))
-    result = subtensor.get_netuids_for_hotkey("5DkzsviNQr4ZePXMmEfNPDcE7cQ9cVyepmQbgUw6YT3odcwh")
+    result = subtensor.get_netuids_for_hotkey(
+        "5DkzsviNQr4ZePXMmEfNPDcE7cQ9cVyepmQbgUw6YT3odcwh"
+    )
     assert result == [23]
 
 
