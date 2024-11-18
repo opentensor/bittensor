@@ -125,3 +125,43 @@ def test_get_current_block():
     subtensor = Subtensor(websocket=FakeWebsocket(seed="get_current_block"))
     result = subtensor.get_current_block()
     assert result == 3264143
+
+
+def test_is_hotkey_registered_any():
+    subtensor = Subtensor(websocket=FakeWebsocket(seed="is_hotkey_registered_any"))
+    result = subtensor.is_hotkey_registered_any(
+        "5DkzsviNQr4ZePXMmEfNPDcE7cQ9cVyepmQbgUw6YT3odcwh"
+    )
+    assert result is True
+
+
+def test_is_hotkey_registered_on_subnet():
+    subtensor = Subtensor(
+        websocket=FakeWebsocket(seed="is_hotkey_registered_on_subnet")
+    )
+    result = subtensor.is_hotkey_registered_on_subnet(
+        "5DkzsviNQr4ZePXMmEfNPDcE7cQ9cVyepmQbgUw6YT3odcwh", 23
+    )
+    assert result is True
+
+
+def test_is_hotkey_registered():
+    subtensor = Subtensor(websocket=FakeWebsocket(seed="is_hotkey_registered"))
+    result = subtensor.is_hotkey_registered(
+        "5DkzsviNQr4ZePXMmEfNPDcE7cQ9cVyepmQbgUw6YT3odcwh"
+    )
+    assert result is True
+
+
+def test_blocks_since_last_update():
+    subtensor = Subtensor(websocket=FakeWebsocket(seed="blocks_since_last_update"))
+    result = subtensor.blocks_since_last_update(23, 5)
+    assert result == 1293687
+
+
+def test_get_block_hash():
+    subtensor = Subtensor(websocket=FakeWebsocket(seed="get_block_hash"))
+    result = subtensor.get_block_hash(3234677)
+    assert (
+        result == "0xe89482ae7892ab5633f294179245f4058a99781e15f21da31eb625169da5d409"
+    )
