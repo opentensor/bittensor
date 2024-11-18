@@ -16,8 +16,8 @@
 # DEALINGS IN THE SOFTWARE.
 
 """
-The ``bittensor.core.subtensor.Subtensor`` module in Bittensor serves as a crucial interface for interacting with the Bittensor
-blockchain, facilitating a range of operations essential for the decentralized machine learning network.
+The ``bittensor.core.subtensor.Subtensor`` module in Bittensor serves as a crucial interface for interacting with the
+Bittensor blockchain, facilitating a range of operations essential for the decentralized machine learning network.
 """
 
 import argparse
@@ -28,7 +28,8 @@ from typing import Union, Optional, TypedDict, Any
 
 import numpy as np
 import scalecodec
-from bittensor_wallet import Wallet
+import substrateinterface
+from bittensor_wallet import Wallet, Keypair
 from numpy.typing import NDArray
 from scalecodec.base import RuntimeConfiguration
 from scalecodec.exceptions import RemainingScaleBytesNotEmptyException
@@ -82,6 +83,8 @@ from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import legacy_torch_api_compat
 from bittensor.utils.weight_utils import generate_weight_hash
+
+substrateinterface.base.Keypair = Keypair
 
 KEY_NONCE: dict[str, int] = {}
 
