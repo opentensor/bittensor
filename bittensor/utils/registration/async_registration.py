@@ -522,7 +522,7 @@ async def create_pow_async(
             log_verbose=log_verbose,
         )
     else:
-        solution: Optional[POWSolution] = await _solve_for_difficulty_fast(
+        solution = await _solve_for_difficulty_fast(
             subtensor=subtensor,
             wallet=wallet,
             netuid=netuid,
