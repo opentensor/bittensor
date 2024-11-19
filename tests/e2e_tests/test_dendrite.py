@@ -8,7 +8,6 @@ from bittensor.core.subtensor import Subtensor
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 from tests.e2e_tests.utils.chain_interactions import (
-    register_neuron,
     register_subnet,
     add_stake,
     wait_epoch,
@@ -52,13 +51,14 @@ async def test_dendrite(local_chain):
     # Register Bob
     bob_keypair, bob_wallet = setup_wallet("//Bob")
 
+    subtensor = Subtensor(network="ws://localhost:9945")
+
     # Register Bob to the network
-    assert register_neuron(
-        local_chain, bob_wallet, netuid
-    ), f"Neuron wasn't registered to subnet {netuid}"
+    assert subtensor.burned_register(
+        bob_wallet, netuid
+    ), "Unable to register Bob as a neuron"
 
     metagraph = Metagraph(netuid=netuid, network="ws://localhost:9945")
-    subtensor = Subtensor(network="ws://localhost:9945")
 
     # Assert one neuron is Bob
     assert len(subtensor.neurons(netuid=netuid)) == 1
