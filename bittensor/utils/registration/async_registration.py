@@ -509,7 +509,7 @@ async def create_pow_async(
     if netuid != -1:
         if not await subtensor.subnet_exists(netuid=netuid):
             raise ValueError(f"Subnet {netuid} does not exist")
-
+    solution: Optional[POWSolution]
     if cuda:
         solution = await _solve_for_difficulty_fast_cuda(
             subtensor=subtensor,
