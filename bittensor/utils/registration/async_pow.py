@@ -4,12 +4,12 @@ import math
 import time
 from multiprocessing import Event, Lock, Array, Value, Queue
 from queue import Empty
-from typing import Any, Callable, Union, Optional, TYPE_CHECKING
+from typing import Callable, Union, Optional, TYPE_CHECKING
 
 from retry import retry
 from substrateinterface.exceptions import SubstrateRequestException
 
-from bittensor.utils.registration.registration import (
+from bittensor.utils.registration.pow import (
     get_cpu_count,
     update_curr_block,
     terminate_workers_and_wait_for_exit,
@@ -155,12 +155,14 @@ async def _block_solver(
     """Shared code used by the Solvers to solve the POW solution."""
     limit = int(math.pow(2, 256)) - 1
 
+    if cuda:
+        num_processes = len(dev_id)
+
     # Establish communication queues
     # See the _Solver class for more information on the queues.
     stop_event = Event()
     stop_event.clear()
-    if cuda:
-        num_processes = len(dev_id)
+
     solution_queue = Queue()
     finished_queues = [Queue() for _ in range(num_processes)]
     check_block = Lock()
@@ -171,7 +173,6 @@ async def _block_solver(
 
     if cuda:
         # Create a worker per CUDA device
-        num_processes = len(dev_id)
         solvers = [
             CUDASolver(
                 i,
@@ -485,7 +486,7 @@ async def create_pow_async(
     num_processes: int = None,
     update_interval: int = None,
     log_verbose: bool = False,
-) -> Optional[dict[str, Any]]:
+) -> "POWSolution":
     """
     Creates a proof of work for the given subtensor and wallet.
 

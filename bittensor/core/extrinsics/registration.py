@@ -26,7 +26,7 @@ if TYPE_CHECKING:
     from bittensor.core.subtensor import Subtensor
     from bittensor.utils.registration import POWSolution
 else:
-    from bittensor.utils.registration.registration import LazyLoadedTorch
+    from bittensor.utils.registration.pow import LazyLoadedTorch
 
     torch = LazyLoadedTorch()
 

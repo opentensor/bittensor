@@ -32,7 +32,7 @@ class MockBittensorLogging:
 def mock_bittensor_logging(monkeypatch):
     mock_logger = MockBittensorLogging()
     monkeypatch.setattr(
-        "bittensor.utils.registration.registration.logging", mock_logger
+        "bittensor.utils.registration.pow.logging", mock_logger
     )
     return mock_logger
 
@@ -51,7 +51,7 @@ def test_lazy_loaded_torch__torch_installed(monkeypatch, mock_bittensor_logging)
 
 def test_lazy_loaded_torch__no_torch(monkeypatch, mock_bittensor_logging):
     monkeypatch.setattr(
-        "bittensor.utils.registration.registration._get_real_torch", lambda: None
+        "bittensor.utils.registration.pow._get_real_torch", lambda: None
     )
 
     torch = LazyLoadedTorch()

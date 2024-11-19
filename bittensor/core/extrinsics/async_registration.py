@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from bittensor.core.async_subtensor import AsyncSubtensor
     from bittensor.utils.registration import POWSolution
 else:
-    from bittensor.utils.registration.registration import LazyLoadedTorch
+    from bittensor.utils.registration.pow import LazyLoadedTorch
 
     torch = LazyLoadedTorch()
 
@@ -286,7 +286,7 @@ async def run_faucet_extrinsic(
                 if cuda:
                     if not torch.cuda.is_available():
                         return False, "CUDA is not available."
-                    pow_result: Optional["POWSolution"] = await create_pow_async(
+                    pow_result = await create_pow_async(
                         subtensor,
                         wallet,
                         -1,
@@ -299,7 +299,7 @@ async def run_faucet_extrinsic(
                         log_verbose=log_verbose,
                     )
                 else:
-                    pow_result: Optional["POWSolution"] = await create_pow_async(
+                    pow_result = await create_pow_async(
                         subtensor,
                         wallet,
                         -1,
