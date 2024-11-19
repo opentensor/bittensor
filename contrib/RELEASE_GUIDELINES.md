@@ -30,12 +30,12 @@ If you are new in this role, ask for the proper setup you need to run this proce
 
 Options:
   - -U, --update: type of update. It could be major, minor, patch or rc (release candidate).
-  - -A, --apply: This specify to apply the release. Without this the versioning will just show a dry run with no changes.
+  - -A, --apply: This specifies to apply the release. Without this the versioning will just show a dry run with no changes.
 
 ## Release script usage
 
 Options:
-  - -A, --apply: This specify to apply the release. Without this the release will just show a dry run with no changes.
+  - -A, --apply: This specifies to apply the release. Without this the release will just show a dry run with no changes.
   - -T,--github-token: A github personal access token to interact with the Github API.
 
 ### Github token
