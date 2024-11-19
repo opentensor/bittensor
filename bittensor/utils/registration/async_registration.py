@@ -159,7 +159,8 @@ async def _block_solver(
     # See the _Solver class for more information on the queues.
     stop_event = Event()
     stop_event.clear()
-
+    if cuda:
+        num_processes = len(dev_id)
     solution_queue = Queue()
     finished_queues = [Queue() for _ in range(num_processes)]
     check_block = Lock()
