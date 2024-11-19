@@ -28,8 +28,7 @@ from typing import Union, Optional, TypedDict, Any
 
 import numpy as np
 import scalecodec
-import substrateinterface
-from bittensor_wallet import Wallet, Keypair
+from bittensor_wallet import Wallet
 from numpy.typing import NDArray
 from scalecodec.base import RuntimeConfiguration
 from scalecodec.exceptions import RemainingScaleBytesNotEmptyException
@@ -83,11 +82,6 @@ from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import legacy_torch_api_compat
 from bittensor.utils.weight_utils import generate_weight_hash
-
-# Since we are using a Rust-based bittensor-wallet, its Keypair base class is different than the original
-# substrateinterface.Keypair. We need to patch in the bittensor wallet Keypair to pass  py-substrate-interface's type
-# checkers.
-substrateinterface.base.Keypair = Keypair
 
 KEY_NONCE: dict[str, int] = {}
 
