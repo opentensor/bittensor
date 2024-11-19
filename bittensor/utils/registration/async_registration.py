@@ -48,10 +48,9 @@ async def _get_block_with_retry(
         Exception: If the block hash is None.
         ValueError: If the difficulty is None.
     """
-    block_number = await subtensor.substrate.get_block_number(None)
-    block_hash = await subtensor.substrate.get_block_hash(
-        block_number
-    )  # TODO check if I need to do all this
+    block = await subtensor.substrate.get_block()
+    block_hash = block["header"]["hash"]
+    block_number = block["header"]["number"]
     try:
         difficulty = (
             1_000_000
