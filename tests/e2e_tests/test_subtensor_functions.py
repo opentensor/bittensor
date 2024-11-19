@@ -32,7 +32,6 @@ Verifies:
 * recycle()
 * get_existential_deposit() 
 * get_all_subnets_info()
-
 """
 
 
@@ -201,13 +200,13 @@ async def test_subtensor_extrinsics(local_chain):
     )  # wait for 5 seconds for the metagraph and subtensor to refresh with latest data
     subtensor = Subtensor(network="ws://localhost:9945")
 
-    # # Verify neuron info is updated after running as a validator
-    # neuron_info = subtensor.get_neuron_for_pubkey_and_subnet(
-    #     alice_keypair.ss58_address, netuid=netuid
-    # )
-    # assert (
-    #     neuron_info_old.axon_info != neuron_info.axon_info
-    # ), "Neuron info not updated after running validator"
+    # Verify neuron info is updated after running as a validator
+    neuron_info = subtensor.get_neuron_for_pubkey_and_subnet(
+        alice_keypair.ss58_address, netuid=netuid
+    )
+    assert (
+        neuron_info_old.axon_info != neuron_info.axon_info
+    ), "Neuron info not updated after running validator"
 
     # Fetch and assert existential deposit for an account in the network
     assert (
