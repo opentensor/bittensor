@@ -1,4 +1,4 @@
-from bittensor.utils.registration.registration import (
+from bittensor.utils.registration.pow import (
     create_pow,
     legacy_torch_api_compat,
     log_no_torch_error,
@@ -7,4 +7,4 @@ from bittensor.utils.registration.registration import (
     LazyLoadedTorch,
     POWSolution,
 )
-from bittensor.utils.registration.async_registration import create_pow_async
+from bittensor.utils.registration.async_pow import create_pow_async
