@@ -1,6 +1,4 @@
-"""
-This module provides async utilities for solving Proof-of-Work (PoW) challenges in Bittensor network.
-"""
+"""This module provides async utilities for solving Proof-of-Work (PoW) challenges in Bittensor network."""
 
 import math
 import time
@@ -11,7 +9,7 @@ from typing import Any, Callable, Union, Optional, TYPE_CHECKING
 from retry import retry
 from substrateinterface.exceptions import SubstrateRequestException
 
-from bittensor.utils.registration import (
+from bittensor.utils.registration.registration import (
     get_cpu_count,
     update_curr_block,
     terminate_workers_and_wait_for_exit,
@@ -30,6 +28,47 @@ if TYPE_CHECKING:
     import torch
 else:
     torch = LazyLoadedTorch()
+
+
+@retry(Exception, tries=3, delay=1)
+async def _get_block_with_retry(
+    subtensor: "AsyncSubtensor", netuid: int
+) -> tuple[int, int, str]:
+    """
+    Gets the current block number, difficulty, and block hash from the substrate node.
+
+    Args:
+        subtensor (bittensor.core.async_subtensor.AsyncSubtensor): The subtensor object to use to get the block number, difficulty, and block hash.
+        netuid (int): The netuid of the network to get the block number, difficulty, and block hash from.
+
+    Returns:
+        The current block number, difficulty of the subnet, block hash
+
+    Raises:
+        Exception: If the block hash is None.
+        ValueError: If the difficulty is None.
+    """
+    block_number = await subtensor.substrate.get_block_number(None)
+    block_hash = await subtensor.substrate.get_block_hash(
+        block_number
+    )  # TODO check if I need to do all this
+    try:
+        difficulty = (
+            1_000_000
+            if netuid == -1
+            else int(
+                await subtensor.get_hyperparameter(
+                    param_name="Difficulty", netuid=netuid, block_hash=block_hash
+                )
+            )
+        )
+    except TypeError:
+        raise ValueError("Chain error. Difficulty is None")
+    except SubstrateRequestException:
+        raise Exception(
+            "Network error. Could not connect to substrate to get block hash"
+        )
+    return block_number, difficulty, block_hash
 
 
 async def _check_for_newest_block_and_update(
@@ -495,44 +534,3 @@ async def create_pow_async(
         )
 
     return solution
-
-
-@retry(Exception, tries=3, delay=1)
-async def _get_block_with_retry(
-    subtensor: "AsyncSubtensor", netuid: int
-) -> tuple[int, int, str]:
-    """
-    Gets the current block number, difficulty, and block hash from the substrate node.
-
-    Args:
-        subtensor (bittensor.core.async_subtensor.AsyncSubtensor): The subtensor object to use to get the block number, difficulty, and block hash.
-        netuid (int): The netuid of the network to get the block number, difficulty, and block hash from.
-
-    Returns:
-        The current block number, difficulty of the subnet, block hash
-
-    Raises:
-        Exception: If the block hash is None.
-        ValueError: If the difficulty is None.
-    """
-    block_number = await subtensor.substrate.get_block_number(None)
-    block_hash = await subtensor.substrate.get_block_hash(
-        block_number
-    )  # TODO check if I need to do all this
-    try:
-        difficulty = (
-            1_000_000
-            if netuid == -1
-            else int(
-                await subtensor.get_hyperparameter(
-                    param_name="Difficulty", netuid=netuid, block_hash=block_hash
-                )
-            )
-        )
-    except TypeError:
-        raise ValueError("Chain error. Difficulty is None")
-    except SubstrateRequestException:
-        raise Exception(
-            "Network error. Could not connect to substrate to get block hash"
-        )
-    return block_number, difficulty, block_hash
