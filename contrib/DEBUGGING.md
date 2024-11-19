@@ -135,7 +135,7 @@ import pdb; pdb.set_trace() # breakpoint!
 This will stop execution at the breakpoint you set and can operate on the stack directly in the terminal.
 
 ## Searching for strings
-Use `ag`.  It's fast, convenient, and widely available on unix systems. Ag will highlight all occurnaces of a given pattern.
+Use `ag`.  It's fast, convenient, and widely available on unix systems. Ag will highlight all occurrences of a given pattern.
 
 ```bash
 apt-get install silversearcher-ag
