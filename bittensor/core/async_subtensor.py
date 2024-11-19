@@ -846,6 +846,48 @@ class AsyncSubtensor:
 
         return NeuronInfoLite.list_from_vec_u8(hex_to_bytes(hex_bytes_result))
 
+    async def get_neuron_for_pubkey_and_subnet(
+        self,
+        hotkey_ss58: str,
+        netuid: int,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> "NeuronInfo":
+        """
+        Retrieves information about a neuron based on its public key (hotkey SS58 address) and the specific subnet UID (netuid). This function provides detailed neuron information for a particular subnet within the Bittensor network.
+
+        Args:
+            hotkey_ss58 (str): The ``SS58`` address of the neuron's hotkey.
+            netuid (int): The unique identifier of the subnet.
+            block_hash (Optional[int]): The blockchain block number at which to perform the query.
+            reuse_block (bool): Whether to reuse the last-used blockchain block hash.
+
+        Returns:
+            Optional[bittensor.core.chain_data.neuron_info.NeuronInfo]: Detailed information about the neuron if found, ``None`` otherwise.
+
+        This function is crucial for accessing specific neuron data and understanding its status, stake, and other attributes within a particular subnet of the Bittensor ecosystem.
+        """
+        uid = await self.substrate.query(
+            module="SubtensorModule",
+            storage_function="Uids",
+            params=[netuid, hotkey_ss58],
+            block_hash=block_hash,
+            reuse_block_hash=reuse_block,
+        )
+        if uid is None:
+            return NeuronInfo.get_null_neuron()
+
+        params = [netuid, uid]
+        json_body = await self.substrate.rpc_request(
+            method="neuronInfo_getNeuron",
+            params=params,
+        )
+
+        if not (result := json_body.get("result", None)):
+            return NeuronInfo.get_null_neuron()
+
+        return NeuronInfo.from_vec_u8(bytes(result))
+
     async def neuron_for_uid(
         self, uid: Optional[int], netuid: int, block_hash: Optional[str] = None
     ) -> NeuronInfo:
