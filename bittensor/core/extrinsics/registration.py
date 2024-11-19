@@ -1,19 +1,10 @@
-# The MIT License (MIT)
-# Copyright © 2024 Opentensor Foundation
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
-# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
-# the Software.
-#
-# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-# DEALINGS IN THE SOFTWARE.
+"""
+This module provides functionalities for registering a wallet with the subtensor network using Proof-of-Work (PoW).
+
+Extrinsics:
+- register_extrinsic: Registers the wallet to the subnet.
+- burned_register_extrinsic: Registers the wallet to chain by recycling TAO.
+"""
 
 import time
 from typing import Union, Optional, TYPE_CHECKING
@@ -23,16 +14,21 @@ from bittensor.utils import format_error_message, unlock_key
 from bittensor.utils.btlogging import logging
 from bittensor.utils.networking import ensure_connected
 from bittensor.utils.registration import (
-    POWSolution,
     create_pow,
     torch,
     log_no_torch_error,
 )
 
-# For annotation purposes
+# For annotation and lazy import purposes
 if TYPE_CHECKING:
-    from bittensor.core.subtensor import Subtensor
+    import torch
     from bittensor_wallet import Wallet
+    from bittensor.core.subtensor import Subtensor
+    from bittensor.utils.registration import POWSolution
+else:
+    from bittensor.utils.registration.registration import LazyLoadedTorch
+
+    torch = LazyLoadedTorch()
 
 
 @ensure_connected
@@ -47,6 +43,7 @@ def _do_pow_register(
     """Sends a (POW) register extrinsic to the chain.
 
     Args:
+        self (bittensor.core.subtensor.Subtensor): The subtensor to send the extrinsic to.
         netuid (int): The subnet to register on.
         wallet (bittensor.wallet): The wallet to register.
         pow_result (POWSolution): The PoW result to register.
@@ -164,7 +161,7 @@ def register_extrinsic(
         if cuda:
             if not torch.cuda.is_available():
                 return False
-            pow_result: Optional[POWSolution] = create_pow(
+            pow_result: Optional["POWSolution"] = create_pow(
                 subtensor,
                 wallet,
                 netuid,
@@ -177,7 +174,7 @@ def register_extrinsic(
                 log_verbose=log_verbose,
             )
         else:
-            pow_result: Optional[POWSolution] = create_pow(
+            pow_result: Optional["POWSolution"] = create_pow(
                 subtensor,
                 wallet,
                 netuid,
