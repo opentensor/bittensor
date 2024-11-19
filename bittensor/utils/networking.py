@@ -20,11 +20,10 @@
 import json
 import os
 import socket
-import time
 import urllib
 from functools import wraps
 from typing import Optional
-
+from retry import retry
 import netaddr
 import requests
 from websocket import WebSocketConnectionClosedException
@@ -188,24 +187,22 @@ def ensure_connected(func):
             and sock.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR) == 0
         )
 
-    def reconnect_with_retries(self, retries: int = 5, delay: int = 5) -> bool:
-        """Attempt to reconnect with a specified number of retries."""
-        while retries > 0:
-            logging.error(
-                f"Attempting to reconnect to substrate (<blue>{retries} attempts left</blue>)..."
-            )
-            try:
-                self._get_substrate()
-                old_level = logging.get_level()
-                logging.set_info()
-                logging.success("Connection successfully restored!")
-                logging.setLevel(old_level)
-                return True
-            except ConnectionRefusedError:
-                retries -= 1
-                time.sleep(delay)
-        logging.error("Failed to reconnect to substrate after multiple attempts.")
-        return False
+    @retry(
+        exceptions=ConnectionRefusedError,
+        tries=5,
+        delay=5,
+        backoff=1,
+        logger=logging,
+    )
+    def reconnect_with_retries(self):
+        """Attempt to reconnect with retries using retry library."""
+        logging.info("Attempting to reconnect to substrate...")
+        self._get_substrate()
+
+        old_level = logging.get_level()
+        logging.set_info()
+        logging.success("Connection successfully restored!")
+        logging.setLevel(old_level)
 
     @wraps(func)
     def wrapper(self, *args, **kwargs):
@@ -217,10 +214,13 @@ def ensure_connected(func):
         try:
             return func(self, *args, **kwargs)
         except WebSocketConnectionClosedException:
-            logging.warning("WebSocket connection closed. Attempting to reconnect...")
-            if reconnect_with_retries(self):
+            logging.warning(
+                "WebSocket connection closed. Attempting to reconnect 5 times..."
+            )
+            try:
+                reconnect_with_retries(self)
                 return func(self, *args, **kwargs)
-            else:
+            except ConnectionRefusedError:
                 logging.error("Unable to restore connection. Raising exception.")
                 raise ConnectionRefusedError("Failed to reconnect to substrate.")
 

@@ -239,11 +239,7 @@ class Subtensor:
 
         except (ConnectionRefusedError, ssl.SSLError) as error:
             logging.error(
-                f"Could not connect to {self.network} network with {self.chain_endpoint} chain endpoint.",
-            )
-            logging.info(
-                "You can check if you have connectivity by running this command: nc -vz localhost "
-                f"{self.chain_endpoint}"
+                f"<red>Could not connect to</red> <blue>{self.network}</blue> <red>network with</red> <blue>{self.chain_endpoint}</blue> <red>chain endpoint.</red>",
             )
             raise ConnectionRefusedError(error.args)
 
