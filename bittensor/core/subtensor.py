@@ -77,6 +77,7 @@ from bittensor.utils import (
     ss58_to_vec_u8,
     u16_normalized_float,
     hex_to_bytes,
+    Certificate,
 )
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
@@ -1013,6 +1014,7 @@ class Subtensor:
         axon: "Axon",
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
+        certificate: Optional[Certificate] = None,
     ) -> bool:
         """
         Registers an ``Axon`` serving endpoint on the Bittensor network for a specific neuron. This function is used to set up the Axon, a key component of a neuron that handles incoming queries and data processing tasks.
@@ -1029,7 +1031,7 @@ class Subtensor:
         By registering an Axon, the neuron becomes an active part of the network's distributed computing infrastructure, contributing to the collective intelligence of Bittensor.
         """
         return serve_axon_extrinsic(
-            self, netuid, axon, wait_for_inclusion, wait_for_finalization
+            self, netuid, axon, wait_for_inclusion, wait_for_finalization, certificate
         )
 
     # metagraph
@@ -1169,6 +1171,37 @@ class Subtensor:
             netuid,
             block=block,
         )
+
+    def get_neuron_certificate(
+        self, hotkey: str, netuid: int, block: Optional[int] = None
+    ) -> Optional["Certificate"]:
+        """
+        Retrieves the TLS certificate for a specific neuron identified by its unique identifier (UID)
+        within a specified subnet (netuid) of the Bittensor network.
+
+        Args:
+            hotkey (str): The hotkey to query.
+            netuid (int): The unique identifier of the subnet.
+            block (Optional[int], optional): The blockchain block number for the query.
+
+        Returns:
+            Optional[Certificate]: the certificate of the neuron if found, ``None`` otherwise.
+
+        This function is used for certificate discovery for setting up mutual tls communication between neurons
+        """
+
+        certificate = self.query_module(
+            module="SubtensorModule",
+            name="NeuronCertificates",
+            block=block,
+            params=[netuid, hotkey],
+        )
+        if not hasattr(certificate, "serialize"):
+            return None
+        certificate = certificate.serialize()
+        if not certificate:
+            return None
+        return certificate.get("certificate", None)
 
     @networking.ensure_connected
     def neuron_for_uid(
