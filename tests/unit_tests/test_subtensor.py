@@ -1491,7 +1491,8 @@ def test_do_serve_axon_tls_is_success(subtensor, mocker):
     )
 
     subtensor.substrate.submit_extrinsic.return_value.process_events.assert_called_once()
-    assert result == (True, None)
+    assert result[0] is True
+    assert result[1] is None
 
 
 def test_do_serve_axon_is_not_success(subtensor, mocker):
