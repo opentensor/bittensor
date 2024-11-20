@@ -61,7 +61,6 @@ def submit_extrinsic(
     try:
         # sets a timeout timer for the next call to 120 seconds
         # will raise a _SignalTimeoutException if it reaches this point
-        logging.warning("OKAY BUDDY RETARD")
         signal.signal(signal.SIGALRM, _handler)
         signal.alarm(120)  # two minute timeout
 
