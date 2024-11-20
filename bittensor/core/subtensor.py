@@ -1634,7 +1634,7 @@ class Subtensor:
                     call=call, keypair=wallet.coldkeypub
                 )
             except Exception as e:
-                logging.error(f"<red>Failed to get payment info.</red> {e}")
+                logging.error(f"[red]Failed to get payment info.[/red] {e}")
                 payment_info = {"partialFee": int(2e7)}  # assume  0.02 Tao
 
             fee = Balance.from_rao(payment_info["partialFee"])

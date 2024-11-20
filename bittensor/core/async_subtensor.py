@@ -132,10 +132,10 @@ class AsyncSubtensor:
                     self.network = "custom"
             else:
                 logging.info(
-                    f"Network not specified or not valid. Using default chain endpoint: <blue>{NETWORK_MAP[DEFAULTS.subtensor.network]}</blue>."
+                    f"Network not specified or not valid. Using default chain endpoint: [blue]{NETWORK_MAP[DEFAULTS.subtensor.network]}[/blue]."
                 )
                 logging.info(
-                    "You can set this for commands with the <blue>--network</blue> flag, or by setting this in the config."
+                    "You can set this for commands with the [blue]--network[/blue] flag, or by setting this in the config."
                 )
                 self.chain_endpoint = NETWORK_MAP[DEFAULTS.subtensor.network]
                 self.network = DEFAULTS.subtensor.network
@@ -152,19 +152,19 @@ class AsyncSubtensor:
 
     async def __aenter__(self):
         logging.info(
-            f"<magenta>Connecting to Substrate:</magenta> <blue>{self}</blue><magenta>...</magenta>"
+            f"[magenta]Connecting to Substrate:[/magenta] [blue]{self}[/blue][magenta]...[/magenta]"
         )
         try:
             async with self.substrate:
                 return self
         except TimeoutException:
             logging.error(
-                f"<red>Error</red>: Timeout occurred connecting to substrate. Verify your chain and network settings: {self}"
+                f"[red]Error[/red]: Timeout occurred connecting to substrate. Verify your chain and network settings: {self}"
             )
             raise ConnectionError
         except (ConnectionRefusedError, ssl.SSLError) as error:
             logging.error(
-                f"<red>Error</red>: Connection refused when connecting to substrate. "
+                f"[red]Error[/red]: Connection refused when connecting to substrate. "
                 f"Verify your chain and network settings: {self}. Error: {error}"
             )
             raise ConnectionError
@@ -533,7 +533,7 @@ class AsyncSubtensor:
                 )
             except Exception as e:
                 logging.error(
-                    f":cross_mark: <red>Failed to get payment info: </red>{e}"
+                    f":cross_mark: [red]Failed to get payment info: [/red]{e}"
                 )
                 payment_info = {"partialFee": int(2e7)}  # assume  0.02 Tao
 
@@ -1408,7 +1408,7 @@ class AsyncSubtensor:
             `True` if registration was successful, otherwise `False`.
         """
         logging.info(
-            f"Registering on netuid <blue>0</blue> on network: <blue>{self.network}</blue>"
+            f"Registering on netuid [blue]0[/blue] on network: [blue]{self.network}[/blue]"
         )
 
         # Check current recycle amount
@@ -1431,7 +1431,7 @@ class AsyncSubtensor:
         # Check balance is sufficient
         if balance < current_recycle:
             logging.error(
-                f"<red>Insufficient balance {balance} to register neuron. Current recycle is {current_recycle} TAO</red>."
+                f"[red]Insufficient balance {balance} to register neuron. Current recycle is {current_recycle} TAO[/red]."
             )
             return False
 
@@ -1509,7 +1509,7 @@ class AsyncSubtensor:
         ) > await self.weights_rate_limit(netuid):
             try:
                 logging.info(
-                    f"Setting weights for subnet #<blue>{netuid}</blue>. Attempt <blue>{retries + 1} of {max_retries}</blue>."
+                    f"Setting weights for subnet #[blue]{netuid}[/blue]. Attempt [blue]{retries + 1} of {max_retries}[/blue]."
                 )
                 success, message = await set_weights_extrinsic(
                     subtensor=self,
@@ -1547,7 +1547,7 @@ class AsyncSubtensor:
         """
         netuids_ = np.array(netuids, dtype=np.int64)
         weights_ = np.array(weights, dtype=np.float32)
-        logging.info(f"Setting weights in network: <blue>{self.network}</blue>")
+        logging.info(f"Setting weights in network: [blue]{self.network}[/blue]")
         # Run the set weights operation.
         return await set_root_weights_extrinsic(
             subtensor=self,
