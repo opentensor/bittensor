@@ -16,5 +16,5 @@ class NeuronCertificate:
 
     @classmethod
     def from_vec_u8(cls, vec_u8: List[int]) -> "NeuronCertificate":
-        r"""Returns a NeuronCertificate object from a ``vec_u8``."""
+        """Returns a NeuronCertificate object from a ``vec_u8``."""
         return from_scale_encoding(vec_u8, ChainDataType.NeuronCertificate)
