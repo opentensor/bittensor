@@ -108,7 +108,7 @@ def register_extrinsic(
 
     Args:
         subtensor (bittensor.core.subtensor.Subtensor): Subtensor interface.
-        wallet (bittensor.wallet): Bittensor wallet object.
+        wallet (bittensor_wallet.wallet): Bittensor wallet object.
         netuid (int): The ``netuid`` of the subnet to register on.
         wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
@@ -127,7 +127,7 @@ def register_extrinsic(
     """
     if not subtensor.subnet_exists(netuid):
         logging.error(
-            f":cross_mark: <red>Failed: </red> Subnet <blue>{netuid}</blue> does not exist."
+            f":cross_mark: <red>Failed error:</red> subnet <blue>{netuid}</blue> does not exist."
         )
         return False
 
@@ -137,6 +137,7 @@ def register_extrinsic(
     neuron = subtensor.get_neuron_for_pubkey_and_subnet(
         wallet.hotkey.ss58_address, netuid=netuid
     )
+
     if not neuron.is_null:
         logging.debug(
             f"Wallet <green>{wallet}</green> is already registered on <blue>{neuron.netuid}</blue> with <blue>{neuron.uid}</blue>."
