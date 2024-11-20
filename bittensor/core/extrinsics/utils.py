@@ -79,13 +79,6 @@ def submit_extrinsic(
 
     except _SignalTimeoutException:
         after_timeout_block = substrate.get_block()
-        if (
-            after_timeout_block["header"]["number"]
-            == starting_block["header"]["number"]
-        ):
-            # if we immediately reconnect (unlikely), we will wait for one full block to check
-            time.sleep(12)
-            after_timeout_block = substrate.get_block()
 
         response = None
         for block_num in range(
