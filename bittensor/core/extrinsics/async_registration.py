@@ -132,12 +132,12 @@ async def register_extrinsic(
     logging.debug("Checking subnet status")
     if not await subtensor.subnet_exists(netuid):
         logging.error(
-            f":cross_mark: <red>Failed error:</red> subnet <blue>{netuid}</blue> does not exist."
+            f":cross_mark: [red]Failed error:[/red] subnet [blue]{netuid}[/blue] does not exist."
         )
         return False
 
     logging.info(
-        f":satellite: <magenta>Checking Account on subnet</magenta> <blue>{netuid}</blue> <magenta>...</magenta>"
+        f":satellite: [magenta]Checking Account on subnet[/magenta] [blue]{netuid}[/blue] [magenta]...[/magenta]"
     )
     neuron = await subtensor.get_neuron_for_pubkey_and_subnet(
         hotkey_ss58=wallet.hotkey.ss58_address,
@@ -146,7 +146,7 @@ async def register_extrinsic(
 
     if not neuron.is_null:
         logging.debug(
-            f"Wallet <green>{wallet}</green> is already registered on subnet <blue>{neuron.netuid}</blue> with uid<blue>{neuron.uid}</blue>."
+            f"Wallet [green]{wallet}[/green] is already registered on subnet [blue]{neuron.netuid}[/blue] with uid[blue]{neuron.uid}[/blue]."
         )
         return True
 
@@ -163,7 +163,7 @@ async def register_extrinsic(
 
     while True:
         logging.info(
-            f":satellite: <magenta>Registering...</magenta> <blue>({attempts}/{max_allowed_attempts})</blue>"
+            f":satellite: [magenta]Registering...[/magenta] [blue]({attempts}/{max_allowed_attempts})[/blue]"
         )
         # Solve latest POW.
         if cuda:
@@ -201,13 +201,13 @@ async def register_extrinsic(
             )
             if is_registered:
                 logging.error(
-                    f":white_heavy_check_mark: <green>Already registered on netuid:</green> <blue>{netuid}</blue>"
+                    f":white_heavy_check_mark: [green]Already registered on netuid:[/green] [blue]{netuid}[/blue]"
                 )
                 return True
 
         # pow successful, proceed to submit pow to chain for registration
         else:
-            logging.info(":satellite: <magenta>Submitting POW...</magenta>")
+            logging.info(":satellite: [magenta]Submitting POW...[/magenta]")
             # check if pow result is still valid
             while not await pow_result.is_stale_async(subtensor=subtensor):
                 result: tuple[bool, Optional[str]] = await _do_pow_register(
@@ -226,11 +226,10 @@ async def register_extrinsic(
 
                     if "HotKeyAlreadyRegisteredInSubNet" in err_msg:
                         logging.info(
-                            f":white_heavy_check_mark: <green>Already Registered on subnet:</green> <blue>{netuid}</blue>."
+                            f":white_heavy_check_mark: [green]Already Registered on subnet:[/green] [blue]{netuid}[/blue]."
                         )
                         return True
-
-                    logging.error(f":cross_mark: <red>Failed</red>: {err_msg}")
+                    logging.error(f":cross_mark: [red]Failed[/red]: {err_msg}")
                     await asyncio.sleep(0.5)
 
                 # Successful registration, final check for neuron and pubkey
@@ -241,18 +240,18 @@ async def register_extrinsic(
                     )
                     if is_registered:
                         logging.success(
-                            ":white_heavy_check_mark: <green>Registered</green>"
+                            ":white_heavy_check_mark: [green]Registered[/green]"
                         )
                         return True
                     else:
                         # neuron not found, try again
                         logging.error(
-                            ":cross_mark: <red>Unknown error. Neuron not found.</red>"
+                            ":cross_mark: [red]Unknown error. Neuron not found.[/red]"
                         )
                         continue
             else:
                 # Exited loop because pow is no longer valid.
-                logging.error("<red>POW is stale.</red>")
+                logging.error("[red]POW is stale.[/red]")
                 # Try again.
                 # continue
 
@@ -260,10 +259,9 @@ async def register_extrinsic(
             # Failed registration, retry pow
             attempts += 1
             logging.error(
-                f":satellite: <magenta>Failed registration, retrying pow ...</magenta> <blue>({attempts}/{max_allowed_attempts})</blue>"
+                f":satellite: [magenta]Failed registration, retrying pow ...[/magenta] [blue]({attempts}/{max_allowed_attempts})[/blue]"
             )
-            continue
         else:
             # Failed to register after max attempts.
-            logging.error("<red>No more attempts.</red>")
+            logging.error("[red]No more attempts.[/red]")
             return False

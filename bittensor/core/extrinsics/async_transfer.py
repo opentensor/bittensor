@@ -98,7 +98,7 @@ async def transfer_extrinsic(
     # Validate destination address.
     if not is_valid_bittensor_address_or_public_key(destination):
         logging.error(
-            f":cross_mark: <red>Invalid destination SS58 address</red>: {destination}"
+            f":cross_mark: [red]Invalid destination SS58 address[/red]: {destination}"
         )
         return False
     logging.info(f"Initiating transfer on network: {subtensor.network}")
@@ -109,7 +109,7 @@ async def transfer_extrinsic(
 
     # Check balance.
     logging.info(
-        f":satellite: <magenta>Checking balance and fees on chain </magenta> <blue>{subtensor.network}</blue>"
+        f":satellite: [magenta]Checking balance and fees on chain [/magenta] [blue]{subtensor.network}[/blue]"
     )
     # check existential deposit and fee
     logging.debug("Fetching existential and fee")
@@ -135,13 +135,13 @@ async def transfer_extrinsic(
             return False
 
     if account_balance < (amount + fee + existential_deposit):
-        logging.error(":cross_mark: <red>Not enough balance</red>")
-        logging.error(f"\t\tBalance:\t<blue>{account_balance}</blue>")
-        logging.error(f"\t\tAmount:\t<blue>{amount}</blue>")
-        logging.error(f"\t\tFor fee:\t<blue>{fee}</blue>")
+        logging.error(":cross_mark: [red]Not enough balance[/red]")
+        logging.error(f"\t\tBalance:\t[blue]{account_balance}[/blue]")
+        logging.error(f"\t\tAmount:\t[blue]{amount}[/blue]")
+        logging.error(f"\t\tFor fee:\t[blue]{fee}[/blue]")
         return False
 
-    logging.info(":satellite: <magenta>Transferring...</magenta")
+    logging.info(":satellite: [magenta]Transferring...</magenta")
     success, block_hash, err_msg = await _do_transfer(
         subtensor=subtensor,
         wallet=wallet,
@@ -152,8 +152,8 @@ async def transfer_extrinsic(
     )
 
     if success:
-        logging.success(":white_heavy_check_mark: [green]Finalized</green>")
-        logging.info(f"[green]Block Hash:</green> <blue>{block_hash}</blue>")
+        logging.success(":white_heavy_check_mark: [green]Finalized[/green]")
+        logging.info(f"[green]Block Hash:[/green] [blue]{block_hash}[/blue]")
 
         if subtensor.network == "finney":
             logging.debug("Fetching explorer URLs")
@@ -162,18 +162,18 @@ async def transfer_extrinsic(
             )
             if explorer_urls != {} and explorer_urls:
                 logging.info(
-                    f"[green]Opentensor Explorer Link: {explorer_urls.get('opentensor')}</green>"
+                    f"[green]Opentensor Explorer Link: {explorer_urls.get('opentensor')}[/green]"
                 )
                 logging.info(
-                    f"[green]Taostats Explorer Link: {explorer_urls.get('taostats')}</green>"
+                    f"[green]Taostats Explorer Link: {explorer_urls.get('taostats')}[/green]"
                 )
 
-        logging.info(":satellite: <magenta>Checking Balance...<magenta>")
+        logging.info(":satellite: [magenta]Checking Balance...[magenta]")
         new_balance = await subtensor.get_balance(wallet.coldkeypub.ss58_address)
         logging.info(
-            f"Balance: [blue]{account_balance}</blue> :arrow_right: [green]{new_balance[wallet.coldkeypub.ss58_address]}</green>"
+            f"Balance: [blue]{account_balance}[/blue] :arrow_right: [green]{new_balance[wallet.coldkeypub.ss58_address]}[/green]"
         )
         return True
     else:
-        logging.error(f":cross_mark: <red>Failed</red>: {err_msg}")
+        logging.error(f":cross_mark: [red]Failed[/red]: {err_msg}")
         return False
