@@ -95,6 +95,7 @@ LOG_FORMATS: dict[int, str] = {
 LOG_TRACE_FORMATS: dict[int, str] = {
     level: f"{Fore.BLUE}%(asctime)s{Fore.RESET}"
     f" | {Style.BRIGHT}{color}%(levelname)s{Fore.RESET}{Back.RESET}{Style.RESET_ALL}"
+    f" | %(name)s:%(filename)s:%(lineno)s"
     f" | %(message)s"
     for level, color in log_level_color_prefix.items()
 }
@@ -102,13 +103,13 @@ LOG_TRACE_FORMATS: dict[int, str] = {
 DEFAULT_LOG_FORMAT: str = (
     f"{Fore.BLUE}%(asctime)s{Fore.RESET} | "
     f"{Style.BRIGHT}{Fore.WHITE}%(levelname)s{Style.RESET_ALL} | "
-    f"%(message)s"
+    f"%(name)s:%(filename)s:%(lineno)s | %(message)s"
 )
 
 DEFAULT_TRACE_FORMAT: str = (
     f"{Fore.BLUE}%(asctime)s{Fore.RESET} | "
     f"{Style.BRIGHT}{Fore.WHITE}%(levelname)s{Style.RESET_ALL} | "
-    f"%(message)s"
+    f"%(name)s:%(filename)s:%(lineno)s | %(message)s"
 )
 
 
