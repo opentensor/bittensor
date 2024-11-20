@@ -34,7 +34,12 @@ U16_MAX = 65535
 U64_MAX = 18446744073709551615
 
 
-def get_fake_call_params():
+@pytest.fixture
+def fake_call_params():
+    return call_params()
+
+
+def call_params():
     return {
         "version": "1.0",
         "ip": "0.0.0.0",
@@ -43,6 +48,12 @@ def get_fake_call_params():
         "netuid": 1,
         "certificate": None,
     }
+
+
+def call_params_with_certificate():
+    params = call_params()
+    params["certificate"] = Certificate("fake_cert")
+    return params
 
 
 def test_serve_axon_with_external_ip_set():
@@ -1413,11 +1424,19 @@ def test_neuron_for_uid_success(subtensor, mocker):
     assert result == mocked_neuron_from_vec_u8.return_value
 
 
-def test_do_serve_axon_is_success(subtensor, mocker):
+@pytest.mark.parametrize(
+    ["fake_call_params", "expected_call_function"],
+    [
+        (call_params(), "serve_axon"),
+        (call_params_with_certificate(), "serve_axon_tls"),
+    ],
+)
+def test_do_serve_axon_is_success(
+    subtensor, mocker, fake_call_params, expected_call_function
+):
     """Successful do_serve_axon call."""
     # Prep
     fake_wallet = mocker.MagicMock()
-    fake_call_params = get_fake_call_params()
     fake_wait_for_inclusion = True
     fake_wait_for_finalization = True
 
@@ -1434,48 +1453,7 @@ def test_do_serve_axon_is_success(subtensor, mocker):
     # Asserts
     subtensor.substrate.compose_call.assert_called_once_with(
         call_module="SubtensorModule",
-        call_function="serve_axon",
-        call_params=fake_call_params,
-    )
-
-    subtensor.substrate.create_signed_extrinsic.assert_called_once_with(
-        call=subtensor.substrate.compose_call.return_value,
-        keypair=fake_wallet.hotkey,
-    )
-
-    subtensor.substrate.submit_extrinsic.assert_called_once_with(
-        subtensor.substrate.create_signed_extrinsic.return_value,
-        wait_for_inclusion=fake_wait_for_inclusion,
-        wait_for_finalization=fake_wait_for_finalization,
-    )
-
-    subtensor.substrate.submit_extrinsic.return_value.process_events.assert_called_once()
-    assert result == (True, None)
-
-
-def test_do_serve_axon_tls_is_success(subtensor, mocker):
-    """Successful do_serve_axon call."""
-    # Prep
-    fake_wallet = mocker.MagicMock()
-    fake_call_params = get_fake_call_params()
-    fake_call_params["certificate"] = Certificate("fake_cert")
-    fake_wait_for_inclusion = True
-    fake_wait_for_finalization = True
-
-    subtensor.substrate.submit_extrinsic.return_value.is_success = True
-
-    # Call
-    result = subtensor._do_serve_axon(
-        wallet=fake_wallet,
-        call_params=fake_call_params,
-        wait_for_inclusion=fake_wait_for_inclusion,
-        wait_for_finalization=fake_wait_for_finalization,
-    )
-
-    # Asserts
-    subtensor.substrate.compose_call.assert_called_once_with(
-        call_module="SubtensorModule",
-        call_function="serve_axon_tls",
+        call_function=expected_call_function,
         call_params=fake_call_params,
     )
 
@@ -1495,11 +1473,10 @@ def test_do_serve_axon_tls_is_success(subtensor, mocker):
     assert result[1] is None
 
 
-def test_do_serve_axon_is_not_success(subtensor, mocker):
+def test_do_serve_axon_is_not_success(subtensor, mocker, fake_call_params):
     """Unsuccessful do_serve_axon call."""
     # Prep
     fake_wallet = mocker.MagicMock()
-    fake_call_params = get_fake_call_params()
     fake_wait_for_inclusion = True
     fake_wait_for_finalization = True
 
@@ -1538,11 +1515,10 @@ def test_do_serve_axon_is_not_success(subtensor, mocker):
     )
 
 
-def test_do_serve_axon_no_waits(subtensor, mocker):
+def test_do_serve_axon_no_waits(subtensor, mocker, fake_call_params):
     """Unsuccessful do_serve_axon call."""
     # Prep
     fake_wallet = mocker.MagicMock()
-    fake_call_params = get_fake_call_params()
     fake_wait_for_inclusion = False
     fake_wait_for_finalization = False
 
