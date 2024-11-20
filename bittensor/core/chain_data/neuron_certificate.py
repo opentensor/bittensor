@@ -8,7 +8,7 @@ from bittensor.utils import Certificate
 # Dataclasses for chain data.
 @dataclass
 class NeuronCertificate:
-    r"""
+    """
     Dataclass for neuron certificate.
     """
 
