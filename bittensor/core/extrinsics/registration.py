@@ -273,8 +273,7 @@ def _do_burned_register(
     """
     Performs a burned register extrinsic call to the Subtensor chain.
 
-    This method sends a registration transaction to the Subtensor blockchain using the burned register mechanism. It
-    retries the call up to three times with exponential backoff in case of failures.
+    This method sends a registration transaction to the Subtensor blockchain using the burned register mechanism.
 
     Args:
         self (bittensor.core.subtensor.Subtensor): Subtensor instance.
