@@ -1,7 +1,6 @@
 """Module with helper functions for extrinsics."""
 
 import signal
-import time
 from typing import TYPE_CHECKING
 
 from substrateinterface.exceptions import SubstrateRequestException, ExtrinsicNotFound
