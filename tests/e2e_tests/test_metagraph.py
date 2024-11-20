@@ -5,7 +5,6 @@ from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 from tests.e2e_tests.utils.chain_interactions import (
     add_stake,
-    register_neuron,
     register_subnet,
 )
 from tests.e2e_tests.utils.e2e_test_utils import (
@@ -72,8 +71,8 @@ def test_metagraph(local_chain):
     assert len(metagraph.uids) == 0, "Metagraph is not empty"
 
     # Register Bob to the subnet
-    assert register_neuron(
-        local_chain, bob_wallet, netuid
+    assert subtensor.burned_register(
+        bob_wallet, netuid
     ), "Unable to register Bob as a neuron"
 
     # Refresh the metagraph
@@ -108,8 +107,8 @@ def test_metagraph(local_chain):
     metagraph_pre_dave = subtensor.metagraph(netuid=1)
 
     # Register Dave as a neuron
-    assert register_neuron(
-        local_chain, dave_wallet, netuid
+    assert subtensor.burned_register(
+        dave_wallet, netuid
     ), "Unable to register Dave as a neuron"
 
     metagraph.sync(subtensor=subtensor)
