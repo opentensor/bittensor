@@ -1196,12 +1196,12 @@ class Subtensor:
             block=block,
             params=[netuid, hotkey],
         )
-        if not hasattr(certificate, "serialize"):
+        try:
+            serialized_certificate = certificate.serialize()
+            if serialized_certificate:
+                return serialized_certificate.get("certificate", None)
+        except AttributeError:
             return None
-        certificate = certificate.serialize()
-        if not certificate:
-            return None
-        return certificate.get("certificate", None)
 
     @networking.ensure_connected
     def neuron_for_uid(
