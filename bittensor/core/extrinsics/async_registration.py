@@ -224,13 +224,13 @@ async def register_extrinsic(
                     # Look error here
                     # https://github.com/opentensor/subtensor/blob/development/pallets/subtensor/src/errors.rs
 
-                        if "HotKeyAlreadyRegisteredInSubNet" in err_msg:
-                            logging.info(
-                                f":white_heavy_check_mark: [green]Already Registered on subnet:[/green] [blue]{netuid}[/blue]."
-                            )
-                            return True
-                        logging.error(f":cross_mark: [red]Failed[/red]: {err_msg}")
-                        await asyncio.sleep(0.5)
+                    if "HotKeyAlreadyRegisteredInSubNet" in err_msg:
+                        logging.info(
+                            f":white_heavy_check_mark: [green]Already Registered on subnet:[/green] [blue]{netuid}[/blue]."
+                        )
+                        return True
+                    logging.error(f":cross_mark: [red]Failed[/red]: {err_msg}")
+                    await asyncio.sleep(0.5)
 
                 # Successful registration, final check for neuron and pubkey
                 if success:
