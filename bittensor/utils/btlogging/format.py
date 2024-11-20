@@ -60,16 +60,16 @@ emoji_map: dict[str, str] = {
 
 
 color_map: dict[str, str] = {
-    "<red>": Fore.RED,
-    "</red>": Style.RESET_ALL,
-    "<blue>": Fore.BLUE,
-    "</blue>": Style.RESET_ALL,
-    "<green>": Fore.GREEN,
-    "</green>": Style.RESET_ALL,
-    "<magenta>": Fore.MAGENTA,
-    "</magenta>": Style.RESET_ALL,
-    "<yellow>": Fore.YELLOW,
-    "</yellow>": Style.RESET_ALL,
+    "[red]": Fore.RED,
+    "[/red]": Style.RESET_ALL,
+    "[blue]": Fore.BLUE,
+    "[/blue]": Style.RESET_ALL,
+    "[green]": Fore.GREEN,
+    "[/green]": Style.RESET_ALL,
+    "[magenta]": Fore.MAGENTA,
+    "[/magenta]": Style.RESET_ALL,
+    "[yellow]": Fore.YELLOW,
+    "[/yellow]": Style.RESET_ALL,
 }
 
 

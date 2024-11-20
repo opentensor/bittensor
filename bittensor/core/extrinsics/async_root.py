@@ -67,18 +67,18 @@ async def root_register_extrinsic(
         return False
 
     logging.debug(
-        f"Checking if hotkey (<blue>{wallet.hotkey_str}</blue>) is registered on root."
+        f"Checking if hotkey ([blue]{wallet.hotkey_str}[/blue]) is registered on root."
     )
     is_registered = await subtensor.is_hotkey_registered(
         netuid=netuid, hotkey_ss58=wallet.hotkey.ss58_address
     )
     if is_registered:
         logging.error(
-            ":white_heavy_check_mark: <green>Already registered on root network.</green>"
+            ":white_heavy_check_mark: [green]Already registered on root network.[/green]"
         )
         return True
 
-    logging.info(":satellite: <magenta>Registering to root network...</magenta>")
+    logging.info(":satellite: [magenta]Registering to root network...[/magenta]")
     call = await subtensor.substrate.compose_call(
         call_module="SubtensorModule",
         call_function="root_register",
@@ -92,7 +92,7 @@ async def root_register_extrinsic(
     )
 
     if not success:
-        logging.error(f":cross_mark: <red>Failed error:</red> {err_msg}")
+        logging.error(f":cross_mark: [red]Failed error:[/red] {err_msg}")
         time.sleep(0.5)
         return False
 
@@ -105,12 +105,12 @@ async def root_register_extrinsic(
         )
         if uid is not None:
             logging.info(
-                f":white_heavy_check_mark: <green>Registered with UID</green> <blue>{uid}</blue>."
+                f":white_heavy_check_mark: [green]Registered with UID[/green] [blue]{uid}[/blue]."
             )
             return True
         else:
             # neuron not found, try again
-            logging.error(":cross_mark: <red>Unknown error. Neuron not found.</red>")
+            logging.error(":cross_mark: [red]Unknown error. Neuron not found.[/red]")
             return False
 
 
@@ -234,11 +234,11 @@ async def set_root_weights_extrinsic(
     logging.info("Normalizing weights")
     formatted_weights = normalize_max_weight(x=weights, limit=max_weight_limit)
     logging.info(
-        f"Raw weights -> Normalized weights: <blue>{weights}</blue> -> <green>{formatted_weights}</green>"
+        f"Raw weights -> Normalized weights: [blue]{weights}[/blue] -> [green]{formatted_weights}[/green]"
     )
 
     try:
-        logging.info(":satellite: <magenta>Setting root weights...<magenta>")
+        logging.info(":satellite: [magenta]Setting root weights...[magenta]")
         weight_uids, weight_vals = convert_weights_and_uids_for_emit(netuids, weights)
 
         success, error_message = await _do_set_root_weights(
@@ -255,14 +255,14 @@ async def set_root_weights_extrinsic(
             return True
 
         if success is True:
-            logging.info(":white_heavy_check_mark: <green>Finalized</green>")
+            logging.info(":white_heavy_check_mark: [green]Finalized[/green]")
             return True
         else:
             fmt_err = error_message
-            logging.error(f":cross_mark: <red>Failed error:</red> {fmt_err}")
+            logging.error(f":cross_mark: [red]Failed error:[/red] {fmt_err}")
             return False
 
     except SubstrateRequestException as e:
         fmt_err = format_error_message(e, subtensor.substrate)
-        logging.error(f":cross_mark: <red>Failed error:</red> {fmt_err}")
+        logging.error(f":cross_mark: [red]Failed error:[/red] {fmt_err}")
         return False
