@@ -23,6 +23,7 @@ if TYPE_CHECKING:
     from bittensor.utils.registration.pow import POWSolution
 else:
     from bittensor.utils.registration.pow import LazyLoadedTorch
+
     torch = LazyLoadedTorch()
 
 
@@ -69,9 +70,11 @@ async def _do_pow_register(
             "coldkey": wallet.coldkeypub.ss58_address,
         },
     )
-    extrinsic = await subtensor.substrate.create_signed_extrinsic(call=call, keypair=wallet.hotkey)
+    extrinsic = await subtensor.substrate.create_signed_extrinsic(
+        call=call, keypair=wallet.hotkey
+    )
     response = await subtensor.substrate.submit_extrinsic(
-        extrinsic,
+        extrinsic=extrinsic,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
     )
@@ -84,7 +87,7 @@ async def _do_pow_register(
     await response.process_events()
     if not await response.is_success:
         return False, format_error_message(
-            await response.error_message, substrate=subtensor.substrate
+            error_message=await response.error_message, substrate=subtensor.substrate
         )
     # Successful registration
     else:
@@ -168,10 +171,10 @@ async def register_extrinsic(
             if not torch.cuda.is_available():
                 return False
             pow_result = await create_pow_async(
-                subtensor,
-                wallet,
-                netuid,
-                output_in_place,
+                subtensor=subtensor,
+                wallet=wallet,
+                netuid=netuid,
+                output_in_place=output_in_place,
                 cuda=cuda,
                 dev_id=dev_id,
                 tpb=tpb,
@@ -181,10 +184,10 @@ async def register_extrinsic(
             )
         else:
             pow_result = await create_pow_async(
-                subtensor,
-                wallet,
-                netuid,
-                output_in_place,
+                subtensor=subtensor,
+                wallet=wallet,
+                netuid=netuid,
+                output_in_place=output_in_place,
                 cuda=cuda,
                 num_processes=num_processes,
                 update_interval=update_interval,
@@ -208,7 +211,6 @@ async def register_extrinsic(
             logging.info(":satellite: <magenta>Submitting POW...</magenta>")
             # check if pow result is still valid
             while not await pow_result.is_stale_async(subtensor=subtensor):
-
                 result: tuple[bool, Optional[str]] = await _do_pow_register(
                     subtensor=subtensor,
                     netuid=netuid,
@@ -253,14 +255,16 @@ async def register_extrinsic(
                 # Exited loop because pow is no longer valid.
                 logging.error("<red>POW is stale.</red>")
                 # Try again.
-                continue
+                # continue
 
+        # TODO(roman): discuss with team (looks like this section is not reachable)
         if attempts < max_allowed_attempts:
             # Failed registration, retry pow
             attempts += 1
             logging.error(
                 f":satellite: <magenta>Failed registration, retrying pow ...</magenta> <blue>({attempts}/{max_allowed_attempts})</blue>"
             )
+            continue
         else:
             # Failed to register after max attempts.
             logging.error("<red>No more attempts.</red>")
@@ -285,19 +289,19 @@ async def run_faucet_extrinsic(
     """Runs a continual POW to get a faucet of TAO on the test net.
 
     Args:
-        subtensor: The subtensor interface object used to run the extrinsic
-        wallet: Bittensor wallet object.
-        wait_for_inclusion: If set, waits for the extrinsic to enter a block before returning `True`, or returns `False` if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization: If set, waits for the extrinsic to be finalized on the chain before returning `True`, or returns `False` if the extrinsic fails to be finalized within the timeout.
-        max_allowed_attempts: Maximum number of attempts to register the wallet.
-        output_in_place: Whether to output logging data as the process runs.
-        cuda: If `True`, the wallet should be registered using CUDA device(s).
-        dev_id: The CUDA device id to use
-        tpb: The number of threads per block (CUDA).
-        num_processes: The number of processes to use to register.
-        update_interval: The number of nonces to solve between updates.
-        log_verbose: If `True`, the registration process will log more information.
-        max_successes: The maximum number of successful faucet runs for the wallet.
+        subtensor (bittensor.core.async_subtensor.AsyncSubtensor): The subtensor interface object used to run the extrinsic
+        wallet (bittensor_wallet.Wallet): Bittensor wallet object.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning `True`, or returns `False` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning `True`, or returns `False` if the extrinsic fails to be finalized within the timeout.
+        max_allowed_attempts (int): Maximum number of attempts to register the wallet.
+        output_in_place (bool): Whether to output logging data as the process runs.
+        cuda (bool): If `True`, the wallet should be registered using CUDA device(s).
+        dev_id (int): The CUDA device id to use
+        tpb (int): The number of threads per block (CUDA).
+        num_processes (Optional[int]): The number of processes to use to register.
+        update_interval (Optional[int]): The number of nonces to solve between updates.
+        log_verbose (bool): If `True`, the registration process will log more information.
+        max_successes (int): The maximum number of successful faucet runs for the wallet.
 
     Returns:
         `True` if extrinsic was finalized or included in the block. If we did not wait for finalization/inclusion, the response is also `True`
