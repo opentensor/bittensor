@@ -125,7 +125,7 @@ async def set_weights_extrinsic(
     )
 
     logging.info(
-        ":satellite: <magenta>Setting weights on </magenta><blue>{subtensor.network}</blue> <magenta>...</magenta>"
+        ":satellite: [magenta]Setting weights on [/magenta][blue]{subtensor.network}[/blue] [magenta]...[/magenta]"
     )
     try:
         success, error_message = await _do_set_weights(
@@ -144,14 +144,14 @@ async def set_weights_extrinsic(
 
         if success is True:
             message = "Successfully set weights and Finalized."
-            logging.success(f":white_heavy_check_mark: <green>{message}</green>")
+            logging.success(f":white_heavy_check_mark: [green]{message}[/green]")
             return True, message
         else:
-            logging.error(f"<red>Failed</red> set weights. Error: {error_message}")
+            logging.error(f"[red]Failed[/red] set weights. Error: {error_message}")
             return False, error_message
 
     except Exception as error:
-        logging.error(f":cross_mark: <red>Failed</red> set weights. Error: {error}")
+        logging.error(f":cross_mark: [red]Failed[/red] set weights. Error: {error}")
         return False, str(error)
 
 

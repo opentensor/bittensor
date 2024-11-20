@@ -45,6 +45,7 @@ from .defines import (
 )
 from .format import BtFileFormatter, BtStreamFormatter
 from .helpers import all_loggers
+from bittensor.utils.btlogging.console import BittensorConsole
 
 
 def _concat_message(msg="", prefix="", suffix=""):
@@ -78,6 +79,14 @@ class LoggingMachine(StateMachine, Logger):
         | Disabled.to(Default)
         | Default.to(Default)
         | Warning.to(Default)
+    )
+
+    enable_console = (
+        Default.to(Debug)
+        | Trace.to(Debug)
+        | Disabled.to(Debug)
+        | Debug.to(Debug)
+        | Warning.to(Debug)
     )
 
     enable_info = enable_default
@@ -146,6 +155,7 @@ class LoggingMachine(StateMachine, Logger):
         self._logger = self._initialize_bt_logger(name)
         self.disable_third_party_loggers()
         self._enable_initial_state(self._config)
+        self.console = BittensorConsole(self)
 
     def _enable_initial_state(self, config):
         """Set correct state action on initializing"""
@@ -384,6 +394,12 @@ class LoggingMachine(StateMachine, Logger):
         for logger in all_loggers():
             logger.setLevel(stdlogging.DEBUG)
 
+    def before_enable_console(self):
+        """Logs status before enable Console."""
+        self._stream_formatter.set_trace(True)
+        for logger in all_loggers():
+            logger.setLevel(stdlogging.DEBUG)
+
     def after_enable_debug(self):
         """Logs status after enable Debug."""
         self._logger.info("Debug enabled.")
@@ -504,6 +520,11 @@ class LoggingMachine(StateMachine, Logger):
         """Sets Default state."""
         if not self.current_state_value == "Default":
             self.enable_default()
+
+    def set_console(self):
+        """Sets Console state."""
+        if not self.current_state_value == "Console":
+            self.enable_console()
 
     # as an option to be more obvious. `bittensor.logging.set_info()` is the same `bittensor.logging.set_default()`
     def set_info(self):
