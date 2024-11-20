@@ -2,7 +2,7 @@
 
 import signal
 import time
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from substrateinterface.exceptions import SubstrateRequestException, ExtrinsicNotFound
 
@@ -28,7 +28,7 @@ def submit_extrinsic(
     extrinsic: "GenericExtrinsic",
     wait_for_inclusion: bool,
     wait_for_finalization: bool,
-) -> Optional["ExtrinsicReceipt"]:
+) -> "ExtrinsicReceipt":
     """
     Submits an extrinsic to the substrate blockchain and handles potential exceptions.
 
@@ -101,5 +101,9 @@ def submit_extrinsic(
                 continue
             if response:
                 break
+
+    if response is None:
+        logging.error("Extrinsic not submitted.")
+        raise SubstrateRequestException
 
     return response
