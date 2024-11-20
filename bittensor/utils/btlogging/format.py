@@ -68,6 +68,8 @@ color_map: dict[str, str] = {
     "</green>": Style.RESET_ALL,
     "<magenta>": Fore.MAGENTA,
     "</magenta>": Style.RESET_ALL,
+    "<yellow>": Fore.YELLOW,
+    "</yellow>": Style.RESET_ALL,
 }
 
 
@@ -91,7 +93,6 @@ LOG_FORMATS: dict[int, str] = {
 LOG_TRACE_FORMATS: dict[int, str] = {
     level: f"{Fore.BLUE}%(asctime)s{Fore.RESET}"
     f" | {Style.BRIGHT}{color}%(levelname)s{Fore.RESET}{Back.RESET}{Style.RESET_ALL}"
-    f" | %(name)s:%(filename)s:%(lineno)s"
     f" | %(message)s"
     for level, color in log_level_color_prefix.items()
 }
@@ -99,13 +100,13 @@ LOG_TRACE_FORMATS: dict[int, str] = {
 DEFAULT_LOG_FORMAT: str = (
     f"{Fore.BLUE}%(asctime)s{Fore.RESET} | "
     f"{Style.BRIGHT}{Fore.WHITE}%(levelname)s{Style.RESET_ALL} | "
-    f"%(name)s:%(filename)s:%(lineno)s | %(message)s"
+    f"%(message)s"
 )
 
 DEFAULT_TRACE_FORMAT: str = (
     f"{Fore.BLUE}%(asctime)s{Fore.RESET} | "
     f"{Style.BRIGHT}{Fore.WHITE}%(levelname)s{Style.RESET_ALL} | "
-    f"%(name)s:%(filename)s:%(lineno)s | %(message)s"
+    f"%(message)s"
 )
 
 
@@ -222,5 +223,5 @@ class BtFileFormatter(logging.Formatter):
         Returns:
             formated record (str): The formatted log record.
         """
-        record.levelname = f"{record.levelname:^16}"
+        record.levelname = f"{record.levelname:^10}"
         return super().format(record)
