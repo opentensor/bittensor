@@ -70,6 +70,8 @@ color_map: dict[str, str] = {
     "[/magenta]": Style.RESET_ALL,
     "[yellow]": Fore.YELLOW,
     "[/yellow]": Style.RESET_ALL,
+    "[orange]": Fore.YELLOW,
+    "[/orange]": Style.RESET_ALL,
 }
 
 
