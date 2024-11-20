@@ -1199,9 +1199,13 @@ class Subtensor:
         try:
             serialized_certificate = certificate.serialize()
             if serialized_certificate:
-                return serialized_certificate.get("certificate", None)
+                return (
+                    chr(serialized_certificate["algorithm"])
+                    + serialized_certificate["public_key"]
+                )
         except AttributeError:
             return None
+        return None
 
     @networking.ensure_connected
     def neuron_for_uid(
