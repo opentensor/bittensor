@@ -242,7 +242,8 @@ def register_extrinsic(
                         logging.error(
                             ":cross_mark: <red>Unknown error. Neuron not found.</red>"
                         )
-                        continue
+                        # keep commented due to this line brings loop to infinitive one
+                        # continue
             else:
                 # Exited loop because pow is no longer valid.
                 logging.error("<red>POW is stale.</red>")

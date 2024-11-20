@@ -358,65 +358,62 @@ async def test_register_extrinsic_already_registered(subtensor, mocker):
     assert result is True
 
 
-# commented until bittensor/core/extrinsics/async_registration.py:258 (TODO)
-# @pytest.mark.asyncio
-# async def test_register_extrinsic_max_attempts_reached(subtensor, mocker):
-#     # Preps
-#     fake_wallet = mocker.Mock(autospec=Wallet)
-#     fake_wallet.hotkey.ss58_address = "hotkey_ss58"
-#     fake_wallet.coldkey.ss58_address = "coldkey_ss58"
-#
-#     stale_responses = iter([False, False, False])
-#
-#     async def is_stale_side_effect(*args, **kwargs):
-#         return next(stale_responses, True)
+@pytest.mark.asyncio
+async def test_register_extrinsic_max_attempts_reached(subtensor, mocker):
+    # Preps
+    fake_wallet = mocker.Mock(autospec=Wallet)
+    fake_wallet.hotkey.ss58_address = "hotkey_ss58"
+    fake_wallet.coldkey.ss58_address = "coldkey_ss58"
 
-#     fake_pow_result = mocker.Mock()
-#     fake_pow_result.is_stale_async = mocker.AsyncMock(side_effect=is_stale_side_effect)
-#
-#     mocked_subnet_exists = mocker.patch.object(
-#         subtensor, "subnet_exists", return_value=True
-#     )
-#     mocked_get_neuron = mocker.patch.object(
-#         subtensor,
-#         "get_neuron_for_pubkey_and_subnet",
-#         return_value=mocker.Mock(is_null=True),
-#     )
-#     mocked_create_pow = mocker.patch.object(
-#         async_registration,
-#         "create_pow_async",
-#         return_value=fake_pow_result,
-#     )
-#     mocked_do_pow_register = mocker.patch.object(
-#         async_registration,
-#         "_do_pow_register",
-#         return_value=(False, "Test Error"),
-#     )
-#
-#     # Call
-#     result = await async_registration.register_extrinsic(
-#         subtensor=subtensor,
-#         wallet=fake_wallet,
-#         netuid=1,
-#         max_allowed_attempts=3,
-#         wait_for_inclusion=True,
-#         wait_for_finalization=True,
-#     )
-#
-#     # Asserts
-#     mocked_subnet_exists.assert_called_once_with(1)
-#     mocked_get_neuron.assert_called_once_with(
-#         hotkey_ss58="hotkey_ss58", netuid=1
-#     )
-#     assert mocked_create_pow.call_count == 3
-#     assert mocked_do_pow_register.call_count == 3
-#
-#     mocked_do_pow_register.assert_called_with(
-#         subtensor=subtensor,
-#         netuid=1,
-#         wallet=fake_wallet,
-#         pow_result=fake_pow_result,
-#         wait_for_inclusion=True,
-#         wait_for_finalization=True,
-#     )
-#     assert result is False
+    stale_responses = iter([False, False, False, True])
+
+    async def is_stale_side_effect(*_, **__):
+        return next(stale_responses, True)
+
+    fake_pow_result = mocker.Mock()
+    fake_pow_result.is_stale_async = mocker.AsyncMock(side_effect=is_stale_side_effect)
+
+    mocked_subnet_exists = mocker.patch.object(
+        subtensor, "subnet_exists", return_value=True
+    )
+    mocked_get_neuron = mocker.patch.object(
+        subtensor,
+        "get_neuron_for_pubkey_and_subnet",
+        return_value=mocker.Mock(is_null=True),
+    )
+    mocked_create_pow = mocker.patch.object(
+        async_registration,
+        "create_pow_async",
+        return_value=fake_pow_result,
+    )
+    mocked_do_pow_register = mocker.patch.object(
+        async_registration,
+        "_do_pow_register",
+        return_value=(False, "Test Error"),
+    )
+
+    # Call
+    result = await async_registration.register_extrinsic(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        netuid=1,
+        max_allowed_attempts=3,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+    # Asserts
+    mocked_subnet_exists.assert_called_once_with(1)
+    mocked_get_neuron.assert_called_once_with(hotkey_ss58="hotkey_ss58", netuid=1)
+    assert mocked_create_pow.call_count == 3
+    assert mocked_do_pow_register.call_count == 3
+
+    mocked_do_pow_register.assert_called_with(
+        subtensor=subtensor,
+        netuid=1,
+        wallet=fake_wallet,
+        pow_result=fake_pow_result,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    assert result is False

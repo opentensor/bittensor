@@ -256,7 +256,6 @@ async def register_extrinsic(
                 # Try again.
                 # continue
 
-        # TODO(roman): discuss with team (looks like this section is not reachable)
         if attempts < max_allowed_attempts:
             # Failed registration, retry pow
             attempts += 1
