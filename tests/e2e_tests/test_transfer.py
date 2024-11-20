@@ -46,7 +46,7 @@ def test_transfer(local_chain):
 
     # Assert correct transfer calculations
     assert (
-        balance_before - transfer_fee - transfer_value== balance_after
+        balance_before - transfer_fee - transfer_value == balance_after
     ), f"Expected {balance_before - transfer_value - transfer_fee}, got {balance_after}"
 
     print("✅ Passed test_transfer")
