@@ -1,20 +1,3 @@
-# The MIT License (MIT)
-# Copyright © 2024 Opentensor Foundation
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
-# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
-# the Software.
-#
-# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-# DEALINGS IN THE SOFTWARE.
-
 """Utils for handling local network with ip and ports."""
 
 import json
@@ -26,6 +9,8 @@ from typing import Optional
 
 import netaddr
 import requests
+from retry import retry
+from websocket import WebSocketConnectionClosedException
 
 from bittensor.utils.btlogging import logging
 
@@ -178,22 +163,49 @@ def get_formatted_ws_endpoint_url(endpoint_url: Optional[str]) -> Optional[str]:
 def ensure_connected(func):
     """Decorator ensuring the function executes with an active substrate connection."""
 
+    def is_connected(substrate) -> bool:
+        """Check if the substrate connection is active."""
+        sock = substrate.websocket.sock
+        return (
+            sock is not None
+            and sock.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR) == 0
+        )
+
+    @retry(
+        exceptions=ConnectionRefusedError,
+        tries=5,
+        delay=5,
+        backoff=1,
+        logger=logging,
+    )
+    def reconnect_with_retries(self):
+        """Attempt to reconnect with retries using retry library."""
+        logging.info("Attempting to reconnect to substrate...")
+        self._get_substrate()
+
+        old_level = logging.get_level()
+        logging.set_info()
+        logging.success("Connection successfully restored!")
+        logging.setLevel(old_level)
+
     @wraps(func)
     def wrapper(self, *args, **kwargs):
-        """Wrapper function where `self` argument is Subtensor instance with the substrate connection."""
-        # Check the socket state before method execution
-        if (
-            # connection was closed correctly
-            self.substrate.websocket.sock is None
-            # connection has a broken pipe
-            or self.substrate.websocket.sock.getsockopt(
-                socket.SOL_SOCKET, socket.SO_ERROR
-            )
-            != 0
-        ):
-            logging.debug("Reconnecting to  substrate...")
+        """Wrapper function where `self` is expected to be a Subtensor instance."""
+        if not is_connected(self.substrate):
+            logging.debug("Substrate connection inactive. Attempting to reconnect...")
             self._get_substrate()
-        # Execute the method if the connection is active or after reconnecting
-        return func(self, *args, **kwargs)
+
+        try:
+            return func(self, *args, **kwargs)
+        except WebSocketConnectionClosedException:
+            logging.warning(
+                "WebSocket connection closed. Attempting to reconnect 5 times..."
+            )
+            try:
+                reconnect_with_retries(self)
+                return func(self, *args, **kwargs)
+            except ConnectionRefusedError:
+                logging.error("Unable to restore connection. Raising exception.")
+                raise ConnectionRefusedError("Failed to reconnect to substrate.")
 
     return wrapper
