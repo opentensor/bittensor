@@ -625,7 +625,7 @@ class Websocket:
         # TODO allow setting max concurrent connections and rpc subscriptions per connection
         # TODO reconnection logic
         self.ws_url = ws_url
-        self.ws: Optional[ClientConnection] = None
+        self.ws: Optional["ClientConnection"] = None
         self.id = 0
         self.max_subscriptions = max_subscriptions
         self.max_connections = max_connections
