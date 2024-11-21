@@ -148,7 +148,7 @@ class Subtensor:
             _mock (bool): If set to ``True``, uses a mocked connection for testing purposes. Default is ``False``.
             log_verbose (bool): Whether to enable verbose logging. If set to ``True``, detailed log information about the connection and network operations will be provided. Default is ``True``.
             connection_timeout (int): The maximum time in seconds to keep the connection alive. Default is ``600``.
-            websocket: websockets sync (threading) client object connected to the network.
+            websocket (websockets.sync.client.ClientConnection): websockets sync (threading) client object connected to the network.
 
         This initialization sets up the connection to the specified Bittensor network, allowing for various blockchain operations such as neuron registration, stake management, and setting weights.
         """
