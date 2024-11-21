@@ -1904,7 +1904,7 @@ def test_connect_with_substrate(mocker):
     """Ensure re-connection is non called when using an alive substrate."""
     # Prep
     fake_substrate = mocker.MagicMock()
-    fake_substrate.websocket.sock.getsockopt.return_value = 0
+    fake_substrate.websocket.socket.getsockopt.return_value = 0
     mocker.patch.object(
         subtensor_module, "SubstrateInterface", return_value=fake_substrate
     )
