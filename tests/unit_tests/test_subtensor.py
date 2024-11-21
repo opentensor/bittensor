@@ -371,7 +371,7 @@ def normalize_hyperparameters(
             else:
                 norm_value = value
         except Exception as e:
-            logging.warning(f"Error normalizing parameter '{param}': {e}")
+            logging.console.error(f"❌ Error normalizing parameter '{param}': {e}")
             norm_value = "-"
 
         normalized_values.append((param, str(value), str(norm_value)))

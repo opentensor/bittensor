@@ -411,7 +411,7 @@ def test_convert_root_weight_uids_and_vals_to_tensor_edge_cases(
 def test_convert_root_weight_uids_and_vals_to_tensor_error_cases(
     test_id, n, uids, weights, subnets, exception, caplog
 ):
-    with caplog.at_level(logging.WARNING):
+    with caplog.at_level(logging.warning):
         weight_utils.convert_root_weight_uids_and_vals_to_tensor(
             n, uids, weights, subnets
         )
