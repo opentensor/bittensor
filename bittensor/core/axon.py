@@ -59,7 +59,7 @@ from bittensor.core.settings import DEFAULTS, version_as_int
 from bittensor.core.stream import StreamingSynapse
 from bittensor.core.synapse import Synapse, TerminalInfo
 from bittensor.core.threadpool import PriorityThreadPoolExecutor
-from bittensor.utils import networking
+from bittensor.utils import networking, Certificate
 from bittensor.utils.axon_utils import allowed_nonce_window_ns, calculate_diff_seconds
 from bittensor.utils.btlogging import logging
 
@@ -807,7 +807,12 @@ class Axon:
         self.started = False
         return self
 
-    def serve(self, netuid: int, subtensor: Optional["Subtensor"] = None) -> "Axon":
+    def serve(
+        self,
+        netuid: int,
+        subtensor: Optional["Subtensor"] = None,
+        certificate: Optional[Certificate] = None,
+    ) -> "Axon":
         """
         Serves the Axon on the specified subtensor connection using the configured wallet. This method
         registers the Axon with a specific subnet within the Bittensor network, identified by the ``netuid``.
@@ -832,7 +837,7 @@ class Axon:
             to start receiving and processing requests from other neurons.
         """
         if subtensor is not None and hasattr(subtensor, "serve_axon"):
-            subtensor.serve_axon(netuid=netuid, axon=self)
+            subtensor.serve_axon(netuid=netuid, axon=self, certificate=certificate)
         return self
 
     async def default_verify(self, synapse: "Synapse"):
