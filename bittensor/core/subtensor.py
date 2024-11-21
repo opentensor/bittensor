@@ -5,7 +5,6 @@ Bittensor blockchain, facilitating a range of operations essential for the decen
 
 import argparse
 import copy
-import socket
 import ssl
 from typing import Union, Optional, TypedDict, Any
 
@@ -18,6 +17,7 @@ from scalecodec.exceptions import RemainingScaleBytesNotEmptyException
 from scalecodec.type_registry import load_type_registry_preset
 from scalecodec.types import ScaleType
 from substrateinterface.base import QueryMapResult, SubstrateInterface
+from websockets.sync import client as ws_client
 
 from bittensor.core import settings
 from bittensor.core.axon import Axon
@@ -132,7 +132,7 @@ class Subtensor:
         _mock: bool = False,
         log_verbose: bool = False,
         connection_timeout: int = 600,
-        websocket=None,
+        websocket: Optional[ws_client.ClientConnection] = None,
     ) -> None:
         """
         Initializes a Subtensor interface for interacting with the Bittensor blockchain.
@@ -148,6 +148,7 @@ class Subtensor:
             _mock (bool): If set to ``True``, uses a mocked connection for testing purposes. Default is ``False``.
             log_verbose (bool): Whether to enable verbose logging. If set to ``True``, detailed log information about the connection and network operations will be provided. Default is ``True``.
             connection_timeout (int): The maximum time in seconds to keep the connection alive. Default is ``600``.
+            websocket (websockets.sync.client.ClientConnection): websockets sync (threading) client object connected to the network.
 
         This initialization sets up the connection to the specified Bittensor network, allowing for various blockchain operations such as neuron registration, stake management, and setting weights.
         """
@@ -208,28 +209,21 @@ class Subtensor:
         try:
             # Set up params.
             if not self.websocket:
-                self.substrate = SubstrateInterface(
-                    ss58_format=settings.SS58_FORMAT,
-                    use_remote_preset=True,
-                    url=self.chain_endpoint,
-                    type_registry=settings.TYPE_REGISTRY,
+                self.websocket = ws_client.connect(
+                    self.chain_endpoint,
+                    open_timeout=self._connection_timeout,
+                    max_size=2**32,
                 )
-            else:
-                self.substrate = SubstrateInterface(
-                    ss58_format=settings.SS58_FORMAT,
-                    use_remote_preset=True,
-                    type_registry=settings.TYPE_REGISTRY,
-                    websocket=self.websocket,
-                )
+            self.substrate = SubstrateInterface(
+                ss58_format=settings.SS58_FORMAT,
+                use_remote_preset=True,
+                type_registry=settings.TYPE_REGISTRY,
+                websocket=self.websocket,
+            )
             if self.log_verbose:
                 logging.debug(
                     f"Connected to {self.network} network and {self.chain_endpoint}."
                 )
-
-            try:
-                self.substrate.websocket.settimeout(self._connection_timeout)
-            except (AttributeError, TypeError, socket.error, OSError) as e:
-                logging.warning(f"Error setting timeout: {e}")
 
         except (ConnectionRefusedError, ssl.SSLError) as error:
             logging.error(
