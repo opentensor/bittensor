@@ -66,6 +66,10 @@ from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import legacy_torch_api_compat
 from bittensor.utils.weight_utils import generate_weight_hash
+from bittensor.core.extrinsics.staking import (
+    unstake_extrinsic,
+    unstake_multiple_extrinsic,
+)
 
 KEY_NONCE: dict[str, int] = {}
 
@@ -2003,3 +2007,67 @@ class Subtensor:
                 retries += 1
 
         return success, message
+
+    def unstake(
+        self,
+        wallet: "Wallet",
+        hotkey_ss58: Optional[str] = None,
+        amount: Optional[Union["Balance", float]] = None,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+    ) -> bool:
+        """
+        Removes a specified amount of stake from a single hotkey account. This function is critical for adjusting individual neuron stakes within the Bittensor network.
+
+        Args:
+            wallet (bittensor_wallet.wallet): The wallet associated with the neuron from which the stake is being removed.
+            hotkey_ss58 (Optional[str]): The ``SS58`` address of the hotkey account to unstake from.
+            amount (Union[Balance, float]): The amount of TAO to unstake. If not specified, unstakes all.
+            wait_for_inclusion (bool): Waits for the transaction to be included in a block.
+            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
+
+        Returns:
+            bool: ``True`` if the unstaking process is successful, False otherwise.
+
+        This function supports flexible stake management, allowing neurons to adjust their network participation and potential reward accruals.
+        """
+        return unstake_extrinsic(
+            self,
+            wallet,
+            hotkey_ss58,
+            amount,
+            wait_for_inclusion,
+            wait_for_finalization,
+        )
+
+    def unstake_multiple(
+        self,
+        wallet: "Wallet",
+        hotkey_ss58s: list[str],
+        amounts: Optional[list[Union["Balance", float]]] = None,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+    ) -> bool:
+        """
+        Performs batch unstaking from multiple hotkey accounts, allowing a neuron to reduce its staked amounts efficiently. This function is useful for managing the distribution of stakes across multiple neurons.
+
+        Args:
+            wallet (bittensor_wallet.Wallet): The wallet linked to the coldkey from which the stakes are being withdrawn.
+            hotkey_ss58s (List[str]): A list of hotkey ``SS58`` addresses to unstake from.
+            amounts (List[Union[Balance, float]]): The amounts of TAO to unstake from each hotkey. If not provided, unstakes all available stakes.
+            wait_for_inclusion (bool): Waits for the transaction to be included in a block.
+            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
+
+        Returns:
+            bool: ``True`` if the batch unstaking is successful, False otherwise.
+
+        This function allows for strategic reallocation or withdrawal of stakes, aligning with the dynamic stake management aspect of the Bittensor network.
+        """
+        return unstake_multiple_extrinsic(
+            self,
+            wallet,
+            hotkey_ss58s,
+            amounts,
+            wait_for_inclusion,
+            wait_for_finalization,
+        )
