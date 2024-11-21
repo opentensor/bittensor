@@ -1512,6 +1512,103 @@ class Subtensor:
 
         return DelegateInfo.from_vec_u8(bytes(result))
 
+    def get_stake_for_coldkey_and_hotkey(
+        self, hotkey_ss58: str, coldkey_ss58: str, block: Optional[int] = None
+    ) -> Optional["Balance"]:
+        """
+        Returns the stake under a coldkey - hotkey pairing.
+
+        Args:
+            hotkey_ss58 (str): The SS58 address of the hotkey.
+            coldkey_ss58 (str): The SS58 address of the coldkey.
+            block (Optional[int]): The block number to retrieve the stake from. If ``None``, the latest block is used. Default is ``None``.
+
+        Returns:
+            Optional[Balance]: The stake under the coldkey - hotkey pairing, or ``None`` if the pairing does not exist or the stake is not found.
+        """
+        result = self.query_subtensor("Stake", block, [hotkey_ss58, coldkey_ss58])
+        return (
+            None
+            if getattr(result, "value", None) is None
+            else Balance.from_rao(result.value)
+        )
+
+    def does_hotkey_exist(self, hotkey_ss58: str, block: Optional[int] = None) -> bool:
+        """
+        Returns true if the hotkey is known by the chain and there are accounts.
+
+        Args:
+            hotkey_ss58 (str): The SS58 address of the hotkey.
+            block (Optional[int]): The block number to check the hotkey against. If ``None``, the latest block is used. Default is ``None``.
+
+        Returns:
+            bool: ``True`` if the hotkey is known by the chain and there are accounts, ``False`` otherwise.
+        """
+        result = self.query_subtensor("Owner", block, [hotkey_ss58])
+        return (
+            False
+            if getattr(result, "value", None) is None
+            else result.value != "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM"
+        )
+
+    def get_hotkey_owner(
+        self, hotkey_ss58: str, block: Optional[int] = None
+    ) -> Optional[str]:
+        """
+        Returns the coldkey owner of the passed hotkey.
+
+        Args:
+            hotkey_ss58 (str): The SS58 address of the hotkey.
+            block (Optional[int]): The block number to check the hotkey owner against. If ``None``, the latest block is used. Default is ``None``.
+
+        Returns:
+            Optional[str]: The SS58 address of the coldkey owner, or ``None`` if the hotkey does not exist or the owner is not found.
+        """
+        result = self.query_subtensor("Owner", block, [hotkey_ss58])
+        return (
+            None
+            if getattr(result, "value", None) is None
+            or not self.does_hotkey_exist(hotkey_ss58, block)
+            else result.value
+        )
+
+    @networking.ensure_connected
+    def get_minimum_required_stake(
+        self,
+    ) -> Balance:
+        """
+        Returns the minimum required stake for nominators in the Subtensor network.
+
+        This method retries the substrate call up to three times with exponential backoff in case of failures.
+
+        Returns:
+            Balance: The minimum required stake as a Balance object.
+
+        Raises:
+            Exception: If the substrate call fails after the maximum number of retries.
+        """
+
+        result = self.substrate.query(
+            module="SubtensorModule", storage_function="NominatorMinRequiredStake"
+        )
+        return Balance.from_rao(result.decode())
+
+    def tx_rate_limit(self, block: Optional[int] = None) -> Optional[int]:
+        """
+        Retrieves the transaction rate limit for the Bittensor network as of a specific blockchain block.
+        This rate limit sets the maximum number of transactions that can be processed within a given time frame.
+
+        Args:
+            block (Optional[int]): The blockchain block number at which to perform the query.
+
+        Returns:
+            Optional[int]: The transaction rate limit of the network, None if not available.
+
+        The transaction rate limit is an essential parameter for ensuring the stability and scalability of the Bittensor network. It helps in managing network load and preventing congestion, thereby maintaining efficient and timely transaction processing.
+        """
+        result = self.query_subtensor("TxRateLimit", block)
+        return getattr(result, "value", None)
+
     # Extrinsics =======================================================================================================
 
     def set_weights(
