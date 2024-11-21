@@ -1,6 +1,7 @@
 import json
 from collections import deque
-import websocket
+from websockets.sync.client import ClientConnection, ClientProtocol
+from websockets.uri import parse_uri
 
 import pytest
 from bittensor.utils.balance import Balance
@@ -11,9 +12,10 @@ from bittensor.core.subtensor import Subtensor
 from tests.helpers.integration_websocket_data import WEBSOCKET_RESPONSES
 
 
-class FakeWebsocket(websocket.WebSocket):
+class FakeWebsocket(ClientConnection):
     def __init__(self, *args, seed, **kwargs):
-        super().__init__(**kwargs)
+        protocol = ClientProtocol(parse_uri("ws://127.0.0.1:9945"))
+        super().__init__(socket=None, protocol=protocol, **kwargs)
         self.seed = seed
         self.received = deque()
 
