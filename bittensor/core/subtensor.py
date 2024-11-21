@@ -53,6 +53,10 @@ from bittensor.core.extrinsics.set_weights import set_weights_extrinsic
 from bittensor.core.extrinsics.transfer import (
     transfer_extrinsic,
 )
+from bittensor.core.extrinsics.unstaking import (
+    unstake_extrinsic,
+    unstake_multiple_extrinsic,
+)
 from bittensor.core.metagraph import Metagraph
 from bittensor.utils import (
     networking,
@@ -66,10 +70,6 @@ from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import legacy_torch_api_compat
 from bittensor.utils.weight_utils import generate_weight_hash
-from bittensor.core.extrinsics.staking import (
-    unstake_extrinsic,
-    unstake_multiple_extrinsic,
-)
 
 KEY_NONCE: dict[str, int] = {}
 
@@ -1612,6 +1612,49 @@ class Subtensor:
         """
         result = self.query_subtensor("TxRateLimit", block)
         return getattr(result, "value", None)
+
+    @networking.ensure_connected
+    def get_delegates(self, block: Optional[int] = None) -> list[DelegateInfo]:
+        """
+        Retrieves a list of all delegate neurons within the Bittensor network. This function provides an overview of the neurons that are actively involved in the network's delegation system.
+
+        Analyzing the delegate population offers insights into the network's governance dynamics and the distribution of trust and responsibility among participating neurons.
+
+        Args:
+            block (Optional[int]): The blockchain block number for the query.
+
+        Returns:
+            list[DelegateInfo]: A list of DelegateInfo objects detailing each delegate's characteristics.
+
+        """
+        block_hash = None if block is None else self.substrate.get_block_hash(block)
+
+        json_body = self.substrate.rpc_request(
+            method="delegateInfo_getDelegates",
+            params=[block_hash] if block_hash else [],
+        )
+
+        if not (result := json_body.get("result", None)):
+            return []
+
+        return DelegateInfo.list_from_vec_u8(result)
+
+    def is_hotkey_delegate(self, hotkey_ss58: str, block: Optional[int] = None) -> bool:
+        """
+        Determines whether a given hotkey (public key) is a delegate on the Bittensor network. This function checks if the neuron associated with the hotkey is part of the network's delegation system.
+
+        Args:
+            hotkey_ss58 (str): The SS58 address of the neuron's hotkey.
+            block (Optional[int]): The blockchain block number for the query.
+
+        Returns:
+            bool: ``True`` if the hotkey is a delegate, ``False`` otherwise.
+
+        Being a delegate is a significant status within the Bittensor network, indicating a neuron's involvement in consensus and governance processes.
+        """
+        return hotkey_ss58 in [
+            info.hotkey_ss58 for info in self.get_delegates(block=block)
+        ]
 
     # Extrinsics =======================================================================================================
 

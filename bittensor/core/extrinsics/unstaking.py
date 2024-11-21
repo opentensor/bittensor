@@ -1,10 +1,10 @@
 from time import sleep
-from typing import Union, Optional
+from typing import Union, Optional, TYPE_CHECKING
 
 from bittensor_wallet import Wallet
 from bittensor_wallet.errors import KeyFileError
 
-from bittensor.core.errors import NotDelegateError, StakeError, NotRegisteredError
+from bittensor.core.errors import StakeError, NotRegisteredError
 from bittensor.core.subtensor import Subtensor
 from bittensor.utils import format_error_message, unlock_key
 from bittensor.utils.balance import Balance
@@ -13,7 +13,7 @@ from bittensor.utils.networking import ensure_connected
 
 
 @ensure_connected
-def _do_stake(
+def _do_unstake(
     self: "Subtensor",
     wallet: "Wallet",
     hotkey_ss58: str,
@@ -21,13 +21,12 @@ def _do_stake(
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
 ) -> bool:
-    """Sends a stake extrinsic to the chain.
+    """Sends an unstake extrinsic to the chain.
 
     Args:
-        self (subtensor): Subtensor instance.
         wallet (bittensor_wallet.Wallet): Wallet object that can sign the extrinsic.
-        hotkey_ss58 (str): Hotkey ``ss58`` address to stake to.
-        amount (bittensor.utils.balance.Balance): Amount to stake.
+        hotkey_ss58 (str): Hotkey ``ss58`` address to unstake from.
+        amount (bittensor.utils.balance.Balance): Amount to unstake.
         wait_for_inclusion (bool): If ``true``, waits for inclusion before returning.
         wait_for_finalization (bool): If ``true``, waits for finalization before returning.
 
@@ -35,13 +34,13 @@ def _do_stake(
         success (bool): ``True`` if the extrinsic was successful.
 
     Raises:
-        bittensor.core.errors.StakeError: If the extrinsic failed.
+        StakeError: If the extrinsic failed.
     """
 
     call = self.substrate.compose_call(
         call_module="SubtensorModule",
-        call_function="add_stake",
-        call_params={"hotkey": hotkey_ss58, "amount_staked": amount.rao},
+        call_function="remove_stake",
+        call_params={"hotkey": hotkey_ss58, "amount_unstaked": amount.rao},
     )
     extrinsic = self.substrate.create_signed_extrinsic(
         call=call, keypair=wallet.coldkey
@@ -64,27 +63,7 @@ def _do_stake(
         )
 
 
-def _check_threshold_amount(
-    subtensor: "Subtensor", stake_balance: Balance
-) -> tuple[bool, Balance]:
-    """
-    Checks if the new stake balance will be above the minimum required stake threshold.
-
-    Args:
-        subtensor (bittensor.core.subtensor.Subtensor): Subtensor instance.
-        stake_balance (Balance): the balance to check for threshold limits.
-
-    Returns:
-        success, threshold (bool, Balance): ``true`` if the staking balance is above the threshold, or ``false`` if the staking balance is below the threshold. The threshold balance required to stake.
-    """
-    min_req_stake: Balance = subtensor.get_minimum_required_stake()
-    if min_req_stake > stake_balance:
-        return False, min_req_stake
-    else:
-        return True, min_req_stake
-
-
-def __do_add_stake_single(
+def __do_remove_stake_single(
     subtensor: "Subtensor",
     wallet: "Wallet",
     hotkey_ss58: str,
@@ -93,12 +72,12 @@ def __do_add_stake_single(
     wait_for_finalization: bool = False,
 ) -> bool:
     """
-    Executes a stake call to the chain using the wallet and the amount specified.
+    Executes an unstake call to the chain using the wallet and the amount specified.
 
     Args:
         wallet (bittensor_wallet.Wallet): Bittensor wallet object.
-        hotkey_ss58 (str): Hotkey to stake to.
-        amount (bittensor.utils.balance.Balance): Amount to stake as Bittensor balance object.
+        hotkey_ss58 (str): Hotkey address to unstake from.
+        amount (bittensor.utils.balance.Balance): Amount to unstake as Bittensor balance object.
         wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
 
@@ -107,33 +86,48 @@ def __do_add_stake_single(
 
     Raises:
         bittensor.core.errors.StakeError: If the extrinsic fails to be finalized or included in the block.
-        bittensor.core.errors.NotDelegateError: If the hotkey is not a delegate.
         bittensor.core.errors.NotRegisteredError: If the hotkey is not registered in any subnets.
 
     """
-    # Decrypt keys,
     if not (unlock := unlock_key(wallet)).success:
         logging.error(unlock.message)
         return False
 
-    hotkey_owner = subtensor.get_hotkey_owner(hotkey_ss58)
-    own_hotkey = wallet.coldkeypub.ss58_address == hotkey_owner
-    if not own_hotkey:
-        # We are delegating. Verify that the hotkey is a delegate.
-        if not subtensor.is_hotkey_delegate(hotkey_ss58=hotkey_ss58):
-            raise NotDelegateError("Hotkey: {} is not a delegate.".format(hotkey_ss58))
-
-    success = _do_stake(
+    success = _do_unstake(
+        self=subtensor,
         wallet=wallet,
         hotkey_ss58=hotkey_ss58,
         amount=amount,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
     )
+
     return success
 
 
-def add_stake_extrinsic(
+def _check_threshold_amount(subtensor: "Subtensor", stake_balance: "Balance") -> bool:
+    """
+    Checks if the remaining stake balance is above the minimum required stake threshold.
+
+    Args:
+        subtensor (bittensor.core.subtensor.Subtensor): Subtensor instance.
+        stake_balance (bittensor.utils.balance.Balance): the balance to check for threshold limits.
+
+    Returns:
+        success (bool): ``true`` if the unstaking is above the threshold or 0, or ``false`` if the unstaking is below the threshold, but not 0.
+    """
+    min_req_stake: Balance = subtensor.get_minimum_required_stake()
+
+    if min_req_stake > stake_balance > 0:
+        logging.warning(
+            f":cross_mark: [yellow]Remaining stake balance of {stake_balance} less than minimum of {min_req_stake} TAO[/yellow]"
+        )
+        return False
+    else:
+        return True
+
+
+def unstake_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
     hotkey_ss58: Optional[str] = None,
@@ -141,22 +135,18 @@ def add_stake_extrinsic(
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
 ) -> bool:
-    """Adds the specified amount of stake to passed hotkey ``uid``.
+    """Removes stake into the wallet coldkey from the specified hotkey ``uid``.
 
     Args:
         subtensor (bittensor.core.subtensor.Subtensor): Subtensor instance.
-        wallet (Wallet): Bittensor wallet object.
-        hotkey_ss58 (Optional[str]): The ``ss58`` address of the hotkey account to stake to defaults to the wallet's hotkey.
+        wallet (bittensor_wallet.Wallet): Bittensor wallet object.
+        hotkey_ss58 (Optional[str]): The ``ss58`` address of the hotkey to unstake from. By default, the wallet hotkey is used.
         amount (Union[Balance, float]): Amount to stake as Bittensor balance, or ``float`` interpreted as Tao.
         wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
 
     Returns:
         success (bool): Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
-
-    Raises:
-        bittensor.core.errors.NotRegisteredError: If the wallet is not registered on the chain.
-        bittensor.core.errors.NotDelegateError: If the hotkey is not a delegate on the chain.
     """
     # Decrypt keys,
     try:
@@ -167,83 +157,60 @@ def add_stake_extrinsic(
         )
         return False
 
-    # Default to wallet's own hotkey if the value is not passed.
     if hotkey_ss58 is None:
-        hotkey_ss58 = wallet.hotkey.ss58_address
-
-    # Flag to indicate if we are using the wallet's own hotkey.
-    own_hotkey: bool
+        hotkey_ss58 = wallet.hotkey.ss58_address  # Default to wallet's own hotkey.
 
     logging.info(
         f":satellite: [magenta]Syncing with chain:[/magenta] [blue]{subtensor.network}[/blue] [magenta]...[/magenta]"
     )
     old_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
-    # Get hotkey owner
-    hotkey_owner = subtensor.get_hotkey_owner(hotkey_ss58)
-    own_hotkey = wallet.coldkeypub.ss58_address == hotkey_owner
-    if not own_hotkey:
-        # This is not the wallet's own hotkey so we are delegating.
-        if not subtensor.is_hotkey_delegate(hotkey_ss58):
-            raise NotDelegateError("Hotkey: {} is not a delegate.".format(hotkey_ss58))
-
-    # Get current stake
     old_stake = subtensor.get_stake_for_coldkey_and_hotkey(
         coldkey_ss58=wallet.coldkeypub.ss58_address, hotkey_ss58=hotkey_ss58
     )
 
-    # Grab the existential deposit.
-    existential_deposit = subtensor.get_existential_deposit()
+    hotkey_owner = subtensor.get_hotkey_owner(hotkey_ss58)
+    own_hotkey: bool = wallet.coldkeypub.ss58_address == hotkey_owner
 
     # Convert to bittensor.Balance
     if amount is None:
-        # Stake it all.
-        staking_balance = Balance.from_tao(old_balance.tao)
+        # Unstake it all.
+        unstaking_balance = old_stake
     elif not isinstance(amount, Balance):
-        staking_balance = Balance.from_tao(amount)
+        unstaking_balance = Balance.from_tao(amount)
     else:
-        staking_balance = amount
+        unstaking_balance = amount
 
-    # Leave existential balance to keep key alive.
-    if staking_balance > old_balance - existential_deposit:
-        # If we are staking all, we need to leave at least the existential deposit.
-        staking_balance = old_balance - existential_deposit
-    else:
-        staking_balance = staking_balance
-
-    # Check enough to stake.
-    if staking_balance > old_balance:
-        logging.error(":cross_mark: [red]Not enough stake:[/red]")
-        logging.error(f"\t\tbalance:{old_balance}")
-        logging.error(f"\t\tamount: {staking_balance}")
-        logging.error(f"\t\twallet: {wallet.name}")
+    # Check enough to unstake.
+    stake_on_uid = old_stake
+    if unstaking_balance > stake_on_uid:
+        logging.error(
+            f":cross_mark: [red]Not enough stake[/red]: [green]{stake_on_uid}[/green] to unstake: [blue]{unstaking_balance}[/blue] from hotkey: [yellow]{wallet.hotkey_str}[/yellow]"
+        )
         return False
 
-    # If nominating, we need to check if the new stake balance will be above the minimum required stake threshold.
-    if not own_hotkey:
-        new_stake_balance = old_stake + staking_balance
-        is_above_threshold, threshold = _check_threshold_amount(
-            subtensor, new_stake_balance
+    # If nomination stake, check threshold.
+    if not own_hotkey and not _check_threshold_amount(
+        subtensor=subtensor, stake_balance=(stake_on_uid - unstaking_balance)
+    ):
+        logging.warning(
+            ":warning: [yellow]This action will unstake the entire staked balance![/yellow]"
         )
-        if not is_above_threshold:
-            logging.error(
-                f":cross_mark: [red]New stake balance of {new_stake_balance} is below the minimum required nomination stake threshold {threshold}.[/red]"
-            )
-            return False
+        unstaking_balance = stake_on_uid
 
     try:
         logging.info(
-            f":satellite: [magenta]Staking to:[/magenta] [blue]{subtensor.network}[/blue] [magenta]...[/magenta]"
+            f":satellite: [magenta]Unstaking from chain:[/magenta] [blue]{subtensor.network}[/blue] [magenta]...[/magenta]"
         )
-        staking_response: bool = __do_add_stake_single(
+        staking_response: bool = __do_remove_stake_single(
             subtensor=subtensor,
             wallet=wallet,
             hotkey_ss58=hotkey_ss58,
-            amount=staking_balance,
+            amount=unstaking_balance,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
         )
 
-        if staking_response is True:  # If we successfully staked.
+        if staking_response is True:  # If we successfully unstaked.
             # We only wait here if we expect finalization.
             if not wait_for_finalization and not wait_for_inclusion:
                 return True
@@ -254,39 +221,33 @@ def add_stake_extrinsic(
                 f":satellite: [magenta]Checking Balance on:[/magenta] [blue]{subtensor.network}[/blue] [magenta]...[/magenta]"
             )
             new_balance = subtensor.get_balance(address=wallet.coldkeypub.ss58_address)
-            block = subtensor.get_current_block()
             new_stake = subtensor.get_stake_for_coldkey_and_hotkey(
-                coldkey_ss58=wallet.coldkeypub.ss58_address,
-                hotkey_ss58=hotkey_ss58,
-                block=block,
-            )  # Get current stake
-
-            logging.info("Balance:")
+                coldkey_ss58=wallet.coldkeypub.ss58_address, hotkey_ss58=hotkey_ss58
+            )  # Get stake on hotkey.
+            logging.info(f"Balance:")
             logging.info(
-                f"[blue]{old_balance}[/blue] :arrow_right: {new_balance}[/green]"
+                f"\t\t[blue]{old_balance}[/blue] :arrow_right: [green]{new_balance}[/green]"
             )
             logging.info("Stake:")
             logging.info(
-                f"[blue]{old_stake}[/blue] :arrow_right: [green]{new_stake}[/green]"
+                f"\t\t[blue]{old_stake}[/blue] :arrow_right: [green]{new_stake}[/green]"
             )
             return True
         else:
-            logging.error(":cross_mark: [red]Failed[/red]: Error unknown.")
+            logging.error(":cross_mark: [red]Failed[/red]: Unknown Error.")
             return False
 
     except NotRegisteredError:
         logging.error(
-            ":cross_mark: [red]Hotkey: {} is not registered.[/red]".format(
-                wallet.hotkey_str
-            )
+            f":cross_mark: [red]Hotkey: {wallet.hotkey_str} is not registered.[/red]"
         )
         return False
     except StakeError as e:
-        logging.error(f":cross_mark: [red]Stake Error: {e}[/red]")
+        logging.error(":cross_mark: [red]Stake Error: {}[/red]".format(e))
         return False
 
 
-def add_stake_multiple_extrinsic(
+def unstake_multiple_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
     hotkey_ss58s: list[str],
@@ -294,18 +255,18 @@ def add_stake_multiple_extrinsic(
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
 ) -> bool:
-    """Adds stake to each ``hotkey_ss58`` in the list, using each amount, from a common coldkey.
+    """Removes stake from each ``hotkey_ss58`` in the list, using each amount, to a common coldkey.
 
     Args:
         subtensor (bittensor.core.subtensor.Subtensor): Subtensor instance.
-        wallet (bittensor_wallet.Wallet): Bittensor wallet object for the coldkey.
-        hotkey_ss58s (List[str]): List of hotkeys to stake to.
-        amounts (List[Union[Balance, float]]): List of amounts to stake. If ``None``, stake all to the first hotkey.
+        wallet (bittensor_wallet.Wallet): The wallet with the coldkey to unstake to.
+        hotkey_ss58s (List[str]): List of hotkeys to unstake from.
+        amounts (List[Union[Balance, float]]): List of amounts to unstake. If ``None``, unstake all.
         wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
 
     Returns:
-        success (bool): Flag is ``true`` if extrinsic was finalized or included in the block. Flag is ``true`` if any wallet was staked. If we did not wait for finalization / inclusion, the response is ``true``.
+        success (bool): Flag is ``true`` if extrinsic was finalized or included in the block. Flag is ``true`` if any wallet was unstaked. If we did not wait for finalization / inclusion, the response is ``true``.
     """
     if not isinstance(hotkey_ss58s, list) or not all(
         isinstance(hotkey_ss58, str) for hotkey_ss58 in hotkey_ss58s
@@ -338,143 +299,119 @@ def add_stake_multiple_extrinsic(
             # Staking 0 tao
             return True
 
-    # Decrypt keys,
+    # Unlock coldkey.
     try:
         wallet.coldkey
     except KeyFileError:
         logging.error(
-            ":cross_mark: [red]Keyfile is corrupt, non-writable, non-readable or the password used to decrypt is invalid.[/red]"
+            ":cross_mark: [red]Keyfile is corrupt, non-writable, non-readable or the password used to decrypt is invalid[/red]:[bold white]\n  [/bold white]"
         )
         return False
 
     old_stakes = []
-
+    own_hotkeys = []
     logging.info(
         f":satellite: [magenta]Syncing with chain:[/magenta] [blue]{subtensor.network}[/blue] [magenta]...[/magenta]"
     )
     old_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
 
-    # Get the old stakes.
     for hotkey_ss58 in hotkey_ss58s:
-        old_stakes.append(
-            subtensor.get_stake_for_coldkey_and_hotkey(
-                coldkey_ss58=wallet.coldkeypub.ss58_address, hotkey_ss58=hotkey_ss58
-            )
-        )
+        old_stake = subtensor.get_stake_for_coldkey_and_hotkey(
+            coldkey_ss58=wallet.coldkeypub.ss58_address, hotkey_ss58=hotkey_ss58
+        )  # Get stake on hotkey.
+        old_stakes.append(old_stake)  # None if not registered.
 
-    # Remove existential balance to keep key alive.
-    # Keys must maintain a balance of at least 1000 rao to stay alive.
-    total_staking_rao = sum(
-        [amount.rao if amount is not None else 0 for amount in amounts]
-    )
-    if total_staking_rao == 0:
-        # Staking all to the first wallet.
-        if old_balance.rao > 1000:
-            old_balance -= Balance.from_rao(1000)
+        hotkey_owner = subtensor.get_hotkey_owner(hotkey_ss58)
+        own_hotkeys.append(wallet.coldkeypub.ss58_address == hotkey_owner)
 
-    elif total_staking_rao < 1000:
-        # Staking less than 1000 rao to the wallets.
-        pass
-    else:
-        # Staking more than 1000 rao to the wallets.
-        # Reduce the amount to stake to each wallet to keep the balance above 1000 rao.
-        percent_reduction = 1 - (1000 / total_staking_rao)
-        amounts = [
-            Balance.from_tao(amount.tao * percent_reduction) for amount in amounts
-        ]
-
-    successful_stakes = 0
-    for idx, (hotkey_ss58, amount, old_stake) in enumerate(
-        zip(hotkey_ss58s, amounts, old_stakes)
+    successful_unstakes = 0
+    for idx, (hotkey_ss58, amount, old_stake, own_hotkey) in enumerate(
+        zip(hotkey_ss58s, amounts, old_stakes, own_hotkeys)
     ):
-        staking_all = False
-        # Convert to bittensor.Balance
+        # Covert to bittensor.Balance
         if amount is None:
-            # Stake it all.
-            staking_balance = Balance.from_tao(old_balance.tao)
-            staking_all = True
+            # Unstake it all.
+            unstaking_balance = old_stake
         else:
-            # Amounts are cast to balance earlier in the function
-            assert isinstance(amount, Balance)
-            staking_balance = amount
+            unstaking_balance = (
+                amount if isinstance(amount, Balance) else Balance.from_tao(amount)
+            )
 
-        # Check enough to stake
-        if staking_balance > old_balance:
+        # Check enough to unstake.
+        stake_on_uid = old_stake
+        if unstaking_balance > stake_on_uid:
             logging.error(
-                f":cross_mark: [red]Not enough balance[/red]: [green]{old_balance}[/green] to stake: [blue]{staking_balance}[/blue] from wallet: [white]{wallet.name}[/white]"
+                f":cross_mark: [red]Not enough stake[/red]: [green]{stake_on_uid}[/green] to unstake: [blue]{unstaking_balance}[/blue] from hotkey: [blue]{wallet.hotkey_str}[/blue]."
             )
             continue
 
+        # If nomination stake, check threshold.
+        if not own_hotkey and not _check_threshold_amount(
+            subtensor=subtensor, stake_balance=(stake_on_uid - unstaking_balance)
+        ):
+            logging.warning(
+                f":warning: [yellow]This action will unstake the entire staked balance![/yellow]"
+            )
+            unstaking_balance = stake_on_uid
+
         try:
-            staking_response: bool = __do_add_stake_single(
+            logging.info(
+                f":satellite: [magenta]Unstaking from chain:[/magenta] [blue]{subtensor.network}[/blue] [magenta]...[/magenta]"
+            )
+            staking_response: bool = __do_remove_stake_single(
                 subtensor=subtensor,
                 wallet=wallet,
                 hotkey_ss58=hotkey_ss58,
-                amount=staking_balance,
+                amount=unstaking_balance,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
             )
 
-            # If we successfully staked.
-            if staking_response:
+            if staking_response is True:  # If we successfully unstaked.
                 # We only wait here if we expect finalization.
 
                 if idx < len(hotkey_ss58s) - 1:
                     # Wait for tx rate limit.
                     tx_rate_limit_blocks = subtensor.tx_rate_limit()
                     if tx_rate_limit_blocks > 0:
-                        logging.error(
+                        logging.info(
                             f":hourglass: [yellow]Waiting for tx rate limit: [white]{tx_rate_limit_blocks}[/white] blocks[/yellow]"
                         )
                         sleep(tx_rate_limit_blocks * 12)  # 12 seconds per block
 
                 if not wait_for_finalization and not wait_for_inclusion:
-                    old_balance -= staking_balance
-                    successful_stakes += 1
-                    if staking_all:
-                        # If staked all, no need to continue
-                        break
-
+                    successful_unstakes += 1
                     continue
 
-                logging.success(":white_heavy_check_mark: [green]Finalized[/green]")
+                logging.info(":white_heavy_check_mark: [green]Finalized[/green]")
 
+                logging.info(
+                    f":satellite: [magenta]Checking Balance on:[/magenta] [blue]{subtensor.network}[/blue] [magenta]...[/magenta]..."
+                )
                 block = subtensor.get_current_block()
                 new_stake = subtensor.get_stake_for_coldkey_and_hotkey(
                     coldkey_ss58=wallet.coldkeypub.ss58_address,
                     hotkey_ss58=hotkey_ss58,
                     block=block,
                 )
-                new_balance = subtensor.get_balance(
-                    wallet.coldkeypub.ss58_address, block=block
-                )
                 logging.info(
-                    "Stake ({}): [blue]{}[/blue] :arrow_right: [green]{}[/green]".format(
-                        hotkey_ss58, old_stake, new_stake
-                    )
+                    f"Stake ({hotkey_ss58}): [blue]{stake_on_uid}[/blue] :arrow_right: [green]{new_stake}[/green]"
                 )
-                old_balance = new_balance
-                successful_stakes += 1
-                if staking_all:
-                    # If staked all, no need to continue
-                    break
-
+                successful_unstakes += 1
             else:
-                logging.error(":cross_mark: [red]Failed[/red]: Error unknown.")
+                logging.error(":cross_mark: [red]Failed: Unknown Error.[/red]")
                 continue
 
         except NotRegisteredError:
             logging.error(
-                ":cross_mark: [red]Hotkey: {} is not registered.[/red]".format(
-                    hotkey_ss58
-                )
+                f":cross_mark: [red]Hotkey[/red] [blue]{hotkey_ss58}[/blue] [red]is not registered.[/red]"
             )
             continue
         except StakeError as e:
             logging.error(":cross_mark: [red]Stake Error: {}[/red]".format(e))
             continue
 
-    if successful_stakes != 0:
+    if successful_unstakes != 0:
         logging.info(
             f":satellite: [magenta]Checking Balance on:[/magenta] ([blue]{subtensor.network}[/blue] [magenta]...[/magenta]"
         )
