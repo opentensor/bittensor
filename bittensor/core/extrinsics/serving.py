@@ -219,7 +219,7 @@ def serve_axon_extrinsic(
         try:
             external_ip = net.get_external_ip()
             logging.success(
-                f":white_heavy_check_mark: <green>Found external ip:</green> <blue>{external_ip}</blue>"
+                f":white_heavy_check_mark: [green]Found external ip:[/green] [blue]{external_ip}[/blue]"
             )
         except Exception as e:
             raise RuntimeError(

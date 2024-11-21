@@ -218,7 +218,7 @@ def format_error_message(
                         err_description = err_docs[0] if err_docs else err_description
                     except (AttributeError, IndexError):
                         logging.error(
-                            "<red>Substrate pallets data unavailable. This is usually caused by an uninitialized substrate.</red>"
+                            "[red]Substrate pallets data unavailable. This is usually caused by an uninitialized substrate.[/red]"
                         )
             else:
                 err_description = err_data
