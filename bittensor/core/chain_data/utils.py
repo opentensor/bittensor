@@ -22,6 +22,7 @@ class ChainDataType(Enum):
     SubnetHyperparameters = 8
     ScheduledColdkeySwapInfo = 9
     AccountId = 10
+    NeuronCertificate = 11
 
 
 def from_scale_encoding(
@@ -176,6 +177,12 @@ custom_rpc_type_registry = {
                 ["last_update", "Compact<u64>"],
                 ["validator_permit", "bool"],
                 ["pruning_score", "Compact<u16>"],
+            ],
+        },
+        "NeuronCertificate": {
+            "type": "struct",
+            "type_mapping": [
+                ["certificate", "Vec<u8>"],
             ],
         },
         "axon_info": {

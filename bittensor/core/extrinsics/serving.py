@@ -20,7 +20,12 @@ from typing import Optional, TYPE_CHECKING
 from bittensor.core.errors import MetadataError
 from bittensor.core.extrinsics.utils import submit_extrinsic
 from bittensor.core.settings import version_as_int
-from bittensor.utils import format_error_message, networking as net, unlock_key
+from bittensor.utils import (
+    format_error_message,
+    networking as net,
+    unlock_key,
+    Certificate,
+)
 from bittensor.utils.btlogging import logging
 from bittensor.utils.networking import ensure_connected
 
@@ -57,9 +62,15 @@ def do_serve_axon(
     This function is crucial for initializing and announcing a neuron's ``Axon`` service on the network, enhancing the decentralized computation capabilities of Bittensor.
     """
 
+    if call_params["certificate"] is None:
+        del call_params["certificate"]
+        call_function = "serve_axon"
+    else:
+        call_function = "serve_axon_tls"
+
     call = self.substrate.compose_call(
         call_module="SubtensorModule",
-        call_function="serve_axon",
+        call_function=call_function,
         call_params=call_params,
     )
     extrinsic = self.substrate.create_signed_extrinsic(call=call, keypair=wallet.hotkey)
@@ -90,6 +101,7 @@ def serve_extrinsic(
     placeholder2: int = 0,
     wait_for_inclusion: bool = False,
     wait_for_finalization=True,
+    certificate: Optional[Certificate] = None,
 ) -> bool:
     """Subscribes a Bittensor endpoint to the subtensor chain.
 
@@ -124,6 +136,7 @@ def serve_extrinsic(
         "protocol": protocol,
         "placeholder1": placeholder1,
         "placeholder2": placeholder2,
+        "certificate": certificate,
     }
     logging.debug("Checking axon ...")
     neuron = subtensor.get_neuron_for_pubkey_and_subnet(
@@ -182,6 +195,7 @@ def serve_axon_extrinsic(
     axon: "Axon",
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = True,
+    certificate: Optional[Certificate] = None,
 ) -> bool:
     """Serves the axon to the network.
 
@@ -224,6 +238,7 @@ def serve_axon_extrinsic(
         protocol=4,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
+        certificate=certificate,
     )
     return serve_success
 
