@@ -1904,7 +1904,7 @@ def test_connect_with_substrate(mocker):
     """Ensure re-connection is non called when using an alive substrate."""
     # Prep
     fake_substrate = mocker.MagicMock()
-    fake_substrate.websocket.sock.getsockopt.return_value = 0
+    fake_substrate.websocket.socket.getsockopt.return_value = 0
     mocker.patch.object(
         subtensor_module, "SubstrateInterface", return_value=fake_substrate
     )
@@ -2145,6 +2145,7 @@ def test_networks_during_connection(mocker):
     """Test networks during_connection."""
     # Preps
     subtensor_module.SubstrateInterface = mocker.Mock()
+    mocker.patch("websockets.sync.client.connect")
     # Call
     for network in list(settings.NETWORK_MAP.keys()) + ["undefined"]:
         sub = Subtensor(network)
