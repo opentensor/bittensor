@@ -8,22 +8,7 @@ from bittensor.core.chain_data.axon_info import AxonInfo
 
 from bittensor import NeuronInfo
 from bittensor.core.subtensor import Subtensor
-from tests.helpers.refined_output import WEBSOCKET_RESPONSES
-
-
-# TODO new dict design:
-# {
-#     method: {
-#         params_list: result,
-#         params_list: result,
-#         ...
-#     },
-#     method: {
-#         params_list: result,
-#         ...
-#     },
-#     ...
-# }
+from tests.helpers.integration_websocket_data import WEBSOCKET_RESPONSES
 
 
 class FakeWebsocket(websocket.WebSocket):
@@ -56,13 +41,6 @@ class FakeWebsocket(websocket.WebSocket):
         pass
 
 
-# @pytest.fixture
-# def subtensor():
-#     subtensor_ = Subtensor(websocket=FakeWebsocket())
-#     yield subtensor_
-#     print("Subtensor closed")
-
-
 @pytest.fixture
 def hotkey():
     yield "5DkzsviNQr4ZePXMmEfNPDcE7cQ9cVyepmQbgUw6YT3odcwh"
@@ -71,38 +49,6 @@ def hotkey():
 @pytest.fixture
 def netuid():
     yield 23
-
-
-# @pytest.mark.parametrize(
-#     "input_, runtime_api, method, output",
-#     [
-#         (
-#             [1],
-#             "NeuronInfoRuntimeApi",
-#             "get_neurons_lite",
-#             "0x0100"
-#         ),
-#         (
-#             [],
-#             "SubnetRegistrationRuntimeApi",
-#             "get_network_registration_cost",
-#             "0x"
-#         )
-#     ]
-# )
-# def test_encode_params(subtensor, input_, runtime_api, method, output):
-#     call_definition = settings.TYPE_REGISTRY["runtime_api"][runtime_api]["methods"][
-#         method
-#     ]
-#     result = subtensor._encode_params(call_definition=call_definition, params=input_)
-#     assert result == output
-
-
-# def test_blocks_since_last_update():
-#     subtensor = Subtensor(websocket=FakeWebsocket(seed="blocks_since_last_update"))
-#     netuid = 1
-#     query = subtensor.blocks_since_last_update(netuid=netuid, uid=5)
-#     assert isinstance(query, int)
 
 
 def test_get_all_subnets_info():
