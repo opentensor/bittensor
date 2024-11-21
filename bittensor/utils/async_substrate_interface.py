@@ -693,7 +693,7 @@ class Websocket:
 
     async def _recv(self) -> None:
         try:
-            response = json.loads(await cast(ClientProtocol, self.ws).recv())
+            response = json.loads(await cast(ClientConnection, self.ws).recv())
             async with self._lock:
                 self._open_subscriptions -= 1
             if "id" in response:
