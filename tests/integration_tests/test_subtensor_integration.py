@@ -75,7 +75,7 @@ class TestSubtensor(unittest.TestCase):
         config1.subtensor.chain_endpoint = None
 
         # Mock network calls
-        with patch("substrateinterface.SubstrateInterface.connect_websocket"):
+        with patch("websockets.sync.client.connect"):
             with patch("substrateinterface.SubstrateInterface.reload_type_registry"):
                 print(bittensor.Subtensor, type(bittensor.Subtensor))
                 # Choose network arg over config
