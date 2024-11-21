@@ -1,13 +1,15 @@
 from time import sleep
 from typing import Union, Optional
-from bittensor.utils.balance import Balance
-from bittensor.utils.btlogging import logging
-from bittensor.core.subtensor import Subtensor
+
 from bittensor_wallet import Wallet
 from bittensor_wallet.errors import KeyFileError
+
 from bittensor.core.errors import StakeError, NotRegisteredError
-from bittensor.utils.networking import ensure_connected
+from bittensor.core.subtensor import Subtensor
 from bittensor.utils import format_error_message, unlock_key
+from bittensor.utils.balance import Balance
+from bittensor.utils.btlogging import logging
+from bittensor.utils.networking import ensure_connected
 
 
 @ensure_connected
@@ -73,17 +75,18 @@ def __do_remove_stake_single(
     Executes an unstake call to the chain using the wallet and the amount specified.
 
     Args:
-        wallet (bittensor.wallet): Bittensor wallet object.
+        wallet (bittensor_wallet.Wallet): Bittensor wallet object.
         hotkey_ss58 (str): Hotkey address to unstake from.
-        amount (bittensor.Balance): Amount to unstake as Bittensor balance object.
+        amount (bittensor.utils.balance.Balance): Amount to unstake as Bittensor balance object.
         wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
 
     Returns:
         success (bool): Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
+
     Raises:
-        bittensor.errors.StakeError: If the extrinsic fails to be finalized or included in the block.
-        bittensor.errors.NotRegisteredError: If the hotkey is not registered in any subnets.
+        bittensor.core.errors.StakeError: If the extrinsic fails to be finalized or included in the block.
+        bittensor.core.errors.NotRegisteredError: If the hotkey is not registered in any subnets.
 
     """
     if not (unlock := unlock_key(wallet)).success:
@@ -256,7 +259,7 @@ def unstake_multiple_extrinsic(
 
     Args:
         subtensor (bittensor.core.subtensor.Subtensor): Subtensor instance.
-        wallet (bittensor.wallet): The wallet with the coldkey to unstake to.
+        wallet (bittensor_wallet.Wallet): The wallet with the coldkey to unstake to.
         hotkey_ss58s (List[str]): List of hotkeys to unstake from.
         amounts (List[Union[Balance, float]]): List of amounts to unstake. If ``None``, unstake all.
         wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
@@ -333,10 +336,6 @@ def unstake_multiple_extrinsic(
             unstaking_balance = (
                 amount if isinstance(amount, Balance) else Balance.from_tao(amount)
             )
-        # elif not isinstance(amount, Balance):
-        #     unstaking_balance = Balance.from_tao(amount)
-        # else:
-        #     unstaking_balance = amount
 
         # Check enough to unstake.
         stake_on_uid = old_stake
