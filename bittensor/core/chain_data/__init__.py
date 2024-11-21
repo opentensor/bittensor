@@ -11,6 +11,7 @@ from .delegate_info_lite import DelegateInfoLite
 from .ip_info import IPInfo
 from .neuron_info import NeuronInfo
 from .neuron_info_lite import NeuronInfoLite
+from .neuron_certificate import NeuronCertificate
 from .prometheus_info import PrometheusInfo
 from .proposal_vote_data import ProposalVoteData
 from .scheduled_coldkey_swap_info import ScheduledColdkeySwapInfo
