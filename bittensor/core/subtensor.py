@@ -53,6 +53,10 @@ from bittensor.core.extrinsics.set_weights import set_weights_extrinsic
 from bittensor.core.extrinsics.transfer import (
     transfer_extrinsic,
 )
+from bittensor.core.extrinsics.staking import (
+    add_stake_extrinsic,
+    add_stake_multiple_extrinsic,
+)
 from bittensor.core.extrinsics.unstaking import (
     unstake_extrinsic,
     unstake_multiple_extrinsic,
@@ -2050,6 +2054,73 @@ class Subtensor:
                 retries += 1
 
         return success, message
+
+    def add_stake(
+        self,
+        wallet: "Wallet",
+        hotkey_ss58: Optional[str] = None,
+        amount: Optional[Union["Balance", float]] = None,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+    ) -> bool:
+        """
+        Adds the specified amount of stake to a neuron identified by the hotkey ``SS58`` address.
+        Staking is a fundamental process in the Bittensor network that enables neurons to participate actively and earn incentives.
+
+        Args:
+            wallet (bittensor_wallet.Wallet): The wallet to be used for staking.
+            hotkey_ss58 (Optional[str]): The ``SS58`` address of the hotkey associated with the neuron.
+            amount (Union[Balance, float]): The amount of TAO to stake.
+            wait_for_inclusion (bool): Waits for the transaction to be included in a block.
+            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
+
+        Returns:
+            bool: ``True`` if the staking is successful, False otherwise.
+
+        This function enables neurons to increase their stake in the network, enhancing their influence and potential rewards in line with Bittensor's consensus and reward mechanisms.
+        """
+        return add_stake_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            hotkey_ss58=hotkey_ss58,
+            amount=amount,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+
+    def add_stake_multiple(
+        self,
+        wallet: "Wallet",
+        hotkey_ss58s: list[str],
+        amounts: Optional[list[Union["Balance", float]]] = None,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+    ) -> bool:
+        """
+        Adds stakes to multiple neurons identified by their hotkey SS58 addresses.
+        This bulk operation allows for efficient staking across different neurons from a single wallet.
+
+        Args:
+            wallet (bittensor_wallet.Wallet): The wallet used for staking.
+            hotkey_ss58s (list[str]): List of ``SS58`` addresses of hotkeys to stake to.
+            amounts (list[Union[Balance, float]]): Corresponding amounts of TAO to stake for each hotkey.
+            wait_for_inclusion (bool): Waits for the transaction to be included in a block.
+            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
+            prompt (bool): If ``True``, prompts for user confirmation before proceeding.
+
+        Returns:
+            bool: ``True`` if the staking is successful for all specified neurons, False otherwise.
+
+        This function is essential for managing stakes across multiple neurons, reflecting the dynamic and collaborative nature of the Bittensor network.
+        """
+        return add_stake_multiple_extrinsic(
+            self,
+            wallet,
+            hotkey_ss58s,
+            amounts,
+            wait_for_inclusion,
+            wait_for_finalization,
+        )
 
     def unstake(
         self,
