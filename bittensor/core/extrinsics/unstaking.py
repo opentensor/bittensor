@@ -65,6 +65,28 @@ def _do_unstake(
         )
 
 
+def _check_threshold_amount(subtensor: "Subtensor", stake_balance: "Balance") -> bool:
+    """
+    Checks if the remaining stake balance is above the minimum required stake threshold.
+
+    Args:
+        subtensor (bittensor.core.subtensor.Subtensor): Subtensor instance.
+        stake_balance (bittensor.utils.balance.Balance): the balance to check for threshold limits.
+
+    Returns:
+        success (bool): ``true`` if the unstaking is above the threshold or 0, or ``false`` if the unstaking is below the threshold, but not 0.
+    """
+    min_req_stake: Balance = subtensor.get_minimum_required_stake()
+
+    if min_req_stake > stake_balance > 0:
+        logging.warning(
+            f":cross_mark: [yellow]Remaining stake balance of {stake_balance} less than minimum of {min_req_stake} TAO[/yellow]"
+        )
+        return False
+    else:
+        return True
+
+
 def __do_remove_stake_single(
     subtensor: "Subtensor",
     wallet: "Wallet",
@@ -105,28 +127,6 @@ def __do_remove_stake_single(
     )
 
     return success
-
-
-def _check_threshold_amount(subtensor: "Subtensor", stake_balance: "Balance") -> bool:
-    """
-    Checks if the remaining stake balance is above the minimum required stake threshold.
-
-    Args:
-        subtensor (bittensor.core.subtensor.Subtensor): Subtensor instance.
-        stake_balance (bittensor.utils.balance.Balance): the balance to check for threshold limits.
-
-    Returns:
-        success (bool): ``true`` if the unstaking is above the threshold or 0, or ``false`` if the unstaking is below the threshold, but not 0.
-    """
-    min_req_stake: Balance = subtensor.get_minimum_required_stake()
-
-    if min_req_stake > stake_balance > 0:
-        logging.warning(
-            f":cross_mark: [yellow]Remaining stake balance of {stake_balance} less than minimum of {min_req_stake} TAO[/yellow]"
-        )
-        return False
-    else:
-        return True
 
 
 def unstake_extrinsic(
