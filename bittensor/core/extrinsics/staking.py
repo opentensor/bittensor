@@ -105,7 +105,7 @@ def __do_remove_stake_single(
     return success
 
 
-def check_threshold_amount(subtensor: "Subtensor", stake_balance: "Balance") -> bool:
+def _check_threshold_amount(subtensor: "Subtensor", stake_balance: "Balance") -> bool:
     """
     Checks if the remaining stake balance is above the minimum required stake threshold.
 
@@ -189,7 +189,7 @@ def unstake_extrinsic(
         return False
 
     # If nomination stake, check threshold.
-    if not own_hotkey and not check_threshold_amount(
+    if not own_hotkey and not _check_threshold_amount(
         subtensor=subtensor, stake_balance=(stake_on_uid - unstaking_balance)
     ):
         logging.warning(
@@ -346,7 +346,7 @@ def unstake_multiple_extrinsic(
             continue
 
         # If nomination stake, check threshold.
-        if not own_hotkey and not check_threshold_amount(
+        if not own_hotkey and not _check_threshold_amount(
             subtensor=subtensor, stake_balance=(stake_on_uid - unstaking_balance)
         ):
             logging.warning(
