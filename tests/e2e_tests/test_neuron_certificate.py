@@ -5,7 +5,6 @@ from bittensor.utils.btlogging import logging
 from tests.e2e_tests.utils.chain_interactions import (
     wait_interval,
     register_subnet,
-    register_neuron,
 )
 from tests.e2e_tests.utils.e2e_test_utils import (
     setup_wallet,
@@ -36,10 +35,12 @@ async def test_neuron_certificate(local_chain):
         "SubtensorModule", "NetworksAdded", [netuid]
     ).serialize(), "Subnet wasn't created successfully"
 
-    # Register Alice as a neuron on the subnet
-    register_neuron(local_chain, alice_wallet, netuid)
-
     subtensor = Subtensor(network="ws://localhost:9945")
+
+    # Register Alice as a neuron on the subnet
+    assert subtensor.burned_register(
+        alice_wallet, netuid
+    ), "Unable to register Alice as a neuron"
 
     # Serve Alice's axon with a certificate
     axon = Axon(wallet=alice_wallet)
