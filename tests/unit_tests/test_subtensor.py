@@ -2145,6 +2145,7 @@ def test_networks_during_connection(mocker):
     """Test networks during_connection."""
     # Preps
     subtensor_module.SubstrateInterface = mocker.Mock()
+    mocker.patch("websockets.sync.client.connect")
     # Call
     for network in list(settings.NETWORK_MAP.keys()) + ["undefined"]:
         sub = Subtensor(network)
