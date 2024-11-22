@@ -50,6 +50,7 @@ def clone_or_update_templates(specific_commit=None):
     os.chdir(install_dir)
 
     for repo, git_link in repo_mapping.items():
+        print(os.path.abspath(repo))
         if not os.path.exists(repo):
             print(f"\033[94mCloning {repo}...\033[0m")
             subprocess.run(["git", "clone", git_link, repo], check=True)
