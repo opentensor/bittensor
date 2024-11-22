@@ -2152,3 +2152,44 @@ def test_networks_during_connection(mocker):
         # Assertions
         sub.network = network
         sub.chain_endpoint = settings.NETWORK_MAP.get(network)
+
+
+@pytest.mark.parametrize(
+    "fake_value_result",
+    [1, None],
+    ids=["result has value attr", "result has not value attr"],
+)
+def test_get_stake_for_coldkey_and_hotkey(subtensor, mocker, fake_value_result):
+    """Test get_stake_for_coldkey_and_hotkey calls right method with correct arguments."""
+    # Preps
+    fake_hotkey_ss58 = "FAKE_H_SS58"
+    fake_coldkey_ss58 = "FAKE_C_SS58"
+    fake_block = 123
+
+    return_value = (
+        mocker.Mock(value=fake_value_result)
+        if fake_value_result is not None
+        else fake_value_result
+    )
+
+    subtensor.query_subtensor = mocker.patch.object(
+        subtensor, "query_subtensor", return_value=return_value
+    )
+    spy_balance_from_rao = mocker.spy(subtensor_module.Balance, "from_rao")
+
+    # Call
+    result = subtensor.get_stake_for_coldkey_and_hotkey(
+        hotkey_ss58=fake_hotkey_ss58,
+        coldkey_ss58=fake_coldkey_ss58,
+        block=fake_block,
+    )
+
+    # Asserts
+    subtensor.query_subtensor.assert_called_once_with(
+        "Stake", fake_block, [fake_hotkey_ss58, fake_coldkey_ss58]
+    )
+    if fake_value_result is not None:
+        spy_balance_from_rao.assert_called_once_with(fake_value_result)
+    else:
+        spy_balance_from_rao.assert_not_called()
+    assert result == fake_value_result
