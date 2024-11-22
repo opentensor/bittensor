@@ -98,7 +98,7 @@ def register_subnet(substrate: "SubstrateInterface", wallet: "Wallet") -> bool:
     register_call = substrate.compose_call(
         call_module="SubtensorModule",
         call_function="register_network",
-        call_params={"hotkey": wallet.hotkey.ss58_address, "mechid": 1, "immunity_period": 0, "reg_allowed": True},
+        call_params={"hotkey": wallet.hotkey.ss58_address, "mechid": 'Dynamic', "immunity_period": 0, "reg_allowed": True},
     )
     extrinsic = substrate.create_signed_extrinsic(
         call=register_call, keypair=wallet.coldkey
