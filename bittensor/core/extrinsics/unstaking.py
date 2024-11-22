@@ -1,8 +1,6 @@
 from time import sleep
 from typing import Union, Optional, TYPE_CHECKING
 
-from bittensor_wallet.errors import KeyFileError
-
 from bittensor.core.errors import StakeError, NotRegisteredError
 from bittensor.utils import format_error_message, unlock_key
 from bittensor.utils.balance import Balance
