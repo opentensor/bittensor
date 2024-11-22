@@ -3,19 +3,19 @@ import sys
 
 import pytest
 
-import bittensor
-from bittensor import logging, Subtensor
-
+from bittensor.core.metagraph import Metagraph
+from bittensor.core.subtensor import Subtensor
+from bittensor.utils.balance import Balance
+from bittensor.utils.btlogging import logging
+from tests.e2e_tests.utils.chain_interactions import (
+    register_subnet,
+    add_stake,
+    wait_epoch,
+)
 from tests.e2e_tests.utils.e2e_test_utils import (
     setup_wallet,
     template_path,
     templates_repo,
-)
-from tests.e2e_tests.utils.chain_interactions import (
-    register_neuron,
-    register_subnet,
-    add_stake,
-    wait_epoch,
 )
 
 
@@ -51,13 +51,14 @@ async def test_dendrite(local_chain):
     # Register Bob
     bob_keypair, bob_wallet = setup_wallet("//Bob")
 
-    # Register Bob to the network
-    assert register_neuron(
-        local_chain, bob_wallet, netuid
-    ), f"Neuron wasn't registered to subnet {netuid}"
-
-    metagraph = bittensor.Metagraph(netuid=netuid, network="ws://localhost:9945")
     subtensor = Subtensor(network="ws://localhost:9945")
+
+    # Register Bob to the network
+    assert subtensor.burned_register(
+        bob_wallet, netuid
+    ), "Unable to register Bob as a neuron"
+
+    metagraph = Metagraph(netuid=netuid, network="ws://localhost:9945")
 
     # Assert one neuron is Bob
     assert len(subtensor.neurons(netuid=netuid)) == 1
@@ -69,10 +70,10 @@ async def test_dendrite(local_chain):
     assert neuron.stake.tao == 0
 
     # Stake to become to top neuron after the first epoch
-    assert add_stake(local_chain, bob_wallet, bittensor.Balance.from_tao(10_000))
+    assert add_stake(local_chain, bob_wallet, Balance.from_tao(10_000))
 
     # Refresh metagraph
-    metagraph = bittensor.Metagraph(netuid=netuid, network="ws://localhost:9945")
+    metagraph = Metagraph(netuid=netuid, network="ws://localhost:9945")
     old_neuron = metagraph.neurons[0]
 
     # Assert stake is 10000
@@ -91,7 +92,6 @@ async def test_dendrite(local_chain):
         [
             f"{sys.executable}",
             f'"{template_path}{templates_repo}/neurons/validator.py"',
-            "--no_prompt",
             "--netuid",
             str(netuid),
             "--subtensor.network",
@@ -121,7 +121,7 @@ async def test_dendrite(local_chain):
     await wait_epoch(subtensor, netuid=netuid)
 
     # Refresh metagraph
-    metagraph = bittensor.Metagraph(netuid=netuid, network="ws://localhost:9945")
+    metagraph = Metagraph(netuid=netuid, network="ws://localhost:9945")
 
     # Refresh validator neuron
     updated_neuron = metagraph.neurons[0]

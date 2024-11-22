@@ -54,16 +54,24 @@ emoji_map: dict[str, str] = {
     ":white_heavy_check_mark:": "✅",
     ":cross_mark:": "❌",
     ":satellite:": "🛰️",
+    ":warning:": "⚠️",
+    ":arrow_right:": "➡️",
 }
 
 
 color_map: dict[str, str] = {
-    "<red>": Fore.RED,
-    "</red>": Style.RESET_ALL,
-    "<blue>": Fore.BLUE,
-    "</blue>": Style.RESET_ALL,
-    "<green>": Fore.GREEN,
-    "</green>": Style.RESET_ALL,
+    "[red]": Fore.RED,
+    "[/red]": Style.RESET_ALL,
+    "[blue]": Fore.BLUE,
+    "[/blue]": Style.RESET_ALL,
+    "[green]": Fore.GREEN,
+    "[/green]": Style.RESET_ALL,
+    "[magenta]": Fore.MAGENTA,
+    "[/magenta]": Style.RESET_ALL,
+    "[yellow]": Fore.YELLOW,
+    "[/yellow]": Style.RESET_ALL,
+    "[orange]": Fore.YELLOW,
+    "[/orange]": Style.RESET_ALL,
 }
 
 
@@ -218,5 +226,5 @@ class BtFileFormatter(logging.Formatter):
         Returns:
             formated record (str): The formatted log record.
         """
-        record.levelname = f"{record.levelname:^16}"
+        record.levelname = f"{record.levelname:^10}"
         return super().format(record)

@@ -1,8 +1,9 @@
 wheel
 setuptools~=70.0.0
-bittensor-cli
 aiohttp~=3.9
-bt-decode
+async-property==0.2.2
+bittensor-cli
+bt-decode==0.2.0a0
 colorama~=0.4.6
 fastapi~=0.110.1
 munch~=2.5.0
@@ -12,6 +13,7 @@ nest_asyncio
 netaddr
 packaging
 python-statemachine~=2.1
+pycryptodome>=3.18.0,<4.0.0
 pyyaml
 retry
 requests
@@ -21,4 +23,5 @@ python-Levenshtein
 scalecodec==1.2.11
 substrate-interface~=1.7.9
 uvicorn
-bittensor-wallet>=2.0.2
+websockets>=14.1
+bittensor-wallet>=2.1.0
