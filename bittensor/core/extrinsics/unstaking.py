@@ -302,12 +302,8 @@ def unstake_multiple_extrinsic(
             return True
 
     # Unlock coldkey.
-    try:
-        wallet.coldkey
-    except KeyFileError:
-        logging.error(
-            ":cross_mark: [red]Keyfile is corrupt, non-writable, non-readable or the password used to decrypt is invalid[/red]:[bold white]\n  [/bold white]"
-        )
+    if not (unlock := unlock_key(wallet)).success:
+        logging.error(unlock.message)
         return False
 
     old_stakes = []
