@@ -129,7 +129,7 @@ async def register_extrinsic(
         `True` if extrinsic was finalized or included in the block. If we did not wait for finalization/inclusion, the response is `True`.
     """
 
-    logging.debug("Checking subnet status")
+    logging.debug("[magenta]Checking subnet status... [/magenta]")
     if not await subtensor.subnet_exists(netuid):
         logging.error(
             f":cross_mark: [red]Failed error:[/red] subnet [blue]{netuid}[/blue] does not exist."
