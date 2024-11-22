@@ -27,11 +27,33 @@ from bittensor.core.axon import Axon
 from bittensor.core.chain_data import SubnetHyperparameters
 from bittensor.core.settings import version_as_int
 from bittensor.core.subtensor import Subtensor, logging
-from bittensor.utils import u16_normalized_float, u64_normalized_float
+from bittensor.utils import u16_normalized_float, u64_normalized_float, Certificate
 from bittensor.utils.balance import Balance
 
 U16_MAX = 65535
 U64_MAX = 18446744073709551615
+
+
+@pytest.fixture
+def fake_call_params():
+    return call_params()
+
+
+def call_params():
+    return {
+        "version": "1.0",
+        "ip": "0.0.0.0",
+        "port": 9090,
+        "ip_type": 4,
+        "netuid": 1,
+        "certificate": None,
+    }
+
+
+def call_params_with_certificate():
+    params = call_params()
+    params["certificate"] = Certificate("fake_cert")
+    return params
 
 
 def test_serve_axon_with_external_ip_set():
@@ -1189,6 +1211,7 @@ def test_serve_axon(subtensor, mocker):
     fake_axon = mocker.MagicMock()
     fake_wait_for_inclusion = False
     fake_wait_for_finalization = True
+    fake_certificate = None
 
     mocked_serve_axon_extrinsic = mocker.patch.object(
         subtensor_module, "serve_axon_extrinsic"
@@ -1206,6 +1229,7 @@ def test_serve_axon(subtensor, mocker):
         fake_axon,
         fake_wait_for_inclusion,
         fake_wait_for_finalization,
+        fake_certificate,
     )
     assert result == mocked_serve_axon_extrinsic.return_value
 
@@ -1400,11 +1424,19 @@ def test_neuron_for_uid_success(subtensor, mocker):
     assert result == mocked_neuron_from_vec_u8.return_value
 
 
-def test_do_serve_axon_is_success(subtensor, mocker):
+@pytest.mark.parametrize(
+    ["fake_call_params", "expected_call_function"],
+    [
+        (call_params(), "serve_axon"),
+        (call_params_with_certificate(), "serve_axon_tls"),
+    ],
+)
+def test_do_serve_axon_is_success(
+    subtensor, mocker, fake_call_params, expected_call_function
+):
     """Successful do_serve_axon call."""
     # Prep
     fake_wallet = mocker.MagicMock()
-    fake_call_params = mocker.MagicMock()
     fake_wait_for_inclusion = True
     fake_wait_for_finalization = True
 
@@ -1421,7 +1453,7 @@ def test_do_serve_axon_is_success(subtensor, mocker):
     # Asserts
     subtensor.substrate.compose_call.assert_called_once_with(
         call_module="SubtensorModule",
-        call_function="serve_axon",
+        call_function=expected_call_function,
         call_params=fake_call_params,
     )
 
@@ -1437,14 +1469,14 @@ def test_do_serve_axon_is_success(subtensor, mocker):
     )
 
     subtensor.substrate.submit_extrinsic.return_value.process_events.assert_called_once()
-    assert result == (True, None)
+    assert result[0] is True
+    assert result[1] is None
 
 
-def test_do_serve_axon_is_not_success(subtensor, mocker):
+def test_do_serve_axon_is_not_success(subtensor, mocker, fake_call_params):
     """Unsuccessful do_serve_axon call."""
     # Prep
     fake_wallet = mocker.MagicMock()
-    fake_call_params = mocker.MagicMock()
     fake_wait_for_inclusion = True
     fake_wait_for_finalization = True
 
@@ -1483,11 +1515,10 @@ def test_do_serve_axon_is_not_success(subtensor, mocker):
     )
 
 
-def test_do_serve_axon_no_waits(subtensor, mocker):
+def test_do_serve_axon_no_waits(subtensor, mocker, fake_call_params):
     """Unsuccessful do_serve_axon call."""
     # Prep
     fake_wallet = mocker.MagicMock()
-    fake_call_params = mocker.MagicMock()
     fake_wait_for_inclusion = False
     fake_wait_for_finalization = False
 
@@ -1873,7 +1904,7 @@ def test_connect_with_substrate(mocker):
     """Ensure re-connection is non called when using an alive substrate."""
     # Prep
     fake_substrate = mocker.MagicMock()
-    fake_substrate.websocket.sock.getsockopt.return_value = 0
+    fake_substrate.websocket.socket.getsockopt.return_value = 0
     mocker.patch.object(
         subtensor_module, "SubstrateInterface", return_value=fake_substrate
     )
@@ -2114,6 +2145,7 @@ def test_networks_during_connection(mocker):
     """Test networks during_connection."""
     # Preps
     subtensor_module.SubstrateInterface = mocker.Mock()
+    mocker.patch("websockets.sync.client.connect")
     # Call
     for network in list(settings.NETWORK_MAP.keys()) + ["undefined"]:
         sub = Subtensor(network)

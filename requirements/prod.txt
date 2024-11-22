@@ -23,5 +23,5 @@ python-Levenshtein
 scalecodec==1.2.11
 substrate-interface~=1.7.9
 uvicorn
-websockets>12.0
+websockets>=14.1
 bittensor-wallet>=2.1.0
