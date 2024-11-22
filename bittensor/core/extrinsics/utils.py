@@ -1,6 +1,6 @@
 """Module with helper functions for extrinsics."""
 
-import signal
+import threading
 from typing import TYPE_CHECKING
 
 from substrateinterface.exceptions import SubstrateRequestException, ExtrinsicNotFound
@@ -13,10 +13,10 @@ if TYPE_CHECKING:
     from scalecodec.types import GenericExtrinsic
 
 
-class _SignalTimeoutException(Exception):
+class _ThreadingTimeoutException(Exception):
     """
-    Exception raised for timeout. Different than TimeoutException because this also triggers
-    a websocket failure. This exception should only be used with `signal.alarm`.
+    Exception raised for timeout. Different from TimeoutException because this also triggers
+    a websocket failure. This exception should only be used with `threading` timer..
     """
 
     pass
@@ -50,33 +50,31 @@ def submit_extrinsic(
     extrinsic_hash = extrinsic.extrinsic_hash
     starting_block = substrate.get_block()
 
-    def _handler(signum, frame):
+    def _handler():
         """
-        Timeout handler for signal. Will raise a TimeoutError if timeout is exceeded.
+        Timeout handler for threading. Will raise a TimeoutError if timeout is exceeded.
         """
         logging.error("Timed out waiting for extrinsic submission.")
-        raise _SignalTimeoutException
+        raise _ThreadingTimeoutException
+
+    # sets a timeout timer for the next call to 200 seconds
+    # will raise a _ThreadingTimeoutException if it reaches this point
+    timer = threading.Timer(200, _handler)
 
     try:
-        # sets a timeout timer for the next call to 200 seconds
-        # will raise a _SignalTimeoutException if it reaches this point
-        signal.signal(signal.SIGALRM, _handler)
-        signal.alarm(200)  # two minute timeout
-
+        timer.start()
         response = substrate.submit_extrinsic(
             extrinsic,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
         )
-        signal.alarm(0)  # remove timeout timer
     except SubstrateRequestException as e:
         logging.error(format_error_message(e.args[0], substrate=substrate))
         # Re-rise the exception for retrying of the extrinsic call. If we remove the retry logic, the raise will need
         # to be removed.
-        signal.alarm(0)  # remove timeout timer
         raise
 
-    except _SignalTimeoutException:
+    except _ThreadingTimeoutException:
         after_timeout_block = substrate.get_block()
 
         response = None
@@ -93,6 +91,8 @@ def submit_extrinsic(
                 continue
             if response:
                 break
+    finally:
+        timer.cancel()
 
     if response is None:
         logging.error(
