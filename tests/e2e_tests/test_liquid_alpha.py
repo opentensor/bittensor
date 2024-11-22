@@ -34,7 +34,7 @@ def test_liquid_alpha(local_chain):
     """
     u16_max = 65535
     netuid = 1
-    logging.info("Testing test_liquid_alpha_enabled")
+    logging.console.info("Testing test_liquid_alpha_enabled")
 
     # Register root as Alice
     keypair, alice_wallet = setup_wallet("//Alice")
@@ -183,4 +183,4 @@ def test_liquid_alpha(local_chain):
     assert (
         subtensor.get_subnet_hyperparameters(netuid=1).liquid_alpha_enabled is False
     ), "Failed to disable liquid alpha"
-    logging.info("✅ Passed test_liquid_alpha")
+    logging.console.info("✅ Passed test_liquid_alpha")
