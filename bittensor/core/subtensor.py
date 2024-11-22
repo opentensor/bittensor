@@ -2177,10 +2177,10 @@ class Subtensor:
         This function allows for strategic reallocation or withdrawal of stakes, aligning with the dynamic stake management aspect of the Bittensor network.
         """
         return unstake_multiple_extrinsic(
-            self,
-            wallet,
-            hotkey_ss58s,
-            amounts,
-            wait_for_inclusion,
-            wait_for_finalization,
+            subtensor=self,
+            wallet=wallet,
+            hotkey_ss58s=hotkey_ss58s,
+            amounts=amounts,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
         )

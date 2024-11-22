@@ -2732,12 +2732,11 @@ def test_add_stake_multiple_success(mocker, subtensor):
 
 def test_unstake_success(mocker, subtensor):
     """Test unstake operation is successful."""
-    # Mock data
+    # Preps
     fake_wallet = mocker.Mock()
     fake_hotkey_ss58 = "hotkey_1"
     fake_amount = 10.0
 
-    # Mock `unstake_extrinsic`
     mock_unstake_extrinsic = mocker.patch.object(subtensor_module, "unstake_extrinsic")
 
     # Call
@@ -2759,3 +2758,35 @@ def test_unstake_success(mocker, subtensor):
         wait_for_finalization=False,
     )
     assert result == mock_unstake_extrinsic.return_value
+
+
+def test_unstake_multiple_success(mocker, subtensor):
+    """Test unstake_multiple succeeds for all hotkeys."""
+    # Preps
+    fake_wallet = mocker.Mock()
+    fake_hotkeys = ["hotkey_1", "hotkey_2"]
+    fake_amounts = [10.0, 20.0]
+
+    mock_unstake_multiple_extrinsic = mocker.patch(
+        "bittensor.core.subtensor.unstake_multiple_extrinsic", return_value=True
+    )
+
+    # Call
+    result = subtensor.unstake_multiple(
+        wallet=fake_wallet,
+        hotkey_ss58s=fake_hotkeys,
+        amounts=fake_amounts,
+        wait_for_inclusion=True,
+        wait_for_finalization=False,
+    )
+
+    # Assertions
+    mock_unstake_multiple_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        hotkey_ss58s=fake_hotkeys,
+        amounts=fake_amounts,
+        wait_for_inclusion=True,
+        wait_for_finalization=False,
+    )
+    assert result == mock_unstake_multiple_extrinsic.return_value
