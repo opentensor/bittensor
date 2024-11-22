@@ -2193,3 +2193,110 @@ def test_get_stake_for_coldkey_and_hotkey(subtensor, mocker, fake_value_result):
     else:
         spy_balance_from_rao.assert_not_called()
     assert result == fake_value_result
+
+
+def test_get_hotkey_owner_success(mocker, subtensor):
+    """Test when hotkey exists and owner is found."""
+    # Mock data
+    fake_hotkey_ss58 = "fake_hotkey"
+    fake_coldkey_ss58 = "fake_coldkey"
+    fake_block = 123
+
+    # Mocks
+    mock_query_subtensor = mocker.patch.object(
+        subtensor,
+        "query_subtensor",
+        return_value=mocker.Mock(value=fake_coldkey_ss58),
+    )
+    mock_does_hotkey_exist = mocker.patch.object(
+        subtensor, "does_hotkey_exist", return_value=True
+    )
+
+    # Call
+    result = subtensor.get_hotkey_owner(fake_hotkey_ss58, block=fake_block)
+
+    # Assertions
+    mock_query_subtensor.assert_called_once_with(
+        "Owner", fake_block, [fake_hotkey_ss58]
+    )
+    mock_does_hotkey_exist.assert_called_once_with(fake_hotkey_ss58, fake_block)
+    assert result == fake_coldkey_ss58
+
+
+def test_get_hotkey_owner_no_value(mocker, subtensor):
+    """Test when query_subtensor returns no value."""
+    # Mock data
+    fake_hotkey_ss58 = "fake_hotkey"
+    fake_block = 123
+
+    # Mocks
+    mock_query_subtensor = mocker.patch.object(
+        subtensor,
+        "query_subtensor",
+        return_value=None,
+    )
+    mock_does_hotkey_exist = mocker.patch.object(
+        subtensor, "does_hotkey_exist", return_value=True
+    )
+
+    # Call
+    result = subtensor.get_hotkey_owner(fake_hotkey_ss58, block=fake_block)
+
+    # Assertions
+    mock_query_subtensor.assert_called_once_with(
+        "Owner", fake_block, [fake_hotkey_ss58]
+    )
+    mock_does_hotkey_exist.assert_not_called()
+    assert result is None
+
+
+def test_get_hotkey_owner_does_not_exist(mocker, subtensor):
+    """Test when hotkey does not exist."""
+    # Mock data
+    fake_hotkey_ss58 = "fake_hotkey"
+    fake_block = 123
+
+    # Mocks
+    mock_query_subtensor = mocker.patch.object(
+        subtensor,
+        "query_subtensor",
+        return_value=mocker.Mock(value="fake_coldkey"),
+    )
+    mock_does_hotkey_exist = mocker.patch.object(
+        subtensor, "does_hotkey_exist", return_value=False
+    )
+
+    # Call
+    result = subtensor.get_hotkey_owner(fake_hotkey_ss58, block=fake_block)
+
+    # Assertions
+    mock_query_subtensor.assert_called_once_with(
+        "Owner", fake_block, [fake_hotkey_ss58]
+    )
+    mock_does_hotkey_exist.assert_called_once_with(fake_hotkey_ss58, fake_block)
+    assert result is None
+
+
+def test_get_hotkey_owner_latest_block(mocker, subtensor):
+    """Test when no block is provided (latest block)."""
+    # Mock data
+    fake_hotkey_ss58 = "fake_hotkey"
+    fake_coldkey_ss58 = "fake_coldkey"
+
+    # Mocks
+    mock_query_subtensor = mocker.patch.object(
+        subtensor,
+        "query_subtensor",
+        return_value=mocker.Mock(value=fake_coldkey_ss58),
+    )
+    mock_does_hotkey_exist = mocker.patch.object(
+        subtensor, "does_hotkey_exist", return_value=True
+    )
+
+    # Call
+    result = subtensor.get_hotkey_owner(fake_hotkey_ss58)
+
+    # Assertions
+    mock_query_subtensor.assert_called_once_with("Owner", None, [fake_hotkey_ss58])
+    mock_does_hotkey_exist.assert_called_once_with(fake_hotkey_ss58, None)
+    assert result == fake_coldkey_ss58
