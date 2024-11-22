@@ -212,7 +212,7 @@ class AsyncSubtensor:
             The value of the specified hyperparameter if the subnet exists, or None
         """
         if not await self.subnet_exists(netuid, block_hash):
-            print("subnet does not exist")
+            logging.error(f"subnet {netuid} does not exist")
             return None
 
         result = await self.substrate.query(
