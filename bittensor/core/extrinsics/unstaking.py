@@ -151,12 +151,8 @@ def unstake_extrinsic(
         success (bool): Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
     # Decrypt keys,
-    try:
-        wallet.coldkey
-    except KeyFileError:
-        logging.error(
-            ":cross_mark: [red]Keyfile is corrupt, non-writable, non-readable or the password used to decrypt is invalid.[/red]"
-        )
+    if not (unlock := unlock_key(wallet)).success:
+        logging.error(unlock.message)
         return False
 
     if hotkey_ss58 is None:
