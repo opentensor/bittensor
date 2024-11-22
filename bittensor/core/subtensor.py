@@ -1,20 +1,3 @@
-# The MIT License (MIT)
-# Copyright © 2024 Opentensor Foundation
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
-# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
-# the Software.
-#
-# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-# DEALINGS IN THE SOFTWARE.
-
 """
 The ``bittensor.core.subtensor.Subtensor`` module in Bittensor serves as a crucial interface for interacting with the
 Bittensor blockchain, facilitating a range of operations essential for the decentralized machine learning network.
@@ -22,7 +5,6 @@ Bittensor blockchain, facilitating a range of operations essential for the decen
 
 import argparse
 import copy
-import socket
 import ssl
 from typing import Union, Optional, TypedDict, Any
 
@@ -35,6 +17,7 @@ from scalecodec.exceptions import RemainingScaleBytesNotEmptyException
 from scalecodec.type_registry import load_type_registry_preset
 from scalecodec.types import ScaleType
 from substrateinterface.base import QueryMapResult, SubstrateInterface
+from websockets.sync import client as ws_client
 
 from bittensor.core import settings
 from bittensor.core.axon import Axon
@@ -77,6 +60,7 @@ from bittensor.utils import (
     ss58_to_vec_u8,
     u16_normalized_float,
     hex_to_bytes,
+    Certificate,
 )
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
@@ -148,6 +132,7 @@ class Subtensor:
         _mock: bool = False,
         log_verbose: bool = False,
         connection_timeout: int = 600,
+        websocket: Optional[ws_client.ClientConnection] = None,
     ) -> None:
         """
         Initializes a Subtensor interface for interacting with the Bittensor blockchain.
@@ -163,6 +148,7 @@ class Subtensor:
             _mock (bool): If set to ``True``, uses a mocked connection for testing purposes. Default is ``False``.
             log_verbose (bool): Whether to enable verbose logging. If set to ``True``, detailed log information about the connection and network operations will be provided. Default is ``True``.
             connection_timeout (int): The maximum time in seconds to keep the connection alive. Default is ``600``.
+            websocket (websockets.sync.client.ClientConnection): websockets sync (threading) client object connected to the network.
 
         This initialization sets up the connection to the specified Bittensor network, allowing for various blockchain operations such as neuron registration, stake management, and setting weights.
         """
@@ -199,6 +185,7 @@ class Subtensor:
         self.log_verbose = log_verbose
         self._connection_timeout = connection_timeout
         self.substrate: "SubstrateInterface" = None
+        self.websocket = websocket
         self._get_substrate()
 
     def __str__(self) -> str:
@@ -221,29 +208,26 @@ class Subtensor:
         """Establishes a connection to the Substrate node using configured parameters."""
         try:
             # Set up params.
+            if not self.websocket:
+                self.websocket = ws_client.connect(
+                    self.chain_endpoint,
+                    open_timeout=self._connection_timeout,
+                    max_size=2**32,
+                )
             self.substrate = SubstrateInterface(
                 ss58_format=settings.SS58_FORMAT,
                 use_remote_preset=True,
-                url=self.chain_endpoint,
                 type_registry=settings.TYPE_REGISTRY,
+                websocket=self.websocket,
             )
             if self.log_verbose:
                 logging.debug(
                     f"Connected to {self.network} network and {self.chain_endpoint}."
                 )
 
-            try:
-                self.substrate.websocket.settimeout(self._connection_timeout)
-            except (AttributeError, TypeError, socket.error, OSError) as e:
-                logging.warning(f"Error setting timeout: {e}")
-
         except (ConnectionRefusedError, ssl.SSLError) as error:
             logging.error(
-                f"Could not connect to {self.network} network with {self.chain_endpoint} chain endpoint.",
-            )
-            logging.info(
-                "You can check if you have connectivity by running this command: nc -vz localhost "
-                f"{self.chain_endpoint}"
+                f"<red>Could not connect to</red> <blue>{self.network}</blue> <red>network with</red> <blue>{self.chain_endpoint}</blue> <red>chain endpoint.</red>",
             )
             raise ConnectionRefusedError(error.args)
 
@@ -1013,6 +997,7 @@ class Subtensor:
         axon: "Axon",
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
+        certificate: Optional[Certificate] = None,
     ) -> bool:
         """
         Registers an ``Axon`` serving endpoint on the Bittensor network for a specific neuron. This function is used to set up the Axon, a key component of a neuron that handles incoming queries and data processing tasks.
@@ -1029,7 +1014,7 @@ class Subtensor:
         By registering an Axon, the neuron becomes an active part of the network's distributed computing infrastructure, contributing to the collective intelligence of Bittensor.
         """
         return serve_axon_extrinsic(
-            self, netuid, axon, wait_for_inclusion, wait_for_finalization
+            self, netuid, axon, wait_for_inclusion, wait_for_finalization, certificate
         )
 
     # metagraph
@@ -1169,6 +1154,41 @@ class Subtensor:
             netuid,
             block=block,
         )
+
+    def get_neuron_certificate(
+        self, hotkey: str, netuid: int, block: Optional[int] = None
+    ) -> Optional["Certificate"]:
+        """
+        Retrieves the TLS certificate for a specific neuron identified by its unique identifier (UID)
+        within a specified subnet (netuid) of the Bittensor network.
+
+        Args:
+            hotkey (str): The hotkey to query.
+            netuid (int): The unique identifier of the subnet.
+            block (Optional[int], optional): The blockchain block number for the query.
+
+        Returns:
+            Optional[Certificate]: the certificate of the neuron if found, ``None`` otherwise.
+
+        This function is used for certificate discovery for setting up mutual tls communication between neurons
+        """
+
+        certificate = self.query_module(
+            module="SubtensorModule",
+            name="NeuronCertificates",
+            block=block,
+            params=[netuid, hotkey],
+        )
+        try:
+            serialized_certificate = certificate.serialize()
+            if serialized_certificate:
+                return (
+                    chr(serialized_certificate["algorithm"])
+                    + serialized_certificate["public_key"]
+                )
+        except AttributeError:
+            return None
+        return None
 
     @networking.ensure_connected
     def neuron_for_uid(
@@ -1655,7 +1675,7 @@ class Subtensor:
                     call=call, keypair=wallet.coldkeypub
                 )
             except Exception as e:
-                logging.error(f"<red>Failed to get payment info.</red> {e}")
+                logging.error(f"[red]Failed to get payment info.[/red] {e}")
                 payment_info = {"partialFee": int(2e7)}  # assume  0.02 Tao
 
             fee = Balance.from_rao(payment_info["partialFee"])

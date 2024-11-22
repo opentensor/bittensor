@@ -15,7 +15,8 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from typing import TypedDict
+from typing import TypedDict, Optional
+from bittensor.utils import Certificate
 
 
 class AxonServeCallParams(TypedDict):
@@ -26,6 +27,7 @@ class AxonServeCallParams(TypedDict):
     port: int
     ip_type: int
     netuid: int
+    certificate: Optional[Certificate]
 
 
 class PrometheusServeCallParams(TypedDict):

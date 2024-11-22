@@ -79,11 +79,11 @@ def root_register_extrinsic(
     )
     if is_registered:
         logging.info(
-            ":white_heavy_check_mark: <green>Already registered on root network.</green>"
+            ":white_heavy_check_mark: [green]Already registered on root network.[/green]"
         )
         return True
 
-    logging.info(":satellite: <magenta>Registering to root network...</magenta>")
+    logging.info(":satellite: [magenta]Registering to root network...[/magenta]")
     success, err_msg = _do_root_register(
         self=subtensor,
         wallet=wallet,
@@ -92,7 +92,7 @@ def root_register_extrinsic(
     )
 
     if not success:
-        logging.error(f":cross_mark: <red>Failed</red>: {err_msg}")
+        logging.error(f":cross_mark: [red]Failed[/red]: {err_msg}")
         time.sleep(0.5)
 
     # Successful registration, final check for neuron and pubkey
@@ -101,11 +101,11 @@ def root_register_extrinsic(
             netuid=0, hotkey_ss58=wallet.hotkey.ss58_address
         )
         if is_registered:
-            logging.success(":white_heavy_check_mark: <green>Registered</green>")
+            logging.success(":white_heavy_check_mark: [green]Registered[/green]")
             return True
         else:
             # neuron not found, try again
-            logging.error(":cross_mark: <red>Unknown error. Neuron not found.</red>")
+            logging.error(":cross_mark: [red]Unknown error. Neuron not found.[/red]")
 
 
 @ensure_connected
@@ -225,11 +225,11 @@ def set_root_weights_extrinsic(
         x=weights, limit=max_weight_limit
     )
     logging.info(
-        f"Raw Weights -> Normalized weights: <blue>{weights}</blue> -> <green>{formatted_weights}</green>"
+        f"Raw Weights -> Normalized weights: [blue]{weights}[/blue] -> [green]{formatted_weights}[/green]"
     )
 
     logging.info(
-        f":satellite: <magenta>Setting root weights on</magenta> <blue>{subtensor.network}</blue> <magenta>...</magenta>"
+        f":satellite: [magenta]Setting root weights on[/magenta] [blue]{subtensor.network}[/blue] [magenta]...[/magenta]"
     )
     try:
         weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(
@@ -250,15 +250,15 @@ def set_root_weights_extrinsic(
             return True
 
         if success is True:
-            logging.info(":white_heavy_check_mark: <green>Finalized</green>")
+            logging.info(":white_heavy_check_mark: [green]Finalized[/green]")
             logging.success(f"Set weights {str(success)}")
             return True
         else:
             logging.error(
-                f":cross_mark: <red>Failed </red> set weights. {str(error_message)}"
+                f":cross_mark: [red]Failed [/red] set weights. {str(error_message)}"
             )
             return False
 
     except Exception as e:
-        logging.error(f":cross_mark: <red>Failed </red> set weights. {str(e)}")
+        logging.error(f":cross_mark: [red]Failed [/red] set weights. {str(e)}")
         return False
