@@ -1,16 +1,14 @@
 # The MIT License (MIT)
-# Copyright © 2021 Yuma Rao
-# Copyright © 2022 Opentensor Foundation
-# Copyright © 2023 Opentensor Technologies Inc
-
+# Copyright © 2024 Opentensor Foundation
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
 # the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
+#
 # The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
-
+#
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
 # THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
@@ -18,64 +16,66 @@
 # DEALINGS IN THE SOFTWARE.
 
 
-# Standard Lib
 import re
 import time
 from dataclasses import dataclass
-
-from typing import Any, Optional
+from typing import Any, Optional, Tuple
 from unittest import IsolatedAsyncioTestCase
 from unittest.mock import AsyncMock, MagicMock, patch
 
-# Third Party
 import fastapi
 import netaddr
 import pydantic
 import pytest
-from starlette.requests import Request
 from fastapi.testclient import TestClient
+from starlette.requests import Request
 
-# Bittensor
-import bittensor
-from bittensor import Synapse, RunException, StreamingSynapse
-from bittensor.axon import AxonMiddleware
-from bittensor.axon import axon as Axon
-from bittensor.utils.axon_utils import allowed_nonce_window_ns, calculate_diff_seconds
-from bittensor.constants import ALLOWED_DELTA, NANOSECONDS_IN_SECOND
+from bittensor.core.axon import AxonMiddleware, Axon
+from bittensor.core.errors import RunException
+from bittensor.core.settings import version_as_int
+from bittensor.core.stream import StreamingSynapse
+from bittensor.core.synapse import Synapse
+from bittensor.core.threadpool import PriorityThreadPoolExecutor
+from bittensor.utils.axon_utils import (
+    allowed_nonce_window_ns,
+    calculate_diff_seconds,
+    ALLOWED_DELTA,
+    NANOSECONDS_IN_SECOND,
+)
 
 
-def test_attach():
+def test_attach_initial():
     # Create a mock AxonServer instance
-    server = bittensor.axon()
+    server = Axon()
 
     # Define the Synapse type
-    class Synapse(bittensor.Synapse):
+    class TestSynapse(Synapse):
         pass
 
     # Define the functions with the correct signatures
-    def forward_fn(synapse: Synapse) -> Any:
+    def forward_fn(synapse: TestSynapse) -> Any:
         pass
 
-    def blacklist_fn(synapse: Synapse) -> bool:
-        return True
+    def blacklist_fn(synapse: TestSynapse) -> Tuple[bool, str]:
+        return True, ""
 
-    def priority_fn(synapse: Synapse) -> float:
+    def priority_fn(synapse: TestSynapse) -> float:
         return 1.0
 
-    def verify_fn(synapse: Synapse) -> None:
+    def verify_fn(synapse: TestSynapse) -> None:
         pass
 
     # Test attaching with correct signatures
     server.attach(forward_fn, blacklist_fn, priority_fn, verify_fn)
 
     # Define functions with incorrect signatures
-    def wrong_blacklist_fn(synapse: Synapse) -> int:
+    def wrong_blacklist_fn(synapse: TestSynapse) -> int:
         return 1
 
-    def wrong_priority_fn(synapse: Synapse) -> int:
+    def wrong_priority_fn(synapse: TestSynapse) -> int:
         return 1
 
-    def wrong_verify_fn(synapse: Synapse) -> bool:
+    def wrong_verify_fn(synapse: TestSynapse) -> bool:
         return True
 
     # Test attaching with incorrect signatures
@@ -91,14 +91,14 @@ def test_attach():
 
 def test_attach():
     # Create a mock AxonServer instance
-    server = bittensor.axon()
+    server = Axon()
 
     # Define the Synapse type
-    class Synapse:
+    class FakeSynapse:
         pass
 
     # Define a class that inherits from Synapse
-    class InheritedSynapse(bittensor.Synapse):
+    class InheritedSynapse(Synapse):
         pass
 
     # Define a function with the correct signature
@@ -122,7 +122,7 @@ def test_attach():
 
 
 def test_log_and_handle_error():
-    from bittensor.axon import log_and_handle_error
+    from bittensor.core.axon import log_and_handle_error
 
     synapse = SynapseMock()
 
@@ -133,7 +133,7 @@ def test_log_and_handle_error():
 
 
 def test_create_error_response():
-    from bittensor.axon import create_error_response
+    from bittensor.core.axon import create_error_response
 
     synapse = SynapseMock()
     synapse.axon.status_code = 500
@@ -200,10 +200,10 @@ class AxonMock:
         self.priority_fns = {}
         self.forward_fns = {}
         self.verify_fns = {}
-        self.thread_pool = bittensor.PriorityThreadPoolExecutor(max_workers=1)
+        self.thread_pool = PriorityThreadPoolExecutor(max_workers=1)
 
 
-class SynapseMock(bittensor.Synapse):
+class SynapseMock(Synapse):
     pass
 
 
@@ -380,10 +380,16 @@ def test_to_string(info_return, expected_output, test_id):
 )
 def test_valid_ipv4_and_ipv6_address(ip, port, expected_ip_type, test_id):
     # Arrange
+    hotkey = MockHotkey("5EemgxS7cmYbD34esCFoBgUZZC8JdnGtQvV5Qw3QFUCRRtGP")
+    coldkey = MockHotkey("5EemgxS7cmYbD34esCFoBgUZZC8JdnGtQvV5Qw3QFUCRRtGP")
+    coldkeypub = MockHotkey("5EemgxS7cmYbD34esCFoBgUZZC8JdnGtQvV5Qw3QFUCRRtGP")
+    wallet = MockWallet(hotkey, coldkey, coldkeypub)
+
     axon = Axon()
     axon.ip = ip
     axon.external_ip = ip
     axon.port = port
+    axon.wallet = wallet
 
     # Act
     ip_type = axon.info().ip_type
@@ -474,7 +480,7 @@ class TestAxonMiddleware(IsolatedAsyncioTestCase):
         self.mock_axon = MagicMock()
         self.mock_axon.uuid = "1234"
         self.mock_axon.forward_class_types = {
-            "request_name": bittensor.Synapse,
+            "request_name": Synapse,
         }
         self.mock_axon.wallet.hotkey.sign.return_value = bytes.fromhex("aabbccdd")
         # Create an instance of AxonMiddleware
@@ -493,7 +499,7 @@ class TestAxonMiddleware(IsolatedAsyncioTestCase):
         synapse = await self.axon_middleware.preprocess(request)
 
         # Check if the preprocess function fills the axon information into the synapse
-        assert synapse.axon.version == str(bittensor.__version_as_int__)
+        assert synapse.axon.version == str(version_as_int)
         assert synapse.axon.uuid == "1234"
         assert synapse.axon.nonce is not None
         assert synapse.axon.status_message is None
@@ -582,11 +588,11 @@ class TestAxonHTTPAPIResponses:
         )
 
     async def test_ping__no_dendrite(self, http_client):
-        response = http_client.post_synapse(bittensor.Synapse())
+        response = http_client.post_synapse(Synapse())
         assert (response.status_code, response.json()) == (
             401,
             {
-                "message": "Not Verified with error: No SS58 formatted address or public key provided"
+                "message": "Not Verified with error: No SS58 formatted address or public key provided."
             },
         )
 
@@ -737,7 +743,7 @@ def test_nonce_within_allowed_window(nonce_offset_seconds, expected_result):
         [
             None,
             fastapi.Response,
-            bittensor.StreamingSynapse,
+            StreamingSynapse,
         ],
     )
     async def test_streaming_synapse(

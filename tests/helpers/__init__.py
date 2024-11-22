@@ -16,14 +16,15 @@
 # DEALINGS IN THE SOFTWARE.
 
 import os
-from .helpers import (
-    _get_mock_coldkey,
-    _get_mock_hotkey,
-    _get_mock_keypair,
-    _get_mock_wallet,
+from .helpers import (  # noqa: F401
     CLOSE_IN_VALUE,
-    MockConsole,
     __mock_wallet_factory__,
+)
+from bittensor_wallet.mock.wallet_mock import (  # noqa: F401
+    get_mock_coldkey,
+    get_mock_hotkey,
+    get_mock_keypair,
+    get_mock_wallet,
 )
 
 

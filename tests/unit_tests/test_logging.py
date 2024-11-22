@@ -1,12 +1,15 @@
-import os
-import re
-import pytest
-import multiprocessing
 import logging as stdlogging
+import multiprocessing
 from unittest.mock import MagicMock, patch
-from bittensor.btlogging import LoggingMachine
-from bittensor.btlogging.defines import DEFAULT_LOG_FILE_NAME, BITTENSOR_LOGGER_NAME
-from bittensor.btlogging.loggingmachine import LoggingConfig
+
+import pytest
+
+from bittensor.utils.btlogging import LoggingMachine
+from bittensor.utils.btlogging.defines import (
+    DEFAULT_LOG_FILE_NAME,
+    BITTENSOR_LOGGER_NAME,
+)
+from bittensor.utils.btlogging.loggingmachine import LoggingConfig, _concat_message
 
 
 @pytest.fixture(autouse=True, scope="session")
@@ -46,7 +49,7 @@ def mock_config(tmp_path):
 def logging_machine(mock_config):
     config, _ = mock_config
     logging_machine = LoggingMachine(config=config)
-    yield logging_machine
+    return logging_machine
 
 
 def test_initialization(logging_machine, mock_config):
@@ -77,7 +80,9 @@ def test_state_transitions(logging_machine, mock_config):
     Test state transitions and the associated logging level changes.
     """
     config, log_file_path = mock_config
-    with patch("bittensor.btlogging.loggingmachine.all_loggers") as mocked_all_loggers:
+    with patch(
+        "bittensor.utils.btlogging.loggingmachine.all_loggers"
+    ) as mocked_all_loggers:
         # mock the main bittensor logger, identified by its `name` field
         mocked_bt_logger = MagicMock()
         mocked_bt_logger.name = BITTENSOR_LOGGER_NAME
@@ -114,7 +119,7 @@ def test_state_transitions(logging_machine, mock_config):
         logging_machine.enable_default()
         assert logging_machine.current_state_value == "Default"
         # main logger set to INFO
-        mocked_bt_logger.setLevel.assert_called_with(stdlogging.INFO)
+        mocked_bt_logger.setLevel.assert_called_with(stdlogging.WARNING)
         # 3rd party loggers should be disabled by setting to CRITICAL
         mocked_third_party_logger.setLevel.assert_called_with(stdlogging.CRITICAL)
 
@@ -172,34 +177,23 @@ def test_all_log_levels_output(logging_machine, caplog):
     assert "Test critical" in caplog.text
 
 
-def test_log_sanity(logging_machine, caplog):
-    """
-    Test that logging is sane:
-    - prefix and suffix work
-    - format strings work
-    - reported filename is correct
-    Note that this is tested against caplog, which is not formatted the same as
-    stdout.
-    """
-    basemsg = "logmsg #%d, cookie: %s"
-    cookie = "0ef852c74c777f8d8cc09d511323ce76"
-    nfixtests = [
-        {},
-        {"prefix": "pref"},
-        {"suffix": "suff"},
-        {"prefix": "pref", "suffix": "suff"},
-    ]
-    cookiejar = {}
-    for i, nfix in enumerate(nfixtests):
-        prefix = nfix.get("prefix", "")
-        suffix = nfix.get("suffix", "")
-        use_cookie = f"{cookie} #{i}#"
-        logging_machine.info(basemsg, i, use_cookie, prefix=prefix, suffix=suffix)
-        # Check to see if all elements are present, regardless of downstream formatting.
-        expect = f"INFO.*{os.path.basename(__file__)}.* "
-        if prefix != "":
-            expect += prefix + " - "
-        expect += basemsg % (i, use_cookie)
-        if suffix != "":
-            expect += " - " + suffix
-        assert re.search(expect, caplog.text)
+@pytest.mark.parametrize(
+    "msg, prefix, suffix, expected_result",
+    [
+        ("msg", "", "", "msg"),
+        ("msg", None, None, "msg"),
+        ("msg", "prefix", None, "prefix - msg"),
+        ("msg", None, "suffix", "msg - suffix"),
+        ("msg", "prefix", "suffix", "prefix - msg - suffix"),
+    ],
+    ids=[
+        "message, no prefix (str), no suffix (str)",
+        "message, no prefix (None), no suffix (None)",
+        "message and prefix only",
+        "message and suffix only",
+        "message, prefix, and suffix",
+    ],
+)
+def test_concat(msg, prefix, suffix, expected_result):
+    """Test different options of message concatenation with prefix and suffix."""
+    assert _concat_message(msg, prefix, suffix) == expected_result

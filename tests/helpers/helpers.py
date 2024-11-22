@@ -1,14 +1,14 @@
 # The MIT License (MIT)
-# Copyright © 2023 Opentensor Foundation
-
+# Copyright © 2024 Opentensor Foundation
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
 # the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
+#
 # The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
-
+#
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
 # THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
@@ -16,21 +16,20 @@
 # DEALINGS IN THE SOFTWARE.
 
 from typing import Union
-from bittensor import Balance, NeuronInfo, AxonInfo, PrometheusInfo, __ss58_format__
-from bittensor.mock.wallet_mock import MockWallet as _MockWallet
-from bittensor.mock.wallet_mock import get_mock_coldkey as _get_mock_coldkey
-from bittensor.mock.wallet_mock import get_mock_hotkey as _get_mock_hotkey
-from bittensor.mock.wallet_mock import get_mock_keypair as _get_mock_keypair
-from bittensor.mock.wallet_mock import get_mock_wallet as _get_mock_wallet
 
-from rich.console import Console
-from rich.text import Text
+from bittensor_wallet.mock.wallet_mock import MockWallet as _MockWallet
+from bittensor_wallet.mock.wallet_mock import get_mock_coldkey
+from bittensor_wallet.mock.wallet_mock import get_mock_hotkey
+from bittensor_wallet.mock.wallet_mock import get_mock_wallet
+
+from bittensor.utils.balance import Balance
+from bittensor.core.chain_data import AxonInfo, NeuronInfo, PrometheusInfo
 
 
-def __mock_wallet_factory__(*args, **kwargs) -> _MockWallet:
+def __mock_wallet_factory__(*_, **__) -> _MockWallet:
     """Returns a mock wallet object."""
 
-    mock_wallet = _get_mock_wallet()
+    mock_wallet = get_mock_wallet()
 
     return mock_wallet
 
@@ -51,12 +50,8 @@ class CLOSE_IN_VALUE:
         # True if __o \in [value - tolerance, value + tolerance]
         # or if value \in [__o - tolerance, __o + tolerance]
         return (
-            (self.value - self.tolerance) <= __o
-            and __o <= (self.value + self.tolerance)
-        ) or (
-            (__o - self.tolerance) <= self.value
-            and self.value <= (__o + self.tolerance)
-        )
+            (self.value - self.tolerance) <= __o <= (self.value + self.tolerance)
+        ) or ((__o - self.tolerance) <= self.value <= (__o + self.tolerance))
 
 
 def get_mock_neuron(**kwargs) -> NeuronInfo:
@@ -118,55 +113,5 @@ def get_mock_neuron(**kwargs) -> NeuronInfo:
 
 def get_mock_neuron_by_uid(uid: int, **kwargs) -> NeuronInfo:
     return get_mock_neuron(
-        uid=uid, hotkey=_get_mock_hotkey(uid), coldkey=_get_mock_coldkey(uid), **kwargs
+        uid=uid, hotkey=get_mock_hotkey(uid), coldkey=get_mock_coldkey(uid), **kwargs
     )
-
-
-class MockStatus:
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        pass
-
-    def start(self):
-        pass
-
-    def stop(self):
-        pass
-
-    def update(self, *args, **kwargs):
-        MockConsole().print(*args, **kwargs)
-
-
-class MockConsole:
-    """
-    Mocks the console object for status and print.
-    Captures the last print output as a string.
-    """
-
-    captured_print = None
-
-    def status(self, *args, **kwargs):
-        return MockStatus()
-
-    def print(self, *args, **kwargs):
-        console = Console(
-            width=1000, no_color=True, markup=False
-        )  # set width to 1000 to avoid truncation
-        console.begin_capture()
-        console.print(*args, **kwargs)
-        self.captured_print = console.end_capture()
-
-    def clear(self, *args, **kwargs):
-        pass
-
-    @staticmethod
-    def remove_rich_syntax(text: str) -> str:
-        """
-        Removes rich syntax from the given text.
-        Removes markup and ansi syntax.
-        """
-        output_no_syntax = Text.from_ansi(Text.from_markup(text).plain).plain
-
-        return output_no_syntax

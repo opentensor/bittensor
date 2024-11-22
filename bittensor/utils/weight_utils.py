@@ -1,53 +1,57 @@
-"""
-Conversion for weight between chain representation and np.array or torch.Tensor
-"""
-
 # The MIT License (MIT)
-# Copyright © 2021 Yuma Rao
-
+# Copyright © 2024 Opentensor Foundation
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
 # the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
+#
 # The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
-
+#
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
 # THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+"""Conversion for weight between chain representation and np.array or torch.Tensor"""
+
 import hashlib
 import logging
-from typing import Tuple, List, Union
+import typing
+from typing import Union, Optional
 
 import numpy as np
-from numpy.typing import NDArray
-from scalecodec import ScaleBytes, U16, Vec
-from substrateinterface import Keypair
 
-import bittensor
-from bittensor.utils.registration import torch, use_torch, legacy_torch_api_compat
+from numpy.typing import NDArray
+from scalecodec import U16, ScaleBytes, Vec
+from bittensor_wallet import Keypair
+
+from bittensor.utils.btlogging import logging
+from bittensor.utils.registration import legacy_torch_api_compat, torch, use_torch
+
+if typing.TYPE_CHECKING:
+    from bittensor.core.metagraph import Metagraph
+    from bittensor.core.subtensor import Subtensor
+
 
 U32_MAX = 4294967295
 U16_MAX = 65535
 
 
+# Uses in `bittensor.utils.weight_utils.process_weights_for_netuid`
 @legacy_torch_api_compat
 def normalize_max_weight(
     x: Union[NDArray[np.float32], "torch.FloatTensor"], limit: float = 0.1
 ) -> Union[NDArray[np.float32], "torch.FloatTensor"]:
-    r"""Normalizes the tensor x so that sum(x) = 1 and the max value is not greater than the limit.
+    """Normalizes the tensor x so that sum(x) = 1 and the max value is not greater than the limit.
     Args:
-        x (:obj:`np.float32`):
-            Tensor to be max_value normalized.
-        limit: float:
-            Max value after normalization.
+        x (:obj:`np.float32`): Tensor to be max_value normalized.
+        limit: float: Max value after normalization.
+
     Returns:
-        y (:obj:`np.float32`):
-            Normalized x tensor.
+        y (:obj:`np.float32`): Normalized x tensor.
     """
     epsilon = 1e-7  # For numerical stability after normalization
 
@@ -85,20 +89,20 @@ def normalize_max_weight(
         return y
 
 
+# Metagraph uses this function.
 def convert_weight_uids_and_vals_to_tensor(
-    n: int, uids: List[int], weights: List[int]
+    n: int, uids: list[int], weights: list[int]
 ) -> Union[NDArray[np.float32], "torch.FloatTensor"]:
-    r"""Converts weights and uids from chain representation into a np.array (inverse operation from convert_weights_and_uids_for_emit)
+    """
+    Converts weights and uids from chain representation into a np.array (inverse operation from convert_weights_and_uids_for_emit).
+
     Args:
-        n: int:
-            number of neurons on network.
-        uids (:obj:`List[int],`):
-            Tensor of uids as destinations for passed weights.
-        weights (:obj:`List[int],`):
-            Tensor of weights.
+        n (int): number of neurons on network.
+        uids (list[int]): Tensor of uids as destinations for passed weights.
+        weights (list[int]): Tensor of weights.
+
     Returns:
-        row_weights ( np.float32 or torch.FloatTensor ):
-            Converted row weights.
+        row_weights (np.float32 or torch.FloatTensor): Converted row weights.
     """
     row_weights = (
         torch.zeros([n], dtype=torch.float32)
@@ -115,24 +119,20 @@ def convert_weight_uids_and_vals_to_tensor(
     return row_weights
 
 
+# Metagraph uses this function.
 def convert_root_weight_uids_and_vals_to_tensor(
-    n: int, uids: List[int], weights: List[int], subnets: List[int]
+    n: int, uids: list[int], weights: list[int], subnets: list[int]
 ) -> Union[NDArray[np.float32], "torch.FloatTensor"]:
-    r"""Converts root weights and uids from chain representation into a np.array or torch FloatTensor (inverse operation from convert_weights_and_uids_for_emit)
+    """Converts root weights and uids from chain representation into a np.array or torch FloatTensor (inverse operation from convert_weights_and_uids_for_emit)
     Args:
-        n: int:
-            number of neurons on network.
-        uids (:obj:`List[int],`):
-            Tensor of uids as destinations for passed weights.
-        weights (:obj:`List[int],`):
-            Tensor of weights.
-        subnets (:obj:`List[int],`):
-            list of subnets on the network
-    Returns:
-        row_weights ( np.float32 ):
-            Converted row weights.
-    """
+        n (int): number of neurons on network.
+        uids (list[int]): Tensor of uids as destinations for passed weights.
+        weights (list[int]): Tensor of weights.
+        subnets (list[int]): list of subnets on the network.
 
+    Returns:
+        row_weights (np.float32): Converted row weights.
+    """
     row_weights = (
         torch.zeros([n], dtype=torch.float32)
         if use_torch()
@@ -155,20 +155,19 @@ def convert_root_weight_uids_and_vals_to_tensor(
     return row_weights
 
 
+# Metagraph uses this function.
 def convert_bond_uids_and_vals_to_tensor(
-    n: int, uids: List[int], bonds: List[int]
+    n: int, uids: list[int], bonds: list[int]
 ) -> Union[NDArray[np.int64], "torch.LongTensor"]:
-    r"""Converts bond and uids from chain representation into a np.array.
+    """Converts bond and uids from chain representation into a np.array.
+
     Args:
-        n: int:
-            number of neurons on network.
-        uids (:obj:`List[int],`):
-            Tensor of uids as destinations for passed bonds.
-        bonds (:obj:`List[int],`):
-            Tensor of bonds.
+        n (int): number of neurons on network.
+        uids (list[int]): Tensor of uids as destinations for passed bonds.
+        bonds (list[int]): Tensor of bonds.
+
     Returns:
-        row_bonds ( np.float32 ):
-            Converted row bonds.
+        row_bonds (np.float32): Converted row bonds.
     """
     row_bonds = (
         torch.zeros([n], dtype=torch.int64)
@@ -180,36 +179,31 @@ def convert_bond_uids_and_vals_to_tensor(
     return row_bonds
 
 
+# This is used by the community via `bittensor.api.extrinsics.set_weights.set_weights_extrinsic`
 def convert_weights_and_uids_for_emit(
     uids: Union[NDArray[np.int64], "torch.LongTensor"],
     weights: Union[NDArray[np.float32], "torch.FloatTensor"],
-) -> Tuple[List[int], List[int]]:
-    r"""Converts weights into integer u32 representation that sum to MAX_INT_WEIGHT.
+) -> tuple[list[int], list[int]]:
+    """Converts weights into integer u32 representation that sum to MAX_INT_WEIGHT.
+
     Args:
-        uids (:obj:`np.int64,`):
-            Tensor of uids as destinations for passed weights.
-        weights (:obj:`np.float32,`):
-            Tensor of weights.
+        uids (np.int64):Tensor of uids as destinations for passed weights.
+        weights (np.float32):Tensor of weights.
+
     Returns:
-        weight_uids (List[int]):
-            Uids as a list.
-        weight_vals (List[int]):
-            Weights as a list.
+        weight_uids (list[int]): Uids as a list.
+        weight_vals (list[int]): Weights as a list.
     """
     # Checks.
     weights = weights.tolist()
     uids = uids.tolist()
     if min(weights) < 0:
-        raise ValueError(
-            "Passed weight is negative cannot exist on chain {}".format(weights)
-        )
+        raise ValueError(f"Passed weight is negative cannot exist on chain {weights}")
     if min(uids) < 0:
-        raise ValueError("Passed uid is negative cannot exist on chain {}".format(uids))
+        raise ValueError(f"Passed uid is negative cannot exist on chain {uids}")
     if len(uids) != len(weights):
         raise ValueError(
-            "Passed weights and uids must have the same length, got {} and {}".format(
-                len(uids), len(weights)
-            )
+            f"Passed weights and uids must have the same length, got {len(uids)} and {len(weights)}"
         )
     if sum(weights) == 0:
         return [], []  # Nothing to set on chain.
@@ -234,22 +228,38 @@ def convert_weights_and_uids_for_emit(
     return weight_uids, weight_vals
 
 
+# The community uses / bittensor does not
 def process_weights_for_netuid(
     uids: Union[NDArray[np.int64], "torch.Tensor"],
     weights: Union[NDArray[np.float32], "torch.Tensor"],
     netuid: int,
-    subtensor: "bittensor.subtensor",
-    metagraph: "bittensor.metagraph" = None,
+    subtensor: "Subtensor",
+    metagraph: Optional["Metagraph"] = None,
     exclude_quantile: int = 0,
 ) -> Union[
-    Tuple["torch.Tensor", "torch.FloatTensor"],
-    Tuple[NDArray[np.int64], NDArray[np.float32]],
+    tuple["torch.Tensor", "torch.FloatTensor"],
+    tuple[NDArray[np.int64], NDArray[np.float32]],
 ]:
-    bittensor.logging.debug("process_weights_for_netuid()")
-    bittensor.logging.debug("weights", weights)
-    bittensor.logging.debug("netuid", netuid)
-    bittensor.logging.debug("subtensor", subtensor)
-    bittensor.logging.debug("metagraph", metagraph)
+    """
+    Processes weight tensors for a given subnet id using the provided weight and UID arrays, applying constraints and normalization based on the subtensor and metagraph data. This function can handle both NumPy arrays and PyTorch tensors.
+
+    Args:
+        uids (Union[NDArray[np.int64], "torch.Tensor"]): Array of unique identifiers of the neurons.
+        weights (Union[NDArray[np.float32], "torch.Tensor"]): Array of weights associated with the user IDs.
+        netuid (int): The network uid to process weights for.
+        subtensor (Subtensor): Subtensor instance to access blockchain data.
+        metagraph (Optional[Metagraph]): Metagraph instance for additional network data. If None, it is fetched from the subtensor using the netuid.
+        exclude_quantile (int): Quantile threshold for excluding lower weights. Defaults to ``0``.
+
+    Returns:
+        Union[tuple["torch.Tensor", "torch.FloatTensor"], tuple[NDArray[np.int64], NDArray[np.float32]]]: tuple containing the array of user IDs and the corresponding normalized weights. The data type of the return matches the type of the input weights (NumPy or PyTorch).
+    """
+
+    logging.debug("process_weights_for_netuid()")
+    logging.debug("weights", *weights)
+    logging.debug("netuid", netuid)
+    logging.debug("subtensor", subtensor)
+    logging.debug("metagraph", metagraph)
 
     # Get latest metagraph from chain if metagraph is None.
     if metagraph is None:
@@ -268,9 +278,9 @@ def process_weights_for_netuid(
     quantile = exclude_quantile / U16_MAX
     min_allowed_weights = subtensor.min_allowed_weights(netuid=netuid)
     max_weight_limit = subtensor.max_weight_limit(netuid=netuid)
-    bittensor.logging.debug("quantile", quantile)
-    bittensor.logging.debug("min_allowed_weights", min_allowed_weights)
-    bittensor.logging.debug("max_weight_limit", max_weight_limit)
+    logging.debug("quantile", quantile)
+    logging.debug("min_allowed_weights", min_allowed_weights)
+    logging.debug("max_weight_limit", max_weight_limit)
 
     # Find all non zero weights.
     non_zero_weight_idx = (
@@ -282,13 +292,13 @@ def process_weights_for_netuid(
     non_zero_weights = weights[non_zero_weight_idx]
     nzw_size = non_zero_weights.numel() if use_torch() else non_zero_weights.size
     if nzw_size == 0 or metagraph.n < min_allowed_weights:
-        bittensor.logging.warning("No non-zero weights returning all ones.")
+        logging.warning("No non-zero weights returning all ones.")
         final_weights = (
             torch.ones((metagraph.n)).to(metagraph.n) / metagraph.n
             if use_torch()
             else np.ones((metagraph.n), dtype=np.int64) / metagraph.n
         )
-        bittensor.logging.debug("final_weights", final_weights)
+        logging.debug("final_weights", *final_weights)
         final_weights_count = (
             torch.tensor(list(range(len(final_weights))))
             if use_torch()
@@ -301,7 +311,7 @@ def process_weights_for_netuid(
         )
 
     elif nzw_size < min_allowed_weights:
-        bittensor.logging.warning(
+        logging.warning(
             "No non-zero weights less then min allowed weight, returning all ones."
         )
         # ( const ): Should this be np.zeros( ( metagraph.n ) ) to reset everyone to build up weight?
@@ -311,10 +321,8 @@ def process_weights_for_netuid(
             else np.ones((metagraph.n), dtype=np.int64) * 1e-5
         )  # creating minimum even non-zero weights
         weights[non_zero_weight_idx] += non_zero_weights
-        bittensor.logging.debug("final_weights", weights)
-        normalized_weights = bittensor.utils.weight_utils.normalize_max_weight(
-            x=weights, limit=max_weight_limit
-        )
+        logging.debug("final_weights", *weights)
+        normalized_weights = normalize_max_weight(x=weights, limit=max_weight_limit)
         nw_arange = (
             torch.tensor(list(range(len(normalized_weights))))
             if use_torch()
@@ -322,7 +330,7 @@ def process_weights_for_netuid(
         )
         return nw_arange, normalized_weights
 
-    bittensor.logging.debug("non_zero_weights", non_zero_weights)
+    logging.debug("non_zero_weights", *non_zero_weights)
 
     # Compute the exclude quantile and find the weights in the lowest quantile
     max_exclude = max(0, len(non_zero_weights) - min_allowed_weights) / len(
@@ -334,21 +342,21 @@ def process_weights_for_netuid(
         if use_torch()
         else np.quantile(non_zero_weights, exclude_quantile)
     )
-    bittensor.logging.debug("max_exclude", max_exclude)
-    bittensor.logging.debug("exclude_quantile", exclude_quantile)
-    bittensor.logging.debug("lowest_quantile", lowest_quantile)
+    logging.debug("max_exclude", max_exclude)
+    logging.debug("exclude_quantile", exclude_quantile)
+    logging.debug("lowest_quantile", lowest_quantile)
 
     # Exclude all weights below the allowed quantile.
     non_zero_weight_uids = non_zero_weight_uids[lowest_quantile <= non_zero_weights]
     non_zero_weights = non_zero_weights[lowest_quantile <= non_zero_weights]
-    bittensor.logging.debug("non_zero_weight_uids", non_zero_weight_uids)
-    bittensor.logging.debug("non_zero_weights", non_zero_weights)
+    logging.debug("non_zero_weight_uids", *non_zero_weight_uids)
+    logging.debug("non_zero_weights", *non_zero_weights)
 
     # Normalize weights and return.
-    normalized_weights = bittensor.utils.weight_utils.normalize_max_weight(
+    normalized_weights = normalize_max_weight(
         x=non_zero_weights, limit=max_weight_limit
     )
-    bittensor.logging.debug("final_weights", normalized_weights)
+    logging.debug("final_weights", *normalized_weights)
 
     return non_zero_weight_uids, normalized_weights
 
@@ -356,10 +364,10 @@ def process_weights_for_netuid(
 def generate_weight_hash(
     address: str,
     netuid: int,
-    uids: List[int],
-    values: List[int],
+    uids: list[int],
+    values: list[int],
     version_key: int,
-    salt: List[int],
+    salt: list[int],
 ) -> str:
     """
     Generate a valid commit hash from the provided weights.
@@ -367,9 +375,9 @@ def generate_weight_hash(
     Args:
         address (str): The account identifier. Wallet ss58_address.
         netuid (int): The network unique identifier.
-        uids (List[int]): The list of UIDs.
-        salt (List[int]): The salt to add to hash.
-        values (List[int]): The list of weight values.
+        uids (list[int]): The list of UIDs.
+        salt (list[int]): The salt to add to hash.
+        values (list[int]): The list of weight values.
         version_key (int): The version key.
 
     Returns:
