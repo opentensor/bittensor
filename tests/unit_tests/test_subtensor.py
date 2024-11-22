@@ -2457,3 +2457,44 @@ def test_get_minimum_required_stake_invalid_result(mocker, subtensor):
     )
     mock_balance_from_rao.assert_called_once_with(fake_invalid_stake)
     assert result == mock_balance_from_rao.return_value
+
+
+def test_tx_rate_limit_success(mocker, subtensor):
+    """Test when tx_rate_limit is successfully retrieved."""
+    # Mock data
+    fake_rate_limit = 100
+    fake_block = 123
+
+    # Mocks
+    mock_query_subtensor = mocker.patch.object(
+        subtensor,
+        "query_subtensor",
+        return_value=mocker.Mock(value=fake_rate_limit),
+    )
+
+    # Call
+    result = subtensor.tx_rate_limit(block=fake_block)
+
+    # Assertions
+    mock_query_subtensor.assert_called_once_with("TxRateLimit", fake_block)
+    assert result == fake_rate_limit
+
+
+def test_tx_rate_limit_no_value(mocker, subtensor):
+    """Test when query_subtensor returns None."""
+    # Mock data
+    fake_block = 123
+
+    # Mocks
+    mock_query_subtensor = mocker.patch.object(
+        subtensor,
+        "query_subtensor",
+        return_value=None,
+    )
+
+    # Call
+    result = subtensor.tx_rate_limit(block=fake_block)
+
+    # Assertions
+    mock_query_subtensor.assert_called_once_with("TxRateLimit", fake_block)
+    assert result is None
