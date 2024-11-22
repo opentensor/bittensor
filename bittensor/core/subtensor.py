@@ -2145,12 +2145,12 @@ class Subtensor:
         This function supports flexible stake management, allowing neurons to adjust their network participation and potential reward accruals.
         """
         return unstake_extrinsic(
-            self,
-            wallet,
-            hotkey_ss58,
-            amount,
-            wait_for_inclusion,
-            wait_for_finalization,
+            subtensor=self,
+            wallet=wallet,
+            hotkey_ss58=hotkey_ss58,
+            amount=amount,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
         )
 
     def unstake_multiple(
