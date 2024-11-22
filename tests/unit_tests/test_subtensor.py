@@ -2195,6 +2195,98 @@ def test_get_stake_for_coldkey_and_hotkey(subtensor, mocker, fake_value_result):
     assert result == fake_value_result
 
 
+def test_does_hotkey_exist_true(mocker, subtensor):
+    """Test when the hotkey exists."""
+    # Mock data
+    fake_hotkey_ss58 = "fake_hotkey"
+    fake_owner = "valid_owner"
+    fake_block = 123
+
+    # Mocks
+    mock_query_subtensor = mocker.patch.object(
+        subtensor,
+        "query_subtensor",
+        return_value=mocker.Mock(value=fake_owner),
+    )
+
+    # Call
+    result = subtensor.does_hotkey_exist(fake_hotkey_ss58, block=fake_block)
+
+    # Assertions
+    mock_query_subtensor.assert_called_once_with(
+        "Owner", fake_block, [fake_hotkey_ss58]
+    )
+    assert result is True
+
+
+def test_does_hotkey_exist_no_value(mocker, subtensor):
+    """Test when query_subtensor returns no value."""
+    # Mock data
+    fake_hotkey_ss58 = "fake_hotkey"
+    fake_block = 123
+
+    # Mocks
+    mock_query_subtensor = mocker.patch.object(
+        subtensor,
+        "query_subtensor",
+        return_value=None,
+    )
+
+    # Call
+    result = subtensor.does_hotkey_exist(fake_hotkey_ss58, block=fake_block)
+
+    # Assertions
+    mock_query_subtensor.assert_called_once_with(
+        "Owner", fake_block, [fake_hotkey_ss58]
+    )
+    assert result is False
+
+
+def test_does_hotkey_exist_special_id(mocker, subtensor):
+    """Test when query_subtensor returns the special invalid owner identifier."""
+    # Mock data
+    fake_hotkey_ss58 = "fake_hotkey"
+    fake_owner = "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM"
+    fake_block = 123
+
+    # Mocks
+    mock_query_subtensor = mocker.patch.object(
+        subtensor,
+        "query_subtensor",
+        return_value=mocker.Mock(value=fake_owner),
+    )
+
+    # Call
+    result = subtensor.does_hotkey_exist(fake_hotkey_ss58, block=fake_block)
+
+    # Assertions
+    mock_query_subtensor.assert_called_once_with(
+        "Owner", fake_block, [fake_hotkey_ss58]
+    )
+    assert result is False
+
+
+def test_does_hotkey_exist_latest_block(mocker, subtensor):
+    """Test when no block is provided (latest block)."""
+    # Mock data
+    fake_hotkey_ss58 = "fake_hotkey"
+    fake_owner = "valid_owner"
+
+    # Mocks
+    mock_query_subtensor = mocker.patch.object(
+        subtensor,
+        "query_subtensor",
+        return_value=mocker.Mock(value=fake_owner),
+    )
+
+    # Call
+    result = subtensor.does_hotkey_exist(fake_hotkey_ss58)
+
+    # Assertions
+    mock_query_subtensor.assert_called_once_with("Owner", None, [fake_hotkey_ss58])
+    assert result is True
+
+
 def test_get_hotkey_owner_success(mocker, subtensor):
     """Test when hotkey exists and owner is found."""
     # Mock data
