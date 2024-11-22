@@ -2664,3 +2664,36 @@ def test_is_hotkey_delegate_empty_list(mocker, subtensor):
     # Assertions
     mock_get_delegates.assert_called_once_with(block=fake_block)
     assert result is False
+
+
+def test_add_stake_success(mocker, subtensor):
+    """Test add_stake returns True on successful staking."""
+    # Mock data
+    fake_wallet = mocker.Mock()
+    fake_hotkey_ss58 = "fake_hotkey"
+    fake_amount = 10.0
+
+    # Mock `add_stake_extrinsic`
+    mock_add_stake_extrinsic = mocker.patch(
+        "bittensor.core.subtensor.add_stake_extrinsic"
+    )
+
+    # Call
+    result = subtensor.add_stake(
+        wallet=fake_wallet,
+        hotkey_ss58=fake_hotkey_ss58,
+        amount=fake_amount,
+        wait_for_inclusion=True,
+        wait_for_finalization=False,
+    )
+
+    # Assertions
+    mock_add_stake_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        hotkey_ss58=fake_hotkey_ss58,
+        amount=fake_amount,
+        wait_for_inclusion=True,
+        wait_for_finalization=False,
+    )
+    assert result is mock_add_stake_extrinsic.return_value
