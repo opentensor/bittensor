@@ -2498,3 +2498,104 @@ def test_tx_rate_limit_no_value(mocker, subtensor):
     # Assertions
     mock_query_subtensor.assert_called_once_with("TxRateLimit", fake_block)
     assert result is None
+
+
+def test_get_delegates_success(mocker, subtensor):
+    """Test when delegates are successfully retrieved."""
+    # Mock data
+    fake_block = 123
+    fake_block_hash = "0xabc123"
+    fake_json_body = {
+        "result": "mock_encoded_delegates",
+    }
+
+    # Mocks
+    mock_get_block_hash = mocker.patch.object(
+        subtensor.substrate,
+        "get_block_hash",
+        return_value=fake_block_hash,
+    )
+    mock_rpc_request = mocker.patch.object(
+        subtensor.substrate,
+        "rpc_request",
+        return_value=fake_json_body,
+    )
+    mock_list_from_vec_u8 = mocker.patch.object(
+        subtensor_module.DelegateInfo,
+        "list_from_vec_u8",
+        return_value=["delegate1", "delegate2"],
+    )
+
+    # Call
+    result = subtensor.get_delegates(block=fake_block)
+
+    # Assertions
+    mock_get_block_hash.assert_called_once_with(fake_block)
+    mock_rpc_request.assert_called_once_with(
+        method="delegateInfo_getDelegates",
+        params=[fake_block_hash],
+    )
+    mock_list_from_vec_u8.assert_called_once_with(fake_json_body["result"])
+    assert result == ["delegate1", "delegate2"]
+
+
+def test_get_delegates_no_result(mocker, subtensor):
+    """Test when rpc_request returns no result."""
+    # Mock data
+    fake_block = 123
+    fake_block_hash = "0xabc123"
+    fake_json_body = {}
+
+    # Mocks
+    mock_get_block_hash = mocker.patch.object(
+        subtensor.substrate,
+        "get_block_hash",
+        return_value=fake_block_hash,
+    )
+    mock_rpc_request = mocker.patch.object(
+        subtensor.substrate,
+        "rpc_request",
+        return_value=fake_json_body,
+    )
+
+    # Call
+    result = subtensor.get_delegates(block=fake_block)
+
+    # Assertions
+    mock_get_block_hash.assert_called_once_with(fake_block)
+    mock_rpc_request.assert_called_once_with(
+        method="delegateInfo_getDelegates",
+        params=[fake_block_hash],
+    )
+    assert result == []
+
+
+def test_get_delegates_latest_block(mocker, subtensor):
+    """Test when no block is provided (latest block)."""
+    # Mock data
+    fake_json_body = {
+        "result": "mock_encoded_delegates",
+    }
+
+    # Mocks
+    mock_rpc_request = mocker.patch.object(
+        subtensor.substrate,
+        "rpc_request",
+        return_value=fake_json_body,
+    )
+    mock_list_from_vec_u8 = mocker.patch.object(
+        subtensor_module.DelegateInfo,
+        "list_from_vec_u8",
+        return_value=["delegate1", "delegate2"],
+    )
+
+    # Call
+    result = subtensor.get_delegates()
+
+    # Assertions
+    mock_rpc_request.assert_called_once_with(
+        method="delegateInfo_getDelegates",
+        params=[],
+    )
+    mock_list_from_vec_u8.assert_called_once_with(fake_json_body["result"])
+    assert result == ["delegate1", "delegate2"]
