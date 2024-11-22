@@ -57,7 +57,7 @@ async def test_root_reg_hyperparams(local_chain):
     Raises:
         AssertionError: If any of the checks or verifications fail.
     """
-    
+
     print("Testing root register, weights, and hyperparams")
     netuid = 1
 
@@ -128,7 +128,9 @@ async def test_root_reg_hyperparams(local_chain):
     )
 
     # Fetch the block since last update, so we can compare later
-    initial_block = subtensor.blocks_since_last_update(netuid=netuid, uid=alice_uid_sn_1)
+    initial_block = subtensor.blocks_since_last_update(
+        netuid=netuid, uid=alice_uid_sn_1
+    )
 
     # Verify subnet <netuid> created successfully
     assert local_chain.query(
@@ -196,7 +198,9 @@ async def test_root_reg_hyperparams(local_chain):
 
     # Fetch neuron lite for sn one and assert Alice participation
     sn_one_neurons = subtensor.neurons_lite(netuid=netuid)
-    assert sn_one_neurons[alice_uid_sn_1].coldkey == alice_wallet.coldkeypub.ss58_address
+    assert (
+        sn_one_neurons[alice_uid_sn_1].coldkey == alice_wallet.coldkeypub.ss58_address
+    )
     assert sn_one_neurons[alice_uid_sn_1].hotkey == alice_wallet.hotkey.ss58_address
     assert sn_one_neurons[alice_uid_sn_1].validator_permit is True
 
