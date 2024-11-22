@@ -47,7 +47,7 @@ def test_metagraph(local_chain):
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
-    logging.info("Testing test_metagraph_command")
+    logging.console.info("Testing test_metagraph_command")
     netuid = 1
 
     # Register Alice, Bob, and Dave
@@ -174,4 +174,4 @@ def test_metagraph(local_chain):
         metagraph.neurons == metagraph_pre_dave.neurons
     ), "Neurons don't match after save and load"
 
-    logging.info("✅ Passed test_metagraph")
+    logging.console.info("✅ Passed test_metagraph")

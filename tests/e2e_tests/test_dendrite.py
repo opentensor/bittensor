@@ -34,7 +34,7 @@ async def test_dendrite(local_chain):
         AssertionError: If any of the checks or verifications fail
     """
 
-    logging.info("Testing test_dendrite")
+    logging.console.info("Testing test_dendrite")
     netuid = 1
 
     # Register root as Alice - the subnet owner
@@ -113,7 +113,7 @@ async def test_dendrite(local_chain):
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
-    logging.info("Neuron Alice is now validating")
+    logging.console.info("Neuron Alice is now validating")
     await asyncio.sleep(
         5
     )  # wait for 5 seconds for the metagraph and subtensor to refresh with latest data
@@ -133,4 +133,4 @@ async def test_dendrite(local_chain):
     assert updated_neuron.coldkey == bob_keypair.ss58_address
     assert updated_neuron.pruning_score != 0
 
-    logging.info("✅ Passed test_dendrite")
+    logging.console.info("✅ Passed test_dendrite")
