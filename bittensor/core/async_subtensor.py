@@ -192,6 +192,41 @@ class AsyncSubtensor:
 
         return param_data.to_hex()
 
+    async def get_hyperparameter(
+        self,
+        param_name: str,
+        netuid: int,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> Optional[Any]:
+        """
+        Retrieves a specified hyperparameter for a specific subnet.
+
+        Args:
+            param_name (str): The name of the hyperparameter to retrieve.
+            netuid (int): The unique identifier of the subnet.
+            block_hash (Optional[str]): The hash of blockchain block number for the query.
+            reuse_block (bool): Whether to reuse the last-used block hash.
+
+        Returns:
+            The value of the specified hyperparameter if the subnet exists, or None
+        """
+        if not await self.subnet_exists(netuid, block_hash):
+            logging.error(f"subnet {netuid} does not exist")
+            return None
+
+        result = await self.substrate.query(
+            module="SubtensorModule",
+            storage_function=param_name,
+            params=[netuid],
+            block_hash=block_hash,
+            reuse_block_hash=reuse_block,
+        )
+
+        return result
+
+    # Common subtensor methods =========================================================================================
+
     async def get_current_block(self) -> int:
         """
         Returns the current block number on the Bittensor blockchain. This function provides the latest block number, indicating the most recent state of the blockchain.
@@ -661,39 +696,6 @@ class AsyncSubtensor:
             block_hash=block_hash,
             reuse_block_hash=reuse_block,
         )
-        return result
-
-    async def get_hyperparameter(
-        self,
-        param_name: str,
-        netuid: int,
-        block_hash: Optional[str] = None,
-        reuse_block: bool = False,
-    ) -> Optional[Any]:
-        """
-        Retrieves a specified hyperparameter for a specific subnet.
-
-        Args:
-            param_name (str): The name of the hyperparameter to retrieve.
-            netuid (int): The unique identifier of the subnet.
-            block_hash (Optional[str]): The hash of blockchain block number for the query.
-            reuse_block (bool): Whether to reuse the last-used block hash.
-
-        Returns:
-            The value of the specified hyperparameter if the subnet exists, or None
-        """
-        if not await self.subnet_exists(netuid, block_hash):
-            print("subnet does not exist")
-            return None
-
-        result = await self.substrate.query(
-            module="SubtensorModule",
-            storage_function=param_name,
-            params=[netuid],
-            block_hash=block_hash,
-            reuse_block_hash=reuse_block,
-        )
-
         return result
 
     async def filter_netuids_by_registered_hotkeys(
@@ -1357,7 +1359,7 @@ class AsyncSubtensor:
         call = await self.get_hyperparameter(param_name="LastUpdate", netuid=netuid)
         return None if call is None else await self.get_current_block() - int(call[uid])
 
-    # extrinsics
+    # Extrinsics =======================================================================================================
 
     async def transfer(
         self,
