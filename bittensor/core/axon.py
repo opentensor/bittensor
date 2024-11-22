@@ -173,7 +173,7 @@ class FastAPIThreadedServer(uvicorn.Server):
         Overrides the default signal handlers provided by ``uvicorn.Server``. This method is essential to ensure that the signal handling in the threaded server does not interfere with the main application's flow, especially in a complex asynchronous environment like the Axon server.
         """
 
-    async def startup(self, sockets: Optional[List[socket.socket]] = None) -> None:
+    async def startup(self, sockets: Optional[list[socket.socket]] = None) -> None:
         """
         Adds a thread-safe call to set a 'started' flag on the object.
         """
