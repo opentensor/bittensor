@@ -2599,3 +2599,68 @@ def test_get_delegates_latest_block(mocker, subtensor):
     )
     mock_list_from_vec_u8.assert_called_once_with(fake_json_body["result"])
     assert result == ["delegate1", "delegate2"]
+
+
+def test_is_hotkey_delegate_true(mocker, subtensor):
+    """Test when hotkey is a delegate."""
+    # Mock data
+    fake_hotkey_ss58 = "hotkey_1"
+    fake_block = 123
+    fake_delegates = [
+        mocker.Mock(hotkey_ss58="hotkey_1"),
+        mocker.Mock(hotkey_ss58="hotkey_2"),
+    ]
+
+    # Mocks
+    mock_get_delegates = mocker.patch.object(
+        subtensor, "get_delegates", return_value=fake_delegates
+    )
+
+    # Call
+    result = subtensor.is_hotkey_delegate(fake_hotkey_ss58, block=fake_block)
+
+    # Assertions
+    mock_get_delegates.assert_called_once_with(block=fake_block)
+    assert result is True
+
+
+def test_is_hotkey_delegate_false(mocker, subtensor):
+    """Test when hotkey is not a delegate."""
+    # Mock data
+    fake_hotkey_ss58 = "hotkey_3"
+    fake_block = 123
+    fake_delegates = [
+        mocker.Mock(hotkey_ss58="hotkey_1"),
+        mocker.Mock(hotkey_ss58="hotkey_2"),
+    ]
+
+    # Mocks
+    mock_get_delegates = mocker.patch.object(
+        subtensor, "get_delegates", return_value=fake_delegates
+    )
+
+    # Call
+    result = subtensor.is_hotkey_delegate(fake_hotkey_ss58, block=fake_block)
+
+    # Assertions
+    mock_get_delegates.assert_called_once_with(block=fake_block)
+    assert result is False
+
+
+def test_is_hotkey_delegate_empty_list(mocker, subtensor):
+    """Test when delegate list is empty."""
+    # Mock data
+    fake_hotkey_ss58 = "hotkey_1"
+    fake_block = 123
+
+    # Mocks
+    mock_get_delegates = mocker.patch.object(
+        subtensor, "get_delegates", return_value=[]
+    )
+
+    # Call
+    result = subtensor.is_hotkey_delegate(fake_hotkey_ss58, block=fake_block)
+
+    # Assertions
+    mock_get_delegates.assert_called_once_with(block=fake_block)
+    assert result is False
