@@ -72,7 +72,7 @@ class Balance:
 
     def __rich__(self):
         int_tao, fract_tao = format(float(self.tao), "f").split(".")
-        return f"[green]{self.unit}[/green][green]{int_tao}[/green][green].[/green][dim green]{fract_tao}[/dim green]"
+        return f"[green]{self.unit}{int_tao}.{fract_tao}[/green]"
 
     def __str_rao__(self):
         return f"{self.rao_unit}{int(self.rao)}"

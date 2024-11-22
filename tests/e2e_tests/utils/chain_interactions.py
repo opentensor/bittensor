@@ -6,7 +6,7 @@ these are not present in btsdk but are required for e2e tests
 import asyncio
 from typing import Union, Optional, TYPE_CHECKING
 
-from bittensor import logging
+from bittensor.utils.btlogging import logging
 
 # for typing purposes
 if TYPE_CHECKING:
@@ -102,30 +102,6 @@ def register_subnet(substrate: "SubstrateInterface", wallet: "Wallet") -> bool:
     )
     extrinsic = substrate.create_signed_extrinsic(
         call=register_call, keypair=wallet.coldkey
-    )
-    response = substrate.submit_extrinsic(
-        extrinsic, wait_for_finalization=True, wait_for_inclusion=True
-    )
-    response.process_events()
-    return response.is_success
-
-
-def register_neuron(
-    substrate: "SubstrateInterface", wallet: "Wallet", netuid: int
-) -> bool:
-    """
-    Registers a neuron on a subnet. Mimics subnet register command.
-    """
-    neuron_register_call = substrate.compose_call(
-        call_module="SubtensorModule",
-        call_function="burned_register",
-        call_params={
-            "netuid": netuid,
-            "hotkey": wallet.hotkey.ss58_address,
-        },
-    )
-    extrinsic = substrate.create_signed_extrinsic(
-        call=neuron_register_call, keypair=wallet.coldkey
     )
     response = substrate.submit_extrinsic(
         extrinsic, wait_for_finalization=True, wait_for_inclusion=True

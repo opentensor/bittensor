@@ -3,12 +3,11 @@ import time
 import numpy as np
 import pytest
 
-import bittensor
-from bittensor import logging
+from bittensor.core.subtensor import Subtensor
+from bittensor.utils.balance import Balance
 from bittensor.utils.weight_utils import convert_weights_and_uids_for_emit
 from tests.e2e_tests.utils.chain_interactions import (
     add_stake,
-    register_neuron,
     register_subnet,
     sudo_set_hyperparameter_bool,
     sudo_set_hyperparameter_values,
@@ -20,7 +19,7 @@ from tests.e2e_tests.utils.e2e_test_utils import setup_wallet
 @pytest.mark.asyncio
 async def test_commit_and_reveal_weights(local_chain):
     """
-    Tests the commit/reveal weights mechanism
+    Tests the commit/reveal weights mechanism with subprocess disabled (CR1.0)
 
     Steps:
         1. Register a subnet through Alice
@@ -33,7 +32,7 @@ async def test_commit_and_reveal_weights(local_chain):
         AssertionError: If any of the checks or verifications fail
     """
     netuid = 1
-    logging.info("Testing test_commit_and_reveal_weights")
+    print("Testing test_commit_and_reveal_weights")
     # Register root as Alice
     keypair, alice_wallet = setup_wallet("//Alice")
     assert register_subnet(local_chain, alice_wallet), "Unable to register the subnet"
@@ -43,12 +42,15 @@ async def test_commit_and_reveal_weights(local_chain):
         "SubtensorModule", "NetworksAdded", [1]
     ).serialize(), "Subnet wasn't created successfully"
 
-    assert register_neuron(
-        local_chain, alice_wallet, netuid
+    subtensor = Subtensor(network="ws://localhost:9945")
+
+    # Register Alice to the subnet
+    assert subtensor.burned_register(
+        alice_wallet, netuid
     ), "Unable to register Alice as a neuron"
 
     # Stake to become to top neuron after the first epoch
-    add_stake(local_chain, alice_wallet, bittensor.Balance.from_tao(100_000))
+    add_stake(local_chain, alice_wallet, Balance.from_tao(100_000))
 
     # Enable commit_reveal on the subnet
     assert sudo_set_hyperparameter_bool(
@@ -59,9 +61,8 @@ async def test_commit_and_reveal_weights(local_chain):
         netuid,
     ), "Unable to enable commit reveal on the subnet"
 
-    subtensor = bittensor.Subtensor(network="ws://localhost:9945")
     assert subtensor.get_subnet_hyperparameters(
-        netuid=netuid
+        netuid=netuid,
     ).commit_reveal_weights_enabled, "Failed to enable commit/reveal"
 
     # Lower the commit_reveal interval
@@ -69,17 +70,16 @@ async def test_commit_and_reveal_weights(local_chain):
         local_chain,
         alice_wallet,
         call_function="sudo_set_commit_reveal_weights_interval",
-        call_params={"netuid": netuid, "interval": "370"},
+        call_params={"netuid": netuid, "interval": "1"},
         return_error_message=True,
     )
 
-    subtensor = bittensor.Subtensor(network="ws://localhost:9945")
     assert (
         subtensor.get_subnet_hyperparameters(
             netuid=netuid
         ).commit_reveal_weights_interval
-        == 370
-    ), "Failed to set commit/reveal interval"
+        == 1
+    ), "Failed to set commit/reveal periods"
 
     assert (
         subtensor.weights_rate_limit(netuid=netuid) > 0
@@ -92,7 +92,7 @@ async def test_commit_and_reveal_weights(local_chain):
         call_params={"netuid": netuid, "weights_set_rate_limit": "0"},
         return_error_message=True,
     )
-    subtensor = bittensor.Subtensor(network="ws://localhost:9945")
+
     assert (
         subtensor.get_subnet_hyperparameters(netuid=netuid).weights_rate_limit == 0
     ), "Failed to set weights_rate_limit"
@@ -117,6 +117,8 @@ async def test_commit_and_reveal_weights(local_chain):
         wait_for_finalization=True,
     )
 
+    assert success is True
+
     weight_commits = subtensor.query_module(
         module="SubtensorModule",
         name="WeightCommits",
@@ -124,18 +126,20 @@ async def test_commit_and_reveal_weights(local_chain):
     )
     # Assert that the committed weights are set correctly
     assert weight_commits.value is not None, "Weight commit not found in storage"
-    commit_hash, commit_block = weight_commits.value
+    commit_hash, commit_block, reveal_block, expire_block = weight_commits.value[0]
     assert commit_block > 0, f"Invalid block number: {commit_block}"
 
     # Query the WeightCommitRevealInterval storage map
-    weight_commit_reveal_interval = subtensor.query_module(
-        module="SubtensorModule", name="WeightCommitRevealInterval", params=[netuid]
+    reveal_periods = subtensor.query_module(
+        module="SubtensorModule", name="RevealPeriodEpochs", params=[netuid]
     )
-    interval = weight_commit_reveal_interval.value
-    assert interval > 0, "Invalid WeightCommitRevealInterval"
+    periods = reveal_periods.value
+    assert periods > 0, "Invalid RevealPeriodEpochs"
 
     # Wait until the reveal block range
-    await wait_interval(interval, subtensor)
+    await wait_interval(
+        subtensor.get_subnet_hyperparameters(netuid=netuid).tempo, subtensor
+    )
 
     # Reveal weights
     success, message = subtensor.reveal_weights(
@@ -147,6 +151,9 @@ async def test_commit_and_reveal_weights(local_chain):
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
+
+    assert success is True
+
     time.sleep(10)
 
     # Query the Weights storage map
@@ -162,4 +169,4 @@ async def test_commit_and_reveal_weights(local_chain):
     assert (
         weight_vals[0] == revealed_weights.value[0][1]
     ), f"Incorrect revealed weights. Expected: {weights[0]}, Actual: {revealed_weights.value[0][1]}"
-    logging.info("✅ Passed test_commit_and_reveal_weights")
+    print("✅ Passed test_commit_and_reveal_weights")

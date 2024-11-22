@@ -1,5 +1,66 @@
 # Changelog
 
+## 8.3.1 /2024-11-14
+
+## What's Changed
+* Fixes broken Subtensor methods by @thewhaleking in https://github.com/opentensor/bittensor/pull/2420
+* [Tests] AsyncSubtensor (Part 7: The final race) by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2418
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v8.3.0...v8.3.1
+
+## 8.3.0 /2024-11-13
+
+## What's Changed
+* Expands the type registry to include all the available options by @thewhaleking in https://github.com/opentensor/bittensor/pull/2353
+* add `Subtensor.register`, `Subtensor.difficulty` and related staff with tests by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2352
+* added to Subtensor: `burned_register`, `get_subnet_burn_cost`, `recycle` and related extrinsics by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2359
+* Poem "Risen from the Past". Act 3. by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2363
+* default port from 9946 to 9944 by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2376
+* remove unused prometheus extrinsic by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2378
+* Replace rich.console to btlogging.loggin by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2377
+* SDK (AsyncSubtensor) Part 1 by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2374
+* SDK (AsyncSubtensor) Part 2 by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2380
+* Handle SSL Error on Connection by @thewhaleking in https://github.com/opentensor/bittensor/pull/2384
+* Avoid using `prompt` in SDK by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2382
+* Backmerge/8.2.0 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2389
+* Remove `retry` and fix tests by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2392
+* fix: logging weights correctly in utils/weight_utils.py by @grantdfoster in https://github.com/opentensor/bittensor/pull/2362
+* Add `subvortex` subnet and tests by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2395
+* Release/8.2.1 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2397
+* [Tests] AsyncSubtensor (Part 1) by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2398
+* Extend period for fastblock e2e tests_incentive.py by @opendansor in https://github.com/opentensor/bittensor/pull/2400
+* Remove unused import by @thewhaleking in https://github.com/opentensor/bittensor/pull/2401
+* `Reconnection substrate...` as debug by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2403
+* Handles websockets v14+ in async by @thewhaleking in https://github.com/opentensor/bittensor/pull/2404
+* [Tests] AsyncSubtensor (Part 2) by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2407
+* [Tests] AsyncSubtensor (Part 3) by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2409
+* Handle new PasswordError from btwallet by @thewhaleking in https://github.com/opentensor/bittensor/pull/2406
+* [Tests] AsyncSubtensor (Part 4) by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2410
+* [Tests] AsyncSubtensor (Part 5) by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2411
+* Bringing back lost methods for setting weights by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2412
+* Update bt-decode requirement by @thewhaleking in https://github.com/opentensor/bittensor/pull/2413
+* [Tests] AsyncSubtensor (Part 6) by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2414
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v8.2.1...v8.3.0
+
+## 8.2.1 /2024-11-06
+
+## What's Changed
+
+* Expands the type registry to include all the available options by @thewhaleking in https://github.com/opentensor/bittensor/pull/2353
+* add `Subtensor.register`, `Subtensor.difficulty` and related staff with tests by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2352
+* added to Subtensor: `burned_register`, `get_subnet_burn_cost`, `recycle` and related extrinsics by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2359
+* Poem "Risen from the Past". Act 3. by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2363
+* default port from 9946 to 9944 by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2376
+* remove unused prometheus extrinsic by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2378
+* Replace rich.console to btlogging.loggin by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2377
+* Backmerge 8.2.0 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2389
+* Add subvortex subnet and tests by @roman-opentensor  in https://github.com/opentensor/bittensor/pull/2395
+* Handle SSL Error on Connection by @thewhaleking  in https://github.com/opentensor/bittensor/pull/2384
+* Avoid using prompt in SDK by @roman-opentensor  in https://github.com/opentensor/bittensor/pull/2382
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v8.2.0...v8.2.1
+
 ## 8.2.0 /2024-10-10
 
 ## What's Changed
@@ -1126,4 +1187,3 @@ This release refactors the registration code for CPU registration to improve sol
 ### Synapse update
 
 ##
-

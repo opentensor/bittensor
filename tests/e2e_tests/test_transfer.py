@@ -1,5 +1,5 @@
-from bittensor import Subtensor, logging
-from bittensor.core.subtensor import transfer_extrinsic
+from bittensor.core.subtensor import Subtensor
+from bittensor.utils.balance import Balance
 from tests.e2e_tests.utils.e2e_test_utils import setup_wallet
 
 
@@ -10,43 +10,43 @@ def test_transfer(local_chain):
     Steps:
         1. Create a wallet for Alice
         2. Calculate existing balance and transfer 2 Tao
-        3. Calculate balance after extrinsic call and verify calculations
+        3. Calculate balance after transfer call and verify calculations
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
 
-    logging.info("Testing test_transfer")
+    print("Testing test_transfer")
 
     # Set up Alice wallet
     keypair, wallet = setup_wallet("//Alice")
+    subtensor = Subtensor(network="ws://localhost:9945")
+    transfer_value = Balance.from_tao(2)
+    dest_coldkey = "5GpzQgpiAKHMWNSH3RN4GLf96GVTDct9QxYEFAY7LWcVzTbx"
+
+    # Fetch transfer fee
+    transfer_fee = subtensor.get_transfer_fee(
+        wallet=wallet,
+        dest=dest_coldkey,
+        value=transfer_value,
+    )
 
     # Account details before transfer
-    acc_before = local_chain.query("System", "Account", [keypair.ss58_address])
+    balance_before = subtensor.get_balance(wallet.coldkeypub.ss58_address)
 
-    # Transfer Tao using extrinsic
-    subtensor = Subtensor(network="ws://localhost:9945")
-    transfer_extrinsic(
-        subtensor=subtensor,
+    # Transfer Tao
+    assert subtensor.transfer(
         wallet=wallet,
-        dest="5GpzQgpiAKHMWNSH3RN4GLf96GVTDct9QxYEFAY7LWcVzTbx",
-        amount=2,
+        dest=dest_coldkey,
+        amount=transfer_value,
         wait_for_finalization=True,
         wait_for_inclusion=True,
-        prompt=False,
     )
-
     # Account details after transfer
-    acc_after = local_chain.query("System", "Account", [keypair.ss58_address])
+    balance_after = subtensor.get_balance(wallet.coldkeypub.ss58_address)
 
-    # Transfer calculation assertions
-    expected_transfer = 2_000_000_000
-    tolerance = 200_000  # Tx fee tolerance
-
-    actual_difference = (
-        acc_before.value["data"]["free"] - acc_after.value["data"]["free"]
-    )
+    # Assert correct transfer calculations
     assert (
-        expected_transfer <= actual_difference <= expected_transfer + tolerance
-    ), f"Expected transfer with tolerance: {expected_transfer} <= {actual_difference} <= {expected_transfer + tolerance}"
+        balance_before - transfer_fee - transfer_value == balance_after
+    ), f"Expected {balance_before - transfer_value - transfer_fee}, got {balance_after}"
 
-    logging.info("✅ Passed test_transfer")
+    print("✅ Passed test_transfer")

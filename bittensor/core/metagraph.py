@@ -1249,12 +1249,11 @@ class NonTorchMetagraph(MetagraphMixin):
             with open(graph_filename, "rb") as graph_file:
                 state_dict = pickle.load(graph_file)
         except pickle.UnpicklingError:
-            settings.bt_console.print(
+            logging.info(
                 "Unable to load file. Attempting to restore metagraph using torch."
             )
-            settings.bt_console.print(
-                ":warning:[yellow]Warning:[/yellow] This functionality exists to load "
-                "metagraph state from legacy saves, but will not be supported in the future."
+            logging.warning(
+                ":warning: This functionality exists to load metagraph state from legacy saves, but will not be supported in the future."
             )
             try:
                 import torch as real_torch
@@ -1264,7 +1263,7 @@ class NonTorchMetagraph(MetagraphMixin):
                     state_dict[key] = state_dict[key].detach().numpy()
                 del real_torch
             except (RuntimeError, ImportError):
-                settings.bt_console.print("Unable to load file. It may be corrupted.")
+                logging.error("Unable to load file. It may be corrupted.")
                 raise
 
         self.n = state_dict["n"]

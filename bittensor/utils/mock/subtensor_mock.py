@@ -30,6 +30,7 @@ from bittensor.core.chain_data import (
     PrometheusInfo,
     AxonInfo,
 )
+from bittensor.core.types import AxonServeCallParams, PrometheusServeCallParams
 from bittensor.core.errors import ChainQueryError
 from bittensor.core.subtensor import Subtensor
 from bittensor.utils import RAOPERTAO, u16_normalized_float
@@ -37,26 +38,6 @@ from bittensor.utils.balance import Balance
 
 # Mock Testing Constant
 __GLOBAL_MOCK_STATE__ = {}
-
-
-class AxonServeCallParams(TypedDict):
-    """Axon serve chain call parameters."""
-
-    version: int
-    ip: int
-    port: int
-    ip_type: int
-    netuid: int
-
-
-class PrometheusServeCallParams(TypedDict):
-    """Prometheus serve chain call parameters."""
-
-    version: int
-    ip: int
-    port: int
-    ip_type: int
-    netuid: int
 
 
 BlockNumber = int

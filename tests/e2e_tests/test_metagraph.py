@@ -1,10 +1,10 @@
 import time
 
-import bittensor
-from bittensor import logging
+from bittensor.core.subtensor import Subtensor
+from bittensor.utils.balance import Balance
+from bittensor.utils.btlogging import logging
 from tests.e2e_tests.utils.chain_interactions import (
     add_stake,
-    register_neuron,
     register_subnet,
 )
 from tests.e2e_tests.utils.e2e_test_utils import (
@@ -64,15 +64,15 @@ def test_metagraph(local_chain):
     ).serialize(), "Subnet wasn't created successfully"
 
     # Initialize metagraph
-    subtensor = bittensor.Subtensor(network="ws://localhost:9945")
+    subtensor = Subtensor(network="ws://localhost:9945")
     metagraph = subtensor.metagraph(netuid=1)
 
     # Assert metagraph is empty
     assert len(metagraph.uids) == 0, "Metagraph is not empty"
 
     # Register Bob to the subnet
-    assert register_neuron(
-        local_chain, bob_wallet, netuid
+    assert subtensor.burned_register(
+        bob_wallet, netuid
     ), "Unable to register Bob as a neuron"
 
     # Refresh the metagraph
@@ -107,8 +107,8 @@ def test_metagraph(local_chain):
     metagraph_pre_dave = subtensor.metagraph(netuid=1)
 
     # Register Dave as a neuron
-    assert register_neuron(
-        local_chain, dave_wallet, netuid
+    assert subtensor.burned_register(
+        dave_wallet, netuid
     ), "Unable to register Dave as a neuron"
 
     metagraph.sync(subtensor=subtensor)
@@ -129,17 +129,17 @@ def test_metagraph(local_chain):
 
     # Test staking with low balance
     assert not add_stake(
-        local_chain, dave_wallet, bittensor.Balance.from_tao(10_000)
+        local_chain, dave_wallet, Balance.from_tao(10_000)
     ), "Low balance stake should fail"
 
     # Add stake by Bob
     assert add_stake(
-        local_chain, bob_wallet, bittensor.Balance.from_tao(10_000)
+        local_chain, bob_wallet, Balance.from_tao(10_000)
     ), "Failed to add stake for Bob"
 
     # Assert stake is added after updating metagraph
     metagraph.sync(subtensor=subtensor)
-    assert metagraph.neurons[0].stake == bittensor.Balance.from_tao(
+    assert metagraph.neurons[0].stake == Balance.from_tao(
         10_000
     ), "Bob's stake not updated in metagraph"
 

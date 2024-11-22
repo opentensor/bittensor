@@ -22,6 +22,7 @@ class ChainDataType(Enum):
     SubnetHyperparameters = 8
     ScheduledColdkeySwapInfo = 9
     AccountId = 10
+    NeuronCertificate = 11
 
 
 def from_scale_encoding(
@@ -178,6 +179,12 @@ custom_rpc_type_registry = {
                 ["pruning_score", "Compact<u16>"],
             ],
         },
+        "NeuronCertificate": {
+            "type": "struct",
+            "type_mapping": [
+                ["certificate", "Vec<u8>"],
+            ],
+        },
         "axon_info": {
             "type": "struct",
             "type_mapping": [
@@ -260,7 +267,7 @@ custom_rpc_type_registry = {
 }
 
 
-def decode_account_id(account_id_bytes: list) -> str:
+def decode_account_id(account_id_bytes: Union[bytes, str]) -> str:
     """
     Decodes an AccountId from bytes to a Base64 string using SS58 encoding.
 

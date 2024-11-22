@@ -35,7 +35,7 @@ Bittensor is still in the Alpha stages, and as such you will likely run into som
 
 Additionally, note that the core implementation of Bittensor consists of two separate repositories: [The core Bittensor code](https://github.com/opentensor/bittensor) and the Bittensor Blockchain [subtensor](https://github.com/opentensor/subtensor).
 
-Supplemental repository for the Bittensor subnet template can be found [here](https://github.com/opentensor/bittensor-subnet-template). This is a great first place to look for getting your hands dirty and started learning and building on Bittensor. See the subnet links [page](https://github.com/opentensor/bittensor-subnet-template/blob/main/subnet_links.json) for a list of all the repositories for the active registered subnets.
+Supplemental repository for the Bittensor subnet template can be found [here](https://github.com/opentensor/bittensor-subnet-template). This is a great first place to look for getting your hands dirty and start learning and building on Bittensor. See the subnet links [page](https://github.com/opentensor/bittensor-subnet-template/blob/main/subnet_links.json) for a list of all the repositories for the active registered subnets.
 
 ## Getting Started
 New contributors are very welcome and needed.
@@ -43,7 +43,7 @@ Reviewing and testing is highly valued and the most effective way you can contri
 
 Before you start contributing, familiarize yourself with the Bittensor Core build system and tests. Refer to the documentation in the repository on how to build Bittensor core and how to run the unit tests, functional tests.
 
-There are many open issues of varying difficulty waiting to be fixed. If you're looking for somewhere to start contributing, check out the [good first issue](https://github.com/opentensor/bittensor/labels/good%20first%20issue) list or changes that are up for grabs. Some of them might no longer be applicable. So if you are interested, but unsure, you might want to leave a comment on the issue first.  Also peruse the [issues](https://github.com/opentensor/bittensor/issues) tab for all open issues.
+There are many open issues of varying difficulty waiting to be fixed. If you're looking for somewhere to start contributing, check out the [good first issue](https://github.com/opentensor/bittensor/labels/good%20first%20issue) list or changes that are up for grabs. Some of them might no longer be applicable. So if you are interested, but unsure, you might want to leave a comment on the issue first. Also peruse the [issues](https://github.com/opentensor/bittensor/issues) tab for all open issues.
 
 ### Good First Issue Label
 The purpose of the good first issue label is to highlight which issues are suitable for a new contributor without a deep understanding of the codebase.
@@ -264,7 +264,7 @@ Provide more context by answering these questions:
 
 Include details about your configuration and environment:
 
-* **Which version of Bittensor are you using?** You can get the version by checking for `__version__` in [`bittensor/bittensor/__init.py`](https://github.com/opentensor/bittensor/blob/master/bittensor/__init__.py#L30). This is not sufficient.  Also add the commit hash of the branch you are on.
+* **Which version of Bittensor are you using?** You can get the version by checking for `__version__` in [`bittensor/bittensor/__init.py`](https://github.com/opentensor/bittensor/blob/master/bittensor/__init__.py#L30). This is not sufficient. Also add the commit hash of the branch you are on.
 * **What commit hash are you on?** You can get the exact commit hash by checking `git log` and pasting the full commit hash.
 * **What's the name and version of the OS you're using**?
 * **Are you running Bittensor in a virtual machine?** If so, which VM software are you using and which operating systems and versions are used for the host and the guest?
@@ -282,7 +282,7 @@ When you are creating an enhancement suggestion, please [include as many details
 * **Check the [debugging guide](./DEBUGGING.md).** for tips — you might discover that the enhancement is already available. Most importantly, check if you're using the latest version of Bittensor by pulling the latest changes from the Master branch and if you can get the desired behavior by changing [Bittensor's config settings](https://opentensor.github.io/getting-started/configuration.html).
 * **Determine which repository the problem should be reported in: if it has to do with your ML model, then it's likely [Bittensor](https://github.com/opentensor/bittensor). If you are having problems with your emissions or Blockchain, then it is in [subtensor](https://github.com/opentensor/subtensor) 
 
-#### How Submit A (Good) Feature Suggestion
+#### How To Submit A (Good) Feature Suggestion
 
 Enhancement suggestions are tracked as [GitHub issues](https://guides.github.com/features/issues/). After you've determined which repository ([Bittensor](https://github.com/opentensor/bittensor) or [subtensor](https://github.com/opentensor/subtensor))  your enhancement suggestion is related to, create an issue on that repository and provide the following information:
 
