@@ -288,7 +288,8 @@ def publish_metadata(
         )
 
         extrinsic = substrate.create_signed_extrinsic(call=call, keypair=wallet.hotkey)
-        response = substrate.submit_extrinsic(
+        response = submit_extrinsic(
+            substrate,
             extrinsic,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,

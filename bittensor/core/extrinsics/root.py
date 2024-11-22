@@ -5,6 +5,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from bittensor.core.settings import version_as_int
+from bittensor.core.extrinsics.utils import submit_extrinsic
 from bittensor.utils import format_error_message, weight_utils, unlock_key
 from bittensor.utils.btlogging import logging
 from bittensor.utils.networking import ensure_connected
@@ -31,7 +32,8 @@ def _do_root_register(
     extrinsic = self.substrate.create_signed_extrinsic(
         call=call, keypair=wallet.coldkey
     )
-    response = self.substrate.submit_extrinsic(
+    response = submit_extrinsic(
+        self.substrate,
         extrinsic,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
@@ -156,7 +158,8 @@ def _do_set_root_weights(
         keypair=wallet.coldkey,
         era={"period": period},
     )
-    response = self.substrate.submit_extrinsic(
+    response = submit_extrinsic(
+        self.substrate,
         extrinsic,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
