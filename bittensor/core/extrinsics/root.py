@@ -85,6 +85,7 @@ def root_register_extrinsic(
 
     logging.info(":satellite: <magenta>Registering to root network...</magenta>")
     success, err_msg = _do_root_register(
+        self=subtensor,
         wallet=wallet,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
@@ -235,6 +236,7 @@ def set_root_weights_extrinsic(
             netuids, weights
         )
         success, error_message = _do_set_root_weights(
+            self=subtensor,
             wallet=wallet,
             netuid=0,
             uids=weight_uids,
