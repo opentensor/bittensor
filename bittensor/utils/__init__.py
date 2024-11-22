@@ -40,6 +40,8 @@ RAOPERTAO = 1e9
 U16_MAX = 65535
 U64_MAX = 18446744073709551615
 
+Certificate = str
+
 
 UnlockStatus = namedtuple("UnlockStatus", ["success", "message"])
 
