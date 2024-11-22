@@ -2110,7 +2110,6 @@ class Subtensor:
             amounts (list[Union[Balance, float]]): Corresponding amounts of TAO to stake for each hotkey.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
-            prompt (bool): If ``True``, prompts for user confirmation before proceeding.
 
         Returns:
             bool: ``True`` if the staking is successful for all specified neurons, False otherwise.
@@ -2118,12 +2117,12 @@ class Subtensor:
         This function is essential for managing stakes across multiple neurons, reflecting the dynamic and collaborative nature of the Bittensor network.
         """
         return add_stake_multiple_extrinsic(
-            self,
-            wallet,
-            hotkey_ss58s,
-            amounts,
-            wait_for_inclusion,
-            wait_for_finalization,
+            subtensor=self,
+            wallet=wallet,
+            hotkey_ss58s=hotkey_ss58s,
+            amounts=amounts,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
         )
 
     def unstake(
@@ -2150,12 +2149,12 @@ class Subtensor:
         This function supports flexible stake management, allowing neurons to adjust their network participation and potential reward accruals.
         """
         return unstake_extrinsic(
-            self,
-            wallet,
-            hotkey_ss58,
-            amount,
-            wait_for_inclusion,
-            wait_for_finalization,
+            subtensor=self,
+            wallet=wallet,
+            hotkey_ss58=hotkey_ss58,
+            amount=amount,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
         )
 
     def unstake_multiple(
@@ -2182,10 +2181,10 @@ class Subtensor:
         This function allows for strategic reallocation or withdrawal of stakes, aligning with the dynamic stake management aspect of the Bittensor network.
         """
         return unstake_multiple_extrinsic(
-            self,
-            wallet,
-            hotkey_ss58s,
-            amounts,
-            wait_for_inclusion,
-            wait_for_finalization,
+            subtensor=self,
+            wallet=wallet,
+            hotkey_ss58s=hotkey_ss58s,
+            amounts=amounts,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
         )

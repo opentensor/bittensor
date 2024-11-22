@@ -2153,3 +2153,641 @@ def test_networks_during_connection(mocker):
         # Assertions
         sub.network = network
         sub.chain_endpoint = settings.NETWORK_MAP.get(network)
+
+
+@pytest.mark.parametrize(
+    "fake_value_result",
+    [1, None],
+    ids=["result has value attr", "result has not value attr"],
+)
+def test_get_stake_for_coldkey_and_hotkey(subtensor, mocker, fake_value_result):
+    """Test get_stake_for_coldkey_and_hotkey calls right method with correct arguments."""
+    # Preps
+    fake_hotkey_ss58 = "FAKE_H_SS58"
+    fake_coldkey_ss58 = "FAKE_C_SS58"
+    fake_block = 123
+
+    return_value = (
+        mocker.Mock(value=fake_value_result)
+        if fake_value_result is not None
+        else fake_value_result
+    )
+
+    subtensor.query_subtensor = mocker.patch.object(
+        subtensor, "query_subtensor", return_value=return_value
+    )
+    spy_balance_from_rao = mocker.spy(subtensor_module.Balance, "from_rao")
+
+    # Call
+    result = subtensor.get_stake_for_coldkey_and_hotkey(
+        hotkey_ss58=fake_hotkey_ss58,
+        coldkey_ss58=fake_coldkey_ss58,
+        block=fake_block,
+    )
+
+    # Asserts
+    subtensor.query_subtensor.assert_called_once_with(
+        "Stake", fake_block, [fake_hotkey_ss58, fake_coldkey_ss58]
+    )
+    if fake_value_result is not None:
+        spy_balance_from_rao.assert_called_once_with(fake_value_result)
+    else:
+        spy_balance_from_rao.assert_not_called()
+    assert result == fake_value_result
+
+
+def test_does_hotkey_exist_true(mocker, subtensor):
+    """Test when the hotkey exists."""
+    # Mock data
+    fake_hotkey_ss58 = "fake_hotkey"
+    fake_owner = "valid_owner"
+    fake_block = 123
+
+    # Mocks
+    mock_query_subtensor = mocker.patch.object(
+        subtensor,
+        "query_subtensor",
+        return_value=mocker.Mock(value=fake_owner),
+    )
+
+    # Call
+    result = subtensor.does_hotkey_exist(fake_hotkey_ss58, block=fake_block)
+
+    # Assertions
+    mock_query_subtensor.assert_called_once_with(
+        "Owner", fake_block, [fake_hotkey_ss58]
+    )
+    assert result is True
+
+
+def test_does_hotkey_exist_no_value(mocker, subtensor):
+    """Test when query_subtensor returns no value."""
+    # Mock data
+    fake_hotkey_ss58 = "fake_hotkey"
+    fake_block = 123
+
+    # Mocks
+    mock_query_subtensor = mocker.patch.object(
+        subtensor,
+        "query_subtensor",
+        return_value=None,
+    )
+
+    # Call
+    result = subtensor.does_hotkey_exist(fake_hotkey_ss58, block=fake_block)
+
+    # Assertions
+    mock_query_subtensor.assert_called_once_with(
+        "Owner", fake_block, [fake_hotkey_ss58]
+    )
+    assert result is False
+
+
+def test_does_hotkey_exist_special_id(mocker, subtensor):
+    """Test when query_subtensor returns the special invalid owner identifier."""
+    # Mock data
+    fake_hotkey_ss58 = "fake_hotkey"
+    fake_owner = "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM"
+    fake_block = 123
+
+    # Mocks
+    mock_query_subtensor = mocker.patch.object(
+        subtensor,
+        "query_subtensor",
+        return_value=mocker.Mock(value=fake_owner),
+    )
+
+    # Call
+    result = subtensor.does_hotkey_exist(fake_hotkey_ss58, block=fake_block)
+
+    # Assertions
+    mock_query_subtensor.assert_called_once_with(
+        "Owner", fake_block, [fake_hotkey_ss58]
+    )
+    assert result is False
+
+
+def test_does_hotkey_exist_latest_block(mocker, subtensor):
+    """Test when no block is provided (latest block)."""
+    # Mock data
+    fake_hotkey_ss58 = "fake_hotkey"
+    fake_owner = "valid_owner"
+
+    # Mocks
+    mock_query_subtensor = mocker.patch.object(
+        subtensor,
+        "query_subtensor",
+        return_value=mocker.Mock(value=fake_owner),
+    )
+
+    # Call
+    result = subtensor.does_hotkey_exist(fake_hotkey_ss58)
+
+    # Assertions
+    mock_query_subtensor.assert_called_once_with("Owner", None, [fake_hotkey_ss58])
+    assert result is True
+
+
+def test_get_hotkey_owner_success(mocker, subtensor):
+    """Test when hotkey exists and owner is found."""
+    # Mock data
+    fake_hotkey_ss58 = "fake_hotkey"
+    fake_coldkey_ss58 = "fake_coldkey"
+    fake_block = 123
+
+    # Mocks
+    mock_query_subtensor = mocker.patch.object(
+        subtensor,
+        "query_subtensor",
+        return_value=mocker.Mock(value=fake_coldkey_ss58),
+    )
+    mock_does_hotkey_exist = mocker.patch.object(
+        subtensor, "does_hotkey_exist", return_value=True
+    )
+
+    # Call
+    result = subtensor.get_hotkey_owner(fake_hotkey_ss58, block=fake_block)
+
+    # Assertions
+    mock_query_subtensor.assert_called_once_with(
+        "Owner", fake_block, [fake_hotkey_ss58]
+    )
+    mock_does_hotkey_exist.assert_called_once_with(fake_hotkey_ss58, fake_block)
+    assert result == fake_coldkey_ss58
+
+
+def test_get_hotkey_owner_no_value(mocker, subtensor):
+    """Test when query_subtensor returns no value."""
+    # Mock data
+    fake_hotkey_ss58 = "fake_hotkey"
+    fake_block = 123
+
+    # Mocks
+    mock_query_subtensor = mocker.patch.object(
+        subtensor,
+        "query_subtensor",
+        return_value=None,
+    )
+    mock_does_hotkey_exist = mocker.patch.object(
+        subtensor, "does_hotkey_exist", return_value=True
+    )
+
+    # Call
+    result = subtensor.get_hotkey_owner(fake_hotkey_ss58, block=fake_block)
+
+    # Assertions
+    mock_query_subtensor.assert_called_once_with(
+        "Owner", fake_block, [fake_hotkey_ss58]
+    )
+    mock_does_hotkey_exist.assert_not_called()
+    assert result is None
+
+
+def test_get_hotkey_owner_does_not_exist(mocker, subtensor):
+    """Test when hotkey does not exist."""
+    # Mock data
+    fake_hotkey_ss58 = "fake_hotkey"
+    fake_block = 123
+
+    # Mocks
+    mock_query_subtensor = mocker.patch.object(
+        subtensor,
+        "query_subtensor",
+        return_value=mocker.Mock(value="fake_coldkey"),
+    )
+    mock_does_hotkey_exist = mocker.patch.object(
+        subtensor, "does_hotkey_exist", return_value=False
+    )
+
+    # Call
+    result = subtensor.get_hotkey_owner(fake_hotkey_ss58, block=fake_block)
+
+    # Assertions
+    mock_query_subtensor.assert_called_once_with(
+        "Owner", fake_block, [fake_hotkey_ss58]
+    )
+    mock_does_hotkey_exist.assert_called_once_with(fake_hotkey_ss58, fake_block)
+    assert result is None
+
+
+def test_get_hotkey_owner_latest_block(mocker, subtensor):
+    """Test when no block is provided (latest block)."""
+    # Mock data
+    fake_hotkey_ss58 = "fake_hotkey"
+    fake_coldkey_ss58 = "fake_coldkey"
+
+    # Mocks
+    mock_query_subtensor = mocker.patch.object(
+        subtensor,
+        "query_subtensor",
+        return_value=mocker.Mock(value=fake_coldkey_ss58),
+    )
+    mock_does_hotkey_exist = mocker.patch.object(
+        subtensor, "does_hotkey_exist", return_value=True
+    )
+
+    # Call
+    result = subtensor.get_hotkey_owner(fake_hotkey_ss58)
+
+    # Assertions
+    mock_query_subtensor.assert_called_once_with("Owner", None, [fake_hotkey_ss58])
+    mock_does_hotkey_exist.assert_called_once_with(fake_hotkey_ss58, None)
+    assert result == fake_coldkey_ss58
+
+
+def test_get_minimum_required_stake_success(mocker, subtensor):
+    """Test successful call to get_minimum_required_stake."""
+    # Mock data
+    fake_min_stake = "1000000000"  # Example value in rao
+
+    # Mocking
+    mock_query = mocker.patch.object(
+        subtensor.substrate,
+        "query",
+        return_value=mocker.Mock(decode=mocker.Mock(return_value=fake_min_stake)),
+    )
+    mock_balance_from_rao = mocker.patch("bittensor.utils.balance.Balance.from_rao")
+
+    # Call
+    result = subtensor.get_minimum_required_stake()
+
+    # Assertions
+    mock_query.assert_called_once_with(
+        module="SubtensorModule", storage_function="NominatorMinRequiredStake"
+    )
+    mock_balance_from_rao.assert_called_once_with(fake_min_stake)
+    assert result == mock_balance_from_rao.return_value
+
+
+def test_get_minimum_required_stake_query_failure(mocker, subtensor):
+    """Test query failure in get_minimum_required_stake."""
+    # Mocking
+    mock_query = mocker.patch.object(
+        subtensor.substrate,
+        "query",
+        side_effect=Exception("Query failed"),
+    )
+
+    # Call and Assertions
+    with pytest.raises(Exception, match="Query failed"):
+        subtensor.get_minimum_required_stake()
+    mock_query.assert_called_once_with(
+        module="SubtensorModule", storage_function="NominatorMinRequiredStake"
+    )
+
+
+def test_get_minimum_required_stake_invalid_result(mocker, subtensor):
+    """Test when the result cannot be decoded."""
+    # Mock data
+    fake_invalid_stake = None  # Simulate a failure in decoding
+
+    # Mocking
+    mock_query = mocker.patch.object(
+        subtensor.substrate,
+        "query",
+        return_value=mocker.Mock(decode=mocker.Mock(return_value=fake_invalid_stake)),
+    )
+    mock_balance_from_rao = mocker.patch("bittensor.utils.balance.Balance.from_rao")
+
+    # Call
+    result = subtensor.get_minimum_required_stake()
+
+    # Assertions
+    mock_query.assert_called_once_with(
+        module="SubtensorModule", storage_function="NominatorMinRequiredStake"
+    )
+    mock_balance_from_rao.assert_called_once_with(fake_invalid_stake)
+    assert result == mock_balance_from_rao.return_value
+
+
+def test_tx_rate_limit_success(mocker, subtensor):
+    """Test when tx_rate_limit is successfully retrieved."""
+    # Mock data
+    fake_rate_limit = 100
+    fake_block = 123
+
+    # Mocks
+    mock_query_subtensor = mocker.patch.object(
+        subtensor,
+        "query_subtensor",
+        return_value=mocker.Mock(value=fake_rate_limit),
+    )
+
+    # Call
+    result = subtensor.tx_rate_limit(block=fake_block)
+
+    # Assertions
+    mock_query_subtensor.assert_called_once_with("TxRateLimit", fake_block)
+    assert result == fake_rate_limit
+
+
+def test_tx_rate_limit_no_value(mocker, subtensor):
+    """Test when query_subtensor returns None."""
+    # Mock data
+    fake_block = 123
+
+    # Mocks
+    mock_query_subtensor = mocker.patch.object(
+        subtensor,
+        "query_subtensor",
+        return_value=None,
+    )
+
+    # Call
+    result = subtensor.tx_rate_limit(block=fake_block)
+
+    # Assertions
+    mock_query_subtensor.assert_called_once_with("TxRateLimit", fake_block)
+    assert result is None
+
+
+def test_get_delegates_success(mocker, subtensor):
+    """Test when delegates are successfully retrieved."""
+    # Mock data
+    fake_block = 123
+    fake_block_hash = "0xabc123"
+    fake_json_body = {
+        "result": "mock_encoded_delegates",
+    }
+
+    # Mocks
+    mock_get_block_hash = mocker.patch.object(
+        subtensor.substrate,
+        "get_block_hash",
+        return_value=fake_block_hash,
+    )
+    mock_rpc_request = mocker.patch.object(
+        subtensor.substrate,
+        "rpc_request",
+        return_value=fake_json_body,
+    )
+    mock_list_from_vec_u8 = mocker.patch.object(
+        subtensor_module.DelegateInfo,
+        "list_from_vec_u8",
+        return_value=["delegate1", "delegate2"],
+    )
+
+    # Call
+    result = subtensor.get_delegates(block=fake_block)
+
+    # Assertions
+    mock_get_block_hash.assert_called_once_with(fake_block)
+    mock_rpc_request.assert_called_once_with(
+        method="delegateInfo_getDelegates",
+        params=[fake_block_hash],
+    )
+    mock_list_from_vec_u8.assert_called_once_with(fake_json_body["result"])
+    assert result == ["delegate1", "delegate2"]
+
+
+def test_get_delegates_no_result(mocker, subtensor):
+    """Test when rpc_request returns no result."""
+    # Mock data
+    fake_block = 123
+    fake_block_hash = "0xabc123"
+    fake_json_body = {}
+
+    # Mocks
+    mock_get_block_hash = mocker.patch.object(
+        subtensor.substrate,
+        "get_block_hash",
+        return_value=fake_block_hash,
+    )
+    mock_rpc_request = mocker.patch.object(
+        subtensor.substrate,
+        "rpc_request",
+        return_value=fake_json_body,
+    )
+
+    # Call
+    result = subtensor.get_delegates(block=fake_block)
+
+    # Assertions
+    mock_get_block_hash.assert_called_once_with(fake_block)
+    mock_rpc_request.assert_called_once_with(
+        method="delegateInfo_getDelegates",
+        params=[fake_block_hash],
+    )
+    assert result == []
+
+
+def test_get_delegates_latest_block(mocker, subtensor):
+    """Test when no block is provided (latest block)."""
+    # Mock data
+    fake_json_body = {
+        "result": "mock_encoded_delegates",
+    }
+
+    # Mocks
+    mock_rpc_request = mocker.patch.object(
+        subtensor.substrate,
+        "rpc_request",
+        return_value=fake_json_body,
+    )
+    mock_list_from_vec_u8 = mocker.patch.object(
+        subtensor_module.DelegateInfo,
+        "list_from_vec_u8",
+        return_value=["delegate1", "delegate2"],
+    )
+
+    # Call
+    result = subtensor.get_delegates()
+
+    # Assertions
+    mock_rpc_request.assert_called_once_with(
+        method="delegateInfo_getDelegates",
+        params=[],
+    )
+    mock_list_from_vec_u8.assert_called_once_with(fake_json_body["result"])
+    assert result == ["delegate1", "delegate2"]
+
+
+def test_is_hotkey_delegate_true(mocker, subtensor):
+    """Test when hotkey is a delegate."""
+    # Mock data
+    fake_hotkey_ss58 = "hotkey_1"
+    fake_block = 123
+    fake_delegates = [
+        mocker.Mock(hotkey_ss58="hotkey_1"),
+        mocker.Mock(hotkey_ss58="hotkey_2"),
+    ]
+
+    # Mocks
+    mock_get_delegates = mocker.patch.object(
+        subtensor, "get_delegates", return_value=fake_delegates
+    )
+
+    # Call
+    result = subtensor.is_hotkey_delegate(fake_hotkey_ss58, block=fake_block)
+
+    # Assertions
+    mock_get_delegates.assert_called_once_with(block=fake_block)
+    assert result is True
+
+
+def test_is_hotkey_delegate_false(mocker, subtensor):
+    """Test when hotkey is not a delegate."""
+    # Mock data
+    fake_hotkey_ss58 = "hotkey_3"
+    fake_block = 123
+    fake_delegates = [
+        mocker.Mock(hotkey_ss58="hotkey_1"),
+        mocker.Mock(hotkey_ss58="hotkey_2"),
+    ]
+
+    # Mocks
+    mock_get_delegates = mocker.patch.object(
+        subtensor, "get_delegates", return_value=fake_delegates
+    )
+
+    # Call
+    result = subtensor.is_hotkey_delegate(fake_hotkey_ss58, block=fake_block)
+
+    # Assertions
+    mock_get_delegates.assert_called_once_with(block=fake_block)
+    assert result is False
+
+
+def test_is_hotkey_delegate_empty_list(mocker, subtensor):
+    """Test when delegate list is empty."""
+    # Mock data
+    fake_hotkey_ss58 = "hotkey_1"
+    fake_block = 123
+
+    # Mocks
+    mock_get_delegates = mocker.patch.object(
+        subtensor, "get_delegates", return_value=[]
+    )
+
+    # Call
+    result = subtensor.is_hotkey_delegate(fake_hotkey_ss58, block=fake_block)
+
+    # Assertions
+    mock_get_delegates.assert_called_once_with(block=fake_block)
+    assert result is False
+
+
+def test_add_stake_success(mocker, subtensor):
+    """Test add_stake returns True on successful staking."""
+    # Prep
+    fake_wallet = mocker.Mock()
+    fake_hotkey_ss58 = "fake_hotkey"
+    fake_amount = 10.0
+
+    mock_add_stake_extrinsic = mocker.patch.object(
+        subtensor_module, "add_stake_extrinsic"
+    )
+
+    # Call
+    result = subtensor.add_stake(
+        wallet=fake_wallet,
+        hotkey_ss58=fake_hotkey_ss58,
+        amount=fake_amount,
+        wait_for_inclusion=True,
+        wait_for_finalization=False,
+    )
+
+    # Assertions
+    mock_add_stake_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        hotkey_ss58=fake_hotkey_ss58,
+        amount=fake_amount,
+        wait_for_inclusion=True,
+        wait_for_finalization=False,
+    )
+    assert result == mock_add_stake_extrinsic.return_value
+
+
+def test_add_stake_multiple_success(mocker, subtensor):
+    """Test add_stake_multiple successfully stakes for all hotkeys."""
+    # Prep
+    fake_wallet = mocker.Mock()
+    fake_hotkey_ss58 = ["fake_hotkey"]
+    fake_amount = [10.0]
+
+    mock_add_stake_multiple_extrinsic = mocker.patch.object(
+        subtensor_module, "add_stake_multiple_extrinsic"
+    )
+
+    # Call
+    result = subtensor.add_stake_multiple(
+        wallet=fake_wallet,
+        hotkey_ss58s=fake_hotkey_ss58,
+        amounts=fake_amount,
+        wait_for_inclusion=True,
+        wait_for_finalization=False,
+    )
+
+    # Assertions
+    mock_add_stake_multiple_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        hotkey_ss58s=fake_hotkey_ss58,
+        amounts=fake_amount,
+        wait_for_inclusion=True,
+        wait_for_finalization=False,
+    )
+    assert result == mock_add_stake_multiple_extrinsic.return_value
+
+
+def test_unstake_success(mocker, subtensor):
+    """Test unstake operation is successful."""
+    # Preps
+    fake_wallet = mocker.Mock()
+    fake_hotkey_ss58 = "hotkey_1"
+    fake_amount = 10.0
+
+    mock_unstake_extrinsic = mocker.patch.object(subtensor_module, "unstake_extrinsic")
+
+    # Call
+    result = subtensor.unstake(
+        wallet=fake_wallet,
+        hotkey_ss58=fake_hotkey_ss58,
+        amount=fake_amount,
+        wait_for_inclusion=True,
+        wait_for_finalization=False,
+    )
+
+    # Assertions
+    mock_unstake_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        hotkey_ss58=fake_hotkey_ss58,
+        amount=fake_amount,
+        wait_for_inclusion=True,
+        wait_for_finalization=False,
+    )
+    assert result == mock_unstake_extrinsic.return_value
+
+
+def test_unstake_multiple_success(mocker, subtensor):
+    """Test unstake_multiple succeeds for all hotkeys."""
+    # Preps
+    fake_wallet = mocker.Mock()
+    fake_hotkeys = ["hotkey_1", "hotkey_2"]
+    fake_amounts = [10.0, 20.0]
+
+    mock_unstake_multiple_extrinsic = mocker.patch(
+        "bittensor.core.subtensor.unstake_multiple_extrinsic", return_value=True
+    )
+
+    # Call
+    result = subtensor.unstake_multiple(
+        wallet=fake_wallet,
+        hotkey_ss58s=fake_hotkeys,
+        amounts=fake_amounts,
+        wait_for_inclusion=True,
+        wait_for_finalization=False,
+    )
+
+    # Assertions
+    mock_unstake_multiple_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        hotkey_ss58s=fake_hotkeys,
+        amounts=fake_amounts,
+        wait_for_inclusion=True,
+        wait_for_finalization=False,
+    )
+    assert result == mock_unstake_multiple_extrinsic.return_value
