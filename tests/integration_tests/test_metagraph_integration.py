@@ -1,15 +1,14 @@
 # The MIT License (MIT)
-# Copyright © 2021 Yuma Rao
-# Copyright © 2023 Opentensor Foundation
-
+# Copyright © 2024 Opentensor Foundation
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
 # the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
+#
 # The above copyright notice and this permission notice shall be included in all copies or substantial portions of
 # the Software.
-
+#
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
 # THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
@@ -19,25 +18,22 @@
 import bittensor
 import torch
 import os
-from bittensor.mock import MockSubtensor
-from bittensor.metagraph import METAGRAPH_STATE_DICT_NDARRAY_KEYS, get_save_dir
+from bittensor.utils.mock import MockSubtensor
+from bittensor.core.metagraph import METAGRAPH_STATE_DICT_NDARRAY_KEYS, get_save_dir
 
 _subtensor_mock: MockSubtensor = MockSubtensor()
 
 
 def setUpModule():
     _subtensor_mock.reset()
-
     _subtensor_mock.create_subnet(netuid=3)
-
-    # Set diff 0
-    _subtensor_mock.set_difficulty(netuid=3, difficulty=0)
+    _subtensor_mock.set_difficulty(netuid=3, difficulty=0)  # Set diff 0
 
 
 class TestMetagraph:
     def setup_method(self):
         self.sub = MockSubtensor()
-        self.metagraph = bittensor.metagraph(netuid=3, network="mock", sync=False)
+        self.metagraph = bittensor.Metagraph(netuid=3, network="mock", sync=False)
 
     def test_print_empty(self):
         print(self.metagraph)
