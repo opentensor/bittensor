@@ -161,12 +161,8 @@ def add_stake_extrinsic(
         bittensor.core.errors.NotDelegateError: If the hotkey is not a delegate on the chain.
     """
     # Decrypt keys,
-    try:
-        wallet.coldkey
-    except KeyFileError:
-        logging.error(
-            ":cross_mark: [red]Keyfile is corrupt, non-writable, non-readable or the password used to decrypt is invalid.[/red]"
-        )
+    if not (unlock := unlock_key(wallet)).success:
+        logging.error(unlock.message)
         return False
 
     # Default to wallet's own hotkey if the value is not passed.
