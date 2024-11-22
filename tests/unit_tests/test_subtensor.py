@@ -2300,3 +2300,68 @@ def test_get_hotkey_owner_latest_block(mocker, subtensor):
     mock_query_subtensor.assert_called_once_with("Owner", None, [fake_hotkey_ss58])
     mock_does_hotkey_exist.assert_called_once_with(fake_hotkey_ss58, None)
     assert result == fake_coldkey_ss58
+
+
+def test_get_minimum_required_stake_success(mocker, subtensor):
+    """Test successful call to get_minimum_required_stake."""
+    # Mock data
+    fake_min_stake = "1000000000"  # Example value in rao
+
+    # Mocking
+    mock_query = mocker.patch.object(
+        subtensor.substrate,
+        "query",
+        return_value=mocker.Mock(decode=mocker.Mock(return_value=fake_min_stake)),
+    )
+    mock_balance_from_rao = mocker.patch("bittensor.utils.balance.Balance.from_rao")
+
+    # Call
+    result = subtensor.get_minimum_required_stake()
+
+    # Assertions
+    mock_query.assert_called_once_with(
+        module="SubtensorModule", storage_function="NominatorMinRequiredStake"
+    )
+    mock_balance_from_rao.assert_called_once_with(fake_min_stake)
+    assert result == mock_balance_from_rao.return_value
+
+
+def test_get_minimum_required_stake_query_failure(mocker, subtensor):
+    """Test query failure in get_minimum_required_stake."""
+    # Mocking
+    mock_query = mocker.patch.object(
+        subtensor.substrate,
+        "query",
+        side_effect=Exception("Query failed"),
+    )
+
+    # Call and Assertions
+    with pytest.raises(Exception, match="Query failed"):
+        subtensor.get_minimum_required_stake()
+    mock_query.assert_called_once_with(
+        module="SubtensorModule", storage_function="NominatorMinRequiredStake"
+    )
+
+
+def test_get_minimum_required_stake_invalid_result(mocker, subtensor):
+    """Test when the result cannot be decoded."""
+    # Mock data
+    fake_invalid_stake = None  # Simulate a failure in decoding
+
+    # Mocking
+    mock_query = mocker.patch.object(
+        subtensor.substrate,
+        "query",
+        return_value=mocker.Mock(decode=mocker.Mock(return_value=fake_invalid_stake)),
+    )
+    mock_balance_from_rao = mocker.patch("bittensor.utils.balance.Balance.from_rao")
+
+    # Call
+    result = subtensor.get_minimum_required_stake()
+
+    # Assertions
+    mock_query.assert_called_once_with(
+        module="SubtensorModule", storage_function="NominatorMinRequiredStake"
+    )
+    mock_balance_from_rao.assert_called_once_with(fake_invalid_stake)
+    assert result == mock_balance_from_rao.return_value
