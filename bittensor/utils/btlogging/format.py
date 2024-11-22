@@ -56,6 +56,7 @@ emoji_map: dict[str, str] = {
     ":satellite:": "🛰️",
     ":warning:": "⚠️",
     ":arrow_right:": "➡️",
+    ":hourglass:": "⏳",
 }
 
 
