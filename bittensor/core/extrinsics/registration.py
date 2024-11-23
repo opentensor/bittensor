@@ -13,11 +13,8 @@ from typing import Union, Optional, TYPE_CHECKING
 from bittensor.utils import format_error_message, unlock_key
 from bittensor.utils.btlogging import logging
 from bittensor.utils.networking import ensure_connected
-from bittensor.utils.registration import (
-    create_pow,
-    torch,
-    log_no_torch_error,
-)
+from bittensor.utils.registration import create_pow, torch, log_no_torch_error
+from bittensor.core.extrinsics.utils import submit_extrinsic
 
 # For annotation and lazy import purposes
 if TYPE_CHECKING:
@@ -68,8 +65,9 @@ def _do_pow_register(
         },
     )
     extrinsic = self.substrate.create_signed_extrinsic(call=call, keypair=wallet.hotkey)
-    response = self.substrate.submit_extrinsic(
-        extrinsic,
+    response = submit_extrinsic(
+        substrate=self.substrate,
+        extrinsic=extrinsic,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
     )
@@ -298,7 +296,8 @@ def _do_burned_register(
     extrinsic = self.substrate.create_signed_extrinsic(
         call=call, keypair=wallet.coldkey
     )
-    response = self.substrate.submit_extrinsic(
+    response = submit_extrinsic(
+        self.substrate,
         extrinsic,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
