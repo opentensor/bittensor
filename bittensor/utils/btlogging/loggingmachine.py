@@ -443,40 +443,40 @@ class LoggingMachine(StateMachine, Logger):
         """
         return self.current_state_value == "Trace"
 
-    def trace(self, msg="", prefix="", suffix="", *args, **kwargs):
+    def trace(self, msg="", prefix="", suffix="", *args):
         """Wraps trace message with prefix and suffix."""
         msg = _concat_message(msg, prefix, suffix)
-        self._logger.trace(msg, *args, **kwargs)
+        self._logger.trace(msg, *args)
 
-    def debug(self, msg="", prefix="", suffix="", *args, **kwargs):
+    def debug(self, msg="", prefix="", suffix="", *args):
         """Wraps debug message with prefix and suffix."""
         msg = _concat_message(msg, prefix, suffix)
-        self._logger.debug(msg, *args, **kwargs)
+        self._logger.debug(msg, *args)
 
-    def info(self, msg="", prefix="", suffix="", *args, **kwargs):
+    def info(self, msg="", prefix="", suffix="", *args):
         """Wraps info message with prefix and suffix."""
         msg = _concat_message(msg, prefix, suffix)
-        self._logger.info(msg, *args, **kwargs)
+        self._logger.info(msg, *args)
 
-    def success(self, msg="", prefix="", suffix="", *args, **kwargs):
+    def success(self, msg="", prefix="", suffix="", *args):
         """Wraps success message with prefix and suffix."""
         msg = _concat_message(msg, prefix, suffix)
-        self._logger.success(msg, *args, **kwargs)
+        self._logger.success(msg, *args)
 
-    def warning(self, msg="", prefix="", suffix="", *args, **kwargs):
+    def warning(self, msg="", prefix="", suffix="", *args):
         """Wraps warning message with prefix and suffix."""
         msg = _concat_message(msg, prefix, suffix)
-        self._logger.warning(msg, *args, **kwargs)
+        self._logger.warning(msg, *args)
 
-    def error(self, msg="", prefix="", suffix="", *args, **kwargs):
+    def error(self, msg="", prefix="", suffix="", *args):
         """Wraps error message with prefix and suffix."""
         msg = _concat_message(msg, prefix, suffix)
-        self._logger.error(msg, *args, **kwargs)
+        self._logger.error(msg, *args)
 
-    def critical(self, msg="", prefix="", suffix="", *args, **kwargs):
+    def critical(self, msg="", prefix="", suffix="", *args):
         """Wraps critical message with prefix and suffix."""
         msg = _concat_message(msg, prefix, suffix)
-        self._logger.critical(msg, *args, **kwargs)
+        self._logger.critical(msg, *args)
 
     def exception(self, msg="", prefix="", suffix="", *args, **kwargs):
         """Wraps exception message with prefix and suffix."""
