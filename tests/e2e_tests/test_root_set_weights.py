@@ -1,6 +1,5 @@
 import asyncio
 import sys
-import numpy as np
 import pytest
 
 from bittensor.core.subtensor import Subtensor
@@ -9,11 +8,14 @@ from tests.e2e_tests.utils.chain_interactions import (
     wait_epoch,
     sudo_set_hyperparameter_values,
 )
+from bittensor.core.extrinsics.root import _do_set_root_weights
 from tests.e2e_tests.utils.e2e_test_utils import (
     setup_wallet,
     template_path,
     templates_repo,
 )
+
+FAST_BLOCKS_SPEEDUP_FACTOR = 5
 
 """
 Verifies:
@@ -66,7 +68,8 @@ async def test_root_reg_hyperparams(local_chain):
     default_tempo = 360
 
     # 0.2 for root network, 0.8 for sn 1
-    weights = [0.2, 0.8]
+    # Corresponding to [0.2, 0.8]
+    weights = [16384, 65535]
 
     # Create Alice, SN1 owner and root network member
     alice_keypair, alice_wallet = setup_wallet("//Alice")
@@ -149,24 +152,24 @@ async def test_root_reg_hyperparams(local_chain):
     # Wait until next epoch so we can set root weights
     await wait_epoch(subtensor)
 
-    # Set root weights for netuids 0, 1
-    assert subtensor.root_set_weights(
-        alice_wallet,
-        [0, 1],
-        weights,
-        wait_for_inclusion=False,
+    # Set root weights to root network (0) and sn 1
+    assert _do_set_root_weights(
+        subtensor,
+        wallet=alice_wallet,
+        uids=[0, 1],
+        vals=weights,
+        netuid=0,
+        version_key=0,
+        wait_for_inclusion=True,
         wait_for_finalization=True,
-    )
+        period=5 * FAST_BLOCKS_SPEEDUP_FACTOR,
+    ) == (True, "Successfully set weights.")
 
     # Query the weights from the chain
-    weights_raw = local_chain.query("SubtensorModule", "Weights", [0, 0]).serialize()
-
-    weights_array = np.array(weights_raw)
-    normalized_weights = weights_array[:, 1] / max(np.sum(weights_array, axis=0)[1], 1)
-    rounded_weights = [round(weight, 1) for weight in normalized_weights]
+    weights_set = local_chain.query("SubtensorModule", "Weights", [0, 0]).serialize()
 
     # Assert correct weights were set for root and sn 1
-    assert weights == rounded_weights
+    assert [val[1] for val in weights_set] == weights
 
     # Register Bob as miner
     bob_keypair, bob_wallet = setup_wallet("//Bob")
