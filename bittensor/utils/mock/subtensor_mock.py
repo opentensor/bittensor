@@ -441,8 +441,10 @@ class MockSubtensor(Subtensor):
         self,
         name: str,
         block: Optional[int] = None,
-        params: Optional[list[object]] = [],
+        params: Optional[list[object]] = None,
     ) -> MockSubtensorValue:
+        if params is None:
+            params = []
         if block:
             if self.block_number < block:
                 raise Exception("Cannot query block in the future")
@@ -477,11 +479,13 @@ class MockSubtensor(Subtensor):
         self,
         name: str,
         block: Optional[int] = None,
-        params: Optional[list[object]] = [],
+        params: Optional[list[object]] = None,
     ) -> Optional[MockMapResult]:
         """
         Note: Double map requires one param
         """
+        if params is None:
+            params = []
         if block:
             if self.block_number < block:
                 raise Exception("Cannot query block in the future")
@@ -535,7 +539,7 @@ class MockSubtensor(Subtensor):
         else:
             block = self.block_number
 
-        state = self.chain_state.get(module_name, None)
+        state: Optional[dict] = self.chain_state.get(module_name, None)
         if state is not None:
             if constant_name in state:
                 state = state[constant_name]
@@ -811,6 +815,52 @@ class MockSubtensor(Subtensor):
                 neurons.append(neuron_info)
 
         return neurons
+
+    def neuron_for_uid_lite(
+        self, uid: int, netuid: int, block: Optional[int] = None
+    ) -> Optional[NeuronInfoLite]:
+        if uid is None:
+            return NeuronInfoLite.get_null_neuron()
+
+        if block:
+            if self.block_number < block:
+                raise Exception("Cannot query block in the future")
+
+        else:
+            block = self.block_number
+
+        if netuid not in self.chain_state["SubtensorModule"]["NetworksAdded"]:
+            return None
+
+        neuron_info = self._neuron_subnet_exists(uid, netuid, block)
+        if neuron_info is None:
+            # TODO Why does this return None here but a null neuron earlier?
+            return None
+
+        else:
+            return NeuronInfoLite(
+                hotkey=neuron_info.hotkey,
+                coldkey=neuron_info.coldkey,
+                uid=neuron_info.uid,
+                netuid=neuron_info.netuid,
+                active=neuron_info.active,
+                stake=neuron_info.stake,
+                stake_dict=neuron_info.stake_dict,
+                total_stake=neuron_info.total_stake,
+                rank=neuron_info.rank,
+                emission=neuron_info.emission,
+                incentive=neuron_info.incentive,
+                consensus=neuron_info.consensus,
+                trust=neuron_info.trust,
+                validator_trust=neuron_info.validator_trust,
+                dividends=neuron_info.dividends,
+                last_update=neuron_info.last_update,
+                validator_permit=neuron_info.validator_permit,
+                prometheus_info=neuron_info.prometheus_info,
+                axon_info=neuron_info.axon_info,
+                pruning_score=neuron_info.pruning_score,
+                is_null=neuron_info.is_null,
+            )
 
     def get_transfer_fee(
         self, wallet: "Wallet", dest: str, value: Union["Balance", float, int]
