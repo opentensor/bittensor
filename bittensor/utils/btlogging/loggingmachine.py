@@ -314,7 +314,7 @@ class LoggingMachine(StateMachine, Logger):
                 continue
             queue_handler = QueueHandler(self._queue)
             logger.addHandler(queue_handler)
-            logger.setLevel(self._logger.level)
+            logger.setLevel(self._logger.logger.level)
 
     def disable_third_party_loggers(self):
         """Disables logging for third-party loggers by removing all their handlers."""
@@ -548,7 +548,7 @@ class LoggingMachine(StateMachine, Logger):
 
     def get_level(self) -> int:
         """Returns Logging level."""
-        return self._logger.level
+        return self._logger.logger.level
 
     def check_config(self, config: "Config"):
         assert config.logging
