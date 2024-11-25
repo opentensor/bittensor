@@ -249,7 +249,7 @@ class LoggingMachine(StateMachine, Logger):
         logger = stdlogging.getLogger(name)
         queue_handler = QueueHandler(self._queue)
         logger.addHandler(queue_handler)
-        logger = UnstackLoggerAdapter(logger)
+        logger = UnstackLoggerAdapter(logger, extra=None)
         return logger
 
     def _deinitialize_bt_logger(self, name: str):
