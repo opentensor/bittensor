@@ -64,6 +64,8 @@ class LoggingConfig(NamedTuple):
 
 
 class UnstackLoggerAdapter(stdlogging.LoggerAdapter):
+    """Unstacks LoggingMachine's internal calls to wrapped logger"""
+
     def log(self, level, msg, *args, stacklevel=1, **kwargs):
         return super().log(level, msg, *args, **kwargs, stacklevel=stacklevel + 2)
 
