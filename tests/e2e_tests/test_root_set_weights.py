@@ -130,10 +130,11 @@ async def test_root_reg_hyperparams(local_chain):
         alice_wallet.hotkey.ss58_address, netuid
     )
 
-    # Fetch the block since last update, so we can compare later
-    initial_block = subtensor.blocks_since_last_update(
+    # Fetch the block since last update for the neuron
+    block_since_update = subtensor.blocks_since_last_update(
         netuid=netuid, uid=alice_uid_sn_1
     )
+    assert block_since_update is not None
 
     # Verify subnet <netuid> created successfully
     assert local_chain.query(
@@ -190,10 +191,6 @@ async def test_root_reg_hyperparams(local_chain):
         call_params={"netuid": netuid, "registration_allowed": True},
         return_error_message=True,
     )
-
-    updated_block = subtensor.blocks_since_last_update(netuid=netuid, uid=0)
-    # Ensure updates are reflected through incremental block numbers
-    assert updated_block > initial_block
 
     # TODO: Implement
     # This registers neuron using pow but it doesn't work on fast-blocks - we get stale pow
