@@ -63,6 +63,17 @@ class LoggingConfig(NamedTuple):
     logging_dir: str
 
 
+class UnstackLoggerAdapter(stdlogging.LoggerAdapter):
+    def log(self, level, msg, *args, stacklevel=1, **kwargs):
+        return super().log(level, msg, *args, **kwargs, stacklevel=stacklevel + 2)
+
+    def success(self, msg: str, *args, stacklevel=1, **kwargs):
+        return self.logger.success(msg, *args, **kwargs, stacklevel=stacklevel + 3)
+
+    def trace(self, msg, *args, stacklevel=1, **kwargs):
+        return self.logger.trace(msg, *args, **kwargs, stacklevel=stacklevel + 3)
+
+
 class LoggingMachine(StateMachine, Logger):
     """Handles logger states for bittensor and 3rd party libraries."""
 
@@ -236,6 +247,7 @@ class LoggingMachine(StateMachine, Logger):
         logger = stdlogging.getLogger(name)
         queue_handler = QueueHandler(self._queue)
         logger.addHandler(queue_handler)
+        logger = UnstackLoggerAdapter(logger)
         return logger
 
     def _deinitialize_bt_logger(self, name: str):
