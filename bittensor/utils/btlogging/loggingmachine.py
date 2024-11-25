@@ -443,45 +443,45 @@ class LoggingMachine(StateMachine, Logger):
         """
         return self.current_state_value == "Trace"
 
-    def trace(self, msg="", prefix="", suffix="", *args, **kwargs):
+    def trace(self, msg="", prefix="", suffix="", *args, stacklevel=1, **kwargs):
         """Wraps trace message with prefix and suffix."""
         msg = _concat_message(msg, prefix, suffix)
-        self._logger.trace(msg, *args, **kwargs)
+        self._logger.trace(msg, *args, **kwargs, stacklevel=stacklevel + 2)
 
-    def debug(self, msg="", prefix="", suffix="", *args, **kwargs):
+    def debug(self, msg="", prefix="", suffix="", *args, stacklevel=1, **kwargs):
         """Wraps debug message with prefix and suffix."""
         msg = _concat_message(msg, prefix, suffix)
-        self._logger.debug(msg, *args, **kwargs)
+        self._logger.debug(msg, *args, **kwargs, stacklevel=stacklevel + 1)
 
-    def info(self, msg="", prefix="", suffix="", *args, **kwargs):
+    def info(self, msg="", prefix="", suffix="", *args, stacklevel=1, **kwargs):
         """Wraps info message with prefix and suffix."""
         msg = _concat_message(msg, prefix, suffix)
-        self._logger.info(msg, *args, **kwargs)
+        self._logger.info(msg, *args, **kwargs, stacklevel=stacklevel + 1)
 
-    def success(self, msg="", prefix="", suffix="", *args, **kwargs):
+    def success(self, msg="", prefix="", suffix="", *args, stacklevel=1, **kwargs):
         """Wraps success message with prefix and suffix."""
         msg = _concat_message(msg, prefix, suffix)
-        self._logger.success(msg, *args, **kwargs)
+        self._logger.success(msg, *args, **kwargs, stacklevel=stacklevel + 2)
 
-    def warning(self, msg="", prefix="", suffix="", *args, **kwargs):
+    def warning(self, msg="", prefix="", suffix="", *args, stacklevel=1, **kwargs):
         """Wraps warning message with prefix and suffix."""
         msg = _concat_message(msg, prefix, suffix)
-        self._logger.warning(msg, *args, **kwargs)
+        self._logger.warning(msg, *args, **kwargs, stacklevel=stacklevel + 1)
 
-    def error(self, msg="", prefix="", suffix="", *args, **kwargs):
+    def error(self, msg="", prefix="", suffix="", *args, stacklevel=1, **kwargs):
         """Wraps error message with prefix and suffix."""
         msg = _concat_message(msg, prefix, suffix)
-        self._logger.error(msg, *args, **kwargs)
+        self._logger.error(msg, *args, **kwargs, stacklevel=stacklevel + 1)
 
-    def critical(self, msg="", prefix="", suffix="", *args, **kwargs):
+    def critical(self, msg="", prefix="", suffix="", *args, stacklevel=1, **kwargs):
         """Wraps critical message with prefix and suffix."""
         msg = _concat_message(msg, prefix, suffix)
-        self._logger.critical(msg, *args, **kwargs)
+        self._logger.critical(msg, *args, **kwargs, stacklevel=stacklevel + 1)
 
-    def exception(self, msg="", prefix="", suffix="", *args, **kwargs):
+    def exception(self, msg="", prefix="", suffix="", *args, stacklevel=1, **kwargs):
         """Wraps exception message with prefix and suffix."""
         msg = _concat_message(msg, prefix, suffix)
-        self._logger.exception(msg, *args, **kwargs)
+        self._logger.exception(msg, *args, **kwargs, stacklevel=stacklevel + 1)
 
     def on(self):
         """Enable default state."""
