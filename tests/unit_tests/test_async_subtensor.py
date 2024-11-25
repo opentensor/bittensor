@@ -1074,6 +1074,126 @@ async def test_neurons_lite(subtensor, mocker, fake_hex_bytes_result, response):
 
 
 @pytest.mark.asyncio
+async def test_get_neuron_for_pubkey_and_subnet_success(subtensor, mocker):
+    """Tests successful retrieval of neuron information."""
+    # Preps
+    fake_hotkey = "fake_ss58_address"
+    fake_netuid = 1
+    fake_uid = 123
+    fake_result = b"fake_neuron_data"
+
+    mocker.patch.object(
+        subtensor.substrate,
+        "query",
+        return_value=fake_uid,
+    )
+    mocker.patch.object(
+        subtensor.substrate,
+        "rpc_request",
+        return_value={"result": fake_result},
+    )
+    mocked_neuron_info = mocker.patch.object(
+        async_subtensor.NeuronInfo, "from_vec_u8", return_value="fake_neuron_info"
+    )
+
+    # Call
+    result = await subtensor.get_neuron_for_pubkey_and_subnet(
+        hotkey_ss58=fake_hotkey, netuid=fake_netuid
+    )
+
+    # Asserts
+    subtensor.substrate.query.assert_awaited_once()
+    subtensor.substrate.query.assert_called_once_with(
+        module="SubtensorModule",
+        storage_function="Uids",
+        params=[fake_netuid, fake_hotkey],
+        block_hash=None,
+        reuse_block_hash=False,
+    )
+    subtensor.substrate.rpc_request.assert_awaited_once()
+    subtensor.substrate.rpc_request.assert_called_once_with(
+        method="neuronInfo_getNeuron", params=[fake_netuid, fake_uid]
+    )
+    mocked_neuron_info.assert_called_once_with(fake_result)
+    assert result == "fake_neuron_info"
+
+
+@pytest.mark.asyncio
+async def test_get_neuron_for_pubkey_and_subnet_uid_not_found(subtensor, mocker):
+    """Tests the case where UID is not found."""
+    # Preps
+    fake_hotkey = "fake_ss58_address"
+    fake_netuid = 1
+
+    mocker.patch.object(
+        subtensor.substrate,
+        "query",
+        return_value=None,
+    )
+    mocked_get_null_neuron = mocker.patch.object(
+        async_subtensor.NeuronInfo, "get_null_neuron", return_value="null_neuron"
+    )
+
+    # Call
+    result = await subtensor.get_neuron_for_pubkey_and_subnet(
+        hotkey_ss58=fake_hotkey, netuid=fake_netuid
+    )
+
+    # Asserts
+    subtensor.substrate.query.assert_called_once_with(
+        module="SubtensorModule",
+        storage_function="Uids",
+        params=[fake_netuid, fake_hotkey],
+        block_hash=None,
+        reuse_block_hash=False,
+    )
+    mocked_get_null_neuron.assert_called_once()
+    assert result == "null_neuron"
+
+
+@pytest.mark.asyncio
+async def test_get_neuron_for_pubkey_and_subnet_rpc_result_empty(subtensor, mocker):
+    """Tests the case where RPC result is empty."""
+    # Preps
+    fake_hotkey = "fake_ss58_address"
+    fake_netuid = 1
+    fake_uid = 123
+
+    mocker.patch.object(
+        subtensor.substrate,
+        "query",
+        return_value=fake_uid,
+    )
+    mocker.patch.object(
+        subtensor.substrate,
+        "rpc_request",
+        return_value={"result": None},
+    )
+    mocked_get_null_neuron = mocker.patch.object(
+        async_subtensor.NeuronInfo, "get_null_neuron", return_value="null_neuron"
+    )
+
+    # Call
+    result = await subtensor.get_neuron_for_pubkey_and_subnet(
+        hotkey_ss58=fake_hotkey, netuid=fake_netuid
+    )
+
+    # Asserts
+    subtensor.substrate.query.assert_called_once_with(
+        module="SubtensorModule",
+        storage_function="Uids",
+        params=[fake_netuid, fake_hotkey],
+        block_hash=None,
+        reuse_block_hash=False,
+    )
+    subtensor.substrate.rpc_request.assert_called_once_with(
+        method="neuronInfo_getNeuron", params=[fake_netuid, fake_uid]
+    )
+    mocked_get_null_neuron.assert_called_once()
+    assert result == "null_neuron"
+
+
+@pytest.mark.asyncio
 async def test_neuron_for_uid_happy_path(subtensor, mocker):
     """Tests neuron_for_uid method with happy path."""
     # Preps

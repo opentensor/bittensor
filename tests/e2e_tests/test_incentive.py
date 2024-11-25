@@ -3,10 +3,9 @@ import sys
 
 import pytest
 
-from bittensor import Subtensor, logging
+from bittensor.core.subtensor import Subtensor
 from tests.e2e_tests.utils.chain_interactions import (
     add_stake,
-    register_neuron,
     register_subnet,
     wait_epoch,
 )
@@ -38,7 +37,7 @@ async def test_incentive(local_chain):
         AssertionError: If any of the checks or verifications fail
     """
 
-    logging.info("Testing test_incentive")
+    print("Testing test_incentive")
     netuid = 1
 
     # Register root as Alice - the subnet owner and validator
@@ -53,13 +52,18 @@ async def test_incentive(local_chain):
     # Register Bob as miner
     bob_keypair, bob_wallet = setup_wallet("//Bob")
 
+    subtensor = Subtensor(network="ws://localhost:9945")
+
     # Register Alice as a neuron on the subnet
-    register_neuron(local_chain, alice_wallet, netuid)
+    assert subtensor.burned_register(
+        alice_wallet, netuid
+    ), "Unable to register Alice as a neuron"
 
     # Register Bob as a neuron on the subnet
-    register_neuron(local_chain, bob_wallet, netuid)
+    assert subtensor.burned_register(
+        bob_wallet, netuid
+    ), "Unable to register Bob as a neuron"
 
-    subtensor = Subtensor(network="ws://localhost:9945")
     # Assert two neurons are in network
     assert (
         len(subtensor.neurons(netuid=netuid)) == 2
@@ -95,7 +99,7 @@ async def test_incentive(local_chain):
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
-    logging.info("Neuron Bob is now mining")
+    print("Neuron Bob is now mining")
     await asyncio.sleep(
         5
     )  # wait for 5 seconds for the metagraph to refresh with latest data
@@ -127,7 +131,7 @@ async def test_incentive(local_chain):
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
-    logging.info("Neuron Alice is now validating")
+    print("Neuron Alice is now validating")
     await asyncio.sleep(
         5
     )  # wait for 5 seconds for the metagraph and subtensor to refresh with latest data
@@ -163,7 +167,7 @@ async def test_incentive(local_chain):
         wait_for_finalization=True,
         period=5 * FAST_BLOCKS_SPEEDUP_FACTOR,
     )
-    logging.info("Alice neuron set weights successfully")
+    print("Alice neuron set weights successfully")
 
     await wait_epoch(subtensor)
 
@@ -183,4 +187,4 @@ async def test_incentive(local_chain):
     assert alice_neuron.stake.tao == 10_000.0
     assert alice_neuron.validator_trust == 1
 
-    logging.info("✅ Passed test_incentive")
+    print("✅ Passed test_incentive")
