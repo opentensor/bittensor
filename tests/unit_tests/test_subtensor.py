@@ -256,6 +256,11 @@ def subtensor(mocker):
     mocker.patch.object(
         subtensor_module, "SubstrateInterface", return_value=fake_substrate
     )
+    fake_websocket = mocker.MagicMock()
+    fake_websocket.client.connect.return_value = 0
+    mocker.patch.object(
+        subtensor_module, "ws_client", return_value=fake_websocket
+    )
     return Subtensor()
 
 
