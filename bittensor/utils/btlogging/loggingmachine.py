@@ -64,19 +64,6 @@ class LoggingConfig(NamedTuple):
     logging_dir: str
 
 
-class UnstackLoggerAdapter(stdlogging.LoggerAdapter):
-    """Unstacks LoggingMachine's internal calls to wrapped logger"""
-
-    def log(self, level, msg, *args, stacklevel=1, **kwargs):
-        return super().log(level, msg, *args, **kwargs, stacklevel=stacklevel + 2)
-
-    def success(self, msg: str, *args, stacklevel=1, **kwargs):
-        return self.logger.success(msg, *args, **kwargs, stacklevel=stacklevel + 3)
-
-    def trace(self, msg, *args, stacklevel=1, **kwargs):
-        return self.logger.trace(msg, *args, **kwargs, stacklevel=stacklevel + 3)
-
-
 class LoggingMachine(StateMachine, Logger):
     """Handles logger states for bittensor and 3rd party libraries."""
 
@@ -259,7 +246,6 @@ class LoggingMachine(StateMachine, Logger):
         logger = stdlogging.getLogger(name)
         queue_handler = QueueHandler(self._queue)
         logger.addHandler(queue_handler)
-        logger = UnstackLoggerAdapter(logger, extra=None)
         return logger
 
     def _deinitialize_bt_logger(self, name: str):
@@ -314,7 +300,7 @@ class LoggingMachine(StateMachine, Logger):
                 continue
             queue_handler = QueueHandler(self._queue)
             logger.addHandler(queue_handler)
-            logger.setLevel(self._logger.logger.level)
+            logger.setLevel(self._logger.level)
 
     def disable_third_party_loggers(self):
         """Disables logging for third-party loggers by removing all their handlers."""
@@ -457,45 +443,45 @@ class LoggingMachine(StateMachine, Logger):
         """
         return self.current_state_value == "Trace"
 
-    def trace(self, msg="", prefix="", suffix="", *args, **kwargs):
+    def trace(self, msg="", prefix="", suffix="", *args, stacklevel=1, **kwargs):
         """Wraps trace message with prefix and suffix."""
         msg = _concat_message(msg, prefix, suffix)
-        self._logger.trace(msg, *args, **kwargs)
+        self._logger.trace(msg, *args, **kwargs, stacklevel=stacklevel + 2)
 
-    def debug(self, msg="", prefix="", suffix="", *args, **kwargs):
+    def debug(self, msg="", prefix="", suffix="", *args, stacklevel=1, **kwargs):
         """Wraps debug message with prefix and suffix."""
         msg = _concat_message(msg, prefix, suffix)
-        self._logger.debug(msg, *args, **kwargs)
+        self._logger.debug(msg, *args, **kwargs, stacklevel=stacklevel + 1)
 
-    def info(self, msg="", prefix="", suffix="", *args, **kwargs):
+    def info(self, msg="", prefix="", suffix="", *args, stacklevel=1, **kwargs):
         """Wraps info message with prefix and suffix."""
         msg = _concat_message(msg, prefix, suffix)
-        self._logger.info(msg, *args, **kwargs)
+        self._logger.info(msg, *args, **kwargs, stacklevel=stacklevel + 1)
 
-    def success(self, msg="", prefix="", suffix="", *args, **kwargs):
+    def success(self, msg="", prefix="", suffix="", *args, stacklevel=1, **kwargs):
         """Wraps success message with prefix and suffix."""
         msg = _concat_message(msg, prefix, suffix)
-        self._logger.success(msg, *args, **kwargs)
+        self._logger.success(msg, *args, **kwargs, stacklevel=stacklevel + 2)
 
-    def warning(self, msg="", prefix="", suffix="", *args, **kwargs):
+    def warning(self, msg="", prefix="", suffix="", *args, stacklevel=1, **kwargs):
         """Wraps warning message with prefix and suffix."""
         msg = _concat_message(msg, prefix, suffix)
-        self._logger.warning(msg, *args, **kwargs)
+        self._logger.warning(msg, *args, **kwargs, stacklevel=stacklevel + 1)
 
-    def error(self, msg="", prefix="", suffix="", *args, **kwargs):
+    def error(self, msg="", prefix="", suffix="", *args, stacklevel=1, **kwargs):
         """Wraps error message with prefix and suffix."""
         msg = _concat_message(msg, prefix, suffix)
-        self._logger.error(msg, *args, **kwargs)
+        self._logger.error(msg, *args, **kwargs, stacklevel=stacklevel + 1)
 
-    def critical(self, msg="", prefix="", suffix="", *args, **kwargs):
+    def critical(self, msg="", prefix="", suffix="", *args, stacklevel=1, **kwargs):
         """Wraps critical message with prefix and suffix."""
         msg = _concat_message(msg, prefix, suffix)
-        self._logger.critical(msg, *args, **kwargs)
+        self._logger.critical(msg, *args, **kwargs, stacklevel=stacklevel + 1)
 
-    def exception(self, msg="", prefix="", suffix="", *args, **kwargs):
+    def exception(self, msg="", prefix="", suffix="", *args, stacklevel=1, **kwargs):
         """Wraps exception message with prefix and suffix."""
         msg = _concat_message(msg, prefix, suffix)
-        self._logger.exception(msg, *args, **kwargs)
+        self._logger.exception(msg, *args, **kwargs, stacklevel=stacklevel + 1)
 
     def on(self):
         """Enable default state."""
@@ -548,7 +534,7 @@ class LoggingMachine(StateMachine, Logger):
 
     def get_level(self) -> int:
         """Returns Logging level."""
-        return self._logger.logger.level
+        return self._logger.level
 
     def check_config(self, config: "Config"):
         assert config.logging
