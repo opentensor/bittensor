@@ -449,7 +449,9 @@ class LoggingMachine(StateMachine, Logger):
         prefix="",
         suffix="",
         *args,
-        stacklevel=2 if sys.version_info >= (3, 11) else 1, # logger.trace is not an internal method
+        stacklevel=2  # logger.trace is not an internal method
+        if sys.version_info >= (3, 11)
+        else 1,
         **kwargs,
     ):
         """Wraps trace message with prefix and suffix."""
@@ -472,7 +474,9 @@ class LoggingMachine(StateMachine, Logger):
         prefix="",
         suffix="",
         *args,
-        stacklevel=2 if sys.version_info >= (3, 11) else 1, # logger.success is not an internal method
+        stacklevel=2  # logger.success is not an internal method
+        if sys.version_info >= (3, 11)
+        else 1,
         **kwargs,
     ):
         """Wraps success message with prefix and suffix."""
