@@ -1,46 +1,10 @@
-import json
-from collections import deque
-from websockets.sync.client import ClientConnection, ClientProtocol
-from websockets.uri import parse_uri
-
 import pytest
 from bittensor.utils.balance import Balance
 from bittensor.core.chain_data.axon_info import AxonInfo
 
 from bittensor import NeuronInfo
 from bittensor.core.subtensor import Subtensor
-from tests.helpers.integration_websocket_data import WEBSOCKET_RESPONSES
-
-
-class FakeWebsocket(ClientConnection):
-    def __init__(self, *args, seed, **kwargs):
-        protocol = ClientProtocol(parse_uri("ws://127.0.0.1:9945"))
-        super().__init__(socket=None, protocol=protocol, **kwargs)
-        self.seed = seed
-        self.received = deque()
-
-    def send(self, payload: str, *args, **kwargs):
-        received = json.loads(payload)
-        id_ = received.pop("id")
-        self.received.append((received, id_))
-
-    def recv(self):
-        item, _id = self.received.pop()
-        try:
-            response = WEBSOCKET_RESPONSES[self.seed][item["method"]][
-                json.dumps(item["params"])
-            ]
-            response["id"] = _id
-            return json.dumps(response)
-        except KeyError:
-            print("ERROR", self.seed, item["method"], item["params"])
-            raise
-        except TypeError:
-            print("TypeError", response)
-            raise
-
-    def close(self, *args, **kwargs):
-        pass
+from tests.helpers.helpers import FakeWebsocket
 
 
 @pytest.fixture
