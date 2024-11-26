@@ -771,7 +771,7 @@ class AsyncSubstrateInterface:
         """
         The asyncio-compatible version of the subtensor interface commands we use in bittensor. It is important to
         initialise this class asynchronously in an async context manager using `async with AsyncSubstrateInterface()`.
-        Otherwise, some (most) methods will not work properly, and may raise random exceptions.
+        Otherwise, some (most) methods will not work properly, and may raise exceptions.
         """
         self.chain_endpoint = chain_endpoint
         self.__chain = chain_name
