@@ -238,6 +238,14 @@ class Subtensor:
                 f"<red>Could not connect to</red> <blue>{self.network}</blue> <red>network with</red> <blue>{self.chain_endpoint}</blue> <red>chain endpoint.</red>",
             )
             raise ConnectionRefusedError(error.args)
+        except ssl.SSLError as e:
+            logging.critical(
+                "SSL error occurred. To resolve this issue, run the following command in your terminal:"
+            )
+            logging.critical("[blue]sudo python -m bittensor certifi[/blue]")
+            raise RuntimeError(
+                "SSL configuration issue, please follow the instructions above."
+            ) from e
 
     @staticmethod
     def config() -> "Config":
