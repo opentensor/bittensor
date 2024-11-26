@@ -1106,6 +1106,24 @@ class Subtensor:
         )
         return None if call is None else u16_normalized_float(int(call))
 
+    def commit_reveal_enabled(
+        self, netuid: int, block: Optional[int] = None
+    ) -> Optional[bool]:
+        """
+        Check if commit-reveal mechanism is enabled for a given network at a specific block.
+
+        Arguments:
+            netuid (int): The network identifier for which to check the commit-reveal mechanism.
+            block (Optional[int]): The block number at which to check the parameter (default is None, which implies the current block).
+
+        Returns:
+            (Optional[bool]): Returns the integer value of the hyperparameter if available; otherwise, returns None.
+        """
+        call = self._get_hyperparameter(
+            param_name="CommitRevealWeightsEnabled", block=block, netuid=netuid
+        )
+        return call
+
     def get_prometheus_info(
         self, netuid: int, hotkey_ss58: str, block: Optional[int] = None
     ) -> Optional["PrometheusInfo"]:

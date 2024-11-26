@@ -489,6 +489,23 @@ def test_hyperparameter_normalization(
 ###########################
 
 
+def test_commit_reveal_enabled(subtensor, mocker):
+    """Test commit_reveal_enabled."""
+    # Preps
+    netuid = 1
+    block = 123
+    mocked_get_hyperparameter = mocker.patch.object(subtensor, "_get_hyperparameter")
+
+    # Call
+    result = subtensor.commit_reveal_enabled(netuid, block)
+
+    # Assertions
+    mocked_get_hyperparameter.assert_called_once_with(
+        param_name="CommitRevealWeightsEnabled", block=block, netuid=netuid
+    )
+    assert result == mocked_get_hyperparameter.return_value
+
+
 # get_prometheus_info tests
 def test_get_prometheus_info_success(mocker, subtensor):
     """Test get_prometheus_info returns correct data when information is found."""
