@@ -48,10 +48,7 @@ from .helpers import all_loggers
 from bittensor.utils.btlogging.console import BittensorConsole
 
 # https://github.com/python/cpython/issues/97941
-if sys.version_info >= (3, 11):
-    CUSTOM_LOGGER_METHOD_STACKLEVEL = 2
-else:
-    CUSTOM_LOGGER_METHOD_STACKLEVEL = 1
+CUSTOM_LOGGER_METHOD_STACK_LEVEL = 2 if sys.version_info >= (3, 11) else 1
 
 
 def _concat_message(msg="", prefix="", suffix=""):
