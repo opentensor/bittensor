@@ -1,5 +1,49 @@
 # Changelog
 
+## 8.4.0 /2024-11-27
+
+## What's Changed
+
+* Async unittests for `bittensor/core/extrinsics/async_weights.py` by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2425
+* Async unittests for `bittensor/core/extrinsics/async_transfer.py` by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2426
+* Async `unittests for bittensor/core/extrinsics/async_root.py` by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2427
+* Removes Conda Info by @thewhaleking in https://github.com/opentensor/bittensor/pull/2437
+* Fix typos by @omahs in https://github.com/opentensor/bittensor/pull/2440
+* [SDK] Registration related content refactoring by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2439
+* Async unittests for `bittensor/core/extrinsics/async_registration.py` by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2445
+* BittensorConsole class by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2446
+* Improve reconnection logic by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2442
+* E2E tests - Increasing Subtensor coverage (Pt 1) by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2443
+* Add python3.12 support by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2450
+* add neuron certificate discovery by @andreea-popescu-reef in https://github.com/opentensor/bittensor/pull/2267
+* Use websockets for Subtensor by @thewhaleking in https://github.com/opentensor/bittensor/pull/2455
+* Part 2: E2E tests - Increasing Subtensor coverage by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2457
+* Tests for subtensor methods related with `stake` and `unstake` extrinsics by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2458
+* Apply BittensorConsole + logging refactoring by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2452
+* Add staking and unstaking extrinsics by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2456
+* Don't strip ANSI from stdout (fixes #2365) by @vaqxai in https://github.com/opentensor/bittensor/pull/2366
+* Support fastblocks when setting root set weights in e2e tests by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2464
+* Extrinsic Submission Timeout by @thewhaleking in https://github.com/opentensor/bittensor/pull/2448
+* Resync async substrate by @thewhaleking in https://github.com/opentensor/bittensor/pull/2463
+* Fixes logging when setting weights by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2465
+* Integration tests by @thewhaleking in https://github.com/opentensor/bittensor/pull/2433
+* Fixes logic for checking block_since_last_update by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2473
+* Update unit tests websocket by @thewhaleking in https://github.com/opentensor/bittensor/pull/2468
+* Improve MockSubtensor by @thewhaleking in https://github.com/opentensor/bittensor/pull/2469
+* Fixes logging when passing multiple objects by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2477
+* Add script for solving ssl issue by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2474
+* Improve async docstrings by @thewhaleking in https://github.com/opentensor/bittensor/pull/2478
+* fix: increase stacklevel in LoggingMachine log calls by @zyzniewski-reef in https://github.com/opentensor/bittensor/pull/2476
+* remove uses of return scale obj by @thewhaleking in https://github.com/opentensor/bittensor/pull/2479
+* Backmerge master to staging for 8.4.0 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2482
+* Expand `reuse_block` by @thewhaleking in https://github.com/opentensor/bittensor/pull/2481
+
+## New Contributors
+* @vaqxai made their first contribution in https://github.com/opentensor/bittensor/pull/2366
+* @zyzniewski-reef made their first contribution in https://github.com/opentensor/bittensor/pull/2476
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v8.3.1...v8.4.0
+
 ## 8.3.1 /2024-11-14
 
 ## What's Changed
