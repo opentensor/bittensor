@@ -1,6 +1,6 @@
 """
-This library comprises the asyncio-compatible version of the subtensor interface commands we use in bittensor, as 
-well as its helper functions and classes. The docstring for the `AsyncSubstrateInterface` class goes more in-depth in 
+This library comprises the asyncio-compatible version of the subtensor interface commands we use in bittensor, as
+well as its helper functions and classes. The docstring for the `AsyncSubstrateInterface` class goes more in-depth in
 regard to how to instantiate and use it.
 """
 
@@ -767,17 +767,25 @@ class AsyncSubstrateInterface:
     def __init__(
         self,
         chain_endpoint: str,
-        use_remote_preset=False,
-        auto_discover=True,
-        auto_reconnect=True,
-        ss58_format=None,
-        type_registry=None,
-        chain_name=None,
+        use_remote_preset: bool = False,
+        auto_discover: bool = True,
+        ss58_format: Optional[int] = None,
+        type_registry: Optional[dict] = None,
+        chain_name: Optional[str] = None,
     ):
         """
         The asyncio-compatible version of the subtensor interface commands we use in bittensor. It is important to
         initialise this class asynchronously in an async context manager using `async with AsyncSubstrateInterface()`.
         Otherwise, some (most) methods will not work properly, and may raise exceptions.
+
+        Args:
+            chain_endpoint: the URI of the chain to connect to
+            use_remote_preset: whether to pull the preset from GitHub
+            auto_discover: whether to automatically pull the presets based on the chain name and type registry
+            ss58_format: the specific SS58 format to use
+            type_registry: a dict of custom types
+            chain_name: the name of the chain (the result of the rpc request for "system_chain")
+
         """
         self.chain_endpoint = chain_endpoint
         self.__chain = chain_name
@@ -793,7 +801,6 @@ class AsyncSubstrateInterface:
         self.config = {
             "use_remote_preset": use_remote_preset,
             "auto_discover": auto_discover,
-            "auto_reconnect": auto_reconnect,
             "rpc_methods": None,
             "strict_scale_decode": True,
         }
