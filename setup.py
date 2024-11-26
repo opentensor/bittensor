@@ -69,6 +69,9 @@ setup(
     author="bittensor.com",
     packages=find_packages(exclude=["tests", "tests.*"]),
     include_package_data=True,
+    package_data={
+        "bittensor": ["utils/certifi.sh"],
+    },
     author_email="",
     license="MIT",
     python_requires=">=3.9",
