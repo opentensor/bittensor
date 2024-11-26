@@ -802,9 +802,7 @@ class AsyncSubtensor:
         hex_bytes_result = await self.query_runtime_api(
             runtime_api="NeuronInfoRuntimeApi",
             method="get_neurons",
-            params=[
-                netuid
-            ],
+            params=[netuid],
             block_hash=block_hash,
             reuse_block=reuse_block,
         )

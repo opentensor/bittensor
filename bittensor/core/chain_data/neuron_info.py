@@ -174,7 +174,7 @@ class NeuronInfo:
             ),
             is_null=False,
         )
-    
+
     @classmethod
     def list_from_vec_u8(cls, vec_u8: bytes) -> list["NeuronInfo"]:
         nn = bt_decode.NeuronInfo.decode_vec(bytes(vec_u8))
@@ -226,5 +226,5 @@ class NeuronInfo:
                 ),
                 is_null=False,
             )
-        
+
         return [fix(n) for n in nn]
