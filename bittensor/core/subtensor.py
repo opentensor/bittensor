@@ -32,6 +32,7 @@ from bittensor.core.chain_data import (
 )
 from bittensor.core.config import Config
 from bittensor.core.extrinsics.commit_weights import (
+    batch_commit_weights_extrinsic,
     commit_weights_extrinsic,
     reveal_weights_extrinsic,
 )
@@ -2003,6 +2004,85 @@ class Subtensor:
                     break
             except Exception as e:
                 logging.error(f"Error committing weights: {e}")
+            finally:
+                retries += 1
+
+        return success, message
+
+    def batch_commit_weights(
+        self,
+        wallet: "Wallet",
+        netuids: list[int],
+        salts: list[list[int]],
+        uids: list[Union[NDArray[np.int64], list]],
+        weights: list[Union[NDArray[np.int64], list]],
+        version_keys: list[int] = [],
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = False,
+        max_retries: int = 5,
+    ) -> tuple[bool, str]:
+        """
+        Commits a batch of hashes of weights to the Bittensor blockchain using the provided wallet.
+        This allows for multiple subnets to be committed to at once in a single extrinsic.
+
+        Args:
+            wallet (bittensor_wallet.Wallet): The wallet associated with the neuron committing the weights.
+            netuids (list[int]): The list of subnet uids.
+            salts (list[list[int]]): The list of salts to generate weight hashes.
+            uids (list[np.ndarray]): The list of NumPy arrays of neuron UIDs for which weights are being committed.
+            weights (list[np.ndarray]): The list of NumPy arrays of weight values corresponding to each UID.
+            version_keys (list[int]): The list of version keys for compatibility with the network. Default is ``int representation of Bittensor version.``.
+            wait_for_inclusion (bool): Waits for the transaction to be included in a block. Default is ``False``.
+            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Default is ``False``.
+            max_retries (int): The number of maximum attempts to commit weights. Default is ``5``.
+
+        Returns:
+            tuple[bool, str]: ``True`` if the weight commitment is successful, False otherwise. And `msg`, a string value describing the success or potential error.
+
+        This function allows for multiple subnets to be committed to at once in a single extrinsic.
+        """
+        retries = 0
+        success = False
+        message = "No attempt made. Perhaps it is too soon to commit weights!"
+
+        logging.info(
+            f"Committing a batch of weights with params: netuids={netuids}, salts={salts}, uids={uids}, weights={weights}, version_keys={version_keys}"
+        )
+
+        if len(version_keys) == 0:
+            version_keys = [settings.version_as_int] * len(netuids)
+
+        # Generate the hash of the weights
+        commit_hashes = [
+            generate_weight_hash(
+                address=wallet.hotkey.ss58_address,
+                netuid=netuid,
+                uids=list(uids),
+                values=list(weights),
+                salt=salt,
+                version_key=version_key,
+            )
+            for netuid, salt, uids, weights, version_key in zip(
+                netuids, salts, uids, weights, version_keys
+            )
+        ]
+
+        logging.info(f"Commit Hashes: {commit_hashes}")
+
+        while retries < max_retries:
+            try:
+                success, message = batch_commit_weights_extrinsic(
+                    subtensor=self,
+                    wallet=wallet,
+                    netuids=netuids,
+                    commit_hashes=commit_hashes,
+                    wait_for_inclusion=wait_for_inclusion,
+                    wait_for_finalization=wait_for_finalization,
+                )
+                if success:
+                    break
+            except Exception as e:
+                logging.error(f"Error batch committing weights: {e}")
             finally:
                 retries += 1
 
