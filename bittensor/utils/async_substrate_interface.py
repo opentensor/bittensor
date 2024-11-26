@@ -493,9 +493,9 @@ class Runtime:
 
         Args:
             use_remote_preset: When True preset is downloaded from Github master, otherwise use files from local installed
-                           scalecodec package
+                scalecodec package
             auto_discover: Whether to automatically discover the type registry presets based on the chain name and the
-                           type registry
+                type registry
         """
         self.runtime_config.clear_type_registry()
 
@@ -1060,10 +1060,10 @@ class AsyncSubstrateInterface:
         periodically apply changes in type definitions when a runtime upgrade occurred
 
         Args:
-            use_remote_preset: When True preset is downloaded from Github master, otherwise use files from local
-                               installed scalecodec package
-            auto_discover: Whether to automatically discover the type_registry presets based on the chain name and
-                           typer registry
+            use_remote_preset: When True preset is downloaded from Github master,
+                otherwise use files from local installed scalecodec package
+            auto_discover: Whether to automatically discover the type_registry
+                presets based on the chain name and typer registry
         """
         self.runtime_config.clear_type_registry()
 
@@ -1713,9 +1713,9 @@ class AsyncSubstrateInterface:
             method: str the method in the RPC request
             params: list of the params in the RPC request
             block_hash: the hash of the block — only supply this if not supplying the block
-                        hash in the params, and not reusing the block hash
+                hash in the params, and not reusing the block hash
             reuse_block_hash: whether to reuse the block hash in the params — only mark as True
-                              if not supplying the block hash in the params, or via the `block_hash` parameter
+                if not supplying the block hash in the params, or via the `block_hash` parameter
 
         Returns:
             the response from the RPC request
@@ -1780,7 +1780,7 @@ class AsyncSubstrateInterface:
             call_module: Name of the runtime module e.g. Balances
             call_function: Name of the call function e.g. transfer
             call_params: This is a dict containing the params of the call. e.g.
-                            `{'dest': 'EaG2CRhJWPb7qmdcJvy3LiWdh26Jreu9Dx6R1rXxPmYXoDk', 'value': 1000000000000}`
+                `{'dest': 'EaG2CRhJWPb7qmdcJvy3LiWdh26Jreu9Dx6R1rXxPmYXoDk', 'value': 1000000000000}`
             block_hash: Use metadata at given block_hash to compose call
 
         Returns:
@@ -2101,7 +2101,7 @@ class AsyncSubstrateInterface:
             call: GenericCall to create extrinsic for
             keypair: Keypair used to sign the extrinsic
             era: Specify mortality in blocks in follow format:
-                 {'period': [amount_blocks]} If omitted the extrinsic is immortal
+                {'period': [amount_blocks]} If omitted the extrinsic is immortal
             nonce: nonce to include in extrinsics, if omitted the current nonce is retrieved on-chain
             tip: The tip for the block author to gain priority during network congestion
             tip_asset_id: Optional asset ID with which to pay the tip
@@ -2463,11 +2463,11 @@ class AsyncSubstrateInterface:
             params: The input parameters in case of for example a `DoubleMap` storage function
             block_hash: Optional block hash for result at given block, when left to None the chain tip will be used.
             max_results: the maximum of results required, if set the query will stop fetching results when number is
-                         reached
+                reached
             start_key: The storage key used as offset for the results, for pagination purposes
             page_size: The results are fetched from the node RPC in chunks of this size
             ignore_decoding_errors: When set this will catch all decoding errors, set the item to None and continue
-                                    decoding
+                decoding
             reuse_block_hash: use True if you wish to make the query using the last-used block hash. Do not mark True
                               if supplying a block_hash
 
