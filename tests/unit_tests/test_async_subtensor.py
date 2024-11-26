@@ -306,6 +306,7 @@ async def test_get_subnet_burn_cost(subtensor, mocker):
         method="get_network_registration_cost",
         params=[],
         block_hash=fake_block_hash,
+        reuse_block=False,
     )
 
 
@@ -329,6 +330,7 @@ async def test_get_total_subnets(subtensor, mocker):
         storage_function="TotalNetworks",
         params=[],
         block_hash=fake_block_hash,
+        reuse_block_hash=False,
     )
 
 
@@ -361,7 +363,7 @@ async def test_get_subnets(subtensor, mocker, records, response):
         module="SubtensorModule",
         storage_function="NetworksAdded",
         block_hash=fake_block_hash,
-        reuse_block_hash=True,
+        reuse_block_hash=False,
     )
     assert result == response
 
@@ -498,6 +500,7 @@ async def test_get_stake_for_coldkey_and_hotkey(subtensor, mocker):
         storage_function="Stake",
         params=["hotkey", "coldkey"],
         block_hash=None,
+        reuse_block_hash=False,
     )
     assert result == spy_balance.from_rao.return_value
     spy_balance.from_rao.assert_called_once_with(mocked_substrate_query.return_value)
@@ -1503,6 +1506,7 @@ async def test_weights_successful(subtensor, mocker):
         storage_function="Weights",
         params=[fake_netuid],
         block_hash=fake_block_hash,
+        reuse_block_hash=False,
     )
     assert result == fake_weights
 
@@ -1533,6 +1537,7 @@ async def test_bonds(subtensor, mocker):
         storage_function="Bonds",
         params=[fake_netuid],
         block_hash=fake_block_hash,
+        reuse_block_hash=False,
     )
     assert result == fake_bonds
 
@@ -1627,6 +1632,7 @@ async def test_get_hotkey_owner_successful(subtensor, mocker):
         storage_function="Owner",
         params=[fake_hotkey_ss58],
         block_hash=fake_block_hash,
+        reuse_block_hash=False,
     )
     mocked_decode_account_id.assert_called_once_with(fake_owner_account_id)
     mocked_does_hotkey_exist.assert_awaited_once_with(
@@ -1659,6 +1665,7 @@ async def test_get_hotkey_owner_non_existent_hotkey(subtensor, mocker):
         storage_function="Owner",
         params=[fake_hotkey_ss58],
         block_hash=fake_block_hash,
+        reuse_block_hash=False,
     )
     mocked_decode_account_id.assert_called_once_with(None)
     assert result is None
@@ -1692,6 +1699,7 @@ async def test_get_hotkey_owner_exists_but_does_not_exist_flag_false(subtensor, 
         storage_function="Owner",
         params=[fake_hotkey_ss58],
         block_hash=fake_block_hash,
+        reuse_block_hash=False,
     )
     mocked_decode_account_id.assert_called_once_with(fake_owner_account_id)
     mocked_does_hotkey_exist.assert_awaited_once_with(
@@ -1985,6 +1993,7 @@ async def test_get_subnet_hyperparameters_success(subtensor, mocker):
         method="get_subnet_hyperparams",
         params=[fake_netuid],
         block_hash=fake_block_hash,
+        reuse_block=False,
     )
     bytes_result = bytes.fromhex(fake_hex_bytes_result[2:])
     mocked_from_vec_u8.assert_called_once_with(bytes_result)
@@ -2009,6 +2018,7 @@ async def test_get_subnet_hyperparameters_no_data(subtensor, mocker):
         method="get_subnet_hyperparams",
         params=[fake_netuid],
         block_hash=None,
+        reuse_block=False,
     )
     assert result == []
 
@@ -2037,6 +2047,7 @@ async def test_get_subnet_hyperparameters_without_0x_prefix(subtensor, mocker):
         method="get_subnet_hyperparams",
         params=[fake_netuid],
         block_hash=None,
+        reuse_block=False,
     )
     bytes_result = bytes.fromhex(fake_hex_bytes_result)
     mocked_from_vec_u8.assert_called_once_with(bytes_result)
@@ -2151,6 +2162,7 @@ async def test_get_delegate_identities(subtensor, mocker):
         module="Registry",
         storage_function="IdentityOf",
         block_hash=fake_block_hash,
+        reuse_block_hash=False,
     )
     mock_session_get.assert_called_once_with(async_subtensor.DELEGATES_DETAILS_URL)
 
@@ -2179,6 +2191,8 @@ async def test_is_hotkey_registered_true(subtensor, mocker):
         module="SubtensorModule",
         storage_function="Uids",
         params=[fake_netuid, fake_hotkey_ss58],
+        block_hash=None,
+        reuse_block_hash=False,
     )
     assert result is True
 
@@ -2204,6 +2218,8 @@ async def test_is_hotkey_registered_false(subtensor, mocker):
         module="SubtensorModule",
         storage_function="Uids",
         params=[fake_netuid, fake_hotkey_ss58],
+        block_hash=None,
+        reuse_block_hash=False,
     )
     assert result is False
 
@@ -2231,6 +2247,7 @@ async def test_get_uid_for_hotkey_on_subnet_registered(subtensor, mocker):
         storage_function="Uids",
         params=[fake_netuid, fake_hotkey_ss58],
         block_hash=fake_block_hash,
+        reuse_block_hash=False,
     )
     assert result == fake_uid
 
@@ -2258,6 +2275,7 @@ async def test_get_uid_for_hotkey_on_subnet_not_registered(subtensor, mocker):
         storage_function="Uids",
         params=[fake_netuid, fake_hotkey_ss58],
         block_hash=fake_block_hash,
+        reuse_block_hash=False,
     )
     assert result is None
 
@@ -2277,7 +2295,10 @@ async def test_weights_rate_limit_success(subtensor, mocker):
 
     # Asserts
     mocked_get_hyperparameter.assert_called_once_with(
-        param_name="WeightsSetRateLimit", netuid=fake_netuid
+        param_name="WeightsSetRateLimit",
+        netuid=fake_netuid,
+        block_hash=None,
+        reuse_block=False,
     )
     assert result == fake_rate_limit
 
@@ -2297,7 +2318,10 @@ async def test_weights_rate_limit_none(subtensor, mocker):
 
     # Asserts
     mocked_get_hyperparameter.assert_called_once_with(
-        param_name="WeightsSetRateLimit", netuid=fake_netuid
+        param_name="WeightsSetRateLimit",
+        netuid=fake_netuid,
+        block_hash=None,
+        reuse_block=False,
     )
     assert result is None
 
