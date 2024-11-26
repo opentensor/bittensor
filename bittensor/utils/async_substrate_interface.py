@@ -1,3 +1,9 @@
+"""
+This library comprises the asyncio-compatible version of the subtensor interface commands we use in bittensor, as 
+well as its helper functions and classes. The docstring for the `AsyncSubstrateInterface` class goes more in-depth in 
+regard to how to instantiate and use it.
+"""
+
 import asyncio
 import json
 import random
