@@ -242,7 +242,7 @@ class Subtensor:
             logging.critical(
                 "SSL error occurred. To resolve this issue, run the following command in your terminal:"
             )
-            logging.critical("[blue]python -m bittensor certifi[/blue]")
+            logging.critical("[blue]sudo python -m bittensor certifi[/blue]")
             raise RuntimeError(
                 "SSL configuration issue, please follow the instructions above."
             ) from e
