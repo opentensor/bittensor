@@ -176,6 +176,19 @@ def test_all_log_levels_output(logging_machine, caplog):
     assert "Test error" in caplog.text
     assert "Test critical" in caplog.text
 
+    records = [(r.module, r.getMessage()) for r in caplog.records]
+
+    assert records == [
+        ("loggingmachine", "Trace enabled."),
+        ("test_logging", "Test trace"),
+        ("test_logging", "Test debug"),
+        ("test_logging", "Test info"),
+        ("test_logging", "Test success"),
+        ("test_logging", "Test warning"),
+        ("test_logging", "Test error"),
+        ("test_logging", "Test critical"),
+    ]
+
 
 @pytest.mark.parametrize(
     "msg, prefix, suffix, expected_result",
