@@ -783,7 +783,7 @@ class AsyncSubtensor:
         return Balance.from_rao(result)
 
     async def neurons(
-        self, netuid: int, block_hash: Optional[str] = None
+        self, netuid: int, block_hash: Optional[str] = None, reuse_block: bool = False
     ) -> list[NeuronInfo]:
         """
         Retrieves a list of all neurons within a specified subnet of the Bittensor network.
@@ -792,29 +792,27 @@ class AsyncSubtensor:
         Args:
             netuid (int): The unique identifier of the subnet.
             block_hash (str): The hash of the blockchain block number for the query.
+            reuse_block (bool): Whether to reuse the last-used blockchain block hash.
 
         Returns:
             A list of NeuronInfo objects detailing each neuron's characteristics in the subnet.
 
         Understanding the distribution and status of neurons within a subnet is key to comprehending the network's decentralized structure and the dynamics of its consensus and governance processes.
         """
-        neurons_lite, weights, bonds = await asyncio.gather(
-            self.neurons_lite(netuid=netuid, block_hash=block_hash),
-            self.weights(netuid=netuid, block_hash=block_hash),
-            self.bonds(netuid=netuid, block_hash=block_hash),
+        hex_bytes_result = await self.query_runtime_api(
+            runtime_api="NeuronInfoRuntimeApi",
+            method="get_neurons",
+            params=[
+                netuid
+            ],
+            block_hash=block_hash,
+            reuse_block=reuse_block,
         )
 
-        weights_as_dict = {uid: w for uid, w in weights}
-        bonds_as_dict = {uid: b for uid, b in bonds}
+        if hex_bytes_result is None:
+            return []
 
-        neurons = [
-            NeuronInfo.from_weights_bonds_and_neuron_lite(
-                neuron_lite, weights_as_dict, bonds_as_dict
-            )
-            for neuron_lite in neurons_lite
-        ]
-
-        return neurons
+        return NeuronInfo.list_from_vec_u8(hex_to_bytes(hex_bytes_result))
 
     async def neurons_lite(
         self, netuid: int, block_hash: Optional[str] = None, reuse_block: bool = False
