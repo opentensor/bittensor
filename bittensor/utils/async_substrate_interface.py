@@ -1613,8 +1613,7 @@ class AsyncSubstrateInterface:
                 q = bytes(query_value)
             else:
                 q = query_value
-            obj = await self.decode_scale(value_scale_type, q)
-            result = obj
+            result = await self.decode_scale(value_scale_type, q)
         if asyncio.iscoroutinefunction(result_handler):
             # For multipart responses as a result of subscriptions.
             message, bool_result = await result_handler(response, subscription_id)
