@@ -1613,7 +1613,7 @@ class AsyncSubstrateInterface:
                 q = bytes(query_value)
             else:
                 q = query_value
-            obj = await self.decode_scale(value_scale_type, q, True)
+            obj = await self.decode_scale(value_scale_type, q)
             result = obj
         if asyncio.iscoroutinefunction(result_handler):
             # For multipart responses as a result of subscriptions.
@@ -2346,7 +2346,6 @@ class AsyncSubstrateInterface:
             return await self.decode_scale(
                 constant.type,
                 bytes(constant.constant_value),
-                return_scale_obj=True,
             )
         else:
             return None
@@ -2571,7 +2570,6 @@ class AsyncSubstrateInterface:
                         item_key_obj = await self.decode_scale(
                             type_string=f"({', '.join(key_type_string)})",
                             scale_bytes=bytes.fromhex(item[0][len(prefix) :]),
-                            return_scale_obj=True,
                         )
 
                         # strip key_hashers to use as item key
@@ -2592,9 +2590,7 @@ class AsyncSubstrateInterface:
                         item_bytes = hex_to_bytes(item[1])
 
                         item_value = await self.decode_scale(
-                            type_string=value_type,
-                            scale_bytes=item_bytes,
-                            return_scale_obj=True,
+                            type_string=value_type, scale_bytes=item_bytes
                         )
                     except Exception as _:
                         if not ignore_decoding_errors:
