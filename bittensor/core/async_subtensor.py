@@ -1359,6 +1359,26 @@ class AsyncSubtensor:
         call = await self.get_hyperparameter(param_name="LastUpdate", netuid=netuid)
         return None if call is None else await self.get_current_block() - int(call[uid])
 
+    async def commit_reveal_enabled(
+        self, netuid: int, block_hash: Optional[str] = None
+    ) -> Optional[bool]:
+        """
+        Check if commit-reveal mechanism is enabled for a given network at a specific block.
+
+        Arguments:
+            netuid (int): The network identifier for which to check the commit-reveal mechanism.
+            block_hash (Optional[str]): The block hash of block at which to check the parameter (default is None, which implies the current block).
+
+        Returns:
+            (Optional[bool]): Returns the integer value of the hyperparameter if available; otherwise, returns None.
+        """
+        call = await self.get_hyperparameter(
+            param_name="CommitRevealWeightsEnabled",
+            block_hash=block_hash,
+            netuid=netuid,
+        )
+        return call if call is not None else False
+
     # Extrinsics =======================================================================================================
 
     async def transfer(
