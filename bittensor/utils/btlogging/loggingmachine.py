@@ -47,6 +47,12 @@ from .format import BtFileFormatter, BtStreamFormatter
 from .helpers import all_loggers
 from bittensor.utils.btlogging.console import BittensorConsole
 
+# https://github.com/python/cpython/issues/97941
+if sys.version_info >= (3, 11):
+    CUSTOM_LOGGER_METHOD_STACKLEVEL = 2
+else:
+    CUSTOM_LOGGER_METHOD_STACKLEVEL = 1
+
 
 def _concat_message(msg="", prefix="", suffix=""):
     """Concatenates a message with optional prefix and suffix."""
@@ -447,20 +453,15 @@ class LoggingMachine(StateMachine, Logger):
         """
         return self.current_state_value == "Trace"
 
-    def trace(
-        self,
-        msg="",
-        prefix="",
-        suffix="",
-        *args,
-        stacklevel=2  # logger.trace is not an internal method
-        if sys.version_info >= (3, 11)
-        else 1,
-        **kwargs,
-    ):
+    def trace(self, msg="", prefix="", suffix="", *args, stacklevel=1, **kwargs):
         """Wraps trace message with prefix and suffix."""
         msg = _concat_message(msg, prefix, suffix)
-        self._logger.trace(msg, *args, **kwargs, stacklevel=stacklevel + 1)
+        self._logger.trace(
+            msg,
+            *args,
+            **kwargs,
+            stacklevel=stacklevel + CUSTOM_LOGGER_METHOD_STACKLEVEL,
+        )
 
     def debug(self, msg="", prefix="", suffix="", *args, stacklevel=1, **kwargs):
         """Wraps debug message with prefix and suffix."""
@@ -472,20 +473,15 @@ class LoggingMachine(StateMachine, Logger):
         msg = _concat_message(msg, prefix, suffix)
         self._logger.info(msg, *args, **kwargs, stacklevel=stacklevel + 1)
 
-    def success(
-        self,
-        msg="",
-        prefix="",
-        suffix="",
-        *args,
-        stacklevel=2  # logger.success is not an internal method
-        if sys.version_info >= (3, 11)
-        else 1,
-        **kwargs,
-    ):
+    def success(self, msg="", prefix="", suffix="", *args, stacklevel=1, **kwargs):
         """Wraps success message with prefix and suffix."""
         msg = _concat_message(msg, prefix, suffix)
-        self._logger.success(msg, *args, **kwargs, stacklevel=stacklevel + 1)
+        self._logger.success(
+            msg,
+            *args,
+            **kwargs,
+            stacklevel=stacklevel + CUSTOM_LOGGER_METHOD_STACKLEVEL,
+        )
 
     def warning(self, msg="", prefix="", suffix="", *args, stacklevel=1, **kwargs):
         """Wraps warning message with prefix and suffix."""
