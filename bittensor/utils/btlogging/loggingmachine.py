@@ -457,7 +457,7 @@ class LoggingMachine(StateMachine, Logger):
             msg,
             *args,
             **kwargs,
-            stacklevel=stacklevel + CUSTOM_LOGGER_METHOD_STACKLEVEL,
+            stacklevel=stacklevel + CUSTOM_LOGGER_METHOD_STACK_LEVEL,
         )
 
     def debug(self, msg="", prefix="", suffix="", *args, stacklevel=1, **kwargs):
