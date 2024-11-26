@@ -50,9 +50,13 @@ from bittensor.utils.btlogging.console import BittensorConsole
 
 def _concat_message(msg="", prefix="", suffix=""):
     """Concatenates a message with optional prefix and suffix."""
-    empty_pref_suf = [None, ""]
-    msg = f"{f'{prefix} - ' if prefix not in empty_pref_suf else ''}{msg}{f' - {suffix}' if suffix not in empty_pref_suf else ''}"
-    return msg
+    message_parts = [
+        str(component).strip()
+        for component in [prefix, msg, suffix]
+        if component is not None and str(component).strip()
+    ]
+    formatted_message = " - ".join(message_parts)
+    return formatted_message
 
 
 class LoggingConfig(NamedTuple):
