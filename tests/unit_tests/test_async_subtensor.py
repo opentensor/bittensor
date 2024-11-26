@@ -2353,6 +2353,26 @@ async def test_blocks_since_last_update_no_last_update(subtensor, mocker):
 
 
 @pytest.mark.asyncio
+async def test_commit_reveal_enabled(subtensor, mocker):
+    """Test commit_reveal_enabled."""
+    # Preps
+    netuid = 1
+    block_hash = "block_hash"
+    mocked_get_hyperparameter = mocker.patch.object(
+        subtensor, "get_hyperparameter", return_value=mocker.AsyncMock()
+    )
+
+    # Call
+    result = await subtensor.commit_reveal_enabled(netuid, block_hash)
+
+    # Assertions
+    mocked_get_hyperparameter.assert_awaited_once_with(
+        param_name="CommitRevealWeightsEnabled", block_hash=block_hash, netuid=netuid
+    )
+    assert result == mocked_get_hyperparameter.return_value
+
+
+@pytest.mark.asyncio
 async def test_transfer_success(subtensor, mocker):
     """Tests transfer when the transfer is successful."""
     # Preps
