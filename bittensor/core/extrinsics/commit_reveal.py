@@ -10,10 +10,7 @@ from bittensor.utils import format_error_message
 from bittensor.utils.btlogging import logging
 from bittensor.utils.networking import ensure_connected
 from bittensor.utils.registration import torch, use_torch
-from bittensor.utils.weight_utils import (
-    convert_weights_and_uids_for_emit,
-    generate_weight_hash,
-)
+from bittensor.utils.weight_utils import convert_weights_and_uids_for_emit
 
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
@@ -22,21 +19,25 @@ if TYPE_CHECKING:
 
 # this will be replaced with rust-based ffi import from here https://github.com/opentensor/bittensor-commit-reveal
 def get_encrypted_commit(
-    commit_hash: str,
+    uids: list[int],
+    weights: list[int],
     subnet_reveal_period_epochs: int,
+    version_key: int = version_as_int,
 ) -> tuple[bytes, int]:
     """
     Decrypts to t-lock bytes.
 
     Arguments:
-        commit_hash: The hash of the commit (uids, weights) to be revealed.
+        uids (Union[NDArray[np.int64], torch.LongTensor, list]): The uids to commit.
+        weights (Union[NDArray[np.float32], torch.FloatTensor, list]): The weights associated with the uids.
         subnet_reveal_period_epochs: Number of epochs after which the revive will be performed.
+        version_key (int, optional): The version key to use for committing and revealing. Default is version_as_int.
 
     Returns:
         t-lock encrypted commit for commit_crv3_weights extrinsic.
         reveal_period: drand period when Subtensor reveal the weights to the chain.
     """
-    return commit_hash.encode(), subnet_reveal_period_epochs
+    return b"encrypted commit", subnet_reveal_period_epochs
 
 
 @ensure_connected
@@ -53,12 +54,12 @@ def _do_commit_reveal_v3(
     Executes the commit-reveal phase 3 for a given netuid and commit, and optionally waits for extrinsic inclusion or finalization.
 
     Arguments:
-        wallet : Wallet An instance of the Wallet class containing the user's keypair.
-        netuid : int The network unique identifier.
-        commit : bytes The commit data in bytes format.
-        reveal_round : int The round number for the reveal phase.
-        wait_for_inclusion : bool, optional Flag indicating whether to wait for the extrinsic to be included in a block.
-        wait_for_finalization : bool, optional Flag indicating whether to wait for the extrinsic to be finalized.
+        wallet: Wallet An instance of the Wallet class containing the user's keypair.
+        netuid: int The network unique identifier.
+        commit  bytes The commit data in bytes format.
+        reveal_round: int The round number for the reveal phase.
+        wait_for_inclusion: bool, optional Flag indicating whether to wait for the extrinsic to be included in a block.
+        wait_for_finalization: bool, optional Flag indicating whether to wait for the extrinsic to be finalized.
 
     Returns:
         A tuple where the first element is a boolean indicating success or failure, and the second element is an optional string containing error message if any.
@@ -114,14 +115,14 @@ def commit_reveal_v3_extrinsic(
     Commits and reveals weights for given subtensor and wallet with provided uids and weights.
 
     Arguments:
-        subtensor (Subtensor): The Subtensor instance.
-        wallet (Wallet): The wallet to use for committing and revealing.
-        netuid (int): The id of the network.
-        uids (Union[NDArray[np.int64], torch.LongTensor, list]): The uids to commit.
-        weights (Union[NDArray[np.float32], torch.FloatTensor, list]): The weights associated with the uids.
-        version_key (int, optional): The version key to use for committing and revealing. Default is version_as_int.
-        wait_for_inclusion (bool, optional): Whether to wait for the inclusion of the transaction. Default is False.
-        wait_for_finalization (bool, optional): Whether to wait for the finalization of the transaction. Default is False.
+        subtensor: The Subtensor instance.
+        wallet: The wallet to use for committing and revealing.
+        netuid: The id of the network.
+        uids: The uids to commit.
+        weights: The weights associated with the uids.
+        version_key: The version key to use for committing and revealing. Default is version_as_int.
+        wait_for_inclusion: Whether to wait for the inclusion of the transaction. Default is False.
+        wait_for_finalization: Whether to wait for the finalization of the transaction. Default is False.
 
     Returns:
         tuple[bool, str]: A tuple where the first element is a boolean indicating success or failure, and the second element is a message associated with the result.
@@ -142,25 +143,15 @@ def commit_reveal_v3_extrinsic(
         # Reformat and normalize.
         uids, weights = convert_weights_and_uids_for_emit(uids, weights)
 
-        # Generate the salt
-        salt = [random.randint(0, 350) for _ in range(8)]
-
-        # Generate the hash of the weights
-        commit_hash = generate_weight_hash(
-            address=wallet.hotkey.ss58_address,
-            netuid=netuid,
-            uids=list(uids),
-            values=list(weights),
-            salt=salt,
-            version_key=version_key,
-        )
-
         # Get subnet's reveal (in epochs)
-        subnet_reveal_period_epochs = subtensor.get_subnet_reveal_period_epochs(netuid)
+        subnet_reveal_period_epochs = subtensor.get_subnet_reveal_period_epochs(netuid=netuid)
 
         # Encrypt `commit_hash` with t-lock and `get reveal_round`
         commit_for_reveal, reveal_round = get_encrypted_commit(
-            commit_hash, subnet_reveal_period_epochs
+            uids=uids,
+            weights=weights,
+            subnet_reveal_period_epochs=subnet_reveal_period_epochs,
+            version_key=version_key,
         )
 
         success, message = _do_commit_reveal_v3(
