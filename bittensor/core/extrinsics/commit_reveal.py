@@ -1,4 +1,3 @@
-import random
 from typing import Optional, Union, TYPE_CHECKING
 
 import numpy as np
@@ -28,8 +27,8 @@ def get_encrypted_commit(
     Decrypts to t-lock bytes.
 
     Arguments:
-        uids (Union[NDArray[np.int64], torch.LongTensor, list]): The uids to commit.
-        weights (Union[NDArray[np.float32], torch.FloatTensor, list]): The weights associated with the uids.
+        uids: The uids to commit.
+        weights: The weights associated with the uids.
         subnet_reveal_period_epochs: Number of epochs after which the revive will be performed.
         version_key (int, optional): The version key to use for committing and revealing. Default is version_as_int.
 
