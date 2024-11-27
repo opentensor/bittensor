@@ -992,41 +992,32 @@ async def test_neurons(subtensor, mocker):
     # Preps
     fake_netuid = 1
     fake_block_hash = "block_hash"
-    fake_neurons = [mocker.Mock(), mocker.Mock()]
-    fake_weights = [(1, [(10, 20), (30, 40)]), (2, [(50, 60), (70, 80)])]
-    fake_bonds = [(1, [(10, 20), (30, 40)]), (2, [(50, 60), (70, 80)])]
+    fake_reuse_block_hash = True
 
-    mocked_neurons_lite = mocker.AsyncMock(return_value=fake_neurons)
-    subtensor.neurons_lite = mocked_neurons_lite
-
-    mocked_weights = mocker.AsyncMock(return_value=fake_weights)
-    subtensor.weights = mocked_weights
-
-    mocked_bonds = mocker.AsyncMock(return_value=fake_bonds)
-    subtensor.bonds = mocked_bonds
-
-    mocked_neuron_info_method = mocker.Mock()
-    async_subtensor.NeuronInfo.from_weights_bonds_and_neuron_lite = (
-        mocked_neuron_info_method
+    mocked_query_runtime_api = mocker.patch.object(
+        subtensor, "query_runtime_api", return_value="NOT NONE"
     )
-
+    mocked_hex_to_bytes = mocker.patch.object(async_subtensor, "hex_to_bytes")
+    mocked_neuron_info_list_from_vec_u8 = mocker.patch.object(
+        async_subtensor.NeuronInfo, "list_from_vec_u8"
+    )
     # Call
-    result = await subtensor.neurons(netuid=fake_netuid, block_hash=fake_block_hash)
+    result = await subtensor.neurons(
+        netuid=fake_netuid,
+        block_hash=fake_block_hash,
+        reuse_block=fake_reuse_block_hash,
+    )
 
     # Asserts
-    mocked_neurons_lite.assert_awaited_once()
-    mocked_neurons_lite.assert_called_once_with(
-        netuid=fake_netuid, block_hash=fake_block_hash
+    mocked_query_runtime_api.assert_called_once_with(
+        runtime_api="NeuronInfoRuntimeApi",
+        method="get_neurons",
+        params=[fake_netuid],
+        block_hash=fake_block_hash,
+        reuse_block=fake_reuse_block_hash,
     )
-    mocked_weights.assert_awaited_once()
-    mocked_weights.assert_called_once_with(
-        netuid=fake_netuid, block_hash=fake_block_hash
-    )
-    mocked_bonds.assert_awaited_once()
-    mocked_bonds.assert_called_once_with(netuid=fake_netuid, block_hash=fake_block_hash)
-    assert result == [
-        mocked_neuron_info_method.return_value for _ in range(len(fake_neurons))
-    ]
+    mocked_hex_to_bytes.assert_called_once_with(mocked_query_runtime_api.return_value)
+    assert result == mocked_neuron_info_list_from_vec_u8.return_value
 
 
 @pytest.mark.parametrize(
