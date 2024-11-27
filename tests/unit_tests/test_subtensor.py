@@ -503,6 +503,23 @@ def test_commit_reveal_enabled(subtensor, mocker):
     mocked_get_hyperparameter.assert_called_once_with(
         param_name="CommitRevealWeightsEnabled", block=block, netuid=netuid
     )
+    assert result is False
+
+
+def test_get_subnet_reveal_period_epochs(subtensor, mocker):
+    """Test get_subnet_reveal_period_epochs."""
+    # Preps
+    netuid = 1
+    block = 123
+    mocked_get_hyperparameter = mocker.patch.object(subtensor, "_get_hyperparameter")
+
+    # Call
+    result = subtensor.get_subnet_reveal_period_epochs(netuid, block)
+
+    # Assertions
+    mocked_get_hyperparameter.assert_called_once_with(
+        param_name="RevealPeriodEpochs", block=block, netuid=netuid
+    )
     assert result == mocked_get_hyperparameter.return_value
 
 
@@ -2811,3 +2828,45 @@ def test_unstake_multiple_success(mocker, subtensor):
         wait_for_finalization=False,
     )
     assert result == mock_unstake_multiple_extrinsic.return_value
+
+
+def test_set_weights_with_commit_reveal_enabled(subtensor, mocker):
+    """Test set_weights with commit_reveal_enabled is True."""
+    # Preps
+    fake_wallet = mocker.Mock()
+    fake_netuid = 1
+    fake_uids = [1, 5]
+    fake_weights = [0.1, 0.9]
+    fake_wait_for_inclusion = True
+    fake_wait_for_finalization = False
+
+    mocked_commit_reveal_enabled = mocker.patch.object(
+        subtensor, "commit_reveal_enabled", return_value=True
+    )
+    mocked_commit_reveal_v3_extrinsic = mocker.patch.object(
+        subtensor_module, "commit_reveal_v3_extrinsic"
+    )
+
+    # Call
+    result = subtensor.set_weights(
+        wallet=fake_wallet,
+        netuid=fake_netuid,
+        uids=fake_uids,
+        weights=fake_weights,
+        wait_for_inclusion=fake_wait_for_inclusion,
+        wait_for_finalization=fake_wait_for_finalization,
+    )
+
+    # Asserts
+    mocked_commit_reveal_enabled.assert_called_once_with(netuid=fake_netuid)
+    mocked_commit_reveal_v3_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        netuid=fake_netuid,
+        uids=fake_uids,
+        weights=fake_weights,
+        version_key=subtensor_module.settings.version_as_int,
+        wait_for_inclusion=fake_wait_for_inclusion,
+        wait_for_finalization=fake_wait_for_finalization,
+    )
+    assert result == mocked_commit_reveal_v3_extrinsic.return_value

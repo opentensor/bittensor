@@ -2369,6 +2369,26 @@ async def test_commit_reveal_enabled(subtensor, mocker):
     mocked_get_hyperparameter.assert_awaited_once_with(
         param_name="CommitRevealWeightsEnabled", block_hash=block_hash, netuid=netuid
     )
+    assert result is False
+
+
+@pytest.mark.asyncio
+async def test_get_subnet_reveal_period_epochs(subtensor, mocker):
+    """Test get_subnet_reveal_period_epochs."""
+    # Preps
+    netuid = 1
+    block_hash = "block_hash"
+    mocked_get_hyperparameter = mocker.patch.object(
+        subtensor, "get_hyperparameter", return_value=mocker.AsyncMock()
+    )
+
+    # Call
+    result = await subtensor.get_subnet_reveal_period_epochs(netuid, block_hash)
+
+    # Assertions
+    mocked_get_hyperparameter.assert_awaited_once_with(
+        param_name="RevealPeriodEpochs", block_hash=block_hash, netuid=netuid
+    )
     assert result == mocked_get_hyperparameter.return_value
 
 
