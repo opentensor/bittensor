@@ -41,6 +41,7 @@
 * Update `ensure_connected` for websockets by @thewhaleking in https://github.com/opentensor/bittensor/pull/2486
 * MockSubtensor work offline by @thewhaleking in https://github.com/opentensor/bittensor/pull/2487
 * Add `wait_for_block` method by @thewhaleking in https://github.com/opentensor/bittensor/pull/2489
+* Updates btwallet to 2.1.2 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2490
 
 ## New Contributors
 * @vaqxai made their first contribution in https://github.com/opentensor/bittensor/pull/2366
