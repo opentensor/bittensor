@@ -125,6 +125,8 @@ def get_mock_neuron_by_uid(uid: int, **kwargs) -> NeuronInfo:
 
 
 class FakeWebsocket(ClientConnection):
+    close_code = None
+
     def __init__(self, *args, seed, **kwargs):
         protocol = ClientProtocol(parse_uri("ws://127.0.0.1:9945"))
         super().__init__(socket=None, protocol=protocol, **kwargs)
