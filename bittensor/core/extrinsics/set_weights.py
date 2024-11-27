@@ -109,7 +109,7 @@ def do_batch_set_weights(
     uidss: list[list[int]],
     valss: list[list[int]],
     netuids: list[int],
-    version_keys: list[int] = [],
+    version_keys: Optional[list[int]] = None,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
     period: int = 5,
@@ -123,7 +123,7 @@ def do_batch_set_weights(
         uidss (list[list[int]]): List of neuron UIDs for which weights are being set.
         valss (list[list[int]]): List of weight values corresponding to each UID.
         netuids (list[int]): Unique identifier for the network.
-        version_keys (list[int]): Version key for compatibility with the network.
+        version_keys (Optional[list[int]]): Version key for compatibility with the network.
         wait_for_inclusion (bool): Waits for the transaction to be included in a block.
         wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
         period (int): Period dictates how long the extrinsic will stay as part of waiting pool.
@@ -133,6 +133,9 @@ def do_batch_set_weights(
 
     This method is vital for the dynamic weighting mechanism in Bittensor, where neurons adjust their trust in other neurons based on observed performance and contributions.
     """
+    if version_keys is None or len(version_keys) == 0:
+        version_keys = [version_as_int] * len(netuids)
+
     packed_weights = [
         [(uid, val) for uid, val in zip(uids, vals)] for uids, vals in zip(uidss, valss)
     ]
@@ -253,7 +256,7 @@ def batch_set_weights_extrinsic(
     netuids: list[int],
     uidss: list[Union[NDArray[np.int64], "torch.LongTensor", list]],
     weightss: list[Union[NDArray[np.float32], "torch.FloatTensor", list]],
-    version_keys: list[int] = [],
+    version_keys: Optional[list[int]] = None,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
 ) -> tuple[bool, str]:
@@ -265,7 +268,7 @@ def batch_set_weights_extrinsic(
         netuids (list[int]): The ``netuid`` of the subnet to set weights for.
         uidss (list[Union[NDArray[np.int64], torch.LongTensor, list]]): The ``uint64`` uids of destination neurons.
         weightss (list[Union[NDArray[np.float32], torch.FloatTensor, list]]): The weights to set. These must be ``float`` s and correspond to the passed ``uid`` s.
-        version_keys (list[int]): The version key of the validator.
+        version_keys (Optional[list[int]]): The version key of the validator.
         wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
 
@@ -274,7 +277,7 @@ def batch_set_weights_extrinsic(
     """
     uids_to_set: list[Union[NDArray[np.int64], "torch.LongTensor", list]] = []
     weights_to_set: list[Union[NDArray[np.float32], "torch.FloatTensor", list]] = []
-    if len(version_keys) == 0:
+    if version_keys is None or len(version_keys) == 0:
         version_keys = [0] * len(netuids)  # Default to version 0 if not provided
 
     for uids, weights in zip(uidss, weightss):

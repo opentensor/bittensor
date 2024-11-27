@@ -1619,7 +1619,7 @@ class AsyncSubtensor:
         netuids: list[int],
         uidss: list[Union[NDArray[np.int64], "torch.LongTensor", list]],
         weightss: list[Union[NDArray[np.float32], "torch.FloatTensor", list]],
-        version_keys: list[int] = [],
+        version_keys: Optional[list[int]] = None,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
         max_retries: int = 5,
@@ -1632,7 +1632,7 @@ class AsyncSubtensor:
             netuids (list[int]): The list of subnet uids.
             uidss (list[Union[NDArray[np.int64], torch.LongTensor, list]]): The list of neuron UIDs that the weights are being set for.
             weightss (list[Union[NDArray[np.float32], torch.FloatTensor, list]]): The corresponding weights to be set for each UID.
-            version_keys (list[int]): Version keys for compatibility with the network. Default is ``int representation of Bittensor version.``.
+            version_keys (Optional[list[int]]): Version keys for compatibility with the network. Default is ``int representation of Bittensor version.``.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block. Default is ``False``.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Default is ``False``.
             max_retries (int): The number of maximum attempts to set weights. Default is ``5``.
@@ -1647,7 +1647,7 @@ class AsyncSubtensor:
         weightss_to_set = []
         version_keys_to_set = []
 
-        if len(version_keys) == 0:
+        if version_keys is None or len(version_keys) == 0:
             version_keys = [version_as_int] * len(netuids)
 
         for i, netuid in enumerate(netuids):
@@ -1798,9 +1798,9 @@ class AsyncSubtensor:
         wallet: "Wallet",
         netuids: list[int],
         salts: list[list[int]],
-        uids: list[Union[NDArray[np.int64], list]],
-        weights: list[Union[NDArray[np.int64], list]],
-        version_keys: list[int] = [],
+        uidss: list[Union[NDArray[np.int64], list]],
+        weightss: list[Union[NDArray[np.int64], list]],
+        version_keys: Optional[list[int]] = None,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
         max_retries: int = 5,
@@ -1815,7 +1815,7 @@ class AsyncSubtensor:
             salts (list[list[int]]): The list of salts to generate weight hashes.
             uids (list[np.ndarray]): The list of NumPy arrays of neuron UIDs for which weights are being committed.
             weights (list[np.ndarray]): The list of NumPy arrays of weight values corresponding to each UID.
-            version_keys (list[int]): The list of version keys for compatibility with the network. Default is ``int representation of Bittensor version.``.
+            version_keys (Optional[list[int]]): The list of version keys for compatibility with the network. Default is ``int representation of Bittensor version.``.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block. Default is ``False``.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Default is ``False``.
             max_retries (int): The number of maximum attempts to commit weights. Default is ``5``.
@@ -1833,7 +1833,7 @@ class AsyncSubtensor:
             f"Committing a batch of weights with params: netuids={netuids}, salts={salts}, uids={uids}, weights={weights}, version_keys={version_keys}"
         )
 
-        if len(version_keys) == 0:
+        if version_keys is None or len(version_keys) == 0:
             version_keys = [version_as_int] * len(netuids)
 
         # Generate the hash of the weights
