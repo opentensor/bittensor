@@ -37,6 +37,10 @@
 * remove uses of return scale obj by @thewhaleking in https://github.com/opentensor/bittensor/pull/2479
 * Backmerge master to staging for 8.4.0 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2482
 * Expand `reuse_block` by @thewhaleking in https://github.com/opentensor/bittensor/pull/2481
+* Add NeuronInfo list from vec u8 by @camfairchild in https://github.com/opentensor/bittensor/pull/2480
+* Update `ensure_connected` for websockets by @thewhaleking in https://github.com/opentensor/bittensor/pull/2486
+* MockSubtensor work offline by @thewhaleking in https://github.com/opentensor/bittensor/pull/2487
+* Add `wait_for_block` method by @thewhaleking in https://github.com/opentensor/bittensor/pull/2489
 
 ## New Contributors
 * @vaqxai made their first contribution in https://github.com/opentensor/bittensor/pull/2366
