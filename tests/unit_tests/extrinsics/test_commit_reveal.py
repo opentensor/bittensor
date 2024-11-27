@@ -125,23 +125,23 @@ def test_commit_reveal_v3_extrinsic_success_with_torch(mocker, subtensor):
     fake_netuid = 1
     fake_uids = torch.tensor([1, 2, 3], dtype=torch.int64)
     fake_weights = torch.tensor([0.1, 0.2, 0.7], dtype=torch.float32)
-    fake_salt = [42] * 8
-    fake_commit_hash = b"mock_commit_hash"
     fake_commit_for_reveal = b"mock_commit_for_reveal"
     fake_reveal_round = 1
 
     # Mocks
     mocker.patch.object(commit_reveal, "use_torch", return_value=True)
-    mocker.patch.object(
+
+    mocked_uids = mocker.Mock()
+    mocked_weights = mocker.Mock()
+    mocked_convert_weights_and_uids_for_emit = mocker.patch.object(
         commit_reveal,
         "convert_weights_and_uids_for_emit",
-        return_value=(fake_uids, fake_weights),
+        return_value=(mocked_uids, mocked_weights),
     )
-    mocker.patch.object(commit_reveal.random, "randint", return_value=42)
-    mocker.patch.object(
-        commit_reveal, "generate_weight_hash", return_value=fake_commit_hash
+    mocked_get_subnet_reveal_period_epochs = mocker.patch.object(
+        subtensor, "get_subnet_reveal_period_epochs"
     )
-    mocker.patch.object(
+    mocked_get_encrypted_commit = mocker.patch.object(
         commit_reveal,
         "get_encrypted_commit",
         return_value=(fake_commit_for_reveal, fake_reveal_round),
@@ -164,6 +164,14 @@ def test_commit_reveal_v3_extrinsic_success_with_torch(mocker, subtensor):
     # Asserts
     assert success is True
     assert message == "Success"
+    mocked_convert_weights_and_uids_for_emit.assert_called_once_with(fake_uids, fake_weights)
+    mocked_get_subnet_reveal_period_epochs.assert_called_once_with(netuid=fake_netuid)
+    mocked_get_encrypted_commit.assert_called_once_with(
+        uids=mocked_uids,
+        weights=mocked_weights,
+        subnet_reveal_period_epochs=mocked_get_subnet_reveal_period_epochs.return_value,
+        version_key=commit_reveal.version_as_int,
+    )
     mock_do_commit_reveal_v3.assert_called_once_with(
         self=subtensor,
         wallet=fake_wallet,
@@ -189,7 +197,6 @@ def test_commit_reveal_v3_extrinsic_success_with_numpy(mocker, subtensor):
         "convert_weights_and_uids_for_emit",
         return_value=(fake_uids, fake_weights),
     )
-    mock_generate_hash = mocker.patch.object(commit_reveal, "generate_weight_hash")
     mock_encode_drand = mocker.patch.object(
         commit_reveal, "get_encrypted_commit", return_value=(b"commit", 0)
     )
@@ -212,7 +219,6 @@ def test_commit_reveal_v3_extrinsic_success_with_numpy(mocker, subtensor):
     assert success is True
     assert message == "Committed!"
     mock_convert.assert_called_once_with(fake_uids, fake_weights)
-    mock_generate_hash.assert_called_once()
     mock_encode_drand.assert_called_once()
     mock_do_commit.assert_called_once()
 
@@ -224,8 +230,6 @@ def test_commit_reveal_v3_extrinsic_response_false(mocker, subtensor):
     fake_netuid = 1
     fake_uids = torch.tensor([1, 2, 3], dtype=torch.int64)
     fake_weights = torch.tensor([0.1, 0.2, 0.7], dtype=torch.float32)
-    fake_salt = [42] * 8
-    fake_commit_hash = b"mock_commit_hash"
     fake_commit_for_reveal = b"mock_commit_for_reveal"
     fake_reveal_round = 1
 
@@ -235,10 +239,6 @@ def test_commit_reveal_v3_extrinsic_response_false(mocker, subtensor):
         commit_reveal,
         "convert_weights_and_uids_for_emit",
         return_value=(fake_uids, fake_weights),
-    )
-    mocker.patch.object(commit_reveal.random, "randint", return_value=42)
-    mocker.patch.object(
-        commit_reveal, "generate_weight_hash", return_value=fake_commit_hash
     )
     mocker.patch.object(
         commit_reveal,
