@@ -50,7 +50,10 @@ from bittensor.core.extrinsics.serving import (
     publish_metadata,
     get_metadata,
 )
-from bittensor.core.extrinsics.set_weights import set_weights_extrinsic
+from bittensor.core.extrinsics.set_weights import (
+    set_weights_extrinsic,
+    batch_set_weights_extrinsic,
+)
 from bittensor.core.extrinsics.transfer import (
     transfer_extrinsic,
 )
@@ -1733,6 +1736,83 @@ class Subtensor:
 
         return success, message
 
+    def batch_set_weights(
+        self,
+        wallet: "Wallet",
+        netuids: list[int],
+        uidss: list[Union[NDArray[np.int64], "torch.LongTensor", list]],
+        weightss: list[Union[NDArray[np.float32], "torch.FloatTensor", list]],
+        version_keys: list[int] = [],
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = False,
+        max_retries: int = 5,
+    ) -> tuple[bool, str]:
+        """
+        Sets a batch of weights for multiple subnets.
+
+        Args:
+            wallet (bittensor_wallet.Wallet): The wallet associated with the neuron setting the weights.
+            netuids (list[int]): The list of subnet netuids that the weights are being set for.
+            uidss (list[Union[NDArray[np.int64], torch.LongTensor, list]]): The lists of neuron UIDs that the weights are being set for.
+            weightss (list[Union[NDArray[np.float32], torch.FloatTensor, list]]): The lists of corresponding weights to be set for each UID.
+            version_keys (list[int]): Version keys for compatibility with each subnet.
+            wait_for_inclusion (bool): Waits for the transaction to be included in a block. Default is ``False``.
+            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Default is ``False``.
+            max_retries (int): The number of maximum attempts to set weights. Default is ``5``.
+
+        Returns:
+            tuple[bool, str]: ``True`` if the setting of weights is successful, False otherwise. And `msg`, a string value describing the success or potential error.
+
+        This function is crucial in shaping the network's collective intelligence, where each neuron's learning and contribution are influenced by the weights it sets towards others【81†source】.
+        """
+        netuids_to_set = []
+        uidss_to_set = []
+        weightss_to_set = []
+        version_keys_to_set = []
+
+        if len(version_keys) == 0:
+            version_keys = [settings.version_as_int] * len(netuids)
+
+        for i, netuid in enumerate(netuids):
+            uid = self.get_uid_for_hotkey_on_subnet(wallet.hotkey.ss58_address, netuid)
+            retries = 0
+            success = False
+            message = "No attempt made. Perhaps it is too soon to set weights!"
+            if self.blocks_since_last_update(netuid, uid) <= self.weights_rate_limit(
+                netuid
+            ):
+                logging.info(
+                    f"Skipping subnet #{netuid} as it has not reached the weights rate limit."
+                )
+                continue
+
+            netuids_to_set.append(netuid)
+            uidss_to_set.append(uidss[i])
+            weightss_to_set.append(weightss[i])
+            version_keys_to_set.append(version_keys[i])
+
+        while retries < max_retries:
+            try:
+                logging.info(
+                    f"Setting batch of weights for subnets #{netuids_to_set}. Attempt {retries + 1} of {max_retries}."
+                )
+                success, message = batch_set_weights_extrinsic(
+                    subtensor=self,
+                    wallet=wallet,
+                    netuids=netuids_to_set,
+                    uidss=uidss_to_set,
+                    weightss=weightss_to_set,
+                    version_keys=version_keys_to_set,
+                    wait_for_inclusion=wait_for_inclusion,
+                    wait_for_finalization=wait_for_finalization,
+                )
+            except Exception as e:
+                logging.error(f"Error setting batch of weights: {e}")
+            finally:
+                retries += 1
+
+        return success, message
+
     @legacy_torch_api_compat
     def root_set_weights(
         self,
@@ -2014,8 +2094,8 @@ class Subtensor:
         wallet: "Wallet",
         netuids: list[int],
         salts: list[list[int]],
-        uids: list[Union[NDArray[np.int64], list]],
-        weights: list[Union[NDArray[np.int64], list]],
+        uidss: list[Union[NDArray[np.int64], list]],
+        weightss: list[Union[NDArray[np.int64], list]],
         version_keys: list[int] = [],
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
@@ -2029,8 +2109,8 @@ class Subtensor:
             wallet (bittensor_wallet.Wallet): The wallet associated with the neuron committing the weights.
             netuids (list[int]): The list of subnet uids.
             salts (list[list[int]]): The list of salts to generate weight hashes.
-            uids (list[np.ndarray]): The list of NumPy arrays of neuron UIDs for which weights are being committed.
-            weights (list[np.ndarray]): The list of NumPy arrays of weight values corresponding to each UID.
+            uidss (list[np.ndarray]): The list of NumPy arrays of neuron UIDs for which weights are being committed.
+            weightss (list[np.ndarray]): The list of NumPy arrays of weight values corresponding to each UID.
             version_keys (list[int]): The list of version keys for compatibility with the network. Default is ``int representation of Bittensor version.``.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block. Default is ``False``.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Default is ``False``.
@@ -2063,7 +2143,7 @@ class Subtensor:
                 version_key=version_key,
             )
             for netuid, salt, uids, weights, version_key in zip(
-                netuids, salts, uids, weights, version_keys
+                netuids, salts, uidss, weightss, version_keys
             )
         ]
 

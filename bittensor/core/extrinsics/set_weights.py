@@ -251,8 +251,8 @@ def batch_set_weights_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
     netuids: list[int],
-    uids: list[Union[NDArray[np.int64], "torch.LongTensor", list]],
-    weights: list[Union[NDArray[np.float32], "torch.FloatTensor", list]],
+    uidss: list[Union[NDArray[np.int64], "torch.LongTensor", list]],
+    weightss: list[Union[NDArray[np.float32], "torch.FloatTensor", list]],
     version_keys: list[int] = [],
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
@@ -263,8 +263,8 @@ def batch_set_weights_extrinsic(
         subtensor (bittensor.subtensor): Bittensor subtensor object.
         wallet (bittensor.wallet): Bittensor wallet object.
         netuids (list[int]): The ``netuid`` of the subnet to set weights for.
-        uids (list[Union[NDArray[np.int64], torch.LongTensor, list]]): The ``uint64`` uids of destination neurons.
-        weights (list[Union[NDArray[np.float32], torch.FloatTensor, list]]): The weights to set. These must be ``float`` s and correspond to the passed ``uid`` s.
+        uidss (list[Union[NDArray[np.int64], torch.LongTensor, list]]): The ``uint64`` uids of destination neurons.
+        weightss (list[Union[NDArray[np.float32], torch.FloatTensor, list]]): The weights to set. These must be ``float`` s and correspond to the passed ``uid`` s.
         version_keys (list[int]): The version key of the validator.
         wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
@@ -277,22 +277,22 @@ def batch_set_weights_extrinsic(
     if len(version_keys) == 0:
         version_keys = [0] * len(netuids)  # Default to version 0 if not provided
 
-    for uids_, weights_ in zip(uids, weights):
+    for uids, weights in zip(uidss, weightss):
         # First convert types.
         if use_torch():
             if isinstance(uids, list):
-                uids_ = torch.tensor(uids, dtype=torch.int64)
+                uids = torch.tensor(uids, dtype=torch.int64)
             if isinstance(weights, list):
-                weights_ = torch.tensor(weights, dtype=torch.float32)
+                weights = torch.tensor(weights, dtype=torch.float32)
         else:
             if isinstance(uids, list):
-                uids_ = np.array(uids, dtype=np.int64)
+                uids = np.array(uids, dtype=np.int64)
             if isinstance(weights, list):
-                weights_ = np.array(weights, dtype=np.float32)
+                weights = np.array(weights, dtype=np.float32)
 
         # Reformat and normalize.
         weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(
-            uids_, weights_
+            uids, weights
         )
 
         uids_to_set.append(weight_uids)
@@ -303,7 +303,7 @@ def batch_set_weights_extrinsic(
     )
     try:
         success, error_message = do_batch_set_weights(
-            subtensor=subtensor,
+            self=subtensor,
             wallet=wallet,
             netuids=netuids,
             uidss=uids_to_set,

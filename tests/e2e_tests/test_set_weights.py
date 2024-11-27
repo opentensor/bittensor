@@ -286,9 +286,9 @@ async def test_batch_set_weights(local_chain):
     # Set weights in a batch
     success, message = subtensor.batch_set_weights(
         alice_wallet,
-        [netuid_1, netuid_2],
-        uids=[weight_uids, weight_uids],
-        weights=[weight_vals, weight_vals],
+        netuids=[netuid_1, netuid_2],
+        uidss=[weight_uids, weight_uids],
+        weightss=[weight_vals, weight_vals],
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )

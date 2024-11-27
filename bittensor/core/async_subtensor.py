@@ -30,6 +30,7 @@ from bittensor.core.extrinsics.async_root import (
 from bittensor.core.extrinsics.async_transfer import transfer_extrinsic
 from bittensor.core.extrinsics.async_weights import (
     batch_commit_weights_extrinsic,
+    batch_set_weights_extrinsic,
     commit_weights_extrinsic,
     set_weights_extrinsic,
 )
@@ -1526,6 +1527,86 @@ class AsyncSubtensor:
                 )
             except Exception as e:
                 logging.error(f"Error setting weights: {e}")
+            finally:
+                retries += 1
+
+        return success, message
+
+    async def batch_set_weights(
+        self,
+        wallet: "Wallet",
+        netuids: list[int],
+        uidss: list[Union[NDArray[np.int64], "torch.LongTensor", list]],
+        weightss: list[Union[NDArray[np.float32], "torch.FloatTensor", list]],
+        version_keys: list[int] = [],
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = False,
+        max_retries: int = 5,
+    ):
+        """
+        Batch set weights for multiple subnets.
+
+        Args:
+            wallet (bittensor_wallet.Wallet): The wallet associated with the neuron setting the weights.
+            netuids (list[int]): The list of subnet uids.
+            uidss (list[Union[NDArray[np.int64], torch.LongTensor, list]]): The list of neuron UIDs that the weights are being set for.
+            weightss (list[Union[NDArray[np.float32], torch.FloatTensor, list]]): The corresponding weights to be set for each UID.
+            version_keys (list[int]): Version keys for compatibility with the network. Default is ``int representation of Bittensor version.``.
+            wait_for_inclusion (bool): Waits for the transaction to be included in a block. Default is ``False``.
+            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Default is ``False``.
+            max_retries (int): The number of maximum attempts to set weights. Default is ``5``.
+
+        Returns:
+            tuple[bool, str]: ``True`` if the setting of weights is successful, False otherwise. And `msg`, a string value describing the success or potential error.
+
+        This function is crucial in shaping the network's collective intelligence, where each neuron's learning and contribution are influenced by the weights it sets towards others【81†source】.
+        """
+        netuids_to_set = []
+        uidss_to_set = []
+        weightss_to_set = []
+        version_keys_to_set = []
+
+        if len(version_keys) == 0:
+            version_keys = [version_as_int] * len(netuids)
+
+        for i, netuid in enumerate(netuids):
+            uid = await self.get_uid_for_hotkey_on_subnet(
+                wallet.hotkey.ss58_address, netuid
+            )
+            retries = 0
+            success = False
+            message = "No attempt made. Perhaps it is too soon to set weights!"
+
+            if await self.blocks_since_last_update(
+                netuid, uid
+            ) <= await self.weights_rate_limit(netuid):
+                logging.info(
+                    f"Skipping subnet #{netuid} as it has not reached the weights rate limit."
+                )
+                continue
+
+            netuids_to_set.append(netuid)
+            uidss_to_set.append(uidss[i])
+            weightss_to_set.append(weightss[i])
+            version_keys_to_set.append(version_keys[i])
+
+        while retries < max_retries:
+            try:
+                logging.info(
+                    f"Setting batch of weights for subnets #[blue]{netuids_to_set}[/blue]. Attempt [blue]{retries + 1} of {max_retries}[/blue]."
+                )
+                success, message = await batch_set_weights_extrinsic(
+                    subtensor=self,
+                    wallet=wallet,
+                    netuids=netuids_to_set,
+                    uidss=uidss_to_set,
+                    weightss=weightss_to_set,
+                    version_keys=version_keys_to_set,
+                    wait_for_inclusion=wait_for_inclusion,
+                    wait_for_finalization=wait_for_finalization,
+                )
+            except Exception as e:
+                logging.error(f"Error setting batch of weights: {e}")
             finally:
                 retries += 1
 
