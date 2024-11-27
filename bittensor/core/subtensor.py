@@ -1778,7 +1778,7 @@ class Subtensor:
             retries = 0
             success = False
             message = "No attempt made. Perhaps it is too soon to set weights!"
-            if self.blocks_since_last_update(netuid, uid) <= self.weights_rate_limit(
+            if self.blocks_since_last_update(netuid, uid) <= self.weights_rate_limit( # type: ignore
                 netuid
             ):
                 logging.info(
