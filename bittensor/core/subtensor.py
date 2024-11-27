@@ -216,7 +216,7 @@ class Subtensor:
         """Establishes a connection to the Substrate node using configured parameters."""
         try:
             # Set up params.
-            if not self.websocket:
+            if self.websocket is None or self.websocket.close_code is not None:
                 self.websocket = ws_client.connect(
                     self.chain_endpoint,
                     open_timeout=self._connection_timeout,
