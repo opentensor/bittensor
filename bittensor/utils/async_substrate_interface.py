@@ -2794,13 +2794,21 @@ class AsyncSubstrateInterface:
                 up to you.
             task_return: True to immediately return the result of wait_for_block as an asyncio Task, False to wait
                 for the block to be reached, and return the result of the result handler.
+
+        Returns:
+            Either an asyncio.Task (which contains the running subscription, and whose `result()` will contain the
+                return of the result_handler), or the result itself, depending on `task_return` flag.
+                Note that if your result_handler returns `None`, this method will return `True`, otherwise
+                the return will be the result of your result_handler.
         """
 
         async def _handler(block_data: dict[str, Any]):
             required_number = block
             number = block_data["header"]["number"]
             if number >= required_number:
-                return await result_handler(block_data) or True
+                return (
+                    r if (r := await result_handler(block_data)) is not None else True
+                )
 
         args = inspect.getfullargspec(result_handler).args
         if len(args) != 1:
