@@ -145,7 +145,7 @@ def set_weights_extrinsic(
     )
 
     logging.info(
-        f":satellite: <magenta>Setting weights on </magenta><blue>{subtensor.network}<blue> <magenta>...</magenta>"
+        f":satellite: [magenta]Setting weights on [/magenta][blue]{subtensor.network}[blue] [magenta]...[/magenta]"
     )
     logging.debug(f"Weights: {[float(v / 65535) for v in weight_vals]}")
 
@@ -165,13 +165,13 @@ def set_weights_extrinsic(
             return True, "Not waiting for finalization or inclusion."
 
         if success is True:
-            logging.success(f"<green>Finalized!</green> Set weights: {str(success)}")
+            logging.success(f"[green]Finalized![/green] Set weights: {str(success)}")
             return True, "Successfully set weights and Finalized."
         else:
             logging.error(error_message)
             return False, error_message
 
     except Exception as e:
-        logging.error(f":cross_mark: <red>Failed.</red>: Error: {e}")
+        logging.error(f":cross_mark: [red]Failed.[/red]: Error: {e}")
         logging.debug(str(e))
         return False, str(e)

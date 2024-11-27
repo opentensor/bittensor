@@ -15,7 +15,12 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+from collections import deque
+import json
 from typing import Union
+
+from websockets.sync.client import ClientConnection, ClientProtocol
+from websockets.uri import parse_uri
 
 from bittensor_wallet.mock.wallet_mock import MockWallet as _MockWallet
 from bittensor_wallet.mock.wallet_mock import get_mock_coldkey
@@ -24,6 +29,7 @@ from bittensor_wallet.mock.wallet_mock import get_mock_wallet
 
 from bittensor.utils.balance import Balance
 from bittensor.core.chain_data import AxonInfo, NeuronInfo, PrometheusInfo
+from tests.helpers.integration_websocket_data import WEBSOCKET_RESPONSES
 
 
 def __mock_wallet_factory__(*_, **__) -> _MockWallet:
@@ -60,6 +66,7 @@ def get_mock_neuron(**kwargs) -> NeuronInfo:
     """
 
     mock_neuron_d = dict(
+        # TODO fix the AxonInfo here — it doesn't work
         {
             "netuid": -1,  # mock netuid
             "axon_info": AxonInfo(
@@ -115,3 +122,33 @@ def get_mock_neuron_by_uid(uid: int, **kwargs) -> NeuronInfo:
     return get_mock_neuron(
         uid=uid, hotkey=get_mock_hotkey(uid), coldkey=get_mock_coldkey(uid), **kwargs
     )
+
+
+class FakeWebsocket(ClientConnection):
+    close_code = None
+
+    def __init__(self, *args, seed, **kwargs):
+        protocol = ClientProtocol(parse_uri("ws://127.0.0.1:9945"))
+        super().__init__(socket=None, protocol=protocol, **kwargs)
+        self.seed = seed
+        self.received = deque()
+
+    def send(self, payload: str, *args, **kwargs):
+        received = json.loads(payload)
+        id_ = received.pop("id")
+        self.received.append((received, id_))
+
+    def recv(self, *args, **kwargs):
+        item, _id = self.received.pop()
+        try:
+            response = WEBSOCKET_RESPONSES[self.seed][item["method"]][
+                json.dumps(item["params"])
+            ]
+            response["id"] = _id
+            return json.dumps(response)
+        except (KeyError, TypeError):
+            print("ERROR", self.seed, item["method"], item["params"])
+            raise
+
+    def close(self, *args, **kwargs):
+        pass

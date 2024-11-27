@@ -174,3 +174,57 @@ class NeuronInfo:
             ),
             is_null=False,
         )
+
+    @classmethod
+    def list_from_vec_u8(cls, vec_u8: bytes) -> list["NeuronInfo"]:
+        nn = bt_decode.NeuronInfo.decode_vec(bytes(vec_u8))
+
+        def fix(n):
+            stake_dict = process_stake_data(n.stake)
+            total_stake = sum(stake_dict.values()) if stake_dict else Balance(0)
+            axon_info = n.axon_info
+            coldkey = decode_account_id(n.coldkey)
+            hotkey = decode_account_id(n.hotkey)
+            return NeuronInfo(
+                hotkey=hotkey,
+                coldkey=coldkey,
+                uid=n.uid,
+                netuid=n.netuid,
+                active=n.active,
+                stake=total_stake,
+                stake_dict=stake_dict,
+                total_stake=total_stake,
+                rank=u16_normalized_float(n.rank),
+                emission=n.emission / 1e9,
+                incentive=u16_normalized_float(n.incentive),
+                consensus=u16_normalized_float(n.consensus),
+                trust=u16_normalized_float(n.trust),
+                validator_trust=u16_normalized_float(n.validator_trust),
+                dividends=u16_normalized_float(n.dividends),
+                last_update=n.last_update,
+                validator_permit=n.validator_permit,
+                weights=[[e[0], e[1]] for e in n.weights],
+                bonds=[[e[0], e[1]] for e in n.bonds],
+                pruning_score=n.pruning_score,
+                prometheus_info=PrometheusInfo(
+                    block=n.prometheus_info.block,
+                    version=n.prometheus_info.version,
+                    ip=str(netaddr.IPAddress(n.prometheus_info.ip)),
+                    port=n.prometheus_info.port,
+                    ip_type=n.prometheus_info.ip_type,
+                ),
+                axon_info=AxonInfo(
+                    version=axon_info.version,
+                    ip=str(netaddr.IPAddress(axon_info.ip)),
+                    port=axon_info.port,
+                    ip_type=axon_info.ip_type,
+                    placeholder1=axon_info.placeholder1,
+                    placeholder2=axon_info.placeholder2,
+                    protocol=axon_info.protocol,
+                    hotkey=hotkey,
+                    coldkey=coldkey,
+                ),
+                is_null=False,
+            )
+
+        return [fix(n) for n in nn]

@@ -306,6 +306,7 @@ async def test_get_subnet_burn_cost(subtensor, mocker):
         method="get_network_registration_cost",
         params=[],
         block_hash=fake_block_hash,
+        reuse_block=False,
     )
 
 
@@ -329,6 +330,7 @@ async def test_get_total_subnets(subtensor, mocker):
         storage_function="TotalNetworks",
         params=[],
         block_hash=fake_block_hash,
+        reuse_block_hash=False,
     )
 
 
@@ -361,7 +363,7 @@ async def test_get_subnets(subtensor, mocker, records, response):
         module="SubtensorModule",
         storage_function="NetworksAdded",
         block_hash=fake_block_hash,
-        reuse_block_hash=True,
+        reuse_block_hash=False,
     )
     assert result == response
 
@@ -498,6 +500,7 @@ async def test_get_stake_for_coldkey_and_hotkey(subtensor, mocker):
         storage_function="Stake",
         params=["hotkey", "coldkey"],
         block_hash=None,
+        reuse_block_hash=False,
     )
     assert result == spy_balance.from_rao.return_value
     spy_balance.from_rao.assert_called_once_with(mocked_substrate_query.return_value)
@@ -989,41 +992,32 @@ async def test_neurons(subtensor, mocker):
     # Preps
     fake_netuid = 1
     fake_block_hash = "block_hash"
-    fake_neurons = [mocker.Mock(), mocker.Mock()]
-    fake_weights = [(1, [(10, 20), (30, 40)]), (2, [(50, 60), (70, 80)])]
-    fake_bonds = [(1, [(10, 20), (30, 40)]), (2, [(50, 60), (70, 80)])]
+    fake_reuse_block_hash = True
 
-    mocked_neurons_lite = mocker.AsyncMock(return_value=fake_neurons)
-    subtensor.neurons_lite = mocked_neurons_lite
-
-    mocked_weights = mocker.AsyncMock(return_value=fake_weights)
-    subtensor.weights = mocked_weights
-
-    mocked_bonds = mocker.AsyncMock(return_value=fake_bonds)
-    subtensor.bonds = mocked_bonds
-
-    mocked_neuron_info_method = mocker.Mock()
-    async_subtensor.NeuronInfo.from_weights_bonds_and_neuron_lite = (
-        mocked_neuron_info_method
+    mocked_query_runtime_api = mocker.patch.object(
+        subtensor, "query_runtime_api", return_value="NOT NONE"
     )
-
+    mocked_hex_to_bytes = mocker.patch.object(async_subtensor, "hex_to_bytes")
+    mocked_neuron_info_list_from_vec_u8 = mocker.patch.object(
+        async_subtensor.NeuronInfo, "list_from_vec_u8"
+    )
     # Call
-    result = await subtensor.neurons(netuid=fake_netuid, block_hash=fake_block_hash)
+    result = await subtensor.neurons(
+        netuid=fake_netuid,
+        block_hash=fake_block_hash,
+        reuse_block=fake_reuse_block_hash,
+    )
 
     # Asserts
-    mocked_neurons_lite.assert_awaited_once()
-    mocked_neurons_lite.assert_called_once_with(
-        netuid=fake_netuid, block_hash=fake_block_hash
+    mocked_query_runtime_api.assert_called_once_with(
+        runtime_api="NeuronInfoRuntimeApi",
+        method="get_neurons",
+        params=[fake_netuid],
+        block_hash=fake_block_hash,
+        reuse_block=fake_reuse_block_hash,
     )
-    mocked_weights.assert_awaited_once()
-    mocked_weights.assert_called_once_with(
-        netuid=fake_netuid, block_hash=fake_block_hash
-    )
-    mocked_bonds.assert_awaited_once()
-    mocked_bonds.assert_called_once_with(netuid=fake_netuid, block_hash=fake_block_hash)
-    assert result == [
-        mocked_neuron_info_method.return_value for _ in range(len(fake_neurons))
-    ]
+    mocked_hex_to_bytes.assert_called_once_with(mocked_query_runtime_api.return_value)
+    assert result == mocked_neuron_info_list_from_vec_u8.return_value
 
 
 @pytest.mark.parametrize(
@@ -1071,6 +1065,126 @@ async def test_neurons_lite(subtensor, mocker, fake_hex_bytes_result, response):
     else:
         mocked_neuron_info_lite_list_from_vec_u8.assert_not_called()
         assert result == []
+
+
+@pytest.mark.asyncio
+async def test_get_neuron_for_pubkey_and_subnet_success(subtensor, mocker):
+    """Tests successful retrieval of neuron information."""
+    # Preps
+    fake_hotkey = "fake_ss58_address"
+    fake_netuid = 1
+    fake_uid = 123
+    fake_result = b"fake_neuron_data"
+
+    mocker.patch.object(
+        subtensor.substrate,
+        "query",
+        return_value=fake_uid,
+    )
+    mocker.patch.object(
+        subtensor.substrate,
+        "rpc_request",
+        return_value={"result": fake_result},
+    )
+    mocked_neuron_info = mocker.patch.object(
+        async_subtensor.NeuronInfo, "from_vec_u8", return_value="fake_neuron_info"
+    )
+
+    # Call
+    result = await subtensor.get_neuron_for_pubkey_and_subnet(
+        hotkey_ss58=fake_hotkey, netuid=fake_netuid
+    )
+
+    # Asserts
+    subtensor.substrate.query.assert_awaited_once()
+    subtensor.substrate.query.assert_called_once_with(
+        module="SubtensorModule",
+        storage_function="Uids",
+        params=[fake_netuid, fake_hotkey],
+        block_hash=None,
+        reuse_block_hash=False,
+    )
+    subtensor.substrate.rpc_request.assert_awaited_once()
+    subtensor.substrate.rpc_request.assert_called_once_with(
+        method="neuronInfo_getNeuron", params=[fake_netuid, fake_uid]
+    )
+    mocked_neuron_info.assert_called_once_with(fake_result)
+    assert result == "fake_neuron_info"
+
+
+@pytest.mark.asyncio
+async def test_get_neuron_for_pubkey_and_subnet_uid_not_found(subtensor, mocker):
+    """Tests the case where UID is not found."""
+    # Preps
+    fake_hotkey = "fake_ss58_address"
+    fake_netuid = 1
+
+    mocker.patch.object(
+        subtensor.substrate,
+        "query",
+        return_value=None,
+    )
+    mocked_get_null_neuron = mocker.patch.object(
+        async_subtensor.NeuronInfo, "get_null_neuron", return_value="null_neuron"
+    )
+
+    # Call
+    result = await subtensor.get_neuron_for_pubkey_and_subnet(
+        hotkey_ss58=fake_hotkey, netuid=fake_netuid
+    )
+
+    # Asserts
+    subtensor.substrate.query.assert_called_once_with(
+        module="SubtensorModule",
+        storage_function="Uids",
+        params=[fake_netuid, fake_hotkey],
+        block_hash=None,
+        reuse_block_hash=False,
+    )
+    mocked_get_null_neuron.assert_called_once()
+    assert result == "null_neuron"
+
+
+@pytest.mark.asyncio
+async def test_get_neuron_for_pubkey_and_subnet_rpc_result_empty(subtensor, mocker):
+    """Tests the case where RPC result is empty."""
+    # Preps
+    fake_hotkey = "fake_ss58_address"
+    fake_netuid = 1
+    fake_uid = 123
+
+    mocker.patch.object(
+        subtensor.substrate,
+        "query",
+        return_value=fake_uid,
+    )
+    mocker.patch.object(
+        subtensor.substrate,
+        "rpc_request",
+        return_value={"result": None},
+    )
+    mocked_get_null_neuron = mocker.patch.object(
+        async_subtensor.NeuronInfo, "get_null_neuron", return_value="null_neuron"
+    )
+
+    # Call
+    result = await subtensor.get_neuron_for_pubkey_and_subnet(
+        hotkey_ss58=fake_hotkey, netuid=fake_netuid
+    )
+
+    # Asserts
+    subtensor.substrate.query.assert_called_once_with(
+        module="SubtensorModule",
+        storage_function="Uids",
+        params=[fake_netuid, fake_hotkey],
+        block_hash=None,
+        reuse_block_hash=False,
+    )
+    subtensor.substrate.rpc_request.assert_called_once_with(
+        method="neuronInfo_getNeuron", params=[fake_netuid, fake_uid]
+    )
+    mocked_get_null_neuron.assert_called_once()
+    assert result == "null_neuron"
 
 
 @pytest.mark.asyncio
@@ -1383,6 +1497,7 @@ async def test_weights_successful(subtensor, mocker):
         storage_function="Weights",
         params=[fake_netuid],
         block_hash=fake_block_hash,
+        reuse_block_hash=False,
     )
     assert result == fake_weights
 
@@ -1413,6 +1528,7 @@ async def test_bonds(subtensor, mocker):
         storage_function="Bonds",
         params=[fake_netuid],
         block_hash=fake_block_hash,
+        reuse_block_hash=False,
     )
     assert result == fake_bonds
 
@@ -1507,6 +1623,7 @@ async def test_get_hotkey_owner_successful(subtensor, mocker):
         storage_function="Owner",
         params=[fake_hotkey_ss58],
         block_hash=fake_block_hash,
+        reuse_block_hash=False,
     )
     mocked_decode_account_id.assert_called_once_with(fake_owner_account_id)
     mocked_does_hotkey_exist.assert_awaited_once_with(
@@ -1539,6 +1656,7 @@ async def test_get_hotkey_owner_non_existent_hotkey(subtensor, mocker):
         storage_function="Owner",
         params=[fake_hotkey_ss58],
         block_hash=fake_block_hash,
+        reuse_block_hash=False,
     )
     mocked_decode_account_id.assert_called_once_with(None)
     assert result is None
@@ -1572,6 +1690,7 @@ async def test_get_hotkey_owner_exists_but_does_not_exist_flag_false(subtensor, 
         storage_function="Owner",
         params=[fake_hotkey_ss58],
         block_hash=fake_block_hash,
+        reuse_block_hash=False,
     )
     mocked_decode_account_id.assert_called_once_with(fake_owner_account_id)
     mocked_does_hotkey_exist.assert_awaited_once_with(
@@ -1865,6 +1984,7 @@ async def test_get_subnet_hyperparameters_success(subtensor, mocker):
         method="get_subnet_hyperparams",
         params=[fake_netuid],
         block_hash=fake_block_hash,
+        reuse_block=False,
     )
     bytes_result = bytes.fromhex(fake_hex_bytes_result[2:])
     mocked_from_vec_u8.assert_called_once_with(bytes_result)
@@ -1889,6 +2009,7 @@ async def test_get_subnet_hyperparameters_no_data(subtensor, mocker):
         method="get_subnet_hyperparams",
         params=[fake_netuid],
         block_hash=None,
+        reuse_block=False,
     )
     assert result == []
 
@@ -1917,6 +2038,7 @@ async def test_get_subnet_hyperparameters_without_0x_prefix(subtensor, mocker):
         method="get_subnet_hyperparams",
         params=[fake_netuid],
         block_hash=None,
+        reuse_block=False,
     )
     bytes_result = bytes.fromhex(fake_hex_bytes_result)
     mocked_from_vec_u8.assert_called_once_with(bytes_result)
@@ -2031,6 +2153,7 @@ async def test_get_delegate_identities(subtensor, mocker):
         module="Registry",
         storage_function="IdentityOf",
         block_hash=fake_block_hash,
+        reuse_block_hash=False,
     )
     mock_session_get.assert_called_once_with(async_subtensor.DELEGATES_DETAILS_URL)
 
@@ -2059,6 +2182,8 @@ async def test_is_hotkey_registered_true(subtensor, mocker):
         module="SubtensorModule",
         storage_function="Uids",
         params=[fake_netuid, fake_hotkey_ss58],
+        block_hash=None,
+        reuse_block_hash=False,
     )
     assert result is True
 
@@ -2084,6 +2209,8 @@ async def test_is_hotkey_registered_false(subtensor, mocker):
         module="SubtensorModule",
         storage_function="Uids",
         params=[fake_netuid, fake_hotkey_ss58],
+        block_hash=None,
+        reuse_block_hash=False,
     )
     assert result is False
 
@@ -2111,6 +2238,7 @@ async def test_get_uid_for_hotkey_on_subnet_registered(subtensor, mocker):
         storage_function="Uids",
         params=[fake_netuid, fake_hotkey_ss58],
         block_hash=fake_block_hash,
+        reuse_block_hash=False,
     )
     assert result == fake_uid
 
@@ -2138,6 +2266,7 @@ async def test_get_uid_for_hotkey_on_subnet_not_registered(subtensor, mocker):
         storage_function="Uids",
         params=[fake_netuid, fake_hotkey_ss58],
         block_hash=fake_block_hash,
+        reuse_block_hash=False,
     )
     assert result is None
 
@@ -2157,7 +2286,10 @@ async def test_weights_rate_limit_success(subtensor, mocker):
 
     # Asserts
     mocked_get_hyperparameter.assert_called_once_with(
-        param_name="WeightsSetRateLimit", netuid=fake_netuid
+        param_name="WeightsSetRateLimit",
+        netuid=fake_netuid,
+        block_hash=None,
+        reuse_block=False,
     )
     assert result == fake_rate_limit
 
@@ -2177,7 +2309,10 @@ async def test_weights_rate_limit_none(subtensor, mocker):
 
     # Asserts
     mocked_get_hyperparameter.assert_called_once_with(
-        param_name="WeightsSetRateLimit", netuid=fake_netuid
+        param_name="WeightsSetRateLimit",
+        netuid=fake_netuid,
+        block_hash=None,
+        reuse_block=False,
     )
     assert result is None
 
