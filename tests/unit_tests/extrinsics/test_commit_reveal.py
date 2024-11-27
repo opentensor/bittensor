@@ -164,7 +164,9 @@ def test_commit_reveal_v3_extrinsic_success_with_torch(mocker, subtensor):
     # Asserts
     assert success is True
     assert message == "Success"
-    mocked_convert_weights_and_uids_for_emit.assert_called_once_with(fake_uids, fake_weights)
+    mocked_convert_weights_and_uids_for_emit.assert_called_once_with(
+        fake_uids, fake_weights
+    )
     mocked_get_subnet_reveal_period_epochs.assert_called_once_with(netuid=fake_netuid)
     mocked_get_encrypted_commit.assert_called_once_with(
         uids=mocked_uids,
