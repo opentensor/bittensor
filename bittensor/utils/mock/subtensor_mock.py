@@ -23,6 +23,8 @@ from typing import Any, Optional, Union, TypedDict
 from unittest.mock import MagicMock
 
 from bittensor_wallet import Wallet
+from substrateinterface.base import SubstrateInterface
+from websockets.sync.client import ClientConnection
 
 from bittensor.core.chain_data import (
     NeuronInfo,
@@ -33,6 +35,7 @@ from bittensor.core.chain_data import (
 from bittensor.core.types import AxonServeCallParams, PrometheusServeCallParams
 from bittensor.core.errors import ChainQueryError
 from bittensor.core.subtensor import Subtensor
+import bittensor.core.subtensor as subtensor_module
 from bittensor.utils import RAOPERTAO, u16_normalized_float
 from bittensor.utils.balance import Balance
 
@@ -248,10 +251,14 @@ class MockSubtensor(Subtensor):
 
             self.network = "mock"
             self.chain_endpoint = "ws://mock_endpoint.bt"
-            self.substrate = MagicMock()
+            self.substrate = MagicMock(autospec=SubstrateInterface)
 
     def __init__(self, *args, **kwargs) -> None:
-        super().__init__()
+        mock_SubstrateInterface = MagicMock(autospec=SubstrateInterface)
+        subtensor_module.SubstrateInterface = mock_SubstrateInterface
+        mock_websocket = MagicMock(autospec=ClientConnection)
+        mock_websocket.close_code = None
+        super().__init__(websocket=mock_websocket)
         self.__dict__ = __GLOBAL_MOCK_STATE__
 
         if not hasattr(self, "chain_state") or getattr(self, "chain_state") is None:
