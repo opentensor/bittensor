@@ -9,7 +9,7 @@ import bittensor.utils.weight_utils as weight_utils
 from bittensor.core.settings import version_as_int
 from bittensor.utils import format_error_message
 from bittensor.utils.btlogging import logging
-from bittensor.utils.registration import torch, use_torch, legacy_torch_api_compat
+from bittensor.utils.registration import torch, legacy_torch_api_compat
 
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet

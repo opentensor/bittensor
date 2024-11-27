@@ -25,7 +25,7 @@ from bittensor.core.settings import version_as_int
 from bittensor.utils import format_error_message, weight_utils
 from bittensor.utils.btlogging import logging
 from bittensor.utils.networking import ensure_connected
-from bittensor.utils.registration import torch, use_torch, legacy_torch_api_compat
+from bittensor.utils.registration import torch, legacy_torch_api_compat
 
 # For annotation purposes
 if TYPE_CHECKING:
