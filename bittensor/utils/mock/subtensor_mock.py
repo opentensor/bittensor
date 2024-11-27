@@ -20,7 +20,7 @@ from dataclasses import dataclass
 from hashlib import sha256
 from types import SimpleNamespace
 from typing import Any, Optional, Union, TypedDict
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from bittensor_wallet import Wallet
 from substrateinterface.base import SubstrateInterface
@@ -254,15 +254,19 @@ class MockSubtensor(Subtensor):
             self.substrate = MagicMock(autospec=SubstrateInterface)
 
     def __init__(self, *args, **kwargs) -> None:
-        mock_SubstrateInterface = MagicMock(autospec=SubstrateInterface)
-        subtensor_module.SubstrateInterface = mock_SubstrateInterface
+        mock_substrate_interface = MagicMock(autospec=SubstrateInterface)
         mock_websocket = MagicMock(autospec=ClientConnection)
         mock_websocket.close_code = None
-        super().__init__(websocket=mock_websocket)
-        self.__dict__ = __GLOBAL_MOCK_STATE__
+        with patch.object(
+            subtensor_module,
+            "SubstrateInterface",
+            return_value=mock_substrate_interface,
+        ):
+            super().__init__(websocket=mock_websocket)
+            self.__dict__ = __GLOBAL_MOCK_STATE__
 
-        if not hasattr(self, "chain_state") or getattr(self, "chain_state") is None:
-            self.setup()
+            if not hasattr(self, "chain_state") or getattr(self, "chain_state") is None:
+                self.setup()
 
     def get_block_hash(self, block_id: int) -> str:
         return "0x" + sha256(str(block_id).encode()).hexdigest()[:64]
