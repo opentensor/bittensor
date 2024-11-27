@@ -1377,7 +1377,15 @@ class AsyncSubtensor:
             block_hash=block_hash,
             netuid=netuid,
         )
-        return call if call is not None else False
+        return True if call is True else False
+
+    async def get_subnet_reveal_period_epochs(
+        self, netuid: int, block_hash: Optional[str] = None
+    ) -> int:
+        """Retrieve the SubnetRevealPeriodEpochs hyperparameter."""
+        return await self.get_hyperparameter(
+            param_name="RevealPeriodEpochs", block_hash=block_hash, netuid=netuid
+        )
 
     # Extrinsics =======================================================================================================
 
@@ -1520,35 +1528,40 @@ class AsyncSubtensor:
 
         This function is crucial in shaping the network's collective intelligence, where each neuron's learning and contribution are influenced by the weights it sets towards others【81†source】.
         """
-        uid = await self.get_uid_for_hotkey_on_subnet(
-            wallet.hotkey.ss58_address, netuid
-        )
-        retries = 0
-        success = False
-        message = "No attempt made. Perhaps it is too soon to set weights!"
-        while retries < max_retries and await self.blocks_since_last_update(
-            netuid, uid
-        ) > await self.weights_rate_limit(netuid):
-            try:
-                logging.info(
-                    f"Setting weights for subnet #[blue]{netuid}[/blue]. Attempt [blue]{retries + 1} of {max_retries}[/blue]."
-                )
-                success, message = await set_weights_extrinsic(
-                    subtensor=self,
-                    wallet=wallet,
-                    netuid=netuid,
-                    uids=uids,
-                    weights=weights,
-                    version_key=version_key,
-                    wait_for_inclusion=wait_for_inclusion,
-                    wait_for_finalization=wait_for_finalization,
-                )
-            except Exception as e:
-                logging.error(f"Error setting weights: {e}")
-            finally:
-                retries += 1
+        if self.commit_reveal_enabled(netuid=netuid) is True:
+            # go with `commit reveal v3` extrinsic
+            raise NotImplemented("Not implemented yet for AsyncSubtensor. Coming soon.")
+        else:
+            # go with classic `set weights extrinsic`
+            uid = await self.get_uid_for_hotkey_on_subnet(
+                wallet.hotkey.ss58_address, netuid
+            )
+            retries = 0
+            success = False
+            message = "No attempt made. Perhaps it is too soon to set weights!"
+            while retries < max_retries and await self.blocks_since_last_update(
+                netuid, uid
+            ) > await self.weights_rate_limit(netuid):
+                try:
+                    logging.info(
+                        f"Setting weights for subnet #[blue]{netuid}[/blue]. Attempt [blue]{retries + 1} of {max_retries}[/blue]."
+                    )
+                    success, message = await set_weights_extrinsic(
+                        subtensor=self,
+                        wallet=wallet,
+                        netuid=netuid,
+                        uids=uids,
+                        weights=weights,
+                        version_key=version_key,
+                        wait_for_inclusion=wait_for_inclusion,
+                        wait_for_finalization=wait_for_finalization,
+                    )
+                except Exception as e:
+                    logging.error(f"Error setting weights: {e}")
+                finally:
+                    retries += 1
 
-        return success, message
+            return success, message
 
     async def root_set_weights(
         self,

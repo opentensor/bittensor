@@ -31,6 +31,7 @@ from bittensor.core.chain_data import (
     SubnetInfo,
 )
 from bittensor.core.config import Config
+from bittensor.core.extrinsics.commit_reveal import commit_reveal_v3_extrinsic
 from bittensor.core.extrinsics.commit_weights import (
     commit_weights_extrinsic,
     reveal_weights_extrinsic,
@@ -50,12 +51,12 @@ from bittensor.core.extrinsics.serving import (
     get_metadata,
 )
 from bittensor.core.extrinsics.set_weights import set_weights_extrinsic
-from bittensor.core.extrinsics.transfer import (
-    transfer_extrinsic,
-)
 from bittensor.core.extrinsics.staking import (
     add_stake_extrinsic,
     add_stake_multiple_extrinsic,
+)
+from bittensor.core.extrinsics.transfer import (
+    transfer_extrinsic,
 )
 from bittensor.core.extrinsics.unstaking import (
     unstake_extrinsic,
@@ -1122,7 +1123,15 @@ class Subtensor:
         call = self._get_hyperparameter(
             param_name="CommitRevealWeightsEnabled", block=block, netuid=netuid
         )
-        return call
+        return True if call is True else False
+
+    def get_subnet_reveal_period_epochs(
+        self, netuid: int, block: Optional[int] = None
+    ) -> Optional[int]:
+        """Retrieve the SubnetRevealPeriodEpochs hyperparameter."""
+        return self._get_hyperparameter(
+            param_name="RevealPeriodEpochs", block=block, netuid=netuid
+        )
 
     def get_prometheus_info(
         self, netuid: int, hotkey_ss58: str, block: Optional[int] = None
@@ -1713,34 +1722,48 @@ class Subtensor:
 
         This function is crucial in shaping the network's collective intelligence, where each neuron's learning and contribution are influenced by the weights it sets towards others【81†source】.
         """
-        uid = self.get_uid_for_hotkey_on_subnet(wallet.hotkey.ss58_address, netuid)
-        retries = 0
-        success = False
-        message = "No attempt made. Perhaps it is too soon to set weights!"
-        while (
-            self.blocks_since_last_update(netuid, uid) > self.weights_rate_limit(netuid)  # type: ignore
-            and retries < max_retries
-        ):
-            try:
-                logging.info(
-                    f"Setting weights for subnet #{netuid}. Attempt {retries + 1} of {max_retries}."
-                )
-                success, message = set_weights_extrinsic(
-                    subtensor=self,
-                    wallet=wallet,
-                    netuid=netuid,
-                    uids=uids,
-                    weights=weights,
-                    version_key=version_key,
-                    wait_for_inclusion=wait_for_inclusion,
-                    wait_for_finalization=wait_for_finalization,
-                )
-            except Exception as e:
-                logging.error(f"Error setting weights: {e}")
-            finally:
-                retries += 1
-
-        return success, message
+        if self.commit_reveal_enabled(netuid=netuid) is True:
+            # go with `commit reveal v3` extrinsic
+            return commit_reveal_v3_extrinsic(
+                subtensor=self,
+                wallet=wallet,
+                netuid=netuid,
+                uids=uids,
+                weights=weights,
+                version_key=version_key,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
+        else:
+            # go with classic `set weights` logic
+            uid = self.get_uid_for_hotkey_on_subnet(wallet.hotkey.ss58_address, netuid)
+            retries = 0
+            success = False
+            message = "No attempt made. Perhaps it is too soon to set weights!"
+            while (
+                self.blocks_since_last_update(netuid, uid)  # type: ignore
+                > self.weights_rate_limit(netuid)  # type: ignore
+                and retries < max_retries
+            ):
+                try:
+                    logging.info(
+                        f"Setting weights for subnet #{netuid}. Attempt {retries + 1} of {max_retries}."
+                    )
+                    success, message = set_weights_extrinsic(
+                        subtensor=self,
+                        wallet=wallet,
+                        netuid=netuid,
+                        uids=uids,
+                        weights=weights,
+                        version_key=version_key,
+                        wait_for_inclusion=wait_for_inclusion,
+                        wait_for_finalization=wait_for_finalization,
+                    )
+                except Exception as e:
+                    logging.error(f"Error setting weights: {e}")
+                finally:
+                    retries += 1
+            return success, message
 
     @legacy_torch_api_compat
     def root_set_weights(
