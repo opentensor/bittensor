@@ -91,7 +91,7 @@ def test_register_extrinsic_without_pow(
         ),
         mocker.patch("torch.cuda.is_available", return_value=cuda_available),
         mocker.patch(
-            "bittensor.utils.registration._get_block_with_retry",
+            "bittensor.utils.registration.pow._get_block_with_retry",
             return_value=(0, 0, "00ff11ee"),
         ),
     ):
@@ -142,10 +142,10 @@ def test_register_extrinsic_with_pow(
 ):
     # Arrange
     with mocker.patch(
-        "bittensor.utils.registration._solve_for_difficulty_fast",
+        "bittensor.utils.registration.pow._solve_for_difficulty_fast",
         return_value=mock_pow_solution if pow_success else None,
     ), mocker.patch(
-        "bittensor.utils.registration._solve_for_difficulty_fast_cuda",
+        "bittensor.utils.registration.pow._solve_for_difficulty_fast_cuda",
         return_value=mock_pow_solution if pow_success else None,
     ), mocker.patch(
         "bittensor.core.extrinsics.registration._do_pow_register",

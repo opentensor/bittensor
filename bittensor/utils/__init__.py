@@ -40,6 +40,8 @@ RAOPERTAO = 1e9
 U16_MAX = 65535
 U64_MAX = 18446744073709551615
 
+Certificate = str
+
 
 UnlockStatus = namedtuple("UnlockStatus", ["success", "message"])
 
@@ -216,7 +218,7 @@ def format_error_message(
                         err_description = err_docs[0] if err_docs else err_description
                     except (AttributeError, IndexError):
                         logging.error(
-                            "<red>Substrate pallets data unavailable. This is usually caused by an uninitialized substrate.</red>"
+                            "[red]Substrate pallets data unavailable. This is usually caused by an uninitialized substrate.[/red]"
                         )
             else:
                 err_description = err_data

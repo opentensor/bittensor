@@ -45,13 +45,21 @@ from .defines import (
 )
 from .format import BtFileFormatter, BtStreamFormatter
 from .helpers import all_loggers
+from bittensor.utils.btlogging.console import BittensorConsole
+
+# https://github.com/python/cpython/issues/97941
+CUSTOM_LOGGER_METHOD_STACK_LEVEL = 2 if sys.version_info >= (3, 11) else 1
 
 
 def _concat_message(msg="", prefix="", suffix=""):
     """Concatenates a message with optional prefix and suffix."""
-    empty_pref_suf = [None, ""]
-    msg = f"{f'{prefix} - ' if prefix not in empty_pref_suf else ''}{msg}{f' - {suffix}' if suffix not in empty_pref_suf else ''}"
-    return msg
+    message_parts = [
+        str(component).strip()
+        for component in [prefix, msg, suffix]
+        if component is not None and str(component).strip()
+    ]
+    formatted_message = " - ".join(message_parts)
+    return formatted_message
 
 
 class LoggingConfig(NamedTuple):
@@ -78,6 +86,14 @@ class LoggingMachine(StateMachine, Logger):
         | Disabled.to(Default)
         | Default.to(Default)
         | Warning.to(Default)
+    )
+
+    enable_console = (
+        Default.to(Debug)
+        | Trace.to(Debug)
+        | Disabled.to(Debug)
+        | Debug.to(Debug)
+        | Warning.to(Debug)
     )
 
     enable_info = enable_default
@@ -146,6 +162,7 @@ class LoggingMachine(StateMachine, Logger):
         self._logger = self._initialize_bt_logger(name)
         self.disable_third_party_loggers()
         self._enable_initial_state(self._config)
+        self.console = BittensorConsole(self)
 
     def _enable_initial_state(self, config):
         """Set correct state action on initializing"""
@@ -384,6 +401,12 @@ class LoggingMachine(StateMachine, Logger):
         for logger in all_loggers():
             logger.setLevel(stdlogging.DEBUG)
 
+    def before_enable_console(self):
+        """Logs status before enable Console."""
+        self._stream_formatter.set_trace(True)
+        for logger in all_loggers():
+            logger.setLevel(stdlogging.DEBUG)
+
     def after_enable_debug(self):
         """Logs status after enable Debug."""
         self._logger.info("Debug enabled.")
@@ -427,45 +450,55 @@ class LoggingMachine(StateMachine, Logger):
         """
         return self.current_state_value == "Trace"
 
-    def trace(self, msg="", prefix="", suffix="", *args, **kwargs):
+    def trace(self, msg="", prefix="", suffix="", *args, stacklevel=1, **kwargs):
         """Wraps trace message with prefix and suffix."""
         msg = _concat_message(msg, prefix, suffix)
-        self._logger.trace(msg, *args, **kwargs)
+        self._logger.trace(
+            msg,
+            *args,
+            **kwargs,
+            stacklevel=stacklevel + CUSTOM_LOGGER_METHOD_STACK_LEVEL,
+        )
 
-    def debug(self, msg="", prefix="", suffix="", *args, **kwargs):
+    def debug(self, msg="", prefix="", suffix="", *args, stacklevel=1, **kwargs):
         """Wraps debug message with prefix and suffix."""
         msg = _concat_message(msg, prefix, suffix)
-        self._logger.debug(msg, *args, **kwargs)
+        self._logger.debug(msg, *args, **kwargs, stacklevel=stacklevel + 1)
 
-    def info(self, msg="", prefix="", suffix="", *args, **kwargs):
+    def info(self, msg="", prefix="", suffix="", *args, stacklevel=1, **kwargs):
         """Wraps info message with prefix and suffix."""
         msg = _concat_message(msg, prefix, suffix)
-        self._logger.info(msg, *args, **kwargs)
+        self._logger.info(msg, *args, **kwargs, stacklevel=stacklevel + 1)
 
-    def success(self, msg="", prefix="", suffix="", *args, **kwargs):
+    def success(self, msg="", prefix="", suffix="", *args, stacklevel=1, **kwargs):
         """Wraps success message with prefix and suffix."""
         msg = _concat_message(msg, prefix, suffix)
-        self._logger.success(msg, *args, **kwargs)
+        self._logger.success(
+            msg,
+            *args,
+            **kwargs,
+            stacklevel=stacklevel + CUSTOM_LOGGER_METHOD_STACK_LEVEL,
+        )
 
-    def warning(self, msg="", prefix="", suffix="", *args, **kwargs):
+    def warning(self, msg="", prefix="", suffix="", *args, stacklevel=1, **kwargs):
         """Wraps warning message with prefix and suffix."""
         msg = _concat_message(msg, prefix, suffix)
-        self._logger.warning(msg, *args, **kwargs)
+        self._logger.warning(msg, *args, **kwargs, stacklevel=stacklevel + 1)
 
-    def error(self, msg="", prefix="", suffix="", *args, **kwargs):
+    def error(self, msg="", prefix="", suffix="", *args, stacklevel=1, **kwargs):
         """Wraps error message with prefix and suffix."""
         msg = _concat_message(msg, prefix, suffix)
-        self._logger.error(msg, *args, **kwargs)
+        self._logger.error(msg, *args, **kwargs, stacklevel=stacklevel + 1)
 
-    def critical(self, msg="", prefix="", suffix="", *args, **kwargs):
+    def critical(self, msg="", prefix="", suffix="", *args, stacklevel=1, **kwargs):
         """Wraps critical message with prefix and suffix."""
         msg = _concat_message(msg, prefix, suffix)
-        self._logger.critical(msg, *args, **kwargs)
+        self._logger.critical(msg, *args, **kwargs, stacklevel=stacklevel + 1)
 
-    def exception(self, msg="", prefix="", suffix="", *args, **kwargs):
+    def exception(self, msg="", prefix="", suffix="", *args, stacklevel=1, **kwargs):
         """Wraps exception message with prefix and suffix."""
         msg = _concat_message(msg, prefix, suffix)
-        self._logger.exception(msg, *args, **kwargs)
+        self._logger.exception(msg, *args, **kwargs, stacklevel=stacklevel + 1)
 
     def on(self):
         """Enable default state."""
@@ -504,6 +537,11 @@ class LoggingMachine(StateMachine, Logger):
         """Sets Default state."""
         if not self.current_state_value == "Default":
             self.enable_default()
+
+    def set_console(self):
+        """Sets Console state."""
+        if not self.current_state_value == "Console":
+            self.enable_console()
 
     # as an option to be more obvious. `bittensor.logging.set_info()` is the same `bittensor.logging.set_default()`
     def set_info(self):
