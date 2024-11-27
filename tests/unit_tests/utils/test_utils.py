@@ -15,9 +15,35 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from bittensor import utils
-from bittensor.core.settings import SS58_FORMAT
 import pytest
+from bittensor_wallet import Wallet
+
+from bittensor import warnings, __getattr__, version_split, logging, trace, debug, utils
+from bittensor.core.settings import SS58_FORMAT
+
+
+def test_getattr_version_split():
+    """Test that __getattr__ for 'version_split' issues a deprecation warning and returns the correct value."""
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        assert __getattr__("version_split") == version_split
+        assert len(w) == 1
+        assert issubclass(w[-1].category, DeprecationWarning)
+        assert "version_split is deprecated" in str(w[-1].message)
+
+
+@pytest.mark.parametrize("test_input, expected", [(True, "Trace"), (False, "Default")])
+def test_trace(test_input, expected):
+    """Test the trace function turns tracing on|off."""
+    trace(test_input)
+    assert logging.current_state_value == expected
+
+
+@pytest.mark.parametrize("test_input, expected", [(True, "Debug"), (False, "Default")])
+def test_debug(test_input, expected):
+    """Test the debug function turns tracing on|off."""
+    debug(test_input)
+    assert logging.current_state_value == expected
 
 
 def test_ss58_to_vec_u8(mocker):
@@ -167,3 +193,69 @@ def test_is_valid_bittensor_address_or_public_key(mocker, test_input, expected_r
     if isinstance(test_input, str) and not test_input.startswith("0x"):
         assert mocked_ss58_is_valid_ss58_address.call_count == 2
     assert result == expected_result
+
+
+@pytest.mark.parametrize(
+    "unlock_type, wallet_method",
+    [
+        ("coldkey", "unlock_coldkey"),
+        ("hotkey", "unlock_hotkey"),
+    ],
+)
+def test_unlock_key(mocker, unlock_type, wallet_method):
+    """Test the unlock key function."""
+    # Preps
+    mock_wallet = mocker.Mock(autospec=Wallet)
+
+    # Call
+    result = utils.unlock_key(mock_wallet, unlock_type=unlock_type)
+
+    # Asserts
+    getattr(mock_wallet, wallet_method).assert_called_once()
+    assert result == utils.UnlockStatus(True, "")
+
+
+def test_unlock_key_raise_value_error(mocker):
+    """Test the unlock key function raises ValueError."""
+    with pytest.raises(ValueError):
+        utils.unlock_key(wallet=mocker.Mock(autospec=Wallet), unlock_type="coldkeypub")
+
+
+@pytest.mark.parametrize(
+    "side_effect, response",
+    [
+        (
+            utils.KeyFileError("Simulated KeyFileError exception"),
+            utils.UnlockStatus(
+                False,
+                "Coldkey keyfile is corrupt, non-writable, or non-readable, or non-existent.",
+            ),
+        ),
+        (
+            utils.PasswordError("Simulated PasswordError exception"),
+            utils.UnlockStatus(
+                False, "The password used to decrypt your Coldkey keyfile is invalid."
+            ),
+        ),
+    ],
+    ids=["PasswordError", "KeyFileError"],
+)
+def test_unlock_key_errors(mocker, side_effect, response):
+    """Test the unlock key function handles the errors."""
+    mock_wallet = mocker.Mock(autospec=Wallet)
+    mock_wallet.unlock_coldkey.side_effect = side_effect
+    result = utils.unlock_key(wallet=mock_wallet)
+
+    assert result == response
+
+
+@pytest.mark.parametrize(
+    "hex_str, response",
+    [
+        ("5461796c6f72205377696674", b"Taylor Swift"),
+        ("0x5461796c6f72205377696674", b"Taylor Swift"),
+    ],
+)
+def test_hex_to_bytes(hex_str, response):
+    result = utils.hex_to_bytes(hex_str)
+    assert result == response

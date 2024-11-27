@@ -15,7 +15,6 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import logging
 from typing import Union, Optional, TYPE_CHECKING
 
 import numpy as np
@@ -45,6 +44,7 @@ def do_set_weights(
     version_key: int = version_as_int,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
+    period: int = 5,
 ) -> tuple[bool, Optional[str]]:  # (success, error_message)
     """
     Internal method to send a transaction to the Bittensor blockchain, setting weights for specified neurons. This method constructs and submits the transaction, handling retries and blockchain communication.
@@ -58,6 +58,7 @@ def do_set_weights(
         version_key (int): Version key for compatibility with the network.
         wait_for_inclusion (bool): Waits for the transaction to be included in a block.
         wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
+        period (int): Period dictates how long the extrinsic will stay as part of waiting pool.
 
     Returns:
         tuple[bool, Optional[str]]: A tuple containing a success flag and an optional response message.
@@ -79,7 +80,7 @@ def do_set_weights(
     extrinsic = self.substrate.create_signed_extrinsic(
         call=call,
         keypair=wallet.hotkey,
-        era={"period": 5},
+        era={"period": period},
     )
     response = submit_extrinsic(
         substrate=self.substrate,
@@ -144,7 +145,7 @@ def set_weights_extrinsic(
     )
 
     logging.info(
-        f":satellite: <magenta>Setting weights on </magenta><blue>{subtensor.network}<blue> <magenta>...</magenta>"
+        f":satellite: [magenta]Setting weights on [/magenta][blue]{subtensor.network}[blue] [magenta]...[/magenta]"
     )
     logging.debug(f"Weights: {[float(v / 65535) for v in weight_vals]}")
 
@@ -164,13 +165,13 @@ def set_weights_extrinsic(
             return True, "Not waiting for finalization or inclusion."
 
         if success is True:
-            logging.success(f"<green>Finalized!</green> Set weights: {str(success)}")
+            logging.success(f"[green]Finalized![/green] Set weights: {str(success)}")
             return True, "Successfully set weights and Finalized."
         else:
             logging.error(error_message)
             return False, error_message
 
     except Exception as e:
-        logging.error(f":cross_mark: <red>Failed.</red>: Error: {e}")
+        logging.error(f":cross_mark: [red]Failed.[/red]: Error: {e}")
         logging.debug(str(e))
         return False, str(e)

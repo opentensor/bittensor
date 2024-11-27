@@ -8,7 +8,6 @@ from bittensor.core.subtensor import Subtensor
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 from tests.e2e_tests.utils.chain_interactions import (
-    register_neuron,
     register_subnet,
     add_stake,
     wait_epoch,
@@ -35,7 +34,7 @@ async def test_dendrite(local_chain):
         AssertionError: If any of the checks or verifications fail
     """
 
-    logging.info("Testing test_dendrite")
+    logging.console.info("Testing test_dendrite")
     netuid = 2
 
     # Register root as Alice - the subnet owner
@@ -52,13 +51,14 @@ async def test_dendrite(local_chain):
     # Register Bob
     bob_keypair, bob_wallet = setup_wallet("//Bob")
 
+    subtensor = Subtensor(network="ws://localhost:9945")
+
     # Register Bob to the network
-    assert register_neuron(
-        local_chain, bob_wallet, netuid
-    ), f"Neuron wasn't registered to subnet {netuid}"
+    assert subtensor.burned_register(
+        bob_wallet, netuid
+    ), "Unable to register Bob as a neuron"
 
     metagraph = Metagraph(netuid=netuid, network="ws://localhost:9945")
-    subtensor = Subtensor(network="ws://localhost:9945")
 
     # Assert one neuron is Bob
     assert len(subtensor.neurons(netuid=netuid)) == 2
@@ -113,7 +113,7 @@ async def test_dendrite(local_chain):
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
-    logging.info("Neuron Alice is now validating")
+    logging.console.info("Neuron Alice is now validating")
     await asyncio.sleep(
         5
     )  # wait for 5 seconds for the metagraph and subtensor to refresh with latest data
@@ -133,4 +133,4 @@ async def test_dendrite(local_chain):
     assert updated_neuron.coldkey == bob_keypair.ss58_address
     assert updated_neuron.pruning_score != 0
 
-    logging.info("✅ Passed test_dendrite")
+    logging.console.info("✅ Passed test_dendrite")

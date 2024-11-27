@@ -110,30 +110,6 @@ def register_subnet(substrate: "SubstrateInterface", wallet: "Wallet") -> bool:
     return response.is_success
 
 
-def register_neuron(
-    substrate: "SubstrateInterface", wallet: "Wallet", netuid: int
-) -> bool:
-    """
-    Registers a neuron on a subnet. Mimics subnet register command.
-    """
-    neuron_register_call = substrate.compose_call(
-        call_module="SubtensorModule",
-        call_function="burned_register",
-        call_params={
-            "netuid": netuid,
-            "hotkey": wallet.hotkey.ss58_address,
-        },
-    )
-    extrinsic = substrate.create_signed_extrinsic(
-        call=neuron_register_call, keypair=wallet.coldkey
-    )
-    response = substrate.submit_extrinsic(
-        extrinsic, wait_for_finalization=True, wait_for_inclusion=True
-    )
-    response.process_events()
-    return response.is_success
-
-
 async def wait_epoch(subtensor: "Subtensor", netuid: int = 1):
     """
     Waits for the next epoch to start on a specific subnet.

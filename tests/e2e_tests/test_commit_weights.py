@@ -5,11 +5,9 @@ import pytest
 
 from bittensor.core.subtensor import Subtensor
 from bittensor.utils.balance import Balance
-from bittensor.utils.btlogging import logging
 from bittensor.utils.weight_utils import convert_weights_and_uids_for_emit
 from tests.e2e_tests.utils.chain_interactions import (
     add_stake,
-    register_neuron,
     register_subnet,
     sudo_set_hyperparameter_bool,
     sudo_set_hyperparameter_values,
@@ -35,7 +33,7 @@ async def test_commit_and_reveal_weights(local_chain):
         AssertionError: If any of the checks or verifications fail
     """
     netuid = 2
-    logging.info("Testing test_commit_and_reveal_weights")
+    print("Testing test_commit_and_reveal_weights")
     # Register root as Alice
     keypair, alice_wallet = setup_wallet("//Alice")
     assert register_subnet(local_chain, alice_wallet), "Unable to register the subnet"
@@ -44,6 +42,13 @@ async def test_commit_and_reveal_weights(local_chain):
     assert local_chain.query(
         "SubtensorModule", "NetworksAdded", [netuid]
     ).serialize(), "Subnet wasn't created successfully"
+
+    subtensor = Subtensor(network="ws://localhost:9945")
+
+    # Register Alice to the subnet
+    assert subtensor.burned_register(
+        alice_wallet, netuid
+    ), "Unable to register Alice as a neuron"
 
     # Stake to become to top neuron after the first epoch
     add_stake(local_chain, alice_wallet, netuid, Balance.from_tao(100_000))
@@ -57,7 +62,6 @@ async def test_commit_and_reveal_weights(local_chain):
         netuid,
     ), "Unable to enable commit reveal on the subnet"
 
-    subtensor = Subtensor(network="ws://localhost:9945")
     assert subtensor.get_subnet_hyperparameters(
         netuid=netuid,
     ).commit_reveal_weights_enabled, "Failed to enable commit/reveal"
@@ -176,4 +180,4 @@ async def test_commit_and_reveal_weights(local_chain):
     assert (
         weight_vals[0] == revealed_weights.value[0][1]
     ), f"Incorrect revealed weights. Expected: {weights[0]}, Actual: {revealed_weights.value[0][1]}"
-    logging.info("✅ Passed test_commit_and_reveal_weights")
+    print("✅ Passed test_commit_and_reveal_weights")

@@ -1,12 +1,17 @@
+"""
+This library comprises the asyncio-compatible version of the subtensor interface commands we use in bittensor, as
+well as its helper functions and classes. The docstring for the `AsyncSubstrateInterface` class goes more in-depth in
+regard to how to instantiate and use it.
+"""
+
 import asyncio
 import json
 import random
 from collections import defaultdict
 from dataclasses import dataclass
 from hashlib import blake2b
-from typing import Optional, Any, Union, Callable, Awaitable, cast
+from typing import Optional, Any, Union, Callable, Awaitable, cast, TYPE_CHECKING
 
-import websockets
 from async_property import async_property
 from bittensor_wallet import Keypair
 from bt_decode import PortableRegistry, decode as decode_by_type_string, MetadataV15
@@ -20,6 +25,13 @@ from substrateinterface.exceptions import (
     BlockNotFound,
 )
 from substrateinterface.storage import StorageKey
+from websockets.asyncio.client import connect
+from websockets.exceptions import ConnectionClosed
+
+from bittensor.utils import hex_to_bytes
+
+if TYPE_CHECKING:
+    from websockets.asyncio.client import ClientConnection
 
 ResultHandler = Callable[[dict, Any], Awaitable[tuple[dict, bool]]]
 
@@ -51,12 +63,11 @@ class ExtrinsicReceipt:
         Object containing information of submitted extrinsic. Block hash where extrinsic is included is required
         when retrieving triggered events or determine if extrinsic was successful
 
-        Parameters
-        ----------
-        substrate
-        extrinsic_hash
-        block_hash
-        finalized
+        Args:
+            substrate: the AsyncSubstrateInterface instance
+            extrinsic_hash: the hash of the extrinsic
+            block_hash: the hash of the block on which this extrinsic exists
+            finalized: whether the extrinsic is finalized
         """
         self.substrate = substrate
         self.extrinsic_hash = extrinsic_hash
@@ -460,6 +471,9 @@ class Runtime:
         self.runtime_config = runtime_config
         self.metadata = metadata
 
+    def __str__(self):
+        return f"Runtime: {self.chain} | {self.config}"
+
     @property
     def implements_scaleinfo(self) -> bool:
         """
@@ -477,15 +491,11 @@ class Runtime:
         Reload type registry and preset used to instantiate the SubstrateInterface object. Useful to periodically apply
         changes in type definitions when a runtime upgrade occurred
 
-        Parameters
-        ----------
-        use_remote_preset: When True preset is downloaded from Github master, otherwise use files from local installed
-                           scalecodec package
-        auto_discover
-
-        Returns
-        -------
-
+        Args:
+            use_remote_preset: When True preset is downloaded from Github master, otherwise use files from local installed
+                scalecodec package
+            auto_discover: Whether to automatically discover the type registry presets based on the chain name and the
+                type registry
         """
         self.runtime_config.clear_type_registry()
 
@@ -504,8 +514,10 @@ class Runtime:
     ):
         """
         Applies type registry presets to the runtime
-        :param use_remote_preset: bool, whether to use presets from remote
-        :param auto_discover: bool, whether to use presets from local installed scalecodec package
+
+        Args:
+            use_remote_preset: whether to use presets from remote
+            auto_discover: whether to use presets from local installed scalecodec package
         """
         if self.type_registry_preset is not None:
             # Load type registry according to preset
@@ -613,15 +625,16 @@ class Websocket:
         Websocket manager object. Allows for the use of a single websocket connection by multiple
         calls.
 
-        :param ws_url: Websocket URL to connect to
-        :param max_subscriptions: Maximum number of subscriptions per websocket connection
-        :param max_connections: Maximum number of connections total
-        :param shutdown_timer: Number of seconds to shut down websocket connection after last use
+        Args:
+            ws_url: Websocket URL to connect to
+            max_subscriptions: Maximum number of subscriptions per websocket connection
+            max_connections: Maximum number of connections total
+            shutdown_timer: Number of seconds to shut down websocket connection after last use
         """
         # TODO allow setting max concurrent connections and rpc subscriptions per connection
         # TODO reconnection logic
         self.ws_url = ws_url
-        self.ws: Optional[websockets.WebSocketClientProtocol] = None
+        self.ws: Optional["ClientConnection"] = None
         self.id = 0
         self.max_subscriptions = max_subscriptions
         self.max_connections = max_connections
@@ -643,14 +656,11 @@ class Websocket:
                 self._exit_task.cancel()
             if not self._initialized:
                 self._initialized = True
-                await self._connect()
+                self.ws = await asyncio.wait_for(
+                    connect(self.ws_url, **self._options), timeout=10
+                )
                 self._receiving_task = asyncio.create_task(self._start_receiving())
         return self
-
-    async def _connect(self):
-        self.ws = await asyncio.wait_for(
-            websockets.connect(self.ws_url, **self._options), timeout=10
-        )
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         async with self._lock:
@@ -692,9 +702,7 @@ class Websocket:
 
     async def _recv(self) -> None:
         try:
-            response = json.loads(
-                await cast(websockets.WebSocketClientProtocol, self.ws).recv()
-            )
+            response = json.loads(await self.ws.recv())
             async with self._lock:
                 self._open_subscriptions -= 1
             if "id" in response:
@@ -703,7 +711,7 @@ class Websocket:
                 self._received[response["params"]["subscription"]] = response
             else:
                 raise KeyError(response)
-        except websockets.ConnectionClosed:
+        except ConnectionClosed:
             raise
         except KeyError as e:
             raise e
@@ -714,7 +722,7 @@ class Websocket:
                 await self._recv()
         except asyncio.CancelledError:
             pass
-        except websockets.ConnectionClosed:
+        except ConnectionClosed:
             # TODO try reconnect, but only if it's needed
             raise
 
@@ -722,7 +730,8 @@ class Websocket:
         """
         Sends a payload to the websocket connection.
 
-        :param payload: payload, generate a payload with the AsyncSubstrateInterface.make_payload method
+        Args:
+            payload: payload, generate a payload with the AsyncSubstrateInterface.make_payload method
         """
         async with self._lock:
             original_id = self.id
@@ -731,16 +740,18 @@ class Websocket:
         try:
             await self.ws.send(json.dumps({**payload, **{"id": original_id}}))
             return original_id
-        except websockets.ConnectionClosed:
+        except ConnectionClosed:
             raise
 
     async def retrieve(self, item_id: int) -> Optional[dict]:
         """
         Retrieves a single item from received responses dict queue
 
-        :param item_id: id of the item to retrieve
+        Args:
+            item_id: id of the item to retrieve
 
-        :return: retrieved item
+        Returns:
+             retrieved item
         """
         while True:
             async with self._lock:
@@ -756,15 +767,25 @@ class AsyncSubstrateInterface:
     def __init__(
         self,
         chain_endpoint: str,
-        use_remote_preset=False,
-        auto_discover=True,
-        auto_reconnect=True,
-        ss58_format=None,
-        type_registry=None,
-        chain_name=None,
+        use_remote_preset: bool = False,
+        auto_discover: bool = True,
+        ss58_format: Optional[int] = None,
+        type_registry: Optional[dict] = None,
+        chain_name: Optional[str] = None,
     ):
         """
-        The asyncio-compatible version of the subtensor interface commands we use in bittensor
+        The asyncio-compatible version of the subtensor interface commands we use in bittensor. It is important to
+        initialise this class asynchronously in an async context manager using `async with AsyncSubstrateInterface()`.
+        Otherwise, some (most) methods will not work properly, and may raise exceptions.
+
+        Args:
+            chain_endpoint: the URI of the chain to connect to
+            use_remote_preset: whether to pull the preset from GitHub
+            auto_discover: whether to automatically pull the presets based on the chain name and type registry
+            ss58_format: the specific SS58 format to use
+            type_registry: a dict of custom types
+            chain_name: the name of the chain (the result of the rpc request for "system_chain")
+
         """
         self.chain_endpoint = chain_endpoint
         self.__chain = chain_name
@@ -772,7 +793,6 @@ class AsyncSubstrateInterface:
             chain_endpoint,
             options={
                 "max_size": 2**32,
-                "read_limit": 2**16,
                 "write_limit": 2**16,
             },
         )
@@ -781,7 +801,6 @@ class AsyncSubstrateInterface:
         self.config = {
             "use_remote_preset": use_remote_preset,
             "auto_discover": auto_discover,
-            "auto_reconnect": auto_reconnect,
             "rpc_methods": None,
             "strict_scale_decode": True,
         }
@@ -796,7 +815,7 @@ class AsyncSubstrateInterface:
         self.__metadata_cache = {}
         self.type_registry_preset = None
         self.transaction_version = None
-        self.metadata = None
+        self.__metadata = None
         self.metadata_version_hex = "0x0f000000"  # v15
 
     async def __aenter__(self):
@@ -825,10 +844,20 @@ class AsyncSubstrateInterface:
         """
         return self.__chain
 
+    @property
+    def metadata(self):
+        if self.__metadata is None:
+            raise AttributeError(
+                "Metadata not found. This generally indicates that the AsyncSubstrateInterface object "
+                "is not properly async initialized."
+            )
+        else:
+            return self.__metadata
+
     async def get_storage_item(self, module: str, storage_function: str):
-        if not self.metadata:
+        if not self.__metadata:
             await self.init_runtime()
-        metadata_pallet = self.metadata.get_metadata_pallet(module)
+        metadata_pallet = self.__metadata.get_metadata_pallet(module)
         storage_item = metadata_pallet.get_storage_function(storage_function)
         return storage_item
 
@@ -853,23 +882,18 @@ class AsyncSubstrateInterface:
         metadata_v15 = MetadataV15.decode_from_metadata_option(metadata_option_bytes)
         self.registry = PortableRegistry.from_metadata_v15(metadata_v15)
 
-    async def decode_scale(
-        self, type_string, scale_bytes: bytes, return_scale_obj=False
-    ):
+    async def decode_scale(self, type_string, scale_bytes: bytes) -> Any:
         """
         Helper function to decode arbitrary SCALE-bytes (e.g. 0x02000000) according to given RUST type_string
         (e.g. BlockNumber). The relevant versioning information of the type (if defined) will be applied if block_hash
         is set
 
-        Parameters
-        ----------
-        type_string
-        scale_bytes
-        block_hash
-        return_scale_obj: if True the SCALE object itself is returned, otherwise the serialized dict value of the object
+        Args:
+            type_string: the type string of the SCALE object for decoding
+            scale_bytes: the SCALE-bytes representation of the SCALE object to decode
 
-        Returns
-        -------
+        Returns:
+            Decoded object
 
         """
         if scale_bytes == b"\x00":
@@ -889,21 +913,24 @@ class AsyncSubstrateInterface:
         Because parsing of metadata and type registry is quite heavy, the result will be cached per runtime id.
         In the future there could be support for caching backends like Redis to make this cache more persistent.
 
-        :param block_hash: optional block hash, should not be specified if block_id is
-        :param block_id: optional block id, should not be specified if block_hash is
+        Args:
+            block_hash: optional block hash, should not be specified if block_id is
+            block_id: optional block id, should not be specified if block_hash is
 
-        :returns: Runtime object
+        Returns:
+            Runtime object
         """
 
         async def get_runtime(block_hash, block_id) -> Runtime:
             # Check if runtime state already set to current block
-            if (block_hash and block_hash == self.last_block_hash) or (
-                block_id and block_id == self.block_id
-            ):
+            if (
+                (block_hash and block_hash == self.last_block_hash)
+                or (block_id and block_id == self.block_id)
+            ) and self.__metadata is not None:
                 return Runtime(
                     self.chain,
                     self.runtime_config,
-                    self.metadata,
+                    self.__metadata,
                     self.type_registry,
                 )
 
@@ -945,39 +972,44 @@ class AsyncSubstrateInterface:
                 raise SubstrateRequestException(
                     f"No runtime information for block '{block_hash}'"
                 )
-
             # Check if runtime state already set to current block
-            if runtime_info.get("specVersion") == self.runtime_version:
+            if (
+                runtime_info.get("specVersion") == self.runtime_version
+                and self.__metadata is not None
+            ):
                 return Runtime(
                     self.chain,
                     self.runtime_config,
-                    self.metadata,
+                    self.__metadata,
                     self.type_registry,
                 )
 
             self.runtime_version = runtime_info.get("specVersion")
             self.transaction_version = runtime_info.get("transactionVersion")
 
-            if not self.metadata:
+            if not self.__metadata:
                 if self.runtime_version in self.__metadata_cache:
                     # Get metadata from cache
                     # self.debug_message('Retrieved metadata for {} from memory'.format(self.runtime_version))
-                    self.metadata = self.__metadata_cache[self.runtime_version]
+                    metadata = self.__metadata = self.__metadata_cache[
+                        self.runtime_version
+                    ]
                 else:
-                    self.metadata = await self.get_block_metadata(
+                    metadata = self.__metadata = await self.get_block_metadata(
                         block_hash=runtime_block_hash, decode=True
                     )
                     # self.debug_message('Retrieved metadata for {} from Substrate node'.format(self.runtime_version))
 
                     # Update metadata cache
-                    self.__metadata_cache[self.runtime_version] = self.metadata
-
+                    self.__metadata_cache[self.runtime_version] = self.__metadata
+            else:
+                metadata = self.__metadata
             # Update type registry
             self.reload_type_registry(use_remote_preset=False, auto_discover=True)
 
             if self.implements_scaleinfo:
                 # self.debug_message('Add PortableRegistry from metadata to type registry')
-                self.runtime_config.add_portable_registry(self.metadata)
+                self.runtime_config.add_portable_registry(metadata)
 
             # Set active runtime version
             self.runtime_config.set_active_spec_version_id(self.runtime_version)
@@ -1005,14 +1037,17 @@ class AsyncSubstrateInterface:
             return Runtime(
                 self.chain,
                 self.runtime_config,
-                self.metadata,
+                metadata,
                 self.type_registry,
             )
 
         if block_id and block_hash:
             raise ValueError("Cannot provide block_hash and block_id at the same time")
 
-        if not (runtime := self.runtime_cache.retrieve(block_id, block_hash)):
+        if (
+            not (runtime := self.runtime_cache.retrieve(block_id, block_hash))
+            or runtime.metadata is None
+        ):
             runtime = await get_runtime(block_hash, block_id)
             self.runtime_cache.add_item(block_id, block_hash, runtime)
         return runtime
@@ -1021,17 +1056,14 @@ class AsyncSubstrateInterface:
         self, use_remote_preset: bool = True, auto_discover: bool = True
     ):
         """
-        Reload type registry and preset used to instantiate the SubtrateInterface object. Useful to periodically apply
-        changes in type definitions when a runtime upgrade occurred
+        Reload type registry and preset used to instantiate the `AsyncSubstrateInterface` object. Useful to
+        periodically apply changes in type definitions when a runtime upgrade occurred
 
-        Parameters
-        ----------
-        use_remote_preset: When True preset is downloaded from Github master, otherwise use files from local installed scalecodec package
-        auto_discover
-
-        Returns
-        -------
-
+        Args:
+            use_remote_preset: When True preset is downloaded from Github master,
+                otherwise use files from local installed scalecodec package
+            auto_discover: Whether to automatically discover the type_registry
+                presets based on the chain name and typer registry
         """
         self.runtime_config.clear_type_registry()
 
@@ -1098,8 +1130,8 @@ class AsyncSubstrateInterface:
         -------
         bool
         """
-        if self.metadata:
-            return self.metadata.portable_registry is not None
+        if self.__metadata:
+            return self.__metadata.portable_registry is not None
         else:
             return None
 
@@ -1113,15 +1145,14 @@ class AsyncSubstrateInterface:
         """
         Create a `StorageKey` instance providing storage function details. See `subscribe_storage()`.
 
-        Parameters
-        ----------
-        pallet: name of pallet
-        storage_function: name of storage function
-        params: Optional list of parameters in case of a Mapped storage function
+        Args:
+            pallet: name of pallet
+            storage_function: name of storage function
+            params: list of parameters in case of a Mapped storage function
+            block_hash: the hash of the blockchain block whose runtime to use
 
-        Returns
-        -------
-        StorageKey
+        Returns:
+            StorageKey
         """
         await self.init_runtime(block_hash=block_hash)
 
@@ -1130,7 +1161,7 @@ class AsyncSubstrateInterface:
             storage_function,
             params,
             runtime_config=self.runtime_config,
-            metadata=self.metadata,
+            metadata=self.__metadata,
         )
 
     async def _get_block_handler(
@@ -1164,14 +1195,14 @@ class AsyncSubstrateInterface:
                     for idx, extrinsic_data in enumerate(block_data["extrinsics"]):
                         extrinsic_decoder = extrinsic_cls(
                             data=ScaleBytes(extrinsic_data),
-                            metadata=self.metadata,
+                            metadata=self.__metadata,
                             runtime_config=self.runtime_config,
                         )
                         try:
                             extrinsic_decoder.decode(check_remaining=True)
                             block_data["extrinsics"][idx] = extrinsic_decoder
 
-                        except Exception as e:
+                        except Exception:
                             if not ignore_decoding_errors:
                                 raise
                             block_data["extrinsics"][idx] = None
@@ -1341,17 +1372,15 @@ class AsyncSubstrateInterface:
 
         Either `block_hash` or `block_number` should be set, or both omitted.
 
-        Parameters
-        ----------
-        block_hash: the hash of the block to be retrieved
-        block_number: the block number to retrieved
-        ignore_decoding_errors: When set this will catch all decoding errors, set the item to None and continue decoding
-        include_author: This will retrieve the block author from the validator set and add to the result
-        finalized_only: when no `block_hash` or `block_number` is set, this will retrieve the finalized head
+        Args:
+            block_hash: the hash of the block to be retrieved
+            block_number: the block number to retrieved
+            ignore_decoding_errors: When set this will catch all decoding errors, set the item to None and continue decoding
+            include_author: This will retrieve the block author from the validator set and add to the result
+            finalized_only: when no `block_hash` or `block_number` is set, this will retrieve the finalized head
 
-        Returns
-        -------
-        A dict containing the extrinsic and digest logs data
+        Returns:
+            A dict containing the extrinsic and digest logs data
         """
         if block_hash and block_number:
             raise ValueError("Either block_hash or block_number should be be set")
@@ -1385,13 +1414,11 @@ class AsyncSubstrateInterface:
         """
         Convenience method to get events for a certain block (storage call for module 'System' and function 'Events')
 
-        Parameters
-        ----------
-        block_hash
+        Args:
+            block_hash: the hash of the block to be retrieved
 
-        Returns
-        -------
-        list
+        Returns:
+            list of events
         """
 
         def convert_event_data(data):
@@ -1458,14 +1485,12 @@ class AsyncSubstrateInterface:
         """
         A pass-though to existing JSONRPC method `state_getMetadata`.
 
-        Parameters
-        ----------
-        block_hash
-        decode: True for decoded version
+        Args:
+            block_hash: the hash of the block to be queried against
+            decode: Whether to decode the metadata or present it raw
 
-        Returns
-        -------
-
+        Returns:
+            metadata, either as a dict (not decoded) or ScaleType (decoded)
         """
         params = None
         if decode and not self.runtime_config:
@@ -1502,7 +1527,7 @@ class AsyncSubstrateInterface:
         """
         params = query_for if query_for else []
         # Search storage call in metadata
-        metadata_pallet = self.metadata.get_metadata_pallet(module)
+        metadata_pallet = self.__metadata.get_metadata_pallet(module)
 
         if not metadata_pallet:
             raise SubstrateRequestException(f'Pallet "{module}" not found')
@@ -1528,7 +1553,7 @@ class AsyncSubstrateInterface:
             storage_item.value["name"],
             params,
             runtime_config=self.runtime_config,
-            metadata=self.metadata,
+            metadata=self.__metadata,
         )
         method = "state_getStorageAt"
         return Preprocessed(
@@ -1552,14 +1577,16 @@ class AsyncSubstrateInterface:
         Processes the RPC call response by decoding it, returning it as is, or setting a handler for subscriptions,
         depending on the specific call.
 
-        :param response: the RPC call response
-        :param subscription_id: the subscription id for subscriptions, used only for subscriptions with a result handler
-        :param value_scale_type: Scale Type string used for decoding ScaleBytes results
-        :param storage_item: The ScaleType object used for decoding ScaleBytes results
-        :param runtime: the runtime object, used for decoding ScaleBytes results
-        :param result_handler: the result handler coroutine used for handling longer-running subscriptions
+        Args:
+            response: the RPC call response
+            subscription_id: the subscription id for subscriptions, used only for subscriptions with a result handler
+            value_scale_type: Scale Type string used for decoding ScaleBytes results
+            storage_item: The ScaleType object used for decoding ScaleBytes results
+            runtime: the runtime object, used for decoding ScaleBytes results
+            result_handler: the result handler coroutine used for handling longer-running subscriptions
 
-        :return: (decoded response, completion)
+        Returns:
+             (decoded response, completion)
         """
         result: Union[dict, ScaleType] = response
         if value_scale_type and isinstance(storage_item, ScaleType):
@@ -1568,7 +1595,7 @@ class AsyncSubstrateInterface:
                     runtime = Runtime(
                         self.chain,
                         self.runtime_config,
-                        self.metadata,
+                        self.__metadata,
                         self.type_registry,
                     )
             if response.get("result") is not None:
@@ -1586,8 +1613,7 @@ class AsyncSubstrateInterface:
                 q = bytes(query_value)
             else:
                 q = query_value
-            obj = await self.decode_scale(value_scale_type, q, True)
-            result = obj
+            result = await self.decode_scale(value_scale_type, q)
         if asyncio.iscoroutinefunction(result_handler):
             # For multipart responses as a result of subscriptions.
             message, bool_result = await result_handler(response, subscription_id)
@@ -1658,11 +1684,13 @@ class AsyncSubstrateInterface:
         """
         Creates a payload for making an rpc_request with _make_rpc_request
 
-        :param id_: a unique name you would like to give to this request
-        :param method: the method in the RPC request
-        :param params: the params in the RPC request
+        Args:
+            id_: a unique name you would like to give to this request
+            method: the method in the RPC request
+            params: the params in the RPC request
 
-        :return: the payload dict
+        Returns:
+            the payload dict
         """
         return {
             "id": id_,
@@ -1677,17 +1705,19 @@ class AsyncSubstrateInterface:
         reuse_block_hash: bool = False,
     ) -> Any:
         """
-        Makes an RPC request to the subtensor. Use this only if ``self.query`` and ``self.query_multiple`` and
-        ``self.query_map`` do not meet your needs.
+        Makes an RPC request to the subtensor. Use this only if `self.query`` and `self.query_multiple` and
+        `self.query_map` do not meet your needs.
 
-        :param method: str the method in the RPC request
-        :param params: list of the params in the RPC request
-        :param block_hash: optional str, the hash of the block — only supply this if not supplying the block
-                           hash in the params, and not reusing the block hash
-        :param reuse_block_hash: optional bool, whether to reuse the block hash in the params — only mark as True
-                                 if not supplying the block hash in the params, or via the `block_hash` parameter
+        Args:
+            method: str the method in the RPC request
+            params: list of the params in the RPC request
+            block_hash: the hash of the block — only supply this if not supplying the block
+                hash in the params, and not reusing the block hash
+            reuse_block_hash: whether to reuse the block hash in the params — only mark as True
+                if not supplying the block hash in the params, or via the `block_hash` parameter
 
-        :return: the response from the RPC request
+        Returns:
+            the response from the RPC request
         """
         block_hash = await self._get_current_block_hash(block_hash, reuse_block_hash)
         params = params or []
@@ -1702,7 +1732,7 @@ class AsyncSubstrateInterface:
         runtime = Runtime(
             self.chain,
             self.runtime_config,
-            self.metadata,
+            self.__metadata,
             self.type_registry,
         )
         result = await self._make_rpc_request(payloads, runtime=runtime)
@@ -1728,7 +1758,7 @@ class AsyncSubstrateInterface:
             runtime=Runtime(
                 self.chain,
                 self.runtime_config,
-                self.metadata,
+                self.__metadata,
                 self.type_registry,
             ),
         )
@@ -1745,13 +1775,15 @@ class AsyncSubstrateInterface:
         """
         Composes a call payload which can be used in an extrinsic.
 
-        :param call_module: Name of the runtime module e.g. Balances
-        :param call_function: Name of the call function e.g. transfer
-        :param call_params: This is a dict containing the params of the call. e.g.
-                            `{'dest': 'EaG2CRhJWPb7qmdcJvy3LiWdh26Jreu9Dx6R1rXxPmYXoDk', 'value': 1000000000000}`
-        :param block_hash: Use metadata at given block_hash to compose call
+        Args:
+            call_module: Name of the runtime module e.g. Balances
+            call_function: Name of the call function e.g. transfer
+            call_params: This is a dict containing the params of the call. e.g.
+                `{'dest': 'EaG2CRhJWPb7qmdcJvy3LiWdh26Jreu9Dx6R1rXxPmYXoDk', 'value': 1000000000000}`
+            block_hash: Use metadata at given block_hash to compose call
 
-        :return: A composed call
+        Returns:
+            A composed call
         """
         if call_params is None:
             call_params = {}
@@ -1759,7 +1791,7 @@ class AsyncSubstrateInterface:
         await self.init_runtime(block_hash=block_hash)
 
         call = self.runtime_config.create_scale_object(
-            type_string="Call", metadata=self.metadata
+            type_string="Call", metadata=self.__metadata
         )
 
         call.encode(
@@ -1832,14 +1864,12 @@ class AsyncSubstrateInterface:
         result = substrate.query_multi(storage_keys)
         ```
 
-        Parameters
-        ----------
-        storage_keys: list of StorageKey objects
-        block_hash: Optional block_hash of state snapshot
+        Args:
+            storage_keys: list of StorageKey objects
+            block_hash: hash of the block to query against
 
-        Returns
-        -------
-        list of `(storage_key, scale_obj)` tuples
+        Returns:
+            list of `(storage_key, scale_obj)` tuples
         """
 
         await self.init_runtime(block_hash=block_hash)
@@ -1886,12 +1916,14 @@ class AsyncSubstrateInterface:
         Convenience method to create a SCALE object of type `type_string`, this will initialize the runtime
         automatically at moment of `block_hash`, or chain tip if omitted.
 
-        :param type_string: str Name of SCALE type to create
-        :param data: ScaleBytes Optional ScaleBytes to decode
-        :param block_hash: Optional block hash for moment of decoding, when omitted the chain tip will be used
-        :param kwargs: keyword args for the Scale Type constructor
+        Args:
+            type_string: Name of SCALE type to create
+            data: ScaleBytes: ScaleBytes to decode
+            block_hash: block hash for moment of decoding, when omitted the chain tip will be used
+            kwargs: keyword args for the Scale Type constructor
 
-        :return: The created Scale Type object
+        Returns:
+             The created Scale Type object
         """
         runtime = await self.init_runtime(block_hash=block_hash)
         if "metadata" not in kwargs:
@@ -1939,12 +1971,12 @@ class AsyncSubstrateInterface:
         )
 
         # Process signed extensions in metadata
-        if "signed_extensions" in self.metadata[1][1]["extrinsic"]:
+        if "signed_extensions" in self.__metadata[1][1]["extrinsic"]:
             # Base signature payload
             signature_payload.type_mapping = [["call", "CallBytes"]]
 
             # Add signed extensions to payload
-            signed_extensions = self.metadata.get_signed_extensions()
+            signed_extensions = self.__metadata.get_signed_extensions()
 
             if "CheckMortality" in signed_extensions:
                 signature_payload.type_mapping.append(
@@ -2064,16 +2096,18 @@ class AsyncSubstrateInterface:
         """
         Creates an extrinsic signed by given account details
 
-        :param call: GenericCall to create extrinsic for
-        :param keypair: Keypair used to sign the extrinsic
-        :param era: Specify mortality in blocks in follow format:
-                    {'period': [amount_blocks]} If omitted the extrinsic is immortal
-        :param nonce: nonce to include in extrinsics, if omitted the current nonce is retrieved on-chain
-        :param tip: The tip for the block author to gain priority during network congestion
-        :param tip_asset_id: Optional asset ID with which to pay the tip
-        :param signature: Optionally provide signature if externally signed
+        Args:
+            call: GenericCall to create extrinsic for
+            keypair: Keypair used to sign the extrinsic
+            era: Specify mortality in blocks in follow format:
+                {'period': [amount_blocks]} If omitted the extrinsic is immortal
+            nonce: nonce to include in extrinsics, if omitted the current nonce is retrieved on-chain
+            tip: The tip for the block author to gain priority during network congestion
+            tip_asset_id: Optional asset ID with which to pay the tip
+            signature: Optionally provide signature if externally signed
 
-        :return: The signed Extrinsic
+        Returns:
+             The signed Extrinsic
         """
         await self.init_runtime()
 
@@ -2082,9 +2116,9 @@ class AsyncSubstrateInterface:
             raise TypeError("'call' must be of type Call")
 
         # Check if extrinsic version is supported
-        if self.metadata[1][1]["extrinsic"]["version"] != 4:  # type: ignore
+        if self.__metadata[1][1]["extrinsic"]["version"] != 4:  # type: ignore
             raise NotImplementedError(
-                f"Extrinsic version {self.metadata[1][1]['extrinsic']['version']} not supported"  # type: ignore
+                f"Extrinsic version {self.__metadata[1][1]['extrinsic']['version']} not supported"  # type: ignore
             )
 
         # Retrieve nonce
@@ -2126,7 +2160,7 @@ class AsyncSubstrateInterface:
 
         # Create extrinsic
         extrinsic = self.runtime_config.create_scale_object(
-            type_string="Extrinsic", metadata=self.metadata
+            type_string="Extrinsic", metadata=self.__metadata
         )
 
         value = {
@@ -2177,12 +2211,14 @@ class AsyncSubstrateInterface:
         """
         Calls a runtime API method
 
-        :param api: Name of the runtime API e.g. 'TransactionPaymentApi'
-        :param method: Name of the method e.g. 'query_fee_details'
-        :param params: List of parameters needed to call the runtime API
-        :param block_hash: Hash of the block at which to make the runtime API call
+        Args:
+            api: Name of the runtime API e.g. 'TransactionPaymentApi'
+            method: Name of the method e.g. 'query_fee_details'
+            params: List of parameters needed to call the runtime API
+            block_hash: Hash of the block at which to make the runtime API call
 
-        :return: ScaleType from the runtime call
+        Returns:
+             ScaleType from the runtime call
         """
         await self.init_runtime()
 
@@ -2210,7 +2246,7 @@ class AsyncSubstrateInterface:
         runtime = Runtime(
             self.chain,
             self.runtime_config,
-            self.metadata,
+            self.__metadata,
             self.type_registry,
         )
 
@@ -2247,9 +2283,11 @@ class AsyncSubstrateInterface:
         """
         Returns current nonce for given account address
 
-        :param account_address: SS58 formatted address
+        Args:
+            account_address: SS58 formatted address
 
-        :return: Nonce for given account address
+        Returns:
+            Nonce for given account address
         """
         nonce_obj = await self.runtime_call(
             "AccountNonceApi", "account_nonce", [account_address]
@@ -2261,20 +2299,18 @@ class AsyncSubstrateInterface:
         Retrieves the details of a constant for given module name, call function name and block_hash
         (or chaintip if block_hash is omitted)
 
-        Parameters
-        ----------
-        module_name
-        constant_name
-        block_hash
+        Args:
+            module_name: name of the module you are querying
+            constant_name: name of the constant you are querying
+            block_hash: hash of the block at which to make the runtime API call
 
-        Returns
-        -------
-        MetadataModuleConstants
+        Returns:
+            MetadataModuleConstants
         """
 
-        # await self.init_runtime(block_hash=block_hash)
+        await self.init_runtime(block_hash=block_hash)
 
-        for module in self.metadata.pallets:
+        for module in self.__metadata.pallets:
             if module_name == module.name and module.constants:
                 for constant in module.constants:
                     if constant_name == constant.value["name"]:
@@ -2286,19 +2322,19 @@ class AsyncSubstrateInterface:
         constant_name: str,
         block_hash: Optional[str] = None,
         reuse_block_hash: bool = False,
-    ) -> "ScaleType":
+    ) -> Optional["ScaleType"]:
         """
         Returns the decoded `ScaleType` object of the constant for given module name, call function name and block_hash
         (or chaintip if block_hash is omitted)
 
-        Parameters
-        ----------
-        :param module_name: Name of the module to query
-        :param constant_name: Name of the constant to query
-        :param block_hash: Hash of the block at which to make the runtime API call
-        :param reuse_block_hash: Reuse last-used block hash if set to true
+        Args:
+            module_name: Name of the module to query
+            constant_name: Name of the constant to query
+            block_hash: Hash of the block at which to make the runtime API call
+            reuse_block_hash: Reuse last-used block hash if set to true
 
-        :return: ScaleType from the runtime call
+        Returns:
+             ScaleType from the runtime call
         """
         block_hash = await self._get_current_block_hash(block_hash, reuse_block_hash)
         constant = await self.get_metadata_constant(
@@ -2309,7 +2345,6 @@ class AsyncSubstrateInterface:
             return await self.decode_scale(
                 constant.type,
                 bytes(constant.constant_value),
-                return_scale_obj=True,
             )
         else:
             return None
@@ -2320,16 +2355,14 @@ class AsyncSubstrateInterface:
         """
         Retrieves fee estimation via RPC for given extrinsic
 
-        Parameters
-        ----------
-        call: Call object to estimate fees for
-        keypair: Keypair of the sender, does not have to include private key because no valid signature is required
+        Args:
+            call: Call object to estimate fees for
+            keypair: Keypair of the sender, does not have to include private key because no valid signature is
+                     required
 
-        Returns
-        -------
-        Dict with payment info
-
-        E.g. `{'class': 'normal', 'partialFee': 151000000, 'weight': {'ref_time': 143322000}}`
+        Returns:
+            Dict with payment info
+            E.g. `{'class': 'normal', 'partialFee': 151000000, 'weight': {'ref_time': 143322000}}`
 
         """
 
@@ -2365,7 +2398,7 @@ class AsyncSubstrateInterface:
         raw_storage_key: Optional[bytes] = None,
         subscription_handler=None,
         reuse_block_hash: bool = False,
-    ) -> Union["ScaleType"]:
+    ) -> "ScaleType":
         """
         Queries subtensor. This should only be used when making a single request. For multiple requests,
         you should use ``self.query_multiple``
@@ -2422,20 +2455,22 @@ class AsyncSubstrateInterface:
         Note: it is important that you do not use `for x in result.records`, as this will sidestep possible
         pagination. You must do `async for x in result`.
 
-        :param module: The module name in the metadata, e.g. System or Balances.
-        :param storage_function: The storage function name, e.g. Account or Locks.
-        :param params: The input parameters in case of for example a `DoubleMap` storage function
-        :param block_hash: Optional block hash for result at given block, when left to None the chain tip will be used.
-        :param max_results: the maximum of results required, if set the query will stop fetching results when number is
-                            reached
-        :param start_key: The storage key used as offset for the results, for pagination purposes
-        :param page_size: The results are fetched from the node RPC in chunks of this size
-        :param ignore_decoding_errors: When set this will catch all decoding errors, set the item to None and continue
-                                       decoding
-        :param reuse_block_hash: use True if you wish to make the query using the last-used block hash. Do not mark True
-                                 if supplying a block_hash
+        Args:
+            module: The module name in the metadata, e.g. System or Balances.
+            storage_function: The storage function name, e.g. Account or Locks.
+            params: The input parameters in case of for example a `DoubleMap` storage function
+            block_hash: Optional block hash for result at given block, when left to None the chain tip will be used.
+            max_results: the maximum of results required, if set the query will stop fetching results when number is
+                reached
+            start_key: The storage key used as offset for the results, for pagination purposes
+            page_size: The results are fetched from the node RPC in chunks of this size
+            ignore_decoding_errors: When set this will catch all decoding errors, set the item to None and continue
+                decoding
+            reuse_block_hash: use True if you wish to make the query using the last-used block hash. Do not mark True
+                              if supplying a block_hash
 
-        :return: QueryMapResult object
+        Returns:
+             QueryMapResult object
         """
         params = params or []
         block_hash = await self._get_current_block_hash(block_hash, reuse_block_hash)
@@ -2534,7 +2569,6 @@ class AsyncSubstrateInterface:
                         item_key_obj = await self.decode_scale(
                             type_string=f"({', '.join(key_type_string)})",
                             scale_bytes=bytes.fromhex(item[0][len(prefix) :]),
-                            return_scale_obj=True,
                         )
 
                         # strip key_hashers to use as item key
@@ -2552,15 +2586,10 @@ class AsyncSubstrateInterface:
                         item_key = None
 
                     try:
-                        try:
-                            item_bytes = bytes.fromhex(item[1][2:])
-                        except ValueError:
-                            item_bytes = bytes.fromhex(item[1])
+                        item_bytes = hex_to_bytes(item[1])
 
                         item_value = await self.decode_scale(
-                            type_string=value_type,
-                            scale_bytes=item_bytes,
-                            return_scale_obj=True,
+                            type_string=value_type, scale_bytes=item_bytes
                         )
                     except Exception as _:
                         if not ignore_decoding_errors:
@@ -2593,16 +2622,13 @@ class AsyncSubstrateInterface:
          in a block and/or the block is finalized. The receipt returned provided information about the block and
          triggered events
 
-        Parameters
-        ----------
-        extrinsic: Extrinsic The extrinsic to be sent to the network
-        wait_for_inclusion: wait until extrinsic is included in a block (only works for websocket connections)
-        wait_for_finalization: wait until extrinsic is finalized (only works for websocket connections)
+        Args:
+            extrinsic: Extrinsic The extrinsic to be sent to the network
+            wait_for_inclusion: wait until extrinsic is included in a block (only works for websocket connections)
+            wait_for_finalization: wait until extrinsic is finalized (only works for websocket connections)
 
-        Returns
-        -------
-        ExtrinsicReceipt
-
+        Returns:
+            ExtrinsicReceipt object of your submitted extrinsic
         """
 
         # Check requirements
@@ -2615,11 +2641,13 @@ class AsyncSubstrateInterface:
             to handle the results of the extrinsic rpc call, which are multipart, and require
             subscribing to the message
 
-            :param message: message received from the rpc call
-            :param subscription_id: subscription id received from the initial rpc call for the subscription
+            Args:
+                message: message received from the rpc call
+                subscription_id: subscription id received from the initial rpc call for the subscription
 
-            :returns: tuple containing the dict of the block info for the subscription, and bool for whether
-                      the subscription is completed.
+            Returns:
+                tuple containing the dict of the block info for the subscription, and bool for whether
+                the subscription is completed.
             """
             # Check if extrinsic is included and finalized
             if "params" in message and isinstance(message["params"]["result"], dict):
@@ -2706,11 +2734,13 @@ class AsyncSubstrateInterface:
         Retrieves a list of all call functions in metadata active for given block_hash (or chaintip if block_hash
         is omitted)
 
-        :param module_name: name of the module
-        :param call_function_name: name of the call function
-        :param block_hash: optional block hash
+        Args:
+            module_name: name of the module
+            call_function_name: name of the call function
+            block_hash: optional block hash
 
-        :return: list of call functions
+        Returns:
+            list of call functions
         """
         runtime = await self.init_runtime(block_hash=block_hash)
 
@@ -2721,7 +2751,7 @@ class AsyncSubstrateInterface:
                         return call
         return None
 
-    async def get_block_number(self, block_hash: Optional[str] = None) -> int:
+    async def get_block_number(self, block_hash: Optional[str]) -> int:
         """Async version of `substrateinterface.base.get_block_number` method."""
         response = await self.rpc_request("chain_getHeader", [block_hash])
 

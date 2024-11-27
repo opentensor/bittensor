@@ -20,7 +20,12 @@ from typing import Optional, TYPE_CHECKING
 from bittensor.core.errors import MetadataError
 from bittensor.core.extrinsics.utils import submit_extrinsic
 from bittensor.core.settings import version_as_int
-from bittensor.utils import format_error_message, networking as net
+from bittensor.utils import (
+    format_error_message,
+    networking as net,
+    unlock_key,
+    Certificate,
+)
 from bittensor.utils.btlogging import logging
 from bittensor.utils.networking import ensure_connected
 
@@ -57,9 +62,15 @@ def do_serve_axon(
     This function is crucial for initializing and announcing a neuron's ``Axon`` service on the network, enhancing the decentralized computation capabilities of Bittensor.
     """
 
+    if call_params["certificate"] is None:
+        del call_params["certificate"]
+        call_function = "serve_axon"
+    else:
+        call_function = "serve_axon_tls"
+
     call = self.substrate.compose_call(
         call_module="SubtensorModule",
-        call_function="serve_axon",
+        call_function=call_function,
         call_params=call_params,
     )
     extrinsic = self.substrate.create_signed_extrinsic(call=call, keypair=wallet.hotkey)
@@ -90,6 +101,7 @@ def serve_extrinsic(
     placeholder2: int = 0,
     wait_for_inclusion: bool = False,
     wait_for_finalization=True,
+    certificate: Optional[Certificate] = None,
 ) -> bool:
     """Subscribes a Bittensor endpoint to the subtensor chain.
 
@@ -109,7 +121,10 @@ def serve_extrinsic(
         success (bool): Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
     # Decrypt hotkey
-    wallet.unlock_hotkey()
+    if not (unlock := unlock_key(wallet, "hotkey")).success:
+        logging.error(unlock.message)
+        return False
+
     params: "AxonServeCallParams" = {
         "version": version_as_int,
         "ip": net.ip_to_int(ip),
@@ -121,6 +136,7 @@ def serve_extrinsic(
         "protocol": protocol,
         "placeholder1": placeholder1,
         "placeholder2": placeholder2,
+        "certificate": certificate,
     }
     logging.debug("Checking axon ...")
     neuron = subtensor.get_neuron_for_pubkey_and_subnet(
@@ -179,6 +195,7 @@ def serve_axon_extrinsic(
     axon: "Axon",
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = True,
+    certificate: Optional[Certificate] = None,
 ) -> bool:
     """Serves the axon to the network.
 
@@ -192,8 +209,9 @@ def serve_axon_extrinsic(
     Returns:
         success (bool): Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
-    axon.wallet.unlock_hotkey()
-    axon.wallet.unlock_coldkeypub()
+    if not (unlock := unlock_key(axon.wallet, "hotkey")).success:
+        logging.error(unlock.message)
+        return False
     external_port = axon.external_port
 
     # ---- Get external ip ----
@@ -201,7 +219,7 @@ def serve_axon_extrinsic(
         try:
             external_ip = net.get_external_ip()
             logging.success(
-                f":white_heavy_check_mark: <green>Found external ip:</green> <blue>{external_ip}</blue>"
+                f":white_heavy_check_mark: [green]Found external ip:[/green] [blue]{external_ip}[/blue]"
             )
         except Exception as e:
             raise RuntimeError(
@@ -220,6 +238,7 @@ def serve_axon_extrinsic(
         protocol=4,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
+        certificate=certificate,
     )
     return serve_success
 
@@ -254,7 +273,9 @@ def publish_metadata(
         MetadataError: If there is an error in submitting the extrinsic or if the response from the blockchain indicates failure.
     """
 
-    wallet.unlock_hotkey()
+    if not (unlock := unlock_key(wallet, "hotkey")).success:
+        logging.error(unlock.message)
+        return False
 
     with self.substrate as substrate:
         call = substrate.compose_call(
@@ -267,7 +288,8 @@ def publish_metadata(
         )
 
         extrinsic = substrate.create_signed_extrinsic(call=call, keypair=wallet.hotkey)
-        response = substrate.submit_extrinsic(
+        response = submit_extrinsic(
+            substrate,
             extrinsic,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,

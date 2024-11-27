@@ -69,6 +69,9 @@ setup(
     author="bittensor.com",
     packages=find_packages(exclude=["tests", "tests.*"]),
     include_package_data=True,
+    package_data={
+        "bittensor": ["utils/certifi.sh"],
+    },
     author_email="",
     license="MIT",
     python_requires=">=3.9",
@@ -86,6 +89,7 @@ setup(
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
         "Topic :: Scientific/Engineering",
         "Topic :: Scientific/Engineering :: Mathematics",
         "Topic :: Scientific/Engineering :: Artificial Intelligence",

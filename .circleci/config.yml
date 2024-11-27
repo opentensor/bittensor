@@ -275,19 +275,6 @@ jobs:
           command: |
             [[ $(docker manifest inspect opentensorfdn/bittensor:`cat VERSION` > /dev/null 2> /dev/null ; echo $?) == 1 ]] && echo "Docker image 'opentensorfdn/bittensor:`cat VERSION`' does not exist in dockerhub"
 
-  release-dry-run:
-    docker:
-      - image: cimg/python:3.10
-    steps:
-      - checkout
-      - setup_remote_docker:
-          version: 20.10.14
-          docker_layer_caching: true
-      - run:
-          name: Executing release script
-          command: |
-            ./scripts/release/release.sh --github-token ${GH_API_ACCESS_TOKEN}
-
 workflows:
   compatibility_checks:
     jobs:
@@ -300,6 +287,10 @@ workflows:
       - check_compatibility:
           python_version: "3.11"
           name: check-compatibility-3.11
+      - check_compatibility:
+          python_version: "3.12"
+          name: check-compatibility-3.12
+
 
   pr-requirements:
     jobs:
@@ -311,7 +302,7 @@ workflows:
       - build-and-test:
           matrix:
             parameters:
-              python-version: ["3.9.13", "3.10.6", "3.11.4"]
+              python-version: [ "3.9.13", "3.10.6", "3.11.4", "3.12.7" ]
           requires:
             - check-if-pr-is-draft
       - unit-tests-all-python-versions:
@@ -320,7 +311,7 @@ workflows:
       - lint-and-type-check:
           matrix:
             parameters:
-              python-version: ["3.9.13", "3.10.6", "3.11.4"]
+              python-version: [ "3.9.13", "3.10.6", "3.11.4", "3.12.7" ]
           requires:
             - check-if-pr-is-draft
       #- coveralls:
@@ -339,20 +330,10 @@ workflows:
             branches:
               only:
                 - /^(release|hotfix)/.*/
-      - release-dry-run:
-          filters:
-            branches:
-              only:
-                - /^(release|hotfix)/.*/
 
   release-requirements:
     jobs:
       - check-version-not-released:
-          filters:
-            branches:
-              only:
-                - master
-      - release-dry-run:
           filters:
             branches:
               only:

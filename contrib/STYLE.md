@@ -58,7 +58,7 @@ Python's official style guide is PEP 8, which provides conventions for writing c
 
 #### More details
 
-Use [`ruff` to format](https://docs.astral.sh/ruff/formatter/#the-ruff-formatter) your python code before commiting for consistency across such a large pool of contributors.
+Use [`ruff` to format](https://docs.astral.sh/ruff/formatter/#the-ruff-formatter) your python code before committing for consistency across such a large pool of contributors.
 Black code [style](https://black.readthedocs.io/en/stable/the_black_code_style/current_style.html#code-style) ensures consistent and opinionated code formatting.
 Ruff automatically formats your Python code according to the Black style guide, enhancing code readability and maintainability.
 
@@ -155,7 +155,7 @@ For example:
 
     Fix typo in introduction to user guide
 
-Nothing more need be said; if the reader wonders what the typo was, she can simply take a look at the change itself, i.e. use     git show or git diff or git log -p.
+Nothing more needs to be said; if the reader wonders what the typo was, she can simply take a look at the change itself, i.e. use     git show or git diff or git log -p.
 
 If you’re committing something like this at the command line, it’s easy to use the -m option to git commit:
 
@@ -197,7 +197,7 @@ Imperative mood just means “spoken or written as if giving a command or instru
     Close the door
     Take out the trash
 
-Each of the seven rules you’re reading about right now are written in the imperative (“Wrap the body at 72 characters”, etc.).
+Each of the seven rules you’re reading about right now is written in the imperative (“Wrap the body at 72 characters”, etc.).
 
 The imperative can sound a little rude; that’s why we don’t often use it. But it’s perfect for Git commit subject lines. One reason for this is that Git itself uses the imperative whenever it creates a commit on your behalf.
 

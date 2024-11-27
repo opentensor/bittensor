@@ -4,9 +4,9 @@ import sys
 import pytest
 
 import bittensor
+from bittensor.core.subtensor import Subtensor
 from bittensor.utils import networking
-from bittensor.utils.btlogging import logging
-from tests.e2e_tests.utils.chain_interactions import register_neuron, register_subnet
+from tests.e2e_tests.utils.chain_interactions import register_subnet
 from tests.e2e_tests.utils.e2e_test_utils import (
     setup_wallet,
     template_path,
@@ -28,19 +28,27 @@ async def test_axon(local_chain):
         AssertionError: If any of the checks or verifications fail
     """
 
-    logging.info("Testing test_axon")
+    print("Testing test_axon")
 
     netuid = 2
     # Register root as Alice - the subnet owner
     alice_keypair, wallet = setup_wallet("//Alice")
 
     # Register a subnet, netuid 2
+    subtensor = Subtensor(network="ws://localhost:9945")
+
+    # Register a subnet, netuid 1
     assert register_subnet(local_chain, wallet), "Subnet wasn't created"
 
     # Verify subnet <netuid 1> created successfully
     assert local_chain.query(
         "SubtensorModule", "NetworksAdded", [netuid]
     ).serialize(), "Subnet wasn't created successfully"
+
+    # Register Alice to the network
+    assert subtensor.burned_register(
+        wallet, netuid
+    ), f"Neuron wasn't registered to subnet {netuid}"
 
     metagraph = bittensor.Metagraph(netuid=netuid, network="ws://localhost:9945")
 
@@ -82,7 +90,7 @@ async def test_axon(local_chain):
         stderr=asyncio.subprocess.PIPE,
     )
 
-    logging.info("Neuron Alice is now mining")
+    print("Neuron Alice is now mining")
 
     # Waiting for 5 seconds for metagraph to be updated
     await asyncio.sleep(5)
@@ -119,4 +127,4 @@ async def test_axon(local_chain):
         updated_axon.coldkey == alice_keypair.ss58_address
     ), "Coldkey mismatch after mining"
 
-    logging.info("✅ Passed test_axon")
+    print("✅ Passed test_axon")
