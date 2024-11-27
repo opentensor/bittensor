@@ -1,6 +1,7 @@
 from typing import Optional, Union, TYPE_CHECKING
 
 import numpy as np
+from bittensor_commit_reveal import get_encrypted_commit
 from numpy.typing import NDArray
 
 from bittensor.core.extrinsics.utils import submit_extrinsic
@@ -16,27 +17,28 @@ if TYPE_CHECKING:
     from bittensor.core.subtensor import Subtensor
 
 
-# this will be replaced with rust-based ffi import from here https://github.com/opentensor/bittensor-commit-reveal
-def get_encrypted_commit(
-    uids: list[int],
-    weights: list[int],
-    subnet_reveal_period_epochs: int,
-    version_key: int = version_as_int,
-) -> tuple[bytes, int]:
-    """
-    Decrypts to t-lock bytes.
-
-    Arguments:
-        uids: The uids to commit.
-        weights: The weights associated with the uids.
-        subnet_reveal_period_epochs: Number of epochs after which the revive will be performed.
-        version_key (int, optional): The version key to use for committing and revealing. Default is version_as_int.
-
-    Returns:
-        t-lock encrypted commit for commit_crv3_weights extrinsic.
-        reveal_period: drand period when Subtensor reveal the weights to the chain.
-    """
-    return b"encrypted commit", subnet_reveal_period_epochs
+# TODO: delete this after all
+# # this will be replaced with rust-based ffi import from here https://github.com/opentensor/bittensor-commit-reveal
+# def get_encrypted_commit(
+#     uids: list[int],
+#     weights: list[int],
+#     subnet_reveal_period_epochs: int,
+#     version_key: int = version_as_int,
+# ) -> tuple[bytes, int]:
+#     """
+#     Decrypts to t-lock bytes.
+#
+#     Arguments:
+#         uids: The uids to commit.
+#         weights: The weights associated with the uids.
+#         subnet_reveal_period_epochs: Number of epochs after which the revive will be performed.
+#         version_key (int, optional): The version key to use for committing and revealing. Default is version_as_int.
+#
+#     Returns:
+#         t-lock encrypted commit for commit_crv3_weights extrinsic.
+#         reveal_period: drand period when Subtensor reveal the weights to the chain.
+#     """
+#     return b"encrypted commit", subnet_reveal_period_epochs
 
 
 @ensure_connected
