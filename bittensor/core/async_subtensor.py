@@ -1847,7 +1847,7 @@ class AsyncSubtensor:
                 version_key=version_key,
             )
             for netuid, salt, uids, weights, version_key in zip(
-                netuids, salts, uids, weights, version_keys
+                netuids, salts, nested_uids, nested_weights, version_keys
             )
         ]
 
