@@ -1830,7 +1830,7 @@ class AsyncSubtensor:
         message = "No attempt made. Perhaps it is too soon to commit weights!"
 
         logging.info(
-            f"Committing a batch of weights with params: netuids={netuids}, salts={salts}, uids={uids}, weights={weights}, version_keys={version_keys}"
+            f"Committing a batch of weights with params: netuids={netuids}, salts={salts}, uids={uidss}, weights={weightss}, version_keys={version_keys}"
         )
 
         if version_keys is None or len(version_keys) == 0:
