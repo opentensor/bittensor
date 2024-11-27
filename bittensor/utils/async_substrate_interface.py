@@ -5,6 +5,7 @@ regard to how to instantiate and use it.
 """
 
 import asyncio
+import inspect
 import json
 import random
 from collections import defaultdict
@@ -1171,14 +1172,14 @@ class AsyncSubstrateInterface:
         include_author: bool = False,
         header_only: bool = False,
         finalized_only: bool = False,
-        subscription_handler: Optional[Callable] = None,
+        subscription_handler: Optional[Callable[[dict], Awaitable[Any]]] = None,
     ):
         try:
             await self.init_runtime(block_hash=block_hash)
         except BlockNotFound:
             return None
 
-        async def decode_block(block_data, block_data_hash=None):
+        async def decode_block(block_data, block_data_hash=None) -> dict[str, Any]:
             if block_data:
                 if block_data_hash:
                     block_data["header"]["hash"] = block_data_hash
@@ -1193,12 +1194,12 @@ class AsyncSubstrateInterface:
 
                 if "extrinsics" in block_data:
                     for idx, extrinsic_data in enumerate(block_data["extrinsics"]):
-                        extrinsic_decoder = extrinsic_cls(
-                            data=ScaleBytes(extrinsic_data),
-                            metadata=self.__metadata,
-                            runtime_config=self.runtime_config,
-                        )
                         try:
+                            extrinsic_decoder = extrinsic_cls(
+                                data=ScaleBytes(extrinsic_data),
+                                metadata=self.__metadata,
+                                runtime_config=self.runtime_config,
+                            )
                             extrinsic_decoder.decode(check_remaining=True)
                             block_data["extrinsics"][idx] = extrinsic_decoder
 
@@ -1314,23 +1315,29 @@ class AsyncSubstrateInterface:
         if callable(subscription_handler):
             rpc_method_prefix = "Finalized" if finalized_only else "New"
 
-            async def result_handler(message, update_nr, subscription_id):
-                new_block = await decode_block({"header": message["params"]["result"]})
-
-                subscription_result = subscription_handler(
-                    new_block, update_nr, subscription_id
-                )
-
-                if subscription_result is not None:
-                    # Handler returned end result: unsubscribe from further updates
-                    self._forgettable_task = asyncio.create_task(
-                        self.rpc_request(
-                            f"chain_unsubscribe{rpc_method_prefix}Heads",
-                            [subscription_id],
-                        )
+            async def result_handler(
+                message: dict, subscription_id: str
+            ) -> tuple[Any, bool]:
+                reached = False
+                subscription_result = None
+                if "params" in message:
+                    new_block = await decode_block(
+                        {"header": message["params"]["result"]}
                     )
 
-                return subscription_result
+                    subscription_result = await subscription_handler(new_block)
+
+                    if subscription_result is not None:
+                        reached = True
+                        # Handler returned end result: unsubscribe from further updates
+                        self._forgettable_task = asyncio.create_task(
+                            self.rpc_request(
+                                f"chain_unsubscribe{rpc_method_prefix}Heads",
+                                [subscription_id],
+                            )
+                        )
+
+                return subscription_result, reached
 
             result = await self._make_rpc_request(
                 [
@@ -1343,7 +1350,7 @@ class AsyncSubstrateInterface:
                 result_handler=result_handler,
             )
 
-            return result
+            return result["_get_block_handler"][-1]
 
         else:
             if header_only:
@@ -2770,3 +2777,41 @@ class AsyncSubstrateInterface:
             await self.ws.shutdown()
         except AttributeError:
             pass
+
+    async def wait_for_block(
+        self,
+        block: int,
+        result_handler: Callable[[dict], Awaitable[Any]],
+        task_return: bool = True,
+    ) -> Union[asyncio.Task, Union[bool, Any]]:
+        """
+        Executes the result_handler when the chain has reached the block specified.
+
+        Args:
+            block: block number
+            result_handler: coroutine executed upon reaching the block number. This can be basically anything, but
+                must accept one single arg, a dict with the block data; whether you use this data or not is entirely
+                up to you.
+            task_return: True to immediately return the result of wait_for_block as an asyncio Task, False to wait
+                for the block to be reached, and return the result of the result handler.
+        """
+
+        async def _handler(block_data: dict[str, Any]):
+            required_number = block
+            number = block_data["header"]["number"]
+            if number >= required_number:
+                return await result_handler(block_data) or True
+
+        args = inspect.getfullargspec(result_handler).args
+        if len(args) != 1:
+            raise ValueError(
+                "result_handler must take exactly one arg: the dict block data."
+            )
+
+        co = self._get_block_handler(
+            self.last_block_hash, subscription_handler=_handler
+        )
+        if task_return is True:
+            return asyncio.create_task(co)
+        else:
+            return await co
