@@ -341,8 +341,8 @@ async def test_batch_commit_weights(local_chain):
         alice_wallet,
         [netuid_1, netuid_2],
         salts=[salt, salt],
-        uidss=[weight_uids, weight_uids],
-        weightss=[weight_vals, weight_vals],
+        nested_uids=[weight_uids, weight_uids],
+        nested_weights=[weight_vals, weight_vals],
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )

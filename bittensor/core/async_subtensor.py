@@ -1617,8 +1617,8 @@ class AsyncSubtensor:
         self,
         wallet: "Wallet",
         netuids: list[int],
-        uidss: list[Union[NDArray[np.int64], "torch.LongTensor", list]],
-        weightss: list[Union[NDArray[np.float32], "torch.FloatTensor", list]],
+        nested_uids: list[Union[NDArray[np.int64], "torch.LongTensor", list]],
+        nested_weights: list[Union[NDArray[np.float32], "torch.FloatTensor", list]],
         version_keys: Optional[list[int]] = None,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
@@ -1630,8 +1630,8 @@ class AsyncSubtensor:
         Args:
             wallet (bittensor_wallet.Wallet): The wallet associated with the neuron setting the weights.
             netuids (list[int]): The list of subnet uids.
-            uidss (list[Union[NDArray[np.int64], torch.LongTensor, list]]): The list of neuron UIDs that the weights are being set for.
-            weightss (list[Union[NDArray[np.float32], torch.FloatTensor, list]]): The corresponding weights to be set for each UID.
+            nested_uids (list[Union[NDArray[np.int64], torch.LongTensor, list]]): The list of neuron UIDs that the weights are being set for.
+            nested_weights (list[Union[NDArray[np.float32], torch.FloatTensor, list]]): The corresponding weights to be set for each UID.
             version_keys (Optional[list[int]]): Version keys for compatibility with the network. Default is ``int representation of Bittensor version.``.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block. Default is ``False``.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Default is ``False``.
@@ -1667,8 +1667,8 @@ class AsyncSubtensor:
                 continue
 
             netuids_to_set.append(netuid)
-            uidss_to_set.append(uidss[i])
-            weightss_to_set.append(weightss[i])
+            uidss_to_set.append(nested_uids[i])
+            weightss_to_set.append(nested_weights[i])
             version_keys_to_set.append(version_keys[i])
 
         while retries < max_retries:
@@ -1680,8 +1680,8 @@ class AsyncSubtensor:
                     subtensor=self,
                     wallet=wallet,
                     netuids=netuids_to_set,
-                    uidss=uidss_to_set,
-                    weightss=weightss_to_set,
+                    nested_uids=uidss_to_set,
+                    nested_weights=weightss_to_set,
                     version_keys=version_keys_to_set,
                     wait_for_inclusion=wait_for_inclusion,
                     wait_for_finalization=wait_for_finalization,
@@ -1798,8 +1798,8 @@ class AsyncSubtensor:
         wallet: "Wallet",
         netuids: list[int],
         salts: list[list[int]],
-        uidss: list[Union[NDArray[np.int64], list]],
-        weightss: list[Union[NDArray[np.int64], list]],
+        nested_uids: list[Union[NDArray[np.int64], list]],
+        nested_weights: list[Union[NDArray[np.int64], list]],
         version_keys: Optional[list[int]] = None,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
@@ -1830,7 +1830,7 @@ class AsyncSubtensor:
         message = "No attempt made. Perhaps it is too soon to commit weights!"
 
         logging.info(
-            f"Committing a batch of weights with params: netuids={netuids}, salts={salts}, uids={uidss}, weights={weightss}, version_keys={version_keys}"
+            f"Committing a batch of weights with params: netuids={netuids}, salts={salts}, uids={nested_uids}, weights={nested_weights}, version_keys={version_keys}"
         )
 
         if version_keys is None or len(version_keys) == 0:

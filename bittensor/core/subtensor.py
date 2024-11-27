@@ -1740,8 +1740,8 @@ class Subtensor:
         self,
         wallet: "Wallet",
         netuids: list[int],
-        uidss: list[Union[NDArray[np.int64], "torch.LongTensor", list]],
-        weightss: list[Union[NDArray[np.float32], "torch.FloatTensor", list]],
+        nested_uids: list[Union[NDArray[np.int64], "torch.LongTensor", list]],
+        nested_weights: list[Union[NDArray[np.float32], "torch.FloatTensor", list]],
         version_keys: Optional[list[int]] = None,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
@@ -1753,8 +1753,8 @@ class Subtensor:
         Args:
             wallet (bittensor_wallet.Wallet): The wallet associated with the neuron setting the weights.
             netuids (list[int]): The list of subnet netuids that the weights are being set for.
-            uidss (list[Union[NDArray[np.int64], torch.LongTensor, list]]): The lists of neuron UIDs that the weights are being set for.
-            weightss (list[Union[NDArray[np.float32], torch.FloatTensor, list]]): The lists of corresponding weights to be set for each UID.
+            nested_uids (list[Union[NDArray[np.int64], torch.LongTensor, list]]): The lists of neuron UIDs that the weights are being set for.
+            nested_weights (list[Union[NDArray[np.float32], torch.FloatTensor, list]]): The lists of corresponding weights to be set for each UID.
             version_keys (Optional[list[int]]): Version keys for compatibility with each subnet.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block. Default is ``False``.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Default is ``False``.
@@ -1787,8 +1787,8 @@ class Subtensor:
                 continue
 
             netuids_to_set.append(netuid)
-            uidss_to_set.append(uidss[i])
-            weightss_to_set.append(weightss[i])
+            uidss_to_set.append(nested_uids[i])
+            weightss_to_set.append(nested_weights[i])
             version_keys_to_set.append(version_keys[i])
 
         while retries < max_retries:
@@ -1800,8 +1800,8 @@ class Subtensor:
                     subtensor=self,
                     wallet=wallet,
                     netuids=netuids_to_set,
-                    uidss=uidss_to_set,
-                    weightss=weightss_to_set,
+                    nested_uids=uidss_to_set,
+                    nested_weights=weightss_to_set,
                     version_keys=version_keys_to_set,
                     wait_for_inclusion=wait_for_inclusion,
                     wait_for_finalization=wait_for_finalization,
@@ -2094,8 +2094,8 @@ class Subtensor:
         wallet: "Wallet",
         netuids: list[int],
         salts: list[list[int]],
-        uidss: list[Union[NDArray[np.int64], list]],
-        weightss: list[Union[NDArray[np.int64], list]],
+        nested_uids: list[Union[NDArray[np.int64], list]],
+        nested_weights: list[Union[NDArray[np.int64], list]],
         version_keys: Optional[list[int]] = None,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
@@ -2109,8 +2109,8 @@ class Subtensor:
             wallet (bittensor_wallet.Wallet): The wallet associated with the neuron committing the weights.
             netuids (list[int]): The list of subnet uids.
             salts (list[list[int]]): The list of salts to generate weight hashes.
-            uidss (list[np.ndarray]): The list of NumPy arrays of neuron UIDs for which weights are being committed.
-            weightss (list[np.ndarray]): The list of NumPy arrays of weight values corresponding to each UID.
+            nested_uids (list[np.ndarray]): The list of NumPy arrays of neuron UIDs for which weights are being committed.
+            nested_weights (list[np.ndarray]): The list of NumPy arrays of weight values corresponding to each UID.
             version_keys (Optional[list[int]]): The list of version keys for compatibility with the network. Default is ``int representation of Bittensor version.``.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block. Default is ``False``.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Default is ``False``.
@@ -2126,7 +2126,7 @@ class Subtensor:
         message = "No attempt made. Perhaps it is too soon to commit weights!"
 
         logging.info(
-            f"Committing a batch of weights with params: netuids={netuids}, salts={salts}, uids={uidss}, weights={weightss}, version_keys={version_keys}"
+            f"Committing a batch of weights with params: netuids={netuids}, salts={salts}, uids={nested_uids}, weights={nested_weights}, version_keys={version_keys}"
         )
 
         if version_keys is None or len(version_keys) == 0:
@@ -2143,7 +2143,7 @@ class Subtensor:
                 version_key=version_key,
             )
             for netuid, salt, uids, weights, version_key in zip(
-                netuids, salts, uidss, weightss, version_keys
+                netuids, salts, nested_uids, nested_weights, version_keys
             )
         ]
 
