@@ -12,6 +12,7 @@ from tests.e2e_tests.utils.chain_interactions import (
     sudo_set_hyperparameter_bool,
     sudo_set_hyperparameter_values,
     wait_interval,
+    wait_until_block,
 )
 from tests.e2e_tests.utils.e2e_test_utils import setup_wallet
 
@@ -247,16 +248,39 @@ async def test_batch_commit_weights(local_chain):
         local_chain,
         alice_wallet,
         call_function="sudo_set_commit_reveal_weights_interval",
-        call_params={"netuid": netuid_1, "interval": "1"},
+        call_params={"netuid": netuid_1, "interval": 1},
         return_error_message=True,
     )
     assert sudo_set_hyperparameter_values(
         local_chain,
         alice_wallet,
         call_function="sudo_set_commit_reveal_weights_interval",
-        call_params={"netuid": netuid_2, "interval": "1"},
+        call_params={"netuid": netuid_2, "interval": 1},
         return_error_message=True,
     )
+
+    # Set the tempos
+    shorter_tempo = 75
+    assert sudo_set_hyperparameter_values(
+        local_chain,
+        alice_wallet,
+        call_function="sudo_set_tempo",
+        call_params={"netuid": netuid_1, "tempo": shorter_tempo},
+        return_error_message=True,
+        requires_sudo=True,
+    )
+    assert sudo_set_hyperparameter_values(
+        local_chain,
+        alice_wallet,
+        call_function="sudo_set_tempo",
+        call_params={"netuid": netuid_2, "tempo": shorter_tempo},
+        return_error_message=True,
+        requires_sudo=True,
+    )
+
+    # Verify the tempos are set correctly
+    assert subtensor.get_subnet_hyperparameters(netuid=netuid_1).tempo == shorter_tempo
+    assert subtensor.get_subnet_hyperparameters(netuid=netuid_2).tempo == shorter_tempo
 
     # Verify commit/reveal periods are set correctly
     assert (
@@ -332,7 +356,7 @@ async def test_batch_commit_weights(local_chain):
     )
     # Assert that the committed weights are set correctly
     assert weight_commits.value is not None, "Weight commit not found in storage"
-    commit_hash, commit_block, reveal_block, expire_block = weight_commits.value[0]
+    commit_hash, commit_block, reveal_block_1, expire_block_1 = weight_commits.value[0]
     assert commit_block > 0, f"Invalid block number: {commit_block}"
 
     weight_commits = subtensor.query_module(
@@ -342,20 +366,13 @@ async def test_batch_commit_weights(local_chain):
     )
     # Assert that the committed weights are set correctly
     assert weight_commits.value is not None, "Weight commit not found in storage"
+    commit_hash, commit_block, reveal_block_2, expire_block_2 = weight_commits.value[0]
+    assert commit_block > 0, f"Invalid block number: {commit_block}"
 
     ## Reveal for subnet 1
 
-    # Query the WeightCommitRevealInterval storage map
-    reveal_periods = subtensor.query_module(
-        module="SubtensorModule", name="RevealPeriodEpochs", params=[netuid_1]
-    )
-    periods = reveal_periods.value
-    assert periods > 0, "Invalid RevealPeriodEpochs"
-
     # Wait until the reveal block range
-    await wait_interval(
-        subtensor.get_subnet_hyperparameters(netuid=netuid_1).tempo, subtensor
-    )
+    await wait_until_block(reveal_block_1, subtensor)
 
     # Reveal weights
     success, message = subtensor.reveal_weights(
@@ -368,21 +385,12 @@ async def test_batch_commit_weights(local_chain):
         wait_for_finalization=True,
     )
 
-    assert success is True
+    assert success is True, "Failed to reveal weights for the first subnet"
 
     ## Reveal for subnet 2
 
-    # Query the WeightCommitRevealInterval storage map
-    reveal_periods = subtensor.query_module(
-        module="SubtensorModule", name="RevealPeriodEpochs", params=[netuid_2]
-    )
-    periods = reveal_periods.value
-    assert periods > 0, "Invalid RevealPeriodEpochs"
-
     # Wait until the reveal block range
-    await wait_interval(
-        subtensor.get_subnet_hyperparameters(netuid=netuid_2).tempo, subtensor
-    )
+    await wait_until_block(reveal_block_2, subtensor)
 
     # Reveal weights
     success, message = subtensor.reveal_weights(
@@ -395,9 +403,9 @@ async def test_batch_commit_weights(local_chain):
         wait_for_finalization=True,
     )
 
-    assert success is True
+    assert success is True, "Failed to reveal weights for the second subnet"
 
-    time.sleep(10)
+    time.sleep(6)
 
     ## Check subnet 1 weights are revealed correctly
 
