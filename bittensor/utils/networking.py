@@ -10,7 +10,7 @@ from typing import Optional
 import netaddr
 import requests
 from retry import retry
-from websocket import WebSocketConnectionClosedException
+from websockets.exceptions import ConnectionClosed, ConnectionClosedError
 
 from bittensor.utils.btlogging import logging
 
@@ -193,7 +193,7 @@ def ensure_connected(func):
 
         try:
             return func(self, *args, **kwargs)
-        except WebSocketConnectionClosedException:
+        except (ConnectionClosed, ConnectionClosedError):
             logging.console.warning(
                 "WebSocket connection closed. Attempting to reconnect 5 times..."
             )
