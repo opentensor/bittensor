@@ -182,7 +182,7 @@ class LoggingMachine(StateMachine, Logger):
         Returns:
             (dict): btlogging's config from Bittensor config or Bittensor config.
         """
-        if hasattr(config, "logging"):
+        if hasattr(config, "logging") and getattr(config, "logging", None):
             return config.logging
         else:
             return config
