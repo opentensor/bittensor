@@ -42,6 +42,7 @@ def test_submit_extrinsic_success():
 def test_submit_extrinsic_timeout_env(set_extrinsics_timeout_env):
     importlib.reload(utils)
     timeout = utils.EXTRINSIC_SUBMISSION_TIMEOUT
+    assert timeout < 5  # should be less than 5 seconds as taken from test env var
 
     def wait(extrinsic, wait_for_inclusion, wait_for_finalization):
         time.sleep(timeout + 1)
