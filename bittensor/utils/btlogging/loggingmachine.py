@@ -213,7 +213,7 @@ class LoggingMachine(StateMachine, Logger):
         Args:
             config (bittensor.core.config.Config): Bittensor config instance.
         """
-        self._config = config
+        self._config = config = self._extract_logging_config(config)
         if config.logging_dir and config.record_log:
             expanded_dir = os.path.expanduser(config.logging_dir)
             logfile = os.path.abspath(os.path.join(expanded_dir, DEFAULT_LOG_FILE_NAME))
