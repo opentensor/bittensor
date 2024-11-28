@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from substrateinterface import SubstrateInterface, ExtrinsicReceipt
     from scalecodec.types import GenericExtrinsic
 
-EXTRINSIC_SUBMISSION_TIMEOUT = os.getenv("EXTRINSIC_SUBMISSION_TIMEOUT", 200)
+EXTRINSIC_SUBMISSION_TIMEOUT = int(os.getenv("EXTRINSIC_SUBMISSION_TIMEOUT", 200))
 
 
 def submit_extrinsic(
