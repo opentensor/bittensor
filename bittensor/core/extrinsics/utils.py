@@ -15,11 +15,14 @@ if TYPE_CHECKING:
     from scalecodec.types import GenericExtrinsic
 
 try:
-    EXTRINSIC_SUBMISSION_TIMEOUT = int(os.getenv("EXTRINSIC_SUBMISSION_TIMEOUT", 200))
+    EXTRINSIC_SUBMISSION_TIMEOUT = float(os.getenv("EXTRINSIC_SUBMISSION_TIMEOUT", 200))
 except ValueError:
     raise ValueError(
-        "EXTRINSIC_SUBMISSION_TIMEOUT environment variable must be an integer."
+        "EXTRINSIC_SUBMISSION_TIMEOUT environment variable must be a float."
     )
+
+if EXTRINSIC_SUBMISSION_TIMEOUT < 0:
+    raise ValueError("EXTRINSIC_SUBMISSION_TIMEOUT cannot be negative.")
 
 
 def submit_extrinsic(
