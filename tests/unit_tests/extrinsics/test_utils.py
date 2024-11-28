@@ -104,3 +104,9 @@ def test_import_timeout_env_parse(monkeypatch):
     with pytest.raises(ValueError) as e:
         importlib.reload(utils)
     assert "cannot be negative" in str(e.value)
+
+    # default (not checking exact value, just that it's a value)
+    monkeypatch.delenv("EXTRINSIC_SUBMISSION_TIMEOUT")
+    importlib.reload(utils)
+    assert isinstance(utils.EXTRINSIC_SUBMISSION_TIMEOUT, float) # has a default value
+    assert utils.EXTRINSIC_SUBMISSION_TIMEOUT > 0 # is positive
