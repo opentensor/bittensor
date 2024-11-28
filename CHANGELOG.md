@@ -4,6 +4,15 @@
 
 ## What's Changed
 
+* Backmerge master 840 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2494
+* Enable arguments to be set in axon config by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2493
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v8.4.0...v8.4.1
+
+## 8.4.0 /2024-11-27
+
+## What's Changed
+
 * Async unittests for `bittensor/core/extrinsics/async_weights.py` by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2425
 * Async unittests for `bittensor/core/extrinsics/async_transfer.py` by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2426
 * Async `unittests for bittensor/core/extrinsics/async_root.py` by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2427
