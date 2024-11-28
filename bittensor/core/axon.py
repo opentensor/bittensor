@@ -332,11 +332,11 @@ class Axon:
         if config is None:
             config = Axon.config()
         config = copy.deepcopy(config)
-        config.axon.ip = ip or DEFAULTS.axon.ip
-        config.axon.port = port or DEFAULTS.axon.port
-        config.axon.external_ip = external_ip or DEFAULTS.axon.external_ip
-        config.axon.external_port = external_port or DEFAULTS.axon.external_port
-        config.axon.max_workers = max_workers or DEFAULTS.axon.max_workers
+        config.axon.ip = ip if ip is not None else config.axon.ip or DEFAULTS.axon.ip
+        config.axon.port = port if port is not None else config.axon.port or DEFAULTS.axon.port
+        config.axon.external_ip = external_ip if external_ip is not None else config.axon.external_ip or DEFAULTS.axon.external_ip
+        config.axon.external_port = external_port if external_port is not None else config.axon.external_port or DEFAULTS.axon.external_port
+        config.axon.max_workers = max_workers if max_workers is not None else config.axon.max_workers or DEFAULTS.axon.max_workers
         Axon.check_config(config)
         self.config = config  # type: ignore
 
