@@ -23,7 +23,6 @@ Default, Debug, Trace, and Disabled.
 
 import argparse
 import atexit
-import copy
 import logging as stdlogging
 import multiprocessing as mp
 import os
