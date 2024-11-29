@@ -182,7 +182,8 @@ class LoggingMachine(StateMachine, Logger):
         Returns:
             (dict): btlogging's config from Bittensor config or Bittensor config.
         """
-        if hasattr(config, "logging") and getattr(config, "logging", None):
+        # This is to handle
+        if getattr(config, "logging", None):
             return config.logging
         else:
             return config
@@ -213,14 +214,14 @@ class LoggingMachine(StateMachine, Logger):
         Args:
             config (bittensor.core.config.Config): Bittensor config instance.
         """
-        self._config = config = self._extract_logging_config(config)
-        if config.logging_dir and config.record_log:
+        self._config = self._extract_logging_config(config)
+        if self._config.logging_dir and self._config.record_log:
             expanded_dir = os.path.expanduser(config.logging_dir)
             logfile = os.path.abspath(os.path.join(expanded_dir, DEFAULT_LOG_FILE_NAME))
             self._enable_file_logging(logfile)
-        if config.trace:
+        if self._config.trace:
             self.enable_trace()
-        elif config.debug:
+        elif self._config.debug:
             self.enable_debug()
 
     def _create_and_start_listener(self, handlers):
@@ -618,7 +619,7 @@ class LoggingMachine(StateMachine, Logger):
         logging_dir: str = None,
     ):
         if config is not None:
-            cfg = copy.deepcopy(config)
+            cfg = self._extract_logging_config(config)
             if debug is not None:
                 cfg.debug = debug
             elif trace is not None:
