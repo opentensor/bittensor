@@ -9,6 +9,7 @@ from substrateinterface.base import (
 )
 
 from bittensor.core.extrinsics import utils
+from bittensor.core.subtensor import Subtensor
 
 
 @pytest.fixture
@@ -16,30 +17,36 @@ def set_extrinsics_timeout_env(monkeypatch):
     monkeypatch.setenv("EXTRINSIC_SUBMISSION_TIMEOUT", "1")
 
 
-def test_submit_extrinsic_timeout():
+@pytest.fixture
+def mock_subtensor():
+    mock_subtensor = MagicMock(autospec=Subtensor)
+    mock_substrate = MagicMock(autospec=SubstrateInterface)
+    mock_subtensor.substrate = mock_substrate
+    yield mock_subtensor
+
+
+def test_submit_extrinsic_timeout(mock_subtensor):
     timeout = 1
 
     def wait(extrinsic, wait_for_inclusion, wait_for_finalization):
         time.sleep(timeout + 0.01)
         return True
 
-    mock_substrate = MagicMock(autospec=SubstrateInterface)
-    mock_substrate.submit_extrinsic = wait
+    mock_subtensor.substrate.submit_extrinsic = wait
     mock_extrinsic = MagicMock(autospec=GenericExtrinsic)
     with patch.object(utils, "EXTRINSIC_SUBMISSION_TIMEOUT", timeout):
         with pytest.raises(SubstrateRequestException):
-            utils.submit_extrinsic(mock_substrate, mock_extrinsic, True, True)
+            utils.submit_extrinsic(mock_subtensor, mock_extrinsic, True, True)
 
 
-def test_submit_extrinsic_success():
-    mock_substrate = MagicMock(autospec=SubstrateInterface)
-    mock_substrate.submit_extrinsic.return_value = True
+def test_submit_extrinsic_success(mock_subtensor):
+    mock_subtensor.substrate.submit_extrinsic.return_value = True
     mock_extrinsic = MagicMock(autospec=GenericExtrinsic)
-    result = utils.submit_extrinsic(mock_substrate, mock_extrinsic, True, True)
+    result = utils.submit_extrinsic(mock_subtensor, mock_extrinsic, True, True)
     assert result is True
 
 
-def test_submit_extrinsic_timeout_env(set_extrinsics_timeout_env):
+def test_submit_extrinsic_timeout_env(set_extrinsics_timeout_env, mock_subtensor):
     importlib.reload(utils)
     timeout = utils.EXTRINSIC_SUBMISSION_TIMEOUT
     assert timeout < 5  # should be less than 5 seconds as taken from test env var
@@ -48,23 +55,21 @@ def test_submit_extrinsic_timeout_env(set_extrinsics_timeout_env):
         time.sleep(timeout + 1)
         return True
 
-    mock_substrate = MagicMock(autospec=SubstrateInterface)
-    mock_substrate.submit_extrinsic = wait
+    mock_subtensor.substrate.submit_extrinsic = wait
     mock_extrinsic = MagicMock(autospec=GenericExtrinsic)
     with pytest.raises(SubstrateRequestException):
-        utils.submit_extrinsic(mock_substrate, mock_extrinsic, True, True)
+        utils.submit_extrinsic(mock_subtensor, mock_extrinsic, True, True)
 
 
-def test_submit_extrinsic_success_env(set_extrinsics_timeout_env):
+def test_submit_extrinsic_success_env(set_extrinsics_timeout_env, mock_subtensor):
     importlib.reload(utils)
-    mock_substrate = MagicMock(autospec=SubstrateInterface)
-    mock_substrate.submit_extrinsic.return_value = True
+    mock_subtensor.substrate.submit_extrinsic.return_value = True
     mock_extrinsic = MagicMock(autospec=GenericExtrinsic)
-    result = utils.submit_extrinsic(mock_substrate, mock_extrinsic, True, True)
+    result = utils.submit_extrinsic(mock_subtensor, mock_extrinsic, True, True)
     assert result is True
 
 
-def test_submit_extrinsic_timeout_env_float(monkeypatch):
+def test_submit_extrinsic_timeout_env_float(monkeypatch, mock_subtensor):
     monkeypatch.setenv("EXTRINSIC_SUBMISSION_TIMEOUT", "1.45")  # use float
 
     importlib.reload(utils)
@@ -76,11 +81,10 @@ def test_submit_extrinsic_timeout_env_float(monkeypatch):
         time.sleep(timeout + 0.3)  # sleep longer by float
         return True
 
-    mock_substrate = MagicMock(autospec=SubstrateInterface)
-    mock_substrate.submit_extrinsic = wait
+    mock_subtensor.substrate.submit_extrinsic = wait
     mock_extrinsic = MagicMock(autospec=GenericExtrinsic)
     with pytest.raises(SubstrateRequestException):
-        utils.submit_extrinsic(mock_substrate, mock_extrinsic, True, True)
+        utils.submit_extrinsic(mock_subtensor, mock_extrinsic, True, True)
 
 
 def test_import_timeout_env_parse(monkeypatch):

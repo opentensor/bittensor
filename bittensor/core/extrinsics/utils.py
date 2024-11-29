@@ -11,7 +11,8 @@ from bittensor.utils.btlogging import logging
 from bittensor.utils import format_error_message
 
 if TYPE_CHECKING:
-    from substrateinterface import SubstrateInterface, ExtrinsicReceipt
+    from bittensor.core.subtensor import Subtensor
+    from substrateinterface import ExtrinsicReceipt
     from scalecodec.types import GenericExtrinsic
 
 try:
@@ -26,7 +27,7 @@ if EXTRINSIC_SUBMISSION_TIMEOUT < 0:
 
 
 def submit_extrinsic(
-    substrate: "SubstrateInterface",
+    subtensor: "Subtensor",
     extrinsic: "GenericExtrinsic",
     wait_for_inclusion: bool,
     wait_for_finalization: bool,
@@ -39,7 +40,7 @@ def submit_extrinsic(
     it logs the error and re-raises the exception.
 
     Args:
-        substrate (substrateinterface.SubstrateInterface): The substrate interface instance used to interact with the blockchain.
+        subtensor: The Subtensor instance used to interact with the blockchain.
         extrinsic (scalecodec.types.GenericExtrinsic): The extrinsic to be submitted to the blockchain.
         wait_for_inclusion (bool): Whether to wait for the extrinsic to be included in a block.
         wait_for_finalization (bool): Whether to wait for the extrinsic to be finalized on the blockchain.
@@ -51,20 +52,22 @@ def submit_extrinsic(
         SubstrateRequestException: If the submission of the extrinsic fails, the error is logged and re-raised.
     """
     extrinsic_hash = extrinsic.extrinsic_hash
-    starting_block = substrate.get_block()
+    starting_block = subtensor.substrate.get_block()
 
     timeout = EXTRINSIC_SUBMISSION_TIMEOUT
     event = threading.Event()
 
     def submit():
         try:
-            response_ = substrate.submit_extrinsic(
+            response_ = subtensor.substrate.submit_extrinsic(
                 extrinsic,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
             )
         except SubstrateRequestException as e:
-            logging.error(format_error_message(e.args[0], substrate=substrate))
+            logging.error(
+                format_error_message(e.args[0], substrate=subtensor.substrate)
+            )
             # Re-raise the exception for retrying of the extrinsic call. If we remove the retry logic,
             # the raise will need to be removed.
             raise
@@ -76,16 +79,18 @@ def submit_extrinsic(
         response = None
         future = executor.submit(submit)
         if not event.wait(timeout):
-            logging.error("Timed out waiting for extrinsic submission.")
-            after_timeout_block = substrate.get_block()
+            logging.error("Timed out waiting for extrinsic submission. Reconnecting.")
+            # force reconnection of the websocket
+            subtensor._get_substrate(force=True)
+            after_timeout_block = subtensor.substrate.get_block()
 
             for block_num in range(
                 starting_block["header"]["number"],
                 after_timeout_block["header"]["number"] + 1,
             ):
-                block_hash = substrate.get_block_hash(block_num)
+                block_hash = subtensor.substrate.get_block_hash(block_num)
                 try:
-                    response = substrate.retrieve_extrinsic_by_hash(
+                    response = subtensor.substrate.retrieve_extrinsic_by_hash(
                         block_hash, f"0x{extrinsic_hash.hex()}"
                     )
                 except ExtrinsicNotFound:
