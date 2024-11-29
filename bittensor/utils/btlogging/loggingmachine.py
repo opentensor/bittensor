@@ -181,7 +181,7 @@ class LoggingMachine(StateMachine, Logger):
         Returns:
             (dict): btlogging's config from Bittensor config or Bittensor config.
         """
-        # This is to handle
+        # This is to handle nature of DefaultMunch
         if getattr(config, "logging", None):
             return config.logging
         else:
