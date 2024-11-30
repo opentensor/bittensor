@@ -30,10 +30,11 @@ async def test_axon(local_chain):
 
     print("Testing test_axon")
 
-    netuid = 1
+    netuid = 2
     # Register root as Alice - the subnet owner
     alice_keypair, wallet = setup_wallet("//Alice")
 
+    # Register a subnet, netuid 2
     subtensor = Subtensor(network="ws://localhost:9945")
 
     # Register a subnet, netuid 1

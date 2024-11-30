@@ -11,6 +11,7 @@ from tests.e2e_tests.utils.chain_interactions import (
     register_subnet,
     sudo_set_hyperparameter_bool,
     sudo_set_hyperparameter_values,
+    wait_epoch,
     wait_interval,
 )
 from tests.e2e_tests.utils.e2e_test_utils import setup_wallet
@@ -31,7 +32,7 @@ async def test_commit_and_reveal_weights(local_chain):
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
-    netuid = 1
+    netuid = 2
     print("Testing test_commit_and_reveal_weights")
     # Register root as Alice
     keypair, alice_wallet = setup_wallet("//Alice")
@@ -39,7 +40,7 @@ async def test_commit_and_reveal_weights(local_chain):
 
     # Verify subnet 1 created successfully
     assert local_chain.query(
-        "SubtensorModule", "NetworksAdded", [1]
+        "SubtensorModule", "NetworksAdded", [netuid]
     ).serialize(), "Subnet wasn't created successfully"
 
     subtensor = Subtensor(network="ws://localhost:9945")
@@ -50,7 +51,7 @@ async def test_commit_and_reveal_weights(local_chain):
     ), "Unable to register Alice as a neuron"
 
     # Stake to become to top neuron after the first epoch
-    add_stake(local_chain, alice_wallet, Balance.from_tao(100_000))
+    add_stake(local_chain, alice_wallet, netuid, Balance.from_tao(100_000))
 
     # Enable commit_reveal on the subnet
     assert sudo_set_hyperparameter_bool(
@@ -84,6 +85,16 @@ async def test_commit_and_reveal_weights(local_chain):
     assert (
         subtensor.weights_rate_limit(netuid=netuid) > 0
     ), "Weights rate limit is below 0"
+
+    # Lower commit period
+    assert sudo_set_hyperparameter_values(
+        local_chain,
+        alice_wallet,
+        call_function="sudo_set_commit_reveal_weights_interval",
+        call_params={"netuid": netuid, "interval": "1"},
+        return_error_message=True,
+    )
+
     # Lower the rate limit
     assert sudo_set_hyperparameter_values(
         local_chain,
@@ -126,20 +137,21 @@ async def test_commit_and_reveal_weights(local_chain):
     )
     # Assert that the committed weights are set correctly
     assert weight_commits.value is not None, "Weight commit not found in storage"
-    commit_hash, commit_block, reveal_block, expire_block = weight_commits.value[0]
+    commit_queue = weight_commits.value
+    commit_hash = commit_queue[0]
+    commit_block = commit_queue[0][1]
+
     assert commit_block > 0, f"Invalid block number: {commit_block}"
 
     # Query the WeightCommitRevealInterval storage map
-    reveal_periods = subtensor.query_module(
+    weight_commit_reveal_interval = subtensor.query_module(
         module="SubtensorModule", name="RevealPeriodEpochs", params=[netuid]
     )
-    periods = reveal_periods.value
+
+    periods = weight_commit_reveal_interval.value
     assert periods > 0, "Invalid RevealPeriodEpochs"
 
-    # Wait until the reveal block range
-    await wait_interval(
-        subtensor.get_subnet_hyperparameters(netuid=netuid).tempo, subtensor
-    )
+    await wait_epoch(subtensor, netuid=netuid)
 
     # Reveal weights
     success, message = subtensor.reveal_weights(
@@ -165,7 +177,6 @@ async def test_commit_and_reveal_weights(local_chain):
 
     # Assert that the revealed weights are set correctly
     assert revealed_weights.value is not None, "Weight reveal not found in storage"
-
     assert (
         weight_vals[0] == revealed_weights.value[0][1]
     ), f"Incorrect revealed weights. Expected: {weights[0]}, Actual: {revealed_weights.value[0][1]}"

@@ -49,7 +49,7 @@ async def test_subtensor_extrinsics(local_chain):
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
-    netuid = 1
+    netuid = 2
     # Initial balance for Alice, defined in the genesis file of localnet
     initial_alice_balance = Balance.from_tao(1_000_000)
     # Current Existential deposit for all accounts in bittensor
@@ -57,7 +57,7 @@ async def test_subtensor_extrinsics(local_chain):
     subtensor = Subtensor(network="ws://localhost:9945")
 
     # Subnets 0 and 3 are bootstrapped from the start
-    assert subtensor.get_subnets() == [0, 3]
+    assert subtensor.get_subnets() == [0, 1]
     assert subtensor.get_total_subnets() == 2
 
     # Add wallets for Alice and Bob
@@ -91,7 +91,7 @@ async def test_subtensor_extrinsics(local_chain):
     ), "Balance is the same even after registering a subnet"
 
     # Subnet 1 is added after registration
-    assert subtensor.get_subnets() == [0, 1, 3]
+    assert subtensor.get_subnets() == [0, 1, netuid]
     assert subtensor.get_total_subnets() == 3
 
     # Verify subnet 1 created successfully
@@ -119,7 +119,7 @@ async def test_subtensor_extrinsics(local_chain):
 
     # Verify Alice is registered to netuid 1 and Bob isn't registered to any
     assert subtensor.get_netuids_for_hotkey(hotkey_ss58=alice_keypair.ss58_address) == [
-        1
+        netuid
     ], "Alice is not registered to netuid 1 as expected"
     assert (
         subtensor.get_netuids_for_hotkey(hotkey_ss58=bob_keypair.ss58_address) == []
@@ -204,6 +204,7 @@ async def test_subtensor_extrinsics(local_chain):
     neuron_info = subtensor.get_neuron_for_pubkey_and_subnet(
         alice_keypair.ss58_address, netuid=netuid
     )
+    
     assert (
         neuron_info_old.axon_info != neuron_info.axon_info
     ), "Neuron info not updated after running validator"

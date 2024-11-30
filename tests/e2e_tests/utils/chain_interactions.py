@@ -71,7 +71,7 @@ def sudo_set_hyperparameter_values(
 
 
 def add_stake(
-    substrate: "SubstrateInterface", wallet: "Wallet", amount: "Balance"
+    substrate: "SubstrateInterface", wallet: "Wallet", netuid: int, amount: "Balance"
 ) -> bool:
     """
     Adds stake to a hotkey using SubtensorModule. Mimics command of adding stake
@@ -79,7 +79,7 @@ def add_stake(
     stake_call = substrate.compose_call(
         call_module="SubtensorModule",
         call_function="add_stake",
-        call_params={"hotkey": wallet.hotkey.ss58_address, "amount_staked": amount.rao},
+        call_params={"hotkey": wallet.hotkey.ss58_address, "netuid": netuid, "amount_staked": amount.rao},
     )
     extrinsic = substrate.create_signed_extrinsic(
         call=stake_call, keypair=wallet.coldkey
@@ -98,7 +98,7 @@ def register_subnet(substrate: "SubstrateInterface", wallet: "Wallet") -> bool:
     register_call = substrate.compose_call(
         call_module="SubtensorModule",
         call_function="register_network",
-        call_params={"immunity_period": 0, "reg_allowed": True},
+        call_params={"hotkey": wallet.hotkey.ss58_address, "mechid": 'Dynamic', "immunity_period": 0, "reg_allowed": True},
     )
     extrinsic = substrate.create_signed_extrinsic(
         call=register_call, keypair=wallet.coldkey

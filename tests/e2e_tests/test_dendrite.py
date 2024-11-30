@@ -35,7 +35,7 @@ async def test_dendrite(local_chain):
     """
 
     logging.console.info("Testing test_dendrite")
-    netuid = 1
+    netuid = 2
 
     # Register root as Alice - the subnet owner
     alice_keypair, alice_wallet = setup_wallet("//Alice")
@@ -61,8 +61,8 @@ async def test_dendrite(local_chain):
     metagraph = Metagraph(netuid=netuid, network="ws://localhost:9945")
 
     # Assert one neuron is Bob
-    assert len(subtensor.neurons(netuid=netuid)) == 1
-    neuron = metagraph.neurons[0]
+    assert len(subtensor.neurons(netuid=netuid)) == 2
+    neuron = metagraph.neurons[1]
     assert neuron.hotkey == bob_keypair.ss58_address
     assert neuron.coldkey == bob_keypair.ss58_address
 
@@ -70,16 +70,16 @@ async def test_dendrite(local_chain):
     assert neuron.stake.tao == 0
 
     # Stake to become to top neuron after the first epoch
-    assert add_stake(local_chain, bob_wallet, Balance.from_tao(10_000))
+    assert add_stake(local_chain, bob_wallet, netuid, Balance.from_tao(10_000))
 
     # Refresh metagraph
     metagraph = Metagraph(netuid=netuid, network="ws://localhost:9945")
-    old_neuron = metagraph.neurons[0]
+    old_neuron = metagraph.neurons[1]
 
-    # Assert stake is 10000
-    assert (
-        old_neuron.stake.tao == 10_000.0
-    ), f"Expected 10_000.0 staked TAO, but got {neuron.stake.tao}"
+    # Assert stake is 10000 can't compare anymore. the stake value is the alpha now.
+    # assert (
+    #     old_neuron.stake.tao == 10_000.0
+    # ), f"Expected 10_000.0 staked TAO, but got {neuron.stake.tao}"
 
     # Assert neuron is not a validator yet
     assert old_neuron.active is True
@@ -124,9 +124,9 @@ async def test_dendrite(local_chain):
     metagraph = Metagraph(netuid=netuid, network="ws://localhost:9945")
 
     # Refresh validator neuron
-    updated_neuron = metagraph.neurons[0]
+    updated_neuron = metagraph.neurons[1]
 
-    assert len(metagraph.neurons) == 1
+    assert len(metagraph.neurons) == 2
     assert updated_neuron.active is True
     assert updated_neuron.validator_permit is True
     assert updated_neuron.hotkey == bob_keypair.ss58_address
