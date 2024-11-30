@@ -93,9 +93,10 @@ def submit_extrinsic(
                     response = subtensor.substrate.retrieve_extrinsic_by_hash(
                         block_hash, f"0x{extrinsic_hash.hex()}"
                     )
-                except ExtrinsicNotFound:
+                except (ExtrinsicNotFound, SubstrateRequestException):
                     continue
                 if response:
+                    logging.debug(f"Recovered extrinsic: {extrinsic}")
                     break
             if response is None:
                 logging.error(

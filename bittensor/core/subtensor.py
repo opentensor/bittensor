@@ -222,6 +222,10 @@ class Subtensor:
         """
         try:
             # Set up params.
+            if force and self.websocket:
+                logging.debug("Closing websocket connection")
+                self.websocket.close()
+
             if force or self.websocket is None or self.websocket.close_code is not None:
                 self.websocket = ws_client.connect(
                     self.chain_endpoint,
@@ -235,7 +239,7 @@ class Subtensor:
                 websocket=self.websocket,
             )
             if self.log_verbose:
-                logging.debug(
+                logging.info(
                     f"Connected to {self.network} network and {self.chain_endpoint}."
                 )
 
