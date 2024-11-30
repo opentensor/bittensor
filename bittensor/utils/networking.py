@@ -163,6 +163,8 @@ def get_formatted_ws_endpoint_url(endpoint_url: Optional[str]) -> Optional[str]:
 def ensure_connected(func):
     """Decorator ensuring the function executes with an active substrate connection."""
 
+    # TODO we need to rethink the logic in this
+
     def is_connected(substrate) -> bool:
         """Check if the substrate connection is active."""
         sock = substrate.websocket.socket
