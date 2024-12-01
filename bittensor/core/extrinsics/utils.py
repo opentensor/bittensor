@@ -3,7 +3,7 @@
 from concurrent.futures import ThreadPoolExecutor
 import os
 import threading
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Optional
 
 from substrateinterface.exceptions import SubstrateRequestException, ExtrinsicNotFound
 
@@ -26,12 +26,49 @@ if EXTRINSIC_SUBMISSION_TIMEOUT < 0:
     raise ValueError("EXTRINSIC_SUBMISSION_TIMEOUT cannot be negative.")
 
 
+def extrinsic_recovery(
+    extrinsic_hash_hex: str, subtensor: "Subtensor", starting_block: dict[str, Any]
+) -> Optional["ExtrinsicReceipt"]:
+    """
+    Attempts to recover an extrinsic from the chain that was previously submitted
+
+    Args:
+        extrinsic_hash_hex: the hex representation (including '0x' prefix) of the extrinsic hash
+        subtensor: the Subtensor object to interact with the chain
+        starting_block: the initial block dict at the time the extrinsic was submitted
+
+    Returns:
+        ExtrinsicReceipt of the extrinsic if recovered, None otherwise.
+    """
+
+    after_timeout_block = subtensor.substrate.get_block()
+    response = None
+    for block_num in range(
+        starting_block["header"]["number"],
+        after_timeout_block["header"]["number"] + 1,
+    ):
+        block_hash = subtensor.substrate.get_block_hash(block_num)
+        try:
+            response = subtensor.substrate.retrieve_extrinsic_by_hash(
+                block_hash, extrinsic_hash_hex
+            )
+        except (ExtrinsicNotFound, SubstrateRequestException):
+            continue
+        if response:
+            break
+    return response
+
+
 def submit_extrinsic(
     subtensor: "Subtensor",
     extrinsic: "GenericExtrinsic",
     wait_for_inclusion: bool,
     wait_for_finalization: bool,
 ) -> "ExtrinsicReceipt":
+    event = threading.Event()
+    extrinsic_hash = extrinsic.extrinsic_hash
+    starting_block = subtensor.substrate.get_block()
+    timeout = EXTRINSIC_SUBMISSION_TIMEOUT
     """
     Submits an extrinsic to the substrate blockchain and handles potential exceptions.
 
@@ -51,61 +88,42 @@ def submit_extrinsic(
     Raises:
         SubstrateRequestException: If the submission of the extrinsic fails, the error is logged and re-raised.
     """
-    extrinsic_hash = extrinsic.extrinsic_hash
-    starting_block = subtensor.substrate.get_block()
 
-    timeout = EXTRINSIC_SUBMISSION_TIMEOUT
-    event = threading.Event()
+    def try_submission():
+        def submit():
+            try:
+                response__ = subtensor.substrate.submit_extrinsic(
+                    extrinsic,
+                    wait_for_inclusion=wait_for_inclusion,
+                    wait_for_finalization=wait_for_finalization,
+                )
+            except SubstrateRequestException as e:
+                logging.error(
+                    format_error_message(e.args[0], substrate=subtensor.substrate)
+                )
+                raise
+            finally:
+                event.set()
+            return response__
 
-    def submit():
-        try:
-            response_ = subtensor.substrate.submit_extrinsic(
-                extrinsic,
-                wait_for_inclusion=wait_for_inclusion,
-                wait_for_finalization=wait_for_finalization,
-            )
-        except SubstrateRequestException as e:
-            logging.error(
-                format_error_message(e.args[0], substrate=subtensor.substrate)
-            )
-            # Re-raise the exception for retrying of the extrinsic call. If we remove the retry logic,
-            # the raise will need to be removed.
-            raise
-        finally:
-            event.set()
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(submit)
+            if not event.wait(timeout):
+                logging.error(
+                    "Timed out waiting for extrinsic submission. Reconnecting."
+                )
+                response_ = None
+            else:
+                response_ = future.result()
         return response_
 
-    with ThreadPoolExecutor(max_workers=1) as executor:
-        response = None
-        future = executor.submit(submit)
-        if not event.wait(timeout):
-            logging.error("Timed out waiting for extrinsic submission. Reconnecting.")
-            # force reconnection of the websocket
-            subtensor._get_substrate(force=True)
-            after_timeout_block = subtensor.substrate.get_block()
-
-            for block_num in range(
-                starting_block["header"]["number"],
-                after_timeout_block["header"]["number"] + 1,
-            ):
-                block_hash = subtensor.substrate.get_block_hash(block_num)
-                try:
-                    response = subtensor.substrate.retrieve_extrinsic_by_hash(
-                        block_hash, f"0x{extrinsic_hash.hex()}"
-                    )
-                except (ExtrinsicNotFound, SubstrateRequestException):
-                    continue
-                if response:
-                    logging.debug(f"Recovered extrinsic: {extrinsic}")
-                    break
-            if response is None:
-                logging.error(
-                    f"Extrinsic '0x{extrinsic_hash.hex()}' not submitted. "
-                    f"Initially attempted to submit at block {starting_block['header']['number']}."
-                )
-                raise SubstrateRequestException
-
-        else:
-            response = future.result()
+    response = try_submission()
+    if response is None:
+        subtensor._get_substrate(force=True)
+        response = extrinsic_recovery(
+            f"0x{extrinsic_hash.hex()}", subtensor, starting_block
+        )
+        if response is None:
+            raise SubstrateRequestException
 
     return response

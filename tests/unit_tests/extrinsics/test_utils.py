@@ -2,11 +2,9 @@ import time
 from unittest.mock import MagicMock, patch
 import importlib
 import pytest
-from substrateinterface.base import (
-    SubstrateInterface,
-    GenericExtrinsic,
-    SubstrateRequestException,
-)
+from scalecodec.types import GenericExtrinsic
+from substrateinterface.base import SubstrateInterface, ExtrinsicReceipt
+from substrateinterface.exceptions import ExtrinsicNotFound, SubstrateRequestException
 
 from bittensor.core.extrinsics import utils
 from bittensor.core.subtensor import Subtensor
@@ -23,6 +21,11 @@ def mock_subtensor():
     mock_substrate = MagicMock(autospec=SubstrateInterface)
     mock_subtensor.substrate = mock_substrate
     yield mock_subtensor
+
+
+@pytest.fixture
+def starting_block():
+    yield {"header": {"number": 1}}
 
 
 def test_submit_extrinsic_timeout(mock_subtensor):
@@ -115,3 +118,51 @@ def test_import_timeout_env_parse(monkeypatch):
     importlib.reload(utils)
     assert isinstance(utils.EXTRINSIC_SUBMISSION_TIMEOUT, float)  # has a default value
     assert utils.EXTRINSIC_SUBMISSION_TIMEOUT > 0  # is positive
+
+
+def test_extrinsic_recovery_found(mock_subtensor, starting_block):
+    """Test extrinsic_recovery when extrinsic is found within given block range"""
+    extrinsic_hash_hex = "0x123abc"
+    mock_subtensor.substrate.get_block.return_value = {"header": {"number": 10}}
+    expected_response = ExtrinsicReceipt(mock_subtensor)
+
+    mock_subtensor.substrate.retrieve_extrinsic_by_hash.return_value = expected_response
+    response = utils.extrinsic_recovery(
+        extrinsic_hash_hex, mock_subtensor, starting_block
+    )
+
+    assert response == expected_response
+    mock_subtensor.substrate.get_block.assert_called_once()
+    mock_subtensor.substrate.retrieve_extrinsic_by_hash.assert_called()
+
+
+def test_extrinsic_recovery_not_found(mock_subtensor, starting_block):
+    """Test extrinsic_recovery when extrinsic is not found within given block range"""
+    extrinsic_hash_hex = "0x123abc"
+    mock_subtensor.substrate.get_block.return_value = {"header": {"number": 10}}
+
+    mock_subtensor.substrate.retrieve_extrinsic_by_hash.side_effect = (
+        ExtrinsicNotFound()
+    )
+    response = utils.extrinsic_recovery(
+        extrinsic_hash_hex, mock_subtensor, starting_block
+    )
+
+    assert response is None
+    mock_subtensor.substrate.get_block.assert_called_once()
+
+
+def test_extrinsic_recovery_request_exception(mock_subtensor, starting_block):
+    """Test extrinsic_recovery when there is a SubstrateRequestException"""
+    extrinsic_hash_hex = "0x123abc"
+    mock_subtensor.substrate.get_block.return_value = {"header": {"number": 10}}
+
+    mock_subtensor.substrate.retrieve_extrinsic_by_hash.side_effect = (
+        SubstrateRequestException()
+    )
+    response = utils.extrinsic_recovery(
+        extrinsic_hash_hex, mock_subtensor, starting_block
+    )
+
+    assert response is None
+    mock_subtensor.substrate.get_block.assert_called_once()
