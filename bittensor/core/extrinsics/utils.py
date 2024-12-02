@@ -1,12 +1,11 @@
 """Module with helper functions for extrinsics."""
 
-import traceback
 from concurrent.futures import ThreadPoolExecutor
 import os
 import threading
 from typing import TYPE_CHECKING
 
-from substrateinterface.exceptions import SubstrateRequestException, ExtrinsicNotFound
+from substrateinterface.exceptions import SubstrateRequestException
 
 from bittensor.utils.btlogging import logging
 from bittensor.utils import format_error_message
