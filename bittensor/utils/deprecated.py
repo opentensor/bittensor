@@ -179,7 +179,3 @@ def warning(on: bool = True):
         on (bool): If True, enables warning logging. If False, disables warning logging and sets default (INFO) level.
     """
     logging.set_warning(on)
-
-
-# set Warning logging level for bittensor SDK
-warning()
