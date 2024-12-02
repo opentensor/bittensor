@@ -71,7 +71,7 @@ def do_commit_weights(
         keypair=wallet.hotkey,
     )
     response = submit_extrinsic(
-        substrate=self.substrate,
+        subtensor=self,
         extrinsic=extrinsic,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
@@ -184,7 +184,7 @@ def do_reveal_weights(
         keypair=wallet.hotkey,
     )
     response = submit_extrinsic(
-        substrate=self.substrate,
+        subtensor=self,
         extrinsic=extrinsic,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
