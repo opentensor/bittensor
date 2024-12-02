@@ -33,7 +33,7 @@ def _do_root_register(
         call=call, keypair=wallet.coldkey
     )
     response = submit_extrinsic(
-        self.substrate,
+        self,
         extrinsic,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
@@ -159,7 +159,7 @@ def _do_set_root_weights(
         era={"period": period},
     )
     response = submit_extrinsic(
-        self.substrate,
+        self,
         extrinsic,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,

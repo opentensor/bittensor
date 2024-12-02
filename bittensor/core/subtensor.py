@@ -213,11 +213,21 @@ class Subtensor:
         if self.substrate:
             self.substrate.close()
 
-    def _get_substrate(self):
-        """Establishes a connection to the Substrate node using configured parameters."""
+    def _get_substrate(self, force: bool = False):
+        """
+        Establishes a connection to the Substrate node using configured parameters.
+
+        Args:
+            force: forces a reconnection if this flag is set
+
+        """
         try:
             # Set up params.
-            if self.websocket is None or self.websocket.close_code is not None:
+            if force and self.websocket:
+                logging.debug("Closing websocket connection")
+                self.websocket.close()
+
+            if force or self.websocket is None or self.websocket.close_code is not None:
                 self.websocket = ws_client.connect(
                     self.chain_endpoint,
                     open_timeout=self._connection_timeout,
@@ -230,7 +240,7 @@ class Subtensor:
                 websocket=self.websocket,
             )
             if self.log_verbose:
-                logging.debug(
+                logging.info(
                     f"Connected to {self.network} network and {self.chain_endpoint}."
                 )
 
