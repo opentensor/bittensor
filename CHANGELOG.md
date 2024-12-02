@@ -1,5 +1,14 @@
 # Changelog
 
+## 8.4.2 /2024-11-28
+
+## What's Changed
+
+* Fix submit_extrinsic timeout by @thewhaleking in https://github.com/opentensor/bittensor/pull/2497
+* Backmerge master to staging for 841 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2498
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v8.4.1...v8.4.2
+
 ## 8.4.1 /2024-11-27
 
 ## What's Changed
