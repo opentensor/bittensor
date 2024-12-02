@@ -1,5 +1,16 @@
 # Changelog
 
+## 8.4.3 /2024-12-02
+
+## What's Changed
+
+* Fix logging config parsing by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2500
+* Improve  `submit_extrinsic` util by @thewhaleking in https://github.com/opentensor/bittensor/pull/2502
+* Backmerge master to staging for 843 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2505
+* WS ensure_connected socket catch by @thewhaleking in https://github.com/opentensor/bittensor/pull/2507
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v8.4.2...v8.4.3
+
 ## 8.4.2 /2024-11-28
 
 ## What's Changed
