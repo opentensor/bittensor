@@ -70,7 +70,7 @@ def do_transfer(
         call=call, keypair=wallet.coldkey
     )
     response = submit_extrinsic(
-        substrate=self.substrate,
+        self,
         extrinsic=extrinsic,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
