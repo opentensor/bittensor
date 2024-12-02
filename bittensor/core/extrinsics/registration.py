@@ -66,7 +66,7 @@ def _do_pow_register(
     )
     extrinsic = self.substrate.create_signed_extrinsic(call=call, keypair=wallet.hotkey)
     response = submit_extrinsic(
-        substrate=self.substrate,
+        self,
         extrinsic=extrinsic,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
@@ -297,7 +297,7 @@ def _do_burned_register(
         call=call, keypair=wallet.coldkey
     )
     response = submit_extrinsic(
-        self.substrate,
+        self,
         extrinsic,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
