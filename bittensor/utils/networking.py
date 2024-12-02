@@ -171,7 +171,7 @@ def ensure_connected(func):
         try:
             sock_opt = sock.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
             return sock is not None and sock_opt == 0
-        except OSError:
+        except (OSError, AttributeError):
             return False
 
     @retry(
