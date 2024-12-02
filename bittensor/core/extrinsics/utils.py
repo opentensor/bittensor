@@ -1,4 +1,5 @@
 """Module with helper functions for extrinsics."""
+
 import traceback
 from concurrent.futures import ThreadPoolExecutor
 import os
@@ -82,33 +83,7 @@ def submit_extrinsic(
             logging.error("Timed out waiting for extrinsic submission. Reconnecting.")
             # force reconnection of the websocket
             subtensor._get_substrate(force=True)
-            after_timeout_block = subtensor.substrate.get_block()
-
-            for block_num in range(
-                starting_block["header"]["number"],
-                after_timeout_block["header"]["number"] + 1,
-            ):
-                block_hash = subtensor.substrate.get_block_hash(block_num)
-                try:
-                    response = subtensor.substrate.retrieve_extrinsic_by_hash(
-                        block_hash, f"0x{extrinsic_hash.hex()}"
-                    )
-                except (SubstrateRequestException):
-                    continue
-                if response:
-                    logging.debug(f"Recovered extrinsic: {extrinsic}")
-                    try:
-                        response.process_events()
-                    except (SubstrateRequestException, ExtrinsicNotFound) as e:
-                        logging.error(traceback.format_tb(e))
-                        # logging.error(format_error_message(e, substrate=subtensor.substrate))
-                    break
-            if response is None:
-                logging.error(
-                    f"Extrinsic '0x{extrinsic_hash.hex()}' not submitted. "
-                    f"Initially attempted to submit at block {starting_block['header']['number']}."
-                )
-                raise SubstrateRequestException
+            raise SubstrateRequestException
 
         else:
             response = future.result()
