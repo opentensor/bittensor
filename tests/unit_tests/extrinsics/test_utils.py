@@ -25,7 +25,7 @@ def mock_subtensor():
 
 @pytest.fixture
 def starting_block():
-    yield {"header": {"number": 1}}
+    yield {"header": {"number": 1, "hash": "0x0100"}}
 
 
 def test_submit_extrinsic_timeout(mock_subtensor):
@@ -124,7 +124,9 @@ def test_extrinsic_recovery_found(mock_subtensor, starting_block):
     """Test extrinsic_recovery when extrinsic is found within given block range"""
     extrinsic_hash_hex = "0x123abc"
     mock_subtensor.substrate.get_block.return_value = {"header": {"number": 10}}
-    expected_response = ExtrinsicReceipt(mock_subtensor)
+    expected_response = ExtrinsicReceipt(
+        mock_subtensor, extrinsic_hash_hex, block_hash=starting_block["header"]["hash"]
+    )
 
     mock_subtensor.substrate.retrieve_extrinsic_by_hash.return_value = expected_response
     response = utils.extrinsic_recovery(
