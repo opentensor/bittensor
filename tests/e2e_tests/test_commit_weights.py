@@ -3,6 +3,7 @@ import time
 import numpy as np
 import pytest
 
+from bittensor.utils.btlogging import logging
 from bittensor.core.subtensor import Subtensor
 from bittensor.utils.balance import Balance
 from bittensor.utils.weight_utils import convert_weights_and_uids_for_emit
@@ -34,6 +35,7 @@ async def test_commit_and_reveal_weights(local_chain):
     """
     netuid = 1
     utils.EXTRINSIC_SUBMISSION_TIMEOUT = 12  # handle fast blocks
+    logging.set_trace()
     print("Testing test_commit_and_reveal_weights")
     # Register root as Alice
     keypair, alice_wallet = setup_wallet("//Alice")

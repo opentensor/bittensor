@@ -52,6 +52,7 @@ def extrinsic_recovery(
             response = subtensor.substrate.retrieve_extrinsic_by_hash(
                 block_hash, extrinsic_hash_hex
             )
+            response.process_events()
         except (ExtrinsicNotFound, SubstrateRequestException):
             continue
         if response:
