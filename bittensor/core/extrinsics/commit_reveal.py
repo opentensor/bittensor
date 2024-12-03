@@ -60,7 +60,7 @@ def _do_commit_reveal_v3(
     )
 
     response = submit_extrinsic(
-        substrate=self.substrate,
+        subtensor=self,
         extrinsic=extrinsic,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
