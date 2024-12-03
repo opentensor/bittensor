@@ -341,7 +341,7 @@ class Axon:
         self.config = config  # type: ignore
 
         # Get wallet or use default.
-        self.wallet = wallet or Wallet()
+        self.wallet = wallet or Wallet(config=self.config)
 
         # Build axon objects.
         self.uuid = str(uuid.uuid1())
