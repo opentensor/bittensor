@@ -120,17 +120,24 @@ def commit_reveal_v3_extrinsic(
         # Reformat and normalize.
         uids, weights = convert_weights_and_uids_for_emit(uids, weights)
 
-        # Get subnet's reveal (in epochs)
-        subnet_reveal_period_epochs = subtensor.get_subnet_reveal_period_epochs(
-            netuid=netuid
+        current_block = subtensor.get_current_block()
+        subnet_hyperparameters = subtensor.get_subnet_hyperparameters(
+            netuid, block=current_block
+        )
+        tempo = subnet_hyperparameters.tempo
+        subnet_reveal_period_epochs = (
+            subnet_hyperparameters.commit_reveal_weights_interval
         )
 
         # Encrypt `commit_hash` with t-lock and `get reveal_round`
         commit_for_reveal, reveal_round = get_encrypted_commit(
             uids=uids,
             weights=weights,
-            subnet_reveal_period_epochs=subnet_reveal_period_epochs,
             version_key=version_key,
+            tempo=tempo,
+            current_block=current_block,
+            netuid=netuid,
+            subnet_reveal_period_epochs=subnet_reveal_period_epochs,
         )
 
         success, message = _do_commit_reveal_v3(
