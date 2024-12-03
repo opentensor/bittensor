@@ -159,6 +159,12 @@ def commit_reveal_v3_extrinsic(
             logging.error(message)
             return False, message
 
+    except ValueError:
+        logging.error(
+            ":cross_mark: [red]Failed.[/red] Commit cannot be generated, no response from the service."
+        )
+        return False, "Commit cannot be generated, no response from the service"
+
     except Exception as e:
         logging.error(f":cross_mark: [red]Failed. Error:[/red] {e}")
         return False, str(e)
