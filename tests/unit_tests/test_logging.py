@@ -140,7 +140,9 @@ def test_enable_file_logging_with_new_config(tmp_path):
     log_file_path = log_dir / DEFAULT_LOG_FILE_NAME
 
     # check no file handler is created
-    config = LoggingConfig(debug=False, trace=False, info=False, record_log=True, logging_dir=None)
+    config = LoggingConfig(
+        debug=False, trace=False, info=False, record_log=True, logging_dir=None
+    )
     lm = LoggingMachine(config)
     assert not any(
         isinstance(handler, stdlogging.FileHandler) for handler in lm._handlers
