@@ -180,6 +180,7 @@ def warning(on: bool = True):
     """
     logging.set_warning(on)
 
+
 def info(on: bool = True):
     """
     Enables or disables info logging.

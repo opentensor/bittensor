@@ -371,7 +371,7 @@ class LoggingMachine(StateMachine, Logger):
 
     def after_enable_default(self):
         pass
-    
+
     # Warning
     def before_enable_warning(self):
         """Logs status before enable Warning."""
@@ -383,7 +383,7 @@ class LoggingMachine(StateMachine, Logger):
     def after_enable_warning(self):
         """Logs status after enable Warning."""
         self._logger.info("Warning enabled.")
-    
+
     # Info
     def before_enable_info(self):
         """Logs status before enable info."""
@@ -668,6 +668,10 @@ class LoggingMachine(StateMachine, Logger):
                 cfg.logging_dir = logging_dir
         else:
             cfg = LoggingConfig(
-                debug=debug, trace=trace, info=info, record_log=record_log, logging_dir=logging_dir
+                debug=debug,
+                trace=trace,
+                info=info,
+                record_log=record_log,
+                logging_dir=logging_dir,
             )
         self.set_config(cfg)
