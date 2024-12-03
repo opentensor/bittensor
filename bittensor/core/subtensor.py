@@ -1762,6 +1762,7 @@ class Subtensor:
                 self.blocks_since_last_update(netuid, uid)  # type: ignore
                 > self.weights_rate_limit(netuid)  # type: ignore
                 and retries < max_retries
+                and success is False
             ):
                 try:
                     logging.info(
