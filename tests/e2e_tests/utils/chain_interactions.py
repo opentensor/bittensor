@@ -22,6 +22,7 @@ def sudo_set_hyperparameter_bool(
     call_function: str,
     value: bool,
     netuid: int,
+    requires_sudo: bool = False,
 ) -> bool:
     """
     Sets boolean hyperparameter value through AdminUtils. Mimics setting hyperparams
@@ -31,6 +32,13 @@ def sudo_set_hyperparameter_bool(
         call_function=call_function,
         call_params={"netuid": netuid, "enabled": value},
     )
+    if requires_sudo:  # Only sudo can set these values
+        call = substrate.compose_call(
+            call_module="Sudo",
+            call_function="sudo",
+            call_params={"call": call},
+        )
+
     extrinsic = substrate.create_signed_extrinsic(call=call, keypair=wallet.coldkey)
     response = substrate.submit_extrinsic(
         extrinsic,
@@ -47,6 +55,7 @@ def sudo_set_hyperparameter_values(
     call_function: str,
     call_params: dict,
     return_error_message: bool = False,
+    requires_sudo: bool = False,
 ) -> Union[bool, tuple[bool, Optional[str]]]:
     """
     Sets liquid alpha values using AdminUtils. Mimics setting hyperparams
@@ -56,6 +65,13 @@ def sudo_set_hyperparameter_values(
         call_function=call_function,
         call_params=call_params,
     )
+    if requires_sudo:  # Only sudo can set these values
+        call = substrate.compose_call(
+            call_module="Sudo",
+            call_function="sudo",
+            call_params={"call": call},
+        )
+
     extrinsic = substrate.create_signed_extrinsic(call=call, keypair=wallet.coldkey)
     response = substrate.submit_extrinsic(
         extrinsic,
@@ -160,3 +176,23 @@ async def wait_interval(tempo: int, subtensor: "Subtensor", netuid: int = 1):
             logging.info(
                 f"Current Block: {current_block}  Next tempo for netuid {netuid} at: {next_tempo_block_start}"
             )
+
+
+async def wait_until_block(
+    block: int, subtensor: "Subtensor", block_time: int = 250e-3
+):
+    """
+    Waits until a specific block is reached.
+
+    Will return immediately if the block has already been reached.
+    """
+    current_block = subtensor.get_current_block()
+
+    while current_block < block:
+        wait_time = (block - current_block) * block_time
+        print(f"Waiting for {wait_time} seconds until block {block}")
+        logging.info(f"Waiting for {wait_time} seconds until block {block}")
+        await asyncio.sleep(
+            wait_time
+        )  # Wait for 1 second before checking the block number again
+        current_block = subtensor.get_current_block()

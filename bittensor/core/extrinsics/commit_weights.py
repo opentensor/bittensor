@@ -87,6 +87,63 @@ def do_commit_weights(
         return False, response.error_message
 
 
+# Chain call for `batch_commit_weights_extrinsic`
+@ensure_connected
+def do_batch_commit_weights(
+    self: "Subtensor",
+    wallet: "Wallet",
+    netuids: list[int],
+    commit_hashes: list[str],
+    wait_for_inclusion: bool = False,
+    wait_for_finalization: bool = False,
+) -> tuple[bool, Optional[dict]]:
+    """
+    Internal method to send a transaction to the Bittensor blockchain, committing multiple hashes for multiple subnets.
+    This method constructs and submits the transaction, handling retries and blockchain communication.
+
+    Args:
+        self (bittensor.core.subtensor.Subtensor): The subtensor instance used for blockchain interaction.
+        wallet (bittensor_wallet.Wallet): The wallet associated with the neuron committing the weights.
+        netuids (list[int]): The unique identifiers of the subnets.
+        commit_hashes (list[str]): The hashes of the neuron's weights to be committed.
+        wait_for_inclusion (bool): Waits for the transaction to be included in a block.
+        wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
+
+    Returns:
+        tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
+
+    This method ensures that the weight commitment is securely recorded on the Bittensor blockchain, providing a verifiable record of the neuron's weight distribution at a specific point in time.
+    """
+
+    call = self.substrate.compose_call(
+        call_module="SubtensorModule",
+        call_function="batch_commit_weights",
+        call_params={
+            "netuids": netuids,
+            "commit_hashes": commit_hashes,
+        },
+    )
+    extrinsic = self.substrate.create_signed_extrinsic(
+        call=call,
+        keypair=wallet.hotkey,
+    )
+    response = submit_extrinsic(
+        substrate=self.substrate,
+        extrinsic=extrinsic,
+        wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization,
+    )
+
+    if not wait_for_finalization and not wait_for_inclusion:
+        return True, None
+
+    response.process_events()
+    if response.is_success:
+        return True, None
+    else:
+        return False, response.error_message
+
+
 def commit_weights_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
@@ -131,6 +188,53 @@ def commit_weights_extrinsic(
             error_message, substrate=subtensor.substrate
         )
         logging.error(f"Failed to commit weights: {error_message}")
+        return False, error_message
+
+
+def batch_commit_weights_extrinsic(
+    subtensor: "Subtensor",
+    wallet: "Wallet",
+    netuids: list[int],
+    commit_hashes: list[str],
+    wait_for_inclusion: bool = False,
+    wait_for_finalization: bool = False,
+) -> tuple[bool, str]:
+    """
+    Commits multiple hashes of the neuron's weights to the Bittensor blockchain using the provided wallet.
+    This function is a wrapper around the `do_batch_commit_weights` method.
+
+    Args:
+        subtensor (bittensor.core.subtensor.Subtensor): The subtensor instance used for blockchain interaction.
+        wallet (bittensor_wallet.Wallet): The wallet associated with the neuron committing the weights.
+        netuids (list[int]): The unique identifiers of the subnets.
+        commit_hashes (list[str]): The hashes of the neuron's weights to be committed.
+        wait_for_inclusion (bool): Waits for the transaction to be included in a block.
+        wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
+
+    Returns:
+        tuple[bool, str]: ``True`` if the weight commitment is successful, False otherwise. And `msg`, a string value describing the success or potential error.
+
+    This function provides a user-friendly interface for committing weights to the Bittensor blockchain, ensuring proper error handling and user interaction when required.
+    """
+
+    success, error_message = do_batch_commit_weights(
+        self=subtensor,
+        wallet=wallet,
+        netuids=netuids,
+        commit_hashes=commit_hashes,
+        wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization,
+    )
+
+    if success:
+        success_message = "Successfully batch committed weights."
+        logging.info(success_message)
+        return True, success_message
+    else:
+        error_message = format_error_message(
+            error_message, substrate=subtensor.substrate
+        )
+        logging.error(f"Failed to batch commit weights: {error_message}")
         return False, error_message
 
 
