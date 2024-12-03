@@ -83,7 +83,7 @@ def do_set_weights(
         era={"period": period},
     )
     response = submit_extrinsic(
-        substrate=self.substrate,
+        self,
         extrinsic=extrinsic,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
