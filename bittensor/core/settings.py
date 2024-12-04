@@ -43,8 +43,8 @@ DEFAULT_NETWORK = NETWORKS[0]
 
 # Bittensor endpoints (Needs to use wss://)
 FINNEY_ENTRYPOINT = "wss://entrypoint-finney.opentensor.ai:443"
-FINNEY_TEST_ENTRYPOINT = "wss://test.finney.opentensor.ai:443/"
-ARCHIVE_ENTRYPOINT = "wss://archive.chain.opentensor.ai:443/"
+FINNEY_TEST_ENTRYPOINT = "wss://test.finney.opentensor.ai:443"
+ARCHIVE_ENTRYPOINT = "wss://archive.chain.opentensor.ai:443"
 LOCAL_ENTRYPOINT = os.getenv("BT_SUBTENSOR_CHAIN_ENDPOINT") or "ws://127.0.0.1:9944"
 SUBVORTEX_ENTRYPOINT = "ws://subvortex.info:9944"
 

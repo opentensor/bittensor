@@ -114,30 +114,24 @@ def latest_block_path(dir_path: str) -> str:
         return latest_file_full_path
 
 
-def _get_endpoint_in_default_network(chain_endpoint: str) -> tuple[str, str]:
-    if chain_endpoint in settings.REVERSE_NETWORK_MAP:
-        return settings.REVERSE_NETWORK_MAP[chain_endpoint], chain_endpoint
+def determine_chain_endpoint_and_network(network: str) -> tuple[str, str]:
+    """
+    Determine the chain endpoint and network name from the passed arg
+
+    Args:
+        network: The network name (e.g. 'finney', 'test') or
+            chain endpoint (e.g. wss://entrypoint-finney.opentensor.ai:443)
+
+    Returns:
+        (network name, chain endpoint)
+    """
+    pathless_network = network[:-1] if network.endswith("/") else network
+    if pathless_network in settings.NETWORK_MAP:
+        return pathless_network, settings.NETWORK_MAP[pathless_network]
+    elif pathless_network in settings.REVERSE_NETWORK_MAP:
+        return settings.REVERSE_NETWORK_MAP[pathless_network], pathless_network
     else:
-        return "unknown", chain_endpoint
-
-
-def _get_endpoint_in_network(network: str, chain_endpoint: str) -> tuple[str, str]:
-    if network in settings.NETWORK_MAP:
-        return network, settings.NETWORK_MAP[network]
-    else:
-        return network, chain_endpoint
-
-
-def determine_chain_endpoint_and_network(
-    network: Optional[str] = None, chain_endpoint: Optional[str] = None
-) -> tuple[str, str]:
-    if network == settings.DEFAULT_NETWORK:
-        if chain_endpoint == settings.DEFAULT_ENDPOINT:
-            return network, chain_endpoint
-        else:
-            return _get_endpoint_in_default_network(chain_endpoint)
-    else:
-        return _get_endpoint_in_network(network, chain_endpoint)
+        return "unknown", network
 
 
 class MetagraphMixin(ABC):
@@ -423,7 +417,6 @@ class MetagraphMixin(ABC):
         network: str = settings.DEFAULT_NETWORK,
         lite: bool = True,
         sync: bool = True,
-        chain_endpoint: Optional[str] = None,
         subtensor: "Subtensor" = None,
     ):
         """
@@ -623,10 +616,7 @@ class MetagraphMixin(ABC):
             # Lazy import due to circular import (subtensor -> metagraph, metagraph -> subtensor)
             from bittensor.core.subtensor import Subtensor
 
-            if self.network == "unknown" and self.chain_endpoint:
-                subtensor = Subtensor(network=self.chain_endpoint)
-            else:
-                subtensor = Subtensor(network=self.network)
+            subtensor = Subtensor(network=self.chain_endpoint)
             self.subtensor = subtensor
         return subtensor
 
@@ -935,7 +925,6 @@ class TorchMetaGraph(MetagraphMixin, BaseClass):
         network: str = settings.DEFAULT_NETWORK,
         lite: bool = True,
         sync: bool = True,
-        chain_endpoint: Optional[str] = settings.DEFAULT_ENDPOINT,
         subtensor: "Subtensor" = None,
     ):
         """
@@ -957,12 +946,10 @@ class TorchMetaGraph(MetagraphMixin, BaseClass):
                 metagraph = Metagraph(netuid=123, network="finney", lite=True, sync=True)
         """
         torch.nn.Module.__init__(self)
-        MetagraphMixin.__init__(
-            self, netuid, network, lite, sync, chain_endpoint, subtensor
-        )
+        MetagraphMixin.__init__(self, netuid, network, lite, sync, subtensor)
         self.netuid = netuid
         self.network, self.chain_endpoint = determine_chain_endpoint_and_network(
-            network, chain_endpoint
+            network
         )
         self.version = torch.nn.Parameter(
             torch.tensor([settings.version_as_int], dtype=torch.int64),
@@ -1161,7 +1148,6 @@ class NonTorchMetagraph(MetagraphMixin):
         network: str = settings.DEFAULT_NETWORK,
         lite: bool = True,
         sync: bool = True,
-        chain_endpoint: Optional[str] = settings.DEFAULT_ENDPOINT,
         subtensor: "Subtensor" = None,
     ):
         """
@@ -1183,13 +1169,11 @@ class NonTorchMetagraph(MetagraphMixin):
                 metagraph = Metagraph(netuid=123, network="finney", lite=True, sync=True)
         """
         # super(metagraph, self).__init__()
-        MetagraphMixin.__init__(
-            self, netuid, network, lite, sync, chain_endpoint, subtensor
-        )
+        MetagraphMixin.__init__(self, netuid, network, lite, sync, subtensor)
 
         self.netuid = netuid
         self.network, self.chain_endpoint = determine_chain_endpoint_and_network(
-            network, chain_endpoint
+            network
         )
         self.version = (np.array([settings.version_as_int], dtype=np.int64),)
         self.n = np.array([0], dtype=np.int64)
