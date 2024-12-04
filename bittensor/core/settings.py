@@ -285,6 +285,7 @@ DEFAULTS = munchify(
         "logging": {
             "debug": os.getenv("BT_LOGGING_DEBUG") or False,
             "trace": os.getenv("BT_LOGGING_TRACE") or False,
+            "info": os.getenv("BT_LOGGING_INFO") or False,
             "record_log": os.getenv("BT_LOGGING_RECORD_LOG") or False,
             "logging_dir": os.getenv("BT_LOGGING_LOGGING_DIR") or str(MINERS_DIR),
         },
