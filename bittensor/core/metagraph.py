@@ -394,7 +394,7 @@ class MetagraphMixin(ABC):
     def __init__(
         self,
         netuid: int,
-        network: str = "finney",
+        network: str = settings.DEFAULT_NETWORK,
         lite: bool = True,
         sync: bool = True,
         chain_endpoint: Optional[str] = None,
@@ -601,6 +601,7 @@ class MetagraphMixin(ABC):
                 subtensor = Subtensor(self.chain_endpoint)
             else:
                 subtensor = Subtensor(network=self.network)
+            self.subtensor = subtensor
         return subtensor
 
     def _assign_neurons(self, block: int, lite: bool, subtensor: "Subtensor"):
@@ -905,7 +906,7 @@ class TorchMetaGraph(MetagraphMixin, BaseClass):
     def __init__(
         self,
         netuid: int,
-        network: str = "finney",
+        network: str = settings.DEFAULT_NETWORK,
         lite: bool = True,
         sync: bool = True,
         chain_endpoint: Optional[str] = None,
@@ -934,7 +935,13 @@ class TorchMetaGraph(MetagraphMixin, BaseClass):
             self, netuid, network, lite, sync, chain_endpoint, subtensor
         )
         self.netuid = netuid
-        self.network = network
+        if (
+            network == settings.DEFAULT_NETWORK
+            and chain_endpoint != settings.DEFAULT_ENDPOINT
+        ):
+            self.network = "unknown"
+        else:
+            self.network = network
         self.chain_endpoint = chain_endpoint
         self.version = torch.nn.Parameter(
             torch.tensor([settings.version_as_int], dtype=torch.int64),
@@ -1130,7 +1137,7 @@ class NonTorchMetagraph(MetagraphMixin):
     def __init__(
         self,
         netuid: int,
-        network: str = "finney",
+        network: str = settings.DEFAULT_NETWORK,
         lite: bool = True,
         sync: bool = True,
         chain_endpoint: Optional[str] = None,
@@ -1160,7 +1167,13 @@ class NonTorchMetagraph(MetagraphMixin):
         )
 
         self.netuid = netuid
-        self.network = network
+        if (
+            network == settings.DEFAULT_NETWORK
+            and chain_endpoint != settings.DEFAULT_ENDPOINT
+        ):
+            self.network = "unknown"
+        else:
+            self.network = network
         self.chain_endpoint = chain_endpoint
         self.version = (np.array([settings.version_as_int], dtype=np.int64),)
         self.n = np.array([0], dtype=np.int64)
