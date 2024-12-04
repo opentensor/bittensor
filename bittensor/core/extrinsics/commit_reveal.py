@@ -42,7 +42,8 @@ def _do_commit_reveal_v3(
         A tuple where the first element is a boolean indicating success or failure, and the second element is an optional string containing error message if any.
     """
     logging.info(
-        f"Committing weights hash [blue]{commit}[/blue] for subnet #[blue]{netuid}[/blue] with reveal round [blue]{reveal_round}[/blue]..."
+        f"Committing weights hash [blue]{commit.hex()}[/blue] for subnet #[blue]{netuid}[/blue] with "
+        f"reveal round [blue]{reveal_round}[/blue]..."
     )
 
     call = self.substrate.compose_call(
