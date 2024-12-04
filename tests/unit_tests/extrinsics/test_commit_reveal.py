@@ -87,7 +87,7 @@ def test_do_commit_reveal_v3_success(mocker, subtensor):
         call=mocked_compose_call.return_value, keypair=fake_wallet.hotkey
     )
     mocked_submit_extrinsic.assert_called_once_with(
-        substrate=subtensor.substrate,
+        subtensor=subtensor,
         extrinsic=mocked_create_signed_extrinsic.return_value,
         wait_for_inclusion=False,
         wait_for_finalization=False,
@@ -141,7 +141,7 @@ def test_do_commit_reveal_v3_failure_due_to_error(mocker, subtensor):
         call=mocked_compose_call.return_value, keypair=fake_wallet.hotkey
     )
     mocked_submit_extrinsic.assert_called_once_with(
-        substrate=subtensor.substrate,
+        subtensor=subtensor,
         extrinsic=mocked_create_signed_extrinsic.return_value,
         wait_for_inclusion=True,
         wait_for_finalization=True,
