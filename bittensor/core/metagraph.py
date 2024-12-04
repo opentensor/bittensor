@@ -114,6 +114,32 @@ def latest_block_path(dir_path: str) -> str:
         return latest_file_full_path
 
 
+def _get_endpoint_in_default_network(chain_endpoint: str) -> tuple[str, str]:
+    if chain_endpoint in settings.REVERSE_NETWORK_MAP:
+        return settings.REVERSE_NETWORK_MAP[chain_endpoint], chain_endpoint
+    else:
+        return "unknown", chain_endpoint
+
+
+def _get_endpoint_in_network(network: str, chain_endpoint: str) -> tuple[str, str]:
+    if network in settings.NETWORK_MAP:
+        return network, settings.NETWORK_MAP[network]
+    else:
+        return network, chain_endpoint
+
+
+def determine_chain_endpoint_and_network(
+    network: Optional[str] = None, chain_endpoint: Optional[str] = None
+) -> tuple[str, str]:
+    if network == settings.DEFAULT_NETWORK:
+        if chain_endpoint == settings.DEFAULT_ENDPOINT:
+            return network, chain_endpoint
+        else:
+            return _get_endpoint_in_default_network(chain_endpoint)
+    else:
+        return _get_endpoint_in_network(network, chain_endpoint)
+
+
 class MetagraphMixin(ABC):
     """
     The metagraph class is a core component of the Bittensor network, representing the neural graph that forms the backbone of the decentralized machine learning system.
@@ -598,7 +624,7 @@ class MetagraphMixin(ABC):
             from bittensor.core.subtensor import Subtensor
 
             if self.network == "unknown" and self.chain_endpoint:
-                subtensor = Subtensor(self.chain_endpoint)
+                subtensor = Subtensor(network=self.chain_endpoint)
             else:
                 subtensor = Subtensor(network=self.network)
             self.subtensor = subtensor
@@ -909,7 +935,7 @@ class TorchMetaGraph(MetagraphMixin, BaseClass):
         network: str = settings.DEFAULT_NETWORK,
         lite: bool = True,
         sync: bool = True,
-        chain_endpoint: Optional[str] = None,
+        chain_endpoint: Optional[str] = settings.DEFAULT_ENDPOINT,
         subtensor: "Subtensor" = None,
     ):
         """
@@ -935,14 +961,9 @@ class TorchMetaGraph(MetagraphMixin, BaseClass):
             self, netuid, network, lite, sync, chain_endpoint, subtensor
         )
         self.netuid = netuid
-        if (
-            network == settings.DEFAULT_NETWORK
-            and chain_endpoint != settings.DEFAULT_ENDPOINT
-        ):
-            self.network = "unknown"
-        else:
-            self.network = network
-        self.chain_endpoint = chain_endpoint
+        self.network, self.chain_endpoint = determine_chain_endpoint_and_network(
+            network, chain_endpoint
+        )
         self.version = torch.nn.Parameter(
             torch.tensor([settings.version_as_int], dtype=torch.int64),
             requires_grad=False,
@@ -1140,7 +1161,7 @@ class NonTorchMetagraph(MetagraphMixin):
         network: str = settings.DEFAULT_NETWORK,
         lite: bool = True,
         sync: bool = True,
-        chain_endpoint: Optional[str] = None,
+        chain_endpoint: Optional[str] = settings.DEFAULT_ENDPOINT,
         subtensor: "Subtensor" = None,
     ):
         """
@@ -1167,14 +1188,9 @@ class NonTorchMetagraph(MetagraphMixin):
         )
 
         self.netuid = netuid
-        if (
-            network == settings.DEFAULT_NETWORK
-            and chain_endpoint != settings.DEFAULT_ENDPOINT
-        ):
-            self.network = "unknown"
-        else:
-            self.network = network
-        self.chain_endpoint = chain_endpoint
+        self.network, self.chain_endpoint = determine_chain_endpoint_and_network(
+            network, chain_endpoint
+        )
         self.version = (np.array([settings.version_as_int], dtype=np.int64),)
         self.n = np.array([0], dtype=np.int64)
         self.block = np.array([0], dtype=np.int64)
