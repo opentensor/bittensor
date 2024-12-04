@@ -594,7 +594,7 @@ class Axon:
         """
         parser = argparse.ArgumentParser()
         Axon.add_args(parser)  # Add specific axon-related arguments
-        return Config(parser, args=[])
+        return Config(parser)
 
     @classmethod
     def help(cls):
