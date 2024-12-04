@@ -677,8 +677,13 @@ class Subtensor:
 
         The metagraph is an essential tool for understanding the topology and dynamics of the Bittensor network's decentralized architecture, particularly in relation to neuron interconnectivity and consensus processes.
         """
+        if self.network == "unknown":
+            network = self.chain_endpoint
+        else:
+            network = self.network
+
         metagraph = Metagraph(
-            network=self.network, netuid=netuid, lite=lite, sync=False
+            network=network, netuid=netuid, lite=lite, sync=False, subtensor=self
         )
         metagraph.sync(block=block, lite=lite, subtensor=self)
 

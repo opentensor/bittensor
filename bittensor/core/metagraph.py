@@ -1,20 +1,3 @@
-# The MIT License (MIT)
-# Copyright © 2024 Opentensor Foundation
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
-# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
-# the Software.
-#
-# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-# DEALINGS IN THE SOFTWARE.
-
 import os
 import pickle
 import typing
@@ -211,6 +194,7 @@ class MetagraphMixin(ABC):
     bonds: Union["torch.nn.Parameter", NDArray]
     uids: Union["torch.nn.Parameter", NDArray]
     axons: list[AxonInfo]
+    subtensor: Optional["Subtensor"]
 
     @property
     def S(self) -> Union[NDArray, "torch.nn.Parameter"]:
@@ -407,7 +391,12 @@ class MetagraphMixin(ABC):
 
     @abstractmethod
     def __init__(
-        self, netuid: int, network: str = "finney", lite: bool = True, sync: bool = True
+        self,
+        netuid: int,
+        network: str = "finney",
+        lite: bool = True,
+        sync: bool = True,
+        subtensor: "Subtensor" = None,
     ):
         """
         Initializes a new instance of the metagraph object, setting up the basic structure and parameters based on the provided arguments.
@@ -597,6 +586,8 @@ class MetagraphMixin(ABC):
 
                 subtensor = self._initialize_subtensor(subtensor)
         """
+        if not subtensor and self.subtensor:
+            subtensor = self.subtensor
         if not subtensor:
             # TODO: Check and test the initialization of the new subtensor
             # Lazy import due to circular import (subtensor -> metagraph, metagraph -> subtensor)
@@ -905,7 +896,12 @@ Base class that extends :class:`torch.nn.Module` if PyTorch is used; otherwise, 
 
 class TorchMetaGraph(MetagraphMixin, BaseClass):
     def __init__(
-        self, netuid: int, network: str = "finney", lite: bool = True, sync: bool = True
+        self,
+        netuid: int,
+        network: str = "finney",
+        lite: bool = True,
+        sync: bool = True,
+        subtensor: "Subtensor" = None,
     ):
         """
         Initializes a new instance of the metagraph object, setting up the basic structure and parameters based on the provided arguments.
@@ -926,7 +922,7 @@ class TorchMetaGraph(MetagraphMixin, BaseClass):
                 metagraph = Metagraph(netuid=123, network="finney", lite=True, sync=True)
         """
         torch.nn.Module.__init__(self)
-        MetagraphMixin.__init__(self, netuid, network, lite, sync)
+        MetagraphMixin.__init__(self, netuid, network, lite, sync, subtensor)
         self.netuid = netuid
         self.network = network
         self.version = torch.nn.Parameter(
@@ -985,8 +981,9 @@ class TorchMetaGraph(MetagraphMixin, BaseClass):
             torch.tensor([], dtype=torch.int64), requires_grad=False
         )
         self.axons: list[AxonInfo] = []
+        self.subtensor = subtensor
         if sync:
-            self.sync(block=None, lite=lite)
+            self.sync(block=None, lite=lite, subtensor=subtensor)
 
     def _set_metagraph_attributes(self, block: int, subtensor: "Subtensor"):
         """
@@ -1120,7 +1117,12 @@ class TorchMetaGraph(MetagraphMixin, BaseClass):
 
 class NonTorchMetagraph(MetagraphMixin):
     def __init__(
-        self, netuid: int, network: str = "finney", lite: bool = True, sync: bool = True
+        self,
+        netuid: int,
+        network: str = "finney",
+        lite: bool = True,
+        sync: bool = True,
+        subtensor: "Subtensor" = None,
     ):
         """
         Initializes a new instance of the metagraph object, setting up the basic structure and parameters based on the provided arguments.
@@ -1141,7 +1143,7 @@ class NonTorchMetagraph(MetagraphMixin):
                 metagraph = Metagraph(netuid=123, network="finney", lite=True, sync=True)
         """
         # super(metagraph, self).__init__()
-        MetagraphMixin.__init__(self, netuid, network, lite, sync)
+        MetagraphMixin.__init__(self, netuid, network, lite, sync, subtensor)
 
         self.netuid = netuid
         self.network = network
@@ -1164,8 +1166,9 @@ class NonTorchMetagraph(MetagraphMixin):
         self.bonds = np.array([], dtype=np.int64)
         self.uids = np.array([], dtype=np.int64)
         self.axons: list[AxonInfo] = []
+        self.subtensor = subtensor
         if sync:
-            self.sync(block=None, lite=lite)
+            self.sync(block=None, lite=lite, subtensor=subtensor)
 
     def _set_metagraph_attributes(self, block: int, subtensor: "Subtensor"):
         """
