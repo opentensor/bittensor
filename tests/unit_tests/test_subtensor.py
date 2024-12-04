@@ -1034,12 +1034,11 @@ def test_metagraph(subtensor, mocker):
 
     # Asserts
     mocked_metagraph.assert_called_once_with(
-        network=subtensor.network,
+        network=subtensor.chain_endpoint,
         netuid=fake_netuid,
         lite=fake_lite,
         sync=False,
         subtensor=subtensor,
-        chain_endpoint=subtensor.chain_endpoint,
     )
     mocked_metagraph.return_value.sync.assert_called_once_with(
         block=None, lite=fake_lite, subtensor=subtensor
