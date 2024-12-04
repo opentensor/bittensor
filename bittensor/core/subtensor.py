@@ -267,7 +267,7 @@ class Subtensor:
         """
         parser = argparse.ArgumentParser()
         Subtensor.add_args(parser)
-        return Config(parser, args=[])
+        return Config(parser)
 
     @staticmethod
     def setup_config(network: Optional[str], config: "Config"):
