@@ -22,6 +22,7 @@ import typing
 from unittest.mock import MagicMock, Mock
 
 import aiohttp
+from bittensor_wallet.mock import get_mock_wallet
 import pytest
 
 from bittensor.core.axon import Axon
@@ -402,7 +403,7 @@ def test_process_error_message(
     request_name,
 ):
     # Arrange
-    dendrite = Dendrite()
+    dendrite = Dendrite(get_mock_wallet())
     synapse = Mock()
 
     synapse.timeout = synapse_timeout
