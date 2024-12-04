@@ -643,7 +643,7 @@ class LoggingMachine(StateMachine, Logger):
         """
         parser = argparse.ArgumentParser()
         cls.add_args(parser)
-        return Config(parser, args=[])
+        return Config(parser)
 
     def __call__(
         self,
