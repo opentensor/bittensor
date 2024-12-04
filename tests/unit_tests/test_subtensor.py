@@ -1039,6 +1039,7 @@ def test_metagraph(subtensor, mocker):
         lite=fake_lite,
         sync=False,
         subtensor=subtensor,
+        chain_endpoint=subtensor.chain_endpoint,
     )
     mocked_metagraph.return_value.sync.assert_called_once_with(
         block=None, lite=fake_lite, subtensor=subtensor

@@ -194,6 +194,7 @@ class MetagraphMixin(ABC):
     bonds: Union["torch.nn.Parameter", NDArray]
     uids: Union["torch.nn.Parameter", NDArray]
     axons: list[AxonInfo]
+    chain_endpoint: Optional[str]
     subtensor: Optional["Subtensor"]
 
     @property
@@ -396,6 +397,7 @@ class MetagraphMixin(ABC):
         network: str = "finney",
         lite: bool = True,
         sync: bool = True,
+        chain_endpoint: Optional[str] = None,
         subtensor: "Subtensor" = None,
     ):
         """
@@ -586,6 +588,8 @@ class MetagraphMixin(ABC):
 
                 subtensor = self._initialize_subtensor(subtensor)
         """
+        if subtensor and subtensor != self.subtensor:
+            self.subtensor = subtensor
         if not subtensor and self.subtensor:
             subtensor = self.subtensor
         if not subtensor:
@@ -593,7 +597,10 @@ class MetagraphMixin(ABC):
             # Lazy import due to circular import (subtensor -> metagraph, metagraph -> subtensor)
             from bittensor.core.subtensor import Subtensor
 
-            subtensor = Subtensor(network=self.network)
+            if self.network == "unknown" and self.chain_endpoint:
+                subtensor = Subtensor(self.chain_endpoint)
+            else:
+                subtensor = Subtensor(network=self.network)
         return subtensor
 
     def _assign_neurons(self, block: int, lite: bool, subtensor: "Subtensor"):
@@ -901,6 +908,7 @@ class TorchMetaGraph(MetagraphMixin, BaseClass):
         network: str = "finney",
         lite: bool = True,
         sync: bool = True,
+        chain_endpoint: Optional[str] = None,
         subtensor: "Subtensor" = None,
     ):
         """
@@ -922,9 +930,12 @@ class TorchMetaGraph(MetagraphMixin, BaseClass):
                 metagraph = Metagraph(netuid=123, network="finney", lite=True, sync=True)
         """
         torch.nn.Module.__init__(self)
-        MetagraphMixin.__init__(self, netuid, network, lite, sync, subtensor)
+        MetagraphMixin.__init__(
+            self, netuid, network, lite, sync, chain_endpoint, subtensor
+        )
         self.netuid = netuid
         self.network = network
+        self.chain_endpoint = chain_endpoint
         self.version = torch.nn.Parameter(
             torch.tensor([settings.version_as_int], dtype=torch.int64),
             requires_grad=False,
@@ -1122,6 +1133,7 @@ class NonTorchMetagraph(MetagraphMixin):
         network: str = "finney",
         lite: bool = True,
         sync: bool = True,
+        chain_endpoint: Optional[str] = None,
         subtensor: "Subtensor" = None,
     ):
         """
@@ -1143,10 +1155,13 @@ class NonTorchMetagraph(MetagraphMixin):
                 metagraph = Metagraph(netuid=123, network="finney", lite=True, sync=True)
         """
         # super(metagraph, self).__init__()
-        MetagraphMixin.__init__(self, netuid, network, lite, sync, subtensor)
+        MetagraphMixin.__init__(
+            self, netuid, network, lite, sync, chain_endpoint, subtensor
+        )
 
         self.netuid = netuid
         self.network = network
+        self.chain_endpoint = chain_endpoint
         self.version = (np.array([settings.version_as_int], dtype=np.int64),)
         self.n = np.array([0], dtype=np.int64)
         self.block = np.array([0], dtype=np.int64)
