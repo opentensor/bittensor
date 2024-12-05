@@ -77,9 +77,7 @@ async def _do_set_weights(
     if await response.is_success:
         return True, "Successfully set weights."
     else:
-        return False, format_error_message(
-            response.error_message, substrate=subtensor.substrate
-        )
+        return False, format_error_message(response.error_message)
 
 
 async def set_weights_extrinsic(
@@ -206,9 +204,7 @@ async def _do_commit_weights(
     if await response.is_success:
         return True, None
     else:
-        return False, format_error_message(
-            response.error_message, substrate=subtensor.substrate
-        )
+        return False, format_error_message(response.error_message)
 
 
 async def commit_weights_extrinsic(

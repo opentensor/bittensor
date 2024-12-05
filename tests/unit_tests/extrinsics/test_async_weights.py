@@ -108,9 +108,7 @@ async def test_do_set_weights_failure(subtensor, mocker):
 
     # Asserts
     assert result is False
-    mocked_format_error_message.assert_called_once_with(
-        fake_response.error_message, substrate=subtensor.substrate
-    )
+    mocked_format_error_message.assert_called_once_with(fake_response.error_message)
     assert message == mocked_format_error_message.return_value
 
 
@@ -412,9 +410,7 @@ async def test_do_commit_weights_failure(subtensor, mocker):
 
     # Asserts
     assert result is False
-    mocked_format_error_message.assert_called_once_with(
-        fake_response.error_message, substrate=subtensor.substrate
-    )
+    mocked_format_error_message.assert_called_once_with(fake_response.error_message)
     assert message == "Formatted error"
 
 
