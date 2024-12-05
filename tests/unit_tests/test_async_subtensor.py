@@ -1951,9 +1951,7 @@ async def test_get_children_substrate_request_exception(subtensor, mocker):
         storage_function="ChildKeys",
         params=[fake_hotkey, fake_netuid],
     )
-    mocked_format_error_message.assert_called_once_with(
-        fake_exception, subtensor.substrate
-    )
+    mocked_format_error_message.assert_called_once_with(fake_exception)
     assert result == (False, [], "Formatted error message")
 
 
