@@ -125,9 +125,7 @@ async def test_do_transfer_failure(subtensor, mocker):
     )
     assert success is False
     assert block_hash == ""
-    mocked_format_error_message.assert_called_once_with(
-        "Fake error message", substrate=subtensor.substrate
-    )
+    mocked_format_error_message.assert_called_once_with("Fake error message")
     assert error_message == "Formatted error message"
 
 

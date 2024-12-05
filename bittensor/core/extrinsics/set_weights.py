@@ -96,9 +96,7 @@ def do_set_weights(
     if response.is_success:
         return True, "Successfully set weights."
     else:
-        return False, format_error_message(
-            response.error_message, substrate=self.substrate
-        )
+        return False, format_error_message(response.error_message)
 
 
 # Community uses this extrinsic directly and via `subtensor.set_weights`

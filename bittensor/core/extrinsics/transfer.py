@@ -185,7 +185,7 @@ def transfer_extrinsic(
             )
     else:
         logging.error(
-            f":cross_mark: [red]Failed[/red]: {format_error_message(error_message, substrate=subtensor.substrate)}"
+            f":cross_mark: [red]Failed[/red]: {format_error_message(error_message)}"
         )
 
     if success:
