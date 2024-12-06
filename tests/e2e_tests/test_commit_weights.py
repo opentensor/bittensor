@@ -126,15 +126,15 @@ async def test_commit_and_reveal_weights_legacy(local_chain):
         params=[netuid, alice_wallet.hotkey.ss58_address],
     )
     # Assert that the committed weights are set correctly
-    assert weight_commits.value is not None, "Weight commit not found in storage"
-    commit_hash, commit_block, reveal_block, expire_block = weight_commits.value[0]
+    assert weight_commits is not None, "Weight commit not found in storage"
+    commit_hash, commit_block, reveal_block, expire_block = weight_commits[0]
     assert commit_block > 0, f"Invalid block number: {commit_block}"
 
     # Query the WeightCommitRevealInterval storage map
     reveal_periods = subtensor.query_module(
         module="SubtensorModule", name="RevealPeriodEpochs", params=[netuid]
     )
-    periods = reveal_periods.value
+    periods = reveal_periods
     assert periods > 0, "Invalid RevealPeriodEpochs"
 
     # Wait until the reveal block range
@@ -165,9 +165,9 @@ async def test_commit_and_reveal_weights_legacy(local_chain):
     )
 
     # Assert that the revealed weights are set correctly
-    assert revealed_weights.value is not None, "Weight reveal not found in storage"
+    assert revealed_weights is not None, "Weight reveal not found in storage"
 
     assert (
-        weight_vals[0] == revealed_weights.value[0][1]
-    ), f"Incorrect revealed weights. Expected: {weights[0]}, Actual: {revealed_weights.value[0][1]}"
+        weight_vals[0] == revealed_weights[0][1]
+    ), f"Incorrect revealed weights. Expected: {weights[0]}, Actual: {revealed_weights[0][1]}"
     print("✅ Passed test_commit_and_reveal_weights")
