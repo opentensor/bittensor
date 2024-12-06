@@ -6,9 +6,7 @@ from typing import Any
 
 @pytest.mark.asyncio
 async def test_wait_for_block_invalid_result_handler():
-    chain_interface = substrate_interface.AsyncSubstrateInterface(
-        "dummy_endpoint"
-    )
+    chain_interface = substrate_interface.AsyncSubstrateInterface("dummy_endpoint")
 
     with pytest.raises(ValueError):
 
@@ -24,9 +22,7 @@ async def test_wait_for_block_invalid_result_handler():
 
 @pytest.mark.asyncio
 async def test_wait_for_block_async_return():
-    chain_interface = substrate_interface.AsyncSubstrateInterface(
-        "dummy_endpoint"
-    )
+    chain_interface = substrate_interface.AsyncSubstrateInterface("dummy_endpoint")
 
     async def dummy_handler(block_data: dict[str, Any]) -> bool:
         return block_data.get("header", {}).get("number", -1) == 2

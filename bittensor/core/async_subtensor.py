@@ -48,10 +48,7 @@ from bittensor.utils import (
     validate_chain_endpoint,
     hex_to_bytes,
 )
-from bittensor.utils.substrate_interface import (
-    AsyncSubstrateInterface,
-    TimeoutException,
-)
+from bittensor.utils.substrate_interface import AsyncSubstrateInterface
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 from bittensor.utils.delegates_details import DelegatesDetails
@@ -157,7 +154,7 @@ class AsyncSubtensor:
         try:
             async with self.substrate:
                 return self
-        except TimeoutException:
+        except TimeoutError:
             logging.error(
                 f"[red]Error[/red]: Timeout occurred connecting to substrate. Verify your chain and network settings: {self}"
             )

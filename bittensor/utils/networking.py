@@ -1,8 +1,8 @@
 """Utils for handling local network with ip and ports."""
 
+import asyncio
 import json
 import os
-import socket
 import urllib
 from functools import wraps
 from typing import Optional
@@ -167,7 +167,13 @@ def ensure_connected(func):
 
     def is_connected(substrate) -> bool:
         """Check if the substrate connection is active."""
-        return True
+        try:
+            asyncio.get_event_loop().run_until_complete(
+                asyncio.wait_for(substrate.ws.ws.ping(), timeout=7.0)
+            )
+            return True
+        except (TimeoutError, ConnectionClosed):
+            return False
 
     @retry(
         exceptions=ConnectionRefusedError,
