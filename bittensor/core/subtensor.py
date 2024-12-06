@@ -16,7 +16,6 @@ from scalecodec.base import RuntimeConfiguration
 from scalecodec.exceptions import RemainingScaleBytesNotEmptyException
 from scalecodec.type_registry import load_type_registry_preset
 from scalecodec.types import ScaleType
-from substrateinterface.base import QueryMapResult, SubstrateInterface
 from websockets.sync import client as ws_client
 
 from bittensor.core import settings
@@ -71,6 +70,7 @@ from bittensor.utils import (
     hex_to_bytes,
     Certificate,
 )
+from bittensor.utils.substrate_interface import QueryMapResult, SubstrateInterface
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import legacy_torch_api_compat
@@ -222,22 +222,22 @@ class Subtensor:
 
         """
         try:
-            # Set up params.
-            if force and self.websocket:
-                logging.debug("Closing websocket connection")
-                self.websocket.close()
-
-            if force or self.websocket is None or self.websocket.close_code is not None:
-                self.websocket = ws_client.connect(
-                    self.chain_endpoint,
-                    open_timeout=self._connection_timeout,
-                    max_size=2**32,
-                )
+            # # Set up params.
+            # if force and self.websocket:
+            #     logging.debug("Closing websocket connection")
+            #     self.websocket.close()
+            #
+            # if force or self.websocket is None or self.websocket.close_code is not None:
+            #     self.websocket = ws_client.connect(
+            #         self.chain_endpoint,
+            #         open_timeout=self._connection_timeout,
+            #         max_size=2**32,
+            #     )
             self.substrate = SubstrateInterface(
+                chain_endpoint=self.chain_endpoint,
                 ss58_format=settings.SS58_FORMAT,
                 use_remote_preset=True,
                 type_registry=settings.TYPE_REGISTRY,
-                websocket=self.websocket,
             )
             if self.log_verbose:
                 logging.info(
@@ -742,7 +742,7 @@ class Subtensor:
         """
         result = self.query_map_subtensor("IsNetworkMember", block, [hotkey_ss58])
         return (
-            [record[0].value for record in result if record[1]]
+            [record[0] for record in result if record[1]]
             if result and hasattr(result, "records")
             else []
         )
@@ -1238,7 +1238,7 @@ class Subtensor:
         )
         if b_map_encoded.records:
             for uid, b in b_map_encoded:
-                b_map.append((uid.serialize(), b.serialize()))
+                b_map.append((uid, b))
 
         return b_map
 
@@ -1394,7 +1394,7 @@ class Subtensor:
         """
         result = self.query_map_subtensor("NetworksAdded", block)
         return (
-            [network[0].value for network in result.records if network[1]]
+            [network[0] for network in result if network[1]]
             if result and hasattr(result, "records")
             else []
         )
@@ -1447,7 +1447,7 @@ class Subtensor:
         )
         if w_map_encoded.records:
             for uid, w in w_map_encoded:
-                w_map.append((uid.serialize(), w.serialize()))
+                w_map.append((uid, w))
 
         return w_map
 
