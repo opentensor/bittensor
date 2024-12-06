@@ -225,7 +225,7 @@ class BtFileFormatter(logging.Formatter):
             record (logging.LogRecord): The log record.
 
         Returns:
-            formated record (str): The formatted log record.
+            formatted record (str): The formatted log record.
         """
         record.levelname = f"{record.levelname:^10}"
         return super().format(record)
