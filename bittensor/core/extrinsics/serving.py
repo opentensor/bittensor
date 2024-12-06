@@ -181,9 +181,7 @@ def serve_extrinsic(
             )
             return True
         else:
-            logging.error(
-                f"Failed: {format_error_message(error_message, substrate=subtensor.substrate)}"
-            )
+            logging.error(f"Failed: {format_error_message(error_message)}")
             return False
     else:
         return True
@@ -301,9 +299,7 @@ def publish_metadata(
         if response.is_success:
             return True
         else:
-            raise MetadataError(
-                format_error_message(response.error_message, substrate=self.substrate)
-            )
+            raise MetadataError(format_error_message(response.error_message))
 
 
 # Community uses this function directly

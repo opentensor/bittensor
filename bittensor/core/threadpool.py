@@ -204,7 +204,7 @@ class PriorityThreadPoolExecutor(_base.Executor):
         """
         parser = argparse.ArgumentParser()
         PriorityThreadPoolExecutor.add_args(parser)
-        return Config(parser, args=[])
+        return Config(parser)
 
     @property
     def is_empty(self):
