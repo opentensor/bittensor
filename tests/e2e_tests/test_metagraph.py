@@ -145,6 +145,8 @@ def test_metagraph(local_chain):
 
     # Test the save() and load() mechanism
     # We save the metagraph and pre_dave loads it
+    # TODO this can be screwed up because it always tries to pull the latest block of the given named
+    # TODO network. The path here should be set to /tmp or something
     metagraph.save()
     time.sleep(3)
     metagraph_pre_dave.load()

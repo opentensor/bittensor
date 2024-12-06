@@ -6,6 +6,7 @@ Bittensor blockchain, facilitating a range of operations essential for the decen
 import argparse
 import copy
 import ssl
+from itertools import chain
 from typing import Union, Optional, TypedDict, Any
 
 import numpy as np
@@ -941,12 +942,15 @@ class Subtensor:
             params=[netuid, hotkey],
         )
         try:
-            serialized_certificate = certificate.serialize()
-            if serialized_certificate:
-                return (
-                    chr(serialized_certificate["algorithm"])
-                    + serialized_certificate["public_key"]
+            if certificate:
+                return "".join(
+                    chr(i)
+                    for i in chain(
+                        [certificate["algorithm"]],
+                        certificate["public_key"][0],
+                    )
                 )
+
         except AttributeError:
             return None
         return None
