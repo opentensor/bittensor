@@ -1,12 +1,12 @@
 import pytest
 import asyncio
-from bittensor.utils import async_substrate_interface
+from bittensor.utils import substrate_interface
 from typing import Any
 
 
 @pytest.mark.asyncio
 async def test_wait_for_block_invalid_result_handler():
-    chain_interface = async_substrate_interface.AsyncSubstrateInterface(
+    chain_interface = substrate_interface.AsyncSubstrateInterface(
         "dummy_endpoint"
     )
 
@@ -24,7 +24,7 @@ async def test_wait_for_block_invalid_result_handler():
 
 @pytest.mark.asyncio
 async def test_wait_for_block_async_return():
-    chain_interface = async_substrate_interface.AsyncSubstrateInterface(
+    chain_interface = substrate_interface.AsyncSubstrateInterface(
         "dummy_endpoint"
     )
 

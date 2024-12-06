@@ -45,7 +45,7 @@ def timeout_handler(signum, frame):
     raise TimeoutException("Operation timed out")
 
 
-class ExtrinsicReceipt:
+class AsyncExtrinsicReceipt:
     """
     Object containing information of submitted extrinsic. Block hash where extrinsic is included is required
     when retrieving triggered events or determine if extrinsic was successful
@@ -351,6 +351,43 @@ class ExtrinsicReceipt:
         return self[name]
 
 
+class ExtrinsicReceipt:
+    """
+    A wrapper around AsyncExtrinsicReceipt that allows for using all the calls from it in a synchronous context
+    """
+
+    def __init__(
+        self,
+        substrate: "AsyncSubstrateInterface",
+        extrinsic_hash: Optional[str] = None,
+        block_hash: Optional[str] = None,
+        block_number: Optional[int] = None,
+        extrinsic_idx: Optional[int] = None,
+        finalized=None,
+    ):
+        self._async_instance = AsyncExtrinsicReceipt(
+            substrate,
+            extrinsic_hash,
+            block_hash,
+            block_number,
+            extrinsic_idx,
+            finalized,
+        )
+        self.event_loop = asyncio.get_event_loop()
+
+    def __getattr__(self, name):
+        attr = getattr(self._async_instance, name)
+
+        if asyncio.iscoroutinefunction(attr):
+
+            def sync_method(*args, **kwargs):
+                return self.event_loop.run_until_complete(attr(*args, **kwargs))
+
+            return sync_method
+        else:
+            return attr
+
+
 class QueryMapResult:
     def __init__(
         self,
@@ -397,6 +434,9 @@ class QueryMapResult:
     def __aiter__(self):
         return self
 
+    def __iter__(self):
+        return self
+
     async def __anext__(self):
         try:
             # Try to get the next record from the buffer
@@ -414,6 +454,12 @@ class QueryMapResult:
             # Update the buffer with the newly fetched records
             self._buffer = iter(next_page)
             return next(self._buffer)
+
+    def __next__(self):
+        try:
+            return self.substrate.event_loop.run_until_complete(self.__anext__())
+        except StopAsyncIteration:
+            raise StopIteration
 
     def __getitem__(self, item):
         return self.records[item]
@@ -773,6 +819,7 @@ class AsyncSubstrateInterface:
         ss58_format: Optional[int] = None,
         type_registry: Optional[dict] = None,
         chain_name: Optional[str] = None,
+        sync_calls: bool = False,
     ):
         """
         The asyncio-compatible version of the subtensor interface commands we use in bittensor. It is important to
@@ -786,6 +833,7 @@ class AsyncSubstrateInterface:
             ss58_format: the specific SS58 format to use
             type_registry: a dict of custom types
             chain_name: the name of the chain (the result of the rpc request for "system_chain")
+            sync_calls: whether this instance is going to be called through a sync wrapper or plain
 
         """
         self.chain_endpoint = chain_endpoint
@@ -818,6 +866,8 @@ class AsyncSubstrateInterface:
         self.transaction_version = None
         self.__metadata = None
         self.metadata_version_hex = "0x0f000000"  # v15
+        self.event_loop = asyncio.get_event_loop()
+        self.sync_calls = sync_calls
 
     async def __aenter__(self):
         await self.initialize()
@@ -2623,7 +2673,7 @@ class AsyncSubstrateInterface:
         extrinsic: GenericExtrinsic,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
-    ) -> "ExtrinsicReceipt":
+    ) -> Union["AsyncExtrinsicReceipt", "ExtrinsicReceipt"]:
         """
         Submit an extrinsic to the connected node, with the possibility to wait until the extrinsic is included
          in a block and/or the block is finalized. The receipt returned provided information about the block and
@@ -2637,7 +2687,9 @@ class AsyncSubstrateInterface:
         Returns:
             ExtrinsicReceipt object of your submitted extrinsic
         """
-
+        extrinsic_receipt_cls = (
+            AsyncExtrinsicReceipt if self.sync_calls is False else ExtrinsicReceipt
+        )
         # Check requirements
         if not isinstance(extrinsic, GenericExtrinsic):
             raise TypeError("'extrinsic' must be of type Extrinsics")
@@ -2712,7 +2764,7 @@ class AsyncSubstrateInterface:
 
             # Also, this will be a multipart response, so maybe should change to everything after the first response?
             # The following code implies this will be a single response after the initial subscription id.
-            result = ExtrinsicReceipt(
+            result = extrinsic_receipt_cls(
                 substrate=self,
                 extrinsic_hash=response["extrinsic_hash"],
                 block_hash=response["block_hash"],
@@ -2727,7 +2779,9 @@ class AsyncSubstrateInterface:
             if "result" not in response:
                 raise SubstrateRequestException(response.get("error"))
 
-            result = ExtrinsicReceipt(substrate=self, extrinsic_hash=response["result"])
+            result = extrinsic_receipt_cls(
+                substrate=self, extrinsic_hash=response["result"]
+            )
 
         return result
 
@@ -2823,3 +2877,42 @@ class AsyncSubstrateInterface:
             return asyncio.create_task(co)
         else:
             return await co
+
+
+class SubstrateInterface:
+    """
+    A wrapper around AsyncSubstrateInterface that allows for using all of the calls from it in a synchronous context
+    """
+
+    def __init__(
+        self,
+        chain_endpoint: str,
+        use_remote_preset: bool = False,
+        auto_discover: bool = True,
+        ss58_format: Optional[int] = None,
+        type_registry: Optional[dict] = None,
+        chain_name: Optional[str] = None,
+    ):
+        self._async_instance = AsyncSubstrateInterface(
+            chain_endpoint=chain_endpoint,
+            use_remote_preset=use_remote_preset,
+            auto_discover=auto_discover,
+            ss58_format=ss58_format,
+            type_registry=type_registry,
+            chain_name=chain_name,
+            sync_calls=True,
+        )
+        self.event_loop = asyncio.get_event_loop()
+        self.event_loop.run_until_complete(self._async_instance.initialize())
+
+    def __getattr__(self, name):
+        attr = getattr(self._async_instance, name)
+
+        if asyncio.iscoroutinefunction(attr):
+
+            def sync_method(*args, **kwargs):
+                return self.event_loop.run_until_complete(attr(*args, **kwargs))
+
+            return sync_method
+        else:
+            return attr

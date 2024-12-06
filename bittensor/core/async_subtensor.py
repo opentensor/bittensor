@@ -48,7 +48,7 @@ from bittensor.utils import (
     validate_chain_endpoint,
     hex_to_bytes,
 )
-from bittensor.utils.async_substrate_interface import (
+from bittensor.utils.substrate_interface import (
     AsyncSubstrateInterface,
     TimeoutException,
 )

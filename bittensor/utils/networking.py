@@ -167,12 +167,7 @@ def ensure_connected(func):
 
     def is_connected(substrate) -> bool:
         """Check if the substrate connection is active."""
-        sock = substrate.websocket.socket
-        try:
-            sock_opt = sock.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
-            return sock is not None and sock_opt == 0
-        except (OSError, AttributeError):
-            return False
+        return True
 
     @retry(
         exceptions=ConnectionRefusedError,
