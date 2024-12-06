@@ -128,9 +128,7 @@ async def test_do_pow_register_failure(subtensor, mocker):
         extrinsic=fake_extrinsic, wait_for_inclusion=True, wait_for_finalization=True
     )
 
-    mocked_format_error_message.assert_called_once_with(
-        error_message=fake_err_message, substrate=subtensor.substrate
-    )
+    mocked_format_error_message.assert_called_once_with(error_message=fake_err_message)
     assert result_error_message == (False, mocked_format_error_message.return_value)
 
 
