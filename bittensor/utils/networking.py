@@ -172,7 +172,7 @@ def ensure_connected(func):
                 asyncio.wait_for(substrate.ws.ws.ping(), timeout=7.0)
             )
             return True
-        except (TimeoutError, ConnectionClosed):
+        except (TimeoutError, ConnectionClosed, AttributeError):
             return False
 
     @retry(
