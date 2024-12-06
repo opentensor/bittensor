@@ -58,9 +58,7 @@ def _do_unstake(
     if response.is_success:
         return True
     else:
-        raise StakeError(
-            format_error_message(response.error_message, substrate=self.substrate)
-        )
+        raise StakeError(format_error_message(response.error_message))
 
 
 def _check_threshold_amount(subtensor: "Subtensor", stake_balance: "Balance") -> bool:

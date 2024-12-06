@@ -85,9 +85,7 @@ async def _do_pow_register(
     # process if registration successful, try again if pow is still valid
     await response.process_events()
     if not await response.is_success:
-        return False, format_error_message(
-            error_message=await response.error_message, substrate=subtensor.substrate
-        )
+        return False, format_error_message(error_message=await response.error_message)
     # Successful registration
     else:
         return True, None
