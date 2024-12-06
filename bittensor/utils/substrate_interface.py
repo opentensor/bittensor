@@ -37,14 +37,6 @@ if TYPE_CHECKING:
 ResultHandler = Callable[[dict, Any], Awaitable[tuple[dict, bool]]]
 
 
-class TimeoutException(Exception):
-    pass
-
-
-def timeout_handler(signum, frame):
-    raise TimeoutException("Operation timed out")
-
-
 class AsyncExtrinsicReceipt:
     """
     Object containing information of submitted extrinsic. Block hash where extrinsic is included is required
