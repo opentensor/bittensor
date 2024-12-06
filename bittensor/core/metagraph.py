@@ -1,3 +1,4 @@
+import copy
 import os
 import pickle
 import typing
@@ -910,6 +911,30 @@ class MetagraphMixin(ABC):
             contain valid data for the metagraph. It is essential to ensure that the directory path and the
             state files within it are accurate and consistent with the expected metagraph structure.
         """
+
+    def __deepcopy__(self, memo):
+        cls = self.__class__
+        new_instance = cls.__new__(cls)
+        memo[id(self)] = new_instance
+
+        for key, value in self.__dict__.items():
+            if key == "subtensor":
+                setattr(new_instance, key, None)
+            else:
+                setattr(new_instance, key, copy.deepcopy(value, memo))
+
+        return new_instance
+
+    def __copy__(self):
+        cls = self.__class__
+        new_instance = cls.__new__(cls)
+
+        for key, value in self.__dict__.items():
+            if key == "subtensor":
+                setattr(new_instance, key, None)
+            else:
+                setattr(new_instance, key, value)
+        return new_instance
 
 
 BaseClass: Union["torch.nn.Module", object] = torch.nn.Module if use_torch() else object
