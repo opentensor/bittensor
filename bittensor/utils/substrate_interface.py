@@ -8,6 +8,7 @@ import asyncio
 import inspect
 import json
 import random
+import ssl
 from collections import defaultdict
 from dataclasses import dataclass
 from hashlib import blake2b
@@ -750,10 +751,10 @@ class Websocket:
                 self._received[response["params"]["subscription"]] = response
             else:
                 raise KeyError(response)
-        except ConnectionClosed:
+        except ssl.SSLError:
+            raise ConnectionClosed
+        except (ConnectionClosed, KeyError):
             raise
-        except KeyError as e:
-            raise e
 
     async def _start_receiving(self):
         try:
@@ -781,6 +782,8 @@ class Websocket:
             return original_id
         except ConnectionClosed:
             raise
+        except ssl.SSLError:
+            raise ConnectionClosed
 
     async def retrieve(self, item_id: int) -> Optional[dict]:
         """
