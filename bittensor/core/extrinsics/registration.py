@@ -62,6 +62,7 @@ def _do_pow_register(
             "coldkey": wallet.coldkeypub.ss58_address,
         },
     )
+    # TODO sign for period length adjustmentInterval(netuid) and lastAdjustmentBlock(netuid)
     extrinsic = self.substrate.create_signed_extrinsic(call=call, keypair=wallet.hotkey)
     response = submit_extrinsic(
         self,
