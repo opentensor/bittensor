@@ -24,7 +24,6 @@ from bittensor.core.extrinsics.utils import submit_extrinsic
 from bittensor.core.settings import version_as_int
 from bittensor.utils import format_error_message, weight_utils
 from bittensor.utils.btlogging import logging
-from bittensor.utils.networking import ensure_connected
 from bittensor.utils.registration import torch, use_torch
 
 # For annotation purposes
@@ -34,7 +33,6 @@ if TYPE_CHECKING:
 
 
 # Chain call for `do_set_weights`
-@ensure_connected
 def do_set_weights(
     self: "Subtensor",
     wallet: "Wallet",

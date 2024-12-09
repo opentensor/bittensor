@@ -22,7 +22,6 @@ from typing import Optional, TYPE_CHECKING
 from bittensor.core.extrinsics.utils import submit_extrinsic
 from bittensor.utils import format_error_message
 from bittensor.utils.btlogging import logging
-from bittensor.utils.networking import ensure_connected
 
 # For annotation purposes
 if TYPE_CHECKING:
@@ -31,7 +30,8 @@ if TYPE_CHECKING:
 
 
 # Chain call for `commit_weights_extrinsic`
-@ensure_connected
+
+
 def do_commit_weights(
     self: "Subtensor",
     wallet: "Wallet",
@@ -133,7 +133,8 @@ def commit_weights_extrinsic(
 
 
 # Chain call for `reveal_weights_extrinsic`
-@ensure_connected
+
+
 def do_reveal_weights(
     self: "Subtensor",
     wallet: "Wallet",
