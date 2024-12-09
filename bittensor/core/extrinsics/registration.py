@@ -12,7 +12,6 @@ from typing import Union, Optional, TYPE_CHECKING
 
 from bittensor.utils import format_error_message, unlock_key
 from bittensor.utils.btlogging import logging
-from bittensor.utils.networking import ensure_connected
 from bittensor.utils.registration import create_pow, torch, log_no_torch_error
 from bittensor.core.extrinsics.utils import submit_extrinsic
 
@@ -28,7 +27,6 @@ else:
     torch = LazyLoadedTorch()
 
 
-@ensure_connected
 def _do_pow_register(
     self: "Subtensor",
     netuid: int,
@@ -258,7 +256,6 @@ def register_extrinsic(
             return False
 
 
-@ensure_connected
 def _do_burned_register(
     self,
     netuid: int,

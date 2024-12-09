@@ -27,7 +27,6 @@ from bittensor.utils import (
 )
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
-from bittensor.utils.networking import ensure_connected
 
 # For annotation purposes
 if TYPE_CHECKING:
@@ -36,7 +35,8 @@ if TYPE_CHECKING:
 
 
 # Chain call for `transfer_extrinsic`
-@ensure_connected
+
+
 def do_transfer(
     self: "Subtensor",
     wallet: "Wallet",

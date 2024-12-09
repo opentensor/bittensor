@@ -27,7 +27,6 @@ from bittensor.utils import (
     Certificate,
 )
 from bittensor.utils.btlogging import logging
-from bittensor.utils.networking import ensure_connected
 
 # For annotation purposes
 if TYPE_CHECKING:
@@ -38,7 +37,8 @@ if TYPE_CHECKING:
 
 
 # Chain call for `serve_extrinsic` and `serve_axon_extrinsic`
-@ensure_connected
+
+
 def do_serve_axon(
     self: "Subtensor",
     wallet: "Wallet",
@@ -242,7 +242,8 @@ def serve_axon_extrinsic(
 
 
 # Community uses this extrinsic directly and via `subtensor.commit`
-@net.ensure_connected
+
+
 def publish_metadata(
     self: "Subtensor",
     wallet: "Wallet",
@@ -303,7 +304,8 @@ def publish_metadata(
 
 
 # Community uses this function directly
-@net.ensure_connected
+
+
 def get_metadata(self, netuid: int, hotkey: str, block: Optional[int] = None) -> str:
     with self.substrate as substrate:
         return substrate.query(
