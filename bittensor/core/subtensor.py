@@ -5,6 +5,7 @@ Bittensor blockchain, facilitating a range of operations essential for the decen
 
 import argparse
 import copy
+import functools
 import ssl
 from itertools import chain
 from typing import Union, Optional, TypedDict, Any
@@ -468,9 +469,7 @@ class Subtensor:
             module="SubtensorModule",
             storage_function=name,
             params=params,
-            block_hash=(
-                None if block is None else self.substrate.get_block_hash(block)
-            ),
+            block_hash=None if block is None else self.get_block_hash(block),
         )
 
     @networking.ensure_connected
@@ -494,9 +493,7 @@ class Subtensor:
             module="SubtensorModule",
             storage_function=name,
             params=params,
-            block_hash=(
-                None if block is None else self.substrate.get_block_hash(block)
-            ),
+            block_hash=None if block is None else self.get_block_hash(block),
         )
 
     def query_runtime_api(
@@ -566,7 +563,7 @@ class Subtensor:
 
         The state call function provides a more direct and flexible way of querying blockchain data, useful for specific use cases where standard queries are insufficient.
         """
-        block_hash = None if block is None else self.substrate.get_block_hash(block)
+        block_hash = None if block is None else self.get_block_hash(block)
         return self.substrate.rpc_request(
             method="state_call",
             params=[method, data, block_hash] if block_hash else [method, data],
@@ -598,9 +595,7 @@ class Subtensor:
             module=module,
             storage_function=name,
             params=params,
-            block_hash=(
-                None if block is None else self.substrate.get_block_hash(block)
-            ),
+            block_hash=None if block is None else self.get_block_hash(block),
         )
 
     @networking.ensure_connected
@@ -623,9 +618,7 @@ class Subtensor:
         return self.substrate.get_constant(
             module_name=module_name,
             constant_name=constant_name,
-            block_hash=(
-                None if block is None else self.substrate.get_block_hash(block)
-            ),
+            block_hash=None if block is None else self.get_block_hash(block),
         )
 
     @networking.ensure_connected
@@ -654,9 +647,7 @@ class Subtensor:
             module=module,
             storage_function=name,
             params=params,
-            block_hash=(
-                None if block is None else self.substrate.get_block_hash(block)
-            ),
+            block_hash=None if block is None else self.get_block_hash(block),
         )
 
     # Common subtensor methods =========================================================================================
@@ -840,7 +831,7 @@ class Subtensor:
         call = self._get_hyperparameter(param_name="LastUpdate", netuid=netuid)
         return None if call is None else self.get_current_block() - int(call[uid])
 
-    @networking.ensure_connected
+    @functools.lru_cache(maxsize=128, typed=False)
     def get_block_hash(self, block_id: int) -> str:
         """
         Retrieves the hash of a specific block on the Bittensor blockchain. The block hash is a unique identifier representing the cryptographic hash of the block's content, ensuring its integrity and immutability.
@@ -975,7 +966,7 @@ class Subtensor:
         if uid is None:
             return NeuronInfo.get_null_neuron()
 
-        block_hash = None if block is None else self.substrate.get_block_hash(block)
+        block_hash = None if block is None else self.get_block_hash(block)
         params = [netuid, uid]
         if block_hash:
             params = params + [block_hash]
@@ -1470,9 +1461,7 @@ class Subtensor:
                 module="System",
                 storage_function="Account",
                 params=[address],
-                block_hash=(
-                    None if block is None else self.substrate.get_block_hash(block)
-                ),
+                block_hash=None if block is None else self.get_block_hash(block),
             )
 
         except RemainingScaleBytesNotEmptyException:
@@ -1627,7 +1616,7 @@ class Subtensor:
         """
         encoded_hotkey = ss58_to_vec_u8(hotkey_ss58)
 
-        block_hash = None if block is None else self.substrate.get_block_hash(block)
+        block_hash = None if block is None else self.get_block_hash(block)
 
         json_body = self.substrate.rpc_request(
             method="delegateInfo_getDelegate",  # custom rpc method
@@ -1745,7 +1734,7 @@ class Subtensor:
             list[DelegateInfo]: A list of DelegateInfo objects detailing each delegate's characteristics.
 
         """
-        block_hash = None if block is None else self.substrate.get_block_hash(block)
+        block_hash = None if block is None else self.get_block_hash(block)
 
         json_body = self.substrate.rpc_request(
             method="delegateInfo_getDelegates",
