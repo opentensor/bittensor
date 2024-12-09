@@ -305,20 +305,20 @@ class Subtensor:
                     config.subtensor.chain_endpoint
                 )
 
-            elif config.is_set("subtensor.network"):
-                (
-                    evaluated_network,
-                    evaluated_endpoint,
-                ) = Subtensor.determine_chain_endpoint_and_network(
-                    config.subtensor.network
-                )
-
             elif config.subtensor.get("chain_endpoint"):
                 (
                     evaluated_network,
                     evaluated_endpoint,
                 ) = Subtensor.determine_chain_endpoint_and_network(
                     config.subtensor.chain_endpoint
+                )
+
+            elif config.is_set("subtensor.network"):
+                (
+                    evaluated_network,
+                    evaluated_endpoint,
+                ) = Subtensor.determine_chain_endpoint_and_network(
+                    config.subtensor.network
                 )
 
             elif config.subtensor.get("network"):
@@ -404,7 +404,7 @@ class Subtensor:
             pass
 
     # Inner private functions
-    @networking.ensure_connected
+
     def _encode_params(
         self,
         call_definition: dict[str, list["ParamWithTypes"]],
@@ -446,7 +446,7 @@ class Subtensor:
         return result
 
     # Chain calls methods ==============================================================================================
-    @networking.ensure_connected
+
     def query_subtensor(
         self, name: str, block: Optional[int] = None, params: Optional[list] = None
     ) -> "ScaleType":
@@ -471,7 +471,6 @@ class Subtensor:
             block_hash=None if block is None else self.get_block_hash(block),
         )
 
-    @networking.ensure_connected
     def query_map_subtensor(
         self, name: str, block: Optional[int] = None, params: Optional[list] = None
     ) -> "QueryMapResult":
@@ -545,7 +544,6 @@ class Subtensor:
 
         return obj.decode()
 
-    @networking.ensure_connected
     def state_call(
         self, method: str, data: str, block: Optional[int] = None
     ) -> dict[Any, Any]:
@@ -568,7 +566,6 @@ class Subtensor:
             params=[method, data, block_hash] if block_hash else [method, data],
         )
 
-    @networking.ensure_connected
     def query_map(
         self,
         module: str,
@@ -597,7 +594,6 @@ class Subtensor:
             block_hash=None if block is None else self.get_block_hash(block),
         )
 
-    @networking.ensure_connected
     def query_constant(
         self, module_name: str, constant_name: str, block: Optional[int] = None
     ) -> Optional["ScaleType"]:
@@ -620,7 +616,6 @@ class Subtensor:
             block_hash=None if block is None else self.get_block_hash(block),
         )
 
-    @networking.ensure_connected
     def query_module(
         self,
         module: str,
@@ -735,7 +730,6 @@ class Subtensor:
             else []
         )
 
-    @networking.ensure_connected
     def get_current_block(self) -> int:
         """
         Returns the current block number on the Bittensor blockchain. This function provides the latest block number, indicating the most recent state of the blockchain.
@@ -945,7 +939,6 @@ class Subtensor:
             return None
         return None
 
-    @networking.ensure_connected
     def neuron_for_uid(
         self, uid: Optional[int], netuid: int, block: Optional[int] = None
     ) -> "NeuronInfo":
@@ -1161,7 +1154,6 @@ class Subtensor:
         _result = self.query_subtensor("NetworksAdded", block, [netuid])
         return _result
 
-    @networking.ensure_connected
     def get_all_subnets_info(self, block: Optional[int] = None) -> list[SubnetInfo]:
         """
         Retrieves detailed information about all subnets within the Bittensor network. This function provides comprehensive data on each subnet, including its characteristics and operational parameters.
@@ -1345,7 +1337,6 @@ class Subtensor:
 
         return w_map
 
-    @networking.ensure_connected
     def get_balance(self, address: str, block: Optional[int] = None) -> "Balance":
         """
         Retrieves the token balance of a specific address within the Bittensor network. This function queries the blockchain to determine the amount of Tao held by a given account.
@@ -1375,7 +1366,6 @@ class Subtensor:
 
         return Balance(result["data"]["free"])
 
-    @networking.ensure_connected
     def get_transfer_fee(
         self, wallet: "Wallet", dest: str, value: Union["Balance", float, int]
     ) -> "Balance":
@@ -1501,7 +1491,6 @@ class Subtensor:
         _result = self.query_subtensor("Delegates", block, [hotkey_ss58])
         return None if _result is None else u16_normalized_float(_result)
 
-    @networking.ensure_connected
     def get_delegate_by_hotkey(
         self, hotkey_ss58: str, block: Optional[int] = None
     ) -> Optional[DelegateInfo]:
@@ -1586,7 +1575,6 @@ class Subtensor:
             else result
         )
 
-    @networking.ensure_connected
     def get_minimum_required_stake(
         self,
     ) -> Balance:
@@ -1623,7 +1611,6 @@ class Subtensor:
         result = self.query_subtensor("TxRateLimit", block)
         return result
 
-    @networking.ensure_connected
     def get_delegates(self, block: Optional[int] = None) -> list[DelegateInfo]:
         """
         Retrieves a list of all delegate neurons within the Bittensor network. This function provides an overview of the neurons that are actively involved in the network's delegation system.

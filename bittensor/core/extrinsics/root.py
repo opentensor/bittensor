@@ -8,7 +8,6 @@ from bittensor.core.settings import version_as_int
 from bittensor.core.extrinsics.utils import submit_extrinsic
 from bittensor.utils import format_error_message, weight_utils, unlock_key
 from bittensor.utils.btlogging import logging
-from bittensor.utils.networking import ensure_connected
 from bittensor.utils.registration import torch, legacy_torch_api_compat
 
 if TYPE_CHECKING:
@@ -16,7 +15,6 @@ if TYPE_CHECKING:
     from bittensor.core.subtensor import Subtensor
 
 
-@ensure_connected
 def _do_root_register(
     self: "Subtensor",
     wallet: "Wallet",
@@ -108,7 +106,6 @@ def root_register_extrinsic(
             logging.error(":cross_mark: [red]Unknown error. Neuron not found.[/red]")
 
 
-@ensure_connected
 def _do_set_root_weights(
     self: "Subtensor",
     wallet: "Wallet",
