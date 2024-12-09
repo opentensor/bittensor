@@ -2,6 +2,7 @@
 The ``bittensor.core.subtensor.Subtensor`` module in Bittensor serves as a crucial interface for interacting with the
 Bittensor blockchain, facilitating a range of operations essential for the decentralized machine learning network.
 """
+# TODO all subtensor methods that accept block numbers should also accept block hashes
 
 import argparse
 import copy
@@ -1179,7 +1180,7 @@ class Subtensor:
         This function is critical for verifying the presence of specific subnets in the network, enabling a deeper understanding of the network's structure and composition.
         """
         _result = self.query_subtensor("NetworksAdded", block, [netuid])
-        return _result
+        return bool(_result)
 
     def get_all_subnets_info(self, block: Optional[int] = None) -> list[SubnetInfo]:
         """

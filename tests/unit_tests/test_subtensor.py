@@ -297,7 +297,7 @@ def test_hyperparameter_success_int(subtensor, mocker):
     """Test when query_subtensor returns an integer value."""
     subtensor.subnet_exists = mocker.MagicMock(return_value=True)
     subtensor.query_subtensor = mocker.MagicMock(
-        return_value=mocker.MagicMock(value=100)
+        return_value=100
     )
     assert subtensor._get_hyperparameter("Difficulty", 1, None) == 100
     subtensor.subnet_exists.assert_called_once_with(1, None)
@@ -308,7 +308,7 @@ def test_hyperparameter_success_float(subtensor, mocker):
     """Test when query_subtensor returns a float value."""
     subtensor.subnet_exists = mocker.MagicMock(return_value=True)
     subtensor.query_subtensor = mocker.MagicMock(
-        return_value=mocker.MagicMock(value=0.5)
+        return_value=0.5
     )
     assert subtensor._get_hyperparameter("Difficulty", 1, None) == 0.5
     subtensor.subnet_exists.assert_called_once_with(1, None)
@@ -530,15 +530,13 @@ def test_get_prometheus_info_success(mocker, subtensor):
     netuid = 1
     hotkey_ss58 = "test_hotkey"
     block = 123
-    mock_result = mocker.MagicMock(
-        value={
+    mock_result = {
             "ip": 3232235777,  # 192.168.1.1
             "ip_type": 4,
             "port": 9090,
             "version": "1.0",
             "block": 1000,
         }
-    )
     mocker.patch.object(subtensor, "query_subtensor", return_value=mock_result)
 
     # Call
@@ -574,44 +572,21 @@ def test_get_prometheus_info_no_data(mocker, subtensor):
     )
 
 
-def test_get_prometheus_info_no_value_attribute(mocker, subtensor):
-    """Test get_prometheus_info returns None when result has no value attribute."""
-    # Prep
-    netuid = 1
-    hotkey_ss58 = "test_hotkey"
-    block = 123
-    mock_result = mocker.MagicMock()
-    del mock_result.value
-    mocker.patch.object(subtensor, "query_subtensor", return_value=mock_result)
-
-    # Call
-    result = subtensor.get_prometheus_info(netuid, hotkey_ss58, block)
-
-    # Asserts
-    assert result is None
-    subtensor.query_subtensor.assert_called_once_with(
-        "Prometheus", block, [netuid, hotkey_ss58]
-    )
-
-
 def test_get_prometheus_info_no_block(mocker, subtensor):
     """Test get_prometheus_info with no block specified."""
     # Prep
     netuid = 1
     hotkey_ss58 = "test_hotkey"
-    mock_result = MagicMock(
-        value={
+    mock_result = {
             "ip": "192.168.1.1",
             "ip_type": 4,
             "port": 9090,
             "version": "1.0",
             "block": 1000,
         }
-    )
-    mocker.patch.object(subtensor, "query_subtensor", return_value=mock_result)
-
-    # Call
-    result = subtensor.get_prometheus_info(netuid, hotkey_ss58)
+    with mocker.patch.object(subtensor, "query_subtensor", return_value=mock_result):
+        # Call
+        result = subtensor.get_prometheus_info(netuid, hotkey_ss58)
 
     # Asserts
     assert result is not None
@@ -648,11 +623,9 @@ def test_subnet_exists_success(mocker, subtensor):
     # Prep
     netuid = 1
     block = 123
-    mock_result = mocker.MagicMock(value=True)
-    mocker.patch.object(subtensor, "query_subtensor", return_value=mock_result)
-
-    # Call
-    result = subtensor.subnet_exists(netuid, block)
+    with mocker.patch.object(subtensor, "query_subtensor", return_value=True):
+        # Call
+        result = subtensor.subnet_exists(netuid, block)
 
     # Asserts
     assert result is True
@@ -664,10 +637,9 @@ def test_subnet_exists_no_data(mocker, subtensor):
     # Prep
     netuid = 1
     block = 123
-    mocker.patch.object(subtensor, "query_subtensor", return_value=None)
-
-    # Call
-    result = subtensor.subnet_exists(netuid, block)
+    with mocker.patch.object(subtensor, "query_subtensor", return_value=None):
+        # Call
+        result = subtensor.subnet_exists(netuid, block)
 
     # Asserts
     assert result is False
