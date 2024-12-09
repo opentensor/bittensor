@@ -9,6 +9,7 @@ import inspect
 import json
 import random
 import ssl
+import time
 from collections import defaultdict
 from dataclasses import dataclass
 from hashlib import blake2b
@@ -31,6 +32,7 @@ from websockets.asyncio.client import connect
 from websockets.exceptions import ConnectionClosed
 
 from bittensor.utils import hex_to_bytes
+from bittensor.utils.btlogging import logging
 
 if TYPE_CHECKING:
     from websockets.asyncio.client import ClientConnection
@@ -688,19 +690,31 @@ class Websocket:
         self._exit_task = None
         self._open_subscriptions = 0
         self._options = options if options else {}
+        self.last_received = time.time()
 
     async def __aenter__(self):
         async with self._lock:
             self._in_use += 1
-            if self._exit_task:
-                self._exit_task.cancel()
-            if not self._initialized:
-                self._initialized = True
-                self.ws = await asyncio.wait_for(
-                    connect(self.ws_url, **self._options), timeout=10
-                )
-                self._receiving_task = asyncio.create_task(self._start_receiving())
+            await self.connect()
         return self
+
+    async def connect(self, force=False):
+        if self._exit_task:
+            self._exit_task.cancel()
+        if not self._initialized or force:
+            self._initialized = True
+            try:
+                self._receiving_task.cancel()
+                await self._receiving_task
+                await self.ws.close()
+            except (AttributeError, asyncio.CancelledError):
+                pass
+            self.ws = await asyncio.wait_for(
+                connect(self.ws_url, **self._options), timeout=10
+            )
+            self._receiving_task = asyncio.create_task(self._start_receiving())
+        if force:
+            self.id = 100
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         async with self._lock:
@@ -743,6 +757,7 @@ class Websocket:
     async def _recv(self) -> None:
         try:
             response = json.loads(await self.ws.recv())
+            self.last_received = time.time()
             async with self._lock:
                 # note that these 'subscriptions' are all waiting sent messages which have not received
                 # responses, and thus are not the same as RPC 'subscriptions', which are unique
@@ -765,8 +780,8 @@ class Websocket:
         except asyncio.CancelledError:
             pass
         except ConnectionClosed:
-            # TODO try reconnect, but only if it's needed
-            raise
+            async with self._lock:
+                await self.connect(force=True)
 
     async def send(self, payload: dict) -> int:
         """
@@ -785,10 +800,9 @@ class Websocket:
         try:
             await self.ws.send(json.dumps({**payload, **{"id": original_id}}))
             return original_id
-        except ConnectionClosed:
-            raise
-        except ssl.SSLError:
-            raise ConnectionClosed
+        except (ConnectionClosed, ssl.SSLError, EOFError):
+            async with self._lock:
+                await self.connect(force=True)
 
     async def retrieve(self, item_id: int) -> Optional[dict]:
         """
@@ -820,6 +834,7 @@ class AsyncSubstrateInterface:
         type_registry: Optional[dict] = None,
         chain_name: Optional[str] = None,
         sync_calls: bool = False,
+        max_retries: int = 5,
     ):
         """
         The asyncio-compatible version of the subtensor interface commands we use in bittensor. It is important to
@@ -834,8 +849,10 @@ class AsyncSubstrateInterface:
             type_registry: a dict of custom types
             chain_name: the name of the chain (the result of the rpc request for "system_chain")
             sync_calls: whether this instance is going to be called through a sync wrapper or plain
+            max_retries: number of times to retry RPC requests before giving up
 
         """
+        self.max_retries = max_retries
         self.chain_endpoint = chain_endpoint
         self.__chain = chain_name
         self.ws = Websocket(
@@ -1004,7 +1021,6 @@ class AsyncSubstrateInterface:
                 raise SubstrateRequestException(
                     f'Block not found for "{self.last_block_hash}"'
                 )
-
             parent_block_hash: str = block_header["result"]["parentHash"]
 
             if (
@@ -1682,6 +1698,7 @@ class AsyncSubstrateInterface:
         storage_item: Optional[ScaleType] = None,
         runtime: Optional[Runtime] = None,
         result_handler: Optional[ResultHandler] = None,
+        attempt: int = 1,
     ) -> RequestManager.RequestResults:
         request_manager = RequestManager(payloads)
 
@@ -1692,7 +1709,7 @@ class AsyncSubstrateInterface:
                 item_id = await ws.send(item["payload"])
                 request_manager.add_request(item_id, item["id"])
 
-            while True:  # TODO this could potentially result in an infinite loop — consider adding a timeout
+            while True:
                 for item_id in request_manager.response_map.keys():
                     if (
                         item_id not in request_manager.responses
@@ -1728,7 +1745,28 @@ class AsyncSubstrateInterface:
                     ):
                         subscription_added = True
                         break
-
+                if time.time() - self.ws.last_received >= 20:
+                    if attempt >= self.max_retries:
+                        logging.error(
+                            f"Timed out waiting for RPC requests {attempt} times. Exiting."
+                        )
+                        raise SubstrateRequestException("Max retries reached.")
+                    else:
+                        self.ws.last_received = time.time()
+                        await self.ws.connect(force=True)
+                        logging.error(
+                            f"Timed out waiting for RPC requests. "
+                            f"Retrying attempt {attempt + 1} of {self.max_retries} with payloads "
+                            f"{payloads}"
+                        )
+                        return await self._make_rpc_request(
+                            payloads,
+                            value_scale_type,
+                            storage_item,
+                            runtime,
+                            result_handler,
+                            attempt + 1,
+                        )
                 if request_manager.is_complete:
                     break
 
