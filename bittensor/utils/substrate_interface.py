@@ -744,6 +744,8 @@ class Websocket:
         try:
             response = json.loads(await self.ws.recv())
             async with self._lock:
+                # note that these 'subscriptions' are all waiting sent messages which have not received
+                # responses, and thus are not the same as RPC 'subscriptions', which are unique
                 self._open_subscriptions -= 1
             if "id" in response:
                 self._received[response["id"]] = response
@@ -772,6 +774,9 @@ class Websocket:
 
         Args:
             payload: payload, generate a payload with the AsyncSubstrateInterface.make_payload method
+
+        Returns:
+            id: the internal ID of the request (incremented int)
         """
         async with self._lock:
             original_id = self.id
@@ -795,11 +800,11 @@ class Websocket:
         Returns:
              retrieved item
         """
-        while True:
-            async with self._lock:
-                if item_id in self._received:
-                    return self._received.pop(item_id)
+        try:
+            return self._received.pop(item_id)
+        except KeyError:
             await asyncio.sleep(0.1)
+            return None
 
 
 class AsyncSubstrateInterface:
@@ -1519,9 +1524,7 @@ class AsyncSubstrateInterface:
         )
         if storage_obj:
             for item in list(storage_obj):
-                # print("item!", item)
                 events.append(convert_event_data(item))
-            # events += list(storage_obj)
         return events
 
     async def get_block_runtime_version(self, block_hash: str) -> dict:
@@ -1689,7 +1692,7 @@ class AsyncSubstrateInterface:
                 item_id = await ws.send(item["payload"])
                 request_manager.add_request(item_id, item["id"])
 
-            while True:
+            while True:  # TODO this could potentially result in an infinite loop — consider adding a timeout
                 for item_id in request_manager.response_map.keys():
                     if (
                         item_id not in request_manager.responses
