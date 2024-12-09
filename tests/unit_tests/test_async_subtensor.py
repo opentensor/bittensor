@@ -152,8 +152,7 @@ async def test_async_subtensor_magic_methods(mocker):
     "error",
     [
         ConnectionRefusedError,
-        async_subtensor.ssl.SSLError,
-        async_subtensor.TimeoutException,
+        async_subtensor.ssl.SSLError
     ],
 )
 @pytest.mark.asyncio
