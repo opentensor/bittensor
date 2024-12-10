@@ -835,6 +835,7 @@ class AsyncSubstrateInterface:
         chain_name: Optional[str] = None,
         sync_calls: bool = False,
         max_retries: int = 5,
+        retry_timeout: float = 20.0,
     ):
         """
         The asyncio-compatible version of the subtensor interface commands we use in bittensor. It is important to
@@ -850,9 +851,11 @@ class AsyncSubstrateInterface:
             chain_name: the name of the chain (the result of the rpc request for "system_chain")
             sync_calls: whether this instance is going to be called through a sync wrapper or plain
             max_retries: number of times to retry RPC requests before giving up
+            retry_timeout: how to long wait since the last ping to retry the RPC request
 
         """
         self.max_retries = max_retries
+        self.retry_timeout = retry_timeout
         self.chain_endpoint = chain_endpoint
         self.__chain = chain_name
         self.ws = Websocket(
@@ -1743,7 +1746,7 @@ class AsyncSubstrateInterface:
 
                 if request_manager.is_complete:
                     break
-                if time.time() - self.ws.last_received >= 20:
+                if time.time() - self.ws.last_received >= self.retry_timeout:
                     if attempt >= self.max_retries:
                         logging.error(
                             f"Timed out waiting for RPC requests {attempt} times. Exiting."
@@ -2913,7 +2916,7 @@ class AsyncSubstrateInterface:
 
 class SubstrateInterface:
     """
-    A wrapper around AsyncSubstrateInterface that allows for using all of the calls from it in a synchronous context
+    A wrapper around AsyncSubstrateInterface that allows for using all the calls from it in a synchronous context
     """
 
     def __init__(
