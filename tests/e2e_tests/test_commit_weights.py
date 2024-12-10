@@ -5,7 +5,6 @@ import pytest
 from bittensor.core.subtensor import Subtensor
 from bittensor.utils.balance import Balance
 from bittensor.utils.weight_utils import convert_weights_and_uids_for_emit
-from bittensor.core.extrinsics import utils
 from tests.e2e_tests.utils.chain_interactions import (
     add_stake,
     register_subnet,
@@ -32,7 +31,6 @@ async def test_commit_and_reveal_weights_legacy(local_chain):
         AssertionError: If any of the checks or verifications fail
     """
     netuid = 1
-    utils.EXTRINSIC_SUBMISSION_TIMEOUT = 12  # handle fast blocks
     print("Testing test_commit_and_reveal_weights")
     # Register root as Alice
     keypair, alice_wallet = setup_wallet("//Alice")
