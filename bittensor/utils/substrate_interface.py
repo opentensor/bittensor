@@ -880,7 +880,9 @@ class AsyncSubstrateInterface:
         self.runtime_cache = RuntimeCache()
         self.block_id: Optional[int] = None
         self.runtime_version = None
-        self.runtime_config = RuntimeConfigurationObject()
+        self.runtime_config = RuntimeConfigurationObject(
+            ss58_format=self.ss58_format, implements_scale_info=True
+        )
         self.__metadata_cache = {}
         self.type_registry_preset = None
         self.transaction_version = None
@@ -2927,6 +2929,7 @@ class SubstrateInterface:
         ss58_format: Optional[int] = None,
         type_registry: Optional[dict] = None,
         chain_name: Optional[str] = None,
+        mock: bool = False,
     ):
         self._async_instance = AsyncSubstrateInterface(
             chain_endpoint=chain_endpoint,
@@ -2938,7 +2941,10 @@ class SubstrateInterface:
             sync_calls=True,
         )
         self.event_loop = asyncio.get_event_loop()
-        self.event_loop.run_until_complete(self._async_instance.initialize())
+        if not mock:
+            self.event_loop.run_until_complete(self._async_instance.initialize())
+        else:
+            self._async_instance.reload_type_registry()
 
     def __del__(self):
         self.event_loop.run_until_complete(self._async_instance.close())
