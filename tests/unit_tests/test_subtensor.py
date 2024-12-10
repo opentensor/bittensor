@@ -252,13 +252,9 @@ def test_determine_chain_endpoint_and_network(
 @pytest.fixture
 def subtensor(mocker):
     fake_substrate = mocker.MagicMock()
-    fake_substrate.websocket.sock.getsockopt.return_value = 0
     mocker.patch.object(
         subtensor_module, "SubstrateInterface", return_value=fake_substrate
     )
-    fake_websocket = mocker.MagicMock()
-    fake_websocket.client.connect.return_value = 0  # TODO change this
-    mocker.patch.object(subtensor_module, "ws_client", return_value=fake_websocket)
     return Subtensor()
 
 
