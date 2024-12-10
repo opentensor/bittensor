@@ -193,30 +193,7 @@ class Subtensor:
 
         self.log_verbose = log_verbose
         self._connection_timeout = connection_timeout
-        self.substrate: Optional["SubstrateInterface"] = None
-        self._mock = _mock
-        self._get_substrate()
-
-    def __str__(self) -> str:
-        if self.network == self.chain_endpoint:
-            # Connecting to chain endpoint without network known.
-            return f"subtensor({self.chain_endpoint})"
-        else:
-            # Connecting to network with endpoint known.
-            return f"subtensor({self.network}, {self.chain_endpoint})"
-
-    def __repr__(self) -> str:
-        return self.__str__()
-
-    def close(self):
-        """Cleans up resources for this subtensor instance like active websocket connection and active extensions."""
-        if self.substrate:
-            self.substrate.close()
-
-    def _get_substrate(self):
-        """
-        Establishes a connection to the Substrate node using configured parameters.
-        """
+        self.substrate: "SubstrateInterface"
         try:
             self.substrate = SubstrateInterface(
                 chain_endpoint=self.chain_endpoint,
@@ -224,7 +201,7 @@ class Subtensor:
                 use_remote_preset=True,
                 type_registry=settings.TYPE_REGISTRY,
                 chain_name="Bittensor",
-                mock=self._mock,
+                mock=_mock,
             )
             if self.log_verbose:
                 logging.info(
@@ -244,6 +221,22 @@ class Subtensor:
             raise RuntimeError(
                 "SSL configuration issue, please follow the instructions above."
             ) from e
+
+    def __str__(self) -> str:
+        if self.network == self.chain_endpoint:
+            # Connecting to chain endpoint without network known.
+            return f"subtensor({self.chain_endpoint})"
+        else:
+            # Connecting to network with endpoint known.
+            return f"subtensor({self.network}, {self.chain_endpoint})"
+
+    def __repr__(self) -> str:
+        return self.__str__()
+
+    def close(self):
+        """Cleans up resources for this subtensor instance like active websocket connection and active extensions."""
+        if self.substrate:
+            self.substrate.close()
 
     @staticmethod
     def config() -> "Config":
