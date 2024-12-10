@@ -196,7 +196,7 @@ class Subtensor:
 
         self.log_verbose = log_verbose
         self._connection_timeout = connection_timeout
-        self.substrate: "SubstrateInterface" = None
+        self.substrate: Optional["SubstrateInterface"] = None
         self.websocket = websocket
         self._get_substrate()
 
@@ -216,26 +216,11 @@ class Subtensor:
         if self.substrate:
             self.substrate.close()
 
-    def _get_substrate(self, force: bool = False):
+    def _get_substrate(self):
         """
         Establishes a connection to the Substrate node using configured parameters.
-
-        Args:
-            force: forces a reconnection if this flag is set
-
         """
         try:
-            # # Set up params.
-            # if force and self.websocket:
-            #     logging.debug("Closing websocket connection")
-            #     self.websocket.close()
-            #
-            # if force or self.websocket is None or self.websocket.close_code is not None:
-            #     self.websocket = ws_client.connect(
-            #         self.chain_endpoint,
-            #         open_timeout=self._connection_timeout,
-            #         max_size=2**32,
-            #     )
             self.substrate = SubstrateInterface(
                 chain_endpoint=self.chain_endpoint,
                 ss58_format=settings.SS58_FORMAT,
@@ -961,7 +946,7 @@ class Subtensor:
             return NeuronInfo.get_null_neuron()
 
         block_hash = None if block is None else self.get_block_hash(block)
-        params = [netuid, uid]
+        params: list[Any] = [netuid, uid]
         if block_hash:
             params = params + [block_hash]
 
