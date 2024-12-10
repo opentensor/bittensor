@@ -296,9 +296,7 @@ def test_hyperparameter_result_has_no_value(subtensor, mocker):
 def test_hyperparameter_success_int(subtensor, mocker):
     """Test when query_subtensor returns an integer value."""
     subtensor.subnet_exists = mocker.MagicMock(return_value=True)
-    subtensor.query_subtensor = mocker.MagicMock(
-        return_value=100
-    )
+    subtensor.query_subtensor = mocker.MagicMock(return_value=100)
     assert subtensor._get_hyperparameter("Difficulty", 1, None) == 100
     subtensor.subnet_exists.assert_called_once_with(1, None)
     subtensor.query_subtensor.assert_called_once_with("Difficulty", None, [1])
@@ -307,9 +305,7 @@ def test_hyperparameter_success_int(subtensor, mocker):
 def test_hyperparameter_success_float(subtensor, mocker):
     """Test when query_subtensor returns a float value."""
     subtensor.subnet_exists = mocker.MagicMock(return_value=True)
-    subtensor.query_subtensor = mocker.MagicMock(
-        return_value=0.5
-    )
+    subtensor.query_subtensor = mocker.MagicMock(return_value=0.5)
     assert subtensor._get_hyperparameter("Difficulty", 1, None) == 0.5
     subtensor.subnet_exists.assert_called_once_with(1, None)
     subtensor.query_subtensor.assert_called_once_with("Difficulty", None, [1])
@@ -497,12 +493,12 @@ def test_get_prometheus_info_success(mocker, subtensor):
     hotkey_ss58 = "test_hotkey"
     block = 123
     mock_result = {
-            "ip": 3232235777,  # 192.168.1.1
-            "ip_type": 4,
-            "port": 9090,
-            "version": "1.0",
-            "block": 1000,
-        }
+        "ip": 3232235777,  # 192.168.1.1
+        "ip_type": 4,
+        "port": 9090,
+        "version": "1.0",
+        "block": 1000,
+    }
     mocker.patch.object(subtensor, "query_subtensor", return_value=mock_result)
 
     # Call
@@ -544,12 +540,12 @@ def test_get_prometheus_info_no_block(mocker, subtensor):
     netuid = 1
     hotkey_ss58 = "test_hotkey"
     mock_result = {
-            "ip": "192.168.1.1",
-            "ip_type": 4,
-            "port": 9090,
-            "version": "1.0",
-            "block": 1000,
-        }
+        "ip": "192.168.1.1",
+        "ip_type": 4,
+        "port": 9090,
+        "version": "1.0",
+        "block": 1000,
+    }
     with mocker.patch.object(subtensor, "query_subtensor", return_value=mock_result):
         # Call
         result = subtensor.get_prometheus_info(netuid, hotkey_ss58)
@@ -617,9 +613,7 @@ def test_subnet_exists_no_value_attribute(mocker, subtensor):
     # Prep
     netuid = 1
     block = 123
-    mock_result = mocker.MagicMock()
-    del mock_result.value
-    mocker.patch.object(subtensor, "query_subtensor", return_value=mock_result)
+    mocker.patch.object(subtensor, "query_subtensor", return_value=None)
 
     # Call
     result = subtensor.subnet_exists(netuid, block)
@@ -650,8 +644,7 @@ def test_get_total_subnets_success(mocker, subtensor):
     # Prep
     block = 123
     total_subnets_value = 10
-    mock_result = mocker.MagicMock(value=total_subnets_value)
-    mocker.patch.object(subtensor, "query_subtensor", return_value=mock_result)
+    mocker.patch.object(subtensor, "query_subtensor", return_value=total_subnets_value)
 
     # Call
     result = subtensor.get_total_subnets(block)
@@ -680,9 +673,7 @@ def test_get_total_subnets_no_value_attribute(mocker, subtensor):
     """Test get_total_subnets returns None when result has no value attribute."""
     # Prep
     block = 123
-    mock_result = mocker.MagicMock()
-    del mock_result.value  # Simulating a missing value attribute
-    mocker.patch.object(subtensor, "query_subtensor", return_value=mock_result)
+    mocker.patch.object(subtensor, "query_subtensor", return_value=None)
 
     # Call
     result = subtensor.get_total_subnets(block)
@@ -696,8 +687,7 @@ def test_get_total_subnets_no_block(mocker, subtensor):
     """Test get_total_subnets with no block specified."""
     # Prep
     total_subnets_value = 10
-    mock_result = mocker.MagicMock(value=total_subnets_value)
-    mocker.patch.object(subtensor, "query_subtensor", return_value=mock_result)
+    mocker.patch.object(subtensor, "query_subtensor", return_value=total_subnets_value)
 
     # Call
     result = subtensor.get_total_subnets()
@@ -1367,7 +1357,6 @@ def test_neuron_for_uid_response_none(subtensor, mocker):
     )
 
     # Asserts
-    subtensor.substrate.get_block_hash.assert_called_once_with(fake_block)
     subtensor.substrate.rpc_request.assert_called_once_with(
         method="neuronInfo_getNeuron",
         params=[fake_netuid, fake_uid, subtensor.substrate.get_block_hash.return_value],
@@ -1386,6 +1375,7 @@ def test_neuron_for_uid_success(subtensor, mocker):
     mocked_neuron_from_vec_u8 = mocker.patch.object(
         subtensor_module.NeuronInfo, "from_vec_u8"
     )
+    mock_get_block_hash = mocker.patch.object(subtensor, "get_block_hash")
 
     # Call
     result = subtensor.neuron_for_uid(
@@ -1393,10 +1383,10 @@ def test_neuron_for_uid_success(subtensor, mocker):
     )
 
     # Asserts
-    subtensor.substrate.get_block_hash.assert_called_once_with(fake_block)
+    mock_get_block_hash.assert_called_once_with(fake_block)
     subtensor.substrate.rpc_request.assert_called_once_with(
         method="neuronInfo_getNeuron",
-        params=[fake_netuid, fake_uid, subtensor.substrate.get_block_hash.return_value],
+        params=[fake_netuid, fake_uid, mock_get_block_hash.return_value],
     )
 
     mocked_neuron_from_vec_u8.assert_called_once_with(
@@ -1573,7 +1563,7 @@ def test_get_uid_for_hotkey_on_subnet(subtensor, mocker):
         "Uids", fake_block, [fake_netuid, fake_hotkey_ss58]
     )
 
-    assert result == mocked_query_subtensor.return_value.value
+    assert result == mocked_query_subtensor.return_value
 
 
 def test_tempo(subtensor, mocker):
@@ -1724,7 +1714,7 @@ def test_get_existential_deposit(subtensor, mocker):
 
     mocked_query_constant = mocker.MagicMock()
     value = 10
-    mocked_query_constant.return_value.value = value
+    mocked_query_constant.return_value = value
     subtensor.query_constant = mocked_query_constant
 
     # Call
@@ -2087,7 +2077,7 @@ def test_get_delegate_take_success(subtensor, mocker):
     fake_block = 123
 
     subtensor_module.u16_normalized_float = mocker.Mock()
-    subtensor.query_subtensor = mocker.Mock(return_value=mocker.Mock(value="value"))
+    subtensor.query_subtensor = mocker.Mock(return_value=mocker.Mock())
 
     # Call
     result = subtensor.get_delegate_take(hotkey_ss58=fake_hotkey_ss58, block=fake_block)
@@ -2097,7 +2087,7 @@ def test_get_delegate_take_success(subtensor, mocker):
         "Delegates", fake_block, [fake_hotkey_ss58]
     )
     subtensor_module.u16_normalized_float.assert_called_once_with(
-        subtensor.query_subtensor.return_value.value
+        subtensor.query_subtensor.return_value
     )
     assert result == subtensor_module.u16_normalized_float.return_value
 
@@ -2108,7 +2098,7 @@ def test_get_delegate_take_none(subtensor, mocker):
     fake_hotkey_ss58 = "FAKE_SS58"
     fake_block = 123
 
-    subtensor.query_subtensor = mocker.Mock(return_value=mocker.Mock(value=None))
+    subtensor.query_subtensor = mocker.Mock(return_value=None)
     subtensor_module.u16_normalized_float = mocker.Mock()
 
     # Call
@@ -2149,14 +2139,8 @@ def test_get_stake_for_coldkey_and_hotkey(subtensor, mocker, fake_value_result):
     fake_coldkey_ss58 = "FAKE_C_SS58"
     fake_block = 123
 
-    return_value = (
-        mocker.Mock(value=fake_value_result)
-        if fake_value_result is not None
-        else fake_value_result
-    )
-
     subtensor.query_subtensor = mocker.patch.object(
-        subtensor, "query_subtensor", return_value=return_value
+        subtensor, "query_subtensor", return_value=fake_value_result
     )
     spy_balance_from_rao = mocker.spy(subtensor_module.Balance, "from_rao")
 
@@ -2236,7 +2220,7 @@ def test_does_hotkey_exist_special_id(mocker, subtensor):
     mock_query_subtensor = mocker.patch.object(
         subtensor,
         "query_subtensor",
-        return_value=mocker.Mock(value=fake_owner),
+        return_value=fake_owner,
     )
 
     # Call
@@ -2281,7 +2265,7 @@ def test_get_hotkey_owner_success(mocker, subtensor):
     mock_query_subtensor = mocker.patch.object(
         subtensor,
         "query_subtensor",
-        return_value=mocker.Mock(value=fake_coldkey_ss58),
+        return_value=fake_coldkey_ss58,
     )
     mock_does_hotkey_exist = mocker.patch.object(
         subtensor, "does_hotkey_exist", return_value=True
@@ -2362,7 +2346,7 @@ def test_get_hotkey_owner_latest_block(mocker, subtensor):
     mock_query_subtensor = mocker.patch.object(
         subtensor,
         "query_subtensor",
-        return_value=mocker.Mock(value=fake_coldkey_ss58),
+        return_value=fake_coldkey_ss58,
     )
     mock_does_hotkey_exist = mocker.patch.object(
         subtensor, "does_hotkey_exist", return_value=True
@@ -2452,7 +2436,7 @@ def test_tx_rate_limit_success(mocker, subtensor):
     mock_query_subtensor = mocker.patch.object(
         subtensor,
         "query_subtensor",
-        return_value=mocker.Mock(value=fake_rate_limit),
+        return_value=fake_rate_limit,
     )
 
     # Call
@@ -2494,7 +2478,7 @@ def test_get_delegates_success(mocker, subtensor):
 
     # Mocks
     mock_get_block_hash = mocker.patch.object(
-        subtensor.substrate,
+        subtensor,
         "get_block_hash",
         return_value=fake_block_hash,
     )
@@ -2531,7 +2515,7 @@ def test_get_delegates_no_result(mocker, subtensor):
 
     # Mocks
     mock_get_block_hash = mocker.patch.object(
-        subtensor.substrate,
+        subtensor,
         "get_block_hash",
         return_value=fake_block_hash,
     )
