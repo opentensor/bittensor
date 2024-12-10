@@ -1,18 +1,12 @@
 """Utils for handling local network with ip and ports."""
 
-import asyncio
 import json
 import os
 import urllib
-from functools import wraps
 from typing import Optional
 
 import netaddr
 import requests
-from retry import retry
-from websockets.exceptions import ConnectionClosed
-
-from bittensor.utils.btlogging import logging
 
 
 def int_to_ip(int_val: int) -> str:
