@@ -1687,7 +1687,7 @@ class AsyncSubstrateInterface:
             result = await self.decode_scale(value_scale_type, q)
         if asyncio.iscoroutinefunction(result_handler):
             # For multipart responses as a result of subscriptions.
-            message, bool_result = await result_handler(response, subscription_id)
+            message, bool_result = await result_handler(result, subscription_id)
             return message, bool_result
         return result, True
 
@@ -1710,7 +1710,7 @@ class AsyncSubstrateInterface:
                 request_manager.add_request(item_id, item["id"])
 
             while True:
-                for item_id in request_manager.response_map.keys():
+                for item_id in list(request_manager.response_map.keys()):
                     if (
                         item_id not in request_manager.responses
                         or asyncio.iscoroutinefunction(result_handler)
@@ -1726,6 +1726,7 @@ class AsyncSubstrateInterface:
                                     item_id = request_manager.overwrite_request(
                                         item_id, response["result"]
                                     )
+                                    subscription_added = True
                                 except KeyError:
                                     raise SubstrateRequestException(str(response))
                             decoded_response, complete = await self._process_response(
@@ -1739,12 +1740,9 @@ class AsyncSubstrateInterface:
                             request_manager.add_response(
                                 item_id, decoded_response, complete
                             )
-                    if (
-                        asyncio.iscoroutinefunction(result_handler)
-                        and not subscription_added
-                    ):
-                        subscription_added = True
-                        break
+
+                if request_manager.is_complete:
+                    break
                 if time.time() - self.ws.last_received >= 20:
                     if attempt >= self.max_retries:
                         logging.error(
@@ -1767,8 +1765,6 @@ class AsyncSubstrateInterface:
                             result_handler,
                             attempt + 1,
                         )
-                if request_manager.is_complete:
-                    break
 
         return request_manager.get_results()
 
