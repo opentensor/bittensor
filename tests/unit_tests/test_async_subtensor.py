@@ -150,10 +150,7 @@ async def test_async_subtensor_magic_methods(mocker):
 
 @pytest.mark.parametrize(
     "error",
-    [
-        ConnectionRefusedError,
-        async_subtensor.ssl.SSLError
-    ],
+    [ConnectionRefusedError, async_subtensor.ssl.SSLError],
 )
 @pytest.mark.asyncio
 async def test_async_subtensor_aenter_connection_refused_error(
