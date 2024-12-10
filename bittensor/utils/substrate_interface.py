@@ -1750,7 +1750,7 @@ class AsyncSubstrateInterface:
                     break
                 if time.time() - self.ws.last_received >= self.retry_timeout:
                     if attempt >= self.max_retries:
-                        logging.error(
+                        logging.warning(
                             f"Timed out waiting for RPC requests {attempt} times. Exiting."
                         )
                         raise SubstrateRequestException("Max retries reached.")
@@ -1759,8 +1759,7 @@ class AsyncSubstrateInterface:
                         await self.ws.connect(force=True)
                         logging.error(
                             f"Timed out waiting for RPC requests. "
-                            f"Retrying attempt {attempt + 1} of {self.max_retries} with payloads "
-                            f"{payloads}"
+                            f"Retrying attempt {attempt + 1} of {self.max_retries}"
                         )
                         return await self._make_rpc_request(
                             payloads,
