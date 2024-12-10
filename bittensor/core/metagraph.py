@@ -823,7 +823,7 @@ class MetagraphMixin(ABC):
             )
         return tensor_param
 
-    def save(self, root_dir: Optional[list[str]]) -> "Metagraph":
+    def save(self, root_dir: Optional[list[str]] = None) -> "Metagraph":
         """
         Saves the current state of the metagraph to a file on disk. This function is crucial for persisting the current state of the network's metagraph, which can later be reloaded or analyzed. The save operation includes all neuron attributes and parameters, ensuring a complete snapshot of the metagraph's state.
 
@@ -865,7 +865,7 @@ class MetagraphMixin(ABC):
                 pickle.dump(state_dict, graph_file)
         return self
 
-    def load(self, root_dir: Optional[list[str]]) -> None:
+    def load(self, root_dir: Optional[list[str]] = None) -> None:
         """
         Loads the state of the metagraph from the default save directory. This method is instrumental for restoring the metagraph to its last saved state. It automatically identifies the save directory based on the ``network`` and ``netuid`` properties of the metagraph, locates the latest block file in that directory, and loads all metagraph parameters from it.
 
