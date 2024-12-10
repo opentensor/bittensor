@@ -25,7 +25,7 @@ from bittensor.core.settings import version_as_int
 from bittensor.utils import format_error_message, weight_utils
 from bittensor.utils.btlogging import logging
 from bittensor.utils.networking import ensure_connected
-from bittensor.utils.registration import torch, use_torch
+from bittensor.utils.registration import torch, legacy_torch_api_compat
 
 # For annotation purposes
 if TYPE_CHECKING:
@@ -99,7 +99,82 @@ def do_set_weights(
         return False, format_error_message(response.error_message)
 
 
+# Chain call for `do_batch_set_weights`
+@ensure_connected
+def do_batch_set_weights(
+    self: "Subtensor",
+    wallet: "Wallet",
+    nested_uids: list[list[int]],
+    valss: list[list[int]],
+    netuids: list[int],
+    version_keys: Optional[list[int]] = None,
+    wait_for_inclusion: bool = False,
+    wait_for_finalization: bool = False,
+    period: int = 5,
+) -> tuple[bool, Optional[str]]:  # (success, error_message)
+    """
+    Internal method to send a transaction to the Bittensor blockchain, setting weights for specified neurons. This method constructs and submits the transaction, handling retries and blockchain communication.
+
+    Args:
+        self (bittensor.core.subtensor.Subtensor): Subtensor interface
+        wallet (bittensor_wallet.Wallet): The wallet associated with the neuron setting the weights.
+        nested_uids (list[list[int]]): List of neuron UIDs for which weights are being set.
+        valss (list[list[int]]): List of weight values corresponding to each UID.
+        netuids (list[int]): Unique identifier for the network.
+        version_keys (Optional[list[int]]): Version key for compatibility with the network.
+        wait_for_inclusion (bool): Waits for the transaction to be included in a block.
+        wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
+        period (int): Period dictates how long the extrinsic will stay as part of waiting pool.
+
+    Returns:
+        tuple[bool, Optional[str]]: A tuple containing a success flag and an optional response message.
+
+    This method is vital for the dynamic weighting mechanism in Bittensor, where neurons adjust their trust in other neurons based on observed performance and contributions.
+    """
+    if version_keys is None or len(version_keys) == 0:
+        version_keys = [version_as_int] * len(netuids)
+
+    packed_weights = [
+        [(uid, val) for uid, val in zip(uids, vals)]
+        for uids, vals in zip(nested_uids, valss)
+    ]
+
+    call = self.substrate.compose_call(
+        call_module="SubtensorModule",
+        call_function="batch_set_weights",
+        call_params={
+            "netuids": netuids,
+            "weights": packed_weights,
+            "version_keys": version_keys,
+        },
+    )
+    # Period dictates how long the extrinsic will stay as part of waiting pool
+    extrinsic = self.substrate.create_signed_extrinsic(
+        call=call,
+        keypair=wallet.hotkey,
+        era={"period": period},
+    )
+    response = submit_extrinsic(
+        substrate=self.substrate,
+        extrinsic=extrinsic,
+        wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization,
+    )
+    # We only wait here if we expect finalization.
+    if not wait_for_finalization and not wait_for_inclusion:
+        return True, "Not waiting for finalization or inclusion."
+
+    response.process_events()
+    if response.is_success:
+        return True, "Successfully set weights."
+    else:
+        return False, format_error_message(
+            response.error_message, substrate=self.substrate
+        )
+
+
 # Community uses this extrinsic directly and via `subtensor.set_weights`
+@legacy_torch_api_compat
 def set_weights_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
@@ -126,16 +201,10 @@ def set_weights_extrinsic(
         tuple[bool, str]: A tuple containing a success flag and an optional response message.
     """
     # First convert types.
-    if use_torch():
-        if isinstance(uids, list):
-            uids = torch.tensor(uids, dtype=torch.int64)
-        if isinstance(weights, list):
-            weights = torch.tensor(weights, dtype=torch.float32)
-    else:
-        if isinstance(uids, list):
-            uids = np.array(uids, dtype=np.int64)
-        if isinstance(weights, list):
-            weights = np.array(weights, dtype=np.float32)
+    if isinstance(uids, list):
+        uids = np.array(uids, dtype=np.int64)
+    if isinstance(weights, list):
+        weights = np.array(weights, dtype=np.float32)
 
     # Reformat and normalize.
     weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(
@@ -173,3 +242,80 @@ def set_weights_extrinsic(
         logging.error(f":cross_mark: [red]Failed.[/red]: Error: {e}")
         logging.debug(str(e))
         return False, str(e)
+
+
+@legacy_torch_api_compat
+def batch_set_weights_extrinsic(
+    subtensor: "Subtensor",
+    wallet: "Wallet",
+    netuids: list[int],
+    nested_uids: list[Union[NDArray[np.int64], "torch.LongTensor", list]],
+    nested_weights: list[Union[NDArray[np.float32], "torch.FloatTensor", list]],
+    version_keys: Optional[list[int]] = None,
+    wait_for_inclusion: bool = False,
+    wait_for_finalization: bool = False,
+) -> tuple[bool, str]:
+    """Sets the given weights and values for multiple netuids as a batch on chain for wallet hotkey account.
+
+    Args:
+        subtensor (bittensor.subtensor): Bittensor subtensor object.
+        wallet (bittensor.wallet): Bittensor wallet object.
+        netuids (list[int]): The ``netuid`` of the subnet to set weights for.
+        nested_uids (list[Union[NDArray[np.int64], torch.LongTensor, list]]): The ``uint64`` uids of destination neurons.
+        nested_weights (list[Union[NDArray[np.float32], torch.FloatTensor, list]]): The weights to set. These must be ``float`` s and correspond to the passed ``uid`` s.
+        version_keys (Optional[list[int]]): The version key of the validator.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
+
+    Returns:
+        success (bool): Flag is ``true`` if extrinsic was finalized or included in the block. If we did not wait for finalization / inclusion, the response is ``true``.
+    """
+    uids_to_set: list[Union[NDArray[np.int64], "torch.LongTensor", list]] = []
+    weights_to_set: list[Union[NDArray[np.float32], "torch.FloatTensor", list]] = []
+    if version_keys is None or len(version_keys) == 0:
+        version_keys = [0] * len(netuids)  # Default to version 0 if not provided
+
+    for uids, weights in zip(nested_uids, nested_weights):
+        # First convert types.
+        if isinstance(uids, list):
+            uids = np.array(uids, dtype=np.int64)
+        if isinstance(weights, list):
+            weights = np.array(weights, dtype=np.float32)
+
+        # Reformat and normalize.
+        weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(
+            uids, weights
+        )
+
+        uids_to_set.append(weight_uids)
+        weights_to_set.append(weight_vals)
+
+    logging.info(
+        ":satellite: [magenta]Setting batch weights on [/magenta][blue]{subtensor.network}[/blue] [magenta]...[/magenta]"
+    )
+    try:
+        success, error_message = do_batch_set_weights(
+            self=subtensor,
+            wallet=wallet,
+            netuids=netuids,
+            nested_uids=uids_to_set,
+            valss=weights_to_set,
+            version_keys=version_keys,
+            wait_for_finalization=wait_for_finalization,
+            wait_for_inclusion=wait_for_inclusion,
+        )
+
+        if not wait_for_finalization and not wait_for_inclusion:
+            return True, "Not waiting for finalization or inclusion."
+
+        if success is True:
+            message = "Successfully set weights and Finalized."
+            logging.success(f":white_heavy_check_mark: [green]{message}[/green]")
+            return True, message
+        else:
+            logging.error(f"[red]Failed[/red] set weights. Error: {error_message}")
+            return False, error_message
+
+    except Exception as error:
+        logging.error(f":cross_mark: [red]Failed[/red] set weights. Error: {error}")
+        return False, str(error)
