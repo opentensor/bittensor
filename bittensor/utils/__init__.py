@@ -152,17 +152,13 @@ def get_hash(content, encoding="utf-8"):
     return sha3.hexdigest()
 
 
-def format_error_message(
-    error_message: Union[dict, Exception],
-    substrate: Union["AsyncSubstrateInterface", "SubstrateInterface"],
-) -> str:
+def format_error_message(error_message: Union[dict, Exception]) -> str:
     """
     Formats an error message from the Subtensor error information for use in extrinsics.
 
     Args:
         error_message: A dictionary containing the error information from Subtensor, or a SubstrateRequestException
                        containing dictionary literal args.
-        substrate: The initialised SubstrateInterface object to use.
 
     Returns:
         str: A formatted error message string.
@@ -204,22 +200,8 @@ def format_error_message(
             err_data = error_message.get("data", "")
 
             # subtensor custom error marker
-            if err_data.startswith("Custom error:") and substrate:
-                if substrate.metadata:
-                    try:
-                        pallet = substrate.metadata.get_metadata_pallet(
-                            "SubtensorModule"
-                        )
-                        error_index = int(err_data.split("Custom error:")[-1])
-
-                        error_dict = pallet.errors[error_index].value
-                        err_type = error_dict.get("message", err_type)
-                        err_docs = error_dict.get("docs", [])
-                        err_description = err_docs[0] if err_docs else err_description
-                    except (AttributeError, IndexError):
-                        logging.error(
-                            "[red]Substrate pallets data unavailable. This is usually caused by an uninitialized substrate.[/red]"
-                        )
+            if err_data.startswith("Custom error:"):
+                err_description = f"{err_data} | Please consult https://docs.bittensor.com/subtensor-nodes/subtensor-error-messages"
             else:
                 err_description = err_data
 
