@@ -2,10 +2,13 @@
 The ``bittensor.core.subtensor.Subtensor`` module in Bittensor serves as a crucial interface for interacting with the
 Bittensor blockchain, facilitating a range of operations essential for the decentralized machine learning network.
 """
+# TODO all subtensor methods that accept block numbers should also accept block hashes
 
 import argparse
 import copy
+import functools
 import ssl
+from itertools import chain
 from typing import Union, Optional, TypedDict, Any
 
 import numpy as np
@@ -16,8 +19,6 @@ from scalecodec.base import RuntimeConfiguration
 from scalecodec.exceptions import RemainingScaleBytesNotEmptyException
 from scalecodec.type_registry import load_type_registry_preset
 from scalecodec.types import ScaleType
-from substrateinterface.base import QueryMapResult, SubstrateInterface
-from websockets.sync import client as ws_client
 
 from bittensor.core import settings
 from bittensor.core.axon import Axon
@@ -70,6 +71,7 @@ from bittensor.utils import (
     hex_to_bytes,
     Certificate,
 )
+from bittensor.utils.substrate_interface import QueryMapResult, SubstrateInterface
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import legacy_torch_api_compat
@@ -140,7 +142,6 @@ class Subtensor:
         _mock: bool = False,
         log_verbose: bool = False,
         connection_timeout: int = 600,
-        websocket: Optional[ws_client.ClientConnection] = None,
     ) -> None:
         """
         Initializes a Subtensor interface for interacting with the Bittensor blockchain.
@@ -156,7 +157,6 @@ class Subtensor:
             _mock (bool): If set to ``True``, uses a mocked connection for testing purposes. Default is ``False``.
             log_verbose (bool): Whether to enable verbose logging. If set to ``True``, detailed log information about the connection and network operations will be provided. Default is ``True``.
             connection_timeout (int): The maximum time in seconds to keep the connection alive. Default is ``600``.
-            websocket (websockets.sync.client.ClientConnection): websockets sync (threading) client object connected to the network.
 
         This initialization sets up the connection to the specified Bittensor network, allowing for various blockchain operations such as neuron registration, stake management, and setting weights.
         """
@@ -192,51 +192,15 @@ class Subtensor:
 
         self.log_verbose = log_verbose
         self._connection_timeout = connection_timeout
-        self.substrate: "SubstrateInterface" = None
-        self.websocket = websocket
-        self._get_substrate()
-
-    def __str__(self) -> str:
-        if self.network == self.chain_endpoint:
-            # Connecting to chain endpoint without network known.
-            return f"subtensor({self.chain_endpoint})"
-        else:
-            # Connecting to network with endpoint known.
-            return f"subtensor({self.network}, {self.chain_endpoint})"
-
-    def __repr__(self) -> str:
-        return self.__str__()
-
-    def close(self):
-        """Cleans up resources for this subtensor instance like active websocket connection and active extensions."""
-        if self.substrate:
-            self.substrate.close()
-
-    def _get_substrate(self, force: bool = False):
-        """
-        Establishes a connection to the Substrate node using configured parameters.
-
-        Args:
-            force: forces a reconnection if this flag is set
-
-        """
+        self.substrate: "SubstrateInterface"
         try:
-            # Set up params.
-            if force and self.websocket:
-                logging.debug("Closing websocket connection")
-                self.websocket.close()
-
-            if force or self.websocket is None or self.websocket.close_code is not None:
-                self.websocket = ws_client.connect(
-                    self.chain_endpoint,
-                    open_timeout=self._connection_timeout,
-                    max_size=2**32,
-                )
             self.substrate = SubstrateInterface(
+                chain_endpoint=self.chain_endpoint,
                 ss58_format=settings.SS58_FORMAT,
                 use_remote_preset=True,
                 type_registry=settings.TYPE_REGISTRY,
-                websocket=self.websocket,
+                chain_name="Bittensor",
+                mock=_mock,
             )
             if self.log_verbose:
                 logging.info(
@@ -256,6 +220,22 @@ class Subtensor:
             raise RuntimeError(
                 "SSL configuration issue, please follow the instructions above."
             ) from e
+
+    def __str__(self) -> str:
+        if self.network == self.chain_endpoint:
+            # Connecting to chain endpoint without network known.
+            return f"subtensor({self.chain_endpoint})"
+        else:
+            # Connecting to network with endpoint known.
+            return f"subtensor({self.network}, {self.chain_endpoint})"
+
+    def __repr__(self) -> str:
+        return self.__str__()
+
+    def close(self):
+        """Cleans up resources for this subtensor instance like active websocket connection and active extensions."""
+        if self.substrate:
+            self.substrate.close()
 
     @staticmethod
     def config() -> "Config":
@@ -303,20 +283,20 @@ class Subtensor:
                     config.subtensor.chain_endpoint
                 )
 
-            elif config.is_set("subtensor.network"):
-                (
-                    evaluated_network,
-                    evaluated_endpoint,
-                ) = Subtensor.determine_chain_endpoint_and_network(
-                    config.subtensor.network
-                )
-
             elif config.subtensor.get("chain_endpoint"):
                 (
                     evaluated_network,
                     evaluated_endpoint,
                 ) = Subtensor.determine_chain_endpoint_and_network(
                     config.subtensor.chain_endpoint
+                )
+
+            elif config.is_set("subtensor.network"):
+                (
+                    evaluated_network,
+                    evaluated_endpoint,
+                ) = Subtensor.determine_chain_endpoint_and_network(
+                    config.subtensor.network
                 )
 
             elif config.subtensor.get("network"):
@@ -402,7 +382,7 @@ class Subtensor:
             pass
 
     # Inner private functions
-    @networking.ensure_connected
+
     def _encode_params(
         self,
         call_definition: dict[str, list["ParamWithTypes"]],
@@ -441,13 +421,10 @@ class Subtensor:
             return None
 
         result = self.query_subtensor(param_name, block, [netuid])
-        if result is None or not hasattr(result, "value"):
-            return None
-
-        return result.value
+        return result
 
     # Chain calls methods ==============================================================================================
-    @networking.ensure_connected
+
     def query_subtensor(
         self, name: str, block: Optional[int] = None, params: Optional[list] = None
     ) -> "ScaleType":
@@ -469,12 +446,9 @@ class Subtensor:
             module="SubtensorModule",
             storage_function=name,
             params=params,
-            block_hash=(
-                None if block is None else self.substrate.get_block_hash(block)
-            ),
+            block_hash=None if block is None else self.get_block_hash(block),
         )
 
-    @networking.ensure_connected
     def query_map_subtensor(
         self, name: str, block: Optional[int] = None, params: Optional[list] = None
     ) -> "QueryMapResult":
@@ -495,9 +469,7 @@ class Subtensor:
             module="SubtensorModule",
             storage_function=name,
             params=params,
-            block_hash=(
-                None if block is None else self.substrate.get_block_hash(block)
-            ),
+            block_hash=None if block is None else self.get_block_hash(block),
         )
 
     def query_runtime_api(
@@ -550,7 +522,6 @@ class Subtensor:
 
         return obj.decode()
 
-    @networking.ensure_connected
     def state_call(
         self, method: str, data: str, block: Optional[int] = None
     ) -> dict[Any, Any]:
@@ -567,13 +538,12 @@ class Subtensor:
 
         The state call function provides a more direct and flexible way of querying blockchain data, useful for specific use cases where standard queries are insufficient.
         """
-        block_hash = None if block is None else self.substrate.get_block_hash(block)
+        block_hash = None if block is None else self.get_block_hash(block)
         return self.substrate.rpc_request(
             method="state_call",
             params=[method, data, block_hash] if block_hash else [method, data],
         )
 
-    @networking.ensure_connected
     def query_map(
         self,
         module: str,
@@ -599,12 +569,9 @@ class Subtensor:
             module=module,
             storage_function=name,
             params=params,
-            block_hash=(
-                None if block is None else self.substrate.get_block_hash(block)
-            ),
+            block_hash=None if block is None else self.get_block_hash(block),
         )
 
-    @networking.ensure_connected
     def query_constant(
         self, module_name: str, constant_name: str, block: Optional[int] = None
     ) -> Optional["ScaleType"]:
@@ -624,12 +591,9 @@ class Subtensor:
         return self.substrate.get_constant(
             module_name=module_name,
             constant_name=constant_name,
-            block_hash=(
-                None if block is None else self.substrate.get_block_hash(block)
-            ),
+            block_hash=None if block is None else self.get_block_hash(block),
         )
 
-    @networking.ensure_connected
     def query_module(
         self,
         module: str,
@@ -655,9 +619,7 @@ class Subtensor:
             module=module,
             storage_function=name,
             params=params,
-            block_hash=(
-                None if block is None else self.substrate.get_block_hash(block)
-            ),
+            block_hash=None if block is None else self.get_block_hash(block),
         )
 
     # Common subtensor methods =========================================================================================
@@ -741,12 +703,11 @@ class Subtensor:
         """
         result = self.query_map_subtensor("IsNetworkMember", block, [hotkey_ss58])
         return (
-            [record[0].value for record in result if record[1]]
+            [record[0] for record in result if record[1]]
             if result and hasattr(result, "records")
             else []
         )
 
-    @networking.ensure_connected
     def get_current_block(self) -> int:
         """
         Returns the current block number on the Bittensor blockchain. This function provides the latest block number, indicating the most recent state of the blockchain.
@@ -841,7 +802,7 @@ class Subtensor:
         call = self._get_hyperparameter(param_name="LastUpdate", netuid=netuid)
         return None if call is None else self.get_current_block() - int(call[uid])
 
-    @networking.ensure_connected
+    @functools.lru_cache(maxsize=128, typed=False)
     def get_block_hash(self, block_id: int) -> str:
         """
         Retrieves the hash of a specific block on the Bittensor blockchain. The block hash is a unique identifier representing the cryptographic hash of the block's content, ensuring its integrity and immutability.
@@ -943,17 +904,19 @@ class Subtensor:
             params=[netuid, hotkey],
         )
         try:
-            serialized_certificate = certificate.serialize()
-            if serialized_certificate:
-                return (
-                    chr(serialized_certificate["algorithm"])
-                    + serialized_certificate["public_key"]
+            if certificate:
+                return "".join(
+                    chr(i)
+                    for i in chain(
+                        [certificate["algorithm"]],
+                        certificate["public_key"][0],
+                    )
                 )
+
         except AttributeError:
             return None
         return None
 
-    @networking.ensure_connected
     def neuron_for_uid(
         self, uid: Optional[int], netuid: int, block: Optional[int] = None
     ) -> "NeuronInfo":
@@ -973,8 +936,8 @@ class Subtensor:
         if uid is None:
             return NeuronInfo.get_null_neuron()
 
-        block_hash = None if block is None else self.substrate.get_block_hash(block)
-        params = [netuid, uid]
+        block_hash = None if block is None else self.get_block_hash(block)
+        params: list[Any] = [netuid, uid]
         if block_hash:
             params = params + [block_hash]
 
@@ -1052,7 +1015,7 @@ class Subtensor:
         The UID is a critical identifier within the network, linking the neuron's hotkey to its operational and governance activities on a particular subnet.
         """
         _result = self.query_subtensor("Uids", block, [netuid, hotkey_ss58])
-        return getattr(_result, "value", None)
+        return _result
 
     def tempo(self, netuid: int, block: Optional[int] = None) -> Optional[int]:
         """
@@ -1143,13 +1106,13 @@ class Subtensor:
             Optional[bittensor.core.chain_data.prometheus_info.PrometheusInfo]: A PrometheusInfo object containing the prometheus information, or ``None`` if the prometheus information is not found.
         """
         result = self.query_subtensor("Prometheus", block, [netuid, hotkey_ss58])
-        if result is not None and getattr(result, "value", None) is not None:
+        if result is not None:
             return PrometheusInfo(
-                ip=networking.int_to_ip(result.value["ip"]),
-                ip_type=result.value["ip_type"],
-                port=result.value["port"],
-                version=result.value["version"],
-                block=result.value["block"],
+                ip=networking.int_to_ip(result["ip"]),
+                ip_type=result["ip_type"],
+                port=result["port"],
+                version=result["version"],
+                block=result["block"],
             )
         return None
 
@@ -1167,9 +1130,8 @@ class Subtensor:
         This function is critical for verifying the presence of specific subnets in the network, enabling a deeper understanding of the network's structure and composition.
         """
         _result = self.query_subtensor("NetworksAdded", block, [netuid])
-        return getattr(_result, "value", False)
+        return bool(_result)
 
-    @networking.ensure_connected
     def get_all_subnets_info(self, block: Optional[int] = None) -> list[SubnetInfo]:
         """
         Retrieves detailed information about all subnets within the Bittensor network. This function provides comprehensive data on each subnet, including its characteristics and operational parameters.
@@ -1211,7 +1173,7 @@ class Subtensor:
         )
         if b_map_encoded.records:
             for uid, b in b_map_encoded:
-                b_map.append((uid.serialize(), b.serialize()))
+                b_map.append((uid, b))
 
         return b_map
 
@@ -1280,8 +1242,7 @@ class Subtensor:
 
         Understanding the total number of subnets is essential for assessing the network's growth and the extent of its decentralized infrastructure.
         """
-        _result = self.query_subtensor("TotalNetworks", block)
-        return getattr(_result, "value", None)
+        return self.query_subtensor("TotalNetworks", block)
 
     def get_subnets(self, block: Optional[int] = None) -> list[int]:
         """
@@ -1297,7 +1258,7 @@ class Subtensor:
         """
         result = self.query_map_subtensor("NetworksAdded", block)
         return (
-            [network[0].value for network in result.records if network[1]]
+            [network[0] for network in result if network[1]]
             if result and hasattr(result, "records")
             else []
         )
@@ -1350,11 +1311,10 @@ class Subtensor:
         )
         if w_map_encoded.records:
             for uid, w in w_map_encoded:
-                w_map.append((uid.serialize(), w.serialize()))
+                w_map.append((uid, w))
 
         return w_map
 
-    @networking.ensure_connected
     def get_balance(self, address: str, block: Optional[int] = None) -> "Balance":
         """
         Retrieves the token balance of a specific address within the Bittensor network. This function queries the blockchain to determine the amount of Tao held by a given account.
@@ -1373,9 +1333,7 @@ class Subtensor:
                 module="System",
                 storage_function="Account",
                 params=[address],
-                block_hash=(
-                    None if block is None else self.substrate.get_block_hash(block)
-                ),
+                block_hash=None if block is None else self.get_block_hash(block),
             )
 
         except RemainingScaleBytesNotEmptyException:
@@ -1384,9 +1342,8 @@ class Subtensor:
             )
             return Balance(1000)
 
-        return Balance(result.value["data"]["free"])
+        return Balance(result["data"]["free"])
 
-    @networking.ensure_connected
     def get_transfer_fee(
         self, wallet: "Wallet", dest: str, value: Union["Balance", float, int]
     ) -> "Balance":
@@ -1452,9 +1409,9 @@ class Subtensor:
         result = self.query_constant(
             module_name="Balances", constant_name="ExistentialDeposit", block=block
         )
-        if result is None or not hasattr(result, "value"):
+        if result is None:
             return None
-        return Balance.from_rao(result.value)
+        return Balance.from_rao(result)
 
     def difficulty(self, netuid: int, block: Optional[int] = None) -> Optional[int]:
         """
@@ -1510,13 +1467,8 @@ class Subtensor:
         The delegate take is a critical parameter in the network's incentive structure, influencing the distribution of rewards among neurons and their nominators.
         """
         _result = self.query_subtensor("Delegates", block, [hotkey_ss58])
-        return (
-            None
-            if getattr(_result, "value", None) is None
-            else u16_normalized_float(_result.value)
-        )
+        return None if _result is None else u16_normalized_float(_result)
 
-    @networking.ensure_connected
     def get_delegate_by_hotkey(
         self, hotkey_ss58: str, block: Optional[int] = None
     ) -> Optional[DelegateInfo]:
@@ -1534,7 +1486,7 @@ class Subtensor:
         """
         encoded_hotkey = ss58_to_vec_u8(hotkey_ss58)
 
-        block_hash = None if block is None else self.substrate.get_block_hash(block)
+        block_hash = None if block is None else self.get_block_hash(block)
 
         json_body = self.substrate.rpc_request(
             method="delegateInfo_getDelegate",  # custom rpc method
@@ -1561,11 +1513,7 @@ class Subtensor:
             Optional[Balance]: The stake under the coldkey - hotkey pairing, or ``None`` if the pairing does not exist or the stake is not found.
         """
         result = self.query_subtensor("Stake", block, [hotkey_ss58, coldkey_ss58])
-        return (
-            None
-            if getattr(result, "value", None) is None
-            else Balance.from_rao(result.value)
-        )
+        return None if result is None else Balance.from_rao(result)
 
     def does_hotkey_exist(self, hotkey_ss58: str, block: Optional[int] = None) -> bool:
         """
@@ -1581,8 +1529,8 @@ class Subtensor:
         result = self.query_subtensor("Owner", block, [hotkey_ss58])
         return (
             False
-            if getattr(result, "value", None) is None
-            else result.value != "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM"
+            if result is None
+            else result != "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM"
         )
 
     def get_hotkey_owner(
@@ -1601,12 +1549,10 @@ class Subtensor:
         result = self.query_subtensor("Owner", block, [hotkey_ss58])
         return (
             None
-            if getattr(result, "value", None) is None
-            or not self.does_hotkey_exist(hotkey_ss58, block)
-            else result.value
+            if result is None or not self.does_hotkey_exist(hotkey_ss58, block)
+            else result
         )
 
-    @networking.ensure_connected
     def get_minimum_required_stake(
         self,
     ) -> Balance:
@@ -1641,9 +1587,8 @@ class Subtensor:
         The transaction rate limit is an essential parameter for ensuring the stability and scalability of the Bittensor network. It helps in managing network load and preventing congestion, thereby maintaining efficient and timely transaction processing.
         """
         result = self.query_subtensor("TxRateLimit", block)
-        return getattr(result, "value", None)
+        return result
 
-    @networking.ensure_connected
     def get_delegates(self, block: Optional[int] = None) -> list[DelegateInfo]:
         """
         Retrieves a list of all delegate neurons within the Bittensor network. This function provides an overview of the neurons that are actively involved in the network's delegation system.
@@ -1657,7 +1602,7 @@ class Subtensor:
             list[DelegateInfo]: A list of DelegateInfo objects detailing each delegate's characteristics.
 
         """
-        block_hash = None if block is None else self.substrate.get_block_hash(block)
+        block_hash = None if block is None else self.get_block_hash(block)
 
         json_body = self.substrate.rpc_request(
             method="delegateInfo_getDelegates",

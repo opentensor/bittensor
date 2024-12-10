@@ -48,10 +48,7 @@ from bittensor.utils import (
     validate_chain_endpoint,
     hex_to_bytes,
 )
-from bittensor.utils.async_substrate_interface import (
-    AsyncSubstrateInterface,
-    TimeoutException,
-)
+from bittensor.utils.substrate_interface import AsyncSubstrateInterface
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 from bittensor.utils.delegates_details import DelegatesDetails
@@ -112,7 +109,7 @@ def _decode_hex_identity_dict(info_dictionary: dict[str, Any]) -> dict[str, Any]
 class AsyncSubtensor:
     """Thin layer for interacting with Substrate Interface. Mostly a collection of frequently-used calls."""
 
-    def __init__(self, network: str = DEFAULT_NETWORK):
+    def __init__(self, network: str = DEFAULT_NETWORK) -> None:
         if network in NETWORK_MAP:
             self.chain_endpoint = NETWORK_MAP[network]
             self.network = network
@@ -144,6 +141,7 @@ class AsyncSubtensor:
             chain_endpoint=self.chain_endpoint,
             ss58_format=SS58_FORMAT,
             type_registry=TYPE_REGISTRY,
+            use_remote_preset=True,
             chain_name="Bittensor",
         )
 
@@ -157,7 +155,7 @@ class AsyncSubtensor:
         try:
             async with self.substrate:
                 return self
-        except TimeoutException:
+        except TimeoutError:
             logging.error(
                 f"[red]Error[/red]: Timeout occurred connecting to substrate. Verify your chain and network settings: {self}"
             )

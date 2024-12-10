@@ -8,6 +8,8 @@ import asyncio
 import inspect
 import json
 import random
+import ssl
+import time
 from collections import defaultdict
 from dataclasses import dataclass
 from hashlib import blake2b
@@ -30,6 +32,7 @@ from websockets.asyncio.client import connect
 from websockets.exceptions import ConnectionClosed
 
 from bittensor.utils import hex_to_bytes
+from bittensor.utils.btlogging import logging
 
 if TYPE_CHECKING:
     from websockets.asyncio.client import ClientConnection
@@ -37,15 +40,7 @@ if TYPE_CHECKING:
 ResultHandler = Callable[[dict, Any], Awaitable[tuple[dict, bool]]]
 
 
-class TimeoutException(Exception):
-    pass
-
-
-def timeout_handler(signum, frame):
-    raise TimeoutException("Operation timed out")
-
-
-class ExtrinsicReceipt:
+class AsyncExtrinsicReceipt:
     """
     Object containing information of submitted extrinsic. Block hash where extrinsic is included is required
     when retrieving triggered events or determine if extrinsic was successful
@@ -351,6 +346,43 @@ class ExtrinsicReceipt:
         return self[name]
 
 
+class ExtrinsicReceipt:
+    """
+    A wrapper around AsyncExtrinsicReceipt that allows for using all the calls from it in a synchronous context
+    """
+
+    def __init__(
+        self,
+        substrate: "AsyncSubstrateInterface",
+        extrinsic_hash: Optional[str] = None,
+        block_hash: Optional[str] = None,
+        block_number: Optional[int] = None,
+        extrinsic_idx: Optional[int] = None,
+        finalized=None,
+    ):
+        self._async_instance = AsyncExtrinsicReceipt(
+            substrate,
+            extrinsic_hash,
+            block_hash,
+            block_number,
+            extrinsic_idx,
+            finalized,
+        )
+        self.event_loop = asyncio.get_event_loop()
+
+    def __getattr__(self, name):
+        attr = getattr(self._async_instance, name)
+
+        if asyncio.iscoroutinefunction(attr):
+
+            def sync_method(*args, **kwargs):
+                return self.event_loop.run_until_complete(attr(*args, **kwargs))
+
+            return sync_method
+        else:
+            return attr
+
+
 class QueryMapResult:
     def __init__(
         self,
@@ -397,6 +429,9 @@ class QueryMapResult:
     def __aiter__(self):
         return self
 
+    def __iter__(self):
+        return self
+
     async def __anext__(self):
         try:
             # Try to get the next record from the buffer
@@ -414,6 +449,12 @@ class QueryMapResult:
             # Update the buffer with the newly fetched records
             self._buffer = iter(next_page)
             return next(self._buffer)
+
+    def __next__(self):
+        try:
+            return self.substrate.event_loop.run_until_complete(self.__anext__())
+        except StopAsyncIteration:
+            raise StopIteration
 
     def __getitem__(self, item):
         return self.records[item]
@@ -649,19 +690,31 @@ class Websocket:
         self._exit_task = None
         self._open_subscriptions = 0
         self._options = options if options else {}
+        self.last_received = time.time()
 
     async def __aenter__(self):
         async with self._lock:
             self._in_use += 1
-            if self._exit_task:
-                self._exit_task.cancel()
-            if not self._initialized:
-                self._initialized = True
-                self.ws = await asyncio.wait_for(
-                    connect(self.ws_url, **self._options), timeout=10
-                )
-                self._receiving_task = asyncio.create_task(self._start_receiving())
+            await self.connect()
         return self
+
+    async def connect(self, force=False):
+        if self._exit_task:
+            self._exit_task.cancel()
+        if not self._initialized or force:
+            self._initialized = True
+            try:
+                self._receiving_task.cancel()
+                await self._receiving_task
+                await self.ws.close()
+            except (AttributeError, asyncio.CancelledError):
+                pass
+            self.ws = await asyncio.wait_for(
+                connect(self.ws_url, **self._options), timeout=10
+            )
+            self._receiving_task = asyncio.create_task(self._start_receiving())
+        if force:
+            self.id = 100
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         async with self._lock:
@@ -704,7 +757,10 @@ class Websocket:
     async def _recv(self) -> None:
         try:
             response = json.loads(await self.ws.recv())
+            self.last_received = time.time()
             async with self._lock:
+                # note that these 'subscriptions' are all waiting sent messages which have not received
+                # responses, and thus are not the same as RPC 'subscriptions', which are unique
                 self._open_subscriptions -= 1
             if "id" in response:
                 self._received[response["id"]] = response
@@ -712,10 +768,10 @@ class Websocket:
                 self._received[response["params"]["subscription"]] = response
             else:
                 raise KeyError(response)
-        except ConnectionClosed:
+        except ssl.SSLError:
+            raise ConnectionClosed
+        except (ConnectionClosed, KeyError):
             raise
-        except KeyError as e:
-            raise e
 
     async def _start_receiving(self):
         try:
@@ -724,8 +780,8 @@ class Websocket:
         except asyncio.CancelledError:
             pass
         except ConnectionClosed:
-            # TODO try reconnect, but only if it's needed
-            raise
+            async with self._lock:
+                await self.connect(force=True)
 
     async def send(self, payload: dict) -> int:
         """
@@ -733,6 +789,9 @@ class Websocket:
 
         Args:
             payload: payload, generate a payload with the AsyncSubstrateInterface.make_payload method
+
+        Returns:
+            id: the internal ID of the request (incremented int)
         """
         async with self._lock:
             original_id = self.id
@@ -741,8 +800,9 @@ class Websocket:
         try:
             await self.ws.send(json.dumps({**payload, **{"id": original_id}}))
             return original_id
-        except ConnectionClosed:
-            raise
+        except (ConnectionClosed, ssl.SSLError, EOFError):
+            async with self._lock:
+                await self.connect(force=True)
 
     async def retrieve(self, item_id: int) -> Optional[dict]:
         """
@@ -754,11 +814,11 @@ class Websocket:
         Returns:
              retrieved item
         """
-        while True:
-            async with self._lock:
-                if item_id in self._received:
-                    return self._received.pop(item_id)
+        try:
+            return self._received.pop(item_id)
+        except KeyError:
             await asyncio.sleep(0.1)
+            return None
 
 
 class AsyncSubstrateInterface:
@@ -773,6 +833,9 @@ class AsyncSubstrateInterface:
         ss58_format: Optional[int] = None,
         type_registry: Optional[dict] = None,
         chain_name: Optional[str] = None,
+        sync_calls: bool = False,
+        max_retries: int = 5,
+        retry_timeout: float = 20.0,
     ):
         """
         The asyncio-compatible version of the subtensor interface commands we use in bittensor. It is important to
@@ -786,8 +849,13 @@ class AsyncSubstrateInterface:
             ss58_format: the specific SS58 format to use
             type_registry: a dict of custom types
             chain_name: the name of the chain (the result of the rpc request for "system_chain")
+            sync_calls: whether this instance is going to be called through a sync wrapper or plain
+            max_retries: number of times to retry RPC requests before giving up
+            retry_timeout: how to long wait since the last ping to retry the RPC request
 
         """
+        self.max_retries = max_retries
+        self.retry_timeout = retry_timeout
         self.chain_endpoint = chain_endpoint
         self.__chain = chain_name
         self.ws = Websocket(
@@ -812,12 +880,16 @@ class AsyncSubstrateInterface:
         self.runtime_cache = RuntimeCache()
         self.block_id: Optional[int] = None
         self.runtime_version = None
-        self.runtime_config = RuntimeConfigurationObject()
+        self.runtime_config = RuntimeConfigurationObject(
+            ss58_format=self.ss58_format, implements_scale_info=True
+        )
         self.__metadata_cache = {}
         self.type_registry_preset = None
         self.transaction_version = None
         self.__metadata = None
         self.metadata_version_hex = "0x0f000000"  # v15
+        self.event_loop = asyncio.get_event_loop()
+        self.sync_calls = sync_calls
 
     async def __aenter__(self):
         await self.initialize()
@@ -954,7 +1026,6 @@ class AsyncSubstrateInterface:
                 raise SubstrateRequestException(
                     f'Block not found for "{self.last_block_hash}"'
                 )
-
             parent_block_hash: str = block_header["result"]["parentHash"]
 
             if (
@@ -1474,9 +1545,7 @@ class AsyncSubstrateInterface:
         )
         if storage_obj:
             for item in list(storage_obj):
-                # print("item!", item)
                 events.append(convert_event_data(item))
-            # events += list(storage_obj)
         return events
 
     async def get_block_runtime_version(self, block_hash: str) -> dict:
@@ -1623,7 +1692,7 @@ class AsyncSubstrateInterface:
             result = await self.decode_scale(value_scale_type, q)
         if asyncio.iscoroutinefunction(result_handler):
             # For multipart responses as a result of subscriptions.
-            message, bool_result = await result_handler(response, subscription_id)
+            message, bool_result = await result_handler(result, subscription_id)
             return message, bool_result
         return result, True
 
@@ -1634,6 +1703,7 @@ class AsyncSubstrateInterface:
         storage_item: Optional[ScaleType] = None,
         runtime: Optional[Runtime] = None,
         result_handler: Optional[ResultHandler] = None,
+        attempt: int = 1,
     ) -> RequestManager.RequestResults:
         request_manager = RequestManager(payloads)
 
@@ -1645,7 +1715,7 @@ class AsyncSubstrateInterface:
                 request_manager.add_request(item_id, item["id"])
 
             while True:
-                for item_id in request_manager.response_map.keys():
+                for item_id in list(request_manager.response_map.keys()):
                     if (
                         item_id not in request_manager.responses
                         or asyncio.iscoroutinefunction(result_handler)
@@ -1661,6 +1731,7 @@ class AsyncSubstrateInterface:
                                     item_id = request_manager.overwrite_request(
                                         item_id, response["result"]
                                     )
+                                    subscription_added = True
                                 except KeyError:
                                     raise SubstrateRequestException(str(response))
                             decoded_response, complete = await self._process_response(
@@ -1674,15 +1745,30 @@ class AsyncSubstrateInterface:
                             request_manager.add_response(
                                 item_id, decoded_response, complete
                             )
-                    if (
-                        asyncio.iscoroutinefunction(result_handler)
-                        and not subscription_added
-                    ):
-                        subscription_added = True
-                        break
 
                 if request_manager.is_complete:
                     break
+                if time.time() - self.ws.last_received >= self.retry_timeout:
+                    if attempt >= self.max_retries:
+                        logging.warning(
+                            f"Timed out waiting for RPC requests {attempt} times. Exiting."
+                        )
+                        raise SubstrateRequestException("Max retries reached.")
+                    else:
+                        self.ws.last_received = time.time()
+                        await self.ws.connect(force=True)
+                        logging.error(
+                            f"Timed out waiting for RPC requests. "
+                            f"Retrying attempt {attempt + 1} of {self.max_retries}"
+                        )
+                        return await self._make_rpc_request(
+                            payloads,
+                            value_scale_type,
+                            storage_item,
+                            runtime,
+                            result_handler,
+                            attempt + 1,
+                        )
 
         return request_manager.get_results()
 
@@ -2623,7 +2709,7 @@ class AsyncSubstrateInterface:
         extrinsic: GenericExtrinsic,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
-    ) -> "ExtrinsicReceipt":
+    ) -> Union["AsyncExtrinsicReceipt", "ExtrinsicReceipt"]:
         """
         Submit an extrinsic to the connected node, with the possibility to wait until the extrinsic is included
          in a block and/or the block is finalized. The receipt returned provided information about the block and
@@ -2637,7 +2723,9 @@ class AsyncSubstrateInterface:
         Returns:
             ExtrinsicReceipt object of your submitted extrinsic
         """
-
+        extrinsic_receipt_cls = (
+            AsyncExtrinsicReceipt if self.sync_calls is False else ExtrinsicReceipt
+        )
         # Check requirements
         if not isinstance(extrinsic, GenericExtrinsic):
             raise TypeError("'extrinsic' must be of type Extrinsics")
@@ -2712,7 +2800,7 @@ class AsyncSubstrateInterface:
 
             # Also, this will be a multipart response, so maybe should change to everything after the first response?
             # The following code implies this will be a single response after the initial subscription id.
-            result = ExtrinsicReceipt(
+            result = extrinsic_receipt_cls(
                 substrate=self,
                 extrinsic_hash=response["extrinsic_hash"],
                 block_hash=response["block_hash"],
@@ -2727,7 +2815,9 @@ class AsyncSubstrateInterface:
             if "result" not in response:
                 raise SubstrateRequestException(response.get("error"))
 
-            result = ExtrinsicReceipt(substrate=self, extrinsic_hash=response["result"])
+            result = extrinsic_receipt_cls(
+                substrate=self, extrinsic_hash=response["result"]
+            )
 
         return result
 
@@ -2823,3 +2913,49 @@ class AsyncSubstrateInterface:
             return asyncio.create_task(co)
         else:
             return await co
+
+
+class SubstrateInterface:
+    """
+    A wrapper around AsyncSubstrateInterface that allows for using all the calls from it in a synchronous context
+    """
+
+    def __init__(
+        self,
+        chain_endpoint: str,
+        use_remote_preset: bool = False,
+        auto_discover: bool = True,
+        ss58_format: Optional[int] = None,
+        type_registry: Optional[dict] = None,
+        chain_name: Optional[str] = None,
+        mock: bool = False,
+    ):
+        self._async_instance = AsyncSubstrateInterface(
+            chain_endpoint=chain_endpoint,
+            use_remote_preset=use_remote_preset,
+            auto_discover=auto_discover,
+            ss58_format=ss58_format,
+            type_registry=type_registry,
+            chain_name=chain_name,
+            sync_calls=True,
+        )
+        self.event_loop = asyncio.get_event_loop()
+        if not mock:
+            self.event_loop.run_until_complete(self._async_instance.initialize())
+        else:
+            self._async_instance.reload_type_registry()
+
+    def __del__(self):
+        self.event_loop.run_until_complete(self._async_instance.close())
+
+    def __getattr__(self, name):
+        attr = getattr(self._async_instance, name)
+
+        if asyncio.iscoroutinefunction(attr):
+
+            def sync_method(*args, **kwargs):
+                return self.event_loop.run_until_complete(attr(*args, **kwargs))
+
+            return sync_method
+        else:
+            return attr
