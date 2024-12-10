@@ -1,3 +1,5 @@
+import os.path
+import shutil
 import time
 
 from bittensor.core.subtensor import Subtensor
@@ -145,11 +147,15 @@ def test_metagraph(local_chain):
 
     # Test the save() and load() mechanism
     # We save the metagraph and pre_dave loads it
-    # TODO this can be screwed up because it always tries to pull the latest block of the given named
-    # TODO network. The path here should be set to /tmp or something
-    metagraph.save()
-    time.sleep(3)
-    metagraph_pre_dave.load()
+    # We do this in the /tmp dir to avoid interfering or interacting with user data
+    metagraph_save_root_dir = ["/", "tmp", "bittensor-e2e", "metagraphs"]
+    try:
+        os.makedirs(os.path.join(*metagraph_save_root_dir), exist_ok=True)
+        metagraph.save(root_dir=metagraph_save_root_dir)
+        time.sleep(3)
+        metagraph_pre_dave.load(root_dir=metagraph_save_root_dir)
+    finally:
+        shutil.rmtree(os.path.join(*metagraph_save_root_dir))
 
     # Ensure data is synced between two metagraphs
     assert len(metagraph.uids) == len(
