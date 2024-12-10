@@ -19,7 +19,6 @@ from scalecodec.base import RuntimeConfiguration
 from scalecodec.exceptions import RemainingScaleBytesNotEmptyException
 from scalecodec.type_registry import load_type_registry_preset
 from scalecodec.types import ScaleType
-from websockets.sync import client as ws_client
 
 from bittensor.core import settings
 from bittensor.core.axon import Axon
@@ -144,7 +143,6 @@ class Subtensor:
         _mock: bool = False,
         log_verbose: bool = False,
         connection_timeout: int = 600,
-        websocket: Optional[ws_client.ClientConnection] = None,
     ) -> None:
         """
         Initializes a Subtensor interface for interacting with the Bittensor blockchain.
@@ -160,7 +158,6 @@ class Subtensor:
             _mock (bool): If set to ``True``, uses a mocked connection for testing purposes. Default is ``False``.
             log_verbose (bool): Whether to enable verbose logging. If set to ``True``, detailed log information about the connection and network operations will be provided. Default is ``True``.
             connection_timeout (int): The maximum time in seconds to keep the connection alive. Default is ``600``.
-            websocket (websockets.sync.client.ClientConnection): websockets sync (threading) client object connected to the network.
 
         This initialization sets up the connection to the specified Bittensor network, allowing for various blockchain operations such as neuron registration, stake management, and setting weights.
         """
@@ -197,7 +194,7 @@ class Subtensor:
         self.log_verbose = log_verbose
         self._connection_timeout = connection_timeout
         self.substrate: Optional["SubstrateInterface"] = None
-        self.websocket = websocket
+        self._mock = _mock
         self._get_substrate()
 
     def __str__(self) -> str:
@@ -226,6 +223,8 @@ class Subtensor:
                 ss58_format=settings.SS58_FORMAT,
                 use_remote_preset=True,
                 type_registry=settings.TYPE_REGISTRY,
+                chain_name="Bittensor",
+                mock=self._mock,
             )
             if self.log_verbose:
                 logging.info(

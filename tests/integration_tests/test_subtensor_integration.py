@@ -1,9 +1,13 @@
+import asyncio
+import os.path
+
 import pytest
 from bittensor.utils.balance import Balance
 from bittensor.core.chain_data.axon_info import AxonInfo
 
 from bittensor import NeuronInfo
 from bittensor.core.subtensor import Subtensor
+from bt_decode import PortableRegistry, MetadataV15
 from tests.helpers.helpers import FakeWebsocket
 
 
@@ -17,8 +21,29 @@ def netuid():
     yield 23
 
 
-def test_get_all_subnets_info():
-    subtensor = Subtensor(websocket=FakeWebsocket(seed="get_all_subnets_info"))
+async def prepare_test(mocker, seed):
+    """
+    Helper function: sets up the test environment.
+    """
+    with open(
+        os.path.join(os.path.dirname(__file__), "..", "helpers", "registry"), "rb"
+    ) as f:
+        registry = PortableRegistry.from_metadata_v15(
+            MetadataV15.decode_from_metadata_option(f.read())
+        )
+    subtensor = Subtensor("unknown", _mock=True)
+    mocker.patch.object(subtensor.substrate.ws, "ws", FakeWebsocket(seed=seed))
+    mocker.patch.object(subtensor.substrate.ws, "_initialized", True)
+    mocker.patch.object(subtensor.substrate._async_instance, "registry", registry)
+    subtensor.substrate.ws._receiving_task = asyncio.create_task(
+        subtensor.substrate.ws._start_receiving()
+    )
+    return subtensor
+
+
+@pytest.mark.asyncio
+async def test_get_all_subnets_info(mocker):
+    subtensor = await prepare_test(mocker, "get_all_subnets_info")
     result = subtensor.get_all_subnets_info()
     assert isinstance(result, list)
     assert result[0].owner_ss58 == "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM"
@@ -27,78 +52,84 @@ def test_get_all_subnets_info():
     assert result[1].blocks_since_epoch == 1
 
 
-def test_metagraph():
-    subtensor = Subtensor(websocket=FakeWebsocket(seed="metagraph"))
+@pytest.mark.asyncio
+async def test_metagraph(mocker):
+    subtensor = await prepare_test(mocker, "metagraph")
     result = subtensor.metagraph(23)
     assert result.n == 19
     assert result.netuid == 23
     assert result.block == 3264143
 
 
-def test_get_netuids_for_hotkey():
-    subtensor = Subtensor(websocket=FakeWebsocket(seed="get_netuids_for_hotkey"))
+@pytest.mark.asyncio
+async def test_get_netuids_for_hotkey(mocker):
+    subtensor = await prepare_test(mocker, "get_netuids_for_hotkey")
     result = subtensor.get_netuids_for_hotkey(
         "5DkzsviNQr4ZePXMmEfNPDcE7cQ9cVyepmQbgUw6YT3odcwh"
     )
     assert result == [23]
 
 
-def test_get_current_block():
-    subtensor = Subtensor(websocket=FakeWebsocket(seed="get_current_block"))
+@pytest.mark.asyncio
+async def test_get_current_block(mocker):
+    subtensor = await prepare_test(mocker, "get_current_block")
     result = subtensor.get_current_block()
     assert result == 3264143
 
 
-def test_is_hotkey_registered_any():
-    subtensor = Subtensor(websocket=FakeWebsocket(seed="is_hotkey_registered_any"))
+@pytest.mark.asyncio
+async def test_is_hotkey_registered_any(mocker):
+    subtensor = await prepare_test(mocker, "is_hotkey_registered_any")
     result = subtensor.is_hotkey_registered_any(
         "5DkzsviNQr4ZePXMmEfNPDcE7cQ9cVyepmQbgUw6YT3odcwh"
     )
     assert result is True
 
 
-def test_is_hotkey_registered_on_subnet():
-    subtensor = Subtensor(
-        websocket=FakeWebsocket(seed="is_hotkey_registered_on_subnet")
-    )
+@pytest.mark.asyncio
+async def test_is_hotkey_registered_on_subnet(mocker):
+    subtensor = await prepare_test(mocker, "is_hotkey_registered_on_subnet")
     result = subtensor.is_hotkey_registered_on_subnet(
         "5DkzsviNQr4ZePXMmEfNPDcE7cQ9cVyepmQbgUw6YT3odcwh", 23
     )
     assert result is True
 
 
-def test_is_hotkey_registered():
-    subtensor = Subtensor(websocket=FakeWebsocket(seed="is_hotkey_registered"))
+@pytest.mark.asyncio
+async def test_is_hotkey_registered(mocker):
+    subtensor = await prepare_test(mocker, "is_hotkey_registered")
     result = subtensor.is_hotkey_registered(
         "5DkzsviNQr4ZePXMmEfNPDcE7cQ9cVyepmQbgUw6YT3odcwh"
     )
     assert result is True
 
 
-def test_blocks_since_last_update():
-    subtensor = Subtensor(websocket=FakeWebsocket(seed="blocks_since_last_update"))
+@pytest.mark.asyncio
+async def test_blocks_since_last_update(mocker):
+    subtensor = await prepare_test(mocker, "blocks_since_last_update")
     result = subtensor.blocks_since_last_update(23, 5)
     assert result == 1293687
 
 
-def test_get_block_hash():
-    subtensor = Subtensor(websocket=FakeWebsocket(seed="get_block_hash"))
+@pytest.mark.asyncio
+async def test_get_block_hash(mocker):
+    subtensor = await prepare_test(mocker, "get_block_hash")
     result = subtensor.get_block_hash(3234677)
     assert (
         result == "0xe89482ae7892ab5633f294179245f4058a99781e15f21da31eb625169da5d409"
     )
 
 
-def test_subnetwork_n():
-    subtensor = Subtensor(websocket=FakeWebsocket(seed="subnetwork_n"))
+@pytest.mark.asyncio
+async def test_subnetwork_n(mocker):
+    subtensor = await prepare_test(mocker, "subnetwork_n")
     result = subtensor.subnetwork_n(1)
     assert result == 94
 
 
-def test_get_neuron_for_pubkey_and_subnet(hotkey, netuid):
-    subtensor = Subtensor(
-        websocket=FakeWebsocket(seed="get_neuron_for_pubkey_and_subnet")
-    )
+@pytest.mark.asyncio
+async def test_get_neuron_for_pubkey_and_subnet(hotkey, netuid, mocker):
+    subtensor = await prepare_test(mocker, "get_neuron_for_pubkey_and_subnet")
     result = subtensor.get_neuron_for_pubkey_and_subnet(hotkey, netuid)
     assert isinstance(result, NeuronInfo)
     assert result.hotkey == hotkey
