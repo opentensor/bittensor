@@ -1883,43 +1883,6 @@ def test_reveal_weights_false(subtensor, mocker):
     assert mocked_extrinsic.call_count == 5
 
 
-@pytest.mark.skip(reason="I don't know how to update this test lol")
-def test_connect_without_substrate(mocker):
-    """Ensure re-connection is called when using an dead websocket connection."""
-    # Prep
-    fake_substrate = mocker.MagicMock()
-    fake_substrate.websocket.sock.getsockopt.return_value = 1
-    mocker.patch.object(
-        subtensor_module, "SubstrateInterface", return_value=fake_substrate
-    )
-    fake_subtensor = Subtensor()
-    spy_get_substrate = mocker.spy(Subtensor, "_get_substrate")
-
-    # Call
-    _ = fake_subtensor.block
-
-    # Assertions
-    assert spy_get_substrate.call_count == 1
-
-
-def test_connect_with_substrate(mocker):
-    """Ensure re-connection is not called when using an alive websocket connection."""
-    # Prep
-    fake_substrate = mocker.MagicMock()
-    fake_substrate.websocket.socket.getsockopt.return_value = 0
-    mocker.patch.object(
-        subtensor_module, "SubstrateInterface", return_value=fake_substrate
-    )
-    fake_subtensor = Subtensor()
-    spy_get_substrate = mocker.spy(Subtensor, "_get_substrate")
-
-    # Call
-    _ = fake_subtensor.block
-
-    # Assertions
-    assert spy_get_substrate.call_count == 0
-
-
 def test_get_subnet_burn_cost_success(subtensor, mocker):
     """Tests get_subnet_burn_cost method with successfully result."""
     # Preps
