@@ -2758,7 +2758,7 @@ class AsyncSubstrateInterface:
                         return call
         return None
 
-    async def get_block_number(self, block_hash: Optional[str]) -> int:
+    async def get_block_number(self, block_hash: Optional[str] = None) -> int:
         """Async version of `substrateinterface.base.get_block_number` method."""
         response = await self.rpc_request("chain_getHeader", [block_hash])
 
