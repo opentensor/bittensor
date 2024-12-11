@@ -17,6 +17,7 @@ from tests.e2e_tests.utils.chain_interactions import (
 )
 from tests.e2e_tests.utils.e2e_test_utils import setup_wallet
 
+
 # Skipping till we have CRV3 on testnet
 @pytest.mark.skip
 @pytest.mark.parametrize("local_chain", [False], indirect=True)
@@ -38,7 +39,7 @@ async def test_commit_and_reveal_weights_cr3(local_chain):
     """
     netuid = 1
     logging.console.info("Testing test_commit_and_reveal_weights")
-    
+
     # Register root as Alice
     keypair, alice_wallet = setup_wallet("//Alice")
     assert register_subnet(local_chain, alice_wallet), "Unable to register the subnet"
@@ -107,7 +108,6 @@ async def test_commit_and_reveal_weights_cr3(local_chain):
     assert tempo_set == tempo
     logging.console.info(f"sudo_set_tempo executed: set to {tempo_set}")
 
-
     # Commit-reveal values - setting weights to self
     uids = np.array([0], dtype=np.int64)
     revealed_weights = np.array([0.1], dtype=np.float32)
@@ -141,7 +141,9 @@ async def test_commit_and_reveal_weights_cr3(local_chain):
     # Assert committing was a success
     assert success is True
     assert bool(re.match(r"reveal_round:\d+", message))
-    logging.console.info(f"Successfully set weights: uids {weight_uids}, weights {weight_vals}")
+    logging.console.info(
+        f"Successfully set weights: uids {weight_uids}, weights {weight_vals}"
+    )
 
     # Parse expected reveal_round
     expected_reveal_round = int(message.split(":")[1])
@@ -179,7 +181,8 @@ async def test_commit_and_reveal_weights_cr3(local_chain):
     assert subtensor.get_crv3_weight_commits(netuid=netuid) == []
 
     # Ensure the drand_round is always in the positive w.r.t expected when revealed
-    assert latest_drand_round - expected_reveal_round >= 0, \
-    f"latest_drand_round ({latest_drand_round}) is less than expected_reveal_round ({expected_reveal_round})"
+    assert (
+        latest_drand_round - expected_reveal_round >= 0
+    ), f"latest_drand_round ({latest_drand_round}) is less than expected_reveal_round ({expected_reveal_round})"
 
     logging.console.info("✅ Passed commit_reveal v3")
