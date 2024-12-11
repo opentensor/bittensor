@@ -152,7 +152,7 @@ def next_tempo(current_block: int, tempo: int, netuid: int) -> int:
 
 
 async def wait_interval(
-    tempo: int, subtensor: "Subtensor", netuid: int = 1, reporting_interval=10
+    tempo: int, subtensor: "Subtensor", netuid: int = 1, reporting_interval: int = 10
 ):
     """
     Waits until the next tempo interval starts for a specific subnet.
