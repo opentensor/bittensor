@@ -1293,7 +1293,7 @@ class Subtensor:
 
     def last_drand_round(
         self,
-    ) -> int:
+    ) -> Optional[int]:
         """
         Retrieves the last drand round emitted in bittensor. This corresponds when committed weights will be revealed.
 
