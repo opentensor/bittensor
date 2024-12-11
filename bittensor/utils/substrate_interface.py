@@ -18,7 +18,7 @@ from typing import Optional, Any, Union, Callable, Awaitable, cast, TYPE_CHECKIN
 from async_property import async_property
 from bittensor_wallet import Keypair
 from bt_decode import PortableRegistry, decode as decode_by_type_string, MetadataV15
-from scalecodec import GenericExtrinsic
+from scalecodec import GenericExtrinsic, ss58_encode, ss58_decode
 from scalecodec.base import ScaleBytes, ScaleType, RuntimeConfigurationObject
 from scalecodec.type_registry import load_type_registry_preset
 from scalecodec.types import GenericCall
@@ -890,6 +890,7 @@ class AsyncSubstrateInterface:
         self.metadata_version_hex = "0x0f000000"  # v15
         self.event_loop = asyncio.get_event_loop()
         self.sync_calls = sync_calls
+        self.__name: Optional[str] = None
 
     async def __aenter__(self):
         await self.initialize()
@@ -927,6 +928,26 @@ class AsyncSubstrateInterface:
         else:
             return self.__metadata
 
+    @property
+    def implements_scaleinfo(self) -> Optional[bool]:
+        """
+        Returns True if current runtime implementation a `PortableRegistry` (`MetadataV14` and higher)
+
+        Returns
+        -------
+        bool
+        """
+        if self.__metadata:
+            return self.__metadata.portable_registry is not None
+        else:
+            return None
+
+    @async_property  # TODO this doesn't work in sync
+    async def name(self):
+        if self.__name is None:
+            self.__name = await self.rpc_request("system_name", [])
+        return self.__name
+
     async def get_storage_item(self, module: str, storage_function: str):
         if not self.__metadata:
             await self.init_runtime()
@@ -946,6 +967,7 @@ class AsyncSubstrateInterface:
         return block_hash
 
     async def load_registry(self):
+        # TODO this needs to happen before init_runtime
         metadata_rpc_result = await self.rpc_request(
             "state_call",
             ["Metadata_metadata_at_version", self.metadata_version_hex],
@@ -974,6 +996,59 @@ class AsyncSubstrateInterface:
         else:
             obj = decode_by_type_string(type_string, self.registry, scale_bytes)
         return obj
+
+    async def encode_scale(self, type_string, value, block_hash=None) -> ScaleBytes:
+        """
+        Helper function to encode arbitrary data into SCALE-bytes for given RUST type_string
+
+        Args:
+            type_string: the type string of the SCALE object for decoding
+            value: value to encode
+            block_hash: the hash of the blockchain block whose metadata to use for encoding
+
+        Returns:
+            ScaleBytes encoded value
+        """
+        if not self.__metadata or block_hash:
+            await self.init_runtime(block_hash=block_hash)
+
+        obj = self.runtime_config.create_scale_object(
+            type_string=type_string, metadata=self.__metadata
+        )
+        return obj.encode(value)
+
+    def ss58_encode(
+        self, public_key: Union[str, bytes], ss58_format: int = None
+    ) -> str:
+        """
+        Helper function to encode a public key to SS58 address.
+
+        If no target `ss58_format` is provided, it will default to the ss58 format of the network it's connected to.
+
+        Args:
+            public_key: 32 bytes or hex-string. e.g. 0x6e39f36c370dd51d9a7594846914035de7ea8de466778ea4be6c036df8151f29
+            ss58_format: target networkID to format the address for, defaults to the network it's connected to
+
+        Returns:
+            str containing the SS58 address
+        """
+
+        if ss58_format is None:
+            ss58_format = self.ss58_format
+
+        return ss58_encode(public_key, ss58_format=ss58_format)
+
+    def ss58_decode(self, ss58_address: str) -> str:
+        """
+        Helper function to decode a SS58 address to a public key
+
+        Args:
+            ss58_address: the encoded SS58 address to decode (e.g. EaG2CRhJWPb7qmdcJvy3LiWdh26Jreu9Dx6R1rXxPmYXoDk)
+
+        Returns:
+            str containing the hex representation of the public key
+        """
+        return ss58_decode(ss58_address, valid_ss58_format=self.ss58_format)
 
     async def init_runtime(
         self, block_hash: Optional[str] = None, block_id: Optional[int] = None
@@ -1192,20 +1267,6 @@ class AsyncSubstrateInterface:
         if self.type_registry:
             # Load type registries in runtime configuration
             self.runtime_config.update_type_registry(self.type_registry)
-
-    @property
-    def implements_scaleinfo(self) -> Optional[bool]:
-        """
-        Returns True if current runtime implementation a `PortableRegistry` (`MetadataV14` and higher)
-
-        Returns
-        -------
-        bool
-        """
-        if self.__metadata:
-            return self.__metadata.portable_registry is not None
-        else:
-            return None
 
     async def create_storage_key(
         self,
@@ -2957,5 +3018,8 @@ class SubstrateInterface:
                 return self.event_loop.run_until_complete(attr(*args, **kwargs))
 
             return sync_method
+        elif hasattr(attr, "_coro"):
+            # indicates this is an async_property
+            return self.event_loop.run_until_complete(attr)
         else:
             return attr
