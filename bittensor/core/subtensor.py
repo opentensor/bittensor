@@ -1291,6 +1291,40 @@ class Subtensor:
 
         return neurons
 
+    def last_drand_round(
+        self,
+    ) -> int:
+        """
+        Retrieves the last drand round emitted in bittensor. This corresponds when committed weights will be revealed.
+
+        Returns:
+            int: The latest Drand round emitted in bittensor.
+        """
+        result = self.substrate.query(
+            module="Drand", storage_function="LastStoredRound"
+        )
+        return getattr(result, "value", None)
+
+    def get_crv3_weight_commits(self, netuid: int, block: Optional[int] = None) -> list:
+        """
+        Retrieves CRV3 weight commit information for a specific subnet.
+
+        Args:
+            netuid (int): The unique identifier of the subnet.
+            block (Optional[int]): The blockchain block number for the query.
+
+        Returns:
+            list: A list of commit details, where each entry is a dictionary with keys 'who',
+                'serialized_commit', and 'reveal_round', or an empty list if no data is found.
+        """
+        result = self.query_map(
+            module="SubtensorModule",
+            name="CRV3WeightCommits",
+            params=[netuid],
+            block=block,
+        )
+        return result.records[0][1].value if result and result.records else []
+
     def get_total_subnets(self, block: Optional[int] = None) -> Optional[int]:
         """
         Retrieves the total number of subnets within the Bittensor network as of a specific blockchain block.
