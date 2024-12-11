@@ -4,6 +4,7 @@ import shlex
 import signal
 import subprocess
 import time
+import threading
 
 import pytest
 from substrateinterface import SubstrateInterface
@@ -37,7 +38,11 @@ def local_chain(request):
 
     # Start new node process
     process = subprocess.Popen(
-        cmds, stdout=subprocess.PIPE, text=True, preexec_fn=os.setsid
+        cmds,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        preexec_fn=os.setsid,
     )
 
     # Pattern match indicates node is compiled and ready
@@ -52,15 +57,30 @@ def local_chain(request):
     timestamp = int(time.time())
 
     def wait_for_node_start(process, pattern):
-        for line in process.stdout:
+        while True:
+            line = process.stdout.readline()
+            if not line:
+                break
+
             print(line.strip())
             # 10 min as timeout
             if int(time.time()) - timestamp > 10 * 60:
                 print("Subtensor not started in time")
-                break
+                return
             if pattern.search(line):
                 print("Node started!")
                 break
+
+        # Start a background reader after pattern is found
+        # To prevent the buffer filling up
+        def read_output():
+            while True:
+                line = process.stdout.readline()
+                if not line:
+                    break
+
+        reader_thread = threading.Thread(target=read_output, daemon=True)
+        reader_thread.start()
 
     wait_for_node_start(process, pattern)
 
