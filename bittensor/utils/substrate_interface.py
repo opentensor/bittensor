@@ -379,6 +379,10 @@ class ExtrinsicReceipt:
                 return self.event_loop.run_until_complete(attr(*args, **kwargs))
 
             return sync_method
+        elif hasattr(attr, "_coro"):
+            # indicates this is an async_property
+            return self.event_loop.run_until_complete(attr)
+
         else:
             return attr
 
