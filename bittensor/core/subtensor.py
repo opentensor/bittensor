@@ -1305,7 +1305,7 @@ class Subtensor:
         )
         return getattr(result, "value", None)
 
-    def get_crv3_weight_commits(self, netuid: int, block: Optional[int] = None) -> list:
+    def get_weight_commits(self, netuid: int, block: Optional[int] = None) -> list:
         """
         Retrieves CRV3 weight commit information for a specific subnet.
 
