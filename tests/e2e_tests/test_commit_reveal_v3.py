@@ -18,8 +18,6 @@ from tests.e2e_tests.utils.chain_interactions import (
 from tests.e2e_tests.utils.e2e_test_utils import setup_wallet
 
 
-# Skipping till we have CRV3 on testnet
-@pytest.mark.skip
 @pytest.mark.parametrize("local_chain", [False], indirect=True)
 @pytest.mark.asyncio
 async def test_commit_and_reveal_weights_cr3(local_chain):
@@ -118,7 +116,9 @@ async def test_commit_and_reveal_weights_cr3(local_chain):
     # Fetch current block and calculate next tempo for the subnet
     current_block = subtensor.get_current_block()
     upcoming_tempo = next_tempo(current_block, tempo, netuid)
-
+    logging.console.info(
+        f"Checking if window is too low with Current block: {current_block}, next tempo: {upcoming_tempo}"
+    )
     # Lower than this might mean weights will get revealed before we can check them
     if upcoming_tempo - current_block < 3:
         await wait_interval(
@@ -127,6 +127,12 @@ async def test_commit_and_reveal_weights_cr3(local_chain):
             netuid=netuid,
             reporting_interval=1,
         )
+    current_block = subtensor.get_current_block()
+    latest_drand_round = subtensor.last_drand_round()
+    upcoming_tempo = next_tempo(current_block, tempo, netuid)
+    logging.console.info(
+        f"Post first wait_interval (to ensure window isnt too low): {current_block}, next tempo: {upcoming_tempo}, drand: {latest_drand_round}"
+    )
 
     # Commit weights
     success, message = subtensor.set_weights(
@@ -141,12 +147,19 @@ async def test_commit_and_reveal_weights_cr3(local_chain):
     # Assert committing was a success
     assert success is True
     assert bool(re.match(r"reveal_round:\d+", message))
-    logging.console.info(
-        f"Successfully set weights: uids {weight_uids}, weights {weight_vals}"
-    )
 
     # Parse expected reveal_round
     expected_reveal_round = int(message.split(":")[1])
+    logging.console.info(
+        f"Successfully set weights: uids {weight_uids}, weights {weight_vals}, reveal_round: {expected_reveal_round}"
+    )
+
+    current_block = subtensor.get_current_block()
+    latest_drand_round = subtensor.last_drand_round()
+    upcoming_tempo = next_tempo(current_block, tempo, netuid)
+    logging.console.info(
+        f"After setting weights: Current block: {current_block}, next tempo: {upcoming_tempo}, drand: {latest_drand_round}"
+    )
 
     # Fetch current commits pending on the chain
     commits_on_chain = subtensor.get_weight_commits(netuid=netuid)
@@ -169,6 +182,9 @@ async def test_commit_and_reveal_weights_cr3(local_chain):
 
     # Fetch the latest drand pulse
     latest_drand_round = subtensor.last_drand_round()
+    logging.console.info(
+        f"Latest drand round after waiting for tempo: {latest_drand_round}"
+    )
 
     # Fetch weights on the chain as they should be revealed now
     revealed_weights = subtensor.weights(netuid=netuid)[0][1]
