@@ -1429,7 +1429,7 @@ class AsyncSubtensor:
 
     async def commit_reveal_enabled(
         self, netuid: int, block_hash: Optional[str] = None
-    ) -> Optional[bool]:
+    ) -> bool:
         """
         Check if commit-reveal mechanism is enabled for a given network at a specific block.
 
