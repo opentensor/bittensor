@@ -425,6 +425,8 @@ class QueryMapResult:
             max_results=self.max_results,
             ignore_decoding_errors=self.ignore_decoding_errors,
         )
+        if len(result.records) < self.page_size:
+            self.loading_complete = True
 
         # Update last key from new result set to use as offset for next page
         self.last_key = result.last_key
@@ -436,23 +438,35 @@ class QueryMapResult:
     def __iter__(self):
         return self
 
-    async def __anext__(self):
+    async def get_next_record(self):
         try:
             # Try to get the next record from the buffer
-            return next(self._buffer)
+            record = next(self._buffer)
         except StopIteration:
-            # If no more records in the buffer, try to fetch the next page
-            if self.loading_complete:
-                raise StopAsyncIteration
+            # If no more records in the buffer
+            return False, None
+        else:
+            return True, record
 
-            next_page = await self.retrieve_next_page(self.last_key)
-            if not next_page:
-                self.loading_complete = True
-                raise StopAsyncIteration
+    async def __anext__(self):
+        successfully_retrieved, record = await self.get_next_record()
+        if successfully_retrieved:
+            return record
 
-            # Update the buffer with the newly fetched records
-            self._buffer = iter(next_page)
-            return next(self._buffer)
+        # If loading is already completed
+        if self.loading_complete:
+            raise StopAsyncIteration
+
+        next_page = await self.retrieve_next_page(self.last_key)
+
+        # If we cannot retrieve the next page
+        if not next_page:
+            self.loading_complete = True
+            raise StopAsyncIteration
+
+        # Update the buffer with the newly fetched records
+        self._buffer = iter(next_page)
+        return next(self._buffer)
 
     def __next__(self):
         try:
@@ -462,6 +476,13 @@ class QueryMapResult:
 
     def __getitem__(self, item):
         return self.records[item]
+
+    def load_all(self):
+        async def _load_all():
+            return [item async for item in self]
+        return asyncio.get_event_loop().run_until_complete(_load_all())
+
+
 
 
 @dataclass
@@ -797,10 +818,10 @@ class Websocket:
         Returns:
             id: the internal ID of the request (incremented int)
         """
-        async with self._lock:
-            original_id = self.id
-            self.id += 1
-            self._open_subscriptions += 1
+        # async with self._lock:
+        original_id = self.id
+        self.id += 1
+            # self._open_subscriptions += 1
         try:
             await self.ws.send(json.dumps({**payload, **{"id": original_id}}))
             return original_id
@@ -1005,7 +1026,8 @@ class AsyncSubstrateInterface:
         if scale_bytes == b"\x00":
             obj = None
         else:
-            await asyncio.wait_for(wait_for_registry(), timeout=10)
+            if not self.registry:
+                await asyncio.wait_for(wait_for_registry(), timeout=10)
             try:
                 obj = decode_by_type_string(type_string, self.registry, scale_bytes)
             except TimeoutError:
@@ -1812,8 +1834,13 @@ class AsyncSubstrateInterface:
         subscription_added = False
 
         async with self.ws as ws:
-            for item in payloads:
-                print(">>>", item)
+            if len(payloads) > 1:
+                send_coroutines = await asyncio.gather(*[ws.send(item["payload"]) for item in payloads])
+                for item_id, item in zip(send_coroutines, payloads):
+                    request_manager.add_request(item_id, item["id"])
+            else:
+                item = payloads[0]
+                # print(item)
                 item_id = await ws.send(item["payload"])
                 request_manager.add_request(item_id, item["id"])
 
@@ -1933,6 +1960,10 @@ class AsyncSubstrateInterface:
         )
         result = await self._make_rpc_request(payloads, runtime=runtime)
         if "error" in result[payload_id][0]:
+            if "Failed to get runtime version" in result[payload_id][0]["error"]["message"]:
+                logging.warning("Failed to get runtime. Re-fetching from chain, and retrying.")
+                await self.init_runtime()
+                return await self.rpc_request(method, params, block_hash, reuse_block_hash)
             raise SubstrateRequestException(result[payload_id][0]["error"]["message"])
         if "result" in result[payload_id][0]:
             return result[payload_id][0]
@@ -2668,13 +2699,15 @@ class AsyncSubstrateInterface:
         Returns:
              QueryMapResult object
         """
+        hex_to_bytes_ = hex_to_bytes
         params = params or []
         block_hash = await self._get_current_block_hash(block_hash, reuse_block_hash)
         if block_hash:
             self.last_block_hash = block_hash
-        runtime = await self.init_runtime(block_hash=block_hash)
+        if not self.__metadata:
+            runtime = await self.init_runtime(block_hash=block_hash)
 
-        metadata_pallet = runtime.metadata.get_metadata_pallet(module)
+        metadata_pallet = self.__metadata.get_metadata_pallet(module)
         if not metadata_pallet:
             raise ValueError(f'Pallet "{module}" not found')
         storage_item = metadata_pallet.get_storage_function(storage_function)
@@ -2701,8 +2734,8 @@ class AsyncSubstrateInterface:
             module,
             storage_item.value["name"],
             params,
-            runtime_config=runtime.runtime_config,
-            metadata=runtime.metadata,
+            runtime_config=self.runtime_config,
+            metadata=self.__metadata,
         )
         prefix = storage_key.to_hex()
 
@@ -2782,7 +2815,7 @@ class AsyncSubstrateInterface:
                         item_key = None
 
                     try:
-                        item_bytes = hex_to_bytes(item[1])
+                        item_bytes = hex_to_bytes_(item[1])
 
                         item_value = await self.decode_scale(
                             type_string=value_type, scale_bytes=item_bytes
