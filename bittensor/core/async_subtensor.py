@@ -1607,9 +1607,12 @@ class AsyncSubtensor:
             retries = 0
             success = False
             message = "No attempt made. Perhaps it is too soon to set weights!"
-            while retries < max_retries and await self.blocks_since_last_update(
-                netuid, uid
-            ) > await self.weights_rate_limit(netuid):
+            while (
+                retries < max_retries
+                and await self.blocks_since_last_update(netuid, uid)
+                > await self.weights_rate_limit(netuid)
+                and success is False
+            ):
                 try:
                     logging.info(
                         f"Setting weights for subnet #[blue]{netuid}[/blue]. Attempt [blue]{retries + 1} of {max_retries}[/blue]."
