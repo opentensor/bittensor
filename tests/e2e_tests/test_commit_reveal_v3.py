@@ -110,9 +110,9 @@ async def test_commit_and_reveal_weights_cr3(local_chain):
 
     # Commit-reveal values - setting weights to self
     uids = np.array([0], dtype=np.int64)
-    revealed_weights = np.array([0.1], dtype=np.float32)
+    weights = np.array([0.1], dtype=np.float32)
     weight_uids, weight_vals = convert_weights_and_uids_for_emit(
-        uids=uids, weights=revealed_weights
+        uids=uids, weights=weights
     )
 
     # Fetch current block and calculate next tempo for the subnet
