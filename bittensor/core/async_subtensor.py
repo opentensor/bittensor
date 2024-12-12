@@ -1438,7 +1438,7 @@ class AsyncSubtensor:
             block_hash (Optional[str]): The block hash of block at which to check the parameter (default is None, which implies the current block).
 
         Returns:
-            (Optional[bool]): Returns the integer value of the hyperparameter if available; otherwise, returns None.
+            (bool): Returns the integer value of the hyperparameter if available; otherwise, returns None.
         """
         call = await self.get_hyperparameter(
             param_name="CommitRevealWeightsEnabled",
