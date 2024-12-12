@@ -480,9 +480,8 @@ class QueryMapResult:
     def load_all(self):
         async def _load_all():
             return [item async for item in self]
+
         return asyncio.get_event_loop().run_until_complete(_load_all())
-
-
 
 
 @dataclass
@@ -528,10 +527,12 @@ class Runtime:
     transaction_version = None
     cache_region = None
     metadata = None
+    runtime_config: RuntimeConfigurationObject
     type_registry_preset = None
 
-    def __init__(self, chain, runtime_config, metadata, type_registry):
-        self.runtime_config = RuntimeConfigurationObject()
+    def __init__(
+        self, chain, runtime_config: RuntimeConfigurationObject, metadata, type_registry
+    ):
         self.config = {}
         self.chain = chain
         self.type_registry = type_registry
@@ -821,8 +822,9 @@ class Websocket:
         # async with self._lock:
         original_id = self.id
         self.id += 1
-            # self._open_subscriptions += 1
+        # self._open_subscriptions += 1
         try:
+            # print(">>>", payload)
             await self.ws.send(json.dumps({**payload, **{"id": original_id}}))
             return original_id
         except (ConnectionClosed, ssl.SSLError, EOFError):
@@ -847,7 +849,6 @@ class Websocket:
 
 
 class AsyncSubstrateInterface:
-    runtime = None
     registry: Optional[PortableRegistry] = None
 
     def __init__(
@@ -953,6 +954,15 @@ class AsyncSubstrateInterface:
             )
         else:
             return self.__metadata
+
+    @property
+    def runtime(self):
+        return Runtime(
+            self.chain,
+            self.runtime_config,
+            self.__metadata,
+            self.type_registry,
+        )
 
     @property
     def implements_scaleinfo(self) -> Optional[bool]:
@@ -1350,7 +1360,8 @@ class AsyncSubstrateInterface:
         Returns:
             StorageKey
         """
-        await self.init_runtime(block_hash=block_hash)
+        if not self.__metadata or block_hash:
+            await self.init_runtime(block_hash=block_hash)
 
         return StorageKey.create_from_storage_function(
             pallet,
@@ -1835,7 +1846,9 @@ class AsyncSubstrateInterface:
 
         async with self.ws as ws:
             if len(payloads) > 1:
-                send_coroutines = await asyncio.gather(*[ws.send(item["payload"]) for item in payloads])
+                send_coroutines = await asyncio.gather(
+                    *[ws.send(item["payload"]) for item in payloads]
+                )
                 for item_id, item in zip(send_coroutines, payloads):
                     request_manager.add_request(item_id, item["id"])
             else:
@@ -1960,10 +1973,17 @@ class AsyncSubstrateInterface:
         )
         result = await self._make_rpc_request(payloads, runtime=runtime)
         if "error" in result[payload_id][0]:
-            if "Failed to get runtime version" in result[payload_id][0]["error"]["message"]:
-                logging.warning("Failed to get runtime. Re-fetching from chain, and retrying.")
+            if (
+                "Failed to get runtime version"
+                in result[payload_id][0]["error"]["message"]
+            ):
+                logging.warning(
+                    "Failed to get runtime. Re-fetching from chain, and retrying."
+                )
                 await self.init_runtime()
-                return await self.rpc_request(method, params, block_hash, reuse_block_hash)
+                return await self.rpc_request(
+                    method, params, block_hash, reuse_block_hash
+                )
             raise SubstrateRequestException(result[payload_id][0]["error"]["message"])
         if "result" in result[payload_id][0]:
             return result[payload_id][0]
@@ -2015,7 +2035,8 @@ class AsyncSubstrateInterface:
         if call_params is None:
             call_params = {}
 
-        await self.init_runtime(block_hash=block_hash)
+        if not self.__metadata or block_hash:
+            await self.init_runtime(block_hash=block_hash)
 
         call = self.runtime_config.create_scale_object(
             type_string="Call", metadata=self.__metadata
@@ -2048,7 +2069,10 @@ class AsyncSubstrateInterface:
         block_hash = await self._get_current_block_hash(block_hash, reuse_block_hash)
         if block_hash:
             self.last_block_hash = block_hash
-        runtime = await self.init_runtime(block_hash=block_hash)
+        if not self.__metadata or block_hash:
+            runtime = await self.init_runtime(block_hash=block_hash)
+        else:
+            runtime = self.runtime
         preprocessed: tuple[Preprocessed] = await asyncio.gather(
             *[
                 self._preprocess([x], block_hash, storage_function, module)
@@ -2098,8 +2122,8 @@ class AsyncSubstrateInterface:
         Returns:
             list of `(storage_key, scale_obj)` tuples
         """
-
-        await self.init_runtime(block_hash=block_hash)
+        if not self.__metadata or block_hash:
+            await self.init_runtime(block_hash=block_hash)
 
         # Retrieve corresponding value
         response = await self.rpc_request(
@@ -2152,7 +2176,10 @@ class AsyncSubstrateInterface:
         Returns:
              The created Scale Type object
         """
-        runtime = await self.init_runtime(block_hash=block_hash)
+        if not self.__metadata or block_hash:
+            runtime = await self.init_runtime(block_hash=block_hash)
+        else:
+            runtime = self.runtime
         if "metadata" not in kwargs:
             kwargs["metadata"] = runtime.metadata
 
@@ -2447,7 +2474,8 @@ class AsyncSubstrateInterface:
         Returns:
              ScaleType from the runtime call
         """
-        await self.init_runtime()
+        if not self.__metadata or block_hash:
+            await self.init_runtime(block_hash=block_hash)
 
         if params is None:
             params = {}
@@ -2534,8 +2562,8 @@ class AsyncSubstrateInterface:
         Returns:
             MetadataModuleConstants
         """
-
-        await self.init_runtime(block_hash=block_hash)
+        if not self.__metadata or block_hash:
+            await self.init_runtime(block_hash=block_hash)
 
         for module in self.__metadata.pallets:
             if module_name == module.name and module.constants:
@@ -2633,7 +2661,10 @@ class AsyncSubstrateInterface:
         block_hash = await self._get_current_block_hash(block_hash, reuse_block_hash)
         if block_hash:
             self.last_block_hash = block_hash
-        runtime = await self.init_runtime(block_hash=block_hash)
+        if not self.__metadata or block_hash:
+            runtime = await self.init_runtime(block_hash=block_hash)
+        else:
+            runtime = self.runtime
         preprocessed: Preprocessed = await self._preprocess(
             params, block_hash, storage_function, module
         )
@@ -2704,8 +2735,8 @@ class AsyncSubstrateInterface:
         block_hash = await self._get_current_block_hash(block_hash, reuse_block_hash)
         if block_hash:
             self.last_block_hash = block_hash
-        if not self.__metadata:
-            runtime = await self.init_runtime(block_hash=block_hash)
+        if not self.__metadata or block_hash:
+            await self.init_runtime(block_hash=block_hash)
 
         metadata_pallet = self.__metadata.get_metadata_pallet(module)
         if not metadata_pallet:
@@ -2975,7 +3006,10 @@ class AsyncSubstrateInterface:
         Returns:
             list of call functions
         """
-        runtime = await self.init_runtime(block_hash=block_hash)
+        if not self.__metadata or block_hash:
+            runtime = await self.init_runtime(block_hash=block_hash)
+        else:
+            runtime = self.runtime
 
         for pallet in runtime.metadata.pallets:
             if pallet.name == module_name and pallet.calls:

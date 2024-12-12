@@ -703,7 +703,11 @@ class Subtensor:
             list[int]: A list of netuids where the neuron is a member.
         """
         result = self.query_map_subtensor("IsNetworkMember", block, [hotkey_ss58])
-        return [record[0] for record in result.load_all() if record[1]] if getattr(result, "records", None) is not None else []
+        return (
+            [record[0] for record in result.load_all() if record[1]]
+            if getattr(result, "records", None) is not None
+            else []
+        )
         # return (
         #     [record[0] for record in result if record[1]]
         #     if result and hasattr(result, "records")
