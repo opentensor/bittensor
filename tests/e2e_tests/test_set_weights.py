@@ -39,7 +39,7 @@ async def test_set_weights_uses_next_nonce(local_chain):
     keypair, alice_wallet = setup_wallet("//Alice")
 
     # Lower the network registration rate limit and cost
-    root_set_subtensor_hyperparameter_values(
+    await root_set_subtensor_hyperparameter_values(
         local_chain,
         alice_wallet,
         call_function="sudo_set_network_rate_limit",
@@ -47,7 +47,7 @@ async def test_set_weights_uses_next_nonce(local_chain):
         return_error_message=True,
     )
     # Set lock reduction interval
-    root_set_subtensor_hyperparameter_values(
+    await root_set_subtensor_hyperparameter_values(
         local_chain,
         alice_wallet,
         call_function="sudo_set_lock_reduction_interval",
@@ -71,7 +71,7 @@ async def test_set_weights_uses_next_nonce(local_chain):
         # Register Alice to the subnet
         assert subtensor.burned_register(
             alice_wallet, netuid
-        ), "Unable to register Alice as a neuron"
+        ), f"Unable to register Alice as a neuron on SN{netuid}"
 
     # Stake to become to top neuron after the first epoch
     add_stake(local_chain, alice_wallet, Balance.from_tao(100_000))
