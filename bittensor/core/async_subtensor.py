@@ -21,7 +21,7 @@ from bittensor.core.chain_data import (
     NeuronInfo,
     SubnetHyperparameters,
     decode_account_id,
-    SubnetInfo
+    SubnetInfo,
 )
 from bittensor.core.extrinsics.async_registration import register_extrinsic
 from bittensor.core.extrinsics.async_root import (
@@ -492,12 +492,38 @@ class AsyncSubtensor:
         if reuse_block:
             block_hash = self.substrate.last_block_hash
 
-        return await self.substrate.runtime_call(
-            api=runtime_api,
-            method=method,
-            params=params,
-            block_hash=block_hash
+        call_definition = TYPE_REGISTRY["runtime_api"][runtime_api]["methods"][method]
+
+        data = (
+            "0x"
+            if params is None
+            else await self.encode_params(
+                call_definition=call_definition, params=params
+            )
         )
+        api_method = f"{runtime_api}_{method}"
+
+        json_result = await self.substrate.rpc_request(
+            method="state_call",
+            params=[api_method, data, block_hash] if block_hash else [api_method, data],
+        )
+
+        if json_result is None:
+            return None
+
+        return_type = call_definition["type"]
+
+        as_scale_bytes = scalecodec.ScaleBytes(json_result["result"])  # type: ignore
+
+        rpc_runtime_config = RuntimeConfiguration()
+        rpc_runtime_config.update_type_registry(load_type_registry_preset("legacy"))
+        rpc_runtime_config.update_type_registry(custom_rpc_type_registry)
+
+        obj = rpc_runtime_config.create_scale_object(return_type, as_scale_bytes)
+        if obj.data.to_hex() == "0x0400":  # RPC returned None result
+            return None
+
+        return obj.decode()
 
     async def get_balance(
         self,
@@ -1725,7 +1751,9 @@ class AsyncSubtensor:
         """
         hex_bytes_result = await self.query_runtime_api(
             # TODO add block/block-hash
-            "SubnetInfoRuntimeApi", "get_subnets_info", params=[]
+            "SubnetInfoRuntimeApi",
+            "get_subnets_info",
+            params=[],
         )
         if not hex_bytes_result:
             return []
@@ -1749,7 +1777,9 @@ class AsyncSubtensor:
         )
         return Balance.from_rao(result)
 
-    async def tempo(self, netuid: int, block_hash: Optional[str] = None) -> Optional[int]:
+    async def tempo(
+        self, netuid: int, block_hash: Optional[str] = None
+    ) -> Optional[int]:
         """
         Returns network Tempo hyperparameter.
 
@@ -1761,5 +1791,7 @@ class AsyncSubtensor:
         Returns:
             Optional[int]: The value of the Tempo hyperparameter, or ``None`` if the subnetwork does not exist or the parameter is not found.
         """
-        call = await self.get_hyperparameter(param_name="Tempo", netuid=netuid, block_hash=block_hash)
+        call = await self.get_hyperparameter(
+            param_name="Tempo", netuid=netuid, block_hash=block_hash
+        )
         return None if call is None else int(call)
