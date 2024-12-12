@@ -1281,7 +1281,7 @@ class Subtensor:
             Optional[Balance]: The total stake amount held by the coldkey, or None if the query fails.
         """
         result = self.query_subtensor("TotalColdkeyStake", block, [ss58_address])
-        if not hasattr(result, "value") or result is None:
+        if not getattr(result, "value", None) is None:
             return None
         return Balance.from_rao(result.value)
 
