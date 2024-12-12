@@ -660,6 +660,16 @@ class Subtensor:
             ),
         )
 
+    @networking.ensure_connected
+    def get_account_next_index(self, address: str) -> int:
+        """
+        Returns the next nonce for an account, taking into account the transaction pool.
+        """
+        if not self.substrate.supports_rpc_method("account_nextIndex"):
+            raise Exception("account_nextIndex not supported")
+
+        return self.substrate.rpc_request("account_nextIndex", [address])["result"]
+
     # Common subtensor methods =========================================================================================
     def metagraph(
         self, netuid: int, lite: bool = True, block: Optional[int] = None
