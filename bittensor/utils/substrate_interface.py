@@ -909,7 +909,8 @@ class AsyncSubstrateInterface:
                     chain = await self.rpc_request("system_chain", [])
                     self.__chain = chain.get("result")
                 self.reload_type_registry()
-                await asyncio.gather(self.load_registry(), self.init_runtime(None))
+                # await asyncio.gather(self.load_registry(), self.init_runtime(None))
+                await asyncio.gather(self.load_registry(), self._init_init_runtime())
             self.initialized = True
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
@@ -995,10 +996,23 @@ class AsyncSubstrateInterface:
             Decoded object
 
         """
+
+        async def wait_for_registry():
+            while self.registry is None:
+                await asyncio.sleep(0.01)
+            return
+
         if scale_bytes == b"\x00":
             obj = None
         else:
-            obj = decode_by_type_string(type_string, self.registry, scale_bytes)
+            await asyncio.wait_for(wait_for_registry(), timeout=10)
+            try:
+                obj = decode_by_type_string(type_string, self.registry, scale_bytes)
+            except TimeoutError:
+                # indicates that registry was never loaded
+                # TODO add max retries
+                await self.load_registry()
+                return self.decode_scale(type_string, scale_bytes)
         return obj
 
     async def encode_scale(self, type_string, value, block_hash=None) -> ScaleBytes:
@@ -1053,6 +1067,29 @@ class AsyncSubstrateInterface:
             str containing the hex representation of the public key
         """
         return ss58_decode(ss58_address, valid_ss58_format=self.ss58_format)
+
+    async def _init_init_runtime(self):
+        runtime_info, metadata = await asyncio.gather(
+            self.get_block_runtime_version(None), self.get_block_metadata()
+        )
+        self.__metadata = metadata
+        self.__metadata_cache[self.runtime_version] = self.__metadata
+        self.runtime_version = runtime_info.get("specVersion")
+        self.runtime_config.set_active_spec_version_id(self.runtime_version)
+        self.transaction_version = runtime_info.get("transactionVersion")
+        if self.implements_scaleinfo:
+            # self.debug_message('Add PortableRegistry from metadata to type registry')
+            self.runtime_config.add_portable_registry(metadata)
+        # Set runtime compatibility flags
+        try:
+            _ = self.runtime_config.create_scale_object("sp_weights::weight_v2::Weight")
+            self.config["is_weight_v2"] = True
+            self.runtime_config.update_type_registry_types(
+                {"Weight": "sp_weights::weight_v2::Weight"}
+            )
+        except NotImplementedError:
+            self.config["is_weight_v2"] = False
+            self.runtime_config.update_type_registry_types({"Weight": "WeightV1"})
 
     async def init_runtime(
         self, block_hash: Optional[str] = None, block_id: Optional[int] = None
