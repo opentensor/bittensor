@@ -186,8 +186,8 @@ async def test_commit_weights_uses_next_nonce(local_chain):
         2. Register Alice's neuron and add stake
         3. Enable commit-reveal mechanism on the subnet
         4. Lower the commit_reveal interval and rate limit
-        5. Commit weights twice in the same block
-        6. Assert that both commits succeeded
+        5. Commit weights three times
+        6. Assert that all commits succeeded
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
@@ -314,7 +314,7 @@ async def test_commit_weights_uses_next_nonce(local_chain):
     assert success is True
 
     # Wait a few blocks
-    await asyncio.sleep(2)  # Wait for the txs to be included in the block
+    await asyncio.sleep(2)  # Wait for the txs to be included in the chain
 
     # Query the WeightCommits storage map for all three salts
     weight_commits = subtensor.query_module(
