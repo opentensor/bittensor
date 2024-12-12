@@ -1,5 +1,33 @@
 # Changelog
 
+## 8.4.4 /2024-12-05
+
+## What's Changed
+* Removes the call that automatically sets everything to warning level debugging by @thewhaleking in https://github.com/opentensor/bittensor/pull/2508
+* Exit `set_weights` on success by @thewhaleking in https://github.com/opentensor/bittensor/pull/2511
+* `test_dendrite` test clean up by @thewhaleking in https://github.com/opentensor/bittensor/pull/2512
+* Adds --logging.info level so it can be set @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2510
+* Allows wallet to be created through configs in the axon if it is provided by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2510
+* Changes verbosity level of ClientConnectorError and TimeoutError in the dendrite to debug by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2510
+* Fixes behaviour of config initialization for axon, subtensor, logging and threadpool by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2510
+* metagraph sync fix by @thewhaleking in https://github.com/opentensor/bittensor/pull/2514
+* Remove metadata retrieval of custom errors from format_error_message by @thewhaleking in https://github.com/opentensor/bittensor/pull/2518
+* Backmerge master to staging for 8.4.4 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2519
+* Updates bt-decode to 0.4.0 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2520
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v8.4.3...v8.4.4
+
+## 8.4.3 /2024-12-02
+
+## What's Changed
+
+* Fix logging config parsing by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2500
+* Improve  `submit_extrinsic` util by @thewhaleking in https://github.com/opentensor/bittensor/pull/2502
+* Backmerge master to staging for 843 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2505
+* WS ensure_connected socket catch by @thewhaleking in https://github.com/opentensor/bittensor/pull/2507
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v8.4.2...v8.4.3
+
 ## 8.4.2 /2024-11-28
 
 ## What's Changed

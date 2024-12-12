@@ -944,7 +944,7 @@ class AsyncSubstrateInterface:
             self.last_block_hash = block_hash
             self.block_id = block_id
 
-            # In fact calls and storage functions are decoded against runtime of previous block, therefor retrieve
+            # In fact calls and storage functions are decoded against runtime of previous block, therefore retrieve
             # metadata and apply type registry of runtime of parent block
             block_header = await self.rpc_request(
                 "chain_getHeader", [self.last_block_hash]
@@ -1390,7 +1390,7 @@ class AsyncSubstrateInterface:
             A dict containing the extrinsic and digest logs data
         """
         if block_hash and block_number:
-            raise ValueError("Either block_hash or block_number should be be set")
+            raise ValueError("Either block_hash or block_number should be set")
 
         if block_number is not None:
             block_hash = await self.get_block_hash(block_number)
@@ -2758,7 +2758,7 @@ class AsyncSubstrateInterface:
                         return call
         return None
 
-    async def get_block_number(self, block_hash: Optional[str]) -> int:
+    async def get_block_number(self, block_hash: Optional[str] = None) -> int:
         """Async version of `substrateinterface.base.get_block_number` method."""
         response = await self.rpc_request("chain_getHeader", [block_hash])
 

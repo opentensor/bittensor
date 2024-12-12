@@ -15,7 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-__version__ = "8.4.2"
+__version__ = "8.4.4"
 
 import os
 import re
@@ -43,8 +43,8 @@ DEFAULT_NETWORK = NETWORKS[0]
 
 # Bittensor endpoints (Needs to use wss://)
 FINNEY_ENTRYPOINT = "wss://entrypoint-finney.opentensor.ai:443"
-FINNEY_TEST_ENTRYPOINT = "wss://test.finney.opentensor.ai:443/"
-ARCHIVE_ENTRYPOINT = "wss://archive.chain.opentensor.ai:443/"
+FINNEY_TEST_ENTRYPOINT = "wss://test.finney.opentensor.ai:443"
+ARCHIVE_ENTRYPOINT = "wss://archive.chain.opentensor.ai:443"
 LOCAL_ENTRYPOINT = os.getenv("BT_SUBTENSOR_CHAIN_ENDPOINT") or "ws://127.0.0.1:9944"
 SUBVORTEX_ENTRYPOINT = "ws://subvortex.info:9944"
 DEVNET_ENTRYPOINT = "wss://dev.chain.opentensor.ai:443"
@@ -56,6 +56,14 @@ NETWORK_MAP = {
     NETWORKS[3]: LOCAL_ENTRYPOINT,
     NETWORKS[4]: SUBVORTEX_ENTRYPOINT,
     NETWORKS[5]: DEVNET_ENTRYPOINT,
+}
+
+REVERSE_NETWORK_MAP = {
+    FINNEY_ENTRYPOINT: NETWORKS[0],
+    FINNEY_TEST_ENTRYPOINT: NETWORKS[1],
+    ARCHIVE_ENTRYPOINT: NETWORKS[2],
+    LOCAL_ENTRYPOINT: NETWORKS[3],
+    SUBVORTEX_ENTRYPOINT: NETWORKS[4],
 }
 
 # Currency Symbols Bittensor
@@ -279,6 +287,7 @@ DEFAULTS = munchify(
         "logging": {
             "debug": os.getenv("BT_LOGGING_DEBUG") or False,
             "trace": os.getenv("BT_LOGGING_TRACE") or False,
+            "info": os.getenv("BT_LOGGING_INFO") or False,
             "record_log": os.getenv("BT_LOGGING_RECORD_LOG") or False,
             "logging_dir": os.getenv("BT_LOGGING_LOGGING_DIR") or str(MINERS_DIR),
         },
