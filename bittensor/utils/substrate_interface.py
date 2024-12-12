@@ -839,7 +839,7 @@ class AsyncSubstrateInterface:
         chain_name: Optional[str] = None,
         sync_calls: bool = False,
         max_retries: int = 5,
-        retry_timeout: float = 20.0,
+        retry_timeout: float = 60.0,
     ):
         """
         The asyncio-compatible version of the subtensor interface commands we use in bittensor. It is important to

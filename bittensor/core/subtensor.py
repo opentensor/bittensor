@@ -1668,7 +1668,7 @@ class Subtensor:
         result = self.substrate.query(
             module="SubtensorModule", storage_function="NominatorMinRequiredStake"
         )
-        return Balance.from_rao(result.decode())
+        return Balance.from_rao(result)
 
     def tx_rate_limit(self, block: Optional[int] = None) -> Optional[int]:
         """
