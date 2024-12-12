@@ -10,6 +10,7 @@ import json
 import random
 from collections import defaultdict
 from dataclasses import dataclass
+from functools import lru_cache
 from hashlib import blake2b
 from typing import Optional, Any, Union, Callable, Awaitable, cast, TYPE_CHECKING
 
@@ -1703,6 +1704,24 @@ class AsyncSubstrateInterface:
             "id": id_,
             "payload": {"jsonrpc": "2.0", "method": method, "params": params},
         }
+
+    @lru_cache(maxsize=512)  # RPC methods are unlikely to change often
+    async def supports_rpc_method(self, name: str) -> bool:
+        """
+        Check if substrate RPC supports given method
+        Parameters
+        ----------
+        name: name of method to check
+
+        Returns
+        -------
+        bool
+        """
+        result = await self.rpc_request("rpc_methods", []).get("result")
+        if result:
+            self.config["rpc_methods"] = result.get("methods", [])
+
+        return name in self.config["rpc_methods"]
 
     async def rpc_request(
         self,
