@@ -1,10 +1,9 @@
 """Tests for bittensor/extrinsics/__ini__ module."""
 
 from bittensor.utils import format_error_message
-from tests.unit_tests.extrinsics.test_commit_weights import subtensor
 
 
-def test_format_error_message_with_right_error_message(mocker):
+def test_format_error_message_with_right_error_message():
     """Verify that error message from extrinsic response parses correctly."""
     # Prep
     fake_error_message = {
@@ -14,7 +13,7 @@ def test_format_error_message_with_right_error_message(mocker):
     }
 
     # Call
-    result = format_error_message(fake_error_message, substrate=mocker.MagicMock())
+    result = format_error_message(fake_error_message)
 
     # Assertions
 
@@ -23,13 +22,13 @@ def test_format_error_message_with_right_error_message(mocker):
     assert "Some error description." in result
 
 
-def test_format_error_message_with_empty_error_message(mocker):
+def test_format_error_message_with_empty_error_message():
     """Verify that empty error message from extrinsic response parses correctly."""
     # Prep
     fake_error_message = {}
 
     # Call
-    result = format_error_message(fake_error_message, substrate=mocker.MagicMock())
+    result = format_error_message(fake_error_message)
 
     # Assertions
 
@@ -38,13 +37,13 @@ def test_format_error_message_with_empty_error_message(mocker):
     assert "Unknown Description" in result
 
 
-def test_format_error_message_with_wrong_type_error_message(mocker):
+def test_format_error_message_with_wrong_type_error_message():
     """Verify that error message from extrinsic response with wrong type parses correctly."""
     # Prep
     fake_error_message = None
 
     # Call
-    result = format_error_message(fake_error_message, substrate=mocker.MagicMock())
+    result = format_error_message(fake_error_message)
 
     # Assertions
 
@@ -53,7 +52,7 @@ def test_format_error_message_with_wrong_type_error_message(mocker):
     assert "Unknown Description" in result
 
 
-def test_format_error_message_with_custom_error_message_with_index(mocker):
+def test_format_error_message_with_custom_error_message_with_index():
     """Tests error formatter if subtensor error is custom error with index."""
     # Preps
     fake_custom_error = {
@@ -68,28 +67,19 @@ def test_format_error_message_with_custom_error_message_with_index(mocker):
         "name": "SomeErrorName",
     }
 
-    fake_substrate = mocker.MagicMock()
-    fake_substrate.metadata.get_metadata_pallet().errors.__getitem__().value.get = (
-        mocker.Mock(
-            side_effect=[fake_custom_error["message"], fake_subtensor_error["docs"]]
-        )
-    )
-
-    mocker.patch(
-        "substrateinterface.base.SubstrateInterface", return_value=fake_substrate
-    )
-
     # Call
-    result = format_error_message(fake_custom_error, fake_substrate)
+    result = format_error_message(fake_custom_error)
 
     # Assertions
     assert (
         result
-        == f"Subtensor returned `SubstrateRequestException({fake_subtensor_error['name']})` error. This means: `Some description`."
+        == f"Subtensor returned `SubstrateRequestException({fake_subtensor_error['name']})` error. This means: "
+        f"`{fake_custom_error['data']} | Please consult "
+        f"https://docs.bittensor.com/subtensor-nodes/subtensor-error-messages`."
     )
 
 
-def test_format_error_message_with_custom_error_message_without_index(mocker):
+def test_format_error_message_with_custom_error_message_without_index():
     """Tests error formatter if subtensor error is custom error without index."""
     # Preps
     fake_custom_error = {
@@ -97,19 +87,13 @@ def test_format_error_message_with_custom_error_message_without_index(mocker):
         "message": "SomeErrorType",
         "data": "Custom error description",
     }
-    fake_substrate = mocker.MagicMock()
-    fake_substrate.metadata.get_metadata_pallet().errors.__getitem__().value.get.return_value = fake_custom_error[
-        "message"
-    ]
-    mocker.patch(
-        "substrateinterface.base.SubstrateInterface", return_value=fake_substrate
-    )
 
     # Call
-    result = format_error_message(fake_custom_error, fake_substrate)
+    result = format_error_message(fake_custom_error)
 
     # Assertions
     assert (
         result
-        == f"Subtensor returned `SubstrateRequestException({fake_custom_error['message']})` error. This means: `{fake_custom_error['data']}`."
+        == f"Subtensor returned `SubstrateRequestException({fake_custom_error['message']})` error. This means: "
+        f"`{fake_custom_error['data']}`."
     )

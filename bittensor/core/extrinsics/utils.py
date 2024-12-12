@@ -65,9 +65,7 @@ def submit_extrinsic(
                 wait_for_finalization=wait_for_finalization,
             )
         except SubstrateRequestException as e:
-            logging.error(
-                format_error_message(e.args[0], substrate=subtensor.substrate)
-            )
+            logging.error(format_error_message(e.args[0]))
             # Re-raise the exception for retrying of the extrinsic call. If we remove the retry logic,
             # the raise will need to be removed.
             raise

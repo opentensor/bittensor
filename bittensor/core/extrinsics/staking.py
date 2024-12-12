@@ -59,9 +59,7 @@ def _do_stake(
     if response.is_success:
         return True
     else:
-        raise StakeError(
-            format_error_message(response.error_message, substrate=self.substrate)
-        )
+        raise StakeError(format_error_message(response.error_message))
 
 
 def _check_threshold_amount(
