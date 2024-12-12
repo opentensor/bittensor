@@ -1302,25 +1302,6 @@ class Subtensor:
             return None
         return Balance.from_rao(result.value)
 
-    def get_stake_for_coldkey_and_hotkey(
-        self, hotkey_ss58: str, coldkey_ss58: str, block: Optional[int] = None
-    ) -> Optional["Balance"]:
-        """Retrieves the stake amount for a specific coldkey-hotkey pair within the Bittensor network.
-
-        Args:
-            hotkey_ss58 (str): The SS58 address of the hotkey account.
-            coldkey_ss58 (str): The SS58 address of the coldkey account.
-            block (Optional[int]): The blockchain block number at which to perform the query.
-
-        Returns:
-            Optional[Balance]: The stake amount for the specific coldkey-hotkey pair,
-            or None if the query fails.
-        """
-        result = self.query_subtensor("Stake", block, [hotkey_ss58, coldkey_ss58])
-        if not hasattr(result, "value") or result is None:
-            return None
-        return Balance.from_rao(result.value)
-
     def get_total_subnets(self, block: Optional[int] = None) -> Optional[int]:
         """
         Retrieves the total number of subnets within the Bittensor network as of a specific blockchain block.
