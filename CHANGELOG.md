@@ -1,5 +1,12 @@
 # Changelog
 
+## 8.4.5 /2024-12-05
+
+## What's Changed
+* Overrides copy and deep copy for the metagraph by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2523
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v8.4.4...v8.4.5
+
 ## 8.4.4 /2024-12-05
 
 ## What's Changed
