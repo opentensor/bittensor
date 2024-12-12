@@ -1268,6 +1268,40 @@ class Subtensor:
 
         return neurons
 
+    def get_total_stake_for_coldkey(
+        self, ss58_address: str, block: Optional[int] = None
+    ) -> Optional["Balance"]:
+        """Retrieves the total stake held by a coldkey across all associated hotkeys, including delegated stakes.
+
+        Args:
+            ss58_address (str): The SS58 address of the coldkey account.
+            block (Optional[int]): The blockchain block number at which to perform the query.
+
+        Returns:
+            Optional[Balance]: The total stake amount held by the coldkey, or None if the query fails.
+        """
+        result = self.query_subtensor("TotalColdkeyStake", block, [ss58_address])
+        if getattr(result, "value", None) is None:
+            return None
+        return Balance.from_rao(result.value)
+
+    def get_total_stake_for_hotkey(
+        self, ss58_address: str, block: Optional[int] = None
+    ) -> Optional["Balance"]:
+        """Retrieves the total stake associated with a hotkey.
+
+        Args:
+            ss58_address (str): The SS58 address of the hotkey account.
+            block (Optional[int]): The blockchain block number at which to perform the query.
+
+        Returns:
+            Optional[Balance]: The total stake amount held by the hotkey, or None if the query fails.
+        """
+        result = self.query_subtensor("TotalHotkeyStake", block, [ss58_address])
+        if getattr(result, "value", None) is None:
+            return None
+        return Balance.from_rao(result.value)
+
     def get_total_subnets(self, block: Optional[int] = None) -> Optional[int]:
         """
         Retrieves the total number of subnets within the Bittensor network as of a specific blockchain block.
