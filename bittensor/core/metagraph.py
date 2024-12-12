@@ -570,7 +570,7 @@ class MetagraphMixin(ABC):
 
         if (
             subtensor.chain_endpoint != settings.ARCHIVE_ENTRYPOINT
-            or subtensor.network != settings.NETWORKS[3]
+            or subtensor.network != "archive"
         ):
             cur_block = subtensor.get_current_block()
             if block and block < (cur_block - 300):
