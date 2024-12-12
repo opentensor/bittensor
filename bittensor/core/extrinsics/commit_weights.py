@@ -66,7 +66,7 @@ def do_commit_weights(
             "commit_hash": commit_hash,
         },
     )
-    next_nonce = self.substrate.get_account_next_index(wallet.hotkey.ss58_address)
+    next_nonce = self.substrate.get_account_next_index(wallet.hotkey.ss58_address) + 1
     extrinsic = self.substrate.create_signed_extrinsic(
         call=call,
         keypair=wallet.hotkey,
