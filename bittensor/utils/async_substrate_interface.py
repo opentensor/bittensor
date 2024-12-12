@@ -2296,10 +2296,19 @@ class AsyncSubstrateInterface:
         Returns:
             Nonce for given account address
         """
-        nonce_obj = await self.runtime_call(
-            "AccountNonceApi", "account_nonce", [account_address]
-        )
-        return nonce_obj.value
+
+    async def get_account_next_index(self, account_address: str) -> int:
+        """
+        Returns next index for the given account address, taking into account the transaction pool.
+
+        Args:
+            account_address: SS58 formatted address
+
+        Returns:
+            Next index for the given account address
+        """
+        nonce_obj = await self.rpc_request("account_nextIndex", [account_address])
+        return nonce_obj["result"]
 
     async def get_metadata_constant(self, module_name, constant_name, block_hash=None):
         """
