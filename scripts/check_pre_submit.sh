@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# ruff checks formating
+# ruff checks formatting
 echo ">>> Run the pre-submit format check with \`ruff format .\`."
 ruff format .
 
