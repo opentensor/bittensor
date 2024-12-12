@@ -33,8 +33,8 @@ async def test_set_weights_uses_next_nonce(local_chain):
         AssertionError: If any of the checks or verifications fail
     """
     netuids = [1, 2, 3]
-    utils.EXTRINSIC_SUBMISSION_TIMEOUT = 12  # handle fast blocks
-    print("Testing test_commit_and_reveal_weights")
+    utils.EXTRINSIC_SUBMISSION_TIMEOUT = 500  # handle fast blocks
+    print("Testing test_set_weights_uses_next_nonce")
     # Register root as Alice
     keypair, alice_wallet = setup_wallet("//Alice")
 
@@ -55,9 +55,9 @@ async def test_set_weights_uses_next_nonce(local_chain):
         return_error_message=True,
     )
     # Try to register the subnets
-    for netuid in netuids:
+    for _ in netuids:
         assert register_subnet(
-            local_chain, alice_wallet, netuid
+            local_chain, alice_wallet
         ), "Unable to register the subnet"
 
     # Verify all subnets created successfully
