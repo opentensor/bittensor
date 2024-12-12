@@ -821,7 +821,7 @@ class Websocket:
         try:
             return self._received.pop(item_id)
         except KeyError:
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(0.001)
             return None
 
 
@@ -1776,6 +1776,7 @@ class AsyncSubstrateInterface:
 
         async with self.ws as ws:
             for item in payloads:
+                print(">>>", item)
                 item_id = await ws.send(item["payload"])
                 request_manager.add_request(item_id, item["id"])
 
