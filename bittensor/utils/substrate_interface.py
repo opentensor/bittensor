@@ -12,6 +12,7 @@ import ssl
 import time
 from collections import defaultdict
 from dataclasses import dataclass
+from datetime import datetime
 from hashlib import blake2b
 from typing import Optional, Any, Union, Callable, Awaitable, cast, TYPE_CHECKING
 
@@ -21,7 +22,7 @@ from bt_decode import PortableRegistry, decode as decode_by_type_string, Metadat
 from scalecodec import GenericExtrinsic, ss58_encode, ss58_decode
 from scalecodec.base import ScaleBytes, ScaleType, RuntimeConfigurationObject
 from scalecodec.type_registry import load_type_registry_preset
-from scalecodec.types import GenericCall
+from scalecodec.types import GenericCall, GenericRuntimeCallDefinition
 from substrateinterface.exceptions import (
     SubstrateRequestException,
     ExtrinsicNotFound,
@@ -38,6 +39,7 @@ if TYPE_CHECKING:
     from websockets.asyncio.client import ClientConnection
 
 ResultHandler = Callable[[dict, Any], Awaitable[tuple[dict, bool]]]
+ExtrinsicReceiptLike = Union["AsyncExtrinsicReceipt", "ExtrinsicReceipt"]
 
 
 class AsyncExtrinsicReceipt:
@@ -165,6 +167,35 @@ class AsyncExtrinsicReceipt:
                     self.__triggered_events.append(event)
 
         return cast(list, self.__triggered_events)
+
+    @classmethod
+    async def create_from_extrinsic_identifier(
+        cls, substrate: "AsyncSubstrateInterface", extrinsic_identifier: str
+    ) -> "AsyncExtrinsicReceipt":
+        """
+        Create an `AsyncExtrinsicReceipt` with on-chain identifier for this extrinsic in format
+        "[block_number]-[extrinsic_idx]" e.g. 134324-2
+
+        Args:
+            substrate: SubstrateInterface
+            extrinsic_identifier: "[block_number]-[extrinsic_idx]" e.g. 134324-2
+
+        Returns:
+            AsyncExtrinsicReceipt of the extrinsic
+        """
+        id_parts = extrinsic_identifier.split("-", maxsplit=1)
+        block_number: int = int(id_parts[0])
+        extrinsic_idx: int = int(id_parts[1])
+
+        # Retrieve block hash
+        block_hash = await substrate.get_block_hash(block_number)
+
+        return cls(
+            substrate=substrate,
+            block_hash=block_hash,
+            block_number=block_number,
+            extrinsic_idx=extrinsic_idx,
+        )
 
     async def process_events(self):
         if await self.triggered_events:
@@ -916,6 +947,9 @@ class AsyncSubstrateInterface:
         self.metadata_version_hex = "0x0f000000"  # v15
         self.event_loop = asyncio.get_event_loop()
         self.sync_calls = sync_calls
+        self.extrinsic_receipt_cls = (
+            AsyncExtrinsicReceipt if self.sync_calls is False else ExtrinsicReceipt
+        )
         self.__name: Optional[str] = None
 
     async def __aenter__(self):
@@ -978,7 +1012,7 @@ class AsyncSubstrateInterface:
         else:
             return None
 
-    @async_property  # TODO this doesn't work in sync
+    @async_property
     async def name(self):
         if self.__name is None:
             self.__name = await self.rpc_request("system_name", [])
@@ -1371,6 +1405,139 @@ class AsyncSubstrateInterface:
             metadata=self.__metadata,
         )
 
+    @staticmethod
+    def serialize_module_error(module, error, spec_version) -> dict[str, Optional[str]]:
+        """
+        Helper function to serialize an error
+
+        Args:
+            module
+            error
+            spec_version
+
+        Returns:
+            dict
+        """
+        return {
+            "error_name": error.name,
+            "documentation": "\n".join(error.docs),
+            "module_id": module.get_identifier(),
+            "module_prefix": module.value["storage"]["prefix"]
+            if module.value["storage"]
+            else None,
+            "module_name": module.name,
+            "spec_version": spec_version,
+        }
+
+    async def get_metadata_errors(
+        self, block_hash=None
+    ) -> list[dict[str, Optional[str]]]:
+        """
+        Retrieves a list of all errors in metadata active at given block_hash (or chaintip if block_hash is omitted)
+
+        Args:
+            block_hash: hash of the blockchain block whose metadata to use
+
+        Returns:
+            list of errors in the metadata
+        """
+        if not self.__metadata or block_hash:
+            await self.init_runtime(block_hash=block_hash)
+
+        error_list = []
+
+        for module_idx, module in enumerate(self.__metadata.pallets):
+            if module.errors:
+                for error in module.errors:
+                    error_list.append(
+                        self.serialize_module_error(
+                            module=module,
+                            error=error,
+                            spec_version=self.runtime_version,
+                        )
+                    )
+
+        return error_list
+
+    async def get_metadata_error(self, module_name, error_name, block_hash=None):
+        """
+        Retrieves the details of an error for given module name, call function name and block_hash
+
+        Args:
+        module_name: module name for the error lookup
+        error_name: error name for the error lookup
+        block_hash: hash of the blockchain block whose metadata to use
+
+        Returns:
+            error
+
+        """
+        if not self.__metadata or block_hash:
+            await self.init_runtime(block_hash=block_hash)
+
+        for module_idx, module in enumerate(self.__metadata.pallets):
+            if module.name == module_name and module.errors:
+                for error in module.errors:
+                    if error_name == error.name:
+                        return error
+
+    async def get_metadata_runtime_call_functions(
+        self,
+    ) -> list[GenericRuntimeCallDefinition]:
+        """
+        Get a list of available runtime API calls
+
+        Returns:
+            list of runtime call functions
+        """
+        if not self.__metadata:
+            await self.init_runtime()
+        call_functions = []
+
+        for api, methods in self.runtime_config.type_registry["runtime_api"].items():
+            for method in methods["methods"].keys():
+                call_functions.append(
+                    await self.get_metadata_runtime_call_function(api, method)
+                )
+
+        return call_functions
+
+    async def get_metadata_runtime_call_function(
+        self, api: str, method: str
+    ) -> GenericRuntimeCallDefinition:
+        """
+        Get details of a runtime API call
+
+        Args:
+            api: Name of the runtime API e.g. 'TransactionPaymentApi'
+            method: Name of the method e.g. 'query_fee_details'
+
+        Returns:
+            runtime call function
+        """
+        if not self.__metadata:
+            await self.init_runtime()
+
+        try:
+            runtime_call_def = self.runtime_config.type_registry["runtime_api"][api][
+                "methods"
+            ][method]
+            runtime_call_def["api"] = api
+            runtime_call_def["method"] = method
+            runtime_api_types = self.runtime_config.type_registry["runtime_api"][
+                api
+            ].get("types", {})
+        except KeyError:
+            raise ValueError(f"Runtime API Call '{api}.{method}' not found in registry")
+
+        # Add runtime API types to registry
+        self.runtime_config.update_type_registry_types(runtime_api_types)
+
+        runtime_call_def_obj = await self.create_scale_object("RuntimeCallDefinition")
+        runtime_call_def_obj.encode(runtime_call_def)
+
+        return runtime_call_def_obj
+
     async def _get_block_handler(
         self,
         block_hash: str,
@@ -1390,7 +1557,7 @@ class AsyncSubstrateInterface:
                 if block_data_hash:
                     block_data["header"]["hash"] = block_data_hash
 
-                if type(block_data["header"]["number"]) is str:
+                if isinstance(block_data["header"]["number"], str):
                     # Convert block number from hex (backwards compatibility)
                     block_data["header"]["number"] = int(
                         block_data["header"]["number"], 16
@@ -1415,7 +1582,7 @@ class AsyncSubstrateInterface:
                             block_data["extrinsics"][idx] = None
 
                 for idx, log_data in enumerate(block_data["header"]["digest"]["logs"]):
-                    if type(log_data) is str:
+                    if isinstance(log_data, str):
                         # Convert digest log from hex (backwards compatibility)
                         try:
                             log_digest_cls = self.runtime_config.get_decoder_class(
@@ -1622,6 +1789,185 @@ class AsyncSubstrateInterface:
             header_only=False,
             include_author=include_author,
         )
+
+    async def get_block_header(
+        self,
+        block_hash: Optional[str] = None,
+        block_number: Optional[int] = None,
+        ignore_decoding_errors: bool = False,
+        include_author: bool = False,
+        finalized_only: bool = False,
+    ) -> dict:
+        """
+        Retrieves a block header and decodes its containing log digest items. If `block_hash` and `block_number`
+        is omitted the chain tip will be retrieve, or the finalized head if `finalized_only` is set to true.
+
+        Either `block_hash` or `block_number` should be set, or both omitted.
+
+        See `get_block()` to also include the extrinsics in the result
+
+        Args:
+            block_hash: the hash of the block to be retrieved
+            block_number: the block number to retrieved
+            ignore_decoding_errors: When set this will catch all decoding errors, set the item to None and continue decoding
+            include_author: This will retrieve the block author from the validator set and add to the result
+            finalized_only: when no `block_hash` or `block_number` is set, this will retrieve the finalized head
+
+        Returns:
+            A dict containing the header and digest logs data
+        """
+        if block_hash and block_number:
+            raise ValueError("Either block_hash or block_number should be be set")
+
+        if block_number is not None:
+            block_hash = await self.get_block_hash(block_number)
+
+            if block_hash is None:
+                return
+
+        if block_hash and finalized_only:
+            raise ValueError(
+                "finalized_only cannot be True when block_hash is provided"
+            )
+
+        if block_hash is None:
+            # Retrieve block hash
+            if finalized_only:
+                block_hash = await self.get_chain_finalised_head()
+            else:
+                block_hash = await self.get_chain_head()
+
+        else:
+            # Check conflicting scenarios
+            if finalized_only:
+                raise ValueError(
+                    "finalized_only cannot be True when block_hash is provided"
+                )
+
+        return await self._get_block_handler(
+            block_hash=block_hash,
+            ignore_decoding_errors=ignore_decoding_errors,
+            header_only=True,
+            include_author=include_author,
+        )
+
+    async def subscribe_block_headers(
+        self,
+        subscription_handler: callable,
+        ignore_decoding_errors: bool = False,
+        include_author: bool = False,
+        finalized_only=False,
+    ):
+        """
+        Subscribe to new block headers as soon as they are available. The callable `subscription_handler` will be
+        executed when a new block is available and execution will block until `subscription_handler` will return
+        a result other than `None`.
+
+        Example:
+
+        ```
+        async def subscription_handler(obj, update_nr, subscription_id):
+
+            print(f"New block #{obj['header']['number']} produced by {obj['header']['author']}")
+
+            if update_nr > 10
+              return {'message': 'Subscription will cancel when a value is returned', 'updates_processed': update_nr}
+
+
+        result = await substrate.subscribe_block_headers(subscription_handler, include_author=True)
+        ```
+
+        Args:
+            subscription_handler: the coroutine as explained above
+            ignore_decoding_errors: When set this will catch all decoding errors, set the item to `None` and continue decoding
+            include_author: This will retrieve the block author from the validator set and add to the result
+            finalized_only: when no `block_hash` or `block_number` is set, this will retrieve the finalized head
+
+        Returns:
+            Value return by `subscription_handler`
+        """
+        # Retrieve block hash
+        if finalized_only:
+            block_hash = await self.get_chain_finalised_head()
+        else:
+            block_hash = await self.get_chain_head()
+
+        return await self._get_block_handler(
+            block_hash,
+            subscription_handler=subscription_handler,
+            ignore_decoding_errors=ignore_decoding_errors,
+            include_author=include_author,
+            finalized_only=finalized_only,
+        )
+
+    async def retrieve_extrinsic_by_identifier(
+        self, extrinsic_identifier: str
+    ) -> "ExtrinsicReceiptLike":
+        """
+        Retrieve an extrinsic by its identifier in format "[block_number]-[extrinsic_index]" e.g. 333456-4
+
+        Args:
+            extrinsic_identifier: "[block_number]-[extrinsic_idx]" e.g. 134324-2
+
+        Returns:
+            ExtrinsicReceiptLike object of the extrinsic
+        """
+        return await self.extrinsic_receipt_cls.create_from_extrinsic_identifier(
+            substrate=self, extrinsic_identifier=extrinsic_identifier
+        )
+
+    def retrieve_extrinsic_by_hash(
+        self, block_hash: str, extrinsic_hash: str
+    ) -> "ExtrinsicReceiptLike":
+        """
+        Retrieve an extrinsic by providing the block_hash and the extrinsic hash
+
+        Args:
+            block_hash: hash of the blockchain block where the extrinsic is located
+            extrinsic_hash: hash of the extrinsic
+
+        Returns:
+            ExtrinsicReceiptLike of the extrinsic
+        """
+        return self.extrinsic_receipt_cls(
+            substrate=self, block_hash=block_hash, extrinsic_hash=extrinsic_hash
+        )
+
+    async def get_extrinsics(
+        self, block_hash: str = None, block_number: int = None
+    ) -> Optional[list["ExtrinsicReceiptLike"]]:
+        """
+        Return all extrinsics for given block_hash or block_number
+
+        Args:
+            block_hash: hash of the blockchain block to retrieve extrinsics for
+            block_number: block number to retrieve extrinsics for
+
+        Returns:
+            ExtrinsicReceipts of the extrinsics for the block, if any.
+        """
+        block = await self.get_block(block_hash=block_hash, block_number=block_number)
+        if block:
+            return block["extrinsics"]
+
+    def extension_call(self, name, **kwargs):
+        raise NotImplementedError(
+            "Extensions not implemented in AsyncSubstrateInterface"
+        )
+
+    def filter_extrinsics(self, **kwargs) -> list:
+        return self.extension_call("filter_extrinsics", **kwargs)
+
+    def filter_events(self, **kwargs) -> list:
+        return self.extension_call("filter_events", **kwargs)
+
+    def search_block_number(self, block_datetime: datetime, block_time: int = 6) -> int:
+        return self.extension_call(
+            "search_block_number", block_datetime=block_datetime, block_time=block_time
+        )
+
+    def get_block_timestamp(self, block_number: int) -> int:
+        return self.extension_call("get_block_timestamp", block_number=block_number)
 
     async def get_events(self, block_hash: Optional[str] = None) -> list:
         """
@@ -2890,9 +3236,7 @@ class AsyncSubstrateInterface:
         Returns:
             ExtrinsicReceipt object of your submitted extrinsic
         """
-        extrinsic_receipt_cls = (
-            AsyncExtrinsicReceipt if self.sync_calls is False else ExtrinsicReceipt
-        )
+
         # Check requirements
         if not isinstance(extrinsic, GenericExtrinsic):
             raise TypeError("'extrinsic' must be of type Extrinsics")
@@ -2967,7 +3311,7 @@ class AsyncSubstrateInterface:
 
             # Also, this will be a multipart response, so maybe should change to everything after the first response?
             # The following code implies this will be a single response after the initial subscription id.
-            result = extrinsic_receipt_cls(
+            result = self.extrinsic_receipt_cls(
                 substrate=self,
                 extrinsic_hash=response["extrinsic_hash"],
                 block_hash=response["block_hash"],
@@ -2982,7 +3326,7 @@ class AsyncSubstrateInterface:
             if "result" not in response:
                 raise SubstrateRequestException(response.get("error"))
 
-            result = extrinsic_receipt_cls(
+            result = self.extrinsic_receipt_cls(
                 substrate=self, extrinsic_hash=response["result"]
             )
 
