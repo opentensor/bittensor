@@ -16,7 +16,6 @@ from datetime import datetime
 from hashlib import blake2b
 from typing import Optional, Any, Union, Callable, Awaitable, cast, TYPE_CHECKING
 
-from async_property import async_property
 from bittensor_wallet import Keypair
 from bt_decode import PortableRegistry, decode as decode_by_type_string, MetadataV15
 from scalecodec import GenericExtrinsic, ss58_encode, ss58_decode, is_valid_ss58_address
@@ -127,7 +126,7 @@ class AsyncExtrinsicReceipt:
 
             self.__extrinsic = extrinsics[self.__extrinsic_idx]
 
-    @async_property
+    @property
     async def extrinsic_idx(self) -> int:
         """
         Retrieves the index of this extrinsic in containing block
@@ -140,7 +139,7 @@ class AsyncExtrinsicReceipt:
             await self.retrieve_extrinsic()
         return self.__extrinsic_idx
 
-    @async_property
+    @property
     async def triggered_events(self) -> list:
         """
         Gets triggered events for submitted extrinsic. block_hash where extrinsic is included is required, manually
@@ -291,7 +290,7 @@ class AsyncExtrinsicReceipt:
                     ):
                         self.__total_fee_amount += event.value["attributes"]["amount"]
 
-    @async_property
+    @property
     async def is_success(self) -> bool:
         """
         Returns `True` if `ExtrinsicSuccess` event is triggered, `False` in case of `ExtrinsicFailed`
@@ -307,7 +306,7 @@ class AsyncExtrinsicReceipt:
 
         return cast(bool, self.__is_success)
 
-    @async_property
+    @property
     async def error_message(self) -> Optional[dict]:
         """
         Returns the error message if the extrinsic failed in format e.g.:
@@ -324,7 +323,7 @@ class AsyncExtrinsicReceipt:
             await self.process_events()
         return self.__error_message
 
-    @async_property
+    @property
     async def weight(self) -> Union[int, dict]:
         """
         Contains the actual weight when executing this extrinsic
@@ -337,7 +336,7 @@ class AsyncExtrinsicReceipt:
             await self.process_events()
         return self.__weight
 
-    @async_property
+    @property
     async def total_fee_amount(self) -> int:
         """
         Contains the total fee costs deducted when executing this extrinsic. This includes fee for the validator
@@ -410,7 +409,7 @@ class ExtrinsicReceipt:
                 return self.event_loop.run_until_complete(attr(*args, **kwargs))
 
             return sync_method
-        elif hasattr(attr, "_coro"):
+        elif asyncio.iscoroutine(attr):
             # indicates this is an async_property
             return self.event_loop.run_until_complete(attr)
 
@@ -983,42 +982,36 @@ class AsyncSubstrateInterface:
         """
         return self.__chain
 
-    @async_property
+    @property
     async def properties(self):
         if self.__properties is None:
-            self.__properties = await self.rpc_request("system_properties", [])
+            self.__properties = (await self.rpc_request("system_properties", [])).get(
+                "result"
+            )
         return self.__properties
 
-    @async_property
+    @property
     async def version(self):
         if self.__version is None:
-            self.__version = await self.rpc_request("system_version", [])
+            self.__version = (await self.rpc_request("system_version", [])).get(
+                "result"
+            )
         return self.__version
 
-    @async_property
+    @property
     async def token_decimals(self):
         if self.__token_decimals is None:
-            self.__token_decimals = self.properties.get("tokenDecimals")
+            self.__token_decimals = (await self.properties).get("tokenDecimals")
         return self.__token_decimals
 
-    @token_decimals.setter
-    def token_decimals(self, value):
-        if type(value) is not int and value is not None:
-            raise TypeError("Token decimals must be an int")
-        self.__token_decimals = value
-
-    @async_property
+    @property
     async def token_symbol(self):
         if self.__token_symbol is None:
             if self.properties:
-                self.__token_symbol = self.properties.get("tokenSymbol")
+                self.__token_symbol = (await self.properties).get("tokenSymbol")
             else:
                 self.__token_symbol = "UNIT"
         return self.__token_symbol
-
-    @token_symbol.setter
-    def token_symbol(self, value):
-        self.__token_symbol = value
 
     @property
     def metadata(self):
@@ -1053,10 +1046,10 @@ class AsyncSubstrateInterface:
         else:
             return None
 
-    @async_property
+    @property
     async def name(self):
         if self.__name is None:
-            self.__name = await self.rpc_request("system_name", [])
+            self.__name = (await self.rpc_request("system_name", [])).get("result")
         return self.__name
 
     async def get_storage_item(self, module: str, storage_function: str):
@@ -1088,7 +1081,9 @@ class AsyncSubstrateInterface:
         metadata_v15 = MetadataV15.decode_from_metadata_option(metadata_option_bytes)
         self.registry = PortableRegistry.from_metadata_v15(metadata_v15)
 
-    async def decode_scale(self, type_string, scale_bytes: bytes) -> Any:
+    async def decode_scale(
+        self, type_string: str, scale_bytes: bytes, _attempt=1, _retries=3
+    ) -> Any:
         """
         Helper function to decode arbitrary SCALE-bytes (e.g. 0x02000000) according to given RUST type_string
         (e.g. BlockNumber). The relevant versioning information of the type (if defined) will be applied if block_hash
@@ -1096,31 +1091,35 @@ class AsyncSubstrateInterface:
 
         Args:
             type_string: the type string of the SCALE object for decoding
-            scale_bytes: the SCALE-bytes representation of the SCALE object to decode
+            scale_bytes: the bytes representation of the SCALE object to decode
+            _attempt: the number of attempts to pull the registry before timing out
+            _retries: the number of retries to pull the registry before timing out
 
         Returns:
             Decoded object
-
         """
 
-        async def wait_for_registry():
-            # TODO imrpove this
+        async def _wait_for_registry():
             while self.registry is None:
-                await asyncio.sleep(0.01)
+                await asyncio.sleep(0.1)
             return
 
         if scale_bytes == b"\x00":
             obj = None
         else:
             if not self.registry:
-                await asyncio.wait_for(wait_for_registry(), timeout=10)
+                await asyncio.wait_for(_wait_for_registry(), timeout=10)
             try:
                 obj = decode_by_type_string(type_string, self.registry, scale_bytes)
             except TimeoutError:
                 # indicates that registry was never loaded
-                # TODO add max retries
-                await self.load_registry()
-                return await self.decode_scale(type_string, scale_bytes)
+                if _attempt < _retries:
+                    await self.load_registry()
+                    return await self.decode_scale(
+                        type_string, scale_bytes, _attempt + 1
+                    )
+                else:
+                    raise ValueError("Registry was never loaded.")
         return obj
 
     async def encode_scale(self, type_string, value, block_hash=None) -> ScaleBytes:
@@ -3852,7 +3851,7 @@ class SubstrateInterface:
                 return self.event_loop.run_until_complete(attr(*args, **kwargs))
 
             return sync_method
-        elif hasattr(attr, "_coro"):
+        elif asyncio.iscoroutine(attr):
             # indicates this is an async_property
             return self.event_loop.run_until_complete(attr)
         else:
