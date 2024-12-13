@@ -708,11 +708,6 @@ class Subtensor:
             if getattr(result, "records", None) is not None
             else []
         )
-        # return (
-        #     [record[0] for record in result if record[1]]
-        #     if result and hasattr(result, "records")
-        #     else []
-        # )
 
     def get_current_block(self) -> int:
         """
@@ -1203,8 +1198,8 @@ class Subtensor:
         b_map_encoded = self.query_map_subtensor(
             name="Bonds", block=block, params=[netuid]
         )
-        if b_map_encoded.records:
-            for uid, b in b_map_encoded:
+        if getattr(b_map_encoded, "records", None):
+            for uid, b in b_map_encoded.load_all():
                 b_map.append((uid, b))
 
         return b_map
@@ -1271,10 +1266,7 @@ class Subtensor:
         Returns:
             int: The latest Drand round emitted in bittensor.
         """
-        result = self.substrate.query(
-            module="Drand", storage_function="LastStoredRound"
-        )
-        return getattr(result, "value", None)
+        return self.substrate.query(module="Drand", storage_function="LastStoredRound")
 
     def get_current_weight_commit_info(
         self, netuid: int, block: Optional[int] = None
@@ -1296,7 +1288,7 @@ class Subtensor:
             params=[netuid],
             block=block,
         )
-        return result.records[0][1].value if result and result.records else []
+        return result.records[0][1] if result and result.records else []
 
     def get_total_stake_for_coldkey(
         self, ss58_address: str, block: Optional[int] = None
@@ -1311,9 +1303,7 @@ class Subtensor:
             Optional[Balance]: The total stake amount held by the coldkey, or None if the query fails.
         """
         result = self.query_subtensor("TotalColdkeyStake", block, [ss58_address])
-        if getattr(result, "value", None) is None:
-            return None
-        return Balance.from_rao(result.value)
+        return Balance.from_rao(result) if result is not None else None
 
     def get_total_stake_for_hotkey(
         self, ss58_address: str, block: Optional[int] = None
@@ -1328,9 +1318,7 @@ class Subtensor:
             Optional[Balance]: The total stake amount held by the hotkey, or None if the query fails.
         """
         result = self.query_subtensor("TotalHotkeyStake", block, [ss58_address])
-        if getattr(result, "value", None) is None:
-            return None
-        return Balance.from_rao(result.value)
+        return Balance.from_rao(result) if result is not None else None
 
     def get_total_subnets(self, block: Optional[int] = None) -> Optional[int]:
         """
@@ -1360,8 +1348,8 @@ class Subtensor:
         """
         result = self.query_map_subtensor("NetworksAdded", block)
         return (
-            [network[0] for network in result if network[1]]
-            if result and hasattr(result, "records")
+            [network[0] for network in result.load_all() if network[1]]
+            if getattr(result, "records", None)
             else []
         )
 
@@ -1411,8 +1399,8 @@ class Subtensor:
         w_map_encoded = self.query_map_subtensor(
             name="Weights", block=block, params=[netuid]
         )
-        if w_map_encoded.records:
-            for uid, w in w_map_encoded:
+        if getattr(w_map_encoded, "records", None):
+            for uid, w in w_map_encoded.load_all():
                 w_map.append((uid, w))
 
         return w_map
