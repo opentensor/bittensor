@@ -153,7 +153,7 @@ def commit_reveal_v3_extrinsic(
 
         if success is True:
             logging.success(
-                f"[green]Finalized![/green] Weights commited with reveal round [blue]{reveal_round}[/blue]."
+                f"Finalized!, weights: {weights}, uids: {uids}, reveal_round: {reveal_round}, current_block: {subtensor.get_current_block()}."
             )
             return True, f"reveal_round:{reveal_round}"
         else:
