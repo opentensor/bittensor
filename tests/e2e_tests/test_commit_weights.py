@@ -20,7 +20,7 @@ from tests.e2e_tests.utils.e2e_test_utils import setup_wallet
 
 
 @pytest.mark.asyncio
-async def test_commit_and_reveal_weights(local_chain):
+async def test_commit_and_reveal_weights_legacy(local_chain):
     """
     Tests the commit/reveal weights mechanism with subprocess disabled (CR1.0)
 
