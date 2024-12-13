@@ -236,7 +236,7 @@ class AsyncSubtensor:
 
         Knowing the current block number is essential for querying real-time data and performing time-sensitive operations on the blockchain. It serves as a reference point for network activities and data synchronization.
         """
-        return await self.substrate.get_block_number()
+        return await self.substrate.get_block_number(None)
 
     async def get_block_hash(self, block_id: Optional[int] = None):
         """
