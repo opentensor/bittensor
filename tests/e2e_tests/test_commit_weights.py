@@ -2,7 +2,6 @@ import time
 
 import numpy as np
 import pytest
-
 from bittensor.core.subtensor import Subtensor
 from bittensor.utils.balance import Balance
 from bittensor.utils.weight_utils import convert_weights_and_uids_for_emit
@@ -18,7 +17,7 @@ from tests.e2e_tests.utils.e2e_test_utils import setup_wallet
 
 
 @pytest.mark.asyncio
-async def test_commit_and_reveal_weights(local_chain):
+async def test_commit_and_reveal_weights_legacy(local_chain):
     """
     Tests the commit/reveal weights mechanism with subprocess disabled (CR1.0)
 
