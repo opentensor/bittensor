@@ -1392,8 +1392,8 @@ class AsyncSubtensor:
         This method retrieves the children of a given hotkey and netuid. It queries the SubtensorModule's ChildKeys storage function to get the children and formats them before returning as a tuple.
 
         Args:
-            hotkey (str): The hotkey value.
-            netuid (int): The netuid value.
+            hotkey: The hotkey value.
+            netuid: The netuid value.
 
         Returns:
             A tuple containing a boolean indicating success or failure, a list of formatted children, and an error message (if applicable)
@@ -1418,21 +1418,28 @@ class AsyncSubtensor:
             return False, [], format_error_message(e)
 
     async def get_subnet_hyperparameters(
-        self, netuid: int, block_hash: Optional[str] = None, reuse_block: bool = False
+        self,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
     ) -> Optional[Union[list, SubnetHyperparameters]]:
         """
         Retrieves the hyperparameters for a specific subnet within the Bittensor network. These hyperparameters define the operational settings and rules governing the subnet's behavior.
 
         Args:
-            netuid (int): The network UID of the subnet to query.
-            block_hash (Optional[str]): The hash of the blockchain block number for the query.
-            reuse_block (bool): Whether to reuse the last-used blockchain hash.
+            netuid: The network UID of the subnet to query.
+            block: The block number to query. Do not specify if using block_hash or reuse_block.
+            block_hash: The hash of the blockchain block number for the query. Do not specify if using bloc or
+                reuse_block.
+            reuse_block: Whether to reuse the last-used blockchain hash. Do not set if using block_hash or reuse_block.
 
         Returns:
             The subnet's hyperparameters, or `None` if not available.
 
         Understanding the hyperparameters is crucial for comprehending how subnets are configured and managed, and how they interact with the network's consensus and incentive mechanisms.
         """
+        block_hash = await self._determine_block_hash(block, block_hash, reuse_block)
         hex_bytes_result = await self.query_runtime_api(
             runtime_api="SubnetInfoRuntimeApi",
             method="get_subnet_hyperparams",
@@ -1449,22 +1456,29 @@ class AsyncSubtensor:
     async def get_vote_data(
         self,
         proposal_hash: str,
+        block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
-    ) -> Optional["ProposalVoteData"]:
+    ) -> Optional[ProposalVoteData]:
         """
-        Retrieves the voting data for a specific proposal on the Bittensor blockchain. This data includes information about how senate members have voted on the proposal.
+        Retrieves the voting data for a specific proposal on the Bittensor blockchain. This data includes information
+            about how senate members have voted on the proposal.
 
         Args:
-            proposal_hash (str): The hash of the proposal for which voting data is requested.
-            block_hash (Optional[str]): The hash of the blockchain block number to query the voting data.
-            reuse_block (bool): Whether to reuse the last-used blockchain block hash.
+            proposal_hash: The hash of the proposal for which voting data is requested.
+            block: The block number to query. Do not specify if using block_hash or reuse_block.
+            block_hash: The hash of the blockchain block number to query the voting data. Do not specify if using block
+                or reuse_block.
+            reuse_block: Whether to reuse the last-used blockchain block hash. Do not set if using block_hash or
+                block.
 
         Returns:
             An object containing the proposal's voting data, or `None` if not found.
 
-        This function is important for tracking and understanding the decision-making processes within the Bittensor network, particularly how proposals are received and acted upon by the governing body.
+        This function is important for tracking and understanding the decision-making processes within the Bittensor
+            network, particularly how proposals are received and acted upon by the governing body.
         """
+        block_hash = await self._determine_block_hash(block, block_hash, reuse_block)
         vote_data = await self.substrate.query(
             module="Triumvirate",
             storage_function="Voting",
@@ -1478,19 +1492,24 @@ class AsyncSubtensor:
             return ProposalVoteData(vote_data)
 
     async def get_delegate_identities(
-        self, block_hash: Optional[str] = None, reuse_block: bool = False
+        self,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
     ) -> dict[str, DelegatesDetails]:
         """
         Fetches delegates identities from the chain and GitHub. Preference is given to chain data, and missing info is filled-in by the info from GitHub. At some point, we want to totally move away from fetching this info from GitHub, but chain data is still limited in that regard.
 
         Args:
-            block_hash (str): the hash of the blockchain block for the query
-            reuse_block (bool): Whether to reuse the last-used blockchain block hash.
+            block: The block number to query. Do not specify if using block_hash or reuse_block.
+            block_hash: the hash of the blockchain block for the query Do not specify if using block or reuse_block.
+            reuse_block: Whether to reuse the last-used blockchain block hash. Do not set if using block_hash or block.
 
         Returns:
             Dict {ss58: DelegatesDetails, ...}
 
         """
+        block_hash = await self._determine_block_hash(block, block_hash, reuse_block)
         timeout = aiohttp.ClientTimeout(10.0)
         async with aiohttp.ClientSession(timeout=timeout) as session:
             identities_info, response = await asyncio.gather(
@@ -1544,10 +1563,12 @@ class AsyncSubtensor:
         self,
         netuid: int,
         hotkey_ss58: str,
+        block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> bool:
         """Checks to see if the hotkey is registered on a given netuid"""
+        block_hash = await self._determine_block_hash(block, block_hash, reuse_block)
         result = await self.substrate.query(
             module="SubtensorModule",
             storage_function="Uids",
@@ -1564,6 +1585,7 @@ class AsyncSubtensor:
         self,
         hotkey_ss58: str,
         netuid: int,
+        block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Optional[int]:
@@ -1571,16 +1593,21 @@ class AsyncSubtensor:
         Retrieves the unique identifier (UID) for a neuron's hotkey on a specific subnet.
 
         Args:
-            hotkey_ss58 (str): The ``SS58`` address of the neuron's hotkey.
-            netuid (int): The unique identifier of the subnet.
-            block_hash (Optional[str]): The blockchain block_hash representation of the block id.
-            reuse_block (bool): Whether to reuse the last-used blockchain block hash.
+            hotkey_ss58: The ``SS58`` address of the neuron's hotkey.
+            netuid: The unique identifier of the subnet.
+            block: The block number to query. Do not specify if using block_hash or reuse_block.
+            block_hash: The blockchain block_hash representation of the block id. Do not specify if using block or
+                reuse_block
+            reuse_block (bool): Whether to reuse the last-used blockchain block hash. Do not set if using block_hash or
+                reuse_block.
 
         Returns:
-            Optional[int]: The UID of the neuron if it is registered on the subnet, ``None`` otherwise.
+            The UID of the neuron if it is registered on the subnet, `None` otherwise.
 
-        The UID is a critical identifier within the network, linking the neuron's hotkey to its operational and governance activities on a particular subnet.
+        The UID is a critical identifier within the network, linking the neuron's hotkey to its operational and
+            governance activities on a particular subnet.
         """
+        block_hash = await self._determine_block_hash(block, block_hash, reuse_block)
         result = await self.substrate.query(
             module="SubtensorModule",
             storage_function="Uids",
@@ -1591,19 +1618,27 @@ class AsyncSubtensor:
         return result
 
     async def weights_rate_limit(
-        self, netuid: int, block_hash: Optional[str] = None, reuse_block: bool = False
+        self,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
     ) -> Optional[int]:
         """
         Returns network WeightsSetRateLimit hyperparameter.
 
         Args:
-            netuid (int): The unique identifier of the subnetwork.
-            block_hash (Optional[str]): The blockchain block_hash representation of the block id.
-            reuse_block (bool): Whether to reuse the last-used blockchain block hash.
+            netuid: The unique identifier of the subnetwork.
+            block: The block number to query. Do not specify if using block_hash or reuse_block.
+            block_hash: The blockchain block_hash representation of the block id. Do not specify if using block or
+                reuse_block
+            reuse_block: Whether to reuse the last-used blockchain block hash. Do not set if using block_hash or block
 
         Returns:
-            Optional[int]: The value of the WeightsSetRateLimit hyperparameter, or ``None`` if the subnetwork does not exist or the parameter is not found.
+            The value of the WeightsSetRateLimit hyperparameter, or `None` if the subnetwork does not exist or the
+            parameter is not found.
         """
+        block_hash = await self._determine_block_hash(block, block_hash, reuse_block)
         call = await self.get_hyperparameter(
             param_name="WeightsSetRateLimit",
             netuid=netuid,
@@ -1617,41 +1652,59 @@ class AsyncSubtensor:
         Returns the number of blocks since the last update for a specific UID in the subnetwork.
 
         Args:
-            netuid (int): The unique identifier of the subnetwork.
-            uid (int): The unique identifier of the neuron.
+            netuid: The unique identifier of the subnetwork.
+            uid: The unique identifier of the neuron.
 
         Returns:
-            Optional[int]: The number of blocks since the last update, or ``None`` if the subnetwork or UID does not exist.
+            The number of blocks since the last update, or `None` if the subnetwork or UID does not exist.
         """
         call = await self.get_hyperparameter(param_name="LastUpdate", netuid=netuid)
         return None if call is None else await self.get_current_block() - int(call[uid])
 
     async def commit_reveal_enabled(
-        self, netuid: int, block_hash: Optional[str] = None
+        self,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
     ) -> bool:
         """
         Check if commit-reveal mechanism is enabled for a given network at a specific block.
 
         Arguments:
-            netuid (int): The network identifier for which to check the commit-reveal mechanism.
-            block_hash (Optional[str]): The block hash of block at which to check the parameter (default is None, which implies the current block).
+            netuid: The network identifier for which to check the commit-reveal mechanism.
+            block: The block number to query. Do not specify if using block_hash or reuse_block.
+            block_hash: The block hash of block at which to check the parameter. Do not set if using block or
+                reuse_block.
+            reuse_block: Whether to reuse the last-used blockchain block hash. Do not set if using block_hash or
+                block.
 
         Returns:
-            (bool): Returns the integer value of the hyperparameter if available; otherwise, returns None.
+            Returns the integer value of the hyperparameter if available; otherwise, returns None.
         """
+        block_hash = await self._determine_block_hash(block, block_hash, reuse_block)
         call = await self.get_hyperparameter(
             param_name="CommitRevealWeightsEnabled",
             block_hash=block_hash,
             netuid=netuid,
+            reuse_block=reuse_block,
         )
         return True if call is True else False
 
     async def get_subnet_reveal_period_epochs(
-        self, netuid: int, block_hash: Optional[str] = None
+        self,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
     ) -> int:
         """Retrieve the SubnetRevealPeriodEpochs hyperparameter."""
+        block_hash = await self._determine_block_hash(block, block_hash, reuse_block)
         return await self.get_hyperparameter(
-            param_name="RevealPeriodEpochs", block_hash=block_hash, netuid=netuid
+            param_name="RevealPeriodEpochs",
+            block_hash=block_hash,
+            netuid=netuid,
+            reuse_block=reuse_block,
         )
 
     # Extrinsics =======================================================================================================
@@ -1687,7 +1740,6 @@ class AsyncSubtensor:
         self,
         wallet: "Wallet",
         netuid: int,
-        block_hash: Optional[str] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
     ) -> bool:
@@ -1695,11 +1747,10 @@ class AsyncSubtensor:
         Register neuron by recycling some TAO.
 
         Args:
-            wallet (bittensor_wallet.Wallet): Bittensor wallet instance.
-            netuid (int): Subnet uniq id.
-            block_hash (Optional[str]): The hash of the blockchain block for the query.
-            wait_for_inclusion (bool): Waits for the transaction to be included in a block. Default is ``False``.
-            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Default is ``False``.
+            wallet: Bittensor wallet instance.
+            netuid: Subnet uniq id.
+            wait_for_inclusion: Waits for the transaction to be included in a block. Default is `False`.
+            wait_for_finalization: Waits for the transaction to be finalized on the blockchain. Default is `False`.
 
         Returns:
             `True` if registration was successful, otherwise `False`.
@@ -1710,9 +1761,11 @@ class AsyncSubtensor:
 
         # Check current recycle amount
         logging.info("Fetching recycle amount & balance.")
-        block_hash = block_hash if block_hash else await self.get_block_hash()
+        block_hash = await self.substrate.get_chain_head()
         recycle_call, balance_ = await asyncio.gather(
-            self.get_hyperparameter(param_name="Burn", netuid=netuid, reuse_block=True),
+            self.get_hyperparameter(
+                param_name="Burn", netuid=netuid, block_hash=block_hash
+            ),
             self.get_balance(wallet.coldkeypub.ss58_address, block_hash=block_hash),
         )
         current_recycle = Balance.from_rao(int(recycle_call))
@@ -1935,23 +1988,31 @@ class AsyncSubtensor:
 
         return success, message
 
-    async def get_all_subnets_info(self, block: Optional[int] = None):
+    async def get_all_subnets_info(
+        self,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ):
         """
         Retrieves detailed information about all subnets within the Bittensor network. This function provides comprehensive data on each subnet, including its characteristics and operational parameters.
 
         Args:
-            block (Optional[int]): The blockchain block number for the query.
+            block: The blockchain block number for the query. Do not specify if using block_hash or reuse_block
+            block_hash: The hash of the blockchain block. Do not specify if using block or reuse_block
 
         Returns:
             list[SubnetInfo]: A list of SubnetInfo objects, each containing detailed information about a subnet.
 
         Gaining insights into the subnets' details assists in understanding the network's composition, the roles of different subnets, and their unique features.
         """
+        block_hash = await self._determine_block_hash(block, block_hash, reuse_block)
         hex_bytes_result = await self.query_runtime_api(
-            # TODO add block/block-hash
             "SubnetInfoRuntimeApi",
             "get_subnets_info",
             params=[],
+            block_hash=block_hash,
+            reuse_block=reuse_block,
         )
         if not hex_bytes_result:
             return []
@@ -1976,26 +2037,41 @@ class AsyncSubtensor:
         return Balance.from_rao(result)
 
     async def tempo(
-        self, netuid: int, block_hash: Optional[str] = None
+        self,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
     ) -> Optional[int]:
         """
         Returns network Tempo hyperparameter.
 
         Args:
             netuid: The unique identifier of the subnetwork.
-            block_hash: The hash of the block to retrieve the parameter from.
-                If `None`, the latest block is used. Default is `None`.
+            block: The blockchain block number. Do not specify if using block_hash or reuse_block
+            block_hash: The hash of the block to retrieve the parameter from. Do not specify if using block or
+                reuse_block
+            reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
 
         Returns:
-            Optional[int]: The value of the Tempo hyperparameter, or ``None`` if the subnetwork does not exist or the parameter is not found.
+            The value of the Tempo hyperparameter, or `None` if the subnetwork does not exist or the parameter
+            is not found.
         """
+        block_hash = await self._determine_block_hash(block, block_hash, reuse_block)
         call = await self.get_hyperparameter(
-            param_name="Tempo", netuid=netuid, block_hash=block_hash
+            param_name="Tempo",
+            netuid=netuid,
+            block_hash=block_hash,
+            reuse_block=reuse_block,
         )
         return None if call is None else int(call)
 
     async def difficulty(
-        self, netuid: int, block: Optional[int] = None
+        self,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
     ) -> Optional[int]:
         """
         Retrieves the 'Difficulty' hyperparameter for a specified subnet in the Bittensor network.
@@ -2004,17 +2080,24 @@ class AsyncSubtensor:
             in consensus and validation processes.
 
         Args:
-            netuid (int): The unique identifier of the subnet.
-            block (Optional[int]): The blockchain block number for the query.
+            netuid: The unique identifier of the subnet.
+            block: The blockchain block number for the query. Do not specify if using block_hash or reuse_block
+            block_hash: The hash of the block to retrieve the parameter from. Do not specify if using block or
+                reuse_block
+            reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
 
         Returns:
-            Optional[int]: The value of the 'Difficulty' hyperparameter if the subnet exists, `None` otherwise.
+            The value of the 'Difficulty' hyperparameter if the subnet exists, `None` otherwise.
 
         The 'Difficulty' parameter directly impacts the network's security and integrity by setting the computational
             effort required for validating transactions and participating in the network's consensus mechanism.
         """
+        block_hash = await self._determine_block_hash(block, block_hash, reuse_block)
         call = await self.get_hyperparameter(
-            param_name="Difficulty", netuid=netuid, block=block
+            param_name="Difficulty",
+            netuid=netuid,
+            block_hash=block_hash,
+            reuse_block=reuse_block,
         )
         if call is None:
             return None
