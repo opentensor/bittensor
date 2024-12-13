@@ -284,6 +284,9 @@ class AsyncSubtensor:
         return await self.substrate.get_block_number(None)
 
     @alru_cache(maxsize=128)
+    async def _get_block_hash(self, block_id: int):
+        return await self.substrate.get_block_hash(block_id)
+
     async def get_block_hash(self, block_id: Optional[int] = None):
         """
         Retrieves the hash of a specific block on the Bittensor blockchain. The block hash is a unique identifier representing the cryptographic hash of the block's content, ensuring its integrity and immutability.
@@ -297,7 +300,7 @@ class AsyncSubtensor:
         The block hash is a fundamental aspect of blockchain technology, providing a secure reference to each block's data. It is crucial for verifying transactions, ensuring data consistency, and maintaining the trustworthiness of the blockchain.
         """
         if block_id:
-            return await self.substrate.get_block_hash(block_id)
+            return await self._get_block_hash(block_id)
         else:
             return await self.substrate.get_chain_head()
 
@@ -539,6 +542,7 @@ class AsyncSubtensor:
         self,
         hotkey_ss58: str,
         coldkey_ss58: str,
+        block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Balance:
@@ -546,14 +550,17 @@ class AsyncSubtensor:
         Retrieves stake information associated with a specific coldkey and hotkey.
 
         Args:
-            hotkey_ss58 (str): the hotkey SS58 address to query
-            coldkey_ss58 (str): the coldkey SS58 address to query
-            block_hash (Optional[str]): the hash of the blockchain block number for the query.
-            reuse_block (Optional[bool]): whether to reuse the last-used block hash.
+            hotkey_ss58: the hotkey SS58 address to query
+            coldkey_ss58: the coldkey SS58 address to query
+            block: the block number for this query. Do not specify if using block_hash or reuse_block
+            block_hash: the hash of the blockchain block number for the query. Do not specify if using block or
+                reuse_block
+            reuse_block: whether to reuse the last-used block hash. Do not set if using block_hash or block
 
         Returns:
             Stake Balance for the given coldkey and hotkey
         """
+        block_hash = await self._determine_block_hash(block, block_hash, reuse_block)
         _result = await self.substrate.query(
             module="SubtensorModule",
             storage_function="Stake",
@@ -568,6 +575,7 @@ class AsyncSubtensor:
         runtime_api: str,
         method: str,
         params: Optional[Union[list[list[int]], dict[str, int], list[int]]],
+        block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Optional[str]:
@@ -575,19 +583,20 @@ class AsyncSubtensor:
         Queries the runtime API of the Bittensor blockchain, providing a way to interact with the underlying runtime and retrieve data encoded in Scale Bytes format. This function is essential for advanced users who need to interact with specific runtime methods and decode complex data types.
 
         Args:
-            runtime_api (str): The name of the runtime API to query.
-            method (str): The specific method within the runtime API to call.
-            params (Optional[Union[list[list[int]], dict[str, int]]]): The parameters to pass to the method call.
-            block_hash (Optional[str]): The hash of the blockchain block number at which to perform the query.
-            reuse_block (bool): Whether to reuse the last-used block hash.
+            runtime_api: The name of the runtime API to query.
+            method: The specific method within the runtime API to call.
+            params: The parameters to pass to the method call.
+            block: the block number for this query. Do not specify if using block_hash or reuse_block
+            block_hash: The hash of the blockchain block number at which to perform the query. Do not specify if
+                using block or reuse_block
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block
 
         Returns:
-            The Scale Bytes encoded result from the runtime API call, or ``None`` if the call fails.
+            The Scale Bytes encoded result from the runtime API call, or `None` if the call fails.
 
         This function enables access to the deeper layers of the Bittensor blockchain, allowing for detailed and specific interactions with the network's runtime environment.
         """
-        if reuse_block:
-            block_hash = self.substrate.last_block_hash
+        block_hash = await self._determine_block_hash(block, block_hash, reuse_block)
 
         call_definition = TYPE_REGISTRY["runtime_api"][runtime_api]["methods"][method]
 
@@ -603,6 +612,7 @@ class AsyncSubtensor:
         json_result = await self.substrate.rpc_request(
             method="state_call",
             params=[api_method, data, block_hash] if block_hash else [api_method, data],
+            reuse_block_hash=reuse_block,
         )
 
         if json_result is None:
@@ -625,6 +635,7 @@ class AsyncSubtensor:
     async def get_balance(
         self,
         *addresses: str,
+        block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> dict[str, Balance]:
@@ -632,17 +643,19 @@ class AsyncSubtensor:
         Retrieves the balance for given coldkey(s)
 
         Args:
-            addresses (str): coldkey addresses(s).
-            block_hash (Optional[str]): the block hash, optional.
-            reuse_block (Optional[bool]): whether to reuse the last-used block hash.
+            addresses: coldkey addresses(s).
+            block: the block number for this query. Do not specify if using block_hash or reuse_block
+            block_hash: the block hash. Do not specify if using block or block
+            reuse_block: whether to reuse the last-used block hash. Do not set if using block_hash or block
 
         Returns:
             Dict of {address: Balance objects}.
         """
+        block_hash = await self._determine_block_hash(block, block_hash, reuse_block)
         if reuse_block:
             block_hash = self.substrate.last_block_hash
-        elif not block_hash:
-            block_hash = await self.get_block_hash()
+        else:
+            block_hash = await self.substrate.get_chain_head()
         calls = [
             (
                 await self.substrate.create_storage_key(
@@ -710,6 +723,7 @@ class AsyncSubtensor:
     async def get_total_stake_for_coldkey(
         self,
         *ss58_addresses,
+        block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> dict[str, Balance]:
@@ -717,17 +731,20 @@ class AsyncSubtensor:
         Returns the total stake held on a coldkey.
 
         Args:
-            ss58_addresses (tuple[str]): The SS58 address(es) of the coldkey(s)
-            block_hash (str): The hash of the block number to retrieve the stake from.
-            reuse_block (bool): Whether to reuse the last-used block hash.
+            ss58_addresses: The SS58 address(es) of the coldkey(s)
+            block: the block number for this query. Do not specify if using block_hash or reuse_block
+            block_hash: The hash of the block number to retrieve the stake from. Do not specify if using block or
+                reuse_block
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block
 
         Returns:
             Dict in view {address: Balance objects}.
         """
+        block_hash = await self._determine_block_hash(block, block_hash, reuse_block)
         if reuse_block:
             block_hash = self.substrate.last_block_hash
         elif not block_hash:
-            block_hash = await self.get_block_hash()
+            block_hash = await self.substrate.get_chain_head()
         calls = [
             (
                 await self.substrate.create_storage_key(
@@ -748,6 +765,7 @@ class AsyncSubtensor:
     async def get_total_stake_for_hotkey(
         self,
         *ss58_addresses,
+        block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> dict[str, Balance]:
@@ -755,13 +773,17 @@ class AsyncSubtensor:
         Returns the total stake held on a hotkey.
 
         Args:
-            ss58_addresses (tuple[str]): The SS58 address(es) of the hotkey(s)
-            block_hash (str): The hash of the block number to retrieve the stake from.
-            reuse_block (bool): Whether to reuse the last-used block hash when retrieving info.
+            ss58_addresses: The SS58 address(es) of the hotkey(s)
+            block: the block number for this query. Do not specify if using block_hash or reuse_block
+            block_hash: The hash of the block number to retrieve the stake from. Do not specify if using block
+                or reuse_block
+            reuse_block: Whether to reuse the last-used block hash when retrieving info. Do not set if using block_hash
+                or block
 
         Returns:
             Dict {address: Balance objects}.
         """
+        block_hash = await self._determine_block_hash(block, block_hash, reuse_block)
         results = await self.substrate.query_multiple(
             params=[s for s in ss58_addresses],
             module="SubtensorModule",
@@ -774,6 +796,7 @@ class AsyncSubtensor:
     async def get_netuids_for_hotkey(
         self,
         hotkey_ss58: str,
+        block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> list[int]:
@@ -781,14 +804,17 @@ class AsyncSubtensor:
         Retrieves a list of subnet UIDs (netuids) for which a given hotkey is a member. This function identifies the specific subnets within the Bittensor network where the neuron associated with the hotkey is active.
 
         Args:
-            hotkey_ss58 (str): The ``SS58`` address of the neuron's hotkey.
-            block_hash (Optional[str]): The hash of the blockchain block number at which to perform the query.
-            reuse_block (Optional[bool]): Whether to reuse the last-used block hash when retrieving info.
+            hotkey_ss58: The `SS58` address of the neuron's hotkey.
+            block: the block number for this query. Do not specify if using block_hash or reuse_block
+            block_hash: The hash of the blockchain block number at which to perform the query. Do not specify if using
+                block or reuse_block
+            reuse_block: Whether to reuse the last-used block hash when retrieving info. Do not set if using block_hash
+                or block.
 
         Returns:
             A list of netuids where the neuron is a member.
         """
-
+        block_hash = await self._determine_block_hash(block, block_hash, reuse_block)
         result = await self.substrate.query_map(
             module="SubtensorModule",
             storage_function="IsNetworkMember",
@@ -803,15 +829,21 @@ class AsyncSubtensor:
         )
 
     async def subnet_exists(
-        self, netuid: int, block_hash: Optional[str] = None, reuse_block: bool = False
+        self,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
     ) -> bool:
         """
         Checks if a subnet with the specified unique identifier (netuid) exists within the Bittensor network.
 
         Args:
-            netuid (int): The unique identifier of the subnet.
-            block_hash (Optional[str]): The hash of the blockchain block number at which to check the subnet existence.
-            reuse_block (bool): Whether to reuse the last-used block hash.
+            netuid: The unique identifier of the subnet.
+            block: the block number for this query. Do not specify if using block_hash or reuse_block
+            block_hash: The hash of the blockchain block number at which to check the subnet existence. Do not specify
+                if using block or reuse_block
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
 
         Returns:
             `True` if the subnet exists, `False` otherwise.
@@ -819,6 +851,7 @@ class AsyncSubtensor:
         This function is critical for verifying the presence of specific subnets in the network,
         enabling a deeper understanding of the network's structure and composition.
         """
+        block_hash = await self._determine_block_hash(block, block_hash, reuse_block)
         result = await self.substrate.query(
             module="SubtensorModule",
             storage_function="NetworksAdded",
@@ -833,6 +866,7 @@ class AsyncSubtensor:
         all_netuids: Iterable[int],
         filter_for_netuids: Iterable[int],
         all_hotkeys: Iterable[Wallet],
+        block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> list[int]:
@@ -840,15 +874,19 @@ class AsyncSubtensor:
         Filters a given list of all netuids for certain specified netuids and hotkeys
 
         Args:
-            all_netuids (Iterable[int]): A list of netuids to filter.
-            filter_for_netuids (Iterable[int]): A subset of all_netuids to filter from the main list
-            all_hotkeys (Iterable[Wallet]): Hotkeys to filter from the main list
-            block_hash (str): hash of the blockchain block number at which to perform the query.
-            reuse_block (bool): whether to reuse the last-used blockchain hash when retrieving info.
+            all_netuids: A list of netuids to filter.
+            filter_for_netuids: A subset of all_netuids to filter from the main list
+            all_hotkeys: Hotkeys to filter from the main list
+            block: the block number for this query. Do not specify if using block_hash or reuse_block.
+            block_hash: hash of the blockchain block number at which to perform the query. Do not specify if using block
+                or reuse_block
+            reuse_block: whether to reuse the last-used blockchain hash when retrieving info. Do not set if using
+                block_hash or block.
 
         Returns:
             The filtered list of netuids.
         """
+        block_hash = await self._determine_block_hash(block, block_hash, reuse_block)
         netuids_with_registered_hotkeys = [
             item
             for sublist in await asyncio.gather(
@@ -884,7 +922,10 @@ class AsyncSubtensor:
         return list(set(all_netuids))
 
     async def get_existential_deposit(
-        self, block_hash: Optional[str] = None, reuse_block: bool = False
+        self,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
     ) -> Balance:
         """
         Retrieves the existential deposit amount for the Bittensor blockchain.
@@ -892,14 +933,16 @@ class AsyncSubtensor:
         Accounts with balances below this threshold can be reaped to conserve network resources.
 
         Args:
-            block_hash (str): Block hash at which to query the deposit amount. If `None`, the current block is used.
-            reuse_block (bool): Whether to reuse the last-used blockchain block hash.
+            block: the block number for this query. Do not specify if using block_hash or reuse_block
+            block_hash: Block hash at which to query the deposit amount. Do not specify if using block or reuse_block
+            reuse_block: Whether to reuse the last-used blockchain block hash. Do not set if using block_hash or block.
 
         Returns:
             The existential deposit amount.
 
         The existential deposit is a fundamental economic parameter in the Bittensor network, ensuring efficient use of storage and preventing the proliferation of dust accounts.
         """
+        block_hash = await self._determine_block_hash(block, block_hash, reuse_block)
         result = await self.substrate.get_constant(
             module_name="Balances",
             constant_name="ExistentialDeposit",
@@ -913,22 +956,29 @@ class AsyncSubtensor:
         return Balance.from_rao(result)
 
     async def neurons(
-        self, netuid: int, block_hash: Optional[str] = None, reuse_block: bool = False
+        self,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
     ) -> list[NeuronInfo]:
         """
         Retrieves a list of all neurons within a specified subnet of the Bittensor network.
         This function provides a snapshot of the subnet's neuron population, including each neuron's attributes and network interactions.
 
         Args:
-            netuid (int): The unique identifier of the subnet.
-            block_hash (str): The hash of the blockchain block number for the query.
-            reuse_block (bool): Whether to reuse the last-used blockchain block hash.
+            netuid: The unique identifier of the subnet.
+            block: the block number for this query. Do not specify if using block_hash or reuse_block.
+            block_hash: The hash of the blockchain block number for the query. Do not specify if using block
+                or reuse_block
+            reuse_block: Whether to reuse the last-used blockchain block hash. Do not set if using block_hash or block.
 
         Returns:
             A list of NeuronInfo objects detailing each neuron's characteristics in the subnet.
 
         Understanding the distribution and status of neurons within a subnet is key to comprehending the network's decentralized structure and the dynamics of its consensus and governance processes.
         """
+        block_hash = await self._determine_block_hash(block, block_hash, reuse_block)
         hex_bytes_result = await self.query_runtime_api(
             runtime_api="NeuronInfoRuntimeApi",
             method="get_neurons",
@@ -943,28 +993,33 @@ class AsyncSubtensor:
         return NeuronInfo.list_from_vec_u8(hex_to_bytes(hex_bytes_result))
 
     async def neurons_lite(
-        self, netuid: int, block_hash: Optional[str] = None, reuse_block: bool = False
+        self,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
     ) -> list[NeuronInfoLite]:
         """
         Retrieves a list of neurons in a 'lite' format from a specific subnet of the Bittensor network.
         This function provides a streamlined view of the neurons, focusing on key attributes such as stake and network participation.
 
         Args:
-            netuid (int): The unique identifier of the subnet.
-            block_hash (str): The hash of the blockchain block number for the query.
-            reuse_block (bool): Whether to reuse the last-used blockchain block hash.
+            netuid: The unique identifier of the subnet.
+            block: the block number for this query. Do not specify if using block_hash or reuse_block.
+            block_hash: The hash of the blockchain block number for the query. Do not specify if using block
+                or reuse_block
+            reuse_block: Whether to reuse the last-used blockchain block hash. Do not set if using block_hash or block.
 
         Returns:
             A list of simplified neuron information for the subnet.
 
         This function offers a quick overview of the neuron population within a subnet, facilitating efficient analysis of the network's decentralized structure and neuron dynamics.
         """
+        block_hash = await self._determine_block_hash(block, block_hash, reuse_block)
         hex_bytes_result = await self.query_runtime_api(
             runtime_api="NeuronInfoRuntimeApi",
             method="get_neurons_lite",
-            params=[
-                netuid
-            ],  # TODO check to see if this can accept more than one at a time
+            params=[netuid],
             block_hash=block_hash,
             reuse_block=reuse_block,
         )
@@ -978,23 +1033,30 @@ class AsyncSubtensor:
         self,
         hotkey_ss58: str,
         netuid: int,
+        block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
-    ) -> "NeuronInfo":
+    ) -> NeuronInfo:
         """
-        Retrieves information about a neuron based on its public key (hotkey SS58 address) and the specific subnet UID (netuid). This function provides detailed neuron information for a particular subnet within the Bittensor network.
+        Retrieves information about a neuron based on its public key (hotkey SS58 address) and the specific subnet
+            UID (netuid). This function provides detailed neuron information for a particular subnet within the
+            Bittensor network.
 
         Args:
-            hotkey_ss58 (str): The ``SS58`` address of the neuron's hotkey.
-            netuid (int): The unique identifier of the subnet.
-            block_hash (Optional[int]): The blockchain block number at which to perform the query.
-            reuse_block (bool): Whether to reuse the last-used blockchain block hash.
+            hotkey_ss58: The `SS58` address of the neuron's hotkey.
+            netuid: The unique identifier of the subnet.
+            block: the block number for this query. Do not specify if using block_hash or reuse_block
+            block_hash: The blockchain block number at which to perform the query. Do not specify if using block
+                or reuse_block
+            reuse_block: Whether to reuse the last-used blockchain block hash. Do not set if using block_hash or block.
 
         Returns:
-            Optional[bittensor.core.chain_data.neuron_info.NeuronInfo]: Detailed information about the neuron if found, ``None`` otherwise.
+            Detailed information about the neuron if found, null neuron if not.
 
-        This function is crucial for accessing specific neuron data and understanding its status, stake, and other attributes within a particular subnet of the Bittensor ecosystem.
+        This function is crucial for accessing specific neuron data and understanding its status, stake, and other
+            attributes within a particular subnet of the Bittensor ecosystem.
         """
+        block_hash = await self._determine_block_hash(block, block_hash, reuse_block)
         uid = await self.substrate.query(
             module="SubtensorModule",
             storage_function="Uids",
@@ -1020,6 +1082,7 @@ class AsyncSubtensor:
         self,
         uid: Optional[int],
         netuid: int,
+        block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> NeuronInfo:
@@ -1027,16 +1090,20 @@ class AsyncSubtensor:
         Retrieves detailed information about a specific neuron identified by its unique identifier (UID) within a specified subnet (netuid) of the Bittensor network. This function provides a comprehensive view of a neuron's attributes, including its stake, rank, and operational status.
 
         Args:
-            uid (int): The unique identifier of the neuron.
-            netuid (int): The unique identifier of the subnet.
-            block_hash (str): The hash of the blockchain block number for the query.
-            reuse_block (bool): Whether to reuse the last-used blockchain block hash.
+            uid: The unique identifier of the neuron.
+            netuid: The unique identifier of the subnet.
+            block: the block number for this query. Do not specify if using block_hash or reuse_block
+            block_hash: The hash of the blockchain block number for the query. Do not specify if using block or
+                reuse_block
+            reuse_block: Whether to reuse the last-used blockchain block hash. Do not set if using block_hash or block.
 
         Returns:
             Detailed information about the neuron if found, a null neuron otherwise
 
-        This function is crucial for analyzing individual neurons' contributions and status within a specific subnet, offering insights into their roles in the network's consensus and validation mechanisms.
+        This function is crucial for analyzing individual neurons' contributions and status within a specific subnet,
+            offering insights into their roles in the network's consensus and validation mechanisms.
         """
+        block_hash = await self._determine_block_hash(block, block_hash, reuse_block)
         if uid is None:
             return NeuronInfo.get_null_neuron()
 
@@ -1057,6 +1124,7 @@ class AsyncSubtensor:
     async def get_delegated(
         self,
         coldkey_ss58: str,
+        block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> list[tuple[DelegateInfo, Balance]]:
@@ -1064,19 +1132,20 @@ class AsyncSubtensor:
         Retrieves a list of delegates and their associated stakes for a given coldkey. This function identifies the delegates that a specific account has staked tokens on.
 
         Args:
-            coldkey_ss58 (str): The `SS58` address of the account's coldkey.
-            block_hash (Optional[str]): The hash of the blockchain block number for the query.
-            reuse_block (bool): Whether to reuse the last-used blockchain block hash.
+            coldkey_ss58: The `SS58` address of the account's coldkey.
+            block: the block number for this query. Do not specify if using block_hash or reuse_block
+            block_hash: The hash of the blockchain block number for the query. Do not specify if using block or
+                reuse_block
+            reuse_block: Whether to reuse the last-used blockchain block hash. Do not set if using block_hash or block.
 
         Returns:
             A list of tuples, each containing a delegate's information and staked amount.
 
         This function is important for account holders to understand their stake allocations and their involvement in the network's delegation and consensus mechanisms.
         """
-
         block_hash = (
-            block_hash
-            if block_hash
+            bh
+            if (bh := await self._determine_block_hash(block, block_hash, reuse_block))
             else (self.substrate.last_block_hash if reuse_block else None)
         )
         encoded_coldkey = ss58_to_vec_u8(coldkey_ss58)
@@ -1093,26 +1162,33 @@ class AsyncSubtensor:
     async def query_identity(
         self,
         key: str,
+        block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> dict:
         """
-        Queries the identity of a neuron on the Bittensor blockchain using the given key. This function retrieves detailed identity information about a specific neuron, which is a crucial aspect of the network's decentralized identity and governance system.
+        Queries the identity of a neuron on the Bittensor blockchain using the given key. This function retrieves
+            detailed identity information about a specific neuron, which is a crucial aspect of the network's
+            decentralized identity and governance system.
 
         Args:
-            key (str): The key used to query the neuron's identity, typically the neuron's SS58 address.
-            block_hash (str): The hash of the blockchain block number at which to perform the query.
-            reuse_block (bool): Whether to reuse the last-used blockchain block hash.
+            key: The key used to query the neuron's identity, typically the neuron's SS58 address.
+            block: the block number for this query. Do not specify if using block_hash or reuse_block
+            block_hash: The hash of the blockchain block number at which to perform the query. Do not specify if using
+                block_hash or block.
+            reuse_block: Whether to reuse the last-used blockchain block hash. Do not set if using block_hash or block.
 
         Returns:
             An object containing the identity information of the neuron if found, ``None`` otherwise.
 
-        The identity information can include various attributes such as the neuron's stake, rank, and other network-specific details, providing insights into the neuron's role and status within the Bittensor network.
+        The identity information can include various attributes such as the neuron's stake, rank, and other
+            network-specific details, providing insights into the neuron's role and status within the Bittensor network.
 
         Note:
-            See the `Bittensor CLI documentation <https://docs.bittensor.com/reference/btcli>`_ for supported identity parameters.
+            See the `Bittensor CLI documentation <https://docs.bittensor.com/reference/btcli>`_ for supported
+            identity parameters.
         """
-
+        block_hash = await self._determine_block_hash(block, block_hash, reuse_block)
         identity_info = await self.substrate.query(
             module="Registry",
             storage_function="IdentityOf",
@@ -1126,22 +1202,28 @@ class AsyncSubtensor:
             return {}
 
     async def weights(
-        self, netuid: int, block_hash: Optional[str] = None, reuse_block: bool = False
+        self,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
     ) -> list[tuple[int, list[tuple[int, int]]]]:
         """
         Retrieves the weight distribution set by neurons within a specific subnet of the Bittensor network.
         This function maps each neuron's UID to the weights it assigns to other neurons, reflecting the network's trust and value assignment mechanisms.
 
         Args:
-            netuid (int): The network UID of the subnet to query.
-            block_hash (str): The hash of the blockchain block for the query.
-            reuse_block (bool): Whether to reuse the last-used blockchain block hash.
+            netuid: The network UID of the subnet to query.
+            block: the block number for this query. Do not specify if using block_hash or reuse_block
+            block_hash: The hash of the blockchain block for the query. Do not specify if using reuse_block or block.
+            reuse_block: Whether to reuse the last-used blockchain block hash. Do not set if using block_hash or block.
 
         Returns:
             A list of tuples mapping each neuron's UID to its assigned weights.
 
         The weight distribution is a key factor in the network's consensus algorithm and the ranking of neurons, influencing their influence and reward allocation within the subnet.
         """
+        block_hash = await self._determine_block_hash(block, block_hash, reuse_block)
         # TODO look into seeing if we can speed this up with storage query
         w_map_encoded = await self.substrate.query_map(
             module="SubtensorModule",
@@ -1155,22 +1237,33 @@ class AsyncSubtensor:
         return w_map
 
     async def bonds(
-        self, netuid: int, block_hash: Optional[str] = None, reuse_block: bool = False
+        self,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
     ) -> list[tuple[int, list[tuple[int, int]]]]:
         """
         Retrieves the bond distribution set by neurons within a specific subnet of the Bittensor network.
-        Bonds represent the investments or commitments made by neurons in one another, indicating a level of trust and perceived value. This bonding mechanism is integral to the network's market-based approach to measuring and rewarding machine intelligence.
+            Bonds represent the investments or commitments made by neurons in one another, indicating a level of trust
+            and perceived value. This bonding mechanism is integral to the network's market-based approach to
+            measuring and rewarding machine intelligence.
 
         Args:
-            netuid (int): The network UID of the subnet to query.
-            block_hash (Optional[str]): The hash of the blockchain block number for the query.
-            reuse_block (bool): Whether to reuse the last-used blockchain block hash.
+            netuid: The network UID of the subnet to query.
+            block: the block number for this query. Do not specify if using block_hash or reuse_block
+            block_hash: The hash of the blockchain block number for the query. Do not specify if using reuse_block or
+                block.
+            reuse_block: Whether to reuse the last-used blockchain block hash. Do not set if using block_hash or block.
 
         Returns:
             List of tuples mapping each neuron's UID to its bonds with other neurons.
 
-        Understanding bond distributions is crucial for analyzing the trust dynamics and market behavior within the subnet. It reflects how neurons recognize and invest in each other's intelligence and contributions, supporting diverse and niche systems within the Bittensor ecosystem.
+        Understanding bond distributions is crucial for analyzing the trust dynamics and market behavior within the
+            subnet. It reflects how neurons recognize and invest in each other's intelligence and contributions,
+            supporting diverse and niche systems within the Bittensor ecosystem.
         """
+        block_hash = await self._determine_block_hash(block, block_hash, reuse_block)
         b_map_encoded = await self.substrate.query_map(
             module="SubtensorModule",
             storage_function="Bonds",
@@ -1185,6 +1278,7 @@ class AsyncSubtensor:
     async def does_hotkey_exist(
         self,
         hotkey_ss58: str,
+        block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> bool:
@@ -1192,13 +1286,16 @@ class AsyncSubtensor:
         Returns true if the hotkey is known by the chain and there are accounts.
 
         Args:
-            hotkey_ss58 (str): The SS58 address of the hotkey.
-            block_hash (Optional[str]): The hash of the block number to check the hotkey against.
-            reuse_block (bool): Whether to reuse the last-used blockchain hash.
+            hotkey_ss58: The SS58 address of the hotkey.
+            block: the block number for this query. Do not specify if using block_hash or reuse_block
+            block_hash: The hash of the block number to check the hotkey against. Do not specify if using reuse_block
+                or block.
+            reuse_block: Whether to reuse the last-used blockchain hash. Do not set if using block_hash or block.
 
         Returns:
             `True` if the hotkey is known by the chain and there are accounts, `False` otherwise.
         """
+        block_hash = await self._determine_block_hash(block, block_hash, reuse_block)
         _result = await self.substrate.query(
             module="SubtensorModule",
             storage_function="Owner",
@@ -1217,6 +1314,7 @@ class AsyncSubtensor:
     async def get_hotkey_owner(
         self,
         hotkey_ss58: str,
+        block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Optional[str]:
@@ -1225,13 +1323,16 @@ class AsyncSubtensor:
         This function queries the blockchain for the owner of the provided hotkey. If the hotkey does not exist at the specified block hash, it returns None.
 
         Args:
-            hotkey_ss58 (str): The SS58 address of the hotkey.
-            block_hash (Optional[str]): The hash of the block at which to check the hotkey ownership.
-            reuse_block (bool): Whether to reuse the last-used blockchain hash.
+            hotkey_ss58: The SS58 address of the hotkey.
+            block: the block number for this query. Do not specify if using block_hash or reuse_block
+            block_hash: The hash of the block at which to check the hotkey ownership. Do not specify if using
+                reuse_block or block.
+            reuse_block: Whether to reuse the last-used blockchain hash. Do not set if using block_hash or block.
 
         Returns:
             Optional[str]: The SS58 address of the owner if the hotkey exists, or None if it doesn't.
         """
+        block_hash = await self._determine_block_hash(block, block_hash, reuse_block)
         hk_owner_query = await self.substrate.query(
             module="SubtensorModule",
             storage_function="Owner",
