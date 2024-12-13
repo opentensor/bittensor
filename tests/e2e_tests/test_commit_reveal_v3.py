@@ -163,7 +163,7 @@ async def test_commit_and_reveal_weights_cr3(local_chain):
 
     # Ensure the expected drand round is well in the future
     assert (
-        expected_reveal_round < latest_drand_round
+        expected_reveal_round > latest_drand_round
     ), "Revealed drand pulse is older than the drand pulse right after setting weights"
 
     # Fetch current commits pending on the chain
