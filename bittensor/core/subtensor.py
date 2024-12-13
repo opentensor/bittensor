@@ -198,7 +198,7 @@ class Subtensor:
             self.substrate = SubstrateInterface(
                 chain_endpoint=self.chain_endpoint,
                 ss58_format=settings.SS58_FORMAT,
-                use_remote_preset=True,
+                use_remote_preset=False,
                 type_registry=settings.TYPE_REGISTRY,
                 chain_name="Bittensor",
                 mock=_mock,
