@@ -30,6 +30,7 @@ from bittensor.core.chain_data import (
     PrometheusInfo,
     SubnetHyperparameters,
     SubnetInfo,
+    StakeInfo,
 )
 from bittensor.core.config import Config
 from bittensor.core.extrinsics.commit_reveal import commit_reveal_v3_extrinsic
@@ -1704,6 +1705,38 @@ class Subtensor:
             return []
 
         return DelegateInfo.list_from_vec_u8(result)
+
+    async def get_stake_info_for_coldkey(
+        self,
+        coldkey_ss58: str,
+        block: Optional[int] = None,
+    ) -> list[StakeInfo]:
+        """
+        Retrieves stake information associated with a specific coldkey. This function provides details about the stakes
+            held by an account, including the staked amounts and associated delegates.
+
+        Args:
+            coldkey_ss58 (str): The ``SS58`` address of the account's coldkey.
+            block: the block number for this query.
+
+        Returns:
+            A list of StakeInfo objects detailing the stake allocations for the account.
+
+        Stake information is vital for account holders to assess their investment and participation in the network's
+            delegation and consensus processes.
+        """
+        encoded_coldkey = ss58_to_vec_u8(coldkey_ss58)
+        hex_bytes_result = self.query_runtime_api(
+            runtime_api="StakeInfoRuntimeApi",
+            method="get_stake_info_for_coldkey",
+            params=[encoded_coldkey],
+            block=block,
+        )
+
+        if hex_bytes_result is None:
+            return []
+
+        return StakeInfo.list_from_vec_u8(hex_to_bytes(hex_bytes_result))
 
     def is_hotkey_delegate(self, hotkey_ss58: str, block: Optional[int] = None) -> bool:
         """
