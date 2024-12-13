@@ -8,7 +8,6 @@ from bittensor.core.extrinsics.utils import submit_extrinsic
 from bittensor.core.settings import version_as_int
 from bittensor.utils import format_error_message
 from bittensor.utils.btlogging import logging
-from bittensor.utils.networking import ensure_connected
 from bittensor.utils.weight_utils import convert_weights_and_uids_for_emit
 
 if TYPE_CHECKING:
@@ -17,7 +16,6 @@ if TYPE_CHECKING:
     from bittensor.utils.registration import torch
 
 
-@ensure_connected
 def _do_commit_reveal_v3(
     self: "Subtensor",
     wallet: "Wallet",
