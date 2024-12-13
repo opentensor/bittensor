@@ -340,8 +340,8 @@ class AsyncExtrinsicReceipt:
     @async_property
     async def total_fee_amount(self) -> int:
         """
-        Contains the total fee costs deducted when executing this extrinsic. This includes fee for the validator (
-        (`Balances.Deposit` event) and the fee deposited for the treasury (`Treasury.Deposit` event)
+        Contains the total fee costs deducted when executing this extrinsic. This includes fee for the validator
+            (`Balances.Deposit` event) and the fee deposited for the treasury (`Treasury.Deposit` event)
 
         Returns
         -------
@@ -591,8 +591,8 @@ class Runtime:
         changes in type definitions when a runtime upgrade occurred
 
         Args:
-            use_remote_preset: When True preset is downloaded from Github master, otherwise use files from local installed
-                scalecodec package
+            use_remote_preset: When True preset is downloaded from Github master, otherwise use files from local
+                installed scalecodec package
             auto_discover: Whether to automatically discover the type registry presets based on the chain name and the
                 type registry
         """
@@ -1063,6 +1063,7 @@ class AsyncSubstrateInterface:
         """
 
         async def wait_for_registry():
+            # TODO imrpove this
             while self.registry is None:
                 await asyncio.sleep(0.01)
             return
@@ -1078,7 +1079,7 @@ class AsyncSubstrateInterface:
                 # indicates that registry was never loaded
                 # TODO add max retries
                 await self.load_registry()
-                return self.decode_scale(type_string, scale_bytes)
+                return await self.decode_scale(type_string, scale_bytes)
         return obj
 
     async def encode_scale(self, type_string, value, block_hash=None) -> ScaleBytes:
@@ -1134,7 +1135,67 @@ class AsyncSubstrateInterface:
         """
         return ss58_decode(ss58_address, valid_ss58_format=self.ss58_format)
 
+    def serialize_storage_item(
+        self, storage_item: ScaleType, module, spec_version_id
+    ) -> dict:
+        """
+        Helper function to serialize a storage item
+
+        Args:
+            storage_item: the storage item to serialize
+            module: the module to use to serialize the storage item
+            spec_version_id: the version id
+
+        Returns
+        -------
+        dict
+        """
+        storage_dict = {
+            "storage_name": storage_item.name,
+            "storage_modifier": storage_item.modifier,
+            "storage_default_scale": storage_item["default"].get_used_bytes(),
+            "storage_default": None,
+            "documentation": "\n".join(storage_item.docs),
+            "module_id": module.get_identifier(),
+            "module_prefix": module.value["storage"]["prefix"],
+            "module_name": module.name,
+            "spec_version": spec_version_id,
+            "type_keys": storage_item.get_params_type_string(),
+            "type_hashers": storage_item.get_param_hashers(),
+            "type_value": storage_item.get_value_type_string(),
+        }
+
+        type_class, type_info = next(iter(storage_item.type.items()))
+
+        storage_dict["type_class"] = type_class
+
+        value_scale_type = storage_item.get_value_type_string()
+
+        if storage_item.value["modifier"] == "Default":
+            # Fallback to default value of storage function if no result
+            query_value = storage_item.value_object["default"].value_object
+        else:
+            # No result is interpreted as an Option<...> result
+            value_scale_type = f"Option<{value_scale_type}>"
+            query_value = storage_item.value_object["default"].value_object
+
+        try:
+            obj = self.runtime_config.create_scale_object(
+                type_string=value_scale_type,
+                data=ScaleBytes(query_value),
+                metadata=self.metadata,
+            )
+            obj.decode()
+            storage_dict["storage_default"] = obj.decode()
+        except Exception:
+            storage_dict["storage_default"] = "[decoding error]"
+
+        return storage_dict
+
     async def _init_init_runtime(self):
+        """
+        TODO rename/docstring
+        """
         runtime_info, metadata = await asyncio.gather(
             self.get_block_runtime_version(None), self.get_block_metadata()
         )
@@ -1144,7 +1205,6 @@ class AsyncSubstrateInterface:
         self.runtime_config.set_active_spec_version_id(self.runtime_version)
         self.transaction_version = runtime_info.get("transactionVersion")
         if self.implements_scaleinfo:
-            # self.debug_message('Add PortableRegistry from metadata to type registry')
             self.runtime_config.add_portable_registry(metadata)
         # Set runtime compatibility flags
         try:
@@ -1244,7 +1304,11 @@ class AsyncSubstrateInterface:
             if not self.__metadata:
                 if self.runtime_version in self.__metadata_cache:
                     # Get metadata from cache
-                    # self.debug_message('Retrieved metadata for {} from memory'.format(self.runtime_version))
+                    logging.debug(
+                        "Retrieved metadata for {} from memory".format(
+                            self.runtime_version
+                        )
+                    )
                     metadata = self.__metadata = self.__metadata_cache[
                         self.runtime_version
                     ]
@@ -1252,7 +1316,11 @@ class AsyncSubstrateInterface:
                     metadata = self.__metadata = await self.get_block_metadata(
                         block_hash=runtime_block_hash, decode=True
                     )
-                    # self.debug_message('Retrieved metadata for {} from Substrate node'.format(self.runtime_version))
+                    logging.debug(
+                        "Retrieved metadata for {} from Substrate node".format(
+                            self.runtime_version
+                        )
+                    )
 
                     # Update metadata cache
                     self.__metadata_cache[self.runtime_version] = self.__metadata
@@ -1262,7 +1330,7 @@ class AsyncSubstrateInterface:
             self.reload_type_registry(use_remote_preset=False, auto_discover=True)
 
             if self.implements_scaleinfo:
-                # self.debug_message('Add PortableRegistry from metadata to type registry')
+                logging.debug("Add PortableRegistry from metadata to type registry")
                 self.runtime_config.add_portable_registry(metadata)
 
             # Set active runtime version
@@ -1350,7 +1418,9 @@ class AsyncSubstrateInterface:
                 type_registry_preset_dict = load_type_registry_preset(
                     type_registry_name
                 )
-                # self.debug_message(f"Auto set type_registry_preset to {type_registry_name} ...")
+                logging.debug(
+                    f"Auto set type_registry_preset to {type_registry_name} ..."
+                )
                 self.type_registry_preset = type_registry_name
             except ValueError:
                 type_registry_preset_dict = None
@@ -1428,6 +1498,57 @@ class AsyncSubstrateInterface:
             "module_name": module.name,
             "spec_version": spec_version,
         }
+
+    async def get_metadata_storage_functions(self, block_hash=None) -> list:
+        """
+        Retrieves a list of all storage functions in metadata active at given block_hash (or chaintip if block_hash is
+        omitted)
+
+        Args:
+            block_hash: hash of the blockchain block whose runtime to use
+
+        Returns:
+            list of storage functions
+        """
+        if not self.__metadata or block_hash:
+            await self.init_runtime(block_hash=block_hash)
+
+        storage_list = []
+
+        for module_idx, module in enumerate(self.metadata.pallets):
+            if module.storage:
+                for storage in module.storage:
+                    storage_list.append(
+                        self.serialize_storage_item(
+                            storage_item=storage,
+                            module=module,
+                            spec_version_id=self.runtime_version,
+                        )
+                    )
+
+        return storage_list
+
+    async def get_metadata_storage_function(
+        self, module_name, storage_name, block_hash=None
+    ):
+        """
+        Retrieves the details of a storage function for given module name, call function name and block_hash
+
+        Args:
+            module_name
+            storage_name
+            block_hash
+
+        Returns:
+            Metadata storage function
+        """
+        if not self.__metadata or block_hash:
+            await self.init_runtime(block_hash=block_hash)
+
+        pallet = self.metadata.get_metadata_pallet(module_name)
+
+        if pallet:
+            return pallet.get_storage_function(storage_name)
 
     async def get_metadata_errors(
         self, block_hash=None
@@ -1675,7 +1796,8 @@ class AsyncSubstrateInterface:
                                         block_data["author"] = block_author.value
                                     else:
                                         raise NotImplementedError(
-                                            f"Cannot extract author for engine {log_digest.value['PreRuntime']['engine']}"
+                                            f"Cannot extract author for engine"
+                                            f" {log_digest.value['PreRuntime']['engine']}"
                                         )
 
                         except Exception:
@@ -1748,14 +1870,15 @@ class AsyncSubstrateInterface:
     ) -> Optional[dict]:
         """
         Retrieves a block and decodes its containing extrinsics and log digest items. If `block_hash` and `block_number`
-        is omitted the chain tip will be retrieve, or the finalized head if `finalized_only` is set to true.
+        is omitted the chain tip will be retrieved, or the finalized head if `finalized_only` is set to true.
 
         Either `block_hash` or `block_number` should be set, or both omitted.
 
         Args:
             block_hash: the hash of the block to be retrieved
             block_number: the block number to retrieved
-            ignore_decoding_errors: When set this will catch all decoding errors, set the item to None and continue decoding
+            ignore_decoding_errors: When set this will catch all decoding errors, set the item to None and continue
+                decoding
             include_author: This will retrieve the block author from the validator set and add to the result
             finalized_only: when no `block_hash` or `block_number` is set, this will retrieve the finalized head
 
@@ -1800,7 +1923,7 @@ class AsyncSubstrateInterface:
     ) -> dict:
         """
         Retrieves a block header and decodes its containing log digest items. If `block_hash` and `block_number`
-        is omitted the chain tip will be retrieve, or the finalized head if `finalized_only` is set to true.
+        is omitted the chain tip will be retrieved, or the finalized head if `finalized_only` is set to true.
 
         Either `block_hash` or `block_number` should be set, or both omitted.
 
@@ -1809,7 +1932,8 @@ class AsyncSubstrateInterface:
         Args:
             block_hash: the hash of the block to be retrieved
             block_number: the block number to retrieved
-            ignore_decoding_errors: When set this will catch all decoding errors, set the item to None and continue decoding
+            ignore_decoding_errors: When set this will catch all decoding errors, set the item to None and continue
+                decoding
             include_author: This will retrieve the block author from the validator set and add to the result
             finalized_only: when no `block_hash` or `block_number` is set, this will retrieve the finalized head
 
@@ -1879,7 +2003,8 @@ class AsyncSubstrateInterface:
 
         Args:
             subscription_handler: the coroutine as explained above
-            ignore_decoding_errors: When set this will catch all decoding errors, set the item to `None` and continue decoding
+            ignore_decoding_errors: When set this will catch all decoding errors, set the item to `None` and continue
+                decoding
             include_author: This will retrieve the block author from the validator set and add to the result
             finalized_only: when no `block_hash` or `block_number` is set, this will retrieve the finalized head
 
@@ -2129,7 +2254,7 @@ class AsyncSubstrateInterface:
         storage_item: Optional[ScaleType] = None,
         runtime: Optional[Runtime] = None,
         result_handler: Optional[ResultHandler] = None,
-    ) -> tuple[Union[ScaleType, dict], bool]:
+    ) -> tuple[Any, bool]:
         """
         Processes the RPC call response by decoding it, returning it as is, or setting a handler for subscriptions,
         depending on the specific call.
@@ -2147,16 +2272,8 @@ class AsyncSubstrateInterface:
         """
         result: Union[dict, ScaleType] = response
         if value_scale_type and isinstance(storage_item, ScaleType):
-            if not runtime:
-                async with self._lock:
-                    runtime = Runtime(
-                        self.chain,
-                        self.runtime_config,
-                        self.__metadata,
-                        self.type_registry,
-                    )
-            if response.get("result") is not None:
-                query_value = response.get("result")
+            if (response_result := response.get("result")) is not None:
+                query_value = response_result
             elif storage_item.value["modifier"] == "Default":
                 # Fallback to default value of storage function if no result
                 query_value = storage_item.value_object["default"].value_object
@@ -2199,7 +2316,6 @@ class AsyncSubstrateInterface:
                     request_manager.add_request(item_id, item["id"])
             else:
                 item = payloads[0]
-                # print(item)
                 item_id = await ws.send(item["payload"])
                 request_manager.add_request(item_id, item["id"])
 
