@@ -2990,6 +2990,106 @@ class AsyncSubstrateInterface:
 
         return result.value
 
+    async def get_type_registry(
+        self, block_hash: str = None, max_recursion: int = 4
+    ) -> dict:
+        """
+        Generates an exhaustive list of which RUST types exist in the runtime specified at given block_hash (or
+        chaintip if block_hash is omitted)
+
+        MetadataV14 or higher is required.
+
+        Args:
+            block_hash: Chaintip will be used if block_hash is omitted
+            max_recursion: Increasing recursion will provide more detail but also has impact on performance
+
+        Returns:
+            dict mapping the type strings to the type decompositions
+        """
+        if not self.__metadata or block_hash:
+            await self.init_runtime(block_hash=block_hash)
+
+        if not self.implements_scaleinfo:
+            raise NotImplementedError("MetadataV14 or higher runtimes is required")
+
+        type_registry = {}
+
+        for scale_info_type in self.metadata.portable_registry["types"]:
+            if (
+                "path" in scale_info_type.value["type"]
+                and len(scale_info_type.value["type"]["path"]) > 0
+            ):
+                type_string = "::".join(scale_info_type.value["type"]["path"])
+            else:
+                type_string = f'scale_info::{scale_info_type.value["id"]}'
+
+            scale_cls = self.runtime_config.get_decoder_class(type_string)
+            type_registry[type_string] = scale_cls.generate_type_decomposition(
+                max_recursion=max_recursion
+            )
+
+        return type_registry
+
+    async def get_type_definition(
+        self, type_string: str, block_hash: str = None
+    ) -> str:
+        """
+        Retrieves SCALE encoding specifications of given type_string
+
+        Args:
+            type_string: RUST variable type, e.g. Vec<Address> or scale_info::0
+            block_hash: hash of the blockchain block
+
+        Returns:
+            type decomposition
+        """
+        scale_obj = await self.create_scale_object(type_string, block_hash=block_hash)
+        return scale_obj.generate_type_decomposition()
+
+    async def get_metadata_modules(self, block_hash=None) -> list[dict[str, Any]]:
+        """
+        Retrieves a list of modules in metadata for given block_hash (or chaintip if block_hash is omitted)
+
+        Args:
+            block_hash: hash of the blockchain block
+
+        Returns:
+            List of metadata modules
+        """
+        if not self.__metadata or block_hash:
+            await self.init_runtime(block_hash=block_hash)
+
+        return [
+            {
+                "metadata_index": idx,
+                "module_id": module.get_identifier(),
+                "name": module.name,
+                "spec_version": self.runtime_version,
+                "count_call_functions": len(module.calls or []),
+                "count_storage_functions": len(module.storage or []),
+                "count_events": len(module.events or []),
+                "count_constants": len(module.constants or []),
+                "count_errors": len(module.errors or []),
+            }
+            for idx, module in enumerate(self.metadata.pallets)
+        ]
+
+    async def get_metadata_module(self, name, block_hash=None) -> ScaleType:
+        """
+        Retrieves modules in metadata by name for given block_hash (or chaintip if block_hash is omitted)
+
+        Args:
+            name: Name of the module
+            block_hash: hash of the blockchain block
+
+        Returns:
+            MetadataModule
+        """
+        if not self.__metadata or block_hash:
+            await self.init_runtime(block_hash=block_hash)
+
+        return self.metadata.get_metadata_pallet(name)
+
     async def query(
         self,
         module: str,
