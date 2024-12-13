@@ -161,6 +161,11 @@ async def test_commit_and_reveal_weights_cr3(local_chain):
         f"After setting weights: Current block: {current_block}, next tempo: {upcoming_tempo}, drand: {latest_drand_round}"
     )
 
+    # Ensure the expected drand round is well in the future
+    assert (
+        expected_reveal_round < latest_drand_round
+    ), "Revealed drand pulse is older than the drand pulse right after setting weights"
+
     # Fetch current commits pending on the chain
     commits_on_chain = subtensor.get_weight_commits(netuid=netuid)
     address, commit, reveal_round = commits_on_chain[0]
