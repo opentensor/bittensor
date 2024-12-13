@@ -19,7 +19,7 @@ from typing import Optional, Any, Union, Callable, Awaitable, cast, TYPE_CHECKIN
 from async_property import async_property
 from bittensor_wallet import Keypair
 from bt_decode import PortableRegistry, decode as decode_by_type_string, MetadataV15
-from scalecodec import GenericExtrinsic, ss58_encode, ss58_decode
+from scalecodec import GenericExtrinsic, ss58_encode, ss58_decode, is_valid_ss58_address
 from scalecodec.base import ScaleBytes, ScaleType, RuntimeConfigurationObject
 from scalecodec.type_registry import load_type_registry_preset
 from scalecodec.types import GenericCall, GenericRuntimeCallDefinition
@@ -881,6 +881,17 @@ class Websocket:
 
 class AsyncSubstrateInterface:
     registry: Optional[PortableRegistry] = None
+    runtime_version = None
+    type_registry_preset = None
+    transaction_version = None
+    block_id: Optional[int] = None
+    last_block_hash: Optional[str] = None
+    __name: Optional[str] = None
+    __properties = None
+    __version = None
+    __token_decimals = None
+    __token_symbol = None
+    __metadata = None
 
     def __init__(
         self,
@@ -923,7 +934,6 @@ class AsyncSubstrateInterface:
             },
         )
         self._lock = asyncio.Lock()
-        self.last_block_hash: Optional[str] = None
         self.config = {
             "use_remote_preset": use_remote_preset,
             "auto_discover": auto_discover,
@@ -935,22 +945,16 @@ class AsyncSubstrateInterface:
         self.ss58_format = ss58_format
         self.type_registry = type_registry
         self.runtime_cache = RuntimeCache()
-        self.block_id: Optional[int] = None
-        self.runtime_version = None
         self.runtime_config = RuntimeConfigurationObject(
             ss58_format=self.ss58_format, implements_scale_info=True
         )
         self.__metadata_cache = {}
-        self.type_registry_preset = None
-        self.transaction_version = None
-        self.__metadata = None
         self.metadata_version_hex = "0x0f000000"  # v15
         self.event_loop = asyncio.get_event_loop()
         self.sync_calls = sync_calls
         self.extrinsic_receipt_cls = (
             AsyncExtrinsicReceipt if self.sync_calls is False else ExtrinsicReceipt
         )
-        self.__name: Optional[str] = None
 
     async def __aenter__(self):
         await self.initialize()
@@ -978,6 +982,43 @@ class AsyncSubstrateInterface:
         Returns the substrate chain currently associated with object
         """
         return self.__chain
+
+    @async_property
+    async def properties(self):
+        if self.__properties is None:
+            self.__properties = await self.rpc_request("system_properties", [])
+        return self.__properties
+
+    @async_property
+    async def version(self):
+        if self.__version is None:
+            self.__version = await self.rpc_request("system_version", [])
+        return self.__version
+
+    @async_property
+    async def token_decimals(self):
+        if self.__token_decimals is None:
+            self.__token_decimals = self.properties.get("tokenDecimals")
+        return self.__token_decimals
+
+    @token_decimals.setter
+    def token_decimals(self, value):
+        if type(value) is not int and value is not None:
+            raise TypeError("Token decimals must be an int")
+        self.__token_decimals = value
+
+    @async_property
+    async def token_symbol(self):
+        if self.__token_symbol is None:
+            if self.properties:
+                self.__token_symbol = self.properties.get("tokenSymbol")
+            else:
+                self.__token_symbol = "UNIT"
+        return self.__token_symbol
+
+    @token_symbol.setter
+    def token_symbol(self, value):
+        self.__token_symbol = value
 
     @property
     def metadata(self):
@@ -1135,6 +1176,18 @@ class AsyncSubstrateInterface:
         """
         return ss58_decode(ss58_address, valid_ss58_format=self.ss58_format)
 
+    def is_valid_ss58_address(self, value: str) -> bool:
+        """
+        Helper function to validate given value as ss58_address for current network/ss58_format
+
+        Args:
+            value: value to validate
+
+        Returns:
+            bool
+        """
+        return is_valid_ss58_address(value, valid_ss58_format=self.ss58_format)
+
     def serialize_storage_item(
         self, storage_item: ScaleType, module, spec_version_id
     ) -> dict:
@@ -1146,9 +1199,8 @@ class AsyncSubstrateInterface:
             module: the module to use to serialize the storage item
             spec_version_id: the version id
 
-        Returns
-        -------
-        dict
+        Returns:
+            dict
         """
         storage_dict = {
             "storage_name": storage_item.name,
@@ -1191,6 +1243,119 @@ class AsyncSubstrateInterface:
             storage_dict["storage_default"] = "[decoding error]"
 
         return storage_dict
+
+    def serialize_constant(self, constant, module, spec_version_id) -> dict:
+        """
+        Helper function to serialize a constant
+
+        Parameters
+        ----------
+        constant
+        module
+        spec_version_id
+
+        Returns
+        -------
+        dict
+        """
+        try:
+            value_obj = self.runtime_config.create_scale_object(
+                type_string=constant.type, data=ScaleBytes(constant.constant_value)
+            )
+            constant_decoded_value = value_obj.decode()
+        except Exception:
+            constant_decoded_value = "[decoding error]"
+
+        return {
+            "constant_name": constant.name,
+            "constant_type": constant.type,
+            "constant_value": constant_decoded_value,
+            "constant_value_scale": f"0x{constant.constant_value.hex()}",
+            "documentation": "\n".join(constant.docs),
+            "module_id": module.get_identifier(),
+            "module_prefix": module.value["storage"]["prefix"]
+            if module.value["storage"]
+            else None,
+            "module_name": module.name,
+            "spec_version": spec_version_id,
+        }
+
+    @staticmethod
+    def serialize_module_call(module, call: GenericCall, spec_version) -> dict:
+        """
+        Helper function to serialize a call function
+
+        Args:
+            module: the module to use
+            call: the call function to serialize
+            spec_version: the spec version of the call function
+
+        Returns:
+            dict serialized version of the call function
+        """
+        return {
+            "call_name": call.name,
+            "call_args": [call_arg.value for call_arg in call.args],
+            "documentation": "\n".join(call.docs),
+            "module_prefix": module.value["storage"]["prefix"]
+            if module.value["storage"]
+            else None,
+            "module_name": module.name,
+            "spec_version": spec_version,
+        }
+
+    @staticmethod
+    def serialize_module_event(module, event, spec_version, event_index: str) -> dict:
+        """
+        Helper function to serialize an event
+
+        Args:
+            module: the metadata module
+            event: the event to serialize
+            spec_version: the spec version of the error
+            event_index: the hex index of this event in the block
+
+        Returns:
+            dict serialized version of the event
+        """
+        return {
+            "event_id": event.name,
+            "event_name": event.name,
+            "event_args": [
+                {"event_arg_index": idx, "type": arg}
+                for idx, arg in enumerate(event.args)
+            ],
+            "lookup": f"0x{event_index}",
+            "documentation": "\n".join(event.docs),
+            "module_id": module.get_identifier(),
+            "module_prefix": module.prefix,
+            "module_name": module.name,
+            "spec_version": spec_version,
+        }
+
+    @staticmethod
+    def serialize_module_error(module, error, spec_version) -> dict:
+        """
+        Helper function to serialize an error
+
+        Args:
+            module: the metadata module
+            error: the error to serialize
+            spec_version: the spec version of the error
+
+        Returns:
+            dict serialized version of the module error
+        """
+        return {
+            "error_name": error.name,
+            "documentation": "\n".join(error.docs),
+            "module_id": module.get_identifier(),
+            "module_prefix": module.value["storage"]["prefix"]
+            if module.value["storage"]
+            else None,
+            "module_name": module.name,
+            "spec_version": spec_version,
+        }
 
     async def _init_init_runtime(self):
         """
