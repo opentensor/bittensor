@@ -1,5 +1,27 @@
 # Changelog
 
+## 8.5.0 /2024-12-12
+
+## What's Changed
+* add improved reveal-round params by @JohnReedV in https://github.com/opentensor/bittensor/pull/2509
+* fix: add default value to the get_block_number method in AsyncSubstrateInterface by @FLiotta in https://github.com/opentensor/bittensor/pull/2529
+* Mismatched "archive" index by @thewhaleking in https://github.com/opentensor/bittensor/pull/2530
+* Adds a factory function to create an initialised AsyncSubtensor object. by @thewhaleking in https://github.com/opentensor/bittensor/pull/2516
+* chore: fix some comments by @lvyaoting in https://github.com/opentensor/bittensor/pull/2515
+* Fixes E2E test chain buffer issues on devnet by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2531
+* Added e2e test for CRv3 + enhancements by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2532
+* Backmerge master to staging 850 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2535
+* Enhancement/adds total stake functions by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2537
+* Fixes get_current_block by @thewhaleking in https://github.com/opentensor/bittensor/pull/2536
+* [SDK] Add `commit reveal v3` logic (python part only) by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2484
+
+## New Contributors
+* @JohnReedV made their first contribution in https://github.com/opentensor/bittensor/pull/2509
+* @FLiotta made their first contribution in https://github.com/opentensor/bittensor/pull/2529
+* @lvyaoting made their first contribution in https://github.com/opentensor/bittensor/pull/2515
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v8.4.5...v8.5.0
+
 ## 8.4.5 /2024-12-05
 
 ## What's Changed
