@@ -148,7 +148,7 @@ def set_weights_extrinsic(
     logging.debug(f"Weights: {[float(v / 65535) for v in weight_vals]}")
 
     try:
-        success, error_message = do_set_weights(
+        success, message = do_set_weights(
             self=subtensor,
             wallet=wallet,
             netuid=netuid,
@@ -166,8 +166,8 @@ def set_weights_extrinsic(
             logging.success(f"[green]Finalized![/green] Set weights: {str(success)}")
             return True, "Successfully set weights and Finalized."
         else:
-            logging.error(error_message)
-            return False, error_message
+            logging.error(message)
+            return False, message
 
     except Exception as e:
         logging.error(f":cross_mark: [red]Failed.[/red]: Error: {e}")

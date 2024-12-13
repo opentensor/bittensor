@@ -22,6 +22,7 @@ import typing
 from unittest.mock import MagicMock, Mock
 
 import aiohttp
+from bittensor_wallet.mock import get_mock_wallet
 import pytest
 
 from bittensor.core.axon import Axon
