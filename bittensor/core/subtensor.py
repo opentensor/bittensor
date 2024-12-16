@@ -1820,8 +1820,8 @@ class Subtensor:
             # go with `commit reveal v3` extrinsic
             message = "No attempt made. Perhaps it is too soon to commit weights!"
             while (
-                self.blocks_since_last_update(netuid, uid)
-                > self.weights_rate_limit(netuid)
+                self.blocks_since_last_update(netuid, uid)  # type: ignore
+                > self.weights_rate_limit(netuid)  # type: ignore
                 and retries < max_retries
                 and success is False
             ):
