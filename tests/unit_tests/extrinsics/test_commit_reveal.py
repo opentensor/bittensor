@@ -150,6 +150,80 @@ def test_do_commit_reveal_v3_failure_due_to_error(mocker, subtensor):
     assert result == (False, "Formatted error")
 
 
+def test_commit_reveal_v3_extrinsic_success_with_torch(mocker, subtensor, hyperparams):
+    """Test successful commit-reveal with torch tensors."""
+    # Preps
+    fake_wallet = mocker.Mock(autospec=subtensor_module.Wallet)
+    fake_netuid = 1
+    fake_uids = torch.tensor([1, 2, 3], dtype=torch.int64)
+    fake_weights = torch.tensor([0.1, 0.2, 0.7], dtype=torch.float32)
+    fake_commit_for_reveal = b"mock_commit_for_reveal"
+    fake_reveal_round = 1
+
+    # Mocks
+
+    mocked_uids = mocker.Mock()
+    mocked_weights = mocker.Mock()
+    mocked_convert_weights_and_uids_for_emit = mocker.patch.object(
+        commit_reveal,
+        "convert_weights_and_uids_for_emit",
+        return_value=(mocked_uids, mocked_weights),
+    )
+    mocked_get_subnet_reveal_period_epochs = mocker.patch.object(
+        subtensor, "get_subnet_reveal_period_epochs"
+    )
+    mocked_get_encrypted_commit = mocker.patch.object(
+        commit_reveal,
+        "get_encrypted_commit",
+        return_value=(fake_commit_for_reveal, fake_reveal_round),
+    )
+    mock_do_commit_reveal_v3 = mocker.patch.object(
+        commit_reveal, "_do_commit_reveal_v3", return_value=(True, "Success")
+    )
+    mock_block = mocker.patch.object(subtensor, "get_current_block", return_value=1)
+    mock_hyperparams = mocker.patch.object(
+        subtensor,
+        "get_subnet_hyperparameters",
+        return_value=hyperparams,
+    )
+
+    # Call
+    success, message = commit_reveal.commit_reveal_v3_extrinsic(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        netuid=fake_netuid,
+        uids=fake_uids,
+        weights=fake_weights,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+    # Asserts
+    assert success is True
+    assert message == "reveal_round:1"
+    mocked_convert_weights_and_uids_for_emit.assert_called_once_with(
+        fake_uids, fake_weights
+    )
+    mocked_get_encrypted_commit.assert_called_once_with(
+        uids=mocked_uids,
+        weights=mocked_weights,
+        subnet_reveal_period_epochs=mock_hyperparams.return_value.commit_reveal_weights_interval,
+        version_key=commit_reveal.version_as_int,
+        tempo=mock_hyperparams.return_value.tempo,
+        netuid=fake_netuid,
+        current_block=mock_block.return_value,
+    )
+    mock_do_commit_reveal_v3.assert_called_once_with(
+        self=subtensor,
+        wallet=fake_wallet,
+        netuid=fake_netuid,
+        commit=fake_commit_for_reveal,
+        reveal_round=fake_reveal_round,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+
+
 def test_commit_reveal_v3_extrinsic_success_with_numpy(mocker, subtensor, hyperparams):
     """Test successful commit-reveal with numpy arrays."""
     # Preps
