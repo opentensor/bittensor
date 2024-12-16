@@ -17,10 +17,15 @@
 
 from __future__ import annotations
 
-from bittensor.core.synapse import Synapse
+from typing import Optional, TYPE_CHECKING
+
+from substrateinterface.exceptions import SubstrateRequestException
+
+if TYPE_CHECKING:
+    from bittensor.core.synapse import Synapse
 
 
-class ChainError(BaseException):
+class ChainError(SubstrateRequestException):
     """Base error for any chain related errors."""
 
 
@@ -81,7 +86,9 @@ class InvalidRequestNameError(Exception):
 
 
 class SynapseException(Exception):
-    def __init__(self, message="Synapse Exception", synapse: "Synapse" | None = None):
+    def __init__(
+        self, message="Synapse Exception", synapse: Optional["Synapse"] = None
+    ):
         self.message = message
         self.synapse = synapse
         super().__init__(self.message)
@@ -123,7 +130,7 @@ class SynapseDendriteNoneException(SynapseException):
     def __init__(
         self,
         message="Synapse Dendrite is None",
-        synapse: "Synapse" | None = None,
+        synapse: Optional["Synapse"] = None,
     ):
         self.message = message
         super().__init__(self.message, synapse)
