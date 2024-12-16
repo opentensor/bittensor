@@ -68,7 +68,6 @@ def _do_commit_reveal_v3(
     if not wait_for_finalization and not wait_for_inclusion:
         return True, "Not waiting for finalization or inclusion."
 
-    response.process_events()
     if response.is_success:
         return True, None
     else:

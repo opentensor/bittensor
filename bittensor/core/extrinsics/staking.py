@@ -53,7 +53,6 @@ def _do_stake(
     if not wait_for_finalization and not wait_for_inclusion:
         return True
 
-    response.process_events()
     if response.is_success:
         return True
     else:
