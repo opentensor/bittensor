@@ -1,5 +1,18 @@
 # Changelog
 
+## 8.5.1 /2024-12-16
+
+## What's Changed
+* 8.5.0 bugfixes by @thewhaleking in https://github.com/opentensor/bittensor/pull/2541
+* Removes substrate call in format_error_message by @thewhaleking in https://github.com/opentensor/bittensor/pull/2542
+* Remove torch from the weights calls by @thewhaleking in https://github.com/opentensor/bittensor/pull/2543
+* optional arg fix by @thewhaleking in https://github.com/opentensor/bittensor/pull/2544
+* async cr3 not implemented by @thewhaleking in https://github.com/opentensor/bittensor/pull/2545
+* Backmerge master to staging 851 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2546
+* Adds retry in CRv3 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2547
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v8.5.0...v8.5.1
+
 ## 8.5.0 /2024-12-12
 
 ## What's Changed
