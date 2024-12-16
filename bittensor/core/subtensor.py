@@ -15,6 +15,7 @@ import numpy as np
 import scalecodec
 from bittensor_wallet import Wallet
 from numpy.typing import NDArray
+from scalecodec import GenericCall
 from scalecodec.base import RuntimeConfiguration
 from scalecodec.exceptions import RemainingScaleBytesNotEmptyException
 from scalecodec.type_registry import load_type_registry_preset
@@ -33,6 +34,7 @@ from bittensor.core.chain_data import (
     StakeInfo,
 )
 from bittensor.core.config import Config
+from bittensor.core.errors import SubstrateRequestException
 from bittensor.core.extrinsics.commit_reveal import commit_reveal_v3_extrinsic
 from bittensor.core.extrinsics.commit_weights import (
     commit_weights_extrinsic,
@@ -72,6 +74,7 @@ from bittensor.utils import (
     u16_normalized_float,
     hex_to_bytes,
     Certificate,
+    format_error_message,
 )
 from bittensor.utils.substrate_interface import QueryMapResult, SubstrateInterface
 from bittensor.utils.balance import Balance
@@ -2307,3 +2310,69 @@ class Subtensor:
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
         )
+
+    def sign_and_send_extrinsic(
+        self,
+        call: GenericCall,
+        wallet: "Wallet",
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+    ) -> tuple[bool, str]:
+        """
+        Helper method to sign and submit an extrinsic call to chain.
+
+        Args:
+            call: a prepared Call object
+            wallet: the wallet whose coldkey will be used to sign the extrinsic
+            wait_for_inclusion: whether to wait until the extrinsic call is included on the chain
+            wait_for_finalization: whether to wait until the extrinsic call is finalized on the chain
+
+        Returns:
+            (success, error message)
+        """
+        extrinsic = self.substrate.create_signed_extrinsic(
+            call=call, keypair=wallet.coldkey
+        )  # sign with coldkey
+        try:
+            response = self.substrate.submit_extrinsic(
+                extrinsic,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
+            # We only wait here if we expect finalization.
+            if not wait_for_finalization and not wait_for_inclusion:
+                return True, ""
+            if response.is_success:
+                return True, ""
+            else:
+                return False, format_error_message(response.error_message)
+        except SubstrateRequestException as e:
+            return False, format_error_message(e)
+
+    def get_delegated(
+        self, coldkey_ss58: str, block_hash: Optional[str] = None
+    ) -> list[tuple[DelegateInfo, Balance]]:
+        """
+        Retrieves a list of delegates and their associated stakes for a given coldkey. This function identifies the
+            delegates that a specific account has staked tokens on.
+
+        Args:
+            coldkey_ss58: The `SS58` address of the account's coldkey.
+            block_hash: The hash of the blockchain block number for the query. Do not specify if using block or
+                reuse_block
+        Returns:
+            A list of tuples, each containing a delegate's information and staked amount.
+
+        This function is important for account holders to understand their stake allocations and their involvement in
+            the network's delegation and consensus mechanisms.
+        """
+        encoded_coldkey = ss58_to_vec_u8(coldkey_ss58)
+        json_body = self.substrate.rpc_request(
+            method="delegateInfo_getDelegated",
+            params=([block_hash, encoded_coldkey] if block_hash else [encoded_coldkey]),
+        )
+
+        if not (result := json_body.get("result")):
+            return []
+
+        return DelegateInfo.delegated_list_from_vec_u8(bytes(result))
