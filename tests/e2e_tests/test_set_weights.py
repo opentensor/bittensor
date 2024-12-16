@@ -77,6 +77,11 @@ async def test_set_weights_uses_next_nonce(local_chain):
             {"netuid": netuid, "registration_allowed": True},
             return_error_message=True,
         )
+
+    # This should give a gap for the calls above to be included in the chain
+    await asyncio.sleep(2)
+
+    for netuid in netuids:
         # Register Alice to the subnet
         assert subtensor.burned_register(
             alice_wallet, netuid
