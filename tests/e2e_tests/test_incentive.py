@@ -41,7 +41,7 @@ async def test_incentive(local_chain):
     print("Testing test_incentive")
     netuid = 1
 
-    utils.EXTRINSIC_SUBMISSION_TIMEOUT = 500  # handle fast blocks
+    utils.EXTRINSIC_SUBMISSION_TIMEOUT = 12  # handle fast blocks
 
     # Register root as Alice - the subnet owner and validator
     alice_keypair, alice_wallet = setup_wallet("//Alice")

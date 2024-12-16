@@ -34,7 +34,7 @@ async def test_set_weights_uses_next_nonce(local_chain):
         AssertionError: If any of the checks or verifications fail
     """
     netuids = [1, 2, 3]
-    utils.EXTRINSIC_SUBMISSION_TIMEOUT = 500  # handle fast blocks
+    utils.EXTRINSIC_SUBMISSION_TIMEOUT = 12  # handle fast blocks
     print("Testing test_set_weights_uses_next_nonce")
     # Register root as Alice
     keypair, alice_wallet = setup_wallet("//Alice")

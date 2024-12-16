@@ -35,7 +35,7 @@ async def test_commit_and_reveal_weights_legacy(local_chain):
         AssertionError: If any of the checks or verifications fail
     """
     netuid = 1
-    utils.EXTRINSIC_SUBMISSION_TIMEOUT = 500  # handle fast blocks
+    utils.EXTRINSIC_SUBMISSION_TIMEOUT = 12  # handle fast blocks
     print("Testing test_commit_and_reveal_weights")
     # Register root as Alice
     keypair, alice_wallet = setup_wallet("//Alice")
