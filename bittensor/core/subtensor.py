@@ -479,7 +479,7 @@ class Subtensor:
         self,
         runtime_api: str,
         method: str,
-        params: Optional[Union[list[int], dict[str, int]]] = None,
+        params: Optional[Union[list[int], dict[str, int], list[list[int]]]] = None,
         block: Optional[int] = None,
     ) -> Optional[str]:
         """
