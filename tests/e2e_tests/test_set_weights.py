@@ -13,6 +13,7 @@ from tests.e2e_tests.utils.chain_interactions import (
     sudo_set_hyperparameter_bool,
     sudo_set_hyperparameter_values,
     root_set_subtensor_hyperparameter_values,
+    sudo_set_admin_utils,
 )
 from tests.e2e_tests.utils.e2e_test_utils import setup_wallet
 
@@ -39,7 +40,7 @@ async def test_set_weights_uses_next_nonce(local_chain):
     keypair, alice_wallet = setup_wallet("//Alice")
 
     # Lower the network registration rate limit and cost
-    await root_set_subtensor_hyperparameter_values(
+    await sudo_set_admin_utils(
         local_chain,
         alice_wallet,
         call_function="sudo_set_network_rate_limit",
@@ -47,7 +48,7 @@ async def test_set_weights_uses_next_nonce(local_chain):
         return_error_message=True,
     )
     # Set lock reduction interval
-    await root_set_subtensor_hyperparameter_values(
+    await sudo_set_admin_utils(
         local_chain,
         alice_wallet,
         call_function="sudo_set_lock_reduction_interval",
