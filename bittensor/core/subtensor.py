@@ -505,7 +505,7 @@ class Subtensor:
         self,
         runtime_api: str,
         method: str,
-        params: Optional[Union[list[int], dict[str, int]]],
+        params: Optional[Union[list[int], dict[str, int]]] = None,
         block: Optional[int] = None,
     ) -> Optional[str]:
         """
@@ -956,13 +956,13 @@ class Subtensor:
 
     @networking.ensure_connected
     def neuron_for_uid(
-        self, uid: Optional[int], netuid: int, block: Optional[int] = None
+        self, uid: int, netuid: int, block: Optional[int] = None
     ) -> "NeuronInfo":
         """
         Retrieves detailed information about a specific neuron identified by its unique identifier (UID) within a specified subnet (netuid) of the Bittensor network. This function provides a comprehensive view of a neuron's attributes, including its stake, rank, and operational status.
 
         Args:
-            uid (Optional[int]): The unique identifier of the neuron.
+            uid (int): The unique identifier of the neuron.
             netuid (int): The unique identifier of the subnet.
             block (Optional[int]): The blockchain block number for the query.
 
