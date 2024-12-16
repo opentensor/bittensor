@@ -74,9 +74,7 @@ def _do_commit_reveal_v3(
     if response.is_success:
         return True, None
     else:
-        return False, format_error_message(
-            response.error_message, substrate=self.substrate
-        )
+        return False, format_error_message(response.error_message)
 
 
 def commit_reveal_v3_extrinsic(

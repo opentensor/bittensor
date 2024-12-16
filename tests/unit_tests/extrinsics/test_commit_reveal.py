@@ -146,9 +146,7 @@ def test_do_commit_reveal_v3_failure_due_to_error(mocker, subtensor):
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
-    mocked_format_error_message.assert_called_once_with(
-        "Mocked error", substrate=subtensor.substrate
-    )
+    mocked_format_error_message.assert_called_once_with("Mocked error")
     assert result == (False, "Formatted error")
 
 
