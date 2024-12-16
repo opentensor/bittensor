@@ -167,7 +167,6 @@ async def _do_set_root_weights(
     if not wait_for_finalization and not wait_for_inclusion:
         return True, "Not waiting for finalization or inclusion."
 
-    await response.process_events()
     if await response.is_success:
         return True, "Successfully set weights."
     else:

@@ -56,7 +56,6 @@ async def _do_transfer(
         return True, "", "Success, extrinsic submitted without waiting."
 
     # Otherwise continue with finalization.
-    await response.process_events()
     if await response.is_success:
         block_hash_ = response.block_hash
         return True, block_hash_, "Success with response."

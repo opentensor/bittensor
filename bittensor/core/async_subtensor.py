@@ -1416,7 +1416,6 @@ class AsyncSubtensor:
             # We only wait here if we expect finalization.
             if not wait_for_finalization and not wait_for_inclusion:
                 return True, ""
-            await response.process_events()
             if await response.is_success:
                 return True, ""
             else:
