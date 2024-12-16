@@ -1,3 +1,4 @@
+import asyncio
 import copy
 import os
 import pickle
@@ -23,6 +24,8 @@ from .chain_data import AxonInfo
 # For annotation purposes
 if typing.TYPE_CHECKING:
     from bittensor.core.subtensor import Subtensor
+    from bittensor.core.async_subtensor import AsyncSubtensor
+    from .chain_data import NeuronInfo, NeuronInfoLite
 
 
 METAGRAPH_STATE_DICT_NDARRAY_KEYS = [
@@ -220,6 +223,7 @@ class MetagraphMixin(ABC):
     axons: list[AxonInfo]
     chain_endpoint: Optional[str]
     subtensor: Optional["Subtensor"]
+    neurons: list[Union["NeuronInfo", "NeuronInfoLite"]]
 
     @property
     def S(self) -> Union[NDArray, "torch.nn.Parameter"]:
@@ -1355,6 +1359,130 @@ class NonTorchMetagraph(MetagraphMixin):
         if "bonds" in state_dict:
             self.bonds = state_dict["bonds"]
         return self
+
+
+class AsyncMetagraph(NonTorchMetagraph):
+    """
+    AsyncMetagraph is only available for non-torch
+    """
+
+    def __init__(
+        self,
+        netuid: int,
+        network: str = settings.DEFAULT_NETWORK,
+        lite: bool = True,
+        sync: bool = True,
+        subtensor: "AsyncSubtensor" = None,
+    ):
+        if use_torch():
+            raise Exception("AsyncMetagraph is only available for non-torch")
+
+        # important that sync=False here bc the sync method of the superclass expects a sync Subtensor object,
+        # so will not work if run as True
+        NonTorchMetagraph.__init__(self, netuid, network, lite, False, subtensor)
+        if sync:
+            asyncio.get_running_loop().run_until_complete(
+                self.sync(block=None, lite=lite, subtensor=subtensor)
+            )
+
+    async def _initialize_subtensor(self, subtensor: "AsyncSubtensor"):
+        if subtensor and subtensor != self.subtensor:
+            self.subtensor = subtensor
+        if not subtensor and self.subtensor:
+            subtensor = self.subtensor
+        if not subtensor:
+            # Lazy import due to circular import (subtensor -> metagraph, metagraph -> subtensor)
+            from bittensor.core.async_subtensor import AsyncSubtensor
+
+            subtensor = AsyncSubtensor(network=self.chain_endpoint)
+            async with subtensor:
+                self.subtensor = subtensor
+        return subtensor
+
+    async def sync(
+        self,
+        block: Optional[int] = None,
+        lite: bool = True,
+        subtensor: Optional["AsyncSubtensor"] = None,
+    ):
+        # Initialize subtensor
+        subtensor = await self._initialize_subtensor(subtensor)
+        async with subtensor:
+            if (
+                subtensor.chain_endpoint != settings.ARCHIVE_ENTRYPOINT
+                or subtensor.network != "archive"
+            ):
+                cur_block = await subtensor.get_current_block()
+                if block and block < (cur_block - 300):
+                    logging.warning(
+                        "Attempting to sync longer than 300 blocks ago on a non-archive node. Please use the 'archive' "
+                        "network for subtensor and retry."
+                    )
+            block = block or await subtensor.block
+
+            # Assign neurons based on 'lite' flag
+            await self._assign_neurons(block, lite, subtensor)
+
+            # Set attributes for metagraph
+            self._set_metagraph_attributes(block, subtensor)
+
+            # If not a 'lite' version, compute and set weights and bonds for each neuron
+            if not lite:
+                await self._set_weights_and_bonds(subtensor=subtensor)
+
+    async def _assign_neurons(
+        self, block: int, lite: bool, subtensor: "AsyncSubtensor"
+    ):
+        if lite:
+            self.neurons = await subtensor.neurons_lite(block=block, netuid=self.netuid)
+        else:
+            self.neurons = await subtensor.neurons(block=block, netuid=self.netuid)
+        self.lite = lite
+
+    async def _set_weights_and_bonds(
+        self, subtensor: Optional["AsyncSubtensor"] = None
+    ):
+        # TODO: Check and test the computation of weights and bonds
+        if self.netuid == 0:
+            self.weights = await self._process_root_weights(
+                [neuron.weights for neuron in self.neurons],
+                "weights",
+                subtensor,
+            )
+        else:
+            self.weights = self._process_weights_or_bonds(
+                [neuron.weights for neuron in self.neurons], "weights"
+            )
+            self.bonds = self._process_weights_or_bonds(
+                [neuron.bonds for neuron in self.neurons], "bonds"
+            )
+
+    async def _process_root_weights(
+        self, data: list, attribute: str, subtensor: "AsyncSubtensor"
+    ) -> NDArray:
+        data_array = []
+        _n_subnets, subnets = await asyncio.gather(
+            subtensor.get_total_subnets(), subtensor.get_subnets()
+        )
+        n_subnets = _n_subnets or 0
+        for item in data:
+            if len(item) == 0:
+                data_array.append(np.zeros(n_subnets, dtype=np.float32))
+            else:
+                uids, values = zip(*item)
+                data_array.append(
+                    convert_root_weight_uids_and_vals_to_tensor(
+                        n_subnets, list(uids), list(values), subnets
+                    )
+                )
+        tensor_param: NDArray = (
+            np.stack(data_array) if len(data_array) else np.array([], dtype=np.float32)
+        )
+        if len(data_array) == 0:
+            logging.warning(
+                f"Empty {attribute}_array on metagraph.sync(). The '{attribute}' tensor is empty."
+            )
+        return tensor_param
 
 
 Metagraph = TorchMetaGraph if use_torch() else NonTorchMetagraph
