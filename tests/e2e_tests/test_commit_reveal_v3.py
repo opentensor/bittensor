@@ -167,7 +167,7 @@ async def test_commit_and_reveal_weights_cr3(local_chain):
     ), "Revealed drand pulse is older than the drand pulse right after setting weights"
 
     # Fetch current commits pending on the chain
-    commits_on_chain = subtensor.get_weight_commits(netuid=netuid)
+    commits_on_chain = subtensor.get_current_weight_commit_info(netuid=netuid)
     address, commit, reveal_round = commits_on_chain[0]
 
     # Assert correct values are committed on the chain
@@ -199,7 +199,7 @@ async def test_commit_and_reveal_weights_cr3(local_chain):
     assert weight_vals[0] == revealed_weights[0][1]
 
     # Now that the commit has been revealed, there shouldn't be any pending commits
-    assert subtensor.get_weight_commits(netuid=netuid) == []
+    assert subtensor.get_current_weight_commit_info(netuid=netuid) == []
 
     # Ensure the drand_round is always in the positive w.r.t expected when revealed
     assert (
