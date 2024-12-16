@@ -19,9 +19,14 @@ def test_py_config_parsed_successfully_rust_wallet():
     config.wallet.hotkey = "new_hotkey"
     config.wallet.path = "/some/not_default/path"
 
+    # Pass in the whole bittensor config
     wallet = bittensor.wallet(config=config)
-
-    # Asserts
     assert wallet.name == config.wallet.name
     assert wallet.hotkey_str == config.wallet.hotkey
     assert wallet.path == config.wallet.path
+
+    # Pass in only the btwallet's config
+    wallet_two = bittensor.wallet(config=config.wallet)
+    assert wallet_two.name == config.wallet.name
+    assert wallet_two.hotkey_str == config.wallet.hotkey
+    assert wallet_two.path == config.wallet.path
