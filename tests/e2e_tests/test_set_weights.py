@@ -70,12 +70,12 @@ async def test_set_weights_uses_next_nonce(local_chain):
 
     for netuid in netuids:
         # Allow registration on the subnet
-        assert sudo_set_hyperparameter_bool(
+        assert sudo_set_hyperparameter_values(
             local_chain,
             alice_wallet,
             "sudo_set_network_registration_allowed",
-            True,
-            netuid,
+            {"netuid": netuid, "registration_allowed": True},
+            return_error_message=True,
         )
         # Register Alice to the subnet
         assert subtensor.burned_register(
