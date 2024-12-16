@@ -59,8 +59,8 @@ async def _do_set_weights(
         },
     )
 
-    next_nonce = (
-        await subtensor.substrate.get_account_next_index(wallet.hotkey.ss58_address) + 1
+    next_nonce = await subtensor.substrate.get_account_next_index(
+        wallet.hotkey.ss58_address
     )
 
     # Period dictates how long the extrinsic will stay as part of waiting pool
@@ -193,8 +193,8 @@ async def _do_commit_weights(
         },
     )
 
-    next_nonce = (
-        await subtensor.substrate.get_account_next_index(wallet.hotkey.ss58_address) + 1
+    next_nonce = await subtensor.substrate.get_account_next_index(
+        wallet.hotkey.ss58_address
     )
 
     extrinsic = await subtensor.substrate.create_signed_extrinsic(
