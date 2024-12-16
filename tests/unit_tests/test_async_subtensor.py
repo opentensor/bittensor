@@ -2466,7 +2466,7 @@ async def test_register_success(subtensor, mocker):
     mocker.patch.object(async_subtensor.Balance, "from_rao", mocked_balance_from_rao)
 
     # Call
-    result = await subtensor.register(wallet=fake_wallet, netuid=fake_netuid)
+    result = await subtensor.root_register(wallet=fake_wallet, netuid=fake_netuid)
 
     # Asserts
     mocked_get_block_hash.assert_called_once()
@@ -2505,7 +2505,7 @@ async def test_register_insufficient_balance(subtensor, mocker):
     mocker.patch.object(async_subtensor.Balance, "from_rao", mocked_balance_from_rao)
 
     # Call
-    result = await subtensor.register(wallet=fake_wallet, netuid=fake_netuid)
+    result = await subtensor.root_register(wallet=fake_wallet, netuid=fake_netuid)
 
     # Asserts
     mocked_get_block_hash.assert_called_once()
@@ -2538,7 +2538,7 @@ async def test_register_balance_retrieval_error(subtensor, mocker):
     subtensor.get_balance = mocked_get_balance
 
     # Call
-    result = await subtensor.register(wallet=fake_wallet, netuid=fake_netuid)
+    result = await subtensor.root_register(wallet=fake_wallet, netuid=fake_netuid)
 
     # Asserts
     mocked_get_block_hash.assert_called_once()
@@ -2571,7 +2571,7 @@ async def test_pow_register_success(subtensor, mocker):
     )
 
     # Call
-    result = await subtensor.pow_register(
+    result = await subtensor.register(
         wallet=fake_wallet,
         netuid=fake_netuid,
         processors=fake_processors,

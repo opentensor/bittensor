@@ -24,6 +24,7 @@ from bittensor.core.chain_data import (
     SubnetHyperparameters,
     decode_account_id,
     SubnetInfo,
+    PrometheusInfo,
 )
 from bittensor.core.extrinsics.async_registration import register_extrinsic
 from bittensor.core.extrinsics.async_root import (
@@ -36,6 +37,7 @@ from bittensor.core.extrinsics.async_weights import (
     set_weights_extrinsic,
 )
 from bittensor.core.extrinsics.async_serving import serve_axon_extrinsic
+from bittensor.core.extrinsics.async_unstaking import unstake_extrinsic
 from bittensor.core.settings import (
     TYPE_REGISTRY,
     DEFAULTS,
@@ -53,6 +55,7 @@ from bittensor.utils import (
     hex_to_bytes,
     Certificate,
     u16_normalized_float,
+    networking,
 )
 from bittensor.utils.substrate_interface import AsyncSubstrateInterface
 from bittensor.utils.balance import Balance
@@ -183,6 +186,9 @@ class AsyncSubtensor:
             raise ConnectionError
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.substrate.close()
+
+    async def close(self):
         await self.substrate.close()
 
     async def encode_params(
@@ -1785,7 +1791,7 @@ class AsyncSubtensor:
             transfer_all,
         )
 
-    async def register(
+    async def root_register(
         self,
         wallet: "Wallet",
         netuid: int,
@@ -1843,7 +1849,7 @@ class AsyncSubtensor:
             wait_for_finalization=wait_for_finalization,
         )
 
-    async def pow_register(
+    async def register(
         self: "AsyncSubtensor",
         wallet: "Wallet",
         netuid: int,
@@ -2489,3 +2495,202 @@ class AsyncSubtensor:
             params=[hotkey_ss58],
         )
         return None if _result is None else u16_normalized_float(_result)
+
+    async def get_prometheus_info(
+        self,
+        netuid: int,
+        hotkey_ss58: str,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> Optional[PrometheusInfo]:
+        """
+        Returns the prometheus information for this hotkey account.
+
+        Args:
+            netuid: The unique identifier of the subnetwork.
+            hotkey_ss58: The SS58 address of the hotkey.
+            block: The block number to retrieve the prometheus information from. If `None`, the latest block is used.
+                Default is `None`.
+            block_hash: The hash of the block to retrieve the parameter from. Do not specify if using block or
+                reuse_block
+            reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
+
+        Returns:
+            A PrometheusInfo object containing the prometheus information, or `None` if the prometheus information is
+                not found.
+        """
+        block_hash = await self._determine_block_hash(block, block_hash, reuse_block)
+        result = await self.query_subtensor(
+            "Prometheus",
+            block_hash=block_hash,
+            reuse_block=reuse_block,
+            params=[netuid, hotkey_ss58],
+        )
+        if result is not None:
+            return PrometheusInfo(
+                ip=networking.int_to_ip(result["ip"]),
+                ip_type=result["ip_type"],
+                port=result["port"],
+                version=result["version"],
+                block=result["block"],
+            )
+        return None
+
+    async def tx_rate_limit(
+        self,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> Optional[int]:
+        """
+        Retrieves the transaction rate limit for the Bittensor network as of a specific blockchain block.
+        This rate limit sets the maximum number of transactions that can be processed within a given time frame.
+
+        Args:
+            block: The blockchain block number at which to perform the query.
+            block_hash: The hash of the block to retrieve the parameter from. Do not specify if using block or
+                reuse_block
+            reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
+
+        Returns:
+            The transaction rate limit of the network, None if not available.
+
+        The transaction rate limit is an essential parameter for ensuring the stability and scalability of the Bittensor
+            network. It helps in managing network load and preventing congestion, thereby maintaining efficient and
+            timely transaction processing.
+        """
+        block_hash = await self._determine_block_hash(block, block_hash, reuse_block)
+        result = await self.query_subtensor(
+            "TxRateLimit", block_hash=block_hash, reuse_block=reuse_block
+        )
+        return result
+
+    async def max_weight_limit(
+        self,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> Optional[float]:
+        """
+        Returns network MaxWeightsLimit hyperparameter.
+
+        Args:
+            netuid: The unique identifier of the subnetwork.
+            block: The block number to retrieve the parameter from. If `None`, the latest block is used.
+                Default is `None`.
+            block_hash: The hash of the block to retrieve the parameter from. Do not specify if using block or
+                reuse_block
+            reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
+
+        Returns:
+            The value of the MaxWeightsLimit hyperparameter, or `None` if the subnetwork does not exist or the parameter
+                is not found.
+        """
+        block_hash = await self._determine_block_hash(block, block_hash, reuse_block)
+        call = await self.get_hyperparameter(
+            param_name="MaxWeightsLimit",
+            block_hash=block_hash,
+            netuid=netuid,
+            reuse_block=reuse_block,
+        )
+        return None if call is None else u16_normalized_float(int(call))
+
+    async def subnetwork_n(
+        self,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> Optional[int]:
+        """
+        Returns network SubnetworkN hyperparameter.
+
+        Args:
+            netuid: The unique identifier of the subnetwork.
+            block: The block number to retrieve the parameter from. If `None`, the latest block is used.
+                Default is `None`.
+            block_hash: The hash of the block to retrieve the parameter from. Do not specify if using block or
+                reuse_block
+            reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
+
+        Returns:
+            The value of the SubnetworkN hyperparameter, or `None` if the subnetwork does not exist or the parameter is
+                not found.
+        """
+        block_hash = await self._determine_block_hash(block, block_hash, reuse_block)
+        call = await self.get_hyperparameter(
+            param_name="SubnetworkN",
+            netuid=netuid,
+            block_hash=block_hash,
+            reuse_block=reuse_block,
+        )
+        return None if call is None else int(call)
+
+    async def recycle(
+        self,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> Optional["Balance"]:
+        """
+        Retrieves the 'Burn' hyperparameter for a specified subnet. The 'Burn' parameter represents the amount of Tao
+            that is effectively recycled within the Bittensor network.
+
+        Args:
+            netuid (int): The unique identifier of the subnet.
+            block (Optional[int]): The blockchain block number for the query.
+            block_hash: The hash of the block to retrieve the parameter from. Do not specify if using block or
+                reuse_block
+            reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
+
+        Returns:
+            Optional[Balance]: The value of the 'Burn' hyperparameter if the subnet exists, None otherwise.
+
+        Understanding the 'Burn' rate is essential for analyzing the network registration usage, particularly how it is
+            correlated with user activity and the overall cost of participation in a given subnet.
+        """
+        block_hash = await self._determine_block_hash(block, block_hash, reuse_block)
+        call = await self.get_hyperparameter(
+            param_name="Burn",
+            netuid=netuid,
+            block_hash=block_hash,
+            reuse_block=reuse_block,
+        )
+        return None if call is None else Balance.from_rao(int(call))
+
+    async def unstake(
+        self,
+        wallet: "Wallet",
+        hotkey_ss58: Optional[str] = None,
+        amount: Optional[Union["Balance", float]] = None,
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+    ) -> bool:
+        """
+        Removes a specified amount of stake from a single hotkey account. This function is critical for adjusting
+            individual neuron stakes within the Bittensor network.
+
+        Args:
+            wallet: The wallet associated with the neuron from which the stake is being removed.
+            hotkey_ss58: The `SS58` address of the hotkey account to unstake from.
+            amount: The amount of TAO to unstake. If not specified, unstakes all.
+            wait_for_inclusion: Waits for the transaction to be included in a block.
+            wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
+
+        Returns:
+            `True` if the unstaking process is successful, `False` otherwise.
+
+        This function supports flexible stake management, allowing neurons to adjust their network participation and
+            potential reward accruals.
+        """
+        return unstake_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            hotkey_ss58=hotkey_ss58,
+            amount=amount,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
