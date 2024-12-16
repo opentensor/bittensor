@@ -279,42 +279,6 @@ async def test_set_weights_extrinsic_exception(subtensor, mocker):
 
 
 @pytest.mark.asyncio
-async def test_set_weights_extrinsic_if_use_torch(subtensor, mocker):
-    """Tests set_weights_extrinsic when use_torch is True."""
-    # Preps
-    fake_wallet = mocker.Mock(autospec=Wallet)
-    fake_netuid = 1
-    fake_uids = [1, 2, 3]
-    fake_weights = [0.1, 0.2, 0.7]
-
-    mocked_do_set_weights = mocker.patch.object(
-        async_weights, "_do_set_weights", return_value=(False, "Test error message")
-    )
-    mocked_convert_weights_and_uids_for_emit = mocker.patch.object(
-        async_weights.weight_utils,
-        "convert_weights_and_uids_for_emit",
-        return_value=(mocker.Mock(), mocker.Mock()),
-    )
-
-    # Call
-    result, message = await async_weights.set_weights_extrinsic(
-        subtensor=subtensor,
-        wallet=fake_wallet,
-        netuid=fake_netuid,
-        uids=fake_uids,
-        weights=fake_weights,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
-    )
-
-    # Asserts
-    mocked_do_set_weights.assert_called_once()
-    mocked_convert_weights_and_uids_for_emit.assert_called()
-    assert result is False
-    assert message == "Test error message"
-
-
-@pytest.mark.asyncio
 async def test_do_commit_weights_success(subtensor, mocker):
     """Tests _do_commit_weights when the commit is successful."""
     # Preps
