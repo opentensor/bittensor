@@ -26,19 +26,19 @@ from bittensor.core.chain_data import (
     SubnetInfo,
     PrometheusInfo,
 )
-from bittensor.core.extrinsics.async_registration import register_extrinsic
-from bittensor.core.extrinsics.async_root import (
+from bittensor.core.extrinsics.asyncio.registration import register_extrinsic
+from bittensor.core.extrinsics.asyncio.root import (
     set_root_weights_extrinsic,
     root_register_extrinsic,
 )
-from bittensor.core.extrinsics.async_transfer import transfer_extrinsic
-from bittensor.core.extrinsics.async_weights import (
+from bittensor.core.extrinsics.asyncio.transfer import transfer_extrinsic
+from bittensor.core.extrinsics.asyncio.weights import (
     commit_weights_extrinsic,
     set_weights_extrinsic,
 )
-from bittensor.core.extrinsics.async_serving import serve_axon_extrinsic
-from bittensor.core.extrinsics.async_unstaking import unstake_extrinsic
-from bittensor.core.extrinsics.async_commit_reveal import commit_reveal_v3_extrinsic
+from bittensor.core.extrinsics.asyncio.serving import serve_axon_extrinsic
+from bittensor.core.extrinsics.asyncio.unstaking import unstake_extrinsic
+from bittensor.core.extrinsics.asyncio.commit_reveal import commit_reveal_v3_extrinsic
 from bittensor.core.settings import (
     TYPE_REGISTRY,
     DEFAULTS,
