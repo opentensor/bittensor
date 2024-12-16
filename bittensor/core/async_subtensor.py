@@ -52,12 +52,14 @@ from bittensor.utils import (
     validate_chain_endpoint,
     hex_to_bytes,
     Certificate,
+    u16_normalized_float,
 )
 from bittensor.utils.substrate_interface import AsyncSubstrateInterface
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 from bittensor.utils.delegates_details import DelegatesDetails
 from bittensor.utils.weight_utils import generate_weight_hash
+from bittensor.core.metagraph import AsyncMetagraph
 
 if TYPE_CHECKING:
     from scalecodec import ScaleType
@@ -396,7 +398,7 @@ class AsyncSubtensor:
 
     async def get_total_subnets(
         self,
-        block: Optional[int],
+        block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Optional[int]:
@@ -2162,6 +2164,41 @@ class AsyncSubtensor:
             return None
         return int(call)
 
+    async def query_subtensor(
+        self,
+        name: str,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+        params: Optional[list] = None,
+    ) -> "ScaleType":
+        """
+        Queries named storage from the Subtensor module on the Bittensor blockchain. This function is used to retrieve
+            specific data or parameters from the blockchain, such as stake, rank, or other neuron-specific attributes.
+
+        Args:
+            name: The name of the storage function to query.
+            block: The blockchain block number at which to perform the query.
+            block_hash: The hash of the block to retrieve the parameter from. Do not specify if using block or
+                reuse_block
+            reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
+            params: A list of parameters to pass to the query function.
+
+        Returns:
+            query_response (scalecodec.ScaleType): An object containing the requested data.
+
+        This query function is essential for accessing detailed information about the network and its neurons, providing
+            valuable insights into the state and dynamics of the Bittensor ecosystem.
+        """
+        block_hash = await self._determine_block_hash(block, block_hash, reuse_block)
+        return await self.substrate.query(
+            module="SubtensorModule",
+            storage_function=name,
+            params=params,
+            block_hash=block_hash,
+            reuse_block_hash=reuse_block,
+        )
+
     async def query_module(
         self,
         module: str,
@@ -2172,7 +2209,9 @@ class AsyncSubtensor:
         params: Optional[list] = None,
     ) -> "ScaleType":
         """
-        Queries any module storage on the Bittensor blockchain with the specified parameters and block number. This function is a generic query interface that allows for flexible and diverse data retrieval from various blockchain modules.
+        Queries any module storage on the Bittensor blockchain with the specified parameters and block number. This
+            function is a generic query interface that allows for flexible and diverse data retrieval from various
+            blockchain modules.
 
         Args:
             module (str): The name of the module from which to query data.
@@ -2184,9 +2223,10 @@ class AsyncSubtensor:
             params (Optional[list[object]]): A list of parameters to pass to the query function.
 
         Returns:
-            Optional[scalecodec.ScaleType]: An object containing the requested data if found, ``None`` otherwise.
+            An object containing the requested data if found, `None` otherwise.
 
-        This versatile query function is key to accessing a wide range of data and insights from different parts of the Bittensor blockchain, enhancing the understanding and analysis of the network's state and dynamics.
+        This versatile query function is key to accessing a wide range of data and insights from different parts of the
+            Bittensor blockchain, enhancing the understanding and analysis of the network's state and dynamics.
         """
         block_hash = await self._determine_block_hash(block, block_hash, reuse_block)
         return await self.substrate.query(
@@ -2345,3 +2385,107 @@ class AsyncSubtensor:
         return await serve_axon_extrinsic(
             self, netuid, axon, wait_for_inclusion, wait_for_finalization, certificate
         )
+
+    async def is_hotkey_registered_on_subnet(
+        self,
+        hotkey_ss58: str,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> bool:
+        """
+        Checks if a neuron's hotkey is registered on a specific subnet within the Bittensor network.
+
+        Args:
+            hotkey_ss58 (str): The `SS58` address of the neuron's hotkey.
+            netuid (int): The unique identifier of the subnet.
+            block (Optional[int]): The blockchain block number at which to perform the check.
+            block_hash: The hash of the block to retrieve the parameter from. Do not specify if using block or
+                reuse_block
+            reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
+
+        Returns:
+            bool: `True` if the hotkey is registered on the specified subnet, False otherwise.
+
+        This function helps in assessing the participation of a neuron in a particular subnet, indicating its specific
+            area of operation or influence within the network.
+        """
+        block_hash = await self._determine_block_hash(block, block_hash, reuse_block)
+        return (
+            await self.get_uid_for_hotkey_on_subnet(
+                hotkey_ss58, netuid, block_hash=block_hash, reuse_block=reuse_block
+            )
+        ) is not None
+
+    @property
+    async def block(self) -> int:
+        """
+        Returns current chain block.
+
+        Returns:
+            block: Current chain block.
+        """
+        return await self.get_current_block()
+
+    async def metagraph(
+        self, netuid: int, lite: bool = True, block: Optional[int] = None
+    ) -> AsyncMetagraph:
+        """
+        Returns a synced metagraph for a specified subnet within the Bittensor network. The metagraph represents the
+            network's structure, including neuron connections and interactions.
+
+        Args:
+            netuid: The network UID of the subnet to query.
+            lite: If true, returns a metagraph using a lightweight sync (no weights, no bonds). Default is `True`.
+            block: Block number for synchronization, or `None` for the latest block.
+
+        Returns:
+            The metagraph representing the subnet's structure and neuron relationships.
+
+        The metagraph is an essential tool for understanding the topology and dynamics of the Bittensor network's
+            decentralized architecture, particularly in relation to neuron interconnectivity and consensus processes.
+        """
+        metagraph = AsyncMetagraph(
+            network=self.chain_endpoint,
+            netuid=netuid,
+            lite=lite,
+            sync=False,
+            subtensor=self,
+        )
+        await metagraph.sync(block=block, lite=lite, subtensor=self)
+
+        return metagraph
+
+    async def get_delegate_take(
+        self,
+        hotkey_ss58: str,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> Optional[float]:
+        """
+        Retrieves the delegate 'take' percentage for a neuron identified by its hotkey. The 'take' represents the
+            percentage of rewards that the delegate claims from its nominators' stakes.
+
+        Args:
+            hotkey_ss58: The `SS58` address of the neuron's hotkey.
+            block: The blockchain block number for the query.
+            block_hash: The hash of the block to retrieve the parameter from. Do not specify if using block or
+                reuse_block
+            reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
+
+        Returns:
+            The delegate take percentage, `None` if not available.
+
+        The delegate take is a critical parameter in the network's incentive structure, influencing the distribution of
+            rewards among neurons and their nominators.
+        """
+        block_hash = await self._determine_block_hash(block, block_hash, reuse_block)
+        _result = await self.query_subtensor(
+            "Delegates",
+            block_hash=block_hash,
+            reuse_block=reuse_block,
+            params=[hotkey_ss58],
+        )
+        return None if _result is None else u16_normalized_float(_result)
