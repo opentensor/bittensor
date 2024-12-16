@@ -19,11 +19,13 @@ from __future__ import annotations
 
 from typing import Optional, TYPE_CHECKING
 
+from substrateinterface.exceptions import SubstrateRequestException
+
 if TYPE_CHECKING:
     from bittensor.core.synapse import Synapse
 
 
-class ChainError(Exception):
+class ChainError(SubstrateRequestException):
     """Base error for any chain related errors."""
 
 
