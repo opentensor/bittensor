@@ -20,7 +20,7 @@ from __future__ import annotations
 from bittensor.core.synapse import Synapse
 
 
-class ChainError(BaseException):
+class ChainError(Exception):
     """Base error for any chain related errors."""
 
 
