@@ -38,6 +38,7 @@ from bittensor.core.extrinsics.async_weights import (
 )
 from bittensor.core.extrinsics.async_serving import serve_axon_extrinsic
 from bittensor.core.extrinsics.async_unstaking import unstake_extrinsic
+from bittensor.core.extrinsics.async_commit_reveal import commit_reveal_v3_extrinsic
 from bittensor.core.settings import (
     TYPE_REGISTRY,
     DEFAULTS,
@@ -1911,8 +1912,15 @@ class AsyncSubtensor:
         """
         if (await self.commit_reveal_enabled(netuid=netuid)) is True:
             # go with `commit reveal v3` extrinsic
-            raise NotImplementedError(
-                "Not implemented yet for AsyncSubtensor. Coming soon."
+            return await commit_reveal_v3_extrinsic(
+                subtensor=self,
+                wallet=wallet,
+                netuid=netuid,
+                uids=uids,
+                weights=weights,
+                version_key=version_key,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
             )
         else:
             # go with classic `set weights extrinsic`
