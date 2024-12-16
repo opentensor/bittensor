@@ -182,7 +182,7 @@ async def wait_interval(
 
 # Helper to execute sudo wrapped calls on the chain
 def sudo_set_admin_utils(
-  substrate: "SubstrateInterface",
+    substrate: "SubstrateInterface",
     wallet: "Wallet",
     call_function: str,
     call_params: dict,
@@ -226,6 +226,7 @@ def sudo_set_admin_utils(
         return response.is_success, response.error_message
 
     return response.is_success
+
 
 async def root_set_subtensor_hyperparameter_values(
     substrate: "SubstrateInterface",
