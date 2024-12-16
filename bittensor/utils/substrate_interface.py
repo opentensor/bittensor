@@ -22,15 +22,15 @@ from scalecodec import GenericExtrinsic, ss58_encode, ss58_decode, is_valid_ss58
 from scalecodec.base import ScaleBytes, ScaleType, RuntimeConfigurationObject
 from scalecodec.type_registry import load_type_registry_preset
 from scalecodec.types import GenericCall, GenericRuntimeCallDefinition
-from substrateinterface.exceptions import (
-    SubstrateRequestException,
-    ExtrinsicNotFound,
-    BlockNotFound,
-)
 from substrateinterface.storage import StorageKey
 from websockets.asyncio.client import connect
 from websockets.exceptions import ConnectionClosed
 
+from bittensor.core.errors import (
+    SubstrateRequestException,
+    ExtrinsicNotFound,
+    BlockNotFound,
+)
 from bittensor.utils import hex_to_bytes
 from bittensor.utils.btlogging import logging
 
