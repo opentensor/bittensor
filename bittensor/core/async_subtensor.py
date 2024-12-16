@@ -1,4 +1,5 @@
 import asyncio
+from itertools import chain
 import ssl
 from typing import Optional, Any, Union, TypedDict, Iterable, TYPE_CHECKING
 
@@ -34,6 +35,7 @@ from bittensor.core.extrinsics.async_weights import (
     commit_weights_extrinsic,
     set_weights_extrinsic,
 )
+from bittensor.core.extrinsics.async_serving import serve_axon_extrinsic
 from bittensor.core.settings import (
     TYPE_REGISTRY,
     DEFAULTS,
@@ -49,6 +51,7 @@ from bittensor.utils import (
     decode_hex_identity_dict,
     validate_chain_endpoint,
     hex_to_bytes,
+    Certificate,
 )
 from bittensor.utils.substrate_interface import AsyncSubstrateInterface
 from bittensor.utils.balance import Balance
@@ -58,6 +61,8 @@ from bittensor.utils.weight_utils import generate_weight_hash
 
 if TYPE_CHECKING:
     from scalecodec import ScaleType
+    from bittensor.utils.substrate_interface import QueryMapResult
+    from bittensor.core.axon import Axon
 
 
 class ParamWithTypes(TypedDict):
@@ -2156,3 +2161,187 @@ class AsyncSubtensor:
         if call is None:
             return None
         return int(call)
+
+    async def query_module(
+        self,
+        module: str,
+        name: str,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+        params: Optional[list] = None,
+    ) -> "ScaleType":
+        """
+        Queries any module storage on the Bittensor blockchain with the specified parameters and block number. This function is a generic query interface that allows for flexible and diverse data retrieval from various blockchain modules.
+
+        Args:
+            module (str): The name of the module from which to query data.
+            name (str): The name of the storage function within the module.
+            block (Optional[int]): The blockchain block number at which to perform the query.
+            block_hash: The hash of the block to retrieve the parameter from. Do not specify if using block or
+                reuse_block
+            reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
+            params (Optional[list[object]]): A list of parameters to pass to the query function.
+
+        Returns:
+            Optional[scalecodec.ScaleType]: An object containing the requested data if found, ``None`` otherwise.
+
+        This versatile query function is key to accessing a wide range of data and insights from different parts of the Bittensor blockchain, enhancing the understanding and analysis of the network's state and dynamics.
+        """
+        block_hash = await self._determine_block_hash(block, block_hash, reuse_block)
+        return await self.substrate.query(
+            module=module,
+            storage_function=name,
+            params=params,
+            block_hash=block_hash,
+            reuse_block_hash=reuse_block,
+        )
+
+    async def query_map(
+        self,
+        module: str,
+        name: str,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+        params: Optional[list] = None,
+    ) -> "QueryMapResult":
+        """
+        Queries map storage from any module on the Bittensor blockchain. This function retrieves data structures that
+            represent key-value mappings, essential for accessing complex and structured data within the blockchain
+            modules.
+
+        Args:
+            module: The name of the module from which to query the map storage.
+            name: The specific storage function within the module to query.
+            block: The blockchain block number at which to perform the query.
+            block_hash: The hash of the block to retrieve the parameter from. Do not specify if using block or
+                reuse_block
+            reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
+            params: Parameters to be passed to the query.
+
+        Returns:
+            result: A data structure representing the map storage if found, `None` otherwise.
+
+        This function is particularly useful for retrieving detailed and structured data from various blockchain
+            modules, offering insights into the network's state and the relationships between its different components.
+        """
+        block_hash = await self._determine_block_hash(block, block_hash, reuse_block)
+        return await self.substrate.query_map(
+            module=module,
+            storage_function=name,
+            params=params,
+            block_hash=block_hash,
+            reuse_block_hash=reuse_block,
+        )
+
+    async def query_map_subtensor(
+        self,
+        name: str,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+        params: Optional[list] = None,
+    ) -> "QueryMapResult":
+        """
+        Queries map storage from the Subtensor module on the Bittensor blockchain. This function is designed to retrieve
+            a map-like data structure, which can include various neuron-specific details or network-wide attributes.
+
+        Args:
+            name: The name of the map storage function to query.
+            block: The blockchain block number at which to perform the query.
+            block_hash: The hash of the block to retrieve the parameter from. Do not specify if using block or
+                reuse_block
+            reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
+            params: A list of parameters to pass to the query function.
+
+        Returns:
+            An object containing the map-like data structure, or `None` if not found.
+
+        This function is particularly useful for analyzing and understanding complex network structures and
+            relationships within the Bittensor ecosystem, such as interneuronal connections and stake distributions.
+        """
+        block_hash = await self._determine_block_hash(block, block_hash, reuse_block)
+        return await self.substrate.query_map(
+            module="SubtensorModule",
+            storage_function=name,
+            params=params,
+            block_hash=block_hash,
+            reuse_block_hash=reuse_block,
+        )
+
+    async def get_neuron_certificate(
+        self,
+        hotkey: str,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> Optional[Certificate]:
+        """
+        Retrieves the TLS certificate for a specific neuron identified by its unique identifier (UID)
+        within a specified subnet (netuid) of the Bittensor network.
+
+        Args:
+            hotkey: The hotkey to query.
+            netuid: The unique identifier of the subnet.
+            block: The blockchain block number for the query.
+            block_hash: The hash of the block to retrieve the parameter from. Do not specify if using block or
+                reuse_block
+            reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
+
+        Returns:
+            the certificate of the neuron if found, `None` otherwise.
+
+        This function is used for certificate discovery for setting up mutual tls communication between neurons
+        """
+        block_hash = await self._determine_block_hash(block, block_hash, reuse_block)
+        certificate = await self.query_module(
+            module="SubtensorModule",
+            name="NeuronCertificates",
+            block_hash=block_hash,
+            reuse_block=reuse_block,
+            params=[netuid, hotkey],
+        )
+        try:
+            if certificate:
+                return "".join(
+                    chr(i)
+                    for i in chain(
+                        [certificate["algorithm"]],
+                        certificate["public_key"][0],
+                    )
+                )
+
+        except AttributeError:
+            return None
+        return None
+
+    async def serve_axon(
+        self,
+        netuid: int,
+        axon: "Axon",
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = True,
+        certificate: Optional[Certificate] = None,
+    ) -> bool:
+        """
+        Registers an `Axon` serving endpoint on the Bittensor network for a specific neuron. This function is used to
+            set up the Axon, a key component of a neuron that handles incoming queries and data processing tasks.
+
+        Args:
+            netuid: The unique identifier of the subnetwork.
+            axon: The Axon instance to be registered for serving.
+            wait_for_inclusion: Waits for the transaction to be included in a block. Default is `False`.
+            wait_for_finalization: Waits for the transaction to be finalized on the blockchain. Default is `True`.
+            certificate: the certificate of the neuron
+
+        Returns:
+            `True` if the Axon serve registration is successful, `False` otherwise.
+
+        By registering an Axon, the neuron becomes an active part of the network's distributed computing infrastructure,
+            contributing to the collective intelligence of Bittensor.
+        """
+        return await serve_axon_extrinsic(
+            self, netuid, axon, wait_for_inclusion, wait_for_finalization, certificate
+        )
