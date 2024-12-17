@@ -251,9 +251,9 @@ def test_determine_chain_endpoint_and_network(
 
 @pytest.fixture
 def subtensor(mocker):
-    fake_substrate = mocker.MagicMock()
+    fake_substrate = mocker.AsyncMock()
     mocker.patch.object(
-        subtensor_module, "SubstrateInterface", return_value=fake_substrate
+        subtensor_module, "AsyncSubstrateInterface", return_value=fake_substrate
     )
     return Subtensor()
 
