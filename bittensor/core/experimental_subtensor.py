@@ -13,6 +13,14 @@ from bittensor.core.async_subtensor import AsyncSubtensor
 from bittensor.utils.btlogging import logging
 
 
+def event_loop_is_running():
+    try:
+        asyncio.get_running_loop()
+        return True
+    except RuntimeError:
+        return False
+
+
 class Subtensor:
     """
     This is an experimental subtensor class that utilises the underlying AsyncSubtensor
@@ -26,6 +34,11 @@ class Subtensor:
         log_verbose: bool = False,
         connection_timeout: int = 600,
     ) -> None:
+        if event_loop_is_running():
+            raise RuntimeError(
+                "You are attempting to invoke the sync Subtensor with an already running event loop."
+                " You should be using AsyncSubtensor."
+            )
 
         if config is None:
             config = Subtensor.config()
@@ -60,10 +73,15 @@ class Subtensor:
         for attr_name in dir(AsyncSubtensor):
             attr = getattr(AsyncSubtensor, attr_name)
             if asyncio.iscoroutinefunction(attr):
+
                 def sync_method(a, *args, **kwargs):
                     return self._event_loop.run_until_complete(a(*args, **kwargs))
 
-                setattr(self, attr_name, functools.partial(sync_method, getattr(self._subtensor, attr_name)))
+                setattr(
+                    self,
+                    attr_name,
+                    functools.partial(sync_method, getattr(self._subtensor, attr_name)),
+                )
 
     @property
     def block(self) -> int:
@@ -71,7 +89,7 @@ class Subtensor:
 
     @staticmethod
     def determine_chain_endpoint_and_network(
-            network: str,
+        network: str,
     ) -> tuple[Optional[str], Optional[str]]:
         """Determines the chain endpoint and network from the passed network or chain_endpoint.
 
@@ -88,18 +106,18 @@ class Subtensor:
             return network, settings.NETWORK_MAP[network]
         else:
             if (
-                    network == settings.FINNEY_ENTRYPOINT
-                    or "entrypoint-finney.opentensor.ai" in network
+                network == settings.FINNEY_ENTRYPOINT
+                or "entrypoint-finney.opentensor.ai" in network
             ):
                 return "finney", settings.FINNEY_ENTRYPOINT
             elif (
-                    network == settings.FINNEY_TEST_ENTRYPOINT
-                    or "test.finney.opentensor.ai" in network
+                network == settings.FINNEY_TEST_ENTRYPOINT
+                or "test.finney.opentensor.ai" in network
             ):
                 return "test", settings.FINNEY_TEST_ENTRYPOINT
             elif (
-                    network == settings.ARCHIVE_ENTRYPOINT
-                    or "archive.chain.opentensor.ai" in network
+                network == settings.ARCHIVE_ENTRYPOINT
+                or "archive.chain.opentensor.ai" in network
             ):
                 return "archive", settings.ARCHIVE_ENTRYPOINT
             elif "127.0.0.1" in network or "localhost" in network:
