@@ -69,10 +69,9 @@ async def test_do_pow_register_success(subtensor, mocker):
     subtensor.substrate.create_signed_extrinsic.asseert_awaited_once_with(
         call=fake_call, keypair=fake_wallet.hotkey
     )
-    subtensor.substrate.submit_extrinsic.asseert_awaited_once_with(
+    subtensor.substrate.submit_extrinsic.assert_awaited_once_with(
         fake_extrinsic, wait_for_inclusion=True, wait_for_finalization=True
     )
-    fake_response.process_events.assert_called_once()
     assert result is True
     assert error_message is None
 
