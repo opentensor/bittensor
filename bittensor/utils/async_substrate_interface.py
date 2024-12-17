@@ -10,10 +10,10 @@ import json
 import random
 from collections import defaultdict
 from dataclasses import dataclass
-from functools import lru_cache
 from hashlib import blake2b
 from typing import Optional, Any, Union, Callable, Awaitable, cast, TYPE_CHECKING
 
+import asyncstdlib as a
 from async_property import async_property
 from bittensor_wallet import Keypair
 from bt_decode import PortableRegistry, decode as decode_by_type_string, MetadataV15
@@ -1705,7 +1705,7 @@ class AsyncSubstrateInterface:
             "payload": {"jsonrpc": "2.0", "method": method, "params": params},
         }
 
-    @lru_cache(maxsize=512)  # RPC methods are unlikely to change often
+    @a.lru_cache(maxsize=512)  # RPC methods are unlikely to change often
     async def supports_rpc_method(self, name: str) -> bool:
         """
         Check if substrate RPC supports given method
