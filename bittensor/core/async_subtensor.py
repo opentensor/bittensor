@@ -25,6 +25,7 @@ from bittensor.core.chain_data import (
     decode_account_id,
     SubnetInfo,
     PrometheusInfo,
+    ProposalVoteData,
 )
 from bittensor.core.extrinsics.asyncio.registration import register_extrinsic
 from bittensor.core.extrinsics.asyncio.root import (
@@ -74,26 +75,6 @@ if TYPE_CHECKING:
 class ParamWithTypes(TypedDict):
     name: str  # Name of the parameter.
     type: str  # ScaleType string of the parameter.
-
-
-class ProposalVoteData:
-    index: int
-    threshold: int
-    ayes: list[str]
-    nays: list[str]
-    end: int
-
-    def __init__(self, proposal_dict: dict) -> None:
-        self.index = proposal_dict["index"]
-        self.threshold = proposal_dict["threshold"]
-        self.ayes = self.decode_ss58_tuples(proposal_dict["ayes"])
-        self.nays = self.decode_ss58_tuples(proposal_dict["nays"])
-        self.end = proposal_dict["end"]
-
-    @staticmethod
-    def decode_ss58_tuples(line: tuple):
-        """Decodes a tuple of ss58 addresses formatted as bytes tuples."""
-        return [decode_account_id(line[x][0]) for x in range(len(line))]
 
 
 def _decode_hex_identity_dict(info_dictionary: dict[str, Any]) -> dict[str, Any]:
@@ -1405,6 +1386,7 @@ class AsyncSubtensor:
         wallet: "Wallet",
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
+        sign_with: str = "coldkey",
     ) -> tuple[bool, str]:
         """
         Helper method to sign and submit an extrinsic call to chain.
@@ -1414,13 +1396,19 @@ class AsyncSubtensor:
             wallet (bittensor_wallet.Wallet): the wallet whose coldkey will be used to sign the extrinsic
             wait_for_inclusion (bool): whether to wait until the extrinsic call is included on the chain
             wait_for_finalization (bool): whether to wait until the extrinsic call is finalized on the chain
+            sign_with: the wallet attr to sign the extrinsic call [coldkey (default), hotkey, or coldkeypub]
 
         Returns:
             (success, error message)
         """
+        if sign_with not in ("coldkey", "hotkey", "coldkeypub"):
+            raise AttributeError(
+                f"'sign_with' must be either 'coldkey', 'hotkey' or 'coldkeypub', not '{sign_with}'"
+            )
+
         extrinsic = await self.substrate.create_signed_extrinsic(
-            call=call, keypair=wallet.coldkey
-        )  # sign with coldkey
+            call=call, keypair=getattr(wallet, sign_with)
+        )
         try:
             response = await self.substrate.submit_extrinsic(
                 extrinsic,
@@ -1437,7 +1425,14 @@ class AsyncSubtensor:
         except SubstrateRequestException as e:
             return False, format_error_message(e)
 
-    async def get_children(self, hotkey: str, netuid: int) -> tuple[bool, list, str]:
+    async def get_children(
+        self,
+        hotkey: str,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> tuple[bool, list, str]:
         """
         This method retrieves the children of a given hotkey and netuid. It queries the SubtensorModule's ChildKeys
             storage function to get the children and formats them before returning as a tuple.
@@ -1445,16 +1440,23 @@ class AsyncSubtensor:
         Args:
             hotkey: The hotkey value.
             netuid: The netuid value.
+            block: The block number to query. Do not specify if using block_hash or reuse_block.
+            block_hash: The hash of the blockchain block number for the query. Do not specify if using bloc or
+                reuse_block.
+            reuse_block: Whether to reuse the last-used blockchain hash. Do not set if using block_hash or reuse_block.
 
         Returns:
             A tuple containing a boolean indicating success or failure, a list of formatted children, and an error
                 message (if applicable)
         """
+        block_hash = await self._determine_block_hash(block, block_hash, reuse_block)
         try:
             children = await self.substrate.query(
                 module="SubtensorModule",
                 storage_function="ChildKeys",
                 params=[hotkey, netuid],
+                block_hash=block_hash,
+                reuse_block_hash=reuse_block,
             )
             if children:
                 formatted_children = []
@@ -2701,4 +2703,37 @@ class AsyncSubtensor:
             amount=amount,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
+        )
+
+    async def state_call(
+        self,
+        method: str,
+        data: str,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> dict[Any, Any]:
+        """
+        Makes a state call to the Bittensor blockchain, allowing for direct queries of the blockchain's state. This
+            function is typically used for advanced queries that require specific method calls and data inputs.
+
+        Args:
+            method: The method name for the state call.
+            data: The data to be passed to the method.
+            block: The blockchain block number at which to perform the state call.
+            block_hash: The hash of the block to retrieve the parameter from. Do not specify if using block or
+                reuse_block
+            reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
+
+        Returns:
+            result (dict[Any, Any]): The result of the rpc call.
+
+        The state call function provides a more direct and flexible way of querying blockchain data, useful for specific
+            use cases where standard queries are insufficient.
+        """
+        block_hash = await self._determine_block_hash(block, block_hash, reuse_block)
+        return self.substrate.rpc_request(
+            method="state_call",
+            params=[method, data, block_hash] if block_hash else [method, data],
+            reuse_block_hash=reuse_block,
         )

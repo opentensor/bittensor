@@ -32,6 +32,8 @@ from bittensor.core.chain_data import (
     SubnetHyperparameters,
     SubnetInfo,
     StakeInfo,
+    ProposalVoteData,
+    decode_account_id,
 )
 from bittensor.core.config import Config
 from bittensor.core.errors import SubstrateRequestException
@@ -2376,3 +2378,70 @@ class Subtensor:
             return []
 
         return DelegateInfo.delegated_list_from_vec_u8(bytes(result))
+
+    def get_vote_data(
+        self,
+        proposal_hash: str,
+        block: Optional[int] = None,
+    ) -> Optional[ProposalVoteData]:
+        """
+        Retrieves the voting data for a specific proposal on the Bittensor blockchain. This data includes information
+            about how senate members have voted on the proposal.
+
+        Args:
+            proposal_hash: The hash of the proposal for which voting data is requested.
+            block: The block number to query. Do not specify if using block_hash or reuse_block.
+
+        Returns:
+            An object containing the proposal's voting data, or `None` if not found.
+
+        This function is important for tracking and understanding the decision-making processes within the Bittensor
+            network, particularly how proposals are received and acted upon by the governing body.
+        """
+        vote_data = self.substrate.query(
+            module="Triumvirate",
+            storage_function="Voting",
+            params=[proposal_hash],
+            block_hash=None if block is None else self.get_block_hash(block),
+        )
+        if vote_data is None:
+            return None
+        else:
+            return ProposalVoteData(vote_data)
+
+    def get_children(
+        self, hotkey: str, netuid: int, block: Optional[int] = None
+    ) -> tuple[bool, list, str]:
+        """
+        This method retrieves the children of a given hotkey and netuid. It queries the SubtensorModule's ChildKeys
+            storage function to get the children and formats them before returning as a tuple.
+
+        Args:
+            hotkey: The hotkey value.
+            netuid: The netuid value.
+            block: the blockchain block number for the query
+
+        Returns:
+            A tuple containing a boolean indicating success or failure, a list of formatted children, and an error
+                message (if applicable)
+        """
+        block_hash = None if block is None else self.get_block_hash(block)
+        try:
+            children = self.substrate.query(
+                module="SubtensorModule",
+                storage_function="ChildKeys",
+                params=[hotkey, netuid],
+                block_hash=block_hash,
+            )
+            if children:
+                formatted_children = []
+                for proportion, child in children:
+                    # Convert U64 to int
+                    formatted_child = decode_account_id(child[0])
+                    int_proportion = int(proportion)
+                    formatted_children.append((int_proportion, formatted_child))
+                return True, formatted_children, ""
+            else:
+                return True, [], ""
+        except SubstrateRequestException as e:
+            return False, [], format_error_message(e)
