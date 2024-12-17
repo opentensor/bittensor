@@ -76,11 +76,13 @@ def do_set_weights(
             "version_key": version_key,
         },
     )
+    next_nonce = self.get_account_next_index(wallet.hotkey.ss58_address)
     # Period dictates how long the extrinsic will stay as part of waiting pool
     extrinsic = self.substrate.create_signed_extrinsic(
         call=call,
         keypair=wallet.hotkey,
         era={"period": period},
+        nonce=next_nonce,
     )
     response = submit_extrinsic(
         self,
