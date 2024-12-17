@@ -1596,9 +1596,11 @@ class AsyncSubtensor:
 
         This function is crucial in shaping the network's collective intelligence, where each neuron's learning and contribution are influenced by the weights it sets towards others【81†source】.
         """
-        if self.commit_reveal_enabled(netuid=netuid) is True:
+        if (await self.commit_reveal_enabled(netuid=netuid)) is True:
             # go with `commit reveal v3` extrinsic
-            raise NotImplemented("Not implemented yet for AsyncSubtensor. Coming soon.")
+            raise NotImplementedError(
+                "Not implemented yet for AsyncSubtensor. Coming soon."
+            )
         else:
             # go with classic `set weights extrinsic`
             uid = await self.get_uid_for_hotkey_on_subnet(

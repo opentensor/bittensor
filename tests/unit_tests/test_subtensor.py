@@ -2850,6 +2850,12 @@ def test_set_weights_with_commit_reveal_enabled(subtensor, mocker):
     mocked_commit_reveal_v3_extrinsic = mocker.patch.object(
         subtensor_module, "commit_reveal_v3_extrinsic"
     )
+    mocked_commit_reveal_v3_extrinsic.return_value = (
+        True,
+        "Weights committed successfully",
+    )
+    mocker.patch.object(subtensor, "blocks_since_last_update", return_value=181)
+    mocker.patch.object(subtensor, "weights_rate_limit", return_value=180)
 
     # Call
     result = subtensor.set_weights(
