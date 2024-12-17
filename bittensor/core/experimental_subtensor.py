@@ -2,15 +2,16 @@ import asyncio
 import argparse
 import copy
 import functools
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 from bittensor.core import settings
 from bittensor.core.config import Config
-from bittensor.utils import (
-    networking,
-)
+from bittensor.utils import networking
 from bittensor.core.async_subtensor import AsyncSubtensor
 from bittensor.utils.btlogging import logging
+
+if TYPE_CHECKING:
+    from bittensor.utils.substrate_interface import AsyncSubstrateInterface
 
 
 def event_loop_is_running():
@@ -19,6 +20,34 @@ def event_loop_is_running():
         return True
     except RuntimeError:
         return False
+
+
+class SubstrateWrapper:
+    def __init__(
+        self,
+        substrate: "AsyncSubstrateInterface",
+        event_loop: asyncio.AbstractEventLoop,
+    ):
+        self._async_instance = substrate
+        self.event_loop = event_loop
+
+    def __del__(self):
+        self.event_loop.run_until_complete(self._async_instance.close())
+
+    def __getattr__(self, name):
+        attr = getattr(self._async_instance, name)
+
+        if asyncio.iscoroutinefunction(attr):
+
+            def sync_method(*args, **kwargs):
+                return self.event_loop.run_until_complete(attr(*args, **kwargs))
+
+            return sync_method
+        elif asyncio.iscoroutine(attr):
+            # indicates this is an async_property
+            return self.event_loop.run_until_complete(attr)
+        else:
+            return attr
 
 
 class Subtensor:
@@ -70,6 +99,7 @@ class Subtensor:
         self._subtensor = AsyncSubtensor(network=self.chain_endpoint)
         self._event_loop = asyncio.get_event_loop()
         self._event_loop.run_until_complete(self._subtensor.__aenter__())
+        self.substrate = SubstrateWrapper(self._subtensor.substrate, self._event_loop)
         for attr_name in dir(AsyncSubtensor):
             attr = getattr(AsyncSubtensor, attr_name)
             if asyncio.iscoroutinefunction(attr):
