@@ -252,8 +252,9 @@ def test_determine_chain_endpoint_and_network(
 @pytest.fixture
 def subtensor(mocker):
     fake_substrate = mocker.AsyncMock()
-    mocker.patch.object(
-        subtensor_module, "AsyncSubstrateInterface", return_value=fake_substrate
+    mocker.patch(
+        "bittensor.utils.substrate_interface.AsyncSubstrateInterface",
+        return_value=fake_substrate,
     )
     return Subtensor()
 
@@ -1995,19 +1996,36 @@ def test_recycle_none(subtensor, mocker):
     """Tests recycle method with None result."""
     # Preps
     mocked_get_hyperparameter = mocker.patch.object(
-        subtensor, "_get_hyperparameter", return_value=None
+        subtensor_module.AsyncSubtensor, "get_hyperparameter", return_value=None
     )
+
     fake_netuid = 1
     fake_block = 2
+    fake_block_hash = "0x123456789"
+    fake_reuse_block = True
+
+    mocked_determine_block_hash = mocker.patch.object(
+        subtensor_module.AsyncSubtensor, "_determine_block_hash"
+    )
 
     # Call
-    result = subtensor.recycle(fake_netuid, fake_block)
+    result = subtensor.recycle(
+        netuid=fake_netuid,
+        block=fake_block,
+        block_hash=fake_block_hash,
+        reuse_block=fake_reuse_block,
+    )
 
     # Asserts
+    mocked_determine_block_hash.asseert_awaited_once_with(
+        fake_block, fake_block_hash, fake_reuse_block
+    )
+
     mocked_get_hyperparameter.assert_called_once_with(
         param_name="Burn",
         netuid=fake_netuid,
-        block=fake_block,
+        block_hash=mocked_determine_block_hash.return_value,
+        reuse_block=fake_reuse_block,
     )
 
     assert result is None
