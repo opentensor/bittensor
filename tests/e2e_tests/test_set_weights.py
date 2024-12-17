@@ -141,7 +141,7 @@ async def test_set_weights_uses_next_nonce(local_chain):
         assert success is True, f"Failed to set weights for subnet {netuid}"
 
     # Wait for the txs to be included in the chain
-    await asyncio.sleep(2)
+    await asyncio.sleep(4)
 
     for netuid in netuids:
         # Query the Weights storage map for all three subnets
