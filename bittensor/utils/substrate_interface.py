@@ -14,10 +14,17 @@ from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime
 from hashlib import blake2b
+from itertools import chain
+from types import SimpleNamespace
 from typing import Optional, Any, Union, Callable, Awaitable, cast, TYPE_CHECKING
 
 from bittensor_wallet import Keypair
-from bt_decode import PortableRegistry, decode as decode_by_type_string, MetadataV15
+from bt_decode import (
+    PortableRegistry,
+    decode as decode_by_type_string,
+    encode as encode_by_type_string,
+    MetadataV15,
+)
 from scalecodec import GenericExtrinsic, ss58_encode, ss58_decode, is_valid_ss58_address
 from scalecodec.base import ScaleBytes, ScaleType, RuntimeConfigurationObject
 from scalecodec.type_registry import load_type_registry_preset
@@ -31,7 +38,10 @@ from bittensor.core.errors import (
     ExtrinsicNotFound,
     BlockNotFound,
 )
-from bittensor.utils import hex_to_bytes
+from bittensor.utils import (
+    hex_to_bytes,
+    ss58_address_to_bytes,
+)
 from bittensor.utils.btlogging import logging
 
 if TYPE_CHECKING:
@@ -374,6 +384,33 @@ class AsyncExtrinsicReceipt:
 
     def get(self, name):
         return self[name]
+
+
+class DictWithValue(dict):
+    value: Any
+
+    def __init__(self, value: Any = None):
+        super().__init__()
+        self.value = value
+
+    def __getitem__(self, key: Union[str, int]):
+        result = super().get(key)
+        if not result and isinstance(key, int):
+            # if the key is not found, return the key at the given index
+            return list(chain.from_iterable(self.items()))[key]
+        return result
+
+    @classmethod
+    def from_dict(cls, dict_: dict):
+        inst = cls()
+        # recursively convert all values to DictWithValue
+        for key, value in dict_.items():
+            if isinstance(value, dict):
+                value = cls.from_dict(value)
+            inst[key] = value
+        inst.value = dict_
+
+        return inst
 
 
 class ExtrinsicReceipt:
@@ -880,6 +917,7 @@ class Websocket:
 
 class AsyncSubstrateInterface:
     registry: Optional[PortableRegistry] = None
+    metadata_v15: Optional[MetadataV15] = None
     runtime_version = None
     type_registry_preset = None
     transaction_version = None
@@ -949,6 +987,7 @@ class AsyncSubstrateInterface:
         )
         self.__metadata_cache = {}
         self.metadata_version_hex = "0x0f000000"  # v15
+        self.metadata_v15 = None
         self.event_loop = asyncio.get_event_loop()
         self.sync_calls = sync_calls
         self.extrinsic_receipt_cls = (
@@ -974,6 +1013,64 @@ class AsyncSubstrateInterface:
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         pass
+
+    @staticmethod
+    def _type_registry_to_scale_info_types(
+        registry_types: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        scale_info_types = []
+        for type_entry in registry_types:
+            new_type_entry = DictWithValue(value=type_entry)
+            if (
+                "variant" in type_entry["type"]["def"]
+                and len(type_entry["type"]["def"]["variant"]) == 0
+            ):
+                type_entry["type"]["def"]["variant"] = {
+                    "variants": []
+                }  # add empty variants field to variant type if empty
+
+            for key, value in type_entry.items():
+                if isinstance(value, dict):
+                    entry = DictWithValue.from_dict(value)
+                else:
+                    entry = SimpleNamespace(value=value)
+                new_type_entry[key] = entry
+
+            scale_info_types.append(new_type_entry)
+
+        return scale_info_types
+
+    @staticmethod
+    def _type_id_to_name(ty_id: int) -> str:
+        type_string = f"scale_info::{ty_id}"
+
+        return type_string
+
+    def _type_registry_apis_to_runtime_api(
+        self, apis: list[dict[str, Any]]
+    ) -> dict[str, Any]:
+        runtime_api = {}
+        for api in apis:
+            api_name = api["name"]
+            methods = api["methods"]
+
+            runtime_api[api_name] = {
+                "methods": {
+                    method["name"]: {
+                        "description": "\n".join(method["docs"]),
+                        "params": [
+                            {
+                                "name": input["name"],
+                                "type": self._type_id_to_name(input["ty"]),
+                            }
+                            for input in method["inputs"]
+                        ],
+                        "type": self._type_id_to_name(method["output"]),
+                    }
+                    for method in methods
+                }
+            }
+        return runtime_api
 
     @property
     def chain(self):
@@ -1080,6 +1177,7 @@ class AsyncSubstrateInterface:
         metadata_option_bytes = bytes.fromhex(metadata_option_hex_str[2:])
         metadata_v15 = MetadataV15.decode_from_metadata_option(metadata_option_bytes)
         self.registry = PortableRegistry.from_metadata_v15(metadata_v15)
+        self.metadata_v15 = metadata_v15
 
     async def decode_scale(
         self, type_string: str, scale_bytes: bytes, _attempt=1, _retries=3
@@ -1122,25 +1220,27 @@ class AsyncSubstrateInterface:
                     raise ValueError("Registry was never loaded.")
         return obj
 
-    async def encode_scale(self, type_string, value, block_hash=None) -> ScaleBytes:
+    async def encode_scale(self, type_string, value) -> bytes:
         """
         Helper function to encode arbitrary data into SCALE-bytes for given RUST type_string
 
         Args:
             type_string: the type string of the SCALE object for decoding
             value: value to encode
-            block_hash: the hash of the blockchain block whose metadata to use for encoding
 
         Returns:
-            ScaleBytes encoded value
+            Encoded SCALE bytes
         """
-        if not self.__metadata or block_hash:
-            await self.init_runtime(block_hash=block_hash)
+        if value is None:
+            result = b"\x00"
+        else:
+            if type_string == "scale_info::0":  # Is an AccountId
+                # encode string into AccountId
+                ## AccountId is a composite type with one, unnamed field
+                return ss58_address_to_bytes(value)
 
-        obj = self.runtime_config.create_scale_object(
-            type_string=type_string, metadata=self.__metadata
-        )
-        return obj.encode(value)
+            result = bytes(encode_by_type_string(type_string, self.registry, value))
+        return result
 
     def ss58_encode(
         self, public_key: Union[str, bytes], ss58_format: int = None
@@ -3081,13 +3181,13 @@ class AsyncSubstrateInterface:
 
             return response.get("result")
 
-    async def runtime_call(
+    async def runtime_call_wait_to_decode(
         self,
         api: str,
         method: str,
         params: Optional[Union[list, dict]] = None,
         block_hash: Optional[str] = None,
-    ) -> ScaleType:
+    ) -> tuple[str, bytes]:
         """
         Calls a runtime API method
 
@@ -3098,7 +3198,7 @@ class AsyncSubstrateInterface:
             block_hash: Hash of the block at which to make the runtime API call
 
         Returns:
-             ScaleType from the runtime call
+            Tuple of the runtime call type and the result bytes
         """
         if not self.__metadata or block_hash:
             await self.init_runtime(block_hash=block_hash)
@@ -3107,56 +3207,65 @@ class AsyncSubstrateInterface:
             params = {}
 
         try:
-            runtime_call_def = self.runtime_config.type_registry["runtime_api"][api][
-                "methods"
-            ][method]
-            runtime_api_types = self.runtime_config.type_registry["runtime_api"][
-                api
-            ].get("types", {})
+            metadata_v15 = self.metadata_v15.value()
+            apis = {entry["name"]: entry for entry in metadata_v15["apis"]}
+            api_entry = apis[api]
+            methods = {entry["name"]: entry for entry in api_entry["methods"]}
+            runtime_call_def = methods[method]
         except KeyError:
             raise ValueError(f"Runtime API Call '{api}.{method}' not found in registry")
 
-        if isinstance(params, list) and len(params) != len(runtime_call_def["params"]):
+        if isinstance(params, list) and len(params) != len(runtime_call_def["inputs"]):
             raise ValueError(
                 f"Number of parameter provided ({len(params)}) does not "
-                f"match definition {len(runtime_call_def['params'])}"
+                f"match definition {len(runtime_call_def['inputs'])}"
             )
 
-        # Add runtime API types to registry
-        self.runtime_config.update_type_registry_types(runtime_api_types)
-        runtime = Runtime(
-            self.chain,
-            self.runtime_config,
-            self.__metadata,
-            self.type_registry,
-        )
-
         # Encode params
-        param_data = ScaleBytes(bytes())
-        for idx, param in enumerate(runtime_call_def["params"]):
-            scale_obj = runtime.runtime_config.create_scale_object(param["type"])
+        param_data = b""
+        for idx, param in enumerate(runtime_call_def["inputs"]):
+            param_type_string = f'scale_info::{param["ty"]}'
             if isinstance(params, list):
-                param_data += scale_obj.encode(params[idx])
+                param_data += await self.encode_scale(param_type_string, params[idx])
             else:
                 if param["name"] not in params:
                     raise ValueError(f"Runtime Call param '{param['name']}' is missing")
 
-                param_data += scale_obj.encode(params[param["name"]])
+                param_data += await self.encode_scale(
+                    param_type_string, params[param["name"]]
+                )
 
         # RPC request
         result_data = await self.rpc_request(
-            "state_call", [f"{api}_{method}", str(param_data), block_hash]
+            "state_call", [f"{api}_{method}", param_data.hex(), block_hash]
         )
 
-        # Decode result
-        # TODO update this to use bt-decode
-        result_obj = runtime.runtime_config.create_scale_object(
-            runtime_call_def["type"]
+        output_type_string = f'scale_info::{runtime_call_def["output"]}'
+
+        return output_type_string, hex_to_bytes(result_data["result"])
+
+    async def runtime_call(
+        self,
+        api: str,
+        method: str,
+        params: Optional[Union[list, dict]] = None,
+        block_hash: Optional[str] = None,
+    ) -> ScaleType:
+        """
+        Calls a runtime API method
+        :param api: Name of the runtime API e.g. 'TransactionPaymentApi'
+        :param method: Name of the method e.g. 'query_fee_details'
+        :param params: List of parameters needed to call the runtime API
+        :param block_hash: Hash of the block at which to make the runtime API call
+        :return: ScaleType from the runtime call
+        """
+        # Get the runtime call type and result bytes
+        runtime_call_type, result_bytes = await self.runtime_call_wait_to_decode(
+            api, method, params, block_hash
         )
-        result_obj.decode(
-            ScaleBytes(result_data["result"]),
-            check_remaining=self.config.get("strict_scale_decode"),
-        )
+
+        # Decode the result bytes
+        result_obj = await self.decode_scale(runtime_call_type, result_bytes)
 
         return result_obj
 

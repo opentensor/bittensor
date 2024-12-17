@@ -805,17 +805,16 @@ def test_get_subnet_hyperparameters_success(mocker, subtensor):
     # Prep
     netuid = 1
     block = 123
-    hex_bytes_result = "0x010203"
-    bytes_result = bytes.fromhex(hex_bytes_result[2:])
-    mocker.patch.object(subtensor, "query_runtime_api", return_value=hex_bytes_result)
+    result = mocker.Mock()
+    mocker.patch.object(subtensor, "query_runtime_api", return_value=result)
     mocker.patch.object(
         subtensor_module.SubnetHyperparameters,
-        "from_vec_u8",
-        return_value=["from_vec_u8"],
+        "from_any",
+        return_value=["from_any"],
     )
 
     # Call
-    result = subtensor.get_subnet_hyperparameters(netuid, block)
+    subtensor.get_subnet_hyperparameters(netuid, block)
 
     # Asserts
     subtensor.query_runtime_api.assert_called_once_with(
@@ -824,34 +823,7 @@ def test_get_subnet_hyperparameters_success(mocker, subtensor):
         params=[netuid],
         block=block,
     )
-    subtensor_module.SubnetHyperparameters.from_vec_u8.assert_called_once_with(
-        bytes_result
-    )
-
-
-def test_get_subnet_hyperparameters_hex_without_prefix(subtensor, mocker):
-    """Test get_subnet_hyperparameters correctly processes hex string without '0x' prefix."""
-    # Prep
-    netuid = 1
-    block = 123
-    hex_bytes_result = "010203"
-    bytes_result = bytes.fromhex(hex_bytes_result)
-    mocker.patch.object(subtensor, "query_runtime_api", return_value=hex_bytes_result)
-    mocker.patch.object(subtensor_module.SubnetHyperparameters, "from_vec_u8")
-
-    # Call
-    result = subtensor.get_subnet_hyperparameters(netuid, block)
-
-    # Asserts
-    subtensor.query_runtime_api.assert_called_once_with(
-        runtime_api="SubnetInfoRuntimeApi",
-        method="get_subnet_hyperparams",
-        params=[netuid],
-        block=block,
-    )
-    subtensor_module.SubnetHyperparameters.from_vec_u8.assert_called_once_with(
-        bytes_result
-    )
+    subtensor_module.SubnetHyperparameters.from_any.assert_called_once_with(result)
 
 
 def test_get_subnet_hyperparameters_no_data(mocker, subtensor):
@@ -860,7 +832,7 @@ def test_get_subnet_hyperparameters_no_data(mocker, subtensor):
     netuid = 1
     block = 123
     mocker.patch.object(subtensor, "query_runtime_api", return_value=None)
-    mocker.patch.object(subtensor_module.SubnetHyperparameters, "from_vec_u8")
+    mocker.patch.object(subtensor_module.SubnetHyperparameters, "from_any")
 
     # Call
     result = subtensor.get_subnet_hyperparameters(netuid, block)
@@ -873,7 +845,7 @@ def test_get_subnet_hyperparameters_no_data(mocker, subtensor):
         params=[netuid],
         block=block,
     )
-    subtensor_module.SubnetHyperparameters.from_vec_u8.assert_not_called()
+    subtensor_module.SubnetHyperparameters.from_any.assert_not_called()
 
 
 def test_query_subtensor(subtensor, mocker):
@@ -900,31 +872,21 @@ def test_query_runtime_api(subtensor, mocker):
     fake_runtime_api = "NeuronInfoRuntimeApi"
     fake_method = "get_neuron_lite"
 
-    mocked_state_call = mocker.MagicMock()
-    subtensor.state_call = mocked_state_call
-
-    mocked_runtime_configuration = mocker.patch.object(
-        subtensor_module, "RuntimeConfiguration"
-    )
-    mocked_scalecodec = mocker.patch.object(subtensor_module.scalecodec, "ScaleBytes")
+    mocked_runtime_call = mocker.MagicMock()
+    subtensor.substrate.runtime_call = mocked_runtime_call
 
     # Call
     result = subtensor.query_runtime_api(fake_runtime_api, fake_method, None)
 
     # Asserts
-    subtensor.state_call.assert_called_once_with(
-        method=f"{fake_runtime_api}_{fake_method}", data="0x", block=None
+    subtensor.substrate.runtime_call.assert_called_once_with(
+        fake_runtime_api,
+        fake_method,
+        None,
+        None,
     )
-    mocked_scalecodec.assert_called_once_with(
-        subtensor.state_call.return_value.__getitem__.return_value
-    )
-    mocked_runtime_configuration.assert_called_once()
-    mocked_runtime_configuration.return_value.update_type_registry.assert_called()
-    mocked_runtime_configuration.return_value.create_scale_object.assert_called()
-    assert (
-        result
-        == mocked_runtime_configuration.return_value.create_scale_object.return_value.decode.return_value
-    )
+
+    assert result == mocked_runtime_call.return_value
 
 
 def test_query_map_subtensor(subtensor, mocker):
@@ -1380,7 +1342,7 @@ def test_neuron_for_uid_response_none(subtensor, mocker):
         subtensor_module.NeuronInfo, "get_null_neuron"
     )
 
-    subtensor.substrate.rpc_request.return_value.get.return_value = None
+    subtensor.substrate.runtime_call.return_value = None
 
     # Call
     result = subtensor.neuron_for_uid(
@@ -1388,9 +1350,11 @@ def test_neuron_for_uid_response_none(subtensor, mocker):
     )
 
     # Asserts
-    subtensor.substrate.rpc_request.assert_called_once_with(
-        method="neuronInfo_getNeuron",
-        params=[fake_netuid, fake_uid, subtensor.substrate.get_block_hash.return_value],
+    subtensor.substrate.runtime_call.assert_called_once_with(
+        "NeuronInfoRuntimeApi",
+        "get_neuron",
+        [fake_netuid, fake_uid],
+        subtensor.substrate.get_block_hash.return_value,
     )
 
     mocked_neuron_info.assert_called_once()
@@ -1403,8 +1367,8 @@ def test_neuron_for_uid_success(subtensor, mocker):
     fake_uid = 1
     fake_netuid = 2
     fake_block = 123
-    mocked_neuron_from_vec_u8 = mocker.patch.object(
-        subtensor_module.NeuronInfo, "from_vec_u8"
+    mocked_neuron_from_any = mocker.patch.object(
+        subtensor_module.NeuronInfo, "from_any"
     )
     mock_get_block_hash = mocker.patch.object(subtensor, "get_block_hash")
 
@@ -1415,15 +1379,17 @@ def test_neuron_for_uid_success(subtensor, mocker):
 
     # Asserts
     mock_get_block_hash.assert_called_once_with(fake_block)
-    subtensor.substrate.rpc_request.assert_called_once_with(
-        method="neuronInfo_getNeuron",
-        params=[fake_netuid, fake_uid, mock_get_block_hash.return_value],
+    subtensor.substrate.runtime_call.assert_called_once_with(
+        "NeuronInfoRuntimeApi",
+        "get_neuron",
+        [fake_netuid, fake_uid],
+        mock_get_block_hash.return_value,
     )
 
-    mocked_neuron_from_vec_u8.assert_called_once_with(
-        subtensor.substrate.rpc_request.return_value.get.return_value
+    mocked_neuron_from_any.assert_called_once_with(
+        subtensor.substrate.runtime_call.return_value
     )
-    assert result == mocked_neuron_from_vec_u8.return_value
+    assert result == mocked_neuron_from_any.return_value
 
 
 @pytest.mark.parametrize(
@@ -2039,13 +2005,12 @@ def test_get_all_subnets_info_success(mocker, subtensor):
     mocker.patch.object(
         subtensor.substrate, "get_block_hash", return_value="mock_block_hash"
     )
-    hex_bytes_result = "0x010203"
-    bytes_result = bytes.fromhex(hex_bytes_result[2:])
-    mocker.patch.object(subtensor, "query_runtime_api", return_value=hex_bytes_result)
+    result = mocker.Mock()
+    mocker.patch.object(subtensor, "query_runtime_api", return_value=result)
     mocker.patch.object(
         subtensor_module.SubnetInfo,
-        "list_from_vec_u8",
-        return_value="list_from_vec_u80",
+        "list_from_any",
+        return_value="list_from_any",
     )
 
     # Call
@@ -2055,7 +2020,7 @@ def test_get_all_subnets_info_success(mocker, subtensor):
     subtensor.query_runtime_api.assert_called_once_with(
         "SubnetInfoRuntimeApi", "get_subnets_info", params=[], block=block
     )
-    subtensor_module.SubnetInfo.list_from_vec_u8.assert_called_once_with(bytes_result)
+    subtensor_module.SubnetInfo.list_from_any.assert_called_once_with(result)
 
 
 @pytest.mark.parametrize("result_", [[], None])
@@ -2483,9 +2448,7 @@ def test_get_delegates_success(mocker, subtensor):
     # Mock data
     fake_block = 123
     fake_block_hash = "0xabc123"
-    fake_json_body = {
-        "result": "mock_encoded_delegates",
-    }
+    fake_response = mocker.Mock()
 
     # Mocks
     mock_get_block_hash = mocker.patch.object(
@@ -2493,14 +2456,14 @@ def test_get_delegates_success(mocker, subtensor):
         "get_block_hash",
         return_value=fake_block_hash,
     )
-    mock_rpc_request = mocker.patch.object(
+    mock_runtime_call = mocker.patch.object(
         subtensor.substrate,
-        "rpc_request",
-        return_value=fake_json_body,
+        "runtime_call",
+        return_value=fake_response,
     )
-    mock_list_from_vec_u8 = mocker.patch.object(
+    mock_list_from_any = mocker.patch.object(
         subtensor_module.DelegateInfo,
-        "list_from_vec_u8",
+        "list_from_any",
         return_value=["delegate1", "delegate2"],
     )
 
@@ -2509,11 +2472,13 @@ def test_get_delegates_success(mocker, subtensor):
 
     # Assertions
     mock_get_block_hash.assert_called_once_with(fake_block)
-    mock_rpc_request.assert_called_once_with(
-        method="delegateInfo_getDelegates",
-        params=[fake_block_hash],
+    mock_runtime_call.assert_called_once_with(
+        "DelegateInfoRuntimeApi",
+        "get_delegates",
+        [],
+        fake_block_hash,
     )
-    mock_list_from_vec_u8.assert_called_once_with(fake_json_body["result"])
+    mock_list_from_any.assert_called_once_with(fake_response)
     assert result == ["delegate1", "delegate2"]
 
 
@@ -2522,7 +2487,7 @@ def test_get_delegates_no_result(mocker, subtensor):
     # Mock data
     fake_block = 123
     fake_block_hash = "0xabc123"
-    fake_json_body = {}
+    fake_response = None
 
     # Mocks
     mock_get_block_hash = mocker.patch.object(
@@ -2530,10 +2495,10 @@ def test_get_delegates_no_result(mocker, subtensor):
         "get_block_hash",
         return_value=fake_block_hash,
     )
-    mock_rpc_request = mocker.patch.object(
+    mock_runtime_call = mocker.patch.object(
         subtensor.substrate,
-        "rpc_request",
-        return_value=fake_json_body,
+        "runtime_call",
+        return_value=fake_response,
     )
 
     # Call
@@ -2541,9 +2506,11 @@ def test_get_delegates_no_result(mocker, subtensor):
 
     # Assertions
     mock_get_block_hash.assert_called_once_with(fake_block)
-    mock_rpc_request.assert_called_once_with(
-        method="delegateInfo_getDelegates",
-        params=[fake_block_hash],
+    mock_runtime_call.assert_called_once_with(
+        "DelegateInfoRuntimeApi",
+        "get_delegates",
+        [],
+        fake_block_hash,
     )
     assert result == []
 
@@ -2551,19 +2518,17 @@ def test_get_delegates_no_result(mocker, subtensor):
 def test_get_delegates_latest_block(mocker, subtensor):
     """Test when no block is provided (latest block)."""
     # Mock data
-    fake_json_body = {
-        "result": "mock_encoded_delegates",
-    }
+    fake_response = mocker.Mock()
 
     # Mocks
-    mock_rpc_request = mocker.patch.object(
+    mock_runtime_call = mocker.patch.object(
         subtensor.substrate,
-        "rpc_request",
-        return_value=fake_json_body,
+        "runtime_call",
+        return_value=fake_response,
     )
-    mock_list_from_vec_u8 = mocker.patch.object(
+    mock_list_from_any = mocker.patch.object(
         subtensor_module.DelegateInfo,
-        "list_from_vec_u8",
+        "list_from_any",
         return_value=["delegate1", "delegate2"],
     )
 
@@ -2571,11 +2536,13 @@ def test_get_delegates_latest_block(mocker, subtensor):
     result = subtensor.get_delegates()
 
     # Assertions
-    mock_rpc_request.assert_called_once_with(
-        method="delegateInfo_getDelegates",
-        params=[],
+    mock_runtime_call.assert_called_once_with(
+        "DelegateInfoRuntimeApi",
+        "get_delegates",
+        [],
+        None,
     )
-    mock_list_from_vec_u8.assert_called_once_with(fake_json_body["result"])
+    mock_list_from_any.assert_called_once_with(fake_response)
     assert result == ["delegate1", "delegate2"]
 
 

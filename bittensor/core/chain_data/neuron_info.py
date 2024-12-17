@@ -1,10 +1,11 @@
 from dataclasses import dataclass
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Optional
 
 import bt_decode
 import netaddr
 
 from bittensor.core.chain_data.axon_info import AxonInfo
+from bittensor.core.chain_data.info_base import InfoBase
 from bittensor.core.chain_data.prometheus_info import PrometheusInfo
 from bittensor.core.chain_data.utils import decode_account_id, process_stake_data
 from bittensor.utils import u16_normalized_float
@@ -16,7 +17,7 @@ if TYPE_CHECKING:
 
 
 @dataclass
-class NeuronInfo:
+class NeuronInfo(InfoBase):
     """Represents the metadata of a neuron including keys, UID, stake, rankings, and other attributes.
 
     Attributes:
@@ -125,41 +126,40 @@ class NeuronInfo:
         return neuron
 
     @classmethod
-    def from_vec_u8(cls, vec_u8: bytes) -> "NeuronInfo":
+    def _fix_decoded(cls, decoded: Any) -> "NeuronInfo":
         """Instantiates NeuronInfo from a byte vector."""
-        n = bt_decode.NeuronInfo.decode(bytes(vec_u8))
-        stake_dict = process_stake_data(n.stake)
+        stake_dict = process_stake_data(decoded.stake)
         total_stake = sum(stake_dict.values()) if stake_dict else Balance(0)
-        axon_info = n.axon_info
-        coldkey = decode_account_id(n.coldkey)
-        hotkey = decode_account_id(n.hotkey)
+        axon_info = decoded.axon_info
+        coldkey = decode_account_id(decoded.coldkey)
+        hotkey = decode_account_id(decoded.hotkey)
         return NeuronInfo(
             hotkey=hotkey,
             coldkey=coldkey,
-            uid=n.uid,
-            netuid=n.netuid,
-            active=n.active,
+            uid=decoded.uid,
+            netuid=decoded.netuid,
+            active=decoded.active,
             stake=total_stake,
             stake_dict=stake_dict,
             total_stake=total_stake,
-            rank=u16_normalized_float(n.rank),
-            emission=n.emission / 1e9,
-            incentive=u16_normalized_float(n.incentive),
-            consensus=u16_normalized_float(n.consensus),
-            trust=u16_normalized_float(n.trust),
-            validator_trust=u16_normalized_float(n.validator_trust),
-            dividends=u16_normalized_float(n.dividends),
-            last_update=n.last_update,
-            validator_permit=n.validator_permit,
-            weights=[[e[0], e[1]] for e in n.weights],
-            bonds=[[e[0], e[1]] for e in n.bonds],
-            pruning_score=n.pruning_score,
+            rank=u16_normalized_float(decoded.rank),
+            emission=decoded.emission / 1e9,
+            incentive=u16_normalized_float(decoded.incentive),
+            consensus=u16_normalized_float(decoded.consensus),
+            trust=u16_normalized_float(decoded.trust),
+            validator_trust=u16_normalized_float(decoded.validator_trust),
+            dividends=u16_normalized_float(decoded.dividends),
+            last_update=decoded.last_update,
+            validator_permit=decoded.validator_permit,
+            weights=[[e[0], e[1]] for e in decoded.weights],
+            bonds=[[e[0], e[1]] for e in decoded.bonds],
+            pruning_score=decoded.pruning_score,
             prometheus_info=PrometheusInfo(
-                block=n.prometheus_info.block,
-                version=n.prometheus_info.version,
-                ip=str(netaddr.IPAddress(n.prometheus_info.ip)),
-                port=n.prometheus_info.port,
-                ip_type=n.prometheus_info.ip_type,
+                block=decoded.prometheus_info.block,
+                version=decoded.prometheus_info.version,
+                ip=str(netaddr.IPAddress(decoded.prometheus_info.ip)),
+                port=decoded.prometheus_info.port,
+                ip_type=decoded.prometheus_info.ip_type,
             ),
             axon_info=AxonInfo(
                 version=axon_info.version,
@@ -179,52 +179,9 @@ class NeuronInfo:
     def list_from_vec_u8(cls, vec_u8: bytes) -> list["NeuronInfo"]:
         nn = bt_decode.NeuronInfo.decode_vec(bytes(vec_u8))
 
-        def fix(n):
-            stake_dict = process_stake_data(n.stake)
-            total_stake = sum(stake_dict.values()) if stake_dict else Balance(0)
-            axon_info = n.axon_info
-            coldkey = decode_account_id(n.coldkey)
-            hotkey = decode_account_id(n.hotkey)
-            return NeuronInfo(
-                hotkey=hotkey,
-                coldkey=coldkey,
-                uid=n.uid,
-                netuid=n.netuid,
-                active=n.active,
-                stake=total_stake,
-                stake_dict=stake_dict,
-                total_stake=total_stake,
-                rank=u16_normalized_float(n.rank),
-                emission=n.emission / 1e9,
-                incentive=u16_normalized_float(n.incentive),
-                consensus=u16_normalized_float(n.consensus),
-                trust=u16_normalized_float(n.trust),
-                validator_trust=u16_normalized_float(n.validator_trust),
-                dividends=u16_normalized_float(n.dividends),
-                last_update=n.last_update,
-                validator_permit=n.validator_permit,
-                weights=[[e[0], e[1]] for e in n.weights],
-                bonds=[[e[0], e[1]] for e in n.bonds],
-                pruning_score=n.pruning_score,
-                prometheus_info=PrometheusInfo(
-                    block=n.prometheus_info.block,
-                    version=n.prometheus_info.version,
-                    ip=str(netaddr.IPAddress(n.prometheus_info.ip)),
-                    port=n.prometheus_info.port,
-                    ip_type=n.prometheus_info.ip_type,
-                ),
-                axon_info=AxonInfo(
-                    version=axon_info.version,
-                    ip=str(netaddr.IPAddress(axon_info.ip)),
-                    port=axon_info.port,
-                    ip_type=axon_info.ip_type,
-                    placeholder1=axon_info.placeholder1,
-                    placeholder2=axon_info.placeholder2,
-                    protocol=axon_info.protocol,
-                    hotkey=hotkey,
-                    coldkey=coldkey,
-                ),
-                is_null=False,
-            )
+        return [cls._fix_decoded(n) for n in nn]
 
-        return [fix(n) for n in nn]
+    @classmethod
+    def from_vec_u8(cls, vec_u8: bytes) -> "NeuronInfo":
+        n = bt_decode.NeuronInfo.decode(vec_u8)
+        return cls._fix_decoded(n)
