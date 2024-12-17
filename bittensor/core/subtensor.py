@@ -1764,7 +1764,7 @@ class Subtensor:
         if not (result := json_body.get("result", None)):
             return []
 
-        return DelegateInfo.list_from_vec_u8(result)
+        return DelegateInfo.list_from_vec_u8(bytes(result))
 
     def is_hotkey_delegate(self, hotkey_ss58: str, block: Optional[int] = None) -> bool:
         """
