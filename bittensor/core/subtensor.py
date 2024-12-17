@@ -100,6 +100,9 @@ class Subtensor:
         self._event_loop = asyncio.get_event_loop()
         self._event_loop.run_until_complete(self._subtensor.__aenter__())
         self.substrate = SubstrateWrapper(self._subtensor.substrate, self._event_loop)
+        self._init_subtensor()
+
+    def _init_subtensor(self):
         for attr_name in dir(AsyncSubtensor):
             attr = getattr(AsyncSubtensor, attr_name)
             if asyncio.iscoroutinefunction(attr):

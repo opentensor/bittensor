@@ -4,7 +4,7 @@ import ssl
 from typing import Optional, Any, Union, TypedDict, Iterable, TYPE_CHECKING
 
 import aiohttp
-from async_lru import alru_cache
+import asyncstdlib as a
 import numpy as np
 import scalecodec
 from bittensor_wallet import Wallet
@@ -284,7 +284,7 @@ class AsyncSubtensor:
         """
         return await self.substrate.get_block_number(None)
 
-    @alru_cache(maxsize=128)
+    @a.lru_cache(maxsize=128)
     async def _get_block_hash(self, block_id: int):
         return await self.substrate.get_block_hash(block_id)
 
