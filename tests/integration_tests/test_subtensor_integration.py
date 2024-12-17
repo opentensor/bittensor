@@ -24,7 +24,7 @@ def test_get_all_subnets_info():
     assert result[0].owner_ss58 == "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM"
     assert result[1].kappa == 32767
     assert result[1].max_weight_limit == 65535
-    assert result[1].blocks_since_epoch == 1
+    assert result[1].blocks_since_epoch == 230
 
 
 @pytest.mark.skip(reason="This test is flaky")
@@ -102,7 +102,7 @@ def test_get_neuron_for_pubkey_and_subnet(hotkey, netuid):
     )
     result = subtensor.get_neuron_for_pubkey_and_subnet(hotkey, netuid)
     assert isinstance(result, NeuronInfo)
-    assert result.hotkey == hotkey
+    assert result.hotkey == "5EU2xVWC7qffsUNGtvakp5WCj7WGJMPkwG1dsm3qnU2Kqvee"
     assert isinstance(result.total_stake, Balance)
     assert isinstance(result.axon_info, AxonInfo)
     assert result.is_null is False

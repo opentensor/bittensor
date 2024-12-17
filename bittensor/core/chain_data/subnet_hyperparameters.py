@@ -1,11 +1,13 @@
 from dataclasses import dataclass
-from typing import Optional
+from typing import Any, Optional
 
 import bt_decode
 
+from bittensor.core.chain_data.info_base import InfoBase
+
 
 @dataclass
-class SubnetHyperparameters:
+class SubnetHyperparameters(InfoBase):
     """
     This class represents the hyperparameters for a subnet.
 
@@ -68,7 +70,7 @@ class SubnetHyperparameters:
     liquid_alpha_enabled: bool
 
     @classmethod
-    def from_vec_u8(cls, vec_u8: bytes) -> Optional["SubnetHyperparameters"]:
+    def _fix_decoded(cls, decoded: Any) -> "SubnetHyperparameters":
         """
         Create a `SubnetHyperparameters` instance from a vector of bytes.
 
@@ -80,7 +82,6 @@ class SubnetHyperparameters:
         Returns:
             Optional[SubnetHyperparameters]: An instance of `SubnetHyperparameters` if decoding is successful, None otherwise.
         """
-        decoded = bt_decode.SubnetHyperparameters.decode(vec_u8)
         return SubnetHyperparameters(
             rho=decoded.rho,
             kappa=decoded.kappa,
@@ -110,3 +111,8 @@ class SubnetHyperparameters:
             alpha_low=decoded.alpha_low,
             liquid_alpha_enabled=decoded.liquid_alpha_enabled,
         )
+
+    @classmethod
+    def from_vec_u8(cls, vec_u8: bytes) -> Optional["SubnetHyperparameters"]:
+        decoded = bt_decode.SubnetHyperparameters.decode(vec_u8)
+        return cls._fix_decoded(decoded)
