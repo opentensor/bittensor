@@ -1396,10 +1396,10 @@ class AxonMiddleware(BaseHTTPMiddleware):
             Returns:
                 tuple: A tuple containing the priority value and the result of the priority function execution.
             """
-            loop = asyncio.get_event_loop()
+            loop = asyncio.get_running_loop()
             future = loop.run_in_executor(executor, lambda: priority)
-            result = await future
-            return priority, result
+            result_ = await future
+            return priority, result_
 
         # If a priority function exists for the request's name
         if priority_fn:

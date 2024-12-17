@@ -28,7 +28,7 @@ from bittensor.utils.registration import POWSolution
 def mock_subtensor(mocker):
     mock = mocker.MagicMock(spec=Subtensor)
     mock.network = "mock_network"
-    mock.substrate = mocker.MagicMock()
+    mock.substrate = mocker.AsyncMock()
     return mock
 
 

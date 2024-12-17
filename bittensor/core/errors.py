@@ -19,10 +19,20 @@ from __future__ import annotations
 
 from typing import Optional, TYPE_CHECKING
 
-from substrateinterface.exceptions import SubstrateRequestException
-
 if TYPE_CHECKING:
     from bittensor.core.synapse import Synapse
+
+
+class SubstrateRequestException(Exception):
+    pass
+
+
+class BlockNotFound(Exception):
+    pass
+
+
+class ExtrinsicNotFound(Exception):
+    pass
 
 
 class ChainError(SubstrateRequestException):

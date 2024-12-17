@@ -5,14 +5,12 @@ from bittensor.core.errors import NotDelegateError, StakeError, NotRegisteredErr
 from bittensor.utils import format_error_message, unlock_key
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
-from bittensor.utils.networking import ensure_connected
 
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
     from bittensor.core.subtensor import Subtensor
 
 
-@ensure_connected
 def _do_stake(
     self: "Subtensor",
     wallet: "Wallet",
@@ -55,7 +53,6 @@ def _do_stake(
     if not wait_for_finalization and not wait_for_inclusion:
         return True
 
-    response.process_events()
     if response.is_success:
         return True
     else:

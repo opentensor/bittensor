@@ -2,7 +2,7 @@ import pytest
 from substrateinterface.exceptions import SubstrateRequestException
 
 from bittensor.core import async_subtensor
-from bittensor.core.extrinsics import async_root
+from bittensor.core.extrinsics.asyncio import root as async_root
 from bittensor_wallet import Wallet
 
 
@@ -313,7 +313,6 @@ async def test_do_set_root_weights_success(subtensor, mocker):
     subtensor.substrate.submit_extrinsic.assert_called_once_with(
         fake_extrinsic, wait_for_inclusion=True, wait_for_finalization=True
     )
-    fake_response.process_events.assert_called_once()
     assert result is True
     assert message == "Successfully set weights."
 
@@ -364,7 +363,6 @@ async def test_do_set_root_weights_failure(subtensor, mocker):
     )
 
     # Asserts
-    fake_response.process_events.assert_called_once()
     assert result is False
     assert message == mocked_format_error_message.return_value
 
