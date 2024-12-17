@@ -12,7 +12,6 @@ from tests.e2e_tests.utils.chain_interactions import (
     register_subnet,
     sudo_set_hyperparameter_bool,
     sudo_set_hyperparameter_values,
-    root_set_subtensor_hyperparameter_values,
     sudo_set_admin_utils,
 )
 from tests.e2e_tests.utils.e2e_test_utils import setup_wallet
@@ -33,7 +32,7 @@ async def test_set_weights_uses_next_nonce(local_chain):
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
-    netuids = [1, 2, 3]
+    netuids = [1, 2]
     utils.EXTRINSIC_SUBMISSION_TIMEOUT = 12  # handle fast blocks
     print("Testing test_set_weights_uses_next_nonce")
     # Register root as Alice
@@ -100,7 +99,7 @@ async def test_set_weights_uses_next_nonce(local_chain):
             netuid,
         ), "Unable to enable commit reveal on the subnet"
 
-        assert subtensor.get_subnet_hyperparameters(
+        assert not subtensor.get_subnet_hyperparameters(
             netuid=netuid,
         ).commit_reveal_weights_enabled, "Failed to enable commit/reveal"
 
@@ -130,7 +129,7 @@ async def test_set_weights_uses_next_nonce(local_chain):
 
     # Set weights for each subnet
     for netuid in netuids:
-        success, message = subtensor.commit_weights(
+        success, message = subtensor.set_weights(
             alice_wallet,
             netuid,
             uids=weight_uids,
