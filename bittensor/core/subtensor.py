@@ -1319,7 +1319,9 @@ class Subtensor:
         )
         return getattr(result, "value", None)
 
-    def get_weight_commits(self, netuid: int, block: Optional[int] = None) -> list:
+    def get_current_weight_commit_info(
+        self, netuid: int, block: Optional[int] = None
+    ) -> list:
         """
         Retrieves CRV3 weight commit information for a specific subnet.
 
@@ -1822,23 +1824,36 @@ class Subtensor:
 
         This function is crucial in shaping the network's collective intelligence, where each neuron's learning and contribution are influenced by the weights it sets towards others【81†source】.
         """
+        retries = 0
+        success = False
+        uid = self.get_uid_for_hotkey_on_subnet(wallet.hotkey.ss58_address, netuid)
+
         if self.commit_reveal_enabled(netuid=netuid) is True:
             # go with `commit reveal v3` extrinsic
-            return commit_reveal_v3_extrinsic(
-                subtensor=self,
-                wallet=wallet,
-                netuid=netuid,
-                uids=uids,
-                weights=weights,
-                version_key=version_key,
-                wait_for_inclusion=wait_for_inclusion,
-                wait_for_finalization=wait_for_finalization,
-            )
+            message = "No attempt made. Perhaps it is too soon to commit weights!"
+            while (
+                self.blocks_since_last_update(netuid, uid)  # type: ignore
+                > self.weights_rate_limit(netuid)  # type: ignore
+                and retries < max_retries
+                and success is False
+            ):
+                logging.info(
+                    f"Committing weights for subnet #{netuid}. Attempt {retries + 1} of {max_retries}."
+                )
+                success, message = commit_reveal_v3_extrinsic(
+                    subtensor=self,
+                    wallet=wallet,
+                    netuid=netuid,
+                    uids=uids,
+                    weights=weights,
+                    version_key=version_key,
+                    wait_for_inclusion=wait_for_inclusion,
+                    wait_for_finalization=wait_for_finalization,
+                )
+                retries += 1
+            return success, message
         else:
             # go with classic `set weights` logic
-            uid = self.get_uid_for_hotkey_on_subnet(wallet.hotkey.ss58_address, netuid)
-            retries = 0
-            success = False
             message = "No attempt made. Perhaps it is too soon to set weights!"
             while (
                 self.blocks_since_last_update(netuid, uid)  # type: ignore
