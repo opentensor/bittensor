@@ -2548,7 +2548,7 @@ def test_get_delegates_success(mocker, subtensor):
     fake_block = 123
     fake_block_hash = "0xabc123"
     fake_json_body = {
-        "result": "mock_encoded_delegates",
+        "result": b"mock_encoded_delegates",
     }
 
     # Mocks
@@ -2616,7 +2616,7 @@ def test_get_delegates_latest_block(mocker, subtensor):
     """Test when no block is provided (latest block)."""
     # Mock data
     fake_json_body = {
-        "result": "mock_encoded_delegates",
+        "result": b"mock_encoded_delegates",
     }
 
     # Mocks
