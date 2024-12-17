@@ -9,12 +9,12 @@ from bittensor.core.settings import version_as_int
 from bittensor.utils import format_error_message
 from bittensor.utils.btlogging import logging
 from bittensor.utils.networking import ensure_connected
-from bittensor.utils.registration import torch, use_torch
 from bittensor.utils.weight_utils import convert_weights_and_uids_for_emit
 
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
     from bittensor.core.subtensor import Subtensor
+    from bittensor.utils.registration import torch
 
 
 @ensure_connected
@@ -74,9 +74,7 @@ def _do_commit_reveal_v3(
     if response.is_success:
         return True, None
     else:
-        return False, format_error_message(
-            response.error_message, substrate=self.substrate
-        )
+        return False, format_error_message(response.error_message)
 
 
 def commit_reveal_v3_extrinsic(
@@ -107,16 +105,10 @@ def commit_reveal_v3_extrinsic(
     """
     try:
         # Convert uids and weights
-        if use_torch():
-            if isinstance(uids, list):
-                uids = torch.tensor(uids, dtype=torch.int64)
-            if isinstance(weights, list):
-                weights = torch.tensor(weights, dtype=torch.float32)
-        else:
-            if isinstance(uids, list):
-                uids = np.array(uids, dtype=np.int64)
-            if isinstance(weights, list):
-                weights = np.array(weights, dtype=np.float32)
+        if isinstance(uids, list):
+            uids = np.array(uids, dtype=np.int64)
+        if isinstance(weights, list):
+            weights = np.array(weights, dtype=np.float32)
 
         # Reformat and normalize.
         uids, weights = convert_weights_and_uids_for_emit(uids, weights)

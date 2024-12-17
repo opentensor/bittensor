@@ -505,7 +505,7 @@ class Subtensor:
         self,
         runtime_api: str,
         method: str,
-        params: Optional[Union[list[int], dict[str, int]]],
+        params: Optional[Union[list[int], dict[str, int]]] = None,
         block: Optional[int] = None,
     ) -> Optional[str]:
         """
@@ -956,13 +956,13 @@ class Subtensor:
 
     @networking.ensure_connected
     def neuron_for_uid(
-        self, uid: Optional[int], netuid: int, block: Optional[int] = None
+        self, uid: int, netuid: int, block: Optional[int] = None
     ) -> "NeuronInfo":
         """
         Retrieves detailed information about a specific neuron identified by its unique identifier (UID) within a specified subnet (netuid) of the Bittensor network. This function provides a comprehensive view of a neuron's attributes, including its stake, rank, and operational status.
 
         Args:
-            uid (Optional[int]): The unique identifier of the neuron.
+            uid (int): The unique identifier of the neuron.
             netuid (int): The unique identifier of the subnet.
             block (Optional[int]): The blockchain block number for the query.
 
@@ -1814,23 +1814,36 @@ class Subtensor:
 
         This function is crucial in shaping the network's collective intelligence, where each neuron's learning and contribution are influenced by the weights it sets towards others【81†source】.
         """
+        retries = 0
+        success = False
+        uid = self.get_uid_for_hotkey_on_subnet(wallet.hotkey.ss58_address, netuid)
+
         if self.commit_reveal_enabled(netuid=netuid) is True:
             # go with `commit reveal v3` extrinsic
-            return commit_reveal_v3_extrinsic(
-                subtensor=self,
-                wallet=wallet,
-                netuid=netuid,
-                uids=uids,
-                weights=weights,
-                version_key=version_key,
-                wait_for_inclusion=wait_for_inclusion,
-                wait_for_finalization=wait_for_finalization,
-            )
+            message = "No attempt made. Perhaps it is too soon to commit weights!"
+            while (
+                self.blocks_since_last_update(netuid, uid)  # type: ignore
+                > self.weights_rate_limit(netuid)  # type: ignore
+                and retries < max_retries
+                and success is False
+            ):
+                logging.info(
+                    f"Committing weights for subnet #{netuid}. Attempt {retries + 1} of {max_retries}."
+                )
+                success, message = commit_reveal_v3_extrinsic(
+                    subtensor=self,
+                    wallet=wallet,
+                    netuid=netuid,
+                    uids=uids,
+                    weights=weights,
+                    version_key=version_key,
+                    wait_for_inclusion=wait_for_inclusion,
+                    wait_for_finalization=wait_for_finalization,
+                )
+                retries += 1
+            return success, message
         else:
             # go with classic `set weights` logic
-            uid = self.get_uid_for_hotkey_on_subnet(wallet.hotkey.ss58_address, netuid)
-            retries = 0
-            success = False
             message = "No attempt made. Perhaps it is too soon to set weights!"
             while (
                 self.blocks_since_last_update(netuid, uid)  # type: ignore

@@ -21,7 +21,9 @@ ALLOWED_DELTA = 4_000_000_000  # Delta of 4 seconds for nonce validation
 NANOSECONDS_IN_SECOND = 1_000_000_000
 
 
-def allowed_nonce_window_ns(current_time_ns: int, synapse_timeout: Optional[float]):
+def allowed_nonce_window_ns(
+    current_time_ns: int, synapse_timeout: Optional[float] = None
+) -> int:
     """
     Calculates the allowed window for a nonce in nanoseconds.
 

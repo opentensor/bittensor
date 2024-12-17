@@ -146,9 +146,7 @@ def test_do_commit_reveal_v3_failure_due_to_error(mocker, subtensor):
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
-    mocked_format_error_message.assert_called_once_with(
-        "Mocked error", substrate=subtensor.substrate
-    )
+    mocked_format_error_message.assert_called_once_with("Mocked error")
     assert result == (False, "Formatted error")
 
 
@@ -163,7 +161,6 @@ def test_commit_reveal_v3_extrinsic_success_with_torch(mocker, subtensor, hyperp
     fake_reveal_round = 1
 
     # Mocks
-    mocker.patch.object(commit_reveal, "use_torch", return_value=True)
 
     mocked_uids = mocker.Mock()
     mocked_weights = mocker.Mock()
@@ -235,7 +232,6 @@ def test_commit_reveal_v3_extrinsic_success_with_numpy(mocker, subtensor, hyperp
     fake_uids = np.array([1, 2, 3], dtype=np.int64)
     fake_weights = np.array([0.1, 0.2, 0.7], dtype=np.float32)
 
-    mocker.patch.object(commit_reveal, "use_torch", return_value=False)
     mock_convert = mocker.patch.object(
         commit_reveal,
         "convert_weights_and_uids_for_emit",
@@ -284,7 +280,6 @@ def test_commit_reveal_v3_extrinsic_response_false(mocker, subtensor, hyperparam
     fake_reveal_round = 1
 
     # Mocks
-    mocker.patch.object(commit_reveal, "use_torch", return_value=True)
     mocker.patch.object(
         commit_reveal,
         "convert_weights_and_uids_for_emit",
