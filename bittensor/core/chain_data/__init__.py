@@ -18,6 +18,6 @@ from .scheduled_coldkey_swap_info import ScheduledColdkeySwapInfo
 from .stake_info import StakeInfo
 from .subnet_hyperparameters import SubnetHyperparameters
 from .subnet_info import SubnetInfo
-from .utils import custom_rpc_type_registry, decode_account_id, process_stake_data
+from .utils import decode_account_id, process_stake_data
 
 ProposalCallData = GenericCall
