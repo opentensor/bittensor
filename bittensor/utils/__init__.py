@@ -180,7 +180,7 @@ def format_error_message(error_message: Union[dict, Exception]) -> str:
                     elif all(x in d for x in ["code", "message", "data"]):
                         new_error_message = d
                         break
-            except ValueError:
+            except (ValueError, TypeError, SyntaxError, MemoryError, RecursionError):
                 pass
         if new_error_message is None:
             return_val = " ".join(error_message.args)
