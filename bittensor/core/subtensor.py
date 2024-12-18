@@ -50,7 +50,7 @@ class SubstrateWrapper:
             return attr
 
 
-class Subtensor:
+class Subtensor(AsyncSubtensor):
     """
     This is an experimental subtensor class that utilises the underlying AsyncSubtensor
     """
