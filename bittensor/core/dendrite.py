@@ -186,7 +186,7 @@ class DendriteMixin:
         if event_loop_is_running():
             warnings.warn(
                 "You are calling this from an already-running event loop. "
-                "You should instead use `Dendrite.aclose_session` ",
+                "You should instead use `Dendrite.aclose_session`. This will not work within a coroutine in version 9.0",
                 category=DeprecationWarning,
             )
         if self._session:
@@ -368,7 +368,8 @@ class DendriteMixin:
         """
         if event_loop_is_running():
             warnings.warn(
-                "You are calling this from an already-running event loop. You should instead use `Dendrite.aquery`",
+                "You are calling this from an already-running event loop. "
+                "You should instead use `Dendrite.aquery`. This will not work within a coroutine in version 9.0",
                 category=DeprecationWarning,
             )
         result = None
