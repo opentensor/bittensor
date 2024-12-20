@@ -26,6 +26,7 @@ if TYPE_CHECKING:
 
 
 CHAIN_BLOCK_SECONDS = 12
+DEFAULT_SUBNET_TEMPO = 1
 
 
 class SubtensorWithRetryError(Exception):
@@ -47,20 +48,27 @@ def call_with_retry(method):
                     return result
                 except Exception as e:
                     logging.error(
-                        f"Method raise the error with the attempt [blue]{retries}[/blue]. Error: {e}\n"
+                        f"Method '{method.__name__}' raise the error with the attempt [blue]{retries}[/blue]. Error: {e}"
                     )
                     if retries < self._retry_attempts:
-                        retry_seconds = self.get_retry_seconds(netuid=kwargs.get("netuid"))
-                        logging.debug(f"Retrying after [blue]{retry_seconds}[/blue] seconds.")
+                        retry_seconds = self.get_retry_seconds(
+                            netuid=kwargs.get("netuid")
+                        )
+                        logging.debug(
+                            f"Retrying call '{method.__name__}' in [blue]{retry_seconds}[/blue] seconds."
+                        )
                         time.sleep(retry_seconds)
         raise SubtensorWithRetryError(
-            f"Method failed for all endpoints {self._endpoints} with {self._retry_attempts} attempts."
+            f"Method [blue]'{method.__name__}'[/blue] failed for all endpoints [blue]{self._endpoints}[/blue] with "
+            f"[blue]{self._retry_attempts}[/blue] attempts."
         )
 
     return wrapper
 
 
-def _check_retry_args(retry_seconds: Optional[int] = None, retry_epoch: Optional[int] = None):
+def _check_retry_args(
+    retry_seconds: Optional[int] = None, retry_epoch: Optional[int] = None
+):
     if retry_seconds and retry_epoch:
         raise ValueError("Either `_retry_seconds` or `_retry_epoch` must be specified.")
 
@@ -69,7 +77,7 @@ class SubtensorWithRetry:
     def __init__(
         self,
         endpoints: list[str],
-        retry_seconds: Optional[int] = 1,
+        retry_seconds: Optional[int] = None,
         retry_epoch: Optional[int] = None,
         retry_attempts: Optional[int] = None,
         # Subtensor arguments
@@ -79,7 +87,7 @@ class SubtensorWithRetry:
         websocket: Optional["ws_client.ClientConnection"] = None,
     ):
         _check_retry_args(retry_seconds=retry_seconds, retry_epoch=retry_epoch)
-        self._retry_seconds = retry_seconds
+        self._retry_seconds = retry_seconds if not retry_epoch else None
         self._retry_epoch = retry_epoch
         self._retry_attempts = retry_attempts or 1
 
@@ -94,7 +102,9 @@ class SubtensorWithRetry:
         self._subtensor = None
 
     def _get_subtensor(self, endpoint: Optional[str] = None):
-        logging.debug(f"[magenta]Getting connection with endpoint:[/magenta] [blue]{endpoint}[/blue].")
+        logging.debug(
+            f"[magenta]Getting connection with endpoint:[/magenta] [blue]{endpoint}[/blue]."
+        )
         self._subtensor = Subtensor(
             network=endpoint,
             config=self._config,
@@ -102,7 +112,9 @@ class SubtensorWithRetry:
             connection_timeout=self._connection_timeout,
             websocket=self._websocket,
         )
-        logging.debug(f"[magenta]Subtensor initialized with endpoint:[/magenta] [blue]{endpoint}[/blue].")
+        logging.debug(
+            f"[magenta]Subtensor initialized with endpoint:[/magenta] [blue]{endpoint}[/blue]."
+        )
 
     @cache
     def get_retry_seconds(self, netuid: Optional[int] = None) -> int:
@@ -120,8 +132,17 @@ class SubtensorWithRetry:
         if self._retry_epoch and netuid is None:
             raise ValueError("Either _retry_seconds or _retry_epoch must be specified.")
 
-        subnet_hyperparameters = self._subtensor.get_subnet_hyperparameters(netuid=netuid)
-        subnet_tempo = subnet_hyperparameters.tempo
+        subnet_tempo = DEFAULT_SUBNET_TEMPO
+        try:
+            subnet_hyperparameters = self._subtensor.get_subnet_hyperparameters(
+                netuid=netuid
+            )
+            subnet_tempo = subnet_hyperparameters.tempo
+        except AttributeError as e:
+            logging.debug(
+                f"Subtensor instance was not initialized. Use default tempo as [blue]{DEFAULT_SUBNET_TEMPO}"
+                f"[/blue] blocks."
+            )
         return subnet_tempo * CHAIN_BLOCK_SECONDS
 
     # Subtensor calls ==================================================================================================
@@ -131,12 +152,18 @@ class SubtensorWithRetry:
         return self._subtensor.get_account_next_index(address=address)
 
     @call_with_retry
-    def metagraph(self, netuid: int, lite: bool = True, block: Optional[int] = None) -> "Metagraph":
+    def metagraph(
+        self, netuid: int, lite: bool = True, block: Optional[int] = None
+    ) -> "Metagraph":
         return self._subtensor.metagraph(netuid=netuid, lite=lite, block=block)
 
     @call_with_retry
-    def get_netuids_for_hotkey(self, hotkey_ss58: str, block: Optional[int] = None) -> list[int]:
-        return self._subtensor.get_netuids_for_hotkey(hotkey_ss58=hotkey_ss58, block=block)
+    def get_netuids_for_hotkey(
+        self, hotkey_ss58: str, block: Optional[int] = None
+    ) -> list[int]:
+        return self._subtensor.get_netuids_for_hotkey(
+            hotkey_ss58=hotkey_ss58, block=block
+        )
 
     @property
     def block(self) -> int:
@@ -147,16 +174,31 @@ class SubtensorWithRetry:
         return self._subtensor.get_current_block()
 
     @call_with_retry
-    def is_hotkey_registered_any(self, hotkey_ss58: str, block: Optional[int] = None) -> bool:
-        return self._subtensor.is_hotkey_registered_any(hotkey_ss58=hotkey_ss58, block=block)
+    def is_hotkey_registered_any(
+        self, hotkey_ss58: str, block: Optional[int] = None
+    ) -> bool:
+        return self._subtensor.is_hotkey_registered_any(
+            hotkey_ss58=hotkey_ss58, block=block
+        )
 
     @call_with_retry
-    def is_hotkey_registered_on_subnet(self, hotkey_ss58: str, netuid: int, block: Optional[int] = None) -> bool:
-        return self._subtensor.is_hotkey_registered_on_subnet(hotkey_ss58=hotkey_ss58, netuid=netuid, block=block)
+    def is_hotkey_registered_on_subnet(
+        self, hotkey_ss58: str, netuid: int, block: Optional[int] = None
+    ) -> bool:
+        return self._subtensor.is_hotkey_registered_on_subnet(
+            hotkey_ss58=hotkey_ss58, netuid=netuid, block=block
+        )
 
     @call_with_retry
-    def is_hotkey_registered(self, hotkey_ss58: str, netuid: Optional[int] = None, block: Optional[int] = None) -> bool:
-        return self._subtensor.is_hotkey_registered(hotkey_ss58=hotkey_ss58, netuid=netuid, block=block)
+    def is_hotkey_registered(
+        self,
+        hotkey_ss58: str,
+        netuid: Optional[int] = None,
+        block: Optional[int] = None,
+    ) -> bool:
+        return self._subtensor.is_hotkey_registered(
+            hotkey_ss58=hotkey_ss58, netuid=netuid, block=block
+        )
 
     @call_with_retry
     def blocks_since_last_update(self, netuid: int, uid: int) -> Optional[int]:
@@ -179,27 +221,43 @@ class SubtensorWithRetry:
         return self._subtensor.subnetwork_n(netuid=netuid, block=block)
 
     @call_with_retry
-    def get_neuron_for_pubkey_and_subnet(self, hotkey_ss58: str, netuid: int, block: Optional[int] = None) -> Optional["NeuronInfo"]:
-        return self._subtensor.get_neuron_for_pubkey_and_subnet(hotkey_ss58=hotkey_ss58, netuid=netuid, block=block)
+    def get_neuron_for_pubkey_and_subnet(
+        self, hotkey_ss58: str, netuid: int, block: Optional[int] = None
+    ) -> Optional["NeuronInfo"]:
+        return self._subtensor.get_neuron_for_pubkey_and_subnet(
+            hotkey_ss58=hotkey_ss58, netuid=netuid, block=block
+        )
 
     @call_with_retry
-    def get_neuron_certificate(self, hotkey: str, netuid: int, block: Optional[int] = None) -> Optional["Certificate"]:
-        return self._subtensor.get_neuron_certificate(hotkey=hotkey, netuid=netuid, block=block)
+    def get_neuron_certificate(
+        self, hotkey: str, netuid: int, block: Optional[int] = None
+    ) -> Optional["Certificate"]:
+        return self._subtensor.get_neuron_certificate(
+            hotkey=hotkey, netuid=netuid, block=block
+        )
 
     @call_with_retry
-    def neuron_for_uid(self, uid: int, netuid: int, block: Optional[int] = None) -> "NeuronInfo":
+    def neuron_for_uid(
+        self, uid: int, netuid: int, block: Optional[int] = None
+    ) -> "NeuronInfo":
         return self._subtensor.neuron_for_uid(uid=uid, netuid=netuid, block=block)
 
     @call_with_retry
-    def get_subnet_hyperparameters(self, netuid: int, block: Optional[int] = None) -> Optional[Union[list, "SubnetHyperparameters"]]:
+    def get_subnet_hyperparameters(
+        self, netuid: int, block: Optional[int] = None
+    ) -> Optional[Union[list, "SubnetHyperparameters"]]:
         return self._subtensor.get_subnet_hyperparameters(netuid=netuid, block=block)
 
     @call_with_retry
-    def immunity_period(self, netuid: int, block: Optional[int] = None) -> Optional[int]:
+    def immunity_period(
+        self, netuid: int, block: Optional[int] = None
+    ) -> Optional[int]:
         return self._subtensor.immunity_period(netuid=netuid, block=block)
 
     @call_with_retry
-    def get_uid_for_hotkey_on_subnet(self, hotkey_ss58: str, netuid: int, block: Optional[int] = None) -> Optional[int]:
+    def get_uid_for_hotkey_on_subnet(
+        self, hotkey_ss58: str, netuid: int, block: Optional[int] = None
+    ) -> Optional[int]:
         return self._subtensor.get_uid_for_hotkey_on_subnet(
             hotkey_ss58=hotkey_ss58, netuid=netuid, block=block
         )
@@ -213,23 +271,35 @@ class SubtensorWithRetry:
         return self._subtensor.get_commitment(netuid=netuid, uid=uid, block=block)
 
     @call_with_retry
-    def min_allowed_weights(self, netuid: int, block: Optional[int] = None) -> Optional[int]:
+    def min_allowed_weights(
+        self, netuid: int, block: Optional[int] = None
+    ) -> Optional[int]:
         return self._subtensor.min_allowed_weights(netuid=netuid, block=block)
 
     @call_with_retry
-    def max_weight_limit(self, netuid: int, block: Optional[int] = None) -> Optional[float]:
+    def max_weight_limit(
+        self, netuid: int, block: Optional[int] = None
+    ) -> Optional[float]:
         return self._subtensor.max_weight_limit(netuid=netuid, block=block)
 
     @call_with_retry
-    def commit_reveal_enabled(self, netuid: int, block: Optional[int] = None) -> Optional[bool]:
+    def commit_reveal_enabled(
+        self, netuid: int, block: Optional[int] = None
+    ) -> Optional[bool]:
         return self._subtensor.commit_reveal_enabled(netuid=netuid, block=block)
 
     @call_with_retry
-    def get_subnet_reveal_period_epochs(self, netuid: int, block: Optional[int] = None) -> Optional[int]:
-        return self._subtensor.get_subnet_reveal_period_epochs(netuid=netuid, block=block)
+    def get_subnet_reveal_period_epochs(
+        self, netuid: int, block: Optional[int] = None
+    ) -> Optional[int]:
+        return self._subtensor.get_subnet_reveal_period_epochs(
+            netuid=netuid, block=block
+        )
 
     @call_with_retry
-    def get_prometheus_info(self, netuid: int, hotkey_ss58: str, block: Optional[int] = None) -> Optional["PrometheusInfo"]:
+    def get_prometheus_info(
+        self, netuid: int, hotkey_ss58: str, block: Optional[int] = None
+    ) -> Optional["PrometheusInfo"]:
         return self._subtensor.get_prometheus_info(
             netuid=netuid, hotkey_ss58=hotkey_ss58, block=block
         )
@@ -261,20 +331,36 @@ class SubtensorWithRetry:
         return self._subtensor.last_drand_round()
 
     @call_with_retry
-    def get_current_weight_commit_info(self, netuid: int, block: Optional[int] = None) -> list:
-        return self._subtensor.get_current_weight_commit_info(netuid=netuid, block=block)
+    def get_current_weight_commit_info(
+        self, netuid: int, block: Optional[int] = None
+    ) -> list:
+        return self._subtensor.get_current_weight_commit_info(
+            netuid=netuid, block=block
+        )
 
     @call_with_retry
-    def get_total_stake_for_coldkey(self, ss58_address: str, block: Optional[int] = None) -> Optional["Balance"]:
-        return self._subtensor.get_total_stake_for_coldkey(ss58_address=ss58_address, block=block)
+    def get_total_stake_for_coldkey(
+        self, ss58_address: str, block: Optional[int] = None
+    ) -> Optional["Balance"]:
+        return self._subtensor.get_total_stake_for_coldkey(
+            ss58_address=ss58_address, block=block
+        )
 
     @call_with_retry
-    def get_total_stake_for_hotkey(self, ss58_address: str, block: Optional[int] = None):
-        return self._subtensor.get_total_stake_for_hotkey(ss58_address=ss58_address, block=block)
+    def get_total_stake_for_hotkey(
+        self, ss58_address: str, block: Optional[int] = None
+    ):
+        return self._subtensor.get_total_stake_for_hotkey(
+            ss58_address=ss58_address, block=block
+        )
 
     @call_with_retry
-    def get_total_stake_for_hotkey(self, ss58_address: str, block: Optional[int] = None) -> Optional["Balance"]:
-        return self._subtensor.get_total_stake_for_hotkey(ss58_address=ss58_address, block=block)
+    def get_total_stake_for_hotkey(
+        self, ss58_address: str, block: Optional[int] = None
+    ) -> Optional["Balance"]:
+        return self._subtensor.get_total_stake_for_hotkey(
+            ss58_address=ss58_address, block=block
+        )
 
     @call_with_retry
     def get_total_subnets(self, block: Optional[int] = None) -> Optional[int]:
@@ -285,11 +371,15 @@ class SubtensorWithRetry:
         return self._subtensor.get_subnets(block=block)
 
     @call_with_retry
-    def neurons_lite(self, netuid: int, block: Optional[int] = None) -> list["NeuronInfoLite"]:
+    def neurons_lite(
+        self, netuid: int, block: Optional[int] = None
+    ) -> list["NeuronInfoLite"]:
         return self._subtensor.neurons_lite(netuid=netuid, block=block)
 
     @call_with_retry
-    def weights(self, netuid: int, block: Optional[int] = None) -> list[tuple[int, list[tuple[int, int]]]]:
+    def weights(
+        self, netuid: int, block: Optional[int] = None
+    ) -> list[tuple[int, list[tuple[int, int]]]]:
         return self._subtensor.weights(netuid=netuid, block=block)
 
     @call_with_retry
@@ -297,11 +387,15 @@ class SubtensorWithRetry:
         return self._subtensor.get_balance(address=address, block=block)
 
     @call_with_retry
-    def get_transfer_fee(self, wallet: "Wallet", dest: str, value: Union["Balance", float, int]) -> "Balance":
+    def get_transfer_fee(
+        self, wallet: "Wallet", dest: str, value: Union["Balance", float, int]
+    ) -> "Balance":
         return self._subtensor.get_transfer_fee(wallet=wallet, dest=dest, value=value)
 
     @call_with_retry
-    def get_existential_deposit(self, block: Optional[int] = None) -> Optional["Balance"]:
+    def get_existential_deposit(
+        self, block: Optional[int] = None
+    ) -> Optional["Balance"]:
         return self._subtensor.get_existential_deposit(block=block)
 
     @call_with_retry
@@ -313,23 +407,35 @@ class SubtensorWithRetry:
         return self._subtensor.recycle(netuid=netuid, block=block)
 
     @call_with_retry
-    def get_delegate_take(self, hotkey_ss58: str, block: Optional[int] = None) -> Optional[float]:
+    def get_delegate_take(
+        self, hotkey_ss58: str, block: Optional[int] = None
+    ) -> Optional[float]:
         return self._subtensor.get_delegate_take(hotkey_ss58=hotkey_ss58, block=block)
 
     @call_with_retry
-    def get_delegate_by_hotkey(self, hotkey_ss58: str, block: Optional[int] = None) -> Optional["DelegateInfo"]:
-        return self._subtensor.get_delegate_by_hotkey(hotkey_ss58=hotkey_ss58, block=block)
+    def get_delegate_by_hotkey(
+        self, hotkey_ss58: str, block: Optional[int] = None
+    ) -> Optional["DelegateInfo"]:
+        return self._subtensor.get_delegate_by_hotkey(
+            hotkey_ss58=hotkey_ss58, block=block
+        )
 
     @call_with_retry
-    def get_stake_for_coldkey_and_hotkey(self, hotkey_ss58: str, coldkey_ss58: str, block: Optional[int] = None) -> Optional["Balance"]:
-        return self._subtensor.get_stake_for_coldkey_and_hotkey(hotkey_ss58=hotkey_ss58, coldkey_ss58=coldkey_ss58, block=block)
+    def get_stake_for_coldkey_and_hotkey(
+        self, hotkey_ss58: str, coldkey_ss58: str, block: Optional[int] = None
+    ) -> Optional["Balance"]:
+        return self._subtensor.get_stake_for_coldkey_and_hotkey(
+            hotkey_ss58=hotkey_ss58, coldkey_ss58=coldkey_ss58, block=block
+        )
 
     @call_with_retry
     def does_hotkey_exist(self, hotkey_ss58: str, block: Optional[int] = None) -> bool:
         return self._subtensor.does_hotkey_exist(hotkey_ss58=hotkey_ss58, block=block)
 
     @call_with_retry
-    def get_hotkey_owner(self, hotkey_ss58: str, block: Optional[int] = None) -> Optional[str]:
+    def get_hotkey_owner(
+        self, hotkey_ss58: str, block: Optional[int] = None
+    ) -> Optional[str]:
         return self._subtensor.get_hotkey_owner(hotkey_ss58=hotkey_ss58, block=block)
 
     @call_with_retry
