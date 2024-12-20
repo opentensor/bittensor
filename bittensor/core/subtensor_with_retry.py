@@ -48,20 +48,20 @@ def call_with_retry(method):
                     return result
                 except Exception as e:
                     logging.error(
-                        f"Method '{method.__name__}' raise the error with the attempt [blue]{retries}[/blue]. Error: {e}"
+                        f"Method [blue]{method.__name__}[/blue] raise the error with the attempt [blue]{retries}"
+                        f"[/blue]. Error: {e}"
                     )
                     if retries < self._retry_attempts:
                         retry_seconds = self.get_retry_seconds(
                             netuid=kwargs.get("netuid")
                         )
                         logging.debug(
-                            f"Retrying call '{method.__name__}' in [blue]{retry_seconds}[/blue] seconds."
+                            f"Retrying method [blue]{method.__name__}[/blue] call in [blue]{retry_seconds}[/blue] seconds."
                         )
                         time.sleep(retry_seconds)
-        raise SubtensorWithRetryError(
-            f"Method [blue]'{method.__name__}'[/blue] failed for all endpoints [blue]{self._endpoints}[/blue] with "
-            f"[blue]{self._retry_attempts}[/blue] attempts."
-        )
+        err_msg = f"Method '{method.__name__}' failed for all endpoints {self._endpoints} with {self._retry_attempts} attempts."
+        logging.critical(err_msg)
+        raise SubtensorWithRetryError(err_msg)
 
     return wrapper
 
