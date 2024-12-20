@@ -17,6 +17,7 @@ from scalecodec.exceptions import RemainingScaleBytesNotEmptyException
 from scalecodec.type_registry import load_type_registry_preset
 from scalecodec.types import ScaleType
 from substrateinterface.base import QueryMapResult, SubstrateInterface
+from websockets.exceptions import InvalidStatus
 from websockets.sync import client as ws_client
 
 from bittensor.core import settings
@@ -233,6 +234,7 @@ class Subtensor:
                     open_timeout=self._connection_timeout,
                     max_size=2**32,
                 )
+
             self.substrate = SubstrateInterface(
                 ss58_format=settings.SS58_FORMAT,
                 use_remote_preset=True,
@@ -244,19 +246,26 @@ class Subtensor:
                     f"Connected to {self.network} network and {self.chain_endpoint}."
                 )
 
-        except (ConnectionRefusedError, ssl.SSLError) as error:
-            logging.error(
-                f"<red>Could not connect to</red> <blue>{self.network}</blue> <red>network with</red> <blue>{self.chain_endpoint}</blue> <red>chain endpoint.</red>",
+        except ConnectionRefusedError as error:
+            logging.critical(
+                f"[red]Could not connect to[/red] [blue]{self.network}[/blue] [red]network with[/red] [blue]{self.chain_endpoint}[/blue] [red]chain endpoint.[/red]",
             )
             raise ConnectionRefusedError(error.args)
-        except ssl.SSLError as e:
+
+        except ssl.SSLError as error:
             logging.critical(
                 "SSL error occurred. To resolve this issue, run the following command in your terminal:"
             )
             logging.critical("[blue]sudo python -m bittensor certifi[/blue]")
             raise RuntimeError(
                 "SSL configuration issue, please follow the instructions above."
-            ) from e
+            ) from error
+
+        except InvalidStatus as error:
+            logging.critical(
+                f"[red]You have reached the limit of simultaneous connections to the server.[/red]"
+            )
+            raise InvalidStatus(error.response) from error
 
     @staticmethod
     def config() -> "Config":
