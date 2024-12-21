@@ -94,6 +94,7 @@ class SubtensorWithRetry:
         retry_seconds: Optional[int] = None,
         retry_epoch: Optional[int] = None,
         retry_attempts: Optional[int] = None,
+
         # Subtensor arguments
         config: Optional["Config"] = None,
         log_verbose: bool = False,
