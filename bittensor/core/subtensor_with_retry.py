@@ -109,7 +109,7 @@ class SubtensorWithRetry:
     def __init__(
         self,
         endpoints: list[str],
-        retry_seconds: Optional[int] = None,
+        retry_seconds: Optional[int] = 0,
         retry_epoch: Optional[int] = None,
         retry_attempts: Optional[int] = None,
         # Subtensor arguments
