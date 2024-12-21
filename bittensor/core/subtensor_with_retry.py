@@ -1,3 +1,4 @@
+import inspect
 import time
 from functools import wraps, cache
 from typing import Optional, Union, TYPE_CHECKING
@@ -26,17 +27,30 @@ if TYPE_CHECKING:
 
 
 CHAIN_BLOCK_SECONDS = 12
-DEFAULT_SUBNET_TEMPO = 1
+DEFAULT_SUBNET_TEMPO = 360
 
 
 class SubtensorWithRetryError(Exception):
     """Error for SubtensorWithRetry."""
 
 
+@cache
+def check_net_uid(method, *args, **kwargs):
+    """Extracts and returns the 'netuid' argument from the method's arguments, if present."""
+    sig = inspect.signature(method)
+    bound_args = sig.bind(*args, **kwargs)
+    bound_args.apply_defaults()
+
+    if "netuid" in bound_args.arguments:
+        return bound_args.arguments["netuid"]
+    return None
+
+
 def call_with_retry(method):
     @wraps(method)
     def wrapper(*args, **kwargs):
         self: "SubtensorWithRetry" = args[0]
+        last_exception = None
         for endpoint in self._endpoints:
             retries = 0
             while retries < self._retry_attempts:
@@ -46,22 +60,22 @@ def call_with_retry(method):
                         self._get_subtensor(endpoint=endpoint)
                     result = method(*args, **kwargs)
                     return result
-                except Exception as e:
+                except Exception as error:
                     logging.error(
-                        f"Method [blue]{method.__name__}[/blue] raise the error with the attempt [blue]{retries}"
-                        f"[/blue]. Error: {e}"
+                        f"Attempt [blue]{retries}[/blue] for method [blue]{method.__name__}[/blue] failed. Error: {error}"
                     )
+                    last_exception = error
                     if retries < self._retry_attempts:
-                        retry_seconds = self.get_retry_seconds(
-                            netuid=kwargs.get("netuid")
-                        )
+                        netuid = check_net_uid(method, *args, **kwargs)
+                        retry_seconds = self.get_retry_seconds(netuid=netuid)
                         logging.debug(
                             f"Retrying method [blue]{method.__name__}[/blue] call in [blue]{retry_seconds}[/blue] seconds."
                         )
                         time.sleep(retry_seconds)
+
         err_msg = f"Method '{method.__name__}' failed for all endpoints {self._endpoints} with {self._retry_attempts} attempts."
         logging.critical(err_msg)
-        raise SubtensorWithRetryError(err_msg)
+        raise SubtensorWithRetryError(err_msg) from last_exception
 
     return wrapper
 
@@ -102,6 +116,7 @@ class SubtensorWithRetry:
         self._subtensor = None
 
     def _get_subtensor(self, endpoint: Optional[str] = None):
+        """Initializes the Subtensor instance."""
         logging.debug(
             f"[magenta]Getting connection with endpoint:[/magenta] [blue]{endpoint}[/blue]."
         )
@@ -116,7 +131,6 @@ class SubtensorWithRetry:
             f"[magenta]Subtensor initialized with endpoint:[/magenta] [blue]{endpoint}[/blue]."
         )
 
-    @cache
     def get_retry_seconds(self, netuid: Optional[int] = None) -> int:
         """Returns the number of seconds to wait before retrying a request based on `retry_second` or `_retry_epoch`.
 
@@ -129,16 +143,13 @@ class SubtensorWithRetry:
         if self._retry_seconds:
             return self._retry_seconds
 
-        if self._retry_epoch and netuid is None:
-            raise ValueError("Either _retry_seconds or _retry_epoch must be specified.")
-
         subnet_tempo = DEFAULT_SUBNET_TEMPO
         try:
             subnet_hyperparameters = self._subtensor.get_subnet_hyperparameters(
                 netuid=netuid
             )
             subnet_tempo = subnet_hyperparameters.tempo
-        except AttributeError as e:
+        except AttributeError:
             logging.debug(
                 f"Subtensor instance was not initialized. Use default tempo as [blue]{DEFAULT_SUBNET_TEMPO}"
                 f"[/blue] blocks."
@@ -453,6 +464,10 @@ class SubtensorWithRetry:
     @call_with_retry
     def is_hotkey_delegate(self, hotkey_ss58: str, block: Optional[int] = None) -> bool:
         return self._subtensor.is_hotkey_delegate(hotkey_ss58=hotkey_ss58, block=block)
+
+    @call_with_retry
+    def test_netuid(self, netuid: int) -> bool:
+        return self._subtensor.test_netuid(netuid=netuid)
 
     # Extrinsics =======================================================================================================
 
