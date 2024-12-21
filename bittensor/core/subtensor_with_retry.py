@@ -1,3 +1,21 @@
+"""
+This module defines the `SubtensorWithRetry` class, which wraps around the `Subtensor` module from the Bittensor SDK to
+provide retry mechanisms for interacting with blockchain endpoints. It includes fault-tolerant methods for querying and
+executing blockchain-related operations with automatic retries on failures.
+The `call_with_retry` decorator is used to wrap methods and handle retries transparently.
+
+Primary features:
+- Retry mechanisms for `Subtensor` interactions.
+- Configurable timeout, retry attempts, and retry intervals.
+- Support for various `Subtensor` operations with enhanced logging and error handling.
+
+`SubtensorWithRetry` Class:
+- Initializes with multiple endpoint support and manages connections to blockchain nodes.
+- Configurable retry behavior using retry seconds or epochs.
+- Includes methods for blockchain queries, stake checks, and neuron operations.
+- Supports automatic reconnecting and fault-tolerant behavior during operation failures.
+"""
+
 import inspect
 import time
 from functools import wraps, cache
@@ -83,7 +101,7 @@ def call_with_retry(method):
 def _check_retry_args(
     retry_seconds: Optional[int] = None, retry_epoch: Optional[int] = None
 ):
-    if retry_seconds and retry_epoch:
+    if (retry_seconds and retry_epoch) or (not retry_seconds and not retry_epoch):
         raise ValueError("Either `_retry_seconds` or `_retry_epoch` must be specified.")
 
 
@@ -100,6 +118,23 @@ class SubtensorWithRetry:
         connection_timeout: int = 600,
         websocket: Optional["ws_client.ClientConnection"] = None,
     ):
+        """
+        Initializes an object with retry configuration and network connection parameters.
+
+        The constructor initializes the retry configuration parameters and other settings such as the endpoints,
+        connection timeout, and optional websocket client. It also prepares for Subtensor specific definitions for
+        further usage.
+
+        Arguments:
+            endpoints: list[str] A list specifying the network endpoints for the object to connect to.
+            retry_seconds: Optional[int], default `None`. Retry duration in seconds for operations, if provided.
+            retry_epoch: Optional[int], default `None`. Epoch-based retry duration for operations, if provided.
+            retry_attempts: Optional[int], default `1`. Number of retry attempts in case of failure.
+            config: Optional["Config"], default `None`. Configuration object for Subtensor-specific settings, if provided.
+            log_verbose: bool, default `False`. Boolean flag to enable verbose logging.
+            connection_timeout: int, default `600`. The maximum duration (in seconds) to wait for a connection.
+            websocket: Optional["ws_client.ClientConnection"], default `None`. An optional websocket client connection object.
+        """
         _check_retry_args(retry_seconds=retry_seconds, retry_epoch=retry_epoch)
         self._retry_seconds = retry_seconds if not retry_epoch else None
         self._retry_epoch = retry_epoch
