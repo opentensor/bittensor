@@ -23,9 +23,10 @@ from typing import Optional, Union, TYPE_CHECKING
 
 import numpy as np
 from numpy.typing import NDArray
+from substrateinterface.exceptions import SubstrateRequestException
 
 from bittensor.core.metagraph import Metagraph
-from bittensor.core.settings import version_as_int
+from bittensor.core.settings import version_as_int, ARCHIVE_ENTRYPOINT
 from bittensor.core.subtensor import Subtensor
 from bittensor.utils.btlogging import logging
 
@@ -78,9 +79,15 @@ def call_with_retry(method):
                         not self._subtensor
                         or self._subtensor.chain_endpoint != endpoint
                     ):
-                        self._subtensor = self._get_subtensor(endpoint=endpoint)
+                        self._get_subtensor(endpoint=endpoint)
                     result = method(*args, **kwargs)
                     return result
+
+                except SubstrateRequestException as error:
+                    if "UnknownBlock: State already discarded for" in str(error):
+                        self._get_subtensor(endpoint=ARCHIVE_ENTRYPOINT)
+                        return method(*args, **kwargs)
+
                 except Exception as error:
                     logging.error(
                         f"Attempt [blue]{retries}[/blue] for method [blue]{method.__name__}[/blue] failed. Error: {error}"
@@ -168,7 +175,6 @@ class SubtensorWithRetry:
         logging.debug(
             f"[magenta]Subtensor initialized with endpoint:[/magenta] [blue]{endpoint}[/blue]."
         )
-        return self._subtensor
 
     def get_retry_seconds(self, netuid: Optional[int] = None) -> int:
         """Returns the number of seconds to wait before retrying a request based on `retry_second` or `_retry_epoch`.
