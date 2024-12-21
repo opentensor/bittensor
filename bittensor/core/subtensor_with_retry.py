@@ -74,8 +74,11 @@ def call_with_retry(method):
             while retries < self._retry_attempts:
                 retries += 1
                 try:
-                    if not self._subtensor:
-                        self._get_subtensor(endpoint=endpoint)
+                    if (
+                        not self._subtensor
+                        or self._subtensor.chain_endpoint != endpoint
+                    ):
+                        self._subtensor = self._get_subtensor(endpoint=endpoint)
                     result = method(*args, **kwargs)
                     return result
                 except Exception as error:
@@ -165,6 +168,7 @@ class SubtensorWithRetry:
         logging.debug(
             f"[magenta]Subtensor initialized with endpoint:[/magenta] [blue]{endpoint}[/blue]."
         )
+        return self._subtensor
 
     def get_retry_seconds(self, netuid: Optional[int] = None) -> int:
         """Returns the number of seconds to wait before retrying a request based on `retry_second` or `_retry_epoch`.
