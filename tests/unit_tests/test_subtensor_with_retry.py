@@ -4,7 +4,6 @@ from bittensor.core import subtensor_with_retry
 from bittensor.core.subtensor_with_retry import (
     SubtensorWithRetry,
     SubtensorWithRetryError,
-    check_net_uid,
 )
 
 
