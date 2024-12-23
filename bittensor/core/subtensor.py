@@ -263,9 +263,10 @@ class Subtensor:
 
         except InvalidStatus as error:
             logging.critical(
-                f"[red]You have reached the limit of simultaneous connections to the server.[/red]"
+                f"Error [red]'{error.response.reason_phrase}'[/red] with status code [red]{error.response.status_code}[/red]."
             )
-            raise InvalidStatus(error.response) from error
+            logging.debug(f"Server response is '{error.response}'.")
+            raise
 
     @staticmethod
     def config() -> "Config":
