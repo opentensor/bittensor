@@ -1,5 +1,6 @@
 import pytest
 
+from bittensor.core.subtensor import Subtensor
 from bittensor.core import subtensor_with_retry
 from bittensor.core.subtensor_with_retry import (
     SubtensorWithRetry,
@@ -49,3 +50,11 @@ def test_call_with_retry_failure():
 
     with pytest.raises(SubtensorWithRetryError):
         mock_method(subtensor)
+
+
+def test_all_class_methods_exist_in_subtensor():
+    """Tests that all class methods exist in SubtensorWithRetry."""
+    exclusion = ["get_retry_seconds"]
+    for m in dir(subtensor_with_retry.SubtensorWithRetry):
+        if not m.startswith("_") and m not in exclusion:
+            assert hasattr(Subtensor, m)
