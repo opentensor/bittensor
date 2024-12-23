@@ -66,6 +66,25 @@ def check_net_uid(method, *args, **kwargs):
 
 
 def call_with_retry(method):
+    """
+    A decorator function that adds retry logic to a method call. This enables the method to
+    retry its execution across multiple endpoints with defined retry attempts and delays.
+    The function ensures that if certain exceptions occur, a retry mechanism is applied, and
+    the subtensor endpoint is updated if necessary.
+
+    Arguments:
+        method (Callable): The class method to which retry logic should be applied.
+
+    Returns:
+        Callable: A wrapped method with retry mechanism applied.
+
+    Raises:
+        SubtensorWithRetryError: Raised if all retry attempts on all endpoints fail.
+
+    Note: If the chain returns an error related to the block being out of date, the request is repeated to the chain
+    based on the `bittensor.core.settings.ARCHIVE_ENTRYPOINT` endpoint.
+    """
+
     @wraps(method)
     def wrapper(*args, **kwargs):
         self: "SubtensorWithRetry" = args[0]
@@ -111,6 +130,19 @@ def call_with_retry(method):
 def _check_retry_args(
     retry_seconds: Optional[int] = None, retry_epoch: Optional[int] = None
 ):
+    """
+    Validates the arguments related to retry mechanism and ensures that only one of
+    `retry_seconds` or `retry_epoch` is specified. If both or neither are specified,
+    a ValueError is raised.
+
+    Args:
+        retry_seconds (Optional[int]): The number of seconds to retry.
+        retry_epoch (Optional[int]): The epoch timestamp to retry until.
+
+    Raises:
+        ValueError: Raised when neither or both `retry_seconds` and `retry_epoch`
+        are provided.
+    """
     if (retry_seconds and retry_epoch) or (not retry_seconds and not retry_epoch):
         raise ValueError("Either `_retry_seconds` or `_retry_epoch` must be specified.")
 
@@ -509,10 +541,6 @@ class SubtensorWithRetry:
     @call_with_retry
     def is_hotkey_delegate(self, hotkey_ss58: str, block: Optional[int] = None) -> bool:
         return self._subtensor.is_hotkey_delegate(hotkey_ss58=hotkey_ss58, block=block)
-
-    @call_with_retry
-    def test_netuid(self, netuid: int) -> bool:
-        return self._subtensor.test_netuid(netuid=netuid)
 
     # Extrinsics =======================================================================================================
 
