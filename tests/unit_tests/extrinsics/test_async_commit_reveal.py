@@ -63,7 +63,9 @@ async def test_do_commit_reveal_v3_success(mocker, subtensor):
     mocked_create_signed_extrinsic = mocker.patch.object(
         subtensor.substrate, "create_signed_extrinsic"
     )
-    mocked_submit_extrinsic = mocker.patch.object(subtensor.substrate, "submit_extrinsic")
+    mocked_submit_extrinsic = mocker.patch.object(
+        subtensor.substrate, "submit_extrinsic"
+    )
 
     # Call
     result = await async_commit_reveal._do_commit_reveal_v3(
@@ -112,7 +114,10 @@ async def test_do_commit_reveal_v3_failure_due_to_error(mocker, subtensor):
     mocked_submit_extrinsic = mocker.patch.object(
         subtensor.substrate,
         "submit_extrinsic",
-        return_value=mocker.Mock(is_success=mocker.AsyncMock(return_value=False)(), error_message=mocker.AsyncMock(return_value="Mocked error")()),
+        return_value=mocker.Mock(
+            is_success=mocker.AsyncMock(return_value=False)(),
+            error_message=mocker.AsyncMock(return_value="Mocked error")(),
+        ),
     )
 
     mocked_format_error_message = mocker.patch.object(
@@ -154,7 +159,9 @@ async def test_do_commit_reveal_v3_failure_due_to_error(mocker, subtensor):
 
 
 @pytest.mark.asyncio
-async def test_commit_reveal_v3_extrinsic_success_with_torch(mocker, subtensor, hyperparams):
+async def test_commit_reveal_v3_extrinsic_success_with_torch(
+    mocker, subtensor, hyperparams
+):
     """Test successful commit-reveal with torch tensors."""
     # Preps
     fake_wallet = mocker.Mock(autospec=subtensor_module.Wallet)
@@ -184,7 +191,9 @@ async def test_commit_reveal_v3_extrinsic_success_with_torch(mocker, subtensor, 
     mock_do_commit_reveal_v3 = mocker.patch.object(
         async_commit_reveal, "_do_commit_reveal_v3", return_value=(True, "Success")
     )
-    mock_block = mocker.patch.object(subtensor.substrate, "get_block_number", return_value=1)
+    mock_block = mocker.patch.object(
+        subtensor.substrate, "get_block_number", return_value=1
+    )
     mock_hyperparams = mocker.patch.object(
         subtensor,
         "get_subnet_hyperparameters",
@@ -229,7 +238,9 @@ async def test_commit_reveal_v3_extrinsic_success_with_torch(mocker, subtensor, 
 
 
 @pytest.mark.asyncio
-async def test_commit_reveal_v3_extrinsic_success_with_numpy(mocker, subtensor, hyperparams):
+async def test_commit_reveal_v3_extrinsic_success_with_numpy(
+    mocker, subtensor, hyperparams
+):
     """Test successful commit-reveal with numpy arrays."""
     # Preps
     fake_wallet = mocker.Mock(autospec=subtensor_module.Wallet)
@@ -275,7 +286,9 @@ async def test_commit_reveal_v3_extrinsic_success_with_numpy(mocker, subtensor, 
 
 
 @pytest.mark.asyncio
-async def test_commit_reveal_v3_extrinsic_response_false(mocker, subtensor, hyperparams):
+async def test_commit_reveal_v3_extrinsic_response_false(
+    mocker, subtensor, hyperparams
+):
     """Test unsuccessful commit-reveal with torch."""
     # Preps
     fake_wallet = mocker.Mock(autospec=subtensor_module.Wallet)
