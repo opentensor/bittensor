@@ -30,16 +30,12 @@ USER_BITTENSOR_DIR = HOME_DIR / ".bittensor"
 WALLETS_DIR = USER_BITTENSOR_DIR / "wallets"
 MINERS_DIR = USER_BITTENSOR_DIR / "miners"
 
-
 # Create dirs if they don't exist
 WALLETS_DIR.mkdir(parents=True, exist_ok=True)
 MINERS_DIR.mkdir(parents=True, exist_ok=True)
 
 # Bittensor networks name
 NETWORKS = ["finney", "test", "archive", "local", "subvortex"]
-
-DEFAULT_ENDPOINT = "wss://entrypoint-finney.opentensor.ai:443"
-DEFAULT_NETWORK = NETWORKS[0]
 
 # Bittensor endpoints (Needs to use wss://)
 FINNEY_ENTRYPOINT = "wss://entrypoint-finney.opentensor.ai:443"
@@ -56,13 +52,12 @@ NETWORK_MAP = {
     NETWORKS[4]: SUBVORTEX_ENTRYPOINT,
 }
 
-REVERSE_NETWORK_MAP = {
-    FINNEY_ENTRYPOINT: NETWORKS[0],
-    FINNEY_TEST_ENTRYPOINT: NETWORKS[1],
-    ARCHIVE_ENTRYPOINT: NETWORKS[2],
-    LOCAL_ENTRYPOINT: NETWORKS[3],
-    SUBVORTEX_ENTRYPOINT: NETWORKS[4],
-}
+# Default Network and Endpoint
+DEFAULT_NETWORK = NETWORKS[0]
+DEFAULT_ENDPOINT = NETWORK_MAP[DEFAULT_NETWORK]
+
+# Reverse mapping for endpoints to networks
+REVERSE_NETWORK_MAP = {v: k for k, v in NETWORK_MAP.items()}
 
 # Currency Symbols Bittensor
 TAO_SYMBOL: str = chr(0x03C4)

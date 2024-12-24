@@ -229,6 +229,7 @@ def test_argument_error_handling(monkeypatch, parser):
             "archive",
             settings.ARCHIVE_ENTRYPOINT,
         ),
+        ("subvortex", "subvortex", settings.SUBVORTEX_ENTRYPOINT),
         ("127.0.0.1", "local", "127.0.0.1"),
         ("localhost", "local", "localhost"),
         # Edge cases
