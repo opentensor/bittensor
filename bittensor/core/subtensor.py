@@ -726,26 +726,22 @@ class Subtensor:
             return None, None
         if network in settings.NETWORKS:
             return network, settings.NETWORK_MAP[network]
-        else:
-            if (
-                network == settings.FINNEY_ENTRYPOINT
-                or "entrypoint-finney.opentensor.ai" in network
-            ):
-                return "finney", settings.FINNEY_ENTRYPOINT
-            elif (
-                network == settings.FINNEY_TEST_ENTRYPOINT
-                or "test.finney.opentensor.ai" in network
-            ):
-                return "test", settings.FINNEY_TEST_ENTRYPOINT
-            elif (
-                network == settings.ARCHIVE_ENTRYPOINT
-                or "archive.chain.opentensor.ai" in network
-            ):
-                return "archive", settings.ARCHIVE_ENTRYPOINT
-            elif "127.0.0.1" in network or "localhost" in network:
-                return "local", network
-            else:
-                return "unknown", network
+
+        substrings_map = {
+            "entrypoint-finney.opentensor.ai": ("finney", settings.FINNEY_ENTRYPOINT),
+            "test.finney.opentensor.ai": ("test", settings.FINNEY_TEST_ENTRYPOINT),
+            "archive.chain.opentensor.ai": ("archive", settings.ARCHIVE_ENTRYPOINT),
+            "subvortex": ("subvortex", network),
+            "subvortex.info": ("subvortex", network),
+            "127.0.0.1": ("local", network),
+            "localhost": ("local", network),
+        }
+
+        for substring, result in substrings_map.items():
+            if substring in network:
+                return result
+
+        return "unknown", network
 
     def get_netuids_for_hotkey(
         self, hotkey_ss58: str, block: Optional[int] = None
