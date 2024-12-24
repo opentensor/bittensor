@@ -304,13 +304,13 @@ class Subtensor:
             (
                 evaluated_network,
                 evaluated_endpoint,
-            ) = Subtensor._determine_chain_endpoint_and_network(network)
+            ) = Subtensor.determine_chain_endpoint_and_network(network)
         else:
             if config.is_set("subtensor.chain_endpoint"):
                 (
                     evaluated_network,
                     evaluated_endpoint,
-                ) = Subtensor._determine_chain_endpoint_and_network(
+                ) = Subtensor.determine_chain_endpoint_and_network(
                     config.subtensor.chain_endpoint
                 )
 
@@ -318,7 +318,7 @@ class Subtensor:
                 (
                     evaluated_network,
                     evaluated_endpoint,
-                ) = Subtensor._determine_chain_endpoint_and_network(
+                ) = Subtensor.determine_chain_endpoint_and_network(
                     config.subtensor.network
                 )
 
@@ -326,7 +326,7 @@ class Subtensor:
                 (
                     evaluated_network,
                     evaluated_endpoint,
-                ) = Subtensor._determine_chain_endpoint_and_network(
+                ) = Subtensor.determine_chain_endpoint_and_network(
                     config.subtensor.chain_endpoint
                 )
 
@@ -334,7 +334,7 @@ class Subtensor:
                 (
                     evaluated_network,
                     evaluated_endpoint,
-                ) = Subtensor._determine_chain_endpoint_and_network(
+                ) = Subtensor.determine_chain_endpoint_and_network(
                     config.subtensor.network
                 )
 
@@ -342,7 +342,7 @@ class Subtensor:
                 (
                     evaluated_network,
                     evaluated_endpoint,
-                ) = Subtensor._determine_chain_endpoint_and_network(
+                ) = Subtensor.determine_chain_endpoint_and_network(
                     settings.DEFAULTS.subtensor.network
                 )
 
@@ -710,7 +710,7 @@ class Subtensor:
         return metagraph
 
     @staticmethod
-    def _determine_chain_endpoint_and_network(
+    def determine_chain_endpoint_and_network(
         network: str,
     ) -> tuple[Optional[str], Optional[str]]:
         """Determines the chain endpoint and network from the passed network or chain_endpoint.

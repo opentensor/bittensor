@@ -241,7 +241,7 @@ def test_determine_chain_endpoint_and_network(
     network, expected_network, expected_endpoint
 ):
     # Act
-    result_network, result_endpoint = Subtensor._determine_chain_endpoint_and_network(
+    result_network, result_endpoint = Subtensor.determine_chain_endpoint_and_network(
         network
     )
 
