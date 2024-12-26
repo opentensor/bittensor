@@ -412,6 +412,40 @@ class Subtensor:
             # re-parsing arguments.
             pass
 
+    @staticmethod
+    def determine_chain_endpoint_and_network(
+        network: str,
+    ) -> tuple[Optional[str], Optional[str]]:
+        """Determines the chain endpoint and network from the passed network or chain_endpoint.
+
+        Args:
+            network (str): The network flag. The choices are: ``finney`` (main network), ``archive`` (archive network +300 blocks), ``local`` (local running network), ``test`` (test network).
+
+        Returns:
+            tuple[Optional[str], Optional[str]]: The network and chain endpoint flag. If passed, overrides the ``network`` argument.
+        """
+
+        if network is None:
+            return None, None
+        if network in settings.NETWORKS:
+            return network, settings.NETWORK_MAP[network]
+
+        substrings_map = {
+            "entrypoint-finney.opentensor.ai": ("finney", settings.FINNEY_ENTRYPOINT),
+            "test.finney.opentensor.ai": ("test", settings.FINNEY_TEST_ENTRYPOINT),
+            "archive.chain.opentensor.ai": ("archive", settings.ARCHIVE_ENTRYPOINT),
+            "subvortex": ("subvortex", network),
+            "subvortex.info": ("subvortex", network),
+            "127.0.0.1": ("local", network),
+            "localhost": ("local", network),
+        }
+
+        for substring, result in substrings_map.items():
+            if substring in network:
+                return result
+
+        return "unknown", network
+
     # Inner private functions
     @networking.ensure_connected
     def _encode_params(
@@ -708,40 +742,6 @@ class Subtensor:
         metagraph.sync(block=block, lite=lite, subtensor=self)
 
         return metagraph
-
-    @staticmethod
-    def determine_chain_endpoint_and_network(
-        network: str,
-    ) -> tuple[Optional[str], Optional[str]]:
-        """Determines the chain endpoint and network from the passed network or chain_endpoint.
-
-        Args:
-            network (str): The network flag. The choices are: ``finney`` (main network), ``archive`` (archive network +300 blocks), ``local`` (local running network), ``test`` (test network).
-
-        Returns:
-            tuple[Optional[str], Optional[str]]: The network and chain endpoint flag. If passed, overrides the ``network`` argument.
-        """
-
-        if network is None:
-            return None, None
-        if network in settings.NETWORKS:
-            return network, settings.NETWORK_MAP[network]
-
-        substrings_map = {
-            "entrypoint-finney.opentensor.ai": ("finney", settings.FINNEY_ENTRYPOINT),
-            "test.finney.opentensor.ai": ("test", settings.FINNEY_TEST_ENTRYPOINT),
-            "archive.chain.opentensor.ai": ("archive", settings.ARCHIVE_ENTRYPOINT),
-            "subvortex": ("subvortex", network),
-            "subvortex.info": ("subvortex", network),
-            "127.0.0.1": ("local", network),
-            "localhost": ("local", network),
-        }
-
-        for substring, result in substrings_map.items():
-            if substring in network:
-                return result
-
-        return "unknown", network
 
     def get_netuids_for_hotkey(
         self, hotkey_ss58: str, block: Optional[int] = None
