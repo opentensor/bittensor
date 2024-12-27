@@ -30,7 +30,7 @@ from substrateinterface.storage import StorageKey
 from websockets.asyncio.client import connect
 from websockets.exceptions import ConnectionClosed
 
-from bittensor.utils import hex_to_bytes
+from bittensor.utils import hex_to_bytes, execute_coroutine
 
 if TYPE_CHECKING:
     from websockets.asyncio.client import ClientConnection
@@ -819,6 +819,7 @@ class AsyncSubstrateInterface:
         self.transaction_version = None
         self.__metadata = None
         self.metadata_version_hex = "0x0f000000"  # v15
+        execute_coroutine(self.initialize())
 
     async def __aenter__(self):
         await self.initialize()
