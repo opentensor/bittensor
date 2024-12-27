@@ -33,6 +33,7 @@ from bittensor.utils.networking import ensure_connected
 if TYPE_CHECKING:
     from bittensor.core.axon import Axon
     from bittensor.core.subtensor import Subtensor
+    from bittensor.core.async_subtensor import AsyncSubtensor
     from bittensor.core.types import AxonServeCallParams
     from bittensor_wallet import Wallet
 
@@ -300,6 +301,59 @@ def publish_metadata(
             return True
         else:
             raise MetadataError(format_error_message(response.error_message))
+
+
+async def publish_metadata_async(
+    subtensor: "AsyncSubtensor",
+    wallet: "Wallet",
+    netuid: int,
+    data_type: str,
+    data: bytes,
+    wait_for_inclusion: bool = False,
+    wait_for_finalization: bool = True,
+) -> bool:
+    """
+    Publishes metadata on the Bittensor network using the specified wallet and network identifier.
+
+    Args:
+        subtensor (bittensor.subtensor): The subtensor instance representing the Bittensor blockchain connection.
+        wallet (bittensor.wallet): The wallet object used for authentication in the transaction.
+        netuid (int): Network UID on which the metadata is to be published.
+        data_type (str): The data type of the information being submitted. It should be one of the following: ``'Sha256'``, ``'Blake256'``, ``'Keccak256'``, or ``'Raw0-128'``. This specifies the format or hashing algorithm used for the data.
+        data (str): The actual metadata content to be published. This should be formatted or hashed according to the ``type`` specified. (Note: max ``str`` length is 128 bytes)
+        wait_for_inclusion (bool, optional): If ``True``, the function will wait for the extrinsic to be included in a block before returning. Defaults to ``False``.
+        wait_for_finalization (bool, optional): If ``True``, the function will wait for the extrinsic to be finalized on the chain before returning. Defaults to ``True``.
+
+    Returns:
+        bool: ``True`` if the metadata was successfully published (and finalized if specified). ``False`` otherwise.
+
+    Raises:
+        MetadataError: If there is an error in submitting the extrinsic or if the response from the blockchain indicates failure.
+    """
+
+    unlock_key(wallet, "hotkey")
+
+    call = await subtensor.substrate.compose_call(
+        call_module="Commitments",
+        call_function="set_commitment",
+        call_params={"netuid": netuid, "info": {"fields": [[{f"{data_type}": data}]]}},
+    )
+
+    extrinsic = await subtensor.substrate.create_signed_extrinsic(
+        call=call, keypair=wallet.hotkey
+    )
+    response = await subtensor.substrate.submit_extrinsic(
+        extrinsic,
+        wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization,
+    )
+    # We only wait here if we expect finalization.
+    if not wait_for_finalization and not wait_for_inclusion:
+        return True
+
+    if await response.is_success:
+        return True
+    raise MetadataError(format_error_message(await response.error_message))
 
 
 # Community uses this function directly
