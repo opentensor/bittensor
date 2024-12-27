@@ -366,3 +366,23 @@ def get_metadata(self, netuid: int, hotkey: str, block: Optional[int] = None) ->
             params=[netuid, hotkey],
             block_hash=None if block is None else substrate.get_block_hash(block),
         ).value
+
+
+async def get_metadata_async(
+    subtensor: "AsyncSubtensor",
+    netuid: int,
+    hotkey: str,
+    block: Optional[int] = None,
+) -> str:
+
+    async with subtensor.substrate:
+        commit_data = await subtensor.substrate.query(
+            module="Commitments",
+            storage_function="CommitmentOf",
+            params=[netuid, hotkey],
+            block_hash=None
+            if block is None
+            else await subtensor.substrate.get_block_hash(block),
+        )
+        print(">>>", commit_data)
+    return commit_data
