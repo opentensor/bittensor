@@ -15,6 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import asyncio
 import ast
 from collections import namedtuple
 import hashlib
@@ -33,7 +34,6 @@ from .version import version_checking, check_version, VersionCheckError
 
 if TYPE_CHECKING:
     from bittensor.utils.async_substrate_interface import AsyncSubstrateInterface
-    from substrateinterface import SubstrateInterface
     from bittensor_wallet import Wallet
 
 RAOPERTAO = 1e9
@@ -398,3 +398,24 @@ def hex_to_bytes(hex_str: str) -> bytes:
     else:
         bytes_result = bytes.fromhex(hex_str)
     return bytes_result
+
+
+def execute_coroutine(coroutine, loop: asyncio.AbstractEventLoop = None):
+    """
+    Helper function to run an asyncio coroutine synchronously.
+
+    Args:
+        coroutine (Coroutine): The coroutine to run.
+        loop (AbstractEventLoop): The event loop to use. If None, the default event loop is used.
+
+    Returns:
+        The result of the coroutine execution.
+    """
+    try:
+        return asyncio.run(coroutine)
+    except RuntimeError as e:
+        if "already running" in str(e):
+            # Handles cases where an asyncio event loop is already running
+            loop = loop or asyncio.get_event_loop()
+            return loop.run_until_complete(coroutine)
+        raise e
