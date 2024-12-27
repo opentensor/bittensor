@@ -18,17 +18,8 @@
 import warnings
 
 from .core.settings import __version__, version_split, DEFAULTS, DEFAULT_NETWORK
-from .core.async_subtensor import AsyncSubtensor
 from .utils.btlogging import logging
 from .utils.deprecated import *
-
-
-async def async_subtensor(network: str = DEFAULT_NETWORK) -> AsyncSubtensor:
-    """
-    Creates an initialised AsyncSubtensor object.
-    """
-    async with AsyncSubtensor(network=network) as subtensor_:
-        return subtensor_
 
 
 def __getattr__(name):
