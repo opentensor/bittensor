@@ -1718,7 +1718,7 @@ class AsyncSubstrateInterface:
         -------
         bool
         """
-        result = await self.rpc_request("rpc_methods", []).get("result")
+        result = (await self.rpc_request("rpc_methods", [])).get("result")
         if result:
             self.config["rpc_methods"] = result.get("methods", [])
 
