@@ -374,7 +374,6 @@ async def get_metadata_async(
     hotkey: str,
     block: Optional[int] = None,
 ) -> str:
-
     async with subtensor.substrate:
         commit_data = await subtensor.substrate.query(
             module="Commitments",
