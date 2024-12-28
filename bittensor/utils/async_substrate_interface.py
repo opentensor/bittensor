@@ -658,6 +658,7 @@ class Websocket:
                 self._exit_task.cancel()
             if not self._initialized:
                 self._initialized = True
+                # TODO it's worth wrapping this up with try... expect... to provide more friendly exception in case `socket.gaierror: [Errno 8] nodename nor servname provided, or not known`
                 self.ws = await asyncio.wait_for(
                     connect(self.ws_url, **self._options), timeout=10
                 )
