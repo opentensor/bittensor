@@ -26,7 +26,8 @@ from bittensor.core import subtensor as subtensor_module, settings
 from bittensor.core.axon import Axon
 from bittensor.core.chain_data import SubnetHyperparameters
 from bittensor.core.settings import version_as_int
-from bittensor.core.subtensor import Subtensor, logging
+from bittensor.core.subtensor import Subtensor
+from bittensor.core.async_subtensor import logging
 from bittensor.utils import u16_normalized_float, u64_normalized_float, Certificate
 from bittensor.utils.balance import Balance
 
@@ -229,8 +230,8 @@ def test_argument_error_handling(monkeypatch, parser):
             "archive",
             settings.ARCHIVE_ENTRYPOINT,
         ),
-        ("127.0.0.1", "local", "127.0.0.1"),
-        ("localhost", "local", "localhost"),
+        ("127.0.0.1", "local", settings.LOCAL_ENTRYPOINT),
+        ("localhost", "local", settings.LOCAL_ENTRYPOINT),
         # Edge cases
         (None, None, None),
         ("unknown", "unknown", "unknown"),
