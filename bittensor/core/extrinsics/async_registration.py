@@ -1,23 +1,24 @@
 """
-This module provides functionalities for registering a wallet with the subtensor network using Proof-of-Work (PoW).
+This module provides asynchronous functionalities for registering a wallet with the subtensor network using
+Proof-of-Work (PoW).
 
 Extrinsics:
 - register_extrinsic: Registers the wallet to the subnet.
-- run_faucet_extrinsic: Runs a continual POW to get a faucet of TAO on the test net.
+- burned_register_extrinsic: Registers the wallet to chain by recycling TAO.
 """
 
 import asyncio
 from typing import Optional, Union, TYPE_CHECKING
 
-from bittensor_wallet import Wallet
-
 from bittensor.utils import format_error_message
+from bittensor.utils import unlock_key
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import log_no_torch_error, create_pow_async
 
 # For annotation and lazy import purposes
 if TYPE_CHECKING:
     import torch
+    from bittensor_wallet import Wallet
     from bittensor.core.async_subtensor import AsyncSubtensor
     from bittensor.utils.registration.pow import POWSolution
 else:
@@ -32,6 +33,147 @@ class MaxSuccessException(Exception):
 
 class MaxAttemptsException(Exception):
     """Raised when the POW Solver has reached the max number of attempts."""
+
+
+async def _do_burned_register(
+    subtensor: "AsyncSubtensor",
+    netuid: int,
+    wallet: "Wallet",
+    wait_for_inclusion: bool = False,
+    wait_for_finalization: bool = True,
+) -> tuple[bool, Optional[str]]:
+    """
+    Performs a burned register extrinsic call to the Subtensor chain.
+
+    This method sends a registration transaction to the Subtensor blockchain using the burned register mechanism.
+
+    Args:
+        subtensor (bittensor.core.subtensor.Subtensor): Subtensor instance.
+        netuid (int): The network unique identifier to register on.
+        wallet (bittensor_wallet.Wallet): The wallet to be registered.
+        wait_for_inclusion (bool): Whether to wait for the transaction to be included in a block. Default is False.
+        wait_for_finalization (bool): Whether to wait for the transaction to be finalized. Default is True.
+
+    Returns:
+        Tuple[bool, Optional[str]]: A tuple containing a boolean indicating success or failure, and an optional error message.
+    """
+
+    # create extrinsic call
+    call = await subtensor.substrate.compose_call(
+        call_module="SubtensorModule",
+        call_function="burned_register",
+        call_params={
+            "netuid": netuid,
+            "hotkey": wallet.hotkey.ss58_address,
+        },
+    )
+    extrinsic = await subtensor.substrate.create_signed_extrinsic(
+        call=call, keypair=wallet.coldkey
+    )
+    response = await subtensor.substrate.submit_extrinsic(
+        extrinsic,
+        wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization,
+    )
+
+    # We only wait here if we expect finalization.
+    if not wait_for_finalization and not wait_for_inclusion:
+        return True, None
+
+    # process if registration successful, try again if pow is still valid
+    if not await response.is_success:
+        return False, format_error_message(await response.error_message)
+    # Successful registration
+    else:
+        return True, None
+
+
+async def burned_register_extrinsic(
+    subtensor: "AsyncSubtensor",
+    wallet: "Wallet",
+    netuid: int,
+    wait_for_inclusion: bool = False,
+    wait_for_finalization: bool = True,
+) -> bool:
+    """Registers the wallet to chain by recycling TAO.
+
+    Args:
+        subtensor (bittensor.core.subtensor.Subtensor): Subtensor instance.
+        wallet (bittensor.wallet): Bittensor wallet object.
+        netuid (int): The ``netuid`` of the subnet to register on.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or
+            returns ``false`` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning
+            ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
+
+    Returns:
+        success (bool): Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
+    """
+    if not await subtensor.subnet_exists(netuid):
+        logging.error(
+            f":cross_mark: [red]Failed error:[/red] subnet [blue]{netuid}[/blue] does not exist."
+        )
+        return False
+
+    if not (unlock := unlock_key(wallet)).success:
+        logging.error(unlock.message)
+        return False
+
+    logging.info(
+        f":satellite: [magenta]Checking Account on subnet[/magenta] [blue]{netuid}[/blue][magenta] ...[/magenta]"
+    )
+    neuron = await subtensor.get_neuron_for_pubkey_and_subnet(
+        wallet.hotkey.ss58_address, netuid=netuid
+    )
+
+    old_balance = await subtensor.get_balance(wallet.coldkeypub.ss58_address)
+
+    if not neuron.is_null:
+        logging.info(":white_heavy_check_mark: [green]Already Registered[/green]")
+        logging.info(f"\t\tuid: [blue]{neuron.uid}[/blue]")
+        logging.info(f"\t\tnetuid: [blue]{neuron.netuid}[/blue]")
+        logging.info(f"\t\thotkey: [blue]{neuron.hotkey}[/blue]")
+        logging.info(f"\t\tcoldkey: [blue]{neuron.coldkey}[/blue]")
+        return True
+
+    logging.info(":satellite: [magenta]Recycling TAO for Registration...[/magenta]")
+
+    recycle_amount = await subtensor.recycle(netuid=netuid)
+    logging.info(f"Recycling {recycle_amount} to register on subnet:{netuid}")
+
+    success, err_msg = await _do_burned_register(
+        subtensor=subtensor,
+        netuid=netuid,
+        wallet=wallet,
+        wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization,
+    )
+
+    if not success:
+        logging.error(f":cross_mark: [red]Failed error:[/red] {err_msg}")
+        await asyncio.sleep(0.5)
+        return False
+    # Successful registration, final check for neuron and pubkey
+    else:
+        logging.info(":satellite: [magenta]Checking Balance...[/magenta]")
+        block_hash = await subtensor.substrate.get_chain_head()
+        new_balance = await subtensor.get_balance(
+            wallet.coldkeypub.ss58_address, block_hash=block_hash
+        )
+
+        logging.info(
+            f"Balance: [blue]{old_balance}[/blue] :arrow_right: [green]{new_balance}[/green]"
+        )
+        is_registered = await subtensor.is_hotkey_registered(
+            netuid=netuid, hotkey_ss58=wallet.hotkey.ss58_address
+        )
+        if is_registered:
+            logging.info(":white_heavy_check_mark: [green]Registered[/green]")
+            return True
+        else:
+            # neuron not found, try again
+            logging.error(":cross_mark: [red]Unknown error. Neuron not found.[/red]")
+            return False
 
 
 async def _do_pow_register(
@@ -143,9 +285,11 @@ async def register_extrinsic(
     )
 
     if not neuron.is_null:
-        logging.debug(
-            f"Wallet [green]{wallet}[/green] is already registered on subnet [blue]{neuron.netuid}[/blue] with uid[blue]{neuron.uid}[/blue]."
-        )
+        logging.info(":white_heavy_check_mark: [green]Already Registered[/green]")
+        logging.info(f"\t\tuid: [blue]{neuron.uid}[/blue]")
+        logging.info(f"\t\tnetuid: [blue]{neuron.netuid}[/blue]")
+        logging.info(f"\t\thotkey: [blue]{neuron.hotkey}[/blue]")
+        logging.info(f"\t\tcoldkey: [blue]{neuron.coldkey}[/blue]")
         return True
 
     logging.debug(
@@ -167,6 +311,7 @@ async def register_extrinsic(
         if cuda:
             if not torch.cuda.is_available():
                 return False
+
             pow_result = await create_pow_async(
                 subtensor=subtensor,
                 wallet=wallet,
