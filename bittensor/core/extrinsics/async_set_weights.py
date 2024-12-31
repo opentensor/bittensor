@@ -19,9 +19,9 @@ if TYPE_CHECKING:
 async def _do_set_weights(
     subtensor: "AsyncSubtensor",
     wallet: "Wallet",
+    netuid: int,
     uids: list[int],
     vals: list[int],
-    netuid: int,
     version_key: int = version_as_int,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
