@@ -119,9 +119,11 @@ async def _do_set_root_weights(
     wallet: "Wallet",
     netuids: Union[NDArray[np.int64], list[int]],
     weights: Union[NDArray[np.float32], list[float]],
+    netuid: int = 0,
     version_key: int = 0,
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = False,
+    period: int = 5,
 ) -> tuple[bool, str]:
     """
     Sets the root weights on the Subnet for the given wallet hotkey account.
@@ -134,9 +136,11 @@ async def _do_set_root_weights(
         wallet (bittensor_wallet.Wallet): The wallet containing the hotkey and coldkey for the transaction.
         netuids (Union[NDArray[np.int64], list[int]]): List of UIDs to set weights for.
         weights (Union[NDArray[np.float32], list[float]]): Corresponding weights to set for each UID.
+        netuid (int): The netuid of the subnet to set weights for. Defaults to 0.
         version_key (int, optional): The version key of the validator. Defaults to 0.
         wait_for_inclusion (bool, optional): If True, waits for the extrinsic to be included in a block. Defaults to False.
         wait_for_finalization (bool, optional): If True, waits for the extrinsic to be finalized on the chain. Defaults to False.
+        period (int, optional): The period in seconds to wait for extrinsic inclusion or finalization. Defaults to 5.
 
     Returns:
         tuple: Returns a tuple containing a boolean indicating success and a message describing the result of the operation.
@@ -147,7 +151,7 @@ async def _do_set_root_weights(
         call_params={
             "dests": netuids,
             "weights": weights,
-            "netuid": 0,
+            "netuid": netuid,
             "version_key": version_key,
             "hotkey": wallet.hotkey.ss58_address,
         },
@@ -156,7 +160,7 @@ async def _do_set_root_weights(
     extrinsic = await subtensor.substrate.create_signed_extrinsic(
         call=call,
         keypair=wallet.coldkey,
-        era={"period": 5},
+        era={"period": period},
     )
     response = await subtensor.substrate.submit_extrinsic(
         extrinsic,
