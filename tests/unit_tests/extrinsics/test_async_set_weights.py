@@ -1,7 +1,7 @@
 import pytest
 from bittensor.core import async_subtensor
 from bittensor_wallet import Wallet
-from bittensor.core.extrinsics import async_weights
+from bittensor.core.extrinsics import async_set_weights
 
 
 @pytest.fixture(autouse=True)
