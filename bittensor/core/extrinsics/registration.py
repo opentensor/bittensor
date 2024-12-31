@@ -20,6 +20,24 @@ if TYPE_CHECKING:
     from bittensor.core.subtensor import Subtensor
 
 
+def burned_register_extrinsic(
+    subtensor: "Subtensor",
+    wallet: "Wallet",
+    netuid: int,
+    wait_for_inclusion: bool = False,
+    wait_for_finalization: bool = True,
+) -> bool:
+    return execute_coroutine(
+        async_burned_register_extrinsic(
+            subtensor=subtensor.async_subtensor,
+            wallet=wallet,
+            netuid=netuid,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+    )
+
+
 def register_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
@@ -50,23 +68,5 @@ def register_extrinsic(
             num_processes=num_processes,
             update_interval=update_interval,
             log_verbose=log_verbose,
-        )
-    )
-
-
-def burned_register_extrinsic(
-    subtensor: "Subtensor",
-    wallet: "Wallet",
-    netuid: int,
-    wait_for_inclusion: bool = False,
-    wait_for_finalization: bool = True,
-) -> bool:
-    return execute_coroutine(
-        async_burned_register_extrinsic(
-            subtensor=subtensor.async_subtensor,
-            wallet=wallet,
-            netuid=netuid,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
         )
     )
