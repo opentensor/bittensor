@@ -40,7 +40,7 @@ def serve_axon_extrinsic(
     axon: "Axon",
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = True,
-    certificate: Optional[Certificate] = None,
+    certificate: Optional["Certificate"] = None,
 ) -> bool:
     return execute_coroutine(
         async_serve_axon_extrinsic(
