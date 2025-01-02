@@ -1,3 +1,6 @@
+"""This module provides async functionality for commit reveal in the Bittensor network."""
+
+import asyncio
 from typing import Optional, Union, TYPE_CHECKING
 
 import numpy as np
@@ -53,9 +56,13 @@ async def _do_commit_reveal_v3(
             "reveal_round": reveal_round,
         },
     )
+    next_nonce = await subtensor.substrate.get_account_next_index(
+        wallet.hotkey.ss58_address
+    )
     extrinsic = await subtensor.substrate.create_signed_extrinsic(
         call=call,
         keypair=wallet.hotkey,
+        nonce=next_nonce,
     )
 
     response = await subtensor.substrate.submit_extrinsic(
@@ -110,8 +117,10 @@ async def commit_reveal_v3_extrinsic(
         # Reformat and normalize.
         uids, weights = convert_weights_and_uids_for_emit(uids, weights)
 
-        current_block = await subtensor.substrate.get_block_number(None)
-        subnet_hyperparameters = await subtensor.get_subnet_hyperparameters(netuid)
+        current_block, subnet_hyperparameters = asyncio.gather(
+            subtensor.substrate.get_block_number(None),
+            subtensor.get_subnet_hyperparameters(netuid),
+        )
         tempo = subnet_hyperparameters.tempo
         subnet_reveal_period_epochs = (
             subnet_hyperparameters.commit_reveal_weights_interval
