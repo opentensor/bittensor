@@ -400,7 +400,9 @@ def hex_to_bytes(hex_str: str) -> bytes:
     return bytes_result
 
 
-def execute_coroutine(coroutine: "Coroutine", event_loop: asyncio.AbstractEventLoop = None):
+def execute_coroutine(
+    coroutine: "Coroutine", event_loop: asyncio.AbstractEventLoop = None
+):
     """
     Helper function to run an asyncio coroutine synchronously.
 
@@ -418,7 +420,6 @@ def execute_coroutine(coroutine: "Coroutine", event_loop: asyncio.AbstractEventL
             return asyncio.run(coroutine)
     except RuntimeError as error:
         if "already running" in str(error):
-
             if not event_loop:
                 event_loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(event_loop)
