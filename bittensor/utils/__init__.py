@@ -19,7 +19,7 @@ import asyncio
 import ast
 from collections import namedtuple
 import hashlib
-from typing import Any, Literal, Union, Optional, TYPE_CHECKING
+from typing import Any, Literal, Union, Optional, TYPE_CHECKING, Coroutine
 from urllib.parse import urlparse
 
 import scalecodec
@@ -400,22 +400,28 @@ def hex_to_bytes(hex_str: str) -> bytes:
     return bytes_result
 
 
-def execute_coroutine(coroutine, loop: asyncio.AbstractEventLoop = None):
+def execute_coroutine(coroutine: "Coroutine", event_loop: asyncio.AbstractEventLoop = None):
     """
     Helper function to run an asyncio coroutine synchronously.
 
     Args:
         coroutine (Coroutine): The coroutine to run.
-        loop (AbstractEventLoop): The event loop to use. If None, the default event loop is used.
+        event_loop (AbstractEventLoop): The event loop to use. If None, a new event loop will be created.
 
     Returns:
         The result of the coroutine execution.
     """
     try:
-        return asyncio.run(coroutine)
-    except RuntimeError as e:
-        if "already running" in str(e):
-            # Handles cases where an asyncio event loop is already running
-            loop = loop or asyncio.get_event_loop()
-            return loop.run_until_complete(coroutine)
-        raise e
+        if event_loop:
+            return event_loop.run_until_complete(coroutine)
+        else:
+            return asyncio.run(coroutine)
+    except RuntimeError as error:
+        if "already running" in str(error):
+
+            if not event_loop:
+                event_loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(event_loop)
+            return event_loop.run_until_complete(coroutine)
+        else:
+            raise error
