@@ -8,7 +8,7 @@ from tests.e2e_tests.utils.chain_interactions import (
     wait_epoch,
     sudo_set_hyperparameter_values,
 )
-from bittensor.core.extrinsics.root import _do_set_root_weights
+from bittensor.core.extrinsics.async_root import _do_set_root_weights
 from tests.e2e_tests.utils.e2e_test_utils import (
     setup_wallet,
     template_path,
@@ -154,11 +154,11 @@ async def test_root_reg_hyperparams(local_chain):
     await wait_epoch(subtensor)
 
     # Set root weights to root network (0) and sn 1
-    assert _do_set_root_weights(
-        subtensor,
+    assert await _do_set_root_weights(
+        subtensor=subtensor.async_subtensor,
         wallet=alice_wallet,
-        uids=[0, 1],
-        vals=weights,
+        netuids=[0, 1],
+        weights=weights,
         netuid=0,
         version_key=0,
         wait_for_inclusion=True,

@@ -16,7 +16,7 @@ from tests.e2e_tests.utils.e2e_test_utils import (
 )
 from bittensor.utils.balance import Balance
 from bittensor.core.extrinsics import utils
-from bittensor.core.extrinsics.set_weights import do_set_weights
+from bittensor.core.extrinsics.async_weights import _do_set_weights
 from bittensor.core.metagraph import Metagraph
 
 
@@ -159,8 +159,8 @@ async def test_incentive(local_chain):
     await wait_epoch(subtensor)
 
     # Set weights by Alice on the subnet
-    do_set_weights(
-        self=subtensor,
+    await _do_set_weights(
+        subtensor=subtensor.async_subtensor,
         wallet=alice_wallet,
         uids=[1],
         vals=[65535],
