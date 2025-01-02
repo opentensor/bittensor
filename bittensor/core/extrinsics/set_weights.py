@@ -1,8 +1,11 @@
+"""Module sync setting weights extrinsic."""
+
 from typing import Union, TYPE_CHECKING
 
 import numpy as np
 from numpy.typing import NDArray
 
+from bittensor.core.extrinsics.asyncex.weights import set_weights_extrinsic as async_set_weights_extrinsic
 from bittensor.utils import execute_coroutine
 from bittensor.utils.registration import torch
 
@@ -22,7 +25,7 @@ def set_weights_extrinsic(
     wait_for_finalization: bool = False,
 ) -> tuple[bool, str]:
     return execute_coroutine(
-        set_weights_extrinsic(
+        coroutine=async_set_weights_extrinsic(
             subtensor=subtensor.async_subtensor,
             wallet=wallet,
             netuid=netuid,
@@ -31,5 +34,6 @@ def set_weights_extrinsic(
             version_key=version_key,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
-        )
+        ),
+        event_loop=subtensor.event_loop,
     )
