@@ -286,15 +286,18 @@ async def get_metadata(
     netuid: int,
     hotkey: str,
     block: Optional[int] = None,
+    block_hash: Optional[str] = None,
+    reuse_block: bool = False,
 ) -> str:
+    """Fetches metadata from the blockchain for a given hotkey and netuid."""
     async with subtensor.substrate:
+        block_hash = await subtensor.determine_block_hash(
+            block, block_hash, reuse_block
+        )
         commit_data = await subtensor.substrate.query(
             module="Commitments",
             storage_function="CommitmentOf",
             params=[netuid, hotkey],
-            block_hash=None
-            if block is None
-            else await subtensor.substrate.get_block_hash(block),
+            block_hash=block_hash,
         )
-        print(">>>", commit_data)
     return commit_data
