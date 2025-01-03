@@ -15,7 +15,6 @@ from bittensor.utils import unlock_key
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import log_no_torch_error, create_pow_async
 
-# For annotation and lazy import purposes
 if TYPE_CHECKING:
     import torch
     from bittensor_wallet import Wallet
