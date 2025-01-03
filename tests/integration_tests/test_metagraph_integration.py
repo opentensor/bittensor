@@ -78,8 +78,9 @@ class TestMetagraph:
         assert "version" in state
         assert "n" in state
         assert "block" in state
-        assert "stake" in state
         assert "total_stake" in state
+        assert "alpha_stake" in state
+        assert "tao_stake" in state
         assert "ranks" in state
         assert "trust" in state
         assert "consensus" in state
@@ -100,7 +101,6 @@ class TestMetagraph:
         metagraph.coldkeys
         metagraph.addresses
         metagraph.validator_trust
-        metagraph.S
         metagraph.R
         metagraph.I
         metagraph.E
@@ -110,3 +110,6 @@ class TestMetagraph:
         metagraph.D
         metagraph.B
         metagraph.W
+        metagraph.Ts
+        metagraph.AS
+        metagraph.S

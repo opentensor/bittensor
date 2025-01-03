@@ -42,13 +42,10 @@ from bittensor.utils.weight_utils import (
 if typing.TYPE_CHECKING:
     from bittensor.core.subtensor import Subtensor
 
-
 METAGRAPH_STATE_DICT_NDARRAY_KEYS = [
     "version",
     "n",
     "block",
-    "stake",
-    "total_stake",
     "ranks",
     "trust",
     "consensus",
@@ -68,8 +65,6 @@ This list defines the set of keys expected in the metagraph's state dictionary w
 - **version** (`str`): The version identifier of the metagraph state.
 - **n** (`int`): The total number of nodes in the metagraph.
 - **block** (`int`): The current block number in the blockchain or ledger.
-- **stake** (`ndarray`): An array representing the stake of each node.
-- **total_stake** (`float`): The sum of all individual stakes in the metagraph.
 - **ranks** (`ndarray`): An array of rank scores assigned to each node.
 - **trust** (`ndarray`): An array of trust scores for the nodes.
 - **consensus** (`ndarray`): An array indicating consensus levels among nodes.
@@ -149,8 +144,6 @@ class MetagraphMixin(ABC):
         version (NDArray): The version number of the network, integral for tracking network updates.
         n (NDArray): The total number of neurons in the network, reflecting its size and complexity.
         block (NDArray): The current block number in the blockchain, crucial for synchronizing with the network's latest state.
-        stake: Represents the cryptocurrency staked by neurons, impacting their influence and earnings within the network.
-        total_stake: The cumulative stake across all neurons.
         ranks: Neuron rankings as per the Yuma Consensus algorithm, influencing their incentive distribution and network authority.
         trust: Scores indicating the reliability of neurons, mainly miners, within the network's operational context.
         consensus: Scores reflecting each neuron's alignment with the network's collective decisions.
@@ -194,84 +187,56 @@ class MetagraphMixin(ABC):
 
     netuid: int
     network: str
-    version: Union["torch.nn.Parameter", tuple[NDArray]]
-    n: Union["torch.nn.Parameter", NDArray]
-    block: Union["torch.nn.Parameter", NDArray]
-    stake: Union["torch.nn.Parameter", NDArray]
-    total_stake: Union["torch.nn.Parameter", NDArray]
-    ranks: Union["torch.nn.Parameter", NDArray]
-    trust: Union["torch.nn.Parameter", NDArray]
-    consensus: Union["torch.nn.Parameter", NDArray]
-    validator_trust: Union["torch.nn.Parameter", NDArray]
-    incentive: Union["torch.nn.Parameter", NDArray]
-    emission: Union["torch.nn.Parameter", NDArray]
-    dividends: Union["torch.nn.Parameter", NDArray]
-    active: Union["torch.nn.Parameter", NDArray]
-    last_update: Union["torch.nn.Parameter", NDArray]
-    validator_permit: Union["torch.nn.Parameter", NDArray]
-    weights: Union["torch.nn.Parameter", NDArray]
-    bonds: Union["torch.nn.Parameter", NDArray]
-    uids: Union["torch.nn.Parameter", NDArray]
-    local_stake: Union["torch.nn.Parameter", NDArray]
-    global_stake: Union["torch.nn.Parameter", NDArray]
-    stake_weights: Union["torch.nn.Parameter", NDArray]
-    global_weight: Union["torch.nn.Parameter", NDArray]
-    axons: list[AxonInfo]
+    version: Union["torch.nn.Parameter", tuple["NDArray"]]
+    n: Union["torch.nn.Parameter", "NDArray"]
+    block: Union["torch.nn.Parameter", "NDArray"]
+    ranks: Union["torch.nn.Parameter", "NDArray"]
+    trust: Union["torch.nn.Parameter", "NDArray"]
+    consensus: Union["torch.nn.Parameter", "NDArray"]
+    validator_trust: Union["torch.nn.Parameter", "NDArray"]
+    incentive: Union["torch.nn.Parameter", "NDArray"]
+    emission: Union["torch.nn.Parameter", "NDArray"]
+    dividends: Union["torch.nn.Parameter", "NDArray"]
+    active: Union["torch.nn.Parameter", "NDArray"]
+    last_update: Union["torch.nn.Parameter", "NDArray"]
+    validator_permit: Union["torch.nn.Parameter", "NDArray"]
+    weights: Union["torch.nn.Parameter", "NDArray"]
+    bonds: Union["torch.nn.Parameter", "NDArray"]
+    uids: Union["torch.nn.Parameter", "NDArray"]
+    alpha_stake: Union["torch.nn.Parameter", "NDArray"]
+    tao_stake: Union["torch.nn.Parameter", "NDArray"]
+    total_stake: Union["torch.nn.Parameter", "NDArray"]
+    axons: list["AxonInfo"]
 
     @property
-    def GS(self) -> list[Balance]:
+    def Ts(self) -> list["Balance"]:
         """
-        Represents the global stake of each neuron in the Bittensor network.
+        Represents the tao stake of each neuron in the Bittensor network.
 
         Returns:
-            List[Balance]: The list of global stake of each neuron in the network.
+            list["Balance"]: The list of tao stake of each neuron in the network.
         """
-        return self.global_stake
+        return self.tao_stake
 
     @property
-    def LS(self) -> list[Balance]:
+    def AS(self) -> list["Balance"]:
         """
-        Represents the local stake of each neuron in the Bittensor network.
+        Represents the alpha stake of each neuron in the Bittensor network.
 
         Returns:
-            List[Balance]: The list of local stake of each neuron in the network.
+            list["Balance"]: The list of alpha stake of each neuron in the network.
         """
-        return self.local_stake
+        return self.alpha_stake
 
     @property
-    def SW(self) -> list[float]:
+    def S(self) -> list["Balance"]:
         """
-        Represents the stake weights of each neuron in the Bittensor network.
+        Represents the total stake of each neuron in the Bittensor network.
 
         Returns:
-            List[float]: Each value is calculated based on local_stake and global_stake.
+            list["Balance"]: The list of total stake of each neuron in the network.
         """
-        return self.stake_weights
-
-    @property
-    def S(self) -> float:
-        """
-        Represents the value between 0.0 and 1.0. This gives the users do blacklists in terms of stake values.
-
-        Returns:
-            float: The value between 0.0 and 1.0 or None if stake_weights doesn't have zero index value.
-        """
-        try:
-            value = self.stake_weights[0] * max(self.global_stake).tao
-        except IndexError:
-            logging.warning("Stake weights is empty.")
-            value = None
-        return value
-
-    @property
-    def GW(self) -> float:
-        """
-        Represents Global Weights of subnet across all subnets.
-
-        Returns:
-            float: The value of Global Weights.
-        """
-        return self.global_weight
+        return self.total_stake
 
     @property
     def R(self) -> Union[NDArray, "torch.nn.Parameter"]:
@@ -540,8 +505,6 @@ class MetagraphMixin(ABC):
             "version": self.version,
             "n": self.n,
             "block": self.block,
-            "stake": self.stake,
-            "total_stake": self.total_stake,
             "ranks": self.ranks,
             "trust": self.trust,
             "consensus": self.consensus,
@@ -557,6 +520,9 @@ class MetagraphMixin(ABC):
             "uids": self.uids,
             "axons": self.axons,
             "neurons": self.neurons,
+            "alpha_stake": self.alpha_stake,
+            "tao_stake": self.tao_stake,
+            "total_stake": self.total_stake,
         }
 
     def sync(
@@ -625,9 +591,6 @@ class MetagraphMixin(ABC):
         # If not a 'lite' version, compute and set weights and bonds for each neuron
         if not lite:
             self._set_weights_and_bonds(subtensor=subtensor)
-
-        # Get global weight for netuid
-        self.global_weight = subtensor.get_global_weight(netuid=self.netuid)
 
         # Fills in the stake associated attributes of a class instance from a chain response.
         self._get_all_stakes_from_chain(subtensor=subtensor)
@@ -779,7 +742,7 @@ class MetagraphMixin(ABC):
                             len(self.neurons), list(uids), list(values)
                         ).astype(np.float32)
                     )
-        tensor_param: Union["torch.nn.Parameter", NDArray] = (
+        tensor_param: Union["torch.nn.Parameter", "NDArray"] = (
             (
                 torch.nn.Parameter(torch.stack(data_array), requires_grad=False)
                 if len(data_array)
@@ -823,12 +786,13 @@ class MetagraphMixin(ABC):
                 bytes_result = bytes.fromhex(hex_bytes_result)
 
             subnet_state: "SubnetState" = SubnetState.from_vec_u8(bytes_result)
-            self.global_stake = subnet_state.global_stake
-            self.local_stake = subnet_state.local_stake
-            self.stake_weights = subnet_state.stake_weight
+            self.alpha_stake = subnet_state.alpha_stake
+            self.tao_stake = subnet_state.tao_stake
+            self.total_stake = subnet_state.total_stake
+
         except (SubstrateRequestException, AttributeError):
             logging.debug(
-                "Fields `global_stake`, `local_stake`, `stake_weights` can be obtained only from the RAO network."
+                "Fields `alpha_stake`, `tao_stake`, `total_stake` can be obtained only from the RAO network."
             )
 
     def _process_root_weights(
@@ -1022,12 +986,6 @@ class TorchMetaGraph(MetagraphMixin, BaseClass):
         self.block: torch.nn.Parameter = torch.nn.Parameter(
             torch.tensor([0], dtype=torch.int64), requires_grad=False
         )
-        self.stake = torch.nn.Parameter(
-            torch.tensor([], dtype=torch.float32), requires_grad=False
-        )
-        self.total_stake: torch.nn.Parameter = torch.nn.Parameter(
-            torch.tensor([], dtype=torch.float32), requires_grad=False
-        )
         self.ranks: torch.nn.Parameter = torch.nn.Parameter(
             torch.tensor([], dtype=torch.float32), requires_grad=False
         )
@@ -1067,11 +1025,10 @@ class TorchMetaGraph(MetagraphMixin, BaseClass):
         self.uids = torch.nn.Parameter(
             torch.tensor([], dtype=torch.int64), requires_grad=False
         )
-        self.local_stake: list[Balance] = []
-        self.global_stake: list[Balance] = []
-        self.stake_weights: list[float] = []
-        self.global_weight: Optional[float] = None
-        self.axons: list[AxonInfo] = []
+        self.alpha_stake: list["Balance"] = []
+        self.tao_stake: list["Balance"] = []
+        self.total_stake: list["Balance"] = []
+        self.axons: list["AxonInfo"] = []
         if sync:
             self.sync(block=None, lite=lite)
 
@@ -1133,12 +1090,6 @@ class TorchMetaGraph(MetagraphMixin, BaseClass):
         self.validator_trust = self._create_tensor(
             [neuron.validator_trust for neuron in self.neurons], dtype=torch.float32
         )
-        self.total_stake = self._create_tensor(
-            [neuron.total_stake.tao for neuron in self.neurons], dtype=torch.float32
-        )
-        self.stake = self._create_tensor(
-            [neuron.stake for neuron in self.neurons], dtype=torch.float32
-        )
         self.axons = [n.axon_info for n in self.neurons]
 
     def load_from_path(self, dir_path: str) -> "Metagraph":
@@ -1167,10 +1118,6 @@ class TorchMetaGraph(MetagraphMixin, BaseClass):
         self.n = torch.nn.Parameter(state_dict["n"], requires_grad=False)
         self.block = torch.nn.Parameter(state_dict["block"], requires_grad=False)
         self.uids = torch.nn.Parameter(state_dict["uids"], requires_grad=False)
-        self.stake = torch.nn.Parameter(state_dict["stake"], requires_grad=False)
-        self.total_stake = torch.nn.Parameter(
-            state_dict["total_stake"], requires_grad=False
-        )
         self.ranks = torch.nn.Parameter(state_dict["ranks"], requires_grad=False)
         self.trust = torch.nn.Parameter(state_dict["trust"], requires_grad=False)
         self.consensus = torch.nn.Parameter(
@@ -1202,6 +1149,18 @@ class TorchMetaGraph(MetagraphMixin, BaseClass):
             )
         if "bonds" in state_dict:
             self.bonds = torch.nn.Parameter(state_dict["bonds"], requires_grad=False)
+        if "alpha_stake" in state_dict:
+            self.alpha_stake = torch.nn.Parameter(
+                state_dict["alpha_stake"], requires_grad=False
+            )
+        if "tao_stake" in state_dict:
+            self.tao_stake = torch.nn.Parameter(
+                state_dict["tao_stake"], requires_grad=False
+            )
+        if "total_stake" in state_dict:
+            self.total_stake = torch.nn.Parameter(
+                state_dict["total_stake"], requires_grad=False
+            )
         return self
 
 
@@ -1235,8 +1194,6 @@ class NonTorchMetagraph(MetagraphMixin):
         self.version = (np.array([settings.version_as_int], dtype=np.int64),)
         self.n = np.array([0], dtype=np.int64)
         self.block = np.array([0], dtype=np.int64)
-        self.stake = np.array([], dtype=np.float32)
-        self.total_stake = np.array([], dtype=np.float32)
         self.ranks = np.array([], dtype=np.float32)
         self.trust = np.array([], dtype=np.float32)
         self.consensus = np.array([], dtype=np.float32)
@@ -1250,11 +1207,10 @@ class NonTorchMetagraph(MetagraphMixin):
         self.weights = np.array([], dtype=np.float32)
         self.bonds = np.array([], dtype=np.int64)
         self.uids = np.array([], dtype=np.int64)
-        self.local_stake: list[Balance] = []
-        self.global_stake: list[Balance] = []
-        self.stake_weights: list[float] = []
-        self.global_weight: Optional[float] = None
-        self.axons: list[AxonInfo] = []
+        self.alpha_stake: list["Balance"] = []
+        self.tao_stake: list["Balance"] = []
+        self.total_stake: list["Balance"] = []
+        self.axons: list["AxonInfo"] = []
         if sync:
             self.sync(block=None, lite=lite)
 
@@ -1312,12 +1268,6 @@ class NonTorchMetagraph(MetagraphMixin):
         self.validator_trust = self._create_tensor(
             [neuron.validator_trust for neuron in self.neurons], dtype=np.float32
         )
-        self.total_stake = self._create_tensor(
-            [neuron.total_stake.tao for neuron in self.neurons], dtype=np.float32
-        )
-        self.stake = self._create_tensor(
-            [neuron.stake for neuron in self.neurons], dtype=np.float32
-        )
         self.axons = [n.axon_info for n in self.neurons]
 
     def load_from_path(self, dir_path: str) -> "Metagraph":
@@ -1361,8 +1311,6 @@ class NonTorchMetagraph(MetagraphMixin):
         self.n = state_dict["n"]
         self.block = state_dict["block"]
         self.uids = state_dict["uids"]
-        self.stake = state_dict["stake"]
-        self.total_stake = state_dict["total_stake"]
         self.ranks = state_dict["ranks"]
         self.trust = state_dict["trust"]
         self.consensus = state_dict["consensus"]
@@ -1379,6 +1327,12 @@ class NonTorchMetagraph(MetagraphMixin):
             self.weights = state_dict["weights"]
         if "bonds" in state_dict:
             self.bonds = state_dict["bonds"]
+        if "alpha_stake" in state_dict:
+            self.alpha_stake = state_dict["alpha_stake"]
+        if "tao_stake" in state_dict:
+            self.tao_stake = state_dict["tao_stake"]
+        if "total_stake" in state_dict:
+            self.total_stake = state_dict["total_stake"]
         return self
 
 
