@@ -207,7 +207,7 @@ class MetagraphMixin(ABC):
     alpha_stake: Union["torch.nn.Parameter", NDArray]
     tao_stake: Union["torch.nn.Parameter", NDArray]
     total_stake: Union["torch.nn.Parameter", NDArray]
-    axons: list[AxonInfo]
+    axons: list["AxonInfo"]
 
     @property
     def Ts(self) -> list[Balance]:
@@ -1026,10 +1026,10 @@ class TorchMetaGraph(MetagraphMixin, BaseClass):
         self.uids = torch.nn.Parameter(
             torch.tensor([], dtype=torch.int64), requires_grad=False
         )
-        self.alpha_stake: list[Balance] = []
-        self.tao_stake: list[Balance] = []
-        self.total_stake: list[Balance] = []
-        self.axons: list[AxonInfo] = []
+        self.alpha_stake: list["Balance"] = []
+        self.tao_stake: list["Balance"] = []
+        self.total_stake: list["Balance"] = []
+        self.axons: list["AxonInfo"] = []
         if sync:
             self.sync(block=None, lite=lite)
 
@@ -1208,10 +1208,10 @@ class NonTorchMetagraph(MetagraphMixin):
         self.weights = np.array([], dtype=np.float32)
         self.bonds = np.array([], dtype=np.int64)
         self.uids = np.array([], dtype=np.int64)
-        self.alpha_stake: list[Balance] = []
-        self.tao_stake: list[Balance] = []
-        self.total_stake: list[Balance] = []
-        self.axons: list[AxonInfo] = []
+        self.alpha_stake: list["Balance"] = []
+        self.tao_stake: list["Balance"] = []
+        self.total_stake: list["Balance"] = []
+        self.axons: list["AxonInfo"] = []
         if sync:
             self.sync(block=None, lite=lite)
 
