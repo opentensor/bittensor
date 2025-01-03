@@ -5,7 +5,9 @@ from typing import Union, TYPE_CHECKING
 import numpy as np
 from numpy.typing import NDArray
 
-from bittensor.core.extrinsics.asyncex.weights import set_weights_extrinsic as async_set_weights_extrinsic
+from bittensor.core.extrinsics.asyncex.weights import (
+    set_weights_extrinsic as async_set_weights_extrinsic,
+)
 from bittensor.utils import execute_coroutine
 from bittensor.utils.registration import torch
 
