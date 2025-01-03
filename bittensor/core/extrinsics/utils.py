@@ -60,7 +60,7 @@ def submit_extrinsic(
     def submit():
         try:
             response_ = subtensor.substrate.submit_extrinsic(
-                extrinsic,
+                extrinsic=extrinsic,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
             )

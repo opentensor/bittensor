@@ -57,7 +57,6 @@ async def do_serve_axon(
         call=call, keypair=wallet.hotkey
     )
     response = await subtensor.substrate.submit_extrinsic(
-        self=subtensor,
         extrinsic=extrinsic,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
@@ -65,10 +64,10 @@ async def do_serve_axon(
     if wait_for_inclusion or wait_for_finalization:
         if await response.is_success:
             return True, None
-        else:
-            return False, await response.error_message
-    else:
-        return True, None
+
+        return False, await response.error_message
+
+    return True, None
 
 
 async def serve_extrinsic(
@@ -268,7 +267,7 @@ async def publish_metadata(
         call=call, keypair=wallet.hotkey
     )
     response = await subtensor.substrate.submit_extrinsic(
-        extrinsic,
+        extrinsic=extrinsic,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
     )

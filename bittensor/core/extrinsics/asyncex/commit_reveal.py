@@ -63,7 +63,6 @@ async def _do_commit_reveal_v3(
     )
 
     response = await subtensor.substrate.submit_extrinsic(
-        subtensor=subtensor,
         extrinsic=extrinsic,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
