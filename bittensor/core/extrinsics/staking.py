@@ -29,7 +29,7 @@ def add_stake_extrinsic(
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
         ),
-        event_loop=subtensor.event_loop
+        event_loop=subtensor.event_loop,
     )
 
 
@@ -50,5 +50,5 @@ def add_stake_multiple_extrinsic(
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
         ),
-        event_loop=subtensor.event_loop
+        event_loop=subtensor.event_loop,
     )
