@@ -168,7 +168,7 @@ async def transfer_extrinsic(
         logging.info(":satellite: [magenta]Checking Balance...[magenta]")
         new_balance = await subtensor.get_balance(wallet.coldkeypub.ss58_address)
         logging.info(
-            f"Balance: [blue]{account_balance}[/blue] :arrow_right: [green]{new_balance[wallet.coldkeypub.ss58_address]}[/green]"
+            f"Balance: [blue]{account_balance}[/blue] :arrow_right: [green]{new_balance}[/green]"
         )
         return True
     else:
