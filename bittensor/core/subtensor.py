@@ -80,7 +80,6 @@ from bittensor.utils import (
     torch,
     ss58_to_vec_u8,
     u16_normalized_float,
-    u64_normalized_float,
 )
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
