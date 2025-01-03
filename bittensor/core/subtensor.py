@@ -2059,21 +2059,6 @@ class Subtensor:
 
         return DelegateInfo.from_vec_u8(result)
 
-    def get_global_weight(
-        self, netuid: int, block: Optional[str] = None
-    ) -> Optional[float]:
-        """Returns the subnet Global Weight across all subnets."""
-        result = self.substrate.query(
-            module="SubtensorModule",
-            storage_function="GlobalWeight",
-            params=[netuid],
-            block_hash=None if block is None else self.substrate.get_block_hash(block),
-        )
-        if hasattr(result, "value"):
-            return u64_normalized_float(result.value)
-
-        return None
-
     # Subnet 27 uses this method
     _do_serve_prometheus = do_serve_prometheus
     # Subnet 27 uses this method name
