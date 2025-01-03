@@ -56,7 +56,7 @@ def from_vec_u8(cls, vec_u8: bytes) -> Optional["DelegateInfo"]:
 
     # IMPORTANT: Decide if these are RAO-based or already in final units.
     # If your chain data is NOT in raw RAO, remove `from_rao`:
-    return_per_1000_val = Balance.from_rao(decoded.return_per_1000)  # or maybe just Balance(decoded.return_per_1000)
+    return_per_1000_val = Balance.from_rao(decoded.return_per_1000)  
     total_daily_return_val = Balance.from_rao(decoded.total_daily_return)
 
     # Convert registrations to int if needed
