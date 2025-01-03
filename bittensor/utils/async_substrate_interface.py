@@ -775,6 +775,7 @@ class AsyncSubstrateInterface:
         ss58_format: Optional[int] = None,
         type_registry: Optional[dict] = None,
         chain_name: Optional[str] = None,
+        event_loop: Optional[asyncio.BaseEventLoop] = None,
     ):
         """
         The asyncio-compatible version of the subtensor interface commands we use in bittensor. It is important to
@@ -820,7 +821,7 @@ class AsyncSubstrateInterface:
         self.transaction_version = None
         self.__metadata = None
         self.metadata_version_hex = "0x0f000000"  # v15
-        execute_coroutine(self.initialize())
+        execute_coroutine(coroutine=self.initialize(), event_loop=event_loop)
 
     async def __aenter__(self):
         await self.initialize()
@@ -2321,7 +2322,7 @@ class AsyncSubstrateInterface:
             nonce_obj = await self.runtime_call(
                 "AccountNonceApi", "account_nonce", [account_address]
             )
-            return nonce_obj
+            return getattr(nonce_obj, "value", nonce_obj)
         else:
             response = await self.query(
                 module="System", storage_function="Account", params=[account_address]
