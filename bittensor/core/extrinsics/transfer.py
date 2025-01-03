@@ -1,6 +1,6 @@
 from typing import Union, TYPE_CHECKING
 
-from bittensor.core.extrinsics.async_transfer import (
+from bittensor.core.extrinsics.asyncex.transfer import (
     transfer_extrinsic as async_transfer_extrinsic,
 )
 from bittensor.utils import execute_coroutine
@@ -22,7 +22,7 @@ def transfer_extrinsic(
     keep_alive: bool = True,
 ) -> bool:
     return execute_coroutine(
-        async_transfer_extrinsic(
+        coroutine=async_transfer_extrinsic(
             subtensor=subtensor.async_subtensor,
             wallet=wallet,
             destination=dest,
@@ -31,5 +31,6 @@ def transfer_extrinsic(
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
             keep_alive=keep_alive,
-        )
+        ),
+        event_loop=subtensor.event_loop,
     )
