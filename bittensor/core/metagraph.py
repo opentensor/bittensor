@@ -28,8 +28,7 @@ from numpy.typing import NDArray
 from substrateinterface.exceptions import SubstrateRequestException
 
 from bittensor.core import settings
-from bittensor.core.chain_data import AxonInfo, SubnetState
-from bittensor.utils.balance import Balance
+from bittensor.core.chain_data import SubnetState
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import torch, use_torch
 from bittensor.utils.weight_utils import (
@@ -41,7 +40,8 @@ from bittensor.utils.weight_utils import (
 # For annotation purposes
 if typing.TYPE_CHECKING:
     from bittensor.core.subtensor import Subtensor
-
+    from bittensor.utils.balance import Balance
+    from bittensor.core.chain_data import AxonInfo
 
 METAGRAPH_STATE_DICT_NDARRAY_KEYS = [
     "version",
@@ -188,54 +188,54 @@ class MetagraphMixin(ABC):
 
     netuid: int
     network: str
-    version: Union["torch.nn.Parameter", tuple[NDArray]]
-    n: Union["torch.nn.Parameter", NDArray]
-    block: Union["torch.nn.Parameter", NDArray]
-    ranks: Union["torch.nn.Parameter", NDArray]
-    trust: Union["torch.nn.Parameter", NDArray]
-    consensus: Union["torch.nn.Parameter", NDArray]
-    validator_trust: Union["torch.nn.Parameter", NDArray]
-    incentive: Union["torch.nn.Parameter", NDArray]
-    emission: Union["torch.nn.Parameter", NDArray]
-    dividends: Union["torch.nn.Parameter", NDArray]
-    active: Union["torch.nn.Parameter", NDArray]
-    last_update: Union["torch.nn.Parameter", NDArray]
-    validator_permit: Union["torch.nn.Parameter", NDArray]
-    weights: Union["torch.nn.Parameter", NDArray]
-    bonds: Union["torch.nn.Parameter", NDArray]
-    uids: Union["torch.nn.Parameter", NDArray]
-    alpha_stake: Union["torch.nn.Parameter", NDArray]
-    tao_stake: Union["torch.nn.Parameter", NDArray]
-    total_stake: Union["torch.nn.Parameter", NDArray]
+    version: Union["torch.nn.Parameter", tuple["NDArray"]]
+    n: Union["torch.nn.Parameter", "NDArray"]
+    block: Union["torch.nn.Parameter", "NDArray"]
+    ranks: Union["torch.nn.Parameter", "NDArray"]
+    trust: Union["torch.nn.Parameter", "NDArray"]
+    consensus: Union["torch.nn.Parameter", "NDArray"]
+    validator_trust: Union["torch.nn.Parameter", "NDArray"]
+    incentive: Union["torch.nn.Parameter", "NDArray"]
+    emission: Union["torch.nn.Parameter", "NDArray"]
+    dividends: Union["torch.nn.Parameter", "NDArray"]
+    active: Union["torch.nn.Parameter", "NDArray"]
+    last_update: Union["torch.nn.Parameter", "NDArray"]
+    validator_permit: Union["torch.nn.Parameter", "NDArray"]
+    weights: Union["torch.nn.Parameter", "NDArray"]
+    bonds: Union["torch.nn.Parameter", "NDArray"]
+    uids: Union["torch.nn.Parameter", "NDArray"]
+    alpha_stake: Union["torch.nn.Parameter", "NDArray"]
+    tao_stake: Union["torch.nn.Parameter", "NDArray"]
+    total_stake: Union["torch.nn.Parameter", "NDArray"]
     axons: list["AxonInfo"]
 
     @property
-    def Ts(self) -> list[Balance]:
+    def Ts(self) -> list["Balance"]:
         """
         Represents the tao stake of each neuron in the Bittensor network.
 
         Returns:
-            List[Balance]: The list of tao stake of each neuron in the network.
+            list["Balance"]: The list of tao stake of each neuron in the network.
         """
         return self.tao_stake
 
     @property
-    def AS(self) -> list[Balance]:
+    def AS(self) -> list["Balance"]:
         """
         Represents the alpha stake of each neuron in the Bittensor network.
 
         Returns:
-            List[Balance]: The list of alpha stake of each neuron in the network.
+            list["Balance"]: The list of alpha stake of each neuron in the network.
         """
         return self.alpha_stake
 
     @property
-    def S(self) -> list[float]:
+    def S(self) -> list["Balance"]:
         """
         Represents the total stake of each neuron in the Bittensor network.
 
         Returns:
-            List[Balance]: The list of total stake of each neuron in the network.
+            list["Balance"]: The list of total stake of each neuron in the network.
         """
         return self.total_stake
 
@@ -743,7 +743,7 @@ class MetagraphMixin(ABC):
                             len(self.neurons), list(uids), list(values)
                         ).astype(np.float32)
                     )
-        tensor_param: Union["torch.nn.Parameter", NDArray] = (
+        tensor_param: Union["torch.nn.Parameter", "NDArray"] = (
             (
                 torch.nn.Parameter(torch.stack(data_array), requires_grad=False)
                 if len(data_array)
