@@ -12,6 +12,7 @@ class WeightCommitInfo:
         commit_hex (str): The serialized weight commit data as hex string
         reveal_round (int): The round number for reveal
     """
+
     ss58: str
     commit_hex: str
     reveal_round: int
@@ -31,7 +32,6 @@ class WeightCommitInfo:
 
         account_id_ = account_id[0] if isinstance(account_id, tuple) else account_id
         commit_data = commit_data[0] if isinstance(commit_data, tuple) else commit_data
-        commit_hex = '0x' + ''.join(format(x, '02x') for x in commit_data)
+        commit_hex = "0x" + "".join(format(x, "02x") for x in commit_data)
 
         return decode_account_id(account_id_), commit_hex, round_number
-    
