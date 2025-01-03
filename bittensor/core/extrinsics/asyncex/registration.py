@@ -70,7 +70,7 @@ async def _do_burned_register(
         call=call, keypair=wallet.coldkey
     )
     response = await subtensor.substrate.submit_extrinsic(
-        extrinsic,
+        extrinsic=extrinsic,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
     )
@@ -83,8 +83,8 @@ async def _do_burned_register(
     if not await response.is_success:
         return False, format_error_message(await response.error_message)
     # Successful registration
-    else:
-        return True, None
+
+    return True, None
 
 
 async def burned_register_extrinsic(

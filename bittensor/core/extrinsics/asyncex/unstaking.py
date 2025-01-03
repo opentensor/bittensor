@@ -68,7 +68,7 @@ async def _do_unstake(
         call=call, keypair=wallet.coldkey
     )
     response = await subtensor.substrate.submit_extrinsic(
-        extrinsic,
+        extrinsic=extrinsic,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
     )
@@ -78,8 +78,8 @@ async def _do_unstake(
 
     if await response.is_success:
         return True
-    else:
-        raise StakeError(format_error_message(await response.error_message))
+
+    raise StakeError(format_error_message(await response.error_message))
 
 
 async def __do_remove_stake_single(

@@ -163,7 +163,7 @@ async def _do_set_root_weights(
         era={"period": period},
     )
     response = await subtensor.substrate.submit_extrinsic(
-        extrinsic,
+        extrinsic=extrinsic,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
     )
@@ -174,8 +174,8 @@ async def _do_set_root_weights(
     await response.process_events()
     if await response.is_success:
         return True, "Successfully set weights."
-    else:
-        return False, format_error_message(await response.error_message)
+
+    return False, format_error_message(await response.error_message)
 
 
 async def set_root_weights_extrinsic(
