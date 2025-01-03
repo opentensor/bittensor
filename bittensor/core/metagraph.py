@@ -28,7 +28,8 @@ from numpy.typing import NDArray
 from substrateinterface.exceptions import SubstrateRequestException
 
 from bittensor.core import settings
-from bittensor.core.chain_data import SubnetState
+from bittensor.core.chain_data import AxonInfo, SubnetState
+from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import torch, use_torch
 from bittensor.utils.weight_utils import (
@@ -40,8 +41,6 @@ from bittensor.utils.weight_utils import (
 # For annotation purposes
 if typing.TYPE_CHECKING:
     from bittensor.core.subtensor import Subtensor
-    from bittensor.utils.balance import Balance
-    from bittensor.core.chain_data import AxonInfo
 
 METAGRAPH_STATE_DICT_NDARRAY_KEYS = [
     "version",
