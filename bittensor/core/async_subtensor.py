@@ -58,13 +58,8 @@ from bittensor.core.extrinsics.asyncex.weights import (
     set_weights_extrinsic,
     reveal_weights_extrinsic,
 )
-from bittensor.core.metagraph import Metagraph
-from bittensor.core.settings import (
-    TYPE_REGISTRY,
-    DELEGATES_DETAILS_URL,
-    DEFAULT_NETWORK,
-)
-from bittensor.core.settings import version_as_int
+from bittensor.core.metagraph import AsyncMetagraph
+from bittensor.core.settings import version_as_int, TYPE_REGISTRY, DELEGATES_DETAILS_URL
 from bittensor.utils import (
     decode_hex_identity_dict,
     format_error_message,
@@ -146,7 +141,7 @@ class AsyncSubtensor:
 
     def __init__(
         self,
-        network: str = DEFAULT_NETWORK,
+        network: Optional[str] = None,
         config: Optional["Config"] = None,
         log_verbose: bool = False,
         event_loop: asyncio.AbstractEventLoop = None,
@@ -2168,7 +2163,7 @@ class AsyncSubtensor:
     # TODO convert bittensor.core.metagraph.Metagraph to async
     async def metagraph(
         self, netuid: int, lite: bool = True, block: Optional[int] = None
-    ) -> "Metagraph":
+    ) -> "AsyncMetagraph":
         """
         Returns a synced metagraph for a specified subnet within the Bittensor network. The metagraph represents the network's structure, including neuron connections and interactions.
 
@@ -2182,14 +2177,14 @@ class AsyncSubtensor:
 
         The metagraph is an essential tool for understanding the topology and dynamics of the Bittensor network's decentralized architecture, particularly in relation to neuron interconnectivity and consensus processes.
         """
-        metagraph = Metagraph(
+        metagraph = AsyncMetagraph(
             network=self.chain_endpoint,
             netuid=netuid,
             lite=lite,
             sync=False,
             subtensor=self,
         )
-        metagraph.sync(block=block, lite=lite, subtensor=self)
+        await metagraph.sync(block=block, lite=lite, subtensor=self)
 
         return metagraph
 

@@ -6,7 +6,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from bittensor.core.async_subtensor import AsyncSubtensor
-from bittensor.core.settings import DEFAULT_NETWORK, version_as_int
+from bittensor.core.settings import version_as_int
 from bittensor.utils import execute_coroutine, torch
 
 if TYPE_CHECKING:
@@ -40,7 +40,7 @@ class Subtensor:
 
     def __init__(
         self,
-        network: str = DEFAULT_NETWORK,
+        network: Optional[str] = None,
         config: Optional["Config"] = None,
         _mock: bool = False,
         log_verbose: bool = False,
