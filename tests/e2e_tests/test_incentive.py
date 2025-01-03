@@ -16,7 +16,7 @@ from tests.e2e_tests.utils.e2e_test_utils import (
 )
 from bittensor.utils.balance import Balance
 from bittensor.core.extrinsics import utils
-from bittensor.core.extrinsics.async_weights import _do_set_weights
+from bittensor.core.extrinsics.asyncex.weights import _do_set_weights
 from bittensor.core.metagraph import Metagraph
 
 

@@ -8,7 +8,7 @@ from tests.e2e_tests.utils.chain_interactions import (
     wait_epoch,
     sudo_set_hyperparameter_values,
 )
-from bittensor.core.extrinsics.async_root import _do_set_root_weights
+from bittensor.core.extrinsics.asyncex.root import _do_set_root_weights
 from tests.e2e_tests.utils.e2e_test_utils import (
     setup_wallet,
     template_path,
