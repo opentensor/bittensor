@@ -8,7 +8,7 @@ Extrinsics:
 
 from typing import Union, Optional, TYPE_CHECKING
 
-from bittensor.core.extrinsics.async_registration import (
+from bittensor.core.extrinsics.asyncex.registration import (
     burned_register_extrinsic as async_burned_register_extrinsic,
     register_extrinsic as async_register_extrinsic,
 )
@@ -28,13 +28,14 @@ def burned_register_extrinsic(
     wait_for_finalization: bool = True,
 ) -> bool:
     return execute_coroutine(
-        async_burned_register_extrinsic(
+        coroutine=async_burned_register_extrinsic(
             subtensor=subtensor.async_subtensor,
             wallet=wallet,
             netuid=netuid,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
-        )
+        ),
+        event_loop=subtensor.event_loop,
     )
 
 
@@ -54,7 +55,7 @@ def register_extrinsic(
     log_verbose: bool = False,
 ) -> bool:
     return execute_coroutine(
-        async_register_extrinsic(
+        coroutine=async_register_extrinsic(
             subtensor=subtensor.async_subtensor,
             wallet=wallet,
             netuid=netuid,
@@ -68,5 +69,6 @@ def register_extrinsic(
             num_processes=num_processes,
             update_interval=update_interval,
             log_verbose=log_verbose,
-        )
+        ),
+        event_loop=subtensor.event_loop,
     )
