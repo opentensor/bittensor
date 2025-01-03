@@ -60,7 +60,6 @@ async def _do_commit_weights(
         nonce=next_nonce,
     )
     response = await subtensor.substrate.submit_extrinsic(
-        substrate=subtensor.substrate,
         extrinsic=extrinsic,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
@@ -165,9 +164,13 @@ async def _do_reveal_weights(
             "version_key": version_key,
         },
     )
+    next_nonce = await subtensor.substrate.get_account_next_index(
+        wallet.hotkey.ss58_address
+    )
     extrinsic = await subtensor.substrate.create_signed_extrinsic(
         call=call,
         keypair=wallet.hotkey,
+        nonce=next_nonce,
     )
     response = await subtensor.substrate.submit_extrinsic(
         extrinsic=extrinsic,
@@ -295,7 +298,7 @@ async def _do_set_weights(
         nonce=next_nonce,
     )
     response = await subtensor.substrate.submit_extrinsic(
-        extrinsic,
+        extrinsic=extrinsic,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
     )
