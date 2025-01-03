@@ -6,7 +6,6 @@ from bittensor.utils import format_error_message, unlock_key
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 
-
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
     from bittensor.core.async_subtensor import AsyncSubtensor
