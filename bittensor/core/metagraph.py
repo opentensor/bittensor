@@ -1508,11 +1508,12 @@ class Metagraph(AsyncMetagraph):
     ):
         """Synchronizes the metagraph to the specified block, lite, and subtensor instance if available."""
         execute_coroutine(
-            self._async_metagraph.sync(
+            coroutine=self._async_metagraph.sync(
                 block=block,
                 lite=lite,
                 subtensor=subtensor.async_subtensor if subtensor else None,
-            )
+            ),
+            event_loop=subtensor.event_loop if subtensor else None,
         )
 
     def __getattr__(self, name):
