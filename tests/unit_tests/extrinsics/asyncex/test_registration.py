@@ -2,7 +2,7 @@ import pytest
 from bittensor_wallet import Wallet
 
 from bittensor.core import async_subtensor
-from bittensor.core.extrinsics import async_registration
+from bittensor.core.extrinsics.asyncex import registration as async_registration
 
 
 @pytest.fixture(autouse=True)
