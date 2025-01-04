@@ -367,6 +367,11 @@ class AsyncSubtensor:
 
         return "unknown", network
 
+    async def close(self):
+        """Close the connection."""
+        if self.substrate:
+            await self.substrate.close()
+
     async def __aenter__(self):
         logging.info(
             f"[magenta]Connecting to Substrate:[/magenta] [blue]{self}[/blue][magenta]...[/magenta]"
