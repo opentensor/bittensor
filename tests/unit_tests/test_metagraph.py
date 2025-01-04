@@ -1,35 +1,19 @@
-# The MIT License (MIT)
-# Copyright © 2024 Opentensor Foundation
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
-# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
-# the Software.
-#
-# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-# DEALINGS IN THE SOFTWARE.
-
-from unittest.mock import MagicMock
+import asyncio
+import copy
 from unittest.mock import Mock
 
 import numpy as np
 import pytest
-import copy
 
 from bittensor.core import settings
 from bittensor.core.metagraph import Metagraph
+from bittensor.core.subtensor import Subtensor
 
 
 @pytest.fixture
-def mock_environment():
+def mock_environment(mocker):
     # Create a Mock for subtensor
-    subtensor = Mock()
+    subtensor = mocker.AsyncMock()
 
     # Create a list of Mock Neurons
     neurons = [
@@ -57,11 +41,12 @@ def mock_environment():
     return subtensor, neurons
 
 
-def test_set_metagraph_attributes(mock_environment):
+@pytest.mark.asyncio
+async def test_set_metagraph_attributes(mock_environment):
     subtensor, neurons = mock_environment
     metagraph = Metagraph(1, sync=False)
     metagraph.neurons = neurons
-    metagraph._set_metagraph_attributes(block=5, subtensor=subtensor)
+    await metagraph._set_metagraph_attributes(block=5, subtensor=subtensor)
 
     # Check the attributes are set as expected
     assert metagraph.n.item() == len(neurons)
@@ -128,21 +113,24 @@ def test_process_weights_or_bonds(mock_environment):
 
 # Mocking the bittensor.Subtensor class for testing purposes
 @pytest.fixture
-def mock_subtensor():
-    subtensor = MagicMock()
+def mock_subtensor(mocker):
+    subtensor = mocker.Mock(spec=Subtensor)
     subtensor.chain_endpoint = settings.FINNEY_ENTRYPOINT
     subtensor.network = "finney"
-    subtensor.get_current_block.return_value = 601
+    subtensor.async_subtensor = mocker.AsyncMock(
+        get_current_block=mocker.AsyncMock(return_value=601)
+    )
+    subtensor.event_loop = asyncio.get_event_loop()
     return subtensor
 
 
 # Mocking the metagraph instance for testing purposes
 @pytest.fixture
-def metagraph_instance():
+def metagraph_instance(mocker):
     metagraph = Metagraph(netuid=1337, sync=False)
-    metagraph._assign_neurons = MagicMock()
-    metagraph._set_metagraph_attributes = MagicMock()
-    metagraph._set_weights_and_bonds = MagicMock()
+    metagraph._assign_neurons = mocker.AsyncMock()
+    metagraph._set_metagraph_attributes = mocker.AsyncMock()
+    metagraph._set_weights_and_bonds = mocker.AsyncMock()
     return metagraph
 
 
