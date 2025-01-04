@@ -1113,7 +1113,9 @@ async def test_get_neuron_for_pubkey_and_subnet_success(subtensor, mocker):
     )
     subtensor.substrate.rpc_request.assert_awaited_once()
     subtensor.substrate.rpc_request.assert_called_once_with(
-        method="neuronInfo_getNeuron", params=[fake_netuid, fake_uid], reuse_block_hash=False
+        method="neuronInfo_getNeuron",
+        params=[fake_netuid, fake_uid],
+        reuse_block_hash=False,
     )
     mocked_neuron_info.assert_called_once_with(fake_result)
     assert result == "fake_neuron_info"
@@ -1188,7 +1190,9 @@ async def test_get_neuron_for_pubkey_and_subnet_rpc_result_empty(subtensor, mock
         reuse_block_hash=False,
     )
     subtensor.substrate.rpc_request.assert_called_once_with(
-        method="neuronInfo_getNeuron", params=[fake_netuid, fake_uid], reuse_block_hash=False
+        method="neuronInfo_getNeuron",
+        params=[fake_netuid, fake_uid],
+        reuse_block_hash=False,
     )
     mocked_get_null_neuron.assert_called_once()
     assert result == "null_neuron"
@@ -1300,7 +1304,9 @@ async def test_get_delegated_no_block_hash_no_reuse(subtensor, mocker):
     # Asserts
     mocked_ss58_to_vec_u8.assert_called_once_with(fake_coldkey_ss58)
     mocked_rpc_request.assert_called_once_with(
-        method="delegateInfo_getDelegated", params=[b"encoded_coldkey"], reuse_block_hash=False
+        method="delegateInfo_getDelegated",
+        params=[b"encoded_coldkey"],
+        reuse_block_hash=False,
     )
     mocked_delegated_list_from_vec_u8.assert_called_once_with(b"mocked_result")
     assert result == mocked_delegated_list_from_vec_u8.return_value
@@ -1332,7 +1338,9 @@ async def test_get_delegated_with_block_hash(subtensor, mocker):
     # Asserts
     mocked_ss58_to_vec_u8.assert_called_once_with(fake_coldkey_ss58)
     mocked_rpc_request.assert_called_once_with(
-        method="delegateInfo_getDelegated", params=[fake_block_hash, b"encoded_coldkey"], reuse_block_hash=False
+        method="delegateInfo_getDelegated",
+        params=[fake_block_hash, b"encoded_coldkey"],
+        reuse_block_hash=False,
     )
     mocked_delegated_list_from_vec_u8.assert_called_once_with(b"mocked_result")
     assert result == mocked_delegated_list_from_vec_u8.return_value
@@ -1391,7 +1399,9 @@ async def test_get_delegated_with_empty_result(subtensor, mocker):
     # Asserts
     mocked_ss58_to_vec_u8.assert_called_once_with(fake_coldkey_ss58)
     mocked_rpc_request.assert_called_once_with(
-        method="delegateInfo_getDelegated", params=[b"encoded_coldkey"], reuse_block_hash=False
+        method="delegateInfo_getDelegated",
+        params=[b"encoded_coldkey"],
+        reuse_block_hash=False,
     )
     assert result == []
 
@@ -2398,7 +2408,7 @@ async def test_commit_reveal_enabled(subtensor, mocker):
         param_name="CommitRevealWeightsEnabled",
         block_hash=block_hash,
         netuid=netuid,
-        reuse_block=False
+        reuse_block=False,
     )
     assert result is False
 
@@ -2414,7 +2424,9 @@ async def test_get_subnet_reveal_period_epochs(subtensor, mocker):
     )
 
     # Call
-    result = await subtensor.get_subnet_reveal_period_epochs(netuid, block_hash=block_hash)
+    result = await subtensor.get_subnet_reveal_period_epochs(
+        netuid, block_hash=block_hash
+    )
 
     # Assertions
     mocked_get_hyperparameter.assert_awaited_once_with(
@@ -2472,7 +2484,9 @@ async def test_register_success(subtensor, mocker):
     fake_netuid = 1
 
     mocked_register_extrinsic = mocker.AsyncMock()
-    mocker.patch.object(async_subtensor, "register_extrinsic", mocked_register_extrinsic)
+    mocker.patch.object(
+        async_subtensor, "register_extrinsic", mocked_register_extrinsic
+    )
 
     # Call
     result = await subtensor.register(wallet=fake_wallet, netuid=fake_netuid)
