@@ -1466,7 +1466,10 @@ class AsyncNonTorchMetagraph(AsyncMetagraphMixin):
         return self
 
 
-AsyncMetagraph = AsyncTorchMetaGraph if use_torch() else AsyncNonTorchMetagraph
+if use_torch():
+    AsyncMetagraph = AsyncTorchMetaGraph
+else:
+    AsyncMetagraph = AsyncNonTorchMetagraph
 """Metagraph class that uses :class:`TorchMetaGraph` if PyTorch is available; otherwise, it falls back to :class:`NonTorchMetagraph`.
 
 - **With PyTorch**: When `use_torch()` returns `True`, `Metagraph` is set to :class:`TorchMetaGraph`, which utilizes PyTorch functionalities.
