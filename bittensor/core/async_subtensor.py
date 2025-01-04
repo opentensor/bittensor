@@ -1303,6 +1303,7 @@ class AsyncSubtensor:
         json_body = await self.substrate.rpc_request(
             method="delegateInfo_getDelegated",
             params=([block_hash, encoded_coldkey] if block_hash else [encoded_coldkey]),
+            reuse_block_hash=reuse_block,
         )
 
         if not (result := json_body.get("result")):
@@ -1543,6 +1544,7 @@ class AsyncSubtensor:
         json_body = await self.substrate.rpc_request(
             method="neuronInfo_getNeuron",
             params=params,
+            reuse_block_hash=reuse_block
         )
 
         if not (result := json_body.get("result", None)):
@@ -2255,6 +2257,7 @@ class AsyncSubtensor:
         json_body = await self.substrate.rpc_request(
             method="neuronInfo_getNeuron",
             params=params,  # custom rpc method
+            reuse_block_hash=reuse_block,
         )
         if not (result := json_body.get("result", None)):
             return NeuronInfo.get_null_neuron()
