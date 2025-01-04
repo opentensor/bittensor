@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 from substrateinterface.exceptions import SubstrateRequestException
 
 from bittensor.utils.btlogging import logging
-from bittensor.utils import format_error_message
+from bittensor.utils import format_error_message, execute_coroutine
 
 if TYPE_CHECKING:
     from bittensor.core.subtensor import Subtensor
@@ -51,9 +51,6 @@ def submit_extrinsic(
     Raises:
         SubstrateRequestException: If the submission of the extrinsic fails, the error is logged and re-raised.
     """
-    extrinsic_hash = extrinsic.extrinsic_hash
-    starting_block = subtensor.substrate.get_block()
-
     timeout = EXTRINSIC_SUBMISSION_TIMEOUT
     event = threading.Event()
 
@@ -79,7 +76,10 @@ def submit_extrinsic(
         if not event.wait(timeout):
             logging.error("Timed out waiting for extrinsic submission. Reconnecting.")
             # force reconnection of the websocket
-            subtensor._get_substrate(force=True)
+            execute_coroutine(
+                coroutine=subtensor.async_subtensor._get_substrate(force=True),
+                event_loop=subtensor.event_loop,
+            )
             raise SubstrateRequestException
 
         else:
