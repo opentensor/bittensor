@@ -206,7 +206,7 @@ class AsyncSubtensor:
                 "We strongly encourage running a local subtensor node whenever possible. "
                 "This increases decentralization and resilience of the network."
             )
-            # TODO: remove or apply this warning to logic?
+            # TODO: remove or apply this warning as updated default endpoint?
             logging.debug(
                 "In a future release, local subtensor will become the default endpoint. "
                 "To get ahead of this change, please run a local subtensor node and point to it."
@@ -2165,7 +2165,6 @@ class AsyncSubtensor:
         )
         return None if call is None else u16_normalized_float(int(call))
 
-    # TODO convert bittensor.core.metagraph.Metagraph to async
     async def metagraph(
         self, netuid: int, lite: bool = True, block: Optional[int] = None
     ) -> "AsyncMetagraph":
