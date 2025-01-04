@@ -821,7 +821,10 @@ class AsyncSubstrateInterface:
         self.transaction_version = None
         self.__metadata = None
         self.metadata_version_hex = "0x0f000000"  # v15
-        execute_coroutine(coroutine=self.initialize(), event_loop=event_loop)
+        execute_coroutine(
+            coroutine=self.initialize(),
+            event_loop=event_loop or asyncio.get_event_loop(),
+        )
 
     async def __aenter__(self):
         await self.initialize()
