@@ -2,7 +2,7 @@ from bittensor.core.extrinsics import commit_weights
 
 
 def test_commit_weights_extrinsic(mocker):
-    """"Verify that sync `commit_weights_extrinsic` method calls proper async method."""
+    """ "Verify that sync `commit_weights_extrinsic` method calls proper async method."""
     # Preps
     fake_subtensor = mocker.Mock()
     fake_wallet = mocker.Mock()
@@ -22,14 +22,14 @@ def test_commit_weights_extrinsic(mocker):
         netuid=netuid,
         commit_hash=commit_hash,
         wait_for_inclusion=wait_for_inclusion,
-        wait_for_finalization=wait_for_finalization
+        wait_for_finalization=wait_for_finalization,
     )
 
     # Asserts
 
     mocked_execute_coroutine.assert_called_once_with(
         coroutine=mocked_commit_weights_extrinsic.return_value,
-        event_loop=fake_subtensor.event_loop
+        event_loop=fake_subtensor.event_loop,
     )
     mocked_commit_weights_extrinsic.assert_called_once_with(
         subtensor=fake_subtensor.async_subtensor,
@@ -37,13 +37,13 @@ def test_commit_weights_extrinsic(mocker):
         netuid=netuid,
         commit_hash=commit_hash,
         wait_for_inclusion=wait_for_inclusion,
-        wait_for_finalization=wait_for_finalization
+        wait_for_finalization=wait_for_finalization,
     )
     assert result == mocked_execute_coroutine.return_value
 
 
 def test_reveal_weights_extrinsic(mocker):
-    """"Verify that sync `reveal_weights_extrinsic` method calls proper async method."""
+    """ "Verify that sync `reveal_weights_extrinsic` method calls proper async method."""
     # Preps
     fake_subtensor = mocker.Mock()
     fake_wallet = mocker.Mock()
@@ -69,14 +69,14 @@ def test_reveal_weights_extrinsic(mocker):
         salt=salt,
         version_key=version_key,
         wait_for_inclusion=wait_for_inclusion,
-        wait_for_finalization=wait_for_finalization
+        wait_for_finalization=wait_for_finalization,
     )
 
     # Asserts
 
     mocked_execute_coroutine.assert_called_once_with(
         coroutine=mocked_reveal_weights_extrinsic.return_value,
-        event_loop=fake_subtensor.event_loop
+        event_loop=fake_subtensor.event_loop,
     )
     mocked_reveal_weights_extrinsic.assert_called_once_with(
         subtensor=fake_subtensor.async_subtensor,
@@ -87,6 +87,6 @@ def test_reveal_weights_extrinsic(mocker):
         salt=salt,
         version_key=version_key,
         wait_for_inclusion=wait_for_inclusion,
-        wait_for_finalization=wait_for_finalization
+        wait_for_finalization=wait_for_finalization,
     )
     assert result == mocked_execute_coroutine.return_value
