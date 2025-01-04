@@ -1522,6 +1522,11 @@ class Metagraph(AsyncMetagraph):
 
     def __getattr__(self, name):
         attr = getattr(self._async_metagraph, name)
-        if asyncio.iscoroutine(attr):
-            return execute_coroutine(attr)
+        if callable(attr):
+            if asyncio.iscoroutinefunction(attr):
+
+                def wrapper(*args, **kwargs):
+                    return execute_coroutine(attr(*args, **kwargs))
+
+                return wrapper
         return attr
