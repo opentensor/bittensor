@@ -1,224 +1,102 @@
-# The MIT License (MIT)
-# Copyright © 2024 Opentensor Foundation
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
-# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
-# the Software.
-#
-# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-# DEALINGS IN THE SOFTWARE.
-
-import pytest
-from bittensor_wallet import Wallet
-
 from bittensor.core.extrinsics import registration
-from bittensor.core.subtensor import Subtensor
-from bittensor.utils.registration import POWSolution
 
 
-# Mocking external dependencies
-@pytest.fixture
-def mock_subtensor(mocker):
-    mock = mocker.MagicMock(spec=Subtensor)
-    mock.network = "mock_network"
-    mock.substrate = mocker.MagicMock()
-    return mock
+def test_burned_register_extrinsic(mocker):
+    """"Verify that sync `burned_register_extrinsic` method calls proper async method."""
+    # Preps
+    fake_subtensor = mocker.Mock()
+    fake_wallet = mocker.Mock()
+    netuid = 1
+    wait_for_inclusion = True
+    wait_for_finalization = True
+
+    mocked_execute_coroutine = mocker.patch.object(registration, "execute_coroutine")
+    mocked_burned_register_extrinsic = mocker.Mock()
+    registration.async_burned_register_extrinsic = mocked_burned_register_extrinsic
+
+    # Call
+    result = registration.burned_register_extrinsic(
+        subtensor=fake_subtensor,
+        wallet=fake_wallet,
+        netuid=netuid,
+        wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization
+    )
+
+    # Asserts
+
+    mocked_execute_coroutine.assert_called_once_with(
+        coroutine=mocked_burned_register_extrinsic.return_value,
+        event_loop=fake_subtensor.event_loop
+    )
+    mocked_burned_register_extrinsic.assert_called_once_with(
+        subtensor=fake_subtensor.async_subtensor,
+        wallet=fake_wallet,
+        netuid=netuid,
+        wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization
+    )
+    assert result == mocked_execute_coroutine.return_value
 
 
-@pytest.fixture
-def mock_wallet(mocker):
-    mock = mocker.MagicMock(spec=Wallet)
-    mock.coldkeypub.ss58_address = "mock_address"
-    mock.coldkey = mocker.MagicMock()
-    mock.hotkey = mocker.MagicMock()
-    mock.hotkey.ss58_address = "fake_ss58_address"
-    return mock
+def test_register_extrinsic(mocker):
+    """"Verify that sync `register_extrinsic` method calls proper async method."""
+    # Preps
+    fake_subtensor = mocker.Mock()
+    fake_wallet = mocker.Mock()
+    netuid = 1
+    wait_for_inclusion = True
+    wait_for_finalization = True
+    max_allowed_attempts = 7
+    output_in_place = True
+    cuda = True
+    dev_id = 5
+    tpb = 12
+    num_processes = 8
+    update_interval = 2
+    log_verbose = True
 
+    mocked_execute_coroutine = mocker.patch.object(registration, "execute_coroutine")
+    mocked_register_extrinsic = mocker.Mock()
+    registration.async_register_extrinsic = mocked_register_extrinsic
 
-@pytest.fixture
-def mock_pow_solution(mocker):
-    mock = mocker.MagicMock(spec=POWSolution)
-    mock.block_number = 123
-    mock.nonce = 456
-    mock.seal = [0, 1, 2, 3]
-    mock.is_stale.return_value = False
-    return mock
+    # Call
+    result = registration.register_extrinsic(
+        subtensor=fake_subtensor,
+        wallet=fake_wallet,
+        netuid=netuid,
+        wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization,
+        max_allowed_attempts=max_allowed_attempts,
+        output_in_place=output_in_place,
+        cuda=cuda,
+        dev_id=dev_id,
+        tpb=tpb,
+        num_processes=num_processes,
+        update_interval=update_interval,
+        log_verbose=log_verbose
+    )
 
+    # Asserts
 
-@pytest.fixture
-def mock_new_wallet(mocker):
-    mock = mocker.MagicMock(spec=Wallet)
-    mock.coldkeypub.ss58_address = "mock_address"
-    mock.coldkey = mocker.MagicMock()
-    mock.hotkey = mocker.MagicMock()
-    return mock
+    mocked_execute_coroutine.assert_called_once_with(
+        coroutine=mocked_register_extrinsic.return_value,
+        event_loop=fake_subtensor.event_loop
+    )
+    mocked_register_extrinsic.assert_called_once_with(
+        subtensor=fake_subtensor.async_subtensor,
+        wallet=fake_wallet,
+        netuid=netuid,
+        wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization,
+        max_allowed_attempts=max_allowed_attempts,
+        output_in_place=output_in_place,
+        cuda=cuda,
+        dev_id=dev_id,
+        tpb=tpb,
+        num_processes=num_processes,
+        update_interval=update_interval,
+        log_verbose=log_verbose
+    )
+    assert result == mocked_execute_coroutine.return_value
 
-
-@pytest.mark.parametrize(
-    "subnet_exists, neuron_is_null, cuda_available, expected_result, test_id",
-    [
-        (False, True, True, False, "subnet-does-not-exist"),
-        (True, False, True, True, "neuron-already-registered"),
-        (True, True, False, False, "cuda-unavailable"),
-    ],
-)
-def test_register_extrinsic_without_pow(
-    mock_subtensor,
-    mock_wallet,
-    subnet_exists,
-    neuron_is_null,
-    cuda_available,
-    expected_result,
-    test_id,
-    mocker,
-):
-    # Arrange
-    with (
-        mocker.patch.object(
-            mock_subtensor, "subnet_exists", return_value=subnet_exists
-        ),
-        mocker.patch.object(
-            mock_subtensor,
-            "get_neuron_for_pubkey_and_subnet",
-            return_value=mocker.MagicMock(is_null=neuron_is_null),
-        ),
-        mocker.patch("torch.cuda.is_available", return_value=cuda_available),
-        mocker.patch(
-            "bittensor.utils.registration.pow._get_block_with_retry",
-            return_value=(0, 0, "00ff11ee"),
-        ),
-    ):
-        # Act
-        result = registration.register_extrinsic(
-            subtensor=mock_subtensor,
-            wallet=mock_wallet,
-            netuid=123,
-            wait_for_inclusion=True,
-            wait_for_finalization=True,
-            max_allowed_attempts=3,
-            output_in_place=True,
-            cuda=True,
-            dev_id=0,
-            tpb=256,
-            num_processes=None,
-            update_interval=None,
-            log_verbose=False,
-        )
-
-        # Assert
-        assert result == expected_result, f"Test failed for test_id: {test_id}"
-
-
-@pytest.mark.parametrize(
-    "pow_success, pow_stale, registration_success, cuda, hotkey_registered, expected_result, test_id",
-    [
-        (True, False, True, False, False, True, "successful-with-valid-pow"),
-        (True, False, True, True, False, True, "successful-with-valid-cuda-pow"),
-        # Pow failed but key was registered already
-        (False, False, False, False, True, True, "hotkey-registered"),
-        # Pow was a success but registration failed with error 'key already registered'
-        (True, False, False, False, False, True, "registration-fail-key-registered"),
-    ],
-)
-def test_register_extrinsic_with_pow(
-    mock_subtensor,
-    mock_wallet,
-    mock_pow_solution,
-    pow_success,
-    pow_stale,
-    registration_success,
-    cuda,
-    hotkey_registered,
-    expected_result,
-    test_id,
-    mocker,
-):
-    # Arrange
-    with mocker.patch(
-        "bittensor.utils.registration.pow._solve_for_difficulty_fast",
-        return_value=mock_pow_solution if pow_success else None,
-    ), mocker.patch(
-        "bittensor.utils.registration.pow._solve_for_difficulty_fast_cuda",
-        return_value=mock_pow_solution if pow_success else None,
-    ), mocker.patch(
-        "bittensor.core.extrinsics.registration._do_pow_register",
-        return_value=(registration_success, "HotKeyAlreadyRegisteredInSubNet"),
-    ), mocker.patch("torch.cuda.is_available", return_value=cuda):
-        # Act
-        if pow_success:
-            mock_pow_solution.is_stale.return_value = pow_stale
-
-        if not pow_success and hotkey_registered:
-            mock_subtensor.is_hotkey_registered = mocker.MagicMock(
-                return_value=hotkey_registered
-            )
-
-        result = registration.register_extrinsic(
-            subtensor=mock_subtensor,
-            wallet=mock_wallet,
-            netuid=123,
-            wait_for_inclusion=True,
-            wait_for_finalization=True,
-            max_allowed_attempts=3,
-            output_in_place=True,
-            cuda=cuda,
-            dev_id=0,
-            tpb=256,
-            num_processes=None,
-            update_interval=None,
-            log_verbose=False,
-        )
-
-        # Assert
-        assert result == expected_result, f"Test failed for test_id: {test_id}."
-
-
-@pytest.mark.parametrize(
-    "subnet_exists, neuron_is_null, recycle_success, is_registered, expected_result, test_id",
-    [
-        # Happy paths
-        (True, False, None, None, True, "neuron-not-null"),
-        (True, True, True, True, True, "happy-path-wallet-registered"),
-        # Error paths
-        (False, True, False, None, False, "subnet-non-existence"),
-        (True, True, False, False, False, "error-path-recycling-failed"),
-        (True, True, True, False, False, "error-path-not-registered"),
-    ],
-)
-def test_burned_register_extrinsic(
-    mock_subtensor,
-    mock_wallet,
-    subnet_exists,
-    neuron_is_null,
-    recycle_success,
-    is_registered,
-    expected_result,
-    test_id,
-    mocker,
-):
-    # Arrange
-    with mocker.patch.object(
-        mock_subtensor, "subnet_exists", return_value=subnet_exists
-    ), mocker.patch.object(
-        mock_subtensor,
-        "get_neuron_for_pubkey_and_subnet",
-        return_value=mocker.MagicMock(is_null=neuron_is_null),
-    ), mocker.patch(
-        "bittensor.core.extrinsics.registration._do_burned_register",
-        return_value=(recycle_success, "Mock error message"),
-    ), mocker.patch.object(
-        mock_subtensor, "is_hotkey_registered", return_value=is_registered
-    ):
-        # Act
-        result = registration.burned_register_extrinsic(
-            subtensor=mock_subtensor, wallet=mock_wallet, netuid=123
-        )
-        # Assert
-        assert result == expected_result, f"Test failed for test_id: {test_id}"
