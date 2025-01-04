@@ -1,8 +1,8 @@
 from typing import Union, Optional, TYPE_CHECKING
 
 from bittensor.core.extrinsics.asyncex.staking import (
-    add_stake_extrinsic as add_stake_extrinsic_async,
-    add_stake_multiple_extrinsic as add_stake_multiple_extrinsic_async,
+    add_stake_extrinsic as async_add_stake_extrinsic,
+    add_stake_multiple_extrinsic as async_add_stake_multiple_extrinsic,
 )
 from bittensor.utils import execute_coroutine
 
@@ -21,7 +21,7 @@ def add_stake_extrinsic(
     wait_for_finalization: bool = False,
 ) -> bool:
     return execute_coroutine(
-        coroutine=add_stake_extrinsic_async(
+        coroutine=async_add_stake_extrinsic(
             subtensor=subtensor.async_subtensor,
             wallet=wallet,
             hotkey_ss58=hotkey_ss58,
@@ -42,7 +42,7 @@ def add_stake_multiple_extrinsic(
     wait_for_finalization: bool = False,
 ) -> bool:
     return execute_coroutine(
-        coroutine=add_stake_multiple_extrinsic_async(
+        coroutine=async_add_stake_multiple_extrinsic(
             subtensor=subtensor.async_subtensor,
             wallet=wallet,
             hotkey_ss58s=hotkey_ss58s,
