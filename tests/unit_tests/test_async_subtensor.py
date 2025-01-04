@@ -82,7 +82,7 @@ async def test_init_if_unknown_network_is_valid(mocker):
 
     # Asserts
     assert subtensor.chain_endpoint == fake_valid_endpoint
-    assert subtensor.network == "custom"
+    assert subtensor.network == "unknown"
 
 
 @pytest.mark.asyncio
@@ -112,9 +112,11 @@ async def test_init_if_unknown_network_is_not_valid(mocker):
     # Asserts
     assert (
         subtensor.chain_endpoint
-        == async_subtensor.NETWORK_MAP[async_subtensor.DEFAULTS.subtensor.network]
+        == async_subtensor.settings.NETWORK_MAP[
+            async_subtensor.settings.DEFAULTS.subtensor.network
+        ]
     )
-    assert subtensor.network == async_subtensor.DEFAULTS.subtensor.network
+    assert subtensor.network == async_subtensor.settings.DEFAULTS.subtensor.network
 
 
 def test__str__return(subtensor):
