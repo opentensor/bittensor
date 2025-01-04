@@ -1542,9 +1542,7 @@ class AsyncSubtensor:
 
         params = [netuid, uid]
         json_body = await self.substrate.rpc_request(
-            method="neuronInfo_getNeuron",
-            params=params,
-            reuse_block_hash=reuse_block
+            method="neuronInfo_getNeuron", params=params, reuse_block_hash=reuse_block
         )
 
         if not (result := json_body.get("result", None)):

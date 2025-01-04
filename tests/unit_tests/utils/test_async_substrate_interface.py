@@ -8,7 +8,4 @@ from bittensor.utils import async_substrate_interface
 async def test_invalid_url_raises_exception():
     """Test that invalid URI raises an InvalidURI exception."""
     with pytest.raises(InvalidURI):
-        async_substrate_interface.AsyncSubstrateInterface(
-            "non_existent_entry_point"
-        )
-
+        async_substrate_interface.AsyncSubstrateInterface("non_existent_entry_point")
