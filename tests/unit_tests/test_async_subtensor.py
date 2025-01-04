@@ -2,6 +2,7 @@ import pytest
 
 from bittensor import AsyncSubtensor
 from bittensor.core import async_subtensor
+from bittensor_wallet import Wallet
 
 
 @pytest.fixture(autouse=True)
@@ -110,13 +111,8 @@ async def test_init_if_unknown_network_is_not_valid(mocker):
     subtensor = AsyncSubtensor("blabla-net")
 
     # Asserts
-    assert (
-        subtensor.chain_endpoint
-        == async_subtensor.settings.NETWORK_MAP[
-            async_subtensor.settings.DEFAULTS.subtensor.network
-        ]
-    )
-    assert subtensor.network == async_subtensor.settings.DEFAULTS.subtensor.network
+    assert subtensor.chain_endpoint == "ws://blabla-net"
+    assert subtensor.network == "unknown"
 
 
 def test__str__return(subtensor):
@@ -266,7 +262,7 @@ async def test_get_block_hash_without_block_id_aka_none(subtensor):
 async def test_get_block_hash_with_block_id(subtensor):
     """Tests get_block_hash method with passed block_id."""
     # Call
-    result = await subtensor.get_block_hash(block_id=1)
+    result = await subtensor.get_block_hash(block=1)
 
     # Asserts
     assert result == subtensor.substrate.get_block_hash.return_value
@@ -414,7 +410,7 @@ async def test_get_delegates(subtensor, mocker, fake_hex_bytes_result, response)
     )
 
     # Call
-    result = await subtensor.get_delegates(block_hash=None, reuse_block=True)
+    result = await subtensor.get_delegates(block_hash=None, reuse_block=False)
 
     # Asserts
     if fake_hex_bytes_result:
@@ -430,7 +426,7 @@ async def test_get_delegates(subtensor, mocker, fake_hex_bytes_result, response)
         method="get_delegates",
         params=[],
         block_hash=None,
-        reuse_block=True,
+        reuse_block=False,
     )
 
 
@@ -579,32 +575,41 @@ async def test_query_runtime_api(subtensor, mocker):
 async def test_get_balance(subtensor, mocker):
     """Tests get_balance method."""
     # Preps
-    fake_addresses = ("a1", "a2")
+    fake_address = "a1"
+    fake_block = 123
     fake_block_hash = None
+    reuse_block = True
 
-    mocked_substrate_create_storage_key = mocker.AsyncMock()
-    subtensor.substrate.create_storage_key = mocked_substrate_create_storage_key
+    expected_balance = async_subtensor.Balance(1000)
 
-    mocked_batch_0_call = mocker.Mock(
-        params=[
-            0,
-        ]
-    )
-    mocked_batch_1_call = {"data": {"free": 1000}}
-    mocked_substrate_query_multi = mocker.AsyncMock(
-        return_value=[
-            (mocked_batch_0_call, mocked_batch_1_call),
-        ]
+    mocked_determine_block_hash = mocker.AsyncMock()
+    mocker.patch.object(
+        async_subtensor.AsyncSubtensor,
+        "determine_block_hash",
+        mocked_determine_block_hash,
     )
 
-    subtensor.substrate.query_multi = mocked_substrate_query_multi
+    mocked_get_balances = mocker.AsyncMock(
+        return_value={fake_address: expected_balance}
+    )
+    mocker.patch.object(
+        async_subtensor.AsyncSubtensor, "get_balances", mocked_get_balances
+    )
 
     # Call
-    result = await subtensor.get_balance(*fake_addresses, block_hash=fake_block_hash)
+    result = await subtensor.get_balance(
+        fake_address, fake_block, fake_block_hash, reuse_block
+    )
 
-    assert mocked_substrate_create_storage_key.call_count == len(fake_addresses)
-    mocked_substrate_query_multi.assert_called_once()
-    assert result == {0: async_subtensor.Balance(1000)}
+    mocked_determine_block_hash.assert_awaited_once_with(
+        fake_block, fake_block_hash, reuse_block
+    )
+    mocked_get_balances.assert_awaited_once_with(
+        *[fake_address],
+        block_hash=mocked_determine_block_hash.return_value,
+        reuse_block=reuse_block,
+    )
+    assert result == expected_balance
 
 
 @pytest.mark.parametrize("balance", [100, 100.1])
@@ -612,7 +617,7 @@ async def test_get_balance(subtensor, mocker):
 async def test_get_transfer_fee(subtensor, mocker, balance):
     """Tests get_transfer_fee method."""
     # Preps
-    fake_wallet = mocker.Mock(coldkeypub="coldkeypub", autospec=async_subtensor.Wallet)
+    fake_wallet = mocker.Mock(coldkeypub="coldkeypub", autospec=Wallet)
     fake_dest = "fake_dest"
     fake_value = balance
 
@@ -649,7 +654,7 @@ async def test_get_transfer_fee(subtensor, mocker, balance):
 async def test_get_transfer_fee_with_non_balance_accepted_value_type(subtensor, mocker):
     """Tests get_transfer_fee method with non balance accepted value type."""
     # Preps
-    fake_wallet = mocker.Mock(coldkeypub="coldkeypub", autospec=async_subtensor.Wallet)
+    fake_wallet = mocker.Mock(coldkeypub="coldkeypub", autospec=Wallet)
     fake_dest = "fake_dest"
     fake_value = "1000"
 
@@ -788,7 +793,7 @@ async def test_subnet_exists(subtensor, mocker):
     # Preps
     fake_netuid = 1
     fake_block_hash = "block_hash"
-    fake_reuse_block_hash = True
+    fake_reuse_block_hash = False
 
     mocked_substrate_query = mocker.AsyncMock(
         autospec=async_subtensor.AsyncSubstrateInterface.query
@@ -888,16 +893,16 @@ async def test_filter_netuids_by_registered_hotkeys(
 ):
     """Tests filter_netuids_by_registered_hotkeys method."""
     # Preps
-    fake_wallet_1 = mocker.Mock(autospec=async_subtensor.Wallet)
+    fake_wallet_1 = mocker.Mock(autospec=Wallet)
     fake_wallet_1.hotkey.ss58_address = "ss58_address_1"
-    fake_wallet_2 = mocker.Mock(autospec=async_subtensor.Wallet)
+    fake_wallet_2 = mocker.Mock(autospec=Wallet)
     fake_wallet_2.hotkey.ss58_address = "ss58_address_2"
 
     fake_all_netuids = all_netuids
     fake_filter_for_netuids = filter_for_netuids
     fake_all_hotkeys = [fake_wallet_1, fake_wallet_2]
     fake_block_hash = "fake_block_hash"
-    fake_reuse_block = True
+    fake_reuse_block = False
 
     mocked_get_netuids_for_hotkey = mocker.AsyncMock(
         # returned subnets list
@@ -933,7 +938,7 @@ async def test_get_existential_deposit_happy_path(subtensor, mocker):
     """Tests get_existential_deposit method."""
     # Preps
     fake_block_hash = "block_hash"
-    fake_reuse_block_hash = True
+    fake_reuse_block_hash = False
 
     mocked_substrate_get_constant = mocker.AsyncMock(return_value=1)
     subtensor.substrate.get_constant = mocked_substrate_get_constant
@@ -964,7 +969,7 @@ async def test_get_existential_deposit_raise_exception(subtensor, mocker):
     """Tests get_existential_deposit method raise Exception."""
     # Preps
     fake_block_hash = "block_hash"
-    fake_reuse_block_hash = True
+    fake_reuse_block_hash = False
 
     mocked_substrate_get_constant = mocker.AsyncMock(return_value=None)
     subtensor.substrate.get_constant = mocked_substrate_get_constant
@@ -994,7 +999,7 @@ async def test_neurons(subtensor, mocker):
     # Preps
     fake_netuid = 1
     fake_block_hash = "block_hash"
-    fake_reuse_block_hash = True
+    fake_reuse_block_hash = False
 
     mocked_query_runtime_api = mocker.patch.object(
         subtensor, "query_runtime_api", return_value="NOT NONE"
@@ -1033,7 +1038,7 @@ async def test_neurons_lite(subtensor, mocker, fake_hex_bytes_result, response):
     # Preps
     fake_netuid = 1
     fake_block_hash = "block_hash"
-    fake_reuse_block_hash = True
+    fake_reuse_block_hash = False
 
     mocked_query_runtime_api = mocker.AsyncMock(return_value=fake_hex_bytes_result)
     subtensor.query_runtime_api = mocked_query_runtime_api
@@ -1108,7 +1113,7 @@ async def test_get_neuron_for_pubkey_and_subnet_success(subtensor, mocker):
     )
     subtensor.substrate.rpc_request.assert_awaited_once()
     subtensor.substrate.rpc_request.assert_called_once_with(
-        method="neuronInfo_getNeuron", params=[fake_netuid, fake_uid]
+        method="neuronInfo_getNeuron", params=[fake_netuid, fake_uid], reuse_block_hash=False
     )
     mocked_neuron_info.assert_called_once_with(fake_result)
     assert result == "fake_neuron_info"
@@ -1183,7 +1188,7 @@ async def test_get_neuron_for_pubkey_and_subnet_rpc_result_empty(subtensor, mock
         reuse_block_hash=False,
     )
     subtensor.substrate.rpc_request.assert_called_once_with(
-        method="neuronInfo_getNeuron", params=[fake_netuid, fake_uid]
+        method="neuronInfo_getNeuron", params=[fake_netuid, fake_uid], reuse_block_hash=False
     )
     mocked_get_null_neuron.assert_called_once()
     assert result == "null_neuron"
@@ -1295,7 +1300,7 @@ async def test_get_delegated_no_block_hash_no_reuse(subtensor, mocker):
     # Asserts
     mocked_ss58_to_vec_u8.assert_called_once_with(fake_coldkey_ss58)
     mocked_rpc_request.assert_called_once_with(
-        method="delegateInfo_getDelegated", params=[b"encoded_coldkey"]
+        method="delegateInfo_getDelegated", params=[b"encoded_coldkey"], reuse_block_hash=False
     )
     mocked_delegated_list_from_vec_u8.assert_called_once_with(b"mocked_result")
     assert result == mocked_delegated_list_from_vec_u8.return_value
@@ -1327,7 +1332,7 @@ async def test_get_delegated_with_block_hash(subtensor, mocker):
     # Asserts
     mocked_ss58_to_vec_u8.assert_called_once_with(fake_coldkey_ss58)
     mocked_rpc_request.assert_called_once_with(
-        method="delegateInfo_getDelegated", params=[fake_block_hash, b"encoded_coldkey"]
+        method="delegateInfo_getDelegated", params=[fake_block_hash, b"encoded_coldkey"], reuse_block_hash=False
     )
     mocked_delegated_list_from_vec_u8.assert_called_once_with(b"mocked_result")
     assert result == mocked_delegated_list_from_vec_u8.return_value
@@ -1339,6 +1344,7 @@ async def test_get_delegated_with_reuse_block(subtensor, mocker):
     # Preps
     fake_coldkey_ss58 = "fake_ss58_address"
     subtensor.substrate.last_block_hash = "last_block_hash"
+    reuse_block = True
 
     mocked_ss58_to_vec_u8 = mocker.Mock(return_value=b"encoded_coldkey")
     mocker.patch.object(async_subtensor, "ss58_to_vec_u8", mocked_ss58_to_vec_u8)
@@ -1353,14 +1359,15 @@ async def test_get_delegated_with_reuse_block(subtensor, mocker):
 
     # Call
     result = await subtensor.get_delegated(
-        coldkey_ss58=fake_coldkey_ss58, reuse_block=True
+        coldkey_ss58=fake_coldkey_ss58, reuse_block=reuse_block
     )
 
     # Asserts
     mocked_ss58_to_vec_u8.assert_called_once_with(fake_coldkey_ss58)
     mocked_rpc_request.assert_called_once_with(
         method="delegateInfo_getDelegated",
-        params=["last_block_hash", b"encoded_coldkey"],
+        params=[b"encoded_coldkey"],
+        reuse_block_hash=reuse_block,
     )
     mocked_delegated_list_from_vec_u8.assert_called_once_with(b"mocked_result")
     assert result == mocked_delegated_list_from_vec_u8.return_value
@@ -1384,7 +1391,7 @@ async def test_get_delegated_with_empty_result(subtensor, mocker):
     # Asserts
     mocked_ss58_to_vec_u8.assert_called_once_with(fake_coldkey_ss58)
     mocked_rpc_request.assert_called_once_with(
-        method="delegateInfo_getDelegated", params=[b"encoded_coldkey"]
+        method="delegateInfo_getDelegated", params=[b"encoded_coldkey"], reuse_block_hash=False
     )
     assert result == []
 
@@ -1895,9 +1902,11 @@ async def test_get_children_success(subtensor, mocker):
 
     # Asserts
     mocked_query.assert_called_once_with(
+        block_hash=None,
         module="SubtensorModule",
         storage_function="ChildKeys",
         params=[fake_hotkey, fake_netuid],
+        reuse_block_hash=False,
     )
     mocked_decode_account_id.assert_has_calls(
         [mocker.call("child_key_1"), mocker.call("child_key_2")]
@@ -1921,9 +1930,11 @@ async def test_get_children_no_children(subtensor, mocker):
 
     # Asserts
     mocked_query.assert_called_once_with(
+        block_hash=None,
         module="SubtensorModule",
         storage_function="ChildKeys",
         params=[fake_hotkey, fake_netuid],
+        reuse_block_hash=False,
     )
     assert result == (True, [], "")
 
@@ -1949,9 +1960,11 @@ async def test_get_children_substrate_request_exception(subtensor, mocker):
 
     # Asserts
     mocked_query.assert_called_once_with(
+        block_hash=None,
         module="SubtensorModule",
         storage_function="ChildKeys",
         params=[fake_hotkey, fake_netuid],
+        reuse_block_hash=False,
     )
     mocked_format_error_message.assert_called_once_with(fake_exception)
     assert result == (False, [], "Formatted error message")
@@ -2378,11 +2391,14 @@ async def test_commit_reveal_enabled(subtensor, mocker):
     )
 
     # Call
-    result = await subtensor.commit_reveal_enabled(netuid, block_hash)
+    result = await subtensor.commit_reveal_enabled(netuid, block_hash=block_hash)
 
     # Assertions
     mocked_get_hyperparameter.assert_awaited_once_with(
-        param_name="CommitRevealWeightsEnabled", block_hash=block_hash, netuid=netuid
+        param_name="CommitRevealWeightsEnabled",
+        block_hash=block_hash,
+        netuid=netuid,
+        reuse_block=False
     )
     assert result is False
 
@@ -2398,7 +2414,7 @@ async def test_get_subnet_reveal_period_epochs(subtensor, mocker):
     )
 
     # Call
-    result = await subtensor.get_subnet_reveal_period_epochs(netuid, block_hash)
+    result = await subtensor.get_subnet_reveal_period_epochs(netuid, block_hash=block_hash)
 
     # Assertions
     mocked_get_hyperparameter.assert_awaited_once_with(
@@ -2435,13 +2451,15 @@ async def test_transfer_success(subtensor, mocker):
     )
 
     # Asserts
-    mocked_transfer_extrinsic.assert_awaited_once()
-    mocked_transfer_extrinsic.assert_called_once_with(
-        subtensor,
-        fake_wallet,
-        fake_destination,
-        mocked_balance_from_tao,
-        fake_transfer_all,
+    mocked_transfer_extrinsic.assert_awaited_once_with(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        destination=fake_destination,
+        amount=mocked_balance_from_tao,
+        transfer_all=fake_transfer_all,
+        wait_for_inclusion=True,
+        wait_for_finalization=False,
+        keep_alive=True,
     )
     assert result == mocked_transfer_extrinsic.return_value
 
@@ -2450,158 +2468,30 @@ async def test_transfer_success(subtensor, mocker):
 async def test_register_success(subtensor, mocker):
     """Tests register when there is enough balance and registration succeeds."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=async_subtensor.Wallet)
-    fake_wallet.coldkeypub.ss58_address = "wallet_address"
+    fake_wallet = mocker.Mock()
     fake_netuid = 1
-    fake_block_hash = "block_hash"
-    fake_recycle_amount = 100
-    fake_balance = 200
 
-    mocked_get_block_hash = mocker.AsyncMock(return_value=fake_block_hash)
-    subtensor.get_block_hash = mocked_get_block_hash
-
-    mocked_get_hyperparameter = mocker.AsyncMock(return_value=str(fake_recycle_amount))
-    subtensor.get_hyperparameter = mocked_get_hyperparameter
-
-    mocked_get_balance = mocker.AsyncMock(
-        return_value={fake_wallet.coldkeypub.ss58_address: fake_balance}
-    )
-    subtensor.get_balance = mocked_get_balance
-
-    mocked_balance_from_rao = mocker.Mock(return_value=fake_recycle_amount)
-    mocker.patch.object(async_subtensor.Balance, "from_rao", mocked_balance_from_rao)
+    mocked_register_extrinsic = mocker.AsyncMock()
+    mocker.patch.object(async_subtensor, "register_extrinsic", mocked_register_extrinsic)
 
     # Call
     result = await subtensor.register(wallet=fake_wallet, netuid=fake_netuid)
 
     # Asserts
-    mocked_get_block_hash.assert_called_once()
-    mocked_get_hyperparameter.assert_called_once_with(
-        param_name="Burn", netuid=fake_netuid, reuse_block=True
-    )
-    mocked_get_balance.assert_called_once_with(
-        fake_wallet.coldkeypub.ss58_address, block_hash=fake_block_hash
-    )
-    assert result is True
-
-
-@pytest.mark.asyncio
-async def test_register_insufficient_balance(subtensor, mocker):
-    """Tests register when the wallet balance is insufficient."""
-    # Preps
-    fake_wallet = mocker.Mock(autospec=async_subtensor.Wallet)
-    fake_wallet.coldkeypub.ss58_address = "wallet_address"
-    fake_netuid = 1
-    fake_block_hash = "block_hash"
-    fake_recycle_amount = 200
-    fake_balance = 100
-
-    mocked_get_block_hash = mocker.AsyncMock(return_value=fake_block_hash)
-    subtensor.get_block_hash = mocked_get_block_hash
-
-    mocked_get_hyperparameter = mocker.AsyncMock(return_value=str(fake_recycle_amount))
-    subtensor.get_hyperparameter = mocked_get_hyperparameter
-
-    mocked_get_balance = mocker.AsyncMock(
-        return_value={fake_wallet.coldkeypub.ss58_address: fake_balance}
-    )
-    subtensor.get_balance = mocked_get_balance
-
-    mocked_balance_from_rao = mocker.Mock(return_value=fake_recycle_amount)
-    mocker.patch.object(async_subtensor.Balance, "from_rao", mocked_balance_from_rao)
-
-    # Call
-    result = await subtensor.register(wallet=fake_wallet, netuid=fake_netuid)
-
-    # Asserts
-    mocked_get_block_hash.assert_called_once()
-    mocked_get_hyperparameter.assert_called_once_with(
-        param_name="Burn", netuid=fake_netuid, reuse_block=True
-    )
-    mocked_get_balance.assert_called_once_with(
-        fake_wallet.coldkeypub.ss58_address, block_hash=fake_block_hash
-    )
-    assert result is False
-
-
-@pytest.mark.asyncio
-async def test_register_balance_retrieval_error(subtensor, mocker):
-    """Tests register when there is an error retrieving the balance."""
-    # Preps
-    fake_wallet = mocker.Mock(autospec=async_subtensor.Wallet)
-    fake_wallet.coldkeypub.ss58_address = "wallet_address"
-    fake_netuid = 1
-    fake_block_hash = "block_hash"
-    fake_recycle_amount = 100
-
-    mocked_get_block_hash = mocker.AsyncMock(return_value=fake_block_hash)
-    subtensor.get_block_hash = mocked_get_block_hash
-
-    mocked_get_hyperparameter = mocker.AsyncMock(return_value=str(fake_recycle_amount))
-    subtensor.get_hyperparameter = mocked_get_hyperparameter
-
-    mocked_get_balance = mocker.AsyncMock(return_value={})
-    subtensor.get_balance = mocked_get_balance
-
-    # Call
-    result = await subtensor.register(wallet=fake_wallet, netuid=fake_netuid)
-
-    # Asserts
-    mocked_get_block_hash.assert_called_once()
-    mocked_get_hyperparameter.assert_called_once_with(
-        param_name="Burn", netuid=fake_netuid, reuse_block=True
-    )
-    mocked_get_balance.assert_called_once_with(
-        fake_wallet.coldkeypub.ss58_address, block_hash=fake_block_hash
-    )
-    assert result is False
-
-
-@pytest.mark.asyncio
-async def test_pow_register_success(subtensor, mocker):
-    """Tests pow_register when the registration is successful."""
-    # Preps
-    fake_wallet = mocker.Mock(autospec=async_subtensor.Wallet)
-    fake_netuid = 1
-    fake_processors = 4
-    fake_update_interval = 10
-    fake_output_in_place = True
-    fake_verbose = True
-    fake_use_cuda = False
-    fake_dev_id = 0
-    fake_threads_per_block = 128
-
-    mocked_register_extrinsic = mocker.AsyncMock(return_value=True)
-    mocker.patch.object(
-        async_subtensor, "register_extrinsic", mocked_register_extrinsic
-    )
-
-    # Call
-    result = await subtensor.pow_register(
-        wallet=fake_wallet,
-        netuid=fake_netuid,
-        processors=fake_processors,
-        update_interval=fake_update_interval,
-        output_in_place=fake_output_in_place,
-        verbose=fake_verbose,
-        use_cuda=fake_use_cuda,
-        dev_id=fake_dev_id,
-        threads_per_block=fake_threads_per_block,
-    )
-
-    # Asserts
-    mocked_register_extrinsic.assert_awaited_once()
-    mocked_register_extrinsic.assert_called_once_with(
+    mocked_register_extrinsic.assert_awaited_once_with(
+        cuda=False,
+        dev_id=0,
+        log_verbose=False,
+        max_allowed_attempts=3,
+        netuid=1,
+        num_processes=None,
+        output_in_place=False,
         subtensor=subtensor,
+        tpb=256,
+        update_interval=None,
+        wait_for_finalization=True,
+        wait_for_inclusion=False,
         wallet=fake_wallet,
-        netuid=fake_netuid,
-        tpb=fake_threads_per_block,
-        update_interval=fake_update_interval,
-        num_processes=fake_processors,
-        cuda=fake_use_cuda,
-        dev_id=fake_dev_id,
-        output_in_place=fake_output_in_place,
-        log_verbose=fake_verbose,
     )
     assert result == mocked_register_extrinsic.return_value
 
@@ -2610,7 +2500,7 @@ async def test_pow_register_success(subtensor, mocker):
 async def test_set_weights_success(subtensor, mocker):
     """Tests set_weights with successful weight setting on the first try."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=async_subtensor.Wallet)
+    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_netuid = 1
     fake_uids = [1, 2, 3]
     fake_weights = [0.3, 0.5, 0.2]
@@ -2668,7 +2558,7 @@ async def test_set_weights_success(subtensor, mocker):
 async def test_set_weights_with_exception(subtensor, mocker):
     """Tests set_weights when set_weights_extrinsic raises an exception."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=async_subtensor.Wallet)
+    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_netuid = 1
     fake_uids = [1, 2, 3]
     fake_weights = [0.3, 0.5, 0.2]
@@ -2713,7 +2603,7 @@ async def test_set_weights_with_exception(subtensor, mocker):
 async def test_root_set_weights_success(subtensor, mocker):
     """Tests root_set_weights when the setting of weights is successful."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=async_subtensor.Wallet)
+    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_netuids = [1, 2, 3]
     fake_weights = [0.3, 0.5, 0.2]
 
@@ -2755,7 +2645,7 @@ async def test_root_set_weights_success(subtensor, mocker):
 async def test_commit_weights_success(subtensor, mocker):
     """Tests commit_weights when the weights are committed successfully."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=async_subtensor.Wallet)
+    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_netuid = 1
     fake_salt = [12345, 67890]
     fake_uids = [1, 2, 3]
@@ -2807,7 +2697,7 @@ async def test_commit_weights_success(subtensor, mocker):
 async def test_commit_weights_with_exception(subtensor, mocker):
     """Tests commit_weights when an exception is raised during weight commitment."""
     # Preps
-    fake_wallet = mocker.Mock(autospec=async_subtensor.Wallet)
+    fake_wallet = mocker.Mock(autospec=Wallet)
     fake_netuid = 1
     fake_salt = [12345, 67890]
     fake_uids = [1, 2, 3]
