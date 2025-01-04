@@ -71,7 +71,9 @@ class Subtensor:
         return self.async_subtensor.__repr__()
 
     def close(self):
-        execute_coroutine(coroutine=self.async_subtensor.close(), event_loop=self.event_loop)
+        execute_coroutine(
+            coroutine=self.async_subtensor.close(), event_loop=self.event_loop
+        )
 
     # Subtensor queries ===========================================================================================
 
