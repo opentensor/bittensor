@@ -1498,7 +1498,8 @@ class Metagraph(AsyncMetagraph):
             sync=sync,
             subtensor=subtensor,
         )
-        self.sync(block=None, lite=lite, subtensor=subtensor)
+        if sync:
+            self.sync(block=None, lite=lite, subtensor=subtensor)
 
     def sync(
         self,
