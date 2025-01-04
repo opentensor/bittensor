@@ -58,7 +58,9 @@ class Subtensor:
             event_loop=self.event_loop,
         )
 
-        # TODO: Convert to sync substrate. Possibly use the same sync wrapper class or Ben's impl for substrate instance.
+        # TODO: Convert to sync substrate.
+        #  - create the same sync wrapper with query_* methods only.
+        #  - or Ben's impl for substrate instance.
         self.substrate = self.async_subtensor.substrate
         self.chain_endpoint = self.async_subtensor.chain_endpoint
 
@@ -69,11 +71,7 @@ class Subtensor:
         return self.async_subtensor.__repr__()
 
     def close(self):
-        if self.async_subtensor.substrate is not None:
-            return execute_coroutine(
-                coroutine=self.async_subtensor.substrate.close(),
-                event_loop=self.event_loop,
-            )
+        execute_coroutine(coroutine=self.async_subtensor.close(), event_loop=self.event_loop)
 
     # Subtensor queries ===========================================================================================
 
