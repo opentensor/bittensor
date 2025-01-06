@@ -894,7 +894,7 @@ class AsyncSubstrateInterface:
 
     def __init__(
         self,
-        chain_endpoint: str,
+        url: str,
         use_remote_preset: bool = False,
         auto_discover: bool = True,
         ss58_format: Optional[int] = None,
@@ -910,7 +910,7 @@ class AsyncSubstrateInterface:
         Otherwise, some (most) methods will not work properly, and may raise exceptions.
 
         Args:
-            chain_endpoint: the URI of the chain to connect to
+            url: the URI of the chain to connect to
             use_remote_preset: whether to pull the preset from GitHub
             auto_discover: whether to automatically pull the presets based on the chain name and type registry
             ss58_format: the specific SS58 format to use
@@ -923,10 +923,11 @@ class AsyncSubstrateInterface:
         """
         self.max_retries = max_retries
         self.retry_timeout = retry_timeout
-        self.chain_endpoint = chain_endpoint
+        self.chain_endpoint = url
+        self.url = url
         self.__chain = chain_name
         self.ws = Websocket(
-            chain_endpoint,
+            url,
             options={
                 "max_size": 2**32,
                 "write_limit": 2**16,
@@ -3865,7 +3866,7 @@ class SubstrateInterface:
         mock: bool = False,
     ):
         self._async_instance = AsyncSubstrateInterface(
-            chain_endpoint=chain_endpoint,
+            url=chain_endpoint,
             use_remote_preset=use_remote_preset,
             auto_discover=auto_discover,
             ss58_format=ss58_format,
@@ -3896,3 +3897,38 @@ class SubstrateInterface:
             return self.event_loop.run_until_complete(attr)
         else:
             return attr
+
+    def query(
+        self,
+        module: str,
+        storage_function: str,
+        params: Optional[list] = None,
+        block_hash: Optional[str] = None,
+        raw_storage_key: Optional[bytes] = None,
+        subscription_handler=None,
+        reuse_block_hash: bool = False,
+    ) -> "ScaleType":
+        return self.event_loop.run_until_complete(
+            self._async_instance.query(
+                module,
+                storage_function,
+                params,
+                block_hash,
+                raw_storage_key,
+                subscription_handler,
+                reuse_block_hash,
+            )
+        )
+
+    def get_constant(
+        self,
+        module_name: str,
+        constant_name: str,
+        block_hash: Optional[str] = None,
+        reuse_block_hash: bool = False,
+    ) -> Optional["ScaleType"]:
+        return self.event_loop.run_until_complete(
+            self._async_instance.get_constant(
+                module_name, constant_name, block_hash, reuse_block_hash
+            )
+        )

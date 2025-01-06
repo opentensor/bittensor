@@ -413,7 +413,6 @@ class Subtensor:
             pass
 
     # Inner private functions
-    @networking.ensure_connected
     def _encode_params(
         self,
         call_definition: dict[str, list["ParamWithTypes"]],
@@ -458,7 +457,7 @@ class Subtensor:
         return result.value
 
     # Chain calls methods ==============================================================================================
-    @networking.ensure_connected
+
     def query_subtensor(
         self, name: str, block: Optional[int] = None, params: Optional[list] = None
     ) -> "ScaleType":
@@ -485,7 +484,6 @@ class Subtensor:
             ),
         )
 
-    @networking.ensure_connected
     def query_map_subtensor(
         self, name: str, block: Optional[int] = None, params: Optional[list] = None
     ) -> "QueryMapResult":
@@ -561,7 +559,6 @@ class Subtensor:
 
         return obj.decode()
 
-    @networking.ensure_connected
     def state_call(
         self, method: str, data: str, block: Optional[int] = None
     ) -> dict[Any, Any]:
@@ -584,7 +581,6 @@ class Subtensor:
             params=[method, data, block_hash] if block_hash else [method, data],
         )
 
-    @networking.ensure_connected
     def query_map(
         self,
         module: str,
@@ -615,7 +611,6 @@ class Subtensor:
             ),
         )
 
-    @networking.ensure_connected
     def query_constant(
         self, module_name: str, constant_name: str, block: Optional[int] = None
     ) -> Optional["ScaleType"]:
@@ -640,7 +635,6 @@ class Subtensor:
             ),
         )
 
-    @networking.ensure_connected
     def query_module(
         self,
         module: str,
@@ -671,7 +665,6 @@ class Subtensor:
             ),
         )
 
-    @networking.ensure_connected
     def get_account_next_index(self, address: str) -> int:
         """
         Returns the next nonce for an account, taking into account the transaction pool.
@@ -767,7 +760,6 @@ class Subtensor:
             else []
         )
 
-    @networking.ensure_connected
     def get_current_block(self) -> int:
         """
         Returns the current block number on the Bittensor blockchain. This function provides the latest block number, indicating the most recent state of the blockchain.
@@ -862,7 +854,6 @@ class Subtensor:
         call = self._get_hyperparameter(param_name="LastUpdate", netuid=netuid)
         return None if call is None else self.get_current_block() - int(call[uid])
 
-    @networking.ensure_connected
     def get_block_hash(self, block_id: int) -> str:
         """
         Retrieves the hash of a specific block on the Bittensor blockchain. The block hash is a unique identifier representing the cryptographic hash of the block's content, ensuring its integrity and immutability.
@@ -974,7 +965,6 @@ class Subtensor:
             return None
         return None
 
-    @networking.ensure_connected
     def neuron_for_uid(
         self, uid: int, netuid: int, block: Optional[int] = None
     ) -> "NeuronInfo":
@@ -1216,7 +1206,6 @@ class Subtensor:
         _result = self.query_subtensor("NetworksAdded", block, [netuid])
         return getattr(_result, "value", False)
 
-    @networking.ensure_connected
     def get_all_subnets_info(self, block: Optional[int] = None) -> list[SubnetInfo]:
         """
         Retrieves detailed information about all subnets within the Bittensor network. This function provides comprehensive data on each subnet, including its characteristics and operational parameters.
@@ -1471,7 +1460,6 @@ class Subtensor:
 
         return w_map
 
-    @networking.ensure_connected
     def get_balance(self, address: str, block: Optional[int] = None) -> "Balance":
         """
         Retrieves the token balance of a specific address within the Bittensor network. This function queries the blockchain to determine the amount of Tao held by a given account.
@@ -1503,7 +1491,6 @@ class Subtensor:
 
         return Balance(result.value["data"]["free"])
 
-    @networking.ensure_connected
     def get_transfer_fee(
         self, wallet: "Wallet", dest: str, value: Union["Balance", float, int]
     ) -> "Balance":
@@ -1633,7 +1620,6 @@ class Subtensor:
             else u16_normalized_float(_result.value)
         )
 
-    @networking.ensure_connected
     def get_delegate_by_hotkey(
         self, hotkey_ss58: str, block: Optional[int] = None
     ) -> Optional[DelegateInfo]:
@@ -1723,7 +1709,6 @@ class Subtensor:
             else result.value
         )
 
-    @networking.ensure_connected
     def get_minimum_required_stake(
         self,
     ) -> Balance:
@@ -1760,7 +1745,6 @@ class Subtensor:
         result = self.query_subtensor("TxRateLimit", block)
         return getattr(result, "value", None)
 
-    @networking.ensure_connected
     def get_delegates(self, block: Optional[int] = None) -> list[DelegateInfo]:
         """
         Retrieves a list of all delegate neurons within the Bittensor network. This function provides an overview of the neurons that are actively involved in the network's delegation system.
