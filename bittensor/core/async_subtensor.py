@@ -1135,9 +1135,7 @@ class AsyncSubtensor:
             reuse_block_hash=reuse_block,
         )
 
-        commits = result.records[0][1] if result and hasattr(result, "records") else []
-        if not commits:
-            return []
+        commits = result.records[0][1] if result.records else []
         return [WeightCommitInfo.from_vec_u8(commit) for commit in commits]
 
     async def get_delegate_by_hotkey(
