@@ -22,7 +22,6 @@ from bittensor.core.chain_data import (
     StakeInfo,
     NeuronInfoLite,
     NeuronInfo,
-    PrometheusInfo,
     ProposalVoteData,
     SubnetHyperparameters,
     SubnetInfo,
@@ -30,12 +29,9 @@ from bittensor.core.chain_data import (
     custom_rpc_type_registry,
     decode_account_id,
 )
-from bittensor.core.extrinsics.async_commit_reveal import commit_reveal_v3_extrinsic
-from bittensor.core.chain_data.subnet_info import SubnetInfo
+
 from bittensor.core.config import Config
-from bittensor.core.extrinsics.asyncex.commit_reveal import (
-    commit_reveal_v3_extrinsic,
-)
+from bittensor.core.extrinsics.asyncex.commit_reveal import commit_reveal_v3_extrinsic
 from bittensor.core.extrinsics.asyncex.registration import (
     burned_register_extrinsic,
     register_extrinsic,
@@ -74,23 +70,19 @@ from bittensor.utils import (
     u16_normalized_float,
 )
 from bittensor.utils import networking
-from bittensor.utils.async_substrate_interface import (
-    AsyncSubstrateInterface,
-    TimeoutException,
-)
+from bittensor.utils.substrate_interface import AsyncSubstrateInterface
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 from bittensor.utils.delegates_details import DelegatesDetails
 from bittensor.utils.weight_utils import generate_weight_hash
-from bittensor.core.metagraph import Metagraph
+
 
 if TYPE_CHECKING:
     from scalecodec import ScaleType
-    from bittensor.utils.substrate_interface import QueryMapResult
     from bittensor_wallet import Wallet
     from bittensor.core.axon import Axon
     from bittensor.utils import Certificate
-    from bittensor.utils.async_substrate_interface import QueryMapResult
+    from bittensor.utils.substrate_interface import QueryMapResult
 
 
 class ParamWithTypes(TypedDict):
@@ -748,6 +740,7 @@ class AsyncSubtensor:
 
     @property
     async def block(self):
+        """Provides an asynchronous property to retrieve the current block."""
         return await self.get_current_block()
 
     async def blocks_since_last_update(self, netuid: int, uid: int) -> Optional[int]:
@@ -851,7 +844,11 @@ class AsyncSubtensor:
         return True if call is True else False
 
     async def difficulty(
-        self, netuid: int, block: Optional[int] = None
+        self,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
     ) -> Optional[int]:
         """
         Retrieves the 'Difficulty' hyperparameter for a specified subnet in the Bittensor network.
@@ -859,17 +856,23 @@ class AsyncSubtensor:
         This parameter is instrumental in determining the computational challenge required for neurons to participate in consensus and validation processes.
 
         Arguments:
-            netuid (int): The unique identifier of the subnet.
-            block (Optional[int]): The blockchain block number for the query.
+            netuid: The unique identifier of the subnet.
+            block: The blockchain block number for the query. Do not specify if using block_hash or reuse_block
+            block_hash: The hash of the block to retrieve the parameter from. Do not specify if using block or
+                reuse_block
+            reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
 
         Returns:
             Optional[int]: The value of the 'Difficulty' hyperparameter if the subnet exists, ``None`` otherwise.
 
         The 'Difficulty' parameter directly impacts the network's security and integrity by setting the computational effort required for validating transactions and participating in the network's consensus mechanism.
         """
-        block_hash = await self.get_block_hash(block)
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         call = await self.get_hyperparameter(
-            param_name="Difficulty", netuid=netuid, block_hash=block_hash
+            param_name="Difficulty",
+            netuid=netuid,
+            block_hash=block_hash,
+            reuse_block=reuse_block,
         )
         if call is None:
             return None
@@ -1752,7 +1755,7 @@ class AsyncSubtensor:
         elif not block_hash:
             block_hash = await self.substrate.get_chain_head()
         else:
-            block_hash = self.determine_block_hash(block, block_hash, reuse_block)
+            block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         calls = [
             (
                 await self.substrate.create_storage_key(
@@ -2117,13 +2120,18 @@ class AsyncSubtensor:
         self,
         hotkey_ss58: str,
         netuid: int,
+        block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> bool:
-        """Checks if the hotkey is registered on a given netuid"""
+        """Checks if the hotkey is registered on a given netuid."""
         return (
             await self.get_uid_for_hotkey_on_subnet(
-                hotkey_ss58, netuid, block_hash, reuse_block
+                hotkey_ss58,
+                netuid,
+                block=block,
+                block_hash=block_hash,
+                reuse_block=reuse_block,
             )
             is not None
         )
