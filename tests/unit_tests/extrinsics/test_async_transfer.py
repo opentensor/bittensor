@@ -1,7 +1,7 @@
 import pytest
 from bittensor.core import async_subtensor
 from bittensor_wallet import Wallet
-from bittensor.core.extrinsics.asyncio import transfer as async_transfer
+from bittensor.core.extrinsics.asyncex import transfer as async_transfer
 from bittensor.utils.balance import Balance
 
 

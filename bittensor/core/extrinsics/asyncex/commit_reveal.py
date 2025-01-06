@@ -1,10 +1,11 @@
+"""This module provides async functionality for commit reveal in the Bittensor network."""
+
 from typing import Optional, Union, TYPE_CHECKING
 
 import numpy as np
 from bittensor_commit_reveal import get_encrypted_commit
 from numpy.typing import NDArray
 
-from bittensor.core.extrinsics.utils import async_submit_extrinsic
 from bittensor.core.settings import version_as_int
 from bittensor.utils import format_error_message
 from bittensor.utils.btlogging import logging
@@ -26,10 +27,10 @@ async def _do_commit_reveal_v3(
     wait_for_finalization: bool = False,
 ) -> tuple[bool, Optional[str]]:
     """
-    Executes the commit-reveal phase 3 for a given netuid and commit, and optionally waits for extrinsic inclusion or
-        finalization.
+    Executes the commit-reveal phase 3 for a given netuid and commit, and optionally waits for extrinsic inclusion or finalization.
 
     Arguments:
+        subtensor: An instance of the Subtensor class.
         wallet: Wallet An instance of the Wallet class containing the user's keypair.
         netuid: int The network unique identifier.
         commit  bytes The commit data in bytes format.
@@ -38,8 +39,7 @@ async def _do_commit_reveal_v3(
         wait_for_finalization: bool, optional Flag indicating whether to wait for the extrinsic to be finalized.
 
     Returns:
-        A tuple where the first element is a boolean indicating success or failure, and the second element is an
-            optional string containing error message if any.
+        A tuple where the first element is a boolean indicating success or failure, and the second element is an optional string containing error message if any.
     """
     logging.info(
         f"Committing weights hash [blue]{commit.hex()}[/blue] for subnet #[blue]{netuid}[/blue] with "
@@ -55,13 +55,13 @@ async def _do_commit_reveal_v3(
             "reveal_round": reveal_round,
         },
     )
+
     extrinsic = await subtensor.substrate.create_signed_extrinsic(
         call=call,
         keypair=wallet.hotkey,
     )
 
-    response = await async_submit_extrinsic(
-        subtensor=subtensor,
+    response = await subtensor.substrate.submit_extrinsic(
         extrinsic=extrinsic,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
@@ -70,10 +70,10 @@ async def _do_commit_reveal_v3(
     if not wait_for_finalization and not wait_for_inclusion:
         return True, "Not waiting for finalization or inclusion."
 
-    if response.is_success:
+    if await response.is_success:
         return True, None
-    else:
-        return False, format_error_message(response.error_message)
+
+    return False, format_error_message(await response.error_message)
 
 
 async def commit_reveal_v3_extrinsic(
@@ -143,14 +143,14 @@ async def commit_reveal_v3_extrinsic(
             wait_for_finalization=wait_for_finalization,
         )
 
-        if success is True:
-            logging.success(
-                f"[green]Finalized![/green] Weights commited with reveal round [blue]{reveal_round}[/blue]."
-            )
-            return True, f"reveal_round:{reveal_round}"
-        else:
+        if success is not True:
             logging.error(message)
             return False, message
+
+        logging.success(
+            f"[green]Finalized![/green] Weights commited with reveal round [blue]{reveal_round}[/blue]."
+        )
+        return True, f"reveal_round:{reveal_round}"
 
     except Exception as e:
         logging.error(f":cross_mark: [red]Failed. Error:[/red] {e}")

@@ -1,4 +1,3 @@
-import asyncio
 from asyncio import sleep
 from typing import Union, Optional, TYPE_CHECKING
 
@@ -10,6 +9,30 @@ from bittensor.utils.btlogging import logging
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
     from bittensor.core.async_subtensor import AsyncSubtensor
+
+
+async def _check_threshold_amount(
+    subtensor: "AsyncSubtensor", stake_balance: "Balance"
+) -> bool:
+    """
+    Checks if the remaining stake balance is above the minimum required stake threshold.
+
+    Args:
+        subtensor (bittensor.core.subtensor.Subtensor): Subtensor instance.
+        stake_balance (bittensor.utils.balance.Balance): the balance to check for threshold limits.
+
+    Returns:
+        success (bool): ``true`` if the unstaking is above the threshold or 0, or ``false`` if the unstaking is below the threshold, but not 0.
+    """
+    min_req_stake: Balance = await subtensor.get_minimum_required_stake()
+
+    if min_req_stake > stake_balance > 0:
+        logging.warning(
+            f":cross_mark: [yellow]Remaining stake balance of {stake_balance} less than minimum of {min_req_stake} TAO[/yellow]"
+        )
+        return False
+    else:
+        return True
 
 
 async def _do_unstake(
@@ -36,54 +59,28 @@ async def _do_unstake(
     Raises:
         StakeError: If the extrinsic failed.
     """
-    async with subtensor.substrate as substrate:
-        call = await substrate.compose_call(
-            call_module="SubtensorModule",
-            call_function="remove_stake",
-            call_params={"hotkey": hotkey_ss58, "amount_unstaked": amount.rao},
-        )
-        extrinsic = await substrate.create_signed_extrinsic(
-            call=call, keypair=wallet.coldkey
-        )
-        response = substrate.submit_extrinsic(
-            extrinsic,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-        )
-        # We only wait here if we expect finalization.
-        if not wait_for_finalization and not wait_for_inclusion:
-            return True
 
-        if response.is_success:
-            return True
-        else:
-            raise StakeError(format_error_message(response.error_message))
-
-
-async def _check_threshold_amount(
-    subtensor: "AsyncSubtensor", stake_balance: "Balance"
-) -> bool:
-    """
-    Checks if the remaining stake balance is above the minimum required stake threshold.
-
-    Args:
-        subtensor: Subtensor instance.
-        stake_balance: the balance to check for threshold limits.
-
-    Returns:
-        success: `True` if the unstaking is above the threshold or 0, or `False` if the unstaking is below
-            the threshold, but not 0.
-    """
-    min_req_stake: Balance = await subtensor.get_minimum_required_stake()
-
-    if min_req_stake > stake_balance > 0:
-        logging.warning(
-            f":cross_mark: [yellow]Remaining stake balance of {stake_balance} less than minimum of "
-            f"{min_req_stake} TAO[/yellow]"
-        )
-        return False
-    else:
+    call = await subtensor.substrate.compose_call(
+        call_module="SubtensorModule",
+        call_function="remove_stake",
+        call_params={"hotkey": hotkey_ss58, "amount_unstaked": amount.rao},
+    )
+    extrinsic = await subtensor.substrate.create_signed_extrinsic(
+        call=call, keypair=wallet.coldkey
+    )
+    response = await subtensor.substrate.submit_extrinsic(
+        extrinsic=extrinsic,
+        wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization,
+    )
+    # We only wait here if we expect finalization.
+    if not wait_for_finalization and not wait_for_inclusion:
         return True
+
+    if await response.is_success:
+        return True
+
+    raise StakeError(format_error_message(await response.error_message))
 
 
 async def __do_remove_stake_single(
@@ -119,17 +116,15 @@ async def __do_remove_stake_single(
         logging.error(unlock.message)
         return False
 
-    call = await subtensor.substrate.compose_call(
-        call_module="SubtensorModule",
-        call_function="remove_stake",
-        call_params={"hotkey": hotkey_ss58, "amount_unstaked": amount.rao},
-    )
-    success, err_msg = await subtensor.sign_and_send_extrinsic(
-        call,
-        wallet,
+    success = await _do_unstake(
+        subtensor=subtensor,
+        wallet=wallet,
+        hotkey_ss58=hotkey_ss58,
+        amount=amount,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
     )
+
     if success:
         return True
     else:
@@ -173,7 +168,7 @@ async def unstake_extrinsic(
         f":satellite: [magenta]Syncing with chain:[/magenta] [blue]{subtensor.network}[/blue] [magenta]...[/magenta]"
     )
     block_hash = await subtensor.substrate.get_chain_head()
-    old_balance_, old_stake, hotkey_owner = await asyncio.gather(
+    old_balance, old_stake, hotkey_owner = await asyncio.gather(
         subtensor.get_balance(wallet.coldkeypub.ss58_address, block_hash=block_hash),
         subtensor.get_stake_for_coldkey_and_hotkey(
             coldkey_ss58=wallet.coldkeypub.ss58_address,
@@ -182,7 +177,6 @@ async def unstake_extrinsic(
         ),
         subtensor.get_hotkey_owner(hotkey_ss58, block_hash=block_hash),
     )
-    old_balance = old_balance_[wallet.coldkeypub.ss58_address]
     own_hotkey: bool = wallet.coldkeypub.ss58_address == hotkey_owner
 
     # Convert to bittensor.Balance
@@ -216,7 +210,7 @@ async def unstake_extrinsic(
         logging.info(
             f":satellite: [magenta]Unstaking from chain:[/magenta] [blue]{subtensor.network}[/blue] [magenta]...[/magenta]"
         )
-        staking_response: bool = __do_remove_stake_single(
+        staking_response: bool = await __do_remove_stake_single(
             subtensor=subtensor,
             wallet=wallet,
             hotkey_ss58=hotkey_ss58,
@@ -236,7 +230,7 @@ async def unstake_extrinsic(
                 f":satellite: [magenta]Checking Balance on:[/magenta] [blue]{subtensor.network}[/blue] [magenta]...[/magenta]"
             )
             block_hash = await subtensor.substrate.get_chain_head()
-            new_balance_, new_stake = await asyncio.gather(
+            new_balance, new_stake = await asyncio.gather(
                 subtensor.get_balance(
                     wallet.coldkeypub.ss58_address, block_hash=block_hash
                 ),
@@ -246,8 +240,7 @@ async def unstake_extrinsic(
                     block_hash=block_hash,
                 ),
             )
-            new_balance = new_balance_[wallet.coldkeypub.ss58_address]
-            logging.info("Balance:")
+            logging.info(f"Balance:")
             logging.info(
                 f"\t\t[blue]{old_balance}[/blue] :arrow_right: [green]{new_balance}[/green]"
             )
@@ -334,7 +327,7 @@ async def unstake_multiple_extrinsic(
         f":satellite: [magenta]Syncing with chain:[/magenta] [blue]{subtensor.network}[/blue] [magenta]...[/magenta]"
     )
     block_hash = await subtensor.substrate.get_chain_head()
-    old_balance_, old_stakes, hotkeys_ = await asyncio.gather(
+    old_balance, old_stakes, hotkeys_ = await asyncio.gather(
         subtensor.get_balance(wallet.coldkeypub.ss58_address, block_hash=block_hash),
         asyncio.gather(
             *[
@@ -353,7 +346,6 @@ async def unstake_multiple_extrinsic(
             ]
         ),
     )
-    old_balance = old_balance_[wallet.coldkeypub.ss58_address]
     own_hotkeys = [
         (wallet.coldkeypub.ss58_address == hotkey_owner) for hotkey_owner in hotkeys_
     ]
@@ -454,7 +446,7 @@ async def unstake_multiple_extrinsic(
             f":satellite: [magenta]Checking Balance on:[/magenta] ([blue]{subtensor.network}[/blue] "
             f"[magenta]...[/magenta]"
         )
-        new_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
+        new_balance = await subtensor.get_balance(wallet.coldkeypub.ss58_address)
         logging.info(
             f"Balance: [blue]{old_balance}[/blue] :arrow_right: [green]{new_balance}[/green]"
         )
