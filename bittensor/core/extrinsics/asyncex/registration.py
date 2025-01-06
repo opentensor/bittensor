@@ -224,7 +224,6 @@ async def _do_pow_register(
         return True, None
 
     # process if registration successful, try again if pow is still valid
-    await response.process_events()
     if not await response.is_success:
         return False, format_error_message(error_message=await response.error_message)
     # Successful registration

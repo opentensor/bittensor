@@ -91,7 +91,7 @@ async def commit_reveal_v3_extrinsic(
     Commits and reveals weights for given subtensor and wallet with provided uids and weights.
 
     Arguments:
-        subtensor: The Subtensor instance.
+        subtensor: The AsyncSubtensor instance.
         wallet: The wallet to use for committing and revealing.
         netuid: The id of the network.
         uids: The uids to commit.
@@ -101,7 +101,8 @@ async def commit_reveal_v3_extrinsic(
         wait_for_finalization: Whether to wait for the finalization of the transaction. Default is False.
 
     Returns:
-        tuple[bool, str]: A tuple where the first element is a boolean indicating success or failure, and the second element is a message associated with the result.
+        tuple[bool, str]: A tuple where the first element is a boolean indicating success or failure, and the second
+            element is a message associated with the result
     """
     try:
         # Convert uids and weights
@@ -113,9 +114,9 @@ async def commit_reveal_v3_extrinsic(
         # Reformat and normalize.
         uids, weights = convert_weights_and_uids_for_emit(uids, weights)
 
-        current_block, subnet_hyperparameters = await asyncio.gather(
-            subtensor.substrate.get_block_number(None),
-            subtensor.get_subnet_hyperparameters(netuid),
+        current_block = await subtensor.get_current_block()
+        subnet_hyperparameters = await subtensor.get_subnet_hyperparameters(
+            netuid, block=current_block
         )
         tempo = subnet_hyperparameters.tempo
         subnet_reveal_period_epochs = (

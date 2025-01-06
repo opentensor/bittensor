@@ -1,4 +1,4 @@
-from time import sleep
+from asyncio import sleep
 from typing import Union, Optional, TYPE_CHECKING
 
 from bittensor.core.errors import StakeError, NotRegisteredError
@@ -97,11 +97,14 @@ async def __do_remove_stake_single(
         wallet (bittensor_wallet.Wallet): Bittensor wallet object.
         hotkey_ss58 (str): Hotkey address to unstake from.
         amount (bittensor.utils.balance.Balance): Amount to unstake as Bittensor balance object.
-        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or
+            returns ``false`` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning
+            ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
 
     Returns:
-        success (bool): Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
+        success (bool): Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for
+            finalization / inclusion, the response is ``true``.
 
     Raises:
         bittensor.core.errors.StakeError: If the extrinsic fails to be finalized or included in the block.
@@ -121,7 +124,9 @@ async def __do_remove_stake_single(
         wait_for_finalization=wait_for_finalization,
     )
 
-    return success
+    if success:
+        return True
+    raise StakeError(format_error_message(err_msg))
 
 
 async def unstake_extrinsic(
@@ -137,13 +142,17 @@ async def unstake_extrinsic(
     Args:
         subtensor (bittensor.core.subtensor.Subtensor): Subtensor instance.
         wallet (bittensor_wallet.Wallet): Bittensor wallet object.
-        hotkey_ss58 (Optional[str]): The ``ss58`` address of the hotkey to unstake from. By default, the wallet hotkey is used.
+        hotkey_ss58 (Optional[str]): The ``ss58`` address of the hotkey to unstake from. By default, the wallet hotkey
+            is used.
         amount (Union[Balance, float]): Amount to stake as Bittensor balance, or ``float`` interpreted as Tao.
-        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or
+            returns ``false`` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning
+            ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
 
     Returns:
-        success (bool): Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
+        success (bool): Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for
+            finalization / inclusion, the response is ``true``.
     """
     # Decrypt keys,
     if not (unlock := unlock_key(wallet)).success:
@@ -156,13 +165,16 @@ async def unstake_extrinsic(
     logging.info(
         f":satellite: [magenta]Syncing with chain:[/magenta] [blue]{subtensor.network}[/blue] [magenta]...[/magenta]"
     )
-
-    old_balance = await subtensor.get_balance(wallet.coldkeypub.ss58_address)
-    old_stake = await subtensor.get_stake_for_coldkey_and_hotkey(
-        coldkey_ss58=wallet.coldkeypub.ss58_address, hotkey_ss58=hotkey_ss58
+    block_hash = await subtensor.substrate.get_chain_head()
+    old_balance, old_stake, hotkey_owner = await asyncio.gather(
+        subtensor.get_balance(wallet.coldkeypub.ss58_address, block_hash=block_hash),
+        subtensor.get_stake_for_coldkey_and_hotkey(
+            coldkey_ss58=wallet.coldkeypub.ss58_address,
+            hotkey_ss58=hotkey_ss58,
+            block_hash=block_hash,
+        ),
+        subtensor.get_hotkey_owner(hotkey_ss58, block_hash=block_hash),
     )
-
-    hotkey_owner = await subtensor.get_hotkey_owner(hotkey_ss58)
     own_hotkey: bool = wallet.coldkeypub.ss58_address == hotkey_owner
 
     # Convert to bittensor.Balance
@@ -178,7 +190,8 @@ async def unstake_extrinsic(
     stake_on_uid = old_stake
     if unstaking_balance > stake_on_uid:
         logging.error(
-            f":cross_mark: [red]Not enough stake[/red]: [green]{stake_on_uid}[/green] to unstake: [blue]{unstaking_balance}[/blue] from hotkey: [yellow]{wallet.hotkey_str}[/yellow]"
+            f":cross_mark: [red]Not enough stake[/red]: [green]{stake_on_uid}[/green] to unstake: "
+            f"[blue]{unstaking_balance}[/blue] from hotkey: [yellow]{wallet.hotkey_str}[/yellow]"
         )
         return False
 
@@ -214,12 +227,17 @@ async def unstake_extrinsic(
             logging.info(
                 f":satellite: [magenta]Checking Balance on:[/magenta] [blue]{subtensor.network}[/blue] [magenta]...[/magenta]"
             )
-            new_balance = await subtensor.get_balance(
-                address=wallet.coldkeypub.ss58_address
+            block_hash = await subtensor.substrate.get_chain_head()
+            new_balance, new_stake = await asyncio.gather(
+                subtensor.get_balance(
+                    wallet.coldkeypub.ss58_address, block_hash=block_hash
+                ),
+                subtensor.get_stake_for_coldkey_and_hotkey(
+                    coldkey_ss58=wallet.coldkeypub.ss58_address,
+                    hotkey_ss58=hotkey_ss58,
+                    block_hash=block_hash,
+                ),
             )
-            new_stake = await subtensor.get_stake_for_coldkey_and_hotkey(
-                coldkey_ss58=wallet.coldkeypub.ss58_address, hotkey_ss58=hotkey_ss58
-            )  # Get stake on hotkey.
             logging.info(f"Balance:")
             logging.info(
                 f"\t\t[blue]{old_balance}[/blue] :arrow_right: [green]{new_balance}[/green]"
@@ -258,11 +276,14 @@ async def unstake_multiple_extrinsic(
         wallet (bittensor_wallet.Wallet): The wallet with the coldkey to unstake to.
         hotkey_ss58s (List[str]): List of hotkeys to unstake from.
         amounts (List[Union[Balance, float]]): List of amounts to unstake. If ``None``, unstake all.
-        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or
+            returns ``false`` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning
+            ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
 
     Returns:
-        success (bool): Flag is ``true`` if extrinsic was finalized or included in the block. Flag is ``true`` if any wallet was unstaked. If we did not wait for finalization / inclusion, the response is ``true``.
+        success (bool): Flag is ``true`` if extrinsic was finalized or included in the block. Flag is ``true`` if any
+            wallet was unstaked. If we did not wait for finalization / inclusion, the response is ``true``.
     """
     if not isinstance(hotkey_ss58s, list) or not all(
         isinstance(hotkey_ss58, str) for hotkey_ss58 in hotkey_ss58s
@@ -305,16 +326,29 @@ async def unstake_multiple_extrinsic(
     logging.info(
         f":satellite: [magenta]Syncing with chain:[/magenta] [blue]{subtensor.network}[/blue] [magenta]...[/magenta]"
     )
-    old_balance = await subtensor.get_balance(wallet.coldkeypub.ss58_address)
-
-    for hotkey_ss58 in hotkey_ss58s:
-        old_stake = await subtensor.get_stake_for_coldkey_and_hotkey(
-            coldkey_ss58=wallet.coldkeypub.ss58_address, hotkey_ss58=hotkey_ss58
-        )  # Get stake on hotkey.
-        old_stakes.append(old_stake)  # None if not registered.
-
-        hotkey_owner = await subtensor.get_hotkey_owner(hotkey_ss58)
-        own_hotkeys.append(wallet.coldkeypub.ss58_address == hotkey_owner)
+    block_hash = await subtensor.substrate.get_chain_head()
+    old_balance, old_stakes, hotkeys_ = await asyncio.gather(
+        subtensor.get_balance(wallet.coldkeypub.ss58_address, block_hash=block_hash),
+        asyncio.gather(
+            *[
+                subtensor.get_stake_for_coldkey_and_hotkey(
+                    coldkey_ss58=wallet.coldkeypub.ss58_address,
+                    hotkey_ss58=hotkey_ss58,
+                    block_hash=block_hash,
+                )
+                for hotkey_ss58 in hotkey_ss58s
+            ]
+        ),
+        asyncio.gather(
+            *[
+                subtensor.get_hotkey_owner(hotkey_ss58, block_hash=block_hash)
+                for hotkey_ss58 in hotkey_ss58s
+            ]
+        ),
+    )
+    own_hotkeys = [
+        (wallet.coldkeypub.ss58_address == hotkey_owner) for hotkey_owner in hotkeys_
+    ]
 
     successful_unstakes = 0
     for idx, (hotkey_ss58, amount, old_stake, own_hotkey) in enumerate(
@@ -333,7 +367,8 @@ async def unstake_multiple_extrinsic(
         stake_on_uid = old_stake
         if unstaking_balance > stake_on_uid:
             logging.error(
-                f":cross_mark: [red]Not enough stake[/red]: [green]{stake_on_uid}[/green] to unstake: [blue]{unstaking_balance}[/blue] from hotkey: [blue]{wallet.hotkey_str}[/blue]."
+                f":cross_mark: [red]Not enough stake[/red]: [green]{stake_on_uid}[/green] to unstake: "
+                f"[blue]{unstaking_balance}[/blue] from hotkey: [blue]{wallet.hotkey_str}[/blue]."
             )
             continue
 
@@ -342,13 +377,14 @@ async def unstake_multiple_extrinsic(
             subtensor=subtensor, stake_balance=(stake_on_uid - unstaking_balance)
         ):
             logging.warning(
-                f":warning: [yellow]This action will unstake the entire staked balance![/yellow]"
+                ":warning: [yellow]This action will unstake the entire staked balance![/yellow]"
             )
             unstaking_balance = stake_on_uid
 
         try:
             logging.info(
-                f":satellite: [magenta]Unstaking from chain:[/magenta] [blue]{subtensor.network}[/blue] [magenta]...[/magenta]"
+                f":satellite: [magenta]Unstaking from chain:[/magenta] [blue]{subtensor.network}[/blue] "
+                f"[magenta]...[/magenta]"
             )
             staking_response: bool = await __do_remove_stake_single(
                 subtensor=subtensor,
@@ -367,9 +403,10 @@ async def unstake_multiple_extrinsic(
                     tx_rate_limit_blocks = await subtensor.tx_rate_limit()
                     if tx_rate_limit_blocks > 0:
                         logging.info(
-                            f":hourglass: [yellow]Waiting for tx rate limit: [white]{tx_rate_limit_blocks}[/white] blocks[/yellow]"
+                            f":hourglass: [yellow]Waiting for tx rate limit: "
+                            f"[white]{tx_rate_limit_blocks}[/white] blocks[/yellow]"
                         )
-                        sleep(tx_rate_limit_blocks * 12)  # 12 seconds per block
+                        await sleep(tx_rate_limit_blocks * 12)  # 12 seconds per block
 
                 if not wait_for_finalization and not wait_for_inclusion:
                     successful_unstakes += 1
@@ -378,13 +415,14 @@ async def unstake_multiple_extrinsic(
                 logging.info(":white_heavy_check_mark: [green]Finalized[/green]")
 
                 logging.info(
-                    f":satellite: [magenta]Checking Balance on:[/magenta] [blue]{subtensor.network}[/blue] [magenta]...[/magenta]..."
+                    f":satellite: [magenta]Checking Balance on:[/magenta] [blue]{subtensor.network}[/blue] "
+                    f"[magenta]...[/magenta]..."
                 )
-                block = await subtensor.get_current_block()
-                new_stake = await subtensor.get_stake_for_coldkey_and_hotkey(
+                block_hash = await subtensor.substrate.get_chain_head()
+                new_stake = subtensor.get_stake_for_coldkey_and_hotkey(
                     coldkey_ss58=wallet.coldkeypub.ss58_address,
                     hotkey_ss58=hotkey_ss58,
-                    block=block,
+                    block_hash=block_hash,
                 )
                 logging.info(
                     f"Stake ({hotkey_ss58}): [blue]{stake_on_uid}[/blue] :arrow_right: [green]{new_stake}[/green]"
@@ -405,7 +443,8 @@ async def unstake_multiple_extrinsic(
 
     if successful_unstakes != 0:
         logging.info(
-            f":satellite: [magenta]Checking Balance on:[/magenta] ([blue]{subtensor.network}[/blue] [magenta]...[/magenta]"
+            f":satellite: [magenta]Checking Balance on:[/magenta] ([blue]{subtensor.network}[/blue] "
+            f"[magenta]...[/magenta]"
         )
         new_balance = await subtensor.get_balance(wallet.coldkeypub.ss58_address)
         logging.info(
