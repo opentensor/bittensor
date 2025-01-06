@@ -97,15 +97,15 @@ async def add_stake_extrinsic(
             logging.debug(f"Hotkey {hotkey_ss58} is not a delegate on the chain.")
             return False
 
-    # Get current stake
-    old_stake = await subtensor.get_stake_for_coldkey_and_hotkey(
-        coldkey_ss58=wallet.coldkeypub.ss58_address,
-        hotkey_ss58=hotkey_ss58,
-        block_hash=block_hash,
+    # Get current stake and existential deposit
+    old_stake, existential_deposit = await asyncio.gather(
+        subtensor.get_stake_for_coldkey_and_hotkey(
+            coldkey_ss58=wallet.coldkeypub.ss58_address,
+            hotkey_ss58=hotkey_ss58,
+            block_hash=block_hash,
+        ),
+        subtensor.get_existential_deposit(block_hash=block_hash),
     )
-
-    # Grab the existential deposit.
-    existential_deposit = await subtensor.get_existential_deposit()
 
     # Convert to bittensor.Balance
     if amount is None:

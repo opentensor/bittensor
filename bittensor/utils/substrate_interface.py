@@ -8,45 +8,42 @@ import asyncio
 import inspect
 import json
 import random
+import ssl
+import time
 from collections import defaultdict
 from dataclasses import dataclass
+from datetime import datetime
 from hashlib import blake2b
 from typing import Optional, Any, Union, Callable, Awaitable, cast, TYPE_CHECKING
 
 import asyncstdlib as a
-from async_property import async_property
 from bittensor_wallet import Keypair
 from bt_decode import PortableRegistry, decode as decode_by_type_string, MetadataV15
-from scalecodec import GenericExtrinsic
+from scalecodec import GenericExtrinsic, ss58_encode, ss58_decode, is_valid_ss58_address
 from scalecodec.base import ScaleBytes, ScaleType, RuntimeConfigurationObject
 from scalecodec.type_registry import load_type_registry_preset
-from scalecodec.types import GenericCall
-from substrateinterface.exceptions import (
-    SubstrateRequestException,
-    ExtrinsicNotFound,
-    BlockNotFound,
-)
+from scalecodec.types import GenericCall, GenericRuntimeCallDefinition
 from substrateinterface.storage import StorageKey
 from websockets.asyncio.client import connect
 from websockets.exceptions import ConnectionClosed
 
 from bittensor.utils import hex_to_bytes, execute_coroutine
+from bittensor.core.errors import (
+    SubstrateRequestException,
+    ExtrinsicNotFound,
+    BlockNotFound,
+)
+from bittensor.utils import hex_to_bytes
+from bittensor.utils.btlogging import logging
 
 if TYPE_CHECKING:
     from websockets.asyncio.client import ClientConnection
 
 ResultHandler = Callable[[dict, Any], Awaitable[tuple[dict, bool]]]
+ExtrinsicReceiptLike = Union["AsyncExtrinsicReceipt", "ExtrinsicReceipt"]
 
 
-class TimeoutException(Exception):
-    pass
-
-
-def timeout_handler(signum, frame):
-    raise TimeoutException("Operation timed out")
-
-
-class ExtrinsicReceipt:
+class AsyncExtrinsicReceipt:
     """
     Object containing information of submitted extrinsic. Block hash where extrinsic is included is required
     when retrieving triggered events or determine if extrinsic was successful
@@ -131,7 +128,7 @@ class ExtrinsicReceipt:
 
             self.__extrinsic = extrinsics[self.__extrinsic_idx]
 
-    @async_property
+    @property
     async def extrinsic_idx(self) -> int:
         """
         Retrieves the index of this extrinsic in containing block
@@ -144,7 +141,7 @@ class ExtrinsicReceipt:
             await self.retrieve_extrinsic()
         return self.__extrinsic_idx
 
-    @async_property
+    @property
     async def triggered_events(self) -> list:
         """
         Gets triggered events for submitted extrinsic. block_hash where extrinsic is included is required, manually
@@ -171,6 +168,35 @@ class ExtrinsicReceipt:
                     self.__triggered_events.append(event)
 
         return cast(list, self.__triggered_events)
+
+    @classmethod
+    async def create_from_extrinsic_identifier(
+        cls, substrate: "AsyncSubstrateInterface", extrinsic_identifier: str
+    ) -> "AsyncExtrinsicReceipt":
+        """
+        Create an `AsyncExtrinsicReceipt` with on-chain identifier for this extrinsic in format
+        "[block_number]-[extrinsic_idx]" e.g. 134324-2
+
+        Args:
+            substrate: SubstrateInterface
+            extrinsic_identifier: "[block_number]-[extrinsic_idx]" e.g. 134324-2
+
+        Returns:
+            AsyncExtrinsicReceipt of the extrinsic
+        """
+        id_parts = extrinsic_identifier.split("-", maxsplit=1)
+        block_number: int = int(id_parts[0])
+        extrinsic_idx: int = int(id_parts[1])
+
+        # Retrieve block hash
+        block_hash = await substrate.get_block_hash(block_number)
+
+        return cls(
+            substrate=substrate,
+            block_hash=block_hash,
+            block_number=block_number,
+            extrinsic_idx=extrinsic_idx,
+        )
 
     async def process_events(self):
         if await self.triggered_events:
@@ -266,7 +292,7 @@ class ExtrinsicReceipt:
                     ):
                         self.__total_fee_amount += event.value["attributes"]["amount"]
 
-    @async_property
+    @property
     async def is_success(self) -> bool:
         """
         Returns `True` if `ExtrinsicSuccess` event is triggered, `False` in case of `ExtrinsicFailed`
@@ -282,7 +308,7 @@ class ExtrinsicReceipt:
 
         return cast(bool, self.__is_success)
 
-    @async_property
+    @property
     async def error_message(self) -> Optional[dict]:
         """
         Returns the error message if the extrinsic failed in format e.g.:
@@ -299,7 +325,7 @@ class ExtrinsicReceipt:
             await self.process_events()
         return self.__error_message
 
-    @async_property
+    @property
     async def weight(self) -> Union[int, dict]:
         """
         Contains the actual weight when executing this extrinsic
@@ -312,11 +338,11 @@ class ExtrinsicReceipt:
             await self.process_events()
         return self.__weight
 
-    @async_property
+    @property
     async def total_fee_amount(self) -> int:
         """
-        Contains the total fee costs deducted when executing this extrinsic. This includes fee for the validator (
-        (`Balances.Deposit` event) and the fee deposited for the treasury (`Treasury.Deposit` event)
+        Contains the total fee costs deducted when executing this extrinsic. This includes fee for the validator
+            (`Balances.Deposit` event) and the fee deposited for the treasury (`Treasury.Deposit` event)
 
         Returns
         -------
@@ -350,6 +376,47 @@ class ExtrinsicReceipt:
 
     def get(self, name):
         return self[name]
+
+
+class ExtrinsicReceipt:
+    """
+    A wrapper around AsyncExtrinsicReceipt that allows for using all the calls from it in a synchronous context
+    """
+
+    def __init__(
+        self,
+        substrate: "AsyncSubstrateInterface",
+        extrinsic_hash: Optional[str] = None,
+        block_hash: Optional[str] = None,
+        block_number: Optional[int] = None,
+        extrinsic_idx: Optional[int] = None,
+        finalized=None,
+    ):
+        self._async_instance = AsyncExtrinsicReceipt(
+            substrate,
+            extrinsic_hash,
+            block_hash,
+            block_number,
+            extrinsic_idx,
+            finalized,
+        )
+        self.event_loop = asyncio.get_event_loop()
+
+    def __getattr__(self, name):
+        attr = getattr(self._async_instance, name)
+
+        if asyncio.iscoroutinefunction(attr):
+
+            def sync_method(*args, **kwargs):
+                return self.event_loop.run_until_complete(attr(*args, **kwargs))
+
+            return sync_method
+        elif asyncio.iscoroutine(attr):
+            # indicates this is an async_property
+            return self.event_loop.run_until_complete(attr)
+
+        else:
+            return attr
 
 
 class QueryMapResult:
@@ -390,6 +457,8 @@ class QueryMapResult:
             max_results=self.max_results,
             ignore_decoding_errors=self.ignore_decoding_errors,
         )
+        if len(result.records) < self.page_size:
+            self.loading_complete = True
 
         # Update last key from new result set to use as offset for next page
         self.last_key = result.last_key
@@ -398,26 +467,53 @@ class QueryMapResult:
     def __aiter__(self):
         return self
 
-    async def __anext__(self):
+    def __iter__(self):
+        return self
+
+    async def get_next_record(self):
         try:
             # Try to get the next record from the buffer
-            return next(self._buffer)
+            record = next(self._buffer)
         except StopIteration:
-            # If no more records in the buffer, try to fetch the next page
-            if self.loading_complete:
-                raise StopAsyncIteration
+            # If no more records in the buffer
+            return False, None
+        else:
+            return True, record
 
-            next_page = await self.retrieve_next_page(self.last_key)
-            if not next_page:
-                self.loading_complete = True
-                raise StopAsyncIteration
+    async def __anext__(self):
+        successfully_retrieved, record = await self.get_next_record()
+        if successfully_retrieved:
+            return record
 
-            # Update the buffer with the newly fetched records
-            self._buffer = iter(next_page)
-            return next(self._buffer)
+        # If loading is already completed
+        if self.loading_complete:
+            raise StopAsyncIteration
+
+        next_page = await self.retrieve_next_page(self.last_key)
+
+        # If we cannot retrieve the next page
+        if not next_page:
+            self.loading_complete = True
+            raise StopAsyncIteration
+
+        # Update the buffer with the newly fetched records
+        self._buffer = iter(next_page)
+        return next(self._buffer)
+
+    def __next__(self):
+        try:
+            return self.substrate.event_loop.run_until_complete(self.__anext__())
+        except StopAsyncIteration:
+            raise StopIteration
 
     def __getitem__(self, item):
         return self.records[item]
+
+    def load_all(self):
+        async def _load_all():
+            return [item async for item in self]
+
+        return asyncio.get_event_loop().run_until_complete(_load_all())
 
 
 @dataclass
@@ -463,10 +559,12 @@ class Runtime:
     transaction_version = None
     cache_region = None
     metadata = None
+    runtime_config: RuntimeConfigurationObject
     type_registry_preset = None
 
-    def __init__(self, chain, runtime_config, metadata, type_registry):
-        self.runtime_config = RuntimeConfigurationObject()
+    def __init__(
+        self, chain, runtime_config: RuntimeConfigurationObject, metadata, type_registry
+    ):
         self.config = {}
         self.chain = chain
         self.type_registry = type_registry
@@ -494,8 +592,8 @@ class Runtime:
         changes in type definitions when a runtime upgrade occurred
 
         Args:
-            use_remote_preset: When True preset is downloaded from Github master, otherwise use files from local installed
-                scalecodec package
+            use_remote_preset: When True preset is downloaded from Github master, otherwise use files from local
+                installed scalecodec package
             auto_discover: Whether to automatically discover the type registry presets based on the chain name and the
                 type registry
         """
@@ -650,20 +748,31 @@ class Websocket:
         self._exit_task = None
         self._open_subscriptions = 0
         self._options = options if options else {}
+        self.last_received = time.time()
 
     async def __aenter__(self):
         async with self._lock:
             self._in_use += 1
-            if self._exit_task:
-                self._exit_task.cancel()
-            if not self._initialized:
-                self._initialized = True
-                # TODO it's worth wrapping this up with try... expect... to provide more friendly exception in case `socket.gaierror: [Errno 8] nodename nor servname provided, or not known`
-                self.ws = await asyncio.wait_for(
-                    connect(self.ws_url, **self._options), timeout=10
-                )
-                self._receiving_task = asyncio.create_task(self._start_receiving())
+            await self.connect()
         return self
+
+    async def connect(self, force=False):
+        if self._exit_task:
+            self._exit_task.cancel()
+        if not self._initialized or force:
+            self._initialized = True
+            try:
+                self._receiving_task.cancel()
+                await self._receiving_task
+                await self.ws.close()
+            except (AttributeError, asyncio.CancelledError):
+                pass
+            self.ws = await asyncio.wait_for(
+                connect(self.ws_url, **self._options), timeout=10
+            )
+            self._receiving_task = asyncio.create_task(self._start_receiving())
+        if force:
+            self.id = 100
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         async with self._lock:
@@ -706,7 +815,10 @@ class Websocket:
     async def _recv(self) -> None:
         try:
             response = json.loads(await self.ws.recv())
+            self.last_received = time.time()
             async with self._lock:
+                # note that these 'subscriptions' are all waiting sent messages which have not received
+                # responses, and thus are not the same as RPC 'subscriptions', which are unique
                 self._open_subscriptions -= 1
             if "id" in response:
                 self._received[response["id"]] = response
@@ -714,10 +826,10 @@ class Websocket:
                 self._received[response["params"]["subscription"]] = response
             else:
                 raise KeyError(response)
-        except ConnectionClosed:
+        except ssl.SSLError:
+            raise ConnectionClosed
+        except (ConnectionClosed, KeyError):
             raise
-        except KeyError as e:
-            raise e
 
     async def _start_receiving(self):
         try:
@@ -726,8 +838,8 @@ class Websocket:
         except asyncio.CancelledError:
             pass
         except ConnectionClosed:
-            # TODO try reconnect, but only if it's needed
-            raise
+            async with self._lock:
+                await self.connect(force=True)
 
     async def send(self, payload: dict) -> int:
         """
@@ -735,16 +847,20 @@ class Websocket:
 
         Args:
             payload: payload, generate a payload with the AsyncSubstrateInterface.make_payload method
+
+        Returns:
+            id: the internal ID of the request (incremented int)
         """
-        async with self._lock:
-            original_id = self.id
-            self.id += 1
-            self._open_subscriptions += 1
+        # async with self._lock:
+        original_id = self.id
+        self.id += 1
+        # self._open_subscriptions += 1
         try:
             await self.ws.send(json.dumps({**payload, **{"id": original_id}}))
             return original_id
-        except ConnectionClosed:
-            raise
+        except (ConnectionClosed, ssl.SSLError, EOFError):
+            async with self._lock:
+                await self.connect(force=True)
 
     async def retrieve(self, item_id: int) -> Optional[dict]:
         """
@@ -756,25 +872,38 @@ class Websocket:
         Returns:
              retrieved item
         """
-        while True:
-            async with self._lock:
-                if item_id in self._received:
-                    return self._received.pop(item_id)
-            await asyncio.sleep(0.1)
+        try:
+            return self._received.pop(item_id)
+        except KeyError:
+            await asyncio.sleep(0.001)
+            return None
 
 
 class AsyncSubstrateInterface:
-    runtime = None
     registry: Optional[PortableRegistry] = None
+    runtime_version = None
+    type_registry_preset = None
+    transaction_version = None
+    block_id: Optional[int] = None
+    last_block_hash: Optional[str] = None
+    __name: Optional[str] = None
+    __properties = None
+    __version = None
+    __token_decimals = None
+    __token_symbol = None
+    __metadata = None
 
     def __init__(
         self,
-        chain_endpoint: str,
+        url: str,
         use_remote_preset: bool = False,
         auto_discover: bool = True,
         ss58_format: Optional[int] = None,
         type_registry: Optional[dict] = None,
         chain_name: Optional[str] = None,
+        sync_calls: bool = False,
+        max_retries: int = 5,
+        retry_timeout: float = 60.0,
         event_loop: Optional[asyncio.BaseEventLoop] = None,
     ):
         """
@@ -783,25 +912,30 @@ class AsyncSubstrateInterface:
         Otherwise, some (most) methods will not work properly, and may raise exceptions.
 
         Args:
-            chain_endpoint: the URI of the chain to connect to
+            url: the URI of the chain to connect to
             use_remote_preset: whether to pull the preset from GitHub
             auto_discover: whether to automatically pull the presets based on the chain name and type registry
             ss58_format: the specific SS58 format to use
             type_registry: a dict of custom types
             chain_name: the name of the chain (the result of the rpc request for "system_chain")
+            sync_calls: whether this instance is going to be called through a sync wrapper or plain
+            max_retries: number of times to retry RPC requests before giving up
+            retry_timeout: how to long wait since the last ping to retry the RPC request
 
         """
-        self.chain_endpoint = chain_endpoint
+        self.max_retries = max_retries
+        self.retry_timeout = retry_timeout
+        self.chain_endpoint = url
+        self.url = url
         self.__chain = chain_name
         self.ws = Websocket(
-            chain_endpoint,
+            url,
             options={
                 "max_size": 2**32,
                 "write_limit": 2**16,
             },
         )
         self._lock = asyncio.Lock()
-        self.last_block_hash: Optional[str] = None
         self.config = {
             "use_remote_preset": use_remote_preset,
             "auto_discover": auto_discover,
@@ -813,14 +947,16 @@ class AsyncSubstrateInterface:
         self.ss58_format = ss58_format
         self.type_registry = type_registry
         self.runtime_cache = RuntimeCache()
-        self.block_id: Optional[int] = None
-        self.runtime_version = None
-        self.runtime_config = RuntimeConfigurationObject()
+        self.runtime_config = RuntimeConfigurationObject(
+            ss58_format=self.ss58_format, implements_scale_info=True
+        )
         self.__metadata_cache = {}
-        self.type_registry_preset = None
-        self.transaction_version = None
-        self.__metadata = None
         self.metadata_version_hex = "0x0f000000"  # v15
+        self.event_loop = asyncio.get_event_loop()
+        self.sync_calls = sync_calls
+        self.extrinsic_receipt_cls = (
+            AsyncExtrinsicReceipt if self.sync_calls is False else ExtrinsicReceipt
+        )
         execute_coroutine(
             coroutine=self.initialize(),
             event_loop=event_loop or asyncio.get_event_loop(),
@@ -839,7 +975,7 @@ class AsyncSubstrateInterface:
                     chain = await self.rpc_request("system_chain", [])
                     self.__chain = chain.get("result")
                 self.reload_type_registry()
-                await asyncio.gather(self.load_registry(), self.init_runtime(None))
+                await asyncio.gather(self.load_registry(), self._init_init_runtime())
             self.initialized = True
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
@@ -853,6 +989,37 @@ class AsyncSubstrateInterface:
         return self.__chain
 
     @property
+    async def properties(self):
+        if self.__properties is None:
+            self.__properties = (await self.rpc_request("system_properties", [])).get(
+                "result"
+            )
+        return self.__properties
+
+    @property
+    async def version(self):
+        if self.__version is None:
+            self.__version = (await self.rpc_request("system_version", [])).get(
+                "result"
+            )
+        return self.__version
+
+    @property
+    async def token_decimals(self):
+        if self.__token_decimals is None:
+            self.__token_decimals = (await self.properties).get("tokenDecimals")
+        return self.__token_decimals
+
+    @property
+    async def token_symbol(self):
+        if self.__token_symbol is None:
+            if self.properties:
+                self.__token_symbol = (await self.properties).get("tokenSymbol")
+            else:
+                self.__token_symbol = "UNIT"
+        return self.__token_symbol
+
+    @property
     def metadata(self):
         if self.__metadata is None:
             raise AttributeError(
@@ -861,6 +1028,35 @@ class AsyncSubstrateInterface:
             )
         else:
             return self.__metadata
+
+    @property
+    def runtime(self):
+        return Runtime(
+            self.chain,
+            self.runtime_config,
+            self.__metadata,
+            self.type_registry,
+        )
+
+    @property
+    def implements_scaleinfo(self) -> Optional[bool]:
+        """
+        Returns True if current runtime implementation a `PortableRegistry` (`MetadataV14` and higher)
+
+        Returns
+        -------
+        bool
+        """
+        if self.__metadata:
+            return self.__metadata.portable_registry is not None
+        else:
+            return None
+
+    @property
+    async def name(self):
+        if self.__name is None:
+            self.__name = (await self.rpc_request("system_name", [])).get("result")
+        return self.__name
 
     async def get_storage_item(self, module: str, storage_function: str):
         if not self.__metadata:
@@ -881,6 +1077,7 @@ class AsyncSubstrateInterface:
         return block_hash
 
     async def load_registry(self):
+        # TODO this needs to happen before init_runtime
         metadata_rpc_result = await self.rpc_request(
             "state_call",
             ["Metadata_metadata_at_version", self.metadata_version_hex],
@@ -890,7 +1087,9 @@ class AsyncSubstrateInterface:
         metadata_v15 = MetadataV15.decode_from_metadata_option(metadata_option_bytes)
         self.registry = PortableRegistry.from_metadata_v15(metadata_v15)
 
-    async def decode_scale(self, type_string, scale_bytes: bytes) -> Any:
+    async def decode_scale(
+        self, type_string: str, scale_bytes: bytes, _attempt=1, _retries=3
+    ) -> Any:
         """
         Helper function to decode arbitrary SCALE-bytes (e.g. 0x02000000) according to given RUST type_string
         (e.g. BlockNumber). The relevant versioning information of the type (if defined) will be applied if block_hash
@@ -898,17 +1097,295 @@ class AsyncSubstrateInterface:
 
         Args:
             type_string: the type string of the SCALE object for decoding
-            scale_bytes: the SCALE-bytes representation of the SCALE object to decode
+            scale_bytes: the bytes representation of the SCALE object to decode
+            _attempt: the number of attempts to pull the registry before timing out
+            _retries: the number of retries to pull the registry before timing out
 
         Returns:
             Decoded object
-
         """
+
+        async def _wait_for_registry():
+            while self.registry is None:
+                await asyncio.sleep(0.1)
+            return
+
         if scale_bytes == b"\x00":
             obj = None
         else:
-            obj = decode_by_type_string(type_string, self.registry, scale_bytes)
+            if not self.registry:
+                await asyncio.wait_for(_wait_for_registry(), timeout=10)
+            try:
+                obj = decode_by_type_string(type_string, self.registry, scale_bytes)
+            except TimeoutError:
+                # indicates that registry was never loaded
+                if _attempt < _retries:
+                    await self.load_registry()
+                    return await self.decode_scale(
+                        type_string, scale_bytes, _attempt + 1
+                    )
+                else:
+                    raise ValueError("Registry was never loaded.")
         return obj
+
+    async def encode_scale(self, type_string, value, block_hash=None) -> ScaleBytes:
+        """
+        Helper function to encode arbitrary data into SCALE-bytes for given RUST type_string
+
+        Args:
+            type_string: the type string of the SCALE object for decoding
+            value: value to encode
+            block_hash: the hash of the blockchain block whose metadata to use for encoding
+
+        Returns:
+            ScaleBytes encoded value
+        """
+        if not self.__metadata or block_hash:
+            await self.init_runtime(block_hash=block_hash)
+
+        obj = self.runtime_config.create_scale_object(
+            type_string=type_string, metadata=self.__metadata
+        )
+        return obj.encode(value)
+
+    def ss58_encode(
+        self, public_key: Union[str, bytes], ss58_format: int = None
+    ) -> str:
+        """
+        Helper function to encode a public key to SS58 address.
+
+        If no target `ss58_format` is provided, it will default to the ss58 format of the network it's connected to.
+
+        Args:
+            public_key: 32 bytes or hex-string. e.g. 0x6e39f36c370dd51d9a7594846914035de7ea8de466778ea4be6c036df8151f29
+            ss58_format: target networkID to format the address for, defaults to the network it's connected to
+
+        Returns:
+            str containing the SS58 address
+        """
+
+        if ss58_format is None:
+            ss58_format = self.ss58_format
+
+        return ss58_encode(public_key, ss58_format=ss58_format)
+
+    def ss58_decode(self, ss58_address: str) -> str:
+        """
+        Helper function to decode a SS58 address to a public key
+
+        Args:
+            ss58_address: the encoded SS58 address to decode (e.g. EaG2CRhJWPb7qmdcJvy3LiWdh26Jreu9Dx6R1rXxPmYXoDk)
+
+        Returns:
+            str containing the hex representation of the public key
+        """
+        return ss58_decode(ss58_address, valid_ss58_format=self.ss58_format)
+
+    def is_valid_ss58_address(self, value: str) -> bool:
+        """
+        Helper function to validate given value as ss58_address for current network/ss58_format
+
+        Args:
+            value: value to validate
+
+        Returns:
+            bool
+        """
+        return is_valid_ss58_address(value, valid_ss58_format=self.ss58_format)
+
+    def serialize_storage_item(
+        self, storage_item: ScaleType, module, spec_version_id
+    ) -> dict:
+        """
+        Helper function to serialize a storage item
+
+        Args:
+            storage_item: the storage item to serialize
+            module: the module to use to serialize the storage item
+            spec_version_id: the version id
+
+        Returns:
+            dict
+        """
+        storage_dict = {
+            "storage_name": storage_item.name,
+            "storage_modifier": storage_item.modifier,
+            "storage_default_scale": storage_item["default"].get_used_bytes(),
+            "storage_default": None,
+            "documentation": "\n".join(storage_item.docs),
+            "module_id": module.get_identifier(),
+            "module_prefix": module.value["storage"]["prefix"],
+            "module_name": module.name,
+            "spec_version": spec_version_id,
+            "type_keys": storage_item.get_params_type_string(),
+            "type_hashers": storage_item.get_param_hashers(),
+            "type_value": storage_item.get_value_type_string(),
+        }
+
+        type_class, type_info = next(iter(storage_item.type.items()))
+
+        storage_dict["type_class"] = type_class
+
+        value_scale_type = storage_item.get_value_type_string()
+
+        if storage_item.value["modifier"] == "Default":
+            # Fallback to default value of storage function if no result
+            query_value = storage_item.value_object["default"].value_object
+        else:
+            # No result is interpreted as an Option<...> result
+            value_scale_type = f"Option<{value_scale_type}>"
+            query_value = storage_item.value_object["default"].value_object
+
+        try:
+            obj = self.runtime_config.create_scale_object(
+                type_string=value_scale_type,
+                data=ScaleBytes(query_value),
+                metadata=self.metadata,
+            )
+            obj.decode()
+            storage_dict["storage_default"] = obj.decode()
+        except Exception:
+            storage_dict["storage_default"] = "[decoding error]"
+
+        return storage_dict
+
+    def serialize_constant(self, constant, module, spec_version_id) -> dict:
+        """
+        Helper function to serialize a constant
+
+        Parameters
+        ----------
+        constant
+        module
+        spec_version_id
+
+        Returns
+        -------
+        dict
+        """
+        try:
+            value_obj = self.runtime_config.create_scale_object(
+                type_string=constant.type, data=ScaleBytes(constant.constant_value)
+            )
+            constant_decoded_value = value_obj.decode()
+        except Exception:
+            constant_decoded_value = "[decoding error]"
+
+        return {
+            "constant_name": constant.name,
+            "constant_type": constant.type,
+            "constant_value": constant_decoded_value,
+            "constant_value_scale": f"0x{constant.constant_value.hex()}",
+            "documentation": "\n".join(constant.docs),
+            "module_id": module.get_identifier(),
+            "module_prefix": module.value["storage"]["prefix"]
+            if module.value["storage"]
+            else None,
+            "module_name": module.name,
+            "spec_version": spec_version_id,
+        }
+
+    @staticmethod
+    def serialize_module_call(module, call: GenericCall, spec_version) -> dict:
+        """
+        Helper function to serialize a call function
+
+        Args:
+            module: the module to use
+            call: the call function to serialize
+            spec_version: the spec version of the call function
+
+        Returns:
+            dict serialized version of the call function
+        """
+        return {
+            "call_name": call.name,
+            "call_args": [call_arg.value for call_arg in call.args],
+            "documentation": "\n".join(call.docs),
+            "module_prefix": module.value["storage"]["prefix"]
+            if module.value["storage"]
+            else None,
+            "module_name": module.name,
+            "spec_version": spec_version,
+        }
+
+    @staticmethod
+    def serialize_module_event(module, event, spec_version, event_index: str) -> dict:
+        """
+        Helper function to serialize an event
+
+        Args:
+            module: the metadata module
+            event: the event to serialize
+            spec_version: the spec version of the error
+            event_index: the hex index of this event in the block
+
+        Returns:
+            dict serialized version of the event
+        """
+        return {
+            "event_id": event.name,
+            "event_name": event.name,
+            "event_args": [
+                {"event_arg_index": idx, "type": arg}
+                for idx, arg in enumerate(event.args)
+            ],
+            "lookup": f"0x{event_index}",
+            "documentation": "\n".join(event.docs),
+            "module_id": module.get_identifier(),
+            "module_prefix": module.prefix,
+            "module_name": module.name,
+            "spec_version": spec_version,
+        }
+
+    @staticmethod
+    def serialize_module_error(module, error, spec_version) -> dict:
+        """
+        Helper function to serialize an error
+
+        Args:
+            module: the metadata module
+            error: the error to serialize
+            spec_version: the spec version of the error
+
+        Returns:
+            dict serialized version of the module error
+        """
+        return {
+            "error_name": error.name,
+            "documentation": "\n".join(error.docs),
+            "module_id": module.get_identifier(),
+            "module_prefix": module.value["storage"]["prefix"]
+            if module.value["storage"]
+            else None,
+            "module_name": module.name,
+            "spec_version": spec_version,
+        }
+
+    async def _init_init_runtime(self):
+        """
+        TODO rename/docstring
+        """
+        runtime_info, metadata = await asyncio.gather(
+            self.get_block_runtime_version(None), self.get_block_metadata()
+        )
+        self.__metadata = metadata
+        self.__metadata_cache[self.runtime_version] = self.__metadata
+        self.runtime_version = runtime_info.get("specVersion")
+        self.runtime_config.set_active_spec_version_id(self.runtime_version)
+        self.transaction_version = runtime_info.get("transactionVersion")
+        if self.implements_scaleinfo:
+            self.runtime_config.add_portable_registry(metadata)
+        # Set runtime compatibility flags
+        try:
+            _ = self.runtime_config.create_scale_object("sp_weights::weight_v2::Weight")
+            self.config["is_weight_v2"] = True
+            self.runtime_config.update_type_registry_types(
+                {"Weight": "sp_weights::weight_v2::Weight"}
+            )
+        except NotImplementedError:
+            self.config["is_weight_v2"] = False
+            self.runtime_config.update_type_registry_types({"Weight": "WeightV1"})
 
     async def init_runtime(
         self, block_hash: Optional[str] = None, block_id: Optional[int] = None
@@ -961,7 +1438,6 @@ class AsyncSubstrateInterface:
                 raise SubstrateRequestException(
                     f'Block not found for "{self.last_block_hash}"'
                 )
-
             parent_block_hash: str = block_header["result"]["parentHash"]
 
             if (
@@ -998,7 +1474,11 @@ class AsyncSubstrateInterface:
             if not self.__metadata:
                 if self.runtime_version in self.__metadata_cache:
                     # Get metadata from cache
-                    # self.debug_message('Retrieved metadata for {} from memory'.format(self.runtime_version))
+                    logging.debug(
+                        "Retrieved metadata for {} from memory".format(
+                            self.runtime_version
+                        )
+                    )
                     metadata = self.__metadata = self.__metadata_cache[
                         self.runtime_version
                     ]
@@ -1006,7 +1486,11 @@ class AsyncSubstrateInterface:
                     metadata = self.__metadata = await self.get_block_metadata(
                         block_hash=runtime_block_hash, decode=True
                     )
-                    # self.debug_message('Retrieved metadata for {} from Substrate node'.format(self.runtime_version))
+                    logging.debug(
+                        "Retrieved metadata for {} from Substrate node".format(
+                            self.runtime_version
+                        )
+                    )
 
                     # Update metadata cache
                     self.__metadata_cache[self.runtime_version] = self.__metadata
@@ -1016,7 +1500,7 @@ class AsyncSubstrateInterface:
             self.reload_type_registry(use_remote_preset=False, auto_discover=True)
 
             if self.implements_scaleinfo:
-                # self.debug_message('Add PortableRegistry from metadata to type registry')
+                logging.debug("Add PortableRegistry from metadata to type registry")
                 self.runtime_config.add_portable_registry(metadata)
 
             # Set active runtime version
@@ -1104,7 +1588,9 @@ class AsyncSubstrateInterface:
                 type_registry_preset_dict = load_type_registry_preset(
                     type_registry_name
                 )
-                # self.debug_message(f"Auto set type_registry_preset to {type_registry_name} ...")
+                logging.debug(
+                    f"Auto set type_registry_preset to {type_registry_name} ..."
+                )
                 self.type_registry_preset = type_registry_name
             except ValueError:
                 type_registry_preset_dict = None
@@ -1129,20 +1615,6 @@ class AsyncSubstrateInterface:
             # Load type registries in runtime configuration
             self.runtime_config.update_type_registry(self.type_registry)
 
-    @property
-    def implements_scaleinfo(self) -> Optional[bool]:
-        """
-        Returns True if current runtime implementation a `PortableRegistry` (`MetadataV14` and higher)
-
-        Returns
-        -------
-        bool
-        """
-        if self.__metadata:
-            return self.__metadata.portable_registry is not None
-        else:
-            return None
-
     async def create_storage_key(
         self,
         pallet: str,
@@ -1162,7 +1634,8 @@ class AsyncSubstrateInterface:
         Returns:
             StorageKey
         """
-        await self.init_runtime(block_hash=block_hash)
+        if not self.__metadata or block_hash:
+            await self.init_runtime(block_hash=block_hash)
 
         return StorageKey.create_from_storage_function(
             pallet,
@@ -1171,6 +1644,190 @@ class AsyncSubstrateInterface:
             runtime_config=self.runtime_config,
             metadata=self.__metadata,
         )
+
+    @staticmethod
+    def serialize_module_error(module, error, spec_version) -> dict[str, Optional[str]]:
+        """
+        Helper function to serialize an error
+
+        Args:
+            module
+            error
+            spec_version
+
+        Returns:
+            dict
+        """
+        return {
+            "error_name": error.name,
+            "documentation": "\n".join(error.docs),
+            "module_id": module.get_identifier(),
+            "module_prefix": module.value["storage"]["prefix"]
+            if module.value["storage"]
+            else None,
+            "module_name": module.name,
+            "spec_version": spec_version,
+        }
+
+    async def get_metadata_storage_functions(self, block_hash=None) -> list:
+        """
+        Retrieves a list of all storage functions in metadata active at given block_hash (or chaintip if block_hash is
+        omitted)
+
+        Args:
+            block_hash: hash of the blockchain block whose runtime to use
+
+        Returns:
+            list of storage functions
+        """
+        if not self.__metadata or block_hash:
+            await self.init_runtime(block_hash=block_hash)
+
+        storage_list = []
+
+        for module_idx, module in enumerate(self.metadata.pallets):
+            if module.storage:
+                for storage in module.storage:
+                    storage_list.append(
+                        self.serialize_storage_item(
+                            storage_item=storage,
+                            module=module,
+                            spec_version_id=self.runtime_version,
+                        )
+                    )
+
+        return storage_list
+
+    async def get_metadata_storage_function(
+        self, module_name, storage_name, block_hash=None
+    ):
+        """
+        Retrieves the details of a storage function for given module name, call function name and block_hash
+
+        Args:
+            module_name
+            storage_name
+            block_hash
+
+        Returns:
+            Metadata storage function
+        """
+        if not self.__metadata or block_hash:
+            await self.init_runtime(block_hash=block_hash)
+
+        pallet = self.metadata.get_metadata_pallet(module_name)
+
+        if pallet:
+            return pallet.get_storage_function(storage_name)
+
+    async def get_metadata_errors(
+        self, block_hash=None
+    ) -> list[dict[str, Optional[str]]]:
+        """
+        Retrieves a list of all errors in metadata active at given block_hash (or chaintip if block_hash is omitted)
+
+        Args:
+            block_hash: hash of the blockchain block whose metadata to use
+
+        Returns:
+            list of errors in the metadata
+        """
+        if not self.__metadata or block_hash:
+            await self.init_runtime(block_hash=block_hash)
+
+        error_list = []
+
+        for module_idx, module in enumerate(self.__metadata.pallets):
+            if module.errors:
+                for error in module.errors:
+                    error_list.append(
+                        self.serialize_module_error(
+                            module=module,
+                            error=error,
+                            spec_version=self.runtime_version,
+                        )
+                    )
+
+        return error_list
+
+    async def get_metadata_error(self, module_name, error_name, block_hash=None):
+        """
+        Retrieves the details of an error for given module name, call function name and block_hash
+
+        Args:
+        module_name: module name for the error lookup
+        error_name: error name for the error lookup
+        block_hash: hash of the blockchain block whose metadata to use
+
+        Returns:
+            error
+
+        """
+        if not self.__metadata or block_hash:
+            await self.init_runtime(block_hash=block_hash)
+
+        for module_idx, module in enumerate(self.__metadata.pallets):
+            if module.name == module_name and module.errors:
+                for error in module.errors:
+                    if error_name == error.name:
+                        return error
+
+    async def get_metadata_runtime_call_functions(
+        self,
+    ) -> list[GenericRuntimeCallDefinition]:
+        """
+        Get a list of available runtime API calls
+
+        Returns:
+            list of runtime call functions
+        """
+        if not self.__metadata:
+            await self.init_runtime()
+        call_functions = []
+
+        for api, methods in self.runtime_config.type_registry["runtime_api"].items():
+            for method in methods["methods"].keys():
+                call_functions.append(
+                    await self.get_metadata_runtime_call_function(api, method)
+                )
+
+        return call_functions
+
+    async def get_metadata_runtime_call_function(
+        self, api: str, method: str
+    ) -> GenericRuntimeCallDefinition:
+        """
+        Get details of a runtime API call
+
+        Args:
+            api: Name of the runtime API e.g. 'TransactionPaymentApi'
+            method: Name of the method e.g. 'query_fee_details'
+
+        Returns:
+            runtime call function
+        """
+        if not self.__metadata:
+            await self.init_runtime()
+
+        try:
+            runtime_call_def = self.runtime_config.type_registry["runtime_api"][api][
+                "methods"
+            ][method]
+            runtime_call_def["api"] = api
+            runtime_call_def["method"] = method
+            runtime_api_types = self.runtime_config.type_registry["runtime_api"][
+                api
+            ].get("types", {})
+        except KeyError:
+            raise ValueError(f"Runtime API Call '{api}.{method}' not found in registry")
+
+        # Add runtime API types to registry
+        self.runtime_config.update_type_registry_types(runtime_api_types)
+
+        runtime_call_def_obj = await self.create_scale_object("RuntimeCallDefinition")
+        runtime_call_def_obj.encode(runtime_call_def)
+
+        return runtime_call_def_obj
 
     async def _get_block_handler(
         self,
@@ -1191,7 +1848,7 @@ class AsyncSubstrateInterface:
                 if block_data_hash:
                     block_data["header"]["hash"] = block_data_hash
 
-                if type(block_data["header"]["number"]) is str:
+                if isinstance(block_data["header"]["number"], str):
                     # Convert block number from hex (backwards compatibility)
                     block_data["header"]["number"] = int(
                         block_data["header"]["number"], 16
@@ -1216,7 +1873,7 @@ class AsyncSubstrateInterface:
                             block_data["extrinsics"][idx] = None
 
                 for idx, log_data in enumerate(block_data["header"]["digest"]["logs"]):
-                    if type(log_data) is str:
+                    if isinstance(log_data, str):
                         # Convert digest log from hex (backwards compatibility)
                         try:
                             log_digest_cls = self.runtime_config.get_decoder_class(
@@ -1309,7 +1966,8 @@ class AsyncSubstrateInterface:
                                         block_data["author"] = block_author.value
                                     else:
                                         raise NotImplementedError(
-                                            f"Cannot extract author for engine {log_digest.value['PreRuntime']['engine']}"
+                                            f"Cannot extract author for engine"
+                                            f" {log_digest.value['PreRuntime']['engine']}"
                                         )
 
                         except Exception:
@@ -1382,14 +2040,15 @@ class AsyncSubstrateInterface:
     ) -> Optional[dict]:
         """
         Retrieves a block and decodes its containing extrinsics and log digest items. If `block_hash` and `block_number`
-        is omitted the chain tip will be retrieve, or the finalized head if `finalized_only` is set to true.
+        is omitted the chain tip will be retrieved, or the finalized head if `finalized_only` is set to true.
 
         Either `block_hash` or `block_number` should be set, or both omitted.
 
         Args:
             block_hash: the hash of the block to be retrieved
             block_number: the block number to retrieved
-            ignore_decoding_errors: When set this will catch all decoding errors, set the item to None and continue decoding
+            ignore_decoding_errors: When set this will catch all decoding errors, set the item to None and continue
+                decoding
             include_author: This will retrieve the block author from the validator set and add to the result
             finalized_only: when no `block_hash` or `block_number` is set, this will retrieve the finalized head
 
@@ -1423,6 +2082,187 @@ class AsyncSubstrateInterface:
             header_only=False,
             include_author=include_author,
         )
+
+    async def get_block_header(
+        self,
+        block_hash: Optional[str] = None,
+        block_number: Optional[int] = None,
+        ignore_decoding_errors: bool = False,
+        include_author: bool = False,
+        finalized_only: bool = False,
+    ) -> dict:
+        """
+        Retrieves a block header and decodes its containing log digest items. If `block_hash` and `block_number`
+        is omitted the chain tip will be retrieved, or the finalized head if `finalized_only` is set to true.
+
+        Either `block_hash` or `block_number` should be set, or both omitted.
+
+        See `get_block()` to also include the extrinsics in the result
+
+        Args:
+            block_hash: the hash of the block to be retrieved
+            block_number: the block number to retrieved
+            ignore_decoding_errors: When set this will catch all decoding errors, set the item to None and continue
+                decoding
+            include_author: This will retrieve the block author from the validator set and add to the result
+            finalized_only: when no `block_hash` or `block_number` is set, this will retrieve the finalized head
+
+        Returns:
+            A dict containing the header and digest logs data
+        """
+        if block_hash and block_number:
+            raise ValueError("Either block_hash or block_number should be be set")
+
+        if block_number is not None:
+            block_hash = await self.get_block_hash(block_number)
+
+            if block_hash is None:
+                return
+
+        if block_hash and finalized_only:
+            raise ValueError(
+                "finalized_only cannot be True when block_hash is provided"
+            )
+
+        if block_hash is None:
+            # Retrieve block hash
+            if finalized_only:
+                block_hash = await self.get_chain_finalised_head()
+            else:
+                block_hash = await self.get_chain_head()
+
+        else:
+            # Check conflicting scenarios
+            if finalized_only:
+                raise ValueError(
+                    "finalized_only cannot be True when block_hash is provided"
+                )
+
+        return await self._get_block_handler(
+            block_hash=block_hash,
+            ignore_decoding_errors=ignore_decoding_errors,
+            header_only=True,
+            include_author=include_author,
+        )
+
+    async def subscribe_block_headers(
+        self,
+        subscription_handler: callable,
+        ignore_decoding_errors: bool = False,
+        include_author: bool = False,
+        finalized_only=False,
+    ):
+        """
+        Subscribe to new block headers as soon as they are available. The callable `subscription_handler` will be
+        executed when a new block is available and execution will block until `subscription_handler` will return
+        a result other than `None`.
+
+        Example:
+
+        ```
+        async def subscription_handler(obj, update_nr, subscription_id):
+
+            print(f"New block #{obj['header']['number']} produced by {obj['header']['author']}")
+
+            if update_nr > 10
+              return {'message': 'Subscription will cancel when a value is returned', 'updates_processed': update_nr}
+
+
+        result = await substrate.subscribe_block_headers(subscription_handler, include_author=True)
+        ```
+
+        Args:
+            subscription_handler: the coroutine as explained above
+            ignore_decoding_errors: When set this will catch all decoding errors, set the item to `None` and continue
+                decoding
+            include_author: This will retrieve the block author from the validator set and add to the result
+            finalized_only: when no `block_hash` or `block_number` is set, this will retrieve the finalized head
+
+        Returns:
+            Value return by `subscription_handler`
+        """
+        # Retrieve block hash
+        if finalized_only:
+            block_hash = await self.get_chain_finalised_head()
+        else:
+            block_hash = await self.get_chain_head()
+
+        return await self._get_block_handler(
+            block_hash,
+            subscription_handler=subscription_handler,
+            ignore_decoding_errors=ignore_decoding_errors,
+            include_author=include_author,
+            finalized_only=finalized_only,
+        )
+
+    async def retrieve_extrinsic_by_identifier(
+        self, extrinsic_identifier: str
+    ) -> "ExtrinsicReceiptLike":
+        """
+        Retrieve an extrinsic by its identifier in format "[block_number]-[extrinsic_index]" e.g. 333456-4
+
+        Args:
+            extrinsic_identifier: "[block_number]-[extrinsic_idx]" e.g. 134324-2
+
+        Returns:
+            ExtrinsicReceiptLike object of the extrinsic
+        """
+        return await self.extrinsic_receipt_cls.create_from_extrinsic_identifier(
+            substrate=self, extrinsic_identifier=extrinsic_identifier
+        )
+
+    def retrieve_extrinsic_by_hash(
+        self, block_hash: str, extrinsic_hash: str
+    ) -> "ExtrinsicReceiptLike":
+        """
+        Retrieve an extrinsic by providing the block_hash and the extrinsic hash
+
+        Args:
+            block_hash: hash of the blockchain block where the extrinsic is located
+            extrinsic_hash: hash of the extrinsic
+
+        Returns:
+            ExtrinsicReceiptLike of the extrinsic
+        """
+        return self.extrinsic_receipt_cls(
+            substrate=self, block_hash=block_hash, extrinsic_hash=extrinsic_hash
+        )
+
+    async def get_extrinsics(
+        self, block_hash: str = None, block_number: int = None
+    ) -> Optional[list["ExtrinsicReceiptLike"]]:
+        """
+        Return all extrinsics for given block_hash or block_number
+
+        Args:
+            block_hash: hash of the blockchain block to retrieve extrinsics for
+            block_number: block number to retrieve extrinsics for
+
+        Returns:
+            ExtrinsicReceipts of the extrinsics for the block, if any.
+        """
+        block = await self.get_block(block_hash=block_hash, block_number=block_number)
+        if block:
+            return block["extrinsics"]
+
+    def extension_call(self, name, **kwargs):
+        raise NotImplementedError(
+            "Extensions not implemented in AsyncSubstrateInterface"
+        )
+
+    def filter_extrinsics(self, **kwargs) -> list:
+        return self.extension_call("filter_extrinsics", **kwargs)
+
+    def filter_events(self, **kwargs) -> list:
+        return self.extension_call("filter_events", **kwargs)
+
+    def search_block_number(self, block_datetime: datetime, block_time: int = 6) -> int:
+        return self.extension_call(
+            "search_block_number", block_datetime=block_datetime, block_time=block_time
+        )
+
+    def get_block_timestamp(self, block_number: int) -> int:
+        return self.extension_call("get_block_timestamp", block_number=block_number)
 
     async def get_events(self, block_hash: Optional[str] = None) -> list:
         """
@@ -1481,9 +2321,7 @@ class AsyncSubstrateInterface:
         )
         if storage_obj:
             for item in list(storage_obj):
-                # print("item!", item)
                 events.append(convert_event_data(item))
-            # events += list(storage_obj)
         return events
 
     async def get_block_runtime_version(self, block_hash: str) -> dict:
@@ -1586,7 +2424,7 @@ class AsyncSubstrateInterface:
         storage_item: Optional[ScaleType] = None,
         runtime: Optional[Runtime] = None,
         result_handler: Optional[ResultHandler] = None,
-    ) -> tuple[Union[ScaleType, dict], bool]:
+    ) -> tuple[Any, bool]:
         """
         Processes the RPC call response by decoding it, returning it as is, or setting a handler for subscriptions,
         depending on the specific call.
@@ -1604,16 +2442,8 @@ class AsyncSubstrateInterface:
         """
         result: Union[dict, ScaleType] = response
         if value_scale_type and isinstance(storage_item, ScaleType):
-            if not runtime:
-                async with self._lock:
-                    runtime = Runtime(
-                        self.chain,
-                        self.runtime_config,
-                        self.__metadata,
-                        self.type_registry,
-                    )
-            if response.get("result") is not None:
-                query_value = response.get("result")
+            if (response_result := response.get("result")) is not None:
+                query_value = response_result
             elif storage_item.value["modifier"] == "Default":
                 # Fallback to default value of storage function if no result
                 query_value = storage_item.value_object["default"].value_object
@@ -1630,7 +2460,7 @@ class AsyncSubstrateInterface:
             result = await self.decode_scale(value_scale_type, q)
         if asyncio.iscoroutinefunction(result_handler):
             # For multipart responses as a result of subscriptions.
-            message, bool_result = await result_handler(response, subscription_id)
+            message, bool_result = await result_handler(result, subscription_id)
             return message, bool_result
         return result, True
 
@@ -1641,18 +2471,26 @@ class AsyncSubstrateInterface:
         storage_item: Optional[ScaleType] = None,
         runtime: Optional[Runtime] = None,
         result_handler: Optional[ResultHandler] = None,
+        attempt: int = 1,
     ) -> RequestManager.RequestResults:
         request_manager = RequestManager(payloads)
 
         subscription_added = False
 
         async with self.ws as ws:
-            for item in payloads:
+            if len(payloads) > 1:
+                send_coroutines = await asyncio.gather(
+                    *[ws.send(item["payload"]) for item in payloads]
+                )
+                for item_id, item in zip(send_coroutines, payloads):
+                    request_manager.add_request(item_id, item["id"])
+            else:
+                item = payloads[0]
                 item_id = await ws.send(item["payload"])
                 request_manager.add_request(item_id, item["id"])
 
             while True:
-                for item_id in request_manager.response_map.keys():
+                for item_id in list(request_manager.response_map.keys()):
                     if (
                         item_id not in request_manager.responses
                         or asyncio.iscoroutinefunction(result_handler)
@@ -1668,6 +2506,7 @@ class AsyncSubstrateInterface:
                                     item_id = request_manager.overwrite_request(
                                         item_id, response["result"]
                                     )
+                                    subscription_added = True
                                 except KeyError:
                                     raise SubstrateRequestException(str(response))
                             decoded_response, complete = await self._process_response(
@@ -1681,15 +2520,30 @@ class AsyncSubstrateInterface:
                             request_manager.add_response(
                                 item_id, decoded_response, complete
                             )
-                    if (
-                        asyncio.iscoroutinefunction(result_handler)
-                        and not subscription_added
-                    ):
-                        subscription_added = True
-                        break
 
                 if request_manager.is_complete:
                     break
+                if time.time() - self.ws.last_received >= self.retry_timeout:
+                    if attempt >= self.max_retries:
+                        logging.warning(
+                            f"Timed out waiting for RPC requests {attempt} times. Exiting."
+                        )
+                        raise SubstrateRequestException("Max retries reached.")
+                    else:
+                        self.ws.last_received = time.time()
+                        await self.ws.connect(force=True)
+                        logging.error(
+                            f"Timed out waiting for RPC requests. "
+                            f"Retrying attempt {attempt + 1} of {self.max_retries}"
+                        )
+                        return await self._make_rpc_request(
+                            payloads,
+                            value_scale_type,
+                            storage_item,
+                            runtime,
+                            result_handler,
+                            attempt + 1,
+                        )
 
         return request_manager.get_results()
 
@@ -1769,6 +2623,17 @@ class AsyncSubstrateInterface:
         )
         result = await self._make_rpc_request(payloads, runtime=runtime)
         if "error" in result[payload_id][0]:
+            if (
+                "Failed to get runtime version"
+                in result[payload_id][0]["error"]["message"]
+            ):
+                logging.warning(
+                    "Failed to get runtime. Re-fetching from chain, and retrying."
+                )
+                await self.init_runtime()
+                return await self.rpc_request(
+                    method, params, block_hash, reuse_block_hash
+                )
             raise SubstrateRequestException(result[payload_id][0]["error"]["message"])
         if "result" in result[payload_id][0]:
             return result[payload_id][0]
@@ -1820,7 +2685,8 @@ class AsyncSubstrateInterface:
         if call_params is None:
             call_params = {}
 
-        await self.init_runtime(block_hash=block_hash)
+        if not self.__metadata or block_hash:
+            await self.init_runtime(block_hash=block_hash)
 
         call = self.runtime_config.create_scale_object(
             type_string="Call", metadata=self.__metadata
@@ -1853,7 +2719,10 @@ class AsyncSubstrateInterface:
         block_hash = await self._get_current_block_hash(block_hash, reuse_block_hash)
         if block_hash:
             self.last_block_hash = block_hash
-        runtime = await self.init_runtime(block_hash=block_hash)
+        if not self.__metadata or block_hash:
+            runtime = await self.init_runtime(block_hash=block_hash)
+        else:
+            runtime = self.runtime
         preprocessed: tuple[Preprocessed] = await asyncio.gather(
             *[
                 self._preprocess([x], block_hash, storage_function, module)
@@ -1903,8 +2772,8 @@ class AsyncSubstrateInterface:
         Returns:
             list of `(storage_key, scale_obj)` tuples
         """
-
-        await self.init_runtime(block_hash=block_hash)
+        if not self.__metadata or block_hash:
+            await self.init_runtime(block_hash=block_hash)
 
         # Retrieve corresponding value
         response = await self.rpc_request(
@@ -1957,7 +2826,10 @@ class AsyncSubstrateInterface:
         Returns:
              The created Scale Type object
         """
-        runtime = await self.init_runtime(block_hash=block_hash)
+        if not self.__metadata or block_hash:
+            runtime = await self.init_runtime(block_hash=block_hash)
+        else:
+            runtime = self.runtime
         if "metadata" not in kwargs:
             kwargs["metadata"] = runtime.metadata
 
@@ -2252,7 +3124,8 @@ class AsyncSubstrateInterface:
         Returns:
              ScaleType from the runtime call
         """
-        await self.init_runtime()
+        if not self.__metadata or block_hash:
+            await self.init_runtime(block_hash=block_hash)
 
         if params is None:
             params = {}
@@ -2362,8 +3235,8 @@ class AsyncSubstrateInterface:
         Returns:
             MetadataModuleConstants
         """
-
-        await self.init_runtime(block_hash=block_hash)
+        if not self.__metadata or block_hash:
+            await self.init_runtime(block_hash=block_hash)
 
         for module in self.__metadata.pallets:
             if module_name == module.name and module.constants:
@@ -2444,6 +3317,106 @@ class AsyncSubstrateInterface:
 
         return result.value
 
+    async def get_type_registry(
+        self, block_hash: str = None, max_recursion: int = 4
+    ) -> dict:
+        """
+        Generates an exhaustive list of which RUST types exist in the runtime specified at given block_hash (or
+        chaintip if block_hash is omitted)
+
+        MetadataV14 or higher is required.
+
+        Args:
+            block_hash: Chaintip will be used if block_hash is omitted
+            max_recursion: Increasing recursion will provide more detail but also has impact on performance
+
+        Returns:
+            dict mapping the type strings to the type decompositions
+        """
+        if not self.__metadata or block_hash:
+            await self.init_runtime(block_hash=block_hash)
+
+        if not self.implements_scaleinfo:
+            raise NotImplementedError("MetadataV14 or higher runtimes is required")
+
+        type_registry = {}
+
+        for scale_info_type in self.metadata.portable_registry["types"]:
+            if (
+                "path" in scale_info_type.value["type"]
+                and len(scale_info_type.value["type"]["path"]) > 0
+            ):
+                type_string = "::".join(scale_info_type.value["type"]["path"])
+            else:
+                type_string = f'scale_info::{scale_info_type.value["id"]}'
+
+            scale_cls = self.runtime_config.get_decoder_class(type_string)
+            type_registry[type_string] = scale_cls.generate_type_decomposition(
+                max_recursion=max_recursion
+            )
+
+        return type_registry
+
+    async def get_type_definition(
+        self, type_string: str, block_hash: str = None
+    ) -> str:
+        """
+        Retrieves SCALE encoding specifications of given type_string
+
+        Args:
+            type_string: RUST variable type, e.g. Vec<Address> or scale_info::0
+            block_hash: hash of the blockchain block
+
+        Returns:
+            type decomposition
+        """
+        scale_obj = await self.create_scale_object(type_string, block_hash=block_hash)
+        return scale_obj.generate_type_decomposition()
+
+    async def get_metadata_modules(self, block_hash=None) -> list[dict[str, Any]]:
+        """
+        Retrieves a list of modules in metadata for given block_hash (or chaintip if block_hash is omitted)
+
+        Args:
+            block_hash: hash of the blockchain block
+
+        Returns:
+            List of metadata modules
+        """
+        if not self.__metadata or block_hash:
+            await self.init_runtime(block_hash=block_hash)
+
+        return [
+            {
+                "metadata_index": idx,
+                "module_id": module.get_identifier(),
+                "name": module.name,
+                "spec_version": self.runtime_version,
+                "count_call_functions": len(module.calls or []),
+                "count_storage_functions": len(module.storage or []),
+                "count_events": len(module.events or []),
+                "count_constants": len(module.constants or []),
+                "count_errors": len(module.errors or []),
+            }
+            for idx, module in enumerate(self.metadata.pallets)
+        ]
+
+    async def get_metadata_module(self, name, block_hash=None) -> ScaleType:
+        """
+        Retrieves modules in metadata by name for given block_hash (or chaintip if block_hash is omitted)
+
+        Args:
+            name: Name of the module
+            block_hash: hash of the blockchain block
+
+        Returns:
+            MetadataModule
+        """
+        if not self.__metadata or block_hash:
+            await self.init_runtime(block_hash=block_hash)
+
+        return self.metadata.get_metadata_pallet(name)
+
     async def query(
         self,
         module: str,
@@ -2461,7 +3434,10 @@ class AsyncSubstrateInterface:
         block_hash = await self._get_current_block_hash(block_hash, reuse_block_hash)
         if block_hash:
             self.last_block_hash = block_hash
-        runtime = await self.init_runtime(block_hash=block_hash)
+        if not self.__metadata or block_hash:
+            runtime = await self.init_runtime(block_hash=block_hash)
+        else:
+            runtime = self.runtime
         preprocessed: Preprocessed = await self._preprocess(
             params, block_hash, storage_function, module
         )
@@ -2527,13 +3503,15 @@ class AsyncSubstrateInterface:
         Returns:
              QueryMapResult object
         """
+        hex_to_bytes_ = hex_to_bytes
         params = params or []
         block_hash = await self._get_current_block_hash(block_hash, reuse_block_hash)
         if block_hash:
             self.last_block_hash = block_hash
-        runtime = await self.init_runtime(block_hash=block_hash)
+        if not self.__metadata or block_hash:
+            await self.init_runtime(block_hash=block_hash)
 
-        metadata_pallet = runtime.metadata.get_metadata_pallet(module)
+        metadata_pallet = self.__metadata.get_metadata_pallet(module)
         if not metadata_pallet:
             raise ValueError(f'Pallet "{module}" not found')
         storage_item = metadata_pallet.get_storage_function(storage_function)
@@ -2560,8 +3538,8 @@ class AsyncSubstrateInterface:
             module,
             storage_item.value["name"],
             params,
-            runtime_config=runtime.runtime_config,
-            metadata=runtime.metadata,
+            runtime_config=self.runtime_config,
+            metadata=self.__metadata,
         )
         prefix = storage_key.to_hex()
 
@@ -2641,7 +3619,7 @@ class AsyncSubstrateInterface:
                         item_key = None
 
                     try:
-                        item_bytes = hex_to_bytes(item[1])
+                        item_bytes = hex_to_bytes_(item[1])
 
                         item_value = await self.decode_scale(
                             type_string=value_type, scale_bytes=item_bytes
@@ -2671,7 +3649,7 @@ class AsyncSubstrateInterface:
         extrinsic: GenericExtrinsic,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
-    ) -> "ExtrinsicReceipt":
+    ) -> Union["AsyncExtrinsicReceipt", "ExtrinsicReceipt"]:
         """
         Submit an extrinsic to the connected node, with the possibility to wait until the extrinsic is included
          in a block and/or the block is finalized. The receipt returned provided information about the block and
@@ -2760,7 +3738,7 @@ class AsyncSubstrateInterface:
 
             # Also, this will be a multipart response, so maybe should change to everything after the first response?
             # The following code implies this will be a single response after the initial subscription id.
-            result = ExtrinsicReceipt(
+            result = self.extrinsic_receipt_cls(
                 substrate=self,
                 extrinsic_hash=response["extrinsic_hash"],
                 block_hash=response["block_hash"],
@@ -2775,7 +3753,9 @@ class AsyncSubstrateInterface:
             if "result" not in response:
                 raise SubstrateRequestException(response.get("error"))
 
-            result = ExtrinsicReceipt(substrate=self, extrinsic_hash=response["result"])
+            result = self.extrinsic_receipt_cls(
+                substrate=self, extrinsic_hash=response["result"]
+            )
 
         return result
 
@@ -2797,7 +3777,10 @@ class AsyncSubstrateInterface:
         Returns:
             list of call functions
         """
-        runtime = await self.init_runtime(block_hash=block_hash)
+        if not self.__metadata or block_hash:
+            runtime = await self.init_runtime(block_hash=block_hash)
+        else:
+            runtime = self.runtime
 
         for pallet in runtime.metadata.pallets:
             if pallet.name == module_name and pallet.calls:
@@ -2871,3 +3854,88 @@ class AsyncSubstrateInterface:
             return asyncio.create_task(co)
         else:
             return await co
+
+
+class SubstrateInterface:
+    """
+    A wrapper around AsyncSubstrateInterface that allows for using all the calls from it in a synchronous context
+    """
+
+    def __init__(
+        self,
+        url: str,
+        use_remote_preset: bool = False,
+        auto_discover: bool = True,
+        ss58_format: Optional[int] = None,
+        type_registry: Optional[dict] = None,
+        chain_name: Optional[str] = None,
+        event_loop: Optional[asyncio.AbstractEventLoop] = None,
+        mock: bool = False,
+    ):
+        self._async_instance = AsyncSubstrateInterface(
+            url=url,
+            use_remote_preset=use_remote_preset,
+            auto_discover=auto_discover,
+            ss58_format=ss58_format,
+            type_registry=type_registry,
+            chain_name=chain_name,
+            sync_calls=True,
+        )
+        self.event_loop = event_loop or asyncio.get_event_loop()
+        if not mock:
+            self.event_loop.run_until_complete(self._async_instance.initialize())
+        else:
+            self._async_instance.reload_type_registry()
+
+    def __del__(self):
+        self.event_loop.run_until_complete(self._async_instance.close())
+
+    def __getattr__(self, name):
+        attr = getattr(self._async_instance, name)
+
+        if asyncio.iscoroutinefunction(attr):
+
+            def sync_method(*args, **kwargs):
+                return self.event_loop.run_until_complete(attr(*args, **kwargs))
+
+            return sync_method
+        elif asyncio.iscoroutine(attr):
+            # indicates this is an async_property
+            return self.event_loop.run_until_complete(attr)
+        else:
+            return attr
+
+    def query(
+        self,
+        module: str,
+        storage_function: str,
+        params: Optional[list] = None,
+        block_hash: Optional[str] = None,
+        raw_storage_key: Optional[bytes] = None,
+        subscription_handler=None,
+        reuse_block_hash: bool = False,
+    ) -> "ScaleType":
+        return self.event_loop.run_until_complete(
+            self._async_instance.query(
+                module,
+                storage_function,
+                params,
+                block_hash,
+                raw_storage_key,
+                subscription_handler,
+                reuse_block_hash,
+            )
+        )
+
+    def get_constant(
+        self,
+        module_name: str,
+        constant_name: str,
+        block_hash: Optional[str] = None,
+        reuse_block_hash: bool = False,
+    ) -> Optional["ScaleType"]:
+        return self.event_loop.run_until_complete(
+            self._async_instance.get_constant(
+                module_name, constant_name, block_hash, reuse_block_hash
+            )
+        )

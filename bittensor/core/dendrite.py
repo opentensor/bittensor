@@ -20,6 +20,7 @@ from __future__ import annotations
 import asyncio
 import time
 import uuid
+import warnings
 from typing import Any, AsyncGenerator, Optional, Union, Type
 
 import aiohttp
@@ -45,6 +46,14 @@ DENDRITE_ERROR_MAPPING: dict[Type[Exception], tuple] = {
     aiohttp.ServerConnectionError: ("503", "Service connection error"),
 }
 DENDRITE_DEFAULT_ERROR = ("422", "Failed to parse response")
+
+
+def event_loop_is_running():
+    try:
+        asyncio.get_running_loop()
+        return True
+    except RuntimeError:
+        return False
 
 
 class DendriteMixin:
@@ -174,6 +183,12 @@ class DendriteMixin:
             When finished with dendrite in a synchronous context
             :func:`dendrite_instance.close_session()`.
         """
+        if event_loop_is_running():
+            warnings.warn(
+                "You are calling this from an already-running event loop. "
+                "You should instead use `Dendrite.aclose_session`. This will not work within a coroutine in version 9.0",
+                category=DeprecationWarning,
+            )
         if self._session:
             loop = asyncio.get_event_loop()
             loop.run_until_complete(self._session.close())
@@ -329,6 +344,12 @@ class DendriteMixin:
                 f"dendrite | <-- | {synapse.get_total_size()} B | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | {synapse.dendrite.status_code} | {synapse.dendrite.status_message}"
             )
 
+    async def aquery(self, *args, **kwargs):
+        result = await self.forward(*args, **kwargs)
+        if self._session:
+            await self._session.close()
+        return result
+
     def query(
         self, *args, **kwargs
     ) -> list[Union["AsyncGenerator[Any, Any]", "Synapse", "StreamingSynapse"]]:
@@ -345,6 +366,12 @@ class DendriteMixin:
         Returns:
             Union[bittensor.core.synapse.Synapse, list[bittensor.core.synapse.Synapse]]: If a single target axon is provided, returns the response from that axon. If multiple target axons are provided, returns a list of responses from all target axons.
         """
+        if event_loop_is_running():
+            warnings.warn(
+                "You are calling this from an already-running event loop. "
+                "You should instead use `Dendrite.aquery`. This will not work within a coroutine in version 9.0",
+                category=DeprecationWarning,
+            )
         result = None
         try:
             loop = asyncio.get_event_loop()

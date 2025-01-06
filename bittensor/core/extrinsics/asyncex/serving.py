@@ -102,7 +102,8 @@ async def serve_extrinsic(
             Defaults to ``None``.
 
     Returns:
-        success (bool): Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
+        success (bool): Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for
+            finalization / inclusion, the response is ``true``.
     """
     # Decrypt hotkey
     if not (unlock := unlock_key(wallet, "hotkey")).success:
@@ -185,13 +186,16 @@ async def serve_axon_extrinsic(
         subtensor (bittensor.core.async_subtensor.AsyncSubtensor): Subtensor instance object.
         netuid (int): The ``netuid`` being served on.
         axon (bittensor.core.axon.Axon): Axon to serve.
-        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or
+            returns ``false`` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning
+            ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
         certificate (bittensor.utils.Certificate): Certificate to use for TLS. If ``None``, no TLS will be used.
             Defaults to ``None``.
 
     Returns:
-        success (bool): Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
+        success (bool): Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for
+            finalization / inclusion, the response is ``true``.
     """
     if not (unlock := unlock_key(axon.wallet, "hotkey")).success:
         logging.error(unlock.message)
@@ -201,7 +205,9 @@ async def serve_axon_extrinsic(
     # ---- Get external ip ----
     if axon.external_ip is None:
         try:
-            external_ip = net.get_external_ip()
+            external_ip = await asyncio.get_running_loop().run_in_executor(
+                None, net.get_external_ip
+            )
             logging.success(
                 f":white_heavy_check_mark: [green]Found external ip:[/green] [blue]{external_ip}[/blue]"
             )
@@ -243,25 +249,38 @@ async def publish_metadata(
         subtensor (bittensor.subtensor): The subtensor instance representing the Bittensor blockchain connection.
         wallet (bittensor.wallet): The wallet object used for authentication in the transaction.
         netuid (int): Network UID on which the metadata is to be published.
-        data_type (str): The data type of the information being submitted. It should be one of the following: ``'Sha256'``, ``'Blake256'``, ``'Keccak256'``, or ``'Raw0-128'``. This specifies the format or hashing algorithm used for the data.
-        data (str): The actual metadata content to be published. This should be formatted or hashed according to the ``type`` specified. (Note: max ``str`` length is 128 bytes)
-        wait_for_inclusion (bool, optional): If ``True``, the function will wait for the extrinsic to be included in a block before returning. Defaults to ``False``.
-        wait_for_finalization (bool, optional): If ``True``, the function will wait for the extrinsic to be finalized on the chain before returning. Defaults to ``True``.
+        data_type (str): The data type of the information being submitted. It should be one of the following:
+            ``'Sha256'``, ``'Blake256'``, ``'Keccak256'``, or ``'Raw0-128'``. This specifies the format or hashing
+            algorithm used for the data.
+        data (str): The actual metadata content to be published. This should be formatted or hashed according to the
+            ``type`` specified. (Note: max ``str`` length is 128 bytes)
+        wait_for_inclusion (bool, optional): If ``True``, the function will wait for the extrinsic to be included in a
+            block before returning. Defaults to ``False``.
+        wait_for_finalization (bool, optional): If ``True``, the function will wait for the extrinsic to be finalized
+            on the chain before returning. Defaults to ``True``.
 
     Returns:
         bool: ``True`` if the metadata was successfully published (and finalized if specified). ``False`` otherwise.
 
     Raises:
-        MetadataError: If there is an error in submitting the extrinsic or if the response from the blockchain indicates failure.
+        MetadataError: If there is an error in submitting the extrinsic or if the response from the blockchain indicates
+            failure.
     """
 
-    unlock_key(wallet, "hotkey")
+    if not (unlock := unlock_key(wallet, "hotkey")).success:
+        logging.error(unlock.message)
+        return False
 
-    call = await subtensor.substrate.compose_call(
-        call_module="Commitments",
-        call_function="set_commitment",
-        call_params={"netuid": netuid, "info": {"fields": [[{f"{data_type}": data}]]}},
-    )
+    substrate: "AsyncSubstrateInterface"
+    async with subtensor.substrate as substrate:
+        call = await substrate.compose_call(
+            call_module="Commitments",
+            call_function="set_commitment",
+            call_params={
+                "netuid": netuid,
+                "info": {"fields": [[{f"{data_type}": data}]]},
+            },
+        )
 
     extrinsic = await subtensor.substrate.create_signed_extrinsic(
         call=call, keypair=wallet.hotkey

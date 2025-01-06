@@ -1,11 +1,12 @@
 import argparse
 import asyncio
 import copy
-import ssl
 from itertools import chain
+import ssl
 from typing import Optional, Any, Union, TypedDict, Iterable, TYPE_CHECKING
 
 import aiohttp
+import asyncstdlib as a
 import numpy as np
 import scalecodec
 from bittensor_wallet.utils import SS58_FORMAT
@@ -18,14 +19,18 @@ from substrateinterface.exceptions import SubstrateRequestException
 from bittensor.core import settings
 from bittensor.core.chain_data import (
     DelegateInfo,
-    custom_rpc_type_registry,
     StakeInfo,
     NeuronInfoLite,
     NeuronInfo,
+    PrometheusInfo,
+    ProposalVoteData,
     SubnetHyperparameters,
+    SubnetInfo,
     WeightCommitInfo,
+    custom_rpc_type_registry,
     decode_account_id,
 )
+from bittensor.core.extrinsics.async_commit_reveal import commit_reveal_v3_extrinsic
 from bittensor.core.chain_data.subnet_info import SubnetInfo
 from bittensor.core.config import Config
 from bittensor.core.extrinsics.asyncex.commit_reveal import (
@@ -77,8 +82,11 @@ from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 from bittensor.utils.delegates_details import DelegatesDetails
 from bittensor.utils.weight_utils import generate_weight_hash
+from bittensor.core.metagraph import Metagraph
 
 if TYPE_CHECKING:
+    from scalecodec import ScaleType
+    from bittensor.utils.substrate_interface import QueryMapResult
     from bittensor_wallet import Wallet
     from bittensor.core.axon import Axon
     from bittensor.utils import Certificate
@@ -88,26 +96,6 @@ if TYPE_CHECKING:
 class ParamWithTypes(TypedDict):
     name: str  # Name of the parameter.
     type: str  # ScaleType string of the parameter.
-
-
-class ProposalVoteData:
-    index: int
-    threshold: int
-    ayes: list[str]
-    nays: list[str]
-    end: int
-
-    def __init__(self, proposal_dict: dict) -> None:
-        self.index = proposal_dict["index"]
-        self.threshold = proposal_dict["threshold"]
-        self.ayes = self.decode_ss58_tuples(proposal_dict["ayes"])
-        self.nays = self.decode_ss58_tuples(proposal_dict["nays"])
-        self.end = proposal_dict["end"]
-
-    @staticmethod
-    def decode_ss58_tuples(line: tuple):
-        """Decodes a tuple of ss58 addresses formatted as bytes tuples."""
-        return [decode_account_id(line[x][0]) for x in range(len(line))]
 
 
 def _decode_hex_identity_dict(info_dictionary: dict[str, Any]) -> dict[str, Any]:
@@ -172,9 +160,10 @@ class AsyncSubtensor:
             f"Connecting to <network: [blue]{self.network}[/blue], chain_endpoint: [blue]{self.chain_endpoint}[/blue]> ..."
         )
         self.substrate = AsyncSubstrateInterface(
-            chain_endpoint=self.chain_endpoint,
+            url=self.chain_endpoint,
             ss58_format=SS58_FORMAT,
             type_registry=TYPE_REGISTRY,
+            use_remote_preset=True,
             chain_name="Bittensor",
             event_loop=event_loop,
         )
@@ -379,9 +368,10 @@ class AsyncSubtensor:
         try:
             async with self.substrate:
                 return self
-        except TimeoutException:
+        except TimeoutError:
             logging.error(
-                f"[red]Error[/red]: Timeout occurred connecting to substrate. Verify your chain and network settings: {self}"
+                f"[red]Error[/red]: Timeout occurred connecting to substrate."
+                f" Verify your chain and network settings: {self}"
             )
             raise ConnectionError
         except (ConnectionRefusedError, ssl.SSLError) as error:
@@ -437,6 +427,7 @@ class AsyncSubtensor:
         self,
         param_name: str,
         netuid: int,
+        block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Optional[Any]:
@@ -446,13 +437,17 @@ class AsyncSubtensor:
         Arguments:
             param_name (str): The name of the hyperparameter to retrieve.
             netuid (int): The unique identifier of the subnet.
-            block_hash (Optional[str]): The hash of blockchain block number for the query.
-            reuse_block (bool): Whether to reuse the last-used block hash.
+            block: the block number at which to retrieve the hyperparameter. Do not specify if using block_hash or
+                reuse_block
+            block_hash (Optional[str]): The hash of blockchain block number for the query. Do not specify if using
+                block or reuse_block
+            reuse_block (bool): Whether to reuse the last-used block hash. Do not set if using block_hash or block.
 
         Returns:
             The value of the specified hyperparameter if the subnet exists, or None
         """
-        if not await self.subnet_exists(netuid, block_hash):
+        block_hash = await self._determine_block_hash(block, block_hash, reuse_block)
+        if not await self.subnet_exists(netuid, block_hash, reuse_block=reuse_block):
             logging.error(f"subnet {netuid} does not exist")
             return None
 
@@ -1011,18 +1006,26 @@ class AsyncSubtensor:
 
     async def get_current_block(self) -> int:
         """
-        Returns the current block number on the Bittensor blockchain. This function provides the latest block number, indicating the most recent state of the blockchain.
+        Returns the current block number on the Bittensor blockchain. This function provides the latest block number,
+            indicating the most recent state of the blockchain.
 
         Returns:
             int: The current chain block number.
 
-        Knowing the current block number is essential for querying real-time data and performing time-sensitive operations on the blockchain. It serves as a reference point for network activities and data synchronization.
+        Knowing the current block number is essential for querying real-time data and performing time-sensitive
+            operations on the blockchain. It serves as a reference point for network activities and data
+            synchronization.
         """
         return await self.substrate.get_block_number(None)
 
+    @a.lru_cache(maxsize=128)
+    async def _get_block_hash(self, block_id: int):
+        return await self.substrate.get_block_hash(block_id)
+
     async def get_block_hash(self, block: Optional[int] = None):
         """
-        Retrieves the hash of a specific block on the Bittensor blockchain. The block hash is a unique identifier representing the cryptographic hash of the block's content, ensuring its integrity and immutability.
+        Retrieves the hash of a specific block on the Bittensor blockchain. The block hash is a unique identifier
+            representing the cryptographic hash of the block's content, ensuring its integrity and immutability.
 
         Arguments:
             block (int): The block number for which the hash is to be retrieved.
@@ -1030,7 +1033,9 @@ class AsyncSubtensor:
         Returns:
             str: The cryptographic hash of the specified block.
 
-        The block hash is a fundamental aspect of blockchain technology, providing a secure reference to each block's data. It is crucial for verifying transactions, ensuring data consistency, and maintaining the trustworthiness of the blockchain.
+        The block hash is a fundamental aspect of blockchain technology, providing a secure reference to each block's
+            data. It is crucial for verifying transactions, ensuring data consistency, and maintaining the
+            trustworthiness of the blockchain.
         """
         if block:
             return await self.substrate.get_block_hash(block)
@@ -2590,6 +2595,7 @@ class AsyncSubtensor:
         wallet: "Wallet",
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
+        sign_with: str = "coldkey",
     ) -> tuple[bool, str]:
         """
         Helper method to sign and submit an extrinsic call to chain.
@@ -2603,9 +2609,14 @@ class AsyncSubtensor:
         Returns:
             (success, error message)
         """
+        if sign_with not in ("coldkey", "hotkey", "coldkeypub"):
+            raise AttributeError(
+                f"'sign_with' must be either 'coldkey', 'hotkey' or 'coldkeypub', not '{sign_with}'"
+            )
+
         extrinsic = await self.substrate.create_signed_extrinsic(
-            call=call, keypair=wallet.coldkey
-        )  # sign with coldkey
+            call=call, keypair=getattr(wallet, sign_with)
+        )
         try:
             response = await self.substrate.submit_extrinsic(
                 extrinsic,
@@ -2615,7 +2626,7 @@ class AsyncSubtensor:
             # We only wait here if we expect finalization.
             if not wait_for_finalization and not wait_for_inclusion:
                 return True, ""
-            await response.process_events()
+
             if await response.is_success:
                 return True, ""
             else:

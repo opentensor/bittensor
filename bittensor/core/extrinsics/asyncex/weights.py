@@ -68,11 +68,10 @@ async def _do_commit_weights(
     if not wait_for_finalization and not wait_for_inclusion:
         return True, None
 
-    await response.process_events()
     if await response.is_success:
         return True, None
-    else:
-        return False, format_error_message(response.error_message)
+
+    return False, format_error_message(response.error_message)
 
 
 async def commit_weights_extrinsic(
@@ -115,9 +114,9 @@ async def commit_weights_extrinsic(
         success_message = "Successfully committed weights."
         logging.info(success_message)
         return True, success_message
-    else:
-        logging.error(f"Failed to commit weights: {error_message}")
-        return False, error_message
+
+    logging.error(f"Failed to commit weights: {error_message}")
+    return False, error_message
 
 
 async def _do_reveal_weights(
@@ -183,8 +182,8 @@ async def _do_reveal_weights(
 
     if await response.is_success:
         return True, None
-    else:
-        return False, await response.error_message
+
+    return False, await response.error_message
 
 
 async def reveal_weights_extrinsic(
@@ -235,10 +234,10 @@ async def reveal_weights_extrinsic(
         success_message = "Successfully revealed weights."
         logging.info(success_message)
         return True, success_message
-    else:
-        error_message = format_error_message(error_message)
-        logging.error(f"Failed to reveal weights: {error_message}")
-        return False, error_message
+
+    error_message = format_error_message(error_message)
+    logging.error(f"Failed to reveal weights: {error_message}")
+    return False, error_message
 
 
 async def _do_set_weights(
@@ -306,11 +305,10 @@ async def _do_set_weights(
     if not wait_for_finalization and not wait_for_inclusion:
         return True, "Not waiting for finalization or inclusion."
 
-    await response.process_events()
     if await response.is_success:
         return True, "Successfully set weights."
-    else:
-        return False, format_error_message(response.error_message)
+
+    return False, format_error_message(response.error_message)
 
 
 async def set_weights_extrinsic(
@@ -371,9 +369,9 @@ async def set_weights_extrinsic(
             message = "Successfully set weights and Finalized."
             logging.success(f":white_heavy_check_mark: [green]{message}[/green]")
             return True, message
-        else:
-            logging.error(f"[red]Failed[/red] set weights. Error: {error_message}")
-            return False, error_message
+
+        logging.error(f"[red]Failed[/red] set weights. Error: {error_message}")
+        return False, error_message
 
     except Exception as error:
         logging.error(f":cross_mark: [red]Failed[/red] set weights. Error: {error}")

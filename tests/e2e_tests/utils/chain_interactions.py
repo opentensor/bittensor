@@ -121,11 +121,7 @@ async def wait_epoch(subtensor: "Subtensor", netuid: int = 1):
     Raises:
         Exception: If the tempo cannot be determined from the chain.
     """
-    q_tempo = [
-        v.value
-        for [k, v] in subtensor.query_map_subtensor("Tempo")
-        if k.value == netuid
-    ]
+    q_tempo = [v for (k, v) in subtensor.query_map_subtensor("Tempo") if k == netuid]
     if len(q_tempo) == 0:
         raise Exception("could not determine tempo")
     tempo = q_tempo[0]

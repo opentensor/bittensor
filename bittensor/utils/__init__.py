@@ -33,7 +33,8 @@ from .registration import torch, use_torch
 from .version import version_checking, check_version, VersionCheckError
 
 if TYPE_CHECKING:
-    from bittensor.utils.async_substrate_interface import AsyncSubstrateInterface
+    from bittensor.utils.substrate_interface import AsyncSubstrateInterface
+    from substrateinterface import SubstrateInterface
     from bittensor_wallet import Wallet
 
 RAOPERTAO = 1e9
@@ -180,7 +181,7 @@ def format_error_message(error_message: Union[dict, Exception]) -> str:
                     elif all(x in d for x in ["code", "message", "data"]):
                         new_error_message = d
                         break
-            except ValueError:
+            except (ValueError, TypeError, SyntaxError, MemoryError, RecursionError):
                 pass
         if new_error_message is None:
             return_val = " ".join(error_message.args)
