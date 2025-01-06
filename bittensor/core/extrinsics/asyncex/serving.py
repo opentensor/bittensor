@@ -1,8 +1,6 @@
-import asyncio
 from typing import Optional, TYPE_CHECKING
 
 from bittensor.core.errors import MetadataError
-from bittensor.core.extrinsics.utils import async_submit_extrinsic
 from bittensor.core.settings import version_as_int
 from bittensor.utils import (
     format_error_message,
@@ -15,7 +13,6 @@ from bittensor.utils.btlogging import logging
 if TYPE_CHECKING:
     from bittensor.core.axon import Axon
     from bittensor.core.async_subtensor import AsyncSubtensor
-    from bittensor.utils.substrate_interface import AsyncSubstrateInterface
     from bittensor.core.types import AxonServeCallParams
     from bittensor_wallet import Wallet
 
@@ -59,8 +56,7 @@ async def do_serve_axon(
     extrinsic = await subtensor.substrate.create_signed_extrinsic(
         call=call, keypair=wallet.hotkey
     )
-    response = await async_submit_extrinsic(
-        subtensor,
+    response = await subtensor.substrate.submit_extrinsic(
         extrinsic=extrinsic,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
@@ -102,6 +98,7 @@ async def serve_extrinsic(
             `False` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization: If set, waits for the extrinsic to be finalized on the chain before returning `True`,
             or returns `False` if the extrinsic fails to be finalized within the timeout.
+        certificate: Certificate to use for TLS. If ``None``, no TLS will be used. Defaults to `None`.
 
     Returns:
         success: Flag is `True` if extrinsic was finalized or included in the block. If we did not wait for
@@ -193,6 +190,7 @@ async def serve_axon_extrinsic(
             `False` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization: If set, waits for the extrinsic to be finalized on the chain before returning `True`,
             or returns `False` if the extrinsic fails to be finalized within the timeout.
+        certificate: Certificate to use for TLS. If `None`, no TLS will be used. Defaults to `None`.
 
     Returns:
         success: Flag is `True` if extrinsic was finalized or included in the block. If we did not wait for
@@ -225,8 +223,8 @@ async def serve_axon_extrinsic(
         wallet=axon.wallet,
         ip=external_ip,
         port=external_port,
-        netuid=netuid,
         protocol=4,
+        netuid=netuid,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
         certificate=certificate,
@@ -234,7 +232,6 @@ async def serve_axon_extrinsic(
     return serve_success
 
 
-# Community uses this extrinsic directly and via `subtensor.commit`
 async def publish_metadata(
     subtensor: "AsyncSubtensor",
     wallet: "Wallet",
@@ -283,23 +280,23 @@ async def publish_metadata(
             },
         )
 
-        extrinsic = substrate.create_signed_extrinsic(call=call, keypair=wallet.hotkey)
-        response = await async_submit_extrinsic(
-            subtensor,
-            extrinsic,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
-        )
-        # We only wait here if we expect finalization.
-        if not wait_for_finalization and not wait_for_inclusion:
-            return True
-        if await response.is_success:
-            return True
-        else:
-            raise MetadataError(format_error_message(await response.error_message))
+    extrinsic = await subtensor.substrate.create_signed_extrinsic(
+        call=call, keypair=wallet.hotkey
+    )
+    response = await subtensor.substrate.submit_extrinsic(
+        extrinsic=extrinsic,
+        wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization,
+    )
+    # We only wait here if we expect finalization.
+    if not wait_for_finalization and not wait_for_inclusion:
+        return True
+    if await response.is_success:
+        return True
+    else:
+        raise MetadataError(format_error_message(await response.error_message))
 
 
-# Community uses this function directly
 async def get_metadata(
     subtensor: "AsyncSubtensor",
     netuid: int,
@@ -308,15 +305,15 @@ async def get_metadata(
     block_hash: Optional[str] = None,
     reuse_block: bool = False,
 ) -> str:
-    substrate: "AsyncSubstrateInterface"
-    async with subtensor.substrate as substrate:
-        block_hash = await subtensor._determine_block_hash(
+    """Fetches metadata from the blockchain for a given hotkey and netuid."""
+    async with subtensor.substrate:
+        block_hash = await subtensor.determine_block_hash(
             block, block_hash, reuse_block
         )
-        return substrate.query(
+        commit_data = await subtensor.substrate.query(
             module="Commitments",
             storage_function="CommitmentOf",
             params=[netuid, hotkey],
             block_hash=block_hash,
-            reuse_block_hash=reuse_block,
         )
+    return commit_data

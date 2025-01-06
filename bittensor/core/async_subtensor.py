@@ -27,15 +27,15 @@ from bittensor.core.chain_data import (
     PrometheusInfo,
     ProposalVoteData,
 )
-from bittensor.core.extrinsics.asyncio.registration import register_extrinsic
-from bittensor.core.extrinsics.asyncio.transfer import transfer_extrinsic
-from bittensor.core.extrinsics.asyncio.weights import (
+from bittensor.core.extrinsics.asyncex.registration import register_extrinsic
+from bittensor.core.extrinsics.asyncex.transfer import transfer_extrinsic
+from bittensor.core.extrinsics.asyncex.weights import (
     commit_weights_extrinsic,
     set_weights_extrinsic,
 )
-from bittensor.core.extrinsics.asyncio.serving import serve_axon_extrinsic
-from bittensor.core.extrinsics.asyncio.unstaking import unstake_extrinsic
-from bittensor.core.extrinsics.asyncio.commit_reveal import commit_reveal_v3_extrinsic
+from bittensor.core.extrinsics.asyncex.serving import serve_axon_extrinsic
+from bittensor.core.extrinsics.asyncex.unstaking import unstake_extrinsic
+from bittensor.core.extrinsics.asyncex.commit_reveal import commit_reveal_v3_extrinsic
 from bittensor.core.settings import (
     TYPE_REGISTRY,
     DEFAULTS,
