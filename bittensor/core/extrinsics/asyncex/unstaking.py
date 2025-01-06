@@ -1,4 +1,4 @@
-from asyncio import sleep
+import asyncio
 from typing import Union, Optional, TYPE_CHECKING
 
 from bittensor.core.errors import StakeError, NotRegisteredError
@@ -126,7 +126,6 @@ async def __do_remove_stake_single(
 
     if success:
         return True
-    raise StakeError(format_error_message(err_msg))
 
 
 async def unstake_extrinsic(
@@ -406,7 +405,9 @@ async def unstake_multiple_extrinsic(
                             f":hourglass: [yellow]Waiting for tx rate limit: "
                             f"[white]{tx_rate_limit_blocks}[/white] blocks[/yellow]"
                         )
-                        await sleep(tx_rate_limit_blocks * 12)  # 12 seconds per block
+                        await asyncio.sleep(
+                            tx_rate_limit_blocks * 12
+                        )  # 12 seconds per block
 
                 if not wait_for_finalization and not wait_for_inclusion:
                     successful_unstakes += 1

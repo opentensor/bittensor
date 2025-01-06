@@ -1,3 +1,4 @@
+import asyncio
 from typing import Optional, TYPE_CHECKING
 
 from bittensor.core.errors import MetadataError
@@ -271,7 +272,6 @@ async def publish_metadata(
         logging.error(unlock.message)
         return False
 
-    substrate: "AsyncSubstrateInterface"
     async with subtensor.substrate as substrate:
         call = await substrate.compose_call(
             call_module="Commitments",

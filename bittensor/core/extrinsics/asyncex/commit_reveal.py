@@ -1,6 +1,5 @@
 """This module provides async functionality for commit reveal in the Bittensor network."""
 
-import asyncio
 from typing import Optional, Union, TYPE_CHECKING
 
 import numpy as np

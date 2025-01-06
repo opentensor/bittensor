@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     from bittensor.core.chain_data.subnet_info import SubnetInfo
     from bittensor.utils.balance import Balance
     from bittensor.utils import Certificate
-    from bittensor.utils.async_substrate_interface import QueryMapResult
+    from bittensor.utils.substrate_interface import QueryMapResult
     from bittensor.utils.delegates_details import DelegatesDetails
     from scalecodec.types import ScaleType
 
