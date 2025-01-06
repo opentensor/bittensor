@@ -28,10 +28,6 @@ from bittensor.core.chain_data import (
     ProposalVoteData,
 )
 from bittensor.core.extrinsics.asyncio.registration import register_extrinsic
-from bittensor.core.extrinsics.asyncio.root import (
-    set_root_weights_extrinsic,
-    root_register_extrinsic,
-)
 from bittensor.core.extrinsics.asyncio.transfer import transfer_extrinsic
 from bittensor.core.extrinsics.asyncio.weights import (
     commit_weights_extrinsic,
@@ -253,8 +249,8 @@ class AsyncSubtensor:
         Returns:
             The value of the specified hyperparameter if the subnet exists, or None
         """
-
-        if not await self.subnet_exists(netuid, block_hash):
+        block_hash = await self._determine_block_hash(block, block_hash, reuse_block)
+        if not await self.subnet_exists(netuid, block_hash, reuse_block=reuse_block):
             logging.error(f"subnet {netuid} does not exist")
             return None
 
@@ -1912,6 +1908,18 @@ class AsyncSubtensor:
         This function is crucial in shaping the network's collective intelligence, where each neuron's learning and
             contribution are influenced by the weights it sets towards others【81†source】.
         """
+        retries = 0
+        success = False
+        if (
+            uid := await self.get_uid_for_hotkey_on_subnet(
+                wallet.hotkey.ss58_address, netuid
+            )
+        ) is None:
+            return (
+                False,
+                f"Hotkey {wallet.hotkey.ss58_address} not registered in subnet {netuid}",
+            )
+
         if (await self.commit_reveal_enabled(netuid=netuid)) is True:
             # go with `commit reveal v3` extrinsic
             return await commit_reveal_v3_extrinsic(
@@ -1924,13 +1932,30 @@ class AsyncSubtensor:
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
             )
+            message = "No attempt made. Perhaps it is too soon to commit weights!"
+            while (
+                await self.blocks_since_last_update(netuid, uid)
+                > await self.weights_rate_limit(netuid)
+                and retries < max_retries
+                and success is False
+            ):
+                logging.info(
+                    f"Committing weights for subnet #{netuid}. Attempt {retries + 1} of {max_retries}."
+                )
+                success, message = await commit_reveal_v3_extrinsic(
+                    subtensor=self,
+                    wallet=wallet,
+                    netuid=netuid,
+                    uids=uids,
+                    weights=weights,
+                    version_key=version_key,
+                    wait_for_inclusion=wait_for_inclusion,
+                    wait_for_finalization=wait_for_finalization,
+                )
+                retries += 1
+            return success, message
         else:
             # go with classic `set weights extrinsic`
-            uid = await self.get_uid_for_hotkey_on_subnet(
-                wallet.hotkey.ss58_address, netuid
-            )
-            retries = 0
-            success = False
             message = "No attempt made. Perhaps it is too soon to set weights!"
             while (
                 retries < max_retries

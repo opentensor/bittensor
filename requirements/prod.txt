@@ -1,7 +1,7 @@
 wheel
 setuptools~=70.0.0
 aiohttp~=3.9
-async-lru
+asyncstdlib~=3.13.0
 bittensor-cli
 bt-decode==0.4.0
 colorama~=0.4.6
