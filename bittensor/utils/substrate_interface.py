@@ -3857,16 +3857,17 @@ class SubstrateInterface:
 
     def __init__(
         self,
-        chain_endpoint: str,
+        url: str,
         use_remote_preset: bool = False,
         auto_discover: bool = True,
         ss58_format: Optional[int] = None,
         type_registry: Optional[dict] = None,
         chain_name: Optional[str] = None,
+        event_loop: Optional[asyncio.AbstractEventLoop] = None,
         mock: bool = False,
     ):
         self._async_instance = AsyncSubstrateInterface(
-            url=chain_endpoint,
+            url=url,
             use_remote_preset=use_remote_preset,
             auto_discover=auto_discover,
             ss58_format=ss58_format,
@@ -3874,7 +3875,7 @@ class SubstrateInterface:
             chain_name=chain_name,
             sync_calls=True,
         )
-        self.event_loop = asyncio.get_event_loop()
+        self.event_loop = event_loop or asyncio.get_event_loop()
         if not mock:
             self.event_loop.run_until_complete(self._async_instance.initialize())
         else:
