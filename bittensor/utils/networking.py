@@ -208,4 +208,3 @@ def ensure_connected(func):
                 raise ConnectionRefusedError("Failed to reconnect to substrate.")
 
     return wrapper
-
