@@ -1618,6 +1618,8 @@ class AsyncSubtensor:
         hotkey_ss58: str,
         netuid: Optional[int] = None,
         block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
     ) -> bool:
         """
         Determines whether a given hotkey (public key) is registered in the Bittensor network, either globally across
@@ -1626,10 +1628,14 @@ class AsyncSubtensor:
             network.
 
         Args:
-            hotkey_ss58 (str): The SS58 address of the neuron's hotkey.
-            netuid (Optional[int]): The unique identifier of the subnet to check the registration. If `None`, the
+            hotkey_ss58: The SS58 address of the neuron's hotkey.
+            netuid: The unique identifier of the subnet to check the registration. If `None`, the
                 registration is checked across all subnets.
-            block (Optional[int]): The blockchain block number at which to perform the query.
+            block: The blockchain block number at which to perform the query.
+            block_hash: The blockchain block_hash representation of the block id. Do not specify if using block or
+                reuse_block
+            reuse_block (bool): Whether to reuse the last-used blockchain block hash. Do not set if using block_hash or
+                reuse_block.
 
         Returns:
             bool: `True` if the hotkey is registered in the specified context (either any subnet or a specific subnet),
@@ -1640,9 +1646,13 @@ class AsyncSubtensor:
             validation, and incentive distribution based on its registration status.
         """
         if netuid is None:
-            return await self.is_hotkey_registered_any(hotkey_ss58, block)
+            return await self.is_hotkey_registered_any(
+                hotkey_ss58, block, block_hash, reuse_block
+            )
         else:
-            return await self.is_hotkey_registered_on_subnet(hotkey_ss58, netuid, block)
+            return await self.is_hotkey_registered_on_subnet(
+                hotkey_ss58, netuid, block, block_hash, reuse_block
+            )
 
     async def get_uid_for_hotkey_on_subnet(
         self,
