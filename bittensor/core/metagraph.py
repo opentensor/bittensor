@@ -1024,7 +1024,10 @@ class AsyncMetagraphMixin(ABC):
         return new_instance
 
 
-BaseClass: Union["torch.nn.Module", object] = torch.nn.Module if use_torch() else object
+if use_torch():
+    BaseClass = torch.nn.Module
+else:
+    BaseClass = object
 """
 Base class that extends :class:`torch.nn.Module` if PyTorch is used; otherwise, it defaults to object.
 """
