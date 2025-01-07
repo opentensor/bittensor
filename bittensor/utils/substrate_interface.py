@@ -43,6 +43,11 @@ ResultHandler = Callable[[dict, Any], Awaitable[tuple[dict, bool]]]
 ExtrinsicReceiptLike = Union["AsyncExtrinsicReceipt", "ExtrinsicReceipt"]
 
 
+@dataclass
+class ScaleObj:
+    value: Any
+
+
 class AsyncExtrinsicReceipt:
     """
     Object containing information of submitted extrinsic. Block hash where extrinsic is included is required
@@ -1088,7 +1093,12 @@ class AsyncSubstrateInterface:
         self.registry = PortableRegistry.from_metadata_v15(metadata_v15)
 
     async def decode_scale(
-        self, type_string: str, scale_bytes: bytes, _attempt=1, _retries=3
+        self,
+        type_string: str,
+        scale_bytes: bytes,
+        _attempt=1,
+        _retries=3,
+        return_scale_obj=False,
     ) -> Any:
         """
         Helper function to decode arbitrary SCALE-bytes (e.g. 0x02000000) according to given RUST type_string
@@ -1100,6 +1110,7 @@ class AsyncSubstrateInterface:
             scale_bytes: the bytes representation of the SCALE object to decode
             _attempt: the number of attempts to pull the registry before timing out
             _retries: the number of retries to pull the registry before timing out
+            return_scale_obj: Whether to return the decoded value wrapped in a SCALE-object-like wrapper, or raw.
 
         Returns:
             Decoded object
@@ -1126,7 +1137,10 @@ class AsyncSubstrateInterface:
                     )
                 else:
                     raise ValueError("Registry was never loaded.")
-        return obj
+        if return_scale_obj:
+            return ScaleObj(obj)
+        else:
+            return obj
 
     async def encode_scale(self, type_string, value, block_hash=None) -> ScaleBytes:
         """
@@ -3271,8 +3285,7 @@ class AsyncSubstrateInterface:
         if constant:
             # Decode to ScaleType
             return await self.decode_scale(
-                constant.type,
-                bytes(constant.constant_value),
+                constant.type, bytes(constant.constant_value), return_scale_obj=True
             )
         else:
             return None
@@ -3602,6 +3615,7 @@ class AsyncSubstrateInterface:
                         item_key_obj = await self.decode_scale(
                             type_string=f"({', '.join(key_type_string)})",
                             scale_bytes=bytes.fromhex(item[0][len(prefix) :]),
+                            return_scale_obj=True,
                         )
 
                         # strip key_hashers to use as item key
@@ -3622,7 +3636,9 @@ class AsyncSubstrateInterface:
                         item_bytes = hex_to_bytes_(item[1])
 
                         item_value = await self.decode_scale(
-                            type_string=value_type, scale_bytes=item_bytes
+                            type_string=value_type,
+                            scale_bytes=item_bytes,
+                            return_scale_obj=True,
                         )
                     except Exception as _:
                         if not ignore_decoding_errors:
