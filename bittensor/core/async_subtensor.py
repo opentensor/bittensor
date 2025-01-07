@@ -69,6 +69,7 @@ from bittensor.utils import (
     ss58_to_vec_u8,
     torch,
     u16_normalized_float,
+    execute_coroutine,
 )
 from bittensor.utils import networking
 from bittensor.utils.substrate_interface import AsyncSubstrateInterface
@@ -169,6 +170,9 @@ class AsyncSubtensor:
 
     def __repr__(self):
         return self.__str__()
+
+    def __del__(self):
+        execute_coroutine(self.close())
 
     def _check_and_log_network_settings(self):
         if self.network == settings.NETWORKS[3]:  # local
