@@ -1000,7 +1000,7 @@ class AsyncSubstrateInterface:
                 event_loop=event_loop,
             )
         else:
-            execute_coroutine(self.reload_type_registry(), event_loop=event_loop)
+            self.reload_type_registry()
 
     async def __aenter__(self):
         await self.initialize()
