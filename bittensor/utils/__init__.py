@@ -53,14 +53,18 @@ Certificate = str
 UnlockStatus = namedtuple("UnlockStatus", ["success", "message"])
 
 
-def event_loop_is_running() -> Union[asyncio.AbstractEventLoop, bool]:
+def event_loop_is_running() -> Optional[asyncio.AbstractEventLoop]:
     """
-    Simple function to check if event loop is running. Returns the loop if it is, otherwise False.
+    Simple function to check if event loop is running. Returns the loop if it is, otherwise None.
     """
     try:
-        return asyncio.get_running_loop()
+        loop = asyncio.get_running_loop()
+        if loop.is_running():
+            return loop
+        else:
+            return None
     except RuntimeError:
-        return False
+        return None
 
 
 def ss58_to_vec_u8(ss58_address: str) -> list[int]:
@@ -422,7 +426,7 @@ def get_event_loop() -> asyncio.AbstractEventLoop:
     If an event loop is already running, returns that. Otherwise, creates a new event loop,
         and sets it as the main event loop for this thread, returning the newly-created event loop.
     """
-    if (loop := event_loop_is_running()) and loop.is_running():
+    if loop := event_loop_is_running():
         event_loop = loop
     else:
         event_loop = asyncio.new_event_loop()

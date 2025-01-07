@@ -196,7 +196,7 @@ async def test_commit_and_reveal_weights_cr3(local_chain):
     revealed_weights_ = subtensor.weights(netuid=netuid)
 
     time.sleep(10)
-
+    print("revealed weights", revealed_weights_)
     revealed_weights = revealed_weights_[0][1]
     # Assert correct weights were revealed
     assert weight_uids[0] == revealed_weights[0][0]
