@@ -1615,25 +1615,34 @@ class AsyncSubtensor:
 
     async def is_hotkey_registered(
         self,
-        netuid: int,
         hotkey_ss58: str,
+        netuid: Optional[int] = None,
         block: Optional[int] = None,
-        block_hash: Optional[str] = None,
-        reuse_block: bool = False,
     ) -> bool:
-        """Checks to see if the hotkey is registered on a given netuid"""
-        block_hash = await self._determine_block_hash(block, block_hash, reuse_block)
-        result = await self.substrate.query(
-            module="SubtensorModule",
-            storage_function="Uids",
-            params=[netuid, hotkey_ss58],
-            block_hash=block_hash,
-            reuse_block_hash=reuse_block,
-        )
-        if result is not None:
-            return True
+        """
+        Determines whether a given hotkey (public key) is registered in the Bittensor network, either globally across
+            any subnet or specifically on a specified subnet. This function checks the registration status of a neuron
+            identified by its hotkey, which is crucial for validating its participation and activities within the
+            network.
+
+        Args:
+            hotkey_ss58 (str): The SS58 address of the neuron's hotkey.
+            netuid (Optional[int]): The unique identifier of the subnet to check the registration. If `None`, the
+                registration is checked across all subnets.
+            block (Optional[int]): The blockchain block number at which to perform the query.
+
+        Returns:
+            bool: `True` if the hotkey is registered in the specified context (either any subnet or a specific subnet),
+                `False` otherwise.
+
+        This function is important for verifying the active status of neurons in the Bittensor network. It aids in
+            understanding whether a neuron is eligible to participate in network processes such as consensus,
+            validation, and incentive distribution based on its registration status.
+        """
+        if netuid is None:
+            return await self.is_hotkey_registered_any(hotkey_ss58, block)
         else:
-            return False
+            return await self.is_hotkey_registered_on_subnet(hotkey_ss58, netuid, block)
 
     async def get_uid_for_hotkey_on_subnet(
         self,
