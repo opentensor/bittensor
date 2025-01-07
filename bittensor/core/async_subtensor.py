@@ -119,6 +119,7 @@ class AsyncSubtensor:
         self,
         network: Optional[str] = None,
         config: Optional["Config"] = None,
+        _mock: bool = False,
         log_verbose: bool = False,
         event_loop: asyncio.AbstractEventLoop = None,
     ):
@@ -128,6 +129,7 @@ class AsyncSubtensor:
         Arguments:
             network (str): The network name or type to connect to.
             config (Optional[Config]): Configuration object for the AsyncSubtensor instance.
+            _mock: Whether this is a mock instance. Mainly just for use in testing.
             log_verbose (bool): Enables or disables verbose logging.
             event_loop (Optional[asyncio.AbstractEventLoop]): Custom asyncio event loop.
 
@@ -140,6 +142,7 @@ class AsyncSubtensor:
         self.chain_endpoint, self.network = AsyncSubtensor.setup_config(
             network, self._config
         )
+        self._mock = _mock
 
         self.log_verbose = log_verbose
         self._check_and_log_network_settings()
@@ -793,7 +796,7 @@ class AsyncSubtensor:
 
         return b_map
 
-    async def commit(self, wallet: "Wallet", netuid: int, data: str):
+    async def commit(self, wallet: "Wallet", netuid: int, data: str) -> bool:
         """
         Commits arbitrary data to the Bittensor network by publishing metadata.
 
@@ -802,7 +805,7 @@ class AsyncSubtensor:
             netuid (int): The unique identifier of the subnetwork.
             data (str): The data to be committed to the network.
         """
-        await publish_metadata(
+        return await publish_metadata(
             subtensor=self,
             wallet=wallet,
             netuid=netuid,
@@ -2973,7 +2976,7 @@ class AsyncSubtensor:
         try:
             recycle_call, balance = await asyncio.gather(
                 self.get_hyperparameter(
-                    param_name="Burn", netuid=netuid, reuse_block=True
+                    param_name="Burn", netuid=netuid, block_hash=block_hash
                 ),
                 self.get_balance(wallet.coldkeypub.ss58_address, block_hash=block_hash),
             )
