@@ -438,7 +438,7 @@ class AsyncSubtensor:
         Returns:
             The value of the specified hyperparameter if the subnet exists, or None
         """
-        block_hash = await self._determine_block_hash(block, block_hash, reuse_block)
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         if not await self.subnet_exists(netuid, block_hash, reuse_block=reuse_block):
             logging.error(f"subnet {netuid} does not exist")
             return None
@@ -2637,8 +2637,9 @@ class AsyncSubtensor:
 
             if await response.is_success:
                 return True, ""
-            else:
-                return False, format_error_message(await response.error_message)
+
+            return False, format_error_message(await response.error_message)
+
         except SubstrateRequestException as e:
             return False, format_error_message(e)
 
