@@ -14,7 +14,15 @@ from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime
 from hashlib import blake2b
-from typing import Optional, Any, Union, Callable, Awaitable, cast, TYPE_CHECKING
+from typing import (
+    Optional,
+    Any,
+    Union,
+    Callable,
+    Awaitable,
+    cast,
+    TYPE_CHECKING,
+)
 
 import asyncstdlib as a
 from bittensor_wallet import Keypair
@@ -27,12 +35,12 @@ from substrateinterface.storage import StorageKey
 from websockets.asyncio.client import connect
 from websockets.exceptions import ConnectionClosed
 
-from bittensor.utils import hex_to_bytes, execute_coroutine
 from bittensor.core.errors import (
     SubstrateRequestException,
     ExtrinsicNotFound,
     BlockNotFound,
 )
+from bittensor.utils import execute_coroutine
 from bittensor.utils import hex_to_bytes
 from bittensor.utils.btlogging import logging
 
@@ -43,9 +51,30 @@ ResultHandler = Callable[[dict, Any], Awaitable[tuple[dict, bool]]]
 ExtrinsicReceiptLike = Union["AsyncExtrinsicReceipt", "ExtrinsicReceipt"]
 
 
-@dataclass
 class ScaleObj:
-    value: Any
+    def __new__(cls, value):
+        if isinstance(value, (dict, str, int)):
+            return value
+        return super().__new__(cls)
+
+    def __init__(self, value):
+        self.value = list(value) if isinstance(value, tuple) else value
+
+    def __str__(self):
+        return f"BittensorScaleType(value={self.value})>"
+
+    def __repr__(self):
+        return repr(self.value)
+
+    def __eq__(self, other):
+        return self.value == other
+
+    def __iter__(self):
+        for item in self.value:
+            yield item
+
+    def __getitem__(self, item):
+        return self.value[item]
 
 
 class AsyncExtrinsicReceipt:
@@ -957,14 +986,14 @@ class AsyncSubstrateInterface:
         )
         self.__metadata_cache = {}
         self.metadata_version_hex = "0x0f000000"  # v15
-        self.event_loop = asyncio.get_event_loop()
+        self.event_loop = event_loop or asyncio.get_event_loop()
         self.sync_calls = sync_calls
         self.extrinsic_receipt_cls = (
             AsyncExtrinsicReceipt if self.sync_calls is False else ExtrinsicReceipt
         )
         execute_coroutine(
             coroutine=self.initialize(),
-            event_loop=event_loop or asyncio.get_event_loop(),
+            event_loop=event_loop,
         )
 
     async def __aenter__(self):
@@ -3469,7 +3498,10 @@ class AsyncSubstrateInterface:
             runtime,
             result_handler=subscription_handler,
         )
-        return responses[preprocessed.queryable][0]
+        result = responses[preprocessed.queryable][0]
+        if isinstance(result, (list, tuple, int, float)):
+            return ScaleObj(result)
+        return result
 
     async def query_map(
         self,
@@ -3643,7 +3675,7 @@ class AsyncSubstrateInterface:
                     except Exception as _:
                         if not ignore_decoding_errors:
                             raise
-                        item_value = None
+                        item_value = []
 
                     result.append([item_key, item_value])
 
@@ -3879,7 +3911,7 @@ class SubstrateInterface:
 
     def __init__(
         self,
-        url: str,
+        url: str = None,
         use_remote_preset: bool = False,
         auto_discover: bool = True,
         ss58_format: Optional[int] = None,
@@ -3887,15 +3919,22 @@ class SubstrateInterface:
         chain_name: Optional[str] = None,
         event_loop: Optional[asyncio.AbstractEventLoop] = None,
         mock: bool = False,
+        substrate: Optional["AsyncSubstrateInterface"] = None,
     ):
-        self._async_instance = AsyncSubstrateInterface(
-            url=url,
-            use_remote_preset=use_remote_preset,
-            auto_discover=auto_discover,
-            ss58_format=ss58_format,
-            type_registry=type_registry,
-            chain_name=chain_name,
-            sync_calls=True,
+        event_loop = substrate.event_loop if substrate else event_loop
+        self._async_instance = (
+            AsyncSubstrateInterface(
+                url=url,
+                use_remote_preset=use_remote_preset,
+                auto_discover=auto_discover,
+                ss58_format=ss58_format,
+                type_registry=type_registry,
+                chain_name=chain_name,
+                sync_calls=True,
+                event_loop=event_loop,
+            )
+            if not substrate
+            else substrate
         )
         self.event_loop = event_loop or asyncio.get_event_loop()
         if not mock:
@@ -3921,37 +3960,37 @@ class SubstrateInterface:
         else:
             return attr
 
-    def query(
-        self,
-        module: str,
-        storage_function: str,
-        params: Optional[list] = None,
-        block_hash: Optional[str] = None,
-        raw_storage_key: Optional[bytes] = None,
-        subscription_handler=None,
-        reuse_block_hash: bool = False,
-    ) -> "ScaleType":
-        return self.event_loop.run_until_complete(
-            self._async_instance.query(
-                module,
-                storage_function,
-                params,
-                block_hash,
-                raw_storage_key,
-                subscription_handler,
-                reuse_block_hash,
-            )
-        )
-
-    def get_constant(
-        self,
-        module_name: str,
-        constant_name: str,
-        block_hash: Optional[str] = None,
-        reuse_block_hash: bool = False,
-    ) -> Optional["ScaleType"]:
-        return self.event_loop.run_until_complete(
-            self._async_instance.get_constant(
-                module_name, constant_name, block_hash, reuse_block_hash
-            )
-        )
+    # def query(
+    #     self,
+    #     module: str,
+    #     storage_function: str,
+    #     params: Optional[list] = None,
+    #     block_hash: Optional[str] = None,
+    #     raw_storage_key: Optional[bytes] = None,
+    #     subscription_handler=None,
+    #     reuse_block_hash: bool = False,
+    # ) -> "ScaleType":
+    #     return self.event_loop.run_until_complete(
+    #         self._async_instance.query(
+    #             module,
+    #             storage_function,
+    #             params,
+    #             block_hash,
+    #             raw_storage_key,
+    #             subscription_handler,
+    #             reuse_block_hash,
+    #         )
+    #     )
+    #
+    # def get_constant(
+    #     self,
+    #     module_name: str,
+    #     constant_name: str,
+    #     block_hash: Optional[str] = None,
+    #     reuse_block_hash: bool = False,
+    # ) -> Optional["ScaleType"]:
+    #     return self.event_loop.run_until_complete(
+    #         self._async_instance.get_constant(
+    #             module_name, constant_name, block_hash, reuse_block_hash
+    #         )
+    #     )
