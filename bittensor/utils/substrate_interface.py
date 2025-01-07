@@ -939,6 +939,7 @@ class AsyncSubstrateInterface:
         max_retries: int = 5,
         retry_timeout: float = 60.0,
         event_loop: Optional[asyncio.BaseEventLoop] = None,
+        _mock: bool = False,
     ):
         """
         The asyncio-compatible version of the subtensor interface commands we use in bittensor. It is important to
@@ -955,6 +956,8 @@ class AsyncSubstrateInterface:
             sync_calls: whether this instance is going to be called through a sync wrapper or plain
             max_retries: number of times to retry RPC requests before giving up
             retry_timeout: how to long wait since the last ping to retry the RPC request
+            event_loop: the event loop to use
+            _mock: whether to use mock version of the subtensor interface
 
         """
         self.max_retries = max_retries
@@ -991,10 +994,13 @@ class AsyncSubstrateInterface:
         self.extrinsic_receipt_cls = (
             AsyncExtrinsicReceipt if self.sync_calls is False else ExtrinsicReceipt
         )
-        execute_coroutine(
-            coroutine=self.initialize(),
-            event_loop=event_loop,
-        )
+        if not _mock:
+            execute_coroutine(
+                coroutine=self.initialize(),
+                event_loop=event_loop,
+            )
+        else:
+            execute_coroutine(self.reload_type_registry(), event_loop=event_loop)
 
     async def __aenter__(self):
         await self.initialize()
@@ -3918,7 +3924,7 @@ class SubstrateInterface:
         type_registry: Optional[dict] = None,
         chain_name: Optional[str] = None,
         event_loop: Optional[asyncio.AbstractEventLoop] = None,
-        mock: bool = False,
+        _mock: bool = False,
         substrate: Optional["AsyncSubstrateInterface"] = None,
     ):
         event_loop = substrate.event_loop if substrate else event_loop
@@ -3932,15 +3938,12 @@ class SubstrateInterface:
                 chain_name=chain_name,
                 sync_calls=True,
                 event_loop=event_loop,
+                _mock=_mock,
             )
             if not substrate
             else substrate
         )
         self.event_loop = event_loop or asyncio.get_event_loop()
-        if not mock:
-            self.event_loop.run_until_complete(self._async_instance.initialize())
-        else:
-            self._async_instance.reload_type_registry()
 
     def __del__(self):
         self.event_loop.run_until_complete(self._async_instance.close())

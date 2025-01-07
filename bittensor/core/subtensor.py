@@ -8,7 +8,7 @@ from numpy.typing import NDArray
 from bittensor.core.async_subtensor import AsyncSubtensor
 from bittensor.utils.substrate_interface import SubstrateInterface
 from bittensor.core.settings import version_as_int
-from bittensor.utils import execute_coroutine, torch
+from bittensor.utils import execute_coroutine, torch, get_event_loop
 
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
@@ -46,7 +46,7 @@ class Subtensor:
         _mock: bool = False,
         log_verbose: bool = False,
     ):
-        self.event_loop = asyncio.get_event_loop()
+        self.event_loop = get_event_loop()
         self.network = network
         self._config = config
         self.log_verbose = log_verbose
@@ -56,11 +56,12 @@ class Subtensor:
             config=config,
             log_verbose=log_verbose,
             event_loop=self.event_loop,
+            _mock=_mock,
         )
 
         self.substrate = SubstrateInterface(
             url=self.async_subtensor.chain_endpoint,
-            mock=_mock,
+            _mock=_mock,
             substrate=self.async_subtensor.substrate,
         )
         self.chain_endpoint = self.async_subtensor.chain_endpoint

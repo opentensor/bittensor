@@ -417,6 +417,19 @@ def hex_to_bytes(hex_str: str) -> bytes:
     return bytes_result
 
 
+def get_event_loop() -> asyncio.AbstractEventLoop:
+    """
+    If an event loop is already running, returns that. Otherwise, creates a new event loop,
+        and sets it as the main event loop for this thread, returning the newly-created event loop.
+    """
+    if loop := event_loop_is_running():
+        event_loop = loop
+    else:
+        event_loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(event_loop)  # TODO not sure if we should do this
+    return event_loop
+
+
 def execute_coroutine(
     coroutine: "Coroutine", event_loop: asyncio.AbstractEventLoop = None
 ):
@@ -433,9 +446,6 @@ def execute_coroutine(
     """
     if event_loop:
         event_loop = event_loop
-    elif loop := event_loop_is_running():
-        event_loop = loop
     else:
-        event_loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(event_loop)  # TODO not sure if we should do this
+        event_loop = get_event_loop()
     return event_loop.run_until_complete(coroutine)
