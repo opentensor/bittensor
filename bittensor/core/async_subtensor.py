@@ -451,7 +451,7 @@ class AsyncSubtensor:
             reuse_block_hash=reuse_block,
         )
 
-        return result
+        return getattr(result, "value", result)
 
     # Subtensor queries ===========================================================================================
 
@@ -522,13 +522,14 @@ class AsyncSubtensor:
             modules, offering insights into the network's state and the relationships between its different components.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
-        return await self.substrate.query_map(
+        result = await self.substrate.query_map(
             module=module,
             storage_function=name,
             params=params,
             block_hash=block_hash,
             reuse_block_hash=reuse_block,
         )
+        return getattr(result, "value", None)
 
     async def query_map_subtensor(
         self,
@@ -1379,7 +1380,7 @@ class AsyncSubtensor:
         if result is None:
             raise Exception("Unable to retrieve existential deposit amount.")
 
-        return Balance.from_rao(result)
+        return Balance.from_rao(getattr(result, "value", result))
 
     async def get_hotkey_owner(
         self,
@@ -1431,7 +1432,8 @@ class AsyncSubtensor:
         result = await self.substrate.query(
             module="SubtensorModule", storage_function="NominatorMinRequiredStake"
         )
-        return Balance.from_rao(result)
+
+        return Balance.from_rao(getattr(result, "value", None))
 
     async def get_netuids_for_hotkey(
         self,
@@ -1947,7 +1949,7 @@ class AsyncSubtensor:
             block_hash=block_hash,
             reuse_block_hash=reuse_block,
         )
-        return result
+        return getattr(result, "value", result)
 
     async def filter_netuids_by_registered_hotkeys(
         self,
