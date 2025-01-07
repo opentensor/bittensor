@@ -33,18 +33,34 @@ from .registration import torch, use_torch
 from .version import version_checking, check_version, VersionCheckError
 
 if TYPE_CHECKING:
-    from bittensor.utils.substrate_interface import AsyncSubstrateInterface
-    from substrateinterface import SubstrateInterface
     from bittensor_wallet import Wallet
+
+
+# redundant aliases
+logging = logging
+torch = torch
+use_torch = use_torch
+version_checking = version_checking
+check_version = check_version
+VersionCheckError = VersionCheckError
+
 
 RAOPERTAO = 1e9
 U16_MAX = 65535
 U64_MAX = 18446744073709551615
 
 Certificate = str
-
-
 UnlockStatus = namedtuple("UnlockStatus", ["success", "message"])
+
+
+def event_loop_is_running() -> Union[asyncio.AbstractEventLoop, bool]:
+    """
+    Simple function to check if event loop is running. Returns the loop if it is, otherwise False.
+    """
+    try:
+        return asyncio.get_running_loop()
+    except RuntimeError:
+        return False
 
 
 def ss58_to_vec_u8(ss58_address: str) -> list[int]:
@@ -409,21 +425,17 @@ def execute_coroutine(
 
     Args:
         coroutine (Coroutine): The coroutine to run.
-        event_loop (AbstractEventLoop): The event loop to use. If None, a new event loop will be created.
+        event_loop (AbstractEventLoop): The event loop to use. If `None`, attempts to fetch the already-running
+            loop. If one if not running, a new loop is created.
 
     Returns:
         The result of the coroutine execution.
     """
-    try:
-        if event_loop:
-            return event_loop.run_until_complete(coroutine)
-        else:
-            return asyncio.run(coroutine)
-    except RuntimeError as error:
-        if "already running" in str(error):
-            if not event_loop:
-                event_loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(event_loop)
-            return event_loop.run_until_complete(coroutine)
-        else:
-            raise error
+    if event_loop:
+        event_loop = event_loop
+    elif loop := event_loop_is_running():
+        event_loop = loop
+    else:
+        event_loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(event_loop)  # TODO not sure if we should do this
+    return event_loop.run_until_complete(coroutine)
