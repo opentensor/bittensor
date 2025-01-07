@@ -1048,7 +1048,7 @@ class AsyncSubtensor:
             trustworthiness of the blockchain.
         """
         if block:
-            return await self.substrate.get_block_hash(block)
+            return await self._get_block_hash(block)
         else:
             return await self.substrate.get_chain_head()
 
