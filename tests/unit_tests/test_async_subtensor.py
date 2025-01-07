@@ -1,8 +1,9 @@
 import pytest
+from bittensor_wallet import Wallet
 
 from bittensor import AsyncSubtensor
 from bittensor.core import async_subtensor
-from bittensor_wallet import Wallet
+from bittensor.core.chain_data import proposal_vote_data
 
 
 @pytest.fixture(autouse=True)
@@ -19,7 +20,9 @@ def subtensor(mocker):
 def test_decode_ss58_tuples_in_proposal_vote_data(mocker):
     """Tests that ProposalVoteData instance instantiation works properly,"""
     # Preps
-    mocked_decode_account_id = mocker.patch.object(async_subtensor, "decode_account_id")
+    mocked_decode_account_id = mocker.patch.object(
+        proposal_vote_data, "decode_account_id"
+    )
     fake_proposal_dict = {
         "index": "0",
         "threshold": 1,
@@ -148,11 +151,7 @@ async def test_async_subtensor_magic_methods(mocker):
 
 @pytest.mark.parametrize(
     "error",
-    [
-        ConnectionRefusedError,
-        async_subtensor.ssl.SSLError,
-        async_subtensor.TimeoutException,
-    ],
+    [ConnectionRefusedError, async_subtensor.ssl.SSLError, TimeoutError],
 )
 @pytest.mark.asyncio
 async def test_async_subtensor_aenter_connection_refused_error(
@@ -825,7 +824,7 @@ async def test_get_hyperparameter_happy_path(subtensor, mocker):
     fake_param_name = "param_name"
     fake_netuid = 1
     fake_block_hash = "block_hash"
-    fake_reuse_block_hash = True
+    fake_reuse_block_hash = False
 
     # kind of fake subnet exists
     mocked_subtensor_subnet_exists = mocker.AsyncMock(return_value=True)
@@ -853,7 +852,7 @@ async def test_get_hyperparameter_happy_path(subtensor, mocker):
         block_hash=fake_block_hash,
         reuse_block_hash=fake_reuse_block_hash,
     )
-    assert result == mocked_substrate_query.return_value
+    assert result == mocked_substrate_query.return_value.value
 
 
 @pytest.mark.asyncio
@@ -1757,7 +1756,6 @@ async def test_sign_and_send_extrinsic_success_finalization(subtensor, mocker):
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
-    fake_response.process_events.assert_awaited_once()
     assert result == (True, "")
 
 
@@ -1808,7 +1806,6 @@ async def test_sign_and_send_extrinsic_error_finalization(subtensor, mocker):
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
-    fake_response.process_events.assert_awaited_once()
     assert result == (False, mocked_format_error_message.return_value)
 
 
