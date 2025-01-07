@@ -6,6 +6,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from bittensor.core.async_subtensor import AsyncSubtensor
+from bittensor.utils.substrate_interface import SubstrateInterface
 from bittensor.core.settings import version_as_int
 from bittensor.utils import execute_coroutine, torch
 
@@ -58,10 +59,7 @@ class Subtensor:
             event_loop=self.event_loop,
         )
 
-        # TODO: Convert to sync substrate.
-        #  - create the same sync wrapper with query_* methods only.
-        #  - or Ben's impl for substrate instance.
-        self.substrate = self.async_subtensor.substrate
+        self.substrate = SubstrateInterface(substrate=self.async_subtensor.substrate)
         self.chain_endpoint = self.async_subtensor.chain_endpoint
 
     def __str__(self):
