@@ -3,7 +3,7 @@ import asyncio
 import copy
 from itertools import chain
 import ssl
-from typing import Optional, Any, Union, TypedDict, Iterable, TYPE_CHECKING
+from typing import Optional, Any, Union, Iterable, TYPE_CHECKING
 
 import aiohttp
 import asyncstdlib as a
@@ -60,6 +60,7 @@ from bittensor.core.extrinsics.asyncex.weights import (
     reveal_weights_extrinsic,
 )
 from bittensor.core.metagraph import AsyncMetagraph
+from bittensor.core.types import ParamWithTypes
 from bittensor.core.settings import version_as_int, TYPE_REGISTRY, DELEGATES_DETAILS_URL
 from bittensor.utils import (
     decode_hex_identity_dict,
@@ -83,11 +84,6 @@ if TYPE_CHECKING:
     from bittensor.core.axon import Axon
     from bittensor.utils import Certificate
     from bittensor.utils.substrate_interface import QueryMapResult
-
-
-class ParamWithTypes(TypedDict):
-    name: str  # Name of the parameter.
-    type: str  # ScaleType string of the parameter.
 
 
 def _decode_hex_identity_dict(info_dictionary: dict[str, Any]) -> dict[str, Any]:
