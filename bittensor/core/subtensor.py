@@ -457,7 +457,7 @@ class Subtensor:
     def is_hotkey_registered(
         self,
         hotkey_ss58: str,
-        netuid: int,
+        netuid: Optional[int] = None,
         block: Optional[int] = None,
     ) -> bool:
         return self.execute_coroutine(
