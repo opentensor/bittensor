@@ -3911,7 +3911,7 @@ class SubstrateInterface:
 
     def __init__(
         self,
-        url: str = None,
+        url: str,
         use_remote_preset: bool = False,
         auto_discover: bool = True,
         ss58_format: Optional[int] = None,
