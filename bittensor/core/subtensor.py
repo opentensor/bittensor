@@ -6,8 +6,9 @@ import numpy as np
 from numpy.typing import NDArray
 
 from bittensor.core.async_subtensor import AsyncSubtensor
-from bittensor.utils.substrate_interface import SubstrateInterface
+from bittensor.core.metagraph import Metagraph
 from bittensor.core.settings import version_as_int
+from bittensor.utils.substrate_interface import SubstrateInterface
 from bittensor.utils import execute_coroutine, torch, get_event_loop
 
 if TYPE_CHECKING:
@@ -15,7 +16,6 @@ if TYPE_CHECKING:
     from bittensor.core.async_subtensor import ProposalVoteData
     from bittensor.core.axon import Axon
     from bittensor.core.config import Config
-    from bittensor.core.metagraph import Metagraph
     from bittensor.core.chain_data.delegate_info import DelegateInfo
     from bittensor.core.chain_data.neuron_info import NeuronInfo
     from bittensor.core.chain_data.neuron_info_lite import NeuronInfoLite
@@ -497,10 +497,17 @@ class Subtensor:
 
     def metagraph(
         self, netuid: int, lite: bool = True, block: Optional[int] = None
-    ) -> "Metagraph":  # type: ignore
-        return self.execute_coroutine(
-            self.async_subtensor.metagraph(netuid=netuid, lite=lite, block=block),
+    ) -> "Metagraph":
+        metagraph = Metagraph(
+            network=self.chain_endpoint,
+            netuid=netuid,
+            lite=lite,
+            sync=False,
+            subtensor=self,
         )
+        metagraph.sync(block=block, lite=lite, subtensor=self)
+
+        return metagraph
 
     def min_allowed_weights(
         self, netuid: int, block: Optional[int] = None

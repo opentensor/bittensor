@@ -70,22 +70,25 @@ ndarray objects. Each key corresponds to a specific attribute or metric associat
 """
 
 
-def get_save_dir(network: str, netuid: int) -> str:
+def get_save_dir(
+    network: str, netuid: int, root_dir: Optional[list[str]] = None
+) -> str:
     """
     Returns a directory path given ``network`` and ``netuid`` inputs.
 
     Args:
         network (str): Network name.
         netuid (int): Network UID.
+        root_dir: list to the file path for the root directory of your metagraph saves (i.e. ['/', 'tmp', 'metagraphs'],
+            defaults to ["~", ".bittensor", "metagraphs"]
 
     Returns:
         str: Directory path.
     """
+    _root_dir = root_dir or ["~", ".bittensor", "metagraphs"]
     return os.path.expanduser(
         os.path.join(
-            "~",
-            ".bittensor",
-            "metagraphs",
+            *_root_dir,
             f"network-{str(network)}",
             f"netuid-{str(netuid)}",
         )
@@ -613,7 +616,6 @@ class AsyncMetagraphMixin(ABC):
 
                 metagraph.sync(block=history_block, lite=False, subtensor=subtensor)
         """
-
         # Initialize subtensor
         subtensor = self._initialize_subtensor(subtensor)
 
@@ -890,14 +892,18 @@ class AsyncMetagraphMixin(ABC):
             )
         return tensor_param
 
-    def save(self) -> "AsyncMetagraph":
+    def save(self, root_dir: Optional[list[str]]) -> "AsyncMetagraph":
         """
         Saves the current state of the metagraph to a file on disk. This function is crucial for persisting the current
-        state of the network's metagraph, which can later be reloaded or analyzed. The save operation includes all
-        neuron attributes and parameters, ensuring a complete snapshot of the metagraph's state.
+            state of the network's metagraph, which can later be reloaded or analyzed. The save operation includes all
+            neuron attributes and parameters, ensuring a complete snapshot of the metagraph's state.
+
+        Args:
+            root_dir: list to the file path for the root directory of your metagraph saves
+                (i.e. ['/', 'tmp', 'metagraphs'], defaults to ["~", ".bittensor", "metagraphs"]
 
         Returns:
-            metagraph (bittensor.core.metagraph.AsyncMetagraph): The metagraph instance after saving its state.
+            metagraph (bittensor.core.metagraph.Metagraph): The metagraph instance after saving its state.
 
         Example:
             Save the current state of the metagraph to the default directory::
@@ -914,7 +920,7 @@ class AsyncMetagraphMixin(ABC):
 
                 metagraph.load_from_path(dir_path)
         """
-        save_directory = get_save_dir(self.network, self.netuid)
+        save_directory = get_save_dir(self.network, self.netuid, root_dir=root_dir)
         os.makedirs(save_directory, exist_ok=True)
         if use_torch():
             graph_filename = f"{save_directory}/block-{self.block.item()}.pt"
@@ -930,39 +936,34 @@ class AsyncMetagraphMixin(ABC):
                 pickle.dump(state_dict, graph_file)
         return self
 
-    def load(self):
+    def load(self, root_dir: Optional[list[str]]) -> None:
         """
-        Loads the state of the metagraph from the default save directory. This method is instrumental for restoring the
-        metagraph to its last saved state. It automatically identifies the save directory based on the ``network`` and
-        ``netuid`` properties of the metagraph, locates the latest block file in that directory, and loads all metagraph
-        parameters from it.
+        Loads the state of the metagraph from the default save directory. This method is instrumental for restoring the metagraph to its last saved state. It automatically identifies the save directory based on the ``network`` and ``netuid`` properties of the metagraph, locates the latest block file in that directory, and loads all metagraph parameters from it.
 
         This functionality is particularly beneficial when continuity in the state of the metagraph is necessary
         across different runtime sessions, or after a restart of the system. It ensures that the metagraph reflects
         the exact state it was in at the last save point, maintaining consistency in the network's representation.
 
-        The method delegates to ``load_from_path``, supplying it with the directory path constructed from the
-        metagraph's current ``network`` and ``netuid`` properties. This abstraction simplifies the process of loading
-        the metagraph's state for the user, requiring no direct path specifications.
+        The method delegates to ``load_from_path``, supplying it with the directory path constructed from the metagraph's current ``network`` and ``netuid`` properties. This abstraction simplifies the process of loading the metagraph's state for the user, requiring no direct path specifications.
+
+        Args:
+            root_dir: list to the file path for the root directory of your metagraph saves
+                (i.e. ['/', 'tmp', 'metagraphs'], defaults to ["~", ".bittensor", "metagraphs"]
 
         Returns:
-            metagraph (bittensor.core.metagraph.AsyncMetagraph): The metagraph instance after loading its state from the
-                default directory.
+            metagraph (bittensor.core.metagraph.Metagraph): The metagraph instance after loading its state from the default directory.
 
         Example:
             Load the metagraph state from the last saved snapshot in the default directory::
 
                 metagraph.load()
 
-            After this operation, the metagraph's parameters and neuron data are restored to their state at the time of
-            the last save in the default directory.
+            After this operation, the metagraph's parameters and neuron data are restored to their state at the time of the last save in the default directory.
 
         Note:
-            The default save directory is determined based on the metagraph's ``network`` and ``netuid`` attributes.
-            It is important to ensure that these attributes are set correctly and that the default save directory
-            contains the appropriate state files for the metagraph.
+            The default save directory is determined based on the metagraph's ``network`` and ``netuid`` attributes. It is important to ensure that these attributes are set correctly and that the default save directory contains the appropriate state files for the metagraph.
         """
-        self.load_from_path(get_save_dir(self.network, self.netuid))
+        self.load_from_path(get_save_dir(self.network, self.netuid, root_dir=root_dir))
 
     @abstractmethod
     def load_from_path(self, dir_path: str) -> "AsyncMetagraph":
