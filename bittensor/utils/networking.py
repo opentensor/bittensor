@@ -2,11 +2,17 @@
 
 import json
 import os
+import socket
 import urllib
+from functools import wraps
 from typing import Optional
 
 import netaddr
 import requests
+from retry import retry
+from websockets.exceptions import ConnectionClosed
+
+from bittensor.utils.btlogging import logging
 
 
 def int_to_ip(int_val: int) -> str:
@@ -152,3 +158,54 @@ def get_formatted_ws_endpoint_url(endpoint_url: Optional[str]) -> Optional[str]:
         endpoint_url = f"ws://{endpoint_url}"
 
     return endpoint_url
+
+
+def ensure_connected(func):
+    """Decorator ensuring the function executes with an active substrate connection."""
+
+    # TODO we need to rethink the logic in this
+
+    def is_connected(substrate) -> bool:
+        """Check if the substrate connection is active."""
+        sock = substrate.websocket.socket
+        try:
+            sock_opt = sock.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
+            return sock is not None and sock_opt == 0
+        except (OSError, AttributeError):
+            return False
+
+    @retry(
+        exceptions=ConnectionRefusedError,
+        tries=5,
+        delay=5,
+        backoff=1,
+        logger=logging,
+    )
+    def reconnect_with_retries(self):
+        """Attempt to reconnect with retries using retry library."""
+        logging.console.info("Attempting to reconnect to substrate...")
+        self._get_substrate()
+        logging.console.success("Connection successfully restored!")
+
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        """Wrapper function where `self` is expected to be a Subtensor instance."""
+        if not is_connected(self.substrate):
+            logging.debug("Substrate connection inactive. Attempting to reconnect...")
+            self._get_substrate()
+
+        try:
+            return func(self, *args, **kwargs)
+        except ConnectionClosed:
+            logging.console.warning(
+                "WebSocket connection closed. Attempting to reconnect 5 times..."
+            )
+            try:
+                reconnect_with_retries(self)
+                return func(self, *args, **kwargs)
+            except ConnectionRefusedError:
+                logging.critical("Unable to restore connection. Raising exception.")
+                raise ConnectionRefusedError("Failed to reconnect to substrate.")
+
+    return wrapper
+
