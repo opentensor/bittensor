@@ -50,7 +50,6 @@ class Subtensor:
         self.network = network
         self._config = config
         self.log_verbose = log_verbose
-
         self.async_subtensor = AsyncSubtensor(
             network=network,
             config=config,

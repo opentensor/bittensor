@@ -157,6 +157,7 @@ class AsyncSubtensor:
             use_remote_preset=True,
             chain_name="Bittensor",
             event_loop=event_loop,
+            _mock=_mock,
         )
         if self.log_verbose:
             logging.info(
