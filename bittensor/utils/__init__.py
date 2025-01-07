@@ -422,7 +422,7 @@ def get_event_loop() -> asyncio.AbstractEventLoop:
     If an event loop is already running, returns that. Otherwise, creates a new event loop,
         and sets it as the main event loop for this thread, returning the newly-created event loop.
     """
-    if loop := event_loop_is_running():
+    if (loop := event_loop_is_running()) and loop.is_running():
         event_loop = loop
     else:
         event_loop = asyncio.new_event_loop()

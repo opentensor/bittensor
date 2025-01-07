@@ -3071,6 +3071,14 @@ class AsyncSubtensor:
 
         This function is crucial in shaping the network's collective intelligence, where each neuron's learning and contribution are influenced by the weights it sets towards others【81†source】.
         """
+
+        async def _blocks_weight_limit() -> bool:
+            bslu, wrl = await asyncio.gather(
+                self.blocks_since_last_update(netuid, uid),
+                self.weights_rate_limit(netuid),
+            )
+            return bslu > wrl
+
         retries = 0
         success = False
         if (
@@ -3087,8 +3095,7 @@ class AsyncSubtensor:
             # go with `commit reveal v3` extrinsic
             message = "No attempt made. Perhaps it is too soon to commit weights!"
             while (
-                await self.blocks_since_last_update(netuid, uid)
-                > await self.weights_rate_limit(netuid)
+                await _blocks_weight_limit()
                 and retries < max_retries
                 and success is False
             ):
@@ -3111,9 +3118,8 @@ class AsyncSubtensor:
             # go with classic `set weights extrinsic`
             message = "No attempt made. Perhaps it is too soon to set weights!"
             while (
-                retries < max_retries
-                and await self.blocks_since_last_update(netuid, uid)
-                > await self.weights_rate_limit(netuid)
+                await _blocks_weight_limit()
+                and retries < max_retries
                 and success is False
             ):
                 try:

@@ -3946,7 +3946,7 @@ class SubstrateInterface:
         self.event_loop = event_loop or asyncio.get_event_loop()
 
     def __del__(self):
-        self.event_loop.run_until_complete(self._async_instance.close())
+        execute_coroutine(self._async_instance.close())
 
     def __getattr__(self, name):
         attr = getattr(self._async_instance, name)
