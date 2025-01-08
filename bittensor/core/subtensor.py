@@ -136,7 +136,7 @@ class Subtensor:
 
     def __init__(
         self,
-        network: Optional[str] = None,
+        network: Optional[str] = settings.DEFAULT_NETWORK,
         config: Optional["Config"] = None,
         _mock: bool = False,
         log_verbose: bool = False,
