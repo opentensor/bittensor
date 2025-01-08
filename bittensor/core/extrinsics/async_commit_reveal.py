@@ -4,22 +4,19 @@ import numpy as np
 from bittensor_commit_reveal import get_encrypted_commit
 from numpy.typing import NDArray
 
-from bittensor.core.extrinsics.utils import submit_extrinsic
 from bittensor.core.settings import version_as_int
 from bittensor.utils import format_error_message
 from bittensor.utils.btlogging import logging
-from bittensor.utils.networking import ensure_connected
 from bittensor.utils.weight_utils import convert_weights_and_uids_for_emit
 
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
-    from bittensor.core.subtensor import Subtensor
+    from bittensor.core.async_subtensor import AsyncSubtensor
     from bittensor.utils.registration import torch
 
 
-@ensure_connected
-def _do_commit_reveal_v3(
-    self: "Subtensor",
+async def _do_commit_reveal_v3(
+    subtensor: "AsyncSubtensor",
     wallet: "Wallet",
     netuid: int,
     commit: bytes,
@@ -31,6 +28,7 @@ def _do_commit_reveal_v3(
     Executes the commit-reveal phase 3 for a given netuid and commit, and optionally waits for extrinsic inclusion or finalization.
 
     Arguments:
+        subtensor: An instance of the Subtensor class.
         wallet: Wallet An instance of the Wallet class containing the user's keypair.
         netuid: int The network unique identifier.
         commit  bytes The commit data in bytes format.
@@ -46,7 +44,7 @@ def _do_commit_reveal_v3(
         f"reveal round [blue]{reveal_round}[/blue]..."
     )
 
-    call = self.substrate.compose_call(
+    call = await subtensor.substrate.compose_call(
         call_module="SubtensorModule",
         call_function="commit_crv3_weights",
         call_params={
@@ -55,13 +53,13 @@ def _do_commit_reveal_v3(
             "reveal_round": reveal_round,
         },
     )
-    extrinsic = self.substrate.create_signed_extrinsic(
+    extrinsic = await subtensor.substrate.create_signed_extrinsic(
         call=call,
         keypair=wallet.hotkey,
     )
 
-    response = submit_extrinsic(
-        subtensor=self,
+    response = await subtensor.substrate.submit_extrinsic(
+        subtensor=subtensor,
         extrinsic=extrinsic,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
@@ -70,15 +68,14 @@ def _do_commit_reveal_v3(
     if not wait_for_finalization and not wait_for_inclusion:
         return True, "Not waiting for finalization or inclusion."
 
-    response.process_events()
-    if response.is_success:
+    if await response.is_success:
         return True, None
-    else:
-        return False, format_error_message(response.error_message)
+
+    return False, format_error_message(await response.error_message)
 
 
-def commit_reveal_v3_extrinsic(
-    subtensor: "Subtensor",
+async def commit_reveal_v3_extrinsic(
+    subtensor: "AsyncSubtensor",
     wallet: "Wallet",
     netuid: int,
     uids: Union[NDArray[np.int64], "torch.LongTensor", list],
@@ -113,10 +110,8 @@ def commit_reveal_v3_extrinsic(
         # Reformat and normalize.
         uids, weights = convert_weights_and_uids_for_emit(uids, weights)
 
-        current_block = subtensor.get_current_block()
-        subnet_hyperparameters = subtensor.get_subnet_hyperparameters(
-            netuid, block=current_block
-        )
+        current_block = await subtensor.substrate.get_block_number(None)
+        subnet_hyperparameters = await subtensor.get_subnet_hyperparameters(netuid)
         tempo = subnet_hyperparameters.tempo
         subnet_reveal_period_epochs = (
             subnet_hyperparameters.commit_reveal_weights_interval
@@ -133,8 +128,8 @@ def commit_reveal_v3_extrinsic(
             subnet_reveal_period_epochs=subnet_reveal_period_epochs,
         )
 
-        success, message = _do_commit_reveal_v3(
-            self=subtensor,
+        success, message = await _do_commit_reveal_v3(
+            subtensor=subtensor,
             wallet=wallet,
             netuid=netuid,
             commit=commit_for_reveal,
@@ -143,14 +138,14 @@ def commit_reveal_v3_extrinsic(
             wait_for_finalization=wait_for_finalization,
         )
 
-        if success is True:
-            logging.success(
-                f"[green]Finalized![/green] Weights commited with reveal round [blue]{reveal_round}[/blue]."
-            )
-            return True, f"reveal_round:{reveal_round}"
-        else:
+        if success is not True:
             logging.error(message)
             return False, message
+
+        logging.success(
+            f"[green]Finalized![/green] Weights commited with reveal round [blue]{reveal_round}[/blue]."
+        )
+        return True, f"reveal_round:{reveal_round}"
 
     except Exception as e:
         logging.error(f":cross_mark: [red]Failed. Error:[/red] {e}")
