@@ -1,3 +1,4 @@
+import asyncio
 from typing import Optional, TYPE_CHECKING
 
 from bittensor.core.errors import MetadataError
@@ -26,19 +27,19 @@ async def do_serve_axon(
 ) -> tuple[bool, Optional[dict]]:
     """
     Internal method to submit a serve axon transaction to the Bittensor blockchain. This method creates and submits a
-        transaction, enabling a neuron's `Axon` to serve requests on the network.
+        transaction, enabling a neuron's ``Axon`` to serve requests on the network.
 
     Args:
-        subtensor: Subtensor instance object.
-        wallet: The wallet associated with the neuron.
-        call_params: Parameters required for the serve axon call.
-        wait_for_inclusion: Waits for the transaction to be included in a block.
-        wait_for_finalization: Waits for the transaction to be finalized on the blockchain.
+        subtensor (bittensor.core.async_subtensor.AsyncSubtensor): Subtensor instance object.
+        wallet (bittensor_wallet.Wallet): The wallet associated with the neuron.
+        call_params (bittensor.core.types.AxonServeCallParams): Parameters required for the serve axon call.
+        wait_for_inclusion (bool): Waits for the transaction to be included in a block.
+        wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
 
     Returns:
-        A tuple containing a success flag and an optional error message.
+        tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
 
-    This function is crucial for initializing and announcing a neuron's `Axon` service on the network, enhancing the
+    This function is crucial for initializing and announcing a neuron's ``Axon`` service on the network, enhancing the
         decentralized computation capabilities of Bittensor.
     """
 
@@ -64,10 +65,10 @@ async def do_serve_axon(
     if wait_for_inclusion or wait_for_finalization:
         if await response.is_success:
             return True, None
-        else:
-            return False, await response.error_message
-    else:
-        return True, None
+
+        return False, await response.error_message
+
+    return True, None
 
 
 async def serve_extrinsic(
@@ -86,23 +87,24 @@ async def serve_extrinsic(
     """Subscribes a Bittensor endpoint to the subtensor chain.
 
     Args:
-        subtensor: Subtensor instance object.
-        wallet: Bittensor wallet object.
-        ip: Endpoint host port i.e., `192.122.31.4`.
-        port: Endpoint port number i.e., `9221`.
-        protocol: An `int` representation of the protocol.
-        netuid: The network uid to serve on.
-        placeholder1: A placeholder for future use.
-        placeholder2: A placeholder for future use.
-        wait_for_inclusion: If set, waits for the extrinsic to enter a block before returning `True`, or returns
-            `False` if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization: If set, waits for the extrinsic to be finalized on the chain before returning `True`,
-            or returns `False` if the extrinsic fails to be finalized within the timeout.
-        certificate: Certificate to use for TLS. If ``None``, no TLS will be used. Defaults to `None`.
+        subtensor (bittensor.core.async_subtensor.AsyncSubtensor): Subtensor instance object.
+        wallet (bittensor_wallet.Wallet): Bittensor wallet object.
+        ip (str): Endpoint host port i.e., ``192.122.31.4``.
+        port (int): Endpoint port number i.e., ``9221``.
+        protocol (int): An ``int`` representation of the protocol.
+        netuid (int): The network uid to serve on.
+        placeholder1 (int): A placeholder for future use.
+        placeholder2 (int): A placeholder for future use.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or
+            returns ``false`` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning
+            ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
+        certificate (bittensor.utils.Certificate): Certificate to use for TLS. If ``None``, no TLS will be used.
+            Defaults to ``None``.
 
     Returns:
-        success: Flag is `True` if extrinsic was finalized or included in the block. If we did not wait for
-            finalization/inclusion, the response is `True`.
+        success (bool): Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for
+            finalization / inclusion, the response is ``true``.
     """
     # Decrypt hotkey
     if not (unlock := unlock_key(wallet, "hotkey")).success:
@@ -179,22 +181,22 @@ async def serve_axon_extrinsic(
     wait_for_finalization: bool = True,
     certificate: Optional[Certificate] = None,
 ) -> bool:
-    """
-    Serves the axon to the network.
+    """Serves the axon to the network.
 
     Args:
-        subtensor: Subtensor instance object.
-        netuid: The `netuid` being served on.
-        axon: Axon to serve.
-        wait_for_inclusion: If set, waits for the extrinsic to enter a block before returning `True`, or returns
-            `False` if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization: If set, waits for the extrinsic to be finalized on the chain before returning `True`,
-            or returns `False` if the extrinsic fails to be finalized within the timeout.
-        certificate: Certificate to use for TLS. If `None`, no TLS will be used. Defaults to `None`.
+        subtensor (bittensor.core.async_subtensor.AsyncSubtensor): Subtensor instance object.
+        netuid (int): The ``netuid`` being served on.
+        axon (bittensor.core.axon.Axon): Axon to serve.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or
+            returns ``false`` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning
+            ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
+        certificate (bittensor.utils.Certificate): Certificate to use for TLS. If ``None``, no TLS will be used.
+            Defaults to ``None``.
 
     Returns:
-        success: Flag is `True` if extrinsic was finalized or included in the block. If we did not wait for
-            finalization/inclusion, the response is `True`.
+        success (bool): Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for
+            finalization / inclusion, the response is ``true``.
     """
     if not (unlock := unlock_key(axon.wallet, "hotkey")).success:
         logging.error(unlock.message)
@@ -245,31 +247,31 @@ async def publish_metadata(
     Publishes metadata on the Bittensor network using the specified wallet and network identifier.
 
     Args:
-        subtensor: The subtensor instance representing the Bittensor blockchain connection.
-        wallet: The wallet object used for authentication in the transaction.
-        netuid: Network UID on which the metadata is to be published.
-        data_type: The data type of the information being submitted. It should be one of the following: 'Sha256',
-            'Blake256', 'Keccak256', or 'Raw0-128'. This specifies the format or hashing algorithm used for the data.
-        data: The actual metadata content to be published. This should be formatted or hashed according to the `type`
-            specified. (Note: max `str` length is 128 bytes)
-        wait_for_inclusion: If `True`, the function will wait for the extrinsic to be included in a block before
-            returning. Defaults to `False`.
-        wait_for_finalization: If `True`, the function will wait for the extrinsic to be finalized on the chain before
-            returning. Defaults to `True`.
+        subtensor (bittensor.subtensor): The subtensor instance representing the Bittensor blockchain connection.
+        wallet (bittensor.wallet): The wallet object used for authentication in the transaction.
+        netuid (int): Network UID on which the metadata is to be published.
+        data_type (str): The data type of the information being submitted. It should be one of the following:
+            ``'Sha256'``, ``'Blake256'``, ``'Keccak256'``, or ``'Raw0-128'``. This specifies the format or hashing
+            algorithm used for the data.
+        data (str): The actual metadata content to be published. This should be formatted or hashed according to the
+            ``type`` specified. (Note: max ``str`` length is 128 bytes)
+        wait_for_inclusion (bool, optional): If ``True``, the function will wait for the extrinsic to be included in a
+            block before returning. Defaults to ``False``.
+        wait_for_finalization (bool, optional): If ``True``, the function will wait for the extrinsic to be finalized
+            on the chain before returning. Defaults to ``True``.
 
     Returns:
-        success: `True` if the metadata was successfully published (and finalized if specified). `False` otherwise.
+        bool: ``True`` if the metadata was successfully published (and finalized if specified). ``False`` otherwise.
 
     Raises:
-        MetadataError: If there is an error in submitting the extrinsic or if the response from the blockchain
-            indicates failure.
+        MetadataError: If there is an error in submitting the extrinsic or if the response from the blockchain indicates
+            failure.
     """
 
     if not (unlock := unlock_key(wallet, "hotkey")).success:
         logging.error(unlock.message)
         return False
 
-    substrate: "AsyncSubstrateInterface"
     async with subtensor.substrate as substrate:
         call = await substrate.compose_call(
             call_module="Commitments",
@@ -291,10 +293,10 @@ async def publish_metadata(
     # We only wait here if we expect finalization.
     if not wait_for_finalization and not wait_for_inclusion:
         return True
+
     if await response.is_success:
         return True
-    else:
-        raise MetadataError(format_error_message(await response.error_message))
+    raise MetadataError(format_error_message(await response.error_message))
 
 
 async def get_metadata(

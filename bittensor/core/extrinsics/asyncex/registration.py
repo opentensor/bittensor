@@ -309,6 +309,7 @@ async def register_extrinsic(
         if cuda:
             if not torch.cuda.is_available():
                 return False
+
             pow_result = await create_pow_async(
                 subtensor=subtensor,
                 wallet=wallet,

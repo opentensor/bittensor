@@ -14,7 +14,15 @@ from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime
 from hashlib import blake2b
-from typing import Optional, Any, Union, Callable, Awaitable, cast, TYPE_CHECKING
+from typing import (
+    Optional,
+    Any,
+    Union,
+    Callable,
+    Awaitable,
+    cast,
+    TYPE_CHECKING,
+)
 
 import asyncstdlib as a
 from bittensor_wallet import Keypair
@@ -32,6 +40,7 @@ from bittensor.core.errors import (
     ExtrinsicNotFound,
     BlockNotFound,
 )
+from bittensor.utils import execute_coroutine
 from bittensor.utils import hex_to_bytes
 from bittensor.utils.btlogging import logging
 
@@ -42,9 +51,30 @@ ResultHandler = Callable[[dict, Any], Awaitable[tuple[dict, bool]]]
 ExtrinsicReceiptLike = Union["AsyncExtrinsicReceipt", "ExtrinsicReceipt"]
 
 
-@dataclass
 class ScaleObj:
-    value: Any
+    def __new__(cls, value):
+        if isinstance(value, (dict, str, int)):
+            return value
+        return super().__new__(cls)
+
+    def __init__(self, value):
+        self.value = list(value) if isinstance(value, tuple) else value
+
+    def __str__(self):
+        return f"BittensorScaleType(value={self.value})>"
+
+    def __repr__(self):
+        return repr(self.value)
+
+    def __eq__(self, other):
+        return self.value == other
+
+    def __iter__(self):
+        for item in self.value:
+            yield item
+
+    def __getitem__(self, item):
+        return self.value[item]
 
 
 class AsyncExtrinsicReceipt:
@@ -908,6 +938,8 @@ class AsyncSubstrateInterface:
         sync_calls: bool = False,
         max_retries: int = 5,
         retry_timeout: float = 60.0,
+        event_loop: Optional[asyncio.BaseEventLoop] = None,
+        _mock: bool = False,
     ):
         """
         The asyncio-compatible version of the subtensor interface commands we use in bittensor. It is important to
@@ -924,6 +956,8 @@ class AsyncSubstrateInterface:
             sync_calls: whether this instance is going to be called through a sync wrapper or plain
             max_retries: number of times to retry RPC requests before giving up
             retry_timeout: how to long wait since the last ping to retry the RPC request
+            event_loop: the event loop to use
+            _mock: whether to use mock version of the subtensor interface
 
         """
         self.max_retries = max_retries
@@ -955,11 +989,18 @@ class AsyncSubstrateInterface:
         )
         self.__metadata_cache = {}
         self.metadata_version_hex = "0x0f000000"  # v15
-        self.event_loop = asyncio.get_event_loop()
+        self.event_loop = event_loop or asyncio.get_event_loop()
         self.sync_calls = sync_calls
         self.extrinsic_receipt_cls = (
             AsyncExtrinsicReceipt if self.sync_calls is False else ExtrinsicReceipt
         )
+        if not _mock:
+            execute_coroutine(
+                coroutine=self.initialize(),
+                event_loop=event_loop,
+            )
+        else:
+            self.reload_type_registry()
 
     async def __aenter__(self):
         await self.initialize()
@@ -2585,7 +2626,7 @@ class AsyncSubstrateInterface:
         -------
         bool
         """
-        result = await self.rpc_request("rpc_methods", []).get("result")
+        result = (await self.rpc_request("rpc_methods", [])).get("result")
         if result:
             self.config["rpc_methods"] = result.get("methods", [])
 
@@ -3206,7 +3247,7 @@ class AsyncSubstrateInterface:
             nonce_obj = await self.runtime_call(
                 "AccountNonceApi", "account_nonce", [account_address]
             )
-            return nonce_obj
+            return getattr(nonce_obj, "value", nonce_obj)
         else:
             response = await self.query(
                 module="System", storage_function="Account", params=[account_address]
@@ -3463,7 +3504,10 @@ class AsyncSubstrateInterface:
             runtime,
             result_handler=subscription_handler,
         )
-        return responses[preprocessed.queryable][0]
+        result = responses[preprocessed.queryable][0]
+        if isinstance(result, (list, tuple, int, float)):
+            return ScaleObj(result)
+        return result
 
     async def query_map(
         self,
@@ -3866,6 +3910,15 @@ class AsyncSubstrateInterface:
             return await co
 
 
+class SyncWebsocket:
+    def __init__(self, websocket: "Websocket", event_loop: asyncio.AbstractEventLoop):
+        self._ws = websocket
+        self._event_loop = event_loop
+
+    def close(self):
+        execute_coroutine(self._ws.shutdown(), event_loop=self._event_loop)
+
+
 class SubstrateInterface:
     """
     A wrapper around AsyncSubstrateInterface that allows for using all the calls from it in a synchronous context
@@ -3880,25 +3933,42 @@ class SubstrateInterface:
         type_registry: Optional[dict] = None,
         chain_name: Optional[str] = None,
         event_loop: Optional[asyncio.AbstractEventLoop] = None,
-        mock: bool = False,
+        _mock: bool = False,
+        substrate: Optional["AsyncSubstrateInterface"] = None,
     ):
-        self._async_instance = AsyncSubstrateInterface(
-            url=url,
-            use_remote_preset=use_remote_preset,
-            auto_discover=auto_discover,
-            ss58_format=ss58_format,
-            type_registry=type_registry,
-            chain_name=chain_name,
-            sync_calls=True,
+        event_loop = substrate.event_loop if substrate else event_loop
+        self.url = url
+        self._async_instance = (
+            AsyncSubstrateInterface(
+                url=url,
+                use_remote_preset=use_remote_preset,
+                auto_discover=auto_discover,
+                ss58_format=ss58_format,
+                type_registry=type_registry,
+                chain_name=chain_name,
+                sync_calls=True,
+                event_loop=event_loop,
+                _mock=_mock,
+            )
+            if not substrate
+            else substrate
         )
         self.event_loop = event_loop or asyncio.get_event_loop()
-        if not mock:
-            self.event_loop.run_until_complete(self._async_instance.initialize())
-        else:
-            self._async_instance.reload_type_registry()
+        self.websocket = SyncWebsocket(self._async_instance.ws, self.event_loop)
+
+    @property
+    def last_block_hash(self):
+        return self._async_instance.last_block_hash
+
+    @property
+    def metadata(self):
+        return self._async_instance.metadata
 
     def __del__(self):
-        self.event_loop.run_until_complete(self._async_instance.close())
+        execute_coroutine(self._async_instance.close())
+
+    def _run(self, coroutine):
+        return execute_coroutine(coroutine, self.event_loop)
 
     def __getattr__(self, name):
         attr = getattr(self._async_instance, name)
@@ -3906,12 +3976,12 @@ class SubstrateInterface:
         if asyncio.iscoroutinefunction(attr):
 
             def sync_method(*args, **kwargs):
-                return self.event_loop.run_until_complete(attr(*args, **kwargs))
+                return self._run(attr(*args, **kwargs))
 
             return sync_method
         elif asyncio.iscoroutine(attr):
             # indicates this is an async_property
-            return self.event_loop.run_until_complete(attr)
+            return self._run(attr)
         else:
             return attr
 
@@ -3925,7 +3995,7 @@ class SubstrateInterface:
         subscription_handler=None,
         reuse_block_hash: bool = False,
     ) -> "ScaleType":
-        return self.event_loop.run_until_complete(
+        return self._run(
             self._async_instance.query(
                 module,
                 storage_function,
@@ -3944,8 +4014,155 @@ class SubstrateInterface:
         block_hash: Optional[str] = None,
         reuse_block_hash: bool = False,
     ) -> Optional["ScaleType"]:
-        return self.event_loop.run_until_complete(
+        return self._run(
             self._async_instance.get_constant(
                 module_name, constant_name, block_hash, reuse_block_hash
+            )
+        )
+
+    def submit_extrinsic(
+        self,
+        extrinsic: GenericExtrinsic,
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = False,
+    ) -> "ExtrinsicReceipt":
+        return self._run(
+            self._async_instance.submit_extrinsic(
+                extrinsic, wait_for_inclusion, wait_for_finalization
+            )
+        )
+
+    def close(self):
+        return self._run(self._async_instance.close())
+
+    def create_scale_object(
+        self,
+        type_string: str,
+        data: Optional[ScaleBytes] = None,
+        block_hash: Optional[str] = None,
+        **kwargs,
+    ) -> "ScaleType":
+        return self._run(
+            self._async_instance.create_scale_object(
+                type_string, data, block_hash, **kwargs
+            )
+        )
+
+    def rpc_request(
+        self,
+        method: str,
+        params: Optional[list],
+        block_hash: Optional[str] = None,
+        reuse_block_hash: bool = False,
+    ) -> Any:
+        return self._run(
+            self._async_instance.rpc_request(
+                method, params, block_hash, reuse_block_hash
+            )
+        )
+
+    def get_block_number(self, block_hash: Optional[str] = None) -> int:
+        return self._run(self._async_instance.get_block_number(block_hash))
+
+    def create_signed_extrinsic(
+        self,
+        call: GenericCall,
+        keypair: Keypair,
+        era: Optional[dict] = None,
+        nonce: Optional[int] = None,
+        tip: int = 0,
+        tip_asset_id: Optional[int] = None,
+        signature: Optional[Union[bytes, str]] = None,
+    ) -> "GenericExtrinsic":
+        return self._run(
+            self._async_instance.create_signed_extrinsic(
+                call, keypair, era, nonce, tip, tip_asset_id, signature
+            )
+        )
+
+    def compose_call(
+        self,
+        call_module: str,
+        call_function: str,
+        call_params: Optional[dict] = None,
+        block_hash: Optional[str] = None,
+    ) -> GenericCall:
+        return self._run(
+            self._async_instance.compose_call(
+                call_module, call_function, call_params, block_hash
+            )
+        )
+
+    def get_block_hash(self, block_id: int) -> str:
+        return self._run(self._async_instance.get_block_hash(block_id))
+
+    def get_payment_info(self, call: GenericCall, keypair: Keypair) -> dict[str, Any]:
+        return self._run(self._async_instance.get_payment_info(call, keypair))
+
+    def get_chain_head(self) -> str:
+        return self._run(self._async_instance.get_chain_head())
+
+    def get_events(self, block_hash: Optional[str] = None) -> list:
+        return self._run(self._async_instance.get_events(block_hash))
+
+    def query_map(
+        self,
+        module: str,
+        storage_function: str,
+        params: Optional[list] = None,
+        block_hash: Optional[str] = None,
+        max_results: Optional[int] = None,
+        start_key: Optional[str] = None,
+        page_size: int = 100,
+        ignore_decoding_errors: bool = False,
+        reuse_block_hash: bool = False,
+    ) -> "QueryMapResult":
+        return self._run(
+            self._async_instance.query_map(
+                module,
+                storage_function,
+                params,
+                block_hash,
+                max_results,
+                start_key,
+                page_size,
+                ignore_decoding_errors,
+                reuse_block_hash,
+            )
+        )
+
+    def query_multi(
+        self, storage_keys: list[StorageKey], block_hash: Optional[str] = None
+    ) -> list:
+        return self._run(self._async_instance.query_multi(storage_keys, block_hash))
+
+    def get_block(
+        self,
+        block_hash: Optional[str] = None,
+        block_number: Optional[int] = None,
+        ignore_decoding_errors: bool = False,
+        include_author: bool = False,
+        finalized_only: bool = False,
+    ) -> Optional[dict]:
+        return self._run(
+            self._async_instance.get_block(
+                block_hash,
+                block_number,
+                ignore_decoding_errors,
+                include_author,
+                finalized_only,
+            )
+        )
+
+    def create_storage_key(
+        self,
+        pallet: str,
+        storage_function: str,
+        params: Optional[list] = None,
+        block_hash: str = None,
+    ) -> StorageKey:
+        return self._run(
+            self._async_instance.create_storage_key(
+                pallet, storage_function, params, block_hash
             )
         )

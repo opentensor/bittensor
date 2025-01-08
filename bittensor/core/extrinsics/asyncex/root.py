@@ -173,8 +173,8 @@ async def _do_set_root_weights(
 
     if await response.is_success:
         return True, "Successfully set weights."
-    else:
-        return False, format_error_message(await response.error_message)
+
+    return False, format_error_message(await response.error_message)
 
 
 async def set_root_weights_extrinsic(

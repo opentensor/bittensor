@@ -38,3 +38,8 @@ class PrometheusServeCallParams(TypedDict):
     port: int
     ip_type: int
     netuid: int
+
+
+class ParamWithTypes(TypedDict):
+    name: str  # Name of the parameter.
+    type: str  # ScaleType string of the parameter.
