@@ -26,6 +26,7 @@ from bittensor.utils import execute_coroutine
 if typing.TYPE_CHECKING:
     from bittensor.core.subtensor import Subtensor
     from bittensor.core.async_subtensor import AsyncSubtensor
+    from bittensor.core.chain_data import NeuronInfo, NeuronInfoLite
 
 
 METAGRAPH_STATE_DICT_NDARRAY_KEYS = [
@@ -212,6 +213,7 @@ class AsyncMetagraphMixin(ABC):
     network: str
     version: Union["torch.nn.Parameter", tuple[NDArray]]
     n: Union["torch.nn.Parameter", NDArray]
+    neurons: list[Union["NeuronInfo", "NeuronInfoLite"]]
     block: Union["torch.nn.Parameter", NDArray]
     stake: Union["torch.nn.Parameter", NDArray]
     total_stake: Union["torch.nn.Parameter", NDArray]
@@ -705,6 +707,7 @@ class AsyncMetagraphMixin(ABC):
         """
         if lite:
             self.neurons = await subtensor.neurons_lite(block=block, netuid=self.netuid)
+
         else:
             self.neurons = await subtensor.neurons(block=block, netuid=self.netuid)
         self.lite = lite
@@ -1127,6 +1130,7 @@ class AsyncTorchMetaGraph(AsyncMetagraphMixin, BaseClass):
             torch.tensor([], dtype=torch.int64), requires_grad=False
         )
         self.axons: list[AxonInfo] = []
+        self.neurons = []
         self.subtensor = subtensor
         self.should_sync = sync
 
@@ -1330,6 +1334,7 @@ class AsyncNonTorchMetagraph(AsyncMetagraphMixin):
         self.bonds = np.array([], dtype=np.int64)
         self.uids = np.array([], dtype=np.int64)
         self.axons: list[AxonInfo] = []
+        self.neurons = []
         self.subtensor = subtensor
         self.should_sync = sync
 
