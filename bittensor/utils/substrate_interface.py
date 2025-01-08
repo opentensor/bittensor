@@ -3681,7 +3681,7 @@ class AsyncSubstrateInterface:
                     except Exception as _:
                         if not ignore_decoding_errors:
                             raise
-                        item_value = []
+                        item_value = None
 
                     result.append([item_key, item_value])
 
