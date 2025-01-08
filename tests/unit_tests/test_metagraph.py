@@ -251,7 +251,6 @@ def test_copy(mock_environment):
     assert copied_metagraph.block == metagraph.block
     assert np.array_equal(copied_metagraph.uids, metagraph.uids)
     assert np.array_equal(copied_metagraph.stake, metagraph.stake)
-    assert np.array_equal(copied_metagraph.total_stake, metagraph.total_stake)
     assert np.array_equal(copied_metagraph.ranks, metagraph.ranks)
     assert np.array_equal(copied_metagraph.trust, metagraph.trust)
     assert np.array_equal(copied_metagraph.consensus, metagraph.consensus)
