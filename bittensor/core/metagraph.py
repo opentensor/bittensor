@@ -26,6 +26,7 @@ from bittensor.utils import execute_coroutine
 if typing.TYPE_CHECKING:
     from bittensor.core.subtensor import Subtensor
     from bittensor.core.async_subtensor import AsyncSubtensor
+    from bittensor.core.chain_data import NeuronInfo, NeuronInfoLite
 
 
 METAGRAPH_STATE_DICT_NDARRAY_KEYS = [
@@ -70,22 +71,25 @@ ndarray objects. Each key corresponds to a specific attribute or metric associat
 """
 
 
-def get_save_dir(network: str, netuid: int) -> str:
+def get_save_dir(
+    network: str, netuid: int, root_dir: Optional[list[str]] = None
+) -> str:
     """
     Returns a directory path given ``network`` and ``netuid`` inputs.
 
     Args:
         network (str): Network name.
         netuid (int): Network UID.
+        root_dir: list to the file path for the root directory of your metagraph saves (i.e. ['/', 'tmp', 'metagraphs'],
+            defaults to ["~", ".bittensor", "metagraphs"]
 
     Returns:
         str: Directory path.
     """
+    _root_dir = root_dir or ["~", ".bittensor", "metagraphs"]
     return os.path.expanduser(
         os.path.join(
-            "~",
-            ".bittensor",
-            "metagraphs",
+            *_root_dir,
             f"network-{str(network)}",
             f"netuid-{str(netuid)}",
         )
@@ -209,6 +213,7 @@ class AsyncMetagraphMixin(ABC):
     network: str
     version: Union["torch.nn.Parameter", tuple[NDArray]]
     n: Union["torch.nn.Parameter", NDArray]
+    neurons: list[Union["NeuronInfo", "NeuronInfoLite"]]
     block: Union["torch.nn.Parameter", NDArray]
     stake: Union["torch.nn.Parameter", NDArray]
     total_stake: Union["torch.nn.Parameter", NDArray]
@@ -613,7 +618,6 @@ class AsyncMetagraphMixin(ABC):
 
                 metagraph.sync(block=history_block, lite=False, subtensor=subtensor)
         """
-
         # Initialize subtensor
         subtensor = self._initialize_subtensor(subtensor)
 
@@ -703,6 +707,7 @@ class AsyncMetagraphMixin(ABC):
         """
         if lite:
             self.neurons = await subtensor.neurons_lite(block=block, netuid=self.netuid)
+
         else:
             self.neurons = await subtensor.neurons(block=block, netuid=self.netuid)
         self.lite = lite
@@ -890,14 +895,18 @@ class AsyncMetagraphMixin(ABC):
             )
         return tensor_param
 
-    def save(self) -> "AsyncMetagraph":
+    def save(self, root_dir: Optional[list[str]] = None) -> "AsyncMetagraph":
         """
         Saves the current state of the metagraph to a file on disk. This function is crucial for persisting the current
-        state of the network's metagraph, which can later be reloaded or analyzed. The save operation includes all
-        neuron attributes and parameters, ensuring a complete snapshot of the metagraph's state.
+            state of the network's metagraph, which can later be reloaded or analyzed. The save operation includes all
+            neuron attributes and parameters, ensuring a complete snapshot of the metagraph's state.
+
+        Args:
+            root_dir: list to the file path for the root directory of your metagraph saves
+                (i.e. ['/', 'tmp', 'metagraphs'], defaults to ["~", ".bittensor", "metagraphs"]
 
         Returns:
-            metagraph (bittensor.core.metagraph.AsyncMetagraph): The metagraph instance after saving its state.
+            metagraph (bittensor.core.metagraph.Metagraph): The metagraph instance after saving its state.
 
         Example:
             Save the current state of the metagraph to the default directory::
@@ -914,7 +923,7 @@ class AsyncMetagraphMixin(ABC):
 
                 metagraph.load_from_path(dir_path)
         """
-        save_directory = get_save_dir(self.network, self.netuid)
+        save_directory = get_save_dir(self.network, self.netuid, root_dir=root_dir)
         os.makedirs(save_directory, exist_ok=True)
         if use_torch():
             graph_filename = f"{save_directory}/block-{self.block.item()}.pt"
@@ -930,39 +939,34 @@ class AsyncMetagraphMixin(ABC):
                 pickle.dump(state_dict, graph_file)
         return self
 
-    def load(self):
+    def load(self, root_dir: Optional[list[str]] = None) -> None:
         """
-        Loads the state of the metagraph from the default save directory. This method is instrumental for restoring the
-        metagraph to its last saved state. It automatically identifies the save directory based on the ``network`` and
-        ``netuid`` properties of the metagraph, locates the latest block file in that directory, and loads all metagraph
-        parameters from it.
+        Loads the state of the metagraph from the default save directory. This method is instrumental for restoring the metagraph to its last saved state. It automatically identifies the save directory based on the ``network`` and ``netuid`` properties of the metagraph, locates the latest block file in that directory, and loads all metagraph parameters from it.
 
         This functionality is particularly beneficial when continuity in the state of the metagraph is necessary
         across different runtime sessions, or after a restart of the system. It ensures that the metagraph reflects
         the exact state it was in at the last save point, maintaining consistency in the network's representation.
 
-        The method delegates to ``load_from_path``, supplying it with the directory path constructed from the
-        metagraph's current ``network`` and ``netuid`` properties. This abstraction simplifies the process of loading
-        the metagraph's state for the user, requiring no direct path specifications.
+        The method delegates to ``load_from_path``, supplying it with the directory path constructed from the metagraph's current ``network`` and ``netuid`` properties. This abstraction simplifies the process of loading the metagraph's state for the user, requiring no direct path specifications.
+
+        Args:
+            root_dir: list to the file path for the root directory of your metagraph saves
+                (i.e. ['/', 'tmp', 'metagraphs'], defaults to ["~", ".bittensor", "metagraphs"]
 
         Returns:
-            metagraph (bittensor.core.metagraph.AsyncMetagraph): The metagraph instance after loading its state from the
-                default directory.
+            metagraph (bittensor.core.metagraph.Metagraph): The metagraph instance after loading its state from the default directory.
 
         Example:
             Load the metagraph state from the last saved snapshot in the default directory::
 
                 metagraph.load()
 
-            After this operation, the metagraph's parameters and neuron data are restored to their state at the time of
-            the last save in the default directory.
+            After this operation, the metagraph's parameters and neuron data are restored to their state at the time of the last save in the default directory.
 
         Note:
-            The default save directory is determined based on the metagraph's ``network`` and ``netuid`` attributes.
-            It is important to ensure that these attributes are set correctly and that the default save directory
-            contains the appropriate state files for the metagraph.
+            The default save directory is determined based on the metagraph's ``network`` and ``netuid`` attributes. It is important to ensure that these attributes are set correctly and that the default save directory contains the appropriate state files for the metagraph.
         """
-        self.load_from_path(get_save_dir(self.network, self.netuid))
+        self.load_from_path(get_save_dir(self.network, self.netuid, root_dir=root_dir))
 
     @abstractmethod
     def load_from_path(self, dir_path: str) -> "AsyncMetagraph":
@@ -1126,6 +1130,7 @@ class AsyncTorchMetaGraph(AsyncMetagraphMixin, BaseClass):
             torch.tensor([], dtype=torch.int64), requires_grad=False
         )
         self.axons: list[AxonInfo] = []
+        self.neurons = []
         self.subtensor = subtensor
         self.should_sync = sync
 
@@ -1329,6 +1334,7 @@ class AsyncNonTorchMetagraph(AsyncMetagraphMixin):
         self.bonds = np.array([], dtype=np.int64)
         self.uids = np.array([], dtype=np.int64)
         self.axons: list[AxonInfo] = []
+        self.neurons = []
         self.subtensor = subtensor
         self.should_sync = sync
 
@@ -1497,15 +1503,14 @@ class Metagraph(AsyncMetagraph):
         sync: bool = True,
         subtensor: "Subtensor" = None,
     ):
+        self.subtensor: Optional["Subtensor"] = subtensor
         self._async_metagraph = AsyncMetagraph(
             netuid=netuid,
             network=network,
             lite=lite,
             sync=sync,
-            subtensor=subtensor,
+            subtensor=subtensor.async_subtensor if subtensor else None,
         )
-        if sync:
-            self.sync(block=None, lite=lite, subtensor=subtensor)
 
     def sync(
         self,
@@ -1514,13 +1519,19 @@ class Metagraph(AsyncMetagraph):
         subtensor: Optional["Subtensor"] = None,
     ):
         """Synchronizes the metagraph to the specified block, lite, and subtensor instance if available."""
+        if subtensor:
+            event_loop = subtensor.event_loop
+        elif self.subtensor:
+            event_loop = self.subtensor.event_loop
+        else:
+            event_loop = None
         execute_coroutine(
-            coroutine=self._async_metagraph.sync(
+            self._async_metagraph.sync(
                 block=block,
                 lite=lite,
                 subtensor=subtensor.async_subtensor if subtensor else None,
             ),
-            event_loop=subtensor.event_loop if subtensor else None,
+            event_loop=event_loop,
         )
 
     def __getattr__(self, name):
@@ -1529,7 +1540,12 @@ class Metagraph(AsyncMetagraph):
             if asyncio.iscoroutinefunction(attr):
 
                 def wrapper(*args, **kwargs):
-                    return execute_coroutine(attr(*args, **kwargs))
+                    return execute_coroutine(
+                        attr(*args, **kwargs),
+                        event_loop=self.subtensor.event_loop
+                        if self.subtensor
+                        else None,
+                    )
 
                 return wrapper
         return attr

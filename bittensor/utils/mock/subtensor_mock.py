@@ -20,7 +20,7 @@ from dataclasses import dataclass
 from hashlib import sha256
 from types import SimpleNamespace
 from typing import Any, Optional, Union, TypedDict
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, AsyncMock
 
 from bittensor_wallet import Wallet
 
@@ -34,8 +34,9 @@ from bittensor.utils.substrate_interface import SubstrateInterface
 from bittensor.core.types import AxonServeCallParams, PrometheusServeCallParams
 from bittensor.core.errors import ChainQueryError
 from bittensor.core.subtensor import Subtensor
+from bittensor.core.async_subtensor import AsyncSubtensor
 import bittensor.core.subtensor as subtensor_module
-from bittensor.utils import RAOPERTAO, u16_normalized_float
+from bittensor.utils import RAOPERTAO, u16_normalized_float, get_event_loop
 from bittensor.utils.balance import Balance
 
 # Mock Testing Constant
@@ -167,6 +168,21 @@ class MockChainState(TypedDict):
     SubtensorModule: MockSubtensorState
 
 
+class ReusableCoroutine:
+    def __init__(self, coroutine):
+        self.coroutine = coroutine
+
+    def __await__(self):
+        return self.reset().__await__()
+
+    def reset(self):
+        return self.coroutine()
+
+
+async def _async_block():
+    return 1
+
+
 class MockSubtensor(Subtensor):
     """
     A Mock Subtensor class for running tests.
@@ -251,6 +267,9 @@ class MockSubtensor(Subtensor):
             self.network = "mock"
             self.chain_endpoint = "ws://mock_endpoint.bt"
             self.substrate = MagicMock(autospec=SubstrateInterface)
+            self.async_subtensor = AsyncMock(autospec=AsyncSubtensor)
+            self.async_subtensor.block = ReusableCoroutine(_async_block)
+            self.event_loop = get_event_loop()
 
     def __init__(self, *args, **kwargs) -> None:
         mock_substrate_interface = MagicMock(autospec=SubstrateInterface)

@@ -1,5 +1,6 @@
 import asyncio
 import copy
+from functools import partial
 from unittest.mock import Mock
 
 import numpy as np
@@ -8,6 +9,7 @@ import pytest
 from bittensor.core import settings
 from bittensor.core.metagraph import Metagraph
 from bittensor.core.subtensor import Subtensor
+from bittensor.utils import execute_coroutine
 
 
 @pytest.fixture
@@ -120,7 +122,10 @@ def mock_subtensor(mocker):
     subtensor.async_subtensor = mocker.AsyncMock(
         get_current_block=mocker.AsyncMock(return_value=601)
     )
-    subtensor.event_loop = asyncio.get_event_loop()
+    subtensor.event_loop = asyncio.new_event_loop()
+    subtensor.execute_coroutine = partial(
+        execute_coroutine, event_loop=subtensor.event_loop
+    )
     return subtensor
 
 
