@@ -194,7 +194,6 @@ def test_deepcopy(mock_environment):
     assert copied_metagraph.block == metagraph.block
     assert np.array_equal(copied_metagraph.uids, metagraph.uids)
     assert np.array_equal(copied_metagraph.stake, metagraph.stake)
-    assert np.array_equal(copied_metagraph.total_stake, metagraph.total_stake)
     assert np.array_equal(copied_metagraph.ranks, metagraph.ranks)
     assert np.array_equal(copied_metagraph.trust, metagraph.trust)
     assert np.array_equal(copied_metagraph.consensus, metagraph.consensus)
@@ -224,8 +223,9 @@ def test_deepcopy(mock_environment):
         assert original_neuron.last_update == copied_neuron.last_update
         assert original_neuron.validator_permit == copied_neuron.validator_permit
         assert original_neuron.validator_trust == copied_neuron.validator_trust
-        assert original_neuron.total_stake.tao == copied_neuron.total_stake.tao
         assert original_neuron.stake == copied_neuron.stake
+        assert original_neuron.alpha_stake == copied_neuron.alpha_stake
+        assert original_neuron.tao_stake == copied_neuron.tao_stake
         assert original_neuron.axon_info == copied_neuron.axon_info
         assert original_neuron.weights == copied_neuron.weights
         assert original_neuron.bonds == copied_neuron.bonds
