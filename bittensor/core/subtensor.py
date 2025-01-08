@@ -361,7 +361,7 @@ class Subtensor:
 
     def get_subnet_reveal_period_epochs(
         self, netuid: int, block: Optional[int] = None
-    ) -> Optional[int]:
+    ) -> int:
         return self.execute_coroutine(
             self.async_subtensor.get_subnet_reveal_period_epochs(
                 netuid=netuid, block=block
