@@ -6,7 +6,7 @@ Bittensor blockchain, facilitating a range of operations essential for the decen
 import argparse
 import copy
 import ssl
-from typing import Union, Optional, TypedDict, Any
+from typing import Union, Optional, Any
 
 import numpy as np
 import scalecodec
@@ -64,6 +64,7 @@ from bittensor.core.extrinsics.unstaking import (
     unstake_multiple_extrinsic,
 )
 from bittensor.core.metagraph import Metagraph
+from bittensor.core.types import ParamWithTypes
 from bittensor.utils import (
     networking,
     torch,
@@ -78,11 +79,6 @@ from bittensor.utils.registration import legacy_torch_api_compat
 from bittensor.utils.weight_utils import generate_weight_hash
 
 KEY_NONCE: dict[str, int] = {}
-
-
-class ParamWithTypes(TypedDict):
-    name: str  # Name of the parameter.
-    type: str  # ScaleType string of the parameter.
 
 
 class Subtensor:

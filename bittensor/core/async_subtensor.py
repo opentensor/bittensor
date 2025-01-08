@@ -3,7 +3,7 @@ import asyncio
 import copy
 from itertools import chain
 import ssl
-from typing import Optional, Any, Union, TypedDict, Iterable, TYPE_CHECKING
+from typing import Optional, Any, Union, Iterable, TYPE_CHECKING
 
 import aiohttp
 import asyncstdlib as a
@@ -60,6 +60,7 @@ from bittensor.core.extrinsics.asyncex.weights import (
     reveal_weights_extrinsic,
 )
 from bittensor.core.metagraph import AsyncMetagraph
+from bittensor.core.types import ParamWithTypes
 from bittensor.core.settings import version_as_int, TYPE_REGISTRY, DELEGATES_DETAILS_URL
 from bittensor.utils import (
     decode_hex_identity_dict,
@@ -68,6 +69,7 @@ from bittensor.utils import (
     ss58_to_vec_u8,
     torch,
     u16_normalized_float,
+    execute_coroutine,
 )
 from bittensor.utils import networking
 from bittensor.utils.substrate_interface import AsyncSubstrateInterface
@@ -83,11 +85,6 @@ if TYPE_CHECKING:
     from bittensor.core.axon import Axon
     from bittensor.utils import Certificate
     from bittensor.utils.substrate_interface import QueryMapResult
-
-
-class ParamWithTypes(TypedDict):
-    name: str  # Name of the parameter.
-    type: str  # ScaleType string of the parameter.
 
 
 def _decode_hex_identity_dict(info_dictionary: dict[str, Any]) -> dict[str, Any]:
@@ -123,6 +120,7 @@ class AsyncSubtensor:
         self,
         network: Optional[str] = None,
         config: Optional["Config"] = None,
+        _mock: bool = False,
         log_verbose: bool = False,
         event_loop: asyncio.AbstractEventLoop = None,
     ):
@@ -132,6 +130,7 @@ class AsyncSubtensor:
         Arguments:
             network (str): The network name or type to connect to.
             config (Optional[Config]): Configuration object for the AsyncSubtensor instance.
+            _mock: Whether this is a mock instance. Mainly just for use in testing.
             log_verbose (bool): Enables or disables verbose logging.
             event_loop (Optional[asyncio.AbstractEventLoop]): Custom asyncio event loop.
 
@@ -144,6 +143,7 @@ class AsyncSubtensor:
         self.chain_endpoint, self.network = AsyncSubtensor.setup_config(
             network, self._config
         )
+        self._mock = _mock
 
         self.log_verbose = log_verbose
         self._check_and_log_network_settings()
@@ -158,6 +158,7 @@ class AsyncSubtensor:
             use_remote_preset=True,
             chain_name="Bittensor",
             event_loop=event_loop,
+            _mock=_mock,
         )
         if self.log_verbose:
             logging.info(
@@ -169,6 +170,9 @@ class AsyncSubtensor:
 
     def __repr__(self):
         return self.__str__()
+
+    def __del__(self):
+        execute_coroutine(self.close())
 
     def _check_and_log_network_settings(self):
         if self.network == settings.NETWORKS[3]:  # local
@@ -439,7 +443,9 @@ class AsyncSubtensor:
             The value of the specified hyperparameter if the subnet exists, or None
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
-        if not await self.subnet_exists(netuid, block_hash, reuse_block=reuse_block):
+        if not await self.subnet_exists(
+            netuid, block_hash=block_hash, reuse_block=reuse_block
+        ):
             logging.error(f"subnet {netuid} does not exist")
             return None
 
@@ -797,7 +803,7 @@ class AsyncSubtensor:
 
         return b_map
 
-    async def commit(self, wallet: "Wallet", netuid: int, data: str):
+    async def commit(self, wallet: "Wallet", netuid: int, data: str) -> bool:
         """
         Commits arbitrary data to the Bittensor network by publishing metadata.
 
@@ -806,7 +812,7 @@ class AsyncSubtensor:
             netuid (int): The unique identifier of the subnetwork.
             data (str): The data to be committed to the network.
         """
-        await publish_metadata(
+        return await publish_metadata(
             subtensor=self,
             wallet=wallet,
             netuid=netuid,
@@ -1042,7 +1048,7 @@ class AsyncSubtensor:
             trustworthiness of the blockchain.
         """
         if block:
-            return await self.substrate.get_block_hash(block)
+            return await self._get_block_hash(block)
         else:
             return await self.substrate.get_chain_head()
 
@@ -2977,7 +2983,7 @@ class AsyncSubtensor:
         try:
             recycle_call, balance = await asyncio.gather(
                 self.get_hyperparameter(
-                    param_name="Burn", netuid=netuid, reuse_block=True
+                    param_name="Burn", netuid=netuid, block_hash=block_hash
                 ),
                 self.get_balance(wallet.coldkeypub.ss58_address, block_hash=block_hash),
             )
@@ -3071,6 +3077,14 @@ class AsyncSubtensor:
 
         This function is crucial in shaping the network's collective intelligence, where each neuron's learning and contribution are influenced by the weights it sets towards others【81†source】.
         """
+
+        async def _blocks_weight_limit() -> bool:
+            bslu, wrl = await asyncio.gather(
+                self.blocks_since_last_update(netuid, uid),
+                self.weights_rate_limit(netuid),
+            )
+            return bslu > wrl
+
         retries = 0
         success = False
         if (
@@ -3087,10 +3101,9 @@ class AsyncSubtensor:
             # go with `commit reveal v3` extrinsic
             message = "No attempt made. Perhaps it is too soon to commit weights!"
             while (
-                await self.blocks_since_last_update(netuid, uid)
-                > await self.weights_rate_limit(netuid)
-                and retries < max_retries
+                retries < max_retries
                 and success is False
+                and await _blocks_weight_limit()
             ):
                 logging.info(
                     f"Committing weights for subnet #{netuid}. Attempt {retries + 1} of {max_retries}."
@@ -3112,9 +3125,8 @@ class AsyncSubtensor:
             message = "No attempt made. Perhaps it is too soon to set weights!"
             while (
                 retries < max_retries
-                and await self.blocks_since_last_update(netuid, uid)
-                > await self.weights_rate_limit(netuid)
                 and success is False
+                and await _blocks_weight_limit()
             ):
                 try:
                     logging.info(

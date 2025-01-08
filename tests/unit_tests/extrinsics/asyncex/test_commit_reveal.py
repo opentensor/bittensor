@@ -191,7 +191,9 @@ async def test_commit_reveal_v3_extrinsic_success_with_torch(
         async_commit_reveal, "_do_commit_reveal_v3", return_value=(True, "Success")
     )
     mock_block = mocker.patch.object(
-        subtensor.substrate, "get_block_number", return_value=1
+        subtensor.substrate,
+        "get_block",
+        return_value={"header": {"number": 1, "hash": "fakehash"}},
     )
     mock_hyperparams = mocker.patch.object(
         subtensor,
@@ -223,7 +225,7 @@ async def test_commit_reveal_v3_extrinsic_success_with_torch(
         version_key=async_commit_reveal.version_as_int,
         tempo=mock_hyperparams.return_value.tempo,
         netuid=fake_netuid,
-        current_block=mock_block.return_value,
+        current_block=mock_block.return_value["header"]["number"],
     )
     mock_do_commit_reveal_v3.assert_awaited_once_with(
         subtensor=subtensor,

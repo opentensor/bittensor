@@ -37,7 +37,6 @@ def sudo_set_hyperparameter_bool(
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
-    response.process_events()
     return response.is_success
 
 
@@ -62,7 +61,6 @@ def sudo_set_hyperparameter_values(
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
-    response.process_events()
 
     if return_error_message:
         return response.is_success, response.error_message
@@ -87,7 +85,6 @@ def add_stake(
     response = substrate.submit_extrinsic(
         extrinsic, wait_for_finalization=True, wait_for_inclusion=True
     )
-    response.process_events()
     return response.is_success
 
 
@@ -106,7 +103,6 @@ def register_subnet(substrate: "SubstrateInterface", wallet: "Wallet") -> bool:
     response = substrate.submit_extrinsic(
         extrinsic, wait_for_finalization=True, wait_for_inclusion=True
     )
-    response.process_events()
     return response.is_success
 
 
@@ -216,7 +212,6 @@ def sudo_set_admin_utils(
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
-    response.process_events()
 
     if return_error_message:
         return response.is_success, response.error_message
@@ -246,7 +241,6 @@ async def root_set_subtensor_hyperparameter_values(
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
-    response.process_events()
 
     if return_error_message:
         return response.is_success, response.error_message

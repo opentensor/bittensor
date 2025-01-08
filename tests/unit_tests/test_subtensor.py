@@ -11,7 +11,7 @@ def test_methods_comparable(mocker):
     subtensor = Subtensor()
 
     # methods which lives in sync subtensor only
-    excluded_subtensor_methods = ["async_subtensor", "event_loop"]
+    excluded_subtensor_methods = ["async_subtensor", "event_loop", "execute_coroutine"]
     # methods which lives in async subtensor only
     excluded_async_subtensor_methods = [
         "determine_block_hash",
