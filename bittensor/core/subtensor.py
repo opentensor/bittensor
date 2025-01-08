@@ -375,21 +375,19 @@ class Subtensor:
 
     def get_total_stake_for_coldkey(
         self, ss58_address: str, block: Optional[int] = None
-    ) -> Optional["Balance"]:
+    ) -> "Balance":
         result = self.execute_coroutine(
             self.async_subtensor.get_total_stake_for_coldkey(ss58_address, block=block),
         )
-        return next(iter(result.values()), None) if isinstance(result, dict) else None
+        return result
 
     def get_total_stake_for_hotkey(
         self, ss58_address: str, block: Optional[int] = None
-    ) -> Optional["Balance"]:
+    ) -> "Balance":
         result = self.execute_coroutine(
-            self.async_subtensor.get_total_stake_for_hotkey(
-                *[ss58_address], block=block
-            ),
+            self.async_subtensor.get_total_stake_for_hotkey(ss58_address, block=block),
         )
-        return next(iter(result.values()), None) if isinstance(result, dict) else None
+        return result
 
     def get_total_subnets(self, block: Optional[int] = None) -> Optional[int]:
         return self.execute_coroutine(
