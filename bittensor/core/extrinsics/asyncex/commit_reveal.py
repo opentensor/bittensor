@@ -100,8 +100,8 @@ async def commit_reveal_v3_extrinsic(
         wait_for_finalization: Whether to wait for the finalization of the transaction. Default is False.
 
     Returns:
-        A tuple where the first element is a boolean indicating success or failure, and the second element is a message
-            associated with the result.
+        tuple[bool, str]: A tuple where the first element is a boolean indicating success or failure, and the second
+            element is a message associated with the result
     """
     try:
         # Convert uids and weights
@@ -113,9 +113,9 @@ async def commit_reveal_v3_extrinsic(
         # Reformat and normalize.
         uids, weights = convert_weights_and_uids_for_emit(uids, weights)
 
-        current_block = await subtensor.get_current_block()
+        current_block = await subtensor.substrate.get_block(None)
         subnet_hyperparameters = await subtensor.get_subnet_hyperparameters(
-            netuid, block=current_block
+            netuid, block_hash=current_block["header"]["hash"]
         )
         tempo = subnet_hyperparameters.tempo
         subnet_reveal_period_epochs = (
@@ -128,7 +128,7 @@ async def commit_reveal_v3_extrinsic(
             weights=weights,
             version_key=version_key,
             tempo=tempo,
-            current_block=current_block,
+            current_block=current_block["header"]["number"],
             netuid=netuid,
             subnet_reveal_period_epochs=subnet_reveal_period_epochs,
         )

@@ -1,4 +1,5 @@
 import re
+import time
 
 import numpy as np
 import pytest
@@ -192,8 +193,11 @@ async def test_commit_and_reveal_weights_cr3(local_chain):
     )
 
     # Fetch weights on the chain as they should be revealed now
-    revealed_weights = subtensor.weights(netuid=netuid)[0][1]
+    revealed_weights_ = subtensor.weights(netuid=netuid)
 
+    time.sleep(10)
+    print("revealed weights", revealed_weights_)
+    revealed_weights = revealed_weights_[0][1]
     # Assert correct weights were revealed
     assert weight_uids[0] == revealed_weights[0][0]
     assert weight_vals[0] == revealed_weights[0][1]

@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import Any, Optional
 
 
+# TODO: consider move it to `bittensor.core.chain_data`
 @dataclass
 class DelegatesDetails:
     display: str

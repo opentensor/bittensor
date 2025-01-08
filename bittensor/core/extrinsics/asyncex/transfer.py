@@ -59,12 +59,8 @@ async def _do_transfer(
     if await response.is_success:
         block_hash_ = response.block_hash
         return True, block_hash_, "Success with response."
-    else:
-        return (
-            False,
-            "",
-            format_error_message(await response.error_message),
-        )
+
+    return False, "", format_error_message(await response.error_message)
 
 
 async def transfer_extrinsic(
