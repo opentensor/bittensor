@@ -215,7 +215,7 @@ class MetagraphMixin(ABC):
     subtensor: Optional["Subtensor"]
 
     @property
-    def Ts(self) -> list["Balance"]:
+    def TS(self) -> list["Balance"]:
         """
         Represents the tao stake of each neuron in the Bittensor network.
 
@@ -606,7 +606,7 @@ class MetagraphMixin(ABC):
         # Fills in the stake associated attributes of a class instance from a chain response.
         self._get_all_stakes_from_chain(subtensor=subtensor)
 
-    def _initialize_subtensor(self, subtensor: "Subtensor"):
+    def _initialize_subtensor(self, subtensor: Optional["Subtensor"] = None) -> "Subtensor":
         """
         Initializes the subtensor to be used for syncing the metagraph.
 
@@ -781,9 +781,12 @@ class MetagraphMixin(ABC):
     def _set_metagraph_attributes(self, block, subtensor):
         pass
 
-    def _get_all_stakes_from_chain(self, subtensor: "Subtensor"):
+    def _get_all_stakes_from_chain(self, subtensor: Optional["Subtensor"] = None):
         """Fills in the stake associated attributes of a class instance from a chain response."""
         try:
+            if not subtensor:
+                subtensor = self._initialize_subtensor()
+
             hex_bytes_result = subtensor.query_runtime_api(
                 runtime_api="SubnetInfoRuntimeApi",
                 method="get_subnet_state",
@@ -802,9 +805,14 @@ class MetagraphMixin(ABC):
                 bytes_result = bytes.fromhex(hex_bytes_result)
 
             subnet_state: "SubnetState" = SubnetState.from_vec_u8(bytes_result)
+            if self.netuid == 0:
+                self.total_stake = self.stake = self.tao_stake = self.alpha_stake = subnet_state.tao_stake
+                return subnet_state
+
             self.alpha_stake = subnet_state.alpha_stake
-            self.tao_stake = subnet_state.tao_stake
-            self.stake = subnet_state.total_stake
+            self.tao_stake = [b * 0.018 for b in subnet_state.tao_stake]
+            self.total_stake = self.stake = subnet_state.total_stake
+            return subnet_state
 
         except (SubstrateRequestException, AttributeError) as e:
             logging.debug(e)
@@ -1073,6 +1081,8 @@ class TorchMetaGraph(MetagraphMixin, BaseClass):
         self.tao_stake: list["Balance"] = []
         self.stake: list["Balance"] = []
         self.axons: list["AxonInfo"] = []
+        self.total_stake: list["Balance"] = []
+
         self.subtensor = subtensor
         if sync:
             self.sync(block=None, lite=lite, subtensor=subtensor)
@@ -1261,7 +1271,10 @@ class NonTorchMetagraph(MetagraphMixin):
         self.tao_stake: list["Balance"] = []
         self.stake: list["Balance"] = []
         self.axons: list["AxonInfo"] = []
+        self.total_stake: list["Balance"] = []
+
         self.subtensor = subtensor
+
         if sync:
             self.sync(block=None, lite=lite, subtensor=subtensor)
 
