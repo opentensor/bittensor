@@ -892,7 +892,7 @@ class AsyncMetagraphMixin(ABC):
             )
         return tensor_param
 
-    def save(self, root_dir: Optional[list[str]]) -> "AsyncMetagraph":
+    def save(self, root_dir: Optional[list[str]] = None) -> "AsyncMetagraph":
         """
         Saves the current state of the metagraph to a file on disk. This function is crucial for persisting the current
             state of the network's metagraph, which can later be reloaded or analyzed. The save operation includes all
@@ -936,7 +936,7 @@ class AsyncMetagraphMixin(ABC):
                 pickle.dump(state_dict, graph_file)
         return self
 
-    def load(self, root_dir: Optional[list[str]]) -> None:
+    def load(self, root_dir: Optional[list[str]] = None) -> None:
         """
         Loads the state of the metagraph from the default save directory. This method is instrumental for restoring the metagraph to its last saved state. It automatically identifies the save directory based on the ``network`` and ``netuid`` properties of the metagraph, locates the latest block file in that directory, and loads all metagraph parameters from it.
 
@@ -1498,15 +1498,14 @@ class Metagraph(AsyncMetagraph):
         sync: bool = True,
         subtensor: "Subtensor" = None,
     ):
+        self.subtensor: Optional["Subtensor"] = subtensor
         self._async_metagraph = AsyncMetagraph(
             netuid=netuid,
             network=network,
             lite=lite,
             sync=sync,
-            subtensor=subtensor,
+            subtensor=subtensor.async_subtensor if subtensor else None,
         )
-        if sync:
-            self.sync(block=None, lite=lite, subtensor=subtensor)
 
     def sync(
         self,
@@ -1515,12 +1514,19 @@ class Metagraph(AsyncMetagraph):
         subtensor: Optional["Subtensor"] = None,
     ):
         """Synchronizes the metagraph to the specified block, lite, and subtensor instance if available."""
-        subtensor.execute_coroutine(
+        if subtensor:
+            event_loop = subtensor.event_loop
+        elif self.subtensor:
+            event_loop = self.subtensor.event_loop
+        else:
+            event_loop = None
+        execute_coroutine(
             self._async_metagraph.sync(
                 block=block,
                 lite=lite,
                 subtensor=subtensor.async_subtensor if subtensor else None,
-            )
+            ),
+            event_loop=event_loop,
         )
 
     def __getattr__(self, name):
@@ -1529,7 +1535,12 @@ class Metagraph(AsyncMetagraph):
             if asyncio.iscoroutinefunction(attr):
 
                 def wrapper(*args, **kwargs):
-                    return execute_coroutine(attr(*args, **kwargs))
+                    return execute_coroutine(
+                        attr(*args, **kwargs),
+                        event_loop=self.subtensor.event_loop
+                        if self.subtensor
+                        else None,
+                    )
 
                 return wrapper
         return attr

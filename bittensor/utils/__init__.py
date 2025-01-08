@@ -58,11 +58,7 @@ def event_loop_is_running() -> Optional[asyncio.AbstractEventLoop]:
     Simple function to check if event loop is running. Returns the loop if it is, otherwise None.
     """
     try:
-        loop = asyncio.get_running_loop()
-        if loop.is_running():
-            return loop
-        else:
-            return None
+        return asyncio.get_running_loop()
     except RuntimeError:
         return None
 
@@ -429,8 +425,8 @@ def get_event_loop() -> asyncio.AbstractEventLoop:
     if loop := event_loop_is_running():
         event_loop = loop
     else:
-        event_loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(event_loop)  # TODO not sure if we should do this
+        event_loop = asyncio.get_event_loop()
+        asyncio.set_event_loop(event_loop)
     return event_loop
 
 
@@ -452,4 +448,4 @@ def execute_coroutine(
         event_loop = event_loop
     else:
         event_loop = get_event_loop()
-    return event_loop.run_until_complete(coroutine)
+    return event_loop.run_until_complete(asyncio.wait_for(coroutine, timeout=None))

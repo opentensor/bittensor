@@ -761,7 +761,6 @@ class AsyncSubtensor:
         Returns:
             Optional[int]: The number of blocks since the last update, or ``None`` if the subnetwork or UID does not exist.
         """
-        print("called 764")
         call = await self.get_hyperparameter(param_name="LastUpdate", netuid=netuid)
         return None if call is None else await self.get_current_block() - int(call[uid])
 
