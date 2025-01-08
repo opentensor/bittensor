@@ -806,11 +806,8 @@ class MetagraphMixin(ABC):
             self.tao_stake = subnet_state.tao_stake
             self.stake = subnet_state.total_stake
 
-        except (SubstrateRequestException, AttributeError):
-            logging.debug(
-                "Fields `alpha_stake`, `tao_stake`, `total_stake` can be obtained only from the RAO network."
-            )
-
+        except (SubstrateRequestException, AttributeError) as e:
+            logging.debug(e)
     def _process_root_weights(
         self, data: list, attribute: str, subtensor: "Subtensor"
     ) -> Union[NDArray, "torch.nn.Parameter"]:

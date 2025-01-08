@@ -42,7 +42,7 @@ class SubnetState:
     def from_vec_u8(cls, vec_u8: list[int]) -> Optional["SubnetState"]:
         if len(vec_u8) == 0:
             return None
-        decoded = from_scale_encoding(vec_u8, ChainDataType.SubnetState, is_option=True)
+        decoded = from_scale_encoding(vec_u8, ChainDataType.SubnetState)
         if decoded is None:
             return None
         return SubnetState.fix_decoded_values(decoded)

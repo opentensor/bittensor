@@ -15,7 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 from unittest.mock import Mock
 
 import numpy as np
@@ -47,6 +47,8 @@ def mock_environment():
             validator_trust=i + 0.6,
             total_stake=Mock(tao=i + 0.7),
             stake=i + 0.8,
+            alpha_stake=i + 0.9,
+            tao_stake=i + 1.0,
             axon_info=f"axon_info_{i}",
             weights=[(j, j + 0.1) for j in range(5)],
             bonds=[(j, j + 0.2) for j in range(5)],
@@ -143,6 +145,7 @@ def metagraph_instance():
     metagraph._assign_neurons = MagicMock()
     metagraph._set_metagraph_attributes = MagicMock()
     metagraph._set_weights_and_bonds = MagicMock()
+    metagraph._get_all_stakes_from_chain = MagicMock()
     return metagraph
 
 

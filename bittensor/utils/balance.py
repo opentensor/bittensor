@@ -266,3 +266,22 @@ class Balance:
             A Balance object representing the given amount.
         """
         return Balance(amount)
+
+    @staticmethod
+    def get_unit(netuid: int):
+        units = settings.units
+        base = len(units)
+        if netuid < base:
+            return units[netuid]
+        else:
+            result = ""
+            while netuid > 0:
+                result = units[netuid % base] + result
+                netuid //= base
+            return result
+
+    def set_unit(self, netuid: int):
+        self.unit = Balance.get_unit(netuid)
+        self.rao_unit = Balance.get_unit(netuid)
+        return self
+
