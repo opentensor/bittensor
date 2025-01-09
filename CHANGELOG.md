@@ -1,5 +1,10 @@
 # Changelog
 
+## 8.5.1rc3 /2025-01-09
+
+## What's Changed
+* Updates bittensor-cli to 8.2.0rc7
+
 ## 8.5.1rc2 /2025-01-09
 
 ## What's Changed
