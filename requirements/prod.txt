@@ -22,8 +22,8 @@ rich
 pydantic>=2.3, <3
 python-Levenshtein
 scalecodec==1.2.11
-substrate-interface~=1.7.9  # still needed for StorageKey in substrate_interface.py
 uvicorn
 websockets>=14.1
+xxhash
 bittensor-wallet>=2.1.3
 bittensor-commit-reveal>=0.1.0

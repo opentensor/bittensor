@@ -31,7 +31,6 @@ from scalecodec import GenericExtrinsic, ss58_encode, ss58_decode, is_valid_ss58
 from scalecodec.base import ScaleBytes, ScaleType, RuntimeConfigurationObject
 from scalecodec.type_registry import load_type_registry_preset
 from scalecodec.types import GenericCall, GenericRuntimeCallDefinition
-from substrateinterface.storage import StorageKey
 from websockets.asyncio.client import connect
 from websockets.exceptions import ConnectionClosed
 
@@ -43,6 +42,7 @@ from bittensor.core.errors import (
 from bittensor.utils import execute_coroutine
 from bittensor.utils import hex_to_bytes
 from bittensor.utils.btlogging import logging
+from bittensor.utils.substrate_utils.storage import StorageKey
 
 if TYPE_CHECKING:
     from websockets.asyncio.client import ClientConnection
