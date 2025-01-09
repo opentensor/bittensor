@@ -108,6 +108,6 @@ class TestMetagraph:
         metagraph.D
         metagraph.B
         metagraph.W
-        metagraph.Ts
+        metagraph.TS
         metagraph.AS
         metagraph.S
