@@ -61,7 +61,7 @@ class DendriteMixin:
     network requests and processing server responses.
 
     Args:
-        keypair (Option[Union[bittensor_wallet.Wallet, substrateinterface.Keypair]]): The wallet or keypair used for signing messages.
+        keypair (Option[Union[bittensor_wallet.Wallet, bittensor_wallet.Keypair]]): The wallet or keypair used for signing messages.
         external_ip (str): The external IP address of the local system.
         synapse_history (list): A list of Synapse objects representing the historical responses.
 
@@ -104,7 +104,7 @@ class DendriteMixin:
         Initializes the Dendrite object, setting up essential properties.
 
         Args:
-            wallet (Optional[Union[bittensor_wallet.Wallet, substrateinterface.Keypair]]): The user's wallet or keypair used for signing messages. Defaults to ``None``, in which case a new :func:`bittensor_wallet.Wallet().hotkey` is generated and used.
+            wallet (Optional[Union[bittensor_wallet.Wallet, bittensor_wallet..Keypair]]): The user's wallet or keypair used for signing messages. Defaults to ``None``, in which case a new :func:`bittensor_wallet.Wallet().hotkey` is generated and used.
         """
         # Initialize the parent class
         super(DendriteMixin, self).__init__()

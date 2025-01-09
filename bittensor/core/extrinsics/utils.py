@@ -9,8 +9,10 @@ from bittensor.utils.substrate_interface import SubstrateRequestException
 if TYPE_CHECKING:
     from bittensor.core.subtensor import Subtensor
     from bittensor.core.async_subtensor import AsyncSubtensor
-    from bittensor.utils.substrate_interface import AsyncExtrinsicReceipt
-    from substrateinterface import ExtrinsicReceipt
+    from bittensor.utils.substrate_interface import (
+        AsyncExtrinsicReceipt,
+        ExtrinsicReceipt,
+    )
     from scalecodec.types import GenericExtrinsic
 
 
