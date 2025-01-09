@@ -7,7 +7,7 @@ import argparse
 import copy
 import ssl
 from typing import Union, Optional, TypedDict, Any
-
+import warnings
 import numpy as np
 import scalecodec
 from bittensor_wallet import Wallet
@@ -1814,6 +1814,7 @@ class Subtensor:
 
         This function is crucial in shaping the network's collective intelligence, where each neuron's learning and contribution are influenced by the weights it sets towards others【81†source】.
         """
+
         retries = 0
         success = False
         uid = self.get_uid_for_hotkey_on_subnet(wallet.hotkey.ss58_address, netuid)
@@ -1897,6 +1898,12 @@ class Subtensor:
 
         This function plays a pivotal role in shaping the root network's collective intelligence and decision-making processes, reflecting the principles of decentralized governance and collaborative learning in Bittensor.
         """
+        warnings.simplefilter("default", DeprecationWarning)
+        warnings.warn(
+            "Setting root_weights is deprecated in the Rao network",
+            category=DeprecationWarning,
+            stacklevel=2,
+        )
         return set_root_weights_extrinsic(
             subtensor=self,
             wallet=wallet,
