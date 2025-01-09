@@ -5,8 +5,8 @@ from typing import Union, TYPE_CHECKING
 import numpy as np
 from bittensor_wallet import Wallet
 from numpy.typing import NDArray
-from substrateinterface.exceptions import SubstrateRequestException
 
+from bittensor.core.errors import SubstrateRequestException
 from bittensor.utils import u16_normalized_float, format_error_message, unlock_key
 from bittensor.utils.btlogging import logging
 from bittensor.utils.weight_utils import (

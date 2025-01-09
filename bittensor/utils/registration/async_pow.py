@@ -7,7 +7,7 @@ from queue import Empty
 from typing import Callable, Union, Optional, TYPE_CHECKING
 
 from retry import retry
-from substrateinterface.exceptions import SubstrateRequestException
+from bittensor.core.errors import SubstrateRequestException
 
 from bittensor.utils.registration.pow import (
     get_cpu_count,

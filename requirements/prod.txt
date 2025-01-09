@@ -3,6 +3,7 @@ setuptools~=70.0.0
 aiohttp~=3.9
 asyncstdlib~=3.13.0
 bittensor-cli
+base58
 bt-decode==0.4.0
 colorama~=0.4.6
 fastapi~=0.110.1
@@ -21,6 +22,7 @@ rich
 pydantic>=2.3, <3
 python-Levenshtein
 scalecodec==1.2.11
+substrate-interface~=1.7.9  # still needed for StorageKey in substrate_interface.py
 uvicorn
 websockets>=14.1
 bittensor-wallet>=2.1.3

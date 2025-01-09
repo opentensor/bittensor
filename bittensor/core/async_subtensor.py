@@ -14,7 +14,6 @@ from numpy.typing import NDArray
 from scalecodec import GenericCall, ScaleType
 from scalecodec.base import RuntimeConfiguration
 from scalecodec.type_registry import load_type_registry_preset
-from substrateinterface.exceptions import SubstrateRequestException
 
 from bittensor.core import settings
 from bittensor.core.chain_data import (
@@ -31,6 +30,7 @@ from bittensor.core.chain_data import (
 )
 
 from bittensor.core.config import Config
+from bittensor.core.errors import SubstrateRequestException
 from bittensor.core.extrinsics.asyncex.commit_reveal import commit_reveal_v3_extrinsic
 from bittensor.core.extrinsics.asyncex.registration import (
     burned_register_extrinsic,
