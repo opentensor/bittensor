@@ -41,18 +41,15 @@ class DelegateInfo:
 
         # Convert nominators to a list of (str, Balance)
         nominators = [
-            (decode_account_id(x), Balance.from_rao(y)) 
+            (decode_account_id(x), Balance.from_rao(y))
             for x, y in decoded.nominators
         ]
 
         total_stake = sum((x[1] for x in nominators)) if nominators else Balance(0)
 
-        # IMPORTANT: Decide if these are RAO-based or already in final units.
-        # If your chain data is NOT in raw RAO, remove `from_rao`:
-        return_per_1000_val = Balance.from_rao(decoded.return_per_1000)  
+        return_per_1000_val = Balance.from_rao(decoded.return_per_1000)
         total_daily_return_val = Balance.from_rao(decoded.total_daily_return)
 
-        # Convert registrations to int if needed
         registrations_val = [int(r) for r in decoded.registrations]
 
         return DelegateInfo(
@@ -77,14 +74,14 @@ class DelegateInfo:
             owner = decode_account_id(d.owner_ss58)
 
             nominators = [
-                (decode_account_id(x), Balance.from_rao(y)) 
+                (decode_account_id(x), Balance.from_rao(y))
                 for x, y in d.nominators
             ]
             total_stake = sum((x[1] for x in nominators)) if nominators else Balance(0)
 
             registrations_val = [int(r) for r in d.registrations]
 
-            return_per_1000_val = Balance.from_rao(d.return_per_1000)  
+            return_per_1000_val = Balance.from_rao(d.return_per_1000)
             total_daily_return_val = Balance.from_rao(d.total_daily_return)
 
             results.append(
@@ -96,12 +93,8 @@ class DelegateInfo:
                     take=u16_normalized_float(d.take),
                     validator_permits=d.validator_permits,
                     registrations=registrations_val,
-                    return_per_1000=int(
-                        return_per_1000_val
-                    ),  # Ensure return_per_1000 is an integer
-                    total_daily_return=int(
-                        total_daily_return_val
-                    ),  # Ensure total_daily_return is an integer
+                    return_per_1000=return_per_1000_val,
+                    total_daily_return=total_daily_return_val,
                 )
             )
 
