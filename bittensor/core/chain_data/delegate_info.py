@@ -5,6 +5,7 @@ from bittensor.core.chain_data.utils import decode_account_id
 from bittensor.utils import u16_normalized_float
 from bittensor.utils.balance import Balance
 
+
 @dataclass
 class DelegateInfo:
     """
@@ -24,10 +25,14 @@ class DelegateInfo:
 
     hotkey_ss58: str  # Hotkey of delegate
     total_stake: Balance  # Total stake of the delegate
-    nominators: list[tuple[str, Balance]]  # List of nominators of the delegate and their stake
+    nominators: list[
+        tuple[str, Balance]
+    ]  # List of nominators of the delegate and their stake
     owner_ss58: str  # Coldkey of owner
     take: float  # Take of the delegate as a percentage
-    validator_permits: list[int]  # List of subnets that the delegate is allowed to validate on
+    validator_permits: list[
+        int
+    ]  # List of subnets that the delegate is allowed to validate on
     registrations: list[int]  # list of subnets that the delegate is registered on
     return_per_1000: Balance  # Return per 1000 tao of the delegate over a day
     total_daily_return: Balance  # Total daily return of the delegate
@@ -41,8 +46,7 @@ class DelegateInfo:
 
         # Convert nominators to a list of (str, Balance)
         nominators = [
-            (decode_account_id(x), Balance.from_rao(y))
-            for x, y in decoded.nominators
+            (decode_account_id(x), Balance.from_rao(y)) for x, y in decoded.nominators
         ]
 
         total_stake = sum((x[1] for x in nominators)) if nominators else Balance(0)
@@ -74,8 +78,7 @@ class DelegateInfo:
             owner = decode_account_id(d.owner_ss58)
 
             nominators = [
-                (decode_account_id(x), Balance.from_rao(y))
-                for x, y in d.nominators
+                (decode_account_id(x), Balance.from_rao(y)) for x, y in d.nominators
             ]
             total_stake = sum((x[1] for x in nominators)) if nominators else Balance(0)
 

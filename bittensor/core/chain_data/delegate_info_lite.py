@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import List
 
+
 @dataclass
 class DelegateInfoLite:
     """
@@ -65,6 +66,10 @@ class DelegateInfoLite:
             owner_ss58=owner_ss58,
             registrations=registrations_fixed,
             validator_permits=validator_permits_fixed,
-            return_per_1000=int(return_per_1000),  # Ensure return_per_1000 is an integer
-            total_daily_return=int(total_daily_return),  # Ensure total_daily_return is an integer
+            return_per_1000=int(
+                return_per_1000
+            ),  # Ensure return_per_1000 is an integer
+            total_daily_return=int(
+                total_daily_return
+            ),  # Ensure total_daily_return is an integer
         )
