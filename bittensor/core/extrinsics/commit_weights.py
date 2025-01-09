@@ -66,12 +66,14 @@ def do_commit_weights(
             "commit_hash": commit_hash,
         },
     )
+    next_nonce = self.get_account_next_index(wallet.hotkey.ss58_address)
     extrinsic = self.substrate.create_signed_extrinsic(
         call=call,
         keypair=wallet.hotkey,
+        nonce=next_nonce,
     )
     response = submit_extrinsic(
-        substrate=self.substrate,
+        subtensor=self,
         extrinsic=extrinsic,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
@@ -127,9 +129,7 @@ def commit_weights_extrinsic(
         logging.info(success_message)
         return True, success_message
     else:
-        error_message = format_error_message(
-            error_message, substrate=subtensor.substrate
-        )
+        error_message = format_error_message(error_message)
         logging.error(f"Failed to commit weights: {error_message}")
         return False, error_message
 
@@ -184,7 +184,7 @@ def do_reveal_weights(
         keypair=wallet.hotkey,
     )
     response = submit_extrinsic(
-        substrate=self.substrate,
+        subtensor=self,
         extrinsic=extrinsic,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
@@ -249,8 +249,6 @@ def reveal_weights_extrinsic(
         logging.info(success_message)
         return True, success_message
     else:
-        error_message = format_error_message(
-            error_message, substrate=subtensor.substrate
-        )
+        error_message = format_error_message(error_message)
         logging.error(f"Failed to reveal weights: {error_message}")
         return False, error_message

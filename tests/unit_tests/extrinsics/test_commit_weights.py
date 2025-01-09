@@ -53,9 +53,10 @@ def test_do_commit_weights(subtensor, mocker):
         },
     )
 
-    subtensor.substrate.create_signed_extrinsic.assert_called_once_with(
-        call=subtensor.substrate.compose_call.return_value, keypair=fake_wallet.hotkey
-    )
+    subtensor.substrate.create_signed_extrinsic.assert_called_once()
+    _, kwargs = subtensor.substrate.create_signed_extrinsic.call_args
+    assert kwargs["call"] == subtensor.substrate.compose_call.return_value
+    assert kwargs["keypair"] == fake_wallet.hotkey
 
     subtensor.substrate.submit_extrinsic.assert_called_once_with(
         subtensor.substrate.create_signed_extrinsic.return_value,

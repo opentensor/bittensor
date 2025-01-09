@@ -489,6 +489,40 @@ def test_hyperparameter_normalization(
 ###########################
 
 
+def test_commit_reveal_enabled(subtensor, mocker):
+    """Test commit_reveal_enabled."""
+    # Preps
+    netuid = 1
+    block = 123
+    mocked_get_hyperparameter = mocker.patch.object(subtensor, "_get_hyperparameter")
+
+    # Call
+    result = subtensor.commit_reveal_enabled(netuid, block)
+
+    # Assertions
+    mocked_get_hyperparameter.assert_called_once_with(
+        param_name="CommitRevealWeightsEnabled", block=block, netuid=netuid
+    )
+    assert result is False
+
+
+def test_get_subnet_reveal_period_epochs(subtensor, mocker):
+    """Test get_subnet_reveal_period_epochs."""
+    # Preps
+    netuid = 1
+    block = 123
+    mocked_get_hyperparameter = mocker.patch.object(subtensor, "_get_hyperparameter")
+
+    # Call
+    result = subtensor.get_subnet_reveal_period_epochs(netuid, block)
+
+    # Assertions
+    mocked_get_hyperparameter.assert_called_once_with(
+        param_name="RevealPeriodEpochs", block=block, netuid=netuid
+    )
+    assert result == mocked_get_hyperparameter.return_value
+
+
 # get_prometheus_info tests
 def test_get_prometheus_info_success(mocker, subtensor):
     """Test get_prometheus_info returns correct data when information is found."""
@@ -1034,7 +1068,11 @@ def test_metagraph(subtensor, mocker):
 
     # Asserts
     mocked_metagraph.assert_called_once_with(
-        network=subtensor.network, netuid=fake_netuid, lite=fake_lite, sync=False
+        network=subtensor.chain_endpoint,
+        netuid=fake_netuid,
+        lite=fake_lite,
+        sync=False,
+        subtensor=subtensor,
     )
     mocked_metagraph.return_value.sync.assert_called_once_with(
         block=None, lite=fake_lite, subtensor=subtensor
@@ -2510,7 +2548,7 @@ def test_get_delegates_success(mocker, subtensor):
     fake_block = 123
     fake_block_hash = "0xabc123"
     fake_json_body = {
-        "result": "mock_encoded_delegates",
+        "result": b"mock_encoded_delegates",
     }
 
     # Mocks
@@ -2578,7 +2616,7 @@ def test_get_delegates_latest_block(mocker, subtensor):
     """Test when no block is provided (latest block)."""
     # Mock data
     fake_json_body = {
-        "result": "mock_encoded_delegates",
+        "result": b"mock_encoded_delegates",
     }
 
     # Mocks
@@ -2794,3 +2832,75 @@ def test_unstake_multiple_success(mocker, subtensor):
         wait_for_finalization=False,
     )
     assert result == mock_unstake_multiple_extrinsic.return_value
+
+
+def test_set_weights_with_commit_reveal_enabled(subtensor, mocker):
+    """Test set_weights with commit_reveal_enabled is True."""
+    # Preps
+    fake_wallet = mocker.Mock()
+    fake_netuid = 1
+    fake_uids = [1, 5]
+    fake_weights = [0.1, 0.9]
+    fake_wait_for_inclusion = True
+    fake_wait_for_finalization = False
+
+    mocked_commit_reveal_enabled = mocker.patch.object(
+        subtensor, "commit_reveal_enabled", return_value=True
+    )
+    mocked_commit_reveal_v3_extrinsic = mocker.patch.object(
+        subtensor_module, "commit_reveal_v3_extrinsic"
+    )
+    mocked_commit_reveal_v3_extrinsic.return_value = (
+        True,
+        "Weights committed successfully",
+    )
+    mocker.patch.object(subtensor, "blocks_since_last_update", return_value=181)
+    mocker.patch.object(subtensor, "weights_rate_limit", return_value=180)
+
+    # Call
+    result = subtensor.set_weights(
+        wallet=fake_wallet,
+        netuid=fake_netuid,
+        uids=fake_uids,
+        weights=fake_weights,
+        wait_for_inclusion=fake_wait_for_inclusion,
+        wait_for_finalization=fake_wait_for_finalization,
+    )
+
+    # Asserts
+    mocked_commit_reveal_enabled.assert_called_once_with(netuid=fake_netuid)
+    mocked_commit_reveal_v3_extrinsic.assert_called_once_with(
+        subtensor=subtensor,
+        wallet=fake_wallet,
+        netuid=fake_netuid,
+        uids=fake_uids,
+        weights=fake_weights,
+        version_key=subtensor_module.settings.version_as_int,
+        wait_for_inclusion=fake_wait_for_inclusion,
+        wait_for_finalization=fake_wait_for_finalization,
+    )
+    assert result == mocked_commit_reveal_v3_extrinsic.return_value
+
+
+def test_connection_limit(mocker):
+    """Test connection limit is not exceeded."""
+    # Technically speaking, this test should exist in integration tests. But to reduce server costs we will leave this
+    # test here.
+
+    # Preps
+    mocker.patch.object(
+        subtensor_module.ws_client,
+        "connect",
+        side_effect=subtensor_module.InvalidStatus(
+            response=mocker.Mock(
+                response=mocker.Mock(
+                    status_code=429, message="test connection limit error"
+                )
+            )
+        ),
+    )
+    # Call with assertions
+
+    with pytest.raises(subtensor_module.InvalidStatus):
+        for i in range(2):
+            Subtensor("test")

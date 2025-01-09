@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from hashlib import blake2b
 from typing import Optional, Any, Union, Callable, Awaitable, cast, TYPE_CHECKING
 
+import asyncstdlib as a
 from async_property import async_property
 from bittensor_wallet import Keypair
 from bt_decode import PortableRegistry, decode as decode_by_type_string, MetadataV15
@@ -944,7 +945,7 @@ class AsyncSubstrateInterface:
             self.last_block_hash = block_hash
             self.block_id = block_id
 
-            # In fact calls and storage functions are decoded against runtime of previous block, therefor retrieve
+            # In fact calls and storage functions are decoded against runtime of previous block, therefore retrieve
             # metadata and apply type registry of runtime of parent block
             block_header = await self.rpc_request(
                 "chain_getHeader", [self.last_block_hash]
@@ -1390,7 +1391,7 @@ class AsyncSubstrateInterface:
             A dict containing the extrinsic and digest logs data
         """
         if block_hash and block_number:
-            raise ValueError("Either block_hash or block_number should be be set")
+            raise ValueError("Either block_hash or block_number should be set")
 
         if block_number is not None:
             block_hash = await self.get_block_hash(block_number)
@@ -1703,6 +1704,24 @@ class AsyncSubstrateInterface:
             "id": id_,
             "payload": {"jsonrpc": "2.0", "method": method, "params": params},
         }
+
+    @a.lru_cache(maxsize=512)  # RPC methods are unlikely to change often
+    async def supports_rpc_method(self, name: str) -> bool:
+        """
+        Check if substrate RPC supports given method
+        Parameters
+        ----------
+        name: name of method to check
+
+        Returns
+        -------
+        bool
+        """
+        result = await self.rpc_request("rpc_methods", []).get("result")
+        if result:
+            self.config["rpc_methods"] = result.get("methods", [])
+
+        return name in self.config["rpc_methods"]
 
     async def rpc_request(
         self,
@@ -2296,10 +2315,33 @@ class AsyncSubstrateInterface:
         Returns:
             Nonce for given account address
         """
-        nonce_obj = await self.runtime_call(
-            "AccountNonceApi", "account_nonce", [account_address]
-        )
-        return nonce_obj.value
+        if await self.supports_rpc_method("state_call"):
+            nonce_obj = await self.runtime_call(
+                "AccountNonceApi", "account_nonce", [account_address]
+            )
+            return nonce_obj
+        else:
+            response = await self.query(
+                module="System", storage_function="Account", params=[account_address]
+            )
+            return response["nonce"]
+
+    async def get_account_next_index(self, account_address: str) -> int:
+        """
+        Returns next index for the given account address, taking into account the transaction pool.
+
+        Args:
+            account_address: SS58 formatted address
+
+        Returns:
+            Next index for the given account address
+        """
+        if not await self.supports_rpc_method("account_nextIndex"):
+            # Unlikely to happen, this is a common RPC method
+            raise Exception("account_nextIndex not supported")
+
+        nonce_obj = await self.rpc_request("account_nextIndex", [account_address])
+        return nonce_obj["result"]
 
     async def get_metadata_constant(self, module_name, constant_name, block_hash=None):
         """
@@ -2758,7 +2800,7 @@ class AsyncSubstrateInterface:
                         return call
         return None
 
-    async def get_block_number(self, block_hash: Optional[str]) -> int:
+    async def get_block_number(self, block_hash: Optional[str] = None) -> int:
         """Async version of `substrateinterface.base.get_block_number` method."""
         response = await self.rpc_request("chain_getHeader", [block_hash])
 

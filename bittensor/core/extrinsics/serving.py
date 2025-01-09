@@ -75,7 +75,7 @@ def do_serve_axon(
     )
     extrinsic = self.substrate.create_signed_extrinsic(call=call, keypair=wallet.hotkey)
     response = submit_extrinsic(
-        substrate=self.substrate,
+        self,
         extrinsic=extrinsic,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
@@ -181,9 +181,7 @@ def serve_extrinsic(
             )
             return True
         else:
-            logging.error(
-                f"Failed: {format_error_message(error_message, substrate=subtensor.substrate)}"
-            )
+            logging.error(f"Failed: {format_error_message(error_message)}")
             return False
     else:
         return True
@@ -289,7 +287,7 @@ def publish_metadata(
 
         extrinsic = substrate.create_signed_extrinsic(call=call, keypair=wallet.hotkey)
         response = submit_extrinsic(
-            substrate,
+            self,
             extrinsic,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
@@ -301,9 +299,7 @@ def publish_metadata(
         if response.is_success:
             return True
         else:
-            raise MetadataError(
-                format_error_message(response.error_message, substrate=self.substrate)
-            )
+            raise MetadataError(format_error_message(response.error_message))
 
 
 # Community uses this function directly

@@ -17,6 +17,7 @@ from scalecodec.exceptions import RemainingScaleBytesNotEmptyException
 from scalecodec.type_registry import load_type_registry_preset
 from scalecodec.types import ScaleType
 from substrateinterface.base import QueryMapResult, SubstrateInterface
+from websockets.exceptions import InvalidStatus
 from websockets.sync import client as ws_client
 
 from bittensor.core import settings
@@ -31,6 +32,7 @@ from bittensor.core.chain_data import (
     SubnetInfo,
 )
 from bittensor.core.config import Config
+from bittensor.core.extrinsics.commit_reveal import commit_reveal_v3_extrinsic
 from bittensor.core.extrinsics.commit_weights import (
     commit_weights_extrinsic,
     reveal_weights_extrinsic,
@@ -50,12 +52,12 @@ from bittensor.core.extrinsics.serving import (
     get_metadata,
 )
 from bittensor.core.extrinsics.set_weights import set_weights_extrinsic
-from bittensor.core.extrinsics.transfer import (
-    transfer_extrinsic,
-)
 from bittensor.core.extrinsics.staking import (
     add_stake_extrinsic,
     add_stake_multiple_extrinsic,
+)
+from bittensor.core.extrinsics.transfer import (
+    transfer_extrinsic,
 )
 from bittensor.core.extrinsics.unstaking import (
     unstake_extrinsic,
@@ -212,16 +214,27 @@ class Subtensor:
         if self.substrate:
             self.substrate.close()
 
-    def _get_substrate(self):
-        """Establishes a connection to the Substrate node using configured parameters."""
+    def _get_substrate(self, force: bool = False):
+        """
+        Establishes a connection to the Substrate node using configured parameters.
+
+        Args:
+            force: forces a reconnection if this flag is set
+
+        """
         try:
             # Set up params.
-            if self.websocket is None or self.websocket.close_code is not None:
+            if force and self.websocket:
+                logging.debug("Closing websocket connection")
+                self.websocket.close()
+
+            if force or self.websocket is None or self.websocket.close_code is not None:
                 self.websocket = ws_client.connect(
                     self.chain_endpoint,
                     open_timeout=self._connection_timeout,
                     max_size=2**32,
                 )
+
             self.substrate = SubstrateInterface(
                 ss58_format=settings.SS58_FORMAT,
                 use_remote_preset=True,
@@ -229,23 +242,31 @@ class Subtensor:
                 websocket=self.websocket,
             )
             if self.log_verbose:
-                logging.debug(
+                logging.info(
                     f"Connected to {self.network} network and {self.chain_endpoint}."
                 )
 
-        except (ConnectionRefusedError, ssl.SSLError) as error:
-            logging.error(
-                f"<red>Could not connect to</red> <blue>{self.network}</blue> <red>network with</red> <blue>{self.chain_endpoint}</blue> <red>chain endpoint.</red>",
+        except ConnectionRefusedError as error:
+            logging.critical(
+                f"[red]Could not connect to[/red] [blue]{self.network}[/blue] [red]network with[/red] [blue]{self.chain_endpoint}[/blue] [red]chain endpoint.[/red]",
             )
             raise ConnectionRefusedError(error.args)
-        except ssl.SSLError as e:
+
+        except ssl.SSLError as error:
             logging.critical(
                 "SSL error occurred. To resolve this issue, run the following command in your terminal:"
             )
             logging.critical("[blue]sudo python -m bittensor certifi[/blue]")
             raise RuntimeError(
                 "SSL configuration issue, please follow the instructions above."
-            ) from e
+            ) from error
+
+        except InvalidStatus as error:
+            logging.critical(
+                f"Error [red]'{error.response.reason_phrase}'[/red] with status code [red]{error.response.status_code}[/red]."
+            )
+            logging.debug(f"Server response is '{error.response}'.")
+            raise
 
     @staticmethod
     def config() -> "Config":
@@ -257,7 +278,7 @@ class Subtensor:
         """
         parser = argparse.ArgumentParser()
         Subtensor.add_args(parser)
-        return Config(parser, args=[])
+        return Config(parser)
 
     @staticmethod
     def setup_config(network: Optional[str], config: "Config"):
@@ -494,7 +515,7 @@ class Subtensor:
         self,
         runtime_api: str,
         method: str,
-        params: Optional[Union[list[int], dict[str, int]]],
+        params: Optional[Union[list[int], dict[str, int]]] = None,
         block: Optional[int] = None,
     ) -> Optional[str]:
         """
@@ -650,6 +671,16 @@ class Subtensor:
             ),
         )
 
+    @networking.ensure_connected
+    def get_account_next_index(self, address: str) -> int:
+        """
+        Returns the next nonce for an account, taking into account the transaction pool.
+        """
+        if not self.substrate.supports_rpc_method("account_nextIndex"):
+            raise Exception("account_nextIndex not supported")
+
+        return self.substrate.rpc_request("account_nextIndex", [address])["result"]
+
     # Common subtensor methods =========================================================================================
     def metagraph(
         self, netuid: int, lite: bool = True, block: Optional[int] = None
@@ -668,7 +699,11 @@ class Subtensor:
         The metagraph is an essential tool for understanding the topology and dynamics of the Bittensor network's decentralized architecture, particularly in relation to neuron interconnectivity and consensus processes.
         """
         metagraph = Metagraph(
-            network=self.network, netuid=netuid, lite=lite, sync=False
+            network=self.chain_endpoint,
+            netuid=netuid,
+            lite=lite,
+            sync=False,
+            subtensor=self,
         )
         metagraph.sync(block=block, lite=lite, subtensor=self)
 
@@ -941,13 +976,13 @@ class Subtensor:
 
     @networking.ensure_connected
     def neuron_for_uid(
-        self, uid: Optional[int], netuid: int, block: Optional[int] = None
+        self, uid: int, netuid: int, block: Optional[int] = None
     ) -> "NeuronInfo":
         """
         Retrieves detailed information about a specific neuron identified by its unique identifier (UID) within a specified subnet (netuid) of the Bittensor network. This function provides a comprehensive view of a neuron's attributes, including its stake, rank, and operational status.
 
         Args:
-            uid (Optional[int]): The unique identifier of the neuron.
+            uid (int): The unique identifier of the neuron.
             netuid (int): The unique identifier of the subnet.
             block (Optional[int]): The blockchain block number for the query.
 
@@ -1114,6 +1149,32 @@ class Subtensor:
         )
         return None if call is None else u16_normalized_float(int(call))
 
+    def commit_reveal_enabled(
+        self, netuid: int, block: Optional[int] = None
+    ) -> Optional[bool]:
+        """
+        Check if commit-reveal mechanism is enabled for a given network at a specific block.
+
+        Arguments:
+            netuid (int): The network identifier for which to check the commit-reveal mechanism.
+            block (Optional[int]): The block number at which to check the parameter (default is None, which implies the current block).
+
+        Returns:
+            (Optional[bool]): Returns the integer value of the hyperparameter if available; otherwise, returns None.
+        """
+        call = self._get_hyperparameter(
+            param_name="CommitRevealWeightsEnabled", block=block, netuid=netuid
+        )
+        return True if call is True else False
+
+    def get_subnet_reveal_period_epochs(
+        self, netuid: int, block: Optional[int] = None
+    ) -> Optional[int]:
+        """Retrieve the SubnetRevealPeriodEpochs hyperparameter."""
+        return self._get_hyperparameter(
+            param_name="RevealPeriodEpochs", block=block, netuid=netuid
+        )
+
     def get_prometheus_info(
         self, netuid: int, hotkey_ss58: str, block: Optional[int] = None
     ) -> Optional["PrometheusInfo"]:
@@ -1253,6 +1314,76 @@ class Subtensor:
         ]
 
         return neurons
+
+    def last_drand_round(
+        self,
+    ) -> Optional[int]:
+        """
+        Retrieves the last drand round emitted in bittensor. This corresponds when committed weights will be revealed.
+
+        Returns:
+            int: The latest Drand round emitted in bittensor.
+        """
+        result = self.substrate.query(
+            module="Drand", storage_function="LastStoredRound"
+        )
+        return getattr(result, "value", None)
+
+    def get_current_weight_commit_info(
+        self, netuid: int, block: Optional[int] = None
+    ) -> list:
+        """
+        Retrieves CRV3 weight commit information for a specific subnet.
+
+        Args:
+            netuid (int): The unique identifier of the subnet.
+            block (Optional[int]): The blockchain block number for the query.
+
+        Returns:
+            list: A list of commit details, where each entry is a dictionary with keys 'who',
+                'serialized_commit', and 'reveal_round', or an empty list if no data is found.
+        """
+        result = self.query_map(
+            module="SubtensorModule",
+            name="CRV3WeightCommits",
+            params=[netuid],
+            block=block,
+        )
+        return result.records[0][1].value if result and result.records else []
+
+    def get_total_stake_for_coldkey(
+        self, ss58_address: str, block: Optional[int] = None
+    ) -> Optional["Balance"]:
+        """Retrieves the total stake held by a coldkey across all associated hotkeys, including delegated stakes.
+
+        Args:
+            ss58_address (str): The SS58 address of the coldkey account.
+            block (Optional[int]): The blockchain block number at which to perform the query.
+
+        Returns:
+            Optional[Balance]: The total stake amount held by the coldkey, or None if the query fails.
+        """
+        result = self.query_subtensor("TotalColdkeyStake", block, [ss58_address])
+        if getattr(result, "value", None) is None:
+            return None
+        return Balance.from_rao(result.value)
+
+    def get_total_stake_for_hotkey(
+        self, ss58_address: str, block: Optional[int] = None
+    ) -> Optional["Balance"]:
+        """Retrieves the total stake associated with a hotkey.
+
+        Args:
+            ss58_address (str): The SS58 address of the hotkey account.
+            block (Optional[int]): The blockchain block number at which to perform the query.
+
+        Returns:
+            Optional[Balance]: The total stake amount held by the hotkey, or None if the query fails.
+        """
+        result = self.query_subtensor("TotalHotkeyStake", block, [ss58_address])
+        if getattr(result, "value", None) is None:
+            return None
+        return Balance.from_rao(result.value)
 
     def get_total_subnets(self, block: Optional[int] = None) -> Optional[int]:
         """
@@ -1653,7 +1784,7 @@ class Subtensor:
         if not (result := json_body.get("result", None)):
             return []
 
-        return DelegateInfo.list_from_vec_u8(result)
+        return DelegateInfo.list_from_vec_u8(bytes(result))
 
     def is_hotkey_delegate(self, hotkey_ss58: str, block: Optional[int] = None) -> bool:
         """
@@ -1703,19 +1834,29 @@ class Subtensor:
 
         This function is crucial in shaping the network's collective intelligence, where each neuron's learning and contribution are influenced by the weights it sets towards others【81†source】.
         """
-        uid = self.get_uid_for_hotkey_on_subnet(wallet.hotkey.ss58_address, netuid)
         retries = 0
         success = False
-        message = "No attempt made. Perhaps it is too soon to set weights!"
-        while (
-            self.blocks_since_last_update(netuid, uid) > self.weights_rate_limit(netuid)  # type: ignore
-            and retries < max_retries
-        ):
-            try:
+        if (
+            uid := self.get_uid_for_hotkey_on_subnet(wallet.hotkey.ss58_address, netuid)
+        ) is None:
+            return (
+                False,
+                f"Hotkey {wallet.hotkey.ss58_address} not registered in subnet {netuid}",
+            )
+
+        if self.commit_reveal_enabled(netuid=netuid) is True:
+            # go with `commit reveal v3` extrinsic
+            message = "No attempt made. Perhaps it is too soon to commit weights!"
+            while (
+                self.blocks_since_last_update(netuid, uid)  # type: ignore
+                > self.weights_rate_limit(netuid)  # type: ignore
+                and retries < max_retries
+                and success is False
+            ):
                 logging.info(
-                    f"Setting weights for subnet #{netuid}. Attempt {retries + 1} of {max_retries}."
+                    f"Committing weights for subnet #{netuid}. Attempt {retries + 1} of {max_retries}."
                 )
-                success, message = set_weights_extrinsic(
+                success, message = commit_reveal_v3_extrinsic(
                     subtensor=self,
                     wallet=wallet,
                     netuid=netuid,
@@ -1725,12 +1866,36 @@ class Subtensor:
                     wait_for_inclusion=wait_for_inclusion,
                     wait_for_finalization=wait_for_finalization,
                 )
-            except Exception as e:
-                logging.error(f"Error setting weights: {e}")
-            finally:
                 retries += 1
-
-        return success, message
+            return success, message
+        else:
+            # go with classic `set weights` logic
+            message = "No attempt made. Perhaps it is too soon to set weights!"
+            while (
+                self.blocks_since_last_update(netuid, uid)  # type: ignore
+                > self.weights_rate_limit(netuid)  # type: ignore
+                and retries < max_retries
+                and success is False
+            ):
+                try:
+                    logging.info(
+                        f"Setting weights for subnet #{netuid}. Attempt {retries + 1} of {max_retries}."
+                    )
+                    success, message = set_weights_extrinsic(
+                        subtensor=self,
+                        wallet=wallet,
+                        netuid=netuid,
+                        uids=uids,
+                        weights=weights,
+                        version_key=version_key,
+                        wait_for_inclusion=wait_for_inclusion,
+                        wait_for_finalization=wait_for_finalization,
+                    )
+                except Exception as e:
+                    logging.error(f"Error setting weights: {e}")
+                finally:
+                    retries += 1
+            return success, message
 
     @legacy_torch_api_compat
     def root_set_weights(

@@ -9,11 +9,11 @@ import bittensor.utils.weight_utils as weight_utils
 from bittensor.core.settings import version_as_int
 from bittensor.utils import format_error_message
 from bittensor.utils.btlogging import logging
-from bittensor.utils.registration import torch, use_torch
 
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
     from bittensor.core.async_subtensor import AsyncSubtensor
+    from bittensor.utils.registration import torch
 
 
 async def _do_set_weights(
@@ -58,11 +58,17 @@ async def _do_set_weights(
             "version_key": version_key,
         },
     )
+
+    next_nonce = await subtensor.substrate.get_account_next_index(
+        wallet.hotkey.ss58_address
+    )
+
     # Period dictates how long the extrinsic will stay as part of waiting pool
     extrinsic = await subtensor.substrate.create_signed_extrinsic(
         call=call,
         keypair=wallet.hotkey,
         era={"period": 5},
+        nonce=next_nonce,
     )
     response = await subtensor.substrate.submit_extrinsic(
         extrinsic,
@@ -77,9 +83,7 @@ async def _do_set_weights(
     if await response.is_success:
         return True, "Successfully set weights."
     else:
-        return False, format_error_message(
-            response.error_message, substrate=subtensor.substrate
-        )
+        return False, format_error_message(response.error_message)
 
 
 async def set_weights_extrinsic(
@@ -108,16 +112,10 @@ async def set_weights_extrinsic(
         success (bool): Flag is ``true`` if extrinsic was finalized or included in the block. If we did not wait for finalization / inclusion, the response is ``true``.
     """
     # First convert types.
-    if use_torch():
-        if isinstance(uids, list):
-            uids = torch.tensor(uids, dtype=torch.int64)
-        if isinstance(weights, list):
-            weights = torch.tensor(weights, dtype=torch.float32)
-    else:
-        if isinstance(uids, list):
-            uids = np.array(uids, dtype=np.int64)
-        if isinstance(weights, list):
-            weights = np.array(weights, dtype=np.float32)
+    if isinstance(uids, list):
+        uids = np.array(uids, dtype=np.int64)
+    if isinstance(weights, list):
+        weights = np.array(weights, dtype=np.float32)
 
     # Reformat and normalize.
     weight_uids, weight_vals = weight_utils.convert_weights_and_uids_for_emit(
@@ -188,9 +186,15 @@ async def _do_commit_weights(
             "commit_hash": commit_hash,
         },
     )
+
+    next_nonce = await subtensor.substrate.get_account_next_index(
+        wallet.hotkey.ss58_address
+    )
+
     extrinsic = await subtensor.substrate.create_signed_extrinsic(
         call=call,
         keypair=wallet.hotkey,
+        nonce=next_nonce,
     )
     response = await subtensor.substrate.submit_extrinsic(
         substrate=subtensor.substrate,
@@ -206,9 +210,7 @@ async def _do_commit_weights(
     if await response.is_success:
         return True, None
     else:
-        return False, format_error_message(
-            response.error_message, substrate=subtensor.substrate
-        )
+        return False, format_error_message(response.error_message)
 
 
 async def commit_weights_extrinsic(

@@ -76,14 +76,16 @@ def do_set_weights(
             "version_key": version_key,
         },
     )
+    next_nonce = self.get_account_next_index(wallet.hotkey.ss58_address)
     # Period dictates how long the extrinsic will stay as part of waiting pool
     extrinsic = self.substrate.create_signed_extrinsic(
         call=call,
         keypair=wallet.hotkey,
         era={"period": period},
+        nonce=next_nonce,
     )
     response = submit_extrinsic(
-        substrate=self.substrate,
+        self,
         extrinsic=extrinsic,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
@@ -96,9 +98,7 @@ def do_set_weights(
     if response.is_success:
         return True, "Successfully set weights."
     else:
-        return False, format_error_message(
-            response.error_message, substrate=self.substrate
-        )
+        return False, format_error_message(response.error_message)
 
 
 # Community uses this extrinsic directly and via `subtensor.set_weights`
@@ -150,7 +150,7 @@ def set_weights_extrinsic(
     logging.debug(f"Weights: {[float(v / 65535) for v in weight_vals]}")
 
     try:
-        success, error_message = do_set_weights(
+        success, message = do_set_weights(
             self=subtensor,
             wallet=wallet,
             netuid=netuid,
@@ -168,8 +168,8 @@ def set_weights_extrinsic(
             logging.success(f"[green]Finalized![/green] Set weights: {str(success)}")
             return True, "Successfully set weights and Finalized."
         else:
-            logging.error(error_message)
-            return False, error_message
+            logging.error(message)
+            return False, message
 
     except Exception as e:
         logging.error(f":cross_mark: [red]Failed.[/red]: Error: {e}")
