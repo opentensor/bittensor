@@ -56,18 +56,16 @@ class StorageKey:
         """
         Create a StorageKey instance providing raw storage key bytes
 
-        Parameters
-        ----------
-        data: bytes representation of the storage key
-        runtime_config: RuntimeConfigurationObject
-        metadata: GenericMetadataVersioned
-        value_scale_type: type string of to decode result data
-        pallet: name of pallet
-        storage_function: name of storage function
+        Args:
+            data: bytes representation of the storage key
+            runtime_config: RuntimeConfigurationObject
+            metadata: GenericMetadataVersioned
+            value_scale_type: type string of to decode result data
+            pallet: name of pallet
+            storage_function: name of storage function
 
-        Returns
-        -------
-        StorageKey
+        Returns:
+            StorageKey
         """
         if not value_scale_type and pallet and storage_function:
             metadata_pallet = metadata.get_metadata_pallet(pallet)
@@ -107,17 +105,15 @@ class StorageKey:
         """
         Create a StorageKey instance providing storage function details
 
-        Parameters
-        ----------
-        pallet: name of pallet
-        storage_function: name of storage function
-        params: Optional list of parameters in case of a Mapped storage function
-        runtime_config: RuntimeConfigurationObject
-        metadata: GenericMetadataVersioned
+        Args:
+            pallet: name of pallet
+            storage_function: name of storage function
+            params: Optional list of parameters in case of a Mapped storage function
+            runtime_config: RuntimeConfigurationObject
+            metadata: GenericMetadataVersioned
 
-        Returns
-        -------
-        StorageKey
+        Returns:
+            StorageKey
         """
         storage_key_obj = cls(
             pallet=pallet,
@@ -149,9 +145,7 @@ class StorageKey:
         """
         Returns a Hex-string representation of current StorageKey data
 
-        Returns
-        -------
-        str
+        Returns:
             Hex string
         """
         if self.data:
@@ -160,10 +154,6 @@ class StorageKey:
     def generate(self) -> bytes:
         """
         Generate a storage key for current specified pallet/function/params
-
-        Returns
-        -------
-        bytes
         """
 
         # Search storage call in metadata
@@ -206,7 +196,7 @@ class StorageKey:
                     self.params_encoded.append(param_obj.encode(param))
 
             for idx, param in enumerate(self.params_encoded):
-                # Get hasher assiociated with param
+                # Get hasher associated with param
                 try:
                     param_hasher = hashers[idx]
                 except IndexError:
@@ -251,17 +241,6 @@ class StorageKey:
         return self.data
 
     def decode_scale_value(self, data: Optional[ScaleBytes] = None) -> ScaleType:
-        """
-
-        Parameters
-        ----------
-        data
-
-        Returns
-        -------
-
-        """
-
         result_found = False
 
         if data is not None:
