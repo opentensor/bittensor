@@ -979,9 +979,9 @@ class AsyncSubtensor:
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         balance = await self.substrate.query(
-            "System",
-            "Account",
-            [address],
+            module="System",
+            storage_function="Account",
+            params=[address],
             block_hash=block_hash,
             reuse_block_hash=reuse_block,
         )
@@ -1786,11 +1786,13 @@ class AsyncSubtensor:
         Returns:
             Balance of the stake held on the coldkey.
         """
-        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        block_hash = await self.determine_block_hash(
+            block=block, block_hash=block_hash, reuse_block=reuse_block
+        )
         result = await self.substrate.query(
-            "SubtensorModule",
-            "TotalColdkeyStake",
-            [ss58_address],
+            module="SubtensorModule",
+            storage_function="TotalColdkeyStake",
+            params=[ss58_address],
             block_hash=block_hash,
             reuse_block_hash=reuse_block,
         )
@@ -1857,7 +1859,9 @@ class AsyncSubtensor:
         Returns:
             Balance of the stake held on the hotkey.
         """
-        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        block_hash = await self.determine_block_hash(
+            block=block, block_hash=block_hash, reuse_block=reuse_block
+        )
         result = await self.substrate.query(
             module="SubtensorModule",
             storage_function="TotalHotkeyStake",

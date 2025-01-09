@@ -18,6 +18,8 @@ def test_methods_comparable(mocker):
         "encode_params",
         "get_hyperparameter",
         "sign_and_send_extrinsic",
+        "get_total_stake_for_coldkeys",
+        "get_total_stake_for_hotkeys",
     ]
     subtensor_methods = [
         m
