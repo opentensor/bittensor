@@ -356,7 +356,7 @@ def __apply_nest_asyncio():
 __apply_nest_asyncio()
 
 
-UNITS = [
+units = [
     # Greek Alphabet (0-24)
     "\u03c4",  # τ (tau, 0)
     "\u03b1",  # α (alpha, 1)
