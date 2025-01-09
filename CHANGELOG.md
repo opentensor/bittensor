@@ -1,5 +1,84 @@
 # Changelog
 
+## 8.5.1 /2024-12-16
+
+## What's Changed
+* 8.5.0 bugfixes by @thewhaleking in https://github.com/opentensor/bittensor/pull/2541
+* Removes substrate call in format_error_message by @thewhaleking in https://github.com/opentensor/bittensor/pull/2542
+* Remove torch from the weights calls by @thewhaleking in https://github.com/opentensor/bittensor/pull/2543
+* optional arg fix by @thewhaleking in https://github.com/opentensor/bittensor/pull/2544
+* async cr3 not implemented by @thewhaleking in https://github.com/opentensor/bittensor/pull/2545
+* Backmerge master to staging 851 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2546
+* Adds retry in CRv3 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2547
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v8.5.0...v8.5.1
+
+## 8.5.0 /2024-12-12
+
+## What's Changed
+* add improved reveal-round params by @JohnReedV in https://github.com/opentensor/bittensor/pull/2509
+* fix: add default value to the get_block_number method in AsyncSubstrateInterface by @FLiotta in https://github.com/opentensor/bittensor/pull/2529
+* Mismatched "archive" index by @thewhaleking in https://github.com/opentensor/bittensor/pull/2530
+* Adds a factory function to create an initialised AsyncSubtensor object. by @thewhaleking in https://github.com/opentensor/bittensor/pull/2516
+* chore: fix some comments by @lvyaoting in https://github.com/opentensor/bittensor/pull/2515
+* Fixes E2E test chain buffer issues on devnet by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2531
+* Added e2e test for CRv3 + enhancements by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2532
+* Backmerge master to staging 850 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2535
+* Enhancement/adds total stake functions by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2537
+* Fixes get_current_block by @thewhaleking in https://github.com/opentensor/bittensor/pull/2536
+* [SDK] Add `commit reveal v3` logic (python part only) by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2484
+
+## New Contributors
+* @JohnReedV made their first contribution in https://github.com/opentensor/bittensor/pull/2509
+* @FLiotta made their first contribution in https://github.com/opentensor/bittensor/pull/2529
+* @lvyaoting made their first contribution in https://github.com/opentensor/bittensor/pull/2515
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v8.4.5...v8.5.0
+
+## 8.4.5 /2024-12-05
+
+## What's Changed
+* Overrides copy and deep copy for the metagraph by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2523
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v8.4.4...v8.4.5
+
+## 8.4.4 /2024-12-05
+
+## What's Changed
+* Removes the call that automatically sets everything to warning level debugging by @thewhaleking in https://github.com/opentensor/bittensor/pull/2508
+* Exit `set_weights` on success by @thewhaleking in https://github.com/opentensor/bittensor/pull/2511
+* `test_dendrite` test clean up by @thewhaleking in https://github.com/opentensor/bittensor/pull/2512
+* Adds --logging.info level so it can be set @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2510
+* Allows wallet to be created through configs in the axon if it is provided by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2510
+* Changes verbosity level of ClientConnectorError and TimeoutError in the dendrite to debug by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2510
+* Fixes behaviour of config initialization for axon, subtensor, logging and threadpool by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2510
+* metagraph sync fix by @thewhaleking in https://github.com/opentensor/bittensor/pull/2514
+* Remove metadata retrieval of custom errors from format_error_message by @thewhaleking in https://github.com/opentensor/bittensor/pull/2518
+* Backmerge master to staging for 8.4.4 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2519
+* Updates bt-decode to 0.4.0 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2520
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v8.4.3...v8.4.4
+
+## 8.4.3 /2024-12-02
+
+## What's Changed
+
+* Fix logging config parsing by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2500
+* Improve  `submit_extrinsic` util by @thewhaleking in https://github.com/opentensor/bittensor/pull/2502
+* Backmerge master to staging for 843 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2505
+* WS ensure_connected socket catch by @thewhaleking in https://github.com/opentensor/bittensor/pull/2507
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v8.4.2...v8.4.3
+
+## 8.4.2 /2024-11-28
+
+## What's Changed
+
+* Fix submit_extrinsic timeout by @thewhaleking in https://github.com/opentensor/bittensor/pull/2497
+* Backmerge master to staging for 841 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2498
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v8.4.1...v8.4.2
+
 ## 8.4.1 /2024-11-27
 
 ## What's Changed

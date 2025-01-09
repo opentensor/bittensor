@@ -22,6 +22,7 @@ from bittensor.core.chain_data import (
     SubnetHyperparameters,
     decode_account_id,
 )
+from bittensor.core.extrinsics.async_commit_reveal import commit_reveal_v3_extrinsic
 from bittensor.core.extrinsics.async_registration import register_extrinsic
 from bittensor.core.extrinsics.async_root import (
     set_root_weights_extrinsic,
@@ -236,7 +237,7 @@ class AsyncSubtensor:
 
         Knowing the current block number is essential for querying real-time data and performing time-sensitive operations on the blockchain. It serves as a reference point for network activities and data synchronization.
         """
-        return await self.substrate.get_block_number()
+        return await self.substrate.get_block_number(None)
 
     async def get_block_hash(self, block_id: Optional[int] = None):
         """
@@ -1184,11 +1185,9 @@ class AsyncSubtensor:
             if await response.is_success:
                 return True, ""
             else:
-                return False, format_error_message(
-                    await response.error_message, substrate=self.substrate
-                )
+                return False, format_error_message(await response.error_message)
         except SubstrateRequestException as e:
-            return False, format_error_message(e, substrate=self.substrate)
+            return False, format_error_message(e)
 
     async def get_children(self, hotkey: str, netuid: int) -> tuple[bool, list, str]:
         """
@@ -1218,7 +1217,7 @@ class AsyncSubtensor:
             else:
                 return True, [], ""
         except SubstrateRequestException as e:
-            return False, [], format_error_message(e, self.substrate)
+            return False, [], format_error_message(e)
 
     async def get_subnet_hyperparameters(
         self, netuid: int, block_hash: Optional[str] = None, reuse_block: bool = False
@@ -1429,6 +1428,34 @@ class AsyncSubtensor:
         call = await self.get_hyperparameter(param_name="LastUpdate", netuid=netuid)
         return None if call is None else await self.get_current_block() - int(call[uid])
 
+    async def commit_reveal_enabled(
+        self, netuid: int, block_hash: Optional[str] = None
+    ) -> bool:
+        """
+        Check if commit-reveal mechanism is enabled for a given network at a specific block.
+
+        Arguments:
+            netuid (int): The network identifier for which to check the commit-reveal mechanism.
+            block_hash (Optional[str]): The block hash of block at which to check the parameter (default is None, which implies the current block).
+
+        Returns:
+            (bool): Returns the integer value of the hyperparameter if available; otherwise, returns None.
+        """
+        call = await self.get_hyperparameter(
+            param_name="CommitRevealWeightsEnabled",
+            block_hash=block_hash,
+            netuid=netuid,
+        )
+        return True if call is True else False
+
+    async def get_subnet_reveal_period_epochs(
+        self, netuid: int, block_hash: Optional[str] = None
+    ) -> int:
+        """Retrieve the SubnetRevealPeriodEpochs hyperparameter."""
+        return await self.get_hyperparameter(
+            param_name="RevealPeriodEpochs", block_hash=block_hash, netuid=netuid
+        )
+
     # Extrinsics =======================================================================================================
 
     async def transfer(
@@ -1570,20 +1597,31 @@ class AsyncSubtensor:
 
         This function is crucial in shaping the network's collective intelligence, where each neuron's learning and contribution are influenced by the weights it sets towards others【81†source】.
         """
-        uid = await self.get_uid_for_hotkey_on_subnet(
-            wallet.hotkey.ss58_address, netuid
-        )
         retries = 0
         success = False
-        message = "No attempt made. Perhaps it is too soon to set weights!"
-        while retries < max_retries and await self.blocks_since_last_update(
-            netuid, uid
-        ) > await self.weights_rate_limit(netuid):
-            try:
+        if (
+            uid := await self.get_uid_for_hotkey_on_subnet(
+                wallet.hotkey.ss58_address, netuid
+            )
+        ) is None:
+            return (
+                False,
+                f"Hotkey {wallet.hotkey.ss58_address} not registered in subnet {netuid}",
+            )
+
+        if (await self.commit_reveal_enabled(netuid=netuid)) is True:
+            # go with `commit reveal v3` extrinsic
+            message = "No attempt made. Perhaps it is too soon to commit weights!"
+            while (
+                await self.blocks_since_last_update(netuid, uid)
+                > await self.weights_rate_limit(netuid)
+                and retries < max_retries
+                and success is False
+            ):
                 logging.info(
-                    f"Setting weights for subnet #[blue]{netuid}[/blue]. Attempt [blue]{retries + 1} of {max_retries}[/blue]."
+                    f"Committing weights for subnet #{netuid}. Attempt {retries + 1} of {max_retries}."
                 )
-                success, message = await set_weights_extrinsic(
+                success, message = await commit_reveal_v3_extrinsic(
                     subtensor=self,
                     wallet=wallet,
                     netuid=netuid,
@@ -1593,12 +1631,37 @@ class AsyncSubtensor:
                     wait_for_inclusion=wait_for_inclusion,
                     wait_for_finalization=wait_for_finalization,
                 )
-            except Exception as e:
-                logging.error(f"Error setting weights: {e}")
-            finally:
                 retries += 1
+            return success, message
+        else:
+            # go with classic `set weights extrinsic`
+            message = "No attempt made. Perhaps it is too soon to set weights!"
+            while (
+                retries < max_retries
+                and await self.blocks_since_last_update(netuid, uid)
+                > await self.weights_rate_limit(netuid)
+                and success is False
+            ):
+                try:
+                    logging.info(
+                        f"Setting weights for subnet #[blue]{netuid}[/blue]. Attempt [blue]{retries + 1} of {max_retries}[/blue]."
+                    )
+                    success, message = await set_weights_extrinsic(
+                        subtensor=self,
+                        wallet=wallet,
+                        netuid=netuid,
+                        uids=uids,
+                        weights=weights,
+                        version_key=version_key,
+                        wait_for_inclusion=wait_for_inclusion,
+                        wait_for_finalization=wait_for_finalization,
+                    )
+                except Exception as e:
+                    logging.error(f"Error setting weights: {e}")
+                finally:
+                    retries += 1
 
-        return success, message
+            return success, message
 
     async def root_set_weights(
         self,

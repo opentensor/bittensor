@@ -64,9 +64,7 @@ async def _do_transfer(
         return (
             False,
             "",
-            format_error_message(
-                await response.error_message, substrate=subtensor.substrate
-            ),
+            format_error_message(await response.error_message),
         )
 
 

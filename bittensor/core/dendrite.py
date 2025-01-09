@@ -241,7 +241,10 @@ class DendriteMixin:
         """
         error_id = str(uuid.uuid4())
         error_type = exception.__class__.__name__
-        logging.error(f"{error_type}#{error_id}: {exception}")
+        if isinstance(exception, (aiohttp.ClientConnectorError, asyncio.TimeoutError)):
+            logging.debug(f"{error_type}#{error_id}: {exception}")
+        else:
+            logging.error(f"{error_type}#{error_id}: {exception}")
 
     def process_error_message(
         self,

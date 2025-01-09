@@ -171,9 +171,7 @@ async def _do_set_root_weights(
     if await response.is_success:
         return True, "Successfully set weights."
     else:
-        return False, format_error_message(
-            await response.error_message, substrate=subtensor.substrate
-        )
+        return False, format_error_message(await response.error_message)
 
 
 async def set_root_weights_extrinsic(
@@ -263,6 +261,6 @@ async def set_root_weights_extrinsic(
             return False
 
     except SubstrateRequestException as e:
-        fmt_err = format_error_message(e, subtensor.substrate)
+        fmt_err = format_error_message(e)
         logging.error(f":cross_mark: [red]Failed error:[/red] {fmt_err}")
         return False
