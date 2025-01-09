@@ -96,8 +96,12 @@ class DelegateInfo:
                     take=u16_normalized_float(d.take),
                     validator_permits=d.validator_permits,
                     registrations=registrations_val,
-                    return_per_1000=return_per_1000_val,
-                    total_daily_return=total_daily_return_val,
+                    return_per_1000=int(
+                        return_per_1000_val
+                    ),  # Ensure return_per_1000 is an integer
+                    total_daily_return=int(
+                        total_daily_return_val
+                    ),  # Ensure total_daily_return is an integer
                 )
             )
 
