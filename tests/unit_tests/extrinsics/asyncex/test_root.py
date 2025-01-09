@@ -1,7 +1,7 @@
 import pytest
-from substrateinterface.exceptions import SubstrateRequestException
 
 from bittensor.core import async_subtensor
+from bittensor.core.errors import SubstrateRequestException
 from bittensor.core.extrinsics.asyncex import root as async_root
 from bittensor_wallet import Wallet
 

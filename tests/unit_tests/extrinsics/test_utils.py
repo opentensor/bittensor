@@ -1,10 +1,10 @@
 from unittest.mock import MagicMock
 import pytest
 from scalecodec.types import GenericExtrinsic
-from substrateinterface.base import SubstrateInterface
 
 from bittensor.core.extrinsics import utils
 from bittensor.core.subtensor import Subtensor
+from bittensor.utils.substrate_interface import SubstrateInterface
 
 
 @pytest.fixture

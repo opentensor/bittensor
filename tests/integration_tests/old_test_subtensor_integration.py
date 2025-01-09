@@ -76,7 +76,9 @@ class TestSubtensor(unittest.TestCase):
 
         # Mock network calls
         with patch("websockets.sync.client.connect"):
-            with patch("substrateinterface.SubstrateInterface.reload_type_registry"):
+            with patch(
+                "bittensor.utils.substrate_interface.AsyncSubstrateInterface.reload_type_registry"
+            ):
                 print(bittensor.Subtensor, type(bittensor.Subtensor))
                 # Choose network arg over config
                 sub1 = bittensor.Subtensor(config=config1, network="local")
