@@ -606,7 +606,9 @@ class MetagraphMixin(ABC):
         # Fills in the stake associated attributes of a class instance from a chain response.
         self._get_all_stakes_from_chain(subtensor=subtensor)
 
-    def _initialize_subtensor(self, subtensor: Optional["Subtensor"] = None) -> "Subtensor":
+    def _initialize_subtensor(
+        self, subtensor: Optional["Subtensor"] = None
+    ) -> "Subtensor":
         """
         Initializes the subtensor to be used for syncing the metagraph.
 
@@ -806,7 +808,9 @@ class MetagraphMixin(ABC):
 
             subnet_state: "SubnetState" = SubnetState.from_vec_u8(bytes_result)
             if self.netuid == 0:
-                self.total_stake = self.stake = self.tao_stake = self.alpha_stake = subnet_state.tao_stake
+                self.total_stake = self.stake = self.tao_stake = self.alpha_stake = (
+                    subnet_state.tao_stake
+                )
                 return subnet_state
 
             self.alpha_stake = subnet_state.alpha_stake
@@ -816,6 +820,7 @@ class MetagraphMixin(ABC):
 
         except (SubstrateRequestException, AttributeError) as e:
             logging.debug(e)
+
     def _process_root_weights(
         self, data: list, attribute: str, subtensor: "Subtensor"
     ) -> Union[NDArray, "torch.nn.Parameter"]:

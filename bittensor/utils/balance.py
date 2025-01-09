@@ -284,4 +284,3 @@ class Balance:
         self.unit = Balance.get_unit(netuid)
         self.rao_unit = Balance.get_unit(netuid)
         return self
-

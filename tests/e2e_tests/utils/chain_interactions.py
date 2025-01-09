@@ -79,7 +79,11 @@ def add_stake(
     stake_call = substrate.compose_call(
         call_module="SubtensorModule",
         call_function="add_stake",
-        call_params={"hotkey": wallet.hotkey.ss58_address, "amount_staked": amount.rao, "netuid": netuid},
+        call_params={
+            "hotkey": wallet.hotkey.ss58_address,
+            "amount_staked": amount.rao,
+            "netuid": netuid,
+        },
     )
     extrinsic = substrate.create_signed_extrinsic(
         call=stake_call, keypair=wallet.coldkey
@@ -98,10 +102,7 @@ def register_subnet(substrate: "SubstrateInterface", wallet: "Wallet") -> bool:
     register_call = substrate.compose_call(
         call_module="SubtensorModule",
         call_function="register_network",
-        call_params={
-            "mechid": 1,
-            "hotkey": wallet.hotkey.ss58_address
-        },
+        call_params={"mechid": 1, "hotkey": wallet.hotkey.ss58_address},
     )
     extrinsic = substrate.create_signed_extrinsic(
         call=register_call, keypair=wallet.coldkey
