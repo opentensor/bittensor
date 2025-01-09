@@ -38,9 +38,6 @@ MINERS_DIR.mkdir(parents=True, exist_ok=True)
 # Bittensor networks name
 NETWORKS = ["finney", "test", "archive", "local", "subvortex", "rao"]
 
-DEFAULT_ENDPOINT = "wss://rao.chain.opentensor.ai:443/"
-DEFAULT_NETWORK = NETWORKS[5]
-
 # Bittensor endpoints (Needs to use wss://)
 FINNEY_ENTRYPOINT = "wss://entrypoint-finney.opentensor.ai:443"
 FINNEY_TEST_ENTRYPOINT = "wss://test.finney.opentensor.ai:443"
@@ -66,6 +63,9 @@ REVERSE_NETWORK_MAP = {
     SUBVORTEX_ENTRYPOINT: NETWORKS[4],
     RAO_ENTRYPOINT: NETWORKS[5],
 }
+
+DEFAULT_NETWORK = NETWORKS[1]
+DEFAULT_ENDPOINT = NETWORK_MAP[DEFAULT_NETWORK]
 
 # Currency Symbols Bittensor
 TAO_SYMBOL: str = chr(0x03C4)
