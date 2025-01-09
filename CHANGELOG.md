@@ -1,5 +1,10 @@
 # Changelog
 
+## 8.5.1rc2 /2025-01-09
+
+## What's Changed
+* Fixed units variable name
+
 ## 8.5.1rc1 /2025-01-09
 
 ## What's Changed
