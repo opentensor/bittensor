@@ -1004,6 +1004,7 @@ class AsyncSubstrateInterface:
 
     async def __aenter__(self):
         await self.initialize()
+        return self
 
     async def initialize(self):
         """
