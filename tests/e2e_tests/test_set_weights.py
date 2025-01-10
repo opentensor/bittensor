@@ -6,7 +6,6 @@ import asyncio
 from bittensor.core.subtensor import Subtensor
 from bittensor.utils.balance import Balance
 from bittensor.utils.weight_utils import convert_weights_and_uids_for_emit
-from bittensor.core.extrinsics import utils
 from tests.e2e_tests.utils.chain_interactions import (
     add_stake,
     register_subnet,
