@@ -6,6 +6,7 @@ import ssl
 from typing import Optional, Any, Union, Iterable, TYPE_CHECKING
 
 import aiohttp
+from async_substrate_interface.substrate_interface import AsyncSubstrateInterface
 import asyncstdlib as a
 import numpy as np
 import scalecodec
@@ -72,7 +73,6 @@ from bittensor.utils import (
     execute_coroutine,
 )
 from bittensor.utils import networking
-from bittensor.utils.substrate_interface import AsyncSubstrateInterface
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 from bittensor.utils.delegates_details import DelegatesDetails
@@ -84,7 +84,7 @@ if TYPE_CHECKING:
     from bittensor_wallet import Wallet
     from bittensor.core.axon import Axon
     from bittensor.utils import Certificate
-    from bittensor.utils.substrate_interface import QueryMapResult
+    from async_substrate_interface.substrate_interface import QueryMapResult
 
 
 def _decode_hex_identity_dict(info_dictionary: dict[str, Any]) -> dict[str, Any]:

@@ -30,7 +30,7 @@ from bittensor.core.chain_data import (
     PrometheusInfo,
     AxonInfo,
 )
-from bittensor.utils.substrate_interface import SubstrateInterface
+from async_substrate_interface.substrate_interface import SubstrateInterface
 from bittensor.core.types import AxonServeCallParams, PrometheusServeCallParams
 from bittensor.core.errors import ChainQueryError
 from bittensor.core.subtensor import Subtensor
