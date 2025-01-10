@@ -1,14 +1,15 @@
 import argparse
 import asyncio
 import copy
-from itertools import chain
 import ssl
+from itertools import chain
 from typing import Optional, Any, Union, Iterable, TYPE_CHECKING
 
 import aiohttp
 import asyncstdlib as a
 import numpy as np
 import scalecodec
+from async_substrate_interface import AsyncSubstrateInterface
 from bittensor_wallet.utils import SS58_FORMAT
 from numpy.typing import NDArray
 from scalecodec import GenericCall, ScaleType
@@ -28,7 +29,6 @@ from bittensor.core.chain_data import (
     custom_rpc_type_registry,
     decode_account_id,
 )
-
 from bittensor.core.config import Config
 from bittensor.core.errors import SubstrateRequestException
 from bittensor.core.extrinsics.asyncex.commit_reveal import commit_reveal_v3_extrinsic
@@ -60,8 +60,8 @@ from bittensor.core.extrinsics.asyncex.weights import (
     reveal_weights_extrinsic,
 )
 from bittensor.core.metagraph import AsyncMetagraph
-from bittensor.core.types import ParamWithTypes
 from bittensor.core.settings import version_as_int, TYPE_REGISTRY, DELEGATES_DETAILS_URL
+from bittensor.core.types import ParamWithTypes
 from bittensor.utils import (
     decode_hex_identity_dict,
     format_error_message,
@@ -72,19 +72,17 @@ from bittensor.utils import (
     execute_coroutine,
 )
 from bittensor.utils import networking
-from bittensor.utils.substrate_interface import AsyncSubstrateInterface
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 from bittensor.utils.delegates_details import DelegatesDetails
 from bittensor.utils.weight_utils import generate_weight_hash
-
 
 if TYPE_CHECKING:
     from scalecodec import ScaleType
     from bittensor_wallet import Wallet
     from bittensor.core.axon import Axon
     from bittensor.utils import Certificate
-    from bittensor.utils.substrate_interface import QueryMapResult
+    from async_substrate_interface import QueryMapResult
 
 
 def _decode_hex_identity_dict(info_dictionary: dict[str, Any]) -> dict[str, Any]:

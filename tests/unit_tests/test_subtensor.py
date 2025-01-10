@@ -7,7 +7,9 @@ from bittensor.core.subtensor import Subtensor
 def test_methods_comparable(mocker):
     """Verifies that methods in sync and async Subtensors are comparable."""
     # Preps
-    mocker.patch("bittensor.utils.substrate_interface.AsyncSubstrateInterface")
+    mocker.patch(
+        "async_substrate_interface.substrate_interface.AsyncSubstrateInterface"
+    )
     subtensor = Subtensor()
 
     # methods which lives in sync subtensor only
