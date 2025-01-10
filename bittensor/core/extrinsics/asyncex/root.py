@@ -156,11 +156,17 @@ async def _do_set_root_weights(
             "hotkey": wallet.hotkey.ss58_address,
         },
     )
+
+    next_nonce = await subtensor.substrate.get_account_next_index(
+        wallet.hotkey.ss58_address
+    )
+
     # Period dictates how long the extrinsic will stay as part of waiting pool
     extrinsic = await subtensor.substrate.create_signed_extrinsic(
         call=call,
         keypair=wallet.coldkey,
         era={"period": period},
+        nonce=next_nonce,
     )
     response = await subtensor.substrate.submit_extrinsic(
         extrinsic=extrinsic,
