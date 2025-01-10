@@ -24,4 +24,4 @@ scalecodec==1.2.11
 uvicorn
 bittensor-wallet>=2.1.3
 bittensor-commit-reveal>=0.1.0
-git+https://github.com/opentensor/async-substrate-interface.git
+git+https://github.com/opentensor/async-substrate-interface.git#egg=async_substrate_interface
