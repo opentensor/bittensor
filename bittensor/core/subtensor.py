@@ -2,12 +2,12 @@ from functools import lru_cache
 from typing import TYPE_CHECKING, Any, Iterable, Optional, Union
 
 import numpy as np
+from async_substrate_interface import SubstrateInterface
 from numpy.typing import NDArray
 
 from bittensor.core.async_subtensor import AsyncSubtensor
 from bittensor.core.metagraph import Metagraph
 from bittensor.core.settings import version_as_int
-from bittensor.utils.substrate_interface import SubstrateInterface
 from bittensor.utils import execute_coroutine, torch, get_event_loop
 
 if TYPE_CHECKING:
@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     from bittensor.core.chain_data.subnet_info import SubnetInfo
     from bittensor.utils.balance import Balance
     from bittensor.utils import Certificate
-    from bittensor.utils.substrate_interface import QueryMapResult
+    from async_substrate_interface import QueryMapResult
     from bittensor.utils.delegates_details import DelegatesDetails
     from scalecodec.types import ScaleType
 

@@ -1,20 +1,3 @@
-# The MIT License (MIT)
-# Copyright © 2024 Opentensor Foundation
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
-# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
-# the Software.
-#
-# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-# DEALINGS IN THE SOFTWARE.
-
 from collections.abc import Mapping
 from dataclasses import dataclass
 from hashlib import sha256
@@ -22,20 +5,20 @@ from types import SimpleNamespace
 from typing import Any, Optional, Union, TypedDict
 from unittest.mock import MagicMock, patch, AsyncMock
 
+from async_substrate_interface import SubstrateInterface
 from bittensor_wallet import Wallet
 
+import bittensor.core.subtensor as subtensor_module
+from bittensor.core.async_subtensor import AsyncSubtensor
 from bittensor.core.chain_data import (
     NeuronInfo,
     NeuronInfoLite,
     PrometheusInfo,
     AxonInfo,
 )
-from bittensor.utils.substrate_interface import SubstrateInterface
-from bittensor.core.types import AxonServeCallParams, PrometheusServeCallParams
 from bittensor.core.errors import ChainQueryError
 from bittensor.core.subtensor import Subtensor
-from bittensor.core.async_subtensor import AsyncSubtensor
-import bittensor.core.subtensor as subtensor_module
+from bittensor.core.types import AxonServeCallParams, PrometheusServeCallParams
 from bittensor.utils import RAOPERTAO, u16_normalized_float, get_event_loop
 from bittensor.utils.balance import Balance
 

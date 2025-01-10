@@ -1,35 +1,22 @@
-# The MIT License (MIT)
-# Copyright © 2024 Opentensor Foundation
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
-# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
-# the Software.
-#
-# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-# DEALINGS IN THE SOFTWARE.
-
-import asyncio
 import ast
-import base58
-from collections import namedtuple
 import hashlib
-from hashlib import blake2b
-from typing import Any, Literal, Union, Optional, TYPE_CHECKING, Coroutine
+from collections import namedtuple
+from typing import Any, Literal, Union, Optional, TYPE_CHECKING
 from urllib.parse import urlparse
 
 import scalecodec
+from async_substrate_interface.utils import (
+    event_loop_is_running,
+    hex_to_bytes,
+    get_event_loop,
+    execute_coroutine,
+)
 from bittensor_wallet import Keypair
+from bittensor_wallet.errors import KeyFileError, PasswordError
+from scalecodec import ss58_decode, is_valid_ss58_address as _is_valid_ss58_address
 
 from bittensor.core.settings import SS58_FORMAT
 from bittensor.utils.btlogging import logging
-from bittensor_wallet.errors import KeyFileError, PasswordError
 from .registration import torch, use_torch
 from .version import version_checking, check_version, VersionCheckError
 
@@ -44,6 +31,11 @@ use_torch = use_torch
 version_checking = version_checking
 check_version = check_version
 VersionCheckError = VersionCheckError
+ss58_decode = ss58_decode
+event_loop_is_running = event_loop_is_running
+hex_to_bytes = hex_to_bytes
+get_event_loop = get_event_loop
+execute_coroutine = execute_coroutine
 
 
 RAOPERTAO = 1e9
@@ -52,118 +44,6 @@ U64_MAX = 18446744073709551615
 
 Certificate = str
 UnlockStatus = namedtuple("UnlockStatus", ["success", "message"])
-
-
-def ss58_decode(address: str, valid_ss58_format: Optional[int] = None) -> str:
-    """
-    Decodes given SS58 encoded address to an account ID
-
-    Args:
-        address: e.g. EaG2CRhJWPb7qmdcJvy3LiWdh26Jreu9Dx6R1rXxPmYXoDk
-        valid_ss58_format: the format for what is considered valid
-
-    Returns:
-        Decoded string AccountId
-    """
-
-    # Check if address is already decoded
-    if address.startswith("0x"):
-        return address
-
-    if address == "":
-        raise ValueError("Empty address provided")
-
-    checksum_prefix = b"SS58PRE"
-
-    address_decoded = base58.b58decode(address)
-
-    if address_decoded[0] & 0b0100_0000:
-        ss58_format_length = 2
-        ss58_format = (
-            ((address_decoded[0] & 0b0011_1111) << 2)
-            | (address_decoded[1] >> 6)
-            | ((address_decoded[1] & 0b0011_1111) << 8)
-        )
-    else:
-        ss58_format_length = 1
-        ss58_format = address_decoded[0]
-
-    if ss58_format in [46, 47]:
-        raise ValueError(f"{ss58_format} is a reserved SS58 format")
-
-    if valid_ss58_format is not None and ss58_format != valid_ss58_format:
-        raise ValueError("Invalid SS58 format")
-
-    # Determine checksum length according to length of address string
-    if len(address_decoded) in [3, 4, 6, 10]:
-        checksum_length = 1
-    elif len(address_decoded) in [
-        5,
-        7,
-        11,
-        34 + ss58_format_length,
-        35 + ss58_format_length,
-    ]:
-        checksum_length = 2
-    elif len(address_decoded) in [8, 12]:
-        checksum_length = 3
-    elif len(address_decoded) in [9, 13]:
-        checksum_length = 4
-    elif len(address_decoded) in [14]:
-        checksum_length = 5
-    elif len(address_decoded) in [15]:
-        checksum_length = 6
-    elif len(address_decoded) in [16]:
-        checksum_length = 7
-    elif len(address_decoded) in [17]:
-        checksum_length = 8
-    else:
-        raise ValueError("Invalid address length")
-
-    checksum = blake2b(checksum_prefix + address_decoded[0:-checksum_length]).digest()
-
-    if checksum[0:checksum_length] != address_decoded[-checksum_length:]:
-        raise ValueError("Invalid checksum")
-
-    return address_decoded[
-        ss58_format_length : len(address_decoded) - checksum_length
-    ].hex()
-
-
-def _is_valid_ss58_address(value: str, valid_ss58_format: Optional[int] = None) -> bool:
-    """
-    Checks if given value is a valid SS58 formatted address, optionally check if address is valid for specified
-    ss58_format
-
-    Args:
-        value: value to checked
-        valid_ss58_format: if valid_ss58_format is provided the address must be valid for specified ss58_format
-            (network) as well
-
-    Returns:
-        bool result
-    """
-
-    # Return False in case a public key is provided
-    if value.startswith("0x"):
-        return False
-
-    try:
-        ss58_decode(value, valid_ss58_format=valid_ss58_format)
-    except ValueError:
-        return False
-
-    return True
-
-
-def event_loop_is_running() -> Optional[asyncio.AbstractEventLoop]:
-    """
-    Simple function to check if event loop is running. Returns the loop if it is, otherwise None.
-    """
-    try:
-        return asyncio.get_running_loop()
-    except RuntimeError:
-        return None
 
 
 def ss58_to_vec_u8(ss58_address: str) -> list[int]:
@@ -508,48 +388,3 @@ def unlock_key(wallet: "Wallet", unlock_type="coldkey") -> "UnlockStatus":
     except KeyFileError:
         err_msg = f"{unlock_type.capitalize()} keyfile is corrupt, non-writable, or non-readable, or non-existent."
         return UnlockStatus(False, err_msg)
-
-
-def hex_to_bytes(hex_str: str) -> bytes:
-    """
-    Converts a hex-encoded string into bytes. Handles 0x-prefixed and non-prefixed hex-encoded strings.
-    """
-    if hex_str.startswith("0x"):
-        bytes_result = bytes.fromhex(hex_str[2:])
-    else:
-        bytes_result = bytes.fromhex(hex_str)
-    return bytes_result
-
-
-def get_event_loop() -> asyncio.AbstractEventLoop:
-    """
-    If an event loop is already running, returns that. Otherwise, creates a new event loop,
-        and sets it as the main event loop for this thread, returning the newly-created event loop.
-    """
-    if loop := event_loop_is_running():
-        event_loop = loop
-    else:
-        event_loop = asyncio.get_event_loop()
-        asyncio.set_event_loop(event_loop)
-    return event_loop
-
-
-def execute_coroutine(
-    coroutine: "Coroutine", event_loop: asyncio.AbstractEventLoop = None
-):
-    """
-    Helper function to run an asyncio coroutine synchronously.
-
-    Args:
-        coroutine (Coroutine): The coroutine to run.
-        event_loop (AbstractEventLoop): The event loop to use. If `None`, attempts to fetch the already-running
-            loop. If one is not running, a new loop is created.
-
-    Returns:
-        The result of the coroutine execution.
-    """
-    if event_loop:
-        event_loop = event_loop
-    else:
-        event_loop = get_event_loop()
-    return event_loop.run_until_complete(asyncio.wait_for(coroutine, timeout=None))

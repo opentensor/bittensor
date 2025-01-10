@@ -3,7 +3,6 @@ setuptools~=70.0.0
 aiohttp~=3.9
 asyncstdlib~=3.13.0
 bittensor-cli
-base58
 bt-decode==0.4.0
 colorama~=0.4.6
 fastapi~=0.110.1
@@ -23,7 +22,6 @@ pydantic>=2.3, <3
 python-Levenshtein
 scalecodec==1.2.11
 uvicorn
-websockets>=14.1
-xxhash
 bittensor-wallet>=2.1.3
 bittensor-commit-reveal>=0.1.0
+git+https://github.com/opentensor/async-substrate-interface.git
