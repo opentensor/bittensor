@@ -1,39 +1,22 @@
-# The MIT License (MIT)
-# Copyright © 2024 Opentensor Foundation
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
-# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
-# the Software.
-#
-# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-# DEALINGS IN THE SOFTWARE.
-
 import ast
-from collections import namedtuple
 import hashlib
+from collections import namedtuple
 from typing import Any, Literal, Union, Optional, TYPE_CHECKING
 from urllib.parse import urlparse
 
+import scalecodec
 from async_substrate_interface.utils import (
     event_loop_is_running,
     hex_to_bytes,
     get_event_loop,
-    execute_coroutine
+    execute_coroutine,
 )
-import scalecodec
-from scalecodec import ss58_decode, is_valid_ss58_address as _is_valid_ss58_address
 from bittensor_wallet import Keypair
+from bittensor_wallet.errors import KeyFileError, PasswordError
+from scalecodec import ss58_decode, is_valid_ss58_address as _is_valid_ss58_address
 
 from bittensor.core.settings import SS58_FORMAT
 from bittensor.utils.btlogging import logging
-from bittensor_wallet.errors import KeyFileError, PasswordError
 from .registration import torch, use_torch
 from .version import version_checking, check_version, VersionCheckError
 

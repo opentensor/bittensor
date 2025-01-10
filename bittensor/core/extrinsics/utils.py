@@ -2,14 +2,15 @@
 
 from typing import TYPE_CHECKING
 
-from bittensor.utils.btlogging import logging
+from async_substrate_interface.errors import SubstrateRequestException
+
 from bittensor.utils import format_error_message
-from async_substrate_interface.substrate_interface import SubstrateRequestException
+from bittensor.utils.btlogging import logging
 
 if TYPE_CHECKING:
     from bittensor.core.subtensor import Subtensor
     from bittensor.core.async_subtensor import AsyncSubtensor
-    from async_substrate_interface.substrate_interface import (
+    from async_substrate_interface import (
         AsyncExtrinsicReceipt,
         ExtrinsicReceipt,
     )
