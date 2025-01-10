@@ -1,10 +1,11 @@
 from unittest.mock import MagicMock
+
 import pytest
+from async_substrate_interface import SubstrateInterface
 from scalecodec.types import GenericExtrinsic
 
 from bittensor.core.extrinsics import utils
 from bittensor.core.subtensor import Subtensor
-from async_substrate_interface.substrate_interface import SubstrateInterface
 
 
 @pytest.fixture
