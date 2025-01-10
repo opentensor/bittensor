@@ -15,28 +15,23 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from __future__ import annotations
-
 from typing import Optional, TYPE_CHECKING
+
+from async_substrate_interface.errors import (
+    SubstrateRequestException,
+    StorageFunctionNotFound,
+    BlockNotFound,
+    ExtrinsicNotFound,
+)
 
 if TYPE_CHECKING:
     from bittensor.core.synapse import Synapse
 
-
-class SubstrateRequestException(Exception):
-    pass
-
-
-class StorageFunctionNotFound(ValueError):
-    pass
-
-
-class BlockNotFound(Exception):
-    pass
-
-
-class ExtrinsicNotFound(Exception):
-    pass
+# redundant aliases
+SubstrateRequestException = SubstrateRequestException
+StorageFunctionNotFound = StorageFunctionNotFound
+BlockNotFound = BlockNotFound
+ExtrinsicNotFound = ExtrinsicNotFound
 
 
 class ChainError(SubstrateRequestException):
