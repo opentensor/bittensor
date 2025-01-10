@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from bittensor import Wallet
     from bittensor.core.subtensor import Subtensor
     from bittensor.utils.balance import Balance
-    from substrateinterface import SubstrateInterface
+    from bittensor.utils.substrate_interface import SubstrateInterface, ExtrinsicReceipt
 
 
 def sudo_set_hyperparameter_bool(
@@ -153,7 +153,7 @@ async def wait_interval(
     and the provided tempo, then enters a loop where it periodically checks
     the current block number until the next tempo interval starts.
     """
-    current_block = subtensor.get_current_block()
+    current_block = await subtensor.async_subtensor.get_current_block()
     next_tempo_block_start = next_tempo(current_block, tempo, netuid)
     last_reported = None
 
@@ -161,7 +161,7 @@ async def wait_interval(
         await asyncio.sleep(
             1
         )  # Wait for 1 second before checking the block number again
-        current_block = subtensor.get_current_block()
+        current_block = await subtensor.async_subtensor.get_current_block()
         if last_reported is None or current_block - last_reported >= reporting_interval:
             last_reported = current_block
             print(
@@ -179,7 +179,7 @@ def sudo_set_admin_utils(
     call_function: str,
     call_params: dict,
     return_error_message: bool = False,
-) -> Union[bool, tuple[bool, Optional[str]]]:
+) -> tuple[bool, str]:
     """
     Wraps the call in sudo to set hyperparameter values using AdminUtils.
 
@@ -207,7 +207,7 @@ def sudo_set_admin_utils(
     extrinsic = substrate.create_signed_extrinsic(
         call=sudo_call, keypair=wallet.coldkey
     )
-    response = substrate.submit_extrinsic(
+    response: "ExtrinsicReceipt" = substrate.submit_extrinsic(
         extrinsic,
         wait_for_inclusion=True,
         wait_for_finalization=True,
@@ -216,7 +216,7 @@ def sudo_set_admin_utils(
     if return_error_message:
         return response.is_success, response.error_message
 
-    return response.is_success
+    return response.is_success, ""
 
 
 async def root_set_subtensor_hyperparameter_values(
@@ -225,7 +225,7 @@ async def root_set_subtensor_hyperparameter_values(
     call_function: str,
     call_params: dict,
     return_error_message: bool = False,
-) -> Union[bool, tuple[bool, Optional[str]]]:
+) -> tuple[bool, str]:
     """
     Sets liquid alpha values using AdminUtils. Mimics setting hyperparams
     """
@@ -236,7 +236,7 @@ async def root_set_subtensor_hyperparameter_values(
     )
     extrinsic = substrate.create_signed_extrinsic(call=call, keypair=wallet.coldkey)
 
-    response = substrate.submit_extrinsic(
+    response: "ExtrinsicReceipt" = substrate.submit_extrinsic(
         extrinsic,
         wait_for_inclusion=True,
         wait_for_finalization=True,
@@ -245,4 +245,4 @@ async def root_set_subtensor_hyperparameter_values(
     if return_error_message:
         return response.is_success, response.error_message
 
-    return response.is_success
+    return response.is_success, ""

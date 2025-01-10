@@ -96,12 +96,15 @@ async def test_commit_and_reveal_weights_cr3(local_chain):
     # Change the tempo of the subnet from default 360
     # Since this is in normal blocks, this is necessary
     tempo_set = 10
-    assert sudo_set_admin_utils(
-        local_chain,
-        alice_wallet,
-        call_function="sudo_set_tempo",
-        call_params={"netuid": netuid, "tempo": tempo_set},
-        return_error_message=True,
+    assert (
+        sudo_set_admin_utils(
+            local_chain,
+            alice_wallet,
+            call_function="sudo_set_tempo",
+            call_params={"netuid": netuid, "tempo": tempo_set},
+            return_error_message=True,
+        )[0]
+        is True
     )
     tempo = subtensor.get_subnet_hyperparameters(netuid=netuid).tempo
     assert tempo_set == tempo
