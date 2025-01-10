@@ -309,6 +309,7 @@ async def test_do_set_root_weights_success(subtensor, mocker):
         call=fake_call,
         keypair=fake_wallet.coldkey,
         era={"period": 5},
+        nonce=subtensor.substrate.get_account_next_index.return_value,
     )
     subtensor.substrate.submit_extrinsic.assert_called_once_with(
         extrinsic=fake_extrinsic, wait_for_inclusion=True, wait_for_finalization=True
