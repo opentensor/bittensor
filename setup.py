@@ -31,7 +31,6 @@ def read_requirements(path):
     with pathlib.Path(path).open() as requirements_txt:
         for line in requirements_txt:
             if line.startswith("git+"):
-
                 pkg_name = re.search(r"/([^/]+)\.git$", line.strip()).group(1)
                 requirements.append(pkg_name + " @ " + line.strip())
             else:
