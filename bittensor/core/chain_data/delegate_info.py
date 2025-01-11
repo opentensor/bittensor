@@ -62,7 +62,8 @@ class DelegateInfo:
 
     @classmethod
     def list_from_vec_u8(cls, vec_u8: bytes) -> list["DelegateInfo"]:
-        decoded = bt_decode.DelegateInfo.decode_vec(vec_u8)
+        vec_u8_bytes = bytes(vec_u8)
+        decoded = bt_decode.DelegateInfo.decode_vec(vec_u8_bytes)
         results = []
         for d in decoded:
             hotkey = decode_account_id(d.delegate_ss58)
