@@ -181,7 +181,7 @@ def test_is_valid_bittensor_address_or_public_key(mocker, test_input, expected_r
         utils, "_is_valid_ed25519_pubkey", return_value=True
     )
     mocked_ss58_is_valid_ss58_address = mocker.patch.object(
-        utils.ss58, "is_valid_ss58_address", side_effect=[False, True]
+        utils, "_is_valid_ss58_address", side_effect=[False, True]
     )
 
     # Call

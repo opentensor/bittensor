@@ -6,7 +6,6 @@ import asyncio
 from bittensor.core.subtensor import Subtensor
 from bittensor.utils.balance import Balance
 from bittensor.utils.weight_utils import convert_weights_and_uids_for_emit
-from bittensor.core.extrinsics import utils
 from tests.e2e_tests.utils.chain_interactions import (
     add_stake,
     register_subnet,
@@ -33,7 +32,6 @@ async def test_set_weights_uses_next_nonce(local_chain):
         AssertionError: If any of the checks or verifications fail
     """
     netuids = [1, 2]
-    utils.EXTRINSIC_SUBMISSION_TIMEOUT = 12  # handle fast blocks
     print("Testing test_set_weights_uses_next_nonce")
     # Register root as Alice
     keypair, alice_wallet = setup_wallet("//Alice")

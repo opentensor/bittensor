@@ -14,6 +14,7 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
+from unittest import mock
 
 import bittensor
 import torch
@@ -48,13 +49,19 @@ class TestMetagraph:
         self.metagraph.sync(lite=True, block=0, subtensor=self.sub)
 
     def test_load_sync_save(self):
-        self.metagraph.sync(lite=True, subtensor=self.sub)
-        self.metagraph.save()
-        self.metagraph.load()
-        self.metagraph.save()
+        with mock.patch.object(
+            self.sub.async_subtensor, "neurons_lite", return_value=[]
+        ):
+            self.metagraph.sync(lite=True, subtensor=self.sub)
+            self.metagraph.save()
+            self.metagraph.load()
+            self.metagraph.save()
 
     def test_load_sync_save_from_torch(self):
-        self.metagraph.sync(lite=True, subtensor=self.sub)
+        with mock.patch.object(
+            self.sub.async_subtensor, "neurons_lite", return_value=[]
+        ):
+            self.metagraph.sync(lite=True, subtensor=self.sub)
 
         def deprecated_save_torch(metagraph):
             save_directory = get_save_dir(metagraph.network, metagraph.netuid)
