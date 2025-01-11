@@ -47,7 +47,7 @@ async def _do_transfer(
         call=call, keypair=wallet.coldkey
     )
     response = await subtensor.substrate.submit_extrinsic(
-        extrinsic,
+        extrinsic=extrinsic,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
     )
@@ -56,16 +56,11 @@ async def _do_transfer(
         return True, "", "Success, extrinsic submitted without waiting."
 
     # Otherwise continue with finalization.
-    await response.process_events()
     if await response.is_success:
         block_hash_ = response.block_hash
         return True, block_hash_, "Success with response."
-    else:
-        return (
-            False,
-            "",
-            format_error_message(await response.error_message),
-        )
+
+    return False, "", format_error_message(await response.error_message)
 
 
 async def transfer_extrinsic(
@@ -112,11 +107,11 @@ async def transfer_extrinsic(
     # check existential deposit and fee
     logging.debug("Fetching existential and fee")
     block_hash = await subtensor.substrate.get_chain_head()
-    account_balance_, existential_deposit = await asyncio.gather(
+    account_balance, existential_deposit = await asyncio.gather(
         subtensor.get_balance(wallet.coldkeypub.ss58_address, block_hash=block_hash),
         subtensor.get_existential_deposit(block_hash=block_hash),
     )
-    account_balance = account_balance_[wallet.coldkeypub.ss58_address]
+
     fee = await subtensor.get_transfer_fee(
         wallet=wallet, dest=destination, value=amount.rao
     )
@@ -169,7 +164,7 @@ async def transfer_extrinsic(
         logging.info(":satellite: [magenta]Checking Balance...[magenta]")
         new_balance = await subtensor.get_balance(wallet.coldkeypub.ss58_address)
         logging.info(
-            f"Balance: [blue]{account_balance}[/blue] :arrow_right: [green]{new_balance[wallet.coldkeypub.ss58_address]}[/green]"
+            f"Balance: [blue]{account_balance}[/blue] :arrow_right: [green]{new_balance}[/green]"
         )
         return True
     else:

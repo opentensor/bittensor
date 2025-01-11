@@ -37,7 +37,7 @@ class NeuronInfo:
         dividends (float): The dividends value.
         last_update (int): The timestamp of the last update.
         validator_permit (bool): Validator permit status.
-        weights (list[list[int]]): List of weights associated with the neuron.
+        weights (list[tuple[int]]): List of weights associated with the neuron.
         bonds (list[list[int]]): List of bonds associated with the neuron.
         pruning_score (int): The pruning score of the neuron.
         prometheus_info (Optional[PrometheusInfo]): Information related to Prometheus.
@@ -63,7 +63,7 @@ class NeuronInfo:
     dividends: float
     last_update: int
     validator_permit: bool
-    weights: list[list[int]]
+    weights: list[tuple[int, int]]
     bonds: list[list[int]]
     pruning_score: int
     prometheus_info: Optional["PrometheusInfo"] = None
@@ -151,7 +151,7 @@ class NeuronInfo:
             dividends=u16_normalized_float(n.dividends),
             last_update=n.last_update,
             validator_permit=n.validator_permit,
-            weights=[[e[0], e[1]] for e in n.weights],
+            weights=[(e[0], e[1]) for e in n.weights],
             bonds=[[e[0], e[1]] for e in n.bonds],
             pruning_score=n.pruning_score,
             prometheus_info=PrometheusInfo(
@@ -203,7 +203,7 @@ class NeuronInfo:
                 dividends=u16_normalized_float(n.dividends),
                 last_update=n.last_update,
                 validator_permit=n.validator_permit,
-                weights=[[e[0], e[1]] for e in n.weights],
+                weights=[(e[0], e[1]) for e in n.weights],
                 bonds=[[e[0], e[1]] for e in n.bonds],
                 pruning_score=n.pruning_score,
                 prometheus_info=PrometheusInfo(

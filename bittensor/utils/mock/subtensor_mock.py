@@ -1,42 +1,25 @@
-# The MIT License (MIT)
-# Copyright © 2024 Opentensor Foundation
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
-# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
-# the Software.
-#
-# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-# DEALINGS IN THE SOFTWARE.
-
 from collections.abc import Mapping
 from dataclasses import dataclass
 from hashlib import sha256
 from types import SimpleNamespace
 from typing import Any, Optional, Union, TypedDict
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, AsyncMock
 
+from async_substrate_interface import SubstrateInterface
 from bittensor_wallet import Wallet
-from substrateinterface.base import SubstrateInterface
-from websockets.sync.client import ClientConnection
 
+import bittensor.core.subtensor as subtensor_module
+from bittensor.core.async_subtensor import AsyncSubtensor
 from bittensor.core.chain_data import (
     NeuronInfo,
     NeuronInfoLite,
     PrometheusInfo,
     AxonInfo,
 )
-from bittensor.core.types import AxonServeCallParams, PrometheusServeCallParams
 from bittensor.core.errors import ChainQueryError
 from bittensor.core.subtensor import Subtensor
-import bittensor.core.subtensor as subtensor_module
-from bittensor.utils import RAOPERTAO, u16_normalized_float
+from bittensor.core.types import AxonServeCallParams, PrometheusServeCallParams
+from bittensor.utils import RAOPERTAO, u16_normalized_float, get_event_loop
 from bittensor.utils.balance import Balance
 
 # Mock Testing Constant
@@ -168,6 +151,21 @@ class MockChainState(TypedDict):
     SubtensorModule: MockSubtensorState
 
 
+class ReusableCoroutine:
+    def __init__(self, coroutine):
+        self.coroutine = coroutine
+
+    def __await__(self):
+        return self.reset().__await__()
+
+    def reset(self):
+        return self.coroutine()
+
+
+async def _async_block():
+    return 1
+
+
 class MockSubtensor(Subtensor):
     """
     A Mock Subtensor class for running tests.
@@ -252,17 +250,18 @@ class MockSubtensor(Subtensor):
             self.network = "mock"
             self.chain_endpoint = "ws://mock_endpoint.bt"
             self.substrate = MagicMock(autospec=SubstrateInterface)
+            self.async_subtensor = AsyncMock(autospec=AsyncSubtensor)
+            self.async_subtensor.block = ReusableCoroutine(_async_block)
+            self.event_loop = get_event_loop()
 
     def __init__(self, *args, **kwargs) -> None:
         mock_substrate_interface = MagicMock(autospec=SubstrateInterface)
-        mock_websocket = MagicMock(autospec=ClientConnection)
-        mock_websocket.close_code = None
         with patch.object(
             subtensor_module,
             "SubstrateInterface",
             return_value=mock_substrate_interface,
         ):
-            super().__init__(websocket=mock_websocket)
+            super().__init__()
             self.__dict__ = __GLOBAL_MOCK_STATE__
 
             if not hasattr(self, "chain_state") or getattr(self, "chain_state") is None:

@@ -20,6 +20,7 @@ from __future__ import annotations
 import asyncio
 import time
 import uuid
+import warnings
 from typing import Any, AsyncGenerator, Optional, Union, Type
 
 import aiohttp
@@ -30,7 +31,7 @@ from bittensor.core.chain_data import AxonInfo
 from bittensor.core.settings import version_as_int
 from bittensor.core.stream import StreamingSynapse
 from bittensor.core.synapse import Synapse, TerminalInfo
-from bittensor.utils import networking
+from bittensor.utils import networking, event_loop_is_running
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import torch, use_torch
 
@@ -60,7 +61,7 @@ class DendriteMixin:
     network requests and processing server responses.
 
     Args:
-        keypair (Option[Union[bittensor_wallet.Wallet, substrateinterface.Keypair]]): The wallet or keypair used for signing messages.
+        keypair (Option[Union[bittensor_wallet.Wallet, bittensor_wallet.Keypair]]): The wallet or keypair used for signing messages.
         external_ip (str): The external IP address of the local system.
         synapse_history (list): A list of Synapse objects representing the historical responses.
 
@@ -103,7 +104,7 @@ class DendriteMixin:
         Initializes the Dendrite object, setting up essential properties.
 
         Args:
-            wallet (Optional[Union[bittensor_wallet.Wallet, substrateinterface.Keypair]]): The user's wallet or keypair used for signing messages. Defaults to ``None``, in which case a new :func:`bittensor_wallet.Wallet().hotkey` is generated and used.
+            wallet (Optional[Union[bittensor_wallet.Wallet, bittensor_wallet..Keypair]]): The user's wallet or keypair used for signing messages. Defaults to ``None``, in which case a new :func:`bittensor_wallet.Wallet().hotkey` is generated and used.
         """
         # Initialize the parent class
         super(DendriteMixin, self).__init__()
@@ -174,6 +175,12 @@ class DendriteMixin:
             When finished with dendrite in a synchronous context
             :func:`dendrite_instance.close_session()`.
         """
+        if event_loop_is_running():
+            warnings.warn(
+                "You are calling this from an already-running event loop. "
+                "You should instead use `Dendrite.aclose_session`. This will not work within a coroutine in version 9.0",
+                category=DeprecationWarning,
+            )
         if self._session:
             loop = asyncio.get_event_loop()
             loop.run_until_complete(self._session.close())
@@ -329,6 +336,12 @@ class DendriteMixin:
                 f"dendrite | <-- | {synapse.get_total_size()} B | {synapse.name} | {synapse.axon.hotkey} | {synapse.axon.ip}:{str(synapse.axon.port)} | {synapse.dendrite.status_code} | {synapse.dendrite.status_message}"
             )
 
+    async def aquery(self, *args, **kwargs):
+        result = await self.forward(*args, **kwargs)
+        if self._session:
+            await self._session.close()
+        return result
+
     def query(
         self, *args, **kwargs
     ) -> list[Union["AsyncGenerator[Any, Any]", "Synapse", "StreamingSynapse"]]:
@@ -345,6 +358,12 @@ class DendriteMixin:
         Returns:
             Union[bittensor.core.synapse.Synapse, list[bittensor.core.synapse.Synapse]]: If a single target axon is provided, returns the response from that axon. If multiple target axons are provided, returns a list of responses from all target axons.
         """
+        if event_loop_is_running():
+            warnings.warn(
+                "You are calling this from an already-running event loop. "
+                "You should instead use `Dendrite.aquery`. This will not work within a coroutine in version 9.0",
+                category=DeprecationWarning,
+            )
         result = None
         try:
             loop = asyncio.get_event_loop()

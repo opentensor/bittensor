@@ -14,12 +14,12 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
-
+import asyncio
 from collections import deque
 import json
 from typing import Union
 
-from websockets.sync.client import ClientConnection, ClientProtocol
+from websockets.asyncio.client import ClientConnection, ClientProtocol
 from websockets.uri import parse_uri
 
 from bittensor_wallet.mock.wallet_mock import MockWallet as _MockWallet
@@ -29,7 +29,7 @@ from bittensor_wallet.mock.wallet_mock import get_mock_wallet
 
 from bittensor.utils.balance import Balance
 from bittensor.core.chain_data import AxonInfo, NeuronInfo, PrometheusInfo
-from tests.helpers.integration_websocket_data import WEBSOCKET_RESPONSES
+from tests.helpers.integration_websocket_data import WEBSOCKET_RESPONSES, METADATA
 
 
 def __mock_wallet_factory__(*_, **__) -> _MockWallet:
@@ -129,26 +129,34 @@ class FakeWebsocket(ClientConnection):
 
     def __init__(self, *args, seed, **kwargs):
         protocol = ClientProtocol(parse_uri("ws://127.0.0.1:9945"))
-        super().__init__(socket=None, protocol=protocol, **kwargs)
+        super().__init__(protocol=protocol, **kwargs)
         self.seed = seed
         self.received = deque()
+        self._lock = asyncio.Lock()
 
-    def send(self, payload: str, *args, **kwargs):
+    async def send(self, payload: str, *args, **kwargs):
         received = json.loads(payload)
         id_ = received.pop("id")
-        self.received.append((received, id_))
+        async with self._lock:
+            self.received.append((received, id_))
 
-    def recv(self, *args, **kwargs):
-        item, _id = self.received.pop()
+    async def recv(self, *args, **kwargs):
+        while len(self.received) == 0:
+            await asyncio.sleep(0.1)
+        async with self._lock:
+            item, _id = self.received.pop()
         try:
-            response = WEBSOCKET_RESPONSES[self.seed][item["method"]][
-                json.dumps(item["params"])
-            ]
-            response["id"] = _id
+            if item["method"] == "state_getMetadata":
+                response = {"jsonrpc": "2.0", "id": _id, "result": METADATA}
+            else:
+                response = WEBSOCKET_RESPONSES[self.seed][item["method"]][
+                    json.dumps(item["params"])
+                ]
+                response["id"] = _id
             return json.dumps(response)
         except (KeyError, TypeError):
             print("ERROR", self.seed, item["method"], item["params"])
             raise
 
-    def close(self, *args, **kwargs):
+    async def close(self, *args, **kwargs):
         pass

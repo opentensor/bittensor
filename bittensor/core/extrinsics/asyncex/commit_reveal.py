@@ -1,3 +1,5 @@
+"""This module provides async functionality for commit reveal in the Bittensor network."""
+
 from typing import Optional, Union, TYPE_CHECKING
 
 import numpy as np
@@ -53,13 +55,13 @@ async def _do_commit_reveal_v3(
             "reveal_round": reveal_round,
         },
     )
+
     extrinsic = await subtensor.substrate.create_signed_extrinsic(
         call=call,
         keypair=wallet.hotkey,
     )
 
     response = await subtensor.substrate.submit_extrinsic(
-        subtensor=subtensor,
         extrinsic=extrinsic,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
@@ -88,7 +90,7 @@ async def commit_reveal_v3_extrinsic(
     Commits and reveals weights for given subtensor and wallet with provided uids and weights.
 
     Arguments:
-        subtensor: The Subtensor instance.
+        subtensor: The AsyncSubtensor instance.
         wallet: The wallet to use for committing and revealing.
         netuid: The id of the network.
         uids: The uids to commit.
@@ -98,7 +100,8 @@ async def commit_reveal_v3_extrinsic(
         wait_for_finalization: Whether to wait for the finalization of the transaction. Default is False.
 
     Returns:
-        tuple[bool, str]: A tuple where the first element is a boolean indicating success or failure, and the second element is a message associated with the result.
+        tuple[bool, str]: A tuple where the first element is a boolean indicating success or failure, and the second
+            element is a message associated with the result
     """
     try:
         # Convert uids and weights
@@ -110,8 +113,10 @@ async def commit_reveal_v3_extrinsic(
         # Reformat and normalize.
         uids, weights = convert_weights_and_uids_for_emit(uids, weights)
 
-        current_block = await subtensor.substrate.get_block_number(None)
-        subnet_hyperparameters = await subtensor.get_subnet_hyperparameters(netuid)
+        current_block = await subtensor.substrate.get_block(None)
+        subnet_hyperparameters = await subtensor.get_subnet_hyperparameters(
+            netuid, block_hash=current_block["header"]["hash"]
+        )
         tempo = subnet_hyperparameters.tempo
         subnet_reveal_period_epochs = (
             subnet_hyperparameters.commit_reveal_weights_interval
@@ -123,7 +128,7 @@ async def commit_reveal_v3_extrinsic(
             weights=weights,
             version_key=version_key,
             tempo=tempo,
-            current_block=current_block,
+            current_block=current_block["header"]["number"],
             netuid=netuid,
             subnet_reveal_period_epochs=subnet_reveal_period_epochs,
         )

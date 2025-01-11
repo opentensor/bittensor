@@ -1,4 +1,5 @@
 import re
+import time
 
 import numpy as np
 import pytest
@@ -95,12 +96,15 @@ async def test_commit_and_reveal_weights_cr3(local_chain):
     # Change the tempo of the subnet from default 360
     # Since this is in normal blocks, this is necessary
     tempo_set = 10
-    assert sudo_set_admin_utils(
-        local_chain,
-        alice_wallet,
-        call_function="sudo_set_tempo",
-        call_params={"netuid": netuid, "tempo": tempo_set},
-        return_error_message=True,
+    assert (
+        sudo_set_admin_utils(
+            local_chain,
+            alice_wallet,
+            call_function="sudo_set_tempo",
+            call_params={"netuid": netuid, "tempo": tempo_set},
+            return_error_message=True,
+        )[0]
+        is True
     )
     tempo = subtensor.get_subnet_hyperparameters(netuid=netuid).tempo
     assert tempo_set == tempo
@@ -192,8 +196,11 @@ async def test_commit_and_reveal_weights_cr3(local_chain):
     )
 
     # Fetch weights on the chain as they should be revealed now
-    revealed_weights = subtensor.weights(netuid=netuid)[0][1]
+    revealed_weights_ = subtensor.weights(netuid=netuid)
 
+    time.sleep(10)
+    print("revealed weights", revealed_weights_)
+    revealed_weights = revealed_weights_[0][1]
     # Assert correct weights were revealed
     assert weight_uids[0] == revealed_weights[0][0]
     assert weight_vals[0] == revealed_weights[0][1]

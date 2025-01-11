@@ -1,8 +1,8 @@
 import pytest
-from substrateinterface.exceptions import SubstrateRequestException
 
 from bittensor.core import async_subtensor
-from bittensor.core.extrinsics import async_root
+from bittensor.core.errors import SubstrateRequestException
+from bittensor.core.extrinsics.asyncex import root as async_root
 from bittensor_wallet import Wallet
 
 
@@ -309,11 +309,11 @@ async def test_do_set_root_weights_success(subtensor, mocker):
         call=fake_call,
         keypair=fake_wallet.coldkey,
         era={"period": 5},
+        nonce=subtensor.substrate.get_account_next_index.return_value,
     )
     subtensor.substrate.submit_extrinsic.assert_called_once_with(
-        fake_extrinsic, wait_for_inclusion=True, wait_for_finalization=True
+        extrinsic=fake_extrinsic, wait_for_inclusion=True, wait_for_finalization=True
     )
-    fake_response.process_events.assert_called_once()
     assert result is True
     assert message == "Successfully set weights."
 
@@ -364,7 +364,6 @@ async def test_do_set_root_weights_failure(subtensor, mocker):
     )
 
     # Asserts
-    fake_response.process_events.assert_called_once()
     assert result is False
     assert message == mocked_format_error_message.return_value
 
@@ -405,7 +404,7 @@ async def test_do_set_root_weights_no_waiting(subtensor, mocker):
     subtensor.substrate.compose_call.assert_called_once()
     subtensor.substrate.create_signed_extrinsic.assert_called_once()
     subtensor.substrate.submit_extrinsic.assert_called_once_with(
-        fake_extrinsic, wait_for_inclusion=False, wait_for_finalization=False
+        extrinsic=fake_extrinsic, wait_for_inclusion=False, wait_for_finalization=False
     )
     assert result is True
     assert message == "Not waiting for finalization or inclusion."

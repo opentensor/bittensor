@@ -2,7 +2,7 @@ import pytest
 from bittensor_wallet import Wallet
 
 from bittensor.core import async_subtensor
-from bittensor.core.extrinsics import async_registration
+from bittensor.core.extrinsics.asyncex import registration as async_registration
 
 
 @pytest.fixture(autouse=True)
@@ -69,10 +69,9 @@ async def test_do_pow_register_success(subtensor, mocker):
     subtensor.substrate.create_signed_extrinsic.asseert_awaited_once_with(
         call=fake_call, keypair=fake_wallet.hotkey
     )
-    subtensor.substrate.submit_extrinsic.asseert_awaited_once_with(
-        fake_extrinsic, wait_for_inclusion=True, wait_for_finalization=True
+    subtensor.substrate.submit_extrinsic.assert_awaited_once_with(
+        extrinsic=fake_extrinsic, wait_for_inclusion=True, wait_for_finalization=True
     )
-    fake_response.process_events.assert_called_once()
     assert result is True
     assert error_message is None
 
