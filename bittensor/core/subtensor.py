@@ -388,6 +388,15 @@ class Subtensor:
         )
         return result
 
+    def get_total_stake_for_coldkeys(
+        self, *ss58_addresses: str, block: Optional[int] = None
+    ) -> dict[str, "Balance"]:
+        return self.execute_coroutine(
+            self.async_subtensor.get_total_stake_for_coldkeys(
+                *ss58_addresses, block=block
+            ),
+        )
+
     def get_total_stake_for_hotkey(
         self, ss58_address: str, block: Optional[int] = None
     ) -> "Balance":
@@ -395,6 +404,15 @@ class Subtensor:
             self.async_subtensor.get_total_stake_for_hotkey(ss58_address, block=block),
         )
         return result
+
+    def get_total_stake_for_hotkeys(
+        self, *ss58_addresses: str, block: Optional[int] = None
+    ) -> dict[str, "Balance"]:
+        return self.execute_coroutine(
+            self.async_subtensor.get_total_stake_for_hotkeys(
+                *ss58_addresses, block=block
+            ),
+        )
 
     def get_total_subnets(self, block: Optional[int] = None) -> Optional[int]:
         return self.execute_coroutine(
