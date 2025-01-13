@@ -1493,6 +1493,11 @@ class Metagraph(AsyncMetagraph):
     This class provides a synchronous interface to interact with an asynchronous metagraph. It is initialized with
     configuration related to the network and provides methods for synchronizing and accessing asynchronous metagraph
     attributes.
+
+    If you want to get the description of any method from the `bittensor.core.metagraph.Metagraph` class, then simply
+    get the corresponding method from the `bittensor.core.metagraph.AsyncMetagraph` class.
+    `AsyncMetagraph` is the class related with `AsyncTorchMetaGraph` or `AsyncNonTorchMetagraph` depending on the use
+    of the use of the env var `USE_TORCH`
     """
 
     def __init__(
