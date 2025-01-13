@@ -17,6 +17,7 @@ from scalecodec.exceptions import RemainingScaleBytesNotEmptyException
 from scalecodec.type_registry import load_type_registry_preset
 from scalecodec.types import ScaleType
 from substrateinterface.base import QueryMapResult, SubstrateInterface
+from websockets.exceptions import InvalidStatus
 from websockets.sync import client as ws_client
 
 from bittensor.core import settings
@@ -233,6 +234,7 @@ class Subtensor:
                     open_timeout=self._connection_timeout,
                     max_size=2**32,
                 )
+
             self.substrate = SubstrateInterface(
                 ss58_format=settings.SS58_FORMAT,
                 use_remote_preset=True,
@@ -244,19 +246,27 @@ class Subtensor:
                     f"Connected to {self.network} network and {self.chain_endpoint}."
                 )
 
-        except (ConnectionRefusedError, ssl.SSLError) as error:
-            logging.error(
-                f"<red>Could not connect to</red> <blue>{self.network}</blue> <red>network with</red> <blue>{self.chain_endpoint}</blue> <red>chain endpoint.</red>",
+        except ConnectionRefusedError as error:
+            logging.critical(
+                f"[red]Could not connect to[/red] [blue]{self.network}[/blue] [red]network with[/red] [blue]{self.chain_endpoint}[/blue] [red]chain endpoint.[/red]",
             )
             raise ConnectionRefusedError(error.args)
-        except ssl.SSLError as e:
+
+        except ssl.SSLError as error:
             logging.critical(
                 "SSL error occurred. To resolve this issue, run the following command in your terminal:"
             )
             logging.critical("[blue]sudo python -m bittensor certifi[/blue]")
             raise RuntimeError(
                 "SSL configuration issue, please follow the instructions above."
-            ) from e
+            ) from error
+
+        except InvalidStatus as error:
+            logging.critical(
+                f"Error [red]'{error.response.reason_phrase}'[/red] with status code [red]{error.response.status_code}[/red]."
+            )
+            logging.debug(f"Server response is '{error.response}'.")
+            raise
 
     @staticmethod
     def config() -> "Config":
@@ -660,6 +670,16 @@ class Subtensor:
                 None if block is None else self.substrate.get_block_hash(block)
             ),
         )
+
+    @networking.ensure_connected
+    def get_account_next_index(self, address: str) -> int:
+        """
+        Returns the next nonce for an account, taking into account the transaction pool.
+        """
+        if not self.substrate.supports_rpc_method("account_nextIndex"):
+            raise Exception("account_nextIndex not supported")
+
+        return self.substrate.rpc_request("account_nextIndex", [address])["result"]
 
     # Common subtensor methods =========================================================================================
     def metagraph(
@@ -1764,7 +1784,7 @@ class Subtensor:
         if not (result := json_body.get("result", None)):
             return []
 
-        return DelegateInfo.list_from_vec_u8(result)
+        return DelegateInfo.list_from_vec_u8(bytes(result))
 
     def is_hotkey_delegate(self, hotkey_ss58: str, block: Optional[int] = None) -> bool:
         """
@@ -1816,7 +1836,13 @@ class Subtensor:
         """
         retries = 0
         success = False
-        uid = self.get_uid_for_hotkey_on_subnet(wallet.hotkey.ss58_address, netuid)
+        if (
+            uid := self.get_uid_for_hotkey_on_subnet(wallet.hotkey.ss58_address, netuid)
+        ) is None:
+            return (
+                False,
+                f"Hotkey {wallet.hotkey.ss58_address} not registered in subnet {netuid}",
+            )
 
         if self.commit_reveal_enabled(netuid=netuid) is True:
             # go with `commit reveal v3` extrinsic

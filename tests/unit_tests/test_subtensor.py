@@ -2548,7 +2548,7 @@ def test_get_delegates_success(mocker, subtensor):
     fake_block = 123
     fake_block_hash = "0xabc123"
     fake_json_body = {
-        "result": "mock_encoded_delegates",
+        "result": b"mock_encoded_delegates",
     }
 
     # Mocks
@@ -2616,7 +2616,7 @@ def test_get_delegates_latest_block(mocker, subtensor):
     """Test when no block is provided (latest block)."""
     # Mock data
     fake_json_body = {
-        "result": "mock_encoded_delegates",
+        "result": b"mock_encoded_delegates",
     }
 
     # Mocks
@@ -2880,3 +2880,27 @@ def test_set_weights_with_commit_reveal_enabled(subtensor, mocker):
         wait_for_finalization=fake_wait_for_finalization,
     )
     assert result == mocked_commit_reveal_v3_extrinsic.return_value
+
+
+def test_connection_limit(mocker):
+    """Test connection limit is not exceeded."""
+    # Technically speaking, this test should exist in integration tests. But to reduce server costs we will leave this
+    # test here.
+
+    # Preps
+    mocker.patch.object(
+        subtensor_module.ws_client,
+        "connect",
+        side_effect=subtensor_module.InvalidStatus(
+            response=mocker.Mock(
+                response=mocker.Mock(
+                    status_code=429, message="test connection limit error"
+                )
+            )
+        ),
+    )
+    # Call with assertions
+
+    with pytest.raises(subtensor_module.InvalidStatus):
+        for i in range(2):
+            Subtensor("test")
