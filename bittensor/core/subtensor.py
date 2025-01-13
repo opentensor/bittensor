@@ -29,6 +29,13 @@ if TYPE_CHECKING:
 
 
 class Subtensor:
+    """
+    Represents a synchronous interface for `bittensor.core.async_subtensor.AsyncSubtensor`.
+
+    If you want to get the description of any method from the `bittensor.core.subtensor.Subtensor` class, then simply
+    get the corresponding method from the `bittensor.core.async_subtensor.AsyncSubtensor` class.
+    """
+
     # get static methods from AsyncSubtensor
     config = AsyncSubtensor.config
     setup_config = AsyncSubtensor.setup_config
@@ -381,6 +388,15 @@ class Subtensor:
         )
         return result
 
+    def get_total_stake_for_coldkeys(
+        self, *ss58_addresses: str, block: Optional[int] = None
+    ) -> dict[str, "Balance"]:
+        return self.execute_coroutine(
+            self.async_subtensor.get_total_stake_for_coldkeys(
+                *ss58_addresses, block=block
+            ),
+        )
+
     def get_total_stake_for_hotkey(
         self, ss58_address: str, block: Optional[int] = None
     ) -> "Balance":
@@ -388,6 +404,15 @@ class Subtensor:
             self.async_subtensor.get_total_stake_for_hotkey(ss58_address, block=block),
         )
         return result
+
+    def get_total_stake_for_hotkeys(
+        self, *ss58_addresses: str, block: Optional[int] = None
+    ) -> dict[str, "Balance"]:
+        return self.execute_coroutine(
+            self.async_subtensor.get_total_stake_for_hotkeys(
+                *ss58_addresses, block=block
+            ),
+        )
 
     def get_total_subnets(self, block: Optional[int] = None) -> Optional[int]:
         return self.execute_coroutine(
