@@ -29,6 +29,13 @@ if TYPE_CHECKING:
 
 
 class Subtensor:
+    """
+    Represents a synchronous interface for `bittensor.core.async_subtensor.AsyncSubtensor`.
+
+    If you want to get the description of any method from the `bittensor.core.subtensor.Subtensor` class, then simply
+    get the corresponding method from the `bittensor.core.async_subtensor.AsyncSubtensor` class.
+    """
+
     # get static methods from AsyncSubtensor
     config = AsyncSubtensor.config
     setup_config = AsyncSubtensor.setup_config
