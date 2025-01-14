@@ -2,7 +2,6 @@ import argparse
 import asyncio
 import copy
 import ssl
-from itertools import chain
 from typing import Optional, Any, Union, Iterable, TYPE_CHECKING
 
 import aiohttp
