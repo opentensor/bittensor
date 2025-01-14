@@ -802,7 +802,9 @@ class AsyncSubtensor:
             block_hash=block_hash,
             reuse_block_hash=reuse_block,
         )
-        b_map = [(uid, b) async for uid, b in b_map_encoded]
+        b_map = []
+        async for uid, b in b_map_encoded:
+            b_map.append((uid, b.value))
 
         return b_map
 
@@ -918,7 +920,7 @@ class AsyncSubtensor:
             block_hash=block_hash,
             reuse_block_hash=reuse_block,
         )
-        result = decode_account_id(_result[0])
+        result = decode_account_id(_result.value[0])
         return_val = (
             False
             if result is None
@@ -1097,7 +1099,7 @@ class AsyncSubtensor:
             )
             if children:
                 formatted_children = []
-                for proportion, child in children:
+                for proportion, child in children.value:
                     # Convert U64 to int
                     formatted_child = decode_account_id(child[0])
                     int_proportion = int(proportion)
@@ -1124,7 +1126,13 @@ class AsyncSubtensor:
             str: The commitment data as a string.
         """
         metagraph = await self.metagraph(netuid)
-        hotkey = metagraph.hotkeys[uid]  # type: ignore
+        try:
+            hotkey = metagraph.hotkeys[uid]  # type: ignore
+        except IndexError:
+            logging.error(
+                "Your uid is not in the hotkeys. Please double-check your UID."
+            )
+            return ""
 
         metadata = await get_metadata(self, netuid, hotkey, block)
         try:
@@ -1133,6 +1141,7 @@ class AsyncSubtensor:
             return bytes.fromhex(hex_data).decode()
 
         except TypeError:
+            print("Type Error")
             return ""
 
     async def get_current_weight_commit_info(
@@ -1238,12 +1247,17 @@ class AsyncSubtensor:
                 session.get(DELEGATES_DETAILS_URL),
             )
 
-            all_delegates_details = {
-                decode_account_id(ss58_address[0]): DelegatesDetails.from_chain_data(
-                    decode_hex_identity_dict(identity["info"])
+            all_delegates_details = {}
+            async for ss58_address, identity in identities_info:
+                all_delegates_details.update(
+                    {
+                        decode_account_id(
+                            ss58_address[0]
+                        ): DelegatesDetails.from_chain_data(
+                            decode_hex_identity_dict(identity.value["info"])
+                        )
+                    }
                 )
-                for ss58_address, identity in identities_info
-            }
 
             if response.ok:
                 all_delegates: dict[str, Any] = await response.json(content_type=None)
@@ -1305,7 +1319,11 @@ class AsyncSubtensor:
             reuse_block=reuse_block,
             params=[hotkey_ss58],
         )
-        return None if result is None else u16_normalized_float(result)
+        return (
+            None
+            if result is None
+            else u16_normalized_float(getattr(result, "value", 0))
+        )
 
     async def get_delegated(
         self,
@@ -1369,7 +1387,7 @@ class AsyncSubtensor:
             block_hash=block_hash,
             reuse_block=reuse_block,
         )
-        if hex_bytes_result is not None:
+        if hex_bytes_result:
             return DelegateInfo.list_from_vec_u8(hex_to_bytes(hex_bytes_result))
         else:
             return []
@@ -1407,7 +1425,7 @@ class AsyncSubtensor:
         if result is None:
             raise Exception("Unable to retrieve existential deposit amount.")
 
-        return Balance.from_rao(getattr(result, "value", result))
+        return Balance.from_rao(getattr(result, "value", 0))
 
     async def get_hotkey_owner(
         self,
@@ -1438,11 +1456,14 @@ class AsyncSubtensor:
             block_hash=block_hash,
             reuse_block_hash=reuse_block,
         )
-        val = decode_account_id(hk_owner_query[0])
-        if val:
-            exists = await self.does_hotkey_exist(hotkey_ss58, block_hash=block_hash)
-        else:
-            exists = False
+        exists = False
+        val = None
+        if hasattr(hk_owner_query, "value"):
+            val = decode_account_id(hk_owner_query.value[0])
+            if val:
+                exists = await self.does_hotkey_exist(
+                    hotkey_ss58, block_hash=block_hash
+                )
         hotkey_owner = val if exists else None
         return hotkey_owner
 
@@ -1461,7 +1482,7 @@ class AsyncSubtensor:
             module="SubtensorModule", storage_function="NominatorMinRequiredStake"
         )
 
-        return Balance.from_rao(getattr(result, "value", None))
+        return Balance.from_rao(getattr(result, "value", 0))
 
     async def get_netuids_for_hotkey(
         self,
@@ -1491,7 +1512,12 @@ class AsyncSubtensor:
             block_hash=block_hash,
             reuse_block_hash=reuse_block,
         )
-        return [record[0] async for record in result if record[1]] if result else []
+        netuids = []
+        if result.records:
+            async for record in result:
+                if record[1].value:
+                    netuids.append(record[0])
+        return netuids
 
     async def get_neuron_certificate(
         self,
@@ -1528,6 +1554,7 @@ class AsyncSubtensor:
         )
         try:
             if certificate:
+                # TODO verify the type
                 return "".join(
                     chr(i)
                     for i in chain(
@@ -1578,7 +1605,7 @@ class AsyncSubtensor:
         if uid is None:
             return NeuronInfo.get_null_neuron()
 
-        params = [netuid, uid]
+        params = [netuid, uid.value]
         json_body = await self.substrate.rpc_request(
             method="neuronInfo_getNeuron", params=params, reuse_block_hash=reuse_block
         )
@@ -1617,7 +1644,7 @@ class AsyncSubtensor:
             block_hash=block_hash,
             reuse_block_hash=reuse_block,
         )
-        return Balance.from_rao(result or 0)
+        return Balance.from_rao(getattr(result, "value", 0))
 
     async def get_stake_info_for_coldkey(
         self,
@@ -1653,7 +1680,7 @@ class AsyncSubtensor:
             reuse_block=reuse_block,
         )
 
-        if hex_bytes_result is None:
+        if not hex_bytes_result:
             return []
 
         return StakeInfo.list_from_vec_u8(hex_to_bytes(hex_bytes_result))
@@ -1696,7 +1723,7 @@ class AsyncSubtensor:
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
-    ) -> Optional[Union[list, SubnetHyperparameters]]:
+    ) -> Optional[SubnetHyperparameters]:
         """
         Retrieves the hyperparameters for a specific subnet within the Bittensor network. These hyperparameters define
             the operational settings and rules governing the subnet's behavior.
@@ -1722,8 +1749,8 @@ class AsyncSubtensor:
             reuse_block=reuse_block,
         )
 
-        if hex_bytes_result is None:
-            return []
+        if not hex_bytes_result:
+            return None
 
         return SubnetHyperparameters.from_vec_u8(hex_to_bytes(hex_bytes_result))
 
@@ -1763,7 +1790,12 @@ class AsyncSubtensor:
             block_hash=block_hash,
             reuse_block_hash=reuse_block,
         )
-        return [netuid async for netuid, exists in result if exists] if result else []
+        subnets = []
+        if result.records:
+            async for netuid, exists in result:
+                if exists:
+                    subnets.append(netuid)
+        return subnets
 
     async def get_total_stake_for_coldkey(
         self,
@@ -1794,7 +1826,7 @@ class AsyncSubtensor:
             block_hash=block_hash,
             reuse_block_hash=reuse_block,
         )
-        return Balance.from_rao(result or 0)
+        return Balance.from_rao(getattr(result, "value", 0))
 
     async def get_total_stake_for_coldkeys(
         self,
@@ -1867,7 +1899,7 @@ class AsyncSubtensor:
             block_hash=block_hash,
             reuse_block_hash=reuse_block,
         )
-        return Balance.from_rao(result or 0)
+        return Balance.from_rao(getattr(result, "value", 0))
 
     async def get_total_stake_for_hotkeys(
         self,
@@ -1926,7 +1958,7 @@ class AsyncSubtensor:
             block_hash=block_hash,
             reuse_block_hash=reuse_block,
         )
-        return result
+        return getattr(result, "value", None)
 
     async def get_transfer_fee(
         self, wallet: "Wallet", dest: str, value: Union["Balance", float, int]
@@ -2270,7 +2302,7 @@ class AsyncSubtensor:
         result = await self.substrate.query(
             module="Drand", storage_function="LastStoredRound"
         )
-        return result if result is not None else None
+        return getattr(result, "value", None)
 
     async def max_weight_limit(
         self,
@@ -2440,7 +2472,7 @@ class AsyncSubtensor:
             reuse_block=reuse_block,
         )
 
-        if hex_bytes_result is None:
+        if not hex_bytes_result:
             return []
 
         return NeuronInfo.list_from_vec_u8(hex_to_bytes(hex_bytes_result))
@@ -2480,7 +2512,7 @@ class AsyncSubtensor:
             reuse_block=reuse_block,
         )
 
-        if hex_bytes_result is None:
+        if not hex_bytes_result:
             return []
 
         return NeuronInfoLite.list_from_vec_u8(hex_to_bytes(hex_bytes_result))
@@ -2588,7 +2620,7 @@ class AsyncSubtensor:
             block_hash=block_hash,
             reuse_block_hash=reuse_block,
         )
-        return result
+        return getattr(result, "value", False)
 
     async def subnetwork_n(
         self,
@@ -2674,7 +2706,7 @@ class AsyncSubtensor:
         result = await self.query_subtensor(
             "TxRateLimit", block_hash=block_hash, reuse_block=reuse_block
         )
-        return result if result is not None else None
+        return getattr(result, "value", None)
 
     async def weights(
         self,
@@ -2709,7 +2741,7 @@ class AsyncSubtensor:
             block_hash=block_hash,
             reuse_block_hash=reuse_block,
         )
-        w_map = [(uid, w or []) async for uid, w in w_map_encoded]
+        w_map = [(uid, w.value or []) async for uid, w in w_map_encoded]
 
         return w_map
 
