@@ -32,7 +32,6 @@ class StakeInfo:
     drain: int
     is_registered: bool
 
-
     @classmethod
     def fix_decoded_values(cls, decoded: Any) -> "StakeInfo":
         """Fixes the decoded values."""

@@ -2196,45 +2196,78 @@ def test_networks_during_connection(mocker):
         sub.chain_endpoint = settings.NETWORK_MAP.get(network)
 
 
-@pytest.mark.parametrize(
-    "fake_value_result",
-    [1, None],
-    ids=["result has value attr", "result has not value attr"],
-)
-def test_get_stake_for_coldkey_and_hotkey(subtensor, mocker, fake_value_result):
-    """Test get_stake_for_coldkey_and_hotkey calls right method with correct arguments."""
+def test_get_stake_for_coldkey_and_hotkey_with_single_result(subtensor, mocker):
+    """Test `get_stake_for_coldkey_and_hotkey` calls right method with correct arguments and get 1 stake info."""
     # Preps
     fake_hotkey_ss58 = "FAKE_H_SS58"
     fake_coldkey_ss58 = "FAKE_C_SS58"
+    fake_netuid = 255
     fake_block = 123
 
-    return_value = (
-        mocker.Mock(value=fake_value_result)
-        if fake_value_result is not None
-        else fake_value_result
+    fake_stake_info_1 = mocker.Mock(hotkey_ss58="some")
+    fake_stake_info_2 = mocker.Mock(
+        hotkey_ss58=fake_hotkey_ss58, netuid=fake_netuid, stake=100
     )
 
-    subtensor.query_subtensor = mocker.patch.object(
-        subtensor, "query_subtensor", return_value=return_value
+    return_value = [
+        fake_stake_info_1,
+        fake_stake_info_2,
+    ]
+
+    subtensor.get_stake_for_coldkey = mocker.patch.object(
+        subtensor, "get_stake_for_coldkey", return_value=return_value
     )
-    spy_balance_from_rao = mocker.spy(subtensor_module.Balance, "from_rao")
 
     # Call
     result = subtensor.get_stake_for_coldkey_and_hotkey(
         hotkey_ss58=fake_hotkey_ss58,
         coldkey_ss58=fake_coldkey_ss58,
+        netuid=fake_netuid,
         block=fake_block,
     )
 
     # Asserts
-    subtensor.query_subtensor.assert_called_once_with(
-        "Stake", fake_block, [fake_hotkey_ss58, fake_coldkey_ss58]
+    subtensor.get_stake_for_coldkey.assert_called_once_with(
+        fake_coldkey_ss58, fake_block
     )
-    if fake_value_result is not None:
-        spy_balance_from_rao.assert_called_once_with(fake_value_result)
-    else:
-        spy_balance_from_rao.assert_not_called()
-    assert result == fake_value_result
+    assert result == fake_stake_info_2
+
+
+def test_get_stake_for_coldkey_and_hotkey_with_multiple_result(subtensor, mocker):
+    """Test `get_stake_for_coldkey_and_hotkey` calls right method with correct arguments and get multiple stake info."""
+    # Preps
+    fake_hotkey_ss58 = "FAKE_H_SS58"
+    fake_coldkey_ss58 = "FAKE_C_SS58"
+    fake_netuid = 255
+    fake_block = 123
+
+    fake_stake_info_1 = mocker.Mock(hotkey_ss58="some")
+    fake_stake_info_2 = mocker.Mock(
+        hotkey_ss58=fake_hotkey_ss58, netuid=fake_netuid, stake=100
+    )
+    fake_stake_info_3 = mocker.Mock(
+        hotkey_ss58=fake_hotkey_ss58, netuid=fake_netuid, stake=200
+    )
+
+    return_value = [fake_stake_info_1, fake_stake_info_2, fake_stake_info_3]
+
+    subtensor.get_stake_for_coldkey = mocker.patch.object(
+        subtensor, "get_stake_for_coldkey", return_value=return_value
+    )
+
+    # Call
+    result = subtensor.get_stake_for_coldkey_and_hotkey(
+        hotkey_ss58=fake_hotkey_ss58,
+        coldkey_ss58=fake_coldkey_ss58,
+        netuid=fake_netuid,
+        block=fake_block,
+    )
+
+    # Asserts
+    subtensor.get_stake_for_coldkey.assert_called_once_with(
+        fake_coldkey_ss58, fake_block
+    )
+    assert result == [fake_stake_info_2, fake_stake_info_3]
 
 
 def test_does_hotkey_exist_true(mocker, subtensor):
@@ -2714,6 +2747,7 @@ def test_add_stake_success(mocker, subtensor):
     fake_wallet = mocker.Mock()
     fake_hotkey_ss58 = "fake_hotkey"
     fake_amount = 10.0
+    fake_netuid = 123
 
     mock_add_stake_extrinsic = mocker.patch.object(
         subtensor_module, "add_stake_extrinsic"
@@ -2723,6 +2757,7 @@ def test_add_stake_success(mocker, subtensor):
     result = subtensor.add_stake(
         wallet=fake_wallet,
         hotkey_ss58=fake_hotkey_ss58,
+        netuid=fake_netuid,
         amount=fake_amount,
         wait_for_inclusion=True,
         wait_for_finalization=False,
@@ -2733,6 +2768,7 @@ def test_add_stake_success(mocker, subtensor):
         subtensor=subtensor,
         wallet=fake_wallet,
         hotkey_ss58=fake_hotkey_ss58,
+        netuid=fake_netuid,
         amount=fake_amount,
         wait_for_inclusion=True,
         wait_for_finalization=False,
@@ -2746,6 +2782,7 @@ def test_add_stake_multiple_success(mocker, subtensor):
     fake_wallet = mocker.Mock()
     fake_hotkey_ss58 = ["fake_hotkey"]
     fake_amount = [10.0]
+    fake_netuids = [1]
 
     mock_add_stake_multiple_extrinsic = mocker.patch.object(
         subtensor_module, "add_stake_multiple_extrinsic"
@@ -2755,6 +2792,7 @@ def test_add_stake_multiple_success(mocker, subtensor):
     result = subtensor.add_stake_multiple(
         wallet=fake_wallet,
         hotkey_ss58s=fake_hotkey_ss58,
+        netuids=fake_netuids,
         amounts=fake_amount,
         wait_for_inclusion=True,
         wait_for_finalization=False,
@@ -2765,6 +2803,7 @@ def test_add_stake_multiple_success(mocker, subtensor):
         subtensor=subtensor,
         wallet=fake_wallet,
         hotkey_ss58s=fake_hotkey_ss58,
+        netuids=fake_netuids,
         amounts=fake_amount,
         wait_for_inclusion=True,
         wait_for_finalization=False,
@@ -2778,6 +2817,7 @@ def test_unstake_success(mocker, subtensor):
     fake_wallet = mocker.Mock()
     fake_hotkey_ss58 = "hotkey_1"
     fake_amount = 10.0
+    fake_netuid = 123
 
     mock_unstake_extrinsic = mocker.patch.object(subtensor_module, "unstake_extrinsic")
 
@@ -2785,6 +2825,7 @@ def test_unstake_success(mocker, subtensor):
     result = subtensor.unstake(
         wallet=fake_wallet,
         hotkey_ss58=fake_hotkey_ss58,
+        netuid=fake_netuid,
         amount=fake_amount,
         wait_for_inclusion=True,
         wait_for_finalization=False,
@@ -2795,6 +2836,7 @@ def test_unstake_success(mocker, subtensor):
         subtensor=subtensor,
         wallet=fake_wallet,
         hotkey_ss58=fake_hotkey_ss58,
+        netuid=fake_netuid,
         amount=fake_amount,
         wait_for_inclusion=True,
         wait_for_finalization=False,
@@ -2808,6 +2850,7 @@ def test_unstake_multiple_success(mocker, subtensor):
     fake_wallet = mocker.Mock()
     fake_hotkeys = ["hotkey_1", "hotkey_2"]
     fake_amounts = [10.0, 20.0]
+    fake_netuids = [1, 2]
 
     mock_unstake_multiple_extrinsic = mocker.patch(
         "bittensor.core.subtensor.unstake_multiple_extrinsic", return_value=True
@@ -2817,6 +2860,7 @@ def test_unstake_multiple_success(mocker, subtensor):
     result = subtensor.unstake_multiple(
         wallet=fake_wallet,
         hotkey_ss58s=fake_hotkeys,
+        netuids=fake_netuids,
         amounts=fake_amounts,
         wait_for_inclusion=True,
         wait_for_finalization=False,
@@ -2827,6 +2871,7 @@ def test_unstake_multiple_success(mocker, subtensor):
         subtensor=subtensor,
         wallet=fake_wallet,
         hotkey_ss58s=fake_hotkeys,
+        netuids=fake_netuids,
         amounts=fake_amounts,
         wait_for_inclusion=True,
         wait_for_finalization=False,

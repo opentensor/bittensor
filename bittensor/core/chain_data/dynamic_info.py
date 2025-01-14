@@ -68,7 +68,7 @@ class DynamicInfo:
         netuid = int(decoded["netuid"])
         symbol = bytes([int(b) for b in decoded["token_symbol"]]).decode()
         subnet_name = bytes([int(b) for b in decoded["subnet_name"]]).decode()
-        
+
         is_dynamic = (
             True if int(decoded["netuid"]) > 0 else False
         )  # Root is not dynamic

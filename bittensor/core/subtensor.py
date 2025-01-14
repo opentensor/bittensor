@@ -1703,12 +1703,15 @@ class Subtensor:
 
         return DelegateInfo.from_vec_u8(bytes(result))
 
-    def get_stake_for_coldkey(self, coldkey_ss58: str) -> Optional[list["StakeInfo"]]:
+    def get_stake_for_coldkey(
+        self, coldkey_ss58: str, block: Optional[int] = None
+    ) -> Optional[list["StakeInfo"]]:
         """
         Retrieves the stake information for a given coldkey.
 
         Args:
             coldkey_ss58 (str): The SS58 address of the coldkey.
+            block (Optional[int]): The block number at which to query the stake information.
 
         Returns:
             Optional[list[StakeInfo]]: A list of StakeInfo objects, or ``None`` if no stake information is found.
@@ -1718,6 +1721,7 @@ class Subtensor:
             runtime_api="StakeInfoRuntimeApi",
             method="get_stake_info_for_coldkey",
             params=[encoded_coldkey],
+            block=block,
         )
 
         if hex_bytes_result is None:
@@ -1730,7 +1734,11 @@ class Subtensor:
         return StakeInfo.list_from_vec_u8(bytes_result)
 
     def get_stake_for_coldkey_and_hotkey(
-        self, hotkey_ss58: str, coldkey_ss58: str, netuid: Optional[int] = None
+        self,
+        hotkey_ss58: str,
+        coldkey_ss58: str,
+        netuid: Optional[int] = None,
+        block: Optional[int] = None,
     ) -> Optional[Union["StakeInfo", list["StakeInfo"]]]:
         """
         Returns the stake under a coldkey - hotkey pairing.
@@ -1739,11 +1747,12 @@ class Subtensor:
             hotkey_ss58 (str): The SS58 address of the hotkey.
             coldkey_ss58 (str): The SS58 address of the coldkey.
             netuid (Optional[int]): The subnet ID to filter by. If provided, only returns stake for this specific subnet.
+            block (Optional[int]): The block number at which to query the stake information.
 
         Returns:
             Optional[StakeInfo]: The StakeInfo object/s under the coldkey - hotkey pairing, or ``None`` if the pairing does not exist or the stake is not found.
         """
-        all_stakes = self.get_stake_for_coldkey(coldkey_ss58)
+        all_stakes = self.get_stake_for_coldkey(coldkey_ss58, block)
         stakes = [
             stake
             for stake in all_stakes
@@ -2426,6 +2435,7 @@ class Subtensor:
         Args:
             wallet (bittensor_wallet.Wallet): The wallet linked to the coldkey from which the stakes are being withdrawn.
             hotkey_ss58s (List[str]): A list of hotkey ``SS58`` addresses to unstake from.
+            netuids (List[int]): A list of neuron netuids to unstake from.
             amounts (List[Union[Balance, float]]): The amounts of TAO to unstake from each hotkey. If not provided, unstakes all available stakes.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.

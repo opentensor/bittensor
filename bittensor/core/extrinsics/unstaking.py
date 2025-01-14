@@ -244,6 +244,7 @@ def unstake_multiple_extrinsic(
         subtensor (bittensor.core.subtensor.Subtensor): Subtensor instance.
         wallet (bittensor_wallet.Wallet): The wallet with the coldkey to unstake to.
         hotkey_ss58s (List[str]): List of hotkeys to unstake from.
+        netuids (List[int]): List of netuids to unstake from.
         amounts (List[Union[Balance, float]]): List of amounts to unstake. If ``None``, unstake all.
         wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
