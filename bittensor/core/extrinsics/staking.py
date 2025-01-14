@@ -310,7 +310,7 @@ def add_stake_multiple_extrinsic(
         isinstance(amount, (Balance, float, int)) for amount in amounts
     ):
         raise TypeError(
-            "amounts must be a [list of bittensor.Balance or float] or None"
+            "amounts must be a [list of bittensor.Balance, float, or int] or None"
         )
 
     if amounts is None:
