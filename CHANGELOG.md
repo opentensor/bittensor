@@ -1,5 +1,11 @@
 # Changelog
 
+## 8.5.1rc7 /2025-01-14
+
+## What's Changed
+* Adds `get_subnets_info`, `get_subnet_info`, `get_stake_for_coldkey_and_hotkey`, `get_stake_for_coldkey`.
+* Updates `add_stake`, `add_stake_multiple`, `unstake`, `unstake_multiple`
+
 ## 8.5.1rc6 /2025-01-11
 
 ## What's Changed
