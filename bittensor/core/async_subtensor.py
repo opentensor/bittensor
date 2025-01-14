@@ -1247,13 +1247,13 @@ class AsyncSubtensor:
             )
 
             all_delegates_details = {}
-            async for ss58_address, identity in identities_info:
+            for ss58_address, identity in identities_info:
                 all_delegates_details.update(
                     {
                         decode_account_id(
                             ss58_address[0]
                         ): DelegatesDetails.from_chain_data(
-                            decode_hex_identity_dict(identity.value["info"])
+                            decode_hex_identity_dict(identity["info"])
                         )
                     }
                 )
@@ -1722,7 +1722,7 @@ class AsyncSubtensor:
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
-    ) -> Optional[SubnetHyperparameters]:
+    ) -> Optional["SubnetHyperparameters"]:
         """
         Retrieves the hyperparameters for a specific subnet within the Bittensor network. These hyperparameters define
             the operational settings and rules governing the subnet's behavior.
@@ -2740,6 +2740,7 @@ class AsyncSubtensor:
             block_hash=block_hash,
             reuse_block_hash=reuse_block,
         )
+        print(">>>> w_map_encoded", w_map_encoded)
         w_map = [(uid, w.value or []) async for uid, w in w_map_encoded]
 
         return w_map
