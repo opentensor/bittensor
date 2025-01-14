@@ -173,19 +173,16 @@ def add_stake_extrinsic(
     old_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
 
     # Get current stake
-    _stakes = subtensor.get_stake_for_coldkey(
-        coldkey_ss58=wallet.coldkeypub.ss58_address
+    old_stake = subtensor.get_stake_for_coldkey_and_hotkey(
+        coldkey_ss58=wallet.coldkeypub.ss58_address,
+        hotkey_ss58=hotkey_ss58,
+        netuid=netuid,
     )
-    old_stake = next(
-        (
-            stake.stake
-            for stake in _stakes
-            if stake.hotkey_ss58 == hotkey_ss58
-            and stake.coldkey_ss58 == wallet.coldkeypub.ss58_address
-            and stake.netuid == netuid
-        ),
-        Balance.from_tao(0),  # Default to 0 balance if no match found
-    )
+    if old_stake is not None:
+        old_stake = old_stake.stake
+    else:
+        old_stake = Balance.from_tao(0)
+
     # Grab the existential deposit.
     existential_deposit = subtensor.get_existential_deposit()
 
@@ -239,20 +236,16 @@ def add_stake_extrinsic(
             )
             new_balance = subtensor.get_balance(address=wallet.coldkeypub.ss58_address)
 
-            # Get current stake
-            _stakes = subtensor.get_stake_for_coldkey(
-                coldkey_ss58=wallet.coldkeypub.ss58_address
+            # Get new stake
+            new_stake = subtensor.get_stake_for_coldkey_and_hotkey(
+                coldkey_ss58=wallet.coldkeypub.ss58_address,
+                hotkey_ss58=hotkey_ss58,
+                netuid=netuid,
             )
-            new_stake = next(
-                (
-                    stake.stake
-                    for stake in _stakes
-                    if stake.hotkey_ss58 == hotkey_ss58
-                    and stake.coldkey_ss58 == wallet.coldkeypub.ss58_address
-                    and stake.netuid == netuid
-                ),
-                Balance.from_tao(0),  # Default to 0 balance if no match found
-            )
+            if new_stake is not None:
+                new_stake = new_stake.stake
+            else:
+                new_stake = Balance.from_tao(0)
 
             logging.info(
                 f"Balance: [blue]{old_balance}[/blue] :arrow_right: [green]{new_balance}[/green]"
@@ -440,20 +433,16 @@ def add_stake_multiple_extrinsic(
                 logging.success(":white_heavy_check_mark: [green]Finalized[/green]")
 
                 # Get new stake
-                _stakes = subtensor.get_stake_for_coldkey(
-                    coldkey_ss58=wallet.coldkeypub.ss58_address
+                new_stake = subtensor.get_stake_for_coldkey_and_hotkey(
+                    coldkey_ss58=wallet.coldkeypub.ss58_address,
+                    hotkey_ss58=hotkey_ss58,
+                    netuid=netuid,
                 )
-                new_stake = next(
-                    (
-                        stake.stake
-                        for stake in _stakes
-                        if stake.hotkey_ss58 == hotkey_ss58
-                        and stake.coldkey_ss58 == wallet.coldkeypub.ss58_address
-                        and stake.netuid == netuid
-                    ),
-                    Balance.from_tao(0),  # Default to 0 balance if no match found
-                )
-                
+                if new_stake is not None:
+                    new_stake = new_stake.stake
+                else:
+                    new_stake = Balance.from_tao(0)
+
                 block = subtensor.get_current_block()
                 new_balance = subtensor.get_balance(
                     wallet.coldkeypub.ss58_address, block=block

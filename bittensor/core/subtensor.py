@@ -1417,7 +1417,7 @@ class Subtensor:
 
     def get_subnets_info(
         self, block_hash: Optional[str] = None
-    ) -> Optional[DynamicInfo]:
+    ) -> Optional[list["DynamicInfo"]]:
         """
         Retrieves the subnet information for all subnets in the Bittensor network.
 
@@ -1703,7 +1703,7 @@ class Subtensor:
 
         return DelegateInfo.from_vec_u8(bytes(result))
 
-    def get_stake_for_coldkey(self, coldkey_ss58: str) -> Optional[StakeInfo]:
+    def get_stake_for_coldkey(self, coldkey_ss58: str) -> Optional[list["StakeInfo"]]:
         """
         Retrieves the stake information for a given coldkey.
 
@@ -1731,7 +1731,7 @@ class Subtensor:
 
     def get_stake_for_coldkey_and_hotkey(
         self, hotkey_ss58: str, coldkey_ss58: str, netuid: Optional[int] = None
-    ) -> Optional["StakeInfo"]:
+    ) -> Optional[Union["StakeInfo", list["StakeInfo"]]]:
         """
         Returns the stake under a coldkey - hotkey pairing.
 
@@ -1753,6 +1753,8 @@ class Subtensor:
         ]
         if not stakes:
             return None
+        elif len(stakes) == 1:
+            return stakes[0]
         else:
             return stakes
 
