@@ -2740,7 +2740,6 @@ class AsyncSubtensor:
             block_hash=block_hash,
             reuse_block_hash=reuse_block,
         )
-        print(">>>> w_map_encoded", w_map_encoded)
         w_map = [(uid, w.value or []) async for uid, w in w_map_encoded]
 
         return w_map
