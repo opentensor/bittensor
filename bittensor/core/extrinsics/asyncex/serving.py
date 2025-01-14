@@ -317,5 +317,6 @@ async def get_metadata(
             storage_function="CommitmentOf",
             params=[netuid, hotkey],
             block_hash=block_hash,
+            reuse_block_hash=reuse_block,
         )
-    return commit_data
+    return getattr(commit_data, "value", None)
