@@ -1,3 +1,4 @@
+import warnings
 from functools import lru_cache
 from typing import TYPE_CHECKING, Any, Iterable, Optional, Union
 
@@ -8,7 +9,12 @@ from numpy.typing import NDArray
 from bittensor.core.async_subtensor import AsyncSubtensor
 from bittensor.core.metagraph import Metagraph
 from bittensor.core.settings import version_as_int
-from bittensor.utils import execute_coroutine, torch, get_event_loop
+from bittensor.utils import (
+    execute_coroutine,
+    torch,
+    get_event_loop,
+    event_loop_is_running,
+)
 
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
@@ -52,6 +58,11 @@ class Subtensor:
         _mock: bool = False,
         log_verbose: bool = False,
     ):
+        if event_loop_is_running():
+            warnings.warn(
+                "You are calling this from an already running event loop. Some features may not work correctly. You "
+                "should instead use `AsyncSubtensor`."
+            )
         self.event_loop = get_event_loop()
         self.network = network
         self._config = config
