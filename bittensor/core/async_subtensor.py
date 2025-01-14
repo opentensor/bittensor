@@ -1553,14 +1553,8 @@ class AsyncSubtensor:
         )
         try:
             if certificate:
-                # TODO verify the type
-                return "".join(
-                    chr(i)
-                    for i in chain(
-                        [certificate["algorithm"]],
-                        certificate["public_key"][0],
-                    )
-                )
+                public_key = bytes(certificate["public_key"][0]).hex()
+                return chr(certificate['algorithm']) + f"0x{public_key}"
 
         except AttributeError:
             return None
