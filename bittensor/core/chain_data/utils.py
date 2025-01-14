@@ -24,6 +24,8 @@ class ChainDataType(Enum):
     AccountId = 10
     NeuronCertificate = 11
     SubnetState = 12
+    DynamicInfo = 13
+    SubnetIdentity = 14
 
 
 def from_scale_encoding(
@@ -244,7 +246,12 @@ custom_rpc_type_registry = {
             "type_mapping": [
                 ["hotkey", "AccountId"],
                 ["coldkey", "AccountId"],
+                ["netuid", "Compact<u16>"],
                 ["stake", "Compact<u64>"],
+                ["locked", "Compact<u64>"],
+                ["emission", "Compact<u64>"],
+                ["drain", "Compact<u64>"],
+                ["is_registered", "bool"],
             ],
         },
         "SubnetHyperparameters": {
@@ -285,6 +292,38 @@ custom_rpc_type_registry = {
                 ["old_coldkey", "AccountId"],
                 ["new_coldkey", "AccountId"],
                 ["arbitration_block", "Compact<u64>"],
+            ],
+        },
+        "SubnetIdentity": {
+            "type": "struct",
+            "type_mapping": [
+                ["subnet_name", "Vec<u8>"],
+                ["github_repo", "Vec<u8>"],
+                ["subnet_contact", "Vec<u8>"],
+            ],
+        },
+        "DynamicInfo": {
+            "type": "struct",
+            "type_mapping": [
+                ["netuid", "Compact<u16>"],
+                ["owner_hotkey", "AccountId"],
+                ["owner_coldkey", "AccountId"],
+                ["subnet_name", "Vec<Compact<u8>>"],
+                ["token_symbol", "Vec<Compact<u8>>"],
+                ["tempo", "Compact<u16>"],
+                ["last_step", "Compact<u64>"],
+                ["blocks_since_last_step", "Compact<u64>"],
+                ["emission", "Compact<u64>"],
+                ["alpha_in", "Compact<u64>"],
+                ["alpha_out", "Compact<u64>"],
+                ["tao_in", "Compact<u64>"],
+                ["alpha_out_emission", "Compact<u64>"],
+                ["alpha_in_emission", "Compact<u64>"],
+                ["tao_in_emission", "Compact<u64>"],
+                ["pending_alpha_emission", "Compact<u64>"],
+                ["pending_root_emission", "Compact<u64>"],
+                ["network_registered_at", "Compact<u64>"],
+                ["subnet_identity", "Option<SubnetIdentity>"],
             ],
         },
     }

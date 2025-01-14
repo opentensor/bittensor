@@ -19,6 +19,8 @@ from .subnet_state import SubnetState
 from .stake_info import StakeInfo
 from .subnet_hyperparameters import SubnetHyperparameters
 from .subnet_info import SubnetInfo
+from .dynamic_info import DynamicInfo
+from .subnet_identity import SubnetIdentity
 from .utils import custom_rpc_type_registry, decode_account_id, process_stake_data
 
 ProposalCallData = GenericCall

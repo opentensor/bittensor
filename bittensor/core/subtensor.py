@@ -29,6 +29,8 @@ from bittensor.core.chain_data import (
     PrometheusInfo,
     SubnetHyperparameters,
     SubnetInfo,
+    DynamicInfo,
+    StakeInfo,
 )
 from bittensor.core.config import Config
 from bittensor.core.extrinsics.commit_reveal import commit_reveal_v3_extrinsic
@@ -1343,6 +1345,13 @@ class Subtensor:
         Returns:
             Optional[Balance]: The total stake amount held by the coldkey, or None if the query fails.
         """
+        warnings.simplefilter("default", DeprecationWarning)
+        warnings.warn(
+            "get_total_stake_for_coldkey is not available in the Rao network at the moment. Please use get_stake_for_coldkey instead.",
+            category=DeprecationWarning,
+            stacklevel=2,
+        )
+        return None
         result = self.query_subtensor("TotalColdkeyStake", block, [ss58_address])
         if getattr(result, "value", None) is None:
             return None
@@ -1360,6 +1369,13 @@ class Subtensor:
         Returns:
             Optional[Balance]: The total stake amount held by the hotkey, or None if the query fails.
         """
+        warnings.simplefilter("default", DeprecationWarning)
+        warnings.warn(
+            "get_total_stake_for_hotkey is not available in the Rao network at the moment. Please use get_stake_for_coldkey_and_hotkey instead.",
+            category=DeprecationWarning,
+            stacklevel=2,
+        )
+        return None
         result = self.query_subtensor("TotalHotkeyStake", block, [ss58_address])
         if getattr(result, "value", None) is None:
             return None
@@ -1398,6 +1414,50 @@ class Subtensor:
             if result and hasattr(result, "records")
             else []
         )
+
+    def get_subnets_info(
+        self, block_hash: Optional[str] = None
+    ) -> Optional[DynamicInfo]:
+        """
+        Retrieves the subnet information for all subnets in the Bittensor network.
+
+        Args:
+            block_hash (Optional[str]): The block hash to query the subnet information from.
+
+        Returns:
+            Optional[DynamicInfo]: A list of DynamicInfo objects, each containing detailed information about a subnet.
+
+        """
+        query = self.substrate.runtime_call(
+            "SubnetInfoRuntimeApi",
+            "get_all_dynamic_info",
+            block_hash=block_hash,
+        )
+        subnets = DynamicInfo.list_from_vec_u8(bytes.fromhex(query.decode()[2:]))
+        return subnets
+
+    def get_subnet_info(
+        self, netuid: int, block_hash: Optional[str] = None
+    ) -> Optional[DynamicInfo]:
+        """
+        Retrieves the subnet information for a single subnet in the Bittensor network.
+
+        Args:
+            netuid (int): The unique identifier of the subnet.
+            block_hash (Optional[str]): The block hash to query the subnet information from.
+
+        Returns:
+            Optional[DynamicInfo]: A DynamicInfo object, containing detailed information about a subnet.
+
+        """
+        query = self.substrate.runtime_call(
+            "SubnetInfoRuntimeApi",
+            "get_dynamic_info",
+            params=[netuid],
+            block_hash=block_hash,
+        )
+        subnet = DynamicInfo.from_vec_u8(bytes.fromhex(query.decode()[2:]))
+        return subnet
 
     def neurons_lite(
         self, netuid: int, block: Optional[int] = None
@@ -1643,26 +1703,58 @@ class Subtensor:
 
         return DelegateInfo.from_vec_u8(bytes(result))
 
+    def get_stake_for_coldkey(self, coldkey_ss58: str) -> Optional[StakeInfo]:
+        """
+        Retrieves the stake information for a given coldkey.
+
+        Args:
+            coldkey_ss58 (str): The SS58 address of the coldkey.
+
+        Returns:
+            Optional[list[StakeInfo]]: A list of StakeInfo objects, or ``None`` if no stake information is found.
+        """
+        encoded_coldkey = ss58_to_vec_u8(coldkey_ss58)
+        hex_bytes_result = self.query_runtime_api(
+            runtime_api="StakeInfoRuntimeApi",
+            method="get_stake_info_for_coldkey",
+            params=[encoded_coldkey],
+        )
+
+        if hex_bytes_result is None:
+            return []
+        try:
+            bytes_result = bytes.fromhex(hex_bytes_result[2:])
+        except ValueError:
+            bytes_result = bytes.fromhex(hex_bytes_result)
+
+        return StakeInfo.list_from_vec_u8(bytes_result)
+
     def get_stake_for_coldkey_and_hotkey(
-        self, hotkey_ss58: str, coldkey_ss58: str, block: Optional[int] = None
-    ) -> Optional["Balance"]:
+        self, hotkey_ss58: str, coldkey_ss58: str, netuid: Optional[int] = None
+    ) -> Optional["StakeInfo"]:
         """
         Returns the stake under a coldkey - hotkey pairing.
 
         Args:
             hotkey_ss58 (str): The SS58 address of the hotkey.
             coldkey_ss58 (str): The SS58 address of the coldkey.
-            block (Optional[int]): The block number to retrieve the stake from. If ``None``, the latest block is used. Default is ``None``.
+            netuid (Optional[int]): The subnet ID to filter by. If provided, only returns stake for this specific subnet.
 
         Returns:
-            Optional[Balance]: The stake under the coldkey - hotkey pairing, or ``None`` if the pairing does not exist or the stake is not found.
+            Optional[StakeInfo]: The StakeInfo object/s under the coldkey - hotkey pairing, or ``None`` if the pairing does not exist or the stake is not found.
         """
-        result = self.query_subtensor("Stake", block, [hotkey_ss58, coldkey_ss58])
-        return (
-            None
-            if getattr(result, "value", None) is None
-            else Balance.from_rao(result.value)
-        )
+        all_stakes = self.get_stake_for_coldkey(coldkey_ss58)
+        stakes = [
+            stake
+            for stake in all_stakes
+            if stake.hotkey_ss58 == hotkey_ss58
+            and (netuid is None or stake.netuid == netuid)
+            and stake.stake > 0
+        ]
+        if not stakes:
+            return None
+        else:
+            return stakes
 
     def does_hotkey_exist(self, hotkey_ss58: str, block: Optional[int] = None) -> bool:
         """
@@ -2217,6 +2309,7 @@ class Subtensor:
         self,
         wallet: "Wallet",
         hotkey_ss58: Optional[str] = None,
+        netuid: Optional[int] = None,
         amount: Optional[Union["Balance", float]] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
@@ -2241,6 +2334,7 @@ class Subtensor:
             subtensor=self,
             wallet=wallet,
             hotkey_ss58=hotkey_ss58,
+            netuid=netuid,
             amount=amount,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
@@ -2250,6 +2344,7 @@ class Subtensor:
         self,
         wallet: "Wallet",
         hotkey_ss58s: list[str],
+        netuids: list[int],
         amounts: Optional[list[Union["Balance", float]]] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
@@ -2274,6 +2369,7 @@ class Subtensor:
             subtensor=self,
             wallet=wallet,
             hotkey_ss58s=hotkey_ss58s,
+            netuids=netuids,
             amounts=amounts,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
@@ -2283,6 +2379,7 @@ class Subtensor:
         self,
         wallet: "Wallet",
         hotkey_ss58: Optional[str] = None,
+        netuid: Optional[int] = None,
         amount: Optional[Union["Balance", float]] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
@@ -2306,6 +2403,7 @@ class Subtensor:
             subtensor=self,
             wallet=wallet,
             hotkey_ss58=hotkey_ss58,
+            netuid=netuid,
             amount=amount,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
@@ -2315,6 +2413,7 @@ class Subtensor:
         self,
         wallet: "Wallet",
         hotkey_ss58s: list[str],
+        netuids: list[int],
         amounts: Optional[list[Union["Balance", float]]] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
@@ -2338,6 +2437,7 @@ class Subtensor:
             subtensor=self,
             wallet=wallet,
             hotkey_ss58s=hotkey_ss58s,
+            netuids=netuids,
             amounts=amounts,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,

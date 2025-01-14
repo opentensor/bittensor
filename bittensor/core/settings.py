@@ -237,6 +237,14 @@ TYPE_REGISTRY: dict[str, dict] = {
                     ],
                     "type": "Vec<u8>",
                 },
+                "get_all_dynamic_info": {
+                    "params": [],
+                    "type": "Vec<u8>",
+                },
+                "get_dynamic_info": {
+                    "params": [{"name": "netuid", "type": "u16"}],
+                    "type": "Vec<u8>",
+                },
             }
         },
         "SubnetRegistrationRuntimeApi": {
