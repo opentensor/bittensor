@@ -1554,7 +1554,7 @@ class AsyncSubtensor:
         try:
             if certificate:
                 public_key = bytes(certificate["public_key"][0]).hex()
-                return chr(certificate['algorithm']) + f"0x{public_key}"
+                return chr(certificate["algorithm"]) + f"0x{public_key}"
 
         except AttributeError:
             return None
