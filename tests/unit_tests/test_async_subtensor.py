@@ -2170,8 +2170,8 @@ async def test_get_delegate_identities(subtensor, mocker):
     # Preps
     fake_block_hash = "block_hash"
     fake_chain_data = [
-        (["delegate1_ss58"], {"info": {"name": "Chain Delegate 1"}}),
-        (["delegate2_ss58"], {"info": {"name": "Chain Delegate 2"}}),
+        (["delegate1_ss58"], mocker.Mock(value={"info": {"name": "Chain Delegate 1"}})),
+        (["delegate2_ss58"], mocker.Mock(value={"info": {"name": "Chain Delegate 2"}})),
     ]
     fake_github_data = {
         "delegate1_ss58": {

@@ -1253,7 +1253,7 @@ class AsyncSubtensor:
                         decode_account_id(
                             ss58_address[0]
                         ): DelegatesDetails.from_chain_data(
-                            decode_hex_identity_dict(identity["info"])
+                            decode_hex_identity_dict(identity.value["info"])
                         )
                     }
                 )
