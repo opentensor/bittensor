@@ -1141,7 +1141,6 @@ class AsyncSubtensor:
             return bytes.fromhex(hex_data).decode()
 
         except TypeError:
-            print("Type Error")
             return ""
 
     async def get_current_weight_commit_info(
