@@ -6,7 +6,6 @@ from bittensor.core.extrinsics.asyncex.serving import (
     publish_metadata as async_publish_metadata,
     get_metadata as async_get_metadata,
 )
-from bittensor.utils import execute_coroutine
 
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
@@ -17,21 +16,20 @@ if TYPE_CHECKING:
 
 
 def do_serve_axon(
-    self: "Subtensor",
+    subtensor: "Subtensor",
     wallet: "Wallet",
     call_params: "AxonServeCallParams",
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = True,
 ) -> tuple[bool, Optional[dict]]:
-    return execute_coroutine(
+    return subtensor.execute_coroutine(
         coroutine=async_do_serve_axon(
-            subtensor=self.async_subtensor,
+            subtensor=subtensor.async_subtensor,
             wallet=wallet,
             call_params=call_params,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
-        ),
-        event_loop=self.event_loop,
+        )
     )
 
 
@@ -43,7 +41,7 @@ def serve_axon_extrinsic(
     wait_for_finalization: bool = True,
     certificate: Optional["Certificate"] = None,
 ) -> bool:
-    return execute_coroutine(
+    return subtensor.execute_coroutine(
         coroutine=async_serve_axon_extrinsic(
             subtensor=subtensor.async_subtensor,
             netuid=netuid,
@@ -51,13 +49,12 @@ def serve_axon_extrinsic(
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
             certificate=certificate,
-        ),
-        event_loop=subtensor.event_loop,
+        )
     )
 
 
 def publish_metadata(
-    self: "Subtensor",
+    subtensor: "Subtensor",
     wallet: "Wallet",
     netuid: int,
     data_type: str,
@@ -65,29 +62,27 @@ def publish_metadata(
     wait_for_inclusion: bool = False,
     wait_for_finalization: bool = True,
 ) -> bool:
-    return execute_coroutine(
+    return subtensor.execute_coroutine(
         coroutine=async_publish_metadata(
-            subtensor=self.async_subtensor,
+            subtensor=subtensor.async_subtensor,
             wallet=wallet,
             netuid=netuid,
             data_type=data_type,
             data=data,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
-        ),
-        event_loop=self.event_loop,
+        )
     )
 
 
 def get_metadata(
-    self: "Subtensor", netuid: int, hotkey: str, block: Optional[int] = None
+    subtensor: "Subtensor", netuid: int, hotkey: str, block: Optional[int] = None
 ) -> str:
-    return execute_coroutine(
+    return subtensor.execute_coroutine(
         coroutine=async_get_metadata(
-            subtensor=self.async_subtensor,
+            subtensor=subtensor.async_subtensor,
             netuid=netuid,
             hotkey=hotkey,
             block=block,
-        ),
-        event_loop=self.event_loop,
+        )
     )

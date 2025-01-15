@@ -16,7 +16,7 @@ def test_do_serve_axon(mocker):
 
     # Call
     result = serving.do_serve_axon(
-        self=fake_subtensor,
+        subtensor=fake_subtensor,
         wallet=fake_wallet,
         call_params=call_params,
         wait_for_inclusion=wait_for_inclusion,
@@ -97,7 +97,7 @@ def test_publish_metadata(mocker):
 
     # Call
     result = serving.publish_metadata(
-        self=fake_subtensor,
+        subtensor=fake_subtensor,
         wallet=fake_wallet,
         netuid=netuid,
         data_type=data_type,
@@ -138,7 +138,7 @@ def test_get_metadata(mocker):
 
     # Call
     result = serving.get_metadata(
-        self=fake_subtensor,
+        subtensor=fake_subtensor,
         netuid=netuid,
         hotkey=hotkey,
         block=block,
