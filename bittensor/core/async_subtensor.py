@@ -13,6 +13,9 @@ from scalecodec.base import RuntimeConfiguration
 from scalecodec.type_registry import load_type_registry_preset
 from substrateinterface.exceptions import SubstrateRequestException
 
+from bittensor.core.errors import (
+    StakeError
+)
 from bittensor.core.chain_data import (
     DelegateInfo,
     custom_rpc_type_registry,
@@ -21,6 +24,7 @@ from bittensor.core.chain_data import (
     NeuronInfo,
     SubnetHyperparameters,
     decode_account_id,
+    DynamicInfo,
 )
 from bittensor.core.extrinsics.async_registration import register_extrinsic
 from bittensor.core.extrinsics.async_root import (
@@ -116,6 +120,7 @@ class AsyncSubtensor:
         if network in NETWORK_MAP:
             self.chain_endpoint = NETWORK_MAP[network]
             self.network = network
+            self._is_active = False
             if network == "local":
                 logging.warning(
                     "Warning: Verify your local subtensor is running on port 9944."
@@ -156,7 +161,9 @@ class AsyncSubtensor:
         )
         try:
             async with self.substrate:
+                self._is_active = True
                 return self
+            self._is_active = False
         except TimeoutException:
             logging.error(
                 f"[red]Error[/red]: Timeout occurred connecting to substrate. Verify your chain and network settings: {self}"
@@ -254,6 +261,153 @@ class AsyncSubtensor:
             return await self.substrate.get_block_hash(block_id)
         else:
             return await self.substrate.get_chain_head()
+        
+    async def wait_for_block(self, block: Optional[int] = None):
+        async def _w(_):
+            return True
+        
+        if not self._is_active:
+            async with self:
+                return await self.wait_for_block(block = block)
+    
+        if block is None:
+            block = (await self.get_current_block()) + 1
+            
+        await self.substrate.wait_for_block(block, _w, False)
+        
+    async def get_stake_for_coldkey(
+        self, coldkey_ss58: str, block: Optional[int] = None
+    ) -> Optional[list["StakeInfo"]]:
+        """
+        Retrieves the stake information for a given coldkey.
+
+        Args:
+            coldkey_ss58 (str): The SS58 address of the coldkey.
+            block (Optional[int]): The block number at which to query the stake information.
+
+        Returns:
+            Optional[list[StakeInfo]]: A list of StakeInfo objects, or ``None`` if no stake information is found.
+        """
+        if not self._is_active:
+            async with self:
+                return await self.get_stake_for_coldkey( 
+                    coldkey_ss58 = coldkey_ss58,
+                    block = block,
+                )
+        encoded_coldkey = ss58_to_vec_u8(coldkey_ss58)
+        if block != None:
+            block_hash = await self.get_block_hash(block)
+        else:
+            block_hash = None
+        hex_bytes_result = await self.query_runtime_api(
+            runtime_api="StakeInfoRuntimeApi",
+            method="get_stake_info_for_coldkey",
+            params=[encoded_coldkey],
+            block_hash=block_hash,
+        )
+
+        if hex_bytes_result is None:
+            return []
+        try:
+            bytes_result = bytes.fromhex(hex_bytes_result[2:])
+        except ValueError:
+            bytes_result = bytes.fromhex(hex_bytes_result)
+
+        stakes = StakeInfo.list_from_vec_u8(bytes_result)
+        return [stake for stake in stakes if stake.stake > 0]
+        
+    async def get_stake(
+        self,
+        hotkey_ss58: str,
+        coldkey_ss58: str,
+        netuid: int,
+        block: Optional[int] = None,
+    ) -> Optional[Balance]:
+        """
+        Returns the stake under a coldkey - hotkey pairing.
+
+        Args:
+            hotkey_ss58 (str): The SS58 address of the hotkey.
+            coldkey_ss58 (str): The SS58 address of the coldkey.
+            netuid (int): The subnet ID to filter by. If provided, only returns stake for this specific subnet.
+            block (Optional[int]): The block number at which to query the stake information.
+
+        Returns:
+            Optional[Balance]: Balance
+        """
+        if not self._is_active:
+            async with self:
+                return await self.get_stake( 
+                    hotkey_ss58 = hotkey_ss58,                                 
+                    coldkey_ss58 = coldkey_ss58,
+                    netuid = netuid,
+                    block = block,
+                )
+        all_stakes = await self.get_stake_for_coldkey(coldkey_ss58 = coldkey_ss58, block = block)
+        stakes = [
+            stake
+            for stake in all_stakes
+            if stake.hotkey_ss58 == hotkey_ss58
+            and (netuid is None or stake.netuid == netuid)
+            and stake.stake > 0
+        ]
+        if not stakes:
+            return Balance(0).set_unit(netuid=netuid)
+        elif len(stakes) == 1:
+            return stakes[0].stake
+        else:
+            return stakes.stake
+        
+    async def add_stake(
+            self, 
+            wallet: Wallet,
+            netuid: int,
+            hotkey: str, 
+            tao_amount: Union[float, Balance], 
+            wait_for_inclusion:bool = False,
+            wait_for_finalization: bool = False,
+            nonce: int = None
+        ):
+        if not self._is_active:
+            async with self:
+                return await self.add_stake( 
+                    wallet,
+                    netuid, 
+                    hotkey, 
+                    tao_amount,
+                    wait_for_inclusion,
+                    wait_for_finalization,
+                    nonce = nonce,
+                )
+                
+        if isinstance(tao_amount, float):
+            tao_amount = Balance(tao_amount) 
+
+        call = await self.substrate.compose_call(
+            call_module="SubtensorModule",
+            call_function="add_stake",
+            call_params={
+                "hotkey": hotkey,
+                "amount_staked": tao_amount.rao,
+                "netuid": netuid,
+            },
+        )
+        
+        extrinsic = await self.substrate.create_signed_extrinsic(
+            call=call, keypair=wallet.coldkey
+        )
+        response = await self.substrate.submit_extrinsic(
+            extrinsic,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+        # We only wait here if we expect finalization.
+        if not wait_for_finalization and not wait_for_inclusion:
+            return True
+        if await response.is_success:
+            return True
+        else:
+            raise StakeError(format_error_message(response.error_message))
 
     async def is_hotkey_registered_any(
         self,
@@ -327,34 +481,74 @@ class AsyncSubtensor:
             reuse_block_hash=reuse_block,
         )
         return result
-
-    async def get_subnets(
-        self, block_hash: Optional[str] = None, reuse_block: bool = False
-    ) -> list[int]:
+    
+    async def all_subnets(
+        self, block_number: int = None
+    ) -> Optional[list["DynamicInfo"]]:
         """
-        Retrieves the list of all subnet unique identifiers (netuids) currently present in the Bittensor network.
+        Retrieves the subnet information for all subnets in the Bittensor network.
 
         Args:
-            block_hash (Optional[str]): The hash of the block to retrieve the subnet unique identifiers from.
-            reuse_block (bool): Whether to reuse the last-used block hash.
+            block_number (Optional[int]): The block number to get the subnets at.
 
         Returns:
-            A list of subnet netuids.
+            Optional[DynamicInfo]: A list of DynamicInfo objects, each containing detailed information about a subnet.
 
-        This function provides a comprehensive view of the subnets within the Bittensor network,
-        offering insights into its diversity and scale.
         """
-        result = await self.substrate.query_map(
-            module="SubtensorModule",
-            storage_function="NetworksAdded",
-            block_hash=block_hash,
-            reuse_block_hash=reuse_block,
+        if not self._is_active:
+            async with self:
+                return await self.all_subnets(block_number)
+
+        if block_number != None:
+            block_hash = await self.get_block_hash(block_number)
+        else:
+            block_hash = None
+        query = await self.substrate.runtime_call(
+            "SubnetInfoRuntimeApi",
+            "get_all_dynamic_info",
+            block_hash = block_hash,
         )
-        return (
-            []
-            if result is None or not hasattr(result, "records")
-            else [netuid async for netuid, exists in result if exists]
+        subnets = DynamicInfo.list_from_vec_u8(bytes.fromhex(query.decode()[2:]))
+        return subnets
+
+    async def subnet(
+        self, 
+        netuid: int, 
+        block_number: int = None
+    ) -> Optional[DynamicInfo]:
+        """
+        Retrieves the subnet information for a single subnet in the Bittensor network.
+
+        Args:
+            netuid (int): The unique identifier of the subnet.
+            block_number (Optional[int]): The block number to get the subnets at.
+
+        Returns:
+            Optional[DynamicInfo]: A DynamicInfo object, containing detailed information about a subnet.
+
+        This function can be called in two ways:
+        1. As a context manager:
+            async with sub:
+                subnet = await sub.subnet(1)
+        2. Directly:
+            subnet = await sub.subnet(1)
+        """
+        if not self._is_active:
+            async with self:
+                return await self.subnet(netuid, block_number)
+        
+        if block_number != None:
+            block_hash = await self.get_block_hash(block_number)
+        else:
+            block_hash = None
+        query = await self.substrate.runtime_call(
+            "SubnetInfoRuntimeApi",
+            "get_dynamic_info",
+            params=[netuid],
+            block_hash = block_hash,
         )
+        subnet = DynamicInfo.from_vec_u8(bytes.fromhex(query.decode()[2:]))
+        return subnet
 
     async def is_hotkey_delegate(
         self,
@@ -1735,3 +1929,4 @@ class AsyncSubtensor:
                 retries += 1
 
         return success, message
+

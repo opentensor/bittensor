@@ -8,6 +8,7 @@ import asyncio
 import inspect
 import json
 import random
+import asyncstdlib
 from collections import defaultdict
 from dataclasses import dataclass
 from hashlib import blake2b
@@ -1750,6 +1751,7 @@ class AsyncSubstrateInterface:
         else:
             raise SubstrateRequestException(result[payload_id][0])
 
+    @asyncstdlib.lru_cache(maxsize=1024)
     async def get_block_hash(self, block_id: int) -> str:
         return (await self.rpc_request("chain_getBlockHash", [block_id]))["result"]
 
