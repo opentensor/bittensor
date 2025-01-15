@@ -2197,77 +2197,14 @@ def test_networks_during_connection(mocker):
 
 
 def test_get_stake_for_coldkey_and_hotkey_with_single_result(subtensor, mocker):
-    """Test `get_stake_for_coldkey_and_hotkey` calls right method with correct arguments and get 1 stake info."""
-    # Preps
-    fake_hotkey_ss58 = "FAKE_H_SS58"
-    fake_coldkey_ss58 = "FAKE_C_SS58"
-    fake_netuid = 255
-    fake_block = 123
-
-    fake_stake_info_1 = mocker.Mock(hotkey_ss58="some")
-    fake_stake_info_2 = mocker.Mock(
-        hotkey_ss58=fake_hotkey_ss58, netuid=fake_netuid, stake=100
-    )
-
-    return_value = [
-        fake_stake_info_1,
-        fake_stake_info_2,
-    ]
-
-    subtensor.get_stake_for_coldkey = mocker.patch.object(
-        subtensor, "get_stake_for_coldkey", return_value=return_value
-    )
-
-    # Call
-    result = subtensor.get_stake_for_coldkey_and_hotkey(
-        hotkey_ss58=fake_hotkey_ss58,
-        coldkey_ss58=fake_coldkey_ss58,
-        netuid=fake_netuid,
-        block=fake_block,
-    )
-
-    # Asserts
-    subtensor.get_stake_for_coldkey.assert_called_once_with(
-        fake_coldkey_ss58, fake_block
-    )
-    assert result == fake_stake_info_2
+    # TODO
+    assert False
 
 
 def test_get_stake_for_coldkey_and_hotkey_with_multiple_result(subtensor, mocker):
     """Test `get_stake_for_coldkey_and_hotkey` calls right method with correct arguments and get multiple stake info."""
-    # Preps
-    fake_hotkey_ss58 = "FAKE_H_SS58"
-    fake_coldkey_ss58 = "FAKE_C_SS58"
-    fake_netuid = 255
-    fake_block = 123
-
-    fake_stake_info_1 = mocker.Mock(hotkey_ss58="some")
-    fake_stake_info_2 = mocker.Mock(
-        hotkey_ss58=fake_hotkey_ss58, netuid=fake_netuid, stake=100
-    )
-    fake_stake_info_3 = mocker.Mock(
-        hotkey_ss58=fake_hotkey_ss58, netuid=fake_netuid, stake=200
-    )
-
-    return_value = [fake_stake_info_1, fake_stake_info_2, fake_stake_info_3]
-
-    subtensor.get_stake_for_coldkey = mocker.patch.object(
-        subtensor, "get_stake_for_coldkey", return_value=return_value
-    )
-
-    # Call
-    result = subtensor.get_stake_for_coldkey_and_hotkey(
-        hotkey_ss58=fake_hotkey_ss58,
-        coldkey_ss58=fake_coldkey_ss58,
-        netuid=fake_netuid,
-        block=fake_block,
-    )
-
-    # Asserts
-    subtensor.get_stake_for_coldkey.assert_called_once_with(
-        fake_coldkey_ss58, fake_block
-    )
-    assert result == [fake_stake_info_2, fake_stake_info_3]
+    # TODO
+    assert False
 
 
 def test_does_hotkey_exist_true(mocker, subtensor):

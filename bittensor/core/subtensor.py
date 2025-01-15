@@ -1759,20 +1759,28 @@ class Subtensor:
         Returns:
             Optional[StakeInfo]: The StakeInfo object/s under the coldkey - hotkey pairing, or ``None`` if the pairing does not exist or the stake is not found.
         """
-        all_stakes = self.get_stake_for_coldkey(coldkey_ss58, block)
-        stakes = [
-            stake
-            for stake in all_stakes
-            if stake.hotkey_ss58 == hotkey_ss58
-            and (netuid is None or stake.netuid == netuid)
-            and stake.stake > 0
-        ]
-        if not stakes:
-            return None
-        elif len(stakes) == 1:
-            return stakes[0]
-        else:
-            return stakes
+        alpha_shares = self.query_module(
+            module="SubtensorModule",
+            name="Alpha",
+            block=block,
+            params=[coldkey_ss58, hotkey_ss58, netuid],
+        )
+        hotkey_alpha = self.query_module(
+            module="SubtensorModule",
+            name="TotalHotkeyAlpha",
+            block=block,
+            params=[hotkey_ss58, netuid],
+        )
+        hotkey_shares = self.query_module(
+            module="SubtensorModule",
+            name="TotalHotkeyShares",
+            block=block,
+            params=[hotkey_ss58, netuid],
+        )
+
+        stake = alpha_shares / hotkey_shares * hotkey_alpha
+
+        return stake
 
     def does_hotkey_exist(self, hotkey_ss58: str, block: Optional[int] = None) -> bool:
         """
