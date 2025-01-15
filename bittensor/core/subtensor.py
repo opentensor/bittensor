@@ -73,14 +73,13 @@ class Subtensor:
             network=network,
             config=config,
             log_verbose=log_verbose,
-            event_loop=self.event_loop,
             _mock=_mock,
         )
-
         self.substrate = SubstrateInterface(
             url=self.async_subtensor.chain_endpoint,
             _mock=_mock,
             substrate=self.async_subtensor.substrate,
+            event_loop_manager=self.event_loop_mgr
         )
         self.chain_endpoint = self.async_subtensor.chain_endpoint
 
