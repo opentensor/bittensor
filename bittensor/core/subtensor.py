@@ -1,3 +1,5 @@
+import asyncio
+import threading
 import warnings
 from functools import lru_cache
 from typing import TYPE_CHECKING, Any, Iterable, Optional, Union
@@ -12,7 +14,6 @@ from bittensor.core.settings import version_as_int
 from bittensor.utils import (
     execute_coroutine,
     torch,
-    get_event_loop,
     event_loop_is_running,
 )
 
@@ -32,6 +33,28 @@ if TYPE_CHECKING:
     from async_substrate_interface import QueryMapResult
     from bittensor.utils.delegates_details import DelegatesDetails
     from scalecodec.types import ScaleType
+
+
+class SynchronousAsyncCaller:
+    def __init__(self):
+        self.loop = None
+        self.thread = threading.Thread(target=self._start_loop, args=())
+        self.thread.start()
+
+    def _start_loop(self):
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
+        self.loop.run_forever()
+
+    def run_coroutine(self, coro):
+        while self.loop is None:
+            pass
+        future = asyncio.run_coroutine_threadsafe(coro, self.loop)
+        return future.result()
+
+    def stop(self):
+        self.loop.call_soon_threadsafe(self.loop.stop)
+        self.thread.join()
 
 
 class Subtensor:
@@ -63,7 +86,8 @@ class Subtensor:
                 "You are calling this from an already running event loop. Some features may not work correctly. You "
                 "should instead use `AsyncSubtensor`."
             )
-        self.event_loop = get_event_loop()
+        self.caller = SynchronousAsyncCaller()
+        self.event_loop = self.caller.loop
         self.network = network
         self._config = config
         self.log_verbose = log_verbose
@@ -88,11 +112,17 @@ class Subtensor:
     def __repr__(self):
         return self.async_subtensor.__repr__()
 
+    def __del__(self):
+        try:
+            self.caller.stop()
+        except AttributeError:
+            pass
+
     def execute_coroutine(self, coroutine) -> Any:
-        return execute_coroutine(coroutine, self.event_loop)
+        return self.caller.run_coroutine(coroutine)
 
     def close(self):
-        execute_coroutine(self.async_subtensor.close())
+        self.execute_coroutine(self.async_subtensor.close())
 
     # Subtensor queries ===========================================================================================
 
