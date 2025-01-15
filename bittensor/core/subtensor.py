@@ -1731,7 +1731,8 @@ class Subtensor:
         except ValueError:
             bytes_result = bytes.fromhex(hex_bytes_result)
 
-        return StakeInfo.list_from_vec_u8(bytes_result)
+        stakes = StakeInfo.list_from_vec_u8(bytes_result)
+        return [stake for stake in stakes if stake.stake > 0]
 
     def get_stake_for_coldkey_and_hotkey(
         self,

@@ -1,5 +1,11 @@
 # Changelog
 
+## 8.5.1rc8 /2025-01-15
+
+## What's Changed
+* Updates `get_stake_for_coldkey` to return only non-zero stakes.
+* Bumps bittensor-cli
+
 ## 8.5.1rc7 /2025-01-14
 
 ## What's Changed
