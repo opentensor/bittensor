@@ -68,7 +68,7 @@ from bittensor.utils import (
     ss58_to_vec_u8,
     torch,
     u16_normalized_float,
-    execute_coroutine,
+    event_loop_is_running,
 )
 from bittensor.utils import networking
 from bittensor.utils.balance import Balance
@@ -119,7 +119,6 @@ class AsyncSubtensor:
         config: Optional["Config"] = None,
         _mock: bool = False,
         log_verbose: bool = False,
-        event_loop: asyncio.AbstractEventLoop = None,
     ):
         """
         Initializes an instance of the AsyncSubtensor class.
@@ -155,7 +154,6 @@ class AsyncSubtensor:
             type_registry=TYPE_REGISTRY,
             use_remote_preset=True,
             chain_name="Bittensor",
-            event_loop=event_loop,
             _mock=_mock,
         )
         if self.log_verbose:
@@ -170,7 +168,8 @@ class AsyncSubtensor:
         return self.__str__()
 
     def __del__(self):
-        execute_coroutine(self.close())
+        if loop := event_loop_is_running():
+            loop.create_task(self.close())
 
     def _check_and_log_network_settings(self):
         if self.network == settings.NETWORKS[3]:  # local
@@ -357,6 +356,26 @@ class AsyncSubtensor:
         """Close the connection."""
         if self.substrate:
             await self.substrate.close()
+
+    async def initialize(self):
+        logging.info(
+            f"[magenta]Connecting to Substrate:[/magenta] [blue]{self}[/blue][magenta]...[/magenta]"
+        )
+        try:
+            await self.substrate.initialize()
+            return self
+        except TimeoutError:
+            logging.error(
+                f"[red]Error[/red]: Timeout occurred connecting to substrate."
+                f" Verify your chain and network settings: {self}"
+            )
+            raise ConnectionError
+        except (ConnectionRefusedError, ssl.SSLError) as error:
+            logging.error(
+                f"[red]Error[/red]: Connection refused when connecting to substrate. "
+                f"Verify your chain and network settings: {self}. Error: {error}"
+            )
+            raise ConnectionError
 
     async def __aenter__(self):
         logging.info(
@@ -3468,3 +3487,20 @@ class AsyncSubtensor:
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
         )
+
+
+async def async_subtensor(
+    network: Optional[str] = None,
+    config: Optional["Config"] = None,
+    _mock: bool = False,
+    log_verbose: bool = False,
+) -> "AsyncSubtensor":
+    """
+    Factory method to create an initialized AsyncSubtensor. Mainly useful for when you don't want to run
+    `await subtensor.initialize()` after instantiation.
+    """
+    sub = AsyncSubtensor(
+        network=network, config=config, _mock=_mock, log_verbose=log_verbose
+    )
+    await sub.initialize()
+    return sub

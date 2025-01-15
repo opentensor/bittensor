@@ -9,7 +9,6 @@ from async_substrate_interface.utils import (
     event_loop_is_running,
     hex_to_bytes,
     get_event_loop,
-    execute_coroutine,
 )
 from bittensor_wallet import Keypair
 from bittensor_wallet.errors import KeyFileError, PasswordError
@@ -35,7 +34,6 @@ ss58_decode = ss58_decode
 event_loop_is_running = event_loop_is_running
 hex_to_bytes = hex_to_bytes
 get_event_loop = get_event_loop
-execute_coroutine = execute_coroutine
 
 
 RAOPERTAO = 1e9

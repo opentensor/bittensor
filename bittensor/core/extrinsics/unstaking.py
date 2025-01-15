@@ -4,7 +4,6 @@ from bittensor.core.extrinsics.asyncex.unstaking import (
     unstake_extrinsic as async_unstake_extrinsic,
     unstake_multiple_extrinsic as async_unstake_multiple_extrinsic,
 )
-from bittensor.utils import execute_coroutine
 from bittensor.utils.balance import Balance
 
 if TYPE_CHECKING:
@@ -20,7 +19,7 @@ def unstake_extrinsic(
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
 ) -> bool:
-    return execute_coroutine(
+    return subtensor.execute_coroutine(
         coroutine=async_unstake_extrinsic(
             subtensor=subtensor.async_subtensor,
             wallet=wallet,
@@ -28,8 +27,7 @@ def unstake_extrinsic(
             amount=amount,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
-        ),
-        event_loop=subtensor.event_loop,
+        )
     )
 
 
@@ -41,7 +39,7 @@ def unstake_multiple_extrinsic(
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
 ) -> bool:
-    return execute_coroutine(
+    return subtensor.execute_coroutine(
         coroutine=async_unstake_multiple_extrinsic(
             subtensor=subtensor.async_subtensor,
             wallet=wallet,
@@ -49,6 +47,5 @@ def unstake_multiple_extrinsic(
             amounts=amounts,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
-        ),
-        event_loop=subtensor.event_loop,
+        )
     )

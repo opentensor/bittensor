@@ -8,6 +8,7 @@ from os import listdir
 from os.path import join
 from typing import Optional, Union
 
+from async_substrate_interface.utils import EventLoopManager
 import numpy as np
 from numpy.typing import NDArray
 
@@ -20,7 +21,6 @@ from bittensor.utils.weight_utils import (
 )
 from bittensor.core import settings
 from bittensor.core.chain_data import AxonInfo
-from bittensor.utils import execute_coroutine
 
 # For annotation purposes
 if typing.TYPE_CHECKING:
@@ -475,7 +475,7 @@ class AsyncMetagraphMixin(ABC):
         Example:
             Initializing a metagraph object for the Bittensor network with a specific network UID::
 
-                metagraph = metagraph(netuid=123, network="finney", lite=True, sync=True)
+                metagraph = Metagraph(netuid=123, network="finney", lite=True, sync=True)
 
         """
 
@@ -1134,9 +1134,6 @@ class AsyncTorchMetaGraph(AsyncMetagraphMixin, BaseClass):
         self.subtensor = subtensor
         self.should_sync = sync
 
-        if self.should_sync:
-            execute_coroutine(self.sync(block=None, lite=lite, subtensor=subtensor))
-
     async def __aenter__(self):
         if self.should_sync:
             await self.sync(block=None, lite=self.lite, subtensor=self.subtensor)
@@ -1338,9 +1335,6 @@ class AsyncNonTorchMetagraph(AsyncMetagraphMixin):
         self.subtensor = subtensor
         self.should_sync = sync
 
-        if self.should_sync:
-            execute_coroutine(self.sync(block=None, lite=lite, subtensor=subtensor))
-
     async def __aenter__(self):
         if self.should_sync:
             await self.sync(block=None, lite=self.lite, subtensor=self.subtensor)
@@ -1516,6 +1510,13 @@ class Metagraph(AsyncMetagraph):
             sync=sync,
             subtensor=subtensor.async_subtensor if subtensor else None,
         )
+        if self.subtensor:
+            self.event_loop_mgr = self.subtensor.event_loop_mgr
+        else:
+            self.event_loop_mgr = EventLoopManager()
+        if sync:
+            if self.subtensor:
+                self.subtensor.event_loop_mgr.run(self._async_metagraph.sync())
 
     def sync(
         self,
@@ -1525,18 +1526,17 @@ class Metagraph(AsyncMetagraph):
     ):
         """Synchronizes the metagraph to the specified block, lite, and subtensor instance if available."""
         if subtensor:
-            event_loop = subtensor.event_loop
+            event_loop_mgr = subtensor.event_loop_mgr
         elif self.subtensor:
-            event_loop = self.subtensor.event_loop
+            event_loop_mgr = self.subtensor.event_loop_mgr
         else:
-            event_loop = None
-        execute_coroutine(
+            event_loop_mgr = self.event_loop_mgr
+        event_loop_mgr.run(
             self._async_metagraph.sync(
                 block=block,
                 lite=lite,
                 subtensor=subtensor.async_subtensor if subtensor else None,
-            ),
-            event_loop=event_loop,
+            )
         )
 
     def __getattr__(self, name):
@@ -1545,12 +1545,25 @@ class Metagraph(AsyncMetagraph):
             if asyncio.iscoroutinefunction(attr):
 
                 def wrapper(*args, **kwargs):
-                    return execute_coroutine(
-                        attr(*args, **kwargs),
-                        event_loop=self.subtensor.event_loop
-                        if self.subtensor
-                        else None,
-                    )
+                    return self.event_loop_mgr.run(attr(*args, **kwargs))
 
                 return wrapper
         return attr
+
+
+async def async_metagraph(
+    netuid: int,
+    network: str = settings.DEFAULT_NETWORK,
+    lite: bool = True,
+    sync: bool = True,
+    subtensor: "AsyncSubtensor" = None,
+) -> "AsyncMetagraph":
+    """
+    Factory function to create an instantiated AsyncMetagraph, mainly for the ability to use sync at instantiation.
+    """
+    metagraph_ = AsyncMetagraph(
+        netuid=netuid, network=network, lite=lite, sync=sync, subtensor=subtensor
+    )
+    if sync:
+        await metagraph_.sync()
+    return metagraph_
