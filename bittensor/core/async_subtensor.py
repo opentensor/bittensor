@@ -3491,7 +3491,7 @@ class AsyncSubtensor:
         )
 
 
-async def async_subtensor(
+async def get_async_subtensor(
     network: Optional[str] = None,
     config: Optional["Config"] = None,
     _mock: bool = False,
