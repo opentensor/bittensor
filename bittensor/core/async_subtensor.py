@@ -21,6 +21,7 @@ from bittensor.core.chain_data import (
     NeuronInfo,
     SubnetHyperparameters,
     decode_account_id,
+    DynamicInfo
 )
 from bittensor.core.extrinsics.async_registration import register_extrinsic
 from bittensor.core.extrinsics.async_root import (
@@ -1735,3 +1736,26 @@ class AsyncSubtensor:
                 retries += 1
 
         return success, message
+
+    async def get_subnet_info(
+        self, netuid: int, block_hash: Optional[str] = None
+    ) -> Optional["DynamicInfo"]:
+        """
+        Retrieves the subnet information for a single subnet in the Bittensor network.
+
+        Args:
+            netuid (int): The unique identifier of the subnet.
+            block_hash (Optional[str]): The block hash to query the subnet information from.
+
+        Returns:
+            Optional[DynamicInfo]: A DynamicInfo object, containing detailed information about a subnet.
+
+        """
+        query = await self.substrate.runtime_call(
+            "SubnetInfoRuntimeApi",
+            "get_dynamic_info",
+            params=[netuid],
+            block_hash=block_hash,
+        )
+        subnet = DynamicInfo.from_vec_u8(bytes.fromhex(query.decode()[2:]))
+        return subnet
