@@ -1415,7 +1415,7 @@ class Subtensor:
             else []
         )
 
-    def get_subnets_info(
+    def subnets(
         self, block_hash: Optional[str] = None
     ) -> Optional[list["DynamicInfo"]]:
         """
@@ -1436,7 +1436,10 @@ class Subtensor:
         subnets = DynamicInfo.list_from_vec_u8(bytes.fromhex(query.decode()[2:]))
         return subnets
 
-    def get_subnet_info(
+    # Alias for get_subnets_info for backwards compatibility
+    get_subnets_info = subnets
+
+    def subnet(
         self, netuid: int, block_hash: Optional[str] = None
     ) -> Optional[DynamicInfo]:
         """
@@ -1458,6 +1461,9 @@ class Subtensor:
         )
         subnet = DynamicInfo.from_vec_u8(bytes.fromhex(query.decode()[2:]))
         return subnet
+
+    # Alias for get_subnet_info for backwards compatibility
+    get_subnet_info = subnet
 
     def neurons_lite(
         self, netuid: int, block: Optional[int] = None
