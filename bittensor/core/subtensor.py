@@ -2401,8 +2401,8 @@ class Subtensor:
     def add_stake(
         self,
         wallet: Wallet,
-        netuid: int,
         hotkey: str,
+        netuid: int,
         tao_amount: Union[float, Balance, int],
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
@@ -2530,8 +2530,8 @@ class Subtensor:
     def unstake(
         self,
         wallet: Wallet,
-        netuid: int,
         hotkey: str,
+        netuid: int,
         amount: Union[float, Balance, int],
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
@@ -2541,6 +2541,7 @@ class Subtensor:
 
         Args:
             wallet (bittensor_wallet.Wallet): The wallet to be used for unstaking.
+            netuid (int): The subnet ID to filter by. If provided, only returns stake for this specific subnet.
             hotkey (str): The ``SS58`` address of the hotkey associated with the neuron.
             amount (Union[float, Balance, int]): The amount of TAO to unstake.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block.

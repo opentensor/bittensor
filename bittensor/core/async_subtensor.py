@@ -424,35 +424,49 @@ class AsyncSubtensor:
         ]
         if not stakes:
             return Balance(0).set_unit(netuid=netuid)
-        elif len(stakes) == 1:
-            return stakes[0].stake
         else:
-            return stakes.stake
+            return stakes[0].stake
 
-    async def add_stake(
+    async def unstake(
         self,
-        wallet: "Wallet",
-        netuid: int,
+        wallet: Wallet,
         hotkey: str,
-        tao_amount: Union[int, float, "Balance"],
+        netuid: int,
+        amount: Union[float, Balance, int],
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = False,
     ):
-        if isinstance(tao_amount, float):
-            tao_amount = Balance(tao_amount)
+        """
+        Removes a specified amount of stake from a hotkey and coldkey pair.
+
+        Args:
+            wallet (bittensor_wallet.Wallet): The wallet to be used for unstaking.
+            hotkey (str): The ``SS58`` address of the hotkey associated with the neuron.
+            netuid (int): The subnet ID to filter by. If provided, only returns stake for this specific subnet.
+            amount (Union[float, Balance, int]): The amount of TAO to unstake.
+            wait_for_inclusion (bool): Waits for the transaction to be included in a block.
+            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
+
+        Returns:
+            bool: ``True`` if the unstaking is successful, False otherwise.
+        """
+        if isinstance(amount, (float, int)):
+            amount = Balance(amount)
 
         call = await self.substrate.compose_call(
             call_module="SubtensorModule",
-            call_function="add_stake",
+            call_function="remove_stake",
             call_params={
                 "hotkey": hotkey,
-                "amount_staked": tao_amount.rao,
+                "amount_unstaked": amount.rao,
                 "netuid": netuid,
             },
         )
-
+        next_nonce = await self.substrate.get_account_next_index(
+            wallet.coldkeypub.ss58_address
+        )
         extrinsic = await self.substrate.create_signed_extrinsic(
-            call=call, keypair=wallet.coldkey
+            call=call, keypair=wallet.coldkey, nonce=next_nonce
         )
         response = await self.substrate.submit_extrinsic(
             extrinsic,
@@ -467,6 +481,52 @@ class AsyncSubtensor:
             return True
         else:
             raise StakeError(format_error_message(await response.error_message))
+
+    remove_stake = unstake
+
+    async def add_stake(
+        self,
+        wallet: "Wallet",
+        hotkey: str,
+        netuid: int,
+        tao_amount: Union[int, float, "Balance"],
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = False,
+    ):
+        if isinstance(tao_amount, (float, int)):
+            tao_amount = Balance.from_tao(tao_amount)
+
+        call = await self.substrate.compose_call(
+            call_module="SubtensorModule",
+            call_function="add_stake",
+            call_params={
+                "hotkey": hotkey,
+                "amount_staked": tao_amount.rao,
+                "netuid": netuid,
+            },
+        )
+        next_nonce = await self.substrate.get_account_next_index(
+            wallet.coldkeypub.ss58_address
+        )
+
+        extrinsic = await self.substrate.create_signed_extrinsic(
+            call=call, keypair=wallet.coldkey, nonce=next_nonce
+        )
+        response = await self.substrate.submit_extrinsic(
+            extrinsic,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+        # We only wait here if we expect finalization.
+        if not wait_for_finalization and not wait_for_inclusion:
+            return True
+
+        if await response.is_success:
+            return True
+        else:
+            raise StakeError(format_error_message(await response.error_message))
+
+    stake = add_stake
 
     async def is_hotkey_registered_any(
         self,
@@ -588,6 +648,9 @@ class AsyncSubtensor:
         )
         return DynamicInfo.list_from_vec_u8(bytes.fromhex(query.decode()[2:]))
 
+    get_subnets_info = all_subnets
+    get_all_subnets = all_subnets
+
     async def subnet(
         self, netuid: int, block_number: int = None
     ) -> Optional[DynamicInfo]:
@@ -620,6 +683,9 @@ class AsyncSubtensor:
         )
         subnet = DynamicInfo.from_vec_u8(bytes.fromhex(query.decode()[2:]))
         return subnet
+
+    get_subnet_info = subnet
+    get_subnet = subnet
 
     async def is_hotkey_delegate(
         self,
@@ -824,6 +890,8 @@ class AsyncSubtensor:
             value = item[1] or {"data": {"free": 0}}
             results.update({item[0].params[0]: Balance(value["data"]["free"])})
         return results
+
+    balance = get_balance
 
     async def get_transfer_fee(
         self, wallet: "Wallet", dest: str, value: Union["Balance", float, int]
