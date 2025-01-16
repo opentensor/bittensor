@@ -1348,7 +1348,7 @@ class Subtensor:
 
     def get_total_stake_for_coldkey(
         self, ss58_address: str, block: Optional[int] = None
-    ) -> Optional["Balance"]:
+    ):
         """Retrieves the total stake held by a coldkey across all associated hotkeys, including delegated stakes.
 
         Args:
