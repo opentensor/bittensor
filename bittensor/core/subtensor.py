@@ -11,7 +11,6 @@ from bittensor.core.async_subtensor import AsyncSubtensor
 from bittensor.core.metagraph import Metagraph
 from bittensor.core.settings import version_as_int
 from bittensor.utils import (
-    execute_coroutine,
     torch,
     event_loop_is_running,
 )
@@ -79,7 +78,7 @@ class Subtensor:
             url=self.async_subtensor.chain_endpoint,
             _mock=_mock,
             substrate=self.async_subtensor.substrate,
-            event_loop_manager=self.event_loop_mgr
+            event_loop_manager=self.event_loop_mgr,
         )
         self.chain_endpoint = self.async_subtensor.chain_endpoint
 
