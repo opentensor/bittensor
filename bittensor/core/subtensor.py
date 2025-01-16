@@ -64,7 +64,6 @@ class Subtensor:
                 "should instead use `AsyncSubtensor`."
             )
         self.event_loop_mgr = EventLoopManager()
-        self.event_loop = self.event_loop_mgr.loop
         self.network = network
         self._config = config
         self.log_verbose = log_verbose
@@ -99,6 +98,7 @@ class Subtensor:
 
     def close(self):
         self.execute_coroutine(self.async_subtensor.close())
+        self.event_loop_mgr.stop()
 
     # Subtensor queries ===========================================================================================
 
