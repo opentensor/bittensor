@@ -73,7 +73,7 @@ from bittensor.utils import (
     hex_to_bytes,
     Certificate,
 )
-from bittensor.utils.balance import Balance
+from bittensor.utils.balance import Balance, fixed_to_float, FixedPoint
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import legacy_torch_api_compat
 from bittensor.utils.weight_utils import generate_weight_hash
@@ -1746,7 +1746,7 @@ class Subtensor:
         coldkey_ss58: str,
         netuid: Optional[int] = None,
         block: Optional[int] = None,
-    ) -> Optional[Union["StakeInfo", list["StakeInfo"]]]:
+    ) -> Balance:
         """
         Returns the stake under a coldkey - hotkey pairing.
 
@@ -1759,28 +1759,34 @@ class Subtensor:
         Returns:
             Optional[StakeInfo]: The StakeInfo object/s under the coldkey - hotkey pairing, or ``None`` if the pairing does not exist or the stake is not found.
         """
-        alpha_shares = self.query_module(
+        alpha_shares: FixedPoint = self.query_module(
             module="SubtensorModule",
             name="Alpha",
             block=block,
-            params=[coldkey_ss58, hotkey_ss58, netuid],
-        )
-        hotkey_alpha = self.query_module(
+            params=[hotkey_ss58, coldkey_ss58, netuid],
+        ).value
+        hotkey_alpha: int = self.query_module(
             module="SubtensorModule",
             name="TotalHotkeyAlpha",
             block=block,
             params=[hotkey_ss58, netuid],
-        )
-        hotkey_shares = self.query_module(
+        ).value
+        hotkey_shares: FixedPoint = self.query_module(
             module="SubtensorModule",
             name="TotalHotkeyShares",
             block=block,
             params=[hotkey_ss58, netuid],
-        )
+        ).value
 
-        stake = alpha_shares / hotkey_shares * hotkey_alpha
+        alpha_shares_as_float = fixed_to_float(alpha_shares)
+        hotkey_shares_as_float = fixed_to_float(hotkey_shares)
 
-        return stake
+        if hotkey_shares_as_float == 0:
+            return Balance.from_rao(0)
+
+        stake = alpha_shares_as_float / hotkey_shares_as_float * hotkey_alpha
+
+        return Balance.from_rao(int(stake))
 
     def does_hotkey_exist(self, hotkey_ss58: str, block: Optional[int] = None) -> bool:
         """
