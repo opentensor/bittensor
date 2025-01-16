@@ -22,7 +22,7 @@ rich
 pydantic>=2.3, <3
 python-Levenshtein
 scalecodec==1.2.11
-async-substrate-interface==1.0.0rc1
+async-substrate-interface==1.0.0rc2
 uvicorn
 websockets>=14.1
 bittensor-wallet==2.1.3
