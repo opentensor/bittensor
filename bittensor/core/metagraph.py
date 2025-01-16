@@ -8,11 +8,11 @@ from os.path import join
 from typing import Optional, Union
 
 import numpy as np
+from async_substrate_interface.errors import SubstrateRequestException
 from numpy.typing import NDArray
-from substrateinterface.exceptions import SubstrateRequestException
 
-from bittensor.utils.btlogging import logging
 from bittensor.utils.balance import Balance
+from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import torch, use_torch
 from bittensor.utils.weight_utils import (
     convert_weight_uids_and_vals_to_tensor,

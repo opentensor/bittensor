@@ -1,21 +1,24 @@
 import asyncio
 import ssl
+import warnings
 from typing import Optional, Any, Union, TypedDict, Iterable
 
 import aiohttp
 import numpy as np
 import scalecodec
+from async_substrate_interface.errors import SubstrateRequestException
+from async_substrate_interface.substrate_interface import (
+    AsyncSubstrateInterface,
+    QueryMapResult,
+)
 from bittensor_wallet import Wallet
 from bittensor_wallet.utils import SS58_FORMAT
 from numpy.typing import NDArray
 from scalecodec import GenericCall
 from scalecodec.base import RuntimeConfiguration
 from scalecodec.type_registry import load_type_registry_preset
-from substrateinterface.exceptions import SubstrateRequestException
+from scalecodec.types import ScaleType
 
-from bittensor.core.errors import (
-    StakeError
-)
 from bittensor.core.chain_data import (
     DelegateInfo,
     custom_rpc_type_registry,
@@ -26,6 +29,7 @@ from bittensor.core.chain_data import (
     decode_account_id,
     DynamicInfo,
 )
+from bittensor.core.errors import StakeError
 from bittensor.core.extrinsics.async_registration import register_extrinsic
 from bittensor.core.extrinsics.async_root import (
     set_root_weights_extrinsic,
@@ -51,10 +55,6 @@ from bittensor.utils import (
     decode_hex_identity_dict,
     validate_chain_endpoint,
     hex_to_bytes,
-)
-from bittensor.utils.async_substrate_interface import (
-    AsyncSubstrateInterface,
-    TimeoutException,
 )
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
@@ -120,7 +120,6 @@ class AsyncSubtensor:
         if network in NETWORK_MAP:
             self.chain_endpoint = NETWORK_MAP[network]
             self.network = network
-            self._is_active = False
             if network == "local":
                 logging.warning(
                     "Warning: Verify your local subtensor is running on port 9944."
@@ -146,7 +145,7 @@ class AsyncSubtensor:
                 self.network = DEFAULTS.subtensor.network
 
         self.substrate = AsyncSubstrateInterface(
-            chain_endpoint=self.chain_endpoint,
+            url=self.chain_endpoint,
             ss58_format=SS58_FORMAT,
             type_registry=TYPE_REGISTRY,
             chain_name="Bittensor",
@@ -161,10 +160,8 @@ class AsyncSubtensor:
         )
         try:
             async with self.substrate:
-                self._is_active = True
                 return self
-            self._is_active = False
-        except TimeoutException:
+        except TimeoutError:
             logging.error(
                 f"[red]Error[/red]: Timeout occurred connecting to substrate. Verify your chain and network settings: {self}"
             )
@@ -232,6 +229,96 @@ class AsyncSubtensor:
 
         return result
 
+    async def determine_block_hash(
+        self,
+        block: Optional[int],
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> Optional[str]:
+        # Ensure that only one of the parameters is specified.
+        if sum(bool(x) for x in [block, block_hash, reuse_block]) > 1:
+            raise ValueError(
+                "Only one of `block`, `block_hash`, or `reuse_block` can be specified."
+            )
+
+        # Return the appropriate value.
+        if block_hash:
+            return block_hash
+        if block:
+            return await self.get_block_hash(block)
+        return None
+
+    # Chain calls methods ==============================================================================================
+    async def query_subtensor(
+        self,
+        name: str,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+        params: Optional[list] = None,
+    ) -> "ScaleType":
+        """
+        Queries named storage from the Subtensor module on the Bittensor blockchain. This function is used to retrieve
+            specific data or parameters from the blockchain, such as stake, rank, or other neuron-specific attributes.
+
+        Args:
+            name: The name of the storage function to query.
+            block: The blockchain block number at which to perform the query.
+            block_hash: The hash of the block to retrieve the parameter from. Do not specify if using block or
+                reuse_block
+            reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
+            params: A list of parameters to pass to the query function.
+
+        Returns:
+            query_response (scalecodec.ScaleType): An object containing the requested data.
+
+        This query function is essential for accessing detailed information about the network and its neurons, providing
+            valuable insights into the state and dynamics of the Bittensor ecosystem.
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        return await self.substrate.query(
+            module="SubtensorModule",
+            storage_function=name,
+            params=params,
+            block_hash=block_hash,
+            reuse_block_hash=reuse_block,
+        )
+
+    async def query_map_subtensor(
+        self,
+        name: str,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+        params: Optional[list] = None,
+    ) -> "QueryMapResult":
+        """
+        Queries map storage from the Subtensor module on the Bittensor blockchain. This function is designed to retrieve
+            a map-like data structure, which can include various neuron-specific details or network-wide attributes.
+
+        Args:
+            name: The name of the map storage function to query.
+            block: The blockchain block number at which to perform the query.
+            block_hash: The hash of the block to retrieve the parameter from. Do not specify if using block or
+                reuse_block
+            reuse_block: Whether to use the last-used block. Do not set if using block_hash or block.
+            params: A list of parameters to pass to the query function.
+
+        Returns:
+            An object containing the map-like data structure, or `None` if not found.
+
+        This function is particularly useful for analyzing and understanding complex network structures and
+            relationships within the Bittensor ecosystem, such as interneuronal connections and stake distributions.
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        return await self.substrate.query_map(
+            module="SubtensorModule",
+            storage_function=name,
+            params=params,
+            block_hash=block_hash,
+            reuse_block_hash=reuse_block,
+        )
+
     # Common subtensor methods =========================================================================================
 
     async def get_current_block(self) -> int:
@@ -261,20 +348,16 @@ class AsyncSubtensor:
             return await self.substrate.get_block_hash(block_id)
         else:
             return await self.substrate.get_chain_head()
-        
+
     async def wait_for_block(self, block: Optional[int] = None):
         async def _w(_):
             return True
-        
-        if not self._is_active:
-            async with self:
-                return await self.wait_for_block(block = block)
-    
+
         if block is None:
             block = (await self.get_current_block()) + 1
-            
+
         await self.substrate.wait_for_block(block, _w, False)
-        
+
     async def get_stake_for_coldkey(
         self, coldkey_ss58: str, block: Optional[int] = None
     ) -> Optional[list["StakeInfo"]]:
@@ -288,14 +371,8 @@ class AsyncSubtensor:
         Returns:
             Optional[list[StakeInfo]]: A list of StakeInfo objects, or ``None`` if no stake information is found.
         """
-        if not self._is_active:
-            async with self:
-                return await self.get_stake_for_coldkey( 
-                    coldkey_ss58 = coldkey_ss58,
-                    block = block,
-                )
         encoded_coldkey = ss58_to_vec_u8(coldkey_ss58)
-        if block != None:
+        if block is not None:
             block_hash = await self.get_block_hash(block)
         else:
             block_hash = None
@@ -315,7 +392,7 @@ class AsyncSubtensor:
 
         stakes = StakeInfo.list_from_vec_u8(bytes_result)
         return [stake for stake in stakes if stake.stake > 0]
-        
+
     async def get_stake(
         self,
         hotkey_ss58: str,
@@ -335,15 +412,9 @@ class AsyncSubtensor:
         Returns:
             Optional[Balance]: Balance
         """
-        if not self._is_active:
-            async with self:
-                return await self.get_stake( 
-                    hotkey_ss58 = hotkey_ss58,                                 
-                    coldkey_ss58 = coldkey_ss58,
-                    netuid = netuid,
-                    block = block,
-                )
-        all_stakes = await self.get_stake_for_coldkey(coldkey_ss58 = coldkey_ss58, block = block)
+        all_stakes = await self.get_stake_for_coldkey(
+            coldkey_ss58=coldkey_ss58, block=block
+        )
         stakes = [
             stake
             for stake in all_stakes
@@ -357,31 +428,18 @@ class AsyncSubtensor:
             return stakes[0].stake
         else:
             return stakes.stake
-        
+
     async def add_stake(
-            self, 
-            wallet: Wallet,
-            netuid: int,
-            hotkey: str, 
-            tao_amount: Union[float, Balance], 
-            wait_for_inclusion:bool = False,
-            wait_for_finalization: bool = False,
-            nonce: int = None
-        ):
-        if not self._is_active:
-            async with self:
-                return await self.add_stake( 
-                    wallet,
-                    netuid, 
-                    hotkey, 
-                    tao_amount,
-                    wait_for_inclusion,
-                    wait_for_finalization,
-                    nonce = nonce,
-                )
-                
+        self,
+        wallet: "Wallet",
+        netuid: int,
+        hotkey: str,
+        tao_amount: Union[int, float, "Balance"],
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = False,
+    ):
         if isinstance(tao_amount, float):
-            tao_amount = Balance(tao_amount) 
+            tao_amount = Balance(tao_amount)
 
         call = await self.substrate.compose_call(
             call_module="SubtensorModule",
@@ -392,7 +450,7 @@ class AsyncSubtensor:
                 "netuid": netuid,
             },
         )
-        
+
         extrinsic = await self.substrate.create_signed_extrinsic(
             call=call, keypair=wallet.coldkey
         )
@@ -404,10 +462,11 @@ class AsyncSubtensor:
         # We only wait here if we expect finalization.
         if not wait_for_finalization and not wait_for_inclusion:
             return True
+
         if await response.is_success:
             return True
         else:
-            raise StakeError(format_error_message(response.error_message))
+            raise StakeError(format_error_message(await response.error_message))
 
     async def is_hotkey_registered_any(
         self,
@@ -481,7 +540,30 @@ class AsyncSubtensor:
             reuse_block_hash=reuse_block,
         )
         return result
-    
+
+    async def get_netuids(
+        self, block: Optional[int] = None, block_hash: Optional[str] = None
+    ) -> list[int]:
+        """
+        Retrieves a list of all subnets currently active within the Bittensor network. This function provides an overview of the various subnets and their identifiers.
+
+        Args:
+            block (Optional[int]): The blockchain block number for the query.
+            block_hash (Optional[str]): The hash of the blockchain block number for the query.
+
+        Returns:
+            list[int]: A list of network UIDs representing each active subnet.
+
+        This function is valuable for understanding the network's structure and the diversity of subnets available for neuron participation and collaboration.
+        """
+        block_hash = await self.determine_block_hash(block, block_hash)
+        result = await self.query_map_subtensor("NetworksAdded", block_hash=block_hash)
+        return (
+            [network[0] for network in result.records if network[1]]
+            if result and hasattr(result, "records")
+            else []
+        )
+
     async def all_subnets(
         self, block_number: int = None
     ) -> Optional[list["DynamicInfo"]]:
@@ -495,26 +577,19 @@ class AsyncSubtensor:
             Optional[DynamicInfo]: A list of DynamicInfo objects, each containing detailed information about a subnet.
 
         """
-        if not self._is_active:
-            async with self:
-                return await self.all_subnets(block_number)
-
-        if block_number != None:
+        if block_number is not None:
             block_hash = await self.get_block_hash(block_number)
         else:
             block_hash = None
         query = await self.substrate.runtime_call(
             "SubnetInfoRuntimeApi",
             "get_all_dynamic_info",
-            block_hash = block_hash,
+            block_hash=block_hash,
         )
-        subnets = DynamicInfo.list_from_vec_u8(bytes.fromhex(query.decode()[2:]))
-        return subnets
+        return DynamicInfo.list_from_vec_u8(bytes.fromhex(query.decode()[2:]))
 
     async def subnet(
-        self, 
-        netuid: int, 
-        block_number: int = None
+        self, netuid: int, block_number: int = None
     ) -> Optional[DynamicInfo]:
         """
         Retrieves the subnet information for a single subnet in the Bittensor network.
@@ -533,11 +608,7 @@ class AsyncSubtensor:
         2. Directly:
             subnet = await sub.subnet(1)
         """
-        if not self._is_active:
-            async with self:
-                return await self.subnet(netuid, block_number)
-        
-        if block_number != None:
+        if block_number is not None:
             block_hash = await self.get_block_hash(block_number)
         else:
             block_hash = None
@@ -545,7 +616,7 @@ class AsyncSubtensor:
             "SubnetInfoRuntimeApi",
             "get_dynamic_info",
             params=[netuid],
-            block_hash = block_hash,
+            block_hash=block_hash,
         )
         subnet = DynamicInfo.from_vec_u8(bytes.fromhex(query.decode()[2:]))
         return subnet
@@ -820,26 +891,12 @@ class AsyncSubtensor:
         Returns:
             Dict in view {address: Balance objects}.
         """
-        if reuse_block:
-            block_hash = self.substrate.last_block_hash
-        elif not block_hash:
-            block_hash = await self.get_block_hash()
-        calls = [
-            (
-                await self.substrate.create_storage_key(
-                    "SubtensorModule",
-                    "TotalColdkeyStake",
-                    [address],
-                    block_hash=block_hash,
-                )
-            )
-            for address in ss58_addresses
-        ]
-        batch_call = await self.substrate.query_multi(calls, block_hash=block_hash)
-        results = {}
-        for item in batch_call:
-            results.update({item[0].params[0]: Balance.from_rao(item[1] or 0)})
-        return results
+        warnings.simplefilter("default", DeprecationWarning)
+        warnings.warn(
+            "get_total_stake_for_coldkey is not available in the Rao network at the moment. Please use get_stake_for_coldkey instead.",
+            category=DeprecationWarning,
+            stacklevel=2,
+        )
 
     async def get_total_stake_for_hotkey(
         self,
@@ -1929,4 +1986,3 @@ class AsyncSubtensor:
                 retries += 1
 
         return success, message
-

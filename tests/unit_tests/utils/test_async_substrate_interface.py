@@ -1,6 +1,6 @@
 import pytest
 import asyncio
-from bittensor.utils import async_substrate_interface
+from async_substrate_interface import substrate_interface as async_substrate_interface
 from typing import Any
 
 

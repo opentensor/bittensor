@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from bittensor import Wallet
     from bittensor.core.subtensor import Subtensor
     from bittensor.utils.balance import Balance
-    from substrateinterface import SubstrateInterface
+    from async_substrate_interface.substrate_interface import SubstrateInterface
 
 
 def sudo_set_hyperparameter_bool(

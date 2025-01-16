@@ -1364,11 +1364,6 @@ class Subtensor:
             category=DeprecationWarning,
             stacklevel=2,
         )
-        return None
-        result = self.query_subtensor("TotalColdkeyStake", block, [ss58_address])
-        if getattr(result, "value", None) is None:
-            return None
-        return Balance.from_rao(result.value)
 
     def get_total_stake_for_hotkey(
         self, ss58_address: str, block: Optional[int] = None
@@ -1409,7 +1404,7 @@ class Subtensor:
         _result = self.query_subtensor("TotalNetworks", block)
         return getattr(_result, "value", None)
 
-    def get_subnets(self, block: Optional[int] = None) -> list[int]:
+    def get_netuids(self, block: Optional[int] = None) -> list[int]:
         """
         Retrieves a list of all subnets currently active within the Bittensor network. This function provides an overview of the various subnets and their identifiers.
 
@@ -2462,9 +2457,9 @@ class Subtensor:
     def add_stake_ext(
         self,
         wallet: "Wallet",
+        netuid: int,
         hotkey_ss58: Optional[str] = None,
-        netuid: Optional[int] = None,
-        amount: Optional[Union["Balance", float]] = None,
+        tao_amount: Optional[Union["Balance", float]] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
     ) -> bool:
@@ -2474,8 +2469,9 @@ class Subtensor:
 
         Args:
             wallet (bittensor_wallet.Wallet): The wallet to be used for staking.
+            netuid (int): The unique identifier of the subnet.
             hotkey_ss58 (Optional[str]): The ``SS58`` address of the hotkey associated with the neuron.
-            amount (Union[Balance, float]): The amount of TAO to stake.
+            tao_amount (Union[Balance, float]): The amount of TAO to stake.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
 
@@ -2489,7 +2485,7 @@ class Subtensor:
             wallet=wallet,
             hotkey_ss58=hotkey_ss58,
             netuid=netuid,
-            amount=amount,
+            amount=tao_amount,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
         )
@@ -2497,8 +2493,8 @@ class Subtensor:
     def add_stake_multiple(
         self,
         wallet: "Wallet",
-        hotkey_ss58s: list[str],
         netuids: list[int],
+        hotkey_ss58s: list[str],
         amounts: Optional[list[Union["Balance", float]]] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
@@ -2509,6 +2505,7 @@ class Subtensor:
 
         Args:
             wallet (bittensor_wallet.Wallet): The wallet used for staking.
+            netuids (int): The unique identifier of the subnet.
             hotkey_ss58s (list[str]): List of ``SS58`` addresses of hotkeys to stake to.
             amounts (list[Union[Balance, float]]): Corresponding amounts of TAO to stake for each hotkey.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block.
