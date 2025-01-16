@@ -40,6 +40,7 @@ from bittensor.core.extrinsics.async_weights import (
     commit_weights_extrinsic,
     set_weights_extrinsic,
 )
+from bittensor.core.metagraph import Metagraph
 from bittensor.core.settings import (
     TYPE_REGISTRY,
     DEFAULTS,
@@ -60,6 +61,7 @@ from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 from bittensor.utils.delegates_details import DelegatesDetails
 from bittensor.utils.weight_utils import generate_weight_hash
+from bittensor.core.subtensor import Subtensor
 
 
 class ParamWithTypes(TypedDict):
@@ -320,6 +322,33 @@ class AsyncSubtensor:
         )
 
     # Common subtensor methods =========================================================================================
+    async def metagraph(
+        self, netuid: int, lite: bool = True, block: Optional[int] = None
+    ) -> "Metagraph":  # type: ignore
+        """
+        Returns a synced metagraph for a specified subnet within the Bittensor network. The metagraph represents the network's structure, including neuron connections and interactions.
+
+        Args:
+            netuid (int): The network UID of the subnet to query.
+            lite (bool): If true, returns a metagraph using a lightweight sync (no weights, no bonds). Default is ``True``.
+            block (Optional[int]): Block number for synchronization, or ``None`` for the latest block.
+
+        Returns:
+            bittensor.core.metagraph.Metagraph: The metagraph representing the subnet's structure and neuron relationships.
+
+        The metagraph is an essential tool for understanding the topology and dynamics of the Bittensor network's decentralized architecture, particularly in relation to neuron interconnectivity and consensus processes.
+        """
+        metagraph = Metagraph(
+            network=self.chain_endpoint,
+            netuid=netuid,
+            lite=lite,
+            sync=False,
+            subtensor=self,
+        )
+        meta_sub = Subtensor(network=self.network)
+        metagraph.sync(block=block, lite=lite, subtensor=meta_sub)
+
+        return metagraph
 
     async def get_current_block(self) -> int:
         """
