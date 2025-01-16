@@ -1478,7 +1478,7 @@ class Subtensor:
             params=[netuid],
             block_hash=block_hash,
         )
-        subnet = DynamicInfo.from_vec_u8(bytes.fromhex(query.decode()[2:]))
+        subnet = DynamicInfo.from_vec_u8(bytes.fromhex(query.decode()[2:]))  # type: ignore
         return subnet
 
     # Alias for get_subnet_info for backwards compatibility
@@ -1748,7 +1748,7 @@ class Subtensor:
         hex_bytes_result = self.query_runtime_api(
             runtime_api="StakeInfoRuntimeApi",
             method="get_stake_info_for_coldkey",
-            params=[encoded_coldkey],
+            params=[encoded_coldkey],  # type: ignore
             block=block,
         )
 
@@ -1759,7 +1759,7 @@ class Subtensor:
         except ValueError:
             bytes_result = bytes.fromhex(hex_bytes_result)
 
-        stakes = StakeInfo.list_from_vec_u8(bytes_result)
+        stakes = StakeInfo.list_from_vec_u8(bytes_result)  # type: ignore
         return [stake for stake in stakes if stake.stake > 0]
 
     def get_stake(
@@ -1782,7 +1782,7 @@ class Subtensor:
         all_stakes = self.get_stake_for_coldkey(coldkey_ss58=coldkey_ss58, block=block)
         stakes = [
             stake
-            for stake in all_stakes
+            for stake in all_stakes  # type: ignore
             if stake.hotkey_ss58 == hotkey_ss58
             and (netuid is None or stake.netuid == netuid)
             and stake.stake > 0
@@ -1814,7 +1814,7 @@ class Subtensor:
         all_stakes = self.get_stake_for_coldkey(coldkey_ss58, block)
         stakes = [
             stake
-            for stake in all_stakes
+            for stake in all_stakes  # type: ignore
             if stake.hotkey_ss58 == hotkey_ss58
             and (netuid is None or stake.netuid == netuid)
             and stake.stake > 0
