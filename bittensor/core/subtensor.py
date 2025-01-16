@@ -6,6 +6,7 @@ Bittensor blockchain, facilitating a range of operations essential for the decen
 import argparse
 import copy
 import ssl
+import time
 from typing import Union, Optional, TypedDict, Any
 import warnings
 import numpy as np
@@ -21,6 +22,7 @@ from websockets.sync import client as ws_client
 
 from bittensor.core import settings
 from bittensor.core.axon import Axon
+from bittensor.core.errors import StakeError
 from bittensor.core.chain_data import (
     custom_rpc_type_registry,
     DelegateInfo,
@@ -77,6 +79,7 @@ from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import legacy_torch_api_compat
 from bittensor.utils.weight_utils import generate_weight_hash
+from bittensor.utils import format_error_message
 
 KEY_NONCE: dict[str, int] = {}
 
@@ -662,6 +665,16 @@ class Subtensor:
                 None if block is None else self.substrate.get_block_hash(block)
             ),
         )
+
+    @networking.ensure_connected
+    def get_account_next_index(self, address: str) -> int:
+        """
+        Returns the next nonce for an account, taking into account the transaction pool.
+        """
+        if not self.substrate.supports_rpc_method("account_nextIndex"):
+            raise Exception("account_nextIndex not supported")
+
+        return self.substrate.rpc_request("account_nextIndex", [address])["result"]
 
     # Common subtensor methods =========================================================================================
     def metagraph(
@@ -1415,19 +1428,24 @@ class Subtensor:
             else []
         )
 
-    def subnets(
-        self, block_hash: Optional[str] = None
+    def all_subnets(
+        self, block_number: Optional[int] = None
     ) -> Optional[list["DynamicInfo"]]:
         """
         Retrieves the subnet information for all subnets in the Bittensor network.
 
         Args:
-            block_hash (Optional[str]): The block hash to query the subnet information from.
+            block_number (Optional[int]): The block number to query the subnet information from.
 
         Returns:
             Optional[DynamicInfo]: A list of DynamicInfo objects, each containing detailed information about a subnet.
 
         """
+        if block_number is not None:
+            block_hash = self.get_block_hash(block_number)
+        else:
+            block_hash = None
+
         query = self.substrate.runtime_call(
             "SubnetInfoRuntimeApi",
             "get_all_dynamic_info",
@@ -1437,22 +1455,28 @@ class Subtensor:
         return subnets
 
     # Alias for get_subnets_info for backwards compatibility
-    get_subnets_info = subnets
+    get_subnets_info = all_subnets
+    get_all_subnets = all_subnets
 
     def subnet(
-        self, netuid: int, block_hash: Optional[str] = None
+        self, netuid: int, block_number: Optional[int] = None
     ) -> Optional[DynamicInfo]:
         """
         Retrieves the subnet information for a single subnet in the Bittensor network.
 
         Args:
             netuid (int): The unique identifier of the subnet.
-            block_hash (Optional[str]): The block hash to query the subnet information from.
+            block_number (Optional[int]): The block number to query the subnet information from.
 
         Returns:
             Optional[DynamicInfo]: A DynamicInfo object, containing detailed information about a subnet.
 
         """
+        if block_number is not None:
+            block_hash = self.get_block_hash(block_number)
+        else:
+            block_hash = None
+
         query = self.substrate.runtime_call(
             "SubnetInfoRuntimeApi",
             "get_dynamic_info",
@@ -1464,6 +1488,7 @@ class Subtensor:
 
     # Alias for get_subnet_info for backwards compatibility
     get_subnet_info = subnet
+    get_subnet = subnet
 
     def neurons_lite(
         self, netuid: int, block: Optional[int] = None
@@ -1548,6 +1573,8 @@ class Subtensor:
             return Balance(1000)
 
         return Balance(result.value["data"]["free"])
+
+    balance = get_balance
 
     @networking.ensure_connected
     def get_transfer_fee(
@@ -1739,6 +1766,36 @@ class Subtensor:
 
         stakes = StakeInfo.list_from_vec_u8(bytes_result)
         return [stake for stake in stakes if stake.stake > 0]
+
+    def get_stake(
+        self,
+        hotkey_ss58: str,
+        coldkey_ss58: str,
+        netuid: int,
+        block: Optional[int] = None,
+    ) -> Optional[Balance]:
+        """
+        Returns the stake under a coldkey - hotkey pairing.
+        Args:
+            hotkey_ss58 (str): The SS58 address of the hotkey.
+            coldkey_ss58 (str): The SS58 address of the coldkey.
+            netuid (int): The subnet ID to filter by. If provided, only returns stake for this specific subnet.
+            block (Optional[int]): The block number at which to query the stake information.
+        Returns:
+            Optional[Balance]: Balance
+        """
+        all_stakes = self.get_stake_for_coldkey(coldkey_ss58=coldkey_ss58, block=block)
+        stakes = [
+            stake
+            for stake in all_stakes
+            if stake.hotkey_ss58 == hotkey_ss58
+            and (netuid is None or stake.netuid == netuid)
+            and stake.stake > 0
+        ]
+        if not stakes:
+            return Balance(0).set_unit(netuid=netuid)
+        else:
+            return stakes[0].stake
 
     def get_stake_for_coldkey_and_hotkey(
         self,
@@ -2323,7 +2380,86 @@ class Subtensor:
 
         return success, message
 
+    def wait_for_block(self, block: Optional[int] = None):
+        """
+        Waits until a specific block is reached on the chain. If no block is specified,
+        waits for the next block.
+
+        Args:
+            block (Optional[int]): The block number to wait for. If None, waits for next block.
+
+        Returns:
+            bool: True if the target block was reached, False if timeout occurred.
+
+        Example:
+            >>> subtensor.wait_for_block() # Waits for next block
+            >>> subtensor.wait_for_block(block=1234) # Waits for specific block
+        """
+        current_block = self.get_current_block()
+        target_block = block if block is not None else current_block + 1
+
+        while current_block < target_block:
+            time.sleep(1)  # Sleep for 1 second before checking again
+            current_block = self.get_current_block()
+        return True
+
     def add_stake(
+        self,
+        wallet: Wallet,
+        netuid: int,
+        hotkey: str,
+        tao_amount: Union[float, Balance, int],
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = False,
+    ):
+        """
+        Adds the specified amount of stake to a hotkey and coldkey pair.
+
+        Args:
+            wallet (bittensor_wallet.Wallet): The wallet to be used for staking.
+            hotkey (str): The ``SS58`` address of the hotkey associated with the neuron.
+            amount (Union[float, Balance, int]): The amount of TAO to stake.
+            wait_for_inclusion (bool): Waits for the transaction to be included in a block.
+            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
+
+        Returns:
+            bool: ``True`` if the staking is successful, False otherwise.
+        """
+        if isinstance(tao_amount, (float, int)):
+            tao_amount = Balance(tao_amount)
+
+        call = self.substrate.compose_call(
+            call_module="SubtensorModule",
+            call_function="add_stake",
+            call_params={
+                "hotkey": hotkey,
+                "amount_staked": tao_amount.rao,
+                "netuid": netuid,
+            },
+        )
+        next_nonce = self.get_account_next_index(wallet.coldkeypub.ss58_address)
+        extrinsic = self.substrate.create_signed_extrinsic(
+            call=call,
+            keypair=wallet.coldkey,
+            nonce=next_nonce,
+        )
+        response = self.substrate.submit_extrinsic(
+            extrinsic,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+        # We only wait here if we expect finalization.
+        if not wait_for_finalization and not wait_for_inclusion:
+            return True
+        response.process_events()
+        if response.is_success:
+            return True
+        else:
+            raise StakeError(format_error_message(response.error_message))
+
+    stake = add_stake
+
+    def add_stake_ext(
         self,
         wallet: "Wallet",
         hotkey_ss58: Optional[str] = None,
@@ -2394,6 +2530,63 @@ class Subtensor:
         )
 
     def unstake(
+        self,
+        wallet: Wallet,
+        netuid: int,
+        hotkey: str,
+        amount: Union[float, Balance, int],
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = False,
+    ):
+        """
+        Removes a specified amount of stake from a hotkey and coldkey pair.
+
+        Args:
+            wallet (bittensor_wallet.Wallet): The wallet to be used for unstaking.
+            hotkey (str): The ``SS58`` address of the hotkey associated with the neuron.
+            amount (Union[float, Balance, int]): The amount of TAO to unstake.
+            wait_for_inclusion (bool): Waits for the transaction to be included in a block.
+            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
+
+        Returns:
+            bool: ``True`` if the unstaking is successful, False otherwise.
+        """
+        if isinstance(amount, (float, int)):
+            amount = Balance(amount)
+
+        call = self.substrate.compose_call(
+            call_module="SubtensorModule",
+            call_function="remove_stake",
+            call_params={
+                "hotkey": hotkey,
+                "amount_unstaked": amount.rao,
+                "netuid": netuid,
+            },
+        )
+        next_nonce = self.get_account_next_index(wallet.coldkeypub.ss58_address)
+        extrinsic = self.substrate.create_signed_extrinsic(
+            call=call,
+            keypair=wallet.coldkey,
+            nonce=next_nonce,
+        )
+        response = self.substrate.submit_extrinsic(
+            extrinsic,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+        # We only wait here if we expect finalization.
+        if not wait_for_finalization and not wait_for_inclusion:
+            return True
+
+        response.process_events()
+        if response.is_success:
+            return True
+        else:
+            raise StakeError(format_error_message(response.error_message))
+
+    remove_stake = unstake
+
+    def unstake_ext(
         self,
         wallet: "Wallet",
         hotkey_ss58: Optional[str] = None,
