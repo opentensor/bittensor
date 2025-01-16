@@ -2754,7 +2754,7 @@ def test_add_stake_success(mocker, subtensor):
     )
 
     # Call
-    result = subtensor.add_stake(
+    result = subtensor.add_stake_ext(
         wallet=fake_wallet,
         hotkey_ss58=fake_hotkey_ss58,
         netuid=fake_netuid,
@@ -2822,7 +2822,7 @@ def test_unstake_success(mocker, subtensor):
     mock_unstake_extrinsic = mocker.patch.object(subtensor_module, "unstake_extrinsic")
 
     # Call
-    result = subtensor.unstake(
+    result = subtensor.unstake_ext(
         wallet=fake_wallet,
         hotkey_ss58=fake_hotkey_ss58,
         netuid=fake_netuid,

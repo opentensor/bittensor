@@ -2412,8 +2412,9 @@ class Subtensor:
 
         Args:
             wallet (bittensor_wallet.Wallet): The wallet to be used for staking.
+            netuid (int): The unique identifier of the subnet.
             hotkey (str): The ``SS58`` address of the hotkey associated with the neuron.
-            amount (Union[float, Balance, int]): The amount of TAO to stake.
+            tao_amount (Union[float, Balance, int]): The amount of TAO to stake.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
 

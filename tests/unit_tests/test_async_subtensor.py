@@ -362,6 +362,7 @@ async def test_get_subnets(subtensor, mocker, records, response):
     mocked_substrate_query_map.assert_called_once_with(
         module="SubtensorModule",
         storage_function="NetworksAdded",
+        params=None,
         block_hash=fake_block_hash,
         reuse_block_hash=False,
     )
