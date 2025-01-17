@@ -460,7 +460,7 @@ async def test_commit_weights_extrinsic_success(subtensor, mocker):
         wait_for_finalization=True,
     )
     assert result is True
-    assert message == "Successfully committed weights."
+    assert message == "✅ [green]Successfully committed weights.[green]"
 
 
 @pytest.mark.asyncio

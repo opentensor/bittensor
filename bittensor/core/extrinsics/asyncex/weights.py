@@ -111,7 +111,7 @@ async def commit_weights_extrinsic(
     )
 
     if success:
-        success_message = "Successfully committed weights."
+        success_message = "✅ [green]Successfully committed weights.[green]"
         logging.info(success_message)
         return True, success_message
 
