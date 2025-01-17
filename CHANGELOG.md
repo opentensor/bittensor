@@ -1,5 +1,47 @@
 # Changelog
 
+## 8.5.1rc8 /2025-01-15
+
+## What's Changed
+* Updates `get_stake_for_coldkey` to return only non-zero stakes.
+* Bumps bittensor-cli
+
+## 8.5.1rc7 /2025-01-14
+
+## What's Changed
+* Adds `get_subnets_info`, `get_subnet_info`, `get_stake_for_coldkey_and_hotkey`, `get_stake_for_coldkey`.
+* Updates `add_stake`, `add_stake_multiple`, `unstake`, `unstake_multiple`
+
+## 8.5.1rc6 /2025-01-11
+
+## What's Changed
+* Updates bittensor-cli to 8.2.0rc10
+
+## 8.5.1rc5 /2025-01-09
+
+## What's Changed
+* Updates bittensor-cli to 8.2.0rc9
+
+## 8.5.1rc4 /2025-01-09
+
+## What's Changed
+* Updates bittensor-cli to 8.2.0rc8
+
+## 8.5.1rc3 /2025-01-09
+
+## What's Changed
+* Updates bittensor-cli to 8.2.0rc7
+
+## 8.5.1rc2 /2025-01-09
+
+## What's Changed
+* Fixed units variable name
+
+## 8.5.1rc1 /2025-01-09
+
+## What's Changed
+* Development release of RAO network 
+
 ## 8.5.1 /2024-12-16
 
 ## What's Changed

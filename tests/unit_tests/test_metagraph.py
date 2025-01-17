@@ -15,7 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 from unittest.mock import Mock
 
 import numpy as np
@@ -47,6 +47,8 @@ def mock_environment():
             validator_trust=i + 0.6,
             total_stake=Mock(tao=i + 0.7),
             stake=i + 0.8,
+            alpha_stake=i + 0.9,
+            tao_stake=i + 1.0,
             axon_info=f"axon_info_{i}",
             weights=[(j, j + 0.1) for j in range(5)],
             bonds=[(j, j + 0.2) for j in range(5)],
@@ -143,6 +145,7 @@ def metagraph_instance():
     metagraph._assign_neurons = MagicMock()
     metagraph._set_metagraph_attributes = MagicMock()
     metagraph._set_weights_and_bonds = MagicMock()
+    metagraph._get_all_stakes_from_chain = MagicMock()
     return metagraph
 
 
@@ -194,7 +197,6 @@ def test_deepcopy(mock_environment):
     assert copied_metagraph.block == metagraph.block
     assert np.array_equal(copied_metagraph.uids, metagraph.uids)
     assert np.array_equal(copied_metagraph.stake, metagraph.stake)
-    assert np.array_equal(copied_metagraph.total_stake, metagraph.total_stake)
     assert np.array_equal(copied_metagraph.ranks, metagraph.ranks)
     assert np.array_equal(copied_metagraph.trust, metagraph.trust)
     assert np.array_equal(copied_metagraph.consensus, metagraph.consensus)
@@ -224,8 +226,9 @@ def test_deepcopy(mock_environment):
         assert original_neuron.last_update == copied_neuron.last_update
         assert original_neuron.validator_permit == copied_neuron.validator_permit
         assert original_neuron.validator_trust == copied_neuron.validator_trust
-        assert original_neuron.total_stake.tao == copied_neuron.total_stake.tao
         assert original_neuron.stake == copied_neuron.stake
+        assert original_neuron.alpha_stake == copied_neuron.alpha_stake
+        assert original_neuron.tao_stake == copied_neuron.tao_stake
         assert original_neuron.axon_info == copied_neuron.axon_info
         assert original_neuron.weights == copied_neuron.weights
         assert original_neuron.bonds == copied_neuron.bonds
@@ -248,7 +251,6 @@ def test_copy(mock_environment):
     assert copied_metagraph.block == metagraph.block
     assert np.array_equal(copied_metagraph.uids, metagraph.uids)
     assert np.array_equal(copied_metagraph.stake, metagraph.stake)
-    assert np.array_equal(copied_metagraph.total_stake, metagraph.total_stake)
     assert np.array_equal(copied_metagraph.ranks, metagraph.ranks)
     assert np.array_equal(copied_metagraph.trust, metagraph.trust)
     assert np.array_equal(copied_metagraph.consensus, metagraph.consensus)

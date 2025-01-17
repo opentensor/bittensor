@@ -540,6 +540,15 @@ class MockSubtensor(Subtensor):
         else:
             return MockMapResult([])
 
+    def query_runtime_api(
+        self,
+        runtime_api: str,
+        method: str,
+        params: Optional[Union[list[int], dict[str, int]]],
+        block: Optional[int] = None,
+    ) -> Optional[str]:
+        return None
+
     def query_constant(
         self, module_name: str, constant_name: str, block: Optional[int] = None
     ) -> Optional[object]:

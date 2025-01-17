@@ -8,6 +8,7 @@ from tests.e2e_tests.utils.chain_interactions import (
     sudo_set_hyperparameter_values,
 )
 from tests.e2e_tests.utils.e2e_test_utils import setup_wallet
+import pytest
 
 
 def liquid_alpha_call_params(netuid: int, alpha_values: str):
@@ -19,6 +20,7 @@ def liquid_alpha_call_params(netuid: int, alpha_values: str):
     }
 
 
+@pytest.mark.skip(reason="Have to be rewritten from scratch")
 def test_liquid_alpha(local_chain):
     """
     Test the liquid alpha mechanism

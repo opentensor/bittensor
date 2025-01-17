@@ -17,6 +17,7 @@ def _do_unstake(
     self: "Subtensor",
     wallet: "Wallet",
     hotkey_ss58: str,
+    netuid: int,
     amount: "Balance",
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
@@ -40,7 +41,11 @@ def _do_unstake(
     call = self.substrate.compose_call(
         call_module="SubtensorModule",
         call_function="remove_stake",
-        call_params={"hotkey": hotkey_ss58, "amount_unstaked": amount.rao},
+        call_params={
+            "hotkey": hotkey_ss58,
+            "amount_unstaked": amount.rao,
+            "netuid": netuid,
+        },
     )
     extrinsic = self.substrate.create_signed_extrinsic(
         call=call, keypair=wallet.coldkey
@@ -61,32 +66,11 @@ def _do_unstake(
         raise StakeError(format_error_message(response.error_message))
 
 
-def _check_threshold_amount(subtensor: "Subtensor", stake_balance: "Balance") -> bool:
-    """
-    Checks if the remaining stake balance is above the minimum required stake threshold.
-
-    Args:
-        subtensor (bittensor.core.subtensor.Subtensor): Subtensor instance.
-        stake_balance (bittensor.utils.balance.Balance): the balance to check for threshold limits.
-
-    Returns:
-        success (bool): ``true`` if the unstaking is above the threshold or 0, or ``false`` if the unstaking is below the threshold, but not 0.
-    """
-    min_req_stake: Balance = subtensor.get_minimum_required_stake()
-
-    if min_req_stake > stake_balance > 0:
-        logging.warning(
-            f":cross_mark: [yellow]Remaining stake balance of {stake_balance} less than minimum of {min_req_stake} TAO[/yellow]"
-        )
-        return False
-    else:
-        return True
-
-
 def __do_remove_stake_single(
     subtensor: "Subtensor",
     wallet: "Wallet",
     hotkey_ss58: str,
+    netuid: int,
     amount: "Balance",
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
@@ -117,6 +101,7 @@ def __do_remove_stake_single(
         self=subtensor,
         wallet=wallet,
         hotkey_ss58=hotkey_ss58,
+        netuid=netuid,
         amount=amount,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
@@ -129,6 +114,7 @@ def unstake_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
     hotkey_ss58: Optional[str] = None,
+    netuid: Optional[int] = None,
     amount: Optional[Union[Balance, float]] = None,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
@@ -158,12 +144,16 @@ def unstake_extrinsic(
         f":satellite: [magenta]Syncing with chain:[/magenta] [blue]{subtensor.network}[/blue] [magenta]...[/magenta]"
     )
     old_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
-    old_stake = subtensor.get_stake_for_coldkey_and_hotkey(
-        coldkey_ss58=wallet.coldkeypub.ss58_address, hotkey_ss58=hotkey_ss58
-    )
 
-    hotkey_owner = subtensor.get_hotkey_owner(hotkey_ss58)
-    own_hotkey: bool = wallet.coldkeypub.ss58_address == hotkey_owner
+    old_stake = subtensor.get_stake_for_coldkey_and_hotkey(
+        coldkey_ss58=wallet.coldkeypub.ss58_address,
+        hotkey_ss58=hotkey_ss58,
+        netuid=netuid,
+    )
+    if old_stake is not None:
+        old_stake = old_stake.stake
+    else:
+        old_stake = Balance.from_tao(0)
 
     # Convert to bittensor.Balance
     if amount is None:
@@ -182,15 +172,6 @@ def unstake_extrinsic(
         )
         return False
 
-    # If nomination stake, check threshold.
-    if not own_hotkey and not _check_threshold_amount(
-        subtensor=subtensor, stake_balance=(stake_on_uid - unstaking_balance)
-    ):
-        logging.warning(
-            ":warning: [yellow]This action will unstake the entire staked balance![/yellow]"
-        )
-        unstaking_balance = stake_on_uid
-
     try:
         logging.info(
             f":satellite: [magenta]Unstaking from chain:[/magenta] [blue]{subtensor.network}[/blue] [magenta]...[/magenta]"
@@ -199,6 +180,7 @@ def unstake_extrinsic(
             subtensor=subtensor,
             wallet=wallet,
             hotkey_ss58=hotkey_ss58,
+            netuid=netuid,
             amount=unstaking_balance,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
@@ -215,16 +197,22 @@ def unstake_extrinsic(
                 f":satellite: [magenta]Checking Balance on:[/magenta] [blue]{subtensor.network}[/blue] [magenta]...[/magenta]"
             )
             new_balance = subtensor.get_balance(address=wallet.coldkeypub.ss58_address)
+
+            # Get new stake
             new_stake = subtensor.get_stake_for_coldkey_and_hotkey(
-                coldkey_ss58=wallet.coldkeypub.ss58_address, hotkey_ss58=hotkey_ss58
-            )  # Get stake on hotkey.
-            logging.info(f"Balance:")
-            logging.info(
-                f"\t\t[blue]{old_balance}[/blue] :arrow_right: [green]{new_balance}[/green]"
+                coldkey_ss58=wallet.coldkeypub.ss58_address,
+                hotkey_ss58=hotkey_ss58,
+                netuid=netuid,
             )
-            logging.info("Stake:")
+            if new_stake is not None:
+                new_stake = new_stake.stake
+            else:
+                new_stake = Balance.from_tao(0)
             logging.info(
-                f"\t\t[blue]{old_stake}[/blue] :arrow_right: [green]{new_stake}[/green]"
+                f"Balance: [blue]{old_balance}[/blue] :arrow_right: [green]{new_balance}[/green]"
+            )
+            logging.info(
+                f"Stake: [blue]{old_stake}[/blue] :arrow_right: [green]{new_stake}[/green]"
             )
             return True
         else:
@@ -245,7 +233,8 @@ def unstake_multiple_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
     hotkey_ss58s: list[str],
-    amounts: Optional[list[Union[Balance, float]]] = None,
+    netuids: list[int],
+    amounts: Optional[list[Union[Balance, float, int]]] = None,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
 ) -> bool:
@@ -255,6 +244,7 @@ def unstake_multiple_extrinsic(
         subtensor (bittensor.core.subtensor.Subtensor): Subtensor instance.
         wallet (bittensor_wallet.Wallet): The wallet with the coldkey to unstake to.
         hotkey_ss58s (List[str]): List of hotkeys to unstake from.
+        netuids (List[int]): List of netuids to unstake from.
         amounts (List[Union[Balance, float]]): List of amounts to unstake. If ``None``, unstake all.
         wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
@@ -270,14 +260,17 @@ def unstake_multiple_extrinsic(
     if len(hotkey_ss58s) == 0:
         return True
 
+    if netuids is not None and len(netuids) != len(hotkey_ss58s):
+        raise ValueError("netuids must be a list of the same length as hotkey_ss58s")
+
     if amounts is not None and len(amounts) != len(hotkey_ss58s):
         raise ValueError("amounts must be a list of the same length as hotkey_ss58s")
 
     if amounts is not None and not all(
-        isinstance(amount, (Balance, float)) for amount in amounts
+        isinstance(amount, (Balance, float, int)) for amount in amounts
     ):
         raise TypeError(
-            "amounts must be a [list of bittensor.Balance or float] or None"
+            "amounts must be a [list of bittensor.Balance, float, or int] or None"
         )
 
     if amounts is None:
@@ -285,7 +278,7 @@ def unstake_multiple_extrinsic(
     else:
         # Convert to Balance
         amounts = [
-            Balance.from_tao(amount) if isinstance(amount, float) else amount
+            Balance.from_tao(amount) if isinstance(amount, (float, int)) else amount
             for amount in amounts
         ]
 
@@ -298,25 +291,31 @@ def unstake_multiple_extrinsic(
         logging.error(unlock.message)
         return False
 
-    old_stakes = []
-    own_hotkeys = []
     logging.info(
         f":satellite: [magenta]Syncing with chain:[/magenta] [blue]{subtensor.network}[/blue] [magenta]...[/magenta]"
     )
     old_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
 
-    for hotkey_ss58 in hotkey_ss58s:
-        old_stake = subtensor.get_stake_for_coldkey_and_hotkey(
-            coldkey_ss58=wallet.coldkeypub.ss58_address, hotkey_ss58=hotkey_ss58
-        )  # Get stake on hotkey.
-        old_stakes.append(old_stake)  # None if not registered.
-
-        hotkey_owner = subtensor.get_hotkey_owner(hotkey_ss58)
-        own_hotkeys.append(wallet.coldkeypub.ss58_address == hotkey_owner)
+    _stakes = subtensor.get_stake_for_coldkey(
+        coldkey_ss58=wallet.coldkeypub.ss58_address
+    )
+    old_stakes = []
+    for hotkey_ss58, netuid in zip(hotkey_ss58s, netuids):
+        stake = next(
+            (
+                stake.stake
+                for stake in _stakes
+                if stake.hotkey_ss58 == hotkey_ss58
+                and stake.coldkey_ss58 == wallet.coldkeypub.ss58_address
+                and stake.netuid == netuid
+            ),
+            Balance.from_tao(0),  # Default to 0 balance if no match found
+        )
+        old_stakes.append(stake)
 
     successful_unstakes = 0
-    for idx, (hotkey_ss58, amount, old_stake, own_hotkey) in enumerate(
-        zip(hotkey_ss58s, amounts, old_stakes, own_hotkeys)
+    for idx, (hotkey_ss58, amount, old_stake, netuid) in enumerate(
+        zip(hotkey_ss58s, amounts, old_stakes, netuids)
     ):
         # Covert to bittensor.Balance
         if amount is None:
@@ -335,15 +334,6 @@ def unstake_multiple_extrinsic(
             )
             continue
 
-        # If nomination stake, check threshold.
-        if not own_hotkey and not _check_threshold_amount(
-            subtensor=subtensor, stake_balance=(stake_on_uid - unstaking_balance)
-        ):
-            logging.warning(
-                f":warning: [yellow]This action will unstake the entire staked balance![/yellow]"
-            )
-            unstaking_balance = stake_on_uid
-
         try:
             logging.info(
                 f":satellite: [magenta]Unstaking from chain:[/magenta] [blue]{subtensor.network}[/blue] [magenta]...[/magenta]"
@@ -352,6 +342,7 @@ def unstake_multiple_extrinsic(
                 subtensor=subtensor,
                 wallet=wallet,
                 hotkey_ss58=hotkey_ss58,
+                netuid=netuid,
                 amount=unstaking_balance,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
@@ -378,14 +369,20 @@ def unstake_multiple_extrinsic(
                 logging.info(
                     f":satellite: [magenta]Checking Balance on:[/magenta] [blue]{subtensor.network}[/blue] [magenta]...[/magenta]..."
                 )
-                block = subtensor.get_current_block()
+
+                # Get new stake
                 new_stake = subtensor.get_stake_for_coldkey_and_hotkey(
                     coldkey_ss58=wallet.coldkeypub.ss58_address,
                     hotkey_ss58=hotkey_ss58,
-                    block=block,
+                    netuid=netuid,
                 )
+                if new_stake is not None:
+                    new_stake = new_stake.stake
+                else:
+                    new_stake = Balance.from_tao(0)
+
                 logging.info(
-                    f"Stake ({hotkey_ss58}): [blue]{stake_on_uid}[/blue] :arrow_right: [green]{new_stake}[/green]"
+                    f"Stake ({hotkey_ss58}) on netuid {netuid}: [blue]{stake_on_uid}[/blue] :arrow_right: [green]{new_stake}[/green]"
                 )
                 successful_unstakes += 1
             else:

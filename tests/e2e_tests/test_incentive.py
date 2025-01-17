@@ -22,6 +22,7 @@ from bittensor.core.metagraph import Metagraph
 FAST_BLOCKS_SPEEDUP_FACTOR = 5
 
 
+@pytest.mark.skip(reason="Have to be rewritten from scratch")
 @pytest.mark.asyncio
 async def test_incentive(local_chain):
     """

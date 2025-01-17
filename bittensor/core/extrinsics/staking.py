@@ -1,7 +1,7 @@
 from time import sleep
 from typing import Union, Optional, TYPE_CHECKING
 
-from bittensor.core.errors import NotDelegateError, StakeError, NotRegisteredError
+from bittensor.core.errors import StakeError, NotRegisteredError
 from bittensor.utils import format_error_message, unlock_key
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
@@ -17,6 +17,7 @@ def _do_stake(
     self: "Subtensor",
     wallet: "Wallet",
     hotkey_ss58: str,
+    netuid: int,
     amount: "Balance",
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
@@ -41,7 +42,11 @@ def _do_stake(
     call = self.substrate.compose_call(
         call_module="SubtensorModule",
         call_function="add_stake",
-        call_params={"hotkey": hotkey_ss58, "amount_staked": amount.rao},
+        call_params={
+            "hotkey": hotkey_ss58,
+            "amount_staked": amount.rao,
+            "netuid": netuid,
+        },
     )
     extrinsic = self.substrate.create_signed_extrinsic(
         call=call, keypair=wallet.coldkey
@@ -87,6 +92,7 @@ def __do_add_stake_single(
     wallet: "Wallet",
     hotkey_ss58: str,
     amount: "Balance",
+    netuid: int,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
 ) -> bool:
@@ -114,16 +120,11 @@ def __do_add_stake_single(
         logging.error(unlock.message)
         return False
 
-    hotkey_owner = subtensor.get_hotkey_owner(hotkey_ss58)
-    own_hotkey = wallet.coldkeypub.ss58_address == hotkey_owner
-    if not own_hotkey:
-        # We are delegating. Verify that the hotkey is a delegate.
-        if not subtensor.is_hotkey_delegate(hotkey_ss58=hotkey_ss58):
-            raise NotDelegateError("Hotkey: {} is not a delegate.".format(hotkey_ss58))
-
     success = _do_stake(
+        self=subtensor,
         wallet=wallet,
         hotkey_ss58=hotkey_ss58,
+        netuid=netuid,
         amount=amount,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
@@ -135,7 +136,8 @@ def add_stake_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
     hotkey_ss58: Optional[str] = None,
-    amount: Optional[Union[Balance, float]] = None,
+    netuid: Optional[int] = None,
+    amount: Optional[Union[Balance, float, int]] = None,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
 ) -> bool:
@@ -165,25 +167,21 @@ def add_stake_extrinsic(
     if hotkey_ss58 is None:
         hotkey_ss58 = wallet.hotkey.ss58_address
 
-    # Flag to indicate if we are using the wallet's own hotkey.
-    own_hotkey: bool
-
     logging.info(
         f":satellite: [magenta]Syncing with chain:[/magenta] [blue]{subtensor.network}[/blue] [magenta]...[/magenta]"
     )
     old_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
-    # Get hotkey owner
-    hotkey_owner = subtensor.get_hotkey_owner(hotkey_ss58)
-    own_hotkey = wallet.coldkeypub.ss58_address == hotkey_owner
-    if not own_hotkey:
-        # This is not the wallet's own hotkey so we are delegating.
-        if not subtensor.is_hotkey_delegate(hotkey_ss58):
-            raise NotDelegateError("Hotkey: {} is not a delegate.".format(hotkey_ss58))
 
     # Get current stake
     old_stake = subtensor.get_stake_for_coldkey_and_hotkey(
-        coldkey_ss58=wallet.coldkeypub.ss58_address, hotkey_ss58=hotkey_ss58
+        coldkey_ss58=wallet.coldkeypub.ss58_address,
+        hotkey_ss58=hotkey_ss58,
+        netuid=netuid,
     )
+    if old_stake is not None:
+        old_stake = old_stake.stake
+    else:
+        old_stake = Balance.from_tao(0)
 
     # Grab the existential deposit.
     existential_deposit = subtensor.get_existential_deposit()
@@ -212,26 +210,15 @@ def add_stake_extrinsic(
         logging.error(f"\t\twallet: {wallet.name}")
         return False
 
-    # If nominating, we need to check if the new stake balance will be above the minimum required stake threshold.
-    if not own_hotkey:
-        new_stake_balance = old_stake + staking_balance
-        is_above_threshold, threshold = _check_threshold_amount(
-            subtensor, new_stake_balance
-        )
-        if not is_above_threshold:
-            logging.error(
-                f":cross_mark: [red]New stake balance of {new_stake_balance} is below the minimum required nomination stake threshold {threshold}.[/red]"
-            )
-            return False
-
     try:
         logging.info(
-            f":satellite: [magenta]Staking to:[/magenta] [blue]{subtensor.network}[/blue] [magenta]...[/magenta]"
+            f":satellite: [magenta]Staking to:[/magenta] [blue]netuid: {netuid}, amount: {staking_balance} on {subtensor.network}[/blue] [magenta]...[/magenta]"
         )
         staking_response: bool = __do_add_stake_single(
             subtensor=subtensor,
             wallet=wallet,
             hotkey_ss58=hotkey_ss58,
+            netuid=netuid,
             amount=staking_balance,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
@@ -248,20 +235,23 @@ def add_stake_extrinsic(
                 f":satellite: [magenta]Checking Balance on:[/magenta] [blue]{subtensor.network}[/blue] [magenta]...[/magenta]"
             )
             new_balance = subtensor.get_balance(address=wallet.coldkeypub.ss58_address)
-            block = subtensor.get_current_block()
+
+            # Get new stake
             new_stake = subtensor.get_stake_for_coldkey_and_hotkey(
                 coldkey_ss58=wallet.coldkeypub.ss58_address,
                 hotkey_ss58=hotkey_ss58,
-                block=block,
-            )  # Get current stake
-
-            logging.info("Balance:")
-            logging.info(
-                f"[blue]{old_balance}[/blue] :arrow_right: {new_balance}[/green]"
+                netuid=netuid,
             )
-            logging.info("Stake:")
+            if new_stake is not None:
+                new_stake = new_stake.stake
+            else:
+                new_stake = Balance.from_tao(0)
+
             logging.info(
-                f"[blue]{old_stake}[/blue] :arrow_right: [green]{new_stake}[/green]"
+                f"Balance: [blue]{old_balance}[/blue] :arrow_right: [green]{new_balance}[/green]"
+            )
+            logging.info(
+                f"Stake:[blue]{old_stake}[/blue] :arrow_right: [green]{new_stake}[/green]"
             )
             return True
         else:
@@ -284,7 +274,8 @@ def add_stake_multiple_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
     hotkey_ss58s: list[str],
-    amounts: Optional[list[Union[Balance, float]]] = None,
+    netuids: list[int],
+    amounts: Optional[list[Union[Balance, float, int]]] = None,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
 ) -> bool:
@@ -312,11 +303,14 @@ def add_stake_multiple_extrinsic(
     if amounts is not None and len(amounts) != len(hotkey_ss58s):
         raise ValueError("amounts must be a list of the same length as hotkey_ss58s")
 
+    if netuids is not None and len(netuids) != len(hotkey_ss58s):
+        raise ValueError("netuids must be a list of the same length as hotkey_ss58s")
+
     if amounts is not None and not all(
-        isinstance(amount, (Balance, float)) for amount in amounts
+        isinstance(amount, (Balance, float, int)) for amount in amounts
     ):
         raise TypeError(
-            "amounts must be a [list of bittensor.Balance or float] or None"
+            "amounts must be a [list of bittensor.Balance, float, or int] or None"
         )
 
     if amounts is None:
@@ -324,7 +318,7 @@ def add_stake_multiple_extrinsic(
     else:
         # Convert to Balance
         amounts = [
-            Balance.from_tao(amount) if isinstance(amount, float) else amount
+            Balance.from_tao(amount) if isinstance(amount, (float, int)) else amount
             for amount in amounts
         ]
 
@@ -337,20 +331,28 @@ def add_stake_multiple_extrinsic(
         logging.error(unlock.message)
         return False
 
-    old_stakes = []
-
     logging.info(
         f":satellite: [magenta]Syncing with chain:[/magenta] [blue]{subtensor.network}[/blue] [magenta]...[/magenta]"
     )
-    old_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
+    old_balance = inital_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
 
     # Get the old stakes.
-    for hotkey_ss58 in hotkey_ss58s:
-        old_stakes.append(
-            subtensor.get_stake_for_coldkey_and_hotkey(
-                coldkey_ss58=wallet.coldkeypub.ss58_address, hotkey_ss58=hotkey_ss58
-            )
+    old_stakes = []
+    all_stakes = subtensor.get_stake_for_coldkey(
+        coldkey_ss58=wallet.coldkeypub.ss58_address
+    )
+    for hotkey_ss58, netuid in zip(hotkey_ss58s, netuids):
+        stake = next(
+            (
+                stake.stake
+                for stake in all_stakes
+                if stake.hotkey_ss58 == hotkey_ss58
+                and stake.coldkey_ss58 == wallet.coldkeypub.ss58_address
+                and stake.netuid == netuid
+            ),
+            Balance.from_tao(0),  # Default to 0 balance if no match found
         )
+        old_stakes.append(stake)
 
     # Remove existential balance to keep key alive.
     # Keys must maintain a balance of at least 1000 rao to stay alive.
@@ -374,8 +376,8 @@ def add_stake_multiple_extrinsic(
         ]
 
     successful_stakes = 0
-    for idx, (hotkey_ss58, amount, old_stake) in enumerate(
-        zip(hotkey_ss58s, amounts, old_stakes)
+    for idx, (hotkey_ss58, amount, old_stake, netuid) in enumerate(
+        zip(hotkey_ss58s, amounts, old_stakes, netuids)
     ):
         staking_all = False
         # Convert to bittensor.Balance
@@ -400,6 +402,7 @@ def add_stake_multiple_extrinsic(
                 subtensor=subtensor,
                 wallet=wallet,
                 hotkey_ss58=hotkey_ss58,
+                netuid=netuid,
                 amount=staking_balance,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
@@ -429,19 +432,23 @@ def add_stake_multiple_extrinsic(
 
                 logging.success(":white_heavy_check_mark: [green]Finalized[/green]")
 
-                block = subtensor.get_current_block()
+                # Get new stake
                 new_stake = subtensor.get_stake_for_coldkey_and_hotkey(
                     coldkey_ss58=wallet.coldkeypub.ss58_address,
                     hotkey_ss58=hotkey_ss58,
-                    block=block,
+                    netuid=netuid,
                 )
+                if new_stake is not None:
+                    new_stake = new_stake.stake
+                else:
+                    new_stake = Balance.from_tao(0)
+
+                block = subtensor.get_current_block()
                 new_balance = subtensor.get_balance(
                     wallet.coldkeypub.ss58_address, block=block
                 )
                 logging.info(
-                    "Stake ({}): [blue]{}[/blue] :arrow_right: [green]{}[/green]".format(
-                        hotkey_ss58, old_stake, new_stake
-                    )
+                    f"Stake ({hotkey_ss58}) on netuid {netuid}: [blue]{old_stake}[/blue] :arrow_right: [green]{new_stake}[/green]"
                 )
                 old_balance = new_balance
                 successful_stakes += 1
@@ -466,11 +473,11 @@ def add_stake_multiple_extrinsic(
 
     if successful_stakes != 0:
         logging.info(
-            f":satellite: [magenta]Checking Balance on:[/magenta] ([blue]{subtensor.network}[/blue] [magenta]...[/magenta]"
+            f":satellite: [magenta]Checking Balance on:[/magenta] ([blue]{subtensor.network}[/blue]) [magenta]...[/magenta]"
         )
         new_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
         logging.info(
-            f"Balance: [blue]{old_balance}[/blue] :arrow_right: [green]{new_balance}[/green]"
+            f"Balance: [blue]{inital_balance}[/blue] :arrow_right: [green]{new_balance}[/green]"
         )
         return True
 

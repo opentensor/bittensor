@@ -7,7 +7,7 @@ import time
 import threading
 
 import pytest
-from substrateinterface import SubstrateInterface
+from async_substrate_interface.substrate_interface import SubstrateInterface
 
 from bittensor.utils.btlogging import logging
 from tests.e2e_tests.utils.e2e_test_utils import (
