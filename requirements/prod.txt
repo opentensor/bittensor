@@ -22,6 +22,7 @@ pydantic>=2.3, <3
 python-Levenshtein
 scalecodec==1.2.11
 uvicorn
-bittensor-wallet>=2.1.3
-bittensor-commit-reveal>=0.1.0
+websockets>=14.1
+bittensor-commit-reveal>=0.2.0
+bittensor-wallet>=3.0.0
 git+http://github.com/opentensor/async-substrate-interface.git@staging#egg=async-substrate-interface
