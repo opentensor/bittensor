@@ -25,5 +25,5 @@ scalecodec==1.2.11
 substrate-interface~=1.7.9
 uvicorn
 websockets>=14.1
+bittensor-commit-reveal>=0.2.0
 bittensor-wallet>=3.0.0
-bittensor-commit-reveal>=0.1.0
