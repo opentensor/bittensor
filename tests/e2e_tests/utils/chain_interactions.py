@@ -215,6 +215,35 @@ def sudo_set_admin_utils(
     extrinsic = substrate.create_signed_extrinsic(
         call=sudo_call, keypair=wallet.coldkey
     )
+    response = substrate.submit_extrinsic(
+        extrinsic,
+        wait_for_inclusion=True,
+        wait_for_finalization=True,
+    )
+    response.process_events()
+
+    if return_error_message:
+        return response.is_success, response.error_message
+
+    return response.is_success
+
+
+async def root_set_subtensor_hyperparameter_values(
+    substrate: "SubstrateInterface",
+    wallet: "Wallet",
+    call_function: str,
+    call_params: dict,
+    return_error_message: bool = False,
+) -> Union[bool, tuple[bool, Optional[str]]]:
+    """
+    Sets liquid alpha values using AdminUtils. Mimics setting hyperparams
+    """
+    call = substrate.compose_call(
+        call_module="SubtensorModule",
+        call_function=call_function,
+        call_params=call_params,
+    )
+    extrinsic = substrate.create_signed_extrinsic(call=call, keypair=wallet.coldkey)
 
     response = substrate.submit_extrinsic(
         extrinsic,
