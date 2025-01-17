@@ -1739,6 +1739,8 @@ def test_get_transfer_fee(subtensor, mocker):
     fake_payment_info = {"partialFee": int(2e10)}
     subtensor.substrate.get_payment_info.return_value = fake_payment_info
 
+    mocker.patch.object(subtensor_module, "Keypair", return_value=mocker.MagicMock())
+
     # Call
     result = subtensor.get_transfer_fee(wallet=fake_wallet, dest=fake_dest, value=value)
 
@@ -1751,7 +1753,7 @@ def test_get_transfer_fee(subtensor, mocker):
 
     subtensor.substrate.get_payment_info.assert_called_once_with(
         call=subtensor.substrate.compose_call.return_value,
-        keypair=fake_wallet.coldkeypub,
+        keypair=subtensor_module.Keypair.return_value,
     )
 
     assert result == 2e10

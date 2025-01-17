@@ -1,6 +1,9 @@
 from bittensor.core.subtensor import Subtensor
 from bittensor.utils.balance import Balance
 from tests.e2e_tests.utils.e2e_test_utils import setup_wallet
+from bittensor import logging
+
+logging.set_trace()
 
 
 def test_transfer(local_chain):
