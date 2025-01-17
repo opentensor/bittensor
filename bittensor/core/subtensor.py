@@ -16,6 +16,7 @@ from scalecodec.base import RuntimeConfiguration
 from scalecodec.exceptions import RemainingScaleBytesNotEmptyException
 from scalecodec.type_registry import load_type_registry_preset
 from scalecodec.types import ScaleType
+from substrateinterface import Keypair
 from substrateinterface.base import QueryMapResult, SubstrateInterface
 from websockets.exceptions import InvalidStatus
 from websockets.sync import client as ws_client
@@ -1532,9 +1533,11 @@ class Subtensor:
                 call_params={"dest": dest, "value": value.rao},
             )
 
+            temp_keypair = Keypair(ss58_address=wallet.coldkeypub.ss58_address)
+
             try:
                 payment_info = self.substrate.get_payment_info(
-                    call=call, keypair=wallet.coldkeypub
+                    call=call, keypair=temp_keypair
                 )
             except Exception as e:
                 logging.error(f"[red]Failed to get payment info.[/red] {e}")
