@@ -8,7 +8,6 @@ from os import listdir
 from os.path import join
 from typing import Optional, Union
 
-from async_substrate_interface.utils import EventLoopManager
 import numpy as np
 from numpy.typing import NDArray
 
@@ -1510,10 +1509,6 @@ class Metagraph(AsyncMetagraph):
             sync=sync,
             subtensor=subtensor.async_subtensor if subtensor else None,
         )
-        if self.subtensor:
-            self.event_loop_mgr = self.subtensor.event_loop_mgr
-        else:
-            self.event_loop_mgr = EventLoopManager()
         if sync:
             if self.subtensor:
                 self.subtensor.event_loop_mgr.run(self._async_metagraph.sync())
