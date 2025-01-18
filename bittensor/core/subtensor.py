@@ -1,19 +1,21 @@
-import warnings
+import copy
 from functools import lru_cache
 from typing import TYPE_CHECKING, Any, Iterable, Optional, Union
 
 import numpy as np
-from async_substrate_interface import SubstrateInterface
-from async_substrate_interface.utils import EventLoopManager
+from async_substrate_interface.sync_substrate import SubstrateInterface
 from numpy.typing import NDArray
+import scalecodec
+from scalecodec.base import RuntimeConfiguration
+from scalecodec.type_registry import load_type_registry_preset
 
-from bittensor.core.async_subtensor import AsyncSubtensor
+from bittensor.core import SubtensorMixin
+from bittensor.core.chain_data import custom_rpc_type_registry
 from bittensor.core.metagraph import Metagraph
-from bittensor.core.settings import version_as_int
-from bittensor.utils import (
-    torch,
-    event_loop_is_running,
-)
+from bittensor.core.settings import version_as_int, SS58_FORMAT, TYPE_REGISTRY
+from bittensor.core.types import ParamWithTypes
+from bittensor.utils import torch
+from bittensor.utils.btlogging import logging
 
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
@@ -28,28 +30,15 @@ if TYPE_CHECKING:
     from bittensor.core.chain_data.subnet_info import SubnetInfo
     from bittensor.utils.balance import Balance
     from bittensor.utils import Certificate
-    from async_substrate_interface import QueryMapResult
+    from async_substrate_interface.sync_substrate import QueryMapResult
     from bittensor.utils.delegates_details import DelegatesDetails
     from scalecodec.types import ScaleType
 
 
-class Subtensor:
+class Subtensor(SubtensorMixin):
     """
-    Represents a synchronous interface for `bittensor.core.async_subtensor.AsyncSubtensor`.
-
-    If you want to get the description of any method from the `bittensor.core.subtensor.Subtensor` class, then simply
-    get the corresponding method from the `bittensor.core.async_subtensor.AsyncSubtensor` class.
+    TODO docstring
     """
-
-    # get static methods from AsyncSubtensor
-    config = AsyncSubtensor.config
-    setup_config = AsyncSubtensor.setup_config
-    help = AsyncSubtensor.help
-    add_args = AsyncSubtensor.add_args
-    determine_chain_endpoint_and_network = (
-        AsyncSubtensor.determine_chain_endpoint_and_network
-    )
-    event_loop_mgr: EventLoopManager
 
     def __init__(
         self,
@@ -58,57 +47,76 @@ class Subtensor:
         _mock: bool = False,
         log_verbose: bool = False,
     ):
-        if event_loop_is_running():
-            warnings.warn(
-                "You are calling this from an already running event loop. Some features may not work correctly. You "
-                "should instead use `AsyncSubtensor`."
-            )
-        self.event_loop_mgr = EventLoopManager()
-        self.network = network
-        self._config = config
+        """
+        Initializes an instance of the AsyncSubtensor class.
+
+        Arguments:
+            network (str): The network name or type to connect to.
+            config (Optional[Config]): Configuration object for the AsyncSubtensor instance.
+            _mock: Whether this is a mock instance. Mainly just for use in testing.
+            log_verbose (bool): Enables or disables verbose logging.
+
+        Raises:
+            Any exceptions raised during the setup, configuration, or connection process.
+        """
+        if config is None:
+            config = self.config()
+        self._config = copy.deepcopy(config)
+        self.chain_endpoint, self.network = self.setup_config(network, self._config)
+        self._mock = _mock
+
         self.log_verbose = log_verbose
-        self.async_subtensor = AsyncSubtensor(
-            network=network,
-            config=config,
-            log_verbose=log_verbose,
-            _mock=_mock,
+        self._check_and_log_network_settings()
+
+        logging.debug(
+            f"Connecting to <network: [blue]{self.network}[/blue], "
+            f"chain_endpoint: [blue]{self.chain_endpoint}[/blue]> ..."
         )
         self.substrate = SubstrateInterface(
-            url=self.async_subtensor.chain_endpoint,
+            url=self.chain_endpoint,
+            ss58_format=SS58_FORMAT,
+            type_registry=TYPE_REGISTRY,
+            use_remote_preset=True,
+            chain_name="Bittensor",
             _mock=_mock,
-            substrate=self.async_subtensor.substrate,
-            event_loop_manager=self.event_loop_mgr,
         )
-        self.chain_endpoint = self.async_subtensor.chain_endpoint
-
-    def __str__(self):
-        return self.async_subtensor.__str__()
-
-    def __repr__(self):
-        return self.async_subtensor.__repr__()
-
-    def __del__(self):
-        try:
-            self.event_loop_mgr.stop()
-        except AttributeError:
-            pass
-
-    def execute_coroutine(self, coroutine) -> Any:
-        return self.event_loop_mgr.run(coroutine)
+        if self.log_verbose:
+            logging.info(
+                f"Connected to {self.network} network and {self.chain_endpoint}."
+            )
 
     def close(self):
-        self.execute_coroutine(self.async_subtensor.close())
-        self.event_loop_mgr.stop()
+        """
+        Does nothing. Exists for backwards compatibility purposes.
+        """
+        pass
 
     # Subtensor queries ===========================================================================================
 
     def query_constant(
         self, module_name: str, constant_name: str, block: Optional[int] = None
     ) -> Optional["ScaleType"]:
-        return self.execute_coroutine(
-            self.async_subtensor.query_constant(
-                module_name=module_name, constant_name=constant_name, block=block
-            )
+        """
+        Retrieves a constant from the specified module on the Bittensor blockchain. This function is used to access
+            fixed parameters or values defined within the blockchain's modules, which are essential for understanding
+            the network's configuration and rules.
+
+        Args:
+            module_name: The name of the module containing the constant.
+            constant_name: The name of the constant to retrieve.
+            block: The blockchain block number at which to query the constant.
+
+        Returns:
+            Optional[scalecodec.ScaleType]: The value of the constant if found, `None` otherwise.
+
+        Constants queried through this function can include critical network parameters such as inflation rates,
+            consensus rules, or validation thresholds, providing a deeper understanding of the Bittensor network's
+            operational parameters.
+        """
+        return self.substrate.get_constant(
+            module_name=module_name,
+            constant_name=constant_name,
+            block_hash=self.determine_block_hash(block),
         )
 
     def query_map(
@@ -118,19 +126,54 @@ class Subtensor:
         block: Optional[int] = None,
         params: Optional[list] = None,
     ) -> "QueryMapResult":
-        return self.execute_coroutine(
-            self.async_subtensor.query_map(
-                module=module, name=name, block=block, params=params
-            )
+        """
+        Queries map storage from any module on the Bittensor blockchain. This function retrieves data structures that
+            represent key-value mappings, essential for accessing complex and structured data within the blockchain
+            modules.
+
+        Args:
+            module: The name of the module from which to query the map storage.
+            name: The specific storage function within the module to query.
+            block: The blockchain block number at which to perform the query.
+            params: Parameters to be passed to the query.
+
+        Returns:
+            result: A data structure representing the map storage if found, `None` otherwise.
+
+        This function is particularly useful for retrieving detailed and structured data from various blockchain
+            modules, offering insights into the network's state and the relationships between its different components.
+        """
+        result = self.substrate.query_map(
+            module=module,
+            storage_function=name,
+            params=params,
+            block_hash=self.determine_block_hash(block=block),
         )
+        return getattr(result, "value", None)
 
     def query_map_subtensor(
         self, name: str, block: Optional[int] = None, params: Optional[list] = None
     ) -> "QueryMapResult":
-        return self.execute_coroutine(
-            self.async_subtensor.query_map_subtensor(
-                name=name, block=block, params=params
-            )
+        """
+        Queries map storage from the Subtensor module on the Bittensor blockchain. This function is designed to retrieve
+            a map-like data structure, which can include various neuron-specific details or network-wide attributes.
+
+        Args:
+            name: The name of the map storage function to query.
+            block: The blockchain block number at which to perform the query.
+            params: A list of parameters to pass to the query function.
+
+        Returns:
+            An object containing the map-like data structure, or `None` if not found.
+
+        This function is particularly useful for analyzing and understanding complex network structures and
+            relationships within the Bittensor ecosystem, such as interneuronal connections and stake distributions.
+        """
+        return self.substrate.query_map(
+            module="SubtensorModule",
+            storage_function=name,
+            params=params,
+            block_hash=self.determine_block_hash(block),
         )
 
     def query_module(
@@ -140,13 +183,28 @@ class Subtensor:
         block: Optional[int] = None,
         params: Optional[list] = None,
     ) -> "ScaleType":
-        return self.execute_coroutine(
-            self.async_subtensor.query_module(
-                module=module,
-                name=name,
-                block=block,
-                params=params,
-            )
+        """
+        Queries any module storage on the Bittensor blockchain with the specified parameters and block number. This
+            function is a generic query interface that allows for flexible and diverse data retrieval from various
+            blockchain modules.
+
+        Args:
+            module (str): The name of the module from which to query data.
+            name (str): The name of the storage function within the module.
+            block (Optional[int]): The blockchain block number at which to perform the query.
+            params (Optional[list[object]]): A list of parameters to pass to the query function.
+
+        Returns:
+            An object containing the requested data if found, `None` otherwise.
+
+        This versatile query function is key to accessing a wide range of data and insights from different parts of the
+            Bittensor blockchain, enhancing the understanding and analysis of the network's state and dynamics.
+        """
+        return self.substrate.query(
+            module=module,
+            storage_function=name,
+            params=params,
+            block_hash=self.determine_block_hash(block),
         )
 
     def query_runtime_api(
@@ -156,27 +214,103 @@ class Subtensor:
         params: Optional[Union[list[int], dict[str, int]]] = None,
         block: Optional[int] = None,
     ) -> Optional[str]:
-        return self.execute_coroutine(
-            coroutine=self.async_subtensor.query_runtime_api(
-                runtime_api=runtime_api,
-                method=method,
-                params=params,
-                block=block,
-            )
+        """
+        Queries the runtime API of the Bittensor blockchain, providing a way to interact with the underlying runtime and
+            retrieve data encoded in Scale Bytes format. This function is essential for advanced users who need to
+            interact with specific runtime methods and decode complex data types.
+
+        Args:
+            runtime_api: The name of the runtime API to query.
+            method: The specific method within the runtime API to call.
+            params: The parameters to pass to the method call.
+            block: the block number for this query.
+
+        Returns:
+            The Scale Bytes encoded result from the runtime API call, or `None` if the call fails.
+
+        This function enables access to the deeper layers of the Bittensor blockchain, allowing for detailed and
+            specific interactions with the network's runtime environment.
+        """
+        block_hash = self.determine_block_hash(block)
+
+        call_definition = TYPE_REGISTRY["runtime_api"][runtime_api]["methods"][method]
+
+        data = (
+            "0x"
+            if params is None
+            else self.encode_params(call_definition=call_definition, params=params)
         )
+        api_method = f"{runtime_api}_{method}"
+
+        json_result = self.substrate.rpc_request(
+            method="state_call",
+            params=[api_method, data, block_hash] if block_hash else [api_method, data],
+        )
+
+        if json_result is None:
+            return None
+
+        return_type = call_definition["type"]
+
+        as_scale_bytes = scalecodec.ScaleBytes(json_result["result"])  # type: ignore
+
+        rpc_runtime_config = RuntimeConfiguration()
+        rpc_runtime_config.update_type_registry(load_type_registry_preset("legacy"))
+        rpc_runtime_config.update_type_registry(custom_rpc_type_registry)
+
+        obj = rpc_runtime_config.create_scale_object(return_type, as_scale_bytes)
+        if obj.data.to_hex() == "0x0400":  # RPC returned None result
+            return None
+
+        return obj.decode()
 
     def query_subtensor(
         self, name: str, block: Optional[int] = None, params: Optional[list] = None
     ) -> "ScaleType":
-        return self.execute_coroutine(
-            self.async_subtensor.query_subtensor(name=name, block=block, params=params)
+        """
+        Queries named storage from the Subtensor module on the Bittensor blockchain. This function is used to retrieve
+            specific data or parameters from the blockchain, such as stake, rank, or other neuron-specific attributes.
+
+        Args:
+            name: The name of the storage function to query.
+            block: The blockchain block number at which to perform the query.
+            params: A list of parameters to pass to the query function.
+
+        Returns:
+            query_response (scalecodec.ScaleType): An object containing the requested data.
+
+        This query function is essential for accessing detailed information about the network and its neurons, providing
+            valuable insights into the state and dynamics of the Bittensor ecosystem.
+        """
+        return self.substrate.query(
+            module="SubtensorModule",
+            storage_function=name,
+            params=params,
+            block_hash=self.determine_block_hash(block),
         )
 
     def state_call(
         self, method: str, data: str, block: Optional[int] = None
     ) -> dict[Any, Any]:
-        return self.execute_coroutine(
-            self.async_subtensor.state_call(method=method, data=data, block=block)
+        """
+        Makes a state call to the Bittensor blockchain, allowing for direct queries of the blockchain's state. This
+            function is typically used for advanced queries that require specific method calls and data inputs.
+
+        Args:
+            method: The method name for the state call.
+            data: The data to be passed to the method.
+            block: The blockchain block number at which to perform the state call.
+
+        Returns:
+            result (dict[Any, Any]): The result of the rpc call.
+
+        The state call function provides a more direct and flexible way of querying blockchain data, useful for specific
+            use cases where standard queries are insufficient.
+        """
+        block_hash = self.determine_block_hash(block)
+        return self.substrate.rpc_request(
+            method="state_call",
+            params=[method, data, block_hash] if block_hash else [method, data],
         )
 
     # Common subtensor calls ===========================================================================================
@@ -186,20 +320,68 @@ class Subtensor:
         return self.get_current_block()
 
     def blocks_since_last_update(self, netuid: int, uid: int) -> Optional[int]:
-        return self.execute_coroutine(
-            self.async_subtensor.blocks_since_last_update(netuid=netuid, uid=uid)
-        )
+        """
+        Returns the number of blocks since the last update for a specific UID in the subnetwork.
+
+        Arguments:
+            netuid (int): The unique identifier of the subnetwork.
+            uid (int): The unique identifier of the neuron.
+
+        Returns:
+            Optional[int]: The number of blocks since the last update, or ``None`` if the subnetwork or UID does not
+                exist.
+        """
+        call = self.get_hyperparameter(param_name="LastUpdate", netuid=netuid)
+        return None if call is None else (self.get_current_block() - int(call[uid]))
 
     def bonds(
         self, netuid: int, block: Optional[int] = None
     ) -> list[tuple[int, list[tuple[int, int]]]]:
-        return self.execute_coroutine(
-            self.async_subtensor.bonds(netuid=netuid, block=block),
+        """
+        Retrieves the bond distribution set by neurons within a specific subnet of the Bittensor network.
+            Bonds represent the investments or commitments made by neurons in one another, indicating a level of trust
+            and perceived value. This bonding mechanism is integral to the network's market-based approach to
+            measuring and rewarding machine intelligence.
+
+        Args:
+            netuid: The network UID of the subnet to query.
+            block: the block number for this query.
+
+        Returns:
+            List of tuples mapping each neuron's UID to its bonds with other neurons.
+
+        Understanding bond distributions is crucial for analyzing the trust dynamics and market behavior within the
+            subnet. It reflects how neurons recognize and invest in each other's intelligence and contributions,
+            supporting diverse and niche systems within the Bittensor ecosystem.
+        """
+        b_map_encoded = self.substrate.query_map(
+            module="SubtensorModule",
+            storage_function="Bonds",
+            params=[netuid],
+            block_hash=self.determine_block_hash(block),
         )
+        b_map = []
+        for uid, b in b_map_encoded:
+            b_map.append((uid, b.value))
+
+        return b_map
 
     def commit(self, wallet, netuid: int, data: str) -> bool:
-        return self.execute_coroutine(
-            self.async_subtensor.commit(wallet=wallet, netuid=netuid, data=data)
+        """
+        Commits arbitrary data to the Bittensor network by publishing metadata.
+
+        Arguments:
+            wallet (bittensor_wallet.Wallet): The wallet associated with the neuron committing the data.
+            netuid (int): The unique identifier of the subnetwork.
+            data (str): The data to be committed to the network.
+        """
+        # TODO add
+        return publish_metadata(
+            subtensor=self,
+            wallet=wallet,
+            netuid=netuid,
+            data_type=f"Raw{len(data)}",
+            data=data.encode(),
         )
 
     def commit_reveal_enabled(
@@ -248,6 +430,60 @@ class Subtensor:
         return self.execute_coroutine(
             coroutine=self.async_subtensor.get_block_hash(block=block),
         )
+
+    def determine_block_hash(self, block: Optional[int]) -> Optional[str]:
+        if block is None:
+            return None
+        else:
+            return self.get_block_hash(block=block)
+
+    def encode_params(
+        self,
+        call_definition: dict[str, list["ParamWithTypes"]],
+        params: Union[list[Any], dict[str, Any]],
+    ) -> str:
+        """Returns a hex encoded string of the params using their types."""
+        param_data = scalecodec.ScaleBytes(b"")
+
+        for i, param in enumerate(call_definition["params"]):
+            scale_obj = self.substrate.create_scale_object(param["type"])
+            if isinstance(params, list):
+                param_data += scale_obj.encode(params[i])
+            else:
+                if param["name"] not in params:
+                    raise ValueError(f"Missing param {param['name']} in params dict.")
+
+                param_data += scale_obj.encode(params[param["name"]])
+
+        return param_data.to_hex()
+
+    def get_hyperparameter(
+        self, param_name: str, netuid: int, block: Optional[int] = None
+    ) -> Optional[Any]:
+        """
+        Retrieves a specified hyperparameter for a specific subnet.
+
+        Arguments:
+            param_name (str): The name of the hyperparameter to retrieve.
+            netuid (int): The unique identifier of the subnet.
+            block: the block number at which to retrieve the hyperparameter.
+
+        Returns:
+            The value of the specified hyperparameter if the subnet exists, or None
+        """
+        block_hash = self.determine_block_hash(block)
+        if not self.subnet_exists(netuid, block=block):
+            logging.error(f"subnet {netuid} does not exist")
+            return None
+
+        result = self.substrate.query(
+            module="SubtensorModule",
+            storage_function=param_name,
+            params=[netuid],
+            block_hash=block_hash,
+        )
+
+        return getattr(result, "value", result)
 
     def get_children(
         self, hotkey: str, netuid: int, block: Optional[int] = None
