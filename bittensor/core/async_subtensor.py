@@ -67,6 +67,7 @@ from bittensor.utils import (
     ss58_to_vec_u8,
     torch,
     u16_normalized_float,
+    _decode_hex_identity_dict,
 )
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
@@ -79,32 +80,6 @@ if TYPE_CHECKING:
     from bittensor.core.axon import Axon
     from bittensor.utils import Certificate
     from async_substrate_interface import QueryMapResult
-
-
-def _decode_hex_identity_dict(info_dictionary: dict[str, Any]) -> dict[str, Any]:
-    """Decodes a dictionary of hexadecimal identities."""
-    for k, v in info_dictionary.items():
-        if isinstance(v, dict):
-            item = next(iter(v.values()))
-        else:
-            item = v
-        if isinstance(item, tuple) and item:
-            if len(item) > 1:
-                try:
-                    info_dictionary[k] = (
-                        bytes(item).hex(sep=" ", bytes_per_sep=2).upper()
-                    )
-                except UnicodeDecodeError:
-                    logging.error(f"Could not decode: {k}: {item}.")
-            else:
-                try:
-                    info_dictionary[k] = bytes(item[0]).decode("utf-8")
-                except UnicodeDecodeError:
-                    logging.error(f"Could not decode: {k}: {item}.")
-        else:
-            info_dictionary[k] = item
-
-    return info_dictionary
 
 
 class AsyncSubtensor(SubtensorMixin):
@@ -464,6 +439,7 @@ class AsyncSubtensor(SubtensorMixin):
         This function enables access to the deeper layers of the Bittensor blockchain, allowing for detailed and
             specific interactions with the network's runtime environment.
         """
+        # TODO why doesn't this just use SubstrateInterface.runtime_call ?
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
 
         call_definition = TYPE_REGISTRY["runtime_api"][runtime_api]["methods"][method]
@@ -1423,7 +1399,10 @@ class AsyncSubtensor(SubtensorMixin):
 
         params = [netuid, uid.value]
         json_body = await self.substrate.rpc_request(
-            method="neuronInfo_getNeuron", params=params, reuse_block_hash=reuse_block
+            method="neuronInfo_getNeuron",
+            params=params,
+            block_hash=block_hash,
+            reuse_block_hash=reuse_block,
         )
 
         if not (result := json_body.get("result", None)):
@@ -2557,7 +2536,9 @@ class AsyncSubtensor(SubtensorMixin):
             block_hash=block_hash,
             reuse_block_hash=reuse_block,
         )
-        w_map = [(uid, w.value or []) async for uid, w in w_map_encoded]
+        w_map = []
+        async for uid, w in w_map_encoded:
+            w_map.append((uid, w.value))
 
         return w_map
 
@@ -2782,7 +2763,8 @@ class AsyncSubtensor(SubtensorMixin):
         message = "No attempt made. Perhaps it is too soon to commit weights!"
 
         logging.info(
-            f"Committing weights with params: netuid={netuid}, uids={uids}, weights={weights}, version_key={version_key}"
+            f"Committing weights with params: netuid={netuid}, uids={uids}, weights={weights}, "
+            f"version_key={version_key}"
         )
 
         # Generate the hash of the weights
@@ -2974,9 +2956,6 @@ class AsyncSubtensor(SubtensorMixin):
             )
         except TypeError as e:
             logging.error(f"Unable to retrieve current recycle. {e}")
-            return False
-        except KeyError:
-            logging.error("Unable to retrieve current balance.")
             return False
 
         current_recycle = Balance.from_rao(int(recycle_call))
@@ -3185,7 +3164,7 @@ class AsyncSubtensor(SubtensorMixin):
     async def transfer(
         self,
         wallet: "Wallet",
-        destination: str,
+        dest: str,
         amount: Union["Balance", float],
         transfer_all: bool = False,
         wait_for_inclusion: bool = True,
@@ -3197,7 +3176,7 @@ class AsyncSubtensor(SubtensorMixin):
 
         Arguments:
             wallet (bittensor_wallet.Wallet): Source wallet for the transfer.
-            destination (str): Destination address for the transfer.
+            dest (str): Destination address for the transfer.
             amount (float): Amount of tokens to transfer.
             transfer_all (bool): Flag to transfer all tokens. Default is ``False``.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block.  Default is ``True``.
@@ -3214,7 +3193,7 @@ class AsyncSubtensor(SubtensorMixin):
         return await transfer_extrinsic(
             subtensor=self,
             wallet=wallet,
-            destination=destination,
+            destination=dest,
             amount=amount,
             transfer_all=transfer_all,
             wait_for_inclusion=wait_for_inclusion,

@@ -15,6 +15,7 @@ packaging
 python-statemachine~=2.1
 pycryptodome>=3.18.0,<4.0.0
 pyyaml
+ujson
 retry
 requests
 rich
