@@ -1,4 +1,3 @@
-import argparse
 import asyncio
 import copy
 import ssl
@@ -15,7 +14,7 @@ from scalecodec import GenericCall, ScaleType
 from scalecodec.base import RuntimeConfiguration
 from scalecodec.type_registry import load_type_registry_preset
 
-from bittensor.core import settings
+from bittensor.core import SubtensorMixin
 from bittensor.core.chain_data import (
     DelegateInfo,
     StakeInfo,
@@ -68,9 +67,7 @@ from bittensor.utils import (
     ss58_to_vec_u8,
     torch,
     u16_normalized_float,
-    event_loop_is_running,
 )
-from bittensor.utils import networking
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 from bittensor.utils.delegates_details import DelegatesDetails
@@ -110,7 +107,7 @@ def _decode_hex_identity_dict(info_dictionary: dict[str, Any]) -> dict[str, Any]
     return info_dictionary
 
 
-class AsyncSubtensor:
+class AsyncSubtensor(SubtensorMixin):
     """Thin layer for interacting with Substrate Interface. Mostly a collection of frequently-used calls."""
 
     def __init__(
@@ -128,7 +125,6 @@ class AsyncSubtensor:
             config (Optional[Config]): Configuration object for the AsyncSubtensor instance.
             _mock: Whether this is a mock instance. Mainly just for use in testing.
             log_verbose (bool): Enables or disables verbose logging.
-            event_loop (Optional[asyncio.AbstractEventLoop]): Custom asyncio event loop.
 
         Raises:
             Any exceptions raised during the setup, configuration, or connection process.
@@ -160,197 +156,6 @@ class AsyncSubtensor:
             logging.info(
                 f"Connected to {self.network} network and {self.chain_endpoint}."
             )
-
-    def __str__(self):
-        return f"Network: {self.network}, Chain: {self.chain_endpoint}"
-
-    def __repr__(self):
-        return self.__str__()
-
-    def __del__(self):
-        if loop := event_loop_is_running():
-            loop.create_task(self.close())
-
-    def _check_and_log_network_settings(self):
-        if self.network == settings.NETWORKS[3]:  # local
-            logging.warning(
-                ":warning: Verify your local subtensor is running on port [blue]9944[/blue]."
-            )
-
-        if (
-            self.network == "finney"
-            or self.chain_endpoint == settings.FINNEY_ENTRYPOINT
-        ) and self.log_verbose:
-            logging.info(
-                f"You are connecting to {self.network} network with endpoint {self.chain_endpoint}."
-            )
-            logging.debug(
-                "We strongly encourage running a local subtensor node whenever possible. "
-                "This increases decentralization and resilience of the network."
-            )
-            # TODO: remove or apply this warning as updated default endpoint?
-            logging.debug(
-                "In a future release, local subtensor will become the default endpoint. "
-                "To get ahead of this change, please run a local subtensor node and point to it."
-            )
-
-    @staticmethod
-    def config() -> "Config":
-        """
-        Creates and returns a Bittensor configuration object.
-
-        Returns:
-            config (bittensor.core.config.Config): A Bittensor configuration object configured with arguments added by
-                the `subtensor.add_args` method.
-        """
-        parser = argparse.ArgumentParser()
-        AsyncSubtensor.add_args(parser)
-        return Config(parser)
-
-    @staticmethod
-    def setup_config(network: Optional[str], config: "Config"):
-        """
-        Sets up and returns the configuration for the Subtensor network and endpoint.
-
-        This method determines the appropriate network and chain endpoint based on the provided network string or
-            configuration object. It evaluates the network and endpoint in the following order of precedence:
-            1. Provided network string.
-            2. Configured chain endpoint in the `config` object.
-            3. Configured network in the `config` object.
-            4. Default chain endpoint.
-            5. Default network.
-
-        Arguments:
-            network (Optional[str]): The name of the Subtensor network. If None, the network and endpoint will be
-                determined from the `config` object.
-            config (bittensor.core.config.Config): The configuration object containing the network and chain endpoint
-                settings.
-
-        Returns:
-            tuple: A tuple containing the formatted WebSocket endpoint URL and the evaluated network name.
-        """
-        if network is None:
-            candidates = [
-                (
-                    config.is_set("subtensor.chain_endpoint"),
-                    config.subtensor.chain_endpoint,
-                ),
-                (config.is_set("subtensor.network"), config.subtensor.network),
-                (
-                    config.subtensor.get("chain_endpoint"),
-                    config.subtensor.chain_endpoint,
-                ),
-                (config.subtensor.get("network"), config.subtensor.network),
-            ]
-            for check, config_network in candidates:
-                if check:
-                    network = config_network
-
-        evaluated_network, evaluated_endpoint = (
-            AsyncSubtensor.determine_chain_endpoint_and_network(network)
-        )
-
-        return networking.get_formatted_ws_endpoint_url(
-            evaluated_endpoint
-        ), evaluated_network
-
-    @classmethod
-    def help(cls):
-        """Print help to stdout."""
-        parser = argparse.ArgumentParser()
-        cls.add_args(parser)
-        print(cls.__new__.__doc__)
-        parser.print_help()
-
-    @classmethod
-    def add_args(cls, parser: "argparse.ArgumentParser", prefix: Optional[str] = None):
-        """
-        Adds command-line arguments to the provided ArgumentParser for configuring the Subtensor settings.
-
-        Arguments:
-            parser (argparse.ArgumentParser): The ArgumentParser object to which the Subtensor arguments will be added.
-            prefix (Optional[str]): An optional prefix for the argument names. If provided, the prefix is prepended to
-                each argument name.
-
-        Arguments added:
-            --subtensor.network: The Subtensor network flag. Possible values are 'finney', 'test', 'archive', and
-                'local'. Overrides the chain endpoint if set.
-            --subtensor.chain_endpoint: The Subtensor chain endpoint flag. If set, it overrides the network flag.
-            --subtensor._mock: If true, uses a mocked connection to the chain.
-
-        Example:
-            parser = argparse.ArgumentParser()
-            Subtensor.add_args(parser)
-        """
-        prefix_str = "" if prefix is None else f"{prefix}."
-        try:
-            default_network = settings.DEFAULT_NETWORK
-            default_chain_endpoint = settings.FINNEY_ENTRYPOINT
-
-            parser.add_argument(
-                f"--{prefix_str}subtensor.network",
-                default=default_network,
-                type=str,
-                help="""The subtensor network flag. The likely choices are:
-                                        -- finney (main network)
-                                        -- test (test network)
-                                        -- archive (archive network +300 blocks)
-                                        -- local (local running network)
-                                    If this option is set it overloads subtensor.chain_endpoint with
-                                    an entry point node from that network.
-                                    """,
-            )
-            parser.add_argument(
-                f"--{prefix_str}subtensor.chain_endpoint",
-                default=default_chain_endpoint,
-                type=str,
-                help="""The subtensor endpoint flag. If set, overrides the --network flag.""",
-            )
-            parser.add_argument(
-                f"--{prefix_str}subtensor._mock",
-                default=False,
-                type=bool,
-                help="""If true, uses a mocked connection to the chain.""",
-            )
-
-        except argparse.ArgumentError:
-            # re-parsing arguments.
-            pass
-
-    @staticmethod
-    def determine_chain_endpoint_and_network(
-        network: str,
-    ) -> tuple[Optional[str], Optional[str]]:
-        """Determines the chain endpoint and network from the passed network or chain_endpoint.
-
-        Arguments:
-            network (str): The network flag. The choices are: ``finney`` (main network), ``archive`` (archive network
-                +300 blocks), ``local`` (local running network), ``test`` (test network).
-
-        Returns:
-            tuple[Optional[str], Optional[str]]: The network and chain endpoint flag. If passed, overrides the
-                ``network`` argument.
-        """
-
-        if network is None:
-            return None, None
-        if network in settings.NETWORKS:
-            return network, settings.NETWORK_MAP[network]
-
-        substrings_map = {
-            "entrypoint-finney.opentensor.ai": ("finney", settings.FINNEY_ENTRYPOINT),
-            "test.finney.opentensor.ai": ("test", settings.FINNEY_TEST_ENTRYPOINT),
-            "archive.chain.opentensor.ai": ("archive", settings.ARCHIVE_ENTRYPOINT),
-            "subvortex": ("subvortex", settings.SUBVORTEX_ENTRYPOINT),
-            "127.0.0.1": ("local", settings.LOCAL_ENTRYPOINT),
-            "localhost": ("local", settings.LOCAL_ENTRYPOINT),
-        }
-
-        for substring, result in substrings_map.items():
-            if substring in network:
-                return result
-
-        return "unknown", network
 
     async def close(self):
         """Close the connection."""
