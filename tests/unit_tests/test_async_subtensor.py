@@ -2614,7 +2614,9 @@ async def test_set_weights_success(subtensor, mocker):
     fake_weights = [0.3, 0.5, 0.2]
     max_retries = 1
 
-    mocked_get_uid_for_hotkey_on_subnet = mocker.AsyncMock(return_value=fake_netuid)
+    mocked_get_uid_for_hotkey_on_subnet = mocker.patch.object(
+        subtensor, "get_uid_for_hotkey_on_subnet"
+    )
     subtensor.get_uid_for_hotkey_on_subnet = mocked_get_uid_for_hotkey_on_subnet
 
     mocked_blocks_since_last_update = mocker.AsyncMock(return_value=2)

@@ -12,10 +12,10 @@ LABEL bittensor.image.authors="bittensor.com" \
 ARG DEBIAN_FRONTEND=noninteractive
 
 # Update the base image
-RUN apt update && apt upgrade -y
+RUN apt-get update && apt-get upgrade -y
 # Install bittensor
 ## Install dependencies
-RUN apt install -y curl sudo nano git htop netcat-openbsd wget unzip tmux apt-utils cmake build-essential
+RUN apt-get install -y curl sudo nano git htop netcat-openbsd wget unzip tmux apt-utils cmake build-essential
 ## Upgrade pip
 RUN pip3 install --upgrade pip
 
