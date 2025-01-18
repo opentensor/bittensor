@@ -2495,7 +2495,7 @@ async def test_transfer_success(subtensor, mocker):
     # Call
     result = await subtensor.transfer(
         wallet=fake_wallet,
-        destination=fake_destination,
+        dest=fake_destination,
         amount=fake_amount,
         transfer_all=fake_transfer_all,
     )
