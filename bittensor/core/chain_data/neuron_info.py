@@ -6,7 +6,11 @@ import netaddr
 
 from bittensor.core.chain_data.axon_info import AxonInfo
 from bittensor.core.chain_data.prometheus_info import PrometheusInfo
-from bittensor.core.chain_data.utils import decode_account_id, process_stake_data
+from bittensor.core.chain_data.utils import (
+    decode_account_id,
+    process_stake_data,
+    TAO_WEIGHT,
+)
 from bittensor.utils import u16_normalized_float
 from bittensor.utils.balance import Balance
 
@@ -54,6 +58,8 @@ class NeuronInfo:
     # mapping of coldkey to amount staked to this Neuron
     stake_dict: dict[str, "Balance"]
     total_stake: "Balance"
+    alpha_stake: "Balance"
+    tao_stake: "Balance"
     rank: float
     emission: float
     incentive: float
@@ -104,6 +110,8 @@ class NeuronInfo:
             stake=Balance.from_rao(0),
             stake_dict={},
             total_stake=Balance.from_rao(0),
+            alpha_stake=Balance.from_rao(0),
+            tao_stake=Balance.from_rao(0),
             rank=0,
             emission=0,
             incentive=0,
@@ -129,18 +137,32 @@ class NeuronInfo:
         """Instantiates NeuronInfo from a byte vector."""
         n = bt_decode.NeuronInfo.decode(bytes(vec_u8))
         stake_dict = process_stake_data(n.stake)
-        total_stake = sum(stake_dict.values()) if stake_dict else Balance(0)
         axon_info = n.axon_info
         coldkey = decode_account_id(n.coldkey)
         hotkey = decode_account_id(n.hotkey)
+
+        if n.netuid == 0:
+            tao_stake = Balance.from_rao(n.tao_stake)
+            total_stake = tao_stake
+            alpha_stake = tao_stake
+            stake = tao_stake
+        else:
+            total_stake = Balance.from_rao(n.total_stake).set_unit(n.netuid)
+            alpha_stake = Balance.from_rao(n.alpha_stake).set_unit(n.netuid)
+            tao_stake = Balance.from_rao(n.tao_stake) * TAO_WEIGHT
+            stake = total_stake
+
         return NeuronInfo(
             hotkey=hotkey,
             coldkey=coldkey,
             uid=n.uid,
             netuid=n.netuid,
             active=n.active,
-            stake=total_stake,
+            # TODO: Check if we want to remove this
             stake_dict=stake_dict,
+            stake=stake,
+            alpha_stake=alpha_stake,
+            tao_stake=tao_stake,
             total_stake=total_stake,
             rank=u16_normalized_float(n.rank),
             emission=n.emission / 1e9,
@@ -181,19 +203,32 @@ class NeuronInfo:
 
         def fix(n):
             stake_dict = process_stake_data(n.stake)
-            total_stake = sum(stake_dict.values()) if stake_dict else Balance(0)
             axon_info = n.axon_info
             coldkey = decode_account_id(n.coldkey)
             hotkey = decode_account_id(n.hotkey)
+
+            if n.netuid == 0:
+                tao_stake = Balance.from_rao(n.tao_stake)
+                total_stake = tao_stake
+                alpha_stake = tao_stake
+                stake = tao_stake
+            else:
+                total_stake = Balance.from_rao(n.total_stake).set_unit(n.netuid)
+                alpha_stake = Balance.from_rao(n.alpha_stake).set_unit(n.netuid)
+                tao_stake = Balance.from_rao(n.tao_stake) * TAO_WEIGHT
+                stake = total_stake
+
             return NeuronInfo(
                 hotkey=hotkey,
                 coldkey=coldkey,
                 uid=n.uid,
                 netuid=n.netuid,
                 active=n.active,
-                stake=total_stake,
                 stake_dict=stake_dict,
+                stake=stake,
                 total_stake=total_stake,
+                alpha_stake=alpha_stake,
+                tao_stake=tao_stake,
                 rank=u16_normalized_float(n.rank),
                 emission=n.emission / 1e9,
                 incentive=u16_normalized_float(n.incentive),

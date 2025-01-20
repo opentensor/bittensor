@@ -1,7 +1,5 @@
 import time
 
-import pytest
-
 from bittensor.core.subtensor import Subtensor
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
@@ -34,7 +32,6 @@ def neuron_to_dict(neuron):
     }
 
 
-@pytest.mark.skip(reason="Have to be rewritten from scratch")
 def test_metagraph(local_chain):
     """
     Tests the metagraph

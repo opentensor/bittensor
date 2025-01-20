@@ -6,7 +6,11 @@ import netaddr
 
 from bittensor.core.chain_data.axon_info import AxonInfo
 from bittensor.core.chain_data.prometheus_info import PrometheusInfo
-from bittensor.core.chain_data.utils import decode_account_id, process_stake_data
+from bittensor.core.chain_data.utils import (
+    decode_account_id,
+    process_stake_data,
+    TAO_WEIGHT,
+)
 from bittensor.utils import u16_normalized_float
 from bittensor.utils.balance import Balance
 
@@ -53,6 +57,8 @@ class NeuronInfoLite:
     # mapping of coldkey to amount staked to this Neuron
     stake_dict: dict[str, "Balance"]
     total_stake: "Balance"
+    alpha_stake: "Balance"
+    tao_stake: "Balance"
     rank: float
     emission: float
     incentive: float
@@ -77,6 +83,8 @@ class NeuronInfoLite:
             stake=Balance.from_rao(0),
             stake_dict={},
             total_stake=Balance.from_rao(0),
+            alpha_stake=Balance.from_rao(0),
+            tao_stake=Balance.from_rao(0),
             rank=0,
             emission=0,
             incentive=0,
@@ -123,11 +131,22 @@ class NeuronInfoLite:
             pruning_score = item.pruning_score
             rank = item.rank
             stake_dict = process_stake_data(item.stake)
-            stake = sum(stake_dict.values()) if stake_dict else Balance(0)
             trust = item.trust
             uid = item.uid
             validator_permit = item.validator_permit
             validator_trust = item.validator_trust
+
+            if netuid == 0:
+                tao_stake = Balance.from_rao(item.tao_stake)
+                total_stake = tao_stake
+                alpha_stake = tao_stake
+                stake = tao_stake
+            else:
+                total_stake = Balance.from_rao(item.total_stake).set_unit(item.netuid)
+                alpha_stake = Balance.from_rao(item.alpha_stake).set_unit(item.netuid)
+                tao_stake = Balance.from_rao(item.tao_stake) * TAO_WEIGHT
+                stake = total_stake
+
             results.append(
                 NeuronInfoLite(
                     active=active,
@@ -161,7 +180,9 @@ class NeuronInfoLite:
                     rank=u16_normalized_float(rank),
                     stake_dict=stake_dict,
                     stake=stake,
-                    total_stake=stake,
+                    total_stake=total_stake,
+                    alpha_stake=alpha_stake,
+                    tao_stake=tao_stake,
                     trust=u16_normalized_float(trust),
                     uid=uid,
                     validator_permit=validator_permit,

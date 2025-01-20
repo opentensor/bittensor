@@ -603,9 +603,6 @@ class MetagraphMixin(ABC):
         if not lite:
             self._set_weights_and_bonds(subtensor=subtensor)
 
-        # Fills in the stake associated attributes of a class instance from a chain response.
-        self._get_all_stakes_from_chain(subtensor=subtensor)
-
     def _initialize_subtensor(
         self, subtensor: Optional["Subtensor"] = None
     ) -> "Subtensor":
@@ -782,44 +779,6 @@ class MetagraphMixin(ABC):
     @abstractmethod
     def _set_metagraph_attributes(self, block, subtensor):
         pass
-
-    def _get_all_stakes_from_chain(self, subtensor: Optional["Subtensor"] = None):
-        """Fills in the stake associated attributes of a class instance from a chain response."""
-        try:
-            if not subtensor:
-                subtensor = self._initialize_subtensor()
-
-            hex_bytes_result = subtensor.query_runtime_api(
-                runtime_api="SubnetInfoRuntimeApi",
-                method="get_subnet_state",
-                params=[self.netuid],
-            )
-
-            if hex_bytes_result is None:
-                logging.debug(
-                    f"Unable to retrieve subnet state for netuid `{self.netuid}`."
-                )
-                return []
-
-            if hex_bytes_result.startswith("0x"):
-                bytes_result = bytes.fromhex(hex_bytes_result[2:])
-            else:
-                bytes_result = bytes.fromhex(hex_bytes_result)
-
-            subnet_state: "SubnetState" = SubnetState.from_vec_u8(bytes_result)
-            if self.netuid == 0:
-                self.total_stake = self.stake = self.tao_stake = self.alpha_stake = (
-                    subnet_state.tao_stake
-                )
-                return subnet_state
-
-            self.alpha_stake = subnet_state.alpha_stake
-            self.tao_stake = [b * 0.018 for b in subnet_state.tao_stake]
-            self.total_stake = self.stake = subnet_state.total_stake
-            return subnet_state
-
-        except (SubstrateRequestException, AttributeError) as e:
-            logging.debug(e)
 
     def _process_root_weights(
         self, data: list, attribute: str, subtensor: "Subtensor"
@@ -1150,6 +1109,10 @@ class TorchMetaGraph(MetagraphMixin, BaseClass):
         self.validator_trust = self._create_tensor(
             [neuron.validator_trust for neuron in self.neurons], dtype=torch.float32
         )
+        self.alpha_stake = [neuron.alpha_stake for neuron in self.neurons]
+        self.tao_stake = [neuron.tao_stake for neuron in self.neurons]
+        self.total_stake = [neuron.total_stake for neuron in self.neurons]
+        self.stake = [neuron.stake for neuron in self.neurons]
         self.axons = [n.axon_info for n in self.neurons]
 
     def load_from_path(self, dir_path: str) -> "Metagraph":
@@ -1337,6 +1300,10 @@ class NonTorchMetagraph(MetagraphMixin):
         self.validator_trust = self._create_tensor(
             [neuron.validator_trust for neuron in self.neurons], dtype=np.float32
         )
+        self.alpha_stake = [neuron.alpha_stake for neuron in self.neurons]
+        self.tao_stake = [neuron.tao_stake for neuron in self.neurons]
+        self.total_stake = [neuron.total_stake for neuron in self.neurons]
+        self.stake = [neuron.stake for neuron in self.neurons]
         self.axons = [n.axon_info for n in self.neurons]
 
     def load_from_path(self, dir_path: str) -> "Metagraph":

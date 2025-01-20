@@ -11,6 +11,9 @@ from bittensor.core.settings import SS58_FORMAT
 from bittensor.utils.balance import Balance
 
 
+TAO_WEIGHT = 0.018
+
+
 class ChainDataType(Enum):
     NeuronInfo = 1
     SubnetInfo = 2
@@ -145,6 +148,9 @@ custom_rpc_type_registry = {
                 ["axon_info", "axon_info"],
                 ["prometheus_info", "PrometheusInfo"],
                 ["stake", "Vec<(AccountId, Compact<u64>)>"],
+                ["alpha_stake", "Compact<u64>"],
+                ["tao_stake", "Compact<u64>"],
+                ["total_stake", "Compact<u64>"],
                 ["rank", "Compact<u16>"],
                 ["emission", "Compact<u64>"],
                 ["incentive", "Compact<u16>"],
@@ -170,6 +176,9 @@ custom_rpc_type_registry = {
                 ["axon_info", "axon_info"],
                 ["prometheus_info", "PrometheusInfo"],
                 ["stake", "Vec<(AccountId, Compact<u64>)>"],
+                ["alpha_stake", "Compact<u64>"],
+                ["tao_stake", "Compact<u64>"],
+                ["total_stake", "Compact<u64>"],
                 ["rank", "Compact<u16>"],
                 ["emission", "Compact<u64>"],
                 ["incentive", "Compact<u16>"],
