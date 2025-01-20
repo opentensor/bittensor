@@ -582,6 +582,10 @@ class LoggingMachine(StateMachine, Logger):
         """Returns Logging level."""
         return self._logger.level
 
+    def setLevel(self, level):
+        """Set the specified level on the underlying logger."""
+        self._logger.setLevel(level)
+
     def check_config(self, config: "Config"):
         assert config.logging
 
