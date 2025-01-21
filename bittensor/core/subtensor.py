@@ -20,10 +20,15 @@ from bittensor.core.chain_data import (
     decode_account_id,
     WeightCommitInfo,
 )
+from bittensor.core.extrinsics.staking import (
+    add_stake_extrinsic,
+    add_stake_multiple_extrinsic,
+)
 from bittensor.core.metagraph import Metagraph
 from bittensor.core.extrinsics.serving import (
     publish_metadata,
     get_metadata,
+    serve_axon_extrinsic,
 )
 from bittensor.core.settings import (
     version_as_int,
@@ -58,7 +63,7 @@ if TYPE_CHECKING:
     from bittensor.utils import Certificate
     from async_substrate_interface.sync_substrate import QueryMapResult
     from bittensor.utils.delegates_details import DelegatesDetails
-    from scalecodec.types import ScaleType
+    from scalecodec.types import ScaleType, GenericCall
 
 
 class Subtensor(SubtensorMixin):
@@ -402,7 +407,6 @@ class Subtensor(SubtensorMixin):
             netuid (int): The unique identifier of the subnetwork.
             data (str): The data to be committed to the network.
         """
-        # TODO add
         return publish_metadata(
             subtensor=self,
             wallet=wallet,
@@ -701,7 +705,7 @@ class Subtensor(SubtensorMixin):
             )
             return ""
 
-        metadata = get_metadata(self, netuid, hotkey, block)  # TODO add
+        metadata = get_metadata(self, netuid, hotkey, block)
         try:
             commitment = metadata["info"]["fields"][0]  # type: ignore
             hex_data = commitment[list(commitment.keys())[0]][2:]  # type: ignore
@@ -1918,6 +1922,55 @@ class Subtensor(SubtensorMixin):
         )
         return None if call is None else int(call)
 
+    # Extrinsics helper ================================================================================================
+
+    def sign_and_send_extrinsic(
+        self,
+        call: "GenericCall",
+        wallet: "Wallet",
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+        sign_with: str = "coldkey",
+    ) -> tuple[bool, str]:
+        """
+        Helper method to sign and submit an extrinsic call to chain.
+
+        Arguments:
+            call (scalecodec.types.GenericCall): a prepared Call object
+            wallet (bittensor_wallet.Wallet): the wallet whose coldkey will be used to sign the extrinsic
+            wait_for_inclusion (bool): whether to wait until the extrinsic call is included on the chain
+            wait_for_finalization (bool): whether to wait until the extrinsic call is finalized on the chain
+            sign_with: the wallet's keypair to use for the signing. Options are "coldkey", "hotkey", "coldkeypub"
+
+        Returns:
+            (success, error message)
+        """
+        if sign_with not in ("coldkey", "hotkey", "coldkeypub"):
+            raise AttributeError(
+                f"'sign_with' must be either 'coldkey', 'hotkey' or 'coldkeypub', not '{sign_with}'"
+            )
+
+        extrinsic = self.substrate.create_signed_extrinsic(
+            call=call, keypair=getattr(wallet, sign_with)
+        )
+        try:
+            response = self.substrate.submit_extrinsic(
+                extrinsic,
+                wait_for_inclusion=wait_for_inclusion,
+                wait_for_finalization=wait_for_finalization,
+            )
+            # We only wait here if we expect finalization.
+            if not wait_for_finalization and not wait_for_inclusion:
+                return True, ""
+
+            if response.is_success:
+                return True, ""
+
+            return False, format_error_message(response.error_message)
+
+        except SubstrateRequestException as e:
+            return False, format_error_message(e)
+
     # Extrinsics =======================================================================================================
 
     def add_stake(
@@ -1946,7 +1999,6 @@ class Subtensor(SubtensorMixin):
         This function enables neurons to increase their stake in the network, enhancing their influence and potential
             rewards in line with Bittensor's consensus and reward mechanisms.
         """
-        # TODO add this extrinsic
         return add_stake_extrinsic(
             subtensor=self,
             wallet=wallet,
@@ -1981,7 +2033,6 @@ class Subtensor(SubtensorMixin):
         This function is essential for managing stakes across multiple neurons, reflecting the dynamic and collaborative
             nature of the Bittensor network.
         """
-        # TODO add this extrinsic
         return add_stake_multiple_extrinsic(
             subtensor=self,
             wallet=wallet,
@@ -2443,7 +2494,6 @@ class Subtensor(SubtensorMixin):
         By registering an Axon, the neuron becomes an active part of the network's distributed computing infrastructure,
             contributing to the collective intelligence of Bittensor.
         """
-        # TODO add extrinsic
         return serve_axon_extrinsic(
             subtensor=self,
             netuid=netuid,
