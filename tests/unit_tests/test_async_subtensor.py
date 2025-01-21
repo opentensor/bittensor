@@ -3,7 +3,7 @@ from bittensor_wallet import Wallet
 
 from bittensor.core import async_subtensor
 from bittensor.core.chain_data import proposal_vote_data
-from bittensor.core.subtensor import AsyncSubtensor
+from bittensor.core.async_subtensor import AsyncSubtensor
 
 
 @pytest.fixture(autouse=True)

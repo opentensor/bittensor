@@ -6,9 +6,7 @@ from urllib.parse import urlparse
 
 import scalecodec
 from async_substrate_interface.utils import (
-    event_loop_is_running,
     hex_to_bytes,
-    get_event_loop,
 )
 from bittensor_wallet import Keypair
 from bittensor_wallet.errors import KeyFileError, PasswordError
@@ -31,9 +29,7 @@ version_checking = version_checking
 check_version = check_version
 VersionCheckError = VersionCheckError
 ss58_decode = ss58_decode
-event_loop_is_running = event_loop_is_running
 hex_to_bytes = hex_to_bytes
-get_event_loop = get_event_loop
 
 
 RAOPERTAO = 1e9

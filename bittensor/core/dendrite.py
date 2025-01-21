@@ -31,7 +31,7 @@ from bittensor.core.chain_data import AxonInfo
 from bittensor.core.settings import version_as_int
 from bittensor.core.stream import StreamingSynapse
 from bittensor.core.synapse import Synapse, TerminalInfo
-from bittensor.utils import networking, event_loop_is_running
+from bittensor.utils import networking
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import torch, use_torch
 
@@ -46,6 +46,14 @@ DENDRITE_ERROR_MAPPING: dict[Type[Exception], tuple] = {
     aiohttp.ServerConnectionError: ("503", "Service connection error"),
 }
 DENDRITE_DEFAULT_ERROR = ("422", "Failed to parse response")
+
+
+def event_loop_is_running():
+    try:
+        asyncio.get_running_loop()
+        return True
+    except RuntimeError:
+        return False
 
 
 class DendriteMixin:
