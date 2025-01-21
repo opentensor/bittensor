@@ -30,7 +30,10 @@ from bittensor.core.chain_data import (
     DynamicInfo,
 )
 from bittensor.core.errors import StakeError
-from bittensor.core.extrinsics.async_registration import register_extrinsic
+from bittensor.core.extrinsics.async_registration import (
+    register_extrinsic,
+    burned_register_extrinsic,
+)
 from bittensor.core.extrinsics.async_root import (
     set_root_weights_extrinsic,
     root_register_extrinsic,
@@ -1224,6 +1227,33 @@ class AsyncSubtensor:
 
         return NeuronInfoLite.list_from_vec_u8(hex_to_bytes(hex_bytes_result))
 
+    async def burned_register(
+        self,
+        wallet: "Wallet",
+        netuid: int,
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = True,
+    ) -> bool:
+        """
+        Registers a neuron on the Bittensor network by recycling TAO. This method of registration involves recycling TAO tokens, allowing them to be re-mined by performing work on the network.
+
+        Args:
+            wallet (bittensor_wallet.Wallet): The wallet associated with the neuron to be registered.
+            netuid (int): The unique identifier of the subnet.
+            wait_for_inclusion (bool, optional): Waits for the transaction to be included in a block. Defaults to `False`.
+            wait_for_finalization (bool, optional): Waits for the transaction to be finalized on the blockchain. Defaults to `True`.
+
+        Returns:
+            bool: ``True`` if the registration is successful, False otherwise.
+        """
+        return await burned_register_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            netuid=netuid,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+
     async def get_neuron_for_pubkey_and_subnet(
         self,
         hotkey_ss58: str,
@@ -1255,7 +1285,7 @@ class AsyncSubtensor:
         if uid is None:
             return NeuronInfo.get_null_neuron()
 
-        params = [netuid, uid]
+        params = [netuid, uid.value]
         json_body = await self.substrate.rpc_request(
             method="neuronInfo_getNeuron",
             params=params,
@@ -1760,6 +1790,22 @@ class AsyncSubtensor:
             reuse_block=reuse_block,
         )
         return None if call is None else int(call)
+
+    async def recycle(self, netuid: int) -> Optional["Balance"]:
+        """
+        Retrieves the 'Burn' hyperparameter for a specified subnet. The 'Burn' parameter represents the amount of Tao that is effectively recycled within the Bittensor network.
+
+        Args:
+            netuid (int): The unique identifier of the subnet.
+            block (Optional[int]): The blockchain block number for the query.
+
+        Returns:
+            Optional[Balance]: The value of the 'Burn' hyperparameter if the subnet exists, None otherwise.
+
+        Understanding the 'Burn' rate is essential for analyzing the network registration usage, particularly how it is correlated with user activity and the overall cost of participation in a given subnet.
+        """
+        call = await self.get_hyperparameter(param_name="Burn", netuid=netuid)
+        return None if call is None else Balance.from_rao(int(call.value))
 
     async def blocks_since_last_update(self, netuid: int, uid: int) -> Optional[int]:
         """
