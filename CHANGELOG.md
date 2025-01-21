@@ -1,5 +1,24 @@
 # Changelog
 
+## 8.5.2 /2025-01-17
+
+## What's Changed
+* Feat/use tx pool for set weights by @camfairchild in https://github.com/opentensor/bittensor/pull/2534
+* fix get_delegates result decoding by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2551
+* [SDK] Handle server connection limit  by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2553
+* Backmerge master to staging post 851 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2557
+* [SDK] Improve InvalidStatus handler by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2558
+* [SDK] Add async version of commit reveal v3 by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2560
+* Use apt-get instead of apt for scripts by @camfairchild in https://github.com/opentensor/bittensor/pull/2571
+* fix _do_stake incorrect arguments error in staking.py by @Assh-codes in https://github.com/opentensor/bittensor/pull/2574
+* Updates tests for btwallet 3.0.0 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2540
+* Bumps cr3 FFI by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2583
+
+## New Contributors
+* @Assh-codes made their first contribution in https://github.com/opentensor/bittensor/pull/2574
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v8.5.1...v8.5.2
+
 ## 8.5.1 /2024-12-16
 
 ## What's Changed
