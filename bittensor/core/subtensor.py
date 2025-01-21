@@ -2,17 +2,16 @@ import copy
 from functools import lru_cache
 from typing import TYPE_CHECKING, Any, Iterable, Optional, Union
 
-# TODO clean up this import section
-import numpy as np
-import ujson
 from async_substrate_interface.errors import SubstrateRequestException
 from async_substrate_interface.sync_substrate import SubstrateInterface
 from async_substrate_interface.utils import hex_to_bytes
+import numpy as np
 from numpy.typing import NDArray
 import requests
 import scalecodec
 from scalecodec.base import RuntimeConfiguration
 from scalecodec.type_registry import load_type_registry_preset
+import ujson
 
 from bittensor.core import SubtensorMixin
 from bittensor.core.chain_data import (
