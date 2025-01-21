@@ -98,90 +98,6 @@ def from_scale_encoding_using_type_string(
 
 custom_rpc_type_registry = {
     "types": {
-        "SubnetInfo": {
-            "type": "struct",
-            "type_mapping": [
-                ["netuid", "Compact<u16>"],
-                ["rho", "Compact<u16>"],
-                ["kappa", "Compact<u16>"],
-                ["difficulty", "Compact<u64>"],
-                ["immunity_period", "Compact<u16>"],
-                ["max_allowed_validators", "Compact<u16>"],
-                ["min_allowed_weights", "Compact<u16>"],
-                ["max_weights_limit", "Compact<u16>"],
-                ["scaling_law_power", "Compact<u16>"],
-                ["subnetwork_n", "Compact<u16>"],
-                ["max_allowed_uids", "Compact<u16>"],
-                ["blocks_since_last_step", "Compact<u64>"],
-                ["tempo", "Compact<u16>"],
-                ["network_modality", "Compact<u16>"],
-                ["network_connect", "Vec<[u16; 2]>"],
-                ["emission_values", "Compact<u64>"],
-                ["burn", "Compact<u64>"],
-                ["owner", "AccountId"],
-            ],
-        },
-        "DelegateInfo": {
-            "type": "struct",
-            "type_mapping": [
-                ["delegate_ss58", "AccountId"],
-                ["take", "Compact<u16>"],
-                ["nominators", "Vec<(AccountId, Compact<u64>)>"],
-                ["owner_ss58", "AccountId"],
-                ["registrations", "Vec<Compact<u16>>"],
-                ["validator_permits", "Vec<Compact<u16>>"],
-                ["return_per_1000", "Compact<u64>"],
-                ["total_daily_return", "Compact<u64>"],
-            ],
-        },
-        "NeuronInfo": {
-            "type": "struct",
-            "type_mapping": [
-                ["hotkey", "AccountId"],
-                ["coldkey", "AccountId"],
-                ["uid", "Compact<u16>"],
-                ["netuid", "Compact<u16>"],
-                ["active", "bool"],
-                ["axon_info", "axon_info"],
-                ["prometheus_info", "PrometheusInfo"],
-                ["stake", "Vec<(AccountId, Compact<u64>)>"],
-                ["rank", "Compact<u16>"],
-                ["emission", "Compact<u64>"],
-                ["incentive", "Compact<u16>"],
-                ["consensus", "Compact<u16>"],
-                ["trust", "Compact<u16>"],
-                ["validator_trust", "Compact<u16>"],
-                ["dividends", "Compact<u16>"],
-                ["last_update", "Compact<u64>"],
-                ["validator_permit", "bool"],
-                ["weights", "Vec<(Compact<u16>, Compact<u16>)>"],
-                ["bonds", "Vec<(Compact<u16>, Compact<u16>)>"],
-                ["pruning_score", "Compact<u16>"],
-            ],
-        },
-        "NeuronInfoLite": {
-            "type": "struct",
-            "type_mapping": [
-                ["hotkey", "AccountId"],
-                ["coldkey", "AccountId"],
-                ["uid", "Compact<u16>"],
-                ["netuid", "Compact<u16>"],
-                ["active", "bool"],
-                ["axon_info", "axon_info"],
-                ["prometheus_info", "PrometheusInfo"],
-                ["stake", "Vec<(AccountId, Compact<u64>)>"],
-                ["rank", "Compact<u16>"],
-                ["emission", "Compact<u64>"],
-                ["incentive", "Compact<u16>"],
-                ["consensus", "Compact<u16>"],
-                ["trust", "Compact<u16>"],
-                ["validator_trust", "Compact<u16>"],
-                ["dividends", "Compact<u16>"],
-                ["last_update", "Compact<u64>"],
-                ["validator_permit", "bool"],
-                ["pruning_score", "Compact<u16>"],
-            ],
-        },
         "NeuronCertificate": {
             "type": "struct",
             "type_mapping": [
@@ -254,38 +170,6 @@ custom_rpc_type_registry = {
                 ["is_registered", "bool"],
             ],
         },
-        "SubnetHyperparameters": {
-            "type": "struct",
-            "type_mapping": [
-                ["rho", "Compact<u16>"],
-                ["kappa", "Compact<u16>"],
-                ["immunity_period", "Compact<u16>"],
-                ["min_allowed_weights", "Compact<u16>"],
-                ["max_weights_limit", "Compact<u16>"],
-                ["tempo", "Compact<u16>"],
-                ["min_difficulty", "Compact<u64>"],
-                ["max_difficulty", "Compact<u64>"],
-                ["weights_version", "Compact<u64>"],
-                ["weights_rate_limit", "Compact<u64>"],
-                ["adjustment_interval", "Compact<u16>"],
-                ["activity_cutoff", "Compact<u16>"],
-                ["registration_allowed", "bool"],
-                ["target_regs_per_interval", "Compact<u16>"],
-                ["min_burn", "Compact<u64>"],
-                ["max_burn", "Compact<u64>"],
-                ["bonds_moving_avg", "Compact<u64>"],
-                ["max_regs_per_block", "Compact<u16>"],
-                ["serving_rate_limit", "Compact<u64>"],
-                ["max_validators", "Compact<u16>"],
-                ["adjustment_alpha", "Compact<u64>"],
-                ["difficulty", "Compact<u64>"],
-                ["commit_reveal_weights_interval", "Compact<u64>"],
-                ["commit_reveal_weights_enabled", "bool"],
-                ["alpha_high", "Compact<u16>"],
-                ["alpha_low", "Compact<u16>"],
-                ["liquid_alpha_enabled", "bool"],
-            ],
-        },
         "ScheduledColdkeySwapInfo": {
             "type": "struct",
             "type_mapping": [
@@ -340,6 +224,9 @@ def decode_account_id(account_id_bytes: Union[bytes, str]) -> str:
     Returns:
         str: The decoded AccountId as a Base64 string.
     """
+    if isinstance(account_id_bytes, tuple) and isinstance(account_id_bytes[0], tuple):
+        account_id_bytes = account_id_bytes[0]
+
     # Convert the AccountId bytes to a Base64 string
     return ss58_encode(bytes(account_id_bytes).hex(), SS58_FORMAT)
 
