@@ -10,7 +10,6 @@ def test_do_serve_axon(mocker):
     wait_for_inclusion = True
     wait_for_finalization = True
 
-    mocked_execute_coroutine = mocker.patch.object(serving, "execute_coroutine")
     mocked_do_serve_axon = mocker.Mock()
     serving.async_do_serve_axon = mocked_do_serve_axon
 
@@ -24,11 +23,6 @@ def test_do_serve_axon(mocker):
     )
 
     # Asserts
-
-    mocked_execute_coroutine.assert_called_once_with(
-        coroutine=mocked_do_serve_axon.return_value,
-        event_loop=fake_subtensor.event_loop,
-    )
     mocked_do_serve_axon.assert_called_once_with(
         subtensor=fake_subtensor.async_subtensor,
         wallet=fake_wallet,
@@ -36,7 +30,6 @@ def test_do_serve_axon(mocker):
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
     )
-    assert result == mocked_execute_coroutine.return_value
 
 
 def test_serve_axon_extrinsic(mocker):

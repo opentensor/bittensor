@@ -19,7 +19,7 @@ from bittensor.core.chain_data import (
 from bittensor.core.errors import ChainQueryError
 from bittensor.core.subtensor import Subtensor
 from bittensor.core.types import AxonServeCallParams, PrometheusServeCallParams
-from bittensor.utils import RAOPERTAO, u16_normalized_float, get_event_loop
+from bittensor.utils import RAOPERTAO, u16_normalized_float
 from bittensor.utils.balance import Balance
 
 # Mock Testing Constant
@@ -250,9 +250,6 @@ class MockSubtensor(Subtensor):
             self.network = "mock"
             self.chain_endpoint = "ws://mock_endpoint.bt"
             self.substrate = MagicMock(autospec=SubstrateInterface)
-            self.async_subtensor = AsyncMock(autospec=AsyncSubtensor)
-            self.async_subtensor.block = ReusableCoroutine(_async_block)
-            self.event_loop = get_event_loop()
 
     def __init__(self, *args, **kwargs) -> None:
         mock_substrate_interface = MagicMock(autospec=SubstrateInterface)
