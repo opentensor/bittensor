@@ -396,7 +396,6 @@ class AsyncSubtensor:
         Returns:
             Optional[list[StakeInfo]]: A list of StakeInfo objects, or ``None`` if no stake information is found.
         """
-        encoded_coldkey = ss58_to_vec_u8(coldkey_ss58)
         if block is not None:
             block_hash = await self.get_block_hash(block)
         else:
@@ -404,7 +403,7 @@ class AsyncSubtensor:
         hex_bytes_result = await self.query_runtime_api(
             runtime_api="StakeInfoRuntimeApi",
             method="get_stake_info_for_coldkey",
-            params=[encoded_coldkey],
+            params=[coldkey_ss58],
             block_hash=block_hash,
         )
 
