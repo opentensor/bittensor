@@ -44,15 +44,29 @@ async def do_serve_axon(
     """
 
     if call_params["certificate"] is None:
-        del call_params["certificate"]
+        call_params_ = {
+            "version": call_params["version"],
+            "ip": call_params["ip"],
+            "port": call_params["port"],
+            "ip_type": call_params["ip_type"],
+            "netuid": call_params["netuid"],
+        }
         call_function = "serve_axon"
     else:
+        call_params_ = {
+            "version": call_params["version"],
+            "ip": call_params["ip"],
+            "port": call_params["port"],
+            "ip_type": call_params["ip_type"],
+            "netuid": call_params["netuid"],
+            "certificate": call_params["certificate"],
+        }
         call_function = "serve_axon_tls"
 
     call = await subtensor.substrate.compose_call(
         call_module="SubtensorModule",
         call_function=call_function,
-        call_params=call_params,
+        call_params=call_params_,
     )
     extrinsic = await subtensor.substrate.create_signed_extrinsic(
         call=call, keypair=wallet.hotkey
@@ -95,16 +109,16 @@ async def serve_extrinsic(
         netuid (int): The network uid to serve on.
         placeholder1 (int): A placeholder for future use.
         placeholder2 (int): A placeholder for future use.
-        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or
-            returns ``false`` if the extrinsic fails to enter the block within the timeout.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``True``, or
+            returns ``False`` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning
-            ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
+            ``True``, or returns ``False`` if the extrinsic fails to be finalized within the timeout.
         certificate (bittensor.utils.Certificate): Certificate to use for TLS. If ``None``, no TLS will be used.
             Defaults to ``None``.
 
     Returns:
-        success (bool): Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for
-            finalization / inclusion, the response is ``true``.
+        success (bool): Flag is ``True`` if extrinsic was finalized or included in the block. If we did not wait for
+            finalization / inclusion, the response is ``True``.
     """
     # Decrypt hotkey
     if not (unlock := unlock_key(wallet, "hotkey")).success:
@@ -187,16 +201,16 @@ async def serve_axon_extrinsic(
         subtensor (bittensor.core.async_subtensor.AsyncSubtensor): Subtensor instance object.
         netuid (int): The ``netuid`` being served on.
         axon (bittensor.core.axon.Axon): Axon to serve.
-        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or
-            returns ``false`` if the extrinsic fails to enter the block within the timeout.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``True``, or
+            returns ``False`` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning
-            ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
+            ``True``, or returns ``False`` if the extrinsic fails to be finalized within the timeout.
         certificate (bittensor.utils.Certificate): Certificate to use for TLS. If ``None``, no TLS will be used.
             Defaults to ``None``.
 
     Returns:
-        success (bool): Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for
-            finalization / inclusion, the response is ``true``.
+        success (bool): Flag is ``True`` if extrinsic was finalized or included in the block. If we did not wait for
+            finalization / inclusion, the response is ``True``.
     """
     if not (unlock := unlock_key(axon.wallet, "hotkey")).success:
         logging.error(unlock.message)
@@ -282,21 +296,21 @@ async def publish_metadata(
             },
         )
 
-    extrinsic = await subtensor.substrate.create_signed_extrinsic(
-        call=call, keypair=wallet.hotkey
-    )
-    response = await subtensor.substrate.submit_extrinsic(
-        extrinsic=extrinsic,
-        wait_for_inclusion=wait_for_inclusion,
-        wait_for_finalization=wait_for_finalization,
-    )
-    # We only wait here if we expect finalization.
-    if not wait_for_finalization and not wait_for_inclusion:
-        return True
+        extrinsic = await substrate.create_signed_extrinsic(
+            call=call, keypair=wallet.hotkey
+        )
+        response = await substrate.submit_extrinsic(
+            extrinsic=extrinsic,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+        # We only wait here if we expect finalization.
+        if not wait_for_finalization and not wait_for_inclusion:
+            return True
 
-    if await response.is_success:
-        return True
-    raise MetadataError(format_error_message(await response.error_message))
+        if await response.is_success:
+            return True
+        raise MetadataError(format_error_message(await response.error_message))
 
 
 async def get_metadata(
