@@ -2,6 +2,7 @@ import copy
 from functools import lru_cache
 from typing import TYPE_CHECKING, Any, Iterable, Optional, Union
 
+# TODO clean up this import section
 import numpy as np
 import ujson
 from async_substrate_interface.errors import SubstrateRequestException
@@ -20,6 +21,10 @@ from bittensor.core.chain_data import (
     WeightCommitInfo,
 )
 from bittensor.core.metagraph import Metagraph
+from bittensor.core.extrinsics.serving import (
+    publish_metadata,
+    get_metadata,
+)
 from bittensor.core.settings import (
     version_as_int,
     SS58_FORMAT,
@@ -37,19 +42,19 @@ from bittensor.utils import (
 )
 from bittensor.utils.btlogging import logging
 from bittensor.utils.weight_utils import generate_weight_hash
+from bittensor.core.async_subtensor import ProposalVoteData
+from bittensor.core.axon import Axon
+from bittensor.core.config import Config
+from bittensor.core.chain_data.delegate_info import DelegateInfo
+from bittensor.core.chain_data.neuron_info import NeuronInfo
+from bittensor.core.chain_data.neuron_info_lite import NeuronInfoLite
+from bittensor.core.chain_data.stake_info import StakeInfo
+from bittensor.core.chain_data.subnet_hyperparameters import SubnetHyperparameters
+from bittensor.core.chain_data.subnet_info import SubnetInfo
+from bittensor.utils.balance import Balance
 
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
-    from bittensor.core.async_subtensor import ProposalVoteData
-    from bittensor.core.axon import Axon
-    from bittensor.core.config import Config
-    from bittensor.core.chain_data.delegate_info import DelegateInfo
-    from bittensor.core.chain_data.neuron_info import NeuronInfo
-    from bittensor.core.chain_data.neuron_info_lite import NeuronInfoLite
-    from bittensor.core.chain_data.stake_info import StakeInfo
-    from bittensor.core.chain_data.subnet_hyperparameters import SubnetHyperparameters
-    from bittensor.core.chain_data.subnet_info import SubnetInfo
-    from bittensor.utils.balance import Balance
     from bittensor.utils import Certificate
     from async_substrate_interface.sync_substrate import QueryMapResult
     from bittensor.utils.delegates_details import DelegatesDetails
