@@ -142,14 +142,6 @@ class FastAPIThreadedServer(uvicorn.Server):
             self.should_exit = True
             thread.join()
 
-    def _wrapper_run(self):
-        """
-        A wrapper method for the :func:`run_in_thread` context manager. This method is used internally by the ``start`` method to initiate the server's execution in a separate thread.
-        """
-        with self.run_in_thread():
-            while not self.should_exit:
-                time.sleep(1e-3)
-
     def start(self):
         """
         Starts the FastAPI server in a separate thread if it is not already running. This method sets up the server to handle HTTP requests concurrently, enabling the Axon server to efficiently manage incoming network requests.
@@ -158,7 +150,7 @@ class FastAPIThreadedServer(uvicorn.Server):
         """
         if not self.is_running:
             self.should_exit = False
-            thread = threading.Thread(target=self._wrapper_run, daemon=True)
+            thread = threading.Thread(target=self.run, daemon=True)
             thread.start()
             self.is_running = True
 
