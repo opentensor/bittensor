@@ -20,6 +20,10 @@ from bittensor.core.chain_data import (
     decode_account_id,
     WeightCommitInfo,
 )
+from bittensor.core.extrinsics.registration import (
+    burned_register_extrinsic,
+    register_extrinsic,
+)
 from bittensor.core.extrinsics.staking import (
     add_stake_extrinsic,
     add_stake_multiple_extrinsic,
@@ -2064,7 +2068,6 @@ class Subtensor(SubtensorMixin):
         Returns:
             bool: ``True`` if the registration is successful, False otherwise.
         """
-        # TODO add this extrinsic
         return burned_register_extrinsic(
             subtensor=self,
             wallet=wallet,
@@ -2191,7 +2194,6 @@ class Subtensor(SubtensorMixin):
         This function facilitates the entry of new neurons into the network, supporting the decentralized
         growth and scalability of the Bittensor ecosystem.
         """
-        # TODO add this extrinsic
         return register_extrinsic(
             subtensor=self,
             wallet=wallet,

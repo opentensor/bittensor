@@ -1088,7 +1088,7 @@ def create_pow(
     num_processes: Optional[int] = None,
     update_interval: Optional[int] = None,
     log_verbose: bool = False,
-) -> Optional[dict[str, Any]]:
+) -> Optional["POWSolution"]:
     """
     Creates a proof of work for the given subtensor and wallet.
 
