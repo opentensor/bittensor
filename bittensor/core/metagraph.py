@@ -554,7 +554,7 @@ class MetagraphMixin(ABC):
         NOTE:
             If attempting to access data beyond the previous 300 blocks, you **must** use the ``archive`` network for subtensor. Light nodes are configured only to store the previous 300 blocks if connecting to finney or test networks.
 
-            For example::
+            For example:
 
                 from bittensor.core.subtensor import Subtensor
 
@@ -1112,7 +1112,7 @@ class TorchMetaGraph(MetagraphMixin, BaseClass):
         Returns:
             metagraph (bittensor.core.metagraph.Metagraph): The current metagraph instance with the loaded state.
 
-        Example::
+        Example:
 
             from bittensor.core.metagraph import Metagraph
 
