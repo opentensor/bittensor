@@ -995,7 +995,7 @@ class Subtensor(SubtensorMixin):
         )
         netuids = []
         if result.records:
-            async for record in result:
+            for record in result:
                 if record[1].value:
                     netuids.append(record[0])
         return netuids
@@ -1453,7 +1453,6 @@ class Subtensor(SubtensorMixin):
         Returns:
             The filtered list of netuids.
         """
-        # TODO add non-async async stuff here
         self._get_block_hash(block)  # just used to cache the block hash
         netuids_with_registered_hotkeys = [
             item
