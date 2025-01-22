@@ -9,7 +9,7 @@ from .axon_info import AxonInfo
 from .delegate_info import DelegateInfo
 from .delegate_info_lite import DelegateInfoLite
 from .ip_info import IPInfo
-from .metagrapg_info import MetagraphInfo
+from .metagraph_info import MetagraphInfo
 from .neuron_info import NeuronInfo
 from .neuron_info_lite import NeuronInfoLite
 from .neuron_certificate import NeuronCertificate
