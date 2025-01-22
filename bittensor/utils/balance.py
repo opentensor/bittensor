@@ -15,7 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from typing import Union
+from typing import Union, TypedDict
 
 from bittensor.core import settings
 
@@ -284,3 +284,31 @@ class Balance:
         self.unit = Balance.get_unit(netuid)
         self.rao_unit = Balance.get_unit(netuid)
         return self
+
+
+class FixedPoint(TypedDict):
+    """
+    Represents a fixed point ``U64F64`` number.
+    Where ``bits`` is a U128 representation of the fixed point number.
+
+    This matches the type of the Alpha shares.
+    """
+
+    bits: int
+
+
+def fixed_to_float(fixed: FixedPoint) -> float:
+    # Currently this is stored as a U64F64
+    # which is 64 bits of integer and 64 bits of fractional
+    uint_bits = 64
+    frac_bits = 64
+
+    data: int = fixed["bits"]
+
+    # Shift bits to extract integer part (assuming 64 bits for integer part)
+    integer_part = data >> frac_bits
+    fractional_part = data & (2**frac_bits - 1)
+
+    frac_float = fractional_part / (2**frac_bits)
+
+    return integer_part + frac_float
