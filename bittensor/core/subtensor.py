@@ -26,6 +26,7 @@ from bittensor.core.errors import StakeError
 from bittensor.core.chain_data import (
     custom_rpc_type_registry,
     DelegateInfo,
+    MetagraphInfo,
     NeuronInfo,
     NeuronInfoLite,
     PrometheusInfo,
@@ -703,6 +704,37 @@ class Subtensor:
         metagraph.sync(block=block, lite=lite, subtensor=self)
 
         return metagraph
+
+    def get_metagraph(
+        self, netuid: int, block: Optional[int] = None
+    ) -> Optional["MetagraphInfo"]:
+        if block is not None:
+            block_hash = self.get_block_hash(block)
+        else:
+            block_hash = None
+
+        query = self.substrate.runtime_call(
+            "SubnetInfoRuntimeApi",
+            "get_metagraph",
+            params=[netuid],
+            block_hash=block_hash,
+        )
+        metagraph_bytes = bytes.fromhex(query.decode()[2:])
+        return MetagraphInfo.from_vec_u8(metagraph_bytes)
+
+    def get_all_metagraphs(self, block: Optional[int] = None) -> list["MetagraphInfo"]:
+        if block is not None:
+            block_hash = self.get_block_hash(block)
+        else:
+            block_hash = None
+
+        query = self.substrate.runtime_call(
+            "SubnetInfoRuntimeApi",
+            "get_all_metagraphs",
+            block_hash=block_hash,
+        )
+        metagraphs_bytes = bytes.fromhex(query.decode()[2:])
+        return MetagraphInfo.list_from_vec_u8(metagraphs_bytes)
 
     @staticmethod
     def determine_chain_endpoint_and_network(
