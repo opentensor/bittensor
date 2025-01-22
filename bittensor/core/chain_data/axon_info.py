@@ -20,10 +20,10 @@ This module defines the `AxonInfo` class, a data structure used to represent inf
 in the bittensor network.
 """
 
-import json
 from dataclasses import asdict, dataclass
 from typing import Any, Union
 
+from async_substrate_interface.utils import json
 from bittensor.utils import networking
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import torch, use_torch
