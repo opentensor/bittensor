@@ -1,23 +1,10 @@
-import pytest
 from bittensor_wallet import Wallet
 
-from bittensor.core import subtensor as subtensor_module
-from bittensor.core.settings import version_as_int
-from bittensor.core.subtensor import Subtensor
 from bittensor.core.extrinsics.commit_weights import (
     _do_commit_weights,
     _do_reveal_weights,
 )
-
-
-@pytest.fixture
-def subtensor(mocker):
-    fake_substrate = mocker.MagicMock()
-    fake_substrate.websocket.sock.getsockopt.return_value = 0
-    mocker.patch.object(
-        subtensor_module, "SubstrateInterface", return_value=fake_substrate
-    )
-    return Subtensor()
+from bittensor.core.settings import version_as_int
 
 
 def test_do_commit_weights(subtensor, mocker):
