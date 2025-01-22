@@ -16,6 +16,8 @@
 # DEALINGS IN THE SOFTWARE.
 
 
+import asyncio
+import contextlib
 import re
 import threading
 import time
@@ -795,6 +797,7 @@ async def test_threaded_fastapi():
     server_started = threading.Event()
     server_stopped = threading.Event()
 
+    @contextlib.asynccontextmanager
     async def lifespan(app):
         server_started.set()
         yield
@@ -813,6 +816,9 @@ async def test_threaded_fastapi():
     server.start()
 
     server_started.wait()
+
+    while not (server.started or server_stopped.is_set()):
+        await asyncio.sleep(1)
 
     assert server.is_running is True
 
