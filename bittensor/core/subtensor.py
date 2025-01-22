@@ -37,6 +37,7 @@ from bittensor.core.extrinsics.staking import (
     add_stake_extrinsic,
     add_stake_multiple_extrinsic,
 )
+from bittensor.core.extrinsics.transfer import transfer_extrinsic
 from bittensor.core.metagraph import Metagraph
 from bittensor.core.extrinsics.serving import (
     publish_metadata,
@@ -2533,11 +2534,10 @@ class Subtensor(SubtensorMixin):
         if isinstance(amount, float):
             amount = Balance.from_tao(amount)
 
-        # TODO add extrinsic, ensure `destination` is changed to `dest` to keep backwards compatibility
         return transfer_extrinsic(
             subtensor=self,
             wallet=wallet,
-            destination=dest,
+            dest=dest,
             amount=amount,
             transfer_all=transfer_all,
             wait_for_inclusion=wait_for_inclusion,
