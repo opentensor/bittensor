@@ -27,6 +27,7 @@ from bittensor.core.extrinsics.registration import (
     burned_register_extrinsic,
     register_extrinsic,
 )
+from bittensor.core.extrinsics.root import root_register_extrinsic, set_root_weights_extrinsic
 from bittensor.core.extrinsics.set_weights import set_weights_extrinsic
 from bittensor.core.extrinsics.staking import (
     add_stake_extrinsic,
@@ -2278,7 +2279,6 @@ class Subtensor(SubtensorMixin):
     def root_register(
         self,
         wallet: "Wallet",
-        netuid: int = 0,
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
     ) -> bool:
@@ -2287,7 +2287,6 @@ class Subtensor(SubtensorMixin):
 
         Arguments:
             wallet (bittensor_wallet.Wallet): Bittensor wallet instance.
-            netuid (int): Subnet uniq id. Root subnet uid is 0.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block. Default is ``False``.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Default is
                 ``False``.
@@ -2322,11 +2321,9 @@ class Subtensor(SubtensorMixin):
             )
             return False
 
-        # TODO add this extrinsic
         return root_register_extrinsic(
             subtensor=self,
             wallet=wallet,
-            netuid=netuid,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
         )
@@ -2359,8 +2356,6 @@ class Subtensor(SubtensorMixin):
         netuids_ = np.array(netuids, dtype=np.int64)
         weights_ = np.array(weights, dtype=np.float32)
         logging.info(f"Setting weights in network: [blue]{self.network}[/blue]")
-        # Run the set weights operation.
-        # TODO add this extrinsic
         return set_root_weights_extrinsic(
             subtensor=self,
             wallet=wallet,
