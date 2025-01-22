@@ -134,6 +134,8 @@ class MetagraphInfo:
     @classmethod
     def fix_decoded_values(cls, decoded: dict) -> "MetagraphInfo":
         """Returns a Metagraph object from a decoded MetagraphInfo dictionary."""
+        decoded.update({"name": bytes(decoded.get("name")).decode()})
+        decoded.update({"symbol": bytes(decoded.get("symbol")).decode()})
         decoded.update({"identity": decoded.get("identity", {})})
         decoded.update({"identities": decoded.get("identities", {})})
         decoded.update({"axons": decoded.get("axons", {})})
