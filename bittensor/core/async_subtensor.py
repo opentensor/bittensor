@@ -354,10 +354,7 @@ class AsyncSubtensor:
     async def get_metagraph(
         self, netuid: int, block: Optional[int] = None
     ) -> Optional["MetagraphInfo"]:
-        if block is not None:
-            block_hash = await self.get_block_hash(block)
-        else:
-            block_hash = None
+        block_hash = await self.get_block_hash(block)
 
         query = await self.substrate.runtime_call(
             "SubnetInfoRuntimeApi",
@@ -371,10 +368,7 @@ class AsyncSubtensor:
     async def get_all_metagraphs(
         self, block: Optional[int] = None
     ) -> list["MetagraphInfo"]:
-        if block is not None:
-            block_hash = await self.get_block_hash(block)
-        else:
-            block_hash = None
+        block_hash = await self.get_block_hash(block)
 
         query = await self.substrate.runtime_call(
             "SubnetInfoRuntimeApi",
@@ -435,10 +429,7 @@ class AsyncSubtensor:
             Optional[list[StakeInfo]]: A list of StakeInfo objects, or ``None`` if no stake information is found.
         """
         encoded_coldkey = ss58_to_vec_u8(coldkey_ss58)
-        if block is not None:
-            block_hash = await self.get_block_hash(block)
-        else:
-            block_hash = None
+        block_hash = await self.get_block_hash(block)
         hex_bytes_result = await self.query_runtime_api(
             runtime_api="StakeInfoRuntimeApi",
             method="get_stake_info_for_coldkey",
