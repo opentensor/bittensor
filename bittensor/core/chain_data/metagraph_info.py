@@ -128,7 +128,9 @@ class MetagraphInfo:
         )
         if decoded is None:
             return []
-        decoded = [MetagraphInfo.fix_decoded_values(d) for d in decoded if d is not None]
+        decoded = [
+            MetagraphInfo.fix_decoded_values(d) for d in decoded if d is not None
+        ]
         return decoded
 
     @classmethod
