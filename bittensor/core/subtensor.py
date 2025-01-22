@@ -19,6 +19,7 @@ from bittensor.core.chain_data import (
     decode_account_id,
     WeightCommitInfo,
 )
+from bittensor.core.extrinsics.commit_reveal import commit_reveal_v3_extrinsic
 from bittensor.core.extrinsics.commit_weights import (
     commit_weights_extrinsic,
     reveal_weights_extrinsic,
@@ -27,7 +28,10 @@ from bittensor.core.extrinsics.registration import (
     burned_register_extrinsic,
     register_extrinsic,
 )
-from bittensor.core.extrinsics.root import root_register_extrinsic, set_root_weights_extrinsic
+from bittensor.core.extrinsics.root import (
+    root_register_extrinsic,
+    set_root_weights_extrinsic,
+)
 from bittensor.core.extrinsics.set_weights import set_weights_extrinsic
 from bittensor.core.extrinsics.staking import (
     add_stake_extrinsic,
@@ -2426,7 +2430,6 @@ class Subtensor(SubtensorMixin):
                 logging.info(
                     f"Committing weights for subnet #{netuid}. Attempt {retries + 1} of {max_retries}."
                 )
-                # TODO add this extrinsic
                 success, message = commit_reveal_v3_extrinsic(
                     subtensor=self,
                     wallet=wallet,
