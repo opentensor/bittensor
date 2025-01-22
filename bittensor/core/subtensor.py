@@ -38,6 +38,10 @@ from bittensor.core.extrinsics.staking import (
     add_stake_multiple_extrinsic,
 )
 from bittensor.core.extrinsics.transfer import transfer_extrinsic
+from bittensor.core.extrinsics.unstaking import (
+    unstake_extrinsic,
+    unstake_multiple_extrinsic,
+)
 from bittensor.core.metagraph import Metagraph
 from bittensor.core.extrinsics.serving import (
     publish_metadata,
@@ -2571,7 +2575,6 @@ class Subtensor(SubtensorMixin):
         This function supports flexible stake management, allowing neurons to adjust their network participation and
             potential reward accruals.
         """
-        # TODO add extrinsic
         return unstake_extrinsic(
             subtensor=self,
             wallet=wallet,
@@ -2608,7 +2611,6 @@ class Subtensor(SubtensorMixin):
         This function allows for strategic reallocation or withdrawal of stakes, aligning with the dynamic stake
             management aspect of the Bittensor network.
         """
-        # TODO add extrinsic
         return unstake_multiple_extrinsic(
             subtensor=self,
             wallet=wallet,
