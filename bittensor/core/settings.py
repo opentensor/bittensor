@@ -19,7 +19,6 @@ __version__ = "8.5.1"
 
 import os
 import re
-import warnings
 from pathlib import Path
 
 from munch import munchify

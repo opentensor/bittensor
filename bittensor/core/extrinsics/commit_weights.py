@@ -1,19 +1,13 @@
 """Module sync commit weights and reveal weights extrinsic."""
 
-from typing import Union, TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional
 
-import numpy as np
-from numpy.typing import NDArray
-
-import bittensor.utils.weight_utils as weight_utils
-from bittensor.core.settings import version_as_int
 from bittensor.utils import format_error_message
 from bittensor.utils.btlogging import logging
 
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
     from bittensor.core.subtensor import Subtensor
-    from bittensor.utils.registration import torch
 
 
 def sign_and_send_with_nonce(

@@ -13,7 +13,7 @@ import time
 from datetime import timedelta
 from multiprocessing.queues import Queue as QueueType
 from queue import Empty, Full
-from typing import Any, Callable, Optional, Union, TYPE_CHECKING
+from typing import Callable, Optional, Union, TYPE_CHECKING
 
 import numpy
 from Crypto.Hash import keccak
