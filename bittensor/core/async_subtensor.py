@@ -1285,7 +1285,7 @@ class AsyncSubtensor:
         if uid is None:
             return NeuronInfo.get_null_neuron()
 
-        params = [netuid, uid.value]
+        params = [netuid, uid]
         json_body = await self.substrate.rpc_request(
             method="neuronInfo_getNeuron",
             params=params,
