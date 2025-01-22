@@ -1838,7 +1838,7 @@ class Subtensor:
 
         stake = alpha_shares_as_float / hotkey_shares_as_float * hotkey_alpha
 
-        return Balance.from_rao(int(stake))
+        return Balance.from_rao(int(stake)).set_unit(netuid=netuid)
 
     def does_hotkey_exist(self, hotkey_ss58: str, block: Optional[int] = None) -> bool:
         """

@@ -2258,7 +2258,7 @@ def test_get_stake_for_coldkey_and_hotkey_with_single_result(subtensor, mocker):
         (alpha_shares_as_float / hotkey_shares_as_float) * hotkey_alpha
     )
 
-    assert result == Balance.from_rao(expected_stake)
+    assert result == Balance.from_rao(expected_stake).set_unit(netuid=fake_netuid)
 
 
 def test_does_hotkey_exist_true(mocker, subtensor):
