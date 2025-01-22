@@ -28,7 +28,7 @@ from bittensor.core.chain_data import SubnetHyperparameters
 from bittensor.core.settings import version_as_int
 from bittensor.core.subtensor import Subtensor, logging
 from bittensor.utils import u16_normalized_float, u64_normalized_float, Certificate
-from bittensor.utils.balance import Balance
+from bittensor.utils.balance import Balance, fixed_to_float
 
 U16_MAX = 65535
 U64_MAX = 18446744073709551615
@@ -2197,14 +2197,68 @@ def test_networks_during_connection(mocker):
 
 
 def test_get_stake_for_coldkey_and_hotkey_with_single_result(subtensor, mocker):
-    # TODO
-    assert False
+    """Test get_stake_for_coldkey_and_hotkey calculation and network calls."""
+    # Preps
+    fake_hotkey_ss58 = "FAKE_HK_SS58"
+    fake_coldkey_ss58 = "FAKE_CK_SS58"
+    fake_netuid = 2
+    fake_block = None
 
+    alpha_shares = {"bits": 177229957888291400329606044405}
+    hotkey_alpha = 96076552686
+    hotkey_shares = {"bits": 177229957888291400329606044405}
 
-def test_get_stake_for_coldkey_and_hotkey_with_multiple_result(subtensor, mocker):
-    """Test `get_stake_for_coldkey_and_hotkey` calls right method with correct arguments and get multiple stake info."""
-    # TODO
-    assert False
+    # Mock
+    def mock_query_module(module, name, block, params):
+        if name == "Alpha":
+            return mocker.Mock(value=alpha_shares)
+        elif name == "TotalHotkeyAlpha":
+            return mocker.Mock(value=hotkey_alpha)
+        elif name == "TotalHotkeyShares":
+            return mocker.Mock(value=hotkey_shares)
+        return None
+
+    subtensor.query_module = mocker.MagicMock(side_effect=mock_query_module)
+
+    # Call
+    result = subtensor.get_stake_for_coldkey_and_hotkey(
+        hotkey_ss58=fake_hotkey_ss58,
+        coldkey_ss58=fake_coldkey_ss58,
+        netuid=fake_netuid,
+        block=fake_block,
+    )
+
+    # Assertions
+    subtensor.query_module.assert_has_calls(
+        [
+            mocker.call(
+                module="SubtensorModule",
+                name="Alpha",
+                block=fake_block,
+                params=[fake_hotkey_ss58, fake_coldkey_ss58, fake_netuid],
+            ),
+            mocker.call(
+                module="SubtensorModule",
+                name="TotalHotkeyAlpha",
+                block=fake_block,
+                params=[fake_hotkey_ss58, fake_netuid],
+            ),
+            mocker.call(
+                module="SubtensorModule",
+                name="TotalHotkeyShares",
+                block=fake_block,
+                params=[fake_hotkey_ss58, fake_netuid],
+            ),
+        ]
+    )
+
+    alpha_shares_as_float = fixed_to_float(alpha_shares)
+    hotkey_shares_as_float = fixed_to_float(hotkey_shares)
+    expected_stake = int(
+        (alpha_shares_as_float / hotkey_shares_as_float) * hotkey_alpha
+    )
+
+    assert result == Balance.from_rao(expected_stake)
 
 
 def test_does_hotkey_exist_true(mocker, subtensor):
