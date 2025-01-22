@@ -3,13 +3,12 @@ from dataclasses import dataclass
 from hashlib import sha256
 from types import SimpleNamespace
 from typing import Any, Optional, Union, TypedDict
-from unittest.mock import MagicMock, patch, AsyncMock
+from unittest.mock import MagicMock, patch
 
 from async_substrate_interface import SubstrateInterface
 from bittensor_wallet import Wallet
 
 import bittensor.core.subtensor as subtensor_module
-from bittensor.core.async_subtensor import AsyncSubtensor
 from bittensor.core.chain_data import (
     NeuronInfo,
     NeuronInfoLite,
@@ -264,8 +263,8 @@ class MockSubtensor(Subtensor):
             if not hasattr(self, "chain_state") or getattr(self, "chain_state") is None:
                 self.setup()
 
-    def get_block_hash(self, block_id: int) -> str:
-        return "0x" + sha256(str(block_id).encode()).hexdigest()[:64]
+    def get_block_hash(self, block: Optional[int] = None) -> str:
+        return "0x" + sha256(str(block).encode()).hexdigest()[:64]
 
     def create_subnet(self, netuid: int) -> None:
         subtensor_state = self.chain_state["SubtensorModule"]
