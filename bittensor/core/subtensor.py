@@ -13,7 +13,7 @@ from scalecodec.base import RuntimeConfiguration
 from scalecodec.type_registry import load_type_registry_preset
 import ujson
 
-from bittensor.core import SubtensorMixin
+from bittensor.core.types import SubtensorMixin
 from bittensor.core.chain_data import (
     custom_rpc_type_registry,
     decode_account_id,
