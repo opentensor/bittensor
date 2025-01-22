@@ -1,19 +1,6 @@
-import pytest
-
 from bittensor.core import subtensor as subtensor_module
 from bittensor.core.extrinsics.transfer import do_transfer
-from bittensor.core.subtensor import Subtensor
 from bittensor.utils.balance import Balance
-
-
-@pytest.fixture
-def subtensor(mocker):
-    fake_substrate = mocker.MagicMock()
-    fake_substrate.websocket.sock.getsockopt.return_value = 0
-    mocker.patch.object(
-        subtensor_module, "SubstrateInterface", return_value=fake_substrate
-    )
-    return Subtensor()
 
 
 def test_do_transfer_is_success_true(subtensor, mocker):

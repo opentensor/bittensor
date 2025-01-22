@@ -83,13 +83,42 @@ def test_int_to_ip6_underflow():
 
 
 # Test getting external IP address
-def test_get_external_ip():
+def test_get_external_ip(mocker):
     """Test getting the external IP address."""
-    assert utils.networking.get_external_ip()
+    mocked_requests_get = mock.Mock(
+        return_value=mock.Mock(
+            **{
+                "text": "192.168.1.1",
+            },
+        ),
+    )
+
+    mocker.patch.object(
+        requests,
+        "get",
+        mocked_requests_get,
+    )
+
+    assert utils.networking.get_external_ip() == "192.168.1.1"
+
+    mocked_requests_get.assert_called_once_with("https://checkip.amazonaws.com")
 
 
-def test_get_external_ip_os_broken():
+def test_get_external_ip_os_broken(mocker):
     """Test getting the external IP address when os.popen is broken."""
+    mocked_requests_get = mock.Mock(
+        return_value=mock.Mock(
+            **{
+                "text": "192.168.1.1",
+            },
+        ),
+    )
+
+    mocker.patch.object(
+        requests,
+        "get",
+        mocked_requests_get,
+    )
 
     class FakeReadline:
         def readline(self):
@@ -99,7 +128,9 @@ def test_get_external_ip_os_broken():
         return FakeReadline()
 
     with mock.patch.object(os, "popen", new=mock_call):
-        assert utils.networking.get_external_ip()
+        assert utils.networking.get_external_ip() == "192.168.1.1"
+
+    mocked_requests_get.assert_called_once_with("https://checkip.amazonaws.com")
 
 
 def test_get_external_ip_os_request_urllib_broken():
