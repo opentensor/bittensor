@@ -85,9 +85,7 @@ if TYPE_CHECKING:
 
 
 class Subtensor(SubtensorMixin):
-    """
-    TODO docstring
-    """
+    """Thin layer for interacting with Substrate Interface. Mostly a collection of frequently-used calls."""
 
     def __init__(
         self,
@@ -97,7 +95,7 @@ class Subtensor(SubtensorMixin):
         log_verbose: bool = False,
     ):
         """
-        Initializes an instance of the AsyncSubtensor class.
+        Initializes an instance of the Subtensor class.
 
         Arguments:
             network (str): The network name or type to connect to.
