@@ -60,7 +60,7 @@ from bittensor.utils import (
     validate_chain_endpoint,
     hex_to_bytes,
 )
-from bittensor.utils.balance import Balance
+from bittensor.utils.balance import Balance, FixedPoint, fixed_to_float
 from bittensor.utils.btlogging import logging
 from bittensor.utils.delegates_details import DelegatesDetails
 from bittensor.utils.weight_utils import generate_weight_hash
@@ -425,40 +425,6 @@ class AsyncSubtensor:
         stakes = StakeInfo.list_from_vec_u8(bytes_result)
         return [stake for stake in stakes if stake.stake > 0]
 
-    async def get_stake(
-        self,
-        hotkey_ss58: str,
-        coldkey_ss58: str,
-        netuid: int,
-        block: Optional[int] = None,
-    ) -> Optional[Balance]:
-        """
-        Returns the stake under a coldkey - hotkey pairing.
-
-        Args:
-            hotkey_ss58 (str): The SS58 address of the hotkey.
-            coldkey_ss58 (str): The SS58 address of the coldkey.
-            netuid (int): The subnet ID to filter by. If provided, only returns stake for this specific subnet.
-            block (Optional[int]): The block number at which to query the stake information.
-
-        Returns:
-            Optional[Balance]: Balance
-        """
-        all_stakes = await self.get_stake_for_coldkey(
-            coldkey_ss58=coldkey_ss58, block=block
-        )
-        stakes = [
-            stake
-            for stake in all_stakes
-            if stake.hotkey_ss58 == hotkey_ss58
-            and (netuid is None or stake.netuid == netuid)
-            and stake.stake > 0
-        ]
-        if not stakes:
-            return Balance(0).set_unit(netuid=netuid)
-        else:
-            return stakes[0].stake
-
     async def unstake(
         self,
         wallet: Wallet,
@@ -806,29 +772,52 @@ class AsyncSubtensor:
         self,
         hotkey_ss58: str,
         coldkey_ss58: str,
-        block_hash: Optional[str] = None,
+        netuid: int,
+        block: Optional[int] = None,
         reuse_block: bool = False,
     ) -> Balance:
         """
-        Retrieves stake information associated with a specific coldkey and hotkey.
+        Returns the stake under a coldkey - hotkey pairing.
 
         Args:
-            hotkey_ss58 (str): the hotkey SS58 address to query
-            coldkey_ss58 (str): the coldkey SS58 address to query
-            block_hash (Optional[str]): the hash of the blockchain block number for the query.
-            reuse_block (Optional[bool]): whether to reuse the last-used block hash.
-
+            hotkey_ss58 (str): The SS58 address of the hotkey.
+            coldkey_ss58 (str): The SS58 address of the coldkey.
+            netuid (Optional[int]): The subnet ID to filter by. If provided, only returns stake for this specific subnet.
+            block (Optional[int]): The block number at which to query the stake information.
+            reuse_block (bool): Whether to reuse the last-used block hash.
         Returns:
-            Stake Balance for the given coldkey and hotkey
+            Balance: The stake under the coldkey - hotkey pairing.
         """
-        _result = await self.substrate.query(
-            module="SubtensorModule",
-            storage_function="Stake",
-            params=[hotkey_ss58, coldkey_ss58],
-            block_hash=block_hash,
-            reuse_block_hash=reuse_block,
+        alpha_shares: FixedPoint = await self.query_subtensor(
+            name="Alpha",
+            block=block,
+            reuse_block=reuse_block,
+            params=[hotkey_ss58, coldkey_ss58, netuid],
         )
-        return Balance.from_rao(_result or 0)
+        hotkey_alpha: int = await self.query_subtensor(
+            name="TotalHotkeyAlpha",
+            block=block,
+            reuse_block=reuse_block,
+            params=[hotkey_ss58, netuid],
+        )
+        hotkey_shares: FixedPoint = await self.query_subtensor(
+            name="TotalHotkeyShares",
+            block=block,
+            reuse_block=reuse_block,
+            params=[hotkey_ss58, netuid],
+        )
+
+        alpha_shares_as_float = fixed_to_float(alpha_shares)
+        hotkey_shares_as_float = fixed_to_float(hotkey_shares)
+
+        if hotkey_shares_as_float == 0:
+            return Balance.from_rao(0)
+
+        stake = alpha_shares_as_float / hotkey_shares_as_float * hotkey_alpha.value
+
+        return Balance.from_rao(int(stake)).set_unit(netuid=netuid)
+
+    get_stake = get_stake_for_coldkey_and_hotkey
 
     async def query_runtime_api(
         self,

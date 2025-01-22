@@ -1762,36 +1762,6 @@ class Subtensor:
         stakes = StakeInfo.list_from_vec_u8(bytes_result)  # type: ignore
         return [stake for stake in stakes if stake.stake > 0]
 
-    def get_stake(
-        self,
-        hotkey_ss58: str,
-        coldkey_ss58: str,
-        netuid: int,
-        block: Optional[int] = None,
-    ) -> Optional[Balance]:
-        """
-        Returns the stake under a coldkey - hotkey pairing.
-        Args:
-            hotkey_ss58 (str): The SS58 address of the hotkey.
-            coldkey_ss58 (str): The SS58 address of the coldkey.
-            netuid (int): The subnet ID to filter by. If provided, only returns stake for this specific subnet.
-            block (Optional[int]): The block number at which to query the stake information.
-        Returns:
-            Optional[Balance]: Balance
-        """
-        all_stakes = self.get_stake_for_coldkey(coldkey_ss58=coldkey_ss58, block=block)
-        stakes = [
-            stake
-            for stake in all_stakes  # type: ignore
-            if stake.hotkey_ss58 == hotkey_ss58
-            and (netuid is None or stake.netuid == netuid)
-            and stake.stake > 0
-        ]
-        if not stakes:
-            return Balance(0).set_unit(netuid=netuid)
-        else:
-            return stakes[0].stake
-
     def get_stake_for_coldkey_and_hotkey(
         self,
         hotkey_ss58: str,
@@ -1809,7 +1779,7 @@ class Subtensor:
             block (Optional[int]): The block number at which to query the stake information.
 
         Returns:
-            Optional[StakeInfo]: The StakeInfo object/s under the coldkey - hotkey pairing, or ``None`` if the pairing does not exist or the stake is not found.
+            Balance: The stake under the coldkey - hotkey pairing.
         """
         alpha_shares: FixedPoint = self.query_module(
             module="SubtensorModule",
@@ -1839,6 +1809,8 @@ class Subtensor:
         stake = alpha_shares_as_float / hotkey_shares_as_float * hotkey_alpha
 
         return Balance.from_rao(int(stake)).set_unit(netuid=netuid)
+
+    get_stake = get_stake_for_coldkey_and_hotkey
 
     def does_hotkey_exist(self, hotkey_ss58: str, block: Optional[int] = None) -> bool:
         """
