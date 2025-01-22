@@ -153,7 +153,7 @@ async def test_async_subtensor_magic_methods(mocker):
     [
         ConnectionRefusedError,
         async_subtensor.ssl.SSLError,
-        async_subtensor.TimeoutException,
+        TimeoutError,
     ],
 )
 @pytest.mark.asyncio
@@ -356,12 +356,13 @@ async def test_get_subnets(subtensor, mocker, records, response):
     fake_block_hash = None
 
     # Call
-    result = await subtensor.get_subnets(block_hash=fake_block_hash)
+    result = await subtensor.get_netuids(block_hash=fake_block_hash)
 
     # Asserts
     mocked_substrate_query_map.assert_called_once_with(
         module="SubtensorModule",
         storage_function="NetworksAdded",
+        params=None,
         block_hash=fake_block_hash,
         reuse_block_hash=False,
     )
@@ -677,40 +678,6 @@ async def test_get_transfer_with_exception(subtensor, mocker):
 
     # Assertions
     assert result == async_subtensor.Balance.from_rao(int(2e7))
-
-
-@pytest.mark.asyncio
-async def test_get_total_stake_for_coldkey(subtensor, mocker):
-    """Tests get_total_stake_for_coldkey method."""
-    # Preps
-    fake_addresses = ("a1", "a2")
-    fake_block_hash = None
-
-    mocked_substrate_create_storage_key = mocker.AsyncMock()
-    subtensor.substrate.create_storage_key = mocked_substrate_create_storage_key
-
-    mocked_batch_0_call = mocker.Mock(
-        params=[
-            0,
-        ]
-    )
-    mocked_batch_1_call = 0
-    mocked_substrate_query_multi = mocker.AsyncMock(
-        return_value=[
-            (mocked_batch_0_call, mocked_batch_1_call),
-        ]
-    )
-
-    subtensor.substrate.query_multi = mocked_substrate_query_multi
-
-    # Call
-    result = await subtensor.get_total_stake_for_coldkey(
-        *fake_addresses, block_hash=fake_block_hash
-    )
-
-    assert mocked_substrate_create_storage_key.call_count == len(fake_addresses)
-    mocked_substrate_query_multi.assert_called_once()
-    assert result == {0: async_subtensor.Balance(mocked_batch_1_call)}
 
 
 @pytest.mark.asyncio

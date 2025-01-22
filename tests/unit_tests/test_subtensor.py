@@ -771,8 +771,8 @@ def test_get_total_subnets_no_block(mocker, subtensor):
 
 
 # `get_subnets` tests
-def test_get_subnets_success(mocker, subtensor):
-    """Test get_subnets returns correct list when subnet information is found."""
+def test_get_netuids_success(mocker, subtensor):
+    """Test get_netuids returns correct list when subnet information is found."""
     # Prep
     block = 123
     mock_netuid1 = mocker.MagicMock(value=1)
@@ -782,14 +782,14 @@ def test_get_subnets_success(mocker, subtensor):
     mocker.patch.object(subtensor, "query_map_subtensor", return_value=mock_result)
 
     # Call
-    result = subtensor.get_subnets(block)
+    result = subtensor.get_netuids(block)
 
     # Asserts
     assert result == [1, 2]
     subtensor.query_map_subtensor.assert_called_once_with("NetworksAdded", block)
 
 
-def test_get_subnets_no_data(mocker, subtensor):
+def test_get_netuids_no_data(mocker, subtensor):
     """Test get_subnets returns empty list when no subnet information is found."""
     # Prep
     block = 123
@@ -798,15 +798,15 @@ def test_get_subnets_no_data(mocker, subtensor):
     mocker.patch.object(subtensor, "query_map_subtensor", return_value=mock_result)
 
     # Call
-    result = subtensor.get_subnets(block)
+    result = subtensor.get_netuids(block)
 
     # Asserts
     assert result == []
     subtensor.query_map_subtensor.assert_called_once_with("NetworksAdded", block)
 
 
-def test_get_subnets_no_records_attribute(mocker, subtensor):
-    """Test get_subnets returns empty list when result has no records attribute."""
+def test_get_netuids_no_records_attribute(mocker, subtensor):
+    """Test get_netuids returns empty list when result has no records attribute."""
     # Prep
     block = 123
     mock_result = mocker.MagicMock()
@@ -814,15 +814,15 @@ def test_get_subnets_no_records_attribute(mocker, subtensor):
     mocker.patch.object(subtensor, "query_map_subtensor", return_value=mock_result)
 
     # Call
-    result = subtensor.get_subnets(block)
+    result = subtensor.get_netuids(block)
 
     # Asserts
     assert result == []
     subtensor.query_map_subtensor.assert_called_once_with("NetworksAdded", block)
 
 
-def test_get_subnets_no_block_specified(mocker, subtensor):
-    """Test get_subnets with no block specified."""
+def test_get_netuids_no_block_specified(mocker, subtensor):
+    """Test get_netuids with no block specified."""
     # Prep
     mock_netuid1 = mocker.MagicMock(value=1)
     mock_netuid2 = mocker.MagicMock(value=2)
@@ -831,7 +831,7 @@ def test_get_subnets_no_block_specified(mocker, subtensor):
     mocker.patch.object(subtensor, "query_map_subtensor", return_value=mock_result)
 
     # Call
-    result = subtensor.get_subnets()
+    result = subtensor.get_netuids()
 
     # Asserts
     assert result == [1, 2]
@@ -2691,11 +2691,11 @@ def test_add_stake_success(mocker, subtensor):
     )
 
     # Call
-    result = subtensor.add_stake(
+    result = subtensor.add_stake_ext(
         wallet=fake_wallet,
         hotkey_ss58=fake_hotkey_ss58,
         netuid=fake_netuid,
-        amount=fake_amount,
+        tao_amount=fake_amount,
         wait_for_inclusion=True,
         wait_for_finalization=False,
     )
@@ -2759,7 +2759,7 @@ def test_unstake_success(mocker, subtensor):
     mock_unstake_extrinsic = mocker.patch.object(subtensor_module, "unstake_extrinsic")
 
     # Call
-    result = subtensor.unstake(
+    result = subtensor.unstake_ext(
         wallet=fake_wallet,
         hotkey_ss58=fake_hotkey_ss58,
         netuid=fake_netuid,

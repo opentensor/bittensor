@@ -32,8 +32,6 @@ from .registration import torch, use_torch
 from .version import version_checking, check_version, VersionCheckError
 
 if TYPE_CHECKING:
-    from bittensor.utils.async_substrate_interface import AsyncSubstrateInterface
-    from substrateinterface import SubstrateInterface
     from bittensor_wallet import Wallet
 
 RAOPERTAO = 1e9

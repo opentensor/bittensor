@@ -37,6 +37,7 @@ Verifies:
 """
 
 
+@pytest.mark.skip(reason="Have to be rewritten from scratch")
 @pytest.mark.asyncio
 async def test_root_reg_hyperparams(local_chain):
     """

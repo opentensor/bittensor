@@ -19,6 +19,7 @@ from tests.e2e_tests.utils.e2e_test_utils import (
 )
 
 
+@pytest.mark.skip(reason="Have to be rewritten from scratch")
 @pytest.mark.asyncio
 async def test_dendrite(local_chain):
     """

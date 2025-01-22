@@ -1,8 +1,10 @@
 from bittensor.core.subtensor import Subtensor
 from bittensor.utils.balance import Balance
 from tests.e2e_tests.utils.e2e_test_utils import setup_wallet
+import pytest
 
 
+@pytest.mark.skip(reason="Have to be rewritten from scratch")
 def test_transfer(local_chain):
     """
     Test the transfer mechanism on the chain

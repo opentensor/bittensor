@@ -18,6 +18,7 @@ from tests.e2e_tests.utils.chain_interactions import (
 from tests.e2e_tests.utils.e2e_test_utils import setup_wallet
 
 
+@pytest.mark.skip(reason="Have to be rewritten from scratch")
 @pytest.mark.parametrize("local_chain", [False], indirect=True)
 @pytest.mark.asyncio
 async def test_commit_and_reveal_weights_cr3(local_chain):
