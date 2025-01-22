@@ -16,6 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 
+import contextlib
 import re
 import threading
 import time
@@ -795,6 +796,7 @@ async def test_threaded_fastapi():
     server_started = threading.Event()
     server_stopped = threading.Event()
 
+    @contextlib.asynccontextmanager
     async def lifespan(app):
         server_started.set()
         yield
