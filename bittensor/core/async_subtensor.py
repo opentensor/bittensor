@@ -2920,7 +2920,6 @@ class AsyncSubtensor(SubtensorMixin):
     async def root_register(
         self,
         wallet: "Wallet",
-        netuid: int = 0,
         block_hash: Optional[str] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
@@ -2930,7 +2929,6 @@ class AsyncSubtensor(SubtensorMixin):
 
         Arguments:
             wallet (bittensor_wallet.Wallet): Bittensor wallet instance.
-            netuid (int): Subnet uniq id. Root subnet uid is 0.
             block_hash (Optional[str]): The hash of the blockchain block for the query.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block. Default is ``False``.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Default is
@@ -2939,6 +2937,7 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             `True` if registration was successful, otherwise `False`.
         """
+        netuid = 0
         logging.info(
             f"Registering on netuid [blue]0[/blue] on network: [blue]{self.network}[/blue]"
         )
@@ -2971,7 +2970,6 @@ class AsyncSubtensor(SubtensorMixin):
         return await root_register_extrinsic(
             subtensor=self,
             wallet=wallet,
-            netuid=netuid,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
         )
