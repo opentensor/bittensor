@@ -16,6 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 
+import asyncio
 import contextlib
 import re
 import threading
@@ -815,6 +816,9 @@ async def test_threaded_fastapi():
     server.start()
 
     server_started.wait()
+
+    while not (server.started or server_stopped.is_set()):
+        await asyncio.sleep(1)
 
     assert server.is_running is True
 
