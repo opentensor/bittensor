@@ -21,7 +21,6 @@ import asyncio
 import contextlib
 import copy
 import inspect
-import json
 import threading
 import time
 import traceback
@@ -31,6 +30,7 @@ import warnings
 from inspect import signature, Signature, Parameter
 from typing import Any, Awaitable, Callable, Optional, Tuple
 
+from async_substrate_interface.utils import json
 import uvicorn
 from bittensor_wallet import Wallet, Keypair
 
