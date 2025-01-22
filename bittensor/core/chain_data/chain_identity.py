@@ -12,4 +12,4 @@ class ChainIdentity:
     image: str
     discord: str
     description: str
-    additional: list[str, int]
+    additional: str
