@@ -408,7 +408,7 @@ custom_rpc_type_registry = {
             "type_mapping": [
                 ["name", "Vec<u8>"],
                 ["url", "Vec<u8>"],
-                ["url", "Vec<u8>"],
+                ["image", "Vec<u8>"],
                 ["discord", "Vec<u8>"],
                 ["description", "Vec<u8>"],
                 ["additional", "Vec<u8>"],
