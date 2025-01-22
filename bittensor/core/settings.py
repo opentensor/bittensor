@@ -245,6 +245,14 @@ TYPE_REGISTRY: dict[str, dict] = {
                     "params": [{"name": "netuid", "type": "u16"}],
                     "type": "Vec<u8>",
                 },
+                "get_metagraph": {
+                    "params": [{"name": "netuid", "type": "u16"}],
+                    "type": "Vec<u8>",
+                },
+                "get_all_metagraphs": {
+                    "params": [],
+                    "type": "Vec<u8>",
+                },
             }
         },
         "SubnetRegistrationRuntimeApi": {
