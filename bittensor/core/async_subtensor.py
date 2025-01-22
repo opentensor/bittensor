@@ -3191,7 +3191,7 @@ class AsyncSubtensor(SubtensorMixin):
         return await transfer_extrinsic(
             subtensor=self,
             wallet=wallet,
-            destination=dest,
+            dest=dest,
             amount=amount,
             transfer_all=transfer_all,
             wait_for_inclusion=wait_for_inclusion,
