@@ -2311,7 +2311,7 @@ class Subtensor(SubtensorMixin):
 
         try:
             recycle_call = self.get_hyperparameter(
-                param_name="Burn", netuid=netuid, block=block
+                param_name="Burn", netuid=0, block=block
             )
             balance = (self.get_balance(wallet.coldkeypub.ss58_address, block=block),)
         except TypeError as e:
