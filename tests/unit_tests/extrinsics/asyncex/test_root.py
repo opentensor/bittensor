@@ -81,7 +81,6 @@ async def test_root_register_extrinsic_success(subtensor, mocker):
     result = await async_root.root_register_extrinsic(
         subtensor=subtensor,
         wallet=fake_wallet,
-        netuid=1,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
@@ -89,14 +88,14 @@ async def test_root_register_extrinsic_success(subtensor, mocker):
     # Asserts
     mocked_unlock_key.assert_called_once_with(fake_wallet)
     mocked_is_hotkey_registered.assert_called_once_with(
-        netuid=1, hotkey_ss58="fake_hotkey_address"
+        netuid=0, hotkey_ss58="fake_hotkey_address"
     )
     mocked_compose_call.assert_called_once()
     mocked_sign_and_send_extrinsic.assert_called_once()
     mocked_query.assert_called_once_with(
         module="SubtensorModule",
         storage_function="Uids",
-        params=[1, "fake_hotkey_address"],
+        params=[0, "fake_hotkey_address"],
     )
     assert result is True
 
@@ -117,7 +116,6 @@ async def test_root_register_extrinsic_unlock_failed(subtensor, mocker):
     result = await async_root.root_register_extrinsic(
         subtensor=subtensor,
         wallet=fake_wallet,
-        netuid=1,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
@@ -149,7 +147,6 @@ async def test_root_register_extrinsic_already_registered(subtensor, mocker):
     result = await async_root.root_register_extrinsic(
         subtensor=subtensor,
         wallet=fake_wallet,
-        netuid=1,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
@@ -157,7 +154,7 @@ async def test_root_register_extrinsic_already_registered(subtensor, mocker):
     # Asserts
     mocked_unlock_key.assert_called_once_with(fake_wallet)
     mocked_is_hotkey_registered.assert_called_once_with(
-        netuid=1, hotkey_ss58="fake_hotkey_address"
+        netuid=0, hotkey_ss58="fake_hotkey_address"
     )
     assert result is True
 
@@ -190,7 +187,6 @@ async def test_root_register_extrinsic_transaction_failed(subtensor, mocker):
     result = await async_root.root_register_extrinsic(
         subtensor=subtensor,
         wallet=fake_wallet,
-        netuid=1,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
@@ -198,7 +194,7 @@ async def test_root_register_extrinsic_transaction_failed(subtensor, mocker):
     # Asserts
     mocked_unlock_key.assert_called_once_with(fake_wallet)
     mocked_is_hotkey_registered.assert_called_once_with(
-        netuid=1, hotkey_ss58="fake_hotkey_address"
+        netuid=0, hotkey_ss58="fake_hotkey_address"
     )
     mocked_compose_call.assert_called_once()
     mocked_sign_and_send_extrinsic.assert_called_once()
@@ -238,7 +234,6 @@ async def test_root_register_extrinsic_uid_not_found(subtensor, mocker):
     result = await async_root.root_register_extrinsic(
         subtensor=subtensor,
         wallet=fake_wallet,
-        netuid=1,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
@@ -246,14 +241,14 @@ async def test_root_register_extrinsic_uid_not_found(subtensor, mocker):
     # Asserts
     mocked_unlock_key.assert_called_once_with(fake_wallet)
     mocked_is_hotkey_registered.assert_called_once_with(
-        netuid=1, hotkey_ss58="fake_hotkey_address"
+        netuid=0, hotkey_ss58="fake_hotkey_address"
     )
     mocked_compose_call.assert_called_once()
     mocked_sign_and_send_extrinsic.assert_called_once()
     mocked_query.assert_called_once_with(
         module="SubtensorModule",
         storage_function="Uids",
-        params=[1, "fake_hotkey_address"],
+        params=[0, "fake_hotkey_address"],
     )
     assert result is False
 
