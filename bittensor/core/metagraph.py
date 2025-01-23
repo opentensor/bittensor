@@ -514,6 +514,14 @@ class AsyncMetagraphMixin(ABC):
         """
         return self.__str__()
 
+    async def __aenter__(self):
+        if self.should_sync:
+            await self.sync(block=None, lite=self.lite, subtensor=self.subtensor)
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        pass
+
     def metadata(self) -> dict:
         """
         Retrieves the metadata of the metagraph, providing key information about the current state of the Bittensor
@@ -1133,14 +1141,6 @@ class AsyncTorchMetaGraph(AsyncMetagraphMixin, BaseClass):
         self.subtensor = subtensor
         self.should_sync = sync
 
-    async def __aenter__(self):
-        if self.should_sync:
-            await self.sync(block=None, lite=self.lite, subtensor=self.subtensor)
-        return self
-
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        pass
-
     async def _set_metagraph_attributes(self, block: int, subtensor: "AsyncSubtensor"):
         """
         Sets various attributes of the metagraph based on the latest network data fetched from the subtensor.
@@ -1333,14 +1333,6 @@ class AsyncNonTorchMetagraph(AsyncMetagraphMixin):
         self.neurons = []
         self.subtensor = subtensor
         self.should_sync = sync
-
-    async def __aenter__(self):
-        if self.should_sync:
-            await self.sync(block=None, lite=self.lite, subtensor=self.subtensor)
-        return self
-
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        pass
 
     async def _set_metagraph_attributes(self, block: int, subtensor: "AsyncSubtensor"):
         """
