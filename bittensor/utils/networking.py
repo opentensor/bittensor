@@ -143,7 +143,8 @@ def get_formatted_ws_endpoint_url(endpoint_url: Optional[str]) -> Optional[str]:
         endpoint_url (Optional[str]):
             The endpoint url to format.
     Returns:
-        formatted_endpoint_url (Optional[str]): The formatted endpoint url. In the form of ws://<endpoint_url> or wss://<endpoint_url>
+        formatted_endpoint_url (Optional[str]): The formatted endpoint url. In the form of ws://<endpoint_url> or
+            wss://<endpoint_url>
     """
     if endpoint_url is None:
         return None

@@ -778,30 +778,39 @@ class MetagraphMixin(ABC):
 
     def load(self, root_dir: Optional[list[str]] = None) -> None:
         """
-        Loads the state of the metagraph from the default save directory. This method is instrumental for restoring the metagraph to its last saved state. It automatically identifies the save directory based on the ``network`` and ``netuid`` properties of the metagraph, locates the latest block file in that directory, and loads all metagraph parameters from it.
+        Loads the state of the metagraph from the default save directory. This method is instrumental for restoring the
+        metagraph to its last saved state. It automatically identifies the save directory based on the ``network`` and
+        ``netuid`` properties of the metagraph, locates the latest block file in that directory, and loads all metagraph
+        parameters from it.
 
         This functionality is particularly beneficial when continuity in the state of the metagraph is necessary
         across different runtime sessions, or after a restart of the system. It ensures that the metagraph reflects
         the exact state it was in at the last save point, maintaining consistency in the network's representation.
 
-        The method delegates to ``load_from_path``, supplying it with the directory path constructed from the metagraph's current ``network`` and ``netuid`` properties. This abstraction simplifies the process of loading the metagraph's state for the user, requiring no direct path specifications.
+        The method delegates to ``load_from_path``, supplying it with the directory path constructed from the
+        metagraph's current ``network`` and ``netuid`` properties. This abstraction simplifies the process of loading
+        the metagraph's state for the user, requiring no direct path specifications.
 
         Args:
             root_dir: list to the file path for the root directory of your metagraph saves
                 (i.e. ['/', 'tmp', 'metagraphs'], defaults to ["~", ".bittensor", "metagraphs"]
 
         Returns:
-            metagraph (bittensor.core.metagraph.Metagraph): The metagraph instance after loading its state from the default directory.
+            metagraph (bittensor.core.metagraph.Metagraph): The metagraph instance after loading its state from the
+                default directory.
 
         Example:
             Load the metagraph state from the last saved snapshot in the default directory::
 
                 metagraph.load()
 
-            After this operation, the metagraph's parameters and neuron data are restored to their state at the time of the last save in the default directory.
+            After this operation, the metagraph's parameters and neuron data are restored to their state at the time of
+            the last save in the default directory.
 
         Note:
-            The default save directory is determined based on the metagraph's ``network`` and ``netuid`` attributes. It is important to ensure that these attributes are set correctly and that the default save directory contains the appropriate state files for the metagraph.
+            The default save directory is determined based on the metagraph's ``network`` and ``netuid`` attributes. It
+            is important to ensure that these attributes are set correctly and that the default save directory contains
+            the appropriate state files for the metagraph.
         """
         self.load_from_path(get_save_dir(self.network, self.netuid, root_dir=root_dir))
 
@@ -1109,8 +1118,8 @@ class NonTorchMetagraph(MetagraphMixin):
             dir_path (str): The directory path where the metagraph's state file is located.
 
         Returns:
-            metagraph (:func:`bittensor.core.metagraph.AsyncMetagraph`): An instance of the Metagraph with the state loaded
-                from the file.
+            metagraph (:func:`bittensor.core.metagraph.AsyncMetagraph`): An instance of the Metagraph with the state
+                loaded from the file.
 
         Raises:
             pickle.UnpicklingError: If there is an error unpickling the state file.

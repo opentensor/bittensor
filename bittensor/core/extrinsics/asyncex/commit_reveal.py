@@ -27,7 +27,7 @@ async def _do_commit_reveal_v3(
 ) -> tuple[bool, Optional[str]]:
     """
     Executes the commit-reveal phase 3 for a given netuid and commit, and optionally waits for extrinsic inclusion or
-        finalization.
+    finalization.
 
     Arguments:
         subtensor: An instance of the AsyncSubtensor class.
