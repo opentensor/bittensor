@@ -121,7 +121,9 @@ async def test_do_commit_reveal_v3_failure_due_to_error(mocker, subtensor):
     )
 
     mocked_format_error_message = mocker.patch.object(
-        subtensor_module, "format_error_message", return_value="Formatted error",
+        subtensor_module,
+        "format_error_message",
+        return_value="Formatted error",
     )
 
     # Call
