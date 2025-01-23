@@ -47,7 +47,7 @@ async def test_set_metagraph_attributes(mock_environment):
     subtensor, neurons = mock_environment
     metagraph = Metagraph(1, sync=False)
     metagraph.neurons = neurons
-    await metagraph._set_metagraph_attributes(block=5, subtensor=subtensor)
+    metagraph._set_metagraph_attributes(block=5)
 
     # Check the attributes are set as expected
     assert metagraph.n.item() == len(neurons)
@@ -158,6 +158,7 @@ def loguru_sink():
     ],
 )
 def test_sync_warning_cases(block, test_id, metagraph_instance, mock_subtensor, caplog):
+    mock_subtensor.get_current_block.return_value = 601
     metagraph_instance.sync(block=block, lite=True, subtensor=mock_subtensor)
 
     expected_message = "Attempting to sync longer than 300 blocks ago on a non-archive node. Please use the 'archive' network for subtensor and retry."
