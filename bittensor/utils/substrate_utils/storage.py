@@ -1,10 +1,10 @@
 import binascii
 from typing import Any, Optional
 
-from bittensor.core.errors import StorageFunctionNotFound
-
 from scalecodec import ScaleBytes, GenericMetadataVersioned, ss58_decode
 from scalecodec.base import ScaleDecoder, RuntimeConfigurationObject, ScaleType
+
+from bittensor.core.errors import StorageFunctionNotFound
 from bittensor.utils.substrate_utils.hasher import (
     blake2_256,
     two_x64_concat,

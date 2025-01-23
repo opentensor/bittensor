@@ -22,7 +22,8 @@ async def _check_threshold_amount(
         stake_balance (bittensor.utils.balance.Balance): the balance to check for threshold limits.
 
     Returns:
-        success (bool): ``true`` if the unstaking is above the threshold or 0, or ``false`` if the unstaking is below the threshold, but not 0.
+        success (bool): ``true`` if the unstaking is above the threshold or 0, or ``false`` if the unstaking is below
+            the threshold, but not 0.
     """
     min_req_stake: Balance = await subtensor.get_minimum_required_stake()
 

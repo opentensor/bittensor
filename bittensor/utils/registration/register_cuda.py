@@ -64,7 +64,8 @@ def solve_cuda(
         dev_id (int): The CUDA device ID. Defaults to ``0``.
 
     Returns:
-        (Union[tuple[Any, bytes], tuple[int, bytes], tuple[Any, None]]): Tuple of the nonce and the seal corresponding to the solution. Returns -1 for nonce if no solution is found.
+        (Union[tuple[Any, bytes], tuple[int, bytes], tuple[Any, None]]): Tuple of the nonce and the seal corresponding
+            to the solution. Returns -1 for nonce if no solution is found.
     """
 
     try:
