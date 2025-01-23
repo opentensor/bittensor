@@ -1049,9 +1049,10 @@ class Subtensor(SubtensorMixin):
         )
         try:
             if certificate:
-                public_key = bytes(certificate["public_key"][0]).hex()
-                return chr(certificate["algorithm"]) + f"0x{public_key}"
-
+                tuple_ascii = certificate["public_key"][0]
+                return chr(certificate["algorithm"]) + "".join(
+                    chr(i) for i in tuple_ascii
+                )
         except AttributeError:
             return None
         return None

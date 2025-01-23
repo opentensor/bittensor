@@ -22,6 +22,7 @@ from bittensor.utils import networking, Certificate
 from bittensor.utils.btlogging import logging
 from bittensor.core import settings
 from bittensor.core.config import Config
+from bittensor.core.chain_data import NeuronInfo, NeuronInfoLite
 
 
 class SubtensorMixin(ABC):
@@ -217,7 +218,7 @@ class SubtensorMixin(ABC):
         return "unknown", network
 
 
-class AxonServeCallParams(TypedDict):
+class AxonServeCallParams_(TypedDict):
     """Axon serve chain call parameters."""
 
     version: int
@@ -226,6 +227,97 @@ class AxonServeCallParams(TypedDict):
     ip_type: int
     netuid: int
     certificate: Optional[Certificate]
+
+
+class AxonServeCallParams:
+    def __init__(
+        self,
+        version: int,
+        ip: int,
+        port: int,
+        ip_type: int,
+        netuid: int,
+        hotkey: str,
+        coldkey: str,
+        protocol: int,
+        placeholder1: int,
+        placeholder2: int,
+        certificate: Optional[Certificate],
+    ):
+        self.version = version
+        self.ip = ip
+        self.port = port
+        self.ip_type = ip_type
+        self.netuid = netuid
+        self.hotkey = hotkey
+        self.coldkey = coldkey
+        self.protocol = protocol
+        self.placeholder1 = placeholder1
+        self.placeholder2 = placeholder2
+        self.certificate = certificate
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return all(
+                getattr(self, attr) == getattr(other, attr) for attr in self.__dict__
+            )
+        elif isinstance(other, dict):
+            return all(getattr(self, attr) == other.get(attr) for attr in self.__dict__)
+        elif isinstance(other, (NeuronInfo, NeuronInfoLite)):
+            return all(
+                [
+                    self.version == other.axon_info.version,
+                    self.ip == networking.ip_to_int(other.axon_info.ip),
+                    self.port == other.axon_info.port,
+                    self.ip_type == other.axon_info.ip_type,
+                    self.netuid == other.netuid,
+                    self.hotkey == other.hotkey,
+                    self.coldkey == other.coldkey,
+                    self.protocol == other.axon_info.protocol,
+                    self.placeholder1 == other.axon_info.placeholder1,
+                    self.placeholder2 == other.axon_info.placeholder2,
+                ]
+            )
+        else:
+            raise NotImplementedError(
+                f"AxonServeCallParams equality not implemented for {type(other)}"
+            )
+
+    def copy(self) -> "AxonServeCallParams":
+        return self.__class__(
+            self.version,
+            self.ip,
+            self.port,
+            self.ip_type,
+            self.netuid,
+            self.hotkey,
+            self.coldkey,
+            self.protocol,
+            self.placeholder1,
+            self.placeholder2,
+            self.certificate,
+        )
+
+    def dict(self) -> dict:
+        """
+        Returns a dict representation of this object. If `self.certificate` is `None`,
+        it is not included in this.
+        """
+        d = {
+            "version": self.version,
+            "ip": self.ip,
+            "port": self.port,
+            "ip_type": self.ip_type,
+            "netuid": self.netuid,
+            "hotkey": self.hotkey,
+            "coldkey": self.coldkey,
+            "protocol": self.protocol,
+            "placeholder1": self.placeholder1,
+            "placeholder2": self.placeholder2,
+        }
+        if self.certificate is not None:
+            d["certificate"] = self.certificate
+        return d
 
 
 class PrometheusServeCallParams(TypedDict):
