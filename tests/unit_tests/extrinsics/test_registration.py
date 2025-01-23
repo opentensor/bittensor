@@ -2,7 +2,7 @@ from bittensor.core.extrinsics import registration
 
 
 def test_burned_register_extrinsic(mocker):
-    """ "Verify that sync `burned_register_extrinsic` method calls proper async method."""
+    """"Verify that sync `burned_register_extrinsic` method calls proper async method."""
     # Preps
     fake_subtensor = mocker.Mock()
     fake_wallet = mocker.Mock()
@@ -20,27 +20,27 @@ def test_burned_register_extrinsic(mocker):
         wallet=fake_wallet,
         netuid=netuid,
         wait_for_inclusion=wait_for_inclusion,
-        wait_for_finalization=wait_for_finalization,
+        wait_for_finalization=wait_for_finalization
     )
 
     # Asserts
 
     mocked_execute_coroutine.assert_called_once_with(
         coroutine=mocked_burned_register_extrinsic.return_value,
-        event_loop=fake_subtensor.event_loop,
+        event_loop=fake_subtensor.event_loop
     )
     mocked_burned_register_extrinsic.assert_called_once_with(
         subtensor=fake_subtensor.async_subtensor,
         wallet=fake_wallet,
         netuid=netuid,
         wait_for_inclusion=wait_for_inclusion,
-        wait_for_finalization=wait_for_finalization,
+        wait_for_finalization=wait_for_finalization
     )
     assert result == mocked_execute_coroutine.return_value
 
 
 def test_register_extrinsic(mocker):
-    """ "Verify that sync `register_extrinsic` method calls proper async method."""
+    """"Verify that sync `register_extrinsic` method calls proper async method."""
     # Preps
     fake_subtensor = mocker.Mock()
     fake_wallet = mocker.Mock()
@@ -74,14 +74,14 @@ def test_register_extrinsic(mocker):
         tpb=tpb,
         num_processes=num_processes,
         update_interval=update_interval,
-        log_verbose=log_verbose,
+        log_verbose=log_verbose
     )
 
     # Asserts
 
     mocked_execute_coroutine.assert_called_once_with(
         coroutine=mocked_register_extrinsic.return_value,
-        event_loop=fake_subtensor.event_loop,
+        event_loop=fake_subtensor.event_loop
     )
     mocked_register_extrinsic.assert_called_once_with(
         subtensor=fake_subtensor.async_subtensor,
@@ -96,6 +96,7 @@ def test_register_extrinsic(mocker):
         tpb=tpb,
         num_processes=num_processes,
         update_interval=update_interval,
-        log_verbose=log_verbose,
+        log_verbose=log_verbose
     )
     assert result == mocked_execute_coroutine.return_value
+
