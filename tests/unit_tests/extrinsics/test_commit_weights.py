@@ -43,7 +43,7 @@ def test_commit_weights_extrinsic(mocker):
 
 
 def test_reveal_weights_extrinsic(mocker):
-    """Verify that sync `reveal_weights_extrinsic` method calls proper async method."""
+    """ "Verify that sync `reveal_weights_extrinsic` method calls proper async method."""
     # Preps
     fake_subtensor = mocker.Mock()
     fake_wallet = mocker.Mock()
