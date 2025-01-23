@@ -12,7 +12,7 @@ def test_methods_comparable(mocker):
     async_subtensor = AsyncSubtensor(_mock=True)
 
     # methods which lives in async subtensor only
-    excluded_async_subtensor_methods = ["sign_and_send_extrinsic", "initialize"]
+    excluded_async_subtensor_methods = ["initialize"]
     subtensor_methods = [m for m in dir(subtensor) if not m.startswith("_")]
 
     async_subtensor_methods = [

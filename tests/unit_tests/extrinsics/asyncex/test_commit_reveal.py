@@ -91,11 +91,11 @@ async def test_do_commit_reveal_v3_success(mocker, subtensor):
         call=mocked_compose_call.return_value, keypair=fake_wallet.hotkey
     )
     mocked_submit_extrinsic.assert_awaited_once_with(
-        extrinsic=mocked_create_signed_extrinsic.return_value,
+        mocked_create_signed_extrinsic.return_value,
         wait_for_inclusion=False,
         wait_for_finalization=False,
     )
-    assert result == (True, "Not waiting for finalization or inclusion.")
+    assert result == (True, "")
 
 
 @pytest.mark.asyncio
@@ -121,7 +121,7 @@ async def test_do_commit_reveal_v3_failure_due_to_error(mocker, subtensor):
     )
 
     mocked_format_error_message = mocker.patch.object(
-        async_commit_reveal, "format_error_message", return_value="Formatted error"
+        subtensor_module, "format_error_message", return_value="Formatted error",
     )
 
     # Call
@@ -149,7 +149,7 @@ async def test_do_commit_reveal_v3_failure_due_to_error(mocker, subtensor):
         call=mocked_compose_call.return_value, keypair=fake_wallet.hotkey
     )
     mocked_submit_extrinsic.assert_awaited_once_with(
-        extrinsic=mocked_create_signed_extrinsic.return_value,
+        mocked_create_signed_extrinsic.return_value,
         wait_for_inclusion=True,
         wait_for_finalization=True,
     )
