@@ -1,4 +1,3 @@
-import asyncio
 import copy
 import importlib
 import os
@@ -162,6 +161,8 @@ class MetagraphMixin(ABC):
     Args:
         netuid (int): A unique identifier that distinguishes between different instances or versions of the Bittensor network.
         network (str): The name of the network, signifying specific configurations or iterations within the Bittensor ecosystem.
+
+    Attributes:
         version (NDArray): The version number of the network, integral for tracking network updates.
         n (NDArray): The total number of neurons in the network, reflecting its size and complexity.
         block (NDArray): The current block number in the blockchain, crucial for synchronizing with the network's latest state.
@@ -1071,7 +1072,7 @@ class NonTorchMetagraph(MetagraphMixin):
                 metagraph = Metagraph(netuid=123, network="finney", lite=True, sync=True)
         """
         # super(metagraph, self).__init__()
-        AsyncMetagraphMixin.__init__(self, netuid, network, lite, sync, subtensor)
+        MetagraphMixin.__init__(self, netuid, network, lite, sync, subtensor)
 
         self.netuid = netuid
         self.network, self.chain_endpoint = determine_chain_endpoint_and_network(
@@ -1186,7 +1187,7 @@ class AsyncMetagraph(NumpyOrTorch):
         sync: bool = True,
         subtensor: Optional["AsyncSubtensor"] = None,
     ):
-        NumpyOrTorch.__init__(self, netuid, network, lite, sync, subtensor)
+        super().__init__(netuid, network, lite, sync, subtensor)
 
     async def __aenter__(self):
         if self.should_sync:
@@ -1445,7 +1446,7 @@ class Metagraph(NumpyOrTorch):
         sync: bool = True,
         subtensor: Optional["Subtensor"] = None,
     ):
-        NumpyOrTorch.__init__(self, netuid, network, lite, sync, subtensor)
+        super().__init__(netuid, network, lite, sync, subtensor)
         if sync:
             self.sync()
 
@@ -1562,8 +1563,8 @@ class Metagraph(NumpyOrTorch):
             self.subtensor = subtensor
         return subtensor
 
-    async def _assign_neurons(
-        self, block: int, lite: bool, subtensor: "AsyncSubtensor"
+    def _assign_neurons(
+        self, block: int, lite: bool, subtensor: "Subtensor"
     ):
         """
         Assigns neurons to the metagraph based on the provided block number and the lite flag.
@@ -1590,14 +1591,14 @@ class Metagraph(NumpyOrTorch):
                 self._assign_neurons(block, lite, subtensor)
         """
         if lite:
-            self.neurons = await subtensor.neurons_lite(block=block, netuid=self.netuid)
+            self.neurons = subtensor.neurons_lite(block=block, netuid=self.netuid)
 
         else:
-            self.neurons = await subtensor.neurons(block=block, netuid=self.netuid)
+            self.neurons = subtensor.neurons(block=block, netuid=self.netuid)
         self.lite = lite
 
-    async def _set_weights_and_bonds(
-        self, subtensor: Optional["AsyncSubtensor"] = None
+    def _set_weights_and_bonds(
+        self, subtensor: Optional["Subtensor"] = None
     ):
         """
         Computes and sets the weights and bonds for each neuron in the metagraph. This method is responsible for
@@ -1613,9 +1614,8 @@ class Metagraph(NumpyOrTorch):
 
                 self._set_weights_and_bonds(subtensor=subtensor)
         """
-        # TODO: Check and test the computation of weights and bonds
         if self.netuid == 0:
-            self.weights = await self._process_root_weights(
+            self.weights = self._process_root_weights(
                 [neuron.weights for neuron in self.neurons],
                 "weights",
                 subtensor,
@@ -1628,8 +1628,8 @@ class Metagraph(NumpyOrTorch):
                 [neuron.bonds for neuron in self.neurons], "bonds"
             )
 
-    async def _process_root_weights(
-        self, data: list, attribute: str, subtensor: "AsyncSubtensor"
+    def _process_root_weights(
+        self, data: list, attribute: str, subtensor: "Subtensor"
     ) -> Union[NDArray, "torch.nn.Parameter"]:
         """
         Specifically processes the root weights data for the metagraph. This method is similar to :func:`_process_weights_or_bonds`
@@ -1650,8 +1650,8 @@ class Metagraph(NumpyOrTorch):
                 self.root_weights = self._process_root_weights(raw_root_weights_data, "weights", subtensor)
         """
         data_array = []
-        n_subnets = await subtensor.get_total_subnets() or 0
-        subnets = await subtensor.get_subnets()
+        n_subnets = subtensor.get_total_subnets() or 0
+        subnets = subtensor.get_subnets()
         for item in data:
             if len(item) == 0:
                 if use_torch():
