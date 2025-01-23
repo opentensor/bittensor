@@ -60,6 +60,7 @@ class MetagraphInfo:
     burn: int  # current burn cost.
     difficulty: int  # current difficulty.
     registration_allowed: bool  # allows registrations.
+    pow_registration_allowed: bool  # pow registration enabled.
     immunity_period: int  # subnet miner immunity period
     min_difficulty: int  # min pow difficulty
     max_difficulty: int  # max pow difficulty
@@ -129,7 +130,9 @@ class MetagraphInfo:
         if decoded is None:
             return []
         decoded = [
-            MetagraphInfo.fix_decoded_values(d) for d in decoded if d is not None
+            MetagraphInfo.fix_decoded_values(meta)
+            for meta in decoded
+            if meta is not None
         ]
         return decoded
 

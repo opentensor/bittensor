@@ -365,6 +365,7 @@ custom_rpc_type_registry = {
                 ["burn", "Compact<u64>"],
                 ["difficulty", "Compact<u64>"],
                 ["registration_allowed", "bool"],
+                ["pow_registration_allowed", "bool"],
                 ["immunity_period", "Compact<u16>"],
                 ["min_difficulty", "Compact<u64>"],
                 ["max_difficulty", "Compact<u64>"],
