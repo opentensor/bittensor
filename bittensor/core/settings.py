@@ -1,20 +1,3 @@
-# The MIT License (MIT)
-# Copyright © 2024 Opentensor Foundation
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
-# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
-# the Software.
-#
-# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-# DEALINGS IN THE SOFTWARE.
-
 __version__ = "8.5.1"
 
 import os
@@ -38,9 +21,6 @@ MINERS_DIR.mkdir(parents=True, exist_ok=True)
 # Bittensor networks name
 NETWORKS = ["finney", "test", "archive", "local", "subvortex"]
 
-DEFAULT_ENDPOINT = "wss://entrypoint-finney.opentensor.ai:443"
-DEFAULT_NETWORK = NETWORKS[0]
-
 # Bittensor endpoints (Needs to use wss://)
 FINNEY_ENTRYPOINT = "wss://entrypoint-finney.opentensor.ai:443"
 FINNEY_TEST_ENTRYPOINT = "wss://test.finney.opentensor.ai:443"
@@ -63,6 +43,9 @@ REVERSE_NETWORK_MAP = {
     LOCAL_ENTRYPOINT: NETWORKS[3],
     SUBVORTEX_ENTRYPOINT: NETWORKS[4],
 }
+
+DEFAULT_ENDPOINT = FINNEY_ENTRYPOINT
+DEFAULT_NETWORK = NETWORKS[0]
 
 # Currency Symbols Bittensor
 TAO_SYMBOL: str = chr(0x03C4)
