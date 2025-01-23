@@ -15,8 +15,9 @@ Example:
     logging.info("test info")
 """
 
-from typing import Callable, TYPE_CHECKING
 from functools import wraps
+from typing import Callable, TYPE_CHECKING
+
 from .helpers import all_loggers
 
 if TYPE_CHECKING:

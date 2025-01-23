@@ -82,8 +82,10 @@ class NeuronInfo:
 
         Args:
             neuron_lite (NeuronInfoLite): A lite version of the neuron containing basic attributes.
-            weights_as_dict (dict[int, list[tuple[int, int]]]): A dictionary where the key is the UID and the value is a list of weight tuples associated with the neuron.
-            bonds_as_dict (dict[int, list[tuple[int, int]]]): A dictionary where the key is the UID and the value is a list of bond tuples associated with the neuron.
+            weights_as_dict (dict[int, list[tuple[int, int]]]): A dictionary where the key is the UID and the value is
+                a list of weight tuples associated with the neuron.
+            bonds_as_dict (dict[int, list[tuple[int, int]]]): A dictionary where the key is the UID and the value is a
+                list of bond tuples associated with the neuron.
 
         Returns:
             NeuronInfo: An instance of NeuronInfo populated with the provided weights and bonds.

@@ -39,7 +39,8 @@ async def _do_commit_weights(
     Returns:
         tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
 
-    This method ensures that the weight commitment is securely recorded on the Bittensor blockchain, providing a verifiable record of the neuron's weight distribution at a specific point in time.
+    This method ensures that the weight commitment is securely recorded on the Bittensor blockchain, providing a
+    verifiable record of the neuron's weight distribution at a specific point in time.
     """
     call = await subtensor.substrate.compose_call(
         call_module="SubtensorModule",
@@ -98,7 +99,8 @@ async def commit_weights_extrinsic(
         tuple[bool, str]: ``True`` if the weight commitment is successful, False otherwise. And `msg`, a string
         value describing the success or potential error.
 
-    This function provides a user-friendly interface for committing weights to the Bittensor blockchain, ensuring proper error handling and user interaction when required.
+    This function provides a user-friendly interface for committing weights to the Bittensor blockchain, ensuring proper
+    error handling and user interaction when required.
     """
 
     success, error_message = await _do_commit_weights(
@@ -213,9 +215,11 @@ async def reveal_weights_extrinsic(
         wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
 
     Returns:
-        tuple[bool, str]: ``True`` if the weight revelation is successful, False otherwise. And `msg`, a string value describing the success or potential error.
+        tuple[bool, str]: ``True`` if the weight revelation is successful, False otherwise. And `msg`, a string value
+            describing the success or potential error.
 
-    This function provides a user-friendly interface for revealing weights on the Bittensor blockchain, ensuring proper error handling and user interaction when required.
+    This function provides a user-friendly interface for revealing weights on the Bittensor blockchain, ensuring proper
+    error handling and user interaction when required.
     """
 
     success, error_message = await _do_reveal_weights(
@@ -328,13 +332,17 @@ async def set_weights_extrinsic(
         wallet (bittensor_wallet.Wallet): Bittensor wallet object.
         netuid (int): The ``netuid`` of the subnet to set weights for.
         uids (Union[NDArray[np.int64], torch.LongTensor, list]): The ``uint64`` uids of destination neurons.
-        weights (Union[NDArray[np.float32], torch.FloatTensor, list]): The weights to set. These must be ``float`` s and correspond to the passed ``uid`` s.
+        weights (Union[NDArray[np.float32], torch.FloatTensor, list]): The weights to set. These must be ``float`` s and
+            correspond to the passed ``uid`` s.
         version_key (int): The version key of the validator.
-        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or returns ``false`` if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or
+            returns ``false`` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning
+            ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
 
     Returns:
-        success (bool): Flag is ``true`` if extrinsic was finalized or included in the block. If we did not wait for finalization / inclusion, the response is ``true``.
+        success (bool): Flag is ``true`` if extrinsic was finalized or included in the block. If we did not wait for
+            finalization / inclusion, the response is ``true``.
     """
     # First convert types.
     if isinstance(uids, list):
