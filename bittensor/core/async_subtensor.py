@@ -732,13 +732,6 @@ class AsyncSubtensor:
         if isinstance(amount, (float, int)):
             amount = Balance.from_tao(amount)
 
-        origin_owner = await self.get_hotkey_owner(origin_hotkey)
-        if origin_owner != wallet.coldkeypub.ss58_address:
-            logging.error(
-                f":cross_mark: [red]Failed[/red]: Origin hotkey: {origin_hotkey} does not belong to the coldkey owner: {wallet.coldkeypub.ss58_address}"
-            )
-            return False
-
         stake_in_origin = await self.get_stake(
             hotkey_ss58=origin_hotkey,
             coldkey_ss58=wallet.coldkeypub.ss58_address,
