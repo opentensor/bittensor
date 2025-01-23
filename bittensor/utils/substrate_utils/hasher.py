@@ -1,6 +1,7 @@
 """Helper functions used to calculate keys for Substrate storage items"""
 
 from hashlib import blake2b
+
 import xxhash
 
 
