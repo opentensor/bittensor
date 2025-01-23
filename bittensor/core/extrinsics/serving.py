@@ -218,7 +218,7 @@ def serve_axon_extrinsic(
     # ---- Get external ip ----
     if axon.external_ip is None:
         try:
-            external_ip = net.get_external_ip
+            external_ip = net.get_external_ip()
             logging.success(
                 f":white_heavy_check_mark: [green]Found external ip:[/green] [blue]{external_ip}[/blue]"
             )
