@@ -223,7 +223,7 @@ def serve_axon_extrinsic(
                 f":white_heavy_check_mark: [green]Found external ip:[/green] [blue]{external_ip}[/blue]"
             )
         except Exception as e:
-            raise RuntimeError(
+            raise ConnectionError(
                 f"Unable to attain your external ip. Check your internet connection. error: {e}"
             ) from e
     else:
