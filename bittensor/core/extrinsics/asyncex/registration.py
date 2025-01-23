@@ -106,7 +106,8 @@ async def burned_register_extrinsic(
             ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
 
     Returns:
-        success (bool): Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for finalization / inclusion, the response is ``true``.
+        success (bool): Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for
+            finalization / inclusion, the response is ``true``.
     """
     if not await subtensor.subnet_exists(netuid):
         logging.error(
@@ -249,11 +250,14 @@ async def register_extrinsic(
     """Registers the wallet to the chain.
 
     Args:
-        subtensor (bittensor.core.async_subtensor.AsyncSubtensor): initialized AsyncSubtensor object to use for chain interactions
+        subtensor (bittensor.core.async_subtensor.AsyncSubtensor): initialized AsyncSubtensor object to use for chain
+            interactions
         wallet (bittensor_wallet.Wallet): Bittensor wallet object.
         netuid (int): The ``netuid`` of the subnet to register on.
-        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning `True`, or returns `False` if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning `True`, or returns `False` if the extrinsic fails to be finalized within the timeout.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning `True`, or returns
+            `False` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning
+            `True`, or returns `False` if the extrinsic fails to be finalized within the timeout.
         max_allowed_attempts (int): Maximum number of attempts to register the wallet.
         output_in_place (bool): Whether the POW solving should be outputted to the console as it goes along.
         cuda (bool): If `True`, the wallet should be registered using CUDA device(s).
@@ -264,7 +268,8 @@ async def register_extrinsic(
         log_verbose: If `True`, the registration process will log more information.
 
     Returns:
-        `True` if extrinsic was finalized or included in the block. If we did not wait for finalization/inclusion, the response is `True`.
+        `True` if extrinsic was finalized or included in the block. If we did not wait for finalization/inclusion, the
+            response is `True`.
     """
 
     logging.debug("[magenta]Checking subnet status... [/magenta]")

@@ -55,11 +55,14 @@ async def root_register_extrinsic(
         subtensor (bittensor.core.async_subtensor.AsyncSubtensor): The AsyncSubtensor object
         wallet (bittensor_wallet.Wallet): Bittensor wallet object.
         netuid (int): Subnet uid.
-        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning `True`, or returns `False` if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning `True`, or returns `False` if the extrinsic fails to be finalized within the timeout.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning `True`, or returns
+            `False` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning
+            `True`, or returns `False` if the extrinsic fails to be finalized within the timeout.
 
     Returns:
-        `True` if extrinsic was finalized or included in the block. If we did not wait for finalization/inclusion, the response is `True`.
+        `True` if extrinsic was finalized or included in the block. If we did not wait for finalization/inclusion, the
+            response is `True`.
     """
 
     if not (unlock := unlock_key(wallet)).success:
@@ -132,14 +135,17 @@ async def _do_set_root_weights(
     It waits for inclusion or finalization of the extrinsic based on the provided parameters.
 
     Arguments:
-        subtensor (bittensor.core.async_subtensor.AsyncSubtensor): The AsyncSubtensor object used to interact with the blockchain.
+        subtensor (bittensor.core.async_subtensor.AsyncSubtensor): The AsyncSubtensor object used to interact with the
+            blockchain.
         wallet (bittensor_wallet.Wallet): The wallet containing the hotkey and coldkey for the transaction.
         netuids (Union[NDArray[np.int64], list[int]]): List of UIDs to set weights for.
         weights (Union[NDArray[np.float32], list[float]]): Corresponding weights to set for each UID.
         netuid (int): The netuid of the subnet to set weights for. Defaults to 0.
         version_key (int, optional): The version key of the validator. Defaults to 0.
-        wait_for_inclusion (bool, optional): If True, waits for the extrinsic to be included in a block. Defaults to False.
-        wait_for_finalization (bool, optional): If True, waits for the extrinsic to be finalized on the chain. Defaults to False.
+        wait_for_inclusion (bool, optional): If True, waits for the extrinsic to be included in a block. Defaults to
+            False.
+        wait_for_finalization (bool, optional): If True, waits for the extrinsic to be finalized on the chain. Defaults
+            to False.
         period (int, optional): The period in seconds to wait for extrinsic inclusion or finalization. Defaults to 5.
 
     Returns:
@@ -198,13 +204,17 @@ async def set_root_weights_extrinsic(
         subtensor (bittensor.core.async_subtensor.AsyncSubtensor): The AsyncSubtensor object
         wallet (bittensor_wallet.Wallet): Bittensor wallet object.
         netuids (Union[NDArray[np.int64], list[int]]): The `netuid` of the subnet to set weights for.
-        weights (Union[NDArray[np.float32], list[float]]): Weights to set. These must be `float` s and must correspond to the passed `netuid` s.
+        weights (Union[NDArray[np.float32], list[float]]): Weights to set. These must be `float` s and must correspond
+            to the passed `netuid` s.
         version_key (int): The version key of the validator.
-        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning `True`, or returns `False` if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning `True`, or returns `False` if the extrinsic fails to be finalized within the timeout.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning `True`, or returns
+            `False` if the extrinsic fails to enter the block within the timeout.
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning
+            `True`, or returns `False` if the extrinsic fails to be finalized within the timeout.
 
     Returns:
-        `True` if extrinsic was finalized or included in the block. If we did not wait for finalization/inclusion, the response is `True`.
+        `True` if extrinsic was finalized or included in the block. If we did not wait for finalization/inclusion, the
+            response is `True`.
     """
     my_uid = await subtensor.substrate.query(
         "SubtensorModule", "Uids", [0, wallet.hotkey.ss58_address]
