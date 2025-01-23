@@ -1153,6 +1153,7 @@ async def test_get_neuron_for_pubkey_and_subnet_success(subtensor, mocker):
     subtensor.substrate.rpc_request.assert_called_once_with(
         method="neuronInfo_getNeuron",
         params=[fake_netuid, fake_uid.value],
+        block_hash=None,
         reuse_block_hash=False,
     )
     mocked_neuron_info.assert_called_once_with(fake_result)
@@ -1230,6 +1231,7 @@ async def test_get_neuron_for_pubkey_and_subnet_rpc_result_empty(subtensor, mock
     subtensor.substrate.rpc_request.assert_called_once_with(
         method="neuronInfo_getNeuron",
         params=[fake_netuid, fake_uid],
+        block_hash=None,
         reuse_block_hash=False,
     )
     mocked_get_null_neuron.assert_called_once()
@@ -2504,7 +2506,7 @@ async def test_transfer_success(subtensor, mocker):
     mocked_transfer_extrinsic.assert_awaited_once_with(
         subtensor=subtensor,
         wallet=fake_wallet,
-        destination=fake_destination,
+        dest=fake_destination,
         amount=mocked_balance_from_tao,
         transfer_all=fake_transfer_all,
         wait_for_inclusion=True,
