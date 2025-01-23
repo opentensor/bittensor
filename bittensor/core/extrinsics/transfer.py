@@ -18,6 +18,7 @@
 from typing import Optional, Union, TYPE_CHECKING
 
 from bittensor.core.extrinsics.utils import submit_extrinsic
+from bittensor.core.errors import StakeError
 from bittensor.core.settings import NETWORK_EXPLORER_MAP
 from bittensor.utils import (
     get_explorer_url_for_network,
@@ -197,3 +198,106 @@ def transfer_extrinsic(
         return True
 
     return False
+
+
+def transfer_stake_extrinsic(
+    subtensor: "Subtensor",
+    wallet: "Wallet",
+    hotkey_ss58: str,
+    amount: Optional[Union[Balance, float, int]],
+    origin_netuid: int,
+    destination_netuid: int,
+    destination_coldkey_ss58: str,
+    wait_for_inclusion: bool = True,
+    wait_for_finalization: bool = False,
+) -> bool:
+    """Transfers stake from one network to another.
+
+    Args:
+        subtensor (bittensor.core.subtensor.Subtensor): Subtensor instance.
+        wallet (Wallet): Bittensor wallet object.
+        hotkey_ss58 (str): The ``ss58`` address of the hotkey account to transfer stake from.
+        amount (Union[Balance, float, int]): Amount to transfer as Bittensor balance, float or int.
+        origin_netuid (int): The netuid to transfer stake from.
+        destination_netuid (int): The netuid to transfer stake to.
+        destination_coldkey_ss58 (str): The destination coldkey to transfer stake to.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning.
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized before returning.
+
+    Returns:
+        success (bool): True if the transfer was successful.
+    """
+    # Decrypt keys
+    if not (unlock := unlock_key(wallet)).success:
+        logging.error(unlock.message)
+        return False
+
+    if not isinstance(amount, Balance):
+        amount = Balance.from_tao(amount).set_unit(origin_netuid)
+
+    logging.info(
+        f":satellite: [magenta]Transferring stake on:[/magenta] [blue]{subtensor.network}[/blue] [magenta]...[/magenta]"
+    )
+
+    old_stake = subtensor.get_stake_for_coldkey_and_hotkey(
+        coldkey_ss58=wallet.coldkeypub.ss58_address,
+        hotkey_ss58=hotkey_ss58,
+        netuid=origin_netuid,
+    )
+    if old_stake < amount:
+        logging.error(
+            f":cross_mark: [red]Failed[/red]: Not enough stake on netuid {origin_netuid} to transfer. Stake: {old_stake} < Amount: {amount}"
+        )
+        return False
+    try:
+        logging.info(
+            f":satellite: [magenta]Transferring:[/magenta] [blue]{amount} from netuid: {origin_netuid} to netuid: {destination_netuid}[/blue]"
+        )
+
+        call = subtensor.substrate.compose_call(
+            call_module="SubtensorModule",
+            call_function="transfer_stake",
+            call_params={
+                "destination_coldkey": destination_coldkey_ss58,
+                "hotkey": hotkey_ss58,
+                "origin_netuid": origin_netuid,
+                "destination_netuid": destination_netuid,
+                "alpha_amount": amount.rao,
+            },
+        )
+        extrinsic = subtensor.substrate.create_signed_extrinsic(
+            call=call, keypair=wallet.coldkey
+        )
+        response = subtensor.substrate.submit_extrinsic(
+            extrinsic,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+
+        if not wait_for_finalization and not wait_for_inclusion:
+            return True
+
+        response.process_events()
+        if response.is_success:
+            logging.success(":white_heavy_check_mark: [green]Finalized[/green]")
+
+            # Get new stake
+            new_stake = subtensor.get_stake_for_coldkey_and_hotkey(
+                coldkey_ss58=wallet.coldkeypub.ss58_address,
+                hotkey_ss58=hotkey_ss58,
+                netuid=origin_netuid,
+            )
+
+            logging.info(
+                f"Origin Stake: [blue]{old_stake}[/blue] :arrow_right: [green]{new_stake}[/green]"
+            )
+            return True
+        else:
+            logging.error(
+                f":cross_mark: [red]Failed[/red]: {format_error_message(response.error_message)}"
+            )
+            return False
+
+    except StakeError as e:
+        logging.error(f":cross_mark: [red]Transfer Stake Error: {e}[/red]")
+        return False
