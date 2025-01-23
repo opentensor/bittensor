@@ -1563,9 +1563,7 @@ class Metagraph(NumpyOrTorch):
             self.subtensor = subtensor
         return subtensor
 
-    def _assign_neurons(
-        self, block: int, lite: bool, subtensor: "Subtensor"
-    ):
+    def _assign_neurons(self, block: int, lite: bool, subtensor: "Subtensor"):
         """
         Assigns neurons to the metagraph based on the provided block number and the lite flag.
 
@@ -1597,9 +1595,7 @@ class Metagraph(NumpyOrTorch):
             self.neurons = subtensor.neurons(block=block, netuid=self.netuid)
         self.lite = lite
 
-    def _set_weights_and_bonds(
-        self, subtensor: Optional["Subtensor"] = None
-    ):
+    def _set_weights_and_bonds(self, subtensor: Optional["Subtensor"] = None):
         """
         Computes and sets the weights and bonds for each neuron in the metagraph. This method is responsible for
         processing the raw weight and bond data obtained from the network and converting it into a structured format

@@ -1352,9 +1352,9 @@ class AsyncSubtensor(SubtensorMixin):
         )
         try:
             if certificate:
-                return (
-                    chr(certificate["algorithm"])
-                    + bytes(certificate["public_key"][0]).decode()
+                tuple_ascii = certificate["public_key"][0]
+                return chr(certificate["algorithm"]) + "".join(
+                    chr(i) for i in tuple_ascii
                 )
 
         except AttributeError:

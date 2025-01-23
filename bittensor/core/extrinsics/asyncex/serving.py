@@ -10,11 +10,11 @@ from bittensor.utils import (
     Certificate,
 )
 from bittensor.utils.btlogging import logging
+from bittensor.core.types import AxonServeCallParams
 
 if TYPE_CHECKING:
     from bittensor.core.axon import Axon
     from bittensor.core.async_subtensor import AsyncSubtensor
-    from bittensor.core.types import AxonServeCallParams
     from bittensor_wallet import Wallet
 
 
@@ -43,30 +43,15 @@ async def do_serve_axon(
         decentralized computation capabilities of Bittensor.
     """
 
-    if call_params["certificate"] is None:
-        call_params_ = {
-            "version": call_params["version"],
-            "ip": call_params["ip"],
-            "port": call_params["port"],
-            "ip_type": call_params["ip_type"],
-            "netuid": call_params["netuid"],
-        }
+    if call_params.certificate is None:
         call_function = "serve_axon"
     else:
-        call_params_ = {
-            "version": call_params["version"],
-            "ip": call_params["ip"],
-            "port": call_params["port"],
-            "ip_type": call_params["ip_type"],
-            "netuid": call_params["netuid"],
-            "certificate": call_params["certificate"],
-        }
         call_function = "serve_axon_tls"
 
     call = await subtensor.substrate.compose_call(
         call_module="SubtensorModule",
         call_function=call_function,
-        call_params=call_params_,
+        call_params=call_params.dict(),
     )
     extrinsic = await subtensor.substrate.create_signed_extrinsic(
         call=call, keypair=wallet.hotkey
@@ -125,38 +110,26 @@ async def serve_extrinsic(
         logging.error(unlock.message)
         return False
 
-    params: "AxonServeCallParams" = {
-        "version": version_as_int,
-        "ip": net.ip_to_int(ip),
-        "port": port,
-        "ip_type": net.ip_version(ip),
-        "netuid": netuid,
-        "hotkey": wallet.hotkey.ss58_address,
-        "coldkey": wallet.coldkeypub.ss58_address,
-        "protocol": protocol,
-        "placeholder1": placeholder1,
-        "placeholder2": placeholder2,
-        "certificate": certificate,
-    }
+    params = AxonServeCallParams(
+        **{
+            "version": version_as_int,
+            "ip": net.ip_to_int(ip),
+            "port": port,
+            "ip_type": net.ip_version(ip),
+            "netuid": netuid,
+            "hotkey": wallet.hotkey.ss58_address,
+            "coldkey": wallet.coldkeypub.ss58_address,
+            "protocol": protocol,
+            "placeholder1": placeholder1,
+            "placeholder2": placeholder2,
+            "certificate": certificate,
+        }
+    )
     logging.debug("Checking axon ...")
     neuron = await subtensor.get_neuron_for_pubkey_and_subnet(
         wallet.hotkey.ss58_address, netuid=netuid
     )
-    neuron_up_to_date = not neuron.is_null and params == {
-        "version": neuron.axon_info.version,
-        "ip": net.ip_to_int(neuron.axon_info.ip),
-        "port": neuron.axon_info.port,
-        "ip_type": neuron.axon_info.ip_type,
-        "netuid": neuron.netuid,
-        "hotkey": neuron.hotkey,
-        "coldkey": neuron.coldkey,
-        "protocol": neuron.axon_info.protocol,
-        "placeholder1": neuron.axon_info.placeholder1,
-        "placeholder2": neuron.axon_info.placeholder2,
-    }
-    output = params.copy()
-    output["coldkey"] = wallet.coldkeypub.ss58_address
-    output["hotkey"] = wallet.hotkey.ss58_address
+    neuron_up_to_date = not neuron.is_null and params == neuron
     if neuron_up_to_date:
         logging.debug(
             f"Axon already served on: AxonInfo({wallet.hotkey.ss58_address},{ip}:{port}) "
