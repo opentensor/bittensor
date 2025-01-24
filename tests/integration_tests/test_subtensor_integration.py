@@ -32,7 +32,11 @@ async def prepare_test(mocker, seed):
             MetadataV15.decode_from_metadata_option(f.read())
         )
     subtensor = Subtensor("unknown", _mock=True)
-    mocker.patch.object(sync_substrate, "connect", mocker.Mock(return_value=FakeConnectContextManager(seed=seed)))
+    mocker.patch.object(
+        sync_substrate,
+        "connect",
+        mocker.Mock(return_value=FakeConnectContextManager(seed=seed)),
+    )
     mocker.patch.object(subtensor.substrate, "registry", registry)
     return subtensor
 

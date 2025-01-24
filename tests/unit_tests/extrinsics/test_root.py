@@ -68,7 +68,7 @@ def test_root_register_extrinsic(
     mocked_sign_and_send_extrinsic = mocker.patch.object(
         mock_subtensor,
         "sign_and_send_extrinsic",
-        return_value=(registration_success, "Error registering")
+        return_value=(registration_success, "Error registering"),
     )
     mocker.patch.object(
         mock_subtensor.substrate,
@@ -96,7 +96,7 @@ def test_root_register_extrinsic(
             mock_subtensor.substrate.compose_call.return_value,
             wallet=mock_wallet,
             wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization
+            wait_for_finalization=wait_for_finalization,
         )
 
 

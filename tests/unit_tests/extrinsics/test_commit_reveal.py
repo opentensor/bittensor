@@ -64,7 +64,9 @@ def test_do_commit_reveal_v3_success(mocker, subtensor):
     mocked_create_signed_extrinsic = mocker.patch.object(
         subtensor.substrate, "create_signed_extrinsic"
     )
-    mocked_submit_extrinsic = mocker.patch.object(subtensor.substrate, "submit_extrinsic")
+    mocked_submit_extrinsic = mocker.patch.object(
+        subtensor.substrate, "submit_extrinsic"
+    )
 
     # Call
     result = commit_reveal._do_commit_reveal_v3(

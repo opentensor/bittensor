@@ -145,7 +145,6 @@ class FakeWebsocket(ClientConnection):
 
 
 class FakeConnectContextManager:
-
     def __init__(self, seed):
         self.seed = seed
 
