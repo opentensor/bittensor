@@ -153,7 +153,7 @@ async def wait_interval(
     and the provided tempo, then enters a loop where it periodically checks
     the current block number until the next tempo interval starts.
     """
-    current_block = await subtensor.async_subtensor.get_current_block()
+    current_block = subtensor.get_current_block()
     next_tempo_block_start = next_tempo(current_block, tempo, netuid)
     last_reported = None
 
@@ -161,7 +161,7 @@ async def wait_interval(
         await asyncio.sleep(
             1
         )  # Wait for 1 second before checking the block number again
-        current_block = await subtensor.async_subtensor.get_current_block()
+        current_block = subtensor.get_current_block()
         if last_reported is None or current_block - last_reported >= reporting_interval:
             last_reported = current_block
             print(

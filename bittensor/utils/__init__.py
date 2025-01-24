@@ -6,10 +6,7 @@ from urllib.parse import urlparse
 
 import scalecodec
 from async_substrate_interface.utils import (
-    event_loop_is_running,
     hex_to_bytes,
-    get_event_loop,
-    execute_coroutine,
 )
 from bittensor_wallet import Keypair
 from bittensor_wallet.errors import KeyFileError, PasswordError
@@ -32,10 +29,7 @@ version_checking = version_checking
 check_version = check_version
 VersionCheckError = VersionCheckError
 ss58_decode = ss58_decode
-event_loop_is_running = event_loop_is_running
 hex_to_bytes = hex_to_bytes
-get_event_loop = get_event_loop
-execute_coroutine = execute_coroutine
 
 
 RAOPERTAO = 1e9
@@ -44,6 +38,33 @@ U64_MAX = 18446744073709551615
 
 Certificate = str
 UnlockStatus = namedtuple("UnlockStatus", ["success", "message"])
+
+
+def _decode_hex_identity_dict(info_dictionary: dict[str, Any]) -> dict[str, Any]:
+    # TODO why does this exist alongside `decode_hex_identity_dict`?
+    """Decodes a dictionary of hexadecimal identities."""
+    for k, v in info_dictionary.items():
+        if isinstance(v, dict):
+            item = next(iter(v.values()))
+        else:
+            item = v
+        if isinstance(item, tuple) and item:
+            if len(item) > 1:
+                try:
+                    info_dictionary[k] = (
+                        bytes(item).hex(sep=" ", bytes_per_sep=2).upper()
+                    )
+                except UnicodeDecodeError:
+                    logging.error(f"Could not decode: {k}: {item}.")
+            else:
+                try:
+                    info_dictionary[k] = bytes(item[0]).decode("utf-8")
+                except UnicodeDecodeError:
+                    logging.error(f"Could not decode: {k}: {item}.")
+        else:
+            info_dictionary[k] = item
+
+    return info_dictionary
 
 
 def ss58_to_vec_u8(ss58_address: str) -> list[int]:

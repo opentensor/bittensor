@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from datetime import timedelta
 from multiprocessing.queues import Queue as QueueType
 from queue import Empty, Full
-from typing import Any, Callable, Optional, Union, TYPE_CHECKING
+from typing import Callable, Optional, Union, TYPE_CHECKING
 
 import numpy
 from Crypto.Hash import keccak
@@ -1105,7 +1105,7 @@ def create_pow(
     num_processes: Optional[int] = None,
     update_interval: Optional[int] = None,
     log_verbose: bool = False,
-) -> Optional[dict[str, Any]]:
+) -> Optional["POWSolution"]:
     """
     Creates a proof of work for the given subtensor and wallet.
 

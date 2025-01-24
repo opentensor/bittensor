@@ -17,6 +17,14 @@ BlockNotFound = BlockNotFound
 ExtrinsicNotFound = ExtrinsicNotFound
 
 
+class MaxSuccessException(Exception):
+    """Raised when the POW Solver has reached the max number of successful solutions."""
+
+
+class MaxAttemptsException(Exception):
+    """Raised when the POW Solver has reached the max number of attempts."""
+
+
 class ChainError(SubstrateRequestException):
     """Base error for any chain related errors."""
 

@@ -7,7 +7,6 @@ from bittensor_commit_reveal import get_encrypted_commit
 from numpy.typing import NDArray
 
 from bittensor.core.settings import version_as_int
-from bittensor.utils import format_error_message
 from bittensor.utils.btlogging import logging
 from bittensor.utils.weight_utils import convert_weights_and_uids_for_emit
 
@@ -31,7 +30,7 @@ async def _do_commit_reveal_v3(
     finalization.
 
     Arguments:
-        subtensor: An instance of the Subtensor class.
+        subtensor: An instance of the AsyncSubtensor class.
         wallet: Wallet An instance of the Wallet class containing the user's keypair.
         netuid: int The network unique identifier.
         commit  bytes The commit data in bytes format.
@@ -57,25 +56,9 @@ async def _do_commit_reveal_v3(
             "reveal_round": reveal_round,
         },
     )
-
-    extrinsic = await subtensor.substrate.create_signed_extrinsic(
-        call=call,
-        keypair=wallet.hotkey,
+    return await subtensor.sign_and_send_extrinsic(
+        call, wallet, wait_for_inclusion, wait_for_finalization, sign_with="hotkey"
     )
-
-    response = await subtensor.substrate.submit_extrinsic(
-        extrinsic=extrinsic,
-        wait_for_inclusion=wait_for_inclusion,
-        wait_for_finalization=wait_for_finalization,
-    )
-
-    if not wait_for_finalization and not wait_for_inclusion:
-        return True, "Not waiting for finalization or inclusion."
-
-    if await response.is_success:
-        return True, None
-
-    return False, format_error_message(await response.error_message)
 
 
 async def commit_reveal_v3_extrinsic(

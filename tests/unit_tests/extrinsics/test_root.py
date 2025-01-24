@@ -3,81 +3,241 @@ from bittensor.core.subtensor import Subtensor
 from bittensor.core.extrinsics import root
 
 
-def test_root_register_extrinsic(mocker):
-    """Verify that sync `root_register_extrinsic` method calls proper async method."""
+@pytest.fixture
+def mock_subtensor(mocker):
+    mock = mocker.MagicMock(spec=Subtensor)
+    mock.network = "magic_mock"
+    mock.substrate = mocker.Mock()
+    return mock
+
+
+@pytest.fixture
+def mock_wallet(mocker):
+    mock = mocker.MagicMock()
+    mock.hotkey.ss58_address = "fake_hotkey_address"
+    return mock
+
+
+@pytest.mark.parametrize(
+    "wait_for_inclusion, wait_for_finalization, hotkey_registered, registration_success, expected_result",
+    [
+        (
+            False,
+            True,
+            [True, None],
+            True,
+            True,
+        ),  # Already registered after attempt
+        (
+            False,
+            True,
+            [False, 1],
+            True,
+            True,
+        ),  # Registration succeeds with user confirmation
+        (False, True, [False, None], False, False),  # Registration fails
+        (
+            False,
+            True,
+            [False, None],
+            True,
+            False,
+        ),  # Registration succeeds but neuron not found
+    ],
+    ids=[
+        "success-already-registered",
+        "success-registration-succeeds",
+        "failure-registration-failed",
+        "failure-neuron-not-found",
+    ],
+)
+def test_root_register_extrinsic(
+    mock_subtensor,
+    mock_wallet,
+    wait_for_inclusion,
+    wait_for_finalization,
+    hotkey_registered,
+    registration_success,
+    expected_result,
+    mocker,
+):
+    # Arrange
+    mock_subtensor.is_hotkey_registered.return_value = hotkey_registered[0]
+
     # Preps
-    fake_subtensor = mocker.Mock()
-    fake_wallet = mocker.Mock()
-    wait_for_inclusion = True
-    wait_for_finalization = True
+    mocked_sign_and_send_extrinsic = mocker.patch.object(
+        mock_subtensor,
+        "sign_and_send_extrinsic",
+        return_value=(registration_success, "Error registering"),
+    )
+    mocker.patch.object(
+        mock_subtensor.substrate,
+        "query",
+        return_value=hotkey_registered[1],
+    )
 
-    mocked_execute_coroutine = mocker.patch.object(root, "execute_coroutine")
-    mocked_root_register_extrinsic = mocker.Mock()
-    root.async_root_register_extrinsic = mocked_root_register_extrinsic
-
-    # Call
+    # Act
     result = root.root_register_extrinsic(
-        subtensor=fake_subtensor,
-        wallet=fake_wallet,
+        subtensor=mock_subtensor,
+        wallet=mock_wallet,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
     )
+    # Assert
+    assert result == expected_result
 
-    # Asserts
-
-    mocked_execute_coroutine.assert_called_once_with(
-        coroutine=mocked_root_register_extrinsic.return_value,
-        event_loop=fake_subtensor.event_loop,
-    )
-    mocked_root_register_extrinsic.assert_called_once_with(
-        subtensor=fake_subtensor.async_subtensor,
-        wallet=fake_wallet,
-        netuid=0,
-        wait_for_inclusion=wait_for_inclusion,
-        wait_for_finalization=wait_for_finalization,
-    )
-    assert result == mocked_execute_coroutine.return_value
+    if not hotkey_registered[0]:
+        mock_subtensor.substrate.compose_call.assert_called_once_with(
+            call_module="SubtensorModule",
+            call_function="root_register",
+            call_params={"hotkey": "fake_hotkey_address"},
+        )
+        mocked_sign_and_send_extrinsic.assert_called_once_with(
+            mock_subtensor.substrate.compose_call.return_value,
+            wallet=mock_wallet,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
 
 
-def test_set_root_weights_extrinsic(mocker):
-    """Verify that sync `set_root_weights_extrinsic` method calls proper async method."""
+@pytest.mark.parametrize(
+    "wait_for_inclusion, wait_for_finalization, netuids, weights, expected_success",
+    [
+        (True, False, [1, 2], [0.5, 0.5], True),  # Success - weights set
+        (
+            False,
+            False,
+            [1, 2],
+            [0.5, 0.5],
+            True,
+        ),  # Success - weights set no wait
+        (
+            True,
+            False,
+            [1, 2],
+            [2000, 20],
+            True,
+        ),  # Success - large value to be normalized
+        (
+            True,
+            False,
+            [1, 2],
+            [2000, 0],
+            True,
+        ),  # Success - single large value
+        (
+            True,
+            False,
+            [1, 2],
+            [0.5, 0.5],
+            False,
+        ),  # Failure - setting weights failed
+    ],
+    ids=[
+        "success-weights-set",
+        "success-not-wait",
+        "success-large-value",
+        "success-single-value",
+        "failure-setting-weights",
+    ],
+)
+def test_set_root_weights_extrinsic(
+    mock_subtensor,
+    mock_wallet,
+    wait_for_inclusion,
+    wait_for_finalization,
+    netuids,
+    weights,
+    expected_success,
+    mocker,
+):
     # Preps
-    fake_subtensor = mocker.Mock()
-    fake_wallet = mocker.Mock()
-    netuids = [1, 2, 3, 4]
-    weights = [0.1, 0.2, 0.3, 0.4]
-    version_key = 2
-    wait_for_inclusion = True
-    wait_for_finalization = True
-
-    mocked_execute_coroutine = mocker.patch.object(root, "execute_coroutine")
-    mocked_set_root_weights_extrinsic = mocker.Mock()
-    root.async_set_root_weights_extrinsic = mocked_set_root_weights_extrinsic
+    root._do_set_root_weights = mocker.Mock(
+        return_value=(expected_success, "Mock error")
+    )
+    root._get_limits = mocker.Mock(
+        return_value=(0, 1),
+    )
 
     # Call
     result = root.set_root_weights_extrinsic(
-        subtensor=fake_subtensor,
-        wallet=fake_wallet,
+        subtensor=mock_subtensor,
+        wallet=mock_wallet,
         netuids=netuids,
         weights=weights,
-        version_key=version_key,
+        version_key=0,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
     )
 
     # Asserts
+    assert result == expected_success
 
-    mocked_execute_coroutine.assert_called_once_with(
-        coroutine=mocked_set_root_weights_extrinsic.return_value,
-        event_loop=fake_subtensor.event_loop,
+
+@pytest.mark.parametrize(
+    "wait_for_inclusion, wait_for_finalization, netuids, weights, user_response, expected_success",
+    [
+        (True, False, [1, 2], [0.5, 0.5], True, True),  # Success - weights set
+        (
+            False,
+            False,
+            [1, 2],
+            [0.5, 0.5],
+            None,
+            True,
+        ),  # Success - weights set no wait
+        (
+            True,
+            False,
+            [1, 2],
+            [2000, 20],
+            True,
+            True,
+        ),  # Success - large value to be normalized
+        (
+            True,
+            False,
+            [1, 2],
+            [2000, 0],
+            True,
+            True,
+        ),  # Success - single large value
+        (
+            True,
+            False,
+            [1, 2],
+            [0.5, 0.5],
+            None,
+            False,
+        ),  # Failure - setting weights failed
+    ],
+    ids=[
+        "success-weights-set",
+        "success-not-wait",
+        "success-large-value",
+        "success-single-value",
+        "failure-setting-weights",
+    ],
+)
+def test_set_root_weights_extrinsic_torch(
+    mock_subtensor,
+    mock_wallet,
+    wait_for_inclusion,
+    wait_for_finalization,
+    netuids,
+    weights,
+    user_response,
+    expected_success,
+    force_legacy_torch_compatible_api,
+    mocker,
+):
+    test_set_root_weights_extrinsic(
+        mock_subtensor,
+        mock_wallet,
+        wait_for_inclusion,
+        wait_for_finalization,
+        netuids,
+        weights,
+        expected_success,
+        mocker,
     )
-    mocked_set_root_weights_extrinsic.assert_called_once_with(
-        subtensor=fake_subtensor.async_subtensor,
-        wallet=fake_wallet,
-        netuids=netuids,
-        weights=weights,
-        version_key=version_key,
-        wait_for_inclusion=wait_for_inclusion,
-        wait_for_finalization=wait_for_finalization,
-    )
-    assert result == mocked_execute_coroutine.return_value

@@ -1,6 +1,7 @@
 import pytest
 import torch
 
+from async_substrate_interface.utils import json
 from bittensor.core.chain_data import AxonInfo, DelegateInfo
 from bittensor.core.chain_data.utils import ChainDataType
 
@@ -102,7 +103,19 @@ def test_eq(other, expected, test_case):
                 hotkey="hot",
                 coldkey="cold",
             ),
-            '{"version": 1, "ip": "127.0.0.1", "port": 8080, "ip_type": 4, "hotkey": "hot", "coldkey": "cold", "protocol": 4, "placeholder1": 0, "placeholder2": 0}',
+            json.dumps(
+                {
+                    "version": 1,
+                    "ip": "127.0.0.1",
+                    "port": 8080,
+                    "ip_type": 4,
+                    "hotkey": "hot",
+                    "coldkey": "cold",
+                    "protocol": 4,
+                    "placeholder1": 0,
+                    "placeholder2": 0,
+                }
+            ),
             "ID_to_string",
         ),
     ],

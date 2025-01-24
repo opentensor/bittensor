@@ -162,7 +162,8 @@ async def add_stake_extrinsic(
             logging.success(":white_heavy_check_mark: [green]Finalized[/green]")
 
             logging.info(
-                f":satellite: [magenta]Checking Balance on:[/magenta] [blue]{subtensor.network}[/blue] [magenta]...[/magenta]"
+                f":satellite: [magenta]Checking Balance on:[/magenta] [blue]{subtensor.network}[/blue] "
+                "[magenta]...[/magenta]"
             )
             new_block_hash = await subtensor.substrate.get_chain_head()
             new_balance, new_stake = await asyncio.gather(
@@ -270,6 +271,10 @@ async def add_stake_multiple_extrinsic(
     total_staking_rao = sum(
         [amount.rao if amount is not None else 0 for amount in new_amounts]
     )
+    if old_balance is None:
+        old_balance = await subtensor.get_balance(
+            wallet.coldkeypub.ss58_address, block_hash=block_hash
+        )
     if total_staking_rao == 0:
         # Staking all to the first wallet.
         if old_balance.rao > 1000:
@@ -305,7 +310,8 @@ async def add_stake_multiple_extrinsic(
         # Check enough to stake
         if staking_balance > old_balance:
             logging.error(
-                f":cross_mark: [red]Not enough balance[/red]: [green]{old_balance}[/green] to stake: [blue]{staking_balance}[/blue] from wallet: [white]{wallet.name}[/white]"
+                f":cross_mark: [red]Not enough balance[/red]: [green]{old_balance}[/green] to stake: "
+                f"[blue]{staking_balance}[/blue] from wallet: [white]{wallet.name}[/white]"
             )
             continue
 
@@ -328,9 +334,7 @@ async def add_stake_multiple_extrinsic(
                 if idx < len(hotkey_ss58s) - 1:
                     # Wait for tx rate limit.
                     tx_query = await subtensor.substrate.query(
-                        module="SubtensorModule",
-                        storage_function="TxRateLimit",
-                        block_hash=block_hash,
+                        module="SubtensorModule", storage_function="TxRateLimit"
                     )
                     tx_rate_limit_blocks: int = tx_query
                     if tx_rate_limit_blocks > 0:
@@ -391,7 +395,8 @@ async def add_stake_multiple_extrinsic(
 
     if successful_stakes != 0:
         logging.info(
-            f":satellite: [magenta]Checking Balance on:[/magenta] ([blue]{subtensor.network}[/blue] [magenta]...[/magenta]"
+            f":satellite: [magenta]Checking Balance on:[/magenta] ([blue]{subtensor.network}[/blue] "
+            f"[magenta]...[/magenta]"
         )
         new_balance = await subtensor.get_balance(wallet.coldkeypub.ss58_address)
         logging.info(

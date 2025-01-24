@@ -14,6 +14,42 @@ if TYPE_CHECKING:
     from bittensor_wallet import Wallet
     from bittensor.core.async_subtensor import AsyncSubtensor
     from bittensor.utils.registration import torch
+    from scalecodec.types import GenericCall
+
+
+async def sign_and_send_with_nonce(
+    subtensor: "AsyncSubtensor",
+    call: "GenericCall",
+    wallet: "Wallet",
+    wait_for_inclusion: bool,
+    wait_for_finalization: bool,
+    period: Optional[int] = None,
+):
+    """
+    Signs an extrinsic call with the wallet hotkey, adding an optional era for period
+    """
+    next_nonce = await subtensor.substrate.get_account_next_index(
+        wallet.hotkey.ss58_address
+    )
+
+    extrinsic_data = {"call": call, "keypair": wallet.hotkey, "nonce": next_nonce}
+    if period is not None:
+        extrinsic_data["era"] = {"period": period}
+
+    extrinsic = await subtensor.substrate.create_signed_extrinsic(**extrinsic_data)
+    response = await subtensor.substrate.submit_extrinsic(
+        extrinsic=extrinsic,
+        wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization,
+    )
+
+    if not wait_for_finalization and not wait_for_inclusion:
+        return True, None
+
+    if await response.is_success:
+        return True, None
+
+    return False, format_error_message(await response.error_message)
 
 
 async def _do_commit_weights(
@@ -29,7 +65,8 @@ async def _do_commit_weights(
     This method constructs and submits the transaction, handling retries and blockchain communication.
 
     Args:
-        subtensor (bittensor.core.async_subtensor.AsyncSubtensor): The subtensor instance used for blockchain interaction.
+        subtensor (bittensor.core.async_subtensor.AsyncSubtensor): The subtensor instance used for blockchain
+            interaction.
         wallet (bittensor_wallet.Wallet): The wallet associated with the neuron committing the weights.
         netuid (int): The unique identifier of the subnet.
         commit_hash (str): The hash of the neuron's weights to be committed.
@@ -40,7 +77,7 @@ async def _do_commit_weights(
         tuple[bool, Optional[str]]: A tuple containing a success flag and an optional error message.
 
     This method ensures that the weight commitment is securely recorded on the Bittensor blockchain, providing a
-    verifiable record of the neuron's weight distribution at a specific point in time.
+        verifiable record of the neuron's weight distribution at a specific point in time.
     """
     call = await subtensor.substrate.compose_call(
         call_module="SubtensorModule",
@@ -50,29 +87,9 @@ async def _do_commit_weights(
             "commit_hash": commit_hash,
         },
     )
-
-    next_nonce = await subtensor.substrate.get_account_next_index(
-        wallet.hotkey.ss58_address
+    return await sign_and_send_with_nonce(
+        subtensor, call, wallet, wait_for_inclusion, wait_for_finalization
     )
-
-    extrinsic = await subtensor.substrate.create_signed_extrinsic(
-        call=call,
-        keypair=wallet.hotkey,
-        nonce=next_nonce,
-    )
-    response = await subtensor.substrate.submit_extrinsic(
-        extrinsic=extrinsic,
-        wait_for_inclusion=wait_for_inclusion,
-        wait_for_finalization=wait_for_finalization,
-    )
-
-    if not wait_for_finalization and not wait_for_inclusion:
-        return True, None
-
-    if await response.is_success:
-        return True, None
-
-    return False, format_error_message(response.error_message)
 
 
 async def commit_weights_extrinsic(
@@ -88,7 +105,8 @@ async def commit_weights_extrinsic(
     This function is a wrapper around the `do_commit_weights` method.
 
     Args:
-        subtensor (bittensor.core.async_subtensor.AsyncSubtensor): The subtensor instance used for blockchain interaction.
+        subtensor (bittensor.core.async_subtensor.AsyncSubtensor): The subtensor instance used for blockchain
+            interaction.
         wallet (bittensor_wallet.Wallet): The wallet associated with the neuron committing the weights.
         netuid (int): The unique identifier of the subnet.
         commit_hash (str): The hash of the neuron's weights to be committed.
@@ -100,7 +118,7 @@ async def commit_weights_extrinsic(
         value describing the success or potential error.
 
     This function provides a user-friendly interface for committing weights to the Bittensor blockchain, ensuring proper
-    error handling and user interaction when required.
+        error handling and user interaction when required.
     """
 
     success, error_message = await _do_commit_weights(
@@ -137,7 +155,8 @@ async def _do_reveal_weights(
     This method constructs and submits the transaction, handling retries and blockchain communication.
 
     Args:
-        subtensor (bittensor.core.async_subtensor.AsyncSubtensor): The subtensor instance used for blockchain interaction.
+        subtensor (bittensor.core.async_subtensor.AsyncSubtensor): The subtensor instance used for blockchain
+            interaction.
         wallet (bittensor_wallet.Wallet): The wallet associated with the neuron revealing the weights.
         netuid (int): The unique identifier of the subnet.
         uids (list[int]): List of neuron UIDs for which weights are being revealed.
@@ -165,27 +184,9 @@ async def _do_reveal_weights(
             "version_key": version_key,
         },
     )
-    next_nonce = await subtensor.substrate.get_account_next_index(
-        wallet.hotkey.ss58_address
+    return await sign_and_send_with_nonce(
+        subtensor, call, wallet, wait_for_inclusion, wait_for_finalization
     )
-    extrinsic = await subtensor.substrate.create_signed_extrinsic(
-        call=call,
-        keypair=wallet.hotkey,
-        nonce=next_nonce,
-    )
-    response = await subtensor.substrate.submit_extrinsic(
-        extrinsic=extrinsic,
-        wait_for_inclusion=wait_for_inclusion,
-        wait_for_finalization=wait_for_finalization,
-    )
-
-    if not wait_for_finalization and not wait_for_inclusion:
-        return True, None
-
-    if await response.is_success:
-        return True, None
-
-    return False, await response.error_message
 
 
 async def reveal_weights_extrinsic(
@@ -204,7 +205,8 @@ async def reveal_weights_extrinsic(
     This function is a wrapper around the `_do_reveal_weights` method.
 
     Args:
-        subtensor (bittensor.core.subtensor.Subtensor): The subtensor instance used for blockchain interaction.
+        subtensor (bittensor.core.async_subtensor.AsyncSubtensor): The subtensor instance used for blockchain
+            interaction.
         wallet (bittensor_wallet.Wallet): The wallet associated with the neuron revealing the weights.
         netuid (int): The unique identifier of the subnet.
         uids (list[int]): List of neuron UIDs for which weights are being revealed.
@@ -219,7 +221,7 @@ async def reveal_weights_extrinsic(
             describing the success or potential error.
 
     This function provides a user-friendly interface for revealing weights on the Bittensor blockchain, ensuring proper
-    error handling and user interaction when required.
+        error handling and user interaction when required.
     """
 
     success, error_message = await _do_reveal_weights(
@@ -288,31 +290,9 @@ async def _do_set_weights(
             "version_key": version_key,
         },
     )
-
-    next_nonce = await subtensor.substrate.get_account_next_index(
-        wallet.hotkey.ss58_address
+    return await sign_and_send_with_nonce(
+        subtensor, call, wallet, wait_for_inclusion, wait_for_finalization, period
     )
-
-    # Period dictates how long the extrinsic will stay as part of waiting pool
-    extrinsic = await subtensor.substrate.create_signed_extrinsic(
-        call=call,
-        keypair=wallet.hotkey,
-        era={"period": period},
-        nonce=next_nonce,
-    )
-    response = await subtensor.substrate.submit_extrinsic(
-        extrinsic=extrinsic,
-        wait_for_inclusion=wait_for_inclusion,
-        wait_for_finalization=wait_for_finalization,
-    )
-    # We only wait here if we expect finalization.
-    if not wait_for_finalization and not wait_for_inclusion:
-        return True, "Not waiting for finalization or inclusion."
-
-    if await response.is_success:
-        return True, "Successfully set weights."
-
-    return False, format_error_message(response.error_message)
 
 
 async def set_weights_extrinsic(
@@ -335,14 +315,14 @@ async def set_weights_extrinsic(
         weights (Union[NDArray[np.float32], torch.FloatTensor, list]): The weights to set. These must be ``float`` s and
             correspond to the passed ``uid`` s.
         version_key (int): The version key of the validator.
-        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or
-            returns ``false`` if the extrinsic fails to enter the block within the timeout.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``True``, or
+            returns ``False`` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning
-            ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
+            ``True``, or returns ``False`` if the extrinsic fails to be finalized within the timeout.
 
     Returns:
-        success (bool): Flag is ``true`` if extrinsic was finalized or included in the block. If we did not wait for
-            finalization / inclusion, the response is ``true``.
+        success (bool): Flag is ``True`` if extrinsic was finalized or included in the block. If we did not wait for
+            finalization / inclusion, the response is ``True``.
     """
     # First convert types.
     if isinstance(uids, list):

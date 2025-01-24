@@ -33,18 +33,14 @@ class TestMetagraph:
         self.metagraph.sync(lite=True, block=0, subtensor=self.sub)
 
     def test_load_sync_save(self):
-        with mock.patch.object(
-            self.sub.async_subtensor, "neurons_lite", return_value=[]
-        ):
+        with mock.patch.object(self.sub, "neurons_lite", return_value=[]):
             self.metagraph.sync(lite=True, subtensor=self.sub)
             self.metagraph.save()
             self.metagraph.load()
             self.metagraph.save()
 
     def test_load_sync_save_from_torch(self):
-        with mock.patch.object(
-            self.sub.async_subtensor, "neurons_lite", return_value=[]
-        ):
+        with mock.patch.object(self.sub, "neurons_lite", return_value=[]):
             self.metagraph.sync(lite=True, subtensor=self.sub)
 
         def deprecated_save_torch(metagraph):
