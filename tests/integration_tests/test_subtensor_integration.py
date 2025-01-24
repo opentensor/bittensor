@@ -53,7 +53,6 @@ async def test_get_all_subnets_info(mocker):
 @pytest.mark.asyncio
 async def test_metagraph(mocker):
     subtensor = await prepare_test(mocker, "metagraph")
-    # with mocker.patch.object(subtensor, "get_block_hash", return_value={"n": 19}):
     result = subtensor.metagraph(23)
     assert result.n == 19
     assert result.netuid == 23
