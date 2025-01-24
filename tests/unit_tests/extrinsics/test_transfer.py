@@ -100,7 +100,9 @@ def test_do_transfer_is_success_false(subtensor, mocker):
         wait_for_inclusion=fake_wait_for_inclusion,
         wait_for_finalization=fake_wait_for_finalization,
     )
-    mocked_format_error_message.assert_called_once_with(subtensor.substrate.submit_extrinsic.return_value.error_message)
+    mocked_format_error_message.assert_called_once_with(
+        subtensor.substrate.submit_extrinsic.return_value.error_message
+    )
 
     assert result == (
         False,
