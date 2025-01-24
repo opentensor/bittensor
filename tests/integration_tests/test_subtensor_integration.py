@@ -1,7 +1,6 @@
 import os.path
 
 import pytest
-from async_substrate_interface import sync_substrate
 from bt_decode import PortableRegistry, MetadataV15
 
 from bittensor import NeuronInfo
@@ -32,9 +31,8 @@ async def prepare_test(mocker, seed):
             MetadataV15.decode_from_metadata_option(f.read())
         )
     subtensor = Subtensor("unknown", _mock=True)
-    mocker.patch.object(
-        sync_substrate,
-        "connect",
+    mocker.patch(
+        "async_substrate_interface.sync_substrate.connect",
         mocker.Mock(return_value=FakeConnectContextManager(seed=seed)),
     )
     mocker.patch.object(subtensor.substrate, "registry", registry)
