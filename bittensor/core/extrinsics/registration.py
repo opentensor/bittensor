@@ -11,12 +11,12 @@ from typing import Optional, Union, TYPE_CHECKING
 
 from bittensor.utils import unlock_key
 from bittensor.utils.btlogging import logging
-from bittensor.utils.registration import log_no_torch_error, torch
+from bittensor.utils.registration import create_pow, log_no_torch_error, torch
 
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
     from bittensor.core.subtensor import Subtensor
-    from bittensor.utils.registration.pow import POWSolution, create_pow
+    from bittensor.utils.registration.pow import POWSolution
 
 
 def _do_burned_register(
