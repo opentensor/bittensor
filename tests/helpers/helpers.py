@@ -1,18 +1,18 @@
 import asyncio
-from collections import deque
 import json
+import time
+from collections import deque
 from typing import Union
-
-from websockets.asyncio.client import ClientConnection, ClientProtocol
-from websockets.uri import parse_uri
 
 from bittensor_wallet.mock.wallet_mock import MockWallet as _MockWallet
 from bittensor_wallet.mock.wallet_mock import get_mock_coldkey
 from bittensor_wallet.mock.wallet_mock import get_mock_hotkey
 from bittensor_wallet.mock.wallet_mock import get_mock_wallet
+from websockets.asyncio.client import ClientConnection, ClientProtocol
+from websockets.uri import parse_uri
 
-from bittensor.utils.balance import Balance
 from bittensor.core.chain_data import AxonInfo, NeuronInfo, PrometheusInfo
+from bittensor.utils.balance import Balance
 from tests.helpers.integration_websocket_data import WEBSOCKET_RESPONSES, METADATA
 
 
@@ -118,17 +118,15 @@ class FakeWebsocket(ClientConnection):
         self.received = deque()
         self._lock = asyncio.Lock()
 
-    async def send(self, payload: str, *args, **kwargs):
+    def send(self, payload: str, *args, **kwargs):
         received = json.loads(payload)
         id_ = received.pop("id")
-        async with self._lock:
-            self.received.append((received, id_))
+        self.received.append((received, id_))
 
-    async def recv(self, *args, **kwargs):
+    def recv(self, *args, **kwargs):
         while len(self.received) == 0:
-            await asyncio.sleep(0.1)
-        async with self._lock:
-            item, _id = self.received.pop()
+            time.sleep(0.1)
+        item, _id = self.received.pop()
         try:
             if item["method"] == "state_getMetadata":
                 response = {"jsonrpc": "2.0", "id": _id, "result": METADATA}
@@ -142,5 +140,16 @@ class FakeWebsocket(ClientConnection):
             print("ERROR", self.seed, item["method"], item["params"])
             raise
 
-    async def close(self, *args, **kwargs):
+    def close(self, *args, **kwargs):
+        pass
+
+
+class FakeConnectContextManager:
+    def __init__(self, seed):
+        self.seed = seed
+
+    def __enter__(self):
+        return FakeWebsocket(seed=self.seed)
+
+    def __exit__(self, exc_type, exc, tb):
         pass
