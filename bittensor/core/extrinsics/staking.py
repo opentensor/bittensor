@@ -93,8 +93,10 @@ def add_stake_extrinsic(
     if amount is None:
         # Stake it all.
         staking_balance = Balance.from_tao(old_balance.tao)
+    elif not isinstance(amount, Balance):
+        staking_balance = Balance.from_tao(amount)
     else:
-        staking_balance = Balance.from_tao(amount.tao)
+        staking_balance = amount
 
     # Leave existential balance to keep key alive.
     if staking_balance > old_balance - existential_deposit:
