@@ -148,5 +148,5 @@ class MetagraphInfo:
         decoded.update({"symbol": bytes(decoded.get("symbol")).decode()})
         decoded.update({"identity": decoded.get("identity", {})})
         decoded.update({"identities": identities})
-        decoded.update({"axons": decoded.get("axons", {})})
+        decoded.update({"axons": decoded.get("axons", [])})
         return MetagraphInfo(**decoded)
