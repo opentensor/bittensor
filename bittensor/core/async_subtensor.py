@@ -1,4 +1,3 @@
-import argparse
 import asyncio
 import copy
 import ssl
@@ -15,7 +14,7 @@ from scalecodec import GenericCall, ScaleType
 from scalecodec.base import RuntimeConfiguration
 from scalecodec.type_registry import load_type_registry_preset
 
-from bittensor.core import settings
+from bittensor.core.types import SubtensorMixin
 from bittensor.core.chain_data import (
     DelegateInfo,
     StakeInfo,
@@ -68,9 +67,8 @@ from bittensor.utils import (
     ss58_to_vec_u8,
     torch,
     u16_normalized_float,
-    execute_coroutine,
+    _decode_hex_identity_dict,
 )
-from bittensor.utils import networking
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 from bittensor.utils.delegates_details import DelegatesDetails
@@ -84,33 +82,7 @@ if TYPE_CHECKING:
     from async_substrate_interface import QueryMapResult
 
 
-def _decode_hex_identity_dict(info_dictionary: dict[str, Any]) -> dict[str, Any]:
-    """Decodes a dictionary of hexadecimal identities."""
-    for k, v in info_dictionary.items():
-        if isinstance(v, dict):
-            item = next(iter(v.values()))
-        else:
-            item = v
-        if isinstance(item, tuple) and item:
-            if len(item) > 1:
-                try:
-                    info_dictionary[k] = (
-                        bytes(item).hex(sep=" ", bytes_per_sep=2).upper()
-                    )
-                except UnicodeDecodeError:
-                    logging.error(f"Could not decode: {k}: {item}.")
-            else:
-                try:
-                    info_dictionary[k] = bytes(item[0]).decode("utf-8")
-                except UnicodeDecodeError:
-                    logging.error(f"Could not decode: {k}: {item}.")
-        else:
-            info_dictionary[k] = item
-
-    return info_dictionary
-
-
-class AsyncSubtensor:
+class AsyncSubtensor(SubtensorMixin):
     """Thin layer for interacting with Substrate Interface. Mostly a collection of frequently-used calls."""
 
     def __init__(
@@ -119,7 +91,6 @@ class AsyncSubtensor:
         config: Optional["Config"] = None,
         _mock: bool = False,
         log_verbose: bool = False,
-        event_loop: asyncio.AbstractEventLoop = None,
     ):
         """
         Initializes an instance of the AsyncSubtensor class.
@@ -129,7 +100,6 @@ class AsyncSubtensor:
             config (Optional[Config]): Configuration object for the AsyncSubtensor instance.
             _mock: Whether this is a mock instance. Mainly just for use in testing.
             log_verbose (bool): Enables or disables verbose logging.
-            event_loop (Optional[asyncio.AbstractEventLoop]): Custom asyncio event loop.
 
         Raises:
             Any exceptions raised during the setup, configuration, or connection process.
@@ -155,7 +125,6 @@ class AsyncSubtensor:
             type_registry=TYPE_REGISTRY,
             use_remote_preset=True,
             chain_name="Bittensor",
-            event_loop=event_loop,
             _mock=_mock,
         )
         if self.log_verbose:
@@ -163,200 +132,30 @@ class AsyncSubtensor:
                 f"Connected to {self.network} network and {self.chain_endpoint}."
             )
 
-    def __str__(self):
-        return f"Network: {self.network}, Chain: {self.chain_endpoint}"
-
-    def __repr__(self):
-        return self.__str__()
-
-    def __del__(self):
-        execute_coroutine(self.close())
-
-    def _check_and_log_network_settings(self):
-        if self.network == settings.NETWORKS[3]:  # local
-            logging.warning(
-                ":warning: Verify your local subtensor is running on port [blue]9944[/blue]."
-            )
-
-        if (
-            self.network == "finney"
-            or self.chain_endpoint == settings.FINNEY_ENTRYPOINT
-        ) and self.log_verbose:
-            logging.info(
-                f"You are connecting to {self.network} network with endpoint {self.chain_endpoint}."
-            )
-            logging.debug(
-                "We strongly encourage running a local subtensor node whenever possible. "
-                "This increases decentralization and resilience of the network."
-            )
-            # TODO: remove or apply this warning as updated default endpoint?
-            logging.debug(
-                "In a future release, local subtensor will become the default endpoint. "
-                "To get ahead of this change, please run a local subtensor node and point to it."
-            )
-
-    @staticmethod
-    def config() -> "Config":
-        """
-        Creates and returns a Bittensor configuration object.
-
-        Returns:
-            config (bittensor.core.config.Config): A Bittensor configuration object configured with arguments added by
-                the `subtensor.add_args` method.
-        """
-        parser = argparse.ArgumentParser()
-        AsyncSubtensor.add_args(parser)
-        return Config(parser)
-
-    @staticmethod
-    def setup_config(network: Optional[str], config: "Config"):
-        """
-        Sets up and returns the configuration for the Subtensor network and endpoint.
-
-        This method determines the appropriate network and chain endpoint based on the provided network string or
-            configuration object. It evaluates the network and endpoint in the following order of precedence:
-            1. Provided network string.
-            2. Configured chain endpoint in the `config` object.
-            3. Configured network in the `config` object.
-            4. Default chain endpoint.
-            5. Default network.
-
-        Arguments:
-            network (Optional[str]): The name of the Subtensor network. If None, the network and endpoint will be
-                determined from the `config` object.
-            config (bittensor.core.config.Config): The configuration object containing the network and chain endpoint
-                settings.
-
-        Returns:
-            tuple: A tuple containing the formatted WebSocket endpoint URL and the evaluated network name.
-        """
-        if network is None:
-            candidates = [
-                (
-                    config.is_set("subtensor.chain_endpoint"),
-                    config.subtensor.chain_endpoint,
-                ),
-                (config.is_set("subtensor.network"), config.subtensor.network),
-                (
-                    config.subtensor.get("chain_endpoint"),
-                    config.subtensor.chain_endpoint,
-                ),
-                (config.subtensor.get("network"), config.subtensor.network),
-            ]
-            for check, config_network in candidates:
-                if check:
-                    network = config_network
-
-        evaluated_network, evaluated_endpoint = (
-            AsyncSubtensor.determine_chain_endpoint_and_network(network)
-        )
-
-        return networking.get_formatted_ws_endpoint_url(
-            evaluated_endpoint
-        ), evaluated_network
-
-    @classmethod
-    def help(cls):
-        """Print help to stdout."""
-        parser = argparse.ArgumentParser()
-        cls.add_args(parser)
-        print(cls.__new__.__doc__)
-        parser.print_help()
-
-    @classmethod
-    def add_args(cls, parser: "argparse.ArgumentParser", prefix: Optional[str] = None):
-        """
-        Adds command-line arguments to the provided ArgumentParser for configuring the Subtensor settings.
-
-        Arguments:
-            parser (argparse.ArgumentParser): The ArgumentParser object to which the Subtensor arguments will be added.
-            prefix (Optional[str]): An optional prefix for the argument names. If provided, the prefix is prepended to
-                each argument name.
-
-        Arguments added:
-            --subtensor.network: The Subtensor network flag. Possible values are 'finney', 'test', 'archive', and
-                'local'. Overrides the chain endpoint if set.
-            --subtensor.chain_endpoint: The Subtensor chain endpoint flag. If set, it overrides the network flag.
-            --subtensor._mock: If true, uses a mocked connection to the chain.
-
-        Example:
-            parser = argparse.ArgumentParser()
-            Subtensor.add_args(parser)
-        """
-        prefix_str = "" if prefix is None else f"{prefix}."
-        try:
-            default_network = settings.DEFAULT_NETWORK
-            default_chain_endpoint = settings.FINNEY_ENTRYPOINT
-
-            parser.add_argument(
-                f"--{prefix_str}subtensor.network",
-                default=default_network,
-                type=str,
-                help="""The subtensor network flag. The likely choices are:
-                                        -- finney (main network)
-                                        -- test (test network)
-                                        -- archive (archive network +300 blocks)
-                                        -- local (local running network)
-                                    If this option is set it overloads subtensor.chain_endpoint with
-                                    an entry point node from that network.
-                                    """,
-            )
-            parser.add_argument(
-                f"--{prefix_str}subtensor.chain_endpoint",
-                default=default_chain_endpoint,
-                type=str,
-                help="""The subtensor endpoint flag. If set, overrides the --network flag.""",
-            )
-            parser.add_argument(
-                f"--{prefix_str}subtensor._mock",
-                default=False,
-                type=bool,
-                help="""If true, uses a mocked connection to the chain.""",
-            )
-
-        except argparse.ArgumentError:
-            # re-parsing arguments.
-            pass
-
-    @staticmethod
-    def determine_chain_endpoint_and_network(
-        network: str,
-    ) -> tuple[Optional[str], Optional[str]]:
-        """Determines the chain endpoint and network from the passed network or chain_endpoint.
-
-        Arguments:
-            network (str): The network flag. The choices are: ``finney`` (main network), ``archive`` (archive network
-                +300 blocks), ``local`` (local running network), ``test`` (test network).
-
-        Returns:
-            tuple[Optional[str], Optional[str]]: The network and chain endpoint flag. If passed, overrides the
-                ``network`` argument.
-        """
-
-        if network is None:
-            return None, None
-        if network in settings.NETWORKS:
-            return network, settings.NETWORK_MAP[network]
-
-        substrings_map = {
-            "entrypoint-finney.opentensor.ai": ("finney", settings.FINNEY_ENTRYPOINT),
-            "test.finney.opentensor.ai": ("test", settings.FINNEY_TEST_ENTRYPOINT),
-            "archive.chain.opentensor.ai": ("archive", settings.ARCHIVE_ENTRYPOINT),
-            "subvortex": ("subvortex", settings.SUBVORTEX_ENTRYPOINT),
-            "127.0.0.1": ("local", settings.LOCAL_ENTRYPOINT),
-            "localhost": ("local", settings.LOCAL_ENTRYPOINT),
-        }
-
-        for substring, result in substrings_map.items():
-            if substring in network:
-                return result
-
-        return "unknown", network
-
     async def close(self):
         """Close the connection."""
         if self.substrate:
             await self.substrate.close()
+
+    async def initialize(self):
+        logging.info(
+            f"[magenta]Connecting to Substrate:[/magenta] [blue]{self}[/blue][magenta]...[/magenta]"
+        )
+        try:
+            await self.substrate.initialize()
+            return self
+        except TimeoutError:
+            logging.error(
+                f"[red]Error[/red]: Timeout occurred connecting to substrate."
+                f" Verify your chain and network settings: {self}"
+            )
+            raise ConnectionError
+        except (ConnectionRefusedError, ssl.SSLError) as error:
+            logging.error(
+                f"[red]Error[/red]: Connection refused when connecting to substrate. "
+                f"Verify your chain and network settings: {self}. Error: {error}"
+            )
+            raise ConnectionError
 
     async def __aenter__(self):
         logging.info(
@@ -615,7 +414,7 @@ class AsyncSubtensor:
         self,
         runtime_api: str,
         method: str,
-        params: Optional[Union[list[list[int]], dict[str, int], list[int]]],
+        params: Optional[Union[list[list[int]], dict[str, int], list[int]]] = None,
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
@@ -640,6 +439,7 @@ class AsyncSubtensor:
         This function enables access to the deeper layers of the Bittensor blockchain, allowing for detailed and
             specific interactions with the network's runtime environment.
         """
+        # TODO why doesn't this just use SubstrateInterface.runtime_call ?
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
 
         call_definition = TYPE_REGISTRY["runtime_api"][runtime_api]["methods"][method]
@@ -1552,9 +1352,9 @@ class AsyncSubtensor:
         )
         try:
             if certificate:
-                return (
-                    chr(certificate["algorithm"])
-                    + bytes(certificate["public_key"][0]).decode()
+                tuple_ascii = certificate["public_key"][0]
+                return chr(certificate["algorithm"]) + "".join(
+                    chr(i) for i in tuple_ascii
                 )
 
         except AttributeError:
@@ -1601,7 +1401,10 @@ class AsyncSubtensor:
 
         params = [netuid, uid.value]
         json_body = await self.substrate.rpc_request(
-            method="neuronInfo_getNeuron", params=params, reuse_block_hash=reuse_block
+            method="neuronInfo_getNeuron",
+            params=params,
+            block_hash=block_hash,
+            reuse_block_hash=reuse_block,
         )
 
         if not (result := json_body.get("result", None)):
@@ -2735,7 +2538,9 @@ class AsyncSubtensor:
             block_hash=block_hash,
             reuse_block_hash=reuse_block,
         )
-        w_map = [(uid, w.value or []) async for uid, w in w_map_encoded]
+        w_map = []
+        async for uid, w in w_map_encoded:
+            w_map.append((uid, w.value))
 
         return w_map
 
@@ -2960,7 +2765,8 @@ class AsyncSubtensor:
         message = "No attempt made. Perhaps it is too soon to commit weights!"
 
         logging.info(
-            f"Committing weights with params: netuid={netuid}, uids={uids}, weights={weights}, version_key={version_key}"
+            f"Committing weights with params: netuid={netuid}, uids={uids}, weights={weights}, "
+            f"version_key={version_key}"
         )
 
         # Generate the hash of the weights
@@ -3116,7 +2922,6 @@ class AsyncSubtensor:
     async def root_register(
         self,
         wallet: "Wallet",
-        netuid: int = 0,
         block_hash: Optional[str] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = True,
@@ -3126,7 +2931,6 @@ class AsyncSubtensor:
 
         Arguments:
             wallet (bittensor_wallet.Wallet): Bittensor wallet instance.
-            netuid (int): Subnet uniq id. Root subnet uid is 0.
             block_hash (Optional[str]): The hash of the blockchain block for the query.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block. Default is ``False``.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Default is
@@ -3135,6 +2939,7 @@ class AsyncSubtensor:
         Returns:
             `True` if registration was successful, otherwise `False`.
         """
+        netuid = 0
         logging.info(
             f"Registering on netuid [blue]0[/blue] on network: [blue]{self.network}[/blue]"
         )
@@ -3153,9 +2958,6 @@ class AsyncSubtensor:
         except TypeError as e:
             logging.error(f"Unable to retrieve current recycle. {e}")
             return False
-        except KeyError:
-            logging.error("Unable to retrieve current balance.")
-            return False
 
         current_recycle = Balance.from_rao(int(recycle_call))
 
@@ -3170,7 +2972,6 @@ class AsyncSubtensor:
         return await root_register_extrinsic(
             subtensor=self,
             wallet=wallet,
-            netuid=netuid,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
         )
@@ -3363,7 +3164,7 @@ class AsyncSubtensor:
     async def transfer(
         self,
         wallet: "Wallet",
-        destination: str,
+        dest: str,
         amount: Union["Balance", float],
         transfer_all: bool = False,
         wait_for_inclusion: bool = True,
@@ -3375,7 +3176,7 @@ class AsyncSubtensor:
 
         Arguments:
             wallet (bittensor_wallet.Wallet): Source wallet for the transfer.
-            destination (str): Destination address for the transfer.
+            dest (str): Destination address for the transfer.
             amount (float): Amount of tokens to transfer.
             transfer_all (bool): Flag to transfer all tokens. Default is ``False``.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block.  Default is ``True``.
@@ -3392,7 +3193,7 @@ class AsyncSubtensor:
         return await transfer_extrinsic(
             subtensor=self,
             wallet=wallet,
-            destination=destination,
+            dest=dest,
             amount=amount,
             transfer_all=transfer_all,
             wait_for_inclusion=wait_for_inclusion,
@@ -3470,3 +3271,20 @@ class AsyncSubtensor:
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
         )
+
+
+async def get_async_subtensor(
+    network: Optional[str] = None,
+    config: Optional["Config"] = None,
+    _mock: bool = False,
+    log_verbose: bool = False,
+) -> "AsyncSubtensor":
+    """
+    Factory method to create an initialized AsyncSubtensor. Mainly useful for when you don't want to run
+    `await subtensor.initialize()` after instantiation.
+    """
+    sub = AsyncSubtensor(
+        network=network, config=config, _mock=_mock, log_verbose=log_verbose
+    )
+    await sub.initialize()
+    return sub

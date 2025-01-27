@@ -1,14 +1,13 @@
-import asyncio
 import os.path
 
 import pytest
-from bittensor.utils.balance import Balance
-from bittensor.core.chain_data.axon_info import AxonInfo
+from bt_decode import PortableRegistry, MetadataV15
 
 from bittensor import NeuronInfo
+from bittensor.core.chain_data.axon_info import AxonInfo
 from bittensor.core.subtensor import Subtensor
-from bt_decode import PortableRegistry, MetadataV15
-from tests.helpers.helpers import FakeWebsocket
+from bittensor.utils.balance import Balance
+from tests.helpers.helpers import FakeConnectContextManager
 
 
 @pytest.fixture
@@ -32,12 +31,11 @@ async def prepare_test(mocker, seed):
             MetadataV15.decode_from_metadata_option(f.read())
         )
     subtensor = Subtensor("unknown", _mock=True)
-    mocker.patch.object(subtensor.substrate.ws, "ws", FakeWebsocket(seed=seed))
-    mocker.patch.object(subtensor.substrate.ws, "_initialized", True)
-    mocker.patch.object(subtensor.substrate._async_instance, "registry", registry)
-    subtensor.substrate.ws._receiving_task = asyncio.create_task(
-        subtensor.substrate.ws._start_receiving()
+    mocker.patch(
+        "async_substrate_interface.sync_substrate.connect",
+        mocker.Mock(return_value=FakeConnectContextManager(seed=seed)),
     )
+    mocker.patch.object(subtensor.substrate, "registry", registry)
     return subtensor
 
 

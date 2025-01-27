@@ -2,7 +2,6 @@ __version__ = "8.5.1"
 
 import os
 import re
-import warnings
 from pathlib import Path
 
 from munch import munchify
@@ -312,15 +311,7 @@ def __apply_nest_asyncio():
     If not set, warn the user that the default will change in the future.
     """
     nest_asyncio_env = os.getenv("NEST_ASYNCIO")
-    if nest_asyncio_env == "1" or nest_asyncio_env is None:
-        if nest_asyncio_env is None:
-            warnings.warn(
-                """NEST_ASYNCIO implicitly set to '1'. In the future, the default value will be '0'.
-                If you use `nest_asyncio`, make sure to add it explicitly to your project dependencies,
-                as it will be removed from `bittensor` package dependencies in the future.
-                To silence this warning, explicitly set the environment variable, e.g. `export NEST_ASYNCIO=0`.""",
-                DeprecationWarning,
-            )
+    if nest_asyncio_env == "1":
         # Install and apply nest asyncio to allow the async functions to run in a .ipynb
         import nest_asyncio
 

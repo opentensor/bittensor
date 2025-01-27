@@ -6423,6 +6423,12 @@ WEBSOCKET_RESPONSES = {
             }
         },
         "system_chain": {"[]": {"jsonrpc": "2.0", "result": "Bittensor"}},
+        "chain_getBlockHash": {
+            "[3264143]": {
+                "jsonrpc": "2.0",
+                "result": None,
+            }
+        },
     },
     "min_allowed_weights": {
         "chain_getHead": {

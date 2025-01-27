@@ -10,11 +10,11 @@ from bittensor.utils import (
     Certificate,
 )
 from bittensor.utils.btlogging import logging
+from bittensor.core.types import AxonServeCallParams
 
 if TYPE_CHECKING:
     from bittensor.core.axon import Axon
     from bittensor.core.async_subtensor import AsyncSubtensor
-    from bittensor.core.types import AxonServeCallParams
     from bittensor_wallet import Wallet
 
 
@@ -43,8 +43,7 @@ async def do_serve_axon(
         decentralized computation capabilities of Bittensor.
     """
 
-    if call_params["certificate"] is None:
-        del call_params["certificate"]
+    if call_params.certificate is None:
         call_function = "serve_axon"
     else:
         call_function = "serve_axon_tls"
@@ -52,7 +51,7 @@ async def do_serve_axon(
     call = await subtensor.substrate.compose_call(
         call_module="SubtensorModule",
         call_function=call_function,
-        call_params=call_params,
+        call_params=call_params.dict(),
     )
     extrinsic = await subtensor.substrate.create_signed_extrinsic(
         call=call, keypair=wallet.hotkey
@@ -95,54 +94,42 @@ async def serve_extrinsic(
         netuid (int): The network uid to serve on.
         placeholder1 (int): A placeholder for future use.
         placeholder2 (int): A placeholder for future use.
-        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or
-            returns ``false`` if the extrinsic fails to enter the block within the timeout.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``True``, or
+            returns ``False`` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning
-            ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
+            ``True``, or returns ``False`` if the extrinsic fails to be finalized within the timeout.
         certificate (bittensor.utils.Certificate): Certificate to use for TLS. If ``None``, no TLS will be used.
             Defaults to ``None``.
 
     Returns:
-        success (bool): Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for
-            finalization / inclusion, the response is ``true``.
+        success (bool): Flag is ``True`` if extrinsic was finalized or included in the block. If we did not wait for
+            finalization / inclusion, the response is ``True``.
     """
     # Decrypt hotkey
     if not (unlock := unlock_key(wallet, "hotkey")).success:
         logging.error(unlock.message)
         return False
 
-    params: "AxonServeCallParams" = {
-        "version": version_as_int,
-        "ip": net.ip_to_int(ip),
-        "port": port,
-        "ip_type": net.ip_version(ip),
-        "netuid": netuid,
-        "hotkey": wallet.hotkey.ss58_address,
-        "coldkey": wallet.coldkeypub.ss58_address,
-        "protocol": protocol,
-        "placeholder1": placeholder1,
-        "placeholder2": placeholder2,
-        "certificate": certificate,
-    }
+    params = AxonServeCallParams(
+        **{
+            "version": version_as_int,
+            "ip": net.ip_to_int(ip),
+            "port": port,
+            "ip_type": net.ip_version(ip),
+            "netuid": netuid,
+            "hotkey": wallet.hotkey.ss58_address,
+            "coldkey": wallet.coldkeypub.ss58_address,
+            "protocol": protocol,
+            "placeholder1": placeholder1,
+            "placeholder2": placeholder2,
+            "certificate": certificate,
+        }
+    )
     logging.debug("Checking axon ...")
     neuron = await subtensor.get_neuron_for_pubkey_and_subnet(
         wallet.hotkey.ss58_address, netuid=netuid
     )
-    neuron_up_to_date = not neuron.is_null and params == {
-        "version": neuron.axon_info.version,
-        "ip": net.ip_to_int(neuron.axon_info.ip),
-        "port": neuron.axon_info.port,
-        "ip_type": neuron.axon_info.ip_type,
-        "netuid": neuron.netuid,
-        "hotkey": neuron.hotkey,
-        "coldkey": neuron.coldkey,
-        "protocol": neuron.axon_info.protocol,
-        "placeholder1": neuron.axon_info.placeholder1,
-        "placeholder2": neuron.axon_info.placeholder2,
-    }
-    output = params.copy()
-    output["coldkey"] = wallet.coldkeypub.ss58_address
-    output["hotkey"] = wallet.hotkey.ss58_address
+    neuron_up_to_date = not neuron.is_null and params == neuron
     if neuron_up_to_date:
         logging.debug(
             f"Axon already served on: AxonInfo({wallet.hotkey.ss58_address},{ip}:{port}) "
@@ -187,16 +174,16 @@ async def serve_axon_extrinsic(
         subtensor (bittensor.core.async_subtensor.AsyncSubtensor): Subtensor instance object.
         netuid (int): The ``netuid`` being served on.
         axon (bittensor.core.axon.Axon): Axon to serve.
-        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``true``, or
-            returns ``false`` if the extrinsic fails to enter the block within the timeout.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``True``, or
+            returns ``False`` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning
-            ``true``, or returns ``false`` if the extrinsic fails to be finalized within the timeout.
+            ``True``, or returns ``False`` if the extrinsic fails to be finalized within the timeout.
         certificate (bittensor.utils.Certificate): Certificate to use for TLS. If ``None``, no TLS will be used.
             Defaults to ``None``.
 
     Returns:
-        success (bool): Flag is ``true`` if extrinsic was finalized or uncluded in the block. If we did not wait for
-            finalization / inclusion, the response is ``true``.
+        success (bool): Flag is ``True`` if extrinsic was finalized or included in the block. If we did not wait for
+            finalization / inclusion, the response is ``True``.
     """
     if not (unlock := unlock_key(axon.wallet, "hotkey")).success:
         logging.error(unlock.message)
@@ -213,7 +200,7 @@ async def serve_axon_extrinsic(
                 f":white_heavy_check_mark: [green]Found external ip:[/green] [blue]{external_ip}[/blue]"
             )
         except Exception as e:
-            raise RuntimeError(
+            raise ConnectionError(
                 f"Unable to attain your external ip. Check your internet connection. error: {e}"
             ) from e
     else:
@@ -282,21 +269,21 @@ async def publish_metadata(
             },
         )
 
-    extrinsic = await subtensor.substrate.create_signed_extrinsic(
-        call=call, keypair=wallet.hotkey
-    )
-    response = await subtensor.substrate.submit_extrinsic(
-        extrinsic=extrinsic,
-        wait_for_inclusion=wait_for_inclusion,
-        wait_for_finalization=wait_for_finalization,
-    )
-    # We only wait here if we expect finalization.
-    if not wait_for_finalization and not wait_for_inclusion:
-        return True
+        extrinsic = await substrate.create_signed_extrinsic(
+            call=call, keypair=wallet.hotkey
+        )
+        response = await substrate.submit_extrinsic(
+            extrinsic=extrinsic,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+        # We only wait here if we expect finalization.
+        if not wait_for_finalization and not wait_for_inclusion:
+            return True
 
-    if await response.is_success:
-        return True
-    raise MetadataError(format_error_message(await response.error_message))
+        if await response.is_success:
+            return True
+        raise MetadataError(format_error_message(await response.error_message))
 
 
 async def get_metadata(
