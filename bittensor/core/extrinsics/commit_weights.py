@@ -121,7 +121,7 @@ def commit_weights_extrinsic(
 
 
 def _do_reveal_weights(
-    subtensor: "AsyncSubtensor",
+    subtensor: "Subtensor",
     wallet: "Wallet",
     netuid: int,
     uids: list[int],
@@ -136,7 +136,7 @@ def _do_reveal_weights(
     This method constructs and submits the transaction, handling retries and blockchain communication.
 
     Args:
-        subtensor (bittensor.core.async_subtensor.AsyncSubtensor): The subtensor instance used for blockchain interaction.
+        subtensor (bittensor.core.subtensor.Subtensor): The subtensor instance used for blockchain interaction.
         wallet (bittensor_wallet.Wallet): The wallet associated with the neuron revealing the weights.
         netuid (int): The unique identifier of the subnet.
         uids (list[int]): List of neuron UIDs for which weights are being revealed.
