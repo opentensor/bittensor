@@ -85,7 +85,7 @@ class MetagraphInfo:
     # Metagraph info.
     hotkeys: list[str]  # hotkey per UID
     coldkeys: list[str]  # coldkey per UID
-    identities: list["ChainIdentity"]  # coldkeys identities
+    identities: list[Optional["ChainIdentity"]]  # coldkeys identities
     axons: list["AxonInfo"]  # UID axons.
     active: list[bool]  # Active per UID
     validator_permit: list[bool]  # Val permit per UID
@@ -129,6 +129,7 @@ class MetagraphInfo:
         )
         if decoded is None:
             return []
+
         decoded = [
             MetagraphInfo.fix_decoded_values(meta)
             for meta in decoded
@@ -142,6 +143,7 @@ class MetagraphInfo:
         identities = [
             {k: (v or None) for k, v in ident.items()}
             for ident in decoded.get("identities", [])
+            if ident is not None
         ]
 
         decoded.update({"name": bytes(decoded.get("name")).decode()})

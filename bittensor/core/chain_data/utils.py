@@ -384,7 +384,7 @@ custom_rpc_type_registry = {
                 ["bonds_moving_avg", "Compact<u64>"],
                 ["hotkeys", "Vec<T::AccountId>"],
                 ["coldkeys", "Vec<T::AccountId>"],
-                ["identities", "Vec<ChainIdentityOf>"],
+                ["identities", "Vec<Option<ChainIdentityOf>>"],
                 ["axons", "Vec<AxonInfo>"],
                 ["active", "Vec<bool>"],
                 ["validator_permit", "Vec<bool>"],
