@@ -6,7 +6,6 @@ from multiprocessing import Event, Lock, Array, Value, Queue
 from queue import Empty
 from typing import Callable, Union, Optional, TYPE_CHECKING
 
-from retry import retry
 from bittensor.core.errors import SubstrateRequestException
 
 from bittensor.utils.registration.pow import (
@@ -14,7 +13,7 @@ from bittensor.utils.registration.pow import (
     update_curr_block,
     terminate_workers_and_wait_for_exit,
     CUDASolver,
-    LazyLoadedTorch,
+    torch,
     RegistrationStatistics,
     RegistrationStatisticsLogger,
     Solver,
@@ -25,12 +24,8 @@ if TYPE_CHECKING:
     from bittensor.core.async_subtensor import AsyncSubtensor
     from bittensor_wallet import Wallet
     from bittensor.utils.registration import POWSolution
-    import torch
-else:
-    torch = LazyLoadedTorch()
 
 
-@retry(Exception, tries=3, delay=1)
 async def _get_block_with_retry(
     subtensor: "AsyncSubtensor", netuid: int
 ) -> tuple[int, int, str]:

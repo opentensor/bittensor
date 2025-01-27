@@ -1,10 +1,10 @@
 """Utils for handling local network with ip and ports."""
 
-import json
 import os
 import urllib
 from typing import Optional
 
+from async_substrate_interface.utils import json
 import netaddr
 import requests
 

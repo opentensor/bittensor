@@ -1,9 +1,8 @@
 import asyncio
-import time
 from typing import Union, TYPE_CHECKING
 
-import numpy as np
 from bittensor_wallet import Wallet
+import numpy as np
 from numpy.typing import NDArray
 
 from bittensor.core.errors import SubstrateRequestException
@@ -45,7 +44,6 @@ async def _get_limits(subtensor: "AsyncSubtensor") -> tuple[int, float]:
 async def root_register_extrinsic(
     subtensor: "AsyncSubtensor",
     wallet: "Wallet",
-    netuid: int,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = True,
 ) -> bool:
@@ -54,17 +52,16 @@ async def root_register_extrinsic(
     Arguments:
         subtensor (bittensor.core.async_subtensor.AsyncSubtensor): The AsyncSubtensor object
         wallet (bittensor_wallet.Wallet): Bittensor wallet object.
-        netuid (int): Subnet uid.
         wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning `True`, or returns
             `False` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning
             `True`, or returns `False` if the extrinsic fails to be finalized within the timeout.
 
     Returns:
-        `True` if extrinsic was finalized or included in the block. If we did not wait for finalization/inclusion, the
-            response is `True`.
+        `True` if extrinsic was finalized or included in the block. If we did not wait for finalization/inclusion,
+            the response is `True`.
     """
-
+    netuid = 0
     if not (unlock := unlock_key(wallet)).success:
         logging.error(unlock.message)
         return False
@@ -96,7 +93,7 @@ async def root_register_extrinsic(
 
     if not success:
         logging.error(f":cross_mark: [red]Failed error:[/red] {err_msg}")
-        time.sleep(0.5)
+        await asyncio.sleep(0.5)
         return False
 
     # Successful registration, final check for neuron and pubkey
@@ -149,7 +146,8 @@ async def _do_set_root_weights(
         period (int, optional): The period in seconds to wait for extrinsic inclusion or finalization. Defaults to 5.
 
     Returns:
-        tuple: Returns a tuple containing a boolean indicating success and a message describing the result of the operation.
+        tuple: Returns a tuple containing a boolean indicating success and a message describing the result of the
+            operation.
     """
     call = await subtensor.substrate.compose_call(
         call_module="SubtensorModule",
@@ -209,8 +207,8 @@ async def set_root_weights_extrinsic(
         version_key (int): The version key of the validator.
         wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning `True`, or returns
             `False` if the extrinsic fails to enter the block within the timeout.
-        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning
-            `True`, or returns `False` if the extrinsic fails to be finalized within the timeout.
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning `
+            True`, or returns `False` if the extrinsic fails to be finalized within the timeout.
 
     Returns:
         `True` if extrinsic was finalized or included in the block. If we did not wait for finalization/inclusion, the
