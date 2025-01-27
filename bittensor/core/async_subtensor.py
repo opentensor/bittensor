@@ -15,6 +15,7 @@ from scalecodec.base import RuntimeConfiguration
 from scalecodec.type_registry import load_type_registry_preset
 
 from bittensor.core.types import SubtensorMixin
+from bittensor.core.subtensor_plugins.subtensor_module import SubtensorModule
 from bittensor.core.chain_data import (
     DelegateInfo,
     StakeInfo,
@@ -131,6 +132,7 @@ class AsyncSubtensor(SubtensorMixin):
             logging.info(
                 f"Connected to {self.network} network and {self.chain_endpoint}."
             )
+        self.subtensor_module = SubtensorModule(self)
 
     async def close(self):
         """Close the connection."""
