@@ -1,6 +1,6 @@
 import copy
 from functools import lru_cache
-from typing import TYPE_CHECKING, Any, Iterable, Optional, Union
+from typing import TYPE_CHECKING, Any, Iterable, Optional, Union, cast
 
 from async_substrate_interface.errors import SubstrateRequestException
 from async_substrate_interface.sync_substrate import SubstrateInterface
@@ -257,7 +257,7 @@ class Subtensor(SubtensorMixin):
         self,
         runtime_api: str,
         method: str,
-        params: Optional[Union[list[int], dict[str, int]]] = None,
+        params: Optional[Union[list[list[int]], dict[str, int], list[int]]] = None,
         block: Optional[int] = None,
     ) -> Optional[str]:
         """
@@ -1206,8 +1206,11 @@ class Subtensor(SubtensorMixin):
         self, netuid: int, block: Optional[int] = None
     ) -> int:
         """Retrieve the SubnetRevealPeriodEpochs hyperparameter."""
-        return self.get_hyperparameter(
-            param_name="RevealPeriodEpochs", block=block, netuid=netuid
+        return cast(
+            int,
+            self.get_hyperparameter(
+                param_name="RevealPeriodEpochs", block=block, netuid=netuid
+            ),
         )
 
     def get_subnets(self, block: Optional[int] = None) -> list[int]:
@@ -1770,7 +1773,7 @@ class Subtensor(SubtensorMixin):
 
         return NeuronInfoLite.list_from_vec_u8(hex_to_bytes(hex_bytes_result))
 
-    def query_identity(self, key: str, block: Optional[int] = None) -> Optional[str]:
+    def query_identity(self, key: str, block: Optional[int] = None) -> dict:
         """
         Queries the identity of a neuron on the Bittensor blockchain using the given key. This function retrieves
             detailed identity information about a specific neuron, which is a crucial aspect of the network's
@@ -2310,8 +2313,8 @@ class Subtensor(SubtensorMixin):
         block = self.get_current_block()
 
         try:
-            recycle_call = self.get_hyperparameter(
-                param_name="Burn", netuid=0, block=block
+            recycle_call = cast(
+                int, self.get_hyperparameter(param_name="Burn", netuid=0, block=block)
             )
             balance = self.get_balance(wallet.coldkeypub.ss58_address, block=block)
         except TypeError as e:
@@ -2412,8 +2415,8 @@ class Subtensor(SubtensorMixin):
         """
 
         def _blocks_weight_limit() -> bool:
-            bslu = self.blocks_since_last_update(netuid, uid)
-            wrl = self.weights_rate_limit(netuid)
+            bslu = cast(int, self.blocks_since_last_update(netuid, cast(int, uid)))
+            wrl = cast(int, self.weights_rate_limit(netuid))
             return bslu > wrl
 
         retries = 0
