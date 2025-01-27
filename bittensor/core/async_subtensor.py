@@ -414,7 +414,7 @@ class AsyncSubtensor(SubtensorMixin):
         self,
         runtime_api: str,
         method: str,
-        params: Optional[Union[list[list[int]], dict[str, int], list[int]]],
+        params: Optional[Union[list[list[int]], dict[str, int], list[int]]] = None,
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
