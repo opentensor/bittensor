@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Optional, TypedDict
 
 from bittensor.core import settings
 
@@ -211,41 +211,90 @@ class Balance:
         return Balance.from_rao(abs(self.rao))
 
     @staticmethod
-    def from_float(amount: float):
+    def from_float(amount: float, netuid: Optional[int] = 0):
         """
         Given tao, return :func:`Balance` object with rao(``int``) and tao(``float``), where rao = int(tao*pow(10,9))
         Args:
             amount (float): The amount in tao.
+            netuid (int): The subnet uid for set currency unit. Defaults to `0`.
 
         Returns:
             A Balance object representing the given amount.
         """
         rao = int(amount * pow(10, 9))
-        return Balance(rao)
+        return Balance(rao).set_unit(netuid)
 
     @staticmethod
-    def from_tao(amount: float):
+    def from_tao(amount: float, netuid: Optional[int] = 0):
         """
         Given tao, return Balance object with rao(``int``) and tao(``float``), where rao = int(tao*pow(10,9))
 
         Args:
             amount (float): The amount in tao.
+            netuid (int): The subnet uid for set currency unit. Defaults to `0`.
 
         Returns:
             A Balance object representing the given amount.
         """
         rao = int(amount * pow(10, 9))
-        return Balance(rao)
+        return Balance(rao).set_unit(netuid)
 
     @staticmethod
-    def from_rao(amount: int):
+    def from_rao(amount: int, netuid: Optional[int] = 0):
         """
         Given rao, return Balance object with rao(``int``) and tao(``float``), where rao = int(tao*pow(10,9))
 
         Args:
             amount (int): The amount in rao.
+            netuid (int): The subnet uid for set currency unit. Defaults to `0`.
 
         Returns:
             A Balance object representing the given amount.
         """
-        return Balance(amount)
+        return Balance(amount).set_unit(netuid)
+
+    @staticmethod
+    def get_unit(netuid: int):
+        units = settings.units
+        base = len(units)
+        if netuid < base:
+            return units[netuid]
+        else:
+            result = ""
+            while netuid > 0:
+                result = units[netuid % base] + result
+                netuid //= base
+            return result
+
+    def set_unit(self, netuid: int):
+        self.unit = Balance.get_unit(netuid)
+        self.rao_unit = Balance.get_unit(netuid)
+        return self
+
+
+class FixedPoint(TypedDict):
+    """
+    Represents a fixed point ``U64F64`` number.
+    Where ``bits`` is a U128 representation of the fixed point number.
+
+    This matches the type of the Alpha shares.
+    """
+
+    bits: int
+
+
+def fixed_to_float(fixed: FixedPoint) -> float:
+    # Currently this is stored as a U64F64
+    # which is 64 bits of integer and 64 bits of fractional
+    uint_bits = 64
+    frac_bits = 64
+
+    data: int = fixed["bits"]
+
+    # Shift bits to extract integer part (assuming 64 bits for integer part)
+    integer_part = data >> frac_bits
+    fractional_part = data & (2**frac_bits - 1)
+
+    frac_float = fractional_part / (2**frac_bits)
+
+    return integer_part + frac_float
