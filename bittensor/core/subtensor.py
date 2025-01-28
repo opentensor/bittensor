@@ -429,6 +429,8 @@ class Subtensor(SubtensorMixin):
             data_type=f"Raw{len(data)}",
             data=data.encode(),
         )
+    # add explicit alias
+    set_commitment = commit
 
     def commit_reveal_enabled(
         self, netuid: int, block: Optional[int] = None
