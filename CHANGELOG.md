@@ -1,5 +1,11 @@
 # Changelog
 
+## 8.5.1rc10 /2025-01-29
+## What's Changed
+* Adds `get_metagraph`, `get_all_metagraphs`: a new structure for metagraph data.
+* Updates other methods, adds new ones like move and transfer stake.
+* Bug fixes and improvements.
+
 ## 8.5.1rc9 /2025-01-22
 ## What's Changed
 * Updates to the sdk to support methods used in Rao
