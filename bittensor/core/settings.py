@@ -372,6 +372,7 @@ def __apply_nest_asyncio():
 __apply_nest_asyncio()
 
 
+# TODO: consider to move `units` to `bittensor.utils.balance` module.
 units = [
     # Greek Alphabet (0-24)
     "\u03c4",  # τ (tau, 0)
