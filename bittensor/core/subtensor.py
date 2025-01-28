@@ -7,7 +7,7 @@ import argparse
 import copy
 import ssl
 import time
-from typing import Union, Optional, TypedDict, Any
+from typing import Union, Optional, TypedDict, Any, cast
 import warnings
 import numpy as np
 import scalecodec
@@ -2704,7 +2704,7 @@ class Subtensor:
             StakeError: If the transfer fails due to insufficient stake or other reasons.
         """
         if isinstance(amount, (float, int)):
-            amount = Balance.from_tao(amount)
+            amount = cast(Balance, Balance.from_tao(amount))
 
         hotkey_owner = self.get_hotkey_owner(hotkey_ss58)
         if hotkey_owner != wallet.coldkeypub.ss58_address:
@@ -2786,7 +2786,7 @@ class Subtensor:
         """
         # Convert amount to Balance if needed
         if isinstance(amount, (float, int)):
-            amount = Balance.from_tao(amount)
+            amount = cast(Balance, Balance.from_tao(amount))
 
         hotkey_owner = self.get_hotkey_owner(hotkey_ss58)
         if hotkey_owner != wallet.coldkeypub.ss58_address:
@@ -2873,7 +2873,7 @@ class Subtensor:
             StakeError: If the movement fails due to insufficient stake or other reasons.
         """
         if isinstance(amount, (float, int)):
-            amount = Balance.from_tao(amount)
+            amount = cast(Balance, Balance.from_tao(amount))
 
         stake_in_origin = self.get_stake(
             hotkey_ss58=origin_hotkey,
