@@ -17,6 +17,7 @@ pycryptodome>=3.18.0,<4.0.0
 pyyaml
 retry
 requests
+types-requests
 rich
 pydantic>=2.3, <3
 python-Levenshtein
