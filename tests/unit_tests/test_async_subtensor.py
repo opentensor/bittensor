@@ -123,7 +123,7 @@ def test__str__return(subtensor):
     # Asserts
     assert (
         str(subtensor)
-        == "Network: finney, Chain: wss://entrypoint-finney.opentensor.ai:443"
+        == "Network: test, Chain: wss://test.finney.opentensor.ai:443"
     )
 
 
