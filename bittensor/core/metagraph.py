@@ -28,6 +28,9 @@ if typing.TYPE_CHECKING:
     from bittensor.core.chain_data import NeuronInfo, NeuronInfoLite
 
 
+Tensor = Union["torch.nn.Parameter", NDArray]
+
+
 METAGRAPH_STATE_DICT_NDARRAY_KEYS = [
     "version",
     "n",
@@ -213,24 +216,24 @@ class MetagraphMixin(ABC):
     netuid: int
     network: str
     version: Union["torch.nn.Parameter", tuple[NDArray]]
-    n: Union["torch.nn.Parameter", NDArray]
+    n: Tensor
     neurons: list[Union["NeuronInfo", "NeuronInfoLite"]]
-    block: Union["torch.nn.Parameter", NDArray]
-    stake: Union["torch.nn.Parameter", NDArray]
-    total_stake: Union["torch.nn.Parameter", NDArray]
-    ranks: Union["torch.nn.Parameter", NDArray]
-    trust: Union["torch.nn.Parameter", NDArray]
-    consensus: Union["torch.nn.Parameter", NDArray]
-    validator_trust: Union["torch.nn.Parameter", NDArray]
-    incentive: Union["torch.nn.Parameter", NDArray]
-    emission: Union["torch.nn.Parameter", NDArray]
-    dividends: Union["torch.nn.Parameter", NDArray]
-    active: Union["torch.nn.Parameter", NDArray]
-    last_update: Union["torch.nn.Parameter", NDArray]
-    validator_permit: Union["torch.nn.Parameter", NDArray]
-    weights: Union["torch.nn.Parameter", NDArray]
-    bonds: Union["torch.nn.Parameter", NDArray]
-    uids: Union["torch.nn.Parameter", NDArray]
+    block: Tensor
+    stake: Tensor
+    total_stake: Tensor
+    ranks: Tensor
+    trust: Tensor
+    consensus: Tensor
+    validator_trust: Tensor
+    incentive: Tensor
+    emission: Tensor
+    dividends: Tensor
+    active: Tensor
+    last_update: Tensor
+    validator_permit: Tensor
+    weights: Tensor
+    bonds: Tensor
+    uids: Tensor
     axons: list[AxonInfo]
     chain_endpoint: Optional[str]
     subtensor: Optional["AsyncSubtensor"]
@@ -640,7 +643,7 @@ class MetagraphMixin(ABC):
                             len(self.neurons), list(uids), list(values)
                         ).astype(np.float32)
                     )
-        tensor_param: Union["torch.nn.Parameter", NDArray] = (
+        tensor_param: Tensor = (
             (
                 torch.nn.Parameter(torch.stack(data_array), requires_grad=False)
                 if len(data_array)
