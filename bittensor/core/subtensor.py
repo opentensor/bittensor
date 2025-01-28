@@ -2,22 +2,31 @@ import copy
 from functools import lru_cache
 from typing import TYPE_CHECKING, Any, Iterable, Optional, Union, cast
 
+import numpy as np
+import requests
+import scalecodec
 from async_substrate_interface.errors import SubstrateRequestException
 from async_substrate_interface.sync_substrate import SubstrateInterface
 from async_substrate_interface.utils import hex_to_bytes, json
-import numpy as np
 from numpy.typing import NDArray
-import requests
-import scalecodec
 from scalecodec.base import RuntimeConfiguration
 from scalecodec.type_registry import load_type_registry_preset
 
-from bittensor.core.types import SubtensorMixin
+from bittensor.core.async_subtensor import ProposalVoteData
+from bittensor.core.axon import Axon
 from bittensor.core.chain_data import (
     custom_rpc_type_registry,
     decode_account_id,
+    MetagraphInfo,
     WeightCommitInfo,
 )
+from bittensor.core.chain_data.delegate_info import DelegateInfo
+from bittensor.core.chain_data.neuron_info import NeuronInfo
+from bittensor.core.chain_data.neuron_info_lite import NeuronInfoLite
+from bittensor.core.chain_data.stake_info import StakeInfo
+from bittensor.core.chain_data.subnet_hyperparameters import SubnetHyperparameters
+from bittensor.core.chain_data.subnet_info import SubnetInfo
+from bittensor.core.config import Config
 from bittensor.core.extrinsics.commit_reveal import commit_reveal_v3_extrinsic
 from bittensor.core.extrinsics.commit_weights import (
     commit_weights_extrinsic,
@@ -31,6 +40,11 @@ from bittensor.core.extrinsics.root import (
     root_register_extrinsic,
     set_root_weights_extrinsic,
 )
+from bittensor.core.extrinsics.serving import (
+    publish_metadata,
+    get_metadata,
+    serve_axon_extrinsic,
+)
 from bittensor.core.extrinsics.set_weights import set_weights_extrinsic
 from bittensor.core.extrinsics.staking import (
     add_stake_extrinsic,
@@ -42,11 +56,6 @@ from bittensor.core.extrinsics.unstaking import (
     unstake_multiple_extrinsic,
 )
 from bittensor.core.metagraph import Metagraph
-from bittensor.core.extrinsics.serving import (
-    publish_metadata,
-    get_metadata,
-    serve_axon_extrinsic,
-)
 from bittensor.core.settings import (
     version_as_int,
     SS58_FORMAT,
@@ -54,6 +63,7 @@ from bittensor.core.settings import (
     DELEGATES_DETAILS_URL,
 )
 from bittensor.core.types import ParamWithTypes
+from bittensor.core.types import SubtensorMixin
 from bittensor.utils import (
     torch,
     format_error_message,
@@ -62,18 +72,9 @@ from bittensor.utils import (
     u16_normalized_float,
     _decode_hex_identity_dict,
 )
+from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 from bittensor.utils.weight_utils import generate_weight_hash
-from bittensor.core.async_subtensor import ProposalVoteData
-from bittensor.core.axon import Axon
-from bittensor.core.config import Config
-from bittensor.core.chain_data.delegate_info import DelegateInfo
-from bittensor.core.chain_data.neuron_info import NeuronInfo
-from bittensor.core.chain_data.neuron_info_lite import NeuronInfoLite
-from bittensor.core.chain_data.stake_info import StakeInfo
-from bittensor.core.chain_data.subnet_hyperparameters import SubnetHyperparameters
-from bittensor.core.chain_data.subnet_info import SubnetInfo
-from bittensor.utils.balance import Balance
 
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
@@ -996,6 +997,39 @@ class Subtensor(SubtensorMixin):
         )
 
         return Balance.from_rao(getattr(result, "value", 0))
+
+    def get_metagraph_info(
+        self, netuid: int, block: Optional[int] = None
+    ) -> Optional[MetagraphInfo]:
+        if block is not None:
+            block_hash = self.get_block_hash(block)
+        else:
+            block_hash = None
+
+        query = self.substrate.runtime_call(
+            "SubnetInfoRuntimeApi",
+            "get_metagraph",
+            params=[netuid],
+            block_hash=block_hash,
+        )
+        metagraph_bytes = bytes.fromhex(query.decode()[2:])
+        return MetagraphInfo.from_vec_u8(metagraph_bytes)
+
+    def get_all_metagraphs_info(
+        self, block: Optional[int] = None
+    ) -> list[MetagraphInfo]:
+        if block is not None:
+            block_hash = self.get_block_hash(block)
+        else:
+            block_hash = None
+
+        query = self.substrate.runtime_call(
+            "SubnetInfoRuntimeApi",
+            "get_all_metagraphs",
+            block_hash=block_hash,
+        )
+        metagraphs_bytes = bytes.fromhex(query.decode()[2:])
+        return MetagraphInfo.list_from_vec_u8(metagraphs_bytes)
 
     def get_netuids_for_hotkey(
         self, hotkey_ss58: str, block: Optional[int] = None
