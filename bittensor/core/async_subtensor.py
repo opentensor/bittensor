@@ -14,10 +14,10 @@ from scalecodec import GenericCall, ScaleType
 from scalecodec.base import RuntimeConfiguration
 from scalecodec.type_registry import load_type_registry_preset
 
-from bittensor.core.types import SubtensorMixin
 from bittensor.core.chain_data import (
     DelegateInfo,
     StakeInfo,
+    MetagraphInfo,
     NeuronInfoLite,
     NeuronInfo,
     ProposalVoteData,
@@ -60,6 +60,7 @@ from bittensor.core.extrinsics.asyncex.weights import (
 from bittensor.core.metagraph import AsyncMetagraph
 from bittensor.core.settings import version_as_int, TYPE_REGISTRY, DELEGATES_DETAILS_URL
 from bittensor.core.types import ParamWithTypes
+from bittensor.core.types import SubtensorMixin
 from bittensor.utils import (
     decode_hex_identity_dict,
     format_error_message,
@@ -1281,6 +1282,33 @@ class AsyncSubtensor(SubtensorMixin):
         )
 
         return Balance.from_rao(getattr(result, "value", 0))
+
+    async def get_metagraph_info(
+        self, netuid: int, block: Optional[int] = None
+    ) -> Optional[MetagraphInfo]:
+        block_hash = await self.get_block_hash(block)
+
+        query = await self.substrate.runtime_call(
+            "SubnetInfoRuntimeApi",
+            "get_metagraph",
+            params=[netuid],
+            block_hash=block_hash,
+        )
+        metagraph_bytes = bytes.fromhex(query.decode()[2:])
+        return MetagraphInfo.from_vec_u8(metagraph_bytes)
+
+    async def get_all_metagraphs_info(
+        self, block: Optional[int] = None
+    ) -> list[MetagraphInfo]:
+        block_hash = await self.get_block_hash(block)
+
+        query = await self.substrate.runtime_call(
+            "SubnetInfoRuntimeApi",
+            "get_all_metagraphs",
+            block_hash=block_hash,
+        )
+        metagraphs_bytes = bytes.fromhex(query.decode()[2:])
+        return MetagraphInfo.list_from_vec_u8(metagraphs_bytes)
 
     async def get_netuids_for_hotkey(
         self,
