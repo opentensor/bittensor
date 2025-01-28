@@ -179,7 +179,7 @@ def add_stake_extrinsic(
         netuid=netuid,
     )
     if old_stake is not None:
-        old_stake = old_stake.stake
+        old_stake = old_stake
     else:
         old_stake = Balance.from_tao(0)
 
@@ -243,7 +243,7 @@ def add_stake_extrinsic(
                 netuid=netuid,
             )
             if new_stake is not None:
-                new_stake = new_stake.stake
+                new_stake = new_stake
             else:
                 new_stake = Balance.from_tao(0)
 
@@ -439,7 +439,7 @@ def add_stake_multiple_extrinsic(
                     netuid=netuid,
                 )
                 if new_stake is not None:
-                    new_stake = new_stake.stake
+                    new_stake = new_stake
                 else:
                     new_stake = Balance.from_tao(0)
 

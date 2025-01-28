@@ -1,5 +1,9 @@
 # Changelog
 
+## 8.5.1rc9 /2025-01-22
+## What's Changed
+* Updates to the sdk to support methods used in Rao
+
 ## 8.5.1rc8 /2025-01-15
 
 ## What's Changed

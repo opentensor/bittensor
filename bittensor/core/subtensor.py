@@ -60,9 +60,7 @@ from bittensor.core.extrinsics.staking import (
     add_stake_extrinsic,
     add_stake_multiple_extrinsic,
 )
-from bittensor.core.extrinsics.transfer import (
-    transfer_extrinsic,
-)
+from bittensor.core.extrinsics.transfer import transfer_extrinsic
 from bittensor.core.extrinsics.unstaking import (
     unstake_extrinsic,
     unstake_multiple_extrinsic,
@@ -76,7 +74,7 @@ from bittensor.utils import (
     hex_to_bytes,
     Certificate,
 )
-from bittensor.utils.balance import Balance
+from bittensor.utils.balance import Balance, fixed_to_float, FixedPoint
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import legacy_torch_api_compat
 from bittensor.utils.weight_utils import generate_weight_hash
@@ -1794,43 +1792,13 @@ class Subtensor:
         stakes = StakeInfo.list_from_vec_u8(bytes_result)  # type: ignore
         return [stake for stake in stakes if stake.stake > 0]
 
-    def get_stake(
-        self,
-        hotkey_ss58: str,
-        coldkey_ss58: str,
-        netuid: int,
-        block: Optional[int] = None,
-    ) -> Optional[Balance]:
-        """
-        Returns the stake under a coldkey - hotkey pairing.
-        Args:
-            hotkey_ss58 (str): The SS58 address of the hotkey.
-            coldkey_ss58 (str): The SS58 address of the coldkey.
-            netuid (int): The subnet ID to filter by. If provided, only returns stake for this specific subnet.
-            block (Optional[int]): The block number at which to query the stake information.
-        Returns:
-            Optional[Balance]: Balance
-        """
-        all_stakes = self.get_stake_for_coldkey(coldkey_ss58=coldkey_ss58, block=block)
-        stakes = [
-            stake
-            for stake in all_stakes  # type: ignore
-            if stake.hotkey_ss58 == hotkey_ss58
-            and (netuid is None or stake.netuid == netuid)
-            and stake.stake > 0
-        ]
-        if not stakes:
-            return Balance(0).set_unit(netuid=netuid)
-        else:
-            return stakes[0].stake
-
     def get_stake_for_coldkey_and_hotkey(
         self,
         hotkey_ss58: str,
         coldkey_ss58: str,
         netuid: Optional[int] = None,
         block: Optional[int] = None,
-    ) -> Optional[Union["StakeInfo", list["StakeInfo"]]]:
+    ) -> Balance:
         """
         Returns the stake under a coldkey - hotkey pairing.
 
@@ -1841,22 +1809,38 @@ class Subtensor:
             block (Optional[int]): The block number at which to query the stake information.
 
         Returns:
-            Optional[StakeInfo]: The StakeInfo object/s under the coldkey - hotkey pairing, or ``None`` if the pairing does not exist or the stake is not found.
+            Balance: The stake under the coldkey - hotkey pairing.
         """
-        all_stakes = self.get_stake_for_coldkey(coldkey_ss58, block)
-        stakes = [
-            stake
-            for stake in all_stakes  # type: ignore
-            if stake.hotkey_ss58 == hotkey_ss58
-            and (netuid is None or stake.netuid == netuid)
-            and stake.stake > 0
-        ]
-        if not stakes:
-            return None
-        elif len(stakes) == 1:
-            return stakes[0]
-        else:
-            return stakes
+        alpha_shares: FixedPoint = self.query_module(
+            module="SubtensorModule",
+            name="Alpha",
+            block=block,
+            params=[hotkey_ss58, coldkey_ss58, netuid],
+        ).value
+        hotkey_alpha: int = self.query_module(
+            module="SubtensorModule",
+            name="TotalHotkeyAlpha",
+            block=block,
+            params=[hotkey_ss58, netuid],
+        ).value
+        hotkey_shares: FixedPoint = self.query_module(
+            module="SubtensorModule",
+            name="TotalHotkeyShares",
+            block=block,
+            params=[hotkey_ss58, netuid],
+        ).value
+
+        alpha_shares_as_float = fixed_to_float(alpha_shares)
+        hotkey_shares_as_float = fixed_to_float(hotkey_shares)
+
+        if hotkey_shares_as_float == 0:
+            return Balance.from_rao(0)
+
+        stake = alpha_shares_as_float / hotkey_shares_as_float * hotkey_alpha
+
+        return Balance.from_rao(int(stake)).set_unit(netuid=netuid)
+
+    get_stake = get_stake_for_coldkey_and_hotkey
 
     def does_hotkey_exist(self, hotkey_ss58: str, block: Optional[int] = None) -> bool:
         """
@@ -2685,3 +2669,256 @@ class Subtensor:
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
         )
+
+    def transfer_stake(
+        self,
+        wallet: "Wallet",
+        destination_coldkey_ss58: str,
+        hotkey_ss58: str,
+        origin_netuid: int,
+        destination_netuid: int,
+        amount: Union["Balance", float, int],
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+    ) -> bool:
+        """
+        Transfers stake from one subnet to another. Keeps the same hotkey but destination coldkey is different.
+        Allows moving stake to a different coldkey's control while also having the option to change the subnet.
+
+        Hotkey is the same. Coldkeys are different.
+
+        Args:
+            wallet (bittensor.wallet): The wallet to transfer stake from.
+            destination_coldkey_ss58 (str): The destination coldkey SS58 address.
+            hotkey_ss58 (str): The hotkey SS58 address associated with the stake. This is owned by the origin coldkey.
+            origin_netuid (int): The source subnet UID.
+            destination_netuid (int): The destination subnet UID.
+            amount (Union[Balance, float]): Amount to transfer.
+            wait_for_inclusion (bool): Waits for the transaction to be included in a block.
+            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
+
+        Returns:
+            success (bool): True if the extrinsic was included in a block.
+
+        Raises:
+            StakeError: If the transfer fails due to insufficient stake or other reasons.
+        """
+        if isinstance(amount, (float, int)):
+            amount = Balance.from_tao(amount)
+
+        hotkey_owner = self.get_hotkey_owner(hotkey_ss58)
+        if hotkey_owner != wallet.coldkeypub.ss58_address:
+            logging.error(
+                f":cross_mark: [red]Failed[/red]: Hotkey: {hotkey_ss58} does not belong to the origin coldkey owner: {wallet.coldkeypub.ss58_address}"
+            )
+            return False
+
+        stake_in_origin = self.get_stake(
+            hotkey_ss58=hotkey_ss58,
+            coldkey_ss58=wallet.coldkeypub.ss58_address,
+            netuid=origin_netuid,
+        )
+        if stake_in_origin < amount:
+            logging.error(
+                f":cross_mark: [red]Failed[/red]: Insufficient stake in origin hotkey: {hotkey_ss58}. Stake: {stake_in_origin}, amount: {amount}"
+            )
+            return False
+
+        call = self.substrate.compose_call(
+            call_module="SubtensorModule",
+            call_function="transfer_stake",
+            call_params={
+                "destination_coldkey": destination_coldkey_ss58,
+                "hotkey": hotkey_ss58,
+                "origin_netuid": origin_netuid,
+                "destination_netuid": destination_netuid,
+                "alpha_amount": amount.rao,
+            },
+        )
+        next_nonce = self.get_account_next_index(wallet.coldkeypub.ss58_address)
+        extrinsic = self.substrate.create_signed_extrinsic(
+            call=call, keypair=wallet.coldkey, nonce=next_nonce
+        )
+        response = self.substrate.submit_extrinsic(
+            extrinsic,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+        if wait_for_finalization or wait_for_inclusion:
+            response.process_events()
+            if response.is_success:
+                return True
+            else:
+                logging.error(
+                    f":cross_mark: [red]Failed[/red]: {response.error_message}"
+                )
+                return False
+        else:
+            return True
+
+    def swap_stake(
+        self,
+        wallet: "Wallet",
+        hotkey_ss58: str,
+        origin_netuid: int,
+        destination_netuid: int,
+        amount: Union["Balance", float, int],
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+    ) -> bool:
+        """
+        Moves stake between subnets while keeping the same coldkey-hotkey pair ownership.
+        Like subnet hopping - same owner, same hotkey, just changing which subnet the stake is in.
+
+        Both hotkey and coldkey are the same.
+
+        Args:
+            wallet (bittensor.wallet): The wallet to transfer stake from.
+            hotkey_ss58 (str): The SS58 address of the hotkey whose stake is being swapped.
+            origin_netuid (int): The netuid from which stake is removed.
+            destination_netuid (int): The netuid to which stake is added.
+            amount (Union[Balance, float, int]): The amount to swap.
+            wait_for_inclusion (bool): Waits for the transaction to be included in a block.
+            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
+
+        Returns:
+            success (bool): True if the extrinsic was successful.
+        """
+        # Convert amount to Balance if needed
+        if isinstance(amount, (float, int)):
+            amount = Balance.from_tao(amount)
+
+        hotkey_owner = self.get_hotkey_owner(hotkey_ss58)
+        if hotkey_owner != wallet.coldkeypub.ss58_address:
+            logging.error(
+                f":cross_mark: [red]Failed[/red]: Hotkey: {hotkey_ss58} does not belong to the origin coldkey owner: {wallet.coldkeypub.ss58_address}"
+            )
+            return False
+
+        stake_in_origin = self.get_stake(
+            hotkey_ss58=hotkey_ss58,
+            coldkey_ss58=wallet.coldkeypub.ss58_address,
+            netuid=origin_netuid,
+        )
+        if stake_in_origin < amount:
+            logging.error(
+                f":cross_mark: [red]Failed[/red]: Insufficient stake in origin hotkey: {hotkey_ss58}. Stake: {stake_in_origin}, amount: {amount}"
+            )
+            return False
+
+        call = self.substrate.compose_call(
+            call_module="SubtensorModule",
+            call_function="swap_stake",
+            call_params={
+                "hotkey": hotkey_ss58,
+                "origin_netuid": origin_netuid,
+                "destination_netuid": destination_netuid,
+                "alpha_amount": amount.rao,
+            },
+        )
+        next_nonce = self.get_account_next_index(wallet.coldkeypub.ss58_address)
+        extrinsic = self.substrate.create_signed_extrinsic(
+            call=call,
+            keypair=wallet.coldkey,
+            nonce=next_nonce,
+        )
+        response = self.substrate.submit_extrinsic(
+            extrinsic,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+        if wait_for_finalization or wait_for_inclusion:
+            response.process_events()
+            if response.is_success:
+                return True
+            else:
+                logging.error(
+                    f":cross_mark: [red]Failed[/red]: {response.error_message}"
+                )
+                return False
+        else:
+            return True
+
+    def move_stake(
+        self,
+        wallet: "Wallet",
+        origin_hotkey: str,
+        origin_netuid: int,
+        destination_hotkey: str,
+        destination_netuid: int,
+        amount: Union["Balance", float, int],
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+    ) -> bool:
+        """
+        Moves stake to a different hotkey and/or subnet while keeping the same coldkey owner.
+        Flexible movement allowing changes to both hotkey and subnet under the same coldkey's control.
+
+        Coldkey is the same. Hotkeys are different.
+
+        Args:
+            wallet (bittensor.wallet): The wallet to transfer stake from.
+            origin_hotkey (str): The SS58 address of the source hotkey.
+            origin_netuid (int): The netuid of the source subnet.
+            destination_hotkey (str): The SS58 address of the destination hotkey.
+            destination_netuid (int): The netuid of the destination subnet.
+            amount (Union[Balance, float, int]): Amount of stake to move.
+            wait_for_inclusion (bool): Waits for the transaction to be included in a block. Default is True.
+            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain. Default is False.
+
+        Returns:
+            bool: True if the stake movement was successful, False otherwise.
+
+        Raises:
+            StakeError: If the movement fails due to insufficient stake or other reasons.
+        """
+        if isinstance(amount, (float, int)):
+            amount = Balance.from_tao(amount)
+
+        stake_in_origin = self.get_stake(
+            hotkey_ss58=origin_hotkey,
+            coldkey_ss58=wallet.coldkeypub.ss58_address,
+            netuid=origin_netuid,
+        )
+        if stake_in_origin < amount:
+            logging.error(
+                f":cross_mark: [red]Failed[/red]: Insufficient stake in origin hotkey: {origin_hotkey}. Stake: {stake_in_origin}, amount: {amount}"
+            )
+            return False
+
+        call = self.substrate.compose_call(
+            call_module="SubtensorModule",
+            call_function="move_stake",
+            call_params={
+                "origin_hotkey": origin_hotkey,
+                "origin_netuid": origin_netuid,
+                "destination_hotkey": destination_hotkey,
+                "destination_netuid": destination_netuid,
+                "alpha_amount": amount.rao,
+            },
+        )
+
+        next_nonce = self.get_account_next_index(wallet.coldkeypub.ss58_address)
+        extrinsic = self.substrate.create_signed_extrinsic(
+            call=call,
+            keypair=wallet.coldkey,
+            nonce=next_nonce,
+        )
+
+        response = self.substrate.submit_extrinsic(
+            extrinsic,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+
+        if wait_for_finalization or wait_for_inclusion:
+            response.process_events()
+            if response.is_success:
+                return True
+            else:
+                logging.error(
+                    f":cross_mark: [red]Failed[/red]: {response.error_message}"
+                )
+                return False
+        else:
+            return True
