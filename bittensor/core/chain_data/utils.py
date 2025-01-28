@@ -23,9 +23,12 @@ class ChainDataType(Enum):
     ScheduledColdkeySwapInfo = 9
     AccountId = 10
     NeuronCertificate = 11
-    MetagraphInfo = 12
-    ChainIdentity = 13
-    AxonInfo = 14
+    SubnetState = 12
+    DynamicInfo = 13
+    SubnetIdentity = 14
+    MetagraphInfo = 15
+    ChainIdentity = 16
+    AxonInfo = 17
 
 
 def from_scale_encoding(
@@ -218,12 +221,40 @@ custom_rpc_type_registry = {
                 ["ip_type_and_protocol", "Compact<u8>"],
             ],
         },
+        "SubnetState": {
+            "type": "struct",
+            "type_mapping": [
+                ["netuid", "Compact<u16>"],
+                ["hotkeys", "Vec<AccountId>"],
+                ["coldkeys", "Vec<AccountId>"],
+                ["active", "Vec<bool>"],
+                ["validator_permit", "Vec<bool>"],
+                ["pruning_score", "Vec<Compact<u16>>"],
+                ["last_update", "Vec<Compact<u64>>"],
+                ["emission", "Vec<Compact<u64>>"],
+                ["dividends", "Vec<Compact<u16>>"],
+                ["incentives", "Vec<Compact<u16>>"],
+                ["consensus", "Vec<Compact<u16>>"],
+                ["trust", "Vec<Compact<u16>>"],
+                ["rank", "Vec<Compact<u16>>"],
+                ["block_at_registration", "Vec<Compact<u64>>"],
+                ["alpha_stake", "Vec<Compact<u64>>"],
+                ["tao_stake", "Vec<Compact<u64>>"],
+                ["total_stake", "Vec<Compact<u64>>"],
+                ["emission_history", "Vec<Vec<Compact<u64>>>"],
+            ],
+        },
         "StakeInfo": {
             "type": "struct",
             "type_mapping": [
                 ["hotkey", "AccountId"],
                 ["coldkey", "AccountId"],
+                ["netuid", "Compact<u16>"],
                 ["stake", "Compact<u64>"],
+                ["locked", "Compact<u64>"],
+                ["emission", "Compact<u64>"],
+                ["drain", "Compact<u64>"],
+                ["is_registered", "bool"],
             ],
         },
         "SubnetHyperparameters": {
@@ -264,6 +295,30 @@ custom_rpc_type_registry = {
                 ["old_coldkey", "AccountId"],
                 ["new_coldkey", "AccountId"],
                 ["arbitration_block", "Compact<u64>"],
+            ],
+        },
+        "DynamicInfo": {
+            "type": "struct",
+            "type_mapping": [
+                ["netuid", "Compact<u16>"],
+                ["owner_hotkey", "AccountId"],
+                ["owner_coldkey", "AccountId"],
+                ["subnet_name", "Vec<Compact<u8>>"],
+                ["token_symbol", "Vec<Compact<u8>>"],
+                ["tempo", "Compact<u16>"],
+                ["last_step", "Compact<u64>"],
+                ["blocks_since_last_step", "Compact<u64>"],
+                ["emission", "Compact<u64>"],
+                ["alpha_in", "Compact<u64>"],
+                ["alpha_out", "Compact<u64>"],
+                ["tao_in", "Compact<u64>"],
+                ["alpha_out_emission", "Compact<u64>"],
+                ["alpha_in_emission", "Compact<u64>"],
+                ["tao_in_emission", "Compact<u64>"],
+                ["pending_alpha_emission", "Compact<u64>"],
+                ["pending_root_emission", "Compact<u64>"],
+                ["network_registered_at", "Compact<u64>"],
+                ["subnet_identity", "Option<SubnetIdentity>"],
             ],
         },
         "MetagraphInfo": {
