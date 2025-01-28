@@ -2064,7 +2064,7 @@ def test_recycle_success(subtensor, mocker):
     )
 
     mocked_balance.assert_called_once_with(int(mocked_get_hyperparameter.return_value))
-    assert result == mocked_balance.return_value
+    assert result == mocked_balance.return_value.set_unit.return_value
 
 
 def test_recycle_none(subtensor, mocker):
