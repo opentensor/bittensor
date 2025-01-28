@@ -72,7 +72,7 @@ from bittensor.utils import (
     u16_normalized_float,
     _decode_hex_identity_dict,
 )
-from bittensor.utils.balance import Balance
+from bittensor.utils.balance import Balance, fixed_to_float, FixedPoint
 from bittensor.utils.btlogging import logging
 from bittensor.utils.weight_utils import generate_weight_hash
 
@@ -1134,27 +1134,86 @@ class Subtensor(SubtensorMixin):
 
         return NeuronInfo.from_vec_u8(bytes(result))
 
-    def get_stake_for_coldkey_and_hotkey(
-        self, hotkey_ss58: str, coldkey_ss58: str, block: Optional[int] = None
-    ) -> Optional["Balance"]:
+    def get_stake(
+        self,
+        hotkey_ss58: str,
+        coldkey_ss58: str,
+        netuid: Optional[int] = None,
+        block: Optional[int] = None,
+    ) -> Balance:
         """
-        Retrieves stake information associated with a specific coldkey and hotkey.
+        Returns the stake under a coldkey - hotkey pairing.
 
-        Arguments:
-            hotkey_ss58 (str): the hotkey SS58 address to query
-            coldkey_ss58 (str): the coldkey SS58 address to query
-            block (Optional[int]): the block number to query
+        Args:
+            hotkey_ss58 (str): The SS58 address of the hotkey.
+            coldkey_ss58 (str): The SS58 address of the coldkey.
+            netuid (Optional[int]): The subnet ID to filter by. If provided, only returns stake for this specific subnet.
+            block (Optional[int]): The block number at which to query the stake information.
 
         Returns:
-            Stake Balance for the given coldkey and hotkey
+            Balance: The stake under the coldkey - hotkey pairing.
         """
-        result = self.substrate.query(
+        alpha_shares: FixedPoint = self.query_module(
             module="SubtensorModule",
-            storage_function="Stake",
-            params=[hotkey_ss58, coldkey_ss58],
-            block_hash=self.determine_block_hash(block),
+            name="Alpha",
+            block=block,
+            params=[hotkey_ss58, coldkey_ss58, netuid],
         )
-        return Balance.from_rao(getattr(result, "value", 0))
+        hotkey_alpha: int = self.query_module(
+            module="SubtensorModule",
+            name="TotalHotkeyAlpha",
+            block=block,
+            params=[hotkey_ss58, netuid],
+        ).value
+        hotkey_shares: FixedPoint = self.query_module(
+            module="SubtensorModule",
+            name="TotalHotkeyShares",
+            block=block,
+            params=[hotkey_ss58, netuid],
+        )
+
+        alpha_shares_as_float = fixed_to_float(alpha_shares)
+        hotkey_shares_as_float = fixed_to_float(hotkey_shares)
+
+        if hotkey_shares_as_float == 0:
+            return Balance.from_rao(0).set_unit(netuid=netuid)
+
+        stake = alpha_shares_as_float / hotkey_shares_as_float * hotkey_alpha
+
+        return Balance.from_rao(int(stake)).set_unit(netuid=netuid)
+
+    get_stake_for_coldkey_and_hotkey = get_stake
+
+    def get_stake_for_coldkey(
+        self, coldkey_ss58: str, block: Optional[int] = None
+    ) -> Optional[list["StakeInfo"]]:
+        """
+        Retrieves the stake information for a given coldkey.
+
+        Args:
+            coldkey_ss58 (str): The SS58 address of the coldkey.
+            block (Optional[int]): The block number at which to query the stake information.
+
+        Returns:
+            Optional[list[StakeInfo]]: A list of StakeInfo objects, or ``None`` if no stake information is found.
+        """
+        encoded_coldkey = ss58_to_vec_u8(coldkey_ss58)
+        hex_bytes_result = self.query_runtime_api(
+            runtime_api="StakeInfoRuntimeApi",
+            method="get_stake_info_for_coldkey",
+            params=[encoded_coldkey],  # type: ignore
+            block=block,
+        )
+
+        if hex_bytes_result is None:
+            return []
+        try:
+            bytes_result = bytes.fromhex(hex_bytes_result[2:])
+        except ValueError:
+            bytes_result = bytes.fromhex(hex_bytes_result)
+
+        stakes = StakeInfo.list_from_vec_u8(bytes_result)  # type: ignore
+        return [stake for stake in stakes if stake.stake > 0]
 
     def get_stake_info_for_coldkey(
         self, coldkey_ss58: str, block: Optional[int] = None
@@ -2033,6 +2092,7 @@ class Subtensor(SubtensorMixin):
         self,
         wallet: "Wallet",
         hotkey_ss58: Optional[str] = None,
+        netuid: Optional[int] = None,
         amount: Optional[Union["Balance", float]] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
@@ -2059,6 +2119,7 @@ class Subtensor(SubtensorMixin):
             subtensor=self,
             wallet=wallet,
             hotkey_ss58=hotkey_ss58,
+            netuid=netuid,
             amount=amount,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
@@ -2068,6 +2129,7 @@ class Subtensor(SubtensorMixin):
         self,
         wallet: "Wallet",
         hotkey_ss58s: list[str],
+        netuids: list[int],
         amounts: Optional[list[Union["Balance", float]]] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
@@ -2093,6 +2155,7 @@ class Subtensor(SubtensorMixin):
             subtensor=self,
             wallet=wallet,
             hotkey_ss58s=hotkey_ss58s,
+            netuids=netuids,
             amounts=amounts,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
