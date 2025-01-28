@@ -703,7 +703,7 @@ class Subtensor:
 
         return metagraph
 
-    def get_metagraph(
+    def get_metagraph_info(
         self, netuid: int, block: Optional[int] = None
     ) -> Optional[MetagraphInfo]:
         if block is not None:
@@ -720,7 +720,9 @@ class Subtensor:
         metagraph_bytes = bytes.fromhex(query.decode()[2:])
         return MetagraphInfo.from_vec_u8(metagraph_bytes)
 
-    def get_all_metagraphs(self, block: Optional[int] = None) -> list[MetagraphInfo]:
+    def get_all_metagraphs_info(
+        self, block: Optional[int] = None
+    ) -> list[MetagraphInfo]:
         if block is not None:
             block_hash = self.get_block_hash(block)
         else:
