@@ -429,6 +429,7 @@ class Subtensor(SubtensorMixin):
             data_type=f"Raw{len(data)}",
             data=data.encode(),
         )
+
     # add explicit alias
     set_commitment = commit
 
