@@ -7,7 +7,7 @@ import argparse
 import copy
 import ssl
 import time
-from typing import Union, Optional, TypedDict, Any
+from typing import Union, Optional, TypedDict, Any, cast
 import warnings
 import numpy as np
 import scalecodec
@@ -26,6 +26,7 @@ from bittensor.core.errors import StakeError
 from bittensor.core.chain_data import (
     custom_rpc_type_registry,
     DelegateInfo,
+    MetagraphInfo,
     NeuronInfo,
     NeuronInfoLite,
     PrometheusInfo,
@@ -701,6 +702,39 @@ class Subtensor:
         metagraph.sync(block=block, lite=lite, subtensor=self)
 
         return metagraph
+
+    def get_metagraph_info(
+        self, netuid: int, block: Optional[int] = None
+    ) -> Optional[MetagraphInfo]:
+        if block is not None:
+            block_hash = self.get_block_hash(block)
+        else:
+            block_hash = None
+
+        query = self.substrate.runtime_call(
+            "SubnetInfoRuntimeApi",
+            "get_metagraph",
+            params=[netuid],
+            block_hash=block_hash,
+        )
+        metagraph_bytes = bytes.fromhex(query.decode()[2:])
+        return MetagraphInfo.from_vec_u8(metagraph_bytes)
+
+    def get_all_metagraphs_info(
+        self, block: Optional[int] = None
+    ) -> list[MetagraphInfo]:
+        if block is not None:
+            block_hash = self.get_block_hash(block)
+        else:
+            block_hash = None
+
+        query = self.substrate.runtime_call(
+            "SubnetInfoRuntimeApi",
+            "get_all_metagraphs",
+            block_hash=block_hash,
+        )
+        metagraphs_bytes = bytes.fromhex(query.decode()[2:])
+        return MetagraphInfo.list_from_vec_u8(metagraphs_bytes)
 
     @staticmethod
     def determine_chain_endpoint_and_network(
@@ -2672,7 +2706,7 @@ class Subtensor:
             StakeError: If the transfer fails due to insufficient stake or other reasons.
         """
         if isinstance(amount, (float, int)):
-            amount = Balance.from_tao(amount)
+            amount = cast(Balance, Balance.from_tao(amount))
 
         hotkey_owner = self.get_hotkey_owner(hotkey_ss58)
         if hotkey_owner != wallet.coldkeypub.ss58_address:
@@ -2754,7 +2788,7 @@ class Subtensor:
         """
         # Convert amount to Balance if needed
         if isinstance(amount, (float, int)):
-            amount = Balance.from_tao(amount)
+            amount = cast(Balance, Balance.from_tao(amount))
 
         hotkey_owner = self.get_hotkey_owner(hotkey_ss58)
         if hotkey_owner != wallet.coldkeypub.ss58_address:
@@ -2841,7 +2875,7 @@ class Subtensor:
             StakeError: If the movement fails due to insufficient stake or other reasons.
         """
         if isinstance(amount, (float, int)):
-            amount = Balance.from_tao(amount)
+            amount = cast(Balance, Balance.from_tao(amount))
 
         stake_in_origin = self.get_stake(
             hotkey_ss58=origin_hotkey,

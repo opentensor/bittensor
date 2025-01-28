@@ -245,6 +245,14 @@ TYPE_REGISTRY: dict[str, dict] = {
                     "params": [{"name": "netuid", "type": "u16"}],
                     "type": "Vec<u8>",
                 },
+                "get_metagraph": {
+                    "params": [{"name": "netuid", "type": "u16"}],
+                    "type": "Vec<u8>",
+                },
+                "get_all_metagraphs": {
+                    "params": [],
+                    "type": "Vec<u8>",
+                },
             }
         },
         "SubnetRegistrationRuntimeApi": {
@@ -364,6 +372,7 @@ def __apply_nest_asyncio():
 __apply_nest_asyncio()
 
 
+# TODO: consider to move `units` to `bittensor.utils.balance` module.
 units = [
     # Greek Alphabet (0-24)
     "\u03c4",  # τ (tau, 0)

@@ -23,6 +23,7 @@ from bittensor.core.chain_data import (
     DelegateInfo,
     custom_rpc_type_registry,
     StakeInfo,
+    MetagraphInfo,
     NeuronInfoLite,
     NeuronInfo,
     SubnetHyperparameters,
@@ -353,6 +354,33 @@ class AsyncSubtensor:
 
         return metagraph
 
+    async def get_metagraph(
+        self, netuid: int, block: Optional[int] = None
+    ) -> Optional[MetagraphInfo]:
+        block_hash = await self.get_block_hash(block)
+
+        query = await self.substrate.runtime_call(
+            "SubnetInfoRuntimeApi",
+            "get_metagraph",
+            params=[netuid],
+            block_hash=block_hash,
+        )
+        metagraph_bytes = bytes.fromhex(query.decode()[2:])
+        return MetagraphInfo.from_vec_u8(metagraph_bytes)
+
+    async def get_all_metagraphs(
+        self, block: Optional[int] = None
+    ) -> list[MetagraphInfo]:
+        block_hash = await self.get_block_hash(block)
+
+        query = await self.substrate.runtime_call(
+            "SubnetInfoRuntimeApi",
+            "get_all_metagraphs",
+            block_hash=block_hash,
+        )
+        metagraphs_bytes = bytes.fromhex(query.decode()[2:])
+        return MetagraphInfo.list_from_vec_u8(metagraphs_bytes)
+
     async def get_current_block(self) -> int:
         """
         Returns the current block number on the Bittensor blockchain. This function provides the latest block number, indicating the most recent state of the blockchain.
@@ -404,10 +432,7 @@ class AsyncSubtensor:
             Optional[list[StakeInfo]]: A list of StakeInfo objects, or ``None`` if no stake information is found.
         """
         encoded_coldkey = ss58_to_vec_u8(coldkey_ss58)
-        if block is not None:
-            block_hash = await self.get_block_hash(block)
-        else:
-            block_hash = None
+        block_hash = await self.get_block_hash(block)
         hex_bytes_result = await self.query_runtime_api(
             runtime_api="StakeInfoRuntimeApi",
             method="get_stake_info_for_coldkey",
