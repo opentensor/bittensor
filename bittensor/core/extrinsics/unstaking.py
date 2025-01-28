@@ -151,7 +151,7 @@ def unstake_extrinsic(
         netuid=netuid,
     )
     if old_stake is not None:
-        old_stake = old_stake.stake
+        old_stake = old_stake
     else:
         old_stake = Balance.from_tao(0)
 
@@ -205,7 +205,7 @@ def unstake_extrinsic(
                 netuid=netuid,
             )
             if new_stake is not None:
-                new_stake = new_stake.stake
+                new_stake = new_stake
             else:
                 new_stake = Balance.from_tao(0)
             logging.info(
@@ -377,7 +377,7 @@ def unstake_multiple_extrinsic(
                     netuid=netuid,
                 )
                 if new_stake is not None:
-                    new_stake = new_stake.stake
+                    new_stake = new_stake
                 else:
                     new_stake = Balance.from_tao(0)
 
