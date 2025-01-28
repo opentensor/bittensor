@@ -15,7 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from typing import Union
+from typing import Union, Optional
 
 from bittensor.core import settings
 
@@ -228,44 +228,47 @@ class Balance:
         return Balance.from_rao(abs(self.rao))
 
     @staticmethod
-    def from_float(amount: float):
+    def from_float(amount: float, netuid: Optional[int] = 0):
         """
         Given tao, return :func:`Balance` object with rao(``int``) and tao(``float``), where rao = int(tao*pow(10,9))
         Args:
             amount (float): The amount in tao.
+            netuid (int): The subnet uid for set currency unit. Defaults to `0`.
 
         Returns:
             A Balance object representing the given amount.
         """
         rao = int(amount * pow(10, 9))
-        return Balance(rao)
+        return Balance(rao).set_unit(netuid)
 
     @staticmethod
-    def from_tao(amount: float):
+    def from_tao(amount: float, netuid: Optional[int] = 0):
         """
         Given tao, return Balance object with rao(``int``) and tao(``float``), where rao = int(tao*pow(10,9))
 
         Args:
             amount (float): The amount in tao.
+            netuid (int): The subnet uid for set currency unit. Defaults to `0`.
 
         Returns:
             A Balance object representing the given amount.
         """
         rao = int(amount * pow(10, 9))
-        return Balance(rao)
+        return Balance(rao).set_unit(netuid)
 
     @staticmethod
-    def from_rao(amount: int):
+    def from_rao(amount: int, netuid: Optional[int] = 0):
         """
         Given rao, return Balance object with rao(``int``) and tao(``float``), where rao = int(tao*pow(10,9))
 
         Args:
             amount (int): The amount in rao.
+            netuid (int): The subnet uid for set currency unit. Defaults to `0`.
 
         Returns:
             A Balance object representing the given amount.
         """
-        return Balance(amount)
+        return Balance(amount).set_unit(netuid)
 
     @staticmethod
     def get_unit(netuid: int):
