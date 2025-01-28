@@ -625,6 +625,8 @@ class AsyncSubtensor(SubtensorMixin):
             data=data.encode(),
         )
 
+    set_commitment = commit
+
     async def commit_reveal_enabled(
         self,
         netuid: int,
