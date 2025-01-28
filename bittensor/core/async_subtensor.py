@@ -356,7 +356,7 @@ class AsyncSubtensor:
 
     async def get_metagraph(
         self, netuid: int, block: Optional[int] = None
-    ) -> Optional["MetagraphInfo"]:
+    ) -> Optional[MetagraphInfo]:
         block_hash = await self.get_block_hash(block)
 
         query = await self.substrate.runtime_call(
@@ -370,7 +370,7 @@ class AsyncSubtensor:
 
     async def get_all_metagraphs(
         self, block: Optional[int] = None
-    ) -> list["MetagraphInfo"]:
+    ) -> list[MetagraphInfo]:
         block_hash = await self.get_block_hash(block)
 
         query = await self.substrate.runtime_call(

@@ -27,7 +27,7 @@ class MetagraphInfo:
     # Name and symbol
     name: str
     symbol: str
-    identity: Optional["SubnetIdentity"]
+    identity: Optional[SubnetIdentity]
     network_registered_at: int
 
     # Keys for owner.
@@ -41,15 +41,15 @@ class MetagraphInfo:
     blocks_since_last_step: int
 
     # Subnet emission terms
-    subnet_emission: "Balance"  # subnet emission via tao
-    alpha_in: "Balance"  # amount of alpha in reserve
-    alpha_out: "Balance"  # amount of alpha outstanding
-    tao_in: "Balance"  # amount of tao injected per block
-    alpha_out_emission: "Balance"  # amount injected in alpha reserves per block
-    alpha_in_emission: "Balance"  # amount injected outstanding per block
-    tao_in_emission: "Balance"  # amount of tao injected per block
-    pending_alpha_emission: "Balance"  # pending alpha to be distributed
-    pending_root_emission: "Balance"  # pending tao for root divs to be distributed
+    subnet_emission: Balance  # subnet emission via tao
+    alpha_in: Balance  # amount of alpha in reserve
+    alpha_out: Balance  # amount of alpha outstanding
+    tao_in: Balance  # amount of tao injected per block
+    alpha_out_emission: Balance  # amount injected in alpha reserves per block
+    alpha_in_emission: Balance  # amount injected outstanding per block
+    tao_in_emission: Balance  # amount of tao injected per block
+    pending_alpha_emission: Balance  # pending alpha to be distributed
+    pending_root_emission: Balance  # pending tao for root divs to be distributed
 
     # Hparams for epoch
     rho: int  # subnet rho param
@@ -94,29 +94,29 @@ class MetagraphInfo:
     # Metagraph info.
     hotkeys: list[str]  # hotkey per UID
     coldkeys: list[str]  # coldkey per UID
-    identities: list[Optional["ChainIdentity"]]  # coldkeys identities
-    axons: list["AxonInfo"]  # UID axons.
+    identities: list[Optional[ChainIdentity]]  # coldkeys identities
+    axons: list[AxonInfo]  # UID axons.
     active: list[bool]  # Active per UID
     validator_permit: list[bool]  # Val permit per UID
     pruning_score: list[float]  # Pruning per UID
     last_update: list[int]  # Last update per UID
-    emission: list["Balance"]  # Emission per UID
+    emission: list[Balance]  # Emission per UID
     dividends: list[float]  # Dividends per UID
     incentives: list[float]  # Mining incentives per UID
     consensus: list[float]  # Consensus per UID
     trust: list[float]  # Trust per UID
     rank: list[float]  # Rank per UID
     block_at_registration: list[int]  # Reg block per UID
-    alpha_stake: list["Balance"]  # Alpha staked per UID
-    tao_stake: list["Balance"]  # TAO staked per UID
-    total_stake: list["Balance"]  # Total stake per UID
+    alpha_stake: list[Balance]  # Alpha staked per UID
+    tao_stake: list[Balance]  # TAO staked per UID
+    total_stake: list[Balance]  # Total stake per UID
 
     # Dividend break down.
     tao_dividends_per_hotkey: list[
-        tuple[str, "Balance"]
+        tuple[str, Balance]
     ]  # List of dividend payouts in tao via root.
     alpha_dividends_per_hotkey: list[
-        tuple[str, "Balance"]
+        tuple[str, Balance]
     ]  # List of dividend payout in alpha via subnet.
 
     @classmethod
