@@ -2346,7 +2346,7 @@ class Subtensor(SubtensorMixin):
                 retries += 1
 
         return success, message
-    
+
     def move_stake(
         self,
         wallet: "Wallet",

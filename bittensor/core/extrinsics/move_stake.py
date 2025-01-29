@@ -239,7 +239,7 @@ def swap_stake_extrinsic(
     except Exception as e:
         logging.error(f":cross_mark: [red]Failed[/red]: {str(e)}")
         return False
-    
+
 
 def move_stake_extrinsic(
     subtensor: "Subtensor",

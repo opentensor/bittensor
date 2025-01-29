@@ -7,6 +7,7 @@ if TYPE_CHECKING:
     from bittensor_wallet import Wallet
     from bittensor.core.subtensor import Subtensor
 
+
 async def transfer_stake_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
@@ -107,6 +108,7 @@ async def transfer_stake_extrinsic(
         logging.error(f":cross_mark: [red]Failed[/red]: {str(e)}")
         return False
 
+
 async def swap_stake_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
@@ -204,6 +206,7 @@ async def swap_stake_extrinsic(
     except Exception as e:
         logging.error(f":cross_mark: [red]Failed[/red]: {str(e)}")
         return False
+
 
 async def move_stake_extrinsic(
     subtensor: "Subtensor",
