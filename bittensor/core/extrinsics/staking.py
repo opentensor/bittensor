@@ -55,8 +55,8 @@ def add_stake_extrinsic(
 
     # Get current stake and existential deposit
     old_stake = subtensor.get_stake(
-        coldkey_ss58=wallet.coldkeypub.ss58_address,
         hotkey_ss58=hotkey_ss58,
+        coldkey_ss58=wallet.coldkeypub.ss58_address,
         netuid=netuid,
         block=block,
     )
@@ -125,13 +125,11 @@ def add_stake_extrinsic(
                 netuid=netuid,
                 block=new_block,
             )
-            logging.info("Balance:")
             logging.info(
-                f"[blue]{old_balance}[/blue] :arrow_right: {new_balance}[/green]"
+                f"Balance: [blue]{old_balance}[/blue] :arrow_right: {new_balance}[/green]"
             )
-            logging.info("Stake:")
             logging.info(
-                f"[blue]{old_stake}[/blue] :arrow_right: [green]{new_stake}[/green]"
+                f"Stake: [blue]{old_stake}[/blue] :arrow_right: [green]{new_stake}[/green]"
             )
             return True
         else:
@@ -215,7 +213,10 @@ def add_stake_multiple_extrinsic(
     if amounts is None:
         new_amounts = [None] * len(hotkey_ss58s)
     else:
-        new_amounts = amounts
+        new_amounts = [
+            Balance.from_tao(amount) if not isinstance(amount, Balance) else amount
+            for amount in amounts
+        ]
         if sum(amount.tao for amount in new_amounts) == 0:
             # Staking 0 tao
             return True
@@ -332,6 +333,9 @@ def add_stake_multiple_extrinsic(
                 )
                 logging.info(
                     f"Stake ({hotkey_ss58}) on netuid {netuid}: [blue]{old_stake}[/blue] :arrow_right: [green]{new_stake}[/green]"
+                )
+                logging.info(
+                    f"Balance: [blue]{old_balance}[/blue] :arrow_right: [green]{new_balance}[/green]"
                 )
                 old_balance = new_balance
                 successful_stakes += 1
