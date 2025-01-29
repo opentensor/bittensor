@@ -2175,7 +2175,7 @@ class Subtensor(SubtensorMixin):
         wallet: "Wallet",
         hotkey_ss58: Optional[str] = None,
         netuid: Optional[int] = None,
-        amount: Optional[Union["Balance", float]] = None,
+        amount: Optional[Balance] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
     ) -> bool:
@@ -2187,7 +2187,7 @@ class Subtensor(SubtensorMixin):
         Args:
             wallet (bittensor_wallet.Wallet): The wallet to be used for staking.
             hotkey_ss58 (Optional[str]): The ``SS58`` address of the hotkey associated with the neuron.
-            amount (Union[Balance, float]): The amount of TAO to stake.
+            amount (Balance): The amount of TAO to stake.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
 
@@ -2212,7 +2212,7 @@ class Subtensor(SubtensorMixin):
         wallet: "Wallet",
         hotkey_ss58s: list[str],
         netuids: list[int],
-        amounts: Optional[list[Union["Balance", float]]] = None,
+        amounts: Optional[list[Balance]] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
     ) -> bool:
@@ -2223,7 +2223,7 @@ class Subtensor(SubtensorMixin):
         Args:
             wallet (bittensor_wallet.Wallet): The wallet used for staking.
             hotkey_ss58s (list[str]): List of ``SS58`` addresses of hotkeys to stake to.
-            amounts (list[Union[Balance, float]]): Corresponding amounts of TAO to stake for each hotkey.
+            amounts (list[Balance]): Corresponding amounts of TAO to stake for each hotkey.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
 
@@ -2354,7 +2354,7 @@ class Subtensor(SubtensorMixin):
         origin_netuid: int,
         destination_hotkey: str,
         destination_netuid: int,
-        amount: Union["Balance", float],
+        amount: Balance,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
     ) -> bool:
@@ -2367,16 +2367,13 @@ class Subtensor(SubtensorMixin):
             origin_netuid (int): The netuid of the source subnet.
             destination_hotkey (str): The SS58 address of the destination hotkey.
             destination_netuid (int): The netuid of the destination subnet.
-            amount (Union[Balance, float]): Amount of stake to move.
+            amount (Balance): Amount of stake to move.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
 
         Returns:
             success (bool): True if the stake movement was successful.
         """
-        if isinstance(amount, float):
-            amount = Balance.from_tao(amount)
-
         return move_stake_extrinsic(
             subtensor=self,
             wallet=wallet,
@@ -2740,7 +2737,7 @@ class Subtensor(SubtensorMixin):
         hotkey_ss58: str,
         origin_netuid: int,
         destination_netuid: int,
-        amount: Union["Balance", float],
+        amount: Balance,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
     ) -> bool:
@@ -2760,8 +2757,6 @@ class Subtensor(SubtensorMixin):
         Returns:
             success (bool): True if the extrinsic was successful.
         """
-        if isinstance(amount, float):
-            amount = Balance.from_tao(amount)
 
         return swap_stake_extrinsic(
             subtensor=self,
@@ -2821,7 +2816,7 @@ class Subtensor(SubtensorMixin):
         hotkey_ss58: str,
         origin_netuid: int,
         destination_netuid: int,
-        amount: Union["Balance", float],
+        amount: Balance,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
     ) -> bool:
@@ -2841,8 +2836,6 @@ class Subtensor(SubtensorMixin):
         Returns:
             success (bool): True if the transfer was successful.
         """
-        if isinstance(amount, float):
-            amount = Balance.from_tao(amount)
 
         return transfer_stake_extrinsic(
             subtensor=self,
@@ -2861,7 +2854,7 @@ class Subtensor(SubtensorMixin):
         wallet: "Wallet",
         hotkey_ss58: Optional[str] = None,
         netuid: Optional[int] = None,
-        amount: Optional[Union["Balance", float]] = None,
+        amount: Optional[Balance] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
     ) -> bool:
@@ -2874,7 +2867,7 @@ class Subtensor(SubtensorMixin):
                 removed.
             hotkey_ss58 (Optional[str]): The ``SS58`` address of the hotkey account to unstake from.
             netuid (Optional[int]): The unique identifier of the subnet.
-            amount (Union[Balance, float]): The amount of TAO to unstake. If not specified, unstakes all.
+            amount (Balance): The amount of TAO to unstake. If not specified, unstakes all.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
 
@@ -2899,7 +2892,7 @@ class Subtensor(SubtensorMixin):
         wallet: "Wallet",
         hotkey_ss58s: list[str],
         netuids: list[int],
-        amounts: Optional[list[Union["Balance", float]]] = None,
+        amounts: Optional[list[Balance]] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
     ) -> bool:
@@ -2912,7 +2905,7 @@ class Subtensor(SubtensorMixin):
                 withdrawn.
             hotkey_ss58s (List[str]): A list of hotkey ``SS58`` addresses to unstake from.
             netuids (List[int]): The list of subnet uids.
-            amounts (List[Union[Balance, float]]): The amounts of TAO to unstake from each hotkey. If not provided,
+            amounts (List[Balance]): The amounts of TAO to unstake from each hotkey. If not provided,
                 unstakes all available stakes.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.

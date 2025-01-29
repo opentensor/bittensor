@@ -1,5 +1,5 @@
 import asyncio
-from typing import Optional, Sequence, TYPE_CHECKING, Union
+from typing import Optional, Sequence, TYPE_CHECKING
 
 from bittensor.core.errors import StakeError, NotRegisteredError
 from bittensor.utils import unlock_key
@@ -14,10 +14,10 @@ if TYPE_CHECKING:
 async def add_stake_extrinsic(
     subtensor: "AsyncSubtensor",
     wallet: "Wallet",
-    old_balance: Optional["Balance"] = None,
+    old_balance: Optional[Balance] = None,
     hotkey_ss58: Optional[str] = None,
     netuid: Optional[int] = None,
-    amount: Optional[Union["Balance", float]] = None,
+    amount: Optional[Balance] = None,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
 ) -> bool:
@@ -72,10 +72,9 @@ async def add_stake_extrinsic(
     if amount is None:
         # Stake it all.
         staking_balance = Balance.from_tao(old_balance.tao)
-    elif not isinstance(amount, Balance):
-        staking_balance = Balance.from_tao(amount)
     else:
         staking_balance = amount
+    staking_balance.set_unit(netuid)
 
     # Leave existential balance to keep key alive.
     if staking_balance > old_balance - existential_deposit:
@@ -162,8 +161,8 @@ async def add_stake_multiple_extrinsic(
     wallet: "Wallet",
     hotkey_ss58s: list[str],
     netuids: list[int],
-    old_balance: Optional["Balance"] = None,
-    amounts: Optional[list["Balance"]] = None,
+    old_balance: Optional[Balance] = None,
+    amounts: Optional[list[Balance]] = None,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
 ) -> bool:
@@ -225,8 +224,7 @@ async def add_stake_multiple_extrinsic(
         new_amounts = [None] * len(hotkey_ss58s)
     else:
         new_amounts = [
-            Balance.from_tao(amount) if not isinstance(amount, Balance) else amount
-            for amount in amounts
+            amount.set_unit(netuid=netuid) for amount, netuid in zip(amounts, netuids)
         ]
         if sum(amount.tao for amount in new_amounts) == 0:
             # Staking 0 tao
