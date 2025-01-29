@@ -7,8 +7,7 @@ if TYPE_CHECKING:
     from bittensor_wallet import Wallet
     from bittensor.core.subtensor import Subtensor
 
-
-def transfer_stake_extrinsic(
+async def transfer_stake_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
     destination_coldkey_ss58: str,
@@ -19,29 +18,12 @@ def transfer_stake_extrinsic(
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
 ) -> bool:
-    """
-    Transfers stake from one subnet to another while changing the coldkey owner.
-
-    Args:
-        subtensor (Subtensor): Subtensor instance.
-        wallet (bittensor.wallet): The wallet to transfer stake from.
-        destination_coldkey_ss58 (str): The destination coldkey SS58 address.
-        hotkey_ss58 (str): The hotkey SS58 address associated with the stake.
-        origin_netuid (int): The source subnet UID.
-        destination_netuid (int): The destination subnet UID.
-        amount (Union[Balance, float, int]): Amount to transfer.
-        wait_for_inclusion (bool): If true, waits for inclusion before returning.
-        wait_for_finalization (bool): If true, waits for finalization before returning.
-
-    Returns:
-        success (bool): True if the transfer was successful.
-    """
     if not isinstance(amount, Balance):
         amount = Balance.from_tao(amount)
     amount.set_unit(netuid=origin_netuid)
 
     # Verify ownership
-    hotkey_owner = subtensor.get_hotkey_owner(hotkey_ss58)
+    hotkey_owner = await subtensor.get_hotkey_owner(hotkey_ss58)
     if hotkey_owner != wallet.coldkeypub.ss58_address:
         logging.error(
             f":cross_mark: [red]Failed[/red]: Hotkey: {hotkey_ss58} does not belong to the origin coldkey owner: {wallet.coldkeypub.ss58_address}"
@@ -49,12 +31,12 @@ def transfer_stake_extrinsic(
         return False
 
     # Check sufficient stake
-    stake_in_origin = subtensor.get_stake(
+    stake_in_origin = await subtensor.get_stake(
         coldkey_ss58=wallet.coldkeypub.ss58_address,
         hotkey_ss58=hotkey_ss58,
         netuid=origin_netuid,
     )
-    stake_in_destination = subtensor.get_stake(
+    stake_in_destination = await subtensor.get_stake(
         coldkey_ss58=destination_coldkey_ss58,
         hotkey_ss58=hotkey_ss58,
         netuid=destination_netuid,
@@ -70,7 +52,7 @@ def transfer_stake_extrinsic(
             f"Transferring stake from coldkey [blue]{wallet.coldkeypub.ss58_address}[/blue] to coldkey [blue]{destination_coldkey_ss58}[/blue]\n"
             f"Amount: [green]{amount}[/green] from netuid [yellow]{origin_netuid}[/yellow] to netuid [yellow]{destination_netuid}[/yellow]"
         )
-        call = subtensor.substrate.compose_call(
+        call = await subtensor.substrate.compose_call(
             call_module="SubtensorModule",
             call_function="transfer_stake",
             call_params={
@@ -82,7 +64,7 @@ def transfer_stake_extrinsic(
             },
         )
 
-        success, err_msg = subtensor.sign_and_send_extrinsic(
+        success, err_msg = await subtensor.sign_and_send_extrinsic(
             call=call,
             wallet=wallet,
             wait_for_inclusion=wait_for_inclusion,
@@ -96,14 +78,14 @@ def transfer_stake_extrinsic(
             logging.success(":white_heavy_check_mark: [green]Finalized[/green]")
 
             # Get updated stakes
-            block = subtensor.get_current_block()
-            origin_stake = subtensor.get_stake(
+            block = await subtensor.get_current_block()
+            origin_stake = await subtensor.get_stake(
                 coldkey_ss58=wallet.coldkeypub.ss58_address,
                 hotkey_ss58=hotkey_ss58,
                 netuid=origin_netuid,
                 block=block,
             )
-            dest_stake = subtensor.get_stake(
+            dest_stake = await subtensor.get_stake(
                 coldkey_ss58=destination_coldkey_ss58,
                 hotkey_ss58=hotkey_ss58,
                 netuid=destination_netuid,
@@ -125,8 +107,7 @@ def transfer_stake_extrinsic(
         logging.error(f":cross_mark: [red]Failed[/red]: {str(e)}")
         return False
 
-
-def swap_stake_extrinsic(
+async def swap_stake_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
     hotkey_ss58: str,
@@ -136,28 +117,12 @@ def swap_stake_extrinsic(
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
 ) -> bool:
-    """
-    Moves stake between subnets while keeping the same coldkey-hotkey pair ownership.
-
-    Args:
-        subtensor (Subtensor): Subtensor instance.
-        wallet (bittensor.wallet): The wallet to swap stake from.
-        hotkey_ss58 (str): The hotkey SS58 address associated with the stake.
-        origin_netuid (int): The source subnet UID.
-        destination_netuid (int): The destination subnet UID.
-        amount (Union[Balance, float]): Amount to swap.
-        wait_for_inclusion (bool): If true, waits for inclusion before returning.
-        wait_for_finalization (bool): If true, waits for finalization before returning.
-
-    Returns:
-        success (bool): True if the swap was successful.
-    """
     if not isinstance(amount, Balance):
         amount = Balance.from_tao(amount)
     amount.set_unit(netuid=origin_netuid)
 
     # Verify ownership
-    hotkey_owner = subtensor.get_hotkey_owner(hotkey_ss58)
+    hotkey_owner = await subtensor.get_hotkey_owner(hotkey_ss58)
     if hotkey_owner != wallet.coldkeypub.ss58_address:
         logging.error(
             f":cross_mark: [red]Failed[/red]: Hotkey: {hotkey_ss58} does not belong to the origin coldkey owner: {wallet.coldkeypub.ss58_address}"
@@ -165,12 +130,12 @@ def swap_stake_extrinsic(
         return False
 
     # Check sufficient stake
-    stake_in_origin = subtensor.get_stake(
+    stake_in_origin = await subtensor.get_stake(
         coldkey_ss58=wallet.coldkeypub.ss58_address,
         hotkey_ss58=hotkey_ss58,
         netuid=origin_netuid,
     )
-    stake_in_destination = subtensor.get_stake(
+    stake_in_destination = await subtensor.get_stake(
         coldkey_ss58=wallet.coldkeypub.ss58_address,
         hotkey_ss58=hotkey_ss58,
         netuid=destination_netuid,
@@ -186,7 +151,7 @@ def swap_stake_extrinsic(
             f"Swapping stake for hotkey [blue]{hotkey_ss58}[/blue]\n"
             f"Amount: [green]{amount}[/green] from netuid [yellow]{origin_netuid}[/yellow] to netuid [yellow]{destination_netuid}[/yellow]"
         )
-        call = subtensor.substrate.compose_call(
+        call = await subtensor.substrate.compose_call(
             call_module="SubtensorModule",
             call_function="swap_stake",
             call_params={
@@ -197,7 +162,7 @@ def swap_stake_extrinsic(
             },
         )
 
-        success, err_msg = subtensor.sign_and_send_extrinsic(
+        success, err_msg = await subtensor.sign_and_send_extrinsic(
             call=call,
             wallet=wallet,
             wait_for_inclusion=wait_for_inclusion,
@@ -211,14 +176,14 @@ def swap_stake_extrinsic(
             logging.success(":white_heavy_check_mark: [green]Finalized[/green]")
 
             # Get updated stakes
-            block = subtensor.get_current_block()
-            origin_stake = subtensor.get_stake(
+            block = await subtensor.get_current_block()
+            origin_stake = await subtensor.get_stake(
                 coldkey_ss58=wallet.coldkeypub.ss58_address,
                 hotkey_ss58=hotkey_ss58,
                 netuid=origin_netuid,
                 block=block,
             )
-            dest_stake = subtensor.get_stake(
+            dest_stake = await subtensor.get_stake(
                 coldkey_ss58=wallet.coldkeypub.ss58_address,
                 hotkey_ss58=hotkey_ss58,
                 netuid=destination_netuid,
@@ -239,9 +204,8 @@ def swap_stake_extrinsic(
     except Exception as e:
         logging.error(f":cross_mark: [red]Failed[/red]: {str(e)}")
         return False
-    
 
-def move_stake_extrinsic(
+async def move_stake_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
     origin_hotkey: str,
@@ -252,29 +216,12 @@ def move_stake_extrinsic(
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
 ) -> bool:
-    """
-    Moves stake to a different hotkey and/or subnet while keeping the same coldkey owner.
-
-    Args:
-        subtensor (Subtensor): Subtensor instance.
-        wallet (bittensor.wallet): The wallet to move stake from.
-        origin_hotkey (str): The SS58 address of the source hotkey.
-        origin_netuid (int): The netuid of the source subnet.
-        destination_hotkey (str): The SS58 address of the destination hotkey.
-        destination_netuid (int): The netuid of the destination subnet.
-        amount (Union[Balance, float]): Amount to move.
-        wait_for_inclusion (bool): If true, waits for inclusion before returning.
-        wait_for_finalization (bool): If true, waits for finalization before returning.
-
-    Returns:
-        success (bool): True if the move was successful.
-    """
     if not isinstance(amount, Balance):
         amount = Balance.from_tao(amount)
     amount.set_unit(netuid=origin_netuid)
 
     # Verify ownership of origin hotkey
-    origin_owner = subtensor.get_hotkey_owner(origin_hotkey)
+    origin_owner = await subtensor.get_hotkey_owner(origin_hotkey)
     if origin_owner != wallet.coldkeypub.ss58_address:
         logging.error(
             f":cross_mark: [red]Failed[/red]: Origin hotkey: {origin_hotkey} does not belong to the coldkey owner: {wallet.coldkeypub.ss58_address}"
@@ -282,12 +229,12 @@ def move_stake_extrinsic(
         return False
 
     # Check sufficient stake
-    stake_in_origin = subtensor.get_stake(
+    stake_in_origin = await subtensor.get_stake(
         coldkey_ss58=wallet.coldkeypub.ss58_address,
         hotkey_ss58=origin_hotkey,
         netuid=origin_netuid,
     )
-    stake_in_destination = subtensor.get_stake(
+    stake_in_destination = await subtensor.get_stake(
         coldkey_ss58=wallet.coldkeypub.ss58_address,
         hotkey_ss58=destination_hotkey,
         netuid=destination_netuid,
@@ -303,7 +250,7 @@ def move_stake_extrinsic(
             f"Moving stake from hotkey [blue]{origin_hotkey}[/blue] to hotkey [blue]{destination_hotkey}[/blue]\n"
             f"Amount: [green]{amount}[/green] from netuid [yellow]{origin_netuid}[/yellow] to netuid [yellow]{destination_netuid}[/yellow]"
         )
-        call = subtensor.substrate.compose_call(
+        call = await subtensor.substrate.compose_call(
             call_module="SubtensorModule",
             call_function="move_stake",
             call_params={
@@ -315,7 +262,7 @@ def move_stake_extrinsic(
             },
         )
 
-        success, err_msg = subtensor.sign_and_send_extrinsic(
+        success, err_msg = await subtensor.sign_and_send_extrinsic(
             call=call,
             wallet=wallet,
             wait_for_inclusion=wait_for_inclusion,
@@ -329,14 +276,14 @@ def move_stake_extrinsic(
             logging.success(":white_heavy_check_mark: [green]Finalized[/green]")
 
             # Get updated stakes
-            block = subtensor.get_current_block()
-            origin_stake = subtensor.get_stake(
+            block = await subtensor.get_current_block()
+            origin_stake = await subtensor.get_stake(
                 coldkey_ss58=wallet.coldkeypub.ss58_address,
                 hotkey_ss58=origin_hotkey,
                 netuid=origin_netuid,
                 block=block,
             )
-            dest_stake = subtensor.get_stake(
+            dest_stake = await subtensor.get_stake(
                 coldkey_ss58=wallet.coldkeypub.ss58_address,
                 hotkey_ss58=destination_hotkey,
                 netuid=destination_netuid,

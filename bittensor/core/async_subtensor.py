@@ -26,6 +26,7 @@ from bittensor.core.chain_data import (
     WeightCommitInfo,
     custom_rpc_type_registry,
     decode_account_id,
+    DynamicInfo,
 )
 from bittensor.core.config import Config
 from bittensor.core.errors import SubstrateRequestException
@@ -33,6 +34,11 @@ from bittensor.core.extrinsics.asyncex.commit_reveal import commit_reveal_v3_ext
 from bittensor.core.extrinsics.asyncex.registration import (
     burned_register_extrinsic,
     register_extrinsic,
+)
+from bittensor.core.extrinsics.asyncex.move_stake import (
+    transfer_stake_extrinsic,
+    swap_stake_extrinsic,
+    move_stake_extrinsic,
 )
 from bittensor.core.extrinsics.asyncex.root import (
     set_root_weights_extrinsic,
@@ -70,7 +76,7 @@ from bittensor.utils import (
     u16_normalized_float,
     _decode_hex_identity_dict,
 )
-from bittensor.utils.balance import Balance
+from bittensor.utils.balance import Balance, fixed_to_float, FixedPoint
 from bittensor.utils.btlogging import logging
 from bittensor.utils.delegates_details import DelegatesDetails
 from bittensor.utils.weight_utils import generate_weight_hash
@@ -551,6 +557,33 @@ class AsyncSubtensor(SubtensorMixin):
     async def block(self):
         """Provides an asynchronous property to retrieve the current block."""
         return await self.get_current_block()
+
+    async def all_subnets(
+        self,
+        block_number: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> Optional[list["DynamicInfo"]]:
+        """
+        Retrieves the subnet information for all subnets in the network.
+
+        Args:
+            block_number (Optional[int]): The block number to query the subnet information from.
+
+        Returns:
+            Optional[DynamicInfo]: A list of DynamicInfo objects, each containing detailed information about a subnet.
+
+        """
+        block_hash = await self.determine_block_hash(
+            block_number, block_hash, reuse_block
+        )
+        query = await self.substrate.runtime_call(
+            "SubnetInfoRuntimeApi",
+            "get_all_dynamic_info",
+            block_hash=block_hash,
+        )
+        subnets = DynamicInfo.list_from_vec_u8(bytes.fromhex(query.decode()[2:]))
+        return subnets
 
     async def blocks_since_last_update(self, netuid: int, uid: int) -> Optional[int]:
         """
@@ -1442,36 +1475,103 @@ class AsyncSubtensor(SubtensorMixin):
 
         return NeuronInfo.from_vec_u8(bytes(result))
 
-    async def get_stake_for_coldkey_and_hotkey(
+    async def get_stake(
         self,
-        hotkey_ss58: str,
         coldkey_ss58: str,
+        hotkey_ss58: str,
+        netuid: Optional[int] = None,
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Balance:
         """
-        Retrieves stake information associated with a specific coldkey and hotkey.
+        Returns the stake under a coldkey - hotkey pairing.
 
-        Arguments:
-            hotkey_ss58 (str): the hotkey SS58 address to query
-            coldkey_ss58 (str): the coldkey SS58 address to query
-            block (Optional[int]): the block number to query
-            block_hash (Optional[str]): the hash of the blockchain block number for the query.
-            reuse_block (Optional[bool]): whether to reuse the last-used block hash.
+        Args:
+            hotkey_ss58 (str): The SS58 address of the hotkey.
+            coldkey_ss58 (str): The SS58 address of the coldkey.
+            netuid (Optional[int]): The subnet ID to filter by. If provided, only returns stake for this specific subnet.
+            block (Optional[int]): The block number at which to query the stake information.
+            block_hash (Optional[str]): The hash of the block to retrieve the stake from. Do not specify if using block or reuse_block
+            reuse_block (bool): Whether to use the last-used block. Do not set if using block_hash or block.
 
         Returns:
-            Stake Balance for the given coldkey and hotkey
+            Balance: The stake under the coldkey - hotkey pairing.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
-        result = await self.substrate.query(
+
+        # Get alpha shares
+        alpha_shares: FixedPoint = await self.query_module(
             module="SubtensorModule",
-            storage_function="Stake",
-            params=[hotkey_ss58, coldkey_ss58],
+            name="Alpha",
             block_hash=block_hash,
-            reuse_block_hash=reuse_block,
+            reuse_block=reuse_block,
+            params=[hotkey_ss58, coldkey_ss58, netuid],
         )
-        return Balance.from_rao(getattr(result, "value", 0))
+
+        # Get total hotkey alpha
+        hotkey_alpha_result = await self.query_module(
+            module="SubtensorModule",
+            name="TotalHotkeyAlpha",
+            block_hash=block_hash,
+            reuse_block=reuse_block,
+            params=[hotkey_ss58, netuid],
+        )
+        hotkey_alpha: int = getattr(hotkey_alpha_result, "value", 0)
+
+        # Get total hotkey shares
+        hotkey_shares: FixedPoint = await self.query_module(
+            module="SubtensorModule",
+            name="TotalHotkeyShares",
+            block_hash=block_hash,
+            reuse_block=reuse_block,
+            params=[hotkey_ss58, netuid],
+        )
+
+        alpha_shares_as_float = fixed_to_float(alpha_shares)
+        hotkey_shares_as_float = fixed_to_float(hotkey_shares)
+
+        if hotkey_shares_as_float == 0:
+            return Balance.from_rao(0).set_unit(netuid=netuid)
+
+        stake = alpha_shares_as_float / hotkey_shares_as_float * hotkey_alpha
+
+        return Balance.from_rao(int(stake)).set_unit(netuid=netuid)
+
+    get_stake_for_coldkey_and_hotkey = get_stake
+
+    async def get_stake_for_coldkey(
+        self, coldkey_ss58: str, block: Optional[int] = None
+    ) -> Optional[list["StakeInfo"]]:
+        """
+        Retrieves the stake information for a given coldkey.
+
+        Args:
+            coldkey_ss58 (str): The SS58 address of the coldkey.
+            block (Optional[int]): The block number at which to query the stake information.
+
+        Returns:
+            Optional[list[StakeInfo]]: A list of StakeInfo objects, or ``None`` if no stake information is found.
+        """
+        encoded_coldkey = ss58_to_vec_u8(coldkey_ss58)
+        block_hash = await self.determine_block_hash(block)
+
+        hex_bytes_result = await self.query_runtime_api(
+            runtime_api="StakeInfoRuntimeApi",
+            method="get_stake_info_for_coldkey",
+            params=[encoded_coldkey],  # type: ignore
+            block_hash=block_hash,
+        )
+
+        if hex_bytes_result is None:
+            return []
+        try:
+            bytes_result = bytes.fromhex(hex_bytes_result[2:])
+        except ValueError:
+            bytes_result = bytes.fromhex(hex_bytes_result)
+
+        stakes = StakeInfo.list_from_vec_u8(bytes_result)  # type: ignore
+        return [stake for stake in stakes if stake.stake > 0]
 
     async def get_stake_info_for_coldkey(
         self,
@@ -2417,6 +2517,42 @@ class AsyncSubtensor(SubtensorMixin):
         )
         return None if call is None else Balance.from_rao(int(call))
 
+    async def subnet(
+        self,
+        netuid: int,
+        block_number: int = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> Optional[DynamicInfo]:
+        """
+        Retrieves the subnet information for a single subnet in the Bittensor network.
+
+        Args:
+            netuid (int): The unique identifier of the subnet.
+            block_number (Optional[int]): The block number to get the subnets at.
+
+        Returns:
+            Optional[DynamicInfo]: A DynamicInfo object, containing detailed information about a subnet.
+
+        This function can be called in two ways:
+        1. As a context manager:
+            async with sub:
+                subnet = await sub.subnet(1)
+        2. Directly:
+            subnet = await sub.subnet(1)
+        """
+        block_hash = await self.determine_block_hash(
+            block_number, block_hash, reuse_block
+        )
+        query = await self.substrate.runtime_call(
+            "SubnetInfoRuntimeApi",
+            "get_dynamic_info",
+            params=[netuid],
+            block_hash=block_hash,
+        )
+        subnet = DynamicInfo.from_vec_u8(bytes.fromhex(query.decode()[2:]))
+        return subnet
+
     async def subnet_exists(
         self,
         netuid: int,
@@ -2658,6 +2794,7 @@ class AsyncSubtensor(SubtensorMixin):
         self,
         wallet: "Wallet",
         hotkey_ss58: Optional[str] = None,
+        netuid: Optional[int] = None,
         amount: Optional[Union["Balance", float]] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
@@ -2684,6 +2821,7 @@ class AsyncSubtensor(SubtensorMixin):
             subtensor=self,
             wallet=wallet,
             hotkey_ss58=hotkey_ss58,
+            netuid=netuid,
             amount=amount,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
@@ -2693,6 +2831,7 @@ class AsyncSubtensor(SubtensorMixin):
         self,
         wallet: "Wallet",
         hotkey_ss58s: list[str],
+        netuids: list[int],
         amounts: Optional[list[Union["Balance", float]]] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
@@ -2718,6 +2857,7 @@ class AsyncSubtensor(SubtensorMixin):
             subtensor=self,
             wallet=wallet,
             hotkey_ss58s=hotkey_ss58s,
+            netuids=netuids,
             amounts=amounts,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
@@ -2827,6 +2967,48 @@ class AsyncSubtensor(SubtensorMixin):
                 retries += 1
 
         return success, message
+
+    async def move_stake(
+        self,
+        wallet: "Wallet",
+        origin_hotkey: str,
+        origin_netuid: int,
+        destination_hotkey: str,
+        destination_netuid: int,
+        amount: Union["Balance", float],
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+    ) -> bool:
+        """
+        Moves stake to a different hotkey and/or subnet.
+
+        Args:
+            wallet (bittensor.wallet): The wallet to move stake from.
+            origin_hotkey (str): The SS58 address of the source hotkey.
+            origin_netuid (int): The netuid of the source subnet.
+            destination_hotkey (str): The SS58 address of the destination hotkey.
+            destination_netuid (int): The netuid of the destination subnet.
+            amount (Union[Balance, float]): Amount of stake to move.
+            wait_for_inclusion (bool): Waits for the transaction to be included in a block.
+            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
+
+        Returns:
+            success (bool): True if the stake movement was successful.
+        """
+        if isinstance(amount, float):
+            amount = Balance.from_tao(amount)
+
+        return await move_stake_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            origin_hotkey=origin_hotkey,
+            origin_netuid=origin_netuid,
+            destination_hotkey=destination_hotkey,
+            destination_netuid=destination_netuid,
+            amount=amount,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
 
     async def register(
         self: "AsyncSubtensor",
@@ -3191,6 +3373,88 @@ class AsyncSubtensor(SubtensorMixin):
             certificate=certificate,
         )
 
+    async def swap_stake(
+        self,
+        wallet: "Wallet",
+        hotkey_ss58: str,
+        origin_netuid: int,
+        destination_netuid: int,
+        amount: Union["Balance", float],
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+    ) -> bool:
+        """
+        Moves stake between subnets while keeping the same coldkey-hotkey pair ownership.
+        Like subnet hopping - same owner, same hotkey, just changing which subnet the stake is in.
+
+        Args:
+            wallet (bittensor.wallet): The wallet to swap stake from.
+            hotkey_ss58 (str): The SS58 address of the hotkey whose stake is being swapped.
+            origin_netuid (int): The netuid from which stake is removed.
+            destination_netuid (int): The netuid to which stake is added.
+            amount (Union[Balance, float]): The amount to swap.
+            wait_for_inclusion (bool): Waits for the transaction to be included in a block.
+            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
+
+        Returns:
+            success (bool): True if the extrinsic was successful.
+        """
+        if isinstance(amount, float):
+            amount = Balance.from_tao(amount)
+
+        return await swap_stake_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            hotkey_ss58=hotkey_ss58,
+            origin_netuid=origin_netuid,
+            destination_netuid=destination_netuid,
+            amount=amount,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+
+    async def transfer_stake(
+        self,
+        wallet: "Wallet",
+        destination_coldkey_ss58: str,
+        hotkey_ss58: str,
+        origin_netuid: int,
+        destination_netuid: int,
+        amount: Union["Balance", float],
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+    ) -> bool:
+        """
+        Transfers stake from one subnet to another while changing the coldkey owner.
+
+        Args:
+            wallet (bittensor.wallet): The wallet to transfer stake from.
+            destination_coldkey_ss58 (str): The destination coldkey SS58 address.
+            hotkey_ss58 (str): The hotkey SS58 address associated with the stake.
+            origin_netuid (int): The source subnet UID.
+            destination_netuid (int): The destination subnet UID.
+            amount (Union[Balance, float, int]): Amount to transfer.
+            wait_for_inclusion (bool): If true, waits for inclusion before returning.
+            wait_for_finalization (bool): If true, waits for finalization before returning.
+
+        Returns:
+            success (bool): True if the transfer was successful.
+        """
+        if isinstance(amount, float):
+            amount = Balance.from_tao(amount)
+
+        return await transfer_stake_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            destination_coldkey_ss58=destination_coldkey_ss58,
+            hotkey_ss58=hotkey_ss58,
+            origin_netuid=origin_netuid,
+            destination_netuid=destination_netuid,
+            amount=amount,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+
     async def transfer(
         self,
         wallet: "Wallet",
@@ -3235,6 +3499,7 @@ class AsyncSubtensor(SubtensorMixin):
         self,
         wallet: "Wallet",
         hotkey_ss58: Optional[str] = None,
+        netuid: Optional[int] = None,
         amount: Optional[Union["Balance", float]] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
@@ -3261,6 +3526,7 @@ class AsyncSubtensor(SubtensorMixin):
             subtensor=self,
             wallet=wallet,
             hotkey_ss58=hotkey_ss58,
+            netuid=netuid,
             amount=amount,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
@@ -3270,6 +3536,7 @@ class AsyncSubtensor(SubtensorMixin):
         self,
         wallet: "Wallet",
         hotkey_ss58s: list[str],
+        netuids: list[int],
         amounts: Optional[list[Union["Balance", float]]] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
@@ -3297,6 +3564,7 @@ class AsyncSubtensor(SubtensorMixin):
             subtensor=self,
             wallet=wallet,
             hotkey_ss58s=hotkey_ss58s,
+            netuids=netuids,
             amounts=amounts,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,

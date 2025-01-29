@@ -142,7 +142,10 @@ def unstake_extrinsic(
     block = subtensor.get_current_block()
     old_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address, block=block)
     old_stake = subtensor.get_stake(
-        hotkey_ss58, wallet.coldkeypub.ss58_address, netuid=netuid, block=block
+        coldkey_ss58=wallet.coldkeypub.ss58_address,
+        hotkey_ss58=hotkey_ss58,
+        netuid=netuid,
+        block=block,
     )
 
     # Convert to bittensor.Balance
@@ -153,6 +156,7 @@ def unstake_extrinsic(
         unstaking_balance = Balance.from_tao(amount)
     else:
         unstaking_balance = amount
+    unstaking_balance.set_unit(netuid)
 
     # Check enough to unstake.
     stake_on_uid = old_stake
@@ -168,14 +172,17 @@ def unstake_extrinsic(
             f":satellite: [magenta]Unstaking[/magenta] [blue]{unstaking_balance}[/blue] [magenta]from netuid[/magenta] "
             f"[blue]{netuid}[/blue] [magenta]on[/magenta] [blue]{subtensor.network}[/blue] [magenta]...[/magenta]"
         )
-        staking_response: bool = __do_remove_stake_single(
-            subtensor=subtensor,
-            wallet=wallet,
-            hotkey_ss58=hotkey_ss58,
-            netuid=netuid,
-            amount=unstaking_balance,
-            wait_for_inclusion=wait_for_inclusion,
-            wait_for_finalization=wait_for_finalization,
+        call = subtensor.substrate.compose_call(
+            call_module="SubtensorModule",
+            call_function="remove_stake",
+            call_params={
+                "hotkey": hotkey_ss58,
+                "amount_unstaked": unstaking_balance.rao,
+                "netuid": netuid,
+            },
+        )
+        staking_response, err_msg = subtensor.sign_and_send_extrinsic(
+            call, wallet, wait_for_inclusion, wait_for_finalization
         )
 
         if staking_response is True:  # If we successfully unstaked.
@@ -207,7 +214,7 @@ def unstake_extrinsic(
             )
             return True
         else:
-            logging.error(":cross_mark: [red]Failed[/red]: Unknown Error.")
+            logging.error(f":cross_mark: [red]Failed: {err_msg}.[/red]")
             return False
 
     except NotRegisteredError:
@@ -329,7 +336,7 @@ def unstake_multiple_extrinsic(
         if unstaking_balance > old_stake:
             logging.error(
                 f":cross_mark: [red]Not enough stake[/red]: [green]{old_stake}[/green] to unstake: "
-                f"[blue]{unstaking_balance}[/blue] from hotkey: [blue]{wallet.hotkey_str}[/blue]."
+                f"[blue]{unstaking_balance.set_unit(netuid)}[/blue] from hotkey: [blue]{wallet.hotkey_str}[/blue]."
             )
             continue
 
@@ -338,14 +345,17 @@ def unstake_multiple_extrinsic(
                 f":satellite: [magenta]Unstaking from chain:[/magenta] [blue]{subtensor.network}[/blue] "
                 f"[magenta]...[/magenta]"
             )
-            staking_response: bool = __do_remove_stake_single(
-                subtensor=subtensor,
-                wallet=wallet,
-                hotkey_ss58=hotkey_ss58,
-                netuid=netuid,
-                amount=unstaking_balance,
-                wait_for_inclusion=wait_for_inclusion,
-                wait_for_finalization=wait_for_finalization,
+            call = subtensor.substrate.compose_call(
+                call_module="SubtensorModule",
+                call_function="remove_stake",
+                call_params={
+                    "hotkey": hotkey_ss58,
+                    "amount_unstaked": unstaking_balance.rao,
+                    "netuid": netuid,
+                },
+            )
+            staking_response, err_msg = subtensor.sign_and_send_extrinsic(
+                call, wallet, wait_for_inclusion, wait_for_finalization
             )
 
             if staking_response is True:  # If we successfully unstaked.
@@ -382,7 +392,7 @@ def unstake_multiple_extrinsic(
                 )
                 successful_unstakes += 1
             else:
-                logging.error(":cross_mark: [red]Failed: Unknown Error.[/red]")
+                logging.error(f":cross_mark: [red]Failed: {err_msg}.[/red]")
                 continue
 
         except NotRegisteredError:
