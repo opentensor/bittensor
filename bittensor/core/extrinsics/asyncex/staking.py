@@ -185,6 +185,7 @@ async def add_stake_multiple_extrinsic(
         success: `True` if extrinsic was finalized or included in the block. `True` if any wallet was staked. If we did
             not wait for finalization/inclusion, the response is `True`.
     """
+
     async def get_old_stakes() -> list[Balance]:
         old_stakes = []
         all_stakes = await subtensor.get_stake_for_coldkey(
@@ -266,8 +267,7 @@ async def add_stake_multiple_extrinsic(
         # Reduce the amount to stake to each wallet to keep the balance above 1000 rao.
         percent_reduction = 1 - (1000 / total_staking_rao)
         new_amounts = [
-            Balance.from_tao(amount.tao * percent_reduction)
-            for amount in new_amounts
+            Balance.from_tao(amount.tao * percent_reduction) for amount in new_amounts
         ]
 
     successful_stakes = 0

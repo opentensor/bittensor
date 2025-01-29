@@ -4,7 +4,7 @@ subnetwork states in the Bittensor network.
 """
 
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Union
 
 from scalecodec.utils.ss58 import ss58_encode
 
@@ -39,7 +39,7 @@ class SubnetState:
     emission_history: list[list[int]]
 
     @classmethod
-    def from_vec_u8(cls, vec_u8: list[int]) -> Optional["SubnetState"]:
+    def from_vec_u8(cls, vec_u8: Union[list[int], bytes]) -> Optional["SubnetState"]:
         if len(vec_u8) == 0:
             return None
         decoded = from_scale_encoding(vec_u8, ChainDataType.SubnetState)
