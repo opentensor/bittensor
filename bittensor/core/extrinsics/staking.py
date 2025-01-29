@@ -1,5 +1,5 @@
 import time
-from typing import Union, Optional, TYPE_CHECKING, Sequence
+from typing import Optional, TYPE_CHECKING, Sequence
 
 from bittensor.core.errors import StakeError, NotRegisteredError
 from bittensor.utils import unlock_key
@@ -16,7 +16,7 @@ def add_stake_extrinsic(
     wallet: "Wallet",
     hotkey_ss58: Optional[str] = None,
     netuid: Optional[int] = None,
-    amount: Optional[Union["Balance", float]] = None,
+    amount: Optional[Balance] = None,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
 ) -> bool:
@@ -66,10 +66,9 @@ def add_stake_extrinsic(
     if amount is None:
         # Stake it all.
         staking_balance = Balance.from_tao(old_balance.tao)
-    elif not isinstance(amount, Balance):
-        staking_balance = Balance.from_tao(amount)
     else:
         staking_balance = amount
+    staking_balance.set_unit(netuid)
 
     # Leave existential balance to keep key alive.
     if staking_balance > old_balance - existential_deposit:
@@ -154,7 +153,7 @@ def add_stake_multiple_extrinsic(
     wallet: "Wallet",
     hotkey_ss58s: list[str],
     netuids: list[int],
-    amounts: Optional[list[Union["Balance", float]]] = None,
+    amounts: Optional[list[Balance]] = None,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
 ) -> bool:
@@ -214,8 +213,7 @@ def add_stake_multiple_extrinsic(
         new_amounts = [None] * len(hotkey_ss58s)
     else:
         new_amounts = [
-            Balance.from_tao(amount) if not isinstance(amount, Balance) else amount
-            for amount in amounts
+            amount.set_unit(netuid) for amount, netuid in zip(amounts, netuids)
         ]
         if sum(amount.tao for amount in new_amounts) == 0:
             # Staking 0 tao
@@ -261,14 +259,11 @@ def add_stake_multiple_extrinsic(
         zip(hotkey_ss58s, new_amounts, old_stakes, netuids)
     ):
         staking_all = False
-        # Convert to bittensor.Balance
         if amount is None:
             # Stake it all.
             staking_balance = Balance.from_tao(old_balance.tao)
             staking_all = True
         else:
-            # Amounts are cast to balance earlier in the function
-            assert isinstance(amount, Balance)
             staking_balance = amount
 
         # Check enough to stake
@@ -344,18 +339,16 @@ def add_stake_multiple_extrinsic(
                     break
 
             else:
-                logging.error(":cross_mark: [red]Failed[/red]: Error unknown.")
+                logging.error(f":cross_mark: [red]Failed[/red]: {err_msg}")
                 continue
 
         except NotRegisteredError:
             logging.error(
-                ":cross_mark: [red]Hotkey: {} is not registered.[/red]".format(
-                    hotkey_ss58
-                )
+                f":cross_mark: [red]Hotkey: {hotkey_ss58} is not registered.[/red]"
             )
             continue
         except StakeError as e:
-            logging.error(":cross_mark: [red]Stake Error: {}[/red]".format(e))
+            logging.error(f":cross_mark: [red]Stake Error: {e}[/red]")
             continue
 
     if successful_stakes != 0:
