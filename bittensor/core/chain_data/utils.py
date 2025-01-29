@@ -297,6 +297,14 @@ custom_rpc_type_registry = {
                 ["arbitration_block", "Compact<u64>"],
             ],
         },
+        "SubnetIdentity": {
+            "type": "struct",
+            "type_mapping": [
+                ["subnet_name", "Vec<u8>"],
+                ["github_repo", "Vec<u8>"],
+                ["subnet_contact", "Vec<u8>"],
+            ],
+        },
         "DynamicInfo": {
             "type": "struct",
             "type_mapping": [
