@@ -21,16 +21,18 @@ class runtime_browser_imp(type):
     def init(cls,network=None,subtensor=None,block=None):
         cls.block = block
         if subtensor:
-            cls.subtensor = subtensor
-            cls.items.clear()
+            if subtensor != cls.subtensor:
+                cls.subtensor = subtensor
+                cls.network = None
+                cls.items.clear()
         else:
             if not network:
                 logging.warning(f"Initializing runtime browser with default network {DEFAULT_NETWORK}.")
                 network = DEFAULT_NETWORK
             if network != cls.network:
                 cls.items.clear()
-            cls.network = network
-            cls.subtensor = bt.subtensor(network=network)
+                cls.network = network
+                cls.subtensor = bt.subtensor(network=network)
 
     def get_subtensor(cls):
         if cls.subtensor is None:
