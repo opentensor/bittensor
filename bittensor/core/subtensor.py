@@ -266,7 +266,7 @@ class Subtensor(SubtensorMixin):
         self,
         runtime_api: str,
         method: str,
-        params: Optional[Union[list[list[int]], dict[str, int], list[int]]] = None,
+        params: Optional[Union[list[Any], dict[str, Any]]] = None,
         block: Optional[int] = None,
     ) -> Any:
         """
@@ -287,9 +287,7 @@ class Subtensor(SubtensorMixin):
             specific interactions with the network's runtime environment.
         """
         block_hash = self.determine_block_hash(block)
-        result = self.substrate.runtime_call(
-            runtime_api, method, params, block_hash
-        )
+        result = self.substrate.runtime_call(runtime_api, method, params, block_hash)
 
         return result.value
 
