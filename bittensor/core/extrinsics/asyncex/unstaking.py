@@ -1,5 +1,5 @@
 import asyncio
-from typing import Union, Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
 
 from bittensor.core.errors import StakeError, NotRegisteredError
 from bittensor.utils import unlock_key
@@ -16,7 +16,7 @@ async def unstake_extrinsic(
     wallet: "Wallet",
     hotkey_ss58: Optional[str] = None,
     netuid: Optional[int] = None,
-    amount: Optional[Union[Balance, float]] = None,
+    amount: Optional[Balance] = None,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
 ) -> bool:
@@ -64,10 +64,9 @@ async def unstake_extrinsic(
     if amount is None:
         # Unstake it all.
         unstaking_balance = old_stake
-    elif not isinstance(amount, Balance):
-        unstaking_balance = Balance.from_tao(amount)
     else:
         unstaking_balance = amount
+        unstaking_balance.set_unit(netuid)
 
     # Check enough to unstake.
     stake_on_uid = old_stake
@@ -146,7 +145,7 @@ async def unstake_multiple_extrinsic(
     wallet: "Wallet",
     hotkey_ss58s: list[str],
     netuids: list[int],
-    amounts: Optional[list[Union[Balance, float]]] = None,
+    amounts: Optional[list[Balance]] = None,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
 ) -> bool:
@@ -212,11 +211,7 @@ async def unstake_multiple_extrinsic(
         amounts = [None] * len(hotkey_ss58s)
     else:
         # Convert to Balance
-        amounts = [
-            Balance.from_tao(amount) if isinstance(amount, float) else amount
-            for amount in amounts
-        ]
-
+        amounts = [amount.set_unit(netuid) for amount, netuid in zip(amounts, netuids)]
         if sum(amount.tao for amount in amounts) == 0:
             # Staking 0 tao
             return True
@@ -244,9 +239,7 @@ async def unstake_multiple_extrinsic(
             # Unstake it all.
             unstaking_balance = old_stake
         else:
-            unstaking_balance = (
-                amount if isinstance(amount, Balance) else Balance.from_tao(amount)
-            )
+            unstaking_balance = amount
 
         # Check enough to unstake.
         stake_on_uid = old_stake
@@ -267,7 +260,7 @@ async def unstake_multiple_extrinsic(
                 call_function="remove_stake",
                 call_params={
                     "hotkey": hotkey_ss58,
-                    "amount_unstaked": amount.rao,
+                    "amount_unstaked": unstaking_balance.rao,
                     "netuid": netuid,
                 },
             )

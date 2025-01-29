@@ -1,4 +1,4 @@
-from typing import Union, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
@@ -7,6 +7,7 @@ if TYPE_CHECKING:
     from bittensor_wallet import Wallet
     from bittensor.core.subtensor import Subtensor
 
+
 async def transfer_stake_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
@@ -14,14 +15,11 @@ async def transfer_stake_extrinsic(
     hotkey_ss58: str,
     origin_netuid: int,
     destination_netuid: int,
-    amount: Optional[Union["Balance", float]] = None,
+    amount: Balance,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
 ) -> bool:
-    if not isinstance(amount, Balance):
-        amount = Balance.from_tao(amount)
     amount.set_unit(netuid=origin_netuid)
-
     # Verify ownership
     hotkey_owner = await subtensor.get_hotkey_owner(hotkey_ss58)
     if hotkey_owner != wallet.coldkeypub.ss58_address:
@@ -107,20 +105,18 @@ async def transfer_stake_extrinsic(
         logging.error(f":cross_mark: [red]Failed[/red]: {str(e)}")
         return False
 
+
 async def swap_stake_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
     hotkey_ss58: str,
     origin_netuid: int,
     destination_netuid: int,
-    amount: Optional[Union["Balance", float]] = None,
+    amount: Balance,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
 ) -> bool:
-    if not isinstance(amount, Balance):
-        amount = Balance.from_tao(amount)
     amount.set_unit(netuid=origin_netuid)
-
     # Verify ownership
     hotkey_owner = await subtensor.get_hotkey_owner(hotkey_ss58)
     if hotkey_owner != wallet.coldkeypub.ss58_address:
@@ -205,6 +201,7 @@ async def swap_stake_extrinsic(
         logging.error(f":cross_mark: [red]Failed[/red]: {str(e)}")
         return False
 
+
 async def move_stake_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
@@ -212,14 +209,11 @@ async def move_stake_extrinsic(
     origin_netuid: int,
     destination_hotkey: str,
     destination_netuid: int,
-    amount: Optional[Union["Balance", float]] = None,
+    amount: Balance,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
 ) -> bool:
-    if not isinstance(amount, Balance):
-        amount = Balance.from_tao(amount)
     amount.set_unit(netuid=origin_netuid)
-
     # Verify ownership of origin hotkey
     origin_owner = await subtensor.get_hotkey_owner(origin_hotkey)
     if origin_owner != wallet.coldkeypub.ss58_address:
