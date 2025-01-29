@@ -95,9 +95,13 @@ from bittensor.utils import (  # noqa: F401
     get_hash,
 )
 from bittensor.utils.balance import Balance as Balance  # noqa: F401
+from bittensor.utils.balance import tao, rao
 from bittensor.utils.btlogging import logging
 from bittensor.utils.mock.subtensor_mock import MockSubtensor as MockSubtensor  # noqa: F401
 from bittensor.utils.subnets import SubnetsAPI  # noqa: F401
+
+tao = tao
+rao = rao
 
 # Backwards compatibility with previous bittensor versions.
 async_subtensor = AsyncSubtensor

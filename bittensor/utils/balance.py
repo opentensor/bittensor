@@ -766,3 +766,17 @@ units = [
     "\u0db5",  # බ (Sa, 443)
     "\u0db6",  # භ (Ha, 444)
 ]
+
+
+def tao(amount: float) -> Balance:
+    """
+    Helper function to create a Balance object from a float (Tao)
+    """
+    return Balance.from_tao(amount)
+
+
+def rao(amount: int) -> Balance:
+    """
+    Helper function to create a Balance object from an int (Rao)
+    """
+    return Balance.from_rao(amount)
