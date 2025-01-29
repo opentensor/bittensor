@@ -27,14 +27,15 @@ async def prepare_test(mocker, seed):
     with open(
         os.path.join(os.path.dirname(__file__), "..", "helpers", "registry"), "rb"
     ) as f:
-        registry = PortableRegistry.from_metadata_v15(
-            MetadataV15.decode_from_metadata_option(f.read())
-        )
+        metadata_v15 = MetadataV15.decode_from_metadata_option(f.read())
+        registry = PortableRegistry.from_metadata_v15(metadata_v15)
     subtensor = Subtensor("unknown", _mock=True)
     mocker.patch(
         "async_substrate_interface.sync_substrate.connect",
         mocker.Mock(return_value=FakeConnectContextManager(seed=seed)),
     )
+    subtensor.substrate.metadata_v15 = metadata_v15
+    # mocker.patch.object(subtensor.substrate, "metadata_v15", metadata_v15)
     mocker.patch.object(subtensor.substrate, "registry", registry)
     return subtensor
 
@@ -47,15 +48,15 @@ async def test_get_all_subnets_info(mocker):
     assert result[0].owner_ss58 == "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM"
     assert result[1].kappa == 32767
     assert result[1].max_weight_limit == 65535
-    assert result[1].blocks_since_epoch == 1
+    assert result[1].blocks_since_epoch == 230
 
 
 @pytest.mark.asyncio
 async def test_metagraph(mocker):
     subtensor = await prepare_test(mocker, "metagraph")
-    result = subtensor.metagraph(23)
-    assert result.n == 19
-    assert result.netuid == 23
+    result = subtensor.metagraph(1)
+    assert result.n == 1
+    assert result.netuid == 1
     assert result.block == 3264143
 
 
@@ -105,8 +106,8 @@ async def test_is_hotkey_registered(mocker):
 @pytest.mark.asyncio
 async def test_blocks_since_last_update(mocker):
     subtensor = await prepare_test(mocker, "blocks_since_last_update")
-    result = subtensor.blocks_since_last_update(23, 5)
-    assert result == 1293687
+    result = subtensor.blocks_since_last_update(1, 0)
+    assert result == 3221134
 
 
 @pytest.mark.asyncio
@@ -126,11 +127,13 @@ async def test_subnetwork_n(mocker):
 
 
 @pytest.mark.asyncio
-async def test_get_neuron_for_pubkey_and_subnet(hotkey, netuid, mocker):
+async def test_get_neuron_for_pubkey_and_subnet(mocker):
     subtensor = await prepare_test(mocker, "get_neuron_for_pubkey_and_subnet")
-    result = subtensor.get_neuron_for_pubkey_and_subnet(hotkey, netuid)
+    result = subtensor.get_neuron_for_pubkey_and_subnet(
+        "5EU2xVWC7qffsUNGtvakp5WCj7WGJMPkwG1dsm3qnU2Kqvee", 1
+    )
     assert isinstance(result, NeuronInfo)
-    assert result.hotkey == hotkey
+    assert result.hotkey == "5EU2xVWC7qffsUNGtvakp5WCj7WGJMPkwG1dsm3qnU2Kqvee"
     assert isinstance(result.total_stake, Balance)
     assert isinstance(result.axon_info, AxonInfo)
     assert result.is_null is False
