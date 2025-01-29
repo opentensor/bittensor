@@ -3272,6 +3272,9 @@ class AsyncSubtensor(SubtensorMixin):
             wait_for_finalization=wait_for_finalization,
         )
 
+    # Aliases  =========================================================================================================
+    set_commitment = commit
+
 
 async def get_async_subtensor(
     network: Optional[str] = None,

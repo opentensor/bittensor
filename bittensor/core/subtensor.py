@@ -2620,3 +2620,6 @@ class Subtensor(SubtensorMixin):
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
         )
+
+    # Aliases  =========================================================================================================
+    set_commitment = commit
