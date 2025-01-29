@@ -1,4 +1,4 @@
-from typing import Union, Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
 
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
@@ -15,7 +15,7 @@ def transfer_stake_extrinsic(
     hotkey_ss58: str,
     origin_netuid: int,
     destination_netuid: int,
-    amount: Optional[Union["Balance", float]] = None,
+    amount: Optional[Balance] = None,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
 ) -> bool:
@@ -36,10 +36,8 @@ def transfer_stake_extrinsic(
     Returns:
         success (bool): True if the transfer was successful.
     """
-    if not isinstance(amount, Balance):
-        amount = Balance.from_tao(amount)
-    amount.set_unit(netuid=origin_netuid)
 
+    amount.set_unit(netuid=origin_netuid)
     # Verify ownership
     hotkey_owner = subtensor.get_hotkey_owner(hotkey_ss58)
     if hotkey_owner != wallet.coldkeypub.ss58_address:
@@ -132,7 +130,7 @@ def swap_stake_extrinsic(
     hotkey_ss58: str,
     origin_netuid: int,
     destination_netuid: int,
-    amount: Optional[Union["Balance", float]] = None,
+    amount: Optional[Balance] = None,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
 ) -> bool:
@@ -152,10 +150,8 @@ def swap_stake_extrinsic(
     Returns:
         success (bool): True if the swap was successful.
     """
-    if not isinstance(amount, Balance):
-        amount = Balance.from_tao(amount)
-    amount.set_unit(netuid=origin_netuid)
 
+    amount.set_unit(netuid=origin_netuid)
     # Verify ownership
     hotkey_owner = subtensor.get_hotkey_owner(hotkey_ss58)
     if hotkey_owner != wallet.coldkeypub.ss58_address:
@@ -248,7 +244,7 @@ def move_stake_extrinsic(
     origin_netuid: int,
     destination_hotkey: str,
     destination_netuid: int,
-    amount: Optional[Union["Balance", float]] = None,
+    amount: Optional[Balance] = None,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
 ) -> bool:
@@ -269,10 +265,8 @@ def move_stake_extrinsic(
     Returns:
         success (bool): True if the move was successful.
     """
-    if not isinstance(amount, Balance):
-        amount = Balance.from_tao(amount)
-    amount.set_unit(netuid=origin_netuid)
 
+    amount.set_unit(netuid=origin_netuid)
     # Verify ownership of origin hotkey
     origin_owner = subtensor.get_hotkey_owner(origin_hotkey)
     if origin_owner != wallet.coldkeypub.ss58_address:
