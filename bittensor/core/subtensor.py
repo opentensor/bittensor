@@ -1,3 +1,4 @@
+import time
 import copy
 from functools import lru_cache
 from typing import TYPE_CHECKING, Any, Iterable, Optional, Union, cast
@@ -21,6 +22,7 @@ from bittensor.core.chain_data import (
     WeightCommitInfo,
 )
 from bittensor.core.chain_data.delegate_info import DelegateInfo
+from bittensor.core.chain_data.dynamic_info import DynamicInfo
 from bittensor.core.chain_data.neuron_info import NeuronInfo
 from bittensor.core.chain_data.neuron_info_lite import NeuronInfoLite
 from bittensor.core.chain_data.stake_info import StakeInfo
@@ -31,6 +33,11 @@ from bittensor.core.extrinsics.commit_reveal import commit_reveal_v3_extrinsic
 from bittensor.core.extrinsics.commit_weights import (
     commit_weights_extrinsic,
     reveal_weights_extrinsic,
+)
+from bittensor.core.extrinsics.move_stake import (
+    transfer_stake_extrinsic,
+    swap_stake_extrinsic,
+    move_stake_extrinsic,
 )
 from bittensor.core.extrinsics.registration import (
     burned_register_extrinsic,
@@ -367,6 +374,28 @@ class Subtensor(SubtensorMixin):
     def block(self) -> int:
         return self.get_current_block()
 
+    def all_subnets(
+        self, block_number: Optional[int] = None
+    ) -> Optional[list["DynamicInfo"]]:
+        """
+        Retrieves the subnet information for all subnets in the network.
+
+        Args:
+            block_number (Optional[int]): The block number to query the subnet information from.
+
+        Returns:
+            Optional[DynamicInfo]: A list of DynamicInfo objects, each containing detailed information about a subnet.
+
+        """
+        block_hash = self.get_block_hash(block_number) if block_number else None
+        query = self.substrate.runtime_call(
+            "SubnetInfoRuntimeApi",
+            "get_all_dynamic_info",
+            block_hash=block_hash,
+        )
+        subnets = DynamicInfo.list_from_vec_u8(bytes.fromhex(query.decode()[2:]))
+        return subnets
+
     def blocks_since_last_update(self, netuid: int, uid: int) -> Optional[int]:
         """
         Returns the number of blocks since the last update for a specific UID in the subnetwork.
@@ -541,6 +570,8 @@ class Subtensor(SubtensorMixin):
             block_hash=self.determine_block_hash(block),
         )
         return Balance(balance["data"]["free"])
+
+    balance = get_balance
 
     def get_balances(
         self,
@@ -1136,8 +1167,8 @@ class Subtensor(SubtensorMixin):
 
     def get_stake(
         self,
-        hotkey_ss58: str,
         coldkey_ss58: str,
+        hotkey_ss58: str,
         netuid: Optional[int] = None,
         block: Optional[int] = None,
     ) -> Balance:
@@ -1918,6 +1949,34 @@ class Subtensor(SubtensorMixin):
         call = self.get_hyperparameter(param_name="Burn", netuid=netuid, block=block)
         return None if call is None else Balance.from_rao(int(call))
 
+    def subnet(
+        self, netuid: int, block_number: Optional[int] = None
+    ) -> Optional[DynamicInfo]:
+        """
+        Retrieves the subnet information for a single subnet in the network.
+
+        Args:
+            netuid (int): The unique identifier of the subnet.
+            block_number (Optional[int]): The block number to query the subnet information from.
+
+        Returns:
+            Optional[DynamicInfo]: A DynamicInfo object, containing detailed information about a subnet.
+
+        """
+        if block_number is not None:
+            block_hash = self.get_block_hash(block_number)
+        else:
+            block_hash = None
+
+        query = self.substrate.runtime_call(
+            "SubnetInfoRuntimeApi",
+            "get_dynamic_info",
+            params=[netuid],
+            block_hash=block_hash,
+        )
+        subnet = DynamicInfo.from_vec_u8(bytes.fromhex(query.decode()[2:]))  # type: ignore
+        return subnet
+
     def subnet_exists(self, netuid: int, block: Optional[int] = None) -> bool:
         """
         Checks if a subnet with the specified unique identifier (netuid) exists within the Bittensor network.
@@ -1989,6 +2048,29 @@ class Subtensor(SubtensorMixin):
         """
         result = self.query_subtensor("TxRateLimit", block=block)
         return getattr(result, "value", None)
+
+    def wait_for_block(self, block: Optional[int] = None):
+        """
+        Waits until a specific block is reached on the chain. If no block is specified,
+        waits for the next block.
+
+        Args:
+            block (Optional[int]): The block number to wait for. If None, waits for next block.
+
+        Returns:
+            bool: True if the target block was reached, False if timeout occurred.
+
+        Example:
+            >>> subtensor.wait_for_block() # Waits for next block
+            >>> subtensor.wait_for_block(block=1234) # Waits for specific block
+        """
+        current_block = self.get_current_block()
+        target_block = block if block is not None else current_block + 1
+
+        while current_block < target_block:
+            time.sleep(1)  # Sleep for 1 second before checking again
+            current_block = self.get_current_block()
+        return True
 
     def weights(
         self, netuid: int, block: Optional[int] = None
@@ -2264,6 +2346,48 @@ class Subtensor(SubtensorMixin):
                 retries += 1
 
         return success, message
+    
+    def move_stake(
+        self,
+        wallet: "Wallet",
+        origin_hotkey: str,
+        origin_netuid: int,
+        destination_hotkey: str,
+        destination_netuid: int,
+        amount: Union["Balance", float],
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+    ) -> bool:
+        """
+        Moves stake to a different hotkey and/or subnet.
+
+        Args:
+            wallet (bittensor.wallet): The wallet to move stake from.
+            origin_hotkey (str): The SS58 address of the source hotkey.
+            origin_netuid (int): The netuid of the source subnet.
+            destination_hotkey (str): The SS58 address of the destination hotkey.
+            destination_netuid (int): The netuid of the destination subnet.
+            amount (Union[Balance, float]): Amount of stake to move.
+            wait_for_inclusion (bool): Waits for the transaction to be included in a block.
+            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
+
+        Returns:
+            success (bool): True if the stake movement was successful.
+        """
+        if isinstance(amount, float):
+            amount = Balance.from_tao(amount)
+
+        return move_stake_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            origin_hotkey=origin_hotkey,
+            origin_netuid=origin_netuid,
+            destination_hotkey=destination_hotkey,
+            destination_netuid=destination_netuid,
+            amount=amount,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
 
     def register(
         self,
@@ -2610,6 +2734,46 @@ class Subtensor(SubtensorMixin):
             certificate=certificate,
         )
 
+    def swap_stake(
+        self,
+        wallet: "Wallet",
+        hotkey_ss58: str,
+        origin_netuid: int,
+        destination_netuid: int,
+        amount: Union["Balance", float],
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+    ) -> bool:
+        """
+        Moves stake between subnets while keeping the same coldkey-hotkey pair ownership.
+        Like subnet hopping - same owner, same hotkey, just changing which subnet the stake is in.
+
+        Args:
+            wallet (bittensor.wallet): The wallet to swap stake from.
+            hotkey_ss58 (str): The SS58 address of the hotkey whose stake is being swapped.
+            origin_netuid (int): The netuid from which stake is removed.
+            destination_netuid (int): The netuid to which stake is added.
+            amount (Union[Balance, float]): The amount to swap.
+            wait_for_inclusion (bool): Waits for the transaction to be included in a block.
+            wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
+
+        Returns:
+            success (bool): True if the extrinsic was successful.
+        """
+        if isinstance(amount, float):
+            amount = Balance.from_tao(amount)
+
+        return swap_stake_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            hotkey_ss58=hotkey_ss58,
+            origin_netuid=origin_netuid,
+            destination_netuid=destination_netuid,
+            amount=amount,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
+        )
+
     def transfer(
         self,
         wallet: "Wallet",
@@ -2648,6 +2812,48 @@ class Subtensor(SubtensorMixin):
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
             keep_alive=keep_alive,
+        )
+
+    def transfer_stake(
+        self,
+        wallet: "Wallet",
+        destination_coldkey_ss58: str,
+        hotkey_ss58: str,
+        origin_netuid: int,
+        destination_netuid: int,
+        amount: Union["Balance", float],
+        wait_for_inclusion: bool = True,
+        wait_for_finalization: bool = False,
+    ) -> bool:
+        """
+        Transfers stake from one subnet to another while changing the coldkey owner.
+
+        Args:
+            wallet (bittensor.wallet): The wallet to transfer stake from.
+            destination_coldkey_ss58 (str): The destination coldkey SS58 address.
+            hotkey_ss58 (str): The hotkey SS58 address associated with the stake.
+            origin_netuid (int): The source subnet UID.
+            destination_netuid (int): The destination subnet UID.
+            amount (Union[Balance, float, int]): Amount to transfer.
+            wait_for_inclusion (bool): If true, waits for inclusion before returning.
+            wait_for_finalization (bool): If true, waits for finalization before returning.
+
+        Returns:
+            success (bool): True if the transfer was successful.
+        """
+        if isinstance(amount, float):
+            amount = Balance.from_tao(amount)
+
+        return transfer_stake_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            destination_coldkey_ss58=destination_coldkey_ss58,
+            hotkey_ss58=hotkey_ss58,
+            origin_netuid=origin_netuid,
+            destination_netuid=destination_netuid,
+            amount=amount,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
         )
 
     def unstake(
