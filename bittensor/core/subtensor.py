@@ -2654,6 +2654,7 @@ class Subtensor(SubtensorMixin):
         self,
         wallet: "Wallet",
         hotkey_ss58: Optional[str] = None,
+        netuid: Optional[int] = None,
         amount: Optional[Union["Balance", float]] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
@@ -2666,6 +2667,7 @@ class Subtensor(SubtensorMixin):
             wallet (bittensor_wallet.wallet): The wallet associated with the neuron from which the stake is being
                 removed.
             hotkey_ss58 (Optional[str]): The ``SS58`` address of the hotkey account to unstake from.
+            netuid (Optional[int]): The unique identifier of the subnet.
             amount (Union[Balance, float]): The amount of TAO to unstake. If not specified, unstakes all.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
@@ -2680,6 +2682,7 @@ class Subtensor(SubtensorMixin):
             subtensor=self,
             wallet=wallet,
             hotkey_ss58=hotkey_ss58,
+            netuid=netuid,
             amount=amount,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
@@ -2689,6 +2692,7 @@ class Subtensor(SubtensorMixin):
         self,
         wallet: "Wallet",
         hotkey_ss58s: list[str],
+        netuids: list[int],
         amounts: Optional[list[Union["Balance", float]]] = None,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
@@ -2701,6 +2705,7 @@ class Subtensor(SubtensorMixin):
             wallet (bittensor_wallet.Wallet): The wallet linked to the coldkey from which the stakes are being
                 withdrawn.
             hotkey_ss58s (List[str]): A list of hotkey ``SS58`` addresses to unstake from.
+            netuids (List[int]): The list of subnet uids.
             amounts (List[Union[Balance, float]]): The amounts of TAO to unstake from each hotkey. If not provided,
                 unstakes all available stakes.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block.
@@ -2716,6 +2721,7 @@ class Subtensor(SubtensorMixin):
             subtensor=self,
             wallet=wallet,
             hotkey_ss58s=hotkey_ss58s,
+            netuids=netuids,
             amounts=amounts,
             wait_for_inclusion=wait_for_inclusion,
             wait_for_finalization=wait_for_finalization,
