@@ -75,8 +75,7 @@ def unstake_extrinsic(
 
     try:
         logging.info(
-            f":satellite: [magenta]Unstaking[/magenta] [blue]{unstaking_balance}[/blue] [magenta]from netuid[/magenta] "
-            f"[blue]{netuid}[/blue] [magenta]on[/magenta] [blue]{subtensor.network}[/blue] [magenta]...[/magenta]"
+            f"Unstaking [blue]{unstaking_balance}[/blue] from [magenta]{hotkey_ss58}[/magenta] on [blue]{netuid}[/blue]"
         )
         call = subtensor.substrate.compose_call(
             call_module="SubtensorModule",
@@ -241,8 +240,7 @@ def unstake_multiple_extrinsic(
 
         try:
             logging.info(
-                f":satellite: [magenta]Unstaking from chain:[/magenta] [blue]{subtensor.network}[/blue] "
-                f"[magenta]...[/magenta]"
+                f"Unstaking [blue]{unstaking_balance}[/blue] from [magenta]{hotkey_ss58}[/magenta] on [blue]{netuid}[/blue]"
             )
             call = subtensor.substrate.compose_call(
                 call_module="SubtensorModule",

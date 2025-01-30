@@ -123,7 +123,7 @@ class Subtensor(SubtensorMixin):
         self._check_and_log_network_settings()
 
         logging.debug(
-            f"Connecting to <network: [blue]{self.network}[/blue], "
+            f"Connecting to network: [blue]{self.network}[/blue], "
             f"chain_endpoint: [blue]{self.chain_endpoint}[/blue]> ..."
         )
         self.substrate = SubstrateInterface(
