@@ -48,6 +48,11 @@ METAGRAPH_STATE_DICT_NDARRAY_KEYS = [
     "last_update",
     "validator_permit",
     "uids",
+    "netuid",
+    "weights",
+    "axons",
+    "neurons",
+    "bonds",
 ]
 """List of keys for the metagraph state dictionary used in NDArray serialization.
 
