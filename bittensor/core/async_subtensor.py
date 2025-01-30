@@ -78,7 +78,7 @@ from bittensor.utils import (
 from bittensor.utils.balance import (
     Balance,
     fixed_to_float,
-    check_and_convert_amount_type,
+    check_and_convert_to_balance,
 )
 from bittensor.utils.btlogging import logging
 from bittensor.utils.delegates_details import DelegatesDetails
@@ -2903,7 +2903,7 @@ class AsyncSubtensor(SubtensorMixin):
         This function enables neurons to increase their stake in the network, enhancing their influence and potential
             rewards in line with Bittensor's consensus and reward mechanisms.
         """
-        amount = check_and_convert_amount_type(amount)
+        amount = check_and_convert_to_balance(amount)
         return await add_stake_extrinsic(
             subtensor=self,
             wallet=wallet,
@@ -3083,7 +3083,7 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             success (bool): True if the stake movement was successful.
         """
-        amount = check_and_convert_amount_type(amount)
+        amount = check_and_convert_to_balance(amount)
         return await move_stake_extrinsic(
             subtensor=self,
             wallet=wallet,
@@ -3485,7 +3485,7 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             success (bool): True if the extrinsic was successful.
         """
-        amount = check_and_convert_amount_type(amount)
+        amount = check_and_convert_to_balance(amount)
         return await swap_stake_extrinsic(
             subtensor=self,
             wallet=wallet,
@@ -3524,7 +3524,7 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             success (bool): True if the transfer was successful.
         """
-        amount = check_and_convert_amount_type(amount)
+        amount = check_and_convert_to_balance(amount)
         return await transfer_stake_extrinsic(
             subtensor=self,
             wallet=wallet,
@@ -3563,7 +3563,7 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             `True` if the transferring was successful, otherwise `False`.
         """
-        amount = check_and_convert_amount_type(amount)
+        amount = check_and_convert_to_balance(amount)
         return await transfer_extrinsic(
             subtensor=self,
             wallet=wallet,
@@ -3603,7 +3603,7 @@ class AsyncSubtensor(SubtensorMixin):
         This function supports flexible stake management, allowing neurons to adjust their network participation and
             potential reward accruals.
         """
-        amount = check_and_convert_amount_type(amount)
+        amount = check_and_convert_to_balance(amount)
         return await unstake_extrinsic(
             subtensor=self,
             wallet=wallet,
