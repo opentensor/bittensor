@@ -9,6 +9,8 @@
 
 ## Internet-scale Neural Networks <!-- omit in toc -->
 
+## This Alpha Release is compatible with Finney state pre-dTao. 
+
 [Discord](https://discord.gg/qasY3HA9F9) • [Network](https://taostats.io/) • [Research](https://bittensor.com/whitepaper)
 
 </div>
