@@ -202,17 +202,6 @@ class SubtensorMixin(ABC):
         return "unknown", network
 
 
-class AxonServeCallParams_(TypedDict):
-    """Axon serve chain call parameters."""
-
-    version: int
-    ip: int
-    port: int
-    ip_type: int
-    netuid: int
-    certificate: Optional[Certificate]
-
-
 class AxonServeCallParams:
     def __init__(
         self,
