@@ -16,7 +16,7 @@ from scalecodec.utils.ss58 import ss58_encode
 # to balance with unit (just shortcut)
 def _tbwu(val: int, netuid: Optional[int] = 0) -> Balance:
     """Returns a Balance object from a value and unit."""
-    return Balance.from_tao(val, netuid)
+    return Balance.from_rao(val, netuid)
 
 
 @dataclass
