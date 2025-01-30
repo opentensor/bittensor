@@ -549,7 +549,7 @@ class Subtensor(SubtensorMixin):
         else:
             return SubnetInfo.list_from_vec_u8(hex_to_bytes(hex_bytes_result))
 
-    def get_balance(self, address: str, block: Optional[int] = None) -> "Balance":
+    def get_balance(self, address: str, block: Optional[int] = None) -> Balance:
         """
         Retrieves the balance for given coldkey.
 
@@ -574,7 +574,7 @@ class Subtensor(SubtensorMixin):
         self,
         *addresses: str,
         block: Optional[int] = None,
-    ) -> dict[str, "Balance"]:
+    ) -> dict[str, Balance]:
         """
         Retrieves the balance for given coldkey(s)
 
@@ -905,7 +905,7 @@ class Subtensor(SubtensorMixin):
 
     def get_delegated(
         self, coldkey_ss58: str, block: Optional[int] = None
-    ) -> list[tuple["DelegateInfo", "Balance"]]:
+    ) -> list[tuple["DelegateInfo", Balance]]:
         """
         Retrieves a list of delegates and their associated stakes for a given coldkey. This function identifies the
         delegates that a specific account has staked tokens on.
@@ -954,9 +954,7 @@ class Subtensor(SubtensorMixin):
         else:
             return []
 
-    def get_existential_deposit(
-        self, block: Optional[int] = None
-    ) -> Optional["Balance"]:
+    def get_existential_deposit(self, block: Optional[int] = None) -> Optional[Balance]:
         """
         Retrieves the existential deposit amount for the Bittensor blockchain.
         The existential deposit is the minimum amount of TAO required for an account to exist on the blockchain.
@@ -1012,7 +1010,7 @@ class Subtensor(SubtensorMixin):
         hotkey_owner = val if exists else None
         return hotkey_owner
 
-    def get_minimum_required_stake(self) -> "Balance":
+    def get_minimum_required_stake(self) -> Balance:
         """
         Returns the minimum required stake for nominators in the Subtensor network.
         This method retries the substrate call up to three times with exponential backoff in case of failures.
@@ -1353,7 +1351,7 @@ class Subtensor(SubtensorMixin):
 
     def get_total_stake_for_coldkey(
         self, ss58_address: str, block: Optional[int] = None
-    ) -> "Balance":
+    ) -> Balance:
         """
         Returns the total stake held on a coldkey.
 
@@ -1374,7 +1372,7 @@ class Subtensor(SubtensorMixin):
 
     def get_total_stake_for_coldkeys(
         self, *ss58_addresses: str, block: Optional[int] = None
-    ) -> dict[str, "Balance"]:
+    ) -> dict[str, Balance]:
         """
         Returns the total stake held on multiple coldkeys.
 
@@ -1406,7 +1404,7 @@ class Subtensor(SubtensorMixin):
 
     def get_total_stake_for_hotkey(
         self, ss58_address: str, block: Optional[int] = None
-    ) -> "Balance":
+    ) -> Balance:
         """
         Returns the total stake held on a hotkey.
 
@@ -1427,7 +1425,7 @@ class Subtensor(SubtensorMixin):
 
     def get_total_stake_for_hotkeys(
         self, *ss58_addresses: str, block: Optional[int] = None
-    ) -> dict[str, "Balance"]:
+    ) -> dict[str, Balance]:
         """
         Returns the total stake held on hotkeys.
 
@@ -1468,8 +1466,8 @@ class Subtensor(SubtensorMixin):
         return getattr(result, "value", None)
 
     def get_transfer_fee(
-        self, wallet: "Wallet", dest: str, value: Union["Balance", float, int]
-    ) -> "Balance":
+        self, wallet: "Wallet", dest: str, value: Union[Balance, float, int]
+    ) -> Balance:
         """
         Calculates the transaction fee for transferring tokens from a wallet to a specified destination address. This
             function simulates the transfer to estimate the associated cost, taking into account the current network
@@ -1875,9 +1873,7 @@ class Subtensor(SubtensorMixin):
         hex_bytes_result = self.query_runtime_api(
             runtime_api="NeuronInfoRuntimeApi",
             method="get_neurons_lite",
-            params=[
-                netuid
-            ],  # TODO check to see if this can accept more than one at a time
+            params=[netuid],
             block=block,
         )
 
@@ -1917,7 +1913,7 @@ class Subtensor(SubtensorMixin):
         except TypeError:
             return {}
 
-    def recycle(self, netuid: int, block: Optional[int] = None) -> Optional["Balance"]:
+    def recycle(self, netuid: int, block: Optional[int] = None) -> Optional[Balance]:
         """
         Retrieves the 'Burn' hyperparameter for a specified subnet. The 'Burn' parameter represents the amount of Tao
             that is effectively recycled within the Bittensor network.
@@ -2766,7 +2762,7 @@ class Subtensor(SubtensorMixin):
         self,
         wallet: "Wallet",
         dest: str,
-        amount: Union["Balance", float],
+        amount: Balance,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
         transfer_all: bool = False,
