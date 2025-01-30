@@ -2,6 +2,7 @@ import time
 from typing import Optional, TYPE_CHECKING, Sequence
 
 from bittensor.core.errors import StakeError, NotRegisteredError
+from bittensor.core.extrinsics.utils import get_old_stakes
 from bittensor.utils import unlock_key
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
@@ -27,6 +28,7 @@ def add_stake_extrinsic(
         subtensor: the Subtensor object to use
         wallet: Bittensor wallet object.
         hotkey_ss58: The `ss58` address of the hotkey account to stake to defaults to the wallet's hotkey.
+        netuid (Optional[int]): Subnet unique ID.
         amount: Amount to stake as Bittensor balance, `None` if staking all.
         wait_for_inclusion: If set, waits for the extrinsic to enter a block before returning `True`, or returns
             `False` if the extrinsic fails to enter the block within the timeout.
@@ -174,26 +176,6 @@ def add_stake_multiple_extrinsic(
             not wait for finalization/inclusion, the response is `True`.
     """
 
-    def get_old_stakes() -> list[Balance]:
-        old_stakes = []
-        all_stakes = subtensor.get_stake_for_coldkey(
-            coldkey_ss58=wallet.coldkeypub.ss58_address,
-        )
-        for hotkey_ss58, netuid in zip(hotkey_ss58s, netuids):
-            stake = next(
-                (
-                    stake.stake
-                    for stake in all_stakes
-                    if stake.hotkey_ss58 == hotkey_ss58
-                    and stake.coldkey_ss58 == wallet.coldkeypub.ss58_address
-                    and stake.netuid == netuid
-                ),
-                Balance.from_tao(0),  # Default to 0 balance if no match found
-            )
-            old_stakes.append(stake)
-
-        return old_stakes
-
     if not isinstance(hotkey_ss58s, list) or not all(
         isinstance(hotkey_ss58, str) for hotkey_ss58 in hotkey_ss58s
     ):
@@ -209,6 +191,7 @@ def add_stake_multiple_extrinsic(
         raise ValueError("netuids must be a list of the same length as hotkey_ss58s")
 
     new_amounts: Sequence[Optional[Balance]]
+
     if amounts is None:
         new_amounts = [None] * len(hotkey_ss58s)
     else:
@@ -228,7 +211,12 @@ def add_stake_multiple_extrinsic(
         f":satellite: [magenta]Syncing with chain:[/magenta] [blue]{subtensor.network}[/blue] [magenta]...[/magenta]"
     )
     block = subtensor.get_current_block()
-    old_stakes: list[Balance] = get_old_stakes()
+    all_stakes = subtensor.get_stake_for_coldkey(
+        coldkey_ss58=wallet.coldkeypub.ss58_address,
+    )
+    old_stakes: list[Balance] = get_old_stakes(
+        wallet=wallet, hotkey_ss58s=hotkey_ss58s, netuids=netuids, all_stakes=all_stakes
+    )
 
     # Remove existential balance to keep key alive.
     # Keys must maintain a balance of at least 1000 rao to stay alive.
