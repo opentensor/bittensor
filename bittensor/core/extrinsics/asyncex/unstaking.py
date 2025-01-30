@@ -204,16 +204,17 @@ async def unstake_multiple_extrinsic(
         f":satellite: [magenta]Syncing with chain:[/magenta] [blue]{subtensor.network}[/blue] [magenta]...[/magenta]"
     )
 
-    all_stakes = await subtensor.get_stake_for_coldkey(
-        coldkey_ss58=wallet.coldkeypub.ss58_address,
-    )
-    old_stakes: list[Balance] = get_old_stakes(
-        wallet=wallet, hotkey_ss58s=hotkey_ss58s, netuids=netuids, all_stakes=all_stakes
+    block_hash = await subtensor.substrate.get_chain_head()
+
+    all_stakes, old_balance = await asyncio.gather(
+        subtensor.get_stake_for_coldkey(
+            coldkey_ss58=wallet.coldkeypub.ss58_address, block_hash=block_hash
+        ),
+        subtensor.get_balance(wallet.coldkeypub.ss58_address, block_hash=block_hash),
     )
 
-    block_hash = await subtensor.substrate.get_chain_head()
-    old_balance = await subtensor.get_balance(
-        wallet.coldkeypub.ss58_address, block_hash=block_hash
+    old_stakes: list[Balance] = get_old_stakes(
+        wallet=wallet, hotkey_ss58s=hotkey_ss58s, netuids=netuids, all_stakes=all_stakes
     )
 
     successful_unstakes = 0
