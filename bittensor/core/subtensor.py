@@ -78,7 +78,12 @@ from bittensor.utils import (
     u16_normalized_float,
     _decode_hex_identity_dict,
 )
-from bittensor.utils.balance import Balance, fixed_to_float, FixedPoint
+from bittensor.utils.balance import (
+    Balance,
+    fixed_to_float,
+    FixedPoint,
+    check_and_convert_to_balance,
+)
 from bittensor.utils.btlogging import logging
 from bittensor.utils.weight_utils import generate_weight_hash
 
@@ -86,6 +91,7 @@ if TYPE_CHECKING:
     from bittensor_wallet import Wallet
     from bittensor.utils import Certificate
     from async_substrate_interface.sync_substrate import QueryMapResult
+    from async_substrate_interface.types import ScaleObj
     from bittensor.utils.delegates_details import DelegatesDetails
     from scalecodec.types import ScaleType, GenericCall
 
@@ -235,7 +241,7 @@ class Subtensor(SubtensorMixin):
         name: str,
         block: Optional[int] = None,
         params: Optional[list] = None,
-    ) -> Union["ScaleType", "FixedPoint"]:
+    ) -> Union["ScaleObj", "FixedPoint"]:
         """
         Queries any module storage on the Bittensor blockchain with the specified parameters and block number. This
             function is a generic query interface that allows for flexible and diverse data retrieval from various
@@ -567,8 +573,6 @@ class Subtensor(SubtensorMixin):
             block_hash=self.determine_block_hash(block),
         )
         return Balance(balance["data"]["free"])
-
-    balance = get_balance
 
     def get_balances(
         self,
@@ -1096,7 +1100,7 @@ class Subtensor(SubtensorMixin):
 
         This function is used for certificate discovery for setting up mutual tls communication between neurons.
         """
-        certificate: ScaleType = self.query_module(
+        certificate: "ScaleObj" = self.query_module(
             module="SubtensorModule",
             name="NeuronCertificates",
             block=block,
@@ -2186,6 +2190,7 @@ class Subtensor(SubtensorMixin):
         This function enables neurons to increase their stake in the network, enhancing their influence and potential
             rewards in line with Bittensor's consensus and reward mechanisms.
         """
+        amount = check_and_convert_to_balance(amount)
         return add_stake_extrinsic(
             subtensor=self,
             wallet=wallet,
@@ -2363,6 +2368,7 @@ class Subtensor(SubtensorMixin):
         Returns:
             success (bool): True if the stake movement was successful.
         """
+        amount = check_and_convert_to_balance(amount)
         return move_stake_extrinsic(
             subtensor=self,
             wallet=wallet,
@@ -2746,7 +2752,7 @@ class Subtensor(SubtensorMixin):
         Returns:
             success (bool): True if the extrinsic was successful.
         """
-
+        amount = check_and_convert_to_balance(amount)
         return swap_stake_extrinsic(
             subtensor=self,
             wallet=wallet,
@@ -2784,9 +2790,7 @@ class Subtensor(SubtensorMixin):
         Returns:
             `True` if the transferring was successful, otherwise `False`.
         """
-        if isinstance(amount, float):
-            amount = Balance.from_tao(amount)
-
+        amount = check_and_convert_to_balance(amount)
         return transfer_extrinsic(
             subtensor=self,
             wallet=wallet,
@@ -2825,7 +2829,7 @@ class Subtensor(SubtensorMixin):
         Returns:
             success (bool): True if the transfer was successful.
         """
-
+        amount = check_and_convert_to_balance(amount)
         return transfer_stake_extrinsic(
             subtensor=self,
             wallet=wallet,
@@ -2866,6 +2870,7 @@ class Subtensor(SubtensorMixin):
         This function supports flexible stake management, allowing neurons to adjust their network participation and
             potential reward accruals.
         """
+        amount = check_and_convert_to_balance(amount)
         return unstake_extrinsic(
             subtensor=self,
             wallet=wallet,
