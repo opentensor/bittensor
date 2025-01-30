@@ -345,31 +345,33 @@ class Axon:
         config.axon.external_port = external_port or config.axon.external_port
         config.axon.max_workers = max_workers or config.axon.max_workers
         Axon.check_config(config)
-        self.config = config  # type: ignore
+        self._config = config
 
         # Get wallet or use default.
-        self.wallet = wallet or Wallet(config=self.config)
+        self.wallet: Wallet = wallet or Wallet(config=self._config)
 
         # Build axon objects.
         self.uuid = str(uuid.uuid1())
-        self.ip = self.config.axon.ip  # type: ignore
-        self.port = self.config.axon.port  # type: ignore
-        self.external_ip = (
-            self.config.axon.external_ip  # type: ignore
-            if self.config.axon.external_ip is not None  # type: ignore
+        self.ip: str = self._config.axon.ip
+        self.port: int = self._config.axon.port
+        self.external_ip: str = (
+            self._config.axon.external_ip
+            if self._config.axon.external_ip is not None
             else networking.get_external_ip()
         )
-        self.external_port = (
-            self.config.axon.external_port  # type: ignore
-            if self.config.axon.external_port is not None  # type: ignore
-            else self.config.axon.port  # type: ignore
+        self.external_port: int = (
+            self._config.axon.external_port
+            if self._config.axon.external_port is not None
+            else self._config.axon.port
         )
-        self.full_address = str(self.config.axon.ip) + ":" + str(self.config.axon.port)  # type: ignore
+        self.full_address = (
+            str(self._config.axon.ip) + ":" + str(self._config.axon.port)
+        )
         self.started = False
 
         # Build middleware
         self.thread_pool = PriorityThreadPoolExecutor(
-            max_workers=self.config.axon.max_workers  # type: ignore
+            max_workers=self._config.axon.max_workers
         )
         self.nonces: dict[str, int] = {}
 
@@ -384,7 +386,7 @@ class Axon:
         self.app = FastAPI()
         log_level = "trace" if logging.__trace_on__ else "critical"
         self.fast_config = uvicorn.Config(
-            self.app, host="0.0.0.0", port=self.config.axon.port, log_level=log_level
+            self.app, host="0.0.0.0", port=self._config.axon.port, log_level=log_level
         )
         self.fast_server = FastAPIThreadedServer(config=self.fast_config)
         self.router = APIRouter()
