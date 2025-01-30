@@ -1,6 +1,10 @@
 # Changelog
 
-## 8.5.1 /2024-12-16
+## 9.0.0a1 /2025-01-30
+
+### What's Changed
+* Completely revamped Bittensor SDK with Async Substrate Interface and Async Subtensor.
+* This release is compatible with Finney state pre-dTao. 
 
 ## What's Changed
 * 8.5.0 bugfixes by @thewhaleking in https://github.com/opentensor/bittensor/pull/2541
