@@ -80,7 +80,8 @@ async def unstake_extrinsic(
 
     try:
         logging.info(
-            f"Unstaking [blue]{unstaking_balance}[/blue] from hotkey: [magenta]{hotkey_ss58}[/magenta] on netuid: [blue]{netuid}[/blue]"
+            f"Unstaking [blue]{unstaking_balance}[/blue] from hotkey: [magenta]{hotkey_ss58}[/magenta] on netuid: "
+            f"[blue]{netuid}[/blue]"
         )
 
         call = await subtensor.substrate.compose_call(
@@ -155,6 +156,7 @@ async def unstake_multiple_extrinsic(
         subtensor (bittensor.core.subtensor.Subtensor): Subtensor instance.
         wallet (bittensor_wallet.Wallet): The wallet with the coldkey to unstake to.
         hotkey_ss58s (List[str]): List of hotkeys to unstake from.
+        netuids (List[int]): List of netuids to unstake from.
         amounts (List[Union[Balance, float]]): List of amounts to unstake. If ``None``, unstake all.
         wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``True``, or
             returns ``False`` if the extrinsic fails to enter the block within the timeout.
@@ -239,7 +241,8 @@ async def unstake_multiple_extrinsic(
 
         try:
             logging.info(
-                f"Unstaking [blue]{unstaking_balance}[/blue] from hotkey: [magenta]{hotkey_ss58}[/magenta] on netuid: [blue]{netuid}[/blue]"
+                f"Unstaking [blue]{unstaking_balance}[/blue] from hotkey: [magenta]{hotkey_ss58}[/magenta] on netuid: "
+                f"[blue]{netuid}[/blue]"
             )
             call = await subtensor.substrate.compose_call(
                 call_module="SubtensorModule",

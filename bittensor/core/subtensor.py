@@ -1,4 +1,3 @@
-import time
 import copy
 from functools import lru_cache
 from typing import TYPE_CHECKING, Any, Iterable, Optional, Union, cast
@@ -374,20 +373,18 @@ class Subtensor(SubtensorMixin):
     def block(self) -> int:
         return self.get_current_block()
 
-    def all_subnets(
-        self, block_number: Optional[int] = None
-    ) -> Optional[list["DynamicInfo"]]:
+    def all_subnets(self, block: Optional[int] = None) -> Optional[list["DynamicInfo"]]:
         """
         Retrieves the subnet information for all subnets in the network.
 
         Args:
-            block_number (Optional[int]): The block number to query the subnet information from.
+            block (Optional[int]): The block number to query the subnet information from.
 
         Returns:
             Optional[DynamicInfo]: A list of DynamicInfo objects, each containing detailed information about a subnet.
 
         """
-        block_hash = self.get_block_hash(block_number) if block_number else None
+        block_hash = self.determine_block_hash(block)
         query = self.substrate.runtime_call(
             "SubnetInfoRuntimeApi",
             "get_all_dynamic_info",
@@ -552,7 +549,7 @@ class Subtensor(SubtensorMixin):
         else:
             return SubnetInfo.list_from_vec_u8(hex_to_bytes(hex_bytes_result))
 
-    def get_balance(self, address: str, block: Optional[int] = None) -> "Balance":
+    def get_balance(self, address: str, block: Optional[int] = None) -> Balance:
         """
         Retrieves the balance for given coldkey.
 
@@ -577,7 +574,7 @@ class Subtensor(SubtensorMixin):
         self,
         *addresses: str,
         block: Optional[int] = None,
-    ) -> dict[str, "Balance"]:
+    ) -> dict[str, Balance]:
         """
         Retrieves the balance for given coldkey(s)
 
@@ -908,7 +905,7 @@ class Subtensor(SubtensorMixin):
 
     def get_delegated(
         self, coldkey_ss58: str, block: Optional[int] = None
-    ) -> list[tuple["DelegateInfo", "Balance"]]:
+    ) -> list[tuple["DelegateInfo", Balance]]:
         """
         Retrieves a list of delegates and their associated stakes for a given coldkey. This function identifies the
         delegates that a specific account has staked tokens on.
@@ -957,9 +954,7 @@ class Subtensor(SubtensorMixin):
         else:
             return []
 
-    def get_existential_deposit(
-        self, block: Optional[int] = None
-    ) -> Optional["Balance"]:
+    def get_existential_deposit(self, block: Optional[int] = None) -> Optional[Balance]:
         """
         Retrieves the existential deposit amount for the Bittensor blockchain.
         The existential deposit is the minimum amount of TAO required for an account to exist on the blockchain.
@@ -1015,7 +1010,7 @@ class Subtensor(SubtensorMixin):
         hotkey_owner = val if exists else None
         return hotkey_owner
 
-    def get_minimum_required_stake(self) -> "Balance":
+    def get_minimum_required_stake(self) -> Balance:
         """
         Returns the minimum required stake for nominators in the Subtensor network.
         This method retries the substrate call up to three times with exponential backoff in case of failures.
@@ -1035,34 +1030,26 @@ class Subtensor(SubtensorMixin):
     def get_metagraph_info(
         self, netuid: int, block: Optional[int] = None
     ) -> Optional[MetagraphInfo]:
-        if block is not None:
-            block_hash = self.get_block_hash(block)
-        else:
-            block_hash = None
-
+        block_hash = self.determine_block_hash(block)
         query = self.substrate.runtime_call(
             "SubnetInfoRuntimeApi",
             "get_metagraph",
             params=[netuid],
             block_hash=block_hash,
         )
-        metagraph_bytes = bytes.fromhex(query.decode()[2:])
+        metagraph_bytes = hex_to_bytes(query.decode())
         return MetagraphInfo.from_vec_u8(metagraph_bytes)
 
     def get_all_metagraphs_info(
         self, block: Optional[int] = None
     ) -> list[MetagraphInfo]:
-        if block is not None:
-            block_hash = self.get_block_hash(block)
-        else:
-            block_hash = None
-
+        block_hash = self.determine_block_hash(block)
         query = self.substrate.runtime_call(
             "SubnetInfoRuntimeApi",
             "get_all_metagraphs",
             block_hash=block_hash,
         )
-        metagraphs_bytes = bytes.fromhex(query.decode()[2:])
+        metagraphs_bytes = hex_to_bytes(query.decode())
         return MetagraphInfo.list_from_vec_u8(metagraphs_bytes)
 
     def get_netuids_for_hotkey(
@@ -1219,7 +1206,7 @@ class Subtensor(SubtensorMixin):
 
     def get_stake_for_coldkey(
         self, coldkey_ss58: str, block: Optional[int] = None
-    ) -> Optional[list["StakeInfo"]]:
+    ) -> list["StakeInfo"]:
         """
         Retrieves the stake information for a given coldkey.
 
@@ -1240,12 +1227,7 @@ class Subtensor(SubtensorMixin):
 
         if hex_bytes_result is None:
             return []
-        try:
-            bytes_result = bytes.fromhex(hex_bytes_result[2:])
-        except ValueError:
-            bytes_result = bytes.fromhex(hex_bytes_result)
-
-        stakes = StakeInfo.list_from_vec_u8(bytes_result)  # type: ignore
+        stakes = StakeInfo.list_from_vec_u8(hex_to_bytes(hex_bytes_result))  # type: ignore
         return [stake for stake in stakes if stake.stake > 0]
 
     def get_stake_info_for_coldkey(
@@ -1369,7 +1351,7 @@ class Subtensor(SubtensorMixin):
 
     def get_total_stake_for_coldkey(
         self, ss58_address: str, block: Optional[int] = None
-    ) -> "Balance":
+    ) -> Balance:
         """
         Returns the total stake held on a coldkey.
 
@@ -1390,7 +1372,7 @@ class Subtensor(SubtensorMixin):
 
     def get_total_stake_for_coldkeys(
         self, *ss58_addresses: str, block: Optional[int] = None
-    ) -> dict[str, "Balance"]:
+    ) -> dict[str, Balance]:
         """
         Returns the total stake held on multiple coldkeys.
 
@@ -1422,7 +1404,7 @@ class Subtensor(SubtensorMixin):
 
     def get_total_stake_for_hotkey(
         self, ss58_address: str, block: Optional[int] = None
-    ) -> "Balance":
+    ) -> Balance:
         """
         Returns the total stake held on a hotkey.
 
@@ -1443,7 +1425,7 @@ class Subtensor(SubtensorMixin):
 
     def get_total_stake_for_hotkeys(
         self, *ss58_addresses: str, block: Optional[int] = None
-    ) -> dict[str, "Balance"]:
+    ) -> dict[str, Balance]:
         """
         Returns the total stake held on hotkeys.
 
@@ -1484,8 +1466,8 @@ class Subtensor(SubtensorMixin):
         return getattr(result, "value", None)
 
     def get_transfer_fee(
-        self, wallet: "Wallet", dest: str, value: Union["Balance", float, int]
-    ) -> "Balance":
+        self, wallet: "Wallet", dest: str, value: Union[Balance, float, int]
+    ) -> Balance:
         """
         Calculates the transaction fee for transferring tokens from a wallet to a specified destination address. This
             function simulates the transfer to estimate the associated cost, taking into account the current network
@@ -1891,9 +1873,7 @@ class Subtensor(SubtensorMixin):
         hex_bytes_result = self.query_runtime_api(
             runtime_api="NeuronInfoRuntimeApi",
             method="get_neurons_lite",
-            params=[
-                netuid
-            ],  # TODO check to see if this can accept more than one at a time
+            params=[netuid],
             block=block,
         )
 
@@ -1933,7 +1913,7 @@ class Subtensor(SubtensorMixin):
         except TypeError:
             return {}
 
-    def recycle(self, netuid: int, block: Optional[int] = None) -> Optional["Balance"]:
+    def recycle(self, netuid: int, block: Optional[int] = None) -> Optional[Balance]:
         """
         Retrieves the 'Burn' hyperparameter for a specified subnet. The 'Burn' parameter represents the amount of Tao
             that is effectively recycled within the Bittensor network.
@@ -1951,24 +1931,19 @@ class Subtensor(SubtensorMixin):
         call = self.get_hyperparameter(param_name="Burn", netuid=netuid, block=block)
         return None if call is None else Balance.from_rao(int(call))
 
-    def subnet(
-        self, netuid: int, block_number: Optional[int] = None
-    ) -> Optional[DynamicInfo]:
+    def subnet(self, netuid: int, block: Optional[int] = None) -> Optional[DynamicInfo]:
         """
         Retrieves the subnet information for a single subnet in the network.
 
         Args:
             netuid (int): The unique identifier of the subnet.
-            block_number (Optional[int]): The block number to query the subnet information from.
+            block (Optional[int]): The block number to query the subnet information from.
 
         Returns:
             Optional[DynamicInfo]: A DynamicInfo object, containing detailed information about a subnet.
 
         """
-        if block_number is not None:
-            block_hash = self.get_block_hash(block_number)
-        else:
-            block_hash = None
+        block_hash = self.determine_block_hash(block)
 
         query = self.substrate.runtime_call(
             "SubnetInfoRuntimeApi",
@@ -1976,7 +1951,7 @@ class Subtensor(SubtensorMixin):
             params=[netuid],
             block_hash=block_hash,
         )
-        subnet = DynamicInfo.from_vec_u8(bytes.fromhex(query.decode()[2:]))  # type: ignore
+        subnet = DynamicInfo.from_vec_u8(hex_to_bytes(query.decode()))  # type: ignore
         return subnet
 
     def subnet_exists(self, netuid: int, block: Optional[int] = None) -> bool:
@@ -2066,12 +2041,24 @@ class Subtensor(SubtensorMixin):
             >>> subtensor.wait_for_block() # Waits for next block
             >>> subtensor.wait_for_block(block=1234) # Waits for specific block
         """
-        current_block = self.get_current_block()
-        target_block = block if block is not None else current_block + 1
 
-        while current_block < target_block:
-            time.sleep(1)  # Sleep for 1 second before checking again
-            current_block = self.get_current_block()
+        def handler(block_data: dict):
+            logging.debug(
+                f'reached block {block_data["header"]["number"]}. Waiting for block {target_block}'
+            )
+            if block_data["header"]["number"] >= target_block:
+                return True
+
+        current_block = self.substrate.get_block()
+        current_block_hash = current_block.get("header", {}).get("hash")
+        if block is not None:
+            target_block = block
+        else:
+            target_block = current_block["header"]["number"] + 1
+
+        self.substrate._get_block_handler(
+            current_block_hash, header_only=True, subscription_handler=handler
+        )
         return True
 
     def weights(
@@ -2775,7 +2762,7 @@ class Subtensor(SubtensorMixin):
         self,
         wallet: "Wallet",
         dest: str,
-        amount: Union["Balance", float],
+        amount: Balance,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
         transfer_all: bool = False,

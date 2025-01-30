@@ -196,7 +196,7 @@ async def add_stake_multiple_extrinsic(
     if amounts is not None and len(amounts) != len(hotkey_ss58s):
         raise ValueError("amounts must be a list of the same length as hotkey_ss58s")
 
-    if netuids is not None and len(netuids) != len(hotkey_ss58s):
+    if len(netuids) != len(hotkey_ss58s):
         raise ValueError("netuids must be a list of the same length as hotkey_ss58s")
 
     new_amounts: Sequence[Optional[Balance]]
@@ -236,7 +236,7 @@ async def add_stake_multiple_extrinsic(
         old_balance = await subtensor.get_balance(
             wallet.coldkeypub.ss58_address, block_hash=block_hash
         )
-    inital_balance = old_balance
+    initial_balance = old_balance
 
     if total_staking_rao == 0:
         # Staking all to the first wallet.
@@ -279,7 +279,8 @@ async def add_stake_multiple_extrinsic(
 
         try:
             logging.info(
-                f"Staking [blue]{staking_balance}[/blue] to hotkey: [magenta]{hotkey_ss58}[/magenta] on netuid: [blue]{netuid}[/blue]"
+                f"Staking [blue]{staking_balance}[/blue] to hotkey: [magenta]{hotkey_ss58}[/magenta] on netuid: "
+                f"[blue]{netuid}[/blue]"
             )
             call = await subtensor.substrate.compose_call(
                 call_module="SubtensorModule",
@@ -335,7 +336,8 @@ async def add_stake_multiple_extrinsic(
                     ),
                 )
                 logging.info(
-                    f"Stake ({hotkey_ss58}) on netuid {netuid}: [blue]{old_stake}[/blue] :arrow_right: [green]{new_stake}[/green]"
+                    f"Stake ({hotkey_ss58}) on netuid {netuid}: [blue]{old_stake}[/blue] :arrow_right: "
+                    f"[green]{new_stake}[/green]"
                 )
                 logging.info(
                     f"Balance: [blue]{old_balance}[/blue] :arrow_right: [green]{new_balance}[/green]"
@@ -366,7 +368,7 @@ async def add_stake_multiple_extrinsic(
         )
         new_balance = await subtensor.get_balance(wallet.coldkeypub.ss58_address)
         logging.info(
-            f"Balance: [blue]{inital_balance}[/blue] :arrow_right: [green]{new_balance}[/green]"
+            f"Balance: [blue]{initial_balance}[/blue] :arrow_right: [green]{new_balance}[/green]"
         )
         return True
 

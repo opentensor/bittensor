@@ -1,4 +1,4 @@
-from typing import Union, Optional, TypedDict
+from typing import Union, TypedDict
 
 from scalecodec import ScaleType
 
@@ -213,7 +213,7 @@ class Balance:
         return Balance.from_rao(abs(self.rao))
 
     @staticmethod
-    def from_float(amount: float, netuid: Optional[int] = 0):
+    def from_float(amount: float, netuid: int = 0):
         """
         Given tao, return :func:`Balance` object with rao(``int``) and tao(``float``), where rao = int(tao*pow(10,9))
         Args:
@@ -223,11 +223,11 @@ class Balance:
         Returns:
             A Balance object representing the given amount.
         """
-        rao = int(amount * pow(10, 9))
-        return Balance(rao).set_unit(netuid)
+        rao_ = int(amount * pow(10, 9))
+        return Balance(rao_).set_unit(netuid)
 
     @staticmethod
-    def from_tao(amount: float, netuid: Optional[int] = 0):
+    def from_tao(amount: float, netuid: int = 0):
         """
         Given tao, return Balance object with rao(``int``) and tao(``float``), where rao = int(tao*pow(10,9))
 
@@ -238,11 +238,11 @@ class Balance:
         Returns:
             A Balance object representing the given amount.
         """
-        rao = int(amount * pow(10, 9))
-        return Balance(rao).set_unit(netuid)
+        rao_ = int(amount * pow(10, 9))
+        return Balance(rao_).set_unit(netuid)
 
     @staticmethod
-    def from_rao(amount: int, netuid: Optional[int] = 0):
+    def from_rao(amount: int, netuid: int = 0):
         """
         Given rao, return Balance object with rao(``int``) and tao(``float``), where rao = int(tao*pow(10,9))
 
