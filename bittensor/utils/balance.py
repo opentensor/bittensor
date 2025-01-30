@@ -1,6 +1,6 @@
 import warnings
 
-from typing import Union, TypedDict
+from typing import Union, TypedDict, Optional
 
 from scalecodec import ScaleType
 
@@ -785,7 +785,9 @@ def rao(amount: int) -> Balance:
     return Balance.from_rao(amount)
 
 
-def check_and_convert_to_balance(amount: Union[float, int, Balance]) -> Balance:
+def check_and_convert_to_balance(
+    amount: Union[float, int, Optional[Balance]],
+) -> Balance:
     """
     Helper function to check and convert the amount type to a Balance object.
     This is used to support backwards compatibility while also providing a deprecation notice.

@@ -65,6 +65,10 @@ async def unstake_extrinsic(
     if amount is None:
         # Unstake it all.
         unstaking_balance = old_stake
+        logging.warning(
+            f"Didn't receive any unstaking amount. Unstaking all existing stake: [blue]{old_stake}[/blue] "
+            f"from hotkey: [blue]{hotkey_ss58}[/blue]"
+        )
     else:
         unstaking_balance = amount
         unstaking_balance.set_unit(netuid)
@@ -227,6 +231,10 @@ async def unstake_multiple_extrinsic(
         if amount is None:
             # Unstake it all.
             unstaking_balance = old_stake
+            logging.warning(
+                f"Didn't receive any unstaking amount. Unstaking all existing stake: [blue]{old_stake}[/blue] "
+                f"from hotkey: [blue]{hotkey_ss58}[/blue]"
+            )
         else:
             unstaking_balance = amount
 
