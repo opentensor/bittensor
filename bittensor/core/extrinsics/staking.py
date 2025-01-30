@@ -68,6 +68,10 @@ def add_stake_extrinsic(
     if amount is None:
         # Stake it all.
         staking_balance = Balance.from_tao(old_balance.tao)
+        logging.warning(
+            f"Didn't receive any staking amount. Staking all available balance: [blue]{staking_balance}[/blue] "
+            f"from wallet: [blue]{wallet.name}[/blue]"
+        )
     else:
         staking_balance = amount
     staking_balance.set_unit(netuid)

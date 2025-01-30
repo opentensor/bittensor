@@ -1,4 +1,6 @@
-from typing import Union, TypedDict
+import warnings
+
+from typing import Union, TypedDict, Optional
 
 from scalecodec import ScaleType
 
@@ -781,3 +783,22 @@ def rao(amount: int) -> Balance:
     Helper function to create a Balance object from an int (Rao)
     """
     return Balance.from_rao(amount)
+
+
+def check_and_convert_to_balance(
+    amount: Union[float, int, Optional[Balance]],
+) -> Balance:
+    """
+    Helper function to check and convert the amount type to a Balance object.
+    This is used to support backwards compatibility while also providing a deprecation notice.
+    """
+    if isinstance(amount, (float, int)):
+        warnings.simplefilter("default", DeprecationWarning)
+        warnings.warn(
+            "Detected a non-balance amount. Converting to Balance from Tao for backwards compatibility."
+            "Please update your code to use tao(amount) or Balance.from_tao(amount) for the main release 9.0.0.",
+            category=DeprecationWarning,
+            stacklevel=2,
+        )
+        amount = tao(amount)
+    return amount
