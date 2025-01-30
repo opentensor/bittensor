@@ -1543,7 +1543,11 @@ class AsyncSubtensor(SubtensorMixin):
     get_stake_for_coldkey_and_hotkey = get_stake
 
     async def get_stake_for_coldkey(
-        self, coldkey_ss58: str, block: Optional[int] = None
+        self,
+        coldkey_ss58: str,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
     ) -> Optional[list["StakeInfo"]]:
         """
         Retrieves the stake information for a given coldkey.
@@ -1551,12 +1555,16 @@ class AsyncSubtensor(SubtensorMixin):
         Args:
             coldkey_ss58 (str): The SS58 address of the coldkey.
             block (Optional[int]): The block number at which to query the stake information.
+            block_hash (Optional[str]): The hash of the blockchain block number for the query.
+            reuse_block (bool): Whether to reuse the last-used block hash.
 
         Returns:
             Optional[list[StakeInfo]]: A list of StakeInfo objects, or ``None`` if no stake information is found.
         """
         encoded_coldkey = ss58_to_vec_u8(coldkey_ss58)
-        block_hash = await self.determine_block_hash(block)
+        block_hash = await self.determine_block_hash(
+            block=block, block_hash=block_hash, reuse_block=reuse_block
+        )
 
         hex_bytes_result = await self.query_runtime_api(
             runtime_api="StakeInfoRuntimeApi",
