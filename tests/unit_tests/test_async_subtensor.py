@@ -522,7 +522,7 @@ async def test_query_runtime_api(subtensor, mocker):
     subtensor.substrate.rpc_request = mocked_rpc_request
 
     mocked_scalecodec = mocker.Mock(autospec=async_subtensor.scalecodec.ScaleBytes)
-    async_subtensor.scalecodec.ScaleBytes = mocked_scalecodec
+    mocker.patch.object(async_subtensor.scalecodec, "ScaleBytes", mocked_scalecodec)
 
     mocked_runtime_configuration = mocker.Mock(
         autospec=async_subtensor.RuntimeConfiguration
