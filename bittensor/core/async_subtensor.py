@@ -1084,7 +1084,7 @@ class AsyncSubtensor(SubtensorMixin):
             )
 
             all_delegates_details = {}
-            for ss58_address, identity in identities_info:
+            async for ss58_address, identity in identities_info:
                 all_delegates_details.update(
                     {
                         decode_account_id(
