@@ -79,8 +79,7 @@ async def unstake_extrinsic(
 
     try:
         logging.info(
-            f":satellite: [magenta]Unstaking from chain:[/magenta] [blue]{subtensor.network}[/blue] "
-            f"[magenta]...[/magenta]"
+            f"Unstaking [blue]{unstaking_balance}[/blue] from hotkey: [magenta]{hotkey_ss58}[/magenta] on netuid: [blue]{netuid}[/blue]"
         )
 
         call = await subtensor.substrate.compose_call(
@@ -252,8 +251,7 @@ async def unstake_multiple_extrinsic(
 
         try:
             logging.info(
-                f":satellite: [magenta]Unstaking from chain:[/magenta] [blue]{subtensor.network}[/blue] "
-                f"[magenta]...[/magenta]"
+                f"Unstaking [blue]{unstaking_balance}[/blue] from hotkey: [magenta]{hotkey_ss58}[/magenta] on netuid: [blue]{netuid}[/blue]"
             )
             call = await subtensor.substrate.compose_call(
                 call_module="SubtensorModule",
@@ -319,7 +317,7 @@ async def unstake_multiple_extrinsic(
 
     if successful_unstakes != 0:
         logging.info(
-            f":satellite: [magenta]Checking Balance on:[/magenta] ([blue]{subtensor.network}[/blue] "
+            f":satellite: [magenta]Checking Balance on:[/magenta] [blue]{subtensor.network}[/blue] "
             f"[magenta]...[/magenta]"
         )
         block_hash = await subtensor.substrate.get_chain_head()

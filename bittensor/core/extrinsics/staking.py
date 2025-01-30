@@ -275,6 +275,9 @@ def add_stake_multiple_extrinsic(
             continue
 
         try:
+            logging.info(
+                f"Staking [blue]{staking_balance}[/blue] to [magenta]{hotkey_ss58}[/magenta] on netuid [blue]{netuid}[/blue]"
+            )
             call = subtensor.substrate.compose_call(
                 call_module="SubtensorModule",
                 call_function="add_stake",
@@ -353,7 +356,7 @@ def add_stake_multiple_extrinsic(
 
     if successful_stakes != 0:
         logging.info(
-            f":satellite: [magenta]Checking Balance on:[/magenta] ([blue]{subtensor.network}[/blue] "
+            f":satellite: [magenta]Checking Balance on:[/magenta] [blue]{subtensor.network}[/blue] "
             f"[magenta]...[/magenta]"
         )
         new_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address)
