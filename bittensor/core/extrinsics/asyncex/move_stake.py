@@ -5,11 +5,11 @@ from bittensor.utils.btlogging import logging
 
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
-    from bittensor.core.subtensor import Subtensor
+    from bittensor.core.async_subtensor import AsyncSubtensor
 
 
 async def transfer_stake_extrinsic(
-    subtensor: "Subtensor",
+    subtensor: "AsyncSubtensor",
     wallet: "Wallet",
     destination_coldkey_ss58: str,
     hotkey_ss58: str,
@@ -19,6 +19,24 @@ async def transfer_stake_extrinsic(
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
 ) -> bool:
+    """
+    Transfers stake from one coldkey to another in the Bittensor network.
+
+    Args:
+        subtensor (AsyncSubtensor): The subtensor instance to interact with the blockchain.
+        wallet (Wallet): The wallet containing the coldkey to authorize the transfer.
+        destination_coldkey_ss58 (str): SS58 address of the destination coldkey.
+        hotkey_ss58 (str): SS58 address of the hotkey associated with the stake.
+        origin_netuid (int): Network UID of the origin subnet.
+        destination_netuid (int): Network UID of the destination subnet.
+        amount (Balance): The amount of stake to transfer as a `Balance` object.
+        wait_for_inclusion (bool): If True, waits for transaction inclusion in a block. Defaults to `True`.
+        wait_for_finalization (bool): If True, waits for transaction finalization. Defaults to `False`.
+
+    Returns:
+        bool: True if the transfer was successful, False otherwise.
+    """
+
     amount.set_unit(netuid=origin_netuid)
     # Verify ownership
     hotkey_owner = await subtensor.get_hotkey_owner(hotkey_ss58)
@@ -107,7 +125,7 @@ async def transfer_stake_extrinsic(
 
 
 async def swap_stake_extrinsic(
-    subtensor: "Subtensor",
+    subtensor: "AsyncSubtensor",
     wallet: "Wallet",
     hotkey_ss58: str,
     origin_netuid: int,
@@ -116,6 +134,22 @@ async def swap_stake_extrinsic(
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
 ) -> bool:
+    """
+    Swaps stake from one subnet to another for a given hotkey in the Bittensor network.
+
+    Args:
+        subtensor (AsyncSubtensor): The subtensor instance to interact with the blockchain.
+        wallet (Wallet): The wallet containing the coldkey to authorize the swap.
+        hotkey_ss58 (str): SS58 address of the hotkey associated with the stake.
+        origin_netuid (int): Network UID of the origin subnet.
+        destination_netuid (int): Network UID of the destination subnet.
+        amount (Balance): The amount of stake to swap as a `Balance` object.
+        wait_for_inclusion (bool): If True, waits for transaction inclusion in a block. Defaults to True.
+        wait_for_finalization (bool): If True, waits for transaction finalization. Defaults to False.
+
+    Returns:
+        bool: True if the swap was successful, False otherwise.
+    """
     amount.set_unit(netuid=origin_netuid)
     # Verify ownership
     hotkey_owner = await subtensor.get_hotkey_owner(hotkey_ss58)
@@ -203,7 +237,7 @@ async def swap_stake_extrinsic(
 
 
 async def move_stake_extrinsic(
-    subtensor: "Subtensor",
+    subtensor: "AsyncSubtensor",
     wallet: "Wallet",
     origin_hotkey: str,
     origin_netuid: int,
@@ -213,6 +247,23 @@ async def move_stake_extrinsic(
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
 ) -> bool:
+    """
+    Moves stake from one hotkey to another within subnets in the Bittensor network.
+
+    Args:
+        subtensor (Subtensor): The subtensor instance to interact with the blockchain.
+        wallet (Wallet): The wallet containing the coldkey to authorize the move.
+        origin_hotkey (str): SS58 address of the origin hotkey associated with the stake.
+        origin_netuid (int): Network UID of the origin subnet.
+        destination_hotkey (str): SS58 address of the destination hotkey.
+        destination_netuid (int): Network UID of the destination subnet.
+        amount (Balance): The amount of stake to move as a `Balance` object.
+        wait_for_inclusion (bool): If True, waits for transaction inclusion in a block. Defaults to True.
+        wait_for_finalization (bool): If True, waits for transaction finalization. Defaults to False.
+
+    Returns:
+        bool: True if the move was successful, False otherwise.
+    """
     amount.set_unit(netuid=origin_netuid)
     # Verify ownership of origin hotkey
     origin_owner = await subtensor.get_hotkey_owner(origin_hotkey)

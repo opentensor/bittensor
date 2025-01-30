@@ -2,6 +2,7 @@ import time
 from typing import Optional, TYPE_CHECKING
 
 from bittensor.core.errors import StakeError, NotRegisteredError
+from bittensor.core.extrinsics.utils import get_old_stakes
 from bittensor.utils import unlock_key
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
@@ -27,7 +28,8 @@ def unstake_extrinsic(
         wallet (bittensor_wallet.Wallet): Bittensor wallet object.
         hotkey_ss58 (Optional[str]): The ``ss58`` address of the hotkey to unstake from. By default, the wallet hotkey
             is used.
-        amount (Union[Balance, float]): Amount to stake as Bittensor balance, or ``float`` interpreted as Tao.
+        netuid (Optional[int]): Subnet uniq id.
+        amount (Union[Balance]): Amount to stake as Bittensor balance.
         wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``True``, or
             returns ``False`` if the extrinsic fails to enter the block within the timeout.
         wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning
@@ -147,6 +149,7 @@ def unstake_multiple_extrinsic(
         subtensor (bittensor.core.subtensor.Subtensor): Subtensor instance.
         wallet (bittensor_wallet.Wallet): The wallet with the coldkey to unstake to.
         hotkey_ss58s (List[str]): List of hotkeys to unstake from.
+        netuids (List[int]): List of subnets uniq IDs to unstake from.
         amounts (List[Balance]): List of amounts to unstake. If ``None``, unstake all.
         wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``True``, or
             returns ``False`` if the extrinsic fails to enter the block within the timeout.
@@ -157,26 +160,6 @@ def unstake_multiple_extrinsic(
         success (bool): Flag is ``True`` if extrinsic was finalized or included in the block. Flag is ``True`` if any
             wallet was unstaked. If we did not wait for finalization / inclusion, the response is ``True``.
     """
-
-    def get_old_stakes() -> list[Balance]:
-        old_stakes = []
-        all_stakes = subtensor.get_stake_for_coldkey(
-            coldkey_ss58=wallet.coldkeypub.ss58_address,
-        )
-        for hotkey_ss58, netuid in zip(hotkey_ss58s, netuids):
-            stake = next(
-                (
-                    stake.stake
-                    for stake in all_stakes
-                    if stake.hotkey_ss58 == hotkey_ss58
-                    and stake.coldkey_ss58 == wallet.coldkeypub.ss58_address
-                    and stake.netuid == netuid
-                ),
-                Balance.from_tao(0),  # Default to 0 balance if no match found
-            )
-            old_stakes.append(stake)
-
-        return old_stakes
 
     if not isinstance(hotkey_ss58s, list) or not all(
         isinstance(hotkey_ss58, str) for hotkey_ss58 in hotkey_ss58s
@@ -216,7 +199,12 @@ def unstake_multiple_extrinsic(
     )
     block = subtensor.get_current_block()
     old_balance = subtensor.get_balance(wallet.coldkeypub.ss58_address, block=block)
-    old_stakes = get_old_stakes()
+    all_stakes = subtensor.get_stake_for_coldkey(
+        coldkey_ss58=wallet.coldkeypub.ss58_address
+    )
+    old_stakes = get_old_stakes(
+        wallet=wallet, hotkey_ss58s=hotkey_ss58s, netuids=netuids, all_stakes=all_stakes
+    )
 
     successful_unstakes = 0
     for idx, (hotkey_ss58, amount, old_stake, netuid) in enumerate(

@@ -5,15 +5,18 @@ from typing import TYPE_CHECKING
 from async_substrate_interface.errors import SubstrateRequestException
 
 from bittensor.utils import format_error_message
+from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 
 if TYPE_CHECKING:
-    from bittensor.core.subtensor import Subtensor
+    from bittensor_wallet import Wallet
     from bittensor.core.async_subtensor import AsyncSubtensor
     from async_substrate_interface import (
         AsyncExtrinsicReceipt,
         ExtrinsicReceipt,
     )
+    from bittensor.core.subtensor import Subtensor
+    from bittensor.core.chain_data import StakeInfo
     from scalecodec.types import GenericExtrinsic
 
 
@@ -91,3 +94,42 @@ async def async_submit_extrinsic(
         # Re-raise the exception for retrying of the extrinsic call. If we remove the retry logic,
         # the raise will need to be removed.
         raise
+
+
+def get_old_stakes(
+    wallet: "Wallet",
+    hotkey_ss58s: list[str],
+    netuids: list[int],
+    all_stakes: list["StakeInfo"],
+) -> list[Balance]:
+    """
+    Retrieve the previous staking balances for a wallet's hotkeys across given netuids.
+
+    This function searches through the provided staking data to find the stake amounts
+    for the specified hotkeys and netuids associated with the wallet's coldkey. If no match
+    is found for a particular hotkey and netuid combination, a default balance of zero is returned.
+
+    Args:
+        wallet (Wallet): The wallet containing the coldkey to compare with stake data.
+        hotkey_ss58s (list[str]): List of hotkey SS58 addresses for which stakes are retrieved.
+        netuids (list[int]): List of network unique identifiers (netuids) corresponding to the hotkeys.
+        all_stakes (list[StakeInfo]): A collection of all staking information to search through.
+
+    Returns:
+        list[Balance]: A list of Balances, each representing the stake for a given hotkey and netuid.
+    """
+    old_stakes = []
+    for hotkey_ss58, netuid in zip(hotkey_ss58s, netuids):
+        stake = next(
+            (
+                stake.stake
+                for stake in all_stakes
+                if stake.hotkey_ss58 == hotkey_ss58
+                and stake.coldkey_ss58 == wallet.coldkeypub.ss58_address
+                and stake.netuid == netuid
+            ),
+            Balance.from_tao(0),  # Default to 0 balance if no match found
+        )
+        old_stakes.append(stake)
+
+    return old_stakes
