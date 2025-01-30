@@ -791,7 +791,7 @@ def check_and_convert_amount_type(amount: Union[float, int, Balance]) -> Balance
     This is used to support backwards compatibility while also providing a deprecation notice.
     """
     if isinstance(amount, (float, int)):
-        logging.info(
+        logging.console.info(
             "[red]Deprecation notice[/red]: Detected a non-balance amount. Converting to Balance from Tao for backwards compatibility.\n"
             "Please update your code to use tao(amount) or Balance.from_tao(amount) in the future."
         )
