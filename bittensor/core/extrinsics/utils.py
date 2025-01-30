@@ -118,18 +118,14 @@ def get_old_stakes(
     Returns:
         list[Balance]: A list of Balances, each representing the stake for a given hotkey and netuid.
     """
-    old_stakes = []
-    for hotkey_ss58, netuid in zip(hotkey_ss58s, netuids):
-        stake = next(
-            (
-                stake.stake
-                for stake in all_stakes
-                if stake.hotkey_ss58 == hotkey_ss58
-                and stake.coldkey_ss58 == wallet.coldkeypub.ss58_address
-                and stake.netuid == netuid
-            ),
+    stake_lookup = {
+        (stake.hotkey_ss58, stake.coldkey_ss58, stake.netuid): stake.stake
+        for stake in all_stakes
+    }
+    return [
+        stake_lookup.get(
+            (hotkey_ss58, wallet.coldkeypub.ss58_address, netuid),
             Balance.from_tao(0),  # Default to 0 balance if no match found
         )
-        old_stakes.append(stake)
-
-    return old_stakes
+        for hotkey_ss58, netuid in zip(hotkey_ss58s, netuids)
+    ]

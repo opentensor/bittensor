@@ -8,6 +8,31 @@ if TYPE_CHECKING:
     from bittensor.core.subtensor import Subtensor
 
 
+def _get_stake_in_origin_and_dest(
+    subtensor: "Subtensor",
+    origin_hotkey_ss58: str,
+    destination_hotkey_ss58: str,
+    origin_coldkey_ss58: str,
+    destination_coldkey_ss58: str,
+    origin_netuid: int,
+    destination_netuid: int,
+) -> tuple[Balance, Balance]:
+    block = subtensor.get_current_block()
+    stake_in_origin = subtensor.get_stake(
+        coldkey_ss58=origin_coldkey_ss58,
+        hotkey_ss58=origin_hotkey_ss58,
+        netuid=origin_netuid,
+        block=block,
+    )
+    stake_in_destination = subtensor.get_stake(
+        coldkey_ss58=destination_coldkey_ss58,
+        hotkey_ss58=destination_hotkey_ss58,
+        netuid=destination_netuid,
+        block=block,
+    )
+    return stake_in_origin, stake_in_destination
+
+
 def transfer_stake_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
@@ -42,31 +67,34 @@ def transfer_stake_extrinsic(
     hotkey_owner = subtensor.get_hotkey_owner(hotkey_ss58)
     if hotkey_owner != wallet.coldkeypub.ss58_address:
         logging.error(
-            f":cross_mark: [red]Failed[/red]: Hotkey: {hotkey_ss58} does not belong to the origin coldkey owner: {wallet.coldkeypub.ss58_address}"
+            f":cross_mark: [red]Failed[/red]: Hotkey: {hotkey_ss58} does not belong to the origin coldkey owner: "
+            f"{wallet.coldkeypub.ss58_address}"
         )
         return False
 
     # Check sufficient stake
-    stake_in_origin = subtensor.get_stake(
-        coldkey_ss58=wallet.coldkeypub.ss58_address,
-        hotkey_ss58=hotkey_ss58,
-        netuid=origin_netuid,
-    )
-    stake_in_destination = subtensor.get_stake(
-        coldkey_ss58=destination_coldkey_ss58,
-        hotkey_ss58=hotkey_ss58,
-        netuid=destination_netuid,
+    stake_in_origin, stake_in_destination = _get_stake_in_origin_and_dest(
+        subtensor,
+        origin_hotkey_ss58=hotkey_ss58,
+        destination_hotkey_ss58=hotkey_ss58,
+        origin_netuid=origin_netuid,
+        destination_netuid=destination_netuid,
+        origin_coldkey_ss58=wallet.coldkeypub.ss58_address,
+        destination_coldkey_ss58=destination_coldkey_ss58,
     )
     if stake_in_origin < amount:
         logging.error(
-            f":cross_mark: [red]Failed[/red]: Insufficient stake in origin hotkey: {hotkey_ss58}. Stake: {stake_in_origin}, amount: {amount}"
+            f":cross_mark: [red]Failed[/red]: Insufficient stake in origin hotkey: {hotkey_ss58}. "
+            f"Stake: {stake_in_origin}, amount: {amount}"
         )
         return False
 
     try:
         logging.info(
-            f"Transferring stake from coldkey [blue]{wallet.coldkeypub.ss58_address}[/blue] to coldkey [blue]{destination_coldkey_ss58}[/blue]\n"
-            f"Amount: [green]{amount}[/green] from netuid [yellow]{origin_netuid}[/yellow] to netuid [yellow]{destination_netuid}[/yellow]"
+            f"Transferring stake from coldkey [blue]{wallet.coldkeypub.ss58_address}[/blue] to coldkey ["
+            f"blue]{destination_coldkey_ss58}[/blue]\n"
+            f"Amount: [green]{amount}[/green] from netuid [yellow]{origin_netuid}[/yellow] to netuid "
+            f"[yellow]{destination_netuid}[/yellow]"
         )
         call = subtensor.substrate.compose_call(
             call_module="SubtensorModule",
@@ -94,18 +122,14 @@ def transfer_stake_extrinsic(
             logging.success(":white_heavy_check_mark: [green]Finalized[/green]")
 
             # Get updated stakes
-            block = subtensor.get_current_block()
-            origin_stake = subtensor.get_stake(
-                coldkey_ss58=wallet.coldkeypub.ss58_address,
-                hotkey_ss58=hotkey_ss58,
-                netuid=origin_netuid,
-                block=block,
-            )
-            dest_stake = subtensor.get_stake(
-                coldkey_ss58=destination_coldkey_ss58,
-                hotkey_ss58=hotkey_ss58,
-                netuid=destination_netuid,
-                block=block,
+            origin_stake, dest_stake = _get_stake_in_origin_and_dest(
+                subtensor,
+                origin_hotkey_ss58=hotkey_ss58,
+                destination_hotkey_ss58=hotkey_ss58,
+                origin_netuid=origin_netuid,
+                destination_netuid=destination_netuid,
+                origin_coldkey_ss58=wallet.coldkeypub.ss58_address,
+                destination_coldkey_ss58=destination_coldkey_ss58,
             )
             logging.info(
                 f"Origin Stake: [blue]{stake_in_origin}[/blue] :arrow_right: [green]{origin_stake}[/green]"
@@ -156,31 +180,33 @@ def swap_stake_extrinsic(
     hotkey_owner = subtensor.get_hotkey_owner(hotkey_ss58)
     if hotkey_owner != wallet.coldkeypub.ss58_address:
         logging.error(
-            f":cross_mark: [red]Failed[/red]: Hotkey: {hotkey_ss58} does not belong to the origin coldkey owner: {wallet.coldkeypub.ss58_address}"
+            f":cross_mark: [red]Failed[/red]: Hotkey: {hotkey_ss58} does not belong to the origin coldkey owner: "
+            f"{wallet.coldkeypub.ss58_address}"
         )
         return False
 
     # Check sufficient stake
-    stake_in_origin = subtensor.get_stake(
-        coldkey_ss58=wallet.coldkeypub.ss58_address,
-        hotkey_ss58=hotkey_ss58,
-        netuid=origin_netuid,
-    )
-    stake_in_destination = subtensor.get_stake(
-        coldkey_ss58=wallet.coldkeypub.ss58_address,
-        hotkey_ss58=hotkey_ss58,
-        netuid=destination_netuid,
+    stake_in_origin, stake_in_destination = _get_stake_in_origin_and_dest(
+        subtensor,
+        origin_hotkey_ss58=hotkey_ss58,
+        destination_hotkey_ss58=hotkey_ss58,
+        origin_netuid=origin_netuid,
+        destination_netuid=destination_netuid,
+        origin_coldkey_ss58=wallet.coldkeypub.ss58_address,
+        destination_coldkey_ss58=wallet.coldkeypub.ss58_address,
     )
     if stake_in_origin < amount:
         logging.error(
-            f":cross_mark: [red]Failed[/red]: Insufficient stake in origin hotkey: {hotkey_ss58}. Stake: {stake_in_origin}, amount: {amount}"
+            f":cross_mark: [red]Failed[/red]: Insufficient stake in origin hotkey: {hotkey_ss58}. "
+            f"Stake: {stake_in_origin}, amount: {amount}"
         )
         return False
 
     try:
         logging.info(
             f"Swapping stake for hotkey [blue]{hotkey_ss58}[/blue]\n"
-            f"Amount: [green]{amount}[/green] from netuid [yellow]{origin_netuid}[/yellow] to netuid [yellow]{destination_netuid}[/yellow]"
+            f"Amount: [green]{amount}[/green] from netuid [yellow]{origin_netuid}[/yellow] to netuid "
+            f"[yellow]{destination_netuid}[/yellow]"
         )
         call = subtensor.substrate.compose_call(
             call_module="SubtensorModule",
@@ -207,18 +233,14 @@ def swap_stake_extrinsic(
             logging.success(":white_heavy_check_mark: [green]Finalized[/green]")
 
             # Get updated stakes
-            block = subtensor.get_current_block()
-            origin_stake = subtensor.get_stake(
-                coldkey_ss58=wallet.coldkeypub.ss58_address,
-                hotkey_ss58=hotkey_ss58,
-                netuid=origin_netuid,
-                block=block,
-            )
-            dest_stake = subtensor.get_stake(
-                coldkey_ss58=wallet.coldkeypub.ss58_address,
-                hotkey_ss58=hotkey_ss58,
-                netuid=destination_netuid,
-                block=block,
+            origin_stake, dest_stake = _get_stake_in_origin_and_dest(
+                subtensor,
+                origin_hotkey_ss58=hotkey_ss58,
+                destination_hotkey_ss58=hotkey_ss58,
+                origin_netuid=origin_netuid,
+                destination_netuid=destination_netuid,
+                origin_coldkey_ss58=wallet.coldkeypub.ss58_address,
+                destination_coldkey_ss58=wallet.coldkeypub.ss58_address,
             )
             logging.info(
                 f"Origin Stake: [blue]{stake_in_origin}[/blue] :arrow_right: [green]{origin_stake}[/green]"
@@ -276,15 +298,14 @@ def move_stake_extrinsic(
         return False
 
     # Check sufficient stake
-    stake_in_origin = subtensor.get_stake(
-        coldkey_ss58=wallet.coldkeypub.ss58_address,
-        hotkey_ss58=origin_hotkey,
-        netuid=origin_netuid,
-    )
-    stake_in_destination = subtensor.get_stake(
-        coldkey_ss58=wallet.coldkeypub.ss58_address,
-        hotkey_ss58=destination_hotkey,
-        netuid=destination_netuid,
+    stake_in_origin, stake_in_destination = _get_stake_in_origin_and_dest(
+        subtensor,
+        origin_hotkey_ss58=origin_hotkey,
+        destination_hotkey_ss58=destination_hotkey,
+        origin_netuid=origin_netuid,
+        destination_netuid=destination_netuid,
+        origin_coldkey_ss58=wallet.coldkeypub.ss58_address,
+        destination_coldkey_ss58=wallet.coldkeypub.ss58_address,
     )
     if stake_in_origin < amount:
         logging.error(
@@ -323,18 +344,14 @@ def move_stake_extrinsic(
             logging.success(":white_heavy_check_mark: [green]Finalized[/green]")
 
             # Get updated stakes
-            block = subtensor.get_current_block()
-            origin_stake = subtensor.get_stake(
-                coldkey_ss58=wallet.coldkeypub.ss58_address,
-                hotkey_ss58=origin_hotkey,
-                netuid=origin_netuid,
-                block=block,
-            )
-            dest_stake = subtensor.get_stake(
-                coldkey_ss58=wallet.coldkeypub.ss58_address,
-                hotkey_ss58=destination_hotkey,
-                netuid=destination_netuid,
-                block=block,
+            origin_stake, dest_stake = _get_stake_in_origin_and_dest(
+                subtensor,
+                origin_hotkey_ss58=origin_hotkey,
+                destination_hotkey_ss58=destination_hotkey,
+                origin_netuid=origin_netuid,
+                destination_netuid=destination_netuid,
+                origin_coldkey_ss58=wallet.coldkeypub.ss58_address,
+                destination_coldkey_ss58=wallet.coldkeypub.ss58_address,
             )
             logging.info(
                 f"Origin Stake: [blue]{stake_in_origin}[/blue] :arrow_right: [green]{origin_stake}[/green]"
