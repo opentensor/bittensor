@@ -338,7 +338,7 @@ def decode_hex_identity_dict(info_dictionary) -> dict[str, Any]:
         {'name': 'john', 'additional': [('data', 'data')]}
     """
 
-    def get_decoded(data: str) -> str:
+    def get_decoded(data: str) -> Optional[str]:
         """Decodes a hex-encoded string."""
         try:
             return bytes.fromhex(data[2:]).decode()
