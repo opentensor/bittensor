@@ -28,7 +28,7 @@ def unstake_extrinsic(
         wallet (bittensor_wallet.Wallet): Bittensor wallet object.
         hotkey_ss58 (Optional[str]): The ``ss58`` address of the hotkey to unstake from. By default, the wallet hotkey
             is used.
-        netuid (Optional[int]): Subnet uniq id.
+        netuid (Optional[int]): Subnet unique id.
         amount (Union[Balance]): Amount to stake as Bittensor balance.
         wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``True``, or
             returns ``False`` if the extrinsic fails to enter the block within the timeout.
@@ -149,7 +149,7 @@ def unstake_multiple_extrinsic(
         subtensor (bittensor.core.subtensor.Subtensor): Subtensor instance.
         wallet (bittensor_wallet.Wallet): The wallet with the coldkey to unstake to.
         hotkey_ss58s (List[str]): List of hotkeys to unstake from.
-        netuids (List[int]): List of subnets uniq IDs to unstake from.
+        netuids (List[int]): List of subnets unique IDs to unstake from.
         amounts (List[Balance]): List of amounts to unstake. If ``None``, unstake all.
         wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning ``True``, or
             returns ``False`` if the extrinsic fails to enter the block within the timeout.
