@@ -573,8 +573,6 @@ class Subtensor(SubtensorMixin):
         )
         return Balance(balance["data"]["free"])
 
-    balance = get_balance
-
     def get_balances(
         self,
         *addresses: str,

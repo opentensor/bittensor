@@ -831,8 +831,6 @@ class AsyncSubtensor(SubtensorMixin):
         )
         return Balance(balance["data"]["free"])
 
-    balance = get_balance
-
     async def get_balances(
         self,
         *addresses: str,
