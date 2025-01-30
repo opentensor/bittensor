@@ -78,7 +78,12 @@ from bittensor.utils import (
     u16_normalized_float,
     _decode_hex_identity_dict,
 )
-from bittensor.utils.balance import Balance, fixed_to_float, FixedPoint
+from bittensor.utils.balance import (
+    Balance,
+    fixed_to_float,
+    FixedPoint,
+    check_and_convert_to_balance,
+)
 from bittensor.utils.btlogging import logging
 from bittensor.utils.weight_utils import generate_weight_hash
 
@@ -2186,6 +2191,7 @@ class Subtensor(SubtensorMixin):
         This function enables neurons to increase their stake in the network, enhancing their influence and potential
             rewards in line with Bittensor's consensus and reward mechanisms.
         """
+        amount = check_and_convert_to_balance(amount)
         return add_stake_extrinsic(
             subtensor=self,
             wallet=wallet,
@@ -2363,6 +2369,7 @@ class Subtensor(SubtensorMixin):
         Returns:
             success (bool): True if the stake movement was successful.
         """
+        amount = check_and_convert_to_balance(amount)
         return move_stake_extrinsic(
             subtensor=self,
             wallet=wallet,
@@ -2746,7 +2753,7 @@ class Subtensor(SubtensorMixin):
         Returns:
             success (bool): True if the extrinsic was successful.
         """
-
+        amount = check_and_convert_to_balance(amount)
         return swap_stake_extrinsic(
             subtensor=self,
             wallet=wallet,
@@ -2784,9 +2791,7 @@ class Subtensor(SubtensorMixin):
         Returns:
             `True` if the transferring was successful, otherwise `False`.
         """
-        if isinstance(amount, float):
-            amount = Balance.from_tao(amount)
-
+        amount = check_and_convert_to_balance(amount)
         return transfer_extrinsic(
             subtensor=self,
             wallet=wallet,
@@ -2825,7 +2830,7 @@ class Subtensor(SubtensorMixin):
         Returns:
             success (bool): True if the transfer was successful.
         """
-
+        amount = check_and_convert_to_balance(amount)
         return transfer_stake_extrinsic(
             subtensor=self,
             wallet=wallet,
@@ -2866,6 +2871,7 @@ class Subtensor(SubtensorMixin):
         This function supports flexible stake management, allowing neurons to adjust their network participation and
             potential reward accruals.
         """
+        amount = check_and_convert_to_balance(amount)
         return unstake_extrinsic(
             subtensor=self,
             wallet=wallet,
