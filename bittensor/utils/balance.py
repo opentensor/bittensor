@@ -793,7 +793,7 @@ def check_and_convert_to_balance(amount: Union[float, int, Balance]) -> Balance:
     if isinstance(amount, (float, int)):
         logging.console.info(
             "[red]Deprecation notice[/red]: Detected a non-balance amount. Converting to Balance from Tao for backwards compatibility.\n"
-            "Please update your code to use tao(amount) or Balance.from_tao(amount) in the future."
+            "Please update your code to use tao(amount) or Balance.from_tao(amount) for the main release 9.0.0."
         )
         amount = tao(amount)
     return amount
