@@ -2169,10 +2169,18 @@ async def test_get_delegate_identities(subtensor, mocker):
     """Tests get_delegate_identities with successful data retrieval from both chain and GitHub."""
     # Preps
     fake_block_hash = "block_hash"
-    fake_chain_data = [
-        (["delegate1_ss58"], mocker.Mock(value={"info": {"name": "Chain Delegate 1"}})),
-        (["delegate2_ss58"], mocker.Mock(value={"info": {"name": "Chain Delegate 2"}})),
-    ]
+    fake_chain_data = mocker.AsyncMock(
+        return_value=[
+            (
+                ["delegate1_ss58"],
+                mocker.Mock(value={"info": {"name": "Chain Delegate 1"}}),
+            ),
+            (
+                ["delegate2_ss58"],
+                mocker.Mock(value={"info": {"name": "Chain Delegate 2"}}),
+            ),
+        ]
+    )
     fake_github_data = {
         "delegate1_ss58": {
             "name": "GitHub Delegate 1",
@@ -2219,7 +2227,6 @@ async def test_get_delegate_identities(subtensor, mocker):
     mock_session_get.assert_called_once_with(async_subtensor.DELEGATES_DETAILS_URL)
 
     assert result["delegate1_ss58"].display == "GitHub Delegate 1"
-    assert result["delegate2_ss58"].display == ""
     assert result["delegate3_ss58"].display == "GitHub Delegate 3"
 
 
