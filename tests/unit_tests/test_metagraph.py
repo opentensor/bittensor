@@ -132,6 +132,7 @@ def metagraph_instance(mocker):
     metagraph._assign_neurons = mocker.AsyncMock()
     metagraph._set_metagraph_attributes = mocker.AsyncMock()
     metagraph._set_weights_and_bonds = mocker.AsyncMock()
+    metagraph._get_all_stakes_from_chain = mocker.AsyncMock()
     return metagraph
 
 

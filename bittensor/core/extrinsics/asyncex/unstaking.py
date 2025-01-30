@@ -5,6 +5,7 @@ from bittensor.core.errors import StakeError, NotRegisteredError
 from bittensor.utils import unlock_key
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
+from bittensor.core.extrinsics.utils import get_old_stakes
 
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
@@ -164,27 +165,6 @@ async def unstake_multiple_extrinsic(
         success (bool): Flag is ``True`` if extrinsic was finalized or included in the block. Flag is ``True`` if any
             wallet was unstaked. If we did not wait for finalization / inclusion, the response is ``True``.
     """
-
-    async def get_old_stakes() -> list[Balance]:
-        old_stakes = []
-        all_stakes = await subtensor.get_stake_for_coldkey(
-            coldkey_ss58=wallet.coldkeypub.ss58_address,
-        )
-        for hotkey_ss58, netuid in zip(hotkey_ss58s, netuids):
-            stake = next(
-                (
-                    stake.stake
-                    for stake in all_stakes
-                    if stake.hotkey_ss58 == hotkey_ss58
-                    and stake.coldkey_ss58 == wallet.coldkeypub.ss58_address
-                    and stake.netuid == netuid
-                ),
-                Balance.from_tao(0),  # Default to 0 balance if no match found
-            )
-            old_stakes.append(stake)
-
-        return old_stakes
-
     if not isinstance(hotkey_ss58s, list) or not all(
         isinstance(hotkey_ss58, str) for hotkey_ss58 in hotkey_ss58s
     ):
@@ -223,10 +203,17 @@ async def unstake_multiple_extrinsic(
     logging.info(
         f":satellite: [magenta]Syncing with chain:[/magenta] [blue]{subtensor.network}[/blue] [magenta]...[/magenta]"
     )
+
+    all_stakes = await subtensor.get_stake_for_coldkey(
+        coldkey_ss58=wallet.coldkeypub.ss58_address,
+    )
+    old_stakes: list[Balance] = get_old_stakes(
+        wallet=wallet, hotkey_ss58s=hotkey_ss58s, netuids=netuids, all_stakes=all_stakes
+    )
+
     block_hash = await subtensor.substrate.get_chain_head()
-    old_balance, old_stakes = await asyncio.gather(
-        subtensor.get_balance(wallet.coldkeypub.ss58_address, block_hash=block_hash),
-        get_old_stakes(),
+    old_balance = await subtensor.get_balance(
+        wallet.coldkeypub.ss58_address, block_hash=block_hash
     )
 
     successful_unstakes = 0
