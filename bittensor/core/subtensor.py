@@ -1109,7 +1109,7 @@ class Subtensor(SubtensorMixin):
 
         This function is used for certificate discovery for setting up mutual tls communication between neurons.
         """
-        certificate = self.query_module(
+        certificate: ScaleType = self.query_module(
             module="SubtensorModule",
             name="NeuronCertificates",
             block=block,
@@ -1190,12 +1190,14 @@ class Subtensor(SubtensorMixin):
             block=block,
             params=[hotkey_ss58, coldkey_ss58, netuid],
         )
-        hotkey_alpha: int = self.query_module(
+        hotkey_alpha_obj: ScaleType = self.query_module(
             module="SubtensorModule",
             name="TotalHotkeyAlpha",
             block=block,
             params=[hotkey_ss58, netuid],
-        ).value
+        )
+        hotkey_alpha = hotkey_alpha_obj.value
+
         hotkey_shares: FixedPoint = self.query_module(
             module="SubtensorModule",
             name="TotalHotkeyShares",
