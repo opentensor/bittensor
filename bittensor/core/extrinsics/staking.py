@@ -28,7 +28,7 @@ def add_stake_extrinsic(
         subtensor: the Subtensor object to use
         wallet: Bittensor wallet object.
         hotkey_ss58: The `ss58` address of the hotkey account to stake to defaults to the wallet's hotkey.
-        netuid (Optional[int]): Subnet uniq ID.
+        netuid (Optional[int]): Subnet unique ID.
         amount: Amount to stake as Bittensor balance, `None` if staking all.
         wait_for_inclusion: If set, waits for the extrinsic to enter a block before returning `True`, or returns
             `False` if the extrinsic fails to enter the block within the timeout.

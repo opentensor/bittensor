@@ -3508,7 +3508,7 @@ class AsyncSubtensor(SubtensorMixin):
             wallet (bittensor_wallet.wallet): The wallet associated with the neuron from which the stake is being
                 removed.
             hotkey_ss58 (Optional[str]): The ``SS58`` address of the hotkey account to unstake from.
-            netuid (Optional[int]): Subnet uniq ID.
+            netuid (Optional[int]): Subnet unique ID.
             amount (Balance): The amount of TAO to unstake. If not specified, unstakes all.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
@@ -3546,7 +3546,7 @@ class AsyncSubtensor(SubtensorMixin):
             wallet (bittensor_wallet.Wallet): The wallet linked to the coldkey from which the stakes are being
                 withdrawn.
             hotkey_ss58s (List[str]): A list of hotkey ``SS58`` addresses to unstake from.
-            netuids (list[int]): Subnets uniq IDs.
+            netuids (list[int]): Subnets unique IDs.
             amounts (List[Union[Balance, float]]): The amounts of TAO to unstake from each hotkey. If not provided,
                 unstakes all available stakes.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block.
