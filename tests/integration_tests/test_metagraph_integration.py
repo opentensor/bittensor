@@ -64,7 +64,6 @@ class TestMetagraph:
         assert "n" in state
         assert "block" in state
         assert "stake" in state
-        assert "total_stake" in state
         assert "ranks" in state
         assert "trust" in state
         assert "consensus" in state

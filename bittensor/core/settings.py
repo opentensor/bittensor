@@ -1,4 +1,4 @@
-__version__ = "8.5.1"
+__version__ = "9.0.0"
 
 import os
 import re
@@ -18,7 +18,7 @@ WALLETS_DIR.mkdir(parents=True, exist_ok=True)
 MINERS_DIR.mkdir(parents=True, exist_ok=True)
 
 # Bittensor networks name
-NETWORKS = ["finney", "test", "archive", "local", "subvortex"]
+NETWORKS = ["finney", "test", "archive", "local", "subvortex", "rao"]
 
 # Bittensor endpoints (Needs to use wss://)
 FINNEY_ENTRYPOINT = "wss://entrypoint-finney.opentensor.ai:443"
@@ -26,6 +26,7 @@ FINNEY_TEST_ENTRYPOINT = "wss://test.finney.opentensor.ai:443"
 ARCHIVE_ENTRYPOINT = "wss://archive.chain.opentensor.ai:443"
 LOCAL_ENTRYPOINT = os.getenv("BT_SUBTENSOR_CHAIN_ENDPOINT") or "ws://127.0.0.1:9944"
 SUBVORTEX_ENTRYPOINT = "ws://subvortex.info:9944"
+RAO_ENTRYPOINT = "wss://rao.chain.opentensor.ai:443"
 
 NETWORK_MAP = {
     NETWORKS[0]: FINNEY_ENTRYPOINT,
@@ -33,6 +34,7 @@ NETWORK_MAP = {
     NETWORKS[2]: ARCHIVE_ENTRYPOINT,
     NETWORKS[3]: LOCAL_ENTRYPOINT,
     NETWORKS[4]: SUBVORTEX_ENTRYPOINT,
+    NETWORKS[5]: RAO_ENTRYPOINT,
 }
 
 REVERSE_NETWORK_MAP = {
@@ -41,10 +43,12 @@ REVERSE_NETWORK_MAP = {
     ARCHIVE_ENTRYPOINT: NETWORKS[2],
     LOCAL_ENTRYPOINT: NETWORKS[3],
     SUBVORTEX_ENTRYPOINT: NETWORKS[4],
+    RAO_ENTRYPOINT: NETWORKS[5],
 }
 
-DEFAULT_ENDPOINT = FINNEY_ENTRYPOINT
-DEFAULT_NETWORK = NETWORKS[0]
+# TODO must be changed before 9.0 mainnet release
+DEFAULT_NETWORK = NETWORKS[1]
+DEFAULT_ENDPOINT = NETWORK_MAP[DEFAULT_NETWORK]
 
 # Currency Symbols Bittensor
 TAO_SYMBOL: str = chr(0x03C4)
@@ -207,6 +211,28 @@ TYPE_REGISTRY: dict[str, dict] = {
                     "type": "Vec<u8>",
                 },
                 "get_subnets_info": {
+                    "params": [],
+                    "type": "Vec<u8>",
+                },
+                "get_subnet_state": {
+                    "params": [
+                        {"name": "netuid", "type": "u16"},
+                    ],
+                    "type": "Vec<u8>",
+                },
+                "get_all_dynamic_info": {
+                    "params": [],
+                    "type": "Vec<u8>",
+                },
+                "get_dynamic_info": {
+                    "params": [{"name": "netuid", "type": "u16"}],
+                    "type": "Vec<u8>",
+                },
+                "get_metagraph": {
+                    "params": [{"name": "netuid", "type": "u16"}],
+                    "type": "Vec<u8>",
+                },
+                "get_all_metagraphs": {
                     "params": [],
                     "type": "Vec<u8>",
                 },
