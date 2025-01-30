@@ -2,8 +2,9 @@ import pytest
 from bittensor_wallet import Wallet
 
 from bittensor.core import async_subtensor
-from bittensor.core.chain_data import proposal_vote_data
 from bittensor.core.async_subtensor import AsyncSubtensor
+from bittensor.core.chain_data import proposal_vote_data
+from bittensor.utils.balance import Balance
 
 
 @pytest.fixture(autouse=True)
@@ -489,17 +490,17 @@ async def test_get_stake_for_coldkey_and_hotkey(subtensor, mocker):
     )
 
     # Asserts
-    mocked_substrate_query.assert_called_once_with(
+    mocked_substrate_query.assert_awaited_with(
         module="SubtensorModule",
-        storage_function="Stake",
-        params=["hotkey", "coldkey"],
+        storage_function="TotalHotkeyShares",
+        params=["hotkey", None],
         block_hash=None,
         reuse_block_hash=False,
     )
-    assert result == spy_balance.from_rao.return_value
-    spy_balance.from_rao.assert_called_once_with(
-        mocked_substrate_query.return_value.value
-    )
+    assert mocked_substrate_query.call_count == 3
+    assert result == spy_balance.from_rao.return_value.set_unit.return_value
+    spy_balance.from_rao.assert_called()
+    assert spy_balance.from_rao.call_count == 1
 
 
 @pytest.mark.asyncio
@@ -2478,17 +2479,12 @@ async def test_transfer_success(subtensor, mocker):
     # Preps
     fake_wallet = mocker.Mock()
     fake_destination = "destination_address"
-    fake_amount = 100.0
+    fake_amount = Balance.from_tao(100.0)
     fake_transfer_all = False
 
     mocked_transfer_extrinsic = mocker.AsyncMock(return_value=True)
     mocker.patch.object(
         async_subtensor, "transfer_extrinsic", mocked_transfer_extrinsic
-    )
-
-    mocked_balance_from_tao = mocker.Mock()
-    mocker.patch.object(
-        async_subtensor.Balance, "from_tao", return_value=mocked_balance_from_tao
     )
 
     # Call
@@ -2504,7 +2500,7 @@ async def test_transfer_success(subtensor, mocker):
         subtensor=subtensor,
         wallet=fake_wallet,
         dest=fake_destination,
-        amount=mocked_balance_from_tao,
+        amount=fake_amount,
         transfer_all=fake_transfer_all,
         wait_for_inclusion=True,
         wait_for_finalization=False,

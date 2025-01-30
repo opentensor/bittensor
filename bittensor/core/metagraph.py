@@ -38,7 +38,6 @@ METAGRAPH_STATE_DICT_NDARRAY_KEYS = [
     "n",
     "block",
     "stake",
-    "total_stake",
     "ranks",
     "trust",
     "consensus",
@@ -1011,6 +1010,11 @@ class TorchMetagraph(MetagraphMixin, BaseClass):
         self.neurons = []
         self.subtensor = subtensor
         self.should_sync = sync
+        self.alpha_stake: list["Balance"] = []
+        self.tao_stake: list["Balance"] = []
+        self.stake: list["Balance"] = []
+        self.axons: list["AxonInfo"] = []
+        self.total_stake: list["Balance"] = []
 
     def load_from_path(self, dir_path: str) -> "AsyncMetagraph":
         """
@@ -1136,6 +1140,11 @@ class NonTorchMetagraph(MetagraphMixin):
         self.neurons = []
         self.subtensor = subtensor
         self.should_sync = sync
+        self.alpha_stake: list["Balance"] = []
+        self.tao_stake: list["Balance"] = []
+        self.stake: list["Balance"] = []
+        self.axons: list["AxonInfo"] = []
+        self.total_stake: list["Balance"] = []
 
     def load_from_path(self, dir_path: str) -> "AsyncMetagraph":
         """
@@ -1179,7 +1188,6 @@ class NonTorchMetagraph(MetagraphMixin):
         self.block = state_dict["block"]
         self.uids = state_dict["uids"]
         self.stake = state_dict["stake"]
-        self.total_stake = state_dict["total_stake"]
         self.ranks = state_dict["ranks"]
         self.trust = state_dict["trust"]
         self.consensus = state_dict["consensus"]
@@ -1770,7 +1778,7 @@ class Metagraph(NumpyOrTorch):
         """Fills in the stake associated attributes of a class instance from a chain response."""
         try:
             if not subtensor:
-                subtensor = self._initialize_subtensor()
+                subtensor = self._initialize_subtensor(subtensor=subtensor)
 
             hex_bytes_result = subtensor.query_runtime_api(
                 runtime_api="SubnetInfoRuntimeApi",

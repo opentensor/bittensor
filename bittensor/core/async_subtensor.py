@@ -76,7 +76,7 @@ from bittensor.utils import (
     u16_normalized_float,
     _decode_hex_identity_dict,
 )
-from bittensor.utils.balance import Balance, fixed_to_float, FixedPoint
+from bittensor.utils.balance import Balance, fixed_to_float
 from bittensor.utils.btlogging import logging
 from bittensor.utils.delegates_details import DelegatesDetails
 from bittensor.utils.weight_utils import generate_weight_hash
@@ -822,6 +822,8 @@ class AsyncSubtensor(SubtensorMixin):
         )
         return Balance(balance["data"]["free"])
 
+    balance = get_balance
+
     async def get_balances(
         self,
         *addresses: str,
@@ -1501,7 +1503,7 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
 
         # Get alpha shares
-        alpha_shares: FixedPoint = await self.query_module(
+        alpha_shares = await self.query_module(
             module="SubtensorModule",
             name="Alpha",
             block_hash=block_hash,
@@ -1520,7 +1522,7 @@ class AsyncSubtensor(SubtensorMixin):
         hotkey_alpha: int = getattr(hotkey_alpha_result, "value", 0)
 
         # Get total hotkey shares
-        hotkey_shares: FixedPoint = await self.query_module(
+        hotkey_shares = await self.query_module(
             module="SubtensorModule",
             name="TotalHotkeyShares",
             block_hash=block_hash,
@@ -1541,7 +1543,11 @@ class AsyncSubtensor(SubtensorMixin):
     get_stake_for_coldkey_and_hotkey = get_stake
 
     async def get_stake_for_coldkey(
-        self, coldkey_ss58: str, block: Optional[int] = None
+        self,
+        coldkey_ss58: str,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
     ) -> Optional[list["StakeInfo"]]:
         """
         Retrieves the stake information for a given coldkey.
@@ -1549,12 +1555,16 @@ class AsyncSubtensor(SubtensorMixin):
         Args:
             coldkey_ss58 (str): The SS58 address of the coldkey.
             block (Optional[int]): The block number at which to query the stake information.
+            block_hash (Optional[str]): The hash of the blockchain block number for the query.
+            reuse_block (bool): Whether to reuse the last-used block hash.
 
         Returns:
             Optional[list[StakeInfo]]: A list of StakeInfo objects, or ``None`` if no stake information is found.
         """
         encoded_coldkey = ss58_to_vec_u8(coldkey_ss58)
-        block_hash = await self.determine_block_hash(block)
+        block_hash = await self.determine_block_hash(
+            block=block, block_hash=block_hash, reuse_block=reuse_block
+        )
 
         hex_bytes_result = await self.query_runtime_api(
             runtime_api="StakeInfoRuntimeApi",
@@ -3455,7 +3465,7 @@ class AsyncSubtensor(SubtensorMixin):
         self,
         wallet: "Wallet",
         dest: str,
-        amount: Union["Balance", float],
+        amount: "Balance",
         transfer_all: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
@@ -3506,6 +3516,7 @@ class AsyncSubtensor(SubtensorMixin):
             wallet (bittensor_wallet.wallet): The wallet associated with the neuron from which the stake is being
                 removed.
             hotkey_ss58 (Optional[str]): The ``SS58`` address of the hotkey account to unstake from.
+            netuid (Optional[int]): Subnet unique ID.
             amount (Balance): The amount of TAO to unstake. If not specified, unstakes all.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
@@ -3543,6 +3554,7 @@ class AsyncSubtensor(SubtensorMixin):
             wallet (bittensor_wallet.Wallet): The wallet linked to the coldkey from which the stakes are being
                 withdrawn.
             hotkey_ss58s (List[str]): A list of hotkey ``SS58`` addresses to unstake from.
+            netuids (list[int]): Subnets unique IDs.
             amounts (List[Union[Balance, float]]): The amounts of TAO to unstake from each hotkey. If not provided,
                 unstakes all available stakes.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block.

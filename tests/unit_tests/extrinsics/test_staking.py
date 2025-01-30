@@ -19,7 +19,8 @@ def test_add_stake_extrinsic(mocker):
         }
     )
     hotkey_ss58 = "hotkey"
-    amount = 1.1
+    fake_netuid = 1
+    amount = Balance.from_tao(1.1)
     wait_for_inclusion = True
     wait_for_finalization = True
 
@@ -28,6 +29,7 @@ def test_add_stake_extrinsic(mocker):
         subtensor=fake_subtensor,
         wallet=fake_wallet,
         hotkey_ss58=hotkey_ss58,
+        netuid=fake_netuid,
         amount=amount,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
@@ -39,10 +41,7 @@ def test_add_stake_extrinsic(mocker):
     fake_subtensor.substrate.compose_call.assert_called_once_with(
         call_module="SubtensorModule",
         call_function="add_stake",
-        call_params={
-            "hotkey": "hotkey",
-            "amount_staked": 9,
-        },
+        call_params={"hotkey": "hotkey", "amount_staked": 9, "netuid": 1},
     )
     fake_subtensor.sign_and_send_extrinsic.assert_called_once_with(
         fake_subtensor.substrate.compose_call.return_value,
@@ -80,13 +79,17 @@ def test_add_stake_multiple_extrinsic(mocker):
             "substrate.query.return_value": 0,
         }
     )
+    mocker.patch.object(
+        staking, "get_old_stakes", return_value=[Balance(1.1), Balance(0.3)]
+    )
     fake_wallet = mocker.Mock(
         **{
             "coldkeypub.ss58_address": "hotkey_owner",
         }
     )
     hotkey_ss58s = ["hotkey1", "hotkey2"]
-    amounts = [1.1, 2.2]
+    netuids = [1, 2]
+    amounts = [Balance.from_tao(1.1), Balance.from_tao(2.2)]
     wait_for_inclusion = True
     wait_for_finalization = True
 
@@ -95,6 +98,7 @@ def test_add_stake_multiple_extrinsic(mocker):
         subtensor=fake_subtensor,
         wallet=fake_wallet,
         hotkey_ss58s=hotkey_ss58s,
+        netuids=netuids,
         amounts=amounts,
         wait_for_inclusion=wait_for_inclusion,
         wait_for_finalization=wait_for_finalization,
@@ -109,8 +113,9 @@ def test_add_stake_multiple_extrinsic(mocker):
         call_module="SubtensorModule",
         call_function="add_stake",
         call_params={
-            "hotkey": "hotkey1",
-            "amount_staked": 1099999666,
+            "hotkey": "hotkey2",
+            "amount_staked": 2199999333,
+            "netuid": 2,
         },
     )
     fake_subtensor.substrate.compose_call.assert_any_call(
@@ -119,6 +124,7 @@ def test_add_stake_multiple_extrinsic(mocker):
         call_params={
             "hotkey": "hotkey2",
             "amount_staked": 2199999333,
+            "netuid": 2,
         },
     )
     fake_subtensor.sign_and_send_extrinsic.assert_called_with(

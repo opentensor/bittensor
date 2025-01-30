@@ -1,5 +1,7 @@
 from typing import Union, Optional, TypedDict
 
+from scalecodec import ScaleType
+
 from bittensor.core import settings
 
 
@@ -282,10 +284,9 @@ class FixedPoint(TypedDict):
     bits: int
 
 
-def fixed_to_float(fixed: FixedPoint) -> float:
+def fixed_to_float(fixed: Union[FixedPoint, ScaleType]) -> float:
     # Currently this is stored as a U64F64
     # which is 64 bits of integer and 64 bits of fractional
-    uint_bits = 64
     frac_bits = 64
 
     data: int = fixed["bits"]
