@@ -1,4 +1,4 @@
-from typing import Union, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from bittensor.core.settings import NETWORK_EXPLORER_MAP
 from bittensor.utils.balance import Balance
@@ -19,7 +19,7 @@ def _do_transfer(
     subtensor: "Subtensor",
     wallet: "Wallet",
     destination: str,
-    amount: "Balance",
+    amount: Balance,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,
 ) -> tuple[bool, str, str]:
@@ -68,7 +68,7 @@ def transfer_extrinsic(
     subtensor: "Subtensor",
     wallet: "Wallet",
     dest: str,
-    amount: Union["Balance", float],
+    amount: Balance,
     transfer_all: bool = False,
     wait_for_inclusion: bool = True,
     wait_for_finalization: bool = False,

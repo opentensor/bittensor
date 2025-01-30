@@ -9,8 +9,12 @@ from os.path import join
 from typing import Optional, Union
 
 import numpy as np
+from async_substrate_interface.errors import SubstrateRequestException
 from numpy.typing import NDArray
 
+from bittensor.core import settings
+from bittensor.core.chain_data import AxonInfo, SubnetState
+from bittensor.utils import hex_to_bytes
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import torch, use_torch
 from bittensor.utils.weight_utils import (
@@ -18,14 +22,13 @@ from bittensor.utils.weight_utils import (
     convert_bond_uids_and_vals_to_tensor,
     convert_root_weight_uids_and_vals_to_tensor,
 )
-from bittensor.core import settings
-from bittensor.core.chain_data import AxonInfo
 
 # For annotation purposes
 if typing.TYPE_CHECKING:
     from bittensor.core.subtensor import Subtensor
     from bittensor.core.async_subtensor import AsyncSubtensor
     from bittensor.core.chain_data import NeuronInfo, NeuronInfoLite
+    from bittensor.utils.balance import Balance
 
 
 Tensor = Union["torch.nn.Parameter", NDArray]
@@ -36,7 +39,6 @@ METAGRAPH_STATE_DICT_NDARRAY_KEYS = [
     "n",
     "block",
     "stake",
-    "total_stake",
     "ranks",
     "trust",
     "consensus",
@@ -224,8 +226,6 @@ class MetagraphMixin(ABC):
     n: Tensor
     neurons: list[Union["NeuronInfo", "NeuronInfoLite"]]
     block: Tensor
-    stake: Tensor
-    total_stake: Tensor
     ranks: Tensor
     trust: Tensor
     consensus: Tensor
@@ -239,10 +239,33 @@ class MetagraphMixin(ABC):
     weights: Tensor
     bonds: Tensor
     uids: Tensor
+    alpha_stake: Tensor
+    tao_stake: Tensor
+    stake: Tensor
     axons: list[AxonInfo]
     chain_endpoint: Optional[str]
     subtensor: Optional["AsyncSubtensor"]
     _dtype_registry = {"int64": np.int64, "float32": np.float32, "bool": bool}
+
+    @property
+    def TS(self) -> list["Balance"]:
+        """
+        Represents the tao stake of each neuron in the Bittensor network.
+
+        Returns:
+            list["Balance"]: The list of tao stake of each neuron in the network.
+        """
+        return self.tao_stake
+
+    @property
+    def AS(self) -> list["Balance"]:
+        """
+        Represents the alpha stake of each neuron in the Bittensor network.
+
+        Returns:
+            list["Balance"]: The list of alpha stake of each neuron in the network.
+        """
+        return self.alpha_stake
 
     @property
     def S(self) -> Union[NDArray, "torch.nn.Parameter"]:
@@ -256,7 +279,7 @@ class MetagraphMixin(ABC):
             NDArray: A tensor representing the stake of each neuron in the network. Higher values signify a greater
                 stake held by the respective neuron.
         """
-        return self.total_stake
+        return self.stake
 
     @property
     def R(self) -> Union[NDArray, "torch.nn.Parameter"]:
@@ -559,8 +582,6 @@ class MetagraphMixin(ABC):
             "version": self.version,
             "n": self.n,
             "block": self.block,
-            "stake": self.stake,
-            "total_stake": self.total_stake,
             "ranks": self.ranks,
             "trust": self.trust,
             "consensus": self.consensus,
@@ -576,6 +597,9 @@ class MetagraphMixin(ABC):
             "uids": self.uids,
             "axons": self.axons,
             "neurons": self.neurons,
+            "alpha_stake": self.alpha_stake,
+            "tao_stake": self.tao_stake,
+            "stake": self.stake,
         }
 
     @staticmethod
@@ -992,6 +1016,11 @@ class TorchMetagraph(MetagraphMixin, BaseClass):
         self.neurons = []
         self.subtensor = subtensor
         self.should_sync = sync
+        self.alpha_stake: list["Balance"] = []
+        self.tao_stake: list["Balance"] = []
+        self.stake: list["Balance"] = []
+        self.axons: list["AxonInfo"] = []
+        self.total_stake: list["Balance"] = []
 
     def load_from_path(self, dir_path: str) -> "AsyncMetagraph":
         """
@@ -1117,6 +1146,11 @@ class NonTorchMetagraph(MetagraphMixin):
         self.neurons = []
         self.subtensor = subtensor
         self.should_sync = sync
+        self.alpha_stake: list["Balance"] = []
+        self.tao_stake: list["Balance"] = []
+        self.stake: list["Balance"] = []
+        self.axons: list["AxonInfo"] = []
+        self.total_stake: list["Balance"] = []
 
     def load_from_path(self, dir_path: str) -> "AsyncMetagraph":
         """
@@ -1160,7 +1194,6 @@ class NonTorchMetagraph(MetagraphMixin):
         self.block = state_dict["block"]
         self.uids = state_dict["uids"]
         self.stake = state_dict["stake"]
-        self.total_stake = state_dict["total_stake"]
         self.ranks = state_dict["ranks"]
         self.trust = state_dict["trust"]
         self.consensus = state_dict["consensus"]
@@ -1288,6 +1321,9 @@ class AsyncMetagraph(NumpyOrTorch):
         # If not a 'lite' version, compute and set weights and bonds for each neuron
         if not lite:
             await self._set_weights_and_bonds(subtensor=subtensor)
+
+        # Fills in the stake associated attributes of a class instance from a chain response.
+        await self._get_all_stakes_from_chain(subtensor=subtensor)
 
     async def _initialize_subtensor(
         self, subtensor: "AsyncSubtensor"
@@ -1453,6 +1489,43 @@ class AsyncMetagraph(NumpyOrTorch):
             )
         return tensor_param
 
+    async def _get_all_stakes_from_chain(
+        self, subtensor: Optional["AsyncSubtensor"] = None
+    ):
+        """Fills in the stake associated attributes of a class instance from a chain response."""
+        try:
+            if not subtensor:
+                subtensor = await self._initialize_subtensor(subtensor=subtensor)
+
+            hex_bytes_result = await subtensor.query_runtime_api(
+                runtime_api="SubnetInfoRuntimeApi",
+                method="get_subnet_state",
+                params=[self.netuid],
+            )
+
+            if hex_bytes_result is None:
+                logging.debug(
+                    f"Unable to retrieve subnet state for netuid `{self.netuid}`."
+                )
+                return []
+
+            subnet_state: "SubnetState" = SubnetState.from_vec_u8(
+                hex_to_bytes(hex_bytes_result)
+            )
+            if self.netuid == 0:
+                self.total_stake = self.stake = self.tao_stake = self.alpha_stake = (
+                    subnet_state.tao_stake
+                )
+                return subnet_state
+
+            self.alpha_stake = subnet_state.alpha_stake
+            self.tao_stake = [b * 0.018 for b in subnet_state.tao_stake]
+            self.total_stake = self.stake = subnet_state.total_stake
+            return subnet_state
+
+        except (SubstrateRequestException, AttributeError) as e:
+            logging.debug(e)
+
 
 class Metagraph(NumpyOrTorch):
     def __init__(
@@ -1517,6 +1590,8 @@ class Metagraph(NumpyOrTorch):
 
                 metagraph.sync(block=history_block, lite=False, subtensor=subtensor)
         """
+
+        # Initialize subtensor
         subtensor = self._initialize_subtensor(subtensor)
 
         if (
@@ -1542,6 +1617,9 @@ class Metagraph(NumpyOrTorch):
         # If not a 'lite' version, compute and set weights and bonds for each neuron
         if not lite:
             self._set_weights_and_bonds(subtensor=subtensor)
+
+        # Fills in the stake associated attributes of a class instance from a chain response.
+        self._get_all_stakes_from_chain(subtensor=subtensor)
 
     def _initialize_subtensor(self, subtensor: "Subtensor") -> "Subtensor":
         """
@@ -1698,6 +1776,41 @@ class Metagraph(NumpyOrTorch):
                 f"Empty {attribute}_array on metagraph.sync(). The '{attribute}' tensor is empty."
             )
         return tensor_param
+
+    def _get_all_stakes_from_chain(self, subtensor: Optional["Subtensor"] = None):
+        """Fills in the stake associated attributes of a class instance from a chain response."""
+        try:
+            if not subtensor:
+                subtensor = self._initialize_subtensor(subtensor=subtensor)
+
+            hex_bytes_result = subtensor.query_runtime_api(
+                runtime_api="SubnetInfoRuntimeApi",
+                method="get_subnet_state",
+                params=[self.netuid],
+            )
+
+            if hex_bytes_result is None:
+                logging.debug(
+                    f"Unable to retrieve subnet state for netuid `{self.netuid}`."
+                )
+                return []
+
+            subnet_state: "SubnetState" = SubnetState.from_vec_u8(
+                hex_to_bytes(hex_bytes_result)
+            )
+            if self.netuid == 0:
+                self.total_stake = self.stake = self.tao_stake = self.alpha_stake = (
+                    subnet_state.tao_stake
+                )
+                return subnet_state
+
+            self.alpha_stake = subnet_state.alpha_stake
+            self.tao_stake = [b * 0.018 for b in subnet_state.tao_stake]
+            self.total_stake = self.stake = subnet_state.total_stake
+            return subnet_state
+
+        except (SubstrateRequestException, AttributeError) as e:
+            logging.debug(e)
 
 
 async def async_metagraph(
