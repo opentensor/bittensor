@@ -1331,7 +1331,7 @@ class AsyncSubtensor(SubtensorMixin):
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
-    ) -> Optional[MetagraphInfo]:
+    ) -> MetagraphInfo:
         """
         Retrieves the MetagraphInfo dataclass from the node for a single subnet (netuid)
 
@@ -1342,6 +1342,9 @@ class AsyncSubtensor(SubtensorMixin):
             block_hash: The hash of blockchain block number for the query. Do not specify if using
                 block or reuse_block
             reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+
+        Returns:
+            MetagraphInfo dataclass
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         if not block_hash and reuse_block:
@@ -1371,6 +1374,9 @@ class AsyncSubtensor(SubtensorMixin):
             block_hash (Optional[str]): The hash of blockchain block number for the query. Do not specify if using
                 block or reuse_block
             reuse_block (bool): Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+
+        Returns:
+            MetagraphInfo dataclass
         """
         block_hash = await self.determine_block_hash(block, block_hash.reuse_block)
         if not block_hash and reuse_block:
@@ -3454,7 +3460,7 @@ class AsyncSubtensor(SubtensorMixin):
         hotkey_ss58: str,
         origin_netuid: int,
         destination_netuid: int,
-        amount: Union[Balance, float],
+        amount: Balance,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
     ) -> bool:
