@@ -2,7 +2,7 @@ import warnings
 
 from .core.settings import __version__, version_split, DEFAULTS, DEFAULT_NETWORK
 from .utils.btlogging import logging
-from .utils.deprecated import *
+from .utils.easy_imports import *
 
 
 def __getattr__(name):
