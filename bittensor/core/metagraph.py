@@ -1,5 +1,4 @@
 import copy
-import importlib
 import os
 import pickle
 import typing
@@ -764,7 +763,7 @@ class MetagraphMixin(ABC):
         )
         self.axons = [n.axon_info for n in self.neurons]
 
-    def save(self, root_dir: Optional[list[str]] = None) -> "AsyncMetagraph":
+    def save(self, root_dir: Optional[list[str]] = None) -> "MetagraphMixin":
         """
         Saves the current state of the metagraph to a file on disk. This function is crucial for persisting the current
             state of the network's metagraph, which can later be reloaded or analyzed. The save operation includes all
@@ -1022,7 +1021,7 @@ class TorchMetagraph(MetagraphMixin, BaseClass):
         self.axons: list["AxonInfo"] = []
         self.total_stake: list["Balance"] = []
 
-    def load_from_path(self, dir_path: str) -> "AsyncMetagraph":
+    def load_from_path(self, dir_path: str) -> "MetagraphMixin":
         """
         Loads the metagraph state from a specified directory path.
 
@@ -1152,7 +1151,7 @@ class NonTorchMetagraph(MetagraphMixin):
         self.axons: list["AxonInfo"] = []
         self.total_stake: list["Balance"] = []
 
-    def load_from_path(self, dir_path: str) -> "AsyncMetagraph":
+    def load_from_path(self, dir_path: str) -> "MetagraphMixin":
         """
         Loads the state of the Metagraph from a specified directory path.
 
@@ -1356,10 +1355,7 @@ class AsyncMetagraph(NumpyOrTorch):
             subtensor = self.subtensor
         if not subtensor:
             # Lazy import due to circular import (subtensor -> metagraph, metagraph -> subtensor)
-            AsyncSubtensor = getattr(
-                importlib.import_module("bittensor.core.async_subtensor"),
-                "AsyncSubtensor",
-            )
+            from bittensor.core.async_subtensor import AsyncSubtensor
 
             async with AsyncSubtensor(network=self.chain_endpoint) as subtensor:
                 self.subtensor = subtensor
@@ -1592,7 +1588,7 @@ class Metagraph(NumpyOrTorch):
         """
 
         # Initialize subtensor
-        subtensor = self._initialize_subtensor(subtensor)
+        subtensor = self._initialize_subtensor(subtensor=subtensor)
 
         if (
             subtensor.chain_endpoint != settings.ARCHIVE_ENTRYPOINT
@@ -1632,11 +1628,11 @@ class Metagraph(NumpyOrTorch):
         according to the current network settings.
 
         Args:
-            subtensor (bittensor.core.async_subtensor.AsyncSubtensor): The subtensor instance provided for
+            subtensor (bittensor.core.subtensor.Subtensor): The subtensor instance provided for
                 initialization. If ``None``, a new subtensor instance is created using the current network configuration.
 
         Returns:
-            subtensor (bittensor.core.async_subtensor.AsyncSubtensor): The initialized subtensor instance, ready to be
+            subtensor (bittensor.core.subtensor.Subtensor): The initialized subtensor instance, ready to be
                 used for syncing the metagraph.
 
         Internal Usage:
@@ -1650,9 +1646,8 @@ class Metagraph(NumpyOrTorch):
             subtensor = self.subtensor
         if not subtensor:
             # Lazy import due to circular import (subtensor -> metagraph, metagraph -> subtensor)
-            Subtensor = getattr(
-                importlib.import_module("bittensor.core.subtensor"), "Subtensor"
-            )
+            from bittensor.core.subtensor import Subtensor
+
             subtensor = Subtensor(network=self.chain_endpoint)
 
             self.subtensor = subtensor
