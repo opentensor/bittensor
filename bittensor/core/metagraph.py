@@ -14,6 +14,7 @@ from numpy.typing import NDArray
 
 from bittensor.core import settings
 from bittensor.core.chain_data import AxonInfo, SubnetState
+from bittensor.utils import hex_to_bytes
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import torch, use_torch
 from bittensor.utils.weight_utils import (
@@ -1494,7 +1495,7 @@ class AsyncMetagraph(NumpyOrTorch):
         """Fills in the stake associated attributes of a class instance from a chain response."""
         try:
             if not subtensor:
-                subtensor = self._initialize_subtensor(subtensor=subtensor)
+                subtensor = await self._initialize_subtensor(subtensor=subtensor)
 
             hex_bytes_result = await subtensor.query_runtime_api(
                 runtime_api="SubnetInfoRuntimeApi",
@@ -1508,12 +1509,9 @@ class AsyncMetagraph(NumpyOrTorch):
                 )
                 return []
 
-            if hex_bytes_result.startswith("0x"):
-                bytes_result = bytes.fromhex(hex_bytes_result[2:])
-            else:
-                bytes_result = bytes.fromhex(hex_bytes_result)
-
-            subnet_state: "SubnetState" = SubnetState.from_vec_u8(bytes_result)
+            subnet_state: "SubnetState" = SubnetState.from_vec_u8(
+                hex_to_bytes(hex_bytes_result)
+            )
             if self.netuid == 0:
                 self.total_stake = self.stake = self.tao_stake = self.alpha_stake = (
                     subnet_state.tao_stake
@@ -1797,12 +1795,9 @@ class Metagraph(NumpyOrTorch):
                 )
                 return []
 
-            if hex_bytes_result.startswith("0x"):
-                bytes_result = bytes.fromhex(hex_bytes_result[2:])
-            else:
-                bytes_result = bytes.fromhex(hex_bytes_result)
-
-            subnet_state: "SubnetState" = SubnetState.from_vec_u8(bytes_result)
+            subnet_state: "SubnetState" = SubnetState.from_vec_u8(
+                hex_to_bytes(hex_bytes_result)
+            )
             if self.netuid == 0:
                 self.total_stake = self.stake = self.tao_stake = self.alpha_stake = (
                     subnet_state.tao_stake

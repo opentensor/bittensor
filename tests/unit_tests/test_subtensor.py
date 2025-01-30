@@ -12,7 +12,7 @@ def test_methods_comparable(mocker):
     async_subtensor = AsyncSubtensor(_mock=True)
 
     # methods which lives in subtensor only
-    excluded_subtensor_methods = ["wait_for_block"]
+    excluded_subtensor_methods = []
 
     # methods which lives in async subtensor only
     excluded_async_subtensor_methods = ["initialize"]
