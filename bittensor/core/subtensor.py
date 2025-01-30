@@ -374,20 +374,18 @@ class Subtensor(SubtensorMixin):
     def block(self) -> int:
         return self.get_current_block()
 
-    def all_subnets(
-        self, block_number: Optional[int] = None
-    ) -> Optional[list["DynamicInfo"]]:
+    def all_subnets(self, block: Optional[int] = None) -> Optional[list["DynamicInfo"]]:
         """
         Retrieves the subnet information for all subnets in the network.
 
         Args:
-            block_number (Optional[int]): The block number to query the subnet information from.
+            block (Optional[int]): The block number to query the subnet information from.
 
         Returns:
             Optional[DynamicInfo]: A list of DynamicInfo objects, each containing detailed information about a subnet.
 
         """
-        block_hash = self.get_block_hash(block_number) if block_number else None
+        block_hash = self.determine_block_hash(block)
         query = self.substrate.runtime_call(
             "SubnetInfoRuntimeApi",
             "get_all_dynamic_info",
@@ -1035,34 +1033,26 @@ class Subtensor(SubtensorMixin):
     def get_metagraph_info(
         self, netuid: int, block: Optional[int] = None
     ) -> Optional[MetagraphInfo]:
-        if block is not None:
-            block_hash = self.get_block_hash(block)
-        else:
-            block_hash = None
-
+        block_hash = self.determine_block_hash(block)
         query = self.substrate.runtime_call(
             "SubnetInfoRuntimeApi",
             "get_metagraph",
             params=[netuid],
             block_hash=block_hash,
         )
-        metagraph_bytes = bytes.fromhex(query.decode()[2:])
+        metagraph_bytes = hex_to_bytes(query.decode())
         return MetagraphInfo.from_vec_u8(metagraph_bytes)
 
     def get_all_metagraphs_info(
         self, block: Optional[int] = None
     ) -> list[MetagraphInfo]:
-        if block is not None:
-            block_hash = self.get_block_hash(block)
-        else:
-            block_hash = None
-
+        block_hash = self.determine_block_hash(block)
         query = self.substrate.runtime_call(
             "SubnetInfoRuntimeApi",
             "get_all_metagraphs",
             block_hash=block_hash,
         )
-        metagraphs_bytes = bytes.fromhex(query.decode()[2:])
+        metagraphs_bytes = hex_to_bytes(query.decode())
         return MetagraphInfo.list_from_vec_u8(metagraphs_bytes)
 
     def get_netuids_for_hotkey(
@@ -1219,7 +1209,7 @@ class Subtensor(SubtensorMixin):
 
     def get_stake_for_coldkey(
         self, coldkey_ss58: str, block: Optional[int] = None
-    ) -> Optional[list["StakeInfo"]]:
+    ) -> list["StakeInfo"]:
         """
         Retrieves the stake information for a given coldkey.
 
@@ -1240,12 +1230,7 @@ class Subtensor(SubtensorMixin):
 
         if hex_bytes_result is None:
             return []
-        try:
-            bytes_result = bytes.fromhex(hex_bytes_result[2:])
-        except ValueError:
-            bytes_result = bytes.fromhex(hex_bytes_result)
-
-        stakes = StakeInfo.list_from_vec_u8(bytes_result)  # type: ignore
+        stakes = StakeInfo.list_from_vec_u8(hex_to_bytes(hex_bytes_result))  # type: ignore
         return [stake for stake in stakes if stake.stake > 0]
 
     def get_stake_info_for_coldkey(
@@ -1951,24 +1936,19 @@ class Subtensor(SubtensorMixin):
         call = self.get_hyperparameter(param_name="Burn", netuid=netuid, block=block)
         return None if call is None else Balance.from_rao(int(call))
 
-    def subnet(
-        self, netuid: int, block_number: Optional[int] = None
-    ) -> Optional[DynamicInfo]:
+    def subnet(self, netuid: int, block: Optional[int] = None) -> Optional[DynamicInfo]:
         """
         Retrieves the subnet information for a single subnet in the network.
 
         Args:
             netuid (int): The unique identifier of the subnet.
-            block_number (Optional[int]): The block number to query the subnet information from.
+            block (Optional[int]): The block number to query the subnet information from.
 
         Returns:
             Optional[DynamicInfo]: A DynamicInfo object, containing detailed information about a subnet.
 
         """
-        if block_number is not None:
-            block_hash = self.get_block_hash(block_number)
-        else:
-            block_hash = None
+        block_hash = self.determine_block_hash(block)
 
         query = self.substrate.runtime_call(
             "SubnetInfoRuntimeApi",
@@ -1976,7 +1956,7 @@ class Subtensor(SubtensorMixin):
             params=[netuid],
             block_hash=block_hash,
         )
-        subnet = DynamicInfo.from_vec_u8(bytes.fromhex(query.decode()[2:]))  # type: ignore
+        subnet = DynamicInfo.from_vec_u8(hex_to_bytes(query.decode()))  # type: ignore
         return subnet
 
     def subnet_exists(self, netuid: int, block: Optional[int] = None) -> bool:
@@ -2066,12 +2046,24 @@ class Subtensor(SubtensorMixin):
             >>> subtensor.wait_for_block() # Waits for next block
             >>> subtensor.wait_for_block(block=1234) # Waits for specific block
         """
-        current_block = self.get_current_block()
-        target_block = block if block is not None else current_block + 1
 
-        while current_block < target_block:
-            time.sleep(1)  # Sleep for 1 second before checking again
-            current_block = self.get_current_block()
+        def handler(block_data: dict):
+            logging.debug(
+                f'reached block {block_data["header"]["number"]}. Waiting for block {target_block}'
+            )
+            if block_data["header"]["number"] >= target_block:
+                return True
+
+        current_block = self.substrate.get_block()
+        current_block_hash = current_block.get("header", {}).get("hash")
+        if block is not None:
+            target_block = block
+        else:
+            target_block = current_block["header"]["number"] + 1
+
+        self.substrate._get_block_handler(
+            current_block_hash, header_only=True, subscription_handler=handler
+        )
         return True
 
     def weights(

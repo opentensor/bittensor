@@ -65,8 +65,7 @@ from bittensor.core.extrinsics.asyncex.weights import (
 )
 from bittensor.core.metagraph import AsyncMetagraph
 from bittensor.core.settings import version_as_int, TYPE_REGISTRY, DELEGATES_DETAILS_URL
-from bittensor.core.types import ParamWithTypes
-from bittensor.core.types import SubtensorMixin
+from bittensor.core.types import ParamWithTypes, SubtensorMixin
 from bittensor.utils import (
     decode_hex_identity_dict,
     format_error_message,
@@ -563,12 +562,16 @@ class AsyncSubtensor(SubtensorMixin):
         block_number: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
-    ) -> Optional[list["DynamicInfo"]]:
+    ) -> Optional[list[DynamicInfo]]:
         """
         Retrieves the subnet information for all subnets in the network.
 
         Args:
-            block_number (Optional[int]): The block number to query the subnet information from.
+            block_number (Optional[int]): The block number to query the subnet information from. Do not specify if using
+                block_hash or reuse_block
+            block_hash: The hash of the blockchain block number for the query. Do not specify if using reuse_block or
+                block.
+            reuse_block: Whether to reuse the last-used blockchain block hash. Do not set if using block_hash or block.
 
         Returns:
             Optional[DynamicInfo]: A list of DynamicInfo objects, each containing detailed information about a subnet.
@@ -577,6 +580,8 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash = await self.determine_block_hash(
             block_number, block_hash, reuse_block
         )
+        if not block_hash and reuse_block:
+            block_hash = self.substrate.last_block_hash
         query = await self.substrate.runtime_call(
             "SubnetInfoRuntimeApi",
             "get_all_dynamic_info",
@@ -799,7 +804,7 @@ class AsyncSubtensor(SubtensorMixin):
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
-    ) -> "Balance":
+    ) -> Balance:
         """
         Retrieves the balance for given coldkey.
 
@@ -1321,9 +1326,26 @@ class AsyncSubtensor(SubtensorMixin):
         return Balance.from_rao(getattr(result, "value", 0))
 
     async def get_metagraph_info(
-        self, netuid: int, block: Optional[int] = None
+        self,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
     ) -> Optional[MetagraphInfo]:
-        block_hash = await self.get_block_hash(block)
+        """
+        Retrieves the MetagraphInfo dataclass from the node for a single subnet (netuid)
+
+        Arguments:
+            netuid: The NetUID of the subnet.
+            block: the block number at which to retrieve the hyperparameter. Do not specify if using block_hash or
+                reuse_block
+            block_hash: The hash of blockchain block number for the query. Do not specify if using
+                block or reuse_block
+            reuse_block: Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        if not block_hash and reuse_block:
+            block_hash = self.substrate.last_block_hash
 
         query = await self.substrate.runtime_call(
             "SubnetInfoRuntimeApi",
@@ -1335,10 +1357,24 @@ class AsyncSubtensor(SubtensorMixin):
         return MetagraphInfo.from_vec_u8(metagraph_bytes)
 
     async def get_all_metagraphs_info(
-        self, block: Optional[int] = None
+        self,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
     ) -> list[MetagraphInfo]:
-        block_hash = await self.get_block_hash(block)
+        """
+        Retrieves a list of MetagraphInfo objects for all subnets
 
+        Arguments:
+            block: the block number at which to retrieve the hyperparameter. Do not specify if using block_hash or
+                reuse_block
+            block_hash (Optional[str]): The hash of blockchain block number for the query. Do not specify if using
+                block or reuse_block
+            reuse_block (bool): Whether to reuse the last-used block hash. Do not set if using block_hash or block.
+        """
+        block_hash = await self.determine_block_hash(block, block_hash.reuse_block)
+        if not block_hash and reuse_block:
+            block_hash = self.substrate.last_block_hash
         query = await self.substrate.runtime_call(
             "SubnetInfoRuntimeApi",
             "get_all_metagraphs",
@@ -1492,9 +1528,11 @@ class AsyncSubtensor(SubtensorMixin):
         Args:
             hotkey_ss58 (str): The SS58 address of the hotkey.
             coldkey_ss58 (str): The SS58 address of the coldkey.
-            netuid (Optional[int]): The subnet ID to filter by. If provided, only returns stake for this specific subnet.
+            netuid (Optional[int]): The subnet ID to filter by. If provided, only returns stake for this specific
+                subnet.
             block (Optional[int]): The block number at which to query the stake information.
-            block_hash (Optional[str]): The hash of the block to retrieve the stake from. Do not specify if using block or reuse_block
+            block_hash (Optional[str]): The hash of the block to retrieve the stake from. Do not specify if using block
+                or reuse_block
             reuse_block (bool): Whether to use the last-used block. Do not set if using block_hash or block.
 
         Returns:
@@ -1569,18 +1607,15 @@ class AsyncSubtensor(SubtensorMixin):
         hex_bytes_result = await self.query_runtime_api(
             runtime_api="StakeInfoRuntimeApi",
             method="get_stake_info_for_coldkey",
-            params=[encoded_coldkey],  # type: ignore
+            params=[encoded_coldkey],
             block_hash=block_hash,
+            reuse_block=reuse_block,
         )
 
         if hex_bytes_result is None:
             return []
-        try:
-            bytes_result = bytes.fromhex(hex_bytes_result[2:])
-        except ValueError:
-            bytes_result = bytes.fromhex(hex_bytes_result)
 
-        stakes = StakeInfo.list_from_vec_u8(bytes_result)  # type: ignore
+        stakes = StakeInfo.list_from_vec_u8(hex_to_bytes(hex_bytes_result))  # type: ignore
         return [stake for stake in stakes if stake.stake > 0]
 
     async def get_stake_info_for_coldkey(
@@ -1898,8 +1933,8 @@ class AsyncSubtensor(SubtensorMixin):
         return getattr(result, "value", None)
 
     async def get_transfer_fee(
-        self, wallet: "Wallet", dest: str, value: Union["Balance", float, int]
-    ) -> "Balance":
+        self, wallet: "Wallet", dest: str, value: Union[Balance, float, int]
+    ) -> Balance:
         """
         Calculates the transaction fee for transferring tokens from a wallet to a specified destination address. This
             function simulates the transfer to estimate the associated cost, taking into account the current network
@@ -2501,7 +2536,7 @@ class AsyncSubtensor(SubtensorMixin):
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
-    ) -> Optional["Balance"]:
+    ) -> Optional[Balance]:
         """
         Retrieves the 'Burn' hyperparameter for a specified subnet. The 'Burn' parameter represents the amount of Tao
             that is effectively recycled within the Bittensor network.
@@ -2530,7 +2565,7 @@ class AsyncSubtensor(SubtensorMixin):
     async def subnet(
         self,
         netuid: int,
-        block_number: int = None,
+        block: int = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
     ) -> Optional[DynamicInfo]:
@@ -2539,21 +2574,16 @@ class AsyncSubtensor(SubtensorMixin):
 
         Args:
             netuid (int): The unique identifier of the subnet.
-            block_number (Optional[int]): The block number to get the subnets at.
+            block (Optional[int]): The block number to get the subnets at.
+            block_hash (str): The hash of the blockchain block number for the query.
+            reuse_block (bool): Whether to reuse the last-used blockchain block hash.
 
         Returns:
             Optional[DynamicInfo]: A DynamicInfo object, containing detailed information about a subnet.
-
-        This function can be called in two ways:
-        1. As a context manager:
-            async with sub:
-                subnet = await sub.subnet(1)
-        2. Directly:
-            subnet = await sub.subnet(1)
         """
-        block_hash = await self.determine_block_hash(
-            block_number, block_hash, reuse_block
-        )
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        if not block_hash and reuse_block:
+            block_hash = self.substrate.last_block_hash
         query = await self.substrate.runtime_call(
             "SubnetInfoRuntimeApi",
             "get_dynamic_info",
@@ -2680,6 +2710,41 @@ class AsyncSubtensor(SubtensorMixin):
             "TxRateLimit", block_hash=block_hash, reuse_block=reuse_block
         )
         return getattr(result, "value", None)
+
+    async def wait_for_block(self, block: Optional[int] = None):
+        """
+        Waits until a specific block is reached on the chain. If no block is specified,
+        waits for the next block.
+
+        Args:
+            block (Optional[int]): The block number to wait for. If None, waits for next block.
+
+        Returns:
+            bool: True if the target block was reached, False if timeout occurred.
+
+        Example:
+            >>> await subtensor.wait_for_block() # Waits for next block
+            >>> await subtensor.wait_for_block(block=1234) # Waits for specific block
+        """
+
+        async def handler(block_data: dict):
+            logging.debug(
+                f'reached block {block_data["header"]["number"]}. Waiting for block {target_block}'
+            )
+            if block_data["header"]["number"] >= target_block:
+                return True
+
+        current_block = await self.substrate.get_block()
+        current_block_hash = current_block.get("header", {}).get("hash")
+        if block is not None:
+            target_block = block
+        else:
+            target_block = current_block["header"]["number"] + 1
+
+        await self.substrate._get_block_handler(
+            current_block_hash, header_only=True, subscription_handler=handler
+        )
+        return True
 
     async def weights(
         self,
@@ -2817,6 +2882,7 @@ class AsyncSubtensor(SubtensorMixin):
         Args:
             wallet (bittensor_wallet.Wallet): The wallet to be used for staking.
             hotkey_ss58 (Optional[str]): The ``SS58`` address of the hotkey associated with the neuron.
+            netuid: subnet UID
             amount (Balance): The amount of TAO to stake.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
@@ -2853,6 +2919,7 @@ class AsyncSubtensor(SubtensorMixin):
         Args:
             wallet (bittensor_wallet.Wallet): The wallet used for staking.
             hotkey_ss58s (list[str]): List of ``SS58`` addresses of hotkeys to stake to.
+            netuids: list of subnet UIDs
             amounts (list[Balance]): Corresponding amounts of TAO to stake for each hotkey.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
@@ -3387,7 +3454,7 @@ class AsyncSubtensor(SubtensorMixin):
         hotkey_ss58: str,
         origin_netuid: int,
         destination_netuid: int,
-        amount: Union["Balance", float],
+        amount: Union[Balance, float],
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
     ) -> bool:
@@ -3465,7 +3532,7 @@ class AsyncSubtensor(SubtensorMixin):
         self,
         wallet: "Wallet",
         dest: str,
-        amount: "Balance",
+        amount: Balance,
         transfer_all: bool = False,
         wait_for_inclusion: bool = True,
         wait_for_finalization: bool = False,
