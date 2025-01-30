@@ -91,6 +91,7 @@ if TYPE_CHECKING:
     from bittensor_wallet import Wallet
     from bittensor.utils import Certificate
     from async_substrate_interface.sync_substrate import QueryMapResult
+    from async_substrate_interface.types import ScaleObj
     from bittensor.utils.delegates_details import DelegatesDetails
     from scalecodec.types import ScaleType, GenericCall
 
@@ -240,7 +241,7 @@ class Subtensor(SubtensorMixin):
         name: str,
         block: Optional[int] = None,
         params: Optional[list] = None,
-    ) -> Union["ScaleType", "FixedPoint"]:
+    ) -> Union["ScaleObj", "FixedPoint"]:
         """
         Queries any module storage on the Bittensor blockchain with the specified parameters and block number. This
             function is a generic query interface that allows for flexible and diverse data retrieval from various
@@ -1099,7 +1100,7 @@ class Subtensor(SubtensorMixin):
 
         This function is used for certificate discovery for setting up mutual tls communication between neurons.
         """
-        certificate: ScaleType = self.query_module(
+        certificate: "ScaleObj" = self.query_module(
             module="SubtensorModule",
             name="NeuronCertificates",
             block=block,
