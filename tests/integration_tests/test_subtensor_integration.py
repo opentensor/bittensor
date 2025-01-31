@@ -30,12 +30,11 @@ async def prepare_test(mocker, seed):
         metadata_v15 = MetadataV15.decode_from_metadata_option(f.read())
         registry = PortableRegistry.from_metadata_v15(metadata_v15)
     subtensor = Subtensor("unknown", _mock=True)
+    subtensor.substrate.metadata_v15 = metadata_v15
     mocker.patch(
         "async_substrate_interface.sync_substrate.connect",
         mocker.Mock(return_value=FakeConnectContextManager(seed=seed)),
     )
-    subtensor.substrate.metadata_v15 = metadata_v15
-    # mocker.patch.object(subtensor.substrate, "metadata_v15", metadata_v15)
     mocker.patch.object(subtensor.substrate, "registry", registry)
     return subtensor
 
@@ -48,7 +47,7 @@ async def test_get_all_subnets_info(mocker):
     assert result[0].owner_ss58 == "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM"
     assert result[1].kappa == 32767
     assert result[1].max_weight_limit == 65535
-    assert result[1].blocks_since_epoch == 230
+    assert result[1].blocks_since_epoch == 94
 
 
 @pytest.mark.asyncio
@@ -107,7 +106,7 @@ async def test_is_hotkey_registered(mocker):
 async def test_blocks_since_last_update(mocker):
     subtensor = await prepare_test(mocker, "blocks_since_last_update")
     result = subtensor.blocks_since_last_update(1, 0)
-    assert result == 3221134
+    assert result == 3264146
 
 
 @pytest.mark.asyncio

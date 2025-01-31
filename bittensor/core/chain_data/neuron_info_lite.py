@@ -1,9 +1,6 @@
 from dataclasses import dataclass
 from typing import Any, Optional
 
-import bt_decode
-import netaddr
-
 from bittensor.core.chain_data.axon_info import AxonInfo
 from bittensor.core.chain_data.info_base import InfoBase
 from bittensor.core.chain_data.prometheus_info import PrometheusInfo
@@ -97,76 +94,36 @@ class NeuronInfoLite(InfoBase):
         return neuron
 
     @classmethod
-    def _fix_decoded(cls, decoded: Any) -> "NeuronInfoLite":
-        active = decoded.active
-        axon_info = decoded.axon_info
-        coldkey = decode_account_id(decoded.coldkey)
-        consensus = decoded.consensus
-        dividends = decoded.dividends
-        emission = decoded.emission
-        hotkey = decode_account_id(decoded.hotkey)
-        incentive = decoded.incentive
-        last_update = decoded.last_update
-        netuid = decoded.netuid
-        prometheus_info = decoded.prometheus_info
-        pruning_score = decoded.pruning_score
-        rank = decoded.rank
-        stake_dict = process_stake_data(decoded.stake)
+    def from_dict(cls, decoded: Any) -> "NeuronInfoLite":
+        coldkey = decode_account_id(decoded["coldkey"])
+        hotkey = decode_account_id(decoded["hotkey"])
+        stake_dict = process_stake_data(decoded["stake"])
         stake = sum(stake_dict.values()) if stake_dict else Balance(0)
-        trust = decoded.trust
-        uid = decoded.uid
-        validator_permit = decoded.validator_permit
-        validator_trust = decoded.validator_trust
 
         return NeuronInfoLite(
-            active=active,
-            axon_info=AxonInfo(
-                version=axon_info.version,
-                ip=str(netaddr.IPAddress(axon_info.ip)),
-                port=axon_info.port,
-                ip_type=axon_info.ip_type,
-                placeholder1=axon_info.placeholder1,
-                placeholder2=axon_info.placeholder2,
-                protocol=axon_info.protocol,
-                hotkey=hotkey,
-                coldkey=coldkey,
+            active=decoded["active"],
+            axon_info=AxonInfo.from_dict(
+                decoded["axon_info"] | {
+                    "hotkey": hotkey,
+                    "coldkey": coldkey,
+                },
             ),
             coldkey=coldkey,
-            consensus=u16_normalized_float(consensus),
-            dividends=u16_normalized_float(dividends),
-            emission=emission / 1e9,
+            consensus=u16_normalized_float(decoded["consensus"]),
+            dividends=u16_normalized_float(decoded["dividends"]),
+            emission=decoded["emission"] / 1e9,
             hotkey=hotkey,
-            incentive=u16_normalized_float(incentive),
-            last_update=last_update,
-            netuid=netuid,
-            prometheus_info=PrometheusInfo(
-                version=prometheus_info.version,
-                ip=str(netaddr.IPAddress(prometheus_info.ip)),
-                port=prometheus_info.port,
-                ip_type=prometheus_info.ip_type,
-                block=prometheus_info.block,
-            ),
-            pruning_score=pruning_score,
-            rank=u16_normalized_float(rank),
+            incentive=u16_normalized_float(decoded["incentive"]),
+            last_update=decoded["last_update"],
+            netuid=decoded["netuid"],
+            prometheus_info=PrometheusInfo.from_dict(decoded["prometheus_info"]),
+            pruning_score=decoded["pruning_score"],
+            rank=u16_normalized_float(decoded["rank"]),
             stake_dict=stake_dict,
             stake=stake,
             total_stake=stake,
-            trust=u16_normalized_float(trust),
-            uid=uid,
-            validator_permit=validator_permit,
-            validator_trust=u16_normalized_float(validator_trust),
+            trust=u16_normalized_float(decoded["trust"]),
+            uid=decoded["uid"],
+            validator_permit=decoded["validator_permit"],
+            validator_trust=u16_normalized_float(decoded["validator_trust"]),
         )
-
-    @classmethod
-    def list_from_vec_u8(cls, vec_u8: bytes) -> list["NeuronInfoLite"]:
-        """
-        Decodes a bytes object into a list of NeuronInfoLite instances.
-
-        Args:
-            vec_u8 (bytes): The bytes object to decode into NeuronInfoLite instances.
-
-        Returns:
-            list[NeuronInfoLite]: A list of NeuronInfoLite instances decoded from the provided bytes object.
-        """
-        decoded = bt_decode.NeuronInfoLite.decode_vec(vec_u8)
-        return [cls._fix_decoded(d) for d in decoded]

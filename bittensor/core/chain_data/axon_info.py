@@ -6,14 +6,16 @@ in the bittensor network.
 from dataclasses import asdict, dataclass
 from typing import Any, Union
 
+import netaddr
 from async_substrate_interface.utils import json
+from bittensor.core.chain_data.info_base import InfoBase
 from bittensor.utils import networking
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import torch, use_torch
 
 
 @dataclass
-class AxonInfo:
+class AxonInfo(InfoBase):
     """
     The `AxonInfo` class represents information about an axon endpoint in the bittensor network. This includes
     properties such as IP address, ports, and relevant keys.
@@ -78,6 +80,20 @@ class AxonInfo:
         except (TypeError, ValueError) as e:
             logging.error(f"Error converting AxonInfo to string: {e}")
             return AxonInfo(0, "", 0, 0, "", "").to_string()
+
+    @classmethod
+    def from_dict(cls, data):
+        return AxonInfo(
+            version=data["version"],
+            ip=str(netaddr.IPAddress(data["ip"])),
+            port=data["port"],
+            ip_type=data["ip_type"],
+            placeholder1=data["placeholder1"],
+            placeholder2=data["placeholder2"],
+            protocol=data["protocol"],
+            hotkey=data["hotkey"],
+            coldkey=data["coldkey"],
+        )
 
     @classmethod
     def from_string(cls, json_string: str) -> "AxonInfo":

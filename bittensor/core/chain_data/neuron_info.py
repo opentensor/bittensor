@@ -1,9 +1,6 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Optional
 
-import bt_decode
-import netaddr
-
 from bittensor.core.chain_data.axon_info import AxonInfo
 from bittensor.core.chain_data.info_base import InfoBase
 from bittensor.core.chain_data.prometheus_info import PrometheusInfo
@@ -128,62 +125,39 @@ class NeuronInfo(InfoBase):
         return neuron
 
     @classmethod
-    def _fix_decoded(cls, decoded: Any) -> "NeuronInfo":
+    def from_dict(cls, decoded: Any) -> "NeuronInfo":
         """Instantiates NeuronInfo from a byte vector."""
-        stake_dict = process_stake_data(decoded.stake)
+        stake_dict = process_stake_data(decoded["stake"])
         total_stake = sum(stake_dict.values()) if stake_dict else Balance(0)
-        axon_info = decoded.axon_info
-        coldkey = decode_account_id(decoded.coldkey)
-        hotkey = decode_account_id(decoded.hotkey)
+        coldkey = decode_account_id(decoded["coldkey"])
+        hotkey = decode_account_id(decoded["hotkey"])
         return NeuronInfo(
-            hotkey=hotkey,
+            active=decoded["active"],
+            axon_info=AxonInfo.from_dict(
+                decoded["axon_info"] | {
+                    "hotkey": hotkey,
+                    "coldkey": coldkey,
+                },
+            ),
+            bonds=[[e[0], e[1]] for e in decoded["bonds"]],
             coldkey=coldkey,
-            uid=decoded.uid,
-            netuid=decoded.netuid,
-            active=decoded.active,
-            stake=total_stake,
-            stake_dict=stake_dict,
-            total_stake=total_stake,
-            rank=u16_normalized_float(decoded.rank),
-            emission=decoded.emission / 1e9,
-            incentive=u16_normalized_float(decoded.incentive),
-            consensus=u16_normalized_float(decoded.consensus),
-            trust=u16_normalized_float(decoded.trust),
-            validator_trust=u16_normalized_float(decoded.validator_trust),
-            dividends=u16_normalized_float(decoded.dividends),
-            last_update=decoded.last_update,
-            validator_permit=decoded.validator_permit,
-            weights=[(e[0], e[1]) for e in decoded.weights],
-            bonds=[[e[0], e[1]] for e in decoded.bonds],
-            pruning_score=decoded.pruning_score,
-            prometheus_info=PrometheusInfo(
-                block=decoded.prometheus_info.block,
-                version=decoded.prometheus_info.version,
-                ip=str(netaddr.IPAddress(decoded.prometheus_info.ip)),
-                port=decoded.prometheus_info.port,
-                ip_type=decoded.prometheus_info.ip_type,
-            ),
-            axon_info=AxonInfo(
-                version=axon_info.version,
-                ip=str(netaddr.IPAddress(axon_info.ip)),
-                port=axon_info.port,
-                ip_type=axon_info.ip_type,
-                placeholder1=axon_info.placeholder1,
-                placeholder2=axon_info.placeholder2,
-                protocol=axon_info.protocol,
-                hotkey=hotkey,
-                coldkey=coldkey,
-            ),
+            consensus=u16_normalized_float(decoded["consensus"]),
+            dividends=u16_normalized_float(decoded["dividends"]),
+            emission=decoded["emission"] / 1e9,
+            hotkey=hotkey,
+            incentive=u16_normalized_float(decoded["incentive"]),
             is_null=False,
+            last_update=decoded["last_update"],
+            netuid=decoded["netuid"],
+            prometheus_info=PrometheusInfo.from_dict(decoded["prometheus_info"]),
+            pruning_score=decoded["pruning_score"],
+            rank=u16_normalized_float(decoded["rank"]),
+            stake_dict=stake_dict,
+            stake=total_stake,
+            total_stake=total_stake,
+            trust=u16_normalized_float(decoded["trust"]),
+            uid=decoded["uid"],
+            validator_permit=decoded["validator_permit"],
+            validator_trust=u16_normalized_float(decoded["validator_trust"]),
+            weights=[(e[0], e[1]) for e in decoded["weights"]],
         )
-
-    @classmethod
-    def list_from_vec_u8(cls, vec_u8: bytes) -> list["NeuronInfo"]:
-        nn = bt_decode.NeuronInfo.decode_vec(bytes(vec_u8))
-
-        return [cls._fix_decoded(n) for n in nn]
-
-    @classmethod
-    def from_vec_u8(cls, vec_u8: bytes) -> "NeuronInfo":
-        n = bt_decode.NeuronInfo.decode(vec_u8)
-        return cls._fix_decoded(n)

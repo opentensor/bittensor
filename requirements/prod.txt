@@ -2,7 +2,7 @@ wheel
 setuptools~=70.0.0
 aiohttp~=3.9
 asyncstdlib~=3.13.0
-bittensor-cli
+# bittensor-cli
 bt-decode==0.4.0
 colorama~=0.4.6
 fastapi~=0.110.1
@@ -25,4 +25,4 @@ uvicorn
 websockets>=14.1
 bittensor-commit-reveal>=0.2.0
 bittensor-wallet>=3.0.0
-async-substrate-interface @ git+https://github.com/opentensor/async-substrate-interface.git@staging
+async-substrate-interface==1.0.0rc9

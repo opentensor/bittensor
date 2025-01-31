@@ -555,7 +555,7 @@ class AsyncSubtensor(SubtensorMixin):
             "get_all_dynamic_info",
             block_hash=block_hash,
         )
-        subnets = DynamicInfo.list_from_vec_u8(bytes.fromhex(query.decode()[2:]))
+        subnets = DynamicInfo.list_from_dicts(query.decode())
         return subnets
 
     async def blocks_since_last_update(self, netuid: int, uid: int) -> Optional[int]:
@@ -768,7 +768,7 @@ class AsyncSubtensor(SubtensorMixin):
         if not result:
             return []
         else:
-            return SubnetInfo.list_from_any(result)
+            return SubnetInfo.list_from_dicts(result)
 
     async def get_balance(
         self,
@@ -1023,7 +1023,7 @@ class AsyncSubtensor(SubtensorMixin):
         if not result:
             return None
 
-        return DelegateInfo.from_any(result)
+        return DelegateInfo.from_dict(result)
 
     async def get_delegate_identities(
         self,
@@ -1172,7 +1172,7 @@ class AsyncSubtensor(SubtensorMixin):
         if not result:
             return []
 
-        return DelegateInfo.delegated_list_from_any(result)
+        return DelegateInfo.delegated_list_from_dicts(result)
 
     async def get_delegates(
         self,
@@ -1200,7 +1200,7 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block=reuse_block,
         )
         if result:
-            return DelegateInfo.list_from_any(result)
+            return DelegateInfo.list_from_dicts(result)
         else:
             return []
 
@@ -1327,8 +1327,7 @@ class AsyncSubtensor(SubtensorMixin):
             params=[netuid],
             block_hash=block_hash,
         )
-        metagraph_bytes = bytes.fromhex(query.decode()[2:])
-        return MetagraphInfo.from_vec_u8(metagraph_bytes)
+        return MetagraphInfo.from_dict(query.decode())
 
     async def get_all_metagraphs_info(
         self,
@@ -1357,8 +1356,7 @@ class AsyncSubtensor(SubtensorMixin):
             "get_all_metagraphs",
             block_hash=block_hash,
         )
-        metagraphs_bytes = bytes.fromhex(query.decode()[2:])
-        return MetagraphInfo.list_from_vec_u8(metagraphs_bytes)
+        return MetagraphInfo.list_from_dicts(query.decode())
 
     async def get_netuids_for_hotkey(
         self,
@@ -1487,7 +1485,7 @@ class AsyncSubtensor(SubtensorMixin):
         if not result:
             return NeuronInfo.get_null_neuron()
 
-        return NeuronInfo.from_any(result)
+        return NeuronInfo.from_dict(result)
 
     async def get_stake(
         self,
@@ -1575,23 +1573,19 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             Optional[list[StakeInfo]]: A list of StakeInfo objects, or ``None`` if no stake information is found.
         """
-        encoded_coldkey = ss58_to_vec_u8(coldkey_ss58)
-        block_hash = await self.determine_block_hash(
-            block=block, block_hash=block_hash, reuse_block=reuse_block
-        )
-
-        hex_bytes_result = await self.query_runtime_api(
+        result = await self.query_runtime_api(
             runtime_api="StakeInfoRuntimeApi",
             method="get_stake_info_for_coldkey",
-            params=[encoded_coldkey],
+            params=[coldkey_ss58],
+            block=block,
             block_hash=block_hash,
             reuse_block=reuse_block,
         )
 
-        if hex_bytes_result is None:
+        if result is None:
             return []
 
-        stakes = StakeInfo.list_from_vec_u8(hex_to_bytes(hex_bytes_result))  # type: ignore
+        stakes = StakeInfo.list_from_dicts(result)  # type: ignore
         return [stake for stake in stakes if stake.stake > 0]
 
     async def get_stake_info_for_coldkey(
@@ -1629,7 +1623,7 @@ class AsyncSubtensor(SubtensorMixin):
         if not result:
             return []
 
-        return StakeInfo.list_from_any(result)
+        return StakeInfo.list_from_dicts(result)
 
     async def get_subnet_burn_cost(
         self,
@@ -1698,7 +1692,7 @@ class AsyncSubtensor(SubtensorMixin):
         if not result:
             return None
 
-        return SubnetHyperparameters.from_any(result)
+        return SubnetHyperparameters.from_dict(result)
 
     async def get_subnet_reveal_period_epochs(
         self, netuid: int, block: Optional[int] = None, block_hash: Optional[str] = None
@@ -2380,7 +2374,7 @@ class AsyncSubtensor(SubtensorMixin):
         if not result:
             return NeuronInfo.get_null_neuron()
 
-        return NeuronInfo.from_any(result)
+        return NeuronInfo.from_dict(result)
 
     async def neurons(
         self,
@@ -2418,7 +2412,7 @@ class AsyncSubtensor(SubtensorMixin):
         if not result:
             return []
 
-        return NeuronInfo.list_from_any(result)
+        return NeuronInfo.list_from_dicts(result)
 
     async def neurons_lite(
         self,
@@ -2456,7 +2450,7 @@ class AsyncSubtensor(SubtensorMixin):
         if not result:
             return []
 
-        return NeuronInfoLite.list_from_any(result)
+        return NeuronInfoLite.list_from_dicts(result)
 
     async def query_identity(
         self,
@@ -2559,7 +2553,7 @@ class AsyncSubtensor(SubtensorMixin):
             params=[netuid],
             block_hash=block_hash,
         )
-        subnet = DynamicInfo.from_vec_u8(hex_to_bytes(query.decode()))
+        subnet = DynamicInfo.from_dict(query)
         return subnet
 
     async def subnet_exists(

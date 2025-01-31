@@ -1,9 +1,6 @@
 from dataclasses import dataclass
 from typing import Any, Optional
 
-import bt_decode
-import munch
-
 from bittensor.core.chain_data.info_base import InfoBase
 from bittensor.core.chain_data.utils import decode_account_id
 from bittensor.utils import u16_normalized_float
@@ -42,64 +39,33 @@ class DelegateInfo(InfoBase):
     total_daily_return: Balance  # Total daily return of the delegate
 
     @classmethod
-    def _fix_decoded(cls, decoded: "DelegateInfo") -> Optional["DelegateInfo"]:
-        hotkey = decode_account_id(decoded.delegate_ss58)
-        owner = decode_account_id(decoded.owner_ss58)
+    def from_dict(cls, decoded: dict) -> Optional["DelegateInfo"]:
         nominators = [
-            (decode_account_id(x), Balance.from_rao(y)) for x, y in decoded.nominators
+            (decode_account_id(x), Balance.from_rao(y)) for x, y in decoded["nominators"]
         ]
         total_stake = sum((x[1] for x in nominators)) if nominators else Balance(0)
+
         return DelegateInfo(
-            hotkey_ss58=hotkey,
-            total_stake=total_stake,
+            hotkey_ss58=decode_account_id(decoded["delegate_ss58"]),
             nominators=nominators,
-            owner_ss58=owner,
-            take=u16_normalized_float(decoded.take),
-            validator_permits=decoded.validator_permits,
-            registrations=decoded.registrations,
-            return_per_1000=Balance.from_rao(decoded.return_per_1000),
-            total_daily_return=Balance.from_rao(decoded.total_daily_return),
+            owner_ss58=decode_account_id(decoded["owner_ss58"]),
+            registrations=decoded["registrations"],
+            return_per_1000=Balance.from_rao(decoded["return_per_1000"]),
+            take=u16_normalized_float(decoded["take"]),
+            total_daily_return=Balance.from_rao(decoded["total_daily_return"]),
+            total_stake=total_stake,
+            validator_permits=decoded["validator_permits"],
         )
 
     @classmethod
-    def list_from_vec_u8(cls, vec_u8: bytes) -> list["DelegateInfo"]:
-        decoded = bt_decode.DelegateInfo.decode_vec(vec_u8)
-        return [cls._fix_decoded(d) for d in decoded]
-
-    @classmethod
-    def fix_delegated_list(
-        cls, delegated_list: list[tuple["DelegateInfo", Balance]]
+    def delegated_list_from_dicts(
+        cls, delegates: list[Any]
     ) -> list[tuple["DelegateInfo", Balance]]:
-        results = []
-        for d, b in delegated_list:
-            nominators = [
-                (decode_account_id(x), Balance.from_rao(y)) for x, y in d.nominators
-            ]
-            total_stake = sum((x[1] for x in nominators)) if nominators else Balance(0)
-            delegate = DelegateInfo(
-                hotkey_ss58=decode_account_id(d.delegate_ss58),
-                total_stake=total_stake,
-                nominators=nominators,
-                owner_ss58=decode_account_id(d.owner_ss58),
-                take=u16_normalized_float(d.take),
-                validator_permits=d.validator_permits,
-                registrations=d.registrations,
-                return_per_1000=Balance.from_rao(d.return_per_1000),
-                total_daily_return=Balance.from_rao(d.total_daily_return),
+        return [
+            (
+                DelegateInfo.from_dict(delegate),
+                Balance.from_rao(balance),
+
             )
-            results.append((delegate, Balance.from_rao(b)))
-        return results
-
-    @classmethod
-    def delegated_list_from_vec_u8(
-        cls, vec_u8: bytes
-    ) -> list[tuple["DelegateInfo", Balance]]:
-        decoded = bt_decode.DelegateInfo.decode_delegated(vec_u8)
-        return cls.fix_delegated_list(decoded)
-
-    @classmethod
-    def delegated_list_from_any(
-        cls, any_list: list[Any]
-    ) -> list[tuple["DelegateInfo", Balance]]:
-        any_list = [munch.munchify(any_) for any_ in any_list]
-        return cls.fix_delegated_list(any_list)
+            for delegate, balance in delegates
+        ]

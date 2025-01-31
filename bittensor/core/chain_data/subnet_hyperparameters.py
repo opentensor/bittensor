@@ -1,7 +1,4 @@
 from dataclasses import dataclass
-from typing import Any, Optional
-
-import bt_decode
 
 from bittensor.core.chain_data.info_base import InfoBase
 
@@ -70,7 +67,7 @@ class SubnetHyperparameters(InfoBase):
     liquid_alpha_enabled: bool
 
     @classmethod
-    def _fix_decoded(cls, decoded: Any) -> "SubnetHyperparameters":
+    def from_dict(cls, decoded: dict) -> "SubnetHyperparameters":
         """
         Create a `SubnetHyperparameters` instance from a vector of bytes.
 
@@ -85,36 +82,31 @@ class SubnetHyperparameters(InfoBase):
                 otherwise.
         """
         return SubnetHyperparameters(
-            rho=decoded.rho,
-            kappa=decoded.kappa,
-            immunity_period=decoded.immunity_period,
-            min_allowed_weights=decoded.min_allowed_weights,
-            max_weight_limit=decoded.max_weights_limit,
-            tempo=decoded.tempo,
-            min_difficulty=decoded.min_difficulty,
-            max_difficulty=decoded.max_difficulty,
-            weights_version=decoded.weights_version,
-            weights_rate_limit=decoded.weights_rate_limit,
-            adjustment_interval=decoded.adjustment_interval,
-            activity_cutoff=decoded.activity_cutoff,
-            registration_allowed=decoded.registration_allowed,
-            target_regs_per_interval=decoded.target_regs_per_interval,
-            min_burn=decoded.min_burn,
-            max_burn=decoded.max_burn,
-            bonds_moving_avg=decoded.bonds_moving_avg,
-            max_regs_per_block=decoded.max_regs_per_block,
-            serving_rate_limit=decoded.serving_rate_limit,
-            max_validators=decoded.max_validators,
-            adjustment_alpha=decoded.adjustment_alpha,
-            difficulty=decoded.difficulty,
-            commit_reveal_weights_interval=decoded.commit_reveal_weights_interval,
-            commit_reveal_weights_enabled=decoded.commit_reveal_weights_enabled,
-            alpha_high=decoded.alpha_high,
-            alpha_low=decoded.alpha_low,
-            liquid_alpha_enabled=decoded.liquid_alpha_enabled,
+            activity_cutoff=decoded["activity_cutoff"],
+            adjustment_alpha=decoded["adjustment_alpha"],
+            adjustment_interval=decoded["adjustment_interval"],
+            alpha_high=decoded["alpha_high"],
+            alpha_low=decoded["alpha_low"],
+            bonds_moving_avg=decoded["bonds_moving_avg"],
+            commit_reveal_weights_enabled=decoded["commit_reveal_weights_enabled"],
+            commit_reveal_weights_interval=decoded["commit_reveal_weights_interval"],
+            difficulty=decoded["difficulty"],
+            immunity_period=decoded["immunity_period"],
+            kappa=decoded["kappa"],
+            liquid_alpha_enabled=decoded["liquid_alpha_enabled"],
+            max_burn=decoded["max_burn"],
+            max_difficulty=decoded["max_difficulty"],
+            max_regs_per_block=decoded["max_regs_per_block"],
+            max_validators=decoded["max_validators"],
+            max_weight_limit=decoded["max_weights_limit"],
+            min_allowed_weights=decoded["min_allowed_weights"],
+            min_burn=decoded["min_burn"],
+            min_difficulty=decoded["min_difficulty"],
+            registration_allowed=decoded["registration_allowed"],
+            rho=decoded["rho"],
+            serving_rate_limit=decoded["serving_rate_limit"],
+            target_regs_per_interval=decoded["target_regs_per_interval"],
+            tempo=decoded["tempo"],
+            weights_rate_limit=decoded["weights_rate_limit"],
+            weights_version=decoded["weights_version"],
         )
-
-    @classmethod
-    def from_vec_u8(cls, vec_u8: bytes) -> Optional["SubnetHyperparameters"]:
-        decoded = bt_decode.SubnetHyperparameters.decode(vec_u8)
-        return cls._fix_decoded(decoded)
