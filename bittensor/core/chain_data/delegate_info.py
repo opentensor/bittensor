@@ -41,7 +41,8 @@ class DelegateInfo(InfoBase):
     @classmethod
     def from_dict(cls, decoded: dict) -> Optional["DelegateInfo"]:
         nominators = [
-            (decode_account_id(x), Balance.from_rao(y)) for x, y in decoded["nominators"]
+            (decode_account_id(x), Balance.from_rao(y))
+            for x, y in decoded["nominators"]
         ]
         total_stake = sum((x[1] for x in nominators)) if nominators else Balance(0)
 
@@ -65,7 +66,6 @@ class DelegateInfo(InfoBase):
             (
                 DelegateInfo.from_dict(delegate),
                 Balance.from_rao(balance),
-
             )
             for delegate, balance in delegates
         ]
