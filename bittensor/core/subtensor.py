@@ -363,8 +363,7 @@ class Subtensor(SubtensorMixin):
             "get_all_dynamic_info",
             block_hash=block_hash,
         )
-        subnets = DynamicInfo.list_from_dicts(query.decode())
-        return subnets
+        return DynamicInfo.list_from_dicts(query.decode())
 
     def blocks_since_last_update(self, netuid: int, uid: int) -> Optional[int]:
         """
