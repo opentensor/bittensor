@@ -193,3 +193,53 @@ class MetagraphInfo(InfoBase):
         ]
 
         return MetagraphInfo(**decoded)
+
+
+@dataclass
+class MetagraphInfoEmissions:
+    subnet_emission: Balance
+    alpha_in_emission: Balance
+    alpha_out_emission: Balance
+    tao_in_emission: Balance
+    pending_alpha_emission: Balance
+    pending_root_emission: Balance
+
+
+@dataclass
+class MetagraphInfoPool:
+    alpha_out: Balance
+    alpha_in: Balance
+    tao_in: Balance
+
+
+@dataclass
+class MetagraphInfoParams:
+    activity_cutoff: int
+    adjustment_alpha: float
+    adjustment_interval: int
+    alpha_high: float
+    alpha_low: float
+    bonds_moving_avg: float
+    burn: Balance
+    commit_reveal_period: int
+    commit_reveal_weights_enabled: bool
+    difficulty: float
+    immunity_period: int
+    kappa: float
+    liquid_alpha_enabled: bool
+    max_burn: Balance
+    max_difficulty: float
+    max_regs_per_block: int
+    max_validators: int
+    max_weights_limit: float
+    min_allowed_weights: float
+    min_burn: Balance
+    min_difficulty: float
+    pow_registration_allowed: bool
+    registration_allowed: bool
+    rho: int
+    serving_rate_limit: int
+    target_regs_per_interval: int
+    tempo: int
+    weights_rate_limit: int
+    weights_version: int
