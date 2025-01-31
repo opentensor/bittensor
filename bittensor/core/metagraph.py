@@ -1578,7 +1578,7 @@ class AsyncMetagraph(NumpyOrTorch):
     async def _get_all_stakes_from_chain(self):
         """Fills in the stake associated attributes of a class instance from a chain response."""
         try:
-            result = await subtensor.query_runtime_api(
+            result = await self.subtensor.query_runtime_api(
                 runtime_api="SubnetInfoRuntimeApi",
                 method="get_subnet_state",
                 params=[self.netuid],
@@ -1866,7 +1866,7 @@ class Metagraph(NumpyOrTorch):
     def _get_all_stakes_from_chain(self):
         """Fills in the stake associated attributes of a class instance from a chain response."""
         try:
-            result = subtensor.query_runtime_api(
+            result = self.subtensor.query_runtime_api(
                 runtime_api="SubnetInfoRuntimeApi",
                 method="get_subnet_state",
                 params=[self.netuid],
