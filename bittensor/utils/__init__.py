@@ -239,7 +239,6 @@ def format_error_message(error_message: Union[dict, Exception]) -> str:
     return f"Subtensor returned `{err_name}({err_type})` error. This means: `{err_description}`."
 
 
-# Subnet 24 uses this function
 def is_valid_ss58_address(address: str) -> bool:
     """
     Checks if the given address is a valid ss58 address.
@@ -339,7 +338,7 @@ def decode_hex_identity_dict(info_dictionary) -> dict[str, Any]:
         {'name': 'john', 'additional': [('data', 'data')]}
     """
 
-    def get_decoded(data: str) -> str:
+    def get_decoded(data: str) -> Optional[str]:
         """Decodes a hex-encoded string."""
         try:
             return bytes.fromhex(data[2:]).decode()

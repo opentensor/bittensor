@@ -1181,7 +1181,7 @@ class Subtensor(SubtensorMixin):
             block=block,
             params=[hotkey_ss58, coldkey_ss58, netuid],
         )
-        hotkey_alpha_obj: ScaleType = self.query_module(
+        hotkey_alpha_obj: ScaleObj = self.query_module(
             module="SubtensorModule",
             name="TotalHotkeyAlpha",
             block=block,
@@ -1541,7 +1541,7 @@ class Subtensor(SubtensorMixin):
         This function is important for tracking and understanding the decision-making processes within the Bittensor
             network, particularly how proposals are received and acted upon by the governing body.
         """
-        vote_data = self.substrate.query(
+        vote_data: dict[str, Any] = self.substrate.query(
             module="Triumvirate",
             storage_function="Voting",
             params=[proposal_hash],
@@ -2180,6 +2180,7 @@ class Subtensor(SubtensorMixin):
         Args:
             wallet (bittensor_wallet.Wallet): The wallet to be used for staking.
             hotkey_ss58 (Optional[str]): The ``SS58`` address of the hotkey associated with the neuron.
+            netuid (Optional[int]): The unique identifier of the subnet to which the neuron belongs.
             amount (Balance): The amount of TAO to stake.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
@@ -2217,6 +2218,7 @@ class Subtensor(SubtensorMixin):
         Args:
             wallet (bittensor_wallet.Wallet): The wallet used for staking.
             hotkey_ss58s (list[str]): List of ``SS58`` addresses of hotkeys to stake to.
+            netuids (list[int]): List of network UIDs to stake to.
             amounts (list[Balance]): Corresponding amounts of TAO to stake for each hotkey.
             wait_for_inclusion (bool): Waits for the transaction to be included in a block.
             wait_for_finalization (bool): Waits for the transaction to be finalized on the blockchain.
@@ -2637,6 +2639,7 @@ class Subtensor(SubtensorMixin):
 
         retries = 0
         success = False
+        message = "No attempt made. Perhaps it is too soon to commit weights!"
         if (
             uid := self.get_uid_for_hotkey_on_subnet(wallet.hotkey.ss58_address, netuid)
         ) is None:
@@ -2647,7 +2650,7 @@ class Subtensor(SubtensorMixin):
 
         if self.commit_reveal_enabled(netuid=netuid) is True:
             # go with `commit reveal v3` extrinsic
-            message = "No attempt made. Perhaps it is too soon to commit weights!"
+
             while retries < max_retries and success is False and _blocks_weight_limit():
                 logging.info(
                     f"Committing weights for subnet #{netuid}. Attempt {retries + 1} of {max_retries}."
@@ -2666,7 +2669,7 @@ class Subtensor(SubtensorMixin):
             return success, message
         else:
             # go with classic `set weights extrinsic`
-            message = "No attempt made. Perhaps it is too soon to set weights!"
+
             while retries < max_retries and success is False and _blocks_weight_limit():
                 try:
                     logging.info(

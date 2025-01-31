@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional, Any
+from typing import Any, Optional, Union
 
 from scalecodec.utils.ss58 import ss58_encode
 
@@ -81,7 +81,7 @@ class StakeInfo:
         }
 
     @classmethod
-    def list_from_vec_u8(cls, vec_u8: list[int]) -> list["StakeInfo"]:
+    def list_from_vec_u8(cls, vec_u8: Union[list[int], bytes]) -> list["StakeInfo"]:
         """Returns a list of StakeInfo objects from a ``vec_u8``."""
         decoded = from_scale_encoding(vec_u8, ChainDataType.StakeInfo, is_vec=True)
         if decoded is None:

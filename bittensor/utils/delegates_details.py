@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 
 # TODO: consider move it to `bittensor.core.chain_data`
@@ -17,7 +17,7 @@ class DelegatesDetails:
 
     @classmethod
     def from_chain_data(cls, data: dict[str, Any]) -> "DelegatesDetails":
-        def decode(key: str, default: Optional[str] = ""):
+        def decode(key: str, default: Union[Optional[str], list] = ""):
             try:
                 if isinstance(data.get(key), dict):
                     value = next(data.get(key).values())
