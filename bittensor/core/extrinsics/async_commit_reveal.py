@@ -143,7 +143,7 @@ async def commit_reveal_v3_extrinsic(
             return False, message
 
         logging.success(
-            f"[green]Finalized![/green] Weights commited with reveal round [blue]{reveal_round}[/blue]."
+            f"[green]Finalized![/green] Weights committed with reveal round [blue]{reveal_round}[/blue]."
         )
         return True, f"reveal_round:{reveal_round}"
 
