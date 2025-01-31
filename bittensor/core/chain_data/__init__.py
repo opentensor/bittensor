@@ -11,7 +11,12 @@ from .delegate_info import DelegateInfo
 from .delegate_info_lite import DelegateInfoLite
 from .dynamic_info import DynamicInfo
 from .ip_info import IPInfo
-from .metagraph_info import MetagraphInfo
+from .metagraph_info import (
+    MetagraphInfo,
+    MetagraphInfoEmissions,
+    MetagraphInfoPool,
+    MetagraphInfoParams,
+)
 from .neuron_info import NeuronInfo
 from .neuron_info_lite import NeuronInfoLite
 from .neuron_certificate import NeuronCertificate
@@ -36,6 +41,9 @@ __all__ = [
     DynamicInfo,
     IPInfo,
     MetagraphInfo,
+    MetagraphInfoEmissions,
+    MetagraphInfoParams,
+    MetagraphInfoPool,
     NeuronInfo,
     NeuronInfoLite,
     NeuronCertificate,
