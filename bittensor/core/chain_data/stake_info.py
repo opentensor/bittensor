@@ -1,14 +1,9 @@
 from dataclasses import dataclass
-from typing import Any, Optional
 
-import bt_decode
 from scalecodec.utils.ss58 import ss58_encode
 
 from bittensor.core.chain_data.info_base import InfoBase
-from bittensor.core.chain_data.utils import (
-    decode_account_id,
-    from_scale_encoding_using_type_string,
-)
+from bittensor.core.chain_data.utils import decode_account_id
 from bittensor.core.settings import SS58_FORMAT
 from bittensor.utils.balance import Balance
 
@@ -34,7 +29,7 @@ class StakeInfo(InfoBase):
     is_registered: bool
 
     @classmethod
-    def fix_decoded_values(cls, decoded: Any) -> "StakeInfo":
+    def fix_decoded_values(cls, decoded: dict) -> "StakeInfo":
         """Fixes the decoded values."""
         netuid = decoded["netuid"]
         return cls(
@@ -49,51 +44,9 @@ class StakeInfo(InfoBase):
         )
 
     @classmethod
-    def _fix_decoded(cls, decoded: Any) -> "StakeInfo":
+    def _fix_decoded(cls, decoded: dict) -> "StakeInfo":
         hotkey = decode_account_id(decoded.hotkey)
         coldkey = decode_account_id(decoded.coldkey)
         stake = Balance.from_rao(decoded.stake)
 
         return StakeInfo(hotkey, coldkey, stake)
-
-    @classmethod
-    def from_vec_u8(cls, vec_u8: list[int]) -> Optional["StakeInfo"]:
-        """Returns a StakeInfo object from a ``vec_u8``."""
-        if len(vec_u8) == 0:
-            return None
-
-        decoded = bt_decode.StakeInfo.decode(vec_u8)
-        if decoded is None:
-            return None
-
-        return StakeInfo.fix_decoded_values(decoded)
-
-    @classmethod
-    def list_of_tuple_from_vec_u8(
-        cls, vec_u8: list[int]
-    ) -> dict[str, list["StakeInfo"]]:
-        """Returns a list of StakeInfo objects from a ``vec_u8``."""
-        decoded: Optional[list[tuple[str, list[object]]]] = (
-            from_scale_encoding_using_type_string(
-                input_=vec_u8, type_string="Vec<(AccountId, Vec<StakeInfo>)>"
-            )
-        )
-
-        if decoded is None:
-            return {}
-
-        return {
-            ss58_encode(address=account_id, ss58_format=SS58_FORMAT): [
-                StakeInfo.fix_decoded_values(d) for d in stake_info
-            ]
-            for account_id, stake_info in decoded
-        }
-
-    @classmethod
-    def list_from_vec_u8(cls, vec_u8: bytes) -> list["StakeInfo"]:
-        """Returns a list of StakeInfo objects from a ``vec_u8``."""
-        decoded = bt_decode.StakeInfo.decode_vec(vec_u8)
-        if decoded is None:
-            return []
-
-        return [StakeInfo.fix_decoded_values(d) for d in decoded]

@@ -8,6 +8,7 @@ from typing import Optional, Union
 
 from scalecodec.utils.ss58 import ss58_encode
 
+from bittensor.core.chain_data.info_base import InfoBase
 from bittensor.core.chain_data.utils import (
     ChainDataType,
     from_scale_encoding,
@@ -18,7 +19,7 @@ from bittensor.utils.balance import Balance
 
 
 @dataclass
-class DynamicInfo:
+class DynamicInfo(InfoBase):
     netuid: int
     owner_hotkey: str
     owner_coldkey: str
@@ -43,26 +44,7 @@ class DynamicInfo:
     subnet_identity: Optional[SubnetIdentity]
 
     @classmethod
-    def from_vec_u8(cls, vec_u8: Union[list[int], bytes]) -> Optional["DynamicInfo"]:
-        if len(vec_u8) == 0:
-            return None
-        decoded = from_scale_encoding(vec_u8, ChainDataType.DynamicInfo)
-        if decoded is None:
-            return None
-        return DynamicInfo.fix_decoded_values(decoded)
-
-    @classmethod
-    def list_from_vec_u8(cls, vec_u8: Union[list[int], bytes]) -> list["DynamicInfo"]:
-        decoded = from_scale_encoding(
-            vec_u8, ChainDataType.DynamicInfo, is_vec=True, is_option=True
-        )
-        if decoded is None:
-            return []
-        decoded = [DynamicInfo.fix_decoded_values(d) for d in decoded]
-        return decoded
-
-    @classmethod
-    def fix_decoded_values(cls, decoded: dict) -> "DynamicInfo":
+    def from_dict(cls, decoded: dict) -> "DynamicInfo":
         """Returns a DynamicInfo object from a decoded DynamicInfo dictionary."""
 
         netuid = int(decoded["netuid"])

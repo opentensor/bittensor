@@ -404,16 +404,16 @@ async def test_get_delegates(subtensor, mocker, fake_result, response):
         autospec=subtensor.query_runtime_api, return_value=fake_result
     )
     subtensor.query_runtime_api = mocked_query_runtime_api
-    mocked_delegate_info_list_from_any = mocker.Mock()
-    async_subtensor.DelegateInfo.list_from_any = mocked_delegate_info_list_from_any
+    mocked_delegate_info_list_from_dicts = mocker.Mock()
+    async_subtensor.DelegateInfo.list_from_dicts = mocked_delegate_info_list_from_dicts
 
     # Call
     result = await subtensor.get_delegates(block_hash=None, reuse_block=False)
 
     # Asserts
     if fake_result:
-        assert result == mocked_delegate_info_list_from_any.return_value
-        mocked_delegate_info_list_from_any.assert_called_once_with(fake_result)
+        assert result == mocked_delegate_info_list_from_dicts.return_value
+        mocked_delegate_info_list_from_dicts.assert_called_once_with(fake_result)
     else:
         assert result == response
 
@@ -441,8 +441,8 @@ async def test_get_stake_info_for_coldkey(subtensor, mocker, fake_result, respon
     )
     subtensor.query_runtime_api = mocked_query_runtime_api
 
-    mocked_stake_info_list_from_any = mocker.Mock()
-    async_subtensor.StakeInfo.list_from_any = mocked_stake_info_list_from_any
+    mocked_stake_info_list_from_dicts = mocker.Mock()
+    async_subtensor.StakeInfo.list_from_dicts = mocked_stake_info_list_from_dicts
 
     # Call
     result = await subtensor.get_stake_info_for_coldkey(
@@ -451,8 +451,8 @@ async def test_get_stake_info_for_coldkey(subtensor, mocker, fake_result, respon
 
     # Asserts
     if fake_result:
-        assert result == mocked_stake_info_list_from_any.return_value
-        mocked_stake_info_list_from_any.assert_called_once_with(fake_result)
+        assert result == mocked_stake_info_list_from_dicts.return_value
+        mocked_stake_info_list_from_dicts.assert_called_once_with(fake_result)
     else:
         assert result == response
 
@@ -1004,8 +1004,8 @@ async def test_neurons(subtensor, mocker):
     mocked_query_runtime_api = mocker.patch.object(
         subtensor, "query_runtime_api", return_value="NOT NONE"
     )
-    mocked_neuron_info_list_from_vec_u8 = mocker.patch.object(
-        async_subtensor.NeuronInfo, "list_from_any"
+    mocked_neuron_info_list_from_dicts = mocker.patch.object(
+        async_subtensor.NeuronInfo, "list_from_dicts"
     )
     # Call
     result = await subtensor.neurons(
@@ -1023,7 +1023,7 @@ async def test_neurons(subtensor, mocker):
         block_hash=fake_block_hash,
         reuse_block=fake_reuse_block_hash,
     )
-    assert result == mocked_neuron_info_list_from_vec_u8.return_value
+    assert result == mocked_neuron_info_list_from_dicts.return_value
 
 
 @pytest.mark.parametrize(
@@ -1042,8 +1042,8 @@ async def test_neurons_lite(subtensor, mocker, fake_result, response):
     mocked_query_runtime_api = mocker.AsyncMock(return_value=fake_result)
     subtensor.query_runtime_api = mocked_query_runtime_api
 
-    mocked_neuron_info_lite_list_from_any = mocker.Mock()
-    async_subtensor.NeuronInfoLite.list_from_any = mocked_neuron_info_lite_list_from_any
+    mocked_neuron_info_lite_list_from_dicts = mocker.Mock()
+    async_subtensor.NeuronInfoLite.list_from_dicts = mocked_neuron_info_lite_list_from_dicts
 
     # Call
     result = await subtensor.neurons_lite(
@@ -1063,10 +1063,10 @@ async def test_neurons_lite(subtensor, mocker, fake_result, response):
         reuse_block=fake_reuse_block_hash,
     )
     if fake_result:
-        mocked_neuron_info_lite_list_from_any.assert_called_once_with(fake_result)
-        assert result == mocked_neuron_info_lite_list_from_any.return_value
+        mocked_neuron_info_lite_list_from_dicts.assert_called_once_with(fake_result)
+        assert result == mocked_neuron_info_lite_list_from_dicts.return_value
     else:
-        mocked_neuron_info_lite_list_from_any.assert_not_called()
+        mocked_neuron_info_lite_list_from_dicts.assert_not_called()
         assert result == []
 
 
@@ -1090,7 +1090,7 @@ async def test_get_neuron_for_pubkey_and_subnet_success(subtensor, mocker):
         return_value=mocker.Mock(value=fake_result),
     )
     mocked_neuron_info = mocker.patch.object(
-        async_subtensor.NeuronInfo, "from_any", return_value="fake_neuron_info"
+        async_subtensor.NeuronInfo, "from_dict", return_value="fake_neuron_info"
     )
 
     # Call
@@ -1207,8 +1207,8 @@ async def test_neuron_for_uid_happy_path(subtensor, mocker):
     mocked_null_neuron = mocker.Mock()
     async_subtensor.NeuronInfo.get_null_neuron = mocked_null_neuron
 
-    mocked_neuron_info_from_any = mocker.Mock()
-    async_subtensor.NeuronInfo.from_any = mocked_neuron_info_from_any
+    mocked_neuron_info_from_dict = mocker.Mock()
+    async_subtensor.NeuronInfo.from_dict = mocked_neuron_info_from_dict
 
     # Call
     result = await subtensor.neuron_for_uid(
@@ -1217,10 +1217,10 @@ async def test_neuron_for_uid_happy_path(subtensor, mocker):
 
     # Asserts
     mocked_null_neuron.assert_not_called()
-    mocked_neuron_info_from_any.assert_called_once_with(
+    mocked_neuron_info_from_dict.assert_called_once_with(
         subtensor.substrate.runtime_call.return_value.value
     )
-    assert result == mocked_neuron_info_from_any.return_value
+    assert result == mocked_neuron_info_from_dict.return_value
 
 
 @pytest.mark.asyncio
@@ -1263,8 +1263,8 @@ async def test_neuron_for_uid(subtensor, mocker):
     )
     subtensor.substrate.runtime_call = mocked_substrate_runtime_call
 
-    mocked_neuron_info_from_any = mocker.Mock()
-    async_subtensor.NeuronInfo.from_any = mocked_neuron_info_from_any
+    mocked_neuron_info_from_dict = mocker.Mock()
+    async_subtensor.NeuronInfo.from_dict = mocked_neuron_info_from_dict
 
     # Call
     result = await subtensor.neuron_for_uid(
@@ -1273,7 +1273,7 @@ async def test_neuron_for_uid(subtensor, mocker):
 
     # Asserts
     mocked_null_neuron.assert_called_once()
-    mocked_neuron_info_from_any.assert_not_called()
+    mocked_neuron_info_from_dict.assert_not_called()
     assert result == mocked_null_neuron.return_value
 
 
@@ -1283,9 +1283,9 @@ async def test_get_delegated_no_block_hash_no_reuse(subtensor, mocker):
     # Preps
     fake_coldkey_ss58 = "fake_ss58_address"
 
-    mocked_delegated_list_from_any = mocker.Mock()
-    async_subtensor.DelegateInfo.delegated_list_from_any = (
-        mocked_delegated_list_from_any
+    mocked_delegated_list_from_dicts = mocker.Mock()
+    async_subtensor.DelegateInfo.delegated_list_from_dicts = (
+        mocked_delegated_list_from_dicts
     )
 
     # Call
@@ -1298,10 +1298,10 @@ async def test_get_delegated_no_block_hash_no_reuse(subtensor, mocker):
         [fake_coldkey_ss58],
         None,
     )
-    mocked_delegated_list_from_any.assert_called_once_with(
+    mocked_delegated_list_from_dicts.assert_called_once_with(
         subtensor.substrate.runtime_call.return_value.value
     )
-    assert result == mocked_delegated_list_from_any.return_value
+    assert result == mocked_delegated_list_from_dicts.return_value
 
 
 @pytest.mark.asyncio
@@ -1311,9 +1311,9 @@ async def test_get_delegated_with_block_hash(subtensor, mocker):
     fake_coldkey_ss58 = "fake_ss58_address"
     fake_block_hash = "fake_block_hash"
 
-    mocked_delegated_list_from_any = mocker.Mock()
-    async_subtensor.DelegateInfo.delegated_list_from_any = (
-        mocked_delegated_list_from_any
+    mocked_delegated_list_from_dicts = mocker.Mock()
+    async_subtensor.DelegateInfo.delegated_list_from_dicts = (
+        mocked_delegated_list_from_dicts
     )
 
     # Call
@@ -1328,10 +1328,10 @@ async def test_get_delegated_with_block_hash(subtensor, mocker):
         [fake_coldkey_ss58],
         fake_block_hash,
     )
-    mocked_delegated_list_from_any.assert_called_once_with(
+    mocked_delegated_list_from_dicts.assert_called_once_with(
         subtensor.substrate.runtime_call.return_value.value
     )
-    assert result == mocked_delegated_list_from_any.return_value
+    assert result == mocked_delegated_list_from_dicts.return_value
 
 
 @pytest.mark.asyncio
@@ -1341,9 +1341,9 @@ async def test_get_delegated_with_reuse_block(subtensor, mocker):
     fake_coldkey_ss58 = "fake_ss58_address"
     reuse_block = True
 
-    mocked_delegated_list_from_any = mocker.Mock()
-    async_subtensor.DelegateInfo.delegated_list_from_any = (
-        mocked_delegated_list_from_any
+    mocked_delegated_list_from_dicts = mocker.Mock()
+    async_subtensor.DelegateInfo.delegated_list_from_dicts = (
+        mocked_delegated_list_from_dicts
     )
 
     # Call
@@ -1358,10 +1358,10 @@ async def test_get_delegated_with_reuse_block(subtensor, mocker):
         [fake_coldkey_ss58],
         None,
     )
-    mocked_delegated_list_from_any.assert_called_once_with(
+    mocked_delegated_list_from_dicts.assert_called_once_with(
         subtensor.substrate.runtime_call.return_value.value
     )
-    assert result == mocked_delegated_list_from_any.return_value
+    assert result == mocked_delegated_list_from_dicts.return_value
 
 
 @pytest.mark.asyncio
@@ -1975,9 +1975,9 @@ async def test_get_subnet_hyperparameters_success(subtensor, mocker):
     mocked_query_runtime_api = mocker.AsyncMock(return_value=fake_result)
     subtensor.query_runtime_api = mocked_query_runtime_api
 
-    mocked_from_any = mocker.Mock()
+    mocked_from_dict = mocker.Mock()
     mocker.patch.object(
-        async_subtensor.SubnetHyperparameters, "from_any", mocked_from_any
+        async_subtensor.SubnetHyperparameters, "from_dict", mocked_from_dict
     )
 
     # Call
@@ -1994,7 +1994,7 @@ async def test_get_subnet_hyperparameters_success(subtensor, mocker):
         block_hash=fake_block_hash,
         reuse_block=False,
     )
-    assert result == mocked_from_any.return_value
+    assert result == mocked_from_dict.return_value
 
 
 @pytest.mark.asyncio
@@ -2031,9 +2031,9 @@ async def test_get_subnet_hyperparameters_without_0x_prefix(subtensor, mocker):
     mocked_query_runtime_api = mocker.AsyncMock(return_value=fake_result)
     subtensor.query_runtime_api = mocked_query_runtime_api
 
-    mocked_from_any = mocker.Mock()
+    mocked_from_dict = mocker.Mock()
     mocker.patch.object(
-        async_subtensor.SubnetHyperparameters, "from_any", mocked_from_any
+        async_subtensor.SubnetHyperparameters, "from_dict", mocked_from_dict
     )
 
     # Call
@@ -2048,8 +2048,8 @@ async def test_get_subnet_hyperparameters_without_0x_prefix(subtensor, mocker):
         block_hash=None,
         reuse_block=False,
     )
-    mocked_from_any.assert_called_once_with(fake_result)
-    assert result == mocked_from_any.return_value
+    mocked_from_dict.assert_called_once_with(fake_result)
+    assert result == mocked_from_dict.return_value
 
 
 @pytest.mark.asyncio

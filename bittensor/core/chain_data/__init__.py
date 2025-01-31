@@ -24,7 +24,7 @@ from .subnet_identity import SubnetIdentity
 from .subnet_info import SubnetInfo
 from .subnet_state import SubnetState
 from .weight_commit_info import WeightCommitInfo
-from .utils import decode_account_id, process_stake_data
+from .utils import custom_rpc_type_registry, decode_account_id, process_stake_data
 
 ProposalCallData = GenericCall
 
