@@ -12,7 +12,14 @@ from async_substrate_interface.errors import SubstrateRequestException
 from numpy.typing import NDArray
 
 from bittensor.core import settings
-from bittensor.core.chain_data import AxonInfo, SubnetState
+from bittensor.core.chain_data import (
+    AxonInfo,
+    SubnetState,
+    MetagraphInfoEmissions,
+    MetagraphInfoPool,
+    MetagraphInfoParams,
+)
+from bittensor.utils import hex_to_bytes
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import torch, use_torch
 from bittensor.utils.weight_utils import (
@@ -25,7 +32,12 @@ from bittensor.utils.weight_utils import (
 if typing.TYPE_CHECKING:
     from bittensor.core.subtensor import Subtensor
     from bittensor.core.async_subtensor import AsyncSubtensor
-    from bittensor.core.chain_data import NeuronInfo, NeuronInfoLite
+    from bittensor.core.chain_data import (
+        ChainIdentity,
+        MetagraphInfo,
+        NeuronInfo,
+        NeuronInfoLite,
+    )
     from bittensor.utils.balance import Balance
 
 
@@ -242,8 +254,22 @@ class MetagraphMixin(ABC):
     stake: Tensor
     axons: list[AxonInfo]
     chain_endpoint: Optional[str]
-    subtensor: Optional["AsyncSubtensor"]
+    subtensor: Optional[Union["AsyncSubtensor", "Subtensor"]]
     _dtype_registry = {"int64": np.int64, "float32": np.float32, "bool": bool}
+
+    # metagraph_info fields
+    identities: list[Optional["ChainIdentity"]]
+    pruning_score: list[float]
+    block_at_registration: list[int]
+    tao_dividends_per_hotkey: list[tuple[str, "Balance"]]
+    alpha_dividends_per_hotkey: list[tuple[str, "Balance"]]
+    last_step: int
+    tempo: int
+    blocks_since_last_step: int
+
+    hparams: MetagraphInfoParams
+    pool: MetagraphInfoPool
+    emissions: MetagraphInfoEmissions
 
     @property
     def TS(self) -> list["Balance"]:
@@ -903,6 +929,68 @@ class MetagraphMixin(ABC):
                 setattr(new_instance, key, value)
         return new_instance
 
+    def _apply_metagraph_ingo_mixin(self, metagraph_info: "MetagraphInfo"):
+        """
+        Updates the attributes of the current object with data from a provided MetagraphInfo instance.
+
+        Args:
+            metagraph_info (MetagraphInfo): An instance of the MetagraphInfo class containing the data to be applied to
+                the current object.
+        """
+        self.identities = metagraph_info.identities
+        self.pruning_score = metagraph_info.pruning_score
+        self.block_at_registration = metagraph_info.block_at_registration
+        self.tao_dividends_per_hotkey = metagraph_info.tao_dividends_per_hotkey
+        self.alpha_dividends_per_hotkey = metagraph_info.alpha_dividends_per_hotkey
+        self.last_step = metagraph_info.last_step
+        self.tempo = metagraph_info.tempo
+        self.blocks_since_last_step = metagraph_info.blocks_since_last_step
+
+        self.hparams = MetagraphInfoParams(
+            activity_cutoff=metagraph_info.activity_cutoff,
+            adjustment_alpha=metagraph_info.adjustment_alpha,
+            adjustment_interval=metagraph_info.adjustment_interval,
+            alpha_high=metagraph_info.alpha_high,
+            alpha_low=metagraph_info.alpha_low,
+            bonds_moving_avg=metagraph_info.bonds_moving_avg,
+            burn=metagraph_info.burn,
+            commit_reveal_period=metagraph_info.commit_reveal_period,
+            commit_reveal_weights_enabled=metagraph_info.commit_reveal_weights_enabled,
+            difficulty=metagraph_info.difficulty,
+            immunity_period=metagraph_info.immunity_period,
+            kappa=metagraph_info.kappa,
+            liquid_alpha_enabled=metagraph_info.liquid_alpha_enabled,
+            max_burn=metagraph_info.max_burn,
+            max_difficulty=metagraph_info.max_difficulty,
+            max_regs_per_block=metagraph_info.max_regs_per_block,
+            max_validators=metagraph_info.max_validators,
+            max_weights_limit=metagraph_info.max_weights_limit,
+            min_allowed_weights=metagraph_info.min_allowed_weights,
+            min_burn=metagraph_info.min_burn,
+            min_difficulty=metagraph_info.min_difficulty,
+            pow_registration_allowed=metagraph_info.pow_registration_allowed,
+            registration_allowed=metagraph_info.registration_allowed,
+            rho=metagraph_info.rho,
+            serving_rate_limit=metagraph_info.serving_rate_limit,
+            target_regs_per_interval=metagraph_info.target_regs_per_interval,
+            tempo=metagraph_info.tempo,
+            weights_rate_limit=metagraph_info.weights_rate_limit,
+            weights_version=metagraph_info.weights_version,
+        )
+        self.pool = MetagraphInfoPool(
+            alpha_out=metagraph_info.alpha_out,
+            alpha_in=metagraph_info.alpha_in,
+            tao_in=metagraph_info.tao_in,
+        )
+        self.emissions = MetagraphInfoEmissions(
+            alpha_out_emission=metagraph_info.alpha_out_emission,
+            alpha_in_emission=metagraph_info.alpha_in_emission,
+            subnet_emission=metagraph_info.subnet_emission,
+            tao_in_emission=metagraph_info.tao_in_emission,
+            pending_alpha_emission=metagraph_info.pending_alpha_emission,
+            pending_root_emission=metagraph_info.pending_root_emission,
+        )
+
 
 if use_torch():
     BaseClass = torch.nn.Module
@@ -1321,7 +1409,10 @@ class AsyncMetagraph(NumpyOrTorch):
             await self._set_weights_and_bonds(subtensor=subtensor)
 
         # Fills in the stake associated attributes of a class instance from a chain response.
-        await self._get_all_stakes_from_chain(subtensor=subtensor)
+        await self._get_all_stakes_from_chain()
+
+        # apply MetagraphInfo data to instance
+        await self._apply_metagraph_info()
 
     async def _initialize_subtensor(
         self, subtensor: "AsyncSubtensor"
@@ -1484,14 +1575,9 @@ class AsyncMetagraph(NumpyOrTorch):
             )
         return tensor_param
 
-    async def _get_all_stakes_from_chain(
-        self, subtensor: Optional["AsyncSubtensor"] = None
-    ):
+    async def _get_all_stakes_from_chain(self):
         """Fills in the stake associated attributes of a class instance from a chain response."""
         try:
-            if not subtensor:
-                subtensor = await self._initialize_subtensor(subtensor=subtensor)
-
             result = await subtensor.query_runtime_api(
                 runtime_api="SubnetInfoRuntimeApi",
                 method="get_subnet_state",
@@ -1516,9 +1602,13 @@ class AsyncMetagraph(NumpyOrTorch):
             self.tao_stake = [b * 0.018 for b in subnet_state.tao_stake]
             self.total_stake = self.stake = subnet_state.total_stake
             return subnet_state
-
         except (SubstrateRequestException, AttributeError) as e:
             logging.debug(e)
+
+    async def _apply_metagraph_info(self):
+        """Retrieves metagraph information for a specific subnet and applies it using a mixin."""
+        metagraph_info = await self.subtensor.get_metagraph_info(self.netuid)
+        self._apply_metagraph_ingo_mixin(metagraph_info=metagraph_info)
 
 
 class Metagraph(NumpyOrTorch):
@@ -1613,7 +1703,10 @@ class Metagraph(NumpyOrTorch):
             self._set_weights_and_bonds(subtensor=subtensor)
 
         # Fills in the stake associated attributes of a class instance from a chain response.
-        self._get_all_stakes_from_chain(subtensor=subtensor)
+        self._get_all_stakes_from_chain()
+
+        # apply MetagraphInfo data to instance
+        self._apply_metagraph_info()
 
     def _initialize_subtensor(self, subtensor: "Subtensor") -> "Subtensor":
         """
@@ -1770,12 +1863,9 @@ class Metagraph(NumpyOrTorch):
             )
         return tensor_param
 
-    def _get_all_stakes_from_chain(self, subtensor: Optional["Subtensor"] = None):
+    def _get_all_stakes_from_chain(self):
         """Fills in the stake associated attributes of a class instance from a chain response."""
         try:
-            if not subtensor:
-                subtensor = self._initialize_subtensor(subtensor=subtensor)
-
             result = subtensor.query_runtime_api(
                 runtime_api="SubnetInfoRuntimeApi",
                 method="get_subnet_state",
@@ -1800,9 +1890,13 @@ class Metagraph(NumpyOrTorch):
             self.tao_stake = [b * 0.018 for b in subnet_state.tao_stake]
             self.total_stake = self.stake = subnet_state.total_stake
             return subnet_state
-
         except (SubstrateRequestException, AttributeError) as e:
             logging.debug(e)
+
+    def _apply_metagraph_info(self):
+        """Retrieves metagraph information for a specific subnet and applies it using a mixin."""
+        metagraph_info = self.subtensor.get_metagraph_info(self.netuid)
+        self._apply_metagraph_ingo_mixin(metagraph_info=metagraph_info)
 
 
 async def async_metagraph(
