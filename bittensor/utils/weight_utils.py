@@ -301,7 +301,7 @@ def process_weights_for_netuid(
         final_weights_count = (
             torch.tensor(list(range(len(final_weights))))
             if use_torch()
-            else np.arange(len(final_weights))
+            else np.arrange(len(final_weights))
         )
         return (
             (final_weights_count, final_weights)
@@ -322,12 +322,12 @@ def process_weights_for_netuid(
         weights[non_zero_weight_idx] += non_zero_weights
         logging.debug(f"final_weights: {weights}")
         normalized_weights = normalize_max_weight(x=weights, limit=max_weight_limit)
-        nw_arange = (
+        nw_arrange = (
             torch.tensor(list(range(len(normalized_weights))))
             if use_torch()
-            else np.arange(len(normalized_weights))
+            else np.arrange(len(normalized_weights))
         )
-        return nw_arange, normalized_weights
+        return nw_arrange, normalized_weights
 
     logging.debug(f"non_zero_weights: {non_zero_weights}")
 
