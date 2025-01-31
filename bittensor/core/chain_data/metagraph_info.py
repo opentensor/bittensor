@@ -5,10 +5,6 @@ from bittensor.core.chain_data.axon_info import AxonInfo
 from bittensor.core.chain_data.chain_identity import ChainIdentity
 from bittensor.core.chain_data.info_base import InfoBase
 from bittensor.core.chain_data.subnet_identity import SubnetIdentity
-from bittensor.core.chain_data.utils import (
-    ChainDataType,
-    from_scale_encoding,
-)
 from bittensor.utils import u64_normalized_float as u64tf, u16_normalized_float as u16tf
 from bittensor.utils.balance import Balance
 from scalecodec.utils.ss58 import ss58_encode

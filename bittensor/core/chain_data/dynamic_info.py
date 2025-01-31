@@ -9,11 +9,8 @@ from typing import Optional, Union
 from scalecodec.utils.ss58 import ss58_encode
 
 from bittensor.core.chain_data.info_base import InfoBase
-from bittensor.core.chain_data.utils import (
-    ChainDataType,
-    from_scale_encoding,
-    SS58_FORMAT,
-)
+from bittensor.core.chain_data.utils import SS58_FORMAT
+
 from bittensor.core.chain_data.subnet_identity import SubnetIdentity
 from bittensor.utils.balance import Balance
 
