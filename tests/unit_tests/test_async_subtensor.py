@@ -1043,7 +1043,9 @@ async def test_neurons_lite(subtensor, mocker, fake_result, response):
     subtensor.query_runtime_api = mocked_query_runtime_api
 
     mocked_neuron_info_lite_list_from_dicts = mocker.Mock()
-    async_subtensor.NeuronInfoLite.list_from_dicts = mocked_neuron_info_lite_list_from_dicts
+    async_subtensor.NeuronInfoLite.list_from_dicts = (
+        mocked_neuron_info_lite_list_from_dicts
+    )
 
     # Call
     result = await subtensor.neurons_lite(

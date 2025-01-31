@@ -103,7 +103,8 @@ class NeuronInfoLite(InfoBase):
         return NeuronInfoLite(
             active=decoded["active"],
             axon_info=AxonInfo.from_dict(
-                decoded["axon_info"] | {
+                decoded["axon_info"]
+                | {
                     "hotkey": hotkey,
                     "coldkey": coldkey,
                 },
