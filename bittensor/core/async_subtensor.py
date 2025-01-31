@@ -89,7 +89,7 @@ if TYPE_CHECKING:
     from bittensor_wallet import Wallet
     from bittensor.core.axon import Axon
     from bittensor.utils import Certificate
-    from async_substrate_interface import QueryMapResult
+    from async_substrate_interface import AsyncQueryMapResult
 
 
 class AsyncSubtensor(SubtensorMixin):
@@ -316,7 +316,7 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
         params: Optional[list] = None,
-    ) -> "QueryMapResult":
+    ) -> "AsyncQueryMapResult":
         """
         Queries map storage from any module on the Bittensor blockchain. This function retrieves data structures that
             represent key-value mappings, essential for accessing complex and structured data within the blockchain
@@ -354,7 +354,7 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
         params: Optional[list] = None,
-    ) -> "QueryMapResult":
+    ) -> "AsyncQueryMapResult":
         """
         Queries map storage from the Subtensor module on the Bittensor blockchain. This function is designed to retrieve
             a map-like data structure, which can include various neuron-specific details or network-wide attributes.
@@ -1380,7 +1380,7 @@ class AsyncSubtensor(SubtensorMixin):
         Returns:
             MetagraphInfo dataclass
         """
-        block_hash = await self.determine_block_hash(block, block_hash.reuse_block)
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         if not block_hash and reuse_block:
             block_hash = self.substrate.last_block_hash
         query = await self.substrate.runtime_call(
@@ -2019,7 +2019,7 @@ class AsyncSubtensor(SubtensorMixin):
             network, particularly how proposals are received and acted upon by the governing body.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
-        vote_data = await self.substrate.query(
+        vote_data: dict[str, Any] = await self.substrate.query(
             module="Triumvirate",
             storage_function="Voting",
             params=[proposal_hash],
@@ -2598,7 +2598,7 @@ class AsyncSubtensor(SubtensorMixin):
             params=[netuid],
             block_hash=block_hash,
         )
-        subnet = DynamicInfo.from_vec_u8(bytes.fromhex(query.decode()[2:]))
+        subnet = DynamicInfo.from_vec_u8(hex_to_bytes(query.decode()))
         return subnet
 
     async def subnet_exists(

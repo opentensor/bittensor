@@ -25,11 +25,11 @@ class StorageKey:
 
     def __init__(
         self,
-        pallet: str,
-        storage_function: str,
-        params: list,
-        data: bytes,
-        value_scale_type: str,
+        pallet: Optional[str],
+        storage_function: Optional[str],
+        params: Optional[list],
+        data: Optional[bytes],
+        value_scale_type: Optional[str],
         metadata: GenericMetadataVersioned,
         runtime_config: RuntimeConfigurationObject,
     ):
@@ -141,7 +141,7 @@ class StorageKey:
 
         return value
 
-    def to_hex(self) -> str:
+    def to_hex(self) -> Optional[str]:
         """
         Returns a Hex-string representation of current StorageKey data
 

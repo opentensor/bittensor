@@ -43,7 +43,7 @@ class DynamicInfo:
     subnet_identity: Optional[SubnetIdentity]
 
     @classmethod
-    def from_vec_u8(cls, vec_u8: list[int]) -> Optional["DynamicInfo"]:
+    def from_vec_u8(cls, vec_u8: Union[list[int], bytes]) -> Optional["DynamicInfo"]:
         if len(vec_u8) == 0:
             return None
         decoded = from_scale_encoding(vec_u8, ChainDataType.DynamicInfo)
@@ -154,8 +154,11 @@ class DynamicInfo:
     ) -> Union[tuple[Balance, Balance], float]:
         """
         Returns an estimate of how much Alpha would a staker receive if they stake their tao using the current pool state.
-        Args:
+
+        Arguments:
             tao: Amount of TAO to stake.
+            percentage: percentage
+
         Returns:
             If percentage is False, a tuple of balances where the first part is the amount of Alpha received, and the
             second part (slippage) is the difference between the estimated amount and ideal
@@ -206,8 +209,11 @@ class DynamicInfo:
     ) -> Union[tuple[Balance, Balance], float]:
         """
         Returns an estimate of how much TAO would a staker receive if they unstake their alpha using the current pool state.
+
         Args:
             alpha: Amount of Alpha to stake.
+            percentage: percentage
+
         Returns:
             If percentage is False, a tuple of balances where the first part is the amount of TAO received, and the
             second part (slippage) is the difference between the estimated amount and ideal
