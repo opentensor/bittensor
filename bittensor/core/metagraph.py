@@ -19,7 +19,7 @@ from bittensor.core.chain_data import (
     MetagraphInfoPool,
     MetagraphInfoParams,
 )
-from bittensor.utils import hex_to_bytes
+
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import torch, use_torch
 from bittensor.utils.weight_utils import (
@@ -266,6 +266,8 @@ class MetagraphMixin(ABC):
     last_step: int
     tempo: int
     blocks_since_last_step: int
+    owner_coldkey: str
+    owner_hotkey: str
 
     hparams: MetagraphInfoParams
     pool: MetagraphInfoPool
@@ -945,6 +947,8 @@ class MetagraphMixin(ABC):
         self.last_step = metagraph_info.last_step
         self.tempo = metagraph_info.tempo
         self.blocks_since_last_step = metagraph_info.blocks_since_last_step
+        self.owner_coldkey = metagraph_info.owner_coldkey
+        self.owner_hotkey = metagraph_info.owner_hotkey
 
         self.hparams = MetagraphInfoParams(
             activity_cutoff=metagraph_info.activity_cutoff,
