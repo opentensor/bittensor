@@ -1,19 +1,34 @@
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Union
 
 from bittensor.core.chain_data.axon_info import AxonInfo
 from bittensor.core.chain_data.chain_identity import ChainIdentity
 from bittensor.core.chain_data.info_base import InfoBase
 from bittensor.core.chain_data.subnet_identity import SubnetIdentity
+from bittensor.core.chain_data.utils import decode_account_id
 from bittensor.utils import u64_normalized_float as u64tf, u16_normalized_float as u16tf
 from bittensor.utils.balance import Balance
-from scalecodec.utils.ss58 import ss58_encode
 
 
 # to balance with unit (just shortcut)
 def _tbwu(val: int, netuid: Optional[int] = 0) -> Balance:
     """Returns a Balance object from a value and unit."""
     return Balance.from_rao(val, netuid)
+
+
+def _chr_str(codes: tuple[int]) -> str:
+    """Converts a tuple of integer Unicode code points into a string."""
+    return "".join(map(chr, codes))
+
+
+def process_nested(data: Union[tuple, dict], chr_transform):
+    """Processes nested data structures by applying a transformation function to their elements."""
+    if isinstance(data, (list, tuple)):
+        if len(data) > 0 and isinstance(data[0], dict):
+            return {k: chr_transform(v) for k, v in data[0].items()}
+        return {}
+    elif isinstance(data, dict):
+        return {k: chr_transform(v) for k, v in data.items()}
 
 
 @dataclass
@@ -125,11 +140,14 @@ class MetagraphInfo(InfoBase):
         # Name and symbol
         decoded.update({"name": bytes(decoded.get("name")).decode()})
         decoded.update({"symbol": bytes(decoded.get("symbol")).decode()})
-        decoded.update({"identity": decoded.get("identity", {})})
+        for key in ["identities", "identity"]:
+            raw_data = decoded.get(key)
+            processed = process_nested(raw_data, _chr_str)
+            decoded.update({key: processed})
 
         # Keys for owner.
-        decoded["owner_hotkey"] = ss58_encode(decoded["owner_hotkey"])
-        decoded["owner_coldkey"] = ss58_encode(decoded["owner_coldkey"])
+        decoded["owner_hotkey"] = decode_account_id(decoded["owner_hotkey"])
+        decoded["owner_coldkey"] = decode_account_id(decoded["owner_coldkey"])
 
         # Subnet emission terms
         decoded["subnet_emission"] = _tbwu(decoded["subnet_emission"])
@@ -166,8 +184,12 @@ class MetagraphInfo(InfoBase):
         decoded["bonds_moving_avg"] = u64tf(decoded["bonds_moving_avg"])
 
         # Metagraph info.
-        decoded["hotkeys"] = [ss58_encode(ck) for ck in decoded.get("hotkeys", [])]
-        decoded["coldkeys"] = [ss58_encode(hk) for hk in decoded.get("coldkeys", [])]
+        decoded["hotkeys"] = [
+            decode_account_id(ck) for ck in decoded.get("hotkeys", [])
+        ]
+        decoded["coldkeys"] = [
+            decode_account_id(hk) for hk in decoded.get("coldkeys", [])
+        ]
         decoded["axons"] = decoded.get("axons", [])
         decoded["pruning_score"] = [
             u16tf(ps) for ps in decoded.get("pruning_score", [])
@@ -184,14 +206,13 @@ class MetagraphInfo(InfoBase):
 
         # Dividend break down
         decoded["tao_dividends_per_hotkey"] = [
-            (ss58_encode(alpha[0]), _tbwu(alpha[1]))
+            (decode_account_id(alpha[0]), _tbwu(alpha[1]))
             for alpha in decoded["tao_dividends_per_hotkey"]
         ]
         decoded["alpha_dividends_per_hotkey"] = [
-            (ss58_encode(adphk[0]), _tbwu(adphk[1], _netuid))
+            (decode_account_id(adphk[0]), _tbwu(adphk[1], _netuid))
             for adphk in decoded["alpha_dividends_per_hotkey"]
         ]
-
         return MetagraphInfo(**decoded)
 
 
