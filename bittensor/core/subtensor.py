@@ -1009,7 +1009,7 @@ class Subtensor(SubtensorMixin):
             params=[netuid],
             block_hash=block_hash,
         )
-        return MetagraphInfo.from_dict(query.decode())
+        return MetagraphInfo.from_dict(query.value)
 
     def get_all_metagraphs_info(
         self, block: Optional[int] = None
@@ -1020,7 +1020,7 @@ class Subtensor(SubtensorMixin):
             "get_all_metagraphs",
             block_hash=block_hash,
         )
-        return MetagraphInfo.list_from_dicts(query.decode())
+        return MetagraphInfo.list_from_dicts(query.value)
 
     def get_netuids_for_hotkey(
         self, hotkey_ss58: str, block: Optional[int] = None
