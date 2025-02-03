@@ -19,7 +19,7 @@ from bittensor.core.chain_data import (
     MetagraphInfoPool,
     MetagraphInfoParams,
 )
-from bittensor.utils import hex_to_bytes
+
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import torch, use_torch
 from bittensor.utils.weight_utils import (
@@ -266,6 +266,8 @@ class MetagraphMixin(ABC):
     last_step: int
     tempo: int
     blocks_since_last_step: int
+    owner_coldkey: str
+    owner_hotkey: str
 
     hparams: MetagraphInfoParams
     pool: MetagraphInfoPool
@@ -945,6 +947,8 @@ class MetagraphMixin(ABC):
         self.last_step = metagraph_info.last_step
         self.tempo = metagraph_info.tempo
         self.blocks_since_last_step = metagraph_info.blocks_since_last_step
+        self.owner_coldkey = metagraph_info.owner_coldkey
+        self.owner_hotkey = metagraph_info.owner_hotkey
 
         self.hparams = MetagraphInfoParams(
             activity_cutoff=metagraph_info.activity_cutoff,
@@ -1578,21 +1582,20 @@ class AsyncMetagraph(NumpyOrTorch):
     async def _get_all_stakes_from_chain(self):
         """Fills in the stake associated attributes of a class instance from a chain response."""
         try:
-            hex_bytes_result = await self.subtensor.query_runtime_api(
+            result = await self.subtensor.query_runtime_api(
                 runtime_api="SubnetInfoRuntimeApi",
                 method="get_subnet_state",
                 params=[self.netuid],
             )
 
-            if hex_bytes_result is None:
+            if result is None:
                 logging.debug(
                     f"Unable to retrieve subnet state for netuid `{self.netuid}`."
                 )
                 return []
 
-            subnet_state: "SubnetState" = SubnetState.from_vec_u8(
-                hex_to_bytes(hex_bytes_result)
-            )
+            subnet_state: "SubnetState" = SubnetState.from_dict(result)
+
             if self.netuid == 0:
                 self.total_stake = self.stake = self.tao_stake = self.alpha_stake = (
                     subnet_state.tao_stake
@@ -1867,21 +1870,20 @@ class Metagraph(NumpyOrTorch):
     def _get_all_stakes_from_chain(self):
         """Fills in the stake associated attributes of a class instance from a chain response."""
         try:
-            hex_bytes_result = self.subtensor.query_runtime_api(
+            result = self.subtensor.query_runtime_api(
                 runtime_api="SubnetInfoRuntimeApi",
                 method="get_subnet_state",
                 params=[self.netuid],
             )
 
-            if hex_bytes_result is None:
+            if result is None:
                 logging.debug(
                     f"Unable to retrieve subnet state for netuid `{self.netuid}`."
                 )
                 return []
 
-            subnet_state: "SubnetState" = SubnetState.from_vec_u8(
-                hex_to_bytes(hex_bytes_result)
-            )
+            subnet_state: "SubnetState" = SubnetState.from_dict(result)
+
             if self.netuid == 0:
                 self.total_stake = self.stake = self.tao_stake = self.alpha_stake = (
                     subnet_state.tao_stake

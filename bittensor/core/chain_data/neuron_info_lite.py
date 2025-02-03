@@ -1,10 +1,8 @@
 from dataclasses import dataclass
-from typing import Optional
-
-import bt_decode
-import netaddr
+from typing import Any, Optional
 
 from bittensor.core.chain_data.axon_info import AxonInfo
+from bittensor.core.chain_data.info_base import InfoBase
 from bittensor.core.chain_data.prometheus_info import PrometheusInfo
 from bittensor.core.chain_data.utils import decode_account_id, process_stake_data
 from bittensor.utils import u16_normalized_float
@@ -12,7 +10,7 @@ from bittensor.utils.balance import Balance
 
 
 @dataclass
-class NeuronInfoLite:
+class NeuronInfoLite(InfoBase):
     """
     NeuronInfoLite is a dataclass representing neuron metadata without weights and bonds.
 
@@ -96,76 +94,37 @@ class NeuronInfoLite:
         return neuron
 
     @classmethod
-    def list_from_vec_u8(cls, vec_u8: bytes) -> list["NeuronInfoLite"]:
-        """
-        Decodes a bytes object into a list of NeuronInfoLite instances.
+    def _from_dict(cls, decoded: Any) -> "NeuronInfoLite":
+        coldkey = decode_account_id(decoded["coldkey"])
+        hotkey = decode_account_id(decoded["hotkey"])
+        stake_dict = process_stake_data(decoded["stake"])
+        stake = sum(stake_dict.values()) if stake_dict else Balance(0)
 
-        Args:
-            vec_u8 (bytes): The bytes object to decode into NeuronInfoLite instances.
-
-        Returns:
-            list[NeuronInfoLite]: A list of NeuronInfoLite instances decoded from the provided bytes object.
-        """
-        decoded = bt_decode.NeuronInfoLite.decode_vec(vec_u8)
-        results = []
-        for item in decoded:
-            active = item.active
-            axon_info = item.axon_info
-            coldkey = decode_account_id(item.coldkey)
-            consensus = item.consensus
-            dividends = item.dividends
-            emission = item.emission
-            hotkey = decode_account_id(item.hotkey)
-            incentive = item.incentive
-            last_update = item.last_update
-            netuid = item.netuid
-            prometheus_info = item.prometheus_info
-            pruning_score = item.pruning_score
-            rank = item.rank
-            stake_dict = process_stake_data(item.stake)
-            stake = sum(stake_dict.values()) if stake_dict else Balance(0)
-            trust = item.trust
-            uid = item.uid
-            validator_permit = item.validator_permit
-            validator_trust = item.validator_trust
-            results.append(
-                NeuronInfoLite(
-                    active=active,
-                    axon_info=AxonInfo(
-                        version=axon_info.version,
-                        ip=str(netaddr.IPAddress(axon_info.ip)),
-                        port=axon_info.port,
-                        ip_type=axon_info.ip_type,
-                        placeholder1=axon_info.placeholder1,
-                        placeholder2=axon_info.placeholder2,
-                        protocol=axon_info.protocol,
-                        hotkey=hotkey,
-                        coldkey=coldkey,
-                    ),
-                    coldkey=coldkey,
-                    consensus=u16_normalized_float(consensus),
-                    dividends=u16_normalized_float(dividends),
-                    emission=emission / 1e9,
-                    hotkey=hotkey,
-                    incentive=u16_normalized_float(incentive),
-                    last_update=last_update,
-                    netuid=netuid,
-                    prometheus_info=PrometheusInfo(
-                        version=prometheus_info.version,
-                        ip=str(netaddr.IPAddress(prometheus_info.ip)),
-                        port=prometheus_info.port,
-                        ip_type=prometheus_info.ip_type,
-                        block=prometheus_info.block,
-                    ),
-                    pruning_score=pruning_score,
-                    rank=u16_normalized_float(rank),
-                    stake_dict=stake_dict,
-                    stake=stake,
-                    total_stake=stake,
-                    trust=u16_normalized_float(trust),
-                    uid=uid,
-                    validator_permit=validator_permit,
-                    validator_trust=u16_normalized_float(validator_trust),
-                )
-            )
-        return results
+        return NeuronInfoLite(
+            active=decoded["active"],
+            axon_info=AxonInfo.from_dict(
+                decoded["axon_info"]
+                | {
+                    "hotkey": hotkey,
+                    "coldkey": coldkey,
+                },
+            ),
+            coldkey=coldkey,
+            consensus=u16_normalized_float(decoded["consensus"]),
+            dividends=u16_normalized_float(decoded["dividends"]),
+            emission=decoded["emission"] / 1e9,
+            hotkey=hotkey,
+            incentive=u16_normalized_float(decoded["incentive"]),
+            last_update=decoded["last_update"],
+            netuid=decoded["netuid"],
+            prometheus_info=PrometheusInfo.from_dict(decoded["prometheus_info"]),
+            pruning_score=decoded["pruning_score"],
+            rank=u16_normalized_float(decoded["rank"]),
+            stake_dict=stake_dict,
+            stake=stake,
+            total_stake=stake,
+            trust=u16_normalized_float(decoded["trust"]),
+            uid=decoded["uid"],
+            validator_permit=decoded["validator_permit"],
+            validator_trust=u16_normalized_float(decoded["validator_trust"]),
+        )

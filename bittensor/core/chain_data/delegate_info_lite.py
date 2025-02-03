@@ -1,8 +1,10 @@
 from dataclasses import dataclass
 
+from bittensor.core.chain_data.info_base import InfoBase
+
 
 @dataclass
-class DelegateInfoLite:
+class DelegateInfoLite(InfoBase):
     """
     Dataclass for `DelegateLiteInfo`. This is a lighter version of :func:``DelegateInfo``.
 
