@@ -67,7 +67,7 @@ class SubnetHyperparameters(InfoBase):
     liquid_alpha_enabled: bool
 
     @classmethod
-    def from_dict(cls, decoded: dict) -> "SubnetHyperparameters":
+    def _from_dict(cls, decoded: dict) -> "SubnetHyperparameters":
         """
         Create a `SubnetHyperparameters` instance from a vector of bytes.
 

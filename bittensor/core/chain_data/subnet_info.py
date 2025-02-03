@@ -31,7 +31,7 @@ class SubnetInfo(InfoBase):
     owner_ss58: str
 
     @classmethod
-    def from_dict(cls, decoded: Any) -> "SubnetInfo":
+    def _from_dict(cls, decoded: Any) -> "SubnetInfo":
         return SubnetInfo(
             blocks_since_epoch=decoded["blocks_since_last_step"],
             burn=Balance.from_rao(decoded["burn"]),

@@ -39,7 +39,7 @@ class DelegateInfo(InfoBase):
     total_daily_return: Balance  # Total daily return of the delegate
 
     @classmethod
-    def from_dict(cls, decoded: dict) -> Optional["DelegateInfo"]:
+    def _from_dict(cls, decoded: dict) -> Optional["DelegateInfo"]:
         nominators = [
             (decode_account_id(x), Balance.from_rao(y))
             for x, y in decoded["nominators"]

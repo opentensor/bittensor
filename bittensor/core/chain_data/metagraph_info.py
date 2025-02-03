@@ -132,7 +132,7 @@ class MetagraphInfo(InfoBase):
     ]  # List of dividend payout in alpha via subnet.
 
     @classmethod
-    def from_dict(cls, decoded: dict) -> "MetagraphInfo":
+    def _from_dict(cls, decoded: dict) -> "MetagraphInfo":
         """Returns a Metagraph object from a decoded MetagraphInfo dictionary."""
         # Subnet index
         _netuid = decoded["netuid"]

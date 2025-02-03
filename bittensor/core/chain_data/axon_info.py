@@ -82,7 +82,7 @@ class AxonInfo(InfoBase):
             return AxonInfo(0, "", 0, 0, "", "").to_string()
 
     @classmethod
-    def from_dict(cls, data):
+    def _from_dict(cls, data):
         return AxonInfo(
             version=data["version"],
             ip=str(netaddr.IPAddress(data["ip"])),
