@@ -35,7 +35,7 @@ class SubnetState(InfoBase):
     emission_history: list[list[int]]
 
     @classmethod
-    def from_dict(cls, decoded: dict) -> "SubnetState":
+    def _from_dict(cls, decoded: dict) -> "SubnetState":
         netuid = decoded["netuid"]
         return SubnetState(
             netuid=netuid,

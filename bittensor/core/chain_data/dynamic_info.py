@@ -41,7 +41,7 @@ class DynamicInfo(InfoBase):
     subnet_identity: Optional[SubnetIdentity]
 
     @classmethod
-    def from_dict(cls, decoded: dict) -> "DynamicInfo":
+    def _from_dict(cls, decoded: dict) -> "DynamicInfo":
         """Returns a DynamicInfo object from a decoded DynamicInfo dictionary."""
 
         netuid = int(decoded["netuid"])

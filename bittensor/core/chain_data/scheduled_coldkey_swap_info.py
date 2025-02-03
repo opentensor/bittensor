@@ -24,7 +24,7 @@ class ScheduledColdkeySwapInfo(InfoBase):
     arbitration_block: int
 
     @classmethod
-    def from_dict(cls, decoded: dict) -> "ScheduledColdkeySwapInfo":
+    def _from_dict(cls, decoded: dict) -> "ScheduledColdkeySwapInfo":
         return cls(
             arbitration_block=decoded["arbitration_block"],
             new_coldkey=ss58_encode(decoded["new_coldkey"], SS58_FORMAT),

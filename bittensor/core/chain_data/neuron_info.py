@@ -125,7 +125,7 @@ class NeuronInfo(InfoBase):
         return neuron
 
     @classmethod
-    def from_dict(cls, decoded: Any) -> "NeuronInfo":
+    def _from_dict(cls, decoded: Any) -> "NeuronInfo":
         """Instantiates NeuronInfo from a byte vector."""
         stake_dict = process_stake_data(decoded["stake"])
         total_stake = sum(stake_dict.values()) if stake_dict else Balance(0)

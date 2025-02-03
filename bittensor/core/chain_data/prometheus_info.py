@@ -25,7 +25,7 @@ class PrometheusInfo(InfoBase):
     ip_type: int
 
     @classmethod
-    def from_dict(cls, data):
+    def _from_dict(cls, data):
         return cls(
             block=data["block"],
             ip_type=data["ip_type"],
