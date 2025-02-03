@@ -811,6 +811,7 @@ async def test_threaded_fastapi():
     server = FastAPIThreadedServer(
         uvicorn.Config(
             app,
+            loop="none"
         ),
     )
     server.start()
