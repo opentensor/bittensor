@@ -445,6 +445,8 @@ class AsyncSubtensor(SubtensorMixin):
             specific interactions with the network's runtime environment.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        if not block_hash and reuse_block:
+            block_hash = self.substrate.last_block_hash
         result = await self.substrate.runtime_call(
             runtime_api, method, params, block_hash
         )
@@ -1465,27 +1467,23 @@ class AsyncSubtensor(SubtensorMixin):
             attributes within a particular subnet of the Bittensor ecosystem.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
-        uid = await self.substrate.query(
+        uid_query = await self.substrate.query(
             module="SubtensorModule",
             storage_function="Uids",
             params=[netuid, hotkey_ss58],
             block_hash=block_hash,
             reuse_block_hash=reuse_block,
         )
-        if uid is None:
+        if (uid := getattr(uid_query, "value", None)) is None:
             return NeuronInfo.get_null_neuron()
-
-        result = await self.query_runtime_api(
-            runtime_api="NeuronInfoRuntimeApi",
-            method="get_neuron",
-            params=[netuid, uid.value],
-            block_hash=block_hash,
-        )
-
-        if not result:
-            return NeuronInfo.get_null_neuron()
-
-        return NeuronInfo.from_dict(result)
+        else:
+            return await self.neuron_for_uid(
+                uid=uid,
+                netuid=netuid,
+                block=block,
+                block_hash=block_hash,
+                reuse_block=reuse_block,
+            )
 
     async def get_stake(
         self,
