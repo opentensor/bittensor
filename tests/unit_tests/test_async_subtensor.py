@@ -3,6 +3,7 @@ from bittensor_wallet import Wallet
 
 from bittensor.core import async_subtensor
 from bittensor.core.async_subtensor import AsyncSubtensor
+from bittensor.core import async_subtensor as subtensor_module
 from bittensor.core.chain_data import proposal_vote_data
 from bittensor.utils.balance import Balance
 
@@ -478,22 +479,28 @@ async def test_get_stake_for_coldkey_and_hotkey(subtensor, mocker):
     """Tests get_stake_for_coldkey_and_hotkey method."""
     # Preps
     mocked_substrate_query = mocker.AsyncMock(
-        autospec=async_subtensor.AsyncSubstrateInterface.query
+        autospec=async_subtensor.AsyncSubstrateInterface.query_runtime_api
     )
+
     subtensor.substrate.query = mocked_substrate_query
 
     spy_balance = mocker.spy(async_subtensor, "Balance")
 
     # Call
-    result = await subtensor.get_stake_for_coldkey_and_hotkey(
-        hotkey_ss58="hotkey", coldkey_ss58="coldkey", block_hash=None
-    )
+    with mocker.patch.object(
+        subtensor_module,
+        "ss58_to_vec_u8",
+        return_value="KEY",
+    ):
+        result = await subtensor.get_stake_for_coldkey_and_hotkey(
+            hotkey_ss58="hotkey", coldkey_ss58="coldkey", block_hash=None, netuids=[1]
+        )
 
     # Asserts
     mocked_substrate_query.assert_awaited_with(
-        module="SubtensorModule",
-        storage_function="TotalHotkeyShares",
-        params=["hotkey", None],
+        "StakeInfoRuntimeApi",
+        "get_stake_info_for_hotkey_coldkey_netuid",
+        params=["KEY", "KEY", 1],
         block_hash=None,
         reuse_block_hash=False,
     )

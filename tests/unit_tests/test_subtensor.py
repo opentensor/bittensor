@@ -2212,16 +2212,22 @@ def test_get_stake_for_coldkey_and_hotkey(subtensor, mocker):
     spy_balance = mocker.spy(subtensor_module, "Balance")
 
     # Call
-    result = subtensor.get_stake(
-        hotkey_ss58="hotkey", coldkey_ss58="coldkey", block=None
-    )
+    with mocker.patch.object(
+        subtensor_module,
+        "ss58_to_vec_u8",
+        return_value="KEY",
+    ):
+        result = subtensor.get_stake_for_coldkey_and_hotkey(
+            hotkey_ss58="hotkey", coldkey_ss58="coldkey", block=None, netuids=[1]
+        )
 
     # Asserts
-    subtensor.substrate.query.assert_called_with(
-        module="SubtensorModule",
-        storage_function="TotalHotkeyShares",
-        params=["hotkey", None],
+    subtensor.substrate.query_runtime_api.assert_called_with(
+        "StakeInfoRuntimeApi",
+        "get_stake_info_for_hotkey_coldkey_netuid",
+        params=["KEY", "KEY", 1],
         block_hash=None,
+        reuse_block_hash=False,
     )
     assert subtensor.substrate.query.call_count == 3
     assert result == spy_balance.from_rao.return_value.set_unit.return_value

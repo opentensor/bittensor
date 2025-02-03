@@ -1616,7 +1616,8 @@ class AsyncSubtensor(SubtensorMixin):
         results = await asyncio.gather(
             *[
                 self.query_runtime_api(
-                    "StakeInfoRuntimeApi" "get_stake_info_for_hotkey_coldkey_netuid",
+                    "StakeInfoRuntimeApi",
+                    "get_stake_info_for_hotkey_coldkey_netuid",
                     params=[encoded_hotkey, encoded_coldkey, netuid],
                     block_hash=block_hash,
                 )
