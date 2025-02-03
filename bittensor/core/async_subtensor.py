@@ -890,7 +890,7 @@ class AsyncSubtensor(SubtensorMixin):
     async def _get_block_hash(self, block_id: int):
         return await self.substrate.get_block_hash(block_id)
 
-    async def get_block_hash(self, block: Optional[int] = None):
+    async def get_block_hash(self, block: Optional[int] = None) -> str:
         """
         Retrieves the hash of a specific block on the Bittensor blockchain. The block hash is a unique identifier
             representing the cryptographic hash of the block's content, ensuring its integrity and immutability.
