@@ -1,5 +1,4 @@
 import copy
-import warnings
 from functools import lru_cache
 from typing import TYPE_CHECKING, Any, Iterable, Optional, Union, cast
 
@@ -1161,7 +1160,7 @@ class Subtensor(SubtensorMixin):
         self,
         coldkey_ss58: str,
         hotkey_ss58: str,
-        netuid: Optional[int] = None,
+        netuid: int,
         block: Optional[int] = None,
     ) -> Balance:
         """
@@ -1170,7 +1169,7 @@ class Subtensor(SubtensorMixin):
         Args:
             hotkey_ss58 (str): The SS58 address of the hotkey.
             coldkey_ss58 (str): The SS58 address of the coldkey.
-            netuid (Optional[int]): The subnet ID to filter by. If provided, only returns stake for this specific subnet.
+            netuid (int): The subnet ID
             block (Optional[int]): The block number at which to query the stake information.
 
         Returns:
@@ -1208,17 +1207,30 @@ class Subtensor(SubtensorMixin):
         return Balance.from_rao(int(stake)).set_unit(netuid=netuid)
 
     def get_stake_for_coldkey_and_hotkey(
-        self, hotkey_ss58: str, coldkey_ss58: str, block: Optional[int] = None
-    ) -> Balance:
-        warnings.warn(
-            "This method is deprecated and will be removed in version 9.0 full release "
-            "Please use `Subtensor.get_stake`",
-        )
-        return self.get_stake(
-            coldkey_ss58=coldkey_ss58,
-            hotkey_ss58=hotkey_ss58,
-            block=block,
-        )
+        self, coldkey_ss58: str, hotkey_ss58: str, block: Optional[int] = None
+    ) -> dict[int, Balance]:
+        """
+        Retrieves all coldkey-hotkey pairing stake across all subnets
+
+        Arguments:
+            coldkey_ss58 (str): The SS58 address of the coldkey.
+            hotkey_ss58 (str): The SS58 address of the hotkey.
+            block (Optional[int]): The block number at which to query the stake information.
+
+        Returns:
+            A {netuid: stake} pairing of all stakes across all subnets.
+        """
+        all_netuids = self.get_subnets(block=block)
+        results = [
+            self.get_stake(
+                coldkey_ss58=coldkey_ss58,
+                hotkey_ss58=hotkey_ss58,
+                netuid=netuid,
+                block=block,
+            )
+            for netuid in all_netuids
+        ]
+        return {netuid: result for (netuid, result) in zip(all_netuids, results)}
 
     def get_stake_for_coldkey(
         self, coldkey_ss58: str, block: Optional[int] = None
