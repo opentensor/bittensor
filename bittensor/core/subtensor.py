@@ -1197,13 +1197,11 @@ class Subtensor(SubtensorMixin):
             all_netuids = self.get_subnets(block=block)
         else:
             all_netuids = netuids
-        encoded_coldkey = ss58_to_vec_u8(coldkey_ss58)
-        encoded_hotkey = ss58_to_vec_u8(hotkey_ss58)
         results = [
             self.query_runtime_api(
                 "StakeInfoRuntimeApi",
                 "get_stake_info_for_hotkey_coldkey_netuid",
-                params=[encoded_hotkey, encoded_coldkey, netuid],
+                params=[hotkey_ss58, coldkey_ss58, netuid],
                 block=block,
             )
             for netuid in all_netuids

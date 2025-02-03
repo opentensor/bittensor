@@ -2195,14 +2195,9 @@ def test_get_stake_for_coldkey_and_hotkey(subtensor, mocker):
     spy_balance = mocker.spy(subtensor_module, "Balance")
 
     # Call
-    with mocker.patch.object(
-        subtensor_module,
-        "ss58_to_vec_u8",
-        return_value="KEY",
-    ):
-        result = subtensor.get_stake_for_coldkey_and_hotkey(
-            hotkey_ss58="hotkey", coldkey_ss58="coldkey", block=None, netuids=[1]
-        )
+    result = subtensor.get_stake_for_coldkey_and_hotkey(
+        hotkey_ss58="hotkey", coldkey_ss58="coldkey", block=None, netuids=[1]
+    )
 
     # Asserts
     subtensor.substrate.query_runtime_api.assert_called_with(
