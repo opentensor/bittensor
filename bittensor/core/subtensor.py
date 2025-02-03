@@ -1,4 +1,5 @@
 import copy
+import warnings
 from functools import lru_cache
 from typing import TYPE_CHECKING, Any, Iterable, Optional, Union, cast
 
@@ -1206,7 +1207,18 @@ class Subtensor(SubtensorMixin):
 
         return Balance.from_rao(int(stake)).set_unit(netuid=netuid)
 
-    get_stake_for_coldkey_and_hotkey = get_stake
+    def get_stake_for_coldkey_and_hotkey(
+        self, hotkey_ss58: str, coldkey_ss58: str, block: Optional[int] = None
+    ) -> Balance:
+        warnings.warn(
+            "This method is deprecated and will be removed in version 9.0 full release "
+            "Please use `Subtensor.get_stake`",
+        )
+        return self.get_stake(
+            coldkey_ss58=coldkey_ss58,
+            hotkey_ss58=hotkey_ss58,
+            block=block,
+        )
 
     def get_stake_for_coldkey(
         self, coldkey_ss58: str, block: Optional[int] = None
