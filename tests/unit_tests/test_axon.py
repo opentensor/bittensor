@@ -815,10 +815,11 @@ async def test_threaded_fastapi():
     )
     server.start()
 
-    server_started.wait()
+    server_started.wait(3.0)
 
-    while not (server.started or server_stopped.is_set()):
-        await asyncio.sleep(1)
+    async with asyncio.timeout(3.0):
+        while not (server.started or server_stopped.is_set()):
+            await asyncio.sleep(1.0)
 
     assert server.is_running is True
 
