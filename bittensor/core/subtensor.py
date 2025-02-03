@@ -1201,34 +1201,7 @@ class Subtensor(SubtensorMixin):
         stakes = StakeInfo.list_from_dicts(result)  # type: ignore
         return [stake for stake in stakes if stake.stake > 0]
 
-    def get_stake_info_for_coldkey(
-        self, coldkey_ss58: str, block: Optional[int] = None
-    ) -> list["StakeInfo"]:
-        """
-        Retrieves stake information associated with a specific coldkey. This function provides details about the stakes
-            held by an account, including the staked amounts and associated delegates.
-
-        Arguments:
-            coldkey_ss58 (str): The ``SS58`` address of the account's coldkey.
-            block (Optional[int]): The blockchain block number for the query.
-
-        Returns:
-            A list of StakeInfo objects detailing the stake allocations for the account.
-
-        Stake information is vital for account holders to assess their investment and participation in the network's
-            delegation and consensus processes.
-        """
-        result = self.query_runtime_api(
-            runtime_api="StakeInfoRuntimeApi",
-            method="get_stake_info_for_coldkey",
-            params=[coldkey_ss58],
-            block=block,
-        )
-
-        if not result:
-            return []
-
-        return StakeInfo.list_from_dicts(result)
+    get_stake_info_for_coldkey = get_stake_for_coldkey
 
     def get_subnet_burn_cost(self, block: Optional[int] = None) -> Optional[str]:
         """
