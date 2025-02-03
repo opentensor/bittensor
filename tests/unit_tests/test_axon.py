@@ -809,10 +809,7 @@ async def test_threaded_fastapi():
     app.get("/")(lambda: "Hello World")
 
     server = FastAPIThreadedServer(
-        uvicorn.Config(
-            app,
-            loop="none"
-        ),
+        uvicorn.Config(app, loop="none"),
     )
     server.start()
 
