@@ -7,15 +7,12 @@ import requests
 import scalecodec
 from async_substrate_interface.errors import SubstrateRequestException
 from async_substrate_interface.sync_substrate import SubstrateInterface
-from async_substrate_interface.utils import hex_to_bytes, json
+from async_substrate_interface.utils import json
 from numpy.typing import NDArray
-from scalecodec.base import RuntimeConfiguration
-from scalecodec.type_registry import load_type_registry_preset
 
 from bittensor.core.async_subtensor import ProposalVoteData
 from bittensor.core.axon import Axon
 from bittensor.core.chain_data import (
-    custom_rpc_type_registry,
     decode_account_id,
     MetagraphInfo,
     WeightCommitInfo,
@@ -73,7 +70,6 @@ from bittensor.core.types import SubtensorMixin
 from bittensor.utils import (
     torch,
     format_error_message,
-    ss58_to_vec_u8,
     decode_hex_identity_dict,
     u16_normalized_float,
     _decode_hex_identity_dict,
@@ -270,9 +266,9 @@ class Subtensor(SubtensorMixin):
         self,
         runtime_api: str,
         method: str,
-        params: Optional[Union[list[list[int]], dict[str, int], list[int]]] = None,
+        params: Optional[Union[list[Any], dict[str, Any]]] = None,
         block: Optional[int] = None,
-    ) -> Optional[str]:
+    ) -> Any:
         """
         Queries the runtime API of the Bittensor blockchain, providing a way to interact with the underlying runtime and
             retrieve data encoded in Scale Bytes format. This function is essential for advanced users who need to
@@ -290,39 +286,10 @@ class Subtensor(SubtensorMixin):
         This function enables access to the deeper layers of the Bittensor blockchain, allowing for detailed and
             specific interactions with the network's runtime environment.
         """
-        # TODO why doesn't this just use SubstrateInterface.runtime_call ?
         block_hash = self.determine_block_hash(block)
+        result = self.substrate.runtime_call(runtime_api, method, params, block_hash)
 
-        call_definition = TYPE_REGISTRY["runtime_api"][runtime_api]["methods"][method]
-
-        data = (
-            "0x"
-            if params is None
-            else self.encode_params(call_definition=call_definition, params=params)
-        )
-        api_method = f"{runtime_api}_{method}"
-
-        json_result = self.substrate.rpc_request(
-            method="state_call",
-            params=[api_method, data, block_hash] if block_hash else [api_method, data],
-        )
-
-        if json_result is None:
-            return None
-
-        return_type = call_definition["type"]
-
-        as_scale_bytes = scalecodec.ScaleBytes(json_result["result"])  # type: ignore
-
-        rpc_runtime_config = RuntimeConfiguration()
-        rpc_runtime_config.update_type_registry(load_type_registry_preset("legacy"))
-        rpc_runtime_config.update_type_registry(custom_rpc_type_registry)
-
-        obj = rpc_runtime_config.create_scale_object(return_type, as_scale_bytes)
-        if obj.data.to_hex() == "0x0400":  # RPC returned None result
-            return None
-
-        return obj.decode()
+        return result.value
 
     def query_subtensor(
         self, name: str, block: Optional[int] = None, params: Optional[list] = None
@@ -396,8 +363,7 @@ class Subtensor(SubtensorMixin):
             "get_all_dynamic_info",
             block_hash=block_hash,
         )
-        subnets = DynamicInfo.list_from_vec_u8(bytes.fromhex(query.decode()[2:]))
-        return subnets
+        return DynamicInfo.list_from_dicts(query.decode())
 
     def blocks_since_last_update(self, netuid: int, uid: int) -> Optional[int]:
         """
@@ -547,13 +513,16 @@ class Subtensor(SubtensorMixin):
         Gaining insights into the subnets' details assists in understanding the network's composition, the roles of
             different subnets, and their unique features.
         """
-        hex_bytes_result = self.query_runtime_api(
-            "SubnetInfoRuntimeApi", "get_subnets_info", params=[], block=block
+        result = self.query_runtime_api(
+            runtime_api="SubnetInfoRuntimeApi",
+            method="get_subnets_info",
+            params=[],
+            block=block,
         )
-        if not hex_bytes_result:
+        if not result:
             return []
         else:
-            return SubnetInfo.list_from_vec_u8(hex_to_bytes(hex_bytes_result))
+            return SubnetInfo.list_from_dicts(result)
 
     def get_balance(self, address: str, block: Optional[int] = None) -> Balance:
         """
@@ -807,18 +776,17 @@ class Subtensor(SubtensorMixin):
             network's consensus and governance structures.
         """
 
-        block_hash = self.determine_block_hash(block)
-        encoded_hotkey = ss58_to_vec_u8(hotkey_ss58)
-
-        json_body = self.substrate.rpc_request(
-            method="delegateInfo_getDelegate",  # custom rpc method
-            params=([encoded_hotkey, block_hash] if block_hash else [encoded_hotkey]),
+        result = self.query_runtime_api(
+            runtime_api="DelegateInfoRuntimeApi",
+            method="get_delegate",
+            params=[hotkey_ss58],
+            block=block,
         )
 
-        if not (result := json_body.get("result", None)):
+        if not result:
             return None
 
-        return DelegateInfo.from_vec_u8(bytes(result))
+        return DelegateInfo.from_dict(result)
 
     def get_delegate_identities(
         self, block: Optional[int] = None
@@ -925,17 +893,17 @@ class Subtensor(SubtensorMixin):
             the network's delegation and consensus mechanisms.
         """
 
-        block_hash = self.determine_block_hash(block)
-        encoded_coldkey = ss58_to_vec_u8(coldkey_ss58)
-        json_body = self.substrate.rpc_request(
-            method="delegateInfo_getDelegated",
-            params=([block_hash, encoded_coldkey] if block_hash else [encoded_coldkey]),
+        result = self.query_runtime_api(
+            runtime_api="DelegateInfoRuntimeApi",
+            method="get_delegated",
+            params=[coldkey_ss58],
+            block=block,
         )
 
-        if not (result := json_body.get("result")):
+        if not result:
             return []
 
-        return DelegateInfo.delegated_list_from_vec_u8(bytes(result))
+        return DelegateInfo.delegated_list_from_dicts(result)
 
     def get_delegates(self, block: Optional[int] = None) -> list["DelegateInfo"]:
         """
@@ -947,14 +915,14 @@ class Subtensor(SubtensorMixin):
         Returns:
             List of DelegateInfo objects, or an empty list if there are no delegates.
         """
-        hex_bytes_result = self.query_runtime_api(
+        result = self.query_runtime_api(
             runtime_api="DelegateInfoRuntimeApi",
             method="get_delegates",
             params=[],
             block=block,
         )
-        if hex_bytes_result:
-            return DelegateInfo.list_from_vec_u8(hex_to_bytes(hex_bytes_result))
+        if result:
+            return DelegateInfo.list_from_dicts(result)
         else:
             return []
 
@@ -1041,8 +1009,7 @@ class Subtensor(SubtensorMixin):
             params=[netuid],
             block_hash=block_hash,
         )
-        metagraph_bytes = hex_to_bytes(query.decode())
-        return MetagraphInfo.from_vec_u8(metagraph_bytes)
+        return MetagraphInfo.from_dict(query.value)
 
     def get_all_metagraphs_info(
         self, block: Optional[int] = None
@@ -1053,8 +1020,7 @@ class Subtensor(SubtensorMixin):
             "get_all_metagraphs",
             block_hash=block_hash,
         )
-        metagraphs_bytes = hex_to_bytes(query.decode())
-        return MetagraphInfo.list_from_vec_u8(metagraphs_bytes)
+        return MetagraphInfo.list_from_dicts(query.value)
 
     def get_netuids_for_hotkey(
         self, hotkey_ss58: str, block: Optional[int] = None
@@ -1146,15 +1112,17 @@ class Subtensor(SubtensorMixin):
         if uid is None:
             return NeuronInfo.get_null_neuron()
 
-        params = [netuid, uid.value]
-        json_body = self.substrate.rpc_request(
-            method="neuronInfo_getNeuron", params=params, block_hash=block_hash
+        result = self.query_runtime_api(
+            runtime_api="NeuronInfoRuntimeApi",
+            method="get_neuron",
+            params=[netuid, uid.value],
+            block=block,
         )
 
-        if not (result := json_body.get("result", None)):
+        if not result:
             return NeuronInfo.get_null_neuron()
 
-        return NeuronInfo.from_vec_u8(bytes(result))
+        return NeuronInfo.from_dict(result)
 
     def get_stake(
         self,
@@ -1221,49 +1189,19 @@ class Subtensor(SubtensorMixin):
         Returns:
             Optional[list[StakeInfo]]: A list of StakeInfo objects, or ``None`` if no stake information is found.
         """
-        encoded_coldkey = ss58_to_vec_u8(coldkey_ss58)
-        hex_bytes_result = self.query_runtime_api(
+        result = self.query_runtime_api(
             runtime_api="StakeInfoRuntimeApi",
             method="get_stake_info_for_coldkey",
-            params=[encoded_coldkey],  # type: ignore
+            params=[coldkey_ss58],  # type: ignore
             block=block,
         )
 
-        if hex_bytes_result is None:
+        if result is None:
             return []
-        stakes = StakeInfo.list_from_vec_u8(hex_to_bytes(hex_bytes_result))  # type: ignore
+        stakes = StakeInfo.list_from_dicts(result)  # type: ignore
         return [stake for stake in stakes if stake.stake > 0]
 
-    def get_stake_info_for_coldkey(
-        self, coldkey_ss58: str, block: Optional[int] = None
-    ) -> list["StakeInfo"]:
-        """
-        Retrieves stake information associated with a specific coldkey. This function provides details about the stakes
-            held by an account, including the staked amounts and associated delegates.
-
-        Arguments:
-            coldkey_ss58 (str): The ``SS58`` address of the account's coldkey.
-            block (Optional[int]): The blockchain block number for the query.
-
-        Returns:
-            A list of StakeInfo objects detailing the stake allocations for the account.
-
-        Stake information is vital for account holders to assess their investment and participation in the network's
-            delegation and consensus processes.
-        """
-        encoded_coldkey = ss58_to_vec_u8(coldkey_ss58)
-
-        hex_bytes_result = self.query_runtime_api(
-            runtime_api="StakeInfoRuntimeApi",
-            method="get_stake_info_for_coldkey",
-            params=[encoded_coldkey],
-            block=block,
-        )
-
-        if not hex_bytes_result:
-            return []
-
-        return StakeInfo.list_from_vec_u8(hex_to_bytes(hex_bytes_result))
+    get_stake_info_for_coldkey = get_stake_for_coldkey
 
     def get_subnet_burn_cost(self, block: Optional[int] = None) -> Optional[str]:
         """
@@ -1305,17 +1243,17 @@ class Subtensor(SubtensorMixin):
         Understanding the hyperparameters is crucial for comprehending how subnets are configured and managed, and how
             they interact with the network's consensus and incentive mechanisms.
         """
-        hex_bytes_result = self.query_runtime_api(
+        result = self.query_runtime_api(
             runtime_api="SubnetInfoRuntimeApi",
             method="get_subnet_hyperparams",
             params=[netuid],
             block=block,
         )
 
-        if not hex_bytes_result:
+        if not result:
             return None
 
-        return SubnetHyperparameters.from_vec_u8(hex_to_bytes(hex_bytes_result))
+        return SubnetHyperparameters.from_dict(result)
 
     def get_subnet_reveal_period_epochs(
         self, netuid: int, block: Optional[int] = None
@@ -1815,18 +1753,17 @@ class Subtensor(SubtensorMixin):
         if uid is None:
             return NeuronInfo.get_null_neuron()
 
-        block_hash = self.determine_block_hash(block)
-
-        params = [netuid, uid, block_hash] if block_hash else [netuid, uid]
-        json_body = self.substrate.rpc_request(
-            method="neuronInfo_getNeuron",  # custom rpc method
-            params=params,
+        result = self.query_runtime_api(
+            runtime_api="NeuronInfoRuntimeApi",
+            method="get_neuron",
+            params=[netuid, uid],
+            block=block,
         )
-        if not (result := json_body.get("result", None)):
+
+        if not result:
             return NeuronInfo.get_null_neuron()
 
-        bytes_result = bytes(result)
-        return NeuronInfo.from_vec_u8(bytes_result)
+        return NeuronInfo.from_dict(result)
 
     def neurons(self, netuid: int, block: Optional[int] = None) -> list["NeuronInfo"]:
         """
@@ -1844,17 +1781,17 @@ class Subtensor(SubtensorMixin):
         Understanding the distribution and status of neurons within a subnet is key to comprehending the network's
             decentralized structure and the dynamics of its consensus and governance processes.
         """
-        hex_bytes_result = self.query_runtime_api(
+        result = self.query_runtime_api(
             runtime_api="NeuronInfoRuntimeApi",
             method="get_neurons",
             params=[netuid],
             block=block,
         )
 
-        if not hex_bytes_result:
+        if not result:
             return []
 
-        return NeuronInfo.list_from_vec_u8(hex_to_bytes(hex_bytes_result))
+        return NeuronInfo.list_from_dicts(result)
 
     def neurons_lite(
         self, netuid: int, block: Optional[int] = None
@@ -1874,17 +1811,17 @@ class Subtensor(SubtensorMixin):
         This function offers a quick overview of the neuron population within a subnet, facilitating efficient analysis
             of the network's decentralized structure and neuron dynamics.
         """
-        hex_bytes_result = self.query_runtime_api(
+        result = self.query_runtime_api(
             runtime_api="NeuronInfoRuntimeApi",
             method="get_neurons_lite",
             params=[netuid],
             block=block,
         )
 
-        if not hex_bytes_result:
+        if not result:
             return []
 
-        return NeuronInfoLite.list_from_vec_u8(hex_to_bytes(hex_bytes_result))
+        return NeuronInfoLite.list_from_dicts(result)
 
     def query_identity(self, key: str, block: Optional[int] = None) -> dict:
         """
@@ -1955,7 +1892,7 @@ class Subtensor(SubtensorMixin):
             params=[netuid],
             block_hash=block_hash,
         )
-        subnet = DynamicInfo.from_vec_u8(hex_to_bytes(query.decode()))  # type: ignore
+        subnet = DynamicInfo.from_dict(query.decode())  # type: ignore
         return subnet
 
     def subnet_exists(self, netuid: int, block: Optional[int] = None) -> bool:
