@@ -1207,30 +1207,42 @@ class Subtensor(SubtensorMixin):
         return Balance.from_rao(int(stake)).set_unit(netuid=netuid)
 
     def get_stake_for_coldkey_and_hotkey(
-        self, coldkey_ss58: str, hotkey_ss58: str, block: Optional[int] = None
-    ) -> dict[int, Balance]:
+        self,
+        coldkey_ss58: str,
+        hotkey_ss58: str,
+        netuids: Optional[list[int]] = None,
+        block: Optional[int] = None,
+    ) -> dict[int, StakeInfo]:
         """
-        Retrieves all coldkey-hotkey pairing stake across all subnets
+        Retrieves all coldkey-hotkey pairing stake across specified (or all) subnets
 
         Arguments:
             coldkey_ss58 (str): The SS58 address of the coldkey.
             hotkey_ss58 (str): The SS58 address of the hotkey.
+            netuids (Optional[list[int]]): The subnet IDs to query for. Set to `None` for all subnets.
             block (Optional[int]): The block number at which to query the stake information.
 
         Returns:
-            A {netuid: stake} pairing of all stakes across all subnets.
+            A {netuid: StakeInfo} pairing of all stakes across all subnets.
         """
-        all_netuids = self.get_subnets(block=block)
+        if netuids is None:
+            all_netuids = self.get_subnets(block=block)
+        else:
+            all_netuids = netuids
+        encoded_coldkey = ss58_to_vec_u8(coldkey_ss58)
+        encoded_hotkey = ss58_to_vec_u8(hotkey_ss58)
         results = [
-            self.get_stake(
-                coldkey_ss58=coldkey_ss58,
-                hotkey_ss58=hotkey_ss58,
-                netuid=netuid,
+            self.query_runtime_api(
+                "StakeInfoRuntimeApi" "get_stake_info_for_hotkey_coldkey_netuid",
+                params=[encoded_hotkey, encoded_coldkey, netuid],
                 block=block,
             )
             for netuid in all_netuids
         ]
-        return {netuid: result for (netuid, result) in zip(all_netuids, results)}
+        return {
+            netuid: StakeInfo.from_dict(result)
+            for (netuid, result) in zip(all_netuids, results)
+        }
 
     def get_stake_for_coldkey(
         self, coldkey_ss58: str, block: Optional[int] = None
