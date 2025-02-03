@@ -1,6 +1,7 @@
 import asyncio
 import copy
 import ssl
+import warnings
 from typing import Optional, Any, Union, Iterable, TYPE_CHECKING
 
 import aiohttp
@@ -1547,35 +1548,31 @@ class AsyncSubtensor(SubtensorMixin):
             Balance: The stake under the coldkey - hotkey pairing.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
-
-        # Get alpha shares
-        alpha_shares = await self.query_module(
-            module="SubtensorModule",
-            name="Alpha",
-            block_hash=block_hash,
-            reuse_block=reuse_block,
-            params=[hotkey_ss58, coldkey_ss58, netuid],
+        alpha_shares, hotkey_alpha_result, hotkey_shares = await asyncio.gather(
+            self.query_module(
+                module="SubtensorModule",
+                name="Alpha",
+                block_hash=block_hash,
+                reuse_block=reuse_block,
+                params=[hotkey_ss58, coldkey_ss58, netuid],
+            ),
+            self.query_module(
+                module="SubtensorModule",
+                name="TotalHotkeyAlpha",
+                block_hash=block_hash,
+                reuse_block=reuse_block,
+                params=[hotkey_ss58, netuid],
+            ),
+            self.query_module(
+                module="SubtensorModule",
+                name="TotalHotkeyShares",
+                block_hash=block_hash,
+                reuse_block=reuse_block,
+                params=[hotkey_ss58, netuid],
+            ),
         )
 
-        # Get total hotkey alpha
-        hotkey_alpha_result = await self.query_module(
-            module="SubtensorModule",
-            name="TotalHotkeyAlpha",
-            block_hash=block_hash,
-            reuse_block=reuse_block,
-            params=[hotkey_ss58, netuid],
-        )
         hotkey_alpha: int = getattr(hotkey_alpha_result, "value", 0)
-
-        # Get total hotkey shares
-        hotkey_shares = await self.query_module(
-            module="SubtensorModule",
-            name="TotalHotkeyShares",
-            block_hash=block_hash,
-            reuse_block=reuse_block,
-            params=[hotkey_ss58, netuid],
-        )
-
         alpha_shares_as_float = fixed_to_float(alpha_shares)
         hotkey_shares_as_float = fixed_to_float(hotkey_shares)
 
@@ -1586,7 +1583,25 @@ class AsyncSubtensor(SubtensorMixin):
 
         return Balance.from_rao(int(stake)).set_unit(netuid=netuid)
 
-    get_stake_for_coldkey_and_hotkey = get_stake
+    async def get_stake_for_coldkey_and_hotkey(
+        self,
+        hotkey_ss58: str,
+        coldkey_ss58: str,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> Balance:
+        warnings.warn(
+            "This method is deprecated and will be removed in version 9.0 full release "
+            "Please use `AsyncSubtensor.get_stake`",
+        )
+        return await self.get_stake(
+            coldkey_ss58=coldkey_ss58,
+            hotkey_ss58=hotkey_ss58,
+            block=block,
+            block_hash=block_hash,
+            reuse_block=reuse_block,
+        )
 
     async def get_stake_for_coldkey(
         self,

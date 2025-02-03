@@ -2212,7 +2212,7 @@ def test_get_stake_for_coldkey_and_hotkey(subtensor, mocker):
     spy_balance = mocker.spy(subtensor_module, "Balance")
 
     # Call
-    result = subtensor.get_stake_for_coldkey_and_hotkey(
+    result = subtensor.get_stake(
         hotkey_ss58="hotkey", coldkey_ss58="coldkey", block=None
     )
 
