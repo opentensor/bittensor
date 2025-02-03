@@ -1582,42 +1582,51 @@ class AsyncSubtensor(SubtensorMixin):
         self,
         coldkey_ss58: str,
         hotkey_ss58: str,
+        netuids: Optional[list[int]] = None,
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
-    ) -> dict[int, Balance]:
+    ) -> dict[int, StakeInfo]:
         """
-        Retrieves all coldkey-hotkey pairing stake across all subnets
+        Retrieves all coldkey-hotkey pairing stake across specified (or all) subnets
 
         Arguments:
             coldkey_ss58 (str): The SS58 address of the coldkey.
             hotkey_ss58 (str): The SS58 address of the hotkey.
+            netuids (Optional[list[int]]): The subnet IDs to query for. Set to `None` for all subnets.
             block (Optional[int]): The block number at which to query the stake information.
             block_hash (Optional[str]): The hash of the block to retrieve the stake from. Do not specify if using block
                 or reuse_block
             reuse_block (bool): Whether to use the last-used block. Do not set if using block_hash or block.
 
         Returns:
-            A {netuid: stake} pairing of all stakes across all subnets.
+            A {netuid: StakeInfo} pairing of all stakes across all subnets.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         if not block_hash and reuse_block:
             block_hash = self.substrate.last_block_hash
         elif not block_hash:
             block_hash = await self.substrate.get_chain_head()
-        all_netuids = await self.get_subnets(block_hash=block_hash)
+        if netuids is None:
+            all_netuids = await self.get_subnets(block_hash=block_hash)
+        else:
+            all_netuids = netuids
+        encoded_coldkey = ss58_to_vec_u8(coldkey_ss58)
+        encoded_hotkey = ss58_to_vec_u8(hotkey_ss58)
         results = await asyncio.gather(
             *[
-                self.get_stake(
-                    coldkey_ss58=coldkey_ss58,
-                    hotkey_ss58=hotkey_ss58,
-                    netuid=netuid,
+                self.query_runtime_api(
+                    "StakeInfoRuntimeApi" "get_stake_info_for_hotkey_coldkey_netuid",
+                    params=[encoded_hotkey, encoded_coldkey, netuid],
                     block_hash=block_hash,
                 )
                 for netuid in all_netuids
             ]
         )
-        return {netuid: result for (netuid, result) in zip(all_netuids, results)}
+        return {
+            netuid: StakeInfo.from_dict(result)
+            for (netuid, result) in zip(all_netuids, results)
+        }
 
     async def get_stake_for_coldkey(
         self,
