@@ -1,7 +1,7 @@
 import asyncio
 import copy
 import ssl
-import warnings
+from functools import partial
 from typing import Optional, Any, Union, Iterable, TYPE_CHECKING
 
 import aiohttp
@@ -1526,7 +1526,7 @@ class AsyncSubtensor(SubtensorMixin):
         self,
         coldkey_ss58: str,
         hotkey_ss58: str,
-        netuid: Optional[int] = None,
+        netuid: int,
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
@@ -1537,8 +1537,7 @@ class AsyncSubtensor(SubtensorMixin):
         Args:
             hotkey_ss58 (str): The SS58 address of the hotkey.
             coldkey_ss58 (str): The SS58 address of the coldkey.
-            netuid (Optional[int]): The subnet ID to filter by. If provided, only returns stake for this specific
-                subnet.
+            netuid (int): The subnet ID.
             block (Optional[int]): The block number at which to query the stake information.
             block_hash (Optional[str]): The hash of the block to retrieve the stake from. Do not specify if using block
                 or reuse_block
@@ -1548,26 +1547,22 @@ class AsyncSubtensor(SubtensorMixin):
             Balance: The stake under the coldkey - hotkey pairing.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        sub_query = partial(
+            self.query_subtensor,
+            block_hash=block_hash,
+            reuse_block=reuse_block,
+        )
         alpha_shares, hotkey_alpha_result, hotkey_shares = await asyncio.gather(
-            self.query_module(
-                module="SubtensorModule",
+            sub_query(
                 name="Alpha",
-                block_hash=block_hash,
-                reuse_block=reuse_block,
                 params=[hotkey_ss58, coldkey_ss58, netuid],
             ),
-            self.query_module(
-                module="SubtensorModule",
+            sub_query(
                 name="TotalHotkeyAlpha",
-                block_hash=block_hash,
-                reuse_block=reuse_block,
                 params=[hotkey_ss58, netuid],
             ),
-            self.query_module(
-                module="SubtensorModule",
+            sub_query(
                 name="TotalHotkeyShares",
-                block_hash=block_hash,
-                reuse_block=reuse_block,
                 params=[hotkey_ss58, netuid],
             ),
         )
@@ -1585,23 +1580,44 @@ class AsyncSubtensor(SubtensorMixin):
 
     async def get_stake_for_coldkey_and_hotkey(
         self,
-        hotkey_ss58: str,
         coldkey_ss58: str,
+        hotkey_ss58: str,
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
-    ) -> Balance:
-        warnings.warn(
-            "This method is deprecated and will be removed in version 9.0 full release "
-            "Please use `AsyncSubtensor.get_stake`",
+    ) -> dict[int, Balance]:
+        """
+        Retrieves all coldkey-hotkey pairing stake across all subnets
+
+        Arguments:
+            coldkey_ss58 (str): The SS58 address of the coldkey.
+            hotkey_ss58 (str): The SS58 address of the hotkey.
+            block (Optional[int]): The block number at which to query the stake information.
+            block_hash (Optional[str]): The hash of the block to retrieve the stake from. Do not specify if using block
+                or reuse_block
+            reuse_block (bool): Whether to use the last-used block. Do not set if using block_hash or block.
+
+        Returns:
+            A {netuid: stake} pairing of all stakes across all subnets.
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        if not block_hash and reuse_block:
+            block_hash = self.substrate.last_block_hash
+        elif not block_hash:
+            block_hash = await self.substrate.get_chain_head()
+        all_netuids = await self.get_subnets(block_hash=block_hash)
+        results = await asyncio.gather(
+            *[
+                self.get_stake(
+                    coldkey_ss58=coldkey_ss58,
+                    hotkey_ss58=hotkey_ss58,
+                    netuid=netuid,
+                    block_hash=block_hash,
+                )
+                for netuid in all_netuids
+            ]
         )
-        return await self.get_stake(
-            coldkey_ss58=coldkey_ss58,
-            hotkey_ss58=hotkey_ss58,
-            block=block,
-            block_hash=block_hash,
-            reuse_block=reuse_block,
-        )
+        return {netuid: result for (netuid, result) in zip(all_netuids, results)}
 
     async def get_stake_for_coldkey(
         self,
