@@ -83,7 +83,9 @@ class DynamicInfo(InfoBase):
             subnet_identity = SubnetIdentity(
                 subnet_name=bytes(decoded["subnet_identity"]["subnet_name"]).decode(),
                 github_repo=bytes(decoded["subnet_identity"]["github_repo"]).decode(),
-                subnet_contact=bytes(decoded["subnet_identity"]["subnet_contact"]).decode(),
+                subnet_contact=bytes(
+                    decoded["subnet_identity"]["subnet_contact"]
+                ).decode(),
             )
         else:
             subnet_identity = None
