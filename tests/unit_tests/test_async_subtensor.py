@@ -1358,7 +1358,7 @@ async def test_get_delegated_with_reuse_block(subtensor, mocker):
         "DelegateInfoRuntimeApi",
         "get_delegated",
         [fake_coldkey_ss58],
-        None,
+        subtensor.substrate.last_block_hash,
     )
     mocked_delegated_list_from_dicts.assert_called_once_with(
         subtensor.substrate.runtime_call.return_value.value
