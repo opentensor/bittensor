@@ -772,7 +772,7 @@ class MockSubtensor(Subtensor):
         trust = u16_normalized_float(trust)
         validator_trust = u16_normalized_float(validator_trust)
         dividends = u16_normalized_float(dividends)
-        prometheus_info = PrometheusInfo.fix_decoded_values(prometheus_info)
+        prometheus_info = PrometheusInfo.from_dict(prometheus_info)
         axon_info_ = AxonInfo.from_neuron_info(
             {"hotkey": hotkey, "coldkey": coldkey, "axon_info": axon_info_}
         )

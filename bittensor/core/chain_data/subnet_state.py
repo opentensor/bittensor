@@ -4,21 +4,17 @@ subnetwork states in the Bittensor network.
 """
 
 from dataclasses import dataclass
-from typing import Optional, Union
 
 from scalecodec.utils.ss58 import ss58_encode
 
-from bittensor.core.chain_data.utils import (
-    ChainDataType,
-    from_scale_encoding,
-    SS58_FORMAT,
-)
+from bittensor.core.chain_data.info_base import InfoBase
+from bittensor.core.chain_data.utils import SS58_FORMAT
 from bittensor.utils import u16_normalized_float
 from bittensor.utils.balance import Balance
 
 
 @dataclass
-class SubnetState:
+class SubnetState(InfoBase):
     netuid: int
     hotkeys: list[str]
     coldkeys: list[str]
@@ -39,26 +35,7 @@ class SubnetState:
     emission_history: list[list[int]]
 
     @classmethod
-    def from_vec_u8(cls, vec_u8: Union[list[int], bytes]) -> Optional["SubnetState"]:
-        if len(vec_u8) == 0:
-            return None
-        decoded = from_scale_encoding(vec_u8, ChainDataType.SubnetState)
-        if decoded is None:
-            return None
-        return SubnetState.fix_decoded_values(decoded)
-
-    @classmethod
-    def list_from_vec_u8(cls, vec_u8: list[int]) -> list["SubnetState"]:
-        decoded = from_scale_encoding(
-            vec_u8, ChainDataType.SubnetState, is_vec=True, is_option=True
-        )
-        if decoded is None:
-            return []
-        decoded = [SubnetState.fix_decoded_values(d) for d in decoded]
-        return decoded
-
-    @classmethod
-    def fix_decoded_values(cls, decoded: dict) -> "SubnetState":
+    def _from_dict(cls, decoded: dict) -> "SubnetState":
         netuid = decoded["netuid"]
         return SubnetState(
             netuid=netuid,

@@ -1,10 +1,12 @@
 from dataclasses import dataclass
 
-from bittensor.utils import networking
+import netaddr
+
+from bittensor.core.chain_data.info_base import InfoBase
 
 
 @dataclass
-class PrometheusInfo:
+class PrometheusInfo(InfoBase):
     """
     Dataclass representing information related to Prometheus.
 
@@ -23,9 +25,11 @@ class PrometheusInfo:
     ip_type: int
 
     @classmethod
-    def fix_decoded_values(cls, prometheus_info_decoded: dict) -> "PrometheusInfo":
-        """Returns a PrometheusInfo object from a prometheus_info_decoded dictionary."""
-        prometheus_info_decoded["ip"] = networking.int_to_ip(
-            int(prometheus_info_decoded["ip"])
+    def _from_dict(cls, data):
+        return cls(
+            block=data["block"],
+            ip_type=data["ip_type"],
+            ip=str(netaddr.IPAddress(data["ip"])),
+            port=data["port"],
+            version=data["version"],
         )
-        return cls(**prometheus_info_decoded)
