@@ -29,12 +29,12 @@ class StakeInfo(InfoBase):
     is_registered: bool
 
     @classmethod
-    def fix_decoded_values(cls, decoded: dict) -> "StakeInfo":
-        """Fixes the decoded values."""
+    def from_dict(cls, decoded: dict) -> "StakeInfo":
+        """Returns a StakeInfo object."""
         netuid = decoded["netuid"]
         return cls(
-            hotkey_ss58=ss58_encode(decoded["hotkey"], SS58_FORMAT),
-            coldkey_ss58=ss58_encode(decoded["coldkey"], SS58_FORMAT),
+            hotkey_ss58=decode_account_id(decoded["hotkey"]),
+            coldkey_ss58=decode_account_id(decoded["coldkey"]),
             netuid=int(netuid),
             stake=Balance.from_rao(decoded["stake"]).set_unit(netuid),
             locked=Balance.from_rao(decoded["locked"]).set_unit(netuid),
@@ -43,10 +43,3 @@ class StakeInfo(InfoBase):
             is_registered=bool(decoded["is_registered"]),
         )
 
-    @classmethod
-    def _fix_decoded(cls, decoded: dict) -> "StakeInfo":
-        hotkey = decode_account_id(decoded.hotkey)
-        coldkey = decode_account_id(decoded.coldkey)
-        stake = Balance.from_rao(decoded.stake)
-
-        return StakeInfo(hotkey, coldkey, stake)

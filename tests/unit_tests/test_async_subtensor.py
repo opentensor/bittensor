@@ -441,7 +441,8 @@ async def test_get_stake_info_for_coldkey(subtensor, mocker, fake_result, respon
     )
     subtensor.query_runtime_api = mocked_query_runtime_api
 
-    mocked_stake_info_list_from_dicts = mocker.Mock()
+    mock_stake_info = mocker.Mock(spec=async_subtensor.StakeInfo, stake=Balance.from_rao(100))
+    mocked_stake_info_list_from_dicts = mocker.Mock(return_value=[mock_stake_info] if fake_result else [])
     async_subtensor.StakeInfo.list_from_dicts = mocked_stake_info_list_from_dicts
 
     # Call
@@ -451,10 +452,10 @@ async def test_get_stake_info_for_coldkey(subtensor, mocker, fake_result, respon
 
     # Asserts
     if fake_result:
-        assert result == mocked_stake_info_list_from_dicts.return_value
         mocked_stake_info_list_from_dicts.assert_called_once_with(fake_result)
+        assert result == mocked_stake_info_list_from_dicts.return_value
     else:
-        assert result == response
+        assert result == []
 
     mocked_query_runtime_api.assert_called_once_with(
         runtime_api="StakeInfoRuntimeApi",

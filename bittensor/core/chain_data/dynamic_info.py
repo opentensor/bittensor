@@ -6,10 +6,8 @@ dynamic information in the Bittensor network.
 from dataclasses import dataclass
 from typing import Optional, Union
 
-from scalecodec.utils.ss58 import ss58_encode
-
 from bittensor.core.chain_data.info_base import InfoBase
-from bittensor.core.chain_data.utils import SS58_FORMAT
+from bittensor.core.chain_data.utils import decode_account_id
 
 from bittensor.core.chain_data.subnet_identity import SubnetIdentity
 from bittensor.utils.balance import Balance
@@ -52,8 +50,8 @@ class DynamicInfo(InfoBase):
             True if int(decoded["netuid"]) > 0 else False
         )  # Root is not dynamic
 
-        owner_hotkey = ss58_encode(decoded["owner_hotkey"], SS58_FORMAT)
-        owner_coldkey = ss58_encode(decoded["owner_coldkey"], SS58_FORMAT)
+        owner_hotkey = decode_account_id(decoded["owner_hotkey"])
+        owner_coldkey = decode_account_id(decoded["owner_coldkey"])
 
         emission = Balance.from_rao(decoded["emission"]).set_unit(0)
         alpha_in = Balance.from_rao(decoded["alpha_in"]).set_unit(netuid)
@@ -83,9 +81,9 @@ class DynamicInfo(InfoBase):
 
         if decoded.get("subnet_identity"):
             subnet_identity = SubnetIdentity(
-                subnet_name=decoded["subnet_identity"]["subnet_name"],
-                github_repo=decoded["subnet_identity"]["github_repo"],
-                subnet_contact=decoded["subnet_identity"]["subnet_contact"],
+                subnet_name=bytes(decoded["subnet_identity"]["subnet_name"]).decode(),
+                github_repo=bytes(decoded["subnet_identity"]["github_repo"]).decode(),
+                subnet_contact=bytes(decoded["subnet_identity"]["subnet_contact"]).decode(),
             )
         else:
             subnet_identity = None
