@@ -1,3 +1,4 @@
+import asyncio
 import unittest.mock as mock
 
 import pytest
@@ -5,7 +6,7 @@ from bittensor_wallet import Wallet
 
 from bittensor.core import async_subtensor
 from bittensor.core.async_subtensor import AsyncSubtensor
-from bittensor.core import async_subtensor as subtensor_module
+from bittensor.core.chain_data.stake_info import StakeInfo
 from bittensor.core.chain_data import proposal_vote_data
 from bittensor.utils.balance import Balance
 
@@ -479,23 +480,20 @@ async def test_get_stake_for_coldkey_and_hotkey(subtensor, mocker):
     mocked_substrate_query = mocker.AsyncMock(
         autospec=async_subtensor.AsyncSubstrateInterface.query_runtime_api
     )
+    mocked_gather = mocker.AsyncMock(autospec=asyncio.gather)
 
     subtensor.substrate.query = mocked_substrate_query
 
     spy_balance = mocker.spy(async_subtensor, "Balance")
 
     # Call
-    with mocker.patch.object(
-        subtensor_module,
-        "ss58_to_vec_u8",
-        return_value="KEY",
-    ):
+    with mock.patch.object(StakeInfo, "from_dict", return_value="StakeInfo"):
         result = await subtensor.get_stake_for_coldkey_and_hotkey(
             hotkey_ss58="hotkey", coldkey_ss58="coldkey", block_hash=None, netuids=[1]
         )
 
     # Asserts
-    mocked_substrate_query.assert_awaited_with(
+    mocked_gather.assert_awaited_with(
         "StakeInfoRuntimeApi",
         "get_stake_info_for_hotkey_coldkey_netuid",
         params=["KEY", "KEY", 1],
