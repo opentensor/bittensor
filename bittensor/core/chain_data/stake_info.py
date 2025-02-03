@@ -1,10 +1,7 @@
 from dataclasses import dataclass
 
-from scalecodec.utils.ss58 import ss58_encode
-
 from bittensor.core.chain_data.info_base import InfoBase
 from bittensor.core.chain_data.utils import decode_account_id
-from bittensor.core.settings import SS58_FORMAT
 from bittensor.utils.balance import Balance
 
 
@@ -42,4 +39,3 @@ class StakeInfo(InfoBase):
             drain=int(decoded["drain"]),
             is_registered=bool(decoded["is_registered"]),
         )
-
