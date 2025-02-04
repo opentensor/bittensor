@@ -50,6 +50,7 @@ class MetagraphInfo:
     tao_in_emission: Balance  # amount of tao injected per block
     pending_alpha_emission: Balance  # pending alpha to be distributed
     pending_root_emission: Balance  # pending tao for root divs to be distributed
+    subnet_volume: Balance  # volume of the subnet
 
     # Hparams for epoch
     rho: int  # subnet rho param
@@ -173,6 +174,9 @@ class MetagraphInfo:
             decoded["pending_alpha_emission"], _netuid
         )
         decoded["pending_root_emission"] = _tbwu(decoded["pending_root_emission"])
+        decoded["subnet_volume"] = Balance.from_rao(decoded["subnet_volume"]).set_unit(
+            _netuid
+        )
 
         # Hparams for epoch
         decoded["kappa"] = u16tf(decoded["kappa"])

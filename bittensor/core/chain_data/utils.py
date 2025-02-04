@@ -326,6 +326,7 @@ custom_rpc_type_registry = {
                 ["pending_alpha_emission", "Compact<u64>"],
                 ["pending_root_emission", "Compact<u64>"],
                 ["network_registered_at", "Compact<u64>"],
+                ["subnet_volume", "Compact<u128>"],
                 ["subnet_identity", "Option<SubnetIdentity>"],
             ],
         },
@@ -402,6 +403,7 @@ custom_rpc_type_registry = {
                 ["total_stake", "Vec<Compact<u64>>"],
                 ["tao_dividends_per_hotkey", "Vec<(T::AccountId, Compact<u64>)>"],
                 ["alpha_dividends_per_hotkey", "Vec<(T::AccountId, Compact<u64>)>"],
+                ["subnet_volume", "Compact<u128>"],
             ],
         },
         "ChainIdentityOf": {

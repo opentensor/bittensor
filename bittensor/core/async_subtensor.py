@@ -354,7 +354,7 @@ class AsyncSubtensor:
 
         return metagraph
 
-    async def get_metagraph(
+    async def get_metagraph_info(
         self, netuid: int, block: Optional[int] = None
     ) -> Optional[MetagraphInfo]:
         block_hash = await self.get_block_hash(block)
@@ -368,7 +368,7 @@ class AsyncSubtensor:
         metagraph_bytes = bytes.fromhex(query.decode()[2:])
         return MetagraphInfo.from_vec_u8(metagraph_bytes)
 
-    async def get_all_metagraphs(
+    async def get_all_metagraphs_info(
         self, block: Optional[int] = None
     ) -> list[MetagraphInfo]:
         block_hash = await self.get_block_hash(block)

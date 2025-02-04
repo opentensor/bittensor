@@ -40,6 +40,7 @@ class DynamicInfo:
     pending_alpha_emission: Balance
     pending_root_emission: Balance
     network_registered_at: int
+    subnet_volume: Balance
     subnet_identity: Optional[SubnetIdentity]
 
     @classmethod
@@ -93,6 +94,7 @@ class DynamicInfo:
         pending_root_emission = Balance.from_rao(
             decoded["pending_root_emission"]
         ).set_unit(0)
+        subnet_volume = Balance.from_rao(decoded["subnet_volume"]).set_unit(netuid)
 
         price = (
             Balance.from_tao(1.0)
@@ -134,6 +136,7 @@ class DynamicInfo:
             pending_root_emission=pending_root_emission,
             network_registered_at=int(decoded["network_registered_at"]),
             subnet_identity=subnet_identity,
+            subnet_volume=subnet_volume,
         )
 
     def tao_to_alpha(self, tao: Union[Balance, float, int]) -> Balance:

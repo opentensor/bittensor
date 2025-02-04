@@ -1,5 +1,12 @@
 # Changelog
 
+
+## 8.5.1rc11 /2025-02-03
+## What's Changed
+* Updates `dynamic_info` to add `volume`.
+* Updates `metagraph_info` to add `volume`.
+* Renames metagraph methods in async to `get_metagraph_info` and `get_all_metagraphs_info`.
+
 ## 8.5.1rc10 /2025-01-29
 ## What's Changed
 * Adds `get_metagraph`, `get_all_metagraphs`: a new structure for metagraph data.
