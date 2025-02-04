@@ -237,7 +237,7 @@ class Subtensor(SubtensorMixin):
         name: str,
         block: Optional[int] = None,
         params: Optional[list] = None,
-    ) -> Union["ScaleObj", "FixedPoint"]:
+    ) -> Optional[Union["ScaleObj", Any]]:
         """
         Queries any module storage on the Bittensor blockchain with the specified parameters and block number. This
             function is a generic query interface that allows for flexible and diverse data retrieval from various
