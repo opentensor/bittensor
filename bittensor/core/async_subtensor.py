@@ -912,9 +912,7 @@ class AsyncSubtensor(SubtensorMixin):
                 block_hash=block_hash,
                 reuse_block_hash=reuse_block,
             )
-            print(915, children)
             if children:
-                print(916, children)
                 formatted_children = []
                 for proportion, child in children.value:
                     # Convert U64 to int
