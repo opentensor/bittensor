@@ -24,6 +24,7 @@ from bittensor_wallet import Wallet
 from async_substrate_interface import sync_substrate
 import websockets
 
+from bittensor import StakeInfo
 from bittensor.core import settings
 from bittensor.core import subtensor as subtensor_module
 from bittensor.core.async_subtensor import AsyncSubtensor, logging
@@ -1753,7 +1754,7 @@ def test_get_transfer_fee(subtensor, mocker):
     fake_dest = "SS58ADDRESS"
     value = 1
 
-    fake_payment_info = {"partialFee": int(2e10)}
+    fake_payment_info = {"partial_fee": int(2e10)}
     subtensor.substrate.get_payment_info.return_value = fake_payment_info
 
     # Call
@@ -2189,28 +2190,52 @@ def test_networks_during_connection(mocker):
         sub.chain_endpoint = settings.NETWORK_MAP.get(network)
 
 
+@pytest.mark.asyncio
 def test_get_stake_for_coldkey_and_hotkey(subtensor, mocker):
-    """Tests get_stake_for_coldkey_and_hotkey method."""
-    # Preps
-    spy_balance = mocker.spy(subtensor_module, "Balance")
+    netuids = [1, 2, 3]
+    stake_info_dict = {
+        "netuid": 1,
+        "hotkey": b"\x16:\xech\r\xde,g\x03R1\xb9\x88q\xe79\xb8\x88\x93\xae\xd2)?*\rp\xb2\xe62\xads\x1c",
+        "coldkey": b"\x16:\xech\r\xde,g\x03R1\xb9\x88q\xe79\xb8\x88\x93\xae\xd2)?*\rp\xb2\xe62\xads\x1c",
+        "stake": 1,
+        "locked": False,
+        "emission": 1,
+        "drain": 1,
+        "is_registered": True,
+    }
+    query_result = stake_info_dict
+    expected_result = {
+        netuid: StakeInfo.from_dict(stake_info_dict) for netuid in netuids
+    }
 
-    # Call
+    query_fetcher = mocker.Mock(return_value=query_result)
+
+    mocked_query_runtime_api = mocker.patch.object(
+        subtensor, "query_runtime_api", side_effect=query_fetcher
+    )
+    mocked_get_subnets = mocker.patch.object(
+        subtensor, "get_subnets", return_value=netuids
+    )
+
     result = subtensor.get_stake_for_coldkey_and_hotkey(
-        hotkey_ss58="hotkey", coldkey_ss58="coldkey", block=None, netuids=[1]
+        hotkey_ss58="hotkey", coldkey_ss58="coldkey", block=None, netuids=None
     )
 
-    # Asserts
-    subtensor.substrate.query_runtime_api.assert_called_with(
-        "StakeInfoRuntimeApi",
-        "get_stake_info_for_hotkey_coldkey_netuid",
-        params=["KEY", "KEY", 1],
-        block_hash=None,
-        reuse_block_hash=False,
+    assert result == expected_result
+
+    # validate that mocked functions were called with the right arguments
+    mocked_query_runtime_api.assert_has_calls(
+        [
+            mock.call(
+                "StakeInfoRuntimeApi",
+                "get_stake_info_for_hotkey_coldkey_netuid",
+                params=["hotkey", "coldkey", netuid],
+                block=None,
+            )
+            for netuid in netuids
+        ]
     )
-    assert subtensor.substrate.query.call_count == 3
-    assert result == spy_balance.from_rao.return_value.set_unit.return_value
-    spy_balance.from_rao.assert_called()
-    assert spy_balance.from_rao.call_count == 1
+    mocked_get_subnets.assert_called_once_with(block=None)
 
 
 def test_does_hotkey_exist_true(mocker, subtensor):
