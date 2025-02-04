@@ -1944,9 +1944,9 @@ class AsyncSubtensor(SubtensorMixin):
                 logging.error(
                     f":cross_mark: [red]Failed to get payment info: [/red]{e}"
                 )
-                payment_info = {"partialFee": int(2e7)}  # assume  0.02 Tao
+                payment_info = {"partial_fee": int(2e7)}  # assume  0.02 Tao
 
-            return Balance.from_rao(payment_info["partialFee"])
+            return Balance.from_rao(payment_info["partial_fee"])
         else:
             fee = Balance.from_rao(int(2e7))
             logging.error(
