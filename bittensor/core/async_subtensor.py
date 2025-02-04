@@ -11,7 +11,7 @@ import scalecodec
 from async_substrate_interface import AsyncSubstrateInterface
 from bittensor_wallet.utils import SS58_FORMAT
 from numpy.typing import NDArray
-from scalecodec import GenericCall, ScaleType
+from scalecodec import GenericCall
 
 from bittensor.core.chain_data import (
     DelegateInfo,
@@ -81,7 +81,7 @@ from bittensor.utils.delegates_details import DelegatesDetails
 from bittensor.utils.weight_utils import generate_weight_hash
 
 if TYPE_CHECKING:
-    from scalecodec import ScaleType
+    from async_substrate_interface.types import ScaleObj
     from bittensor_wallet import Wallet
     from bittensor.core.axon import Axon
     from bittensor.utils import Certificate
@@ -274,7 +274,7 @@ class AsyncSubtensor(SubtensorMixin):
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
-    ) -> Optional["ScaleType"]:
+    ) -> Optional["ScaleObj"]:
         """
         Retrieves a constant from the specified module on the Bittensor blockchain. This function is used to access
             fixed parameters or values defined within the blockchain's modules, which are essential for understanding
@@ -290,7 +290,7 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to reuse the blockchain block at which to query the constant.
 
         Returns:
-            Optional[scalecodec.ScaleType]: The value of the constant if found, `None` otherwise.
+            Optional[async_substrate_interface.types.ScaleObj]: The value of the constant if found, `None` otherwise.
 
         Constants queried through this function can include critical network parameters such as inflation rates,
             consensus rules, or validation thresholds, providing a deeper understanding of the Bittensor network's
@@ -386,7 +386,7 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
         params: Optional[list] = None,
-    ) -> "ScaleType":
+    ) -> Optional[Union["ScaleObj", Any]]:
         """
         Queries any module storage on the Bittensor blockchain with the specified parameters and block number. This
             function is a generic query interface that allows for flexible and diverse data retrieval from various
@@ -460,7 +460,7 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
         params: Optional[list] = None,
-    ) -> "ScaleType":
+    ) -> Optional[Union["ScaleObj", Any]]:
         """
         Queries named storage from the Subtensor module on the Bittensor blockchain. This function is used to retrieve
             specific data or parameters from the blockchain, such as stake, rank, or other neuron-specific attributes.
@@ -474,7 +474,7 @@ class AsyncSubtensor(SubtensorMixin):
             params: A list of parameters to pass to the query function.
 
         Returns:
-            query_response (scalecodec.ScaleType): An object containing the requested data.
+            query_response: An object containing the requested data.
 
         This query function is essential for accessing detailed information about the network and its neurons, providing
             valuable insights into the state and dynamics of the Bittensor ecosystem.
