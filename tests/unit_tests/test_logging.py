@@ -212,3 +212,25 @@ def test_all_log_levels_output(logging_machine, caplog):
 def test_concat(msg, prefix, suffix, expected_result):
     """Test different options of message concatenation with prefix and suffix."""
     assert _concat_message(msg, prefix, suffix) == expected_result
+
+
+def test_logger_level(logging_machine, caplog):
+    """Test get/set Logger level."""
+
+    assert logging_machine.get_level() == stdlogging.WARN
+
+    logging_machine.info("info1")
+    logging_machine.warning("warn1")
+
+    assert "info1" not in caplog.text
+    assert "warn1" in caplog.text
+
+    logging_machine.setLevel(stdlogging.INFO)
+
+    assert logging_machine.get_level() == stdlogging.INFO
+
+    logging_machine.info("info2")
+    logging_machine.warning("warn2")
+
+    assert "info2" in caplog.text
+    assert "warn2" in caplog.text
