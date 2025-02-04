@@ -70,6 +70,7 @@ from bittensor.utils import (
     torch,
     u16_normalized_float,
     _decode_hex_identity_dict,
+    Certificate,
 )
 from bittensor.utils.balance import (
     Balance,
@@ -84,7 +85,6 @@ if TYPE_CHECKING:
     from async_substrate_interface.types import ScaleObj
     from bittensor_wallet import Wallet
     from bittensor.core.axon import Axon
-    from bittensor.utils import Certificate
     from async_substrate_interface import AsyncQueryMapResult
 
 
@@ -1403,7 +1403,7 @@ class AsyncSubtensor(SubtensorMixin):
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
-    ) -> Optional["Certificate"]:
+    ) -> Optional[Certificate]:
         """
         Retrieves the TLS certificate for a specific neuron identified by its unique identifier (UID) within a
             specified subnet (netuid) of the Bittensor network.
@@ -1431,10 +1431,7 @@ class AsyncSubtensor(SubtensorMixin):
         )
         try:
             if certificate:
-                tuple_ascii = certificate["public_key"][0]
-                return chr(certificate["algorithm"]) + "".join(
-                    chr(i) for i in tuple_ascii
-                )
+                return Certificate(certificate)
 
         except AttributeError:
             return None
@@ -3384,7 +3381,7 @@ class AsyncSubtensor(SubtensorMixin):
         axon: "Axon",
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
-        certificate: Optional["Certificate"] = None,
+        certificate: Optional[Certificate] = None,
     ) -> bool:
         """
         Registers an ``Axon`` serving endpoint on the Bittensor network for a specific neuron. This function is used to

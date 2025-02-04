@@ -73,6 +73,7 @@ from bittensor.utils import (
     decode_hex_identity_dict,
     u16_normalized_float,
     _decode_hex_identity_dict,
+    Certificate,
 )
 from bittensor.utils.balance import (
     Balance,
@@ -85,11 +86,10 @@ from bittensor.utils.weight_utils import generate_weight_hash
 
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
-    from bittensor.utils import Certificate
     from async_substrate_interface.sync_substrate import QueryMapResult
     from async_substrate_interface.types import ScaleObj
     from bittensor.utils.delegates_details import DelegatesDetails
-    from scalecodec.types import ScaleType, GenericCall
+    from scalecodec.types import GenericCall
 
 
 class Subtensor(SubtensorMixin):
@@ -150,7 +150,7 @@ class Subtensor(SubtensorMixin):
 
     def query_constant(
         self, module_name: str, constant_name: str, block: Optional[int] = None
-    ) -> Optional["ScaleType"]:
+    ) -> Optional["ScaleObj"]:
         """
         Retrieves a constant from the specified module on the Bittensor blockchain. This function is used to access
             fixed parameters or values defined within the blockchain's modules, which are essential for understanding
@@ -162,7 +162,7 @@ class Subtensor(SubtensorMixin):
             block: The blockchain block number at which to query the constant.
 
         Returns:
-            Optional[scalecodec.ScaleType]: The value of the constant if found, `None` otherwise.
+            Optional[async_substrate_interface.types.ScaleObj]: The value of the constant if found, `None` otherwise.
 
         Constants queried through this function can include critical network parameters such as inflation rates,
             consensus rules, or validation thresholds, providing a deeper understanding of the Bittensor network's
@@ -293,7 +293,7 @@ class Subtensor(SubtensorMixin):
 
     def query_subtensor(
         self, name: str, block: Optional[int] = None, params: Optional[list] = None
-    ) -> "ScaleType":
+    ) -> Optional[Union["ScaleObj", Any]]:
         """
         Queries named storage from the Subtensor module on the Bittensor blockchain. This function is used to retrieve
             specific data or parameters from the blockchain, such as stake, rank, or other neuron-specific attributes.
@@ -304,7 +304,7 @@ class Subtensor(SubtensorMixin):
             params: A list of parameters to pass to the query function.
 
         Returns:
-            query_response (scalecodec.ScaleType): An object containing the requested data.
+            query_response: An object containing the requested data.
 
         This query function is essential for accessing detailed information about the network and its neurons, providing
             valuable insights into the state and dynamics of the Bittensor ecosystem.
@@ -1051,7 +1051,7 @@ class Subtensor(SubtensorMixin):
 
     def get_neuron_certificate(
         self, hotkey: str, netuid: int, block: Optional[int] = None
-    ) -> Optional["Certificate"]:
+    ) -> Optional[Certificate]:
         """
         Retrieves the TLS certificate for a specific neuron identified by its unique identifier (UID) within a
             specified subnet (netuid) of the Bittensor network.
@@ -1066,7 +1066,7 @@ class Subtensor(SubtensorMixin):
 
         This function is used for certificate discovery for setting up mutual tls communication between neurons.
         """
-        certificate: "ScaleObj" = self.query_module(
+        certificate: Optional[dict] = self.query_module(
             module="SubtensorModule",
             name="NeuronCertificates",
             block=block,
@@ -1074,10 +1074,7 @@ class Subtensor(SubtensorMixin):
         )
         try:
             if certificate:
-                tuple_ascii = certificate["public_key"][0]
-                return chr(certificate["algorithm"]) + "".join(
-                    chr(i) for i in tuple_ascii
-                )
+                return Certificate(certificate)
         except AttributeError:
             return None
         return None
@@ -2671,7 +2668,7 @@ class Subtensor(SubtensorMixin):
         axon: "Axon",
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
-        certificate: Optional["Certificate"] = None,
+        certificate: Optional[Certificate] = None,
     ) -> bool:
         """
         Registers an ``Axon`` serving endpoint on the Bittensor network for a specific neuron. This function is used to
