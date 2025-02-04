@@ -1066,15 +1066,15 @@ class Subtensor(SubtensorMixin):
 
         This function is used for certificate discovery for setting up mutual tls communication between neurons.
         """
-        certificate: Optional[dict] = self.query_module(
+        certificate_query = self.query_module(
             module="SubtensorModule",
             name="NeuronCertificates",
             block=block,
             params=[netuid, hotkey],
         )
         try:
-            if certificate:
-                return Certificate(certificate)
+            if certificate_query:
+                return Certificate(certificate_query)
         except AttributeError:
             return None
         return None
@@ -1140,12 +1140,14 @@ class Subtensor(SubtensorMixin):
         Returns:
             Balance: The stake under the coldkey - hotkey pairing.
         """
-        alpha_shares: FixedPoint = self.query_module(
+        alpha_shares_query = self.query_module(
             module="SubtensorModule",
             name="Alpha",
             block=block,
             params=[hotkey_ss58, coldkey_ss58, netuid],
         )
+        alpha_shares = cast(FixedPoint, alpha_shares_query)
+
         hotkey_alpha_obj: ScaleObj = self.query_module(
             module="SubtensorModule",
             name="TotalHotkeyAlpha",
@@ -1154,12 +1156,13 @@ class Subtensor(SubtensorMixin):
         )
         hotkey_alpha = hotkey_alpha_obj.value
 
-        hotkey_shares: FixedPoint = self.query_module(
+        hotkey_shares_query = self.query_module(
             module="SubtensorModule",
             name="TotalHotkeyShares",
             block=block,
             params=[hotkey_ss58, netuid],
         )
+        hotkey_shares = cast(FixedPoint, hotkey_shares_query)
 
         alpha_shares_as_float = fixed_to_float(alpha_shares)
         hotkey_shares_as_float = fixed_to_float(hotkey_shares)
