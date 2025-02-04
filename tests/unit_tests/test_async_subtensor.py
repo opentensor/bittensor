@@ -475,35 +475,59 @@ async def test_get_stake_info_for_coldkey(subtensor, mocker, fake_result, respon
 
 @pytest.mark.asyncio
 async def test_get_stake_for_coldkey_and_hotkey(subtensor, mocker):
-    """Tests get_stake_for_coldkey_and_hotkey method."""
-    # Preps
-    mocked_substrate_query = mocker.AsyncMock(
-        autospec=async_subtensor.AsyncSubstrateInterface.query_runtime_api
+    netuids = [1, 2, 3]
+    block_hash = "valid_block_hash"
+    stake_info_dict = {
+        "netuid": 1,
+        "hotkey": b"\x16:\xech\r\xde,g\x03R1\xb9\x88q\xe79\xb8\x88\x93\xae\xd2)?*\rp\xb2\xe62\xads\x1c",
+        "coldkey": b"\x16:\xech\r\xde,g\x03R1\xb9\x88q\xe79\xb8\x88\x93\xae\xd2)?*\rp\xb2\xe62\xads\x1c",
+        "stake": 1,
+        "locked": False,
+        "emission": 1,
+        "drain": 1,
+        "is_registered": True,
+    }
+    query_result = stake_info_dict
+    expected_result = {
+        netuid: StakeInfo.from_dict(stake_info_dict) for netuid in netuids
+    }
+
+    query_fetcher = mocker.AsyncMock(return_value=query_result)
+
+    mocked_query_runtime_api = mocker.patch.object(
+        subtensor, "query_runtime_api", side_effect=query_fetcher
     )
-    mocked_gather = mocker.AsyncMock(autospec=asyncio.gather)
-
-    subtensor.substrate.query = mocked_substrate_query
-
-    spy_balance = mocker.spy(async_subtensor, "Balance")
-
-    # Call
-    with mock.patch.object(StakeInfo, "from_dict", return_value="StakeInfo"):
-        result = await subtensor.get_stake_for_coldkey_and_hotkey(
-            hotkey_ss58="hotkey", coldkey_ss58="coldkey", block_hash=None, netuids=[1]
-        )
-
-    # Asserts
-    mocked_gather.assert_awaited_with(
-        "StakeInfoRuntimeApi",
-        "get_stake_info_for_hotkey_coldkey_netuid",
-        params=["KEY", "KEY", 1],
-        block_hash=None,
-        reuse_block_hash=False,
+    mocked_determine_block_hash = mocker.patch.object(
+        subtensor, "determine_block_hash", return_value=block_hash
     )
-    assert mocked_substrate_query.call_count == 3
-    assert result == spy_balance.from_rao.return_value.set_unit.return_value
-    spy_balance.from_rao.assert_called()
-    assert spy_balance.from_rao.call_count == 1
+    mocked_get_chain_head = mocker.patch.object(
+        subtensor.substrate, "get_chain_head", return_value=block_hash
+    )
+    mocked_get_subnets = mocker.patch.object(
+        subtensor, "get_subnets", return_value=netuids
+    )
+
+    result = await subtensor.get_stake_for_coldkey_and_hotkey(
+        hotkey_ss58="hotkey", coldkey_ss58="coldkey", block_hash=None, netuids=None
+    )
+
+    assert result == expected_result
+
+    # validate that mocked functions were called with the right arguments
+    mocked_query_runtime_api.assert_has_calls(
+        [
+            mock.call(
+                "StakeInfoRuntimeApi",
+                "get_stake_info_for_hotkey_coldkey_netuid",
+                params=["hotkey", "coldkey", netuid],
+                block_hash=block_hash,
+            )
+            for netuid in netuids
+        ]
+    )
+    mocked_determine_block_hash.assert_called_once()
+    mocked_get_chain_head.assert_not_called()
+    mocked_get_subnets.assert_called_once_with(block_hash=block_hash)
 
 
 @pytest.mark.asyncio
@@ -595,7 +619,7 @@ async def test_get_transfer_fee(subtensor, mocker, balance):
     mocked_compose_call = mocker.AsyncMock()
     subtensor.substrate.compose_call = mocked_compose_call
 
-    mocked_get_payment_info = mocker.AsyncMock(return_value={"partialFee": 100})
+    mocked_get_payment_info = mocker.AsyncMock(return_value={"partial_fee": 100})
     subtensor.substrate.get_payment_info = mocked_get_payment_info
 
     # Call
