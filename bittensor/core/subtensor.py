@@ -73,6 +73,7 @@ from bittensor.utils import (
     decode_hex_identity_dict,
     u16_normalized_float,
     _decode_hex_identity_dict,
+    Certificate,
 )
 from bittensor.utils.balance import (
     Balance,
@@ -85,11 +86,10 @@ from bittensor.utils.weight_utils import generate_weight_hash
 
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
-    from bittensor.utils import Certificate
     from async_substrate_interface.sync_substrate import QueryMapResult
     from async_substrate_interface.types import ScaleObj
     from bittensor.utils.delegates_details import DelegatesDetails
-    from scalecodec.types import ScaleType, GenericCall
+    from scalecodec.types import GenericCall
 
 
 class Subtensor(SubtensorMixin):
@@ -150,7 +150,7 @@ class Subtensor(SubtensorMixin):
 
     def query_constant(
         self, module_name: str, constant_name: str, block: Optional[int] = None
-    ) -> Optional["ScaleType"]:
+    ) -> Optional["ScaleObj"]:
         """
         Retrieves a constant from the specified module on the Bittensor blockchain. This function is used to access
             fixed parameters or values defined within the blockchain's modules, which are essential for understanding
@@ -162,7 +162,7 @@ class Subtensor(SubtensorMixin):
             block: The blockchain block number at which to query the constant.
 
         Returns:
-            Optional[scalecodec.ScaleType]: The value of the constant if found, `None` otherwise.
+            Optional[async_substrate_interface.types.ScaleObj]: The value of the constant if found, `None` otherwise.
 
         Constants queried through this function can include critical network parameters such as inflation rates,
             consensus rules, or validation thresholds, providing a deeper understanding of the Bittensor network's
@@ -237,7 +237,7 @@ class Subtensor(SubtensorMixin):
         name: str,
         block: Optional[int] = None,
         params: Optional[list] = None,
-    ) -> Union["ScaleObj", "FixedPoint"]:
+    ) -> Optional[Union["ScaleObj", Any, FixedPoint]]:
         """
         Queries any module storage on the Bittensor blockchain with the specified parameters and block number. This
             function is a generic query interface that allows for flexible and diverse data retrieval from various
@@ -293,7 +293,7 @@ class Subtensor(SubtensorMixin):
 
     def query_subtensor(
         self, name: str, block: Optional[int] = None, params: Optional[list] = None
-    ) -> "ScaleType":
+    ) -> Optional[Union["ScaleObj", Any]]:
         """
         Queries named storage from the Subtensor module on the Bittensor blockchain. This function is used to retrieve
             specific data or parameters from the blockchain, such as stake, rank, or other neuron-specific attributes.
@@ -304,7 +304,7 @@ class Subtensor(SubtensorMixin):
             params: A list of parameters to pass to the query function.
 
         Returns:
-            query_response (scalecodec.ScaleType): An object containing the requested data.
+            query_response: An object containing the requested data.
 
         This query function is essential for accessing detailed information about the network and its neurons, providing
             valuable insights into the state and dynamics of the Bittensor ecosystem.
@@ -593,7 +593,7 @@ class Subtensor(SubtensorMixin):
     def _get_block_hash(self, block_id: int):
         return self.substrate.get_block_hash(block_id)
 
-    def get_block_hash(self, block: Optional[int] = None):
+    def get_block_hash(self, block: Optional[int] = None) -> str:
         """
         Retrieves the hash of a specific block on the Bittensor blockchain. The block hash is a unique identifier
             representing the cryptographic hash of the block's content, ensuring its integrity and immutability.
@@ -1051,7 +1051,7 @@ class Subtensor(SubtensorMixin):
 
     def get_neuron_certificate(
         self, hotkey: str, netuid: int, block: Optional[int] = None
-    ) -> Optional["Certificate"]:
+    ) -> Optional[Certificate]:
         """
         Retrieves the TLS certificate for a specific neuron identified by its unique identifier (UID) within a
             specified subnet (netuid) of the Bittensor network.
@@ -1066,18 +1066,16 @@ class Subtensor(SubtensorMixin):
 
         This function is used for certificate discovery for setting up mutual tls communication between neurons.
         """
-        certificate: "ScaleObj" = self.query_module(
+        certificate_query = self.query_module(
             module="SubtensorModule",
             name="NeuronCertificates",
             block=block,
             params=[netuid, hotkey],
         )
         try:
-            if certificate:
-                tuple_ascii = certificate["public_key"][0]
-                return chr(certificate["algorithm"]) + "".join(
-                    chr(i) for i in tuple_ascii
-                )
+            if certificate_query:
+                certificate = cast(dict, certificate_query)
+                return Certificate(certificate)
         except AttributeError:
             return None
         return None
@@ -1128,7 +1126,7 @@ class Subtensor(SubtensorMixin):
         self,
         coldkey_ss58: str,
         hotkey_ss58: str,
-        netuid: Optional[int] = None,
+        netuid: int,
         block: Optional[int] = None,
     ) -> Balance:
         """
@@ -1137,18 +1135,20 @@ class Subtensor(SubtensorMixin):
         Args:
             hotkey_ss58 (str): The SS58 address of the hotkey.
             coldkey_ss58 (str): The SS58 address of the coldkey.
-            netuid (Optional[int]): The subnet ID to filter by. If provided, only returns stake for this specific subnet.
+            netuid (int): The subnet ID
             block (Optional[int]): The block number at which to query the stake information.
 
         Returns:
             Balance: The stake under the coldkey - hotkey pairing.
         """
-        alpha_shares: FixedPoint = self.query_module(
+        alpha_shares_query = self.query_module(
             module="SubtensorModule",
             name="Alpha",
             block=block,
             params=[hotkey_ss58, coldkey_ss58, netuid],
         )
+        alpha_shares = cast(FixedPoint, alpha_shares_query)
+
         hotkey_alpha_obj: ScaleObj = self.query_module(
             module="SubtensorModule",
             name="TotalHotkeyAlpha",
@@ -1157,12 +1157,13 @@ class Subtensor(SubtensorMixin):
         )
         hotkey_alpha = hotkey_alpha_obj.value
 
-        hotkey_shares: FixedPoint = self.query_module(
+        hotkey_shares_query = self.query_module(
             module="SubtensorModule",
             name="TotalHotkeyShares",
             block=block,
             params=[hotkey_ss58, netuid],
         )
+        hotkey_shares = cast(FixedPoint, hotkey_shares_query)
 
         alpha_shares_as_float = fixed_to_float(alpha_shares)
         hotkey_shares_as_float = fixed_to_float(hotkey_shares)
@@ -1174,7 +1175,42 @@ class Subtensor(SubtensorMixin):
 
         return Balance.from_rao(int(stake)).set_unit(netuid=netuid)
 
-    get_stake_for_coldkey_and_hotkey = get_stake
+    def get_stake_for_coldkey_and_hotkey(
+        self,
+        coldkey_ss58: str,
+        hotkey_ss58: str,
+        netuids: Optional[list[int]] = None,
+        block: Optional[int] = None,
+    ) -> dict[int, StakeInfo]:
+        """
+        Retrieves all coldkey-hotkey pairing stake across specified (or all) subnets
+
+        Arguments:
+            coldkey_ss58 (str): The SS58 address of the coldkey.
+            hotkey_ss58 (str): The SS58 address of the hotkey.
+            netuids (Optional[list[int]]): The subnet IDs to query for. Set to `None` for all subnets.
+            block (Optional[int]): The block number at which to query the stake information.
+
+        Returns:
+            A {netuid: StakeInfo} pairing of all stakes across all subnets.
+        """
+        if netuids is None:
+            all_netuids = self.get_subnets(block=block)
+        else:
+            all_netuids = netuids
+        results = [
+            self.query_runtime_api(
+                "StakeInfoRuntimeApi",
+                "get_stake_info_for_hotkey_coldkey_netuid",
+                params=[hotkey_ss58, coldkey_ss58, netuid],
+                block=block,
+            )
+            for netuid in all_netuids
+        ]
+        return {
+            netuid: StakeInfo.from_dict(result)
+            for (netuid, result) in zip(all_netuids, results)
+        }
 
     def get_stake_for_coldkey(
         self, coldkey_ss58: str, block: Optional[int] = None
@@ -1449,9 +1485,9 @@ class Subtensor(SubtensorMixin):
                 logging.error(
                     f":cross_mark: [red]Failed to get payment info: [/red]{e}"
                 )
-                payment_info = {"partialFee": int(2e7)}  # assume  0.02 Tao
+                payment_info = {"partial_fee": int(2e7)}  # assume  0.02 Tao
 
-            return Balance.from_rao(payment_info["partialFee"])
+            return Balance.from_rao(payment_info["partial_fee"])
         else:
             fee = Balance.from_rao(int(2e7))
             logging.error(
@@ -2636,7 +2672,7 @@ class Subtensor(SubtensorMixin):
         axon: "Axon",
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
-        certificate: Optional["Certificate"] = None,
+        certificate: Optional[Certificate] = None,
     ) -> bool:
         """
         Registers an ``Axon`` serving endpoint on the Bittensor network for a specific neuron. This function is used to

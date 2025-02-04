@@ -1,6 +1,7 @@
 import asyncio
 import copy
 import ssl
+from functools import partial
 from typing import Optional, Any, Union, Iterable, TYPE_CHECKING
 
 import aiohttp
@@ -10,7 +11,7 @@ import scalecodec
 from async_substrate_interface import AsyncSubstrateInterface
 from bittensor_wallet.utils import SS58_FORMAT
 from numpy.typing import NDArray
-from scalecodec import GenericCall, ScaleType
+from scalecodec import GenericCall
 
 from bittensor.core.chain_data import (
     DelegateInfo,
@@ -69,6 +70,7 @@ from bittensor.utils import (
     torch,
     u16_normalized_float,
     _decode_hex_identity_dict,
+    Certificate,
 )
 from bittensor.utils.balance import (
     Balance,
@@ -80,10 +82,9 @@ from bittensor.utils.delegates_details import DelegatesDetails
 from bittensor.utils.weight_utils import generate_weight_hash
 
 if TYPE_CHECKING:
-    from scalecodec import ScaleType
+    from async_substrate_interface.types import ScaleObj
     from bittensor_wallet import Wallet
     from bittensor.core.axon import Axon
-    from bittensor.utils import Certificate
     from async_substrate_interface import AsyncQueryMapResult
 
 
@@ -273,7 +274,7 @@ class AsyncSubtensor(SubtensorMixin):
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
-    ) -> Optional["ScaleType"]:
+    ) -> Optional["ScaleObj"]:
         """
         Retrieves a constant from the specified module on the Bittensor blockchain. This function is used to access
             fixed parameters or values defined within the blockchain's modules, which are essential for understanding
@@ -289,7 +290,7 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block: Whether to reuse the blockchain block at which to query the constant.
 
         Returns:
-            Optional[scalecodec.ScaleType]: The value of the constant if found, `None` otherwise.
+            Optional[async_substrate_interface.types.ScaleObj]: The value of the constant if found, `None` otherwise.
 
         Constants queried through this function can include critical network parameters such as inflation rates,
             consensus rules, or validation thresholds, providing a deeper understanding of the Bittensor network's
@@ -385,7 +386,7 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
         params: Optional[list] = None,
-    ) -> "ScaleType":
+    ) -> Optional[Union["ScaleObj", Any]]:
         """
         Queries any module storage on the Bittensor blockchain with the specified parameters and block number. This
             function is a generic query interface that allows for flexible and diverse data retrieval from various
@@ -459,7 +460,7 @@ class AsyncSubtensor(SubtensorMixin):
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
         params: Optional[list] = None,
-    ) -> "ScaleType":
+    ) -> Optional[Union["ScaleObj", Any]]:
         """
         Queries named storage from the Subtensor module on the Bittensor blockchain. This function is used to retrieve
             specific data or parameters from the blockchain, such as stake, rank, or other neuron-specific attributes.
@@ -473,7 +474,7 @@ class AsyncSubtensor(SubtensorMixin):
             params: A list of parameters to pass to the query function.
 
         Returns:
-            query_response (scalecodec.ScaleType): An object containing the requested data.
+            query_response: An object containing the requested data.
 
         This query function is essential for accessing detailed information about the network and its neurons, providing
             valuable insights into the state and dynamics of the Bittensor ecosystem.
@@ -859,7 +860,7 @@ class AsyncSubtensor(SubtensorMixin):
     async def _get_block_hash(self, block_id: int):
         return await self.substrate.get_block_hash(block_id)
 
-    async def get_block_hash(self, block: Optional[int] = None):
+    async def get_block_hash(self, block: Optional[int] = None) -> str:
         """
         Retrieves the hash of a specific block on the Bittensor blockchain. The block hash is a unique identifier
             representing the cryptographic hash of the block's content, ensuring its integrity and immutability.
@@ -1402,7 +1403,7 @@ class AsyncSubtensor(SubtensorMixin):
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
-    ) -> Optional["Certificate"]:
+    ) -> Optional[Certificate]:
         """
         Retrieves the TLS certificate for a specific neuron identified by its unique identifier (UID) within a
             specified subnet (netuid) of the Bittensor network.
@@ -1430,10 +1431,7 @@ class AsyncSubtensor(SubtensorMixin):
         )
         try:
             if certificate:
-                tuple_ascii = certificate["public_key"][0]
-                return chr(certificate["algorithm"]) + "".join(
-                    chr(i) for i in tuple_ascii
-                )
+                return Certificate(certificate)
 
         except AttributeError:
             return None
@@ -1489,7 +1487,7 @@ class AsyncSubtensor(SubtensorMixin):
         self,
         coldkey_ss58: str,
         hotkey_ss58: str,
-        netuid: Optional[int] = None,
+        netuid: int,
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
@@ -1500,8 +1498,7 @@ class AsyncSubtensor(SubtensorMixin):
         Args:
             hotkey_ss58 (str): The SS58 address of the hotkey.
             coldkey_ss58 (str): The SS58 address of the coldkey.
-            netuid (Optional[int]): The subnet ID to filter by. If provided, only returns stake for this specific
-                subnet.
+            netuid (int): The subnet ID.
             block (Optional[int]): The block number at which to query the stake information.
             block_hash (Optional[str]): The hash of the block to retrieve the stake from. Do not specify if using block
                 or reuse_block
@@ -1511,35 +1508,27 @@ class AsyncSubtensor(SubtensorMixin):
             Balance: The stake under the coldkey - hotkey pairing.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
-
-        # Get alpha shares
-        alpha_shares = await self.query_module(
-            module="SubtensorModule",
-            name="Alpha",
+        sub_query = partial(
+            self.query_subtensor,
             block_hash=block_hash,
             reuse_block=reuse_block,
-            params=[hotkey_ss58, coldkey_ss58, netuid],
+        )
+        alpha_shares, hotkey_alpha_result, hotkey_shares = await asyncio.gather(
+            sub_query(
+                name="Alpha",
+                params=[hotkey_ss58, coldkey_ss58, netuid],
+            ),
+            sub_query(
+                name="TotalHotkeyAlpha",
+                params=[hotkey_ss58, netuid],
+            ),
+            sub_query(
+                name="TotalHotkeyShares",
+                params=[hotkey_ss58, netuid],
+            ),
         )
 
-        # Get total hotkey alpha
-        hotkey_alpha_result = await self.query_module(
-            module="SubtensorModule",
-            name="TotalHotkeyAlpha",
-            block_hash=block_hash,
-            reuse_block=reuse_block,
-            params=[hotkey_ss58, netuid],
-        )
         hotkey_alpha: int = getattr(hotkey_alpha_result, "value", 0)
-
-        # Get total hotkey shares
-        hotkey_shares = await self.query_module(
-            module="SubtensorModule",
-            name="TotalHotkeyShares",
-            block_hash=block_hash,
-            reuse_block=reuse_block,
-            params=[hotkey_ss58, netuid],
-        )
-
         alpha_shares_as_float = fixed_to_float(alpha_shares)
         hotkey_shares_as_float = fixed_to_float(hotkey_shares)
 
@@ -1550,7 +1539,54 @@ class AsyncSubtensor(SubtensorMixin):
 
         return Balance.from_rao(int(stake)).set_unit(netuid=netuid)
 
-    get_stake_for_coldkey_and_hotkey = get_stake
+    async def get_stake_for_coldkey_and_hotkey(
+        self,
+        coldkey_ss58: str,
+        hotkey_ss58: str,
+        netuids: Optional[list[int]] = None,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> dict[int, StakeInfo]:
+        """
+        Retrieves all coldkey-hotkey pairing stake across specified (or all) subnets
+
+        Arguments:
+            coldkey_ss58 (str): The SS58 address of the coldkey.
+            hotkey_ss58 (str): The SS58 address of the hotkey.
+            netuids (Optional[list[int]]): The subnet IDs to query for. Set to `None` for all subnets.
+            block (Optional[int]): The block number at which to query the stake information.
+            block_hash (Optional[str]): The hash of the block to retrieve the stake from. Do not specify if using block
+                or reuse_block
+            reuse_block (bool): Whether to use the last-used block. Do not set if using block_hash or block.
+
+        Returns:
+            A {netuid: StakeInfo} pairing of all stakes across all subnets.
+        """
+        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
+        if not block_hash and reuse_block:
+            block_hash = self.substrate.last_block_hash
+        elif not block_hash:
+            block_hash = await self.substrate.get_chain_head()
+        if netuids is None:
+            all_netuids = await self.get_subnets(block_hash=block_hash)
+        else:
+            all_netuids = netuids
+        results = await asyncio.gather(
+            *[
+                self.query_runtime_api(
+                    "StakeInfoRuntimeApi",
+                    "get_stake_info_for_hotkey_coldkey_netuid",
+                    params=[hotkey_ss58, coldkey_ss58, netuid],
+                    block_hash=block_hash,
+                )
+                for netuid in all_netuids
+            ]
+        )
+        return {
+            netuid: StakeInfo.from_dict(result)
+            for (netuid, result) in zip(all_netuids, results)
+        }
 
     async def get_stake_for_coldkey(
         self,
@@ -1905,9 +1941,9 @@ class AsyncSubtensor(SubtensorMixin):
                 logging.error(
                     f":cross_mark: [red]Failed to get payment info: [/red]{e}"
                 )
-                payment_info = {"partialFee": int(2e7)}  # assume  0.02 Tao
+                payment_info = {"partial_fee": int(2e7)}  # assume  0.02 Tao
 
-            return Balance.from_rao(payment_info["partialFee"])
+            return Balance.from_rao(payment_info["partial_fee"])
         else:
             fee = Balance.from_rao(int(2e7))
             logging.error(
@@ -3345,7 +3381,7 @@ class AsyncSubtensor(SubtensorMixin):
         axon: "Axon",
         wait_for_inclusion: bool = False,
         wait_for_finalization: bool = True,
-        certificate: Optional["Certificate"] = None,
+        certificate: Optional[Certificate] = None,
     ) -> bool:
         """
         Registers an ``Axon`` serving endpoint on the Bittensor network for a specific neuron. This function is used to
