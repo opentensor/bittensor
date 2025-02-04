@@ -613,7 +613,8 @@ class AsyncSubtensor(SubtensorMixin):
         )
         b_map = []
         async for uid, b in b_map_encoded:
-            b_map.append((uid, b.value))
+            if b.value is not None:
+                b_map.append((uid, b.value))
 
         return b_map
 
@@ -724,14 +725,13 @@ class AsyncSubtensor(SubtensorMixin):
             `True` if the hotkey is known by the chain and there are accounts, `False` otherwise.
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
-        _result = await self.substrate.query(
+        result = await self.substrate.query(
             module="SubtensorModule",
             storage_function="Owner",
             params=[hotkey_ss58],
             block_hash=block_hash,
             reuse_block_hash=reuse_block,
         )
-        result = decode_account_id(_result.value[0])
         return_val = (
             False
             if result is None
@@ -912,7 +912,9 @@ class AsyncSubtensor(SubtensorMixin):
                 block_hash=block_hash,
                 reuse_block_hash=reuse_block,
             )
+            print(915, children)
             if children:
+                print(916, children)
                 formatted_children = []
                 for proportion, child in children.value:
                     # Convert U64 to int
