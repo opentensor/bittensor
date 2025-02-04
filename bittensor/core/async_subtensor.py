@@ -2554,7 +2554,7 @@ class AsyncSubtensor(SubtensorMixin):
             params=[netuid],
             block_hash=block_hash,
         )
-        subnet = DynamicInfo.from_dict(query)
+        subnet = DynamicInfo.from_dict(query.decode())
         return subnet
 
     async def subnet_exists(
