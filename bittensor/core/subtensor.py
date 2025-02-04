@@ -1074,7 +1074,8 @@ class Subtensor(SubtensorMixin):
         )
         try:
             if certificate_query:
-                return Certificate(certificate_query)
+                certificate = cast(dict, certificate_query)
+                return Certificate(certificate)
         except AttributeError:
             return None
         return None
