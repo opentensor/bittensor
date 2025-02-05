@@ -1,4 +1,4 @@
-__version__ = "9.0.0"
+__version__ = "9.0.0rc1"
 
 import os
 import re

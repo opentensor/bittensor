@@ -1,5 +1,15 @@
 # Changelog
 
+## 9.0.0rc1 /2025-02-05
+
+## What's Changed
+* Uses revamped Async Substrate Interface
+* Compatibility with Rao changes added
+* Completely revamped Async Subtensor introduced
+* Numerous improvements, bug fixes, and deprecations
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v8.5.1...v9.0.0rc1
+
 ## 8.5.1 /2024-12-16
 
 ## What's Changed
