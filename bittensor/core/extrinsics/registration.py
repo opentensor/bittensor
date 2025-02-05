@@ -201,7 +201,7 @@ def register_subnet_extrinsic(
     Registers a new subnetwork on the Bittensor blockchain.
 
     Args:
-        subtensor (SubtensorInterface): The subtensor interface to send the extrinsic.
+        subtensor (Subtensor): The subtensor interface to send the extrinsic.
         wallet (Wallet): The wallet to be used for subnet registration.
         wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning true.
         wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning true.
