@@ -408,7 +408,8 @@ class Subtensor(SubtensorMixin):
         )
         b_map = []
         for uid, b in b_map_encoded:
-            b_map.append((uid, b.value))
+            if b.value is not None:
+                b_map.append((uid, b.value))
 
         return b_map
 
@@ -485,13 +486,12 @@ class Subtensor(SubtensorMixin):
         Returns:
             `True` if the hotkey is known by the chain and there are accounts, `False` otherwise.
         """
-        _result = self.substrate.query(
+        result = self.substrate.query(
             module="SubtensorModule",
             storage_function="Owner",
             params=[hotkey_ss58],
             block_hash=self.determine_block_hash(block),
         )
-        result = decode_account_id(_result.value[0])
         return_val = (
             False
             if result is None
@@ -974,12 +974,9 @@ class Subtensor(SubtensorMixin):
             block_hash=self.determine_block_hash(block),
         )
         exists = False
-        val = None
-        if hasattr(hk_owner_query, "value"):
-            val = decode_account_id(hk_owner_query.value[0])
-            if val:
-                exists = self.does_hotkey_exist(hotkey_ss58, block=block)
-        hotkey_owner = val if exists else None
+        if hk_owner_query:
+            exists = self.does_hotkey_exist(hotkey_ss58, block=block)
+        hotkey_owner = hk_owner_query if exists else None
         return hotkey_owner
 
     def get_minimum_required_stake(self) -> Balance:
@@ -1263,7 +1260,7 @@ class Subtensor(SubtensorMixin):
 
     get_stake_info_for_coldkey = get_stake_for_coldkey
 
-    def get_subnet_burn_cost(self, block: Optional[int] = None) -> Optional[str]:
+    def get_subnet_burn_cost(self, block: Optional[int] = None) -> Optional[int]:
         """
         Retrieves the burn cost for registering a new subnet within the Bittensor network. This cost represents the
             amount of Tao that needs to be locked or burned to establish a new subnet.
@@ -1351,101 +1348,6 @@ class Subtensor(SubtensorMixin):
                     subnets.append(netuid)
         return subnets
 
-    def get_total_stake_for_coldkey(
-        self, ss58_address: str, block: Optional[int] = None
-    ) -> Balance:
-        """
-        Returns the total stake held on a coldkey.
-
-        Arguments:
-            ss58_address (str): The SS58 address of the coldkey
-            block (Optional[int]): The blockchain block number for the query.
-
-        Returns:
-            Balance of the stake held on the coldkey.
-        """
-        result = self.substrate.query(
-            module="SubtensorModule",
-            storage_function="TotalColdkeyStake",
-            params=[ss58_address],
-            block_hash=self.determine_block_hash(block),
-        )
-        return Balance.from_rao(getattr(result, "value", 0))
-
-    def get_total_stake_for_coldkeys(
-        self, *ss58_addresses: str, block: Optional[int] = None
-    ) -> dict[str, Balance]:
-        """
-        Returns the total stake held on multiple coldkeys.
-
-        Arguments:
-            ss58_addresses (tuple[str]): The SS58 address(es) of the coldkey(s)
-            block (Optional[int]): The blockchain block number for the query.
-
-        Returns:
-            Dict in view {address: Balance objects}.
-        """
-        if not (block_hash := self.determine_block_hash(block)):
-            block_hash = self.substrate.get_chain_head()
-        calls = [
-            (
-                self.substrate.create_storage_key(
-                    "SubtensorModule",
-                    "TotalColdkeyStake",
-                    [address],
-                    block_hash=block_hash,
-                )
-            )
-            for address in ss58_addresses
-        ]
-        batch_call = self.substrate.query_multi(calls, block_hash=block_hash)
-        results = {}
-        for item in batch_call:
-            results.update({item[0].params[0]: Balance.from_rao(item[1] or 0)})
-        return results
-
-    def get_total_stake_for_hotkey(
-        self, ss58_address: str, block: Optional[int] = None
-    ) -> Balance:
-        """
-        Returns the total stake held on a hotkey.
-
-        Arguments:
-            ss58_address (str): The SS58 address of the hotkey
-            block (Optional[int]): The blockchain block number for the query.
-
-        Returns:
-            Balance of the stake held on the hotkey.
-        """
-        result = self.substrate.query(
-            module="SubtensorModule",
-            storage_function="TotalHotkeyStake",
-            params=[ss58_address],
-            block_hash=self.determine_block_hash(block),
-        )
-        return Balance.from_rao(getattr(result, "value", 0))
-
-    def get_total_stake_for_hotkeys(
-        self, *ss58_addresses: str, block: Optional[int] = None
-    ) -> dict[str, Balance]:
-        """
-        Returns the total stake held on hotkeys.
-
-        Arguments:
-            ss58_addresses (tuple[str]): The SS58 address(es) of the hotkey(s)
-            block (Optional[int]): The blockchain block number for the query.
-
-        Returns:
-            Dict {address: Balance objects}.
-        """
-        results = self.substrate.query_multiple(
-            params=[s for s in ss58_addresses],
-            module="SubtensorModule",
-            storage_function="TotalHotkeyStake",
-            block_hash=self.determine_block_hash(block),
-        )
-        return {k: Balance.from_rao(r or 0) for (k, r) in results.items()}
-
     def get_total_subnets(self, block: Optional[int] = None) -> Optional[int]:
         """
         Retrieves the total number of subnets within the Bittensor network as of a specific blockchain block.
@@ -1467,9 +1369,7 @@ class Subtensor(SubtensorMixin):
         )
         return getattr(result, "value", None)
 
-    def get_transfer_fee(
-        self, wallet: "Wallet", dest: str, value: Union[Balance, float, int]
-    ) -> Balance:
+    def get_transfer_fee(self, wallet: "Wallet", dest: str, value: Balance) -> Balance:
         """
         Calculates the transaction fee for transferring tokens from a wallet to a specified destination address. This
             function simulates the transfer to estimate the associated cost, taking into account the current network
@@ -1489,38 +1389,22 @@ class Subtensor(SubtensorMixin):
             has sufficient funds to cover both the transfer amount and the associated costs. This function provides a
             crucial tool for managing financial operations within the Bittensor network.
         """
-        if isinstance(value, float):
-            value = Balance.from_tao(value)
-        elif isinstance(value, int):
-            value = Balance.from_rao(value)
+        value = check_and_convert_to_balance(value)
+        call = self.substrate.compose_call(
+            call_module="Balances",
+            call_function="transfer_allow_death",
+            call_params={"dest": dest, "value": value.rao},
+        )
 
-        if isinstance(value, Balance):
-            call = self.substrate.compose_call(
-                call_module="Balances",
-                call_function="transfer_allow_death",
-                call_params={"dest": dest, "value": str(value.rao)},
+        try:
+            payment_info = self.substrate.get_payment_info(
+                call=call, keypair=wallet.coldkeypub
             )
+        except Exception as e:
+            logging.error(f":cross_mark: [red]Failed to get payment info: [/red]{e}")
+            payment_info = {"partial_fee": int(2e7)}  # assume  0.02 Tao
 
-            try:
-                payment_info = self.substrate.get_payment_info(
-                    call=call, keypair=wallet.coldkeypub
-                )
-            except Exception as e:
-                logging.error(
-                    f":cross_mark: [red]Failed to get payment info: [/red]{e}"
-                )
-                payment_info = {"partial_fee": int(2e7)}  # assume  0.02 Tao
-
-            return Balance.from_rao(payment_info["partial_fee"])
-        else:
-            fee = Balance.from_rao(int(2e7))
-            logging.error(
-                "To calculate the transaction fee, the value must be Balance, float, or int. Received type: %s. Fee "
-                "is %s",
-                type(value),
-                2e7,
-            )
-            return fee
+        return Balance.from_rao(payment_info["partial_fee"])
 
     def get_vote_data(
         self, proposal_hash: str, block: Optional[int] = None

@@ -614,7 +614,7 @@ async def test_get_transfer_fee(subtensor, mocker, balance):
     # Preps
     fake_wallet = mocker.Mock(coldkeypub="coldkeypub", autospec=Wallet)
     fake_dest = "fake_dest"
-    fake_value = balance
+    fake_value = Balance(balance)
 
     mocked_compose_call = mocker.AsyncMock()
     subtensor.substrate.compose_call = mocked_compose_call
@@ -634,7 +634,7 @@ async def test_get_transfer_fee(subtensor, mocker, balance):
         call_function="transfer_allow_death",
         call_params={
             "dest": fake_dest,
-            "value": async_subtensor.Balance.from_rao(fake_value),
+            "value": fake_value.rao,
         },
     )
 
@@ -643,23 +643,6 @@ async def test_get_transfer_fee(subtensor, mocker, balance):
     mocked_get_payment_info.assert_called_once_with(
         call=mocked_compose_call.return_value, keypair="coldkeypub"
     )
-
-
-@pytest.mark.asyncio
-async def test_get_transfer_fee_with_non_balance_accepted_value_type(subtensor, mocker):
-    """Tests get_transfer_fee method with non balance accepted value type."""
-    # Preps
-    fake_wallet = mocker.Mock(coldkeypub="coldkeypub", autospec=Wallet)
-    fake_dest = "fake_dest"
-    fake_value = "1000"
-
-    # Call
-    result = await subtensor.get_transfer_fee(
-        wallet=fake_wallet, dest=fake_dest, value=fake_value
-    )
-
-    # Assertions
-    assert result == async_subtensor.Balance.from_rao(int(2e7))
 
 
 @pytest.mark.asyncio
@@ -679,74 +662,6 @@ async def test_get_transfer_with_exception(subtensor, mocker):
 
     # Assertions
     assert result == async_subtensor.Balance.from_rao(int(2e7))
-
-
-@pytest.mark.asyncio
-async def test_get_total_stake_for_coldkey(subtensor, mocker):
-    """Tests get_total_stake_for_coldkey method."""
-    # Preps
-    fake_addresses = "a1"
-    fake_block_hash = None
-
-    mocked_determine_block_hash = mocker.AsyncMock()
-    mocker.patch.object(
-        async_subtensor.AsyncSubtensor,
-        "determine_block_hash",
-        mocked_determine_block_hash,
-    )
-
-    mocked_balance_from_rao = mocker.patch.object(async_subtensor.Balance, "from_rao")
-
-    # Call
-    result = await subtensor.get_total_stake_for_coldkey(
-        fake_addresses, block_hash=fake_block_hash
-    )
-
-    mocked_determine_block_hash.assert_awaited_once_with(
-        block=None, block_hash=None, reuse_block=False
-    )
-    subtensor.substrate.query.assert_awaited_once_with(
-        module="SubtensorModule",
-        storage_function="TotalColdkeyStake",
-        params=[fake_addresses],
-        block_hash=mocked_determine_block_hash.return_value,
-        reuse_block_hash=False,
-    )
-    assert result == mocked_balance_from_rao.return_value
-
-
-@pytest.mark.asyncio
-async def test_get_total_stake_for_hotkey(subtensor, mocker):
-    """Tests get_total_stake_for_hotkey method."""
-    # Preps
-    fake_addresses = "a1"
-    fake_block_hash = None
-
-    mocked_determine_block_hash = mocker.AsyncMock()
-    mocker.patch.object(
-        async_subtensor.AsyncSubtensor,
-        "determine_block_hash",
-        mocked_determine_block_hash,
-    )
-
-    mocked_balance_from_rao = mocker.patch.object(async_subtensor.Balance, "from_rao")
-
-    # Call
-    result = await subtensor.get_total_stake_for_hotkey(
-        fake_addresses, block_hash=fake_block_hash
-    )
-
-    mocked_determine_block_hash.assert_awaited_once_with(
-        block=None, block_hash=None, reuse_block=False
-    )
-    subtensor.substrate.query.assert_awaited_once_with(
-        module="SubtensorModule",
-        storage_function="TotalHotkeyStake",
-        params=[fake_addresses],
-        block_hash=mocked_determine_block_hash.return_value,
-        reuse_block_hash=False,
-    )
-    assert result == mocked_balance_from_rao.return_value
 
 
 @pytest.mark.asyncio
@@ -1632,11 +1547,8 @@ async def test_get_hotkey_owner_successful(subtensor, mocker):
     fake_block_hash = "block_hash"
     fake_owner_account_id = "owner_account_id"
 
-    mocked_query = mocker.AsyncMock(value=[fake_owner_account_id])
+    mocked_query = mocker.AsyncMock(return_value="decoded_owner_account_id")
     subtensor.substrate.query = mocked_query
-
-    mocked_decode_account_id = mocker.Mock(return_value="decoded_owner_account_id")
-    mocker.patch.object(async_subtensor, "decode_account_id", mocked_decode_account_id)
 
     mocked_does_hotkey_exist = mocker.AsyncMock(return_value=True)
     subtensor.does_hotkey_exist = mocked_does_hotkey_exist
@@ -1654,7 +1566,6 @@ async def test_get_hotkey_owner_successful(subtensor, mocker):
         block_hash=fake_block_hash,
         reuse_block_hash=False,
     )
-    mocked_decode_account_id.assert_called_once()
     mocked_does_hotkey_exist.assert_awaited_once_with(
         fake_hotkey_ss58, block_hash=fake_block_hash
     )
@@ -1668,11 +1579,8 @@ async def test_get_hotkey_owner_non_existent_hotkey(subtensor, mocker):
     fake_hotkey_ss58 = "non_existent_hotkey"
     fake_block_hash = "block_hash"
 
-    mocked_query = mocker.AsyncMock(value=[None])
+    mocked_query = mocker.AsyncMock(return_value=None)
     subtensor.substrate.query = mocked_query
-
-    mocked_decode_account_id = mocker.Mock(return_value=None)
-    mocker.patch.object(async_subtensor, "decode_account_id", mocked_decode_account_id)
 
     # Call
     result = await subtensor.get_hotkey_owner(
@@ -1686,44 +1594,6 @@ async def test_get_hotkey_owner_non_existent_hotkey(subtensor, mocker):
         params=[fake_hotkey_ss58],
         block_hash=fake_block_hash,
         reuse_block_hash=False,
-    )
-    mocked_decode_account_id.assert_called_once()
-    assert result is None
-
-
-@pytest.mark.asyncio
-async def test_get_hotkey_owner_exists_but_does_not_exist_flag_false(subtensor, mocker):
-    """Tests get_hotkey_owner method when decode_account_id returns a value but does_hotkey_exist returns False."""
-    # Preps
-    fake_hotkey_ss58 = "valid_hotkey"
-    fake_block_hash = "block_hash"
-    fake_owner_account_id = mocker.Mock(value=["owner_account_id"])
-
-    mocked_query = mocker.AsyncMock(return_value=fake_owner_account_id)
-    subtensor.substrate.query = mocked_query
-
-    mocked_decode_account_id = mocker.Mock(return_value="decoded_owner_account_id")
-    mocker.patch.object(async_subtensor, "decode_account_id", mocked_decode_account_id)
-
-    mocked_does_hotkey_exist = mocker.AsyncMock(return_value=False)
-    subtensor.does_hotkey_exist = mocked_does_hotkey_exist
-
-    # Call
-    result = await subtensor.get_hotkey_owner(
-        hotkey_ss58=fake_hotkey_ss58, block_hash=fake_block_hash
-    )
-
-    # Asserts
-    mocked_query.assert_called_once_with(
-        module="SubtensorModule",
-        storage_function="Owner",
-        params=[fake_hotkey_ss58],
-        block_hash=fake_block_hash,
-        reuse_block_hash=False,
-    )
-    mocked_decode_account_id.assert_called_once_with(fake_owner_account_id.value[0])
-    mocked_does_hotkey_exist.assert_awaited_once_with(
-        fake_hotkey_ss58, block_hash=fake_block_hash
     )
     assert result is None
 
