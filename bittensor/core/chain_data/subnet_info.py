@@ -40,7 +40,7 @@ class SubnetInfo(InfoBase):
                 for (netuid, req) in decoded["network_connect"]
             },
             difficulty=decoded["difficulty"],
-            emission_value=decoded["emission_values"],
+            emission_value=decoded["emission_value"],
             immunity_period=decoded["immunity_period"],
             kappa=decoded["kappa"],
             max_allowed_validators=decoded["max_allowed_validators"],

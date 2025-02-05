@@ -1,15 +1,27 @@
 from dataclasses import dataclass
+from bittensor.core.chain_data.info_base import InfoBase
 
 
 @dataclass
-class ChainIdentity:
+class ChainIdentity(InfoBase):
     """Dataclass for chain identity information."""
-
-    # In `bittensor.core.chain_data.utils.custom_rpc_type_registry` represents as `ChainIdentityOf` structure.
 
     name: str
     url: str
+    github: str
     image: str
     discord: str
     description: str
     additional: str
+
+    @classmethod
+    def _from_dict(cls, decoded: dict) -> "ChainIdentity":
+        return cls(
+            name=decoded["name"],
+            url=decoded["url"],
+            github=decoded["github_repo"],
+            image=decoded["image"],
+            discord=decoded["discord"],
+            description=decoded["description"],
+            additional=decoded["additional"],
+        )

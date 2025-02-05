@@ -103,9 +103,7 @@ def commit_reveal_v3_extrinsic(
             netuid, block=current_block
         )
         tempo = subnet_hyperparameters.tempo
-        subnet_reveal_period_epochs = (
-            subnet_hyperparameters.commit_reveal_weights_interval
-        )
+        subnet_reveal_period_epochs = subnet_hyperparameters.commit_reveal_period
 
         # Encrypt `commit_hash` with t-lock and `get reveal_round`
         commit_for_reveal, reveal_round = get_encrypted_commit(

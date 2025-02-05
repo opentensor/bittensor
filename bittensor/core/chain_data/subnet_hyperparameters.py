@@ -31,7 +31,7 @@ class SubnetHyperparameters(InfoBase):
         max_validators (int): Maximum number of validators.
         adjustment_alpha (int): Alpha value for adjustments.
         difficulty (int): Difficulty level.
-        commit_reveal_weights_interval (int): Interval for commit-reveal weights.
+        commit_reveal_period (int): Interval for commit-reveal weights.
         commit_reveal_weights_enabled (bool): Flag indicating if commit-reveal weights are enabled.
         alpha_high (int): High value of alpha.
         alpha_low (int): Low value of alpha.
@@ -60,7 +60,7 @@ class SubnetHyperparameters(InfoBase):
     max_validators: int
     adjustment_alpha: int
     difficulty: int
-    commit_reveal_weights_interval: int
+    commit_reveal_period: int
     commit_reveal_weights_enabled: bool
     alpha_high: int
     alpha_low: int
@@ -89,7 +89,7 @@ class SubnetHyperparameters(InfoBase):
             alpha_low=decoded["alpha_low"],
             bonds_moving_avg=decoded["bonds_moving_avg"],
             commit_reveal_weights_enabled=decoded["commit_reveal_weights_enabled"],
-            commit_reveal_weights_interval=decoded["commit_reveal_weights_interval"],
+            commit_reveal_period=decoded["commit_reveal_period"],
             difficulty=decoded["difficulty"],
             immunity_period=decoded["immunity_period"],
             kappa=decoded["kappa"],

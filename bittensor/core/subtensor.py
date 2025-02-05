@@ -516,7 +516,7 @@ class Subtensor(SubtensorMixin):
         """
         result = self.query_runtime_api(
             runtime_api="SubnetInfoRuntimeApi",
-            method="get_subnets_info",
+            method="get_subnets_info_v2",
             params=[],
             block=block,
         )
@@ -1771,14 +1771,15 @@ class Subtensor(SubtensorMixin):
 
         return NeuronInfoLite.list_from_dicts(result)
 
-    def query_identity(self, key: str, block: Optional[int] = None) -> dict:
+    def query_identity(self, coldkey_ss58: str, block: Optional[int] = None) -> dict:
         """
         Queries the identity of a neuron on the Bittensor blockchain using the given key. This function retrieves
             detailed identity information about a specific neuron, which is a crucial aspect of the network's
             decentralized identity and governance system.
 
         Arguments:
-            key (str): The key used to query the neuron's identity, typically the neuron's SS58 address.
+            coldkey_ss58 (str): The coldkey used to query the neuron's identity (technically the neuron's coldkey SS58
+                address).
             block (Optional[int]): The blockchain block number for the query.
 
         Returns:
@@ -1792,13 +1793,13 @@ class Subtensor(SubtensorMixin):
                 parameters.
         """
         identity_info = self.substrate.query(
-            module="Registry",
-            storage_function="IdentityOf",
-            params=[key],
+            module="SubtensorModule",
+            storage_function="IdentitiesV2",
+            params=[coldkey_ss58],
             block_hash=self.determine_block_hash(block),
         )
         try:
-            return _decode_hex_identity_dict(identity_info["info"])
+            return _decode_hex_identity_dict(identity_info)
         except TypeError:
             return {}
 
