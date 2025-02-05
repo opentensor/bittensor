@@ -36,8 +36,17 @@ RAOPERTAO = 1e9
 U16_MAX = 65535
 U64_MAX = 18446744073709551615
 
-Certificate = str
 UnlockStatus = namedtuple("UnlockStatus", ["success", "message"])
+
+
+class Certificate(str):
+    def __new__(cls, data: Union[str, dict]):
+        if isinstance(data, dict):
+            tuple_ascii = data["public_key"][0]
+            string = chr(data["algorithm"]) + "".join(chr(i) for i in tuple_ascii)
+        else:
+            string = data
+        return str.__new__(cls, string)
 
 
 def _decode_hex_identity_dict(info_dictionary: dict[str, Any]) -> dict[str, Any]:
