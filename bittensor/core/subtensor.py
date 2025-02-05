@@ -1282,7 +1282,7 @@ class Subtensor(SubtensorMixin):
             block=block,
         )
 
-        return Balance.from_rao(lock_cost)
+        return lock_cost
 
     def get_subnet_hyperparameters(
         self, netuid: int, block: Optional[int] = None
