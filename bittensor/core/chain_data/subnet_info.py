@@ -32,6 +32,7 @@ class SubnetInfo(InfoBase):
 
     @classmethod
     def _from_dict(cls, decoded: Any) -> "SubnetInfo":
+        print(decoded)
         return SubnetInfo(
             blocks_since_epoch=decoded["blocks_since_last_step"],
             burn=Balance.from_rao(decoded["burn"]),
@@ -40,7 +41,7 @@ class SubnetInfo(InfoBase):
                 for (netuid, req) in decoded["network_connect"]
             },
             difficulty=decoded["difficulty"],
-            emission_value=decoded["emission_values"],
+            emission_value=decoded["emission_value"],
             immunity_period=decoded["immunity_period"],
             kappa=decoded["kappa"],
             max_allowed_validators=decoded["max_allowed_validators"],
