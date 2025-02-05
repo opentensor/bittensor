@@ -2485,14 +2485,16 @@ class AsyncSubtensor(SubtensorMixin):
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         identity_info = await self.substrate.query(
-            module="Registry",
-            storage_function="IdentityOf",
+            module="SubtensorModule",
+            storage_function="IdentitiesV2",
             params=[coldkey_ss58],
             block_hash=block_hash,
             reuse_block_hash=reuse_block,
         )
+        if not identity_info:
+            return {}
         try:
-            return _decode_hex_identity_dict(identity_info["info"])
+            return _decode_hex_identity_dict(identity_info)
         except TypeError:
             return {}
 
