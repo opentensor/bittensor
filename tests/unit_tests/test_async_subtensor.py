@@ -1583,9 +1583,6 @@ async def test_does_hotkey_exist_true(subtensor, mocker):
     mocked_query = mocker.AsyncMock(value=fake_query_result)
     subtensor.substrate.query = mocked_query
 
-    mocked_decode_account_id = mocker.Mock(return_value="another_account_id")
-    mocker.patch.object(async_subtensor, "decode_account_id", mocked_decode_account_id)
-
     # Call
     result = await subtensor.does_hotkey_exist(
         hotkey_ss58=fake_hotkey_ss58, block_hash=fake_block_hash
@@ -1599,7 +1596,6 @@ async def test_does_hotkey_exist_true(subtensor, mocker):
         block_hash=fake_block_hash,
         reuse_block_hash=False,
     )
-    mocked_decode_account_id.assert_called_once()
     assert result is True
 
 
@@ -1607,17 +1603,10 @@ async def test_does_hotkey_exist_true(subtensor, mocker):
 async def test_does_hotkey_exist_false_for_specific_account(subtensor, mocker):
     """Tests does_hotkey_exist method when the hotkey exists but matches the specific account ID to ignore."""
     # Preps
-    fake_hotkey_ss58 = "ignored_hotkey"
-    fake_query_result = ["ignored_account_id"]
+    fake_hotkey_ss58 = "fake_hotkey"
+    fake_query_result = "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM"
 
-    mocked_query = mocker.AsyncMock(value=fake_query_result)
-    subtensor.substrate.query = mocked_query
-
-    # Mock the decode_account_id function to return the specific account ID that should be ignored
-    mocked_decode_account_id = mocker.Mock(
-        return_value="5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM"
-    )
-    mocker.patch.object(async_subtensor, "decode_account_id", mocked_decode_account_id)
+    mocked_query = mocker.patch.object(subtensor.substrate, "query", return_value=fake_query_result)
 
     # Call
     result = await subtensor.does_hotkey_exist(hotkey_ss58=fake_hotkey_ss58)
@@ -1630,7 +1619,6 @@ async def test_does_hotkey_exist_false_for_specific_account(subtensor, mocker):
         block_hash=None,
         reuse_block_hash=False,
     )
-    mocked_decode_account_id.assert_called_once()
     assert result is False
 
 
