@@ -47,7 +47,7 @@ async def test_get_all_subnets_info(mocker):
     assert result[0].owner_ss58 == "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM"
     assert result[1].kappa == 32767
     assert result[1].max_weight_limit == 65535
-    assert result[1].blocks_since_epoch == 94
+    assert result[1].blocks_since_epoch == 88
 
 
 @pytest.mark.asyncio

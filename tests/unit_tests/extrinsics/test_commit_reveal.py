@@ -44,7 +44,7 @@ def hyperparams():
         max_validators=0,
         adjustment_alpha=0,
         difficulty=0,
-        commit_reveal_weights_interval=0,
+        commit_reveal_period=0,
         commit_reveal_weights_enabled=True,
         alpha_high=0,
         alpha_low=0,
@@ -209,7 +209,7 @@ def test_commit_reveal_v3_extrinsic_success_with_torch(mocker, subtensor, hyperp
     mocked_get_encrypted_commit.assert_called_once_with(
         uids=mocked_uids,
         weights=mocked_weights,
-        subnet_reveal_period_epochs=mock_hyperparams.return_value.commit_reveal_weights_interval,
+        subnet_reveal_period_epochs=mock_hyperparams.return_value.commit_reveal_period,
         version_key=commit_reveal.version_as_int,
         tempo=mock_hyperparams.return_value.tempo,
         netuid=fake_netuid,

@@ -2306,7 +2306,7 @@ class AsyncSubtensor(SubtensorMixin):
 
     async def query_identity(
         self,
-        key: str,
+        coldkey_ss58: str,
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
@@ -2317,7 +2317,8 @@ class AsyncSubtensor(SubtensorMixin):
             decentralized identity and governance system.
 
         Arguments:
-            key (str): The key used to query the neuron's identity, typically the neuron's SS58 address.
+            coldkey_ss58 (str): The coldkey used to query the neuron's identity (technically the neuron's coldkey SS58
+                address).
             block (Optional[int]): The blockchain block number for the query.
             block_hash (str): The hash of the blockchain block number at which to perform the query.
             reuse_block (bool): Whether to reuse the last-used blockchain block hash.
@@ -2334,14 +2335,16 @@ class AsyncSubtensor(SubtensorMixin):
         """
         block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
         identity_info = await self.substrate.query(
-            module="Registry",
-            storage_function="IdentityOf",
-            params=[key],
+            module="SubtensorModule",
+            storage_function="IdentitiesV2",
+            params=[coldkey_ss58],
             block_hash=block_hash,
             reuse_block_hash=reuse_block,
         )
+        if not identity_info:
+            return {}
         try:
-            return _decode_hex_identity_dict(identity_info["info"])
+            return _decode_hex_identity_dict(identity_info)
         except TypeError:
             return {}
 

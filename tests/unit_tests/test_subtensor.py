@@ -2076,7 +2076,7 @@ def test_get_all_subnets_info_success(mocker, subtensor):
     # Asserts
     subtensor.query_runtime_api.assert_called_once_with(
         runtime_api="SubnetInfoRuntimeApi",
-        method="get_subnets_info",
+        method="get_subnets_info_v2",
         params=[],
         block=block,
     )
@@ -2104,7 +2104,7 @@ def test_get_all_subnets_info_no_data(mocker, subtensor, result_):
     assert result == []
     subtensor.query_runtime_api.assert_called_once_with(
         runtime_api="SubnetInfoRuntimeApi",
-        method="get_subnets_info",
+        method="get_subnets_info_v2",
         params=[],
         block=block,
     )
