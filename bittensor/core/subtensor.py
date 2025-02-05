@@ -515,7 +515,7 @@ class Subtensor(SubtensorMixin):
         """
         result = self.query_runtime_api(
             runtime_api="SubnetInfoRuntimeApi",
-            method="get_subnets_info",
+            method="get_subnets_info_v2",
             params=[],
             block=block,
         )
