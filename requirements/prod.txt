@@ -24,3 +24,4 @@ websockets>=14.1
 bittensor-commit-reveal>=0.2.0
 bittensor-wallet>=3.0.2
 async-substrate-interface==1.0.0rc10
+bittensor-cli>=9.0.0rc1
