@@ -974,12 +974,9 @@ class Subtensor(SubtensorMixin):
             block_hash=self.determine_block_hash(block),
         )
         exists = False
-        val = None
-        if hasattr(hk_owner_query, "value"):
-            val = decode_account_id(hk_owner_query.value[0])
-            if val:
-                exists = self.does_hotkey_exist(hotkey_ss58, block=block)
-        hotkey_owner = val if exists else None
+        if hk_owner_query:
+            exists = self.does_hotkey_exist(hotkey_ss58, block=block)
+        hotkey_owner = hk_owner_query if exists else None
         return hotkey_owner
 
     def get_minimum_required_stake(self) -> Balance:
@@ -1263,7 +1260,7 @@ class Subtensor(SubtensorMixin):
 
     get_stake_info_for_coldkey = get_stake_for_coldkey
 
-    def get_subnet_burn_cost(self, block: Optional[int] = None) -> Optional[str]:
+    def get_subnet_burn_cost(self, block: Optional[int] = None) -> Optional[int]:
         """
         Retrieves the burn cost for registering a new subnet within the Bittensor network. This cost represents the
             amount of Tao that needs to be locked or burned to establish a new subnet.
@@ -1372,9 +1369,7 @@ class Subtensor(SubtensorMixin):
         )
         return getattr(result, "value", None)
 
-    def get_transfer_fee(
-        self, wallet: "Wallet", dest: str, value: Union[Balance, float, int]
-    ) -> Balance:
+    def get_transfer_fee(self, wallet: "Wallet", dest: str, value: Balance) -> Balance:
         """
         Calculates the transaction fee for transferring tokens from a wallet to a specified destination address. This
             function simulates the transfer to estimate the associated cost, taking into account the current network
@@ -1394,38 +1389,22 @@ class Subtensor(SubtensorMixin):
             has sufficient funds to cover both the transfer amount and the associated costs. This function provides a
             crucial tool for managing financial operations within the Bittensor network.
         """
-        if isinstance(value, float):
-            value = Balance.from_tao(value)
-        elif isinstance(value, int):
-            value = Balance.from_rao(value)
+        value = check_and_convert_to_balance(value)
+        call = self.substrate.compose_call(
+            call_module="Balances",
+            call_function="transfer_allow_death",
+            call_params={"dest": dest, "value": value.rao},
+        )
 
-        if isinstance(value, Balance):
-            call = self.substrate.compose_call(
-                call_module="Balances",
-                call_function="transfer_allow_death",
-                call_params={"dest": dest, "value": str(value.rao)},
+        try:
+            payment_info = self.substrate.get_payment_info(
+                call=call, keypair=wallet.coldkeypub
             )
+        except Exception as e:
+            logging.error(f":cross_mark: [red]Failed to get payment info: [/red]{e}")
+            payment_info = {"partial_fee": int(2e7)}  # assume  0.02 Tao
 
-            try:
-                payment_info = self.substrate.get_payment_info(
-                    call=call, keypair=wallet.coldkeypub
-                )
-            except Exception as e:
-                logging.error(
-                    f":cross_mark: [red]Failed to get payment info: [/red]{e}"
-                )
-                payment_info = {"partial_fee": int(2e7)}  # assume  0.02 Tao
-
-            return Balance.from_rao(payment_info["partial_fee"])
-        else:
-            fee = Balance.from_rao(int(2e7))
-            logging.error(
-                "To calculate the transaction fee, the value must be Balance, float, or int. Received type: %s. Fee "
-                "is %s",
-                type(value),
-                2e7,
-            )
-            return fee
+        return Balance.from_rao(payment_info["partial_fee"])
 
     def get_vote_data(
         self, proposal_hash: str, block: Optional[int] = None
