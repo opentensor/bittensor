@@ -1430,7 +1430,7 @@ async def test_get_delegated_with_empty_result(subtensor, mocker):
 async def test_query_identity_successful(subtensor, mocker):
     """Tests query_identity method with successful identity query."""
     # Preps
-    fake_key = "test_key"
+    fake_coldkey_ss58 = "test_key"
     fake_block_hash = "block_hash"
     fake_identity_info = {"info": {"stake": (b"\x01\x02",)}}
 
@@ -1444,13 +1444,15 @@ async def test_query_identity_successful(subtensor, mocker):
     )
 
     # Call
-    result = await subtensor.query_identity(key=fake_key, block_hash=fake_block_hash)
+    result = await subtensor.query_identity(
+        coldkey_ss58=fake_coldkey_ss58, block_hash=fake_block_hash
+    )
 
     # Asserts
     mocked_query.assert_called_once_with(
         module="Registry",
         storage_function="IdentityOf",
-        params=[fake_key],
+        params=[fake_coldkey_ss58],
         block_hash=fake_block_hash,
         reuse_block_hash=False,
     )
@@ -1461,19 +1463,19 @@ async def test_query_identity_successful(subtensor, mocker):
 async def test_query_identity_no_info(subtensor, mocker):
     """Tests query_identity method when no identity info is returned."""
     # Preps
-    fake_key = "test_key"
+    fake_coldkey_ss58 = "test_key"
 
     mocked_query = mocker.AsyncMock(return_value=None)
     subtensor.substrate.query = mocked_query
 
     # Call
-    result = await subtensor.query_identity(key=fake_key)
+    result = await subtensor.query_identity(coldkey_ss58=fake_coldkey_ss58)
 
     # Asserts
     mocked_query.assert_called_once_with(
         module="Registry",
         storage_function="IdentityOf",
-        params=[fake_key],
+        params=[fake_coldkey_ss58],
         block_hash=None,
         reuse_block_hash=False,
     )
@@ -1484,7 +1486,7 @@ async def test_query_identity_no_info(subtensor, mocker):
 async def test_query_identity_type_error(subtensor, mocker):
     """Tests query_identity method when a TypeError occurs during decoding."""
     # Preps
-    fake_key = "test_key"
+    fake_coldkey_ss58 = "test_key"
     fake_identity_info = {"info": {"rank": (b"\xff\xfe",)}}
 
     mocked_query = mocker.AsyncMock(return_value=fake_identity_info)
@@ -1497,13 +1499,13 @@ async def test_query_identity_type_error(subtensor, mocker):
     )
 
     # Call
-    result = await subtensor.query_identity(key=fake_key)
+    result = await subtensor.query_identity(coldkey_ss58=fake_coldkey_ss58)
 
     # Asserts
     mocked_query.assert_called_once_with(
         module="Registry",
         storage_function="IdentityOf",
-        params=[fake_key],
+        params=[fake_coldkey_ss58],
         block_hash=None,
         reuse_block_hash=False,
     )
