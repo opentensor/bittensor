@@ -7,9 +7,9 @@ class ChainIdentity(InfoBase):
     """Dataclass for chain identity information."""
 
     name: str
-    github: str
-    contact: str
     url: str
+    github: str
+    image: str
     discord: str
     description: str
     additional: str
@@ -17,10 +17,10 @@ class ChainIdentity(InfoBase):
     @classmethod
     def _from_dict(cls, decoded: dict) -> "ChainIdentity":
         return cls(
-            name=decoded["subnet_name"],
+            name=decoded["name"],
+            url=decoded["url"],
             github=decoded["github_repo"],
-            contact=decoded["subnet_contact"],
-            url=decoded["subnet_url"],
+            image=decoded["image"],
             discord=decoded["discord"],
             description=decoded["description"],
             additional=decoded["additional"],
