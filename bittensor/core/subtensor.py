@@ -1002,6 +1002,17 @@ class Subtensor(SubtensorMixin):
     def get_metagraph_info(
         self, netuid: int, block: Optional[int] = None
     ) -> Optional[MetagraphInfo]:
+        """
+        Retrieves the MetagraphInfo dataclass from the node for a single subnet (netuid)
+
+        Arguments:
+            netuid: The NetUID of the subnet.
+            block: the block number at which to retrieve the hyperparameter. Do not specify if using block_hash or
+                reuse_block
+
+        Returns:
+            MetagraphInfo dataclass
+        """
         block_hash = self.determine_block_hash(block)
         query = self.substrate.runtime_call(
             "SubnetInfoRuntimeApi",
@@ -1009,11 +1020,24 @@ class Subtensor(SubtensorMixin):
             params=[netuid],
             block_hash=block_hash,
         )
+        if query.value is None:
+            logging.error(f"Subnet {netuid} does not exist.")
+            return None
         return MetagraphInfo.from_dict(query.value)
 
     def get_all_metagraphs_info(
         self, block: Optional[int] = None
     ) -> list[MetagraphInfo]:
+        """
+        Retrieves a list of MetagraphInfo objects for all subnets
+
+        Arguments:
+            block: the block number at which to retrieve the hyperparameter. Do not specify if using block_hash or
+                reuse_block
+
+        Returns:
+            MetagraphInfo dataclass
+        """
         block_hash = self.determine_block_hash(block)
         query = self.substrate.runtime_call(
             "SubnetInfoRuntimeApi",
