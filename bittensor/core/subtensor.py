@@ -38,6 +38,7 @@ from bittensor.core.extrinsics.move_stake import (
 from bittensor.core.extrinsics.registration import (
     burned_register_extrinsic,
     register_extrinsic,
+    register_subnet_extrinsic,
 )
 from bittensor.core.extrinsics.root import (
     root_register_extrinsic,
@@ -2324,6 +2325,32 @@ class Subtensor(SubtensorMixin):
             dev_id=dev_id,
             output_in_place=output_in_place,
             log_verbose=log_verbose,
+        )
+
+    def register_subnet(
+        self,
+        wallet: "Wallet",
+        wait_for_inclusion: bool = False,
+        wait_for_finalization: bool = True,
+    ) -> bool:
+        """
+        Registers a new subnetwork on the Bittensor network.
+
+        Args:
+            wallet (bittensor_wallet.Wallet): The wallet to be used for subnet registration.
+            wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning true, or returns
+                false if the extrinsic fails to enter the block within the timeout. Default is False.
+            wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning
+                true, or returns false if the extrinsic fails to be finalized within the timeout. Default is True.
+
+        Returns:
+            bool: True if the subnet registration was successful, False otherwise.
+        """
+        return register_subnet_extrinsic(
+            subtensor=self,
+            wallet=wallet,
+            wait_for_inclusion=wait_for_inclusion,
+            wait_for_finalization=wait_for_finalization,
         )
 
     def reveal_weights(
