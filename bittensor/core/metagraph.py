@@ -931,7 +931,7 @@ class MetagraphMixin(ABC):
                 setattr(new_instance, key, value)
         return new_instance
 
-    def _apply_metagraph_ingo_mixin(self, metagraph_info: "MetagraphInfo"):
+    def _apply_metagraph_info_mixin(self, metagraph_info: "MetagraphInfo"):
         """
         Updates the attributes of the current object with data from a provided MetagraphInfo instance.
 
@@ -985,6 +985,7 @@ class MetagraphMixin(ABC):
             alpha_out=metagraph_info.alpha_out,
             alpha_in=metagraph_info.alpha_in,
             tao_in=metagraph_info.tao_in,
+            subnet_volume=metagraph_info.subnet_volume,
         )
         self.emissions = MetagraphInfoEmissions(
             alpha_out_emission=metagraph_info.alpha_out_emission,
@@ -1612,7 +1613,8 @@ class AsyncMetagraph(NumpyOrTorch):
     async def _apply_metagraph_info(self):
         """Retrieves metagraph information for a specific subnet and applies it using a mixin."""
         metagraph_info = await self.subtensor.get_metagraph_info(self.netuid)
-        self._apply_metagraph_ingo_mixin(metagraph_info=metagraph_info)
+        if metagraph_info:
+            self._apply_metagraph_info_mixin(metagraph_info=metagraph_info)
 
 
 class Metagraph(NumpyOrTorch):
@@ -1900,7 +1902,8 @@ class Metagraph(NumpyOrTorch):
     def _apply_metagraph_info(self):
         """Retrieves metagraph information for a specific subnet and applies it using a mixin."""
         metagraph_info = self.subtensor.get_metagraph_info(self.netuid)
-        self._apply_metagraph_ingo_mixin(metagraph_info=metagraph_info)
+        if metagraph_info:
+            self._apply_metagraph_info_mixin(metagraph_info=metagraph_info)
 
 
 async def async_metagraph(
