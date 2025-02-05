@@ -1752,7 +1752,7 @@ def test_get_transfer_fee(subtensor, mocker):
     # Preps
     fake_wallet = mocker.MagicMock()
     fake_dest = "SS58ADDRESS"
-    value = 1
+    value = Balance(1)
 
     fake_payment_info = {"partial_fee": int(2e10)}
     subtensor.substrate.get_payment_info.return_value = fake_payment_info
@@ -1764,7 +1764,7 @@ def test_get_transfer_fee(subtensor, mocker):
     subtensor.substrate.compose_call.assert_called_once_with(
         call_module="Balances",
         call_function="transfer_allow_death",
-        call_params={"dest": fake_dest, "value": str(value)},
+        call_params={"dest": fake_dest, "value": value.rao},
     )
 
     subtensor.substrate.get_payment_info.assert_called_once_with(
@@ -1773,26 +1773,6 @@ def test_get_transfer_fee(subtensor, mocker):
     )
 
     assert result == 2e10
-
-
-def test_get_transfer_fee_incorrect_value(subtensor, mocker):
-    """Successful get_transfer_fee call."""
-    # Preps
-    fake_wallet = mocker.MagicMock()
-    fake_dest = mocker.MagicMock()
-    value = "no_int_no_float_no_Balance"
-
-    mocked_substrate = mocker.MagicMock()
-    subtensor.substrate = mocked_substrate
-    spy_balance_from_rao = mocker.spy(Balance, "from_rao")
-
-    # Call
-    result = subtensor.get_transfer_fee(wallet=fake_wallet, dest=fake_dest, value=value)
-
-    # Asserts
-    spy_balance_from_rao.assert_called_once_with(2e7)
-
-    assert result == Balance.from_rao(int(2e7))
 
 
 def test_get_existential_deposit(subtensor, mocker):
@@ -2279,13 +2259,7 @@ def test_does_hotkey_exist_no_value(mocker, subtensor):
 
     # Mocks
     mock_query_subtensor = mocker.patch.object(
-        subtensor.substrate,
-        "query",
-        return_value=mocker.Mock(
-            value=[
-                bytes(bytearray(32)),
-            ],
-        ),
+        subtensor.substrate, "query", return_value=None
     )
 
     # Call
@@ -2313,7 +2287,7 @@ def test_does_hotkey_exist_special_id(mocker, subtensor):
     mock_query_subtensor = mocker.patch.object(
         subtensor.substrate,
         "query",
-        return_value=mocker.Mock(value=[fake_owner]),
+        return_value=fake_owner,
     )
     mocker.patch.object(
         subtensor_module,
@@ -2375,17 +2349,10 @@ def test_get_hotkey_owner_success(mocker, subtensor):
 
     # Mocks
     mock_query_subtensor = mocker.patch.object(
-        subtensor.substrate,
-        "query",
-        return_value=mocker.Mock(value=[fake_coldkey_ss58]),
+        subtensor.substrate, "query", return_value=fake_coldkey_ss58
     )
     mock_does_hotkey_exist = mocker.patch.object(
         subtensor, "does_hotkey_exist", return_value=True
-    )
-    mocker.patch.object(
-        subtensor_module,
-        "decode_account_id",
-        return_value=fake_coldkey_ss58,
     )
 
     # Call
@@ -2478,17 +2445,10 @@ def test_get_hotkey_owner_latest_block(mocker, subtensor):
 
     # Mocks
     mock_query_subtensor = mocker.patch.object(
-        subtensor.substrate,
-        "query",
-        return_value=mocker.Mock(value=[fake_coldkey_ss58]),
+        subtensor.substrate, "query", return_value=fake_coldkey_ss58
     )
     mock_does_hotkey_exist = mocker.patch.object(
         subtensor, "does_hotkey_exist", return_value=True
-    )
-    mocker.patch.object(
-        subtensor_module,
-        "decode_account_id",
-        return_value=fake_coldkey_ss58,
     )
 
     # Call
