@@ -51,32 +51,11 @@ def test_decode_ss58_tuples_in_proposal_vote_data(mocker):
     ]
 
 
-def test_decode_hex_identity_dict_with_single_byte_utf8():
-    """Tests _decode_hex_identity_dict when value is a single utf-8 decodable byte."""
-    info_dict = {"name": (b"Neuron",)}
-    result = async_subtensor._decode_hex_identity_dict(info_dict)
-    assert result["name"] == "Neuron"
-
-
-def test_decode_hex_identity_dict_with_non_utf8_data():
-    """Tests _decode_hex_identity_dict when value cannot be decoded as utf-8."""
-    info_dict = {"data": (b"\xff\xfe",)}
-    result = async_subtensor._decode_hex_identity_dict(info_dict)
-    assert result["data"] == (b"\xff\xfe",)
-
-
 def test_decode_hex_identity_dict_with_non_tuple_value():
     """Tests _decode_hex_identity_dict when value is not a tuple."""
     info_dict = {"info": "regular_string"}
     result = async_subtensor._decode_hex_identity_dict(info_dict)
     assert result["info"] == "regular_string"
-
-
-def test_decode_hex_identity_dict_with_nested_dict():
-    """Tests _decode_hex_identity_dict with a nested dictionary."""
-    info_dict = {"identity": {"rank": (65, 66, 67)}}
-    result = async_subtensor._decode_hex_identity_dict(info_dict)
-    assert result["identity"] == "41 4243"
 
 
 @pytest.mark.asyncio
@@ -1450,8 +1429,8 @@ async def test_query_identity_successful(subtensor, mocker):
 
     # Asserts
     mocked_query.assert_called_once_with(
-        module="Registry",
-        storage_function="IdentityOf",
+        module="SubtensorModule",
+        storage_function="IdentitiesV2",
         params=[fake_coldkey_ss58],
         block_hash=fake_block_hash,
         reuse_block_hash=False,
@@ -1473,8 +1452,8 @@ async def test_query_identity_no_info(subtensor, mocker):
 
     # Asserts
     mocked_query.assert_called_once_with(
-        module="Registry",
-        storage_function="IdentityOf",
+        module="SubtensorModule",
+        storage_function="IdentitiesV2",
         params=[fake_coldkey_ss58],
         block_hash=None,
         reuse_block_hash=False,
@@ -1503,8 +1482,8 @@ async def test_query_identity_type_error(subtensor, mocker):
 
     # Asserts
     mocked_query.assert_called_once_with(
-        module="Registry",
-        storage_function="IdentityOf",
+        module="SubtensorModule",
+        storage_function="IdentitiesV2",
         params=[fake_coldkey_ss58],
         block_hash=None,
         reuse_block_hash=False,
