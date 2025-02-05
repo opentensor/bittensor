@@ -1304,7 +1304,7 @@ class AsyncSubtensor(SubtensorMixin):
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
-    ) -> MetagraphInfo:
+    ) -> Optional[MetagraphInfo]:
         """
         Retrieves the MetagraphInfo dataclass from the node for a single subnet (netuid)
 
@@ -1329,7 +1329,10 @@ class AsyncSubtensor(SubtensorMixin):
             params=[netuid],
             block_hash=block_hash,
         )
-        return MetagraphInfo.from_dict(query.decode())
+        if query.value is None:
+            logging.error(f"Subnet {netuid} does not exist.")
+            return None
+        return MetagraphInfo.from_dict(query.value)
 
     async def get_all_metagraphs_info(
         self,
