@@ -291,7 +291,9 @@ async def test_is_hotkey_registered_any(subtensor, mocker):
 async def test_get_subnet_burn_cost(subtensor, mocker):
     """Tests get_subnet_burn_cost method."""
     # Preps
-    mocked_query_runtime_api = mocker.AsyncMock(autospec=subtensor.query_runtime_api)
+    mocked_query_runtime_api = mocker.AsyncMock(
+        autospec=subtensor.query_runtime_api, return_value=1000
+    )
     subtensor.query_runtime_api = mocked_query_runtime_api
     fake_block_hash = None
 

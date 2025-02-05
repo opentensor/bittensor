@@ -1627,7 +1627,7 @@ class AsyncSubtensor(SubtensorMixin):
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
-    ) -> Optional[int]:
+    ) -> Optional[Balance]:
         """
         Retrieves the burn cost for registering a new subnet within the Bittensor network. This cost represents the
             amount of Tao that needs to be locked or burned to establish a new subnet.
@@ -1651,8 +1651,10 @@ class AsyncSubtensor(SubtensorMixin):
             block_hash=block_hash,
             reuse_block=reuse_block,
         )
-
-        return lock_cost
+        if lock_cost is not None:
+            return Balance.from_rao(lock_cost)
+        else:
+            return lock_cost
 
     async def get_subnet_hyperparameters(
         self,

@@ -1927,7 +1927,9 @@ def test_reveal_weights_false(subtensor, mocker):
 def test_get_subnet_burn_cost_success(subtensor, mocker):
     """Tests get_subnet_burn_cost method with successfully result."""
     # Preps
-    mocked_query_runtime_api = mocker.patch.object(subtensor, "query_runtime_api")
+    mocked_query_runtime_api = mocker.patch.object(
+        subtensor, "query_runtime_api", return_value=1000
+    )
     fake_block = 123
 
     # Call
