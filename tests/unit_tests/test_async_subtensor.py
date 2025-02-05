@@ -1606,7 +1606,9 @@ async def test_does_hotkey_exist_false_for_specific_account(subtensor, mocker):
     fake_hotkey_ss58 = "fake_hotkey"
     fake_query_result = "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSuyUpnhM"
 
-    mocked_query = mocker.patch.object(subtensor.substrate, "query", return_value=fake_query_result)
+    mocked_query = mocker.patch.object(
+        subtensor.substrate, "query", return_value=fake_query_result
+    )
 
     # Call
     result = await subtensor.does_hotkey_exist(hotkey_ss58=fake_hotkey_ss58)
