@@ -259,7 +259,7 @@ async def _block_solver(
 
     timeout = 0.15 if cuda else 0.15
     while netuid == -1 or not await subtensor.is_hotkey_registered(
-        netuid, wallet.hotkey.ss58_address
+        wallet.hotkey.ss58_address, netuid
     ):
         # Wait until a solver finds a solution
         try:
