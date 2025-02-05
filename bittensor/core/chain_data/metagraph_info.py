@@ -233,6 +233,7 @@ class MetagraphInfoPool:
     alpha_out: Balance
     alpha_in: Balance
     tao_in: Balance
+    subnet_volume: Balance
 
 
 @dataclass
