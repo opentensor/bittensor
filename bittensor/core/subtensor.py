@@ -1260,7 +1260,7 @@ class Subtensor(SubtensorMixin):
 
     get_stake_info_for_coldkey = get_stake_for_coldkey
 
-    def get_subnet_burn_cost(self, block: Optional[int] = None) -> Optional[int]:
+    def get_subnet_burn_cost(self, block: Optional[int] = None) -> Optional[Balance]:
         """
         Retrieves the burn cost for registering a new subnet within the Bittensor network. This cost represents the
             amount of Tao that needs to be locked or burned to establish a new subnet.
@@ -1281,7 +1281,10 @@ class Subtensor(SubtensorMixin):
             block=block,
         )
 
-        return lock_cost
+        if lock_cost is not None:
+            return Balance.from_rao(lock_cost)
+        else:
+            return lock_cost
 
     def get_subnet_hyperparameters(
         self, netuid: int, block: Optional[int] = None
