@@ -408,7 +408,8 @@ class Subtensor(SubtensorMixin):
         )
         b_map = []
         for uid, b in b_map_encoded:
-            b_map.append((uid, b.value))
+            if b.value is not None:
+                b_map.append((uid, b.value))
 
         return b_map
 
@@ -485,13 +486,12 @@ class Subtensor(SubtensorMixin):
         Returns:
             `True` if the hotkey is known by the chain and there are accounts, `False` otherwise.
         """
-        _result = self.substrate.query(
+        result = self.substrate.query(
             module="SubtensorModule",
             storage_function="Owner",
             params=[hotkey_ss58],
             block_hash=self.determine_block_hash(block),
         )
-        result = decode_account_id(_result.value[0])
         return_val = (
             False
             if result is None
