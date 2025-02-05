@@ -119,7 +119,7 @@ async def transfer_extrinsic(
     )
 
     fee = await subtensor.get_transfer_fee(
-        wallet=wallet, dest=destination, value=amount.rao
+        wallet=wallet, dest=destination, value=amount
     )
 
     if not keep_alive:
