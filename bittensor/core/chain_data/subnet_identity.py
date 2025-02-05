@@ -8,5 +8,19 @@ class SubnetIdentity:
     subnet_name: str
     github_repo: str
     subnet_contact: str
+    subnet_url: str
+    discord: str
+    description: str
+    additional: str
 
-    # TODO: Add other methods when fetching from chain
+    @classmethod
+    def _from_dict(cls, decoded: dict) -> "SubnetIdentity":
+        return cls(
+            subnet_name=decoded["subnet_name"],
+            github_repo=decoded["github_repo"],
+            subnet_contact=decoded["subnet_contact"],
+            subnet_url=decoded["subnet_url"],
+            discord=decoded["discord"],
+            description=decoded["description"],
+            additional=decoded["additional"],
+        )
