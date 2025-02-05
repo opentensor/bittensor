@@ -10,7 +10,7 @@ Extrinsics:
 import asyncio
 from typing import Optional, Union, TYPE_CHECKING
 
-from bittensor.utils import unlock_key
+from bittensor.utils import unlock_key, format_error_message
 from bittensor.utils.btlogging import logging
 from bittensor.utils.registration import log_no_torch_error, create_pow_async, torch
 
@@ -379,3 +379,65 @@ async def register_extrinsic(
             # Failed to register after max attempts.
             logging.error("[red]No more attempts.[/red]")
             return False
+
+
+async def register_subnet_extrinsic(
+    subtensor: "AsyncSubtensor",
+    wallet: "Wallet",
+    wait_for_inclusion: bool = False,
+    wait_for_finalization: bool = True,
+) -> bool:
+    """
+    Registers a new subnetwork on the Bittensor blockchain asynchronously.
+
+    Args:
+        subtensor (AsyncSubtensor): The async subtensor interface to send the extrinsic.
+        wallet (Wallet): The wallet to be used for subnet registration.
+        wait_for_inclusion (bool): If set, waits for the extrinsic to enter a block before returning true.
+        wait_for_finalization (bool): If set, waits for the extrinsic to be finalized on the chain before returning true.
+
+    Returns:
+        bool: True if the subnet registration was successful, False otherwise.
+    """
+    balance = await subtensor.get_balance(wallet.coldkeypub.ss58_address)
+    burn_cost = await subtensor.get_subnet_burn_cost()
+
+    if burn_cost > balance:
+        logging.error(
+            f"Insufficient balance {balance} to register subnet. Current burn cost is {burn_cost} TAO"
+        )
+        return False
+
+    call = await subtensor.substrate.compose_call(
+        call_module="SubtensorModule",
+        call_function="register_network",
+        call_params={
+            "hotkey": wallet.hotkey.ss58_address,
+            "mechid": 1,
+        },
+    )
+
+    extrinsic = await subtensor.substrate.create_signed_extrinsic(
+        call=call, keypair=wallet.coldkey
+    )
+
+    response = await subtensor.substrate.submit_extrinsic(
+        extrinsic,
+        wait_for_inclusion=wait_for_inclusion,
+        wait_for_finalization=wait_for_finalization,
+    )
+
+    if not wait_for_finalization and not wait_for_inclusion:
+        return True
+
+    await response.process_events()
+    if not await response.is_success:
+        logging.error(
+            f"Failed to register subnet: {format_error_message(await response.error_message, subtensor.substrate)}"
+        )
+        return False
+
+    logging.success(
+        ":white_heavy_check_mark: [green]Successfully registered subnet[/green]"
+    )
+    return True
