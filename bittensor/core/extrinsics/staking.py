@@ -291,7 +291,7 @@ def add_stake_multiple_extrinsic(
                     tx_query = subtensor.substrate.query(
                         module="SubtensorModule", storage_function="TxRateLimit"
                     )
-                    tx_rate_limit_blocks: int = tx_query
+                    tx_rate_limit_blocks: int = getattr(tx_query, "value", 0)
                     if tx_rate_limit_blocks > 0:
                         logging.error(
                             f":hourglass: [yellow]Waiting for tx rate limit: [white]{tx_rate_limit_blocks}[/white] "
