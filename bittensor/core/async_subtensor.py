@@ -1272,14 +1272,9 @@ class AsyncSubtensor(SubtensorMixin):
             reuse_block_hash=reuse_block,
         )
         exists = False
-        val = None
-        if hasattr(hk_owner_query, "value"):
-            val = decode_account_id(hk_owner_query.value[0])
-            if val:
-                exists = await self.does_hotkey_exist(
-                    hotkey_ss58, block_hash=block_hash
-                )
-        hotkey_owner = val if exists else None
+        if hk_owner_query:
+            exists = await self.does_hotkey_exist(hotkey_ss58, block_hash=block_hash)
+        hotkey_owner = hk_owner_query if exists else None
         return hotkey_owner
 
     async def get_minimum_required_stake(self):
@@ -1632,7 +1627,7 @@ class AsyncSubtensor(SubtensorMixin):
         block: Optional[int] = None,
         block_hash: Optional[str] = None,
         reuse_block: bool = False,
-    ) -> Optional[str]:
+    ) -> Optional[int]:
         """
         Retrieves the burn cost for registering a new subnet within the Bittensor network. This cost represents the
             amount of Tao that needs to be locked or burned to establish a new subnet.
@@ -1739,139 +1734,6 @@ class AsyncSubtensor(SubtensorMixin):
                     subnets.append(netuid)
         return subnets
 
-    async def get_total_stake_for_coldkey(
-        self,
-        ss58_address: str,
-        block: Optional[int] = None,
-        block_hash: Optional[str] = None,
-        reuse_block: bool = False,
-    ) -> Balance:
-        """
-        Returns the total stake held on a coldkey.
-
-        Arguments:
-            ss58_address (str): The SS58 address of the coldkey
-            block (Optional[int]): The blockchain block number for the query.
-            block_hash (str): The hash of the block number to retrieve the stake from.
-            reuse_block (bool): Whether to reuse the last-used block hash.
-
-        Returns:
-            Balance of the stake held on the coldkey.
-        """
-        block_hash = await self.determine_block_hash(
-            block=block, block_hash=block_hash, reuse_block=reuse_block
-        )
-        result = await self.substrate.query(
-            module="SubtensorModule",
-            storage_function="TotalColdkeyStake",
-            params=[ss58_address],
-            block_hash=block_hash,
-            reuse_block_hash=reuse_block,
-        )
-        return Balance.from_rao(getattr(result, "value", 0))
-
-    async def get_total_stake_for_coldkeys(
-        self,
-        *ss58_addresses: str,
-        block: Optional[int] = None,
-        block_hash: Optional[str] = None,
-        reuse_block: bool = False,
-    ) -> dict[str, Balance]:
-        """
-        Returns the total stake held on multiple coldkeys.
-
-        Arguments:
-            ss58_addresses (tuple[str]): The SS58 address(es) of the coldkey(s)
-            block (Optional[int]): The blockchain block number for the query.
-            block_hash (str): The hash of the block number to retrieve the stake from.
-            reuse_block (bool): Whether to reuse the last-used block hash.
-
-        Returns:
-            Dict in view {address: Balance objects}.
-        """
-        if reuse_block:
-            block_hash = self.substrate.last_block_hash
-        elif not block_hash:
-            block_hash = await self.substrate.get_chain_head()
-        else:
-            block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
-        calls = [
-            (
-                await self.substrate.create_storage_key(
-                    "SubtensorModule",
-                    "TotalColdkeyStake",
-                    [address],
-                    block_hash=block_hash,
-                )
-            )
-            for address in ss58_addresses
-        ]
-        batch_call = await self.substrate.query_multi(calls, block_hash=block_hash)
-        results = {}
-        for item in batch_call:
-            results.update({item[0].params[0]: Balance.from_rao(item[1] or 0)})
-        return results
-
-    async def get_total_stake_for_hotkey(
-        self,
-        ss58_address,
-        block: Optional[int] = None,
-        block_hash: Optional[str] = None,
-        reuse_block: bool = False,
-    ) -> Balance:
-        """
-        Returns the total stake held on a hotkey.
-
-        Arguments:
-            ss58_address (str): The SS58 address of the hotkey
-            block (Optional[int]): The blockchain block number for the query.
-            block_hash (str): The hash of the block number to retrieve the stake from.
-            reuse_block (bool): Whether to reuse the last-used block hash when retrieving info.
-
-        Returns:
-            Balance of the stake held on the hotkey.
-        """
-        block_hash = await self.determine_block_hash(
-            block=block, block_hash=block_hash, reuse_block=reuse_block
-        )
-        result = await self.substrate.query(
-            module="SubtensorModule",
-            storage_function="TotalHotkeyStake",
-            params=[ss58_address],
-            block_hash=block_hash,
-            reuse_block_hash=reuse_block,
-        )
-        return Balance.from_rao(getattr(result, "value", 0))
-
-    async def get_total_stake_for_hotkeys(
-        self,
-        *ss58_addresses,
-        block: Optional[int] = None,
-        block_hash: Optional[str] = None,
-        reuse_block: bool = False,
-    ) -> dict[str, Balance]:
-        """
-        Returns the total stake held on hotkeys.
-
-        Arguments:
-            ss58_addresses (tuple[str]): The SS58 address(es) of the hotkey(s)
-            block (Optional[int]): The blockchain block number for the query.
-            block_hash (str): The hash of the block number to retrieve the stake from.
-            reuse_block (bool): Whether to reuse the last-used block hash when retrieving info.
-
-        Returns:
-            Dict {address: Balance objects}.
-        """
-        block_hash = await self.determine_block_hash(block, block_hash, reuse_block)
-        results = await self.substrate.query_multiple(
-            params=[s for s in ss58_addresses],
-            module="SubtensorModule",
-            storage_function="TotalHotkeyStake",
-            block_hash=block_hash,
-            reuse_block_hash=reuse_block,
-        )
-        return {k: Balance.from_rao(r or 0) for (k, r) in results.items()}
-
     async def get_total_subnets(
         self,
         block: Optional[int] = None,
@@ -1903,7 +1765,7 @@ class AsyncSubtensor(SubtensorMixin):
         return getattr(result, "value", None)
 
     async def get_transfer_fee(
-        self, wallet: "Wallet", dest: str, value: Union[Balance, float, int]
+        self, wallet: "Wallet", dest: str, value: Balance
     ) -> Balance:
         """
         Calculates the transaction fee for transferring tokens from a wallet to a specified destination address. This
@@ -1924,38 +1786,23 @@ class AsyncSubtensor(SubtensorMixin):
             has sufficient funds to cover both the transfer amount and the associated costs. This function provides a
             crucial tool for managing financial operations within the Bittensor network.
         """
-        if isinstance(value, float):
-            value = Balance.from_tao(value)
-        elif isinstance(value, int):
-            value = Balance.from_rao(value)
+        value = check_and_convert_to_balance(value)
 
-        if isinstance(value, Balance):
-            call = await self.substrate.compose_call(
-                call_module="Balances",
-                call_function="transfer_allow_death",
-                call_params={"dest": dest, "value": str(value.rao)},
+        call = await self.substrate.compose_call(
+            call_module="Balances",
+            call_function="transfer_allow_death",
+            call_params={"dest": dest, "value": value.rao},
+        )
+
+        try:
+            payment_info = await self.substrate.get_payment_info(
+                call=call, keypair=wallet.coldkeypub
             )
+        except Exception as e:
+            logging.error(f":cross_mark: [red]Failed to get payment info: [/red]{e}")
+            payment_info = {"partial_fee": int(2e7)}  # assume  0.02 Tao
 
-            try:
-                payment_info = await self.substrate.get_payment_info(
-                    call=call, keypair=wallet.coldkeypub
-                )
-            except Exception as e:
-                logging.error(
-                    f":cross_mark: [red]Failed to get payment info: [/red]{e}"
-                )
-                payment_info = {"partial_fee": int(2e7)}  # assume  0.02 Tao
-
-            return Balance.from_rao(payment_info["partial_fee"])
-        else:
-            fee = Balance.from_rao(int(2e7))
-            logging.error(
-                "To calculate the transaction fee, the value must be Balance, float, or int. Received type: %s. Fee "
-                "is %s",
-                type(value),
-                2e7,
-            )
-            return fee
+        return Balance.from_rao(payment_info["partial_fee"])
 
     async def get_vote_data(
         self,
