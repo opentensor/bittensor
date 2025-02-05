@@ -2259,13 +2259,7 @@ def test_does_hotkey_exist_no_value(mocker, subtensor):
 
     # Mocks
     mock_query_subtensor = mocker.patch.object(
-        subtensor.substrate,
-        "query",
-        return_value=mocker.Mock(
-            value=[
-                bytes(bytearray(32)),
-            ],
-        ),
+        subtensor.substrate, "query", return_value=None
     )
 
     # Call
@@ -2293,7 +2287,7 @@ def test_does_hotkey_exist_special_id(mocker, subtensor):
     mock_query_subtensor = mocker.patch.object(
         subtensor.substrate,
         "query",
-        return_value=mocker.Mock(value=[fake_owner]),
+        return_value=fake_owner,
     )
     mocker.patch.object(
         subtensor_module,
