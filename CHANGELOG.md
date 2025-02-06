@@ -1,5 +1,12 @@
 # Changelog
 
+## 9.0.0rc2 /2025-02-05
+
+## What's Changed
+* Small bug fixes and improvements by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2637
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.0.0rc1...v9.0.0rc2
+
 ## 9.0.0rc1 /2025-02-05
 
 ## What's Changed
