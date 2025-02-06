@@ -5,10 +5,8 @@ subnetwork states in the Bittensor network.
 
 from dataclasses import dataclass
 
-from scalecodec.utils.ss58 import ss58_encode
-
 from bittensor.core.chain_data.info_base import InfoBase
-from bittensor.core.chain_data.utils import SS58_FORMAT
+from bittensor.core.chain_data.utils import decode_account_id
 from bittensor.utils import u16_normalized_float
 from bittensor.utils.balance import Balance
 
@@ -39,8 +37,8 @@ class SubnetState(InfoBase):
         netuid = decoded["netuid"]
         return SubnetState(
             netuid=netuid,
-            hotkeys=[ss58_encode(val, SS58_FORMAT) for val in decoded["hotkeys"]],
-            coldkeys=[ss58_encode(val, SS58_FORMAT) for val in decoded["coldkeys"]],
+            hotkeys=[decode_account_id(hk) for hk in decoded.get("hotkeys", [])],
+            coldkeys=[decode_account_id(ck) for ck in decoded.get("coldkeys", [])],
             active=decoded["active"],
             validator_permit=decoded["validator_permit"],
             pruning_score=[
