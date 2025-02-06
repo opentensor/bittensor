@@ -13,17 +13,17 @@ from numpy.typing import NDArray
 from bittensor.core.async_subtensor import ProposalVoteData
 from bittensor.core.axon import Axon
 from bittensor.core.chain_data import (
-    decode_account_id,
+    DelegateInfo,
+    DynamicInfo,
     MetagraphInfo,
+    NeuronInfo,
+    NeuronInfoLite,
+    StakeInfo,
+    SubnetHyperparameters,
     WeightCommitInfo,
+    SubnetInfo,
+    decode_account_id,
 )
-from bittensor.core.chain_data.delegate_info import DelegateInfo
-from bittensor.core.chain_data.dynamic_info import DynamicInfo
-from bittensor.core.chain_data.neuron_info import NeuronInfo
-from bittensor.core.chain_data.neuron_info_lite import NeuronInfoLite
-from bittensor.core.chain_data.stake_info import StakeInfo
-from bittensor.core.chain_data.subnet_hyperparameters import SubnetHyperparameters
-from bittensor.core.chain_data.subnet_info import SubnetInfo
 from bittensor.core.config import Config
 from bittensor.core.extrinsics.commit_reveal import commit_reveal_v3_extrinsic
 from bittensor.core.extrinsics.commit_weights import (
@@ -66,8 +66,7 @@ from bittensor.core.settings import (
     TYPE_REGISTRY,
     DELEGATES_DETAILS_URL,
 )
-from bittensor.core.types import ParamWithTypes
-from bittensor.core.types import SubtensorMixin
+from bittensor.core.types import ParamWithTypes, SubtensorMixin
 from bittensor.utils import (
     torch,
     format_error_message,
@@ -83,13 +82,13 @@ from bittensor.utils.balance import (
     check_and_convert_to_balance,
 )
 from bittensor.utils.btlogging import logging
+from bittensor.utils.delegates_details import DelegatesDetails
 from bittensor.utils.weight_utils import generate_weight_hash
 
 if TYPE_CHECKING:
     from bittensor_wallet import Wallet
     from async_substrate_interface.sync_substrate import QueryMapResult
     from async_substrate_interface.types import ScaleObj
-    from bittensor.utils.delegates_details import DelegatesDetails
     from scalecodec.types import GenericCall
 
 
@@ -1798,6 +1797,8 @@ class Subtensor(SubtensorMixin):
             params=[coldkey_ss58],
             block_hash=self.determine_block_hash(block),
         )
+        if not identity_info:
+            return {}
         try:
             return _decode_hex_identity_dict(identity_info)
         except TypeError:
