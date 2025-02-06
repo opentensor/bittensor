@@ -77,8 +77,7 @@ def clone_or_update_templates(specific_commit=None):
 
 
 def install_templates(install_dir):
-    # DEPRECATION: Legacy editable install of bittensor==9.0.0 from file:///home/zyzniewski/Projects/Reef/bittensor (setup.py develop) is deprecated. pip 25.1 will enforce this behaviour change. A possible replacement is to add a pyproject.toml or enable --use-pep517, and use setuptools >= 64. If the resulting installation is not behaving as expected, try using --config-settings editable_mode=compat. Please consult the setuptools documentation for more information. Discussion can be found at https://github.com/pypa/pip/issues/11457
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "-e", "."])
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "."])
 
 
 def uninstall_templates(install_dir):
