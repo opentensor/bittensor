@@ -1,25 +1,19 @@
-import time
+import asyncio
 
 import numpy as np
 import pytest
 
-import asyncio
-
-from bittensor.core.subtensor import Subtensor
 from bittensor.utils.balance import Balance
 from bittensor.utils.weight_utils import convert_weights_and_uids_for_emit
 from tests.e2e_tests.utils.chain_interactions import (
-    add_stake,
-    register_subnet,
     sudo_set_hyperparameter_bool,
     sudo_set_hyperparameter_values,
     wait_interval,
 )
-from tests.e2e_tests.utils.e2e_test_utils import setup_wallet
 
 
 @pytest.mark.asyncio
-async def test_commit_and_reveal_weights_legacy(local_chain):
+async def test_commit_and_reveal_weights_legacy(local_chain, subtensor, alice_wallet):
     """
     Tests the commit/reveal weights mechanism with subprocess disabled (CR1.0)
 
@@ -33,26 +27,22 @@ async def test_commit_and_reveal_weights_legacy(local_chain):
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
-    netuid = 1
+    netuid = 2
+
     print("Testing test_commit_and_reveal_weights")
+
     # Register root as Alice
-    keypair, alice_wallet = setup_wallet("//Alice")
-    assert register_subnet(local_chain, alice_wallet), "Unable to register the subnet"
+    assert subtensor.register_subnet(alice_wallet), "Unable to register the subnet"
 
-    # Verify subnet 1 created successfully
-    assert local_chain.query(
-        "SubtensorModule", "NetworksAdded", [1]
-    ).serialize(), "Subnet wasn't created successfully"
-
-    subtensor = Subtensor(network="ws://localhost:9945")
-
-    # Register Alice to the subnet
-    assert subtensor.burned_register(
-        alice_wallet, netuid
-    ), "Unable to register Alice as a neuron"
+    # Verify subnet 2 created successfully
+    assert subtensor.subnet_exists(netuid), "Subnet wasn't created successfully"
 
     # Stake to become to top neuron after the first epoch
-    add_stake(local_chain, alice_wallet, Balance.from_tao(100_000))
+    subtensor.add_stake(
+        alice_wallet,
+        netuid=netuid,
+        amount=Balance.from_tao(10_000),
+    )
 
     # Enable commit_reveal on the subnet
     assert sudo_set_hyperparameter_bool(
@@ -137,7 +127,9 @@ async def test_commit_and_reveal_weights_legacy(local_chain):
 
     # Wait until the reveal block range
     await wait_interval(
-        subtensor.get_subnet_hyperparameters(netuid=netuid).tempo, subtensor
+        subtensor.get_subnet_hyperparameters(netuid=netuid).tempo,
+        subtensor,
+        netuid,
     )
 
     # Reveal weights
@@ -153,7 +145,7 @@ async def test_commit_and_reveal_weights_legacy(local_chain):
 
     assert success is True
 
-    time.sleep(10)
+    await asyncio.sleep(10)
 
     # Query the Weights storage map
     revealed_weights = subtensor.query_module(
@@ -172,7 +164,7 @@ async def test_commit_and_reveal_weights_legacy(local_chain):
 
 
 @pytest.mark.asyncio
-async def test_commit_weights_uses_next_nonce(local_chain):
+async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wallet):
     """
     Tests that commiting weights doesn't re-use a nonce in the transaction pool.
 
@@ -186,26 +178,20 @@ async def test_commit_weights_uses_next_nonce(local_chain):
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
-    netuid = 1
+    netuid = 2
     print("Testing test_commit_and_reveal_weights")
     # Register root as Alice
-    keypair, alice_wallet = setup_wallet("//Alice")
-    assert register_subnet(local_chain, alice_wallet), "Unable to register the subnet"
+    assert subtensor.register_subnet(alice_wallet), "Unable to register the subnet"
 
     # Verify subnet 1 created successfully
-    assert local_chain.query(
-        "SubtensorModule", "NetworksAdded", [1]
-    ).serialize(), "Subnet wasn't created successfully"
-
-    subtensor = Subtensor(network="ws://localhost:9945")
-
-    # Register Alice to the subnet
-    assert subtensor.burned_register(
-        alice_wallet, netuid
-    ), "Unable to register Alice as a neuron"
+    assert subtensor.subnet_exists(netuid), "Subnet wasn't created successfully"
 
     # Stake to become to top neuron after the first epoch
-    add_stake(local_chain, alice_wallet, Balance.from_tao(100_000))
+    subtensor.add_stake(
+        alice_wallet,
+        netuid=netuid,
+        amount=Balance.from_tao(10_000),
+    )
 
     # Enable commit_reveal on the subnet
     assert sudo_set_hyperparameter_bool(

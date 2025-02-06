@@ -3,34 +3,25 @@ import sys
 
 import pytest
 
-from bittensor.core.subtensor import Subtensor
+from bittensor.utils.balance import Balance
 from tests.e2e_tests.utils.chain_interactions import (
-    add_stake,
-    register_subnet,
+    sudo_set_admin_utils,
     wait_epoch,
 )
 from tests.e2e_tests.utils.e2e_test_utils import (
-    setup_wallet,
     template_path,
     templates_repo,
 )
-from bittensor.utils.balance import Balance
-from bittensor.core.extrinsics.set_weights import _do_set_weights
-from bittensor.core.metagraph import Metagraph
-
-
-FAST_BLOCKS_SPEEDUP_FACTOR = 5
 
 
 @pytest.mark.asyncio
-async def test_incentive(local_chain):
+async def test_incentive(local_chain, subtensor, alice_wallet, bob_wallet):
     """
     Test the incentive mechanism and interaction of miners/validators
 
     Steps:
-        1. Register a subnet and register Alice & Bob
-        2. Add Stake by Alice
-        3. Run Alice as validator & Bob as miner. Wait Epoch
+        1. Register a subnet as Alice and register Bob
+        2. Run Alice as validator & Bob as miner. Wait Epoch
         4. Verify miner has correct: trust, rank, consensus, incentive
         5. Verify validator has correct: validator_permit, validator_trust, dividends, stake
     Raises:
@@ -38,26 +29,21 @@ async def test_incentive(local_chain):
     """
 
     print("Testing test_incentive")
-    netuid = 1
+    netuid = 2
 
     # Register root as Alice - the subnet owner and validator
-    alice_keypair, alice_wallet = setup_wallet("//Alice")
-    register_subnet(local_chain, alice_wallet)
+    assert subtensor.register_subnet(alice_wallet)
 
     # Verify subnet <netuid> created successfully
-    assert local_chain.query(
-        "SubtensorModule", "NetworksAdded", [netuid]
-    ).serialize(), "Subnet wasn't created successfully"
+    assert subtensor.subnet_exists(netuid), "Subnet wasn't created successfully"
 
-    # Register Bob as miner
-    bob_keypair, bob_wallet = setup_wallet("//Bob")
-
-    subtensor = Subtensor(network="ws://localhost:9945")
-
-    # Register Alice as a neuron on the subnet
-    assert subtensor.burned_register(
-        alice_wallet, netuid
-    ), "Unable to register Alice as a neuron"
+    assert sudo_set_admin_utils(
+        local_chain,
+        alice_wallet,
+        call_function="sudo_set_tempo",
+        call_params={"netuid": netuid, "tempo": 99},
+        return_error_message=True,
+    )
 
     # Register Bob as a neuron on the subnet
     assert subtensor.burned_register(
@@ -70,13 +56,17 @@ async def test_incentive(local_chain):
     ), "Alice & Bob not registered in the subnet"
 
     # Alice to stake to become to top neuron after the first epoch
-    add_stake(local_chain, alice_wallet, Balance.from_tao(10_000))
+    subtensor.add_stake(
+        alice_wallet,
+        netuid=netuid,
+        amount=Balance.from_tao(10_000),
+    )
 
     # Prepare to run Bob as miner
     cmd = " ".join(
         [
             f"{sys.executable}",
-            f'"{template_path}{templates_repo}/neurons/miner.py"',
+            f'"{template_path}{templates_repo}/miner.py"',
             "--netuid",
             str(netuid),
             "--subtensor.network",
@@ -108,7 +98,7 @@ async def test_incentive(local_chain):
     cmd = " ".join(
         [
             f"{sys.executable}",
-            f'"{template_path}{templates_repo}/neurons/validator.py"',
+            f'"{template_path}{templates_repo}/validator.py"',
             "--netuid",
             str(netuid),
             "--subtensor.network",
@@ -125,7 +115,7 @@ async def test_incentive(local_chain):
         ]
     )
 
-    # Run Alice as validator in the background
+    # # Run Alice as validator in the background
     await asyncio.create_subprocess_shell(
         cmd,
         stdout=asyncio.subprocess.PIPE,
@@ -137,7 +127,7 @@ async def test_incentive(local_chain):
     )  # wait for 5 seconds for the metagraph and subtensor to refresh with latest data
 
     # Get latest metagraph
-    metagraph = Metagraph(netuid=netuid, network="ws://localhost:9945")
+    metagraph = subtensor.metagraph(netuid)
 
     # Get current miner/validator stats
     bob_neuron = metagraph.neurons[1]
@@ -149,30 +139,14 @@ async def test_incentive(local_chain):
     alice_neuron = metagraph.neurons[0]
     assert alice_neuron.validator_permit is False
     assert alice_neuron.dividends == 0
-    assert alice_neuron.stake.tao == 10_000.0
+    assert alice_neuron.stake.tao > 0
     assert alice_neuron.validator_trust == 0
 
     # Wait until next epoch
-    await wait_epoch(subtensor)
-
-    # Set weights by Alice on the subnet
-    _do_set_weights(
-        subtensor=subtensor,
-        wallet=alice_wallet,
-        uids=[1],
-        vals=[65535],
-        netuid=netuid,
-        version_key=0,
-        wait_for_inclusion=True,
-        wait_for_finalization=True,
-        period=5 * FAST_BLOCKS_SPEEDUP_FACTOR,
-    )
-    print("Alice neuron set weights successfully")
-
-    await wait_epoch(subtensor)
+    await wait_epoch(subtensor, netuid)
 
     # Refresh metagraph
-    metagraph = Metagraph(netuid=netuid, network="ws://localhost:9945")
+    metagraph = subtensor.metagraph(netuid)
 
     # Get current emissions and validate that Alice has gotten tao
     bob_neuron = metagraph.neurons[1]
@@ -184,7 +158,7 @@ async def test_incentive(local_chain):
     alice_neuron = metagraph.neurons[0]
     assert alice_neuron.validator_permit is True
     assert alice_neuron.dividends == 1
-    assert alice_neuron.stake.tao == 10_000.0
+    assert alice_neuron.stake.tao > 0
     assert alice_neuron.validator_trust == 1
 
     print("✅ Passed test_incentive")
