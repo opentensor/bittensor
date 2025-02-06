@@ -43,8 +43,10 @@ def clone_or_update_templates(specific_commit=None):
     """
     install_dir = template_path
     repo_mapping = {
-        templates_repo: "https://github.com/opentensor/bittensor-subnet-template.git",
+        templates_repo: "https://github.com/opentensor/subnet-template.git",
     }
+
+    cwd = os.getcwd()
 
     os.makedirs(install_dir, exist_ok=True)
     os.chdir(install_dir)
@@ -69,16 +71,17 @@ def clone_or_update_templates(specific_commit=None):
         subprocess.run(["git", "checkout", specific_commit], check=True)
         os.chdir("..")
 
+    os.chdir(cwd)
+
     return install_dir + templates_repo + "/"
 
 
 def install_templates(install_dir):
-    subprocess.check_call([sys.executable, "-m", "pip", "install", install_dir])
+    # DEPRECATION: Legacy editable install of bittensor==9.0.0 from file:///home/zyzniewski/Projects/Reef/bittensor (setup.py develop) is deprecated. pip 25.1 will enforce this behaviour change. A possible replacement is to add a pyproject.toml or enable --use-pep517, and use setuptools >= 64. If the resulting installation is not behaving as expected, try using --config-settings editable_mode=compat. Please consult the setuptools documentation for more information. Discussion can be found at https://github.com/pypa/pip/issues/11457
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "-e", "."])
 
 
 def uninstall_templates(install_dir):
-    subprocess.check_call(
-        [sys.executable, "-m", "pip", "uninstall", "bittensor_subnet_template", "-y"]
-    )
+    subprocess.check_call([sys.executable, "-m", "pip", "uninstall", "bittensor", "-y"])
     # Delete everything in directory
     shutil.rmtree(install_dir)

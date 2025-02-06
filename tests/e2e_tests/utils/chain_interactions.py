@@ -12,7 +12,6 @@ from bittensor.utils.btlogging import logging
 if TYPE_CHECKING:
     from bittensor import Wallet
     from bittensor.core.subtensor import Subtensor
-    from bittensor.utils.balance import Balance
     from async_substrate_interface import SubstrateInterface, ExtrinsicReceipt
 
 
@@ -65,44 +64,6 @@ def sudo_set_hyperparameter_values(
     if return_error_message:
         return response.is_success, response.error_message
 
-    return response.is_success
-
-
-def add_stake(
-    substrate: "SubstrateInterface", wallet: "Wallet", amount: "Balance"
-) -> bool:
-    """
-    Adds stake to a hotkey using SubtensorModule. Mimics command of adding stake
-    """
-    stake_call = substrate.compose_call(
-        call_module="SubtensorModule",
-        call_function="add_stake",
-        call_params={"hotkey": wallet.hotkey.ss58_address, "amount_staked": amount.rao},
-    )
-    extrinsic = substrate.create_signed_extrinsic(
-        call=stake_call, keypair=wallet.coldkey
-    )
-    response = substrate.submit_extrinsic(
-        extrinsic, wait_for_finalization=True, wait_for_inclusion=True
-    )
-    return response.is_success
-
-
-def register_subnet(substrate: "SubstrateInterface", wallet: "Wallet") -> bool:
-    """
-    Registers a subnet on the chain using wallet. Mimics register subnet command.
-    """
-    register_call = substrate.compose_call(
-        call_module="SubtensorModule",
-        call_function="register_network",
-        call_params={"immunity_period": 0, "reg_allowed": True},
-    )
-    extrinsic = substrate.create_signed_extrinsic(
-        call=register_call, keypair=wallet.coldkey
-    )
-    response = substrate.submit_extrinsic(
-        extrinsic, wait_for_finalization=True, wait_for_inclusion=True
-    )
     return response.is_success
 
 
