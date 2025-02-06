@@ -115,8 +115,8 @@ async def test_dendrite(local_chain, subtensor, alice_wallet, bob_wallet):
     )
     logging.console.info("Neuron Alice is now validating")
     await asyncio.sleep(
-        15
-    )  # wait for 15 seconds for the metagraph and subtensor to refresh with latest data
+        5
+    )  # wait for 5 seconds for the metagraph and subtensor to refresh with latest data
 
     await wait_epoch(subtensor, netuid=netuid)
 
