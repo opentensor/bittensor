@@ -140,11 +140,17 @@ class Subtensor(SubtensorMixin):
                 f"Connected to {self.network} network and {self.chain_endpoint}."
             )
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
     def close(self):
         """
-        Does nothing. Exists for backwards compatibility purposes.
+        Closes the websocket connection
         """
-        pass
+        self.substrate.close()
 
     # Subtensor queries ===========================================================================================
 
