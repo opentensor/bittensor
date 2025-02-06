@@ -75,7 +75,7 @@ async def test_dendrite(local_chain, subtensor, alice_wallet, bob_wallet):
     )
 
     # Refresh metagraph
-    metagraph = Metagraph(netuid=netuid, network="ws://localhost:9945")
+    metagraph = subtensor.metagraph(netuid)
     old_neuron = metagraph.neurons[1]
 
     # Assert alpha is close to stake equivalent
@@ -115,13 +115,13 @@ async def test_dendrite(local_chain, subtensor, alice_wallet, bob_wallet):
     )
     logging.console.info("Neuron Alice is now validating")
     await asyncio.sleep(
-        5
-    )  # wait for 5 seconds for the metagraph and subtensor to refresh with latest data
+        15
+    )  # wait for 15 seconds for the Validator to process
 
     await wait_epoch(subtensor, netuid=netuid)
 
     # Refresh metagraph
-    metagraph = Metagraph(netuid=netuid, network="ws://localhost:9945")
+    metagraph = subtensor.metagraph(netuid)
 
     # Refresh validator neuron
     updated_neuron = metagraph.neurons[1]
