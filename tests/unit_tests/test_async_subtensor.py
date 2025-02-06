@@ -1,4 +1,3 @@
-import asyncio
 import unittest.mock as mock
 
 import pytest
@@ -2609,3 +2608,32 @@ async def test_commit_weights_with_exception(subtensor, mocker):
     assert mocked_commit_weights_extrinsic.call_count == max_retries
     assert result is False
     assert "No attempt made. Perhaps it is too soon to commit weights!" in message
+
+
+@pytest.mark.asyncio
+async def test_get_all_subnets_info_success(mocker, subtensor):
+    """Test get_all_subnets_info returns correct data when subnet information is found."""
+    # Prep
+    block = 123
+
+    mocker.patch.object(subtensor, "query_runtime_api")
+    mocker.patch.object(
+        async_subtensor.SubnetInfo,
+        "list_from_dicts",
+    )
+
+    # Call
+    await subtensor.get_all_subnets_info(block)
+
+    # Asserts
+    subtensor.query_runtime_api.assert_awaited_once_with(
+        runtime_api="SubnetInfoRuntimeApi",
+        method="get_subnets_info_v2",
+        params=[],
+        block=block,
+        block_hash=None,
+        reuse_block=False,
+    )
+    async_subtensor.SubnetInfo.list_from_dicts.assert_called_once_with(
+        subtensor.query_runtime_api.return_value,
+    )
