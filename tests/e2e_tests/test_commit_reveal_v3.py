@@ -7,6 +7,7 @@ from bittensor.utils.btlogging import logging
 from bittensor.utils.balance import Balance
 from bittensor.utils.weight_utils import convert_weights_and_uids_for_emit
 from tests.e2e_tests.utils.chain_interactions import (
+    sudo_set_admin_utils,
     sudo_set_hyperparameter_bool,
     sudo_set_hyperparameter_values,
     wait_interval,
@@ -14,6 +15,7 @@ from tests.e2e_tests.utils.chain_interactions import (
 )
 
 
+@pytest.mark.parametrize("local_chain", [False], indirect=True)
 @pytest.mark.asyncio
 async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_wallet):
     """
@@ -80,8 +82,22 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
     assert subtensor.weights_rate_limit(netuid=netuid) == 0
     logging.console.info("sudo_set_weights_set_rate_limit executed: set to 0")
 
+    # Change the tempo of the subnet from default 360
+    # Since this is in normal blocks, this is necessary
+    tempo_set = 10
+    assert (
+        sudo_set_admin_utils(
+            local_chain,
+            alice_wallet,
+            call_function="sudo_set_tempo",
+            call_params={"netuid": netuid, "tempo": tempo_set},
+            return_error_message=True,
+        )[0]
+        is True
+    )
     tempo = subtensor.get_subnet_hyperparameters(netuid=netuid).tempo
-    assert tempo == 10
+    assert tempo_set == tempo
+    logging.console.info(f"sudo_set_tempo executed: set to {tempo_set}")
 
     # Commit-reveal values - setting weights to self
     uids = np.array([0], dtype=np.int64)
@@ -171,10 +187,9 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
     # Fetch weights on the chain as they should be revealed now
     revealed_weights_ = subtensor.weights(netuid=netuid)
 
-    # time.sleep(10)
+    time.sleep(10)
     print("revealed weights", revealed_weights_)
-    revealed_weights = revealed_weights_
-    assert revealed_weights_ == []
+    revealed_weights = revealed_weights_[0][1]
     # Assert correct weights were revealed
     assert weight_uids[0] == revealed_weights[0][0]
     assert weight_vals[0] == revealed_weights[0][1]
