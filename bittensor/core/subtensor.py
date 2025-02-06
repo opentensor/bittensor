@@ -1798,6 +1798,8 @@ class Subtensor(SubtensorMixin):
             params=[coldkey_ss58],
             block_hash=self.determine_block_hash(block),
         )
+        if not identity_info:
+            return {}
         try:
             return _decode_hex_identity_dict(identity_info)
         except TypeError:
