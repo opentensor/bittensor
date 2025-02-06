@@ -785,7 +785,7 @@ class MetagraphMixin(ABC):
             dtype=self._dtype_registry["float32"],
         )
         self.stake = self._create_tensor(
-            [neuron.stake for neuron in self.neurons],
+            [neuron.stake.tao for neuron in self.neurons],
             dtype=self._dtype_registry["float32"],
         )
         self.axons = [n.axon_info for n in self.neurons]
@@ -1037,7 +1037,7 @@ class TorchMetagraph(MetagraphMixin, BaseClass):
 
                 metagraph = Metagraph(netuid=123, network="finney", lite=True, sync=True)
         """
-        torch.nn.Module.__init__(self)
+        BaseClass.__init__(self)
         MetagraphMixin.__init__(self, netuid, network, lite, sync, subtensor)
         self.netuid = netuid
         self.network, self.chain_endpoint = determine_chain_endpoint_and_network(
@@ -1109,9 +1109,13 @@ class TorchMetagraph(MetagraphMixin, BaseClass):
         self.should_sync = sync
         self.alpha_stake: list["Balance"] = []
         self.tao_stake: list["Balance"] = []
-        self.stake: list["Balance"] = []
+        self.stake = torch.nn.Parameter(
+            torch.tensor([], dtype=torch.float32), requires_grad=False
+        )
         self.axons: list["AxonInfo"] = []
-        self.total_stake: list["Balance"] = []
+        self.total_stake = torch.nn.Parameter(
+            torch.tensor([], dtype=torch.float32), requires_grad=False
+        )
 
     def load_from_path(self, dir_path: str) -> "MetagraphMixin":
         """
@@ -1599,13 +1603,19 @@ class AsyncMetagraph(NumpyOrTorch):
 
             if self.netuid == 0:
                 self.total_stake = self.stake = self.tao_stake = self.alpha_stake = (
-                    subnet_state.tao_stake
+                    self._create_tensor(
+                        [stake.tao for stake in subnet_state.tao_stake],
+                        dtype=self._dtype_registry["float32"],
+                    )
                 )
                 return subnet_state
 
             self.alpha_stake = subnet_state.alpha_stake
             self.tao_stake = [b * 0.018 for b in subnet_state.tao_stake]
-            self.total_stake = self.stake = subnet_state.total_stake
+            self.total_stake = self.stake = self._create_tensor(
+                [stake.tao for stake in subnet_state.total_stake],
+                dtype=self._dtype_registry["float32"],
+            )
             return subnet_state
         except (SubstrateRequestException, AttributeError) as e:
             logging.debug(e)
@@ -1888,13 +1898,19 @@ class Metagraph(NumpyOrTorch):
 
             if self.netuid == 0:
                 self.total_stake = self.stake = self.tao_stake = self.alpha_stake = (
-                    subnet_state.tao_stake
+                    self._create_tensor(
+                        [stake.tao for stake in subnet_state.tao_stake],
+                        dtype=self._dtype_registry["float32"],
+                    )
                 )
                 return subnet_state
 
             self.alpha_stake = subnet_state.alpha_stake
             self.tao_stake = [b * 0.018 for b in subnet_state.tao_stake]
-            self.total_stake = self.stake = subnet_state.total_stake
+            self.total_stake = self.stake = self._create_tensor(
+                [stake.tao for stake in subnet_state.total_stake],
+                dtype=self._dtype_registry["float32"],
+            )
             return subnet_state
         except (SubstrateRequestException, AttributeError) as e:
             logging.debug(e)
