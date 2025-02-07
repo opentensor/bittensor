@@ -291,4 +291,4 @@ def get_metadata(
         params=[netuid, hotkey],
         block_hash=subtensor.determine_block_hash(block),
     )
-    return getattr(commit_data, "value", None)
+    return commit_data

@@ -306,4 +306,4 @@ async def get_metadata(
             block_hash=block_hash,
             reuse_block_hash=reuse_block,
         )
-    return getattr(commit_data, "value", None)
+    return commit_data
