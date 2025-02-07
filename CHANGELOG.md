@@ -1,5 +1,15 @@
 # Changelog
 
+## 9.0.0rc3 /2025-02-06
+
+## What's Changed
+* Adds methods to better accommodate the new websocket implementation (long-lived) by @thewhaleking in https://github.com/opentensor/bittensor/commit/3c44be177edef8a799c2c9dc5e49916723cab5c2
+* Adds latent-lite network by @ibraheem-opentensor in https://github.com/opentensor/bittensor/pull/2641
+* Updates async-substrate-interface to 1.0.0rc12 by @ibraheem-opentensor in https://github.com/opentensor/bittensor/commit/9d0b008e6163c84ed9267423324f30c3ec8af289
+* Bringing meta fields to a common form with float values float(TAO) instead of Balance and Tensor by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2642
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.0.0rc2...v9.0.0rc3
+
 ## 9.0.0rc2 /2025-02-05
 
 ## What's Changed
