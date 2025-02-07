@@ -37,8 +37,8 @@ if typing.TYPE_CHECKING:
         MetagraphInfo,
         NeuronInfo,
         NeuronInfoLite,
+        SubnetIdentity,
     )
-    from bittensor.utils.balance import Balance
 
 
 Tensor = Union["torch.nn.Parameter", NDArray]
@@ -259,10 +259,11 @@ class MetagraphMixin(ABC):
 
     # metagraph_info fields
     identities: list[Optional["ChainIdentity"]]
+    identity: Optional["SubnetIdentity"]
     pruning_score: list[float]
     block_at_registration: list[int]
-    tao_dividends_per_hotkey: list[tuple[str, "Balance"]]
-    alpha_dividends_per_hotkey: list[tuple[str, "Balance"]]
+    tao_dividends_per_hotkey: list[tuple[str, float]]
+    alpha_dividends_per_hotkey: list[tuple[str, float]]
     last_step: int
     tempo: int
     blocks_since_last_step: int
@@ -274,27 +275,27 @@ class MetagraphMixin(ABC):
     emissions: MetagraphInfoEmissions
 
     @property
-    def TS(self) -> list["Balance"]:
+    def TS(self) -> Tensor:
         """
         Represents the tao stake of each neuron in the Bittensor network.
 
         Returns:
-            list["Balance"]: The list of tao stake of each neuron in the network.
+            Tensor: The list of tao stake of each neuron in the network.
         """
         return self.tao_stake
 
     @property
-    def AS(self) -> list["Balance"]:
+    def AS(self) -> Tensor:
         """
         Represents the alpha stake of each neuron in the Bittensor network.
 
         Returns:
-            list["Balance"]: The list of alpha stake of each neuron in the network.
+            Tensor: The list of alpha stake of each neuron in the network.
         """
         return self.alpha_stake
 
     @property
-    def S(self) -> Union[NDArray, "torch.nn.Parameter"]:
+    def S(self) -> Tensor:
         """
         Represents the stake of each neuron in the Bittensor network. Stake is an important concept in the
         Bittensor ecosystem, signifying the amount of network weight (or “stake”) each neuron holds,
@@ -302,13 +303,13 @@ class MetagraphMixin(ABC):
         from the network, playing a crucial role in the distribution of incentives and decision-making processes.
 
         Returns:
-            NDArray: A tensor representing the stake of each neuron in the network. Higher values signify a greater
+            Tensor: A tensor representing the stake of each neuron in the network. Higher values signify a greater
                 stake held by the respective neuron.
         """
         return self.stake
 
     @property
-    def R(self) -> Union[NDArray, "torch.nn.Parameter"]:
+    def R(self) -> Tensor:
         """
         Contains the ranks of neurons in the Bittensor network. Ranks are determined by the network based
         on each neuron's performance and contributions. Higher ranks typically indicate a greater level of
@@ -316,13 +317,13 @@ class MetagraphMixin(ABC):
         incentives within the network, with higher-ranked neurons receiving more incentive.
 
         Returns:
-            NDArray: A tensor where each element represents the rank of a neuron. Higher values indicate higher ranks
+            Tensor: A tensor where each element represents the rank of a neuron. Higher values indicate higher ranks
                 within the network.
         """
         return self.ranks
 
     @property
-    def I(self) -> Union[NDArray, "torch.nn.Parameter"]:
+    def I(self) -> Tensor:
         """
         Incentive values of neurons represent the rewards they receive for their contributions to the network.
         The Bittensor network employs an incentive mechanism that rewards neurons based on their
@@ -330,13 +331,13 @@ class MetagraphMixin(ABC):
         trusted contributions are incentivized.
 
         Returns:
-            NDArray: A tensor of incentive values, indicating the rewards or benefits accrued by each neuron based on
+            Tensor: A tensor of incentive values, indicating the rewards or benefits accrued by each neuron based on
                 their contributions and network consensus.
         """
         return self.incentive
 
     @property
-    def E(self) -> Union[NDArray, "torch.nn.Parameter"]:
+    def E(self) -> Tensor:
         """
         Denotes the emission values of neurons in the Bittensor network. Emissions refer to the distribution or
         release of rewards (often in the form of cryptocurrency) to neurons, typically based on their stake and
@@ -344,13 +345,13 @@ class MetagraphMixin(ABC):
         contributing neurons are appropriately rewarded.
 
         Returns:
-            NDArray: A tensor where each element represents the emission value for a neuron, indicating the amount of
+            Tensor: A tensor where each element represents the emission value for a neuron, indicating the amount of
                 reward distributed to that neuron.
         """
         return self.emission
 
     @property
-    def C(self) -> Union[NDArray, "torch.nn.Parameter"]:
+    def C(self) -> Tensor:
         """
         Represents the consensus values of neurons in the Bittensor network. Consensus is a measure of how
         much a neuron's contributions are trusted and agreed upon by the majority of the network. It is
@@ -359,14 +360,14 @@ class MetagraphMixin(ABC):
         are more widely trusted and valued across the network.
 
         Returns:
-            NDArray: A tensor of consensus values, where each element reflects the level of trust and agreement a neuron
+            Tensor: A tensor of consensus values, where each element reflects the level of trust and agreement a neuron
                 has achieved within the network.
 
         """
         return self.consensus
 
     @property
-    def T(self) -> Union[NDArray, "torch.nn.Parameter"]:
+    def T(self) -> Tensor:
         """
         Represents the trust values assigned to each neuron in the Bittensor network. Trust is a key metric that
         reflects the reliability and reputation of a neuron based on its past behavior and contributions. It is
@@ -377,13 +378,13 @@ class MetagraphMixin(ABC):
         has in others. A higher value in the trust matrix suggests a stronger trust relationship between neurons.
 
         Returns:
-            NDArray: A tensor of trust values, where each element represents the trust level of a neuron. Higher values
+            Tensor: A tensor of trust values, where each element represents the trust level of a neuron. Higher values
                 denote a higher level of trust within the network.
         """
         return self.trust
 
     @property
-    def Tv(self) -> Union[NDArray, "torch.nn.Parameter"]:
+    def Tv(self) -> Tensor:
         """
         Contains the validator trust values of neurons in the Bittensor network. Validator trust is specifically
         associated with neurons that act as validators within the network. This specialized form of trust reflects
@@ -394,26 +395,26 @@ class MetagraphMixin(ABC):
         determining the validators' influence and responsibilities in these critical functions.
 
         Returns:
-            NDArray: A tensor of validator trust values, specifically applicable to neurons serving as validators, where
+            Tensor: A tensor of validator trust values, specifically applicable to neurons serving as validators, where
                 higher values denote greater trustworthiness in their validation roles.
         """
         return self.validator_trust
 
     @property
-    def D(self) -> Union[NDArray, "torch.nn.Parameter"]:
+    def D(self) -> Tensor:
         """
         Represents the dividends received by neurons in the Bittensor network. Dividends are a form of reward or
         distribution, typically given to neurons based on their stake, performance, and contribution to the network.
         They are an integral part of the network's incentive structure, encouraging active and beneficial participation.
 
         Returns:
-            NDArray: A tensor of dividend values, where each element indicates the dividends received by a neuron,
+            Tensor: A tensor of dividend values, where each element indicates the dividends received by a neuron,
                 reflecting their share of network rewards.
         """
         return self.dividends
 
     @property
-    def B(self) -> Union[NDArray, "torch.nn.Parameter"]:
+    def B(self) -> Tensor:
         """
         Bonds in the Bittensor network represent a speculative reward mechanism where neurons can accumulate
         bonds in other neurons. Bonds are akin to investments or stakes in other neurons, reflecting a belief in
@@ -421,13 +422,13 @@ class MetagraphMixin(ABC):
         among neurons while providing an additional layer of incentive.
 
         Returns:
-            NDArray: A tensor representing the bonds held by each neuron, where each value signifies the proportion of
+            Tensor: A tensor representing the bonds held by each neuron, where each value signifies the proportion of
                 bonds owned by one neuron in another.
         """
         return self.bonds
 
     @property
-    def W(self) -> Union[NDArray, "torch.nn.Parameter"]:
+    def W(self) -> Tensor:
         """
         Represents the weights assigned to each neuron in the Bittensor network. In the context of Bittensor,
         weights are crucial for determining the influence and interaction between neurons. Each neuron is responsible
@@ -440,7 +441,7 @@ class MetagraphMixin(ABC):
         can imply greater trust or value placed on that neuron's contributions.
 
         Returns:
-            NDArray: A tensor of inter-peer weights, where each element :math:`w_{ij}` represents the weight assigned by
+            Tensor: A tensor of inter-peer weights, where each element :math:`w_{ij}` represents the weight assigned by
                 neuron :math:`i` to neuron :math:`j`. This matrix is fundamental to the network's functioning,
                 influencing the distribution of incentives and the inter-neuronal dynamics.
         """
@@ -535,7 +536,6 @@ class MetagraphMixin(ABC):
             Initializing a metagraph object for the Bittensor network with a specific network UID::
 
                 metagraph = Metagraph(netuid=123, network="finney", lite=True, sync=True)
-
         """
 
     def __str__(self) -> str:
@@ -629,7 +629,7 @@ class MetagraphMixin(ABC):
         }
 
     @staticmethod
-    def _create_tensor(data, dtype) -> Union[NDArray, "torch.nn.Parameter"]:
+    def _create_tensor(data, dtype) -> Tensor:
         """
         Creates a numpy array with the given data and data type. This method is a utility function used internally to
         encapsulate data into a np.array, making it compatible with the metagraph's numpy model structure.
@@ -639,7 +639,7 @@ class MetagraphMixin(ABC):
             dtype: The data type for the tensor, typically a numpy data type like ``np.float32`` or ``np.int64``.
 
         Returns:
-            A tensor parameter encapsulating the provided data.
+            Tensor: A tensor parameter encapsulating the provided data.
 
         Internal Usage:
             Used internally to create tensor parameters for various metagraph attributes::
@@ -653,9 +653,7 @@ class MetagraphMixin(ABC):
             else np.array(data, dtype=dtype)
         )
 
-    def _process_weights_or_bonds(
-        self, data, attribute: str
-    ) -> Union[NDArray, "torch.nn.Parameter"]:
+    def _process_weights_or_bonds(self, data, attribute: str) -> Tensor:
         """
         Processes the raw weights or bonds data and converts it into a structured tensor format. This method handles the
         transformation of neuron connection data (``weights`` or ``bonds``) from a list or other unstructured format
@@ -667,7 +665,7 @@ class MetagraphMixin(ABC):
                 processing steps to be applied.
 
         Returns:
-            A tensor parameter encapsulating the processed weights or bonds data.
+            Tensor: A tensor parameter encapsulating the processed weights or bonds data.
 
         Internal Usage:
             Used internally to process and set weights or bonds for the neurons::
@@ -940,10 +938,15 @@ class MetagraphMixin(ABC):
                 the current object.
         """
         self.identities = metagraph_info.identities
+        self.identity = metagraph_info.identity
         self.pruning_score = metagraph_info.pruning_score
         self.block_at_registration = metagraph_info.block_at_registration
-        self.tao_dividends_per_hotkey = metagraph_info.tao_dividends_per_hotkey
-        self.alpha_dividends_per_hotkey = metagraph_info.alpha_dividends_per_hotkey
+        self.tao_dividends_per_hotkey = [
+            (h, d.tao) for (h, d) in metagraph_info.tao_dividends_per_hotkey
+        ]
+        self.alpha_dividends_per_hotkey = [
+            (a, d.tao) for (a, d) in metagraph_info.alpha_dividends_per_hotkey
+        ]
         self.last_step = metagraph_info.last_step
         self.tempo = metagraph_info.tempo
         self.blocks_since_last_step = metagraph_info.blocks_since_last_step
@@ -957,20 +960,20 @@ class MetagraphMixin(ABC):
             alpha_high=metagraph_info.alpha_high,
             alpha_low=metagraph_info.alpha_low,
             bonds_moving_avg=metagraph_info.bonds_moving_avg,
-            burn=metagraph_info.burn,
+            burn=metagraph_info.burn.tao,
             commit_reveal_period=metagraph_info.commit_reveal_period,
             commit_reveal_weights_enabled=metagraph_info.commit_reveal_weights_enabled,
             difficulty=metagraph_info.difficulty,
             immunity_period=metagraph_info.immunity_period,
             kappa=metagraph_info.kappa,
             liquid_alpha_enabled=metagraph_info.liquid_alpha_enabled,
-            max_burn=metagraph_info.max_burn,
+            max_burn=metagraph_info.max_burn.tao,
             max_difficulty=metagraph_info.max_difficulty,
             max_regs_per_block=metagraph_info.max_regs_per_block,
             max_validators=metagraph_info.max_validators,
             max_weights_limit=metagraph_info.max_weights_limit,
             min_allowed_weights=metagraph_info.min_allowed_weights,
-            min_burn=metagraph_info.min_burn,
+            min_burn=metagraph_info.min_burn.tao,
             min_difficulty=metagraph_info.min_difficulty,
             pow_registration_allowed=metagraph_info.pow_registration_allowed,
             registration_allowed=metagraph_info.registration_allowed,
@@ -982,18 +985,18 @@ class MetagraphMixin(ABC):
             weights_version=metagraph_info.weights_version,
         )
         self.pool = MetagraphInfoPool(
-            alpha_out=metagraph_info.alpha_out,
-            alpha_in=metagraph_info.alpha_in,
-            tao_in=metagraph_info.tao_in,
-            subnet_volume=metagraph_info.subnet_volume,
+            alpha_out=metagraph_info.alpha_out.tao,
+            alpha_in=metagraph_info.alpha_in.tao,
+            tao_in=metagraph_info.tao_in.tao,
+            subnet_volume=metagraph_info.subnet_volume.tao,
         )
         self.emissions = MetagraphInfoEmissions(
-            alpha_out_emission=metagraph_info.alpha_out_emission,
-            alpha_in_emission=metagraph_info.alpha_in_emission,
-            subnet_emission=metagraph_info.subnet_emission,
-            tao_in_emission=metagraph_info.tao_in_emission,
-            pending_alpha_emission=metagraph_info.pending_alpha_emission,
-            pending_root_emission=metagraph_info.pending_root_emission,
+            alpha_out_emission=metagraph_info.alpha_out_emission.tao,
+            alpha_in_emission=metagraph_info.alpha_in_emission.tao,
+            subnet_emission=metagraph_info.subnet_emission.tao,
+            tao_in_emission=metagraph_info.tao_in_emission.tao,
+            pending_alpha_emission=metagraph_info.pending_alpha_emission.tao,
+            pending_root_emission=metagraph_info.pending_root_emission.tao,
         )
 
 
@@ -1107,13 +1110,10 @@ class TorchMetagraph(MetagraphMixin, BaseClass):
         self.neurons = []
         self.subtensor = subtensor
         self.should_sync = sync
-        self.alpha_stake: list["Balance"] = []
-        self.tao_stake: list["Balance"] = []
-        self.stake = torch.nn.Parameter(
+        self.alpha_stake = torch.nn.Parameter(
             torch.tensor([], dtype=torch.float32), requires_grad=False
         )
-        self.axons: list["AxonInfo"] = []
-        self.total_stake = torch.nn.Parameter(
+        self.tao_stake = torch.nn.Parameter(
             torch.tensor([], dtype=torch.float32), requires_grad=False
         )
 
@@ -1212,18 +1212,15 @@ class NonTorchMetagraph(MetagraphMixin):
 
                 metagraph = Metagraph(netuid=123, network="finney", lite=True, sync=True)
         """
-        # super(metagraph, self).__init__()
         MetagraphMixin.__init__(self, netuid, network, lite, sync, subtensor)
 
         self.netuid = netuid
         self.network, self.chain_endpoint = determine_chain_endpoint_and_network(
             network
         )
-        self.version = (np.array([settings.version_as_int], dtype=np.int64),)
+        self.version = np.array([settings.version_as_int], dtype=np.int64)
         self.n = np.array([0], dtype=np.int64)
         self.block = np.array([0], dtype=np.int64)
-        self.stake = np.array([], dtype=np.float32)
-        self.total_stake = np.array([], dtype=np.float32)
         self.ranks = np.array([], dtype=np.float32)
         self.trust = np.array([], dtype=np.float32)
         self.consensus = np.array([], dtype=np.float32)
@@ -1237,15 +1234,15 @@ class NonTorchMetagraph(MetagraphMixin):
         self.weights = np.array([], dtype=np.float32)
         self.bonds = np.array([], dtype=np.int64)
         self.uids = np.array([], dtype=np.int64)
+        self.alpha_stake: Tensor = np.array([], dtype=np.int64)
+        self.tao_stake: Tensor = np.array([], dtype=np.int64)
+        self.stake: Tensor = np.array([], dtype=np.int64)
+        self.total_stake: Tensor = np.array([], dtype=np.int64)
+
         self.axons: list[AxonInfo] = []
         self.neurons = []
         self.subtensor = subtensor
         self.should_sync = sync
-        self.alpha_stake: list["Balance"] = []
-        self.tao_stake: list["Balance"] = []
-        self.stake: list["Balance"] = []
-        self.axons: list["AxonInfo"] = []
-        self.total_stake: list["Balance"] = []
 
     def load_from_path(self, dir_path: str) -> "MetagraphMixin":
         """
@@ -1905,8 +1902,14 @@ class Metagraph(NumpyOrTorch):
                 )
                 return subnet_state
 
-            self.alpha_stake = subnet_state.alpha_stake
-            self.tao_stake = [b * 0.018 for b in subnet_state.tao_stake]
+            self.alpha_stake = self._create_tensor(
+                [b.tao for b in subnet_state.alpha_stake],
+                dtype=self._dtype_registry["float32"],
+            )
+            self.tao_stake = self._create_tensor(
+                [b.tao * 0.018 for b in subnet_state.tao_stake],
+                dtype=self._dtype_registry["float32"],
+            )
             self.total_stake = self.stake = self._create_tensor(
                 [stake.tao for stake in subnet_state.total_stake],
                 dtype=self._dtype_registry["float32"],
