@@ -43,14 +43,6 @@ async def test_commit_and_reveal_weights_cr3(local_chain, subtensor, alice_walle
 
     logging.console.info("Subnet 2 is registered")
 
-    # Stake to become to top neuron after the first epoch
-    subtensor.add_stake(
-        alice_wallet,
-        netuid=netuid,
-        amount=Balance.from_tao(10_000),
-    )
-    logging.console.info("Stake added by Alice")
-
     # Enable commit_reveal on the subnet
     assert sudo_set_hyperparameter_bool(
         local_chain,

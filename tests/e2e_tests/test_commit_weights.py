@@ -19,11 +19,10 @@ async def test_commit_and_reveal_weights_legacy(local_chain, subtensor, alice_wa
 
     Steps:
         1. Register a subnet through Alice
-        2. Register Alice's neuron and add stake
-        3. Enable commit-reveal mechanism on the subnet
-        4. Lower the commit_reveal interval and rate limit
-        5. Commit weights and verify
-        6. Wait interval & reveal weights and verify
+        2. Enable commit-reveal mechanism on the subnet
+        3. Lower the commit_reveal interval and rate limit
+        4. Commit weights and verify
+        5. Wait interval & reveal weights and verify
     Raises:
         AssertionError: If any of the checks or verifications fail
     """
@@ -37,13 +36,6 @@ async def test_commit_and_reveal_weights_legacy(local_chain, subtensor, alice_wa
     # Verify subnet 2 created successfully
     assert subtensor.subnet_exists(netuid), "Subnet wasn't created successfully"
 
-    # Stake to become to top neuron after the first epoch
-    subtensor.add_stake(
-        alice_wallet,
-        netuid=netuid,
-        amount=Balance.from_tao(10_000),
-    )
-
     # Enable commit_reveal on the subnet
     assert sudo_set_hyperparameter_bool(
         local_chain,
@@ -56,15 +48,6 @@ async def test_commit_and_reveal_weights_legacy(local_chain, subtensor, alice_wa
     assert subtensor.get_subnet_hyperparameters(
         netuid=netuid,
     ).commit_reveal_weights_enabled, "Failed to enable commit/reveal"
-
-    # Lower the commit_reveal interval
-    assert sudo_set_hyperparameter_values(
-        local_chain,
-        alice_wallet,
-        call_function="sudo_set_commit_reveal_weights_interval",
-        call_params={"netuid": netuid, "interval": "1"},
-        return_error_message=True,
-    )
 
     assert (
         subtensor.get_subnet_hyperparameters(netuid=netuid).commit_reveal_period == 1
@@ -205,15 +188,6 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
     assert subtensor.get_subnet_hyperparameters(
         netuid=netuid,
     ).commit_reveal_weights_enabled, "Failed to enable commit/reveal"
-
-    # Lower the commit_reveal interval
-    assert sudo_set_hyperparameter_values(
-        local_chain,
-        alice_wallet,
-        call_function="sudo_set_commit_reveal_weights_interval",
-        call_params={"netuid": netuid, "interval": "1"},
-        return_error_message=True,
-    )
 
     assert (
         subtensor.get_subnet_hyperparameters(netuid=netuid).commit_reveal_period == 1
