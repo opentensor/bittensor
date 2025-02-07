@@ -95,6 +95,7 @@ class NeuronInfoLite(InfoBase):
 
     @classmethod
     def _from_dict(cls, decoded: Any) -> "NeuronInfoLite":
+        """Returns a NeuronInfoLite object from decoded chain data."""
         coldkey = decode_account_id(decoded["coldkey"])
         hotkey = decode_account_id(decoded["hotkey"])
         stake_dict = process_stake_data(decoded["stake"])

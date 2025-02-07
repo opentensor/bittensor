@@ -34,6 +34,7 @@ class SubnetState(InfoBase):
 
     @classmethod
     def _from_dict(cls, decoded: dict) -> "SubnetState":
+        """Returns a SubnetState object from decoded chain data."""
         netuid = decoded["netuid"]
         return SubnetState(
             netuid=netuid,
