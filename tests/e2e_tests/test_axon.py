@@ -3,7 +3,6 @@ import sys
 
 import pytest
 
-import bittensor
 from bittensor.utils import networking
 from tests.e2e_tests.utils.e2e_test_utils import (
     template_path,
@@ -35,12 +34,7 @@ async def test_axon(subtensor, alice_wallet):
     # Verify subnet <netuid> created successfully
     assert subtensor.subnet_exists(netuid), "Subnet wasn't created successfully"
 
-    # Register Alice to the network
-    assert subtensor.burned_register(
-        alice_wallet, netuid
-    ), f"Neuron wasn't registered to subnet {netuid}"
-
-    metagraph = bittensor.Metagraph(netuid=netuid, network="ws://localhost:9945")
+    metagraph = subtensor.metagraph(netuid)
 
     # Validate current metagraph stats
     old_axon = metagraph.axons[0]
@@ -88,7 +82,7 @@ async def test_axon(subtensor, alice_wallet):
     await asyncio.sleep(5)
 
     # Refresh the metagraph
-    metagraph = bittensor.Metagraph(netuid=netuid, network="ws://localhost:9945")
+    metagraph = subtensor.metagraph(netuid)
     updated_axon = metagraph.axons[0]
     external_ip = networking.get_external_ip()
 
