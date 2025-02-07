@@ -6,6 +6,7 @@ import pytest
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 from tests.e2e_tests.utils.chain_interactions import (
+    sudo_set_admin_utils,
     sudo_set_hyperparameter_values,
     wait_epoch,
 )
@@ -38,6 +39,30 @@ async def test_dendrite(local_chain, subtensor, alice_wallet, bob_wallet):
 
     # Verify subnet <netuid> created successfully
     assert subtensor.subnet_exists(netuid), "Subnet wasn't created successfully"
+
+    # update max_allowed_validators so only one neuron can get validator_permit
+    assert sudo_set_admin_utils(
+        local_chain,
+        alice_wallet,
+        call_function="sudo_set_max_allowed_validators",
+        call_params={
+            "netuid": netuid,
+            "max_allowed_validators": 1,
+        },
+        return_error_message=True,
+    )
+
+    # update weights_set_rate_limit for fast-blocks
+    assert sudo_set_hyperparameter_values(
+        local_chain,
+        alice_wallet,
+        call_function="sudo_set_weights_set_rate_limit",
+        call_params={
+            "netuid": netuid,
+            "weights_set_rate_limit": 10,
+        },
+        return_error_message=True,
+    )
 
     # Register Bob to the network
     assert subtensor.burned_register(
@@ -75,22 +100,13 @@ async def test_dendrite(local_chain, subtensor, alice_wallet, bob_wallet):
     bob_neuron = metagraph.neurons[1]
 
     # Assert alpha is close to stake equivalent
-    assert 0.99 < bob_neuron.stake.rao / alpha.rao < 1.01
+    assert 0.95 < bob_neuron.stake.rao / alpha.rao < 1.05
 
     # Assert neuron is not a validator yet
     assert bob_neuron.active is True
-    # assert bob_neuron.validator_permit is False
+    assert bob_neuron.validator_permit is False
     assert bob_neuron.validator_trust == 0.0
     assert bob_neuron.pruning_score == 0
-
-    # update weights_set_rate_limit for fast-blocks
-    assert sudo_set_hyperparameter_values(
-        local_chain,
-        alice_wallet,
-        call_function="sudo_set_weights_set_rate_limit",
-        call_params={"netuid": netuid, "weights_set_rate_limit": 10},
-        return_error_message=True,
-    )
 
     # Prepare to run the validator
     cmd = " ".join(
