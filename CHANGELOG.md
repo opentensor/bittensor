@@ -1,5 +1,11 @@
 # Changelog
 
+## 9.0.0rc4 /2025-02-07
+* Fix for extra fields from chain data by @roman-opentensor in https://github.com/opentensor/bittensor/pull/2647
+* Adds get_all_commitments and fixes commitment tests and query_map @thewhaleking in https://github.com/opentensor/bittensor/pull/2644
+
+**Full Changelog**: https://github.com/opentensor/bittensor/compare/v9.0.0rc2...v9.0.0rc3
+
 ## 9.0.0rc3 /2025-02-06
 
 ## What's Changed
