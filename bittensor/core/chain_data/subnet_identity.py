@@ -15,6 +15,7 @@ class SubnetIdentity:
 
     @classmethod
     def _from_dict(cls, decoded: dict) -> "SubnetIdentity":
+        """Returns a SubnetIdentity object from decoded chain data."""
         return cls(
             subnet_name=decoded["subnet_name"],
             github_repo=decoded["github_repo"],

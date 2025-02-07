@@ -26,6 +26,7 @@ class PrometheusInfo(InfoBase):
 
     @classmethod
     def _from_dict(cls, data):
+        """Returns a PrometheusInfo object from decoded chain data."""
         return cls(
             block=data["block"],
             ip_type=data["ip_type"],

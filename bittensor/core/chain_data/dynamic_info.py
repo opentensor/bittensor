@@ -41,7 +41,7 @@ class DynamicInfo(InfoBase):
 
     @classmethod
     def _from_dict(cls, decoded: dict) -> "DynamicInfo":
-        """Returns a DynamicInfo object from a decoded DynamicInfo dictionary."""
+        """Returns a DynamicInfo object from decoded chain data."""
 
         netuid = int(decoded["netuid"])
         symbol = bytes([int(b) for b in decoded["token_symbol"]]).decode()
