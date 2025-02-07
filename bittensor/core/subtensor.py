@@ -24,6 +24,7 @@ from bittensor.core.chain_data import (
     SubnetInfo,
     decode_account_id,
 )
+from bittensor.core.chain_data.utils import decode_metadata
 from bittensor.core.config import Config
 from bittensor.core.extrinsics.commit_reveal import commit_reveal_v3_extrinsic
 from bittensor.core.extrinsics.commit_weights import (
@@ -210,7 +211,7 @@ class Subtensor(SubtensorMixin):
             params=params,
             block_hash=self.determine_block_hash(block=block),
         )
-        return getattr(result, "value", None)
+        return result
 
     def query_map_subtensor(
         self, name: str, block: Optional[int] = None, params: Optional[list] = None
@@ -733,12 +734,24 @@ class Subtensor(SubtensorMixin):
 
         metadata = get_metadata(self, netuid, hotkey, block)
         try:
-            commitment = metadata["info"]["fields"][0][0]  # type: ignore
-            bytes_tuple = commitment[next(iter(commitment.keys()))][0]  # type: ignore
-            return bytes(bytes_tuple).decode()
+            return decode_metadata(metadata)
 
         except TypeError:
             return ""
+
+    def get_all_commitments(
+        self, netuid: int, block: Optional[int] = None
+    ) -> dict[str, str]:
+        query = self.query_map(
+            module="Commitments",
+            name="CommitmentOf",
+            params=[netuid],
+            block=block,
+        )
+        result = {}
+        for id_, value in query:
+            result[decode_account_id(id_[0])] = decode_account_id(value)
+        return result
 
     def get_current_weight_commit_info(
         self, netuid: int, block: Optional[int] = None

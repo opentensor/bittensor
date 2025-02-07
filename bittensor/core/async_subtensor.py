@@ -26,6 +26,7 @@ from bittensor.core.chain_data import (
     decode_account_id,
     DynamicInfo,
 )
+from bittensor.core.chain_data.utils import decode_metadata
 from bittensor.core.config import Config
 from bittensor.core.errors import SubstrateRequestException
 from bittensor.core.extrinsics.asyncex.commit_reveal import commit_reveal_v3_extrinsic
@@ -342,7 +343,7 @@ class AsyncSubtensor(SubtensorMixin):
             block_hash=block_hash,
             reuse_block_hash=reuse_block,
         )
-        return getattr(result, "value", None)
+        return result
 
     async def query_map_subtensor(
         self,
@@ -927,7 +928,12 @@ class AsyncSubtensor(SubtensorMixin):
             return False, [], format_error_message(e)
 
     async def get_commitment(
-        self, netuid: int, uid: int, block: Optional[int] = None
+        self,
+        netuid: int,
+        uid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
     ) -> str:
         """
         Retrieves the on-chain commitment for a specific neuron in the Bittensor network.
@@ -937,6 +943,8 @@ class AsyncSubtensor(SubtensorMixin):
             uid (int): The unique identifier of the neuron.
             block (Optional[int]): The block number to retrieve the commitment from. If None, the latest block is used.
                 Default is ``None``.
+            block_hash (Optional[str]): The hash of the block to retrieve the subnet unique identifiers from.
+            reuse_block (bool): Whether to reuse the last-used block hash.
 
         Returns:
             str: The commitment data as a string.
@@ -950,14 +958,46 @@ class AsyncSubtensor(SubtensorMixin):
             )
             return ""
 
-        metadata = await get_metadata(self, netuid, hotkey, block)
+        metadata = await get_metadata(
+            self, netuid, hotkey, block, block_hash, reuse_block
+        )
         try:
-            commitment = metadata["info"]["fields"][0][0]  # type: ignore
-            bytes_tuple = commitment[next(iter(commitment.keys()))][0]  # type: ignore
-            return bytes(bytes_tuple).decode()
-
+            return decode_metadata(metadata)
         except TypeError:
             return ""
+
+    async def get_all_commitments(
+        self,
+        netuid: int,
+        block: Optional[int] = None,
+        block_hash: Optional[str] = None,
+        reuse_block: bool = False,
+    ) -> dict[str, str]:
+        """
+        Retrieves the on-chain commitments for a specific subnet in the Bittensor network.
+
+        Arguments:
+            netuid (int): The unique identifier of the subnetwork.
+            block (Optional[int]): The block number to retrieve the commitment from. If None, the latest block is used.
+                Default is ``None``.
+            block_hash (Optional[str]): The hash of the block to retrieve the subnet unique identifiers from.
+            reuse_block (bool): Whether to reuse the last-used block hash.
+
+        Returns:
+            dict[str, str]: A mapping of the ss58:commitment with the commitment as a string
+        """
+        query = await self.query_map(
+            module="Commitments",
+            name="CommitmentOf",
+            params=[netuid],
+            block=block,
+            block_hash=block_hash,
+            reuse_block=reuse_block,
+        )
+        result = {}
+        async for id_, value in query:
+            result[decode_account_id(id_[0])] = decode_account_id(value)
+        return result
 
     async def get_current_weight_commit_info(
         self,
