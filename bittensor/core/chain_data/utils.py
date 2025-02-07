@@ -129,3 +129,9 @@ def process_stake_data(stake_data: list) -> dict:
         account_id = decode_account_id(account_id_bytes)
         decoded_stake_data.update({account_id: Balance.from_rao(stake_)})
     return decoded_stake_data
+
+
+def decode_metadata(metadata: dict) -> str:
+    commitment = metadata["info"]["fields"][0][0]
+    bytes_tuple = commitment[next(iter(commitment.keys()))][0]
+    return bytes(bytes_tuple).decode()
