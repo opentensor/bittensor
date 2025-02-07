@@ -3,12 +3,12 @@ import asyncio
 import numpy as np
 import pytest
 
-from bittensor.utils.balance import Balance
 from bittensor.utils.weight_utils import convert_weights_and_uids_for_emit
 from tests.e2e_tests.utils.chain_interactions import (
+    sudo_set_admin_utils,
     sudo_set_hyperparameter_bool,
     sudo_set_hyperparameter_values,
-    wait_interval,
+    wait_epoch,
 )
 
 
@@ -70,6 +70,18 @@ async def test_commit_and_reveal_weights_legacy(local_chain, subtensor, alice_wa
     ), "Failed to set weights_rate_limit"
     assert subtensor.weights_rate_limit(netuid=netuid) == 0
 
+    # Increase subnet tempo so we have enought time to commit and reveal weights
+    sudo_set_admin_utils(
+        local_chain,
+        alice_wallet,
+        call_function="sudo_set_tempo",
+        call_params={
+            "netuid": netuid,
+            "tempo": 100,
+        },
+        return_error_message=True,
+    )
+
     # Commit-reveal values
     uids = np.array([0], dtype=np.int64)
     weights = np.array([0.1], dtype=np.float32)
@@ -109,11 +121,7 @@ async def test_commit_and_reveal_weights_legacy(local_chain, subtensor, alice_wa
     assert periods > 0, "Invalid RevealPeriodEpochs"
 
     # Wait until the reveal block range
-    await wait_interval(
-        subtensor.get_subnet_hyperparameters(netuid=netuid).tempo,
-        subtensor,
-        netuid,
-    )
+    await wait_epoch(subtensor, netuid)
 
     # Reveal weights
     success, message = subtensor.reveal_weights(
@@ -127,8 +135,6 @@ async def test_commit_and_reveal_weights_legacy(local_chain, subtensor, alice_wa
     )
 
     assert success is True
-
-    await asyncio.sleep(10)
 
     # Query the Weights storage map
     revealed_weights = subtensor.query_module(
@@ -168,13 +174,6 @@ async def test_commit_weights_uses_next_nonce(local_chain, subtensor, alice_wall
 
     # Verify subnet 1 created successfully
     assert subtensor.subnet_exists(netuid), "Subnet wasn't created successfully"
-
-    # Stake to become to top neuron after the first epoch
-    subtensor.add_stake(
-        alice_wallet,
-        netuid=netuid,
-        amount=Balance.from_tao(10_000),
-    )
 
     # Enable commit_reveal on the subnet
     assert sudo_set_hyperparameter_bool(
