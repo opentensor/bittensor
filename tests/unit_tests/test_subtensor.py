@@ -1000,7 +1000,7 @@ def test_query_map(subtensor, mocker):
         params=None,
         block_hash=None,
     )
-    assert result == subtensor.substrate.query_map.return_value.value
+    assert result == subtensor.substrate.query_map.return_value
 
 
 def test_query_constant(subtensor, mocker):
@@ -1682,8 +1682,10 @@ def test_get_commitment(subtensor, mocker):
     fake_uid = 2
     fake_block = 3
     fake_hotkey = "hotkey"
-    fake_hex_data = "0x010203"
-    expected_result = bytes.fromhex(fake_hex_data[2:]).decode()
+    expected_result = (
+        "{'peer_id': '12D3KooWFWnHBmUFxvfL6PfZ5eGHdhgsEqNnsxuN1HE9EtfW8THi', "
+        "'model_huggingface_id': 'kmfoda/gpt2-1b-miner-3'}"
+    )
 
     mocked_metagraph = mocker.MagicMock()
     subtensor.metagraph = mocked_metagraph
@@ -1691,7 +1693,137 @@ def test_get_commitment(subtensor, mocker):
 
     mocked_get_metadata = mocker.patch.object(subtensor_module, "get_metadata")
     mocked_get_metadata.return_value = {
-        "info": {"fields": [{fake_hex_data: fake_hex_data}]}
+        "deposit": 0,
+        "block": 3843930,
+        "info": {
+            "fields": (
+                (
+                    {
+                        "Raw117": (
+                            (
+                                123,
+                                39,
+                                112,
+                                101,
+                                101,
+                                114,
+                                95,
+                                105,
+                                100,
+                                39,
+                                58,
+                                32,
+                                39,
+                                49,
+                                50,
+                                68,
+                                51,
+                                75,
+                                111,
+                                111,
+                                87,
+                                70,
+                                87,
+                                110,
+                                72,
+                                66,
+                                109,
+                                85,
+                                70,
+                                120,
+                                118,
+                                102,
+                                76,
+                                54,
+                                80,
+                                102,
+                                90,
+                                53,
+                                101,
+                                71,
+                                72,
+                                100,
+                                104,
+                                103,
+                                115,
+                                69,
+                                113,
+                                78,
+                                110,
+                                115,
+                                120,
+                                117,
+                                78,
+                                49,
+                                72,
+                                69,
+                                57,
+                                69,
+                                116,
+                                102,
+                                87,
+                                56,
+                                84,
+                                72,
+                                105,
+                                39,
+                                44,
+                                32,
+                                39,
+                                109,
+                                111,
+                                100,
+                                101,
+                                108,
+                                95,
+                                104,
+                                117,
+                                103,
+                                103,
+                                105,
+                                110,
+                                103,
+                                102,
+                                97,
+                                99,
+                                101,
+                                95,
+                                105,
+                                100,
+                                39,
+                                58,
+                                32,
+                                39,
+                                107,
+                                109,
+                                102,
+                                111,
+                                100,
+                                97,
+                                47,
+                                103,
+                                112,
+                                116,
+                                50,
+                                45,
+                                49,
+                                98,
+                                45,
+                                109,
+                                105,
+                                110,
+                                101,
+                                114,
+                                45,
+                                51,
+                                39,
+                                125,
+                            ),
+                        )
+                    },
+                ),
+            )
+        },
     }
 
     # Call
