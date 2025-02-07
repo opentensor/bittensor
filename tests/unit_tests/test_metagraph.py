@@ -1,6 +1,6 @@
 import asyncio
 import copy
-from functools import partial
+from bittensor.utils.balance import Balance
 from unittest.mock import Mock
 
 import numpy as np
@@ -31,7 +31,7 @@ def mock_environment(mocker):
             validator_permit=i % 2 == 0,
             validator_trust=i + 0.6,
             total_stake=Mock(tao=i + 0.7),
-            stake=i + 0.8,
+            stake=Balance.from_tao(i) + Balance.from_tao(0.8),
             axon_info=f"axon_info_{i}",
             weights=[(j, j + 0.1) for j in range(5)],
             bonds=[(j, j + 0.2) for j in range(5)],
@@ -160,6 +160,7 @@ def loguru_sink():
 )
 def test_sync_warning_cases(block, test_id, metagraph_instance, mock_subtensor, caplog):
     mock_subtensor.get_current_block.return_value = 601
+    mock_subtensor.get_metagraph_info.return_value = []
     metagraph_instance.sync(block=block, lite=True, subtensor=mock_subtensor)
 
     expected_message = "Attempting to sync longer than 300 blocks ago on a non-archive node. Please use the 'archive' network for subtensor and retry."
