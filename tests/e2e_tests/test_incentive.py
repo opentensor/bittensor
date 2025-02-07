@@ -4,6 +4,7 @@ import sys
 import pytest
 
 from tests.e2e_tests.utils.chain_interactions import (
+    sudo_set_hyperparameter_values,
     wait_epoch,
 )
 from tests.e2e_tests.utils.e2e_test_utils import (
@@ -13,7 +14,7 @@ from tests.e2e_tests.utils.e2e_test_utils import (
 
 
 @pytest.mark.asyncio
-async def test_incentive(subtensor, alice_wallet, bob_wallet):
+async def test_incentive(local_chain, subtensor, alice_wallet, bob_wallet):
     """
     Test the incentive mechanism and interaction of miners/validators
 
@@ -60,6 +61,15 @@ async def test_incentive(subtensor, alice_wallet, bob_wallet):
     assert bob_neuron.consensus == 0
     assert bob_neuron.rank == 0
     assert bob_neuron.trust == 0
+
+    # update weights_set_rate_limit for fast-blocks
+    assert sudo_set_hyperparameter_values(
+        local_chain,
+        alice_wallet,
+        call_function="sudo_set_weights_set_rate_limit",
+        call_params={"netuid": netuid, "weights_set_rate_limit": 10},
+        return_error_message=True,
+    )
 
     # Prepare to run Bob as miner
     cmd = " ".join(
@@ -120,7 +130,7 @@ async def test_incentive(subtensor, alice_wallet, bob_wallet):
     print("Neuron Alice is now validating")
 
     # wait for the Validator to process and set_weights
-    await asyncio.sleep(30)
+    await asyncio.sleep(5)
 
     # Wait until next epoch
     await wait_epoch(subtensor, netuid)

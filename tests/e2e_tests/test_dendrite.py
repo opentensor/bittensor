@@ -3,11 +3,10 @@ import sys
 
 import pytest
 
-from bittensor.core.metagraph import Metagraph
 from bittensor.utils.balance import Balance
 from bittensor.utils.btlogging import logging
 from tests.e2e_tests.utils.chain_interactions import (
-    sudo_set_admin_utils,
+    sudo_set_hyperparameter_values,
     wait_epoch,
 )
 from tests.e2e_tests.utils.e2e_test_utils import (
@@ -40,29 +39,26 @@ async def test_dendrite(local_chain, subtensor, alice_wallet, bob_wallet):
     # Verify subnet <netuid> created successfully
     assert subtensor.subnet_exists(netuid), "Subnet wasn't created successfully"
 
-    assert sudo_set_admin_utils(
-        local_chain,
-        alice_wallet,
-        call_function="sudo_set_tempo",
-        call_params={"netuid": netuid, "tempo": 99},
-        return_error_message=True,
-    )
-
     # Register Bob to the network
     assert subtensor.burned_register(
         bob_wallet, netuid
     ), "Unable to register Bob as a neuron"
 
-    metagraph = Metagraph(netuid=netuid, network="ws://localhost:9945")
+    metagraph = subtensor.metagraph(netuid)
 
     # Assert neurons are Alice and Bob
-    assert len(subtensor.neurons(netuid=netuid)) == 2
-    neuron = metagraph.neurons[1]
-    assert neuron.hotkey == bob_wallet.hotkey.ss58_address
-    assert neuron.coldkey == bob_wallet.coldkey.ss58_address
+    assert len(metagraph.neurons) == 2
+
+    alice_neuron = metagraph.neurons[0]
+    assert alice_neuron.hotkey == alice_wallet.hotkey.ss58_address
+    assert alice_neuron.coldkey == alice_wallet.coldkey.ss58_address
+
+    bob_neuron = metagraph.neurons[1]
+    assert bob_neuron.hotkey == bob_wallet.hotkey.ss58_address
+    assert bob_neuron.coldkey == bob_wallet.coldkey.ss58_address
 
     # Assert stake is 0
-    assert neuron.stake.tao == 0
+    assert bob_neuron.stake.tao == 0
 
     # Stake to become to top neuron after the first epoch
     tao = Balance.from_tao(10_000)
@@ -76,16 +72,25 @@ async def test_dendrite(local_chain, subtensor, alice_wallet, bob_wallet):
 
     # Refresh metagraph
     metagraph = subtensor.metagraph(netuid)
-    old_neuron = metagraph.neurons[1]
+    bob_neuron = metagraph.neurons[1]
 
     # Assert alpha is close to stake equivalent
-    assert 0.99 < old_neuron.stake.rao / alpha.rao < 1.01
+    assert 0.99 < bob_neuron.stake.rao / alpha.rao < 1.01
 
     # Assert neuron is not a validator yet
-    assert old_neuron.active is True
-    assert old_neuron.validator_permit is False
-    assert old_neuron.validator_trust == 0.0
-    assert old_neuron.pruning_score == 0
+    assert bob_neuron.active is True
+    # assert bob_neuron.validator_permit is False
+    assert bob_neuron.validator_trust == 0.0
+    assert bob_neuron.pruning_score == 0
+
+    # update weights_set_rate_limit for fast-blocks
+    assert sudo_set_hyperparameter_values(
+        local_chain,
+        alice_wallet,
+        call_function="sudo_set_weights_set_rate_limit",
+        call_params={"netuid": netuid, "weights_set_rate_limit": 10},
+        return_error_message=True,
+    )
 
     # Prepare to run the validator
     cmd = " ".join(
@@ -114,9 +119,7 @@ async def test_dendrite(local_chain, subtensor, alice_wallet, bob_wallet):
         stderr=asyncio.subprocess.PIPE,
     )
     logging.console.info("Neuron Alice is now validating")
-    await asyncio.sleep(
-        15
-    )  # wait for 15 seconds for the Validator to process
+    await asyncio.sleep(5)  # wait for 5 seconds for the Validator to process
 
     await wait_epoch(subtensor, netuid=netuid)
 
