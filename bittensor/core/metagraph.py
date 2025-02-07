@@ -997,6 +997,7 @@ class MetagraphMixin(ABC):
             tao_in_emission=metagraph_info.tao_in_emission.tao,
             pending_alpha_emission=metagraph_info.pending_alpha_emission.tao,
             pending_root_emission=metagraph_info.pending_root_emission.tao,
+            moving_price=metagraph_info.moving_price.tao,
         )
 
 
