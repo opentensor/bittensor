@@ -169,7 +169,9 @@ class MetagraphInfo(InfoBase):
         )
         decoded["pending_root_emission"] = _tbwu(decoded["pending_root_emission"])
         decoded["subnet_volume"] = _tbwu(decoded["subnet_volume"], _netuid)
-        decoded["moving_price"] = fixed_to_float(decoded.get("moving_price"), 32)
+        decoded["moving_price"] = Balance.from_tao(
+            fixed_to_float(decoded.get("moving_price"), 32)
+        )
 
         # Hparams for epoch
         decoded["kappa"] = u16tf(decoded["kappa"])
