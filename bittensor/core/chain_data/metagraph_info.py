@@ -25,7 +25,12 @@ def process_nested(data: Union[tuple, dict], chr_transform):
     """Processes nested data structures by applying a transformation function to their elements."""
     if isinstance(data, (list, tuple)):
         if len(data) > 0 and isinstance(data[0], dict):
-            return {k: chr_transform(v) for k, v in data[0].items()}
+            return [
+                {k: chr_transform(v) for k, v in item.items()}
+                if item is not None
+                else None
+                for item in data
+            ]
         return {}
     elif isinstance(data, dict):
         return {k: chr_transform(v) for k, v in data.items()}
@@ -220,20 +225,24 @@ class MetagraphInfo(InfoBase):
 
 @dataclass
 class MetagraphInfoEmissions:
-    subnet_emission: Balance
-    alpha_in_emission: Balance
-    alpha_out_emission: Balance
-    tao_in_emission: Balance
-    pending_alpha_emission: Balance
-    pending_root_emission: Balance
+    """Emissions presented in tao values."""
+
+    subnet_emission: float
+    alpha_in_emission: float
+    alpha_out_emission: float
+    tao_in_emission: float
+    pending_alpha_emission: float
+    pending_root_emission: float
 
 
 @dataclass
 class MetagraphInfoPool:
-    alpha_out: Balance
-    alpha_in: Balance
-    tao_in: Balance
-    subnet_volume: Balance
+    """Pool presented in tao values."""
+
+    alpha_out: float
+    alpha_in: float
+    tao_in: float
+    subnet_volume: float
 
 
 @dataclass
@@ -244,20 +253,20 @@ class MetagraphInfoParams:
     alpha_high: float
     alpha_low: float
     bonds_moving_avg: float
-    burn: Balance
+    burn: float
     commit_reveal_period: int
     commit_reveal_weights_enabled: bool
     difficulty: float
     immunity_period: int
     kappa: float
     liquid_alpha_enabled: bool
-    max_burn: Balance
+    max_burn: float
     max_difficulty: float
     max_regs_per_block: int
     max_validators: int
     max_weights_limit: float
     min_allowed_weights: float
-    min_burn: Balance
+    min_burn: float
     min_difficulty: float
     pow_registration_allowed: bool
     registration_allowed: bool
