@@ -37,6 +37,7 @@ if typing.TYPE_CHECKING:
         MetagraphInfo,
         NeuronInfo,
         NeuronInfoLite,
+        SubnetIdentity,
     )
 
 
@@ -258,6 +259,7 @@ class MetagraphMixin(ABC):
 
     # metagraph_info fields
     identities: list[Optional["ChainIdentity"]]
+    identity: Optional["SubnetIdentity"]
     pruning_score: list[float]
     block_at_registration: list[int]
     tao_dividends_per_hotkey: list[tuple[str, float]]
@@ -936,6 +938,7 @@ class MetagraphMixin(ABC):
                 the current object.
         """
         self.identities = metagraph_info.identities
+        self.identity = metagraph_info.identity
         self.pruning_score = metagraph_info.pruning_score
         self.block_at_registration = metagraph_info.block_at_registration
         self.tao_dividends_per_hotkey = [

@@ -25,7 +25,12 @@ def process_nested(data: Union[tuple, dict], chr_transform):
     """Processes nested data structures by applying a transformation function to their elements."""
     if isinstance(data, (list, tuple)):
         if len(data) > 0 and isinstance(data[0], dict):
-            return {k: chr_transform(v) for k, v in data[0].items()}
+            return [
+                {k: chr_transform(v) for k, v in item.items()}
+                if item is not None
+                else None
+                for item in data
+            ]
         return {}
     elif isinstance(data, dict):
         return {k: chr_transform(v) for k, v in data.items()}
