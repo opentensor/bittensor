@@ -237,7 +237,6 @@ class MetagraphInfoEmissions:
     tao_in_emission: float
     pending_alpha_emission: float
     pending_root_emission: float
-    moving_price: float
 
 
 @dataclass
@@ -248,6 +247,7 @@ class MetagraphInfoPool:
     alpha_in: float
     tao_in: float
     subnet_volume: float
+    moving_price: float
 
 
 @dataclass
