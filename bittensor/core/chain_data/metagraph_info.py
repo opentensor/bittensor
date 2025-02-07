@@ -7,7 +7,7 @@ from bittensor.core.chain_data.info_base import InfoBase
 from bittensor.core.chain_data.subnet_identity import SubnetIdentity
 from bittensor.core.chain_data.utils import decode_account_id
 from bittensor.utils import u64_normalized_float as u64tf, u16_normalized_float as u16tf
-from bittensor.utils.balance import Balance
+from bittensor.utils.balance import Balance, fixed_to_float
 
 
 # to balance with unit (just shortcut)
@@ -68,6 +68,7 @@ class MetagraphInfo(InfoBase):
     pending_alpha_emission: Balance  # pending alpha to be distributed
     pending_root_emission: Balance  # pending tao for root divs to be distributed
     subnet_volume: Balance  # volume of the subnet in TAO
+    moving_price: Balance  # subnet moving price.
 
     # Hparams for epoch
     rho: int  # subnet rho param
@@ -168,6 +169,7 @@ class MetagraphInfo(InfoBase):
         )
         decoded["pending_root_emission"] = _tbwu(decoded["pending_root_emission"])
         decoded["subnet_volume"] = _tbwu(decoded["subnet_volume"], _netuid)
+        decoded["moving_price"] = fixed_to_float(decoded.get("moving_price"), 32)
 
         # Hparams for epoch
         decoded["kappa"] = u16tf(decoded["kappa"])
@@ -233,6 +235,7 @@ class MetagraphInfoEmissions:
     tao_in_emission: float
     pending_alpha_emission: float
     pending_root_emission: float
+    moving_price: float
 
 
 @dataclass
