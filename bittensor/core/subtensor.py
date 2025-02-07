@@ -732,7 +732,7 @@ class Subtensor(SubtensorMixin):
             )
             return ""
 
-        metadata = get_metadata(self, netuid, hotkey, block)
+        metadata = cast(dict, get_metadata(self, netuid, hotkey, block))
         try:
             return decode_metadata(metadata)
 
