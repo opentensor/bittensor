@@ -989,6 +989,7 @@ class MetagraphMixin(ABC):
             alpha_in=metagraph_info.alpha_in.tao,
             tao_in=metagraph_info.tao_in.tao,
             subnet_volume=metagraph_info.subnet_volume.tao,
+            moving_price=metagraph_info.moving_price.tao,
         )
         self.emissions = MetagraphInfoEmissions(
             alpha_out_emission=metagraph_info.alpha_out_emission.tao,

@@ -283,7 +283,7 @@ def publish_metadata(
 
 def get_metadata(
     subtensor: "Subtensor", netuid: int, hotkey: str, block: Optional[int] = None
-) -> str:
+) -> bytes:
     """Fetches metadata from the blockchain for a given hotkey and netuid."""
     commit_data = subtensor.substrate.query(
         module="Commitments",
