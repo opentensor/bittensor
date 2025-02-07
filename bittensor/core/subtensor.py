@@ -733,9 +733,9 @@ class Subtensor(SubtensorMixin):
 
         metadata = get_metadata(self, netuid, hotkey, block)
         try:
-            commitment = metadata["info"]["fields"][0]  # type: ignore
-            hex_data = commitment[list(commitment.keys())[0]][2:]  # type: ignore
-            return bytes.fromhex(hex_data).decode()
+            commitment = metadata["info"]["fields"][0][0]  # type: ignore
+            bytes_tuple = commitment[next(iter(commitment.keys()))][0]  # type: ignore
+            return bytes(bytes_tuple).decode()
 
         except TypeError:
             return ""
