@@ -7,7 +7,7 @@ from bittensor import NeuronInfo
 from bittensor.core.chain_data.axon_info import AxonInfo
 from bittensor.core.subtensor import Subtensor
 from bittensor.utils.balance import Balance
-from tests.helpers.helpers import FakeConnectContextManager
+from tests.helpers.helpers import FakeWebsocket
 
 
 @pytest.fixture
@@ -29,12 +29,12 @@ async def prepare_test(mocker, seed):
     ) as f:
         metadata_v15 = MetadataV15.decode_from_metadata_option(f.read())
         registry = PortableRegistry.from_metadata_v15(metadata_v15)
-    subtensor = Subtensor("unknown", _mock=True)
-    subtensor.substrate.metadata_v15 = metadata_v15
     mocker.patch(
         "async_substrate_interface.sync_substrate.connect",
-        mocker.Mock(return_value=FakeConnectContextManager(seed=seed)),
+        mocker.Mock(return_value=FakeWebsocket(seed=seed)),
     )
+    subtensor = Subtensor("unknown", _mock=True)
+    subtensor.substrate.metadata_v15 = metadata_v15
     mocker.patch.object(subtensor.substrate, "registry", registry)
     return subtensor
 
