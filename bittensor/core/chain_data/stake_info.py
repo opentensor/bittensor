@@ -27,7 +27,7 @@ class StakeInfo(InfoBase):
 
     @classmethod
     def from_dict(cls, decoded: dict) -> "StakeInfo":
-        """Returns a StakeInfo object."""
+        """Returns a StakeInfo object from decoded chain data."""
         netuid = decoded["netuid"]
         return cls(
             hotkey_ss58=decode_account_id(decoded["hotkey"]),

@@ -31,7 +31,7 @@ class IPInfo:
 
     @classmethod
     def _from_dict(cls, decoded: dict) -> "IPInfo":
-        """Returns a SubnetInfo object from a decoded IPInfo dictionary."""
+        """Returns a IPInfo object from decoded chain data."""
         return IPInfo(
             ip_type=decoded["ip_type_and_protocol"] >> 4,
             ip=net.int_to_ip(decoded["ip"]),

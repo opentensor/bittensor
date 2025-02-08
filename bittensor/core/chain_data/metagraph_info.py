@@ -140,7 +140,7 @@ class MetagraphInfo(InfoBase):
 
     @classmethod
     def _from_dict(cls, decoded: dict) -> "MetagraphInfo":
-        """Returns a Metagraph object from a decoded MetagraphInfo dictionary."""
+        """Returns a MetagraphInfo object from decoded chain data."""
         # Subnet index
         _netuid = decoded["netuid"]
 
@@ -152,79 +152,100 @@ class MetagraphInfo(InfoBase):
             processed = process_nested(raw_data, _chr_str)
             decoded.update({key: processed})
 
-        # Keys for owner.
-        decoded["owner_hotkey"] = decode_account_id(decoded["owner_hotkey"])
-        decoded["owner_coldkey"] = decode_account_id(decoded["owner_coldkey"])
-
-        # Subnet emission terms
-        decoded["subnet_emission"] = _tbwu(decoded["subnet_emission"])
-        decoded["alpha_in"] = _tbwu(decoded["alpha_in"], _netuid)
-        decoded["alpha_out"] = _tbwu(decoded["alpha_out"], _netuid)
-        decoded["tao_in"] = _tbwu(decoded["tao_in"])
-        decoded["alpha_out_emission"] = _tbwu(decoded["alpha_out_emission"], _netuid)
-        decoded["alpha_in_emission"] = _tbwu(decoded["alpha_in_emission"], _netuid)
-        decoded["tao_in_emission"] = _tbwu(decoded["tao_in_emission"])
-        decoded["pending_alpha_emission"] = _tbwu(
-            decoded["pending_alpha_emission"], _netuid
+        return cls(
+            # Subnet index
+            netuid=_netuid,
+            # Name and symbol
+            name=decoded["name"],
+            symbol=decoded["symbol"],
+            identity=decoded["identity"],
+            network_registered_at=decoded["network_registered_at"],
+            # Keys for owner.
+            owner_hotkey=decoded["owner_hotkey"],
+            owner_coldkey=decoded["owner_coldkey"],
+            # Tempo terms.
+            block=decoded["block"],
+            tempo=decoded["tempo"],
+            last_step=decoded["last_step"],
+            blocks_since_last_step=decoded["blocks_since_last_step"],
+            # Subnet emission terms
+            subnet_emission=_tbwu(decoded["subnet_emission"]),
+            alpha_in=_tbwu(decoded["alpha_in"], _netuid),
+            alpha_out=_tbwu(decoded["alpha_out"], _netuid),
+            tao_in=_tbwu(decoded["tao_in"]),
+            alpha_out_emission=_tbwu(decoded["alpha_out_emission"], _netuid),
+            alpha_in_emission=_tbwu(decoded["alpha_in_emission"], _netuid),
+            tao_in_emission=_tbwu(decoded["tao_in_emission"]),
+            pending_alpha_emission=_tbwu(decoded["pending_alpha_emission"], _netuid),
+            pending_root_emission=_tbwu(decoded["pending_root_emission"]),
+            subnet_volume=_tbwu(decoded["subnet_volume"], _netuid),
+            moving_price=Balance.from_tao(
+                fixed_to_float(decoded.get("moving_price"), 32)
+            ),
+            # Hparams for epoch
+            rho=decoded["rho"],
+            kappa=decoded["kappa"],
+            # Validator params
+            min_allowed_weights=u16tf(decoded["min_allowed_weights"]),
+            max_weights_limit=u16tf(decoded["max_weights_limit"]),
+            weights_version=decoded["weights_version"],
+            weights_rate_limit=decoded["weights_rate_limit"],
+            activity_cutoff=decoded["activity_cutoff"],
+            max_validators=decoded["max_validators"],
+            # Registration
+            num_uids=decoded["num_uids"],
+            max_uids=decoded["max_uids"],
+            burn=_tbwu(decoded["burn"]),
+            difficulty=u64tf(decoded["difficulty"]),
+            registration_allowed=decoded["registration_allowed"],
+            pow_registration_allowed=decoded["pow_registration_allowed"],
+            immunity_period=decoded["immunity_period"],
+            min_difficulty=u64tf(decoded["min_difficulty"]),
+            max_difficulty=u64tf(decoded["max_difficulty"]),
+            min_burn=_tbwu(decoded["min_burn"]),
+            max_burn=_tbwu(decoded["max_burn"]),
+            adjustment_alpha=u64tf(decoded["adjustment_alpha"]),
+            adjustment_interval=decoded["adjustment_interval"],
+            target_regs_per_interval=decoded["target_regs_per_interval"],
+            max_regs_per_block=decoded["max_regs_per_block"],
+            serving_rate_limit=decoded["serving_rate_limit"],
+            # CR
+            commit_reveal_weights_enabled=decoded["commit_reveal_weights_enabled"],
+            commit_reveal_period=decoded["commit_reveal_period"],
+            # Bonds
+            liquid_alpha_enabled=decoded["liquid_alpha_enabled"],
+            alpha_high=u16tf(decoded["alpha_high"]),
+            alpha_low=u16tf(decoded["alpha_low"]),
+            bonds_moving_avg=u64tf(decoded["bonds_moving_avg"]),
+            # Metagraph info.
+            hotkeys=[decode_account_id(ck) for ck in decoded.get("hotkeys", [])],
+            coldkeys=[decode_account_id(hk) for hk in decoded.get("coldkeys", [])],
+            identities=decoded["identities"],
+            axons=decoded.get("axons", []),
+            active=decoded["active"],
+            validator_permit=decoded["validator_permit"],
+            pruning_score=[u16tf(ps) for ps in decoded.get("pruning_score", [])],
+            last_update=decoded["last_update"],
+            emission=[_tbwu(em, _netuid) for em in decoded.get("emission", [])],
+            dividends=[u16tf(dv) for dv in decoded.get("dividends", [])],
+            incentives=[u16tf(ic) for ic in decoded.get("incentives", [])],
+            consensus=[u16tf(cs) for cs in decoded.get("consensus", [])],
+            trust=[u16tf(tr) for tr in decoded.get("trust", [])],
+            rank=[u16tf(rk) for rk in decoded.get("rank", [])],
+            block_at_registration=decoded["block_at_registration"],
+            alpha_stake=[_tbwu(ast, _netuid) for ast in decoded["alpha_stake"]],
+            tao_stake=[_tbwu(ts) for ts in decoded["tao_stake"]],
+            total_stake=[_tbwu(ts, _netuid) for ts in decoded["total_stake"]],
+            # Dividend break down
+            tao_dividends_per_hotkey=[
+                (decode_account_id(alpha[0]), _tbwu(alpha[1]))
+                for alpha in decoded["tao_dividends_per_hotkey"]
+            ],
+            alpha_dividends_per_hotkey=[
+                (decode_account_id(adphk[0]), _tbwu(adphk[1], _netuid))
+                for adphk in decoded["alpha_dividends_per_hotkey"]
+            ],
         )
-        decoded["pending_root_emission"] = _tbwu(decoded["pending_root_emission"])
-        decoded["subnet_volume"] = _tbwu(decoded["subnet_volume"], _netuid)
-        decoded["moving_price"] = Balance.from_tao(
-            fixed_to_float(decoded.get("moving_price"), 32)
-        )
-
-        # Hparams for epoch
-        decoded["kappa"] = u16tf(decoded["kappa"])
-
-        # Validator params
-        decoded["min_allowed_weights"] = u16tf(decoded["min_allowed_weights"])
-        decoded["max_weights_limit"] = u16tf(decoded["max_weights_limit"])
-
-        # Registration
-        decoded["burn"] = _tbwu(decoded["burn"])
-        decoded["difficulty"] = u64tf(decoded["difficulty"])
-        decoded["min_difficulty"] = u64tf(decoded["min_difficulty"])
-        decoded["max_difficulty"] = u64tf(decoded["max_difficulty"])
-        decoded["min_burn"] = _tbwu(decoded["min_burn"])
-        decoded["max_burn"] = _tbwu(decoded["max_burn"])
-        decoded["adjustment_alpha"] = u64tf(decoded["adjustment_alpha"])
-
-        # Bonds
-        decoded["alpha_high"] = u16tf(decoded["alpha_high"])
-        decoded["alpha_low"] = u16tf(decoded["alpha_low"])
-        decoded["bonds_moving_avg"] = u64tf(decoded["bonds_moving_avg"])
-
-        # Metagraph info.
-        decoded["hotkeys"] = [
-            decode_account_id(ck) for ck in decoded.get("hotkeys", [])
-        ]
-        decoded["coldkeys"] = [
-            decode_account_id(hk) for hk in decoded.get("coldkeys", [])
-        ]
-        decoded["axons"] = decoded.get("axons", [])
-        decoded["pruning_score"] = [
-            u16tf(ps) for ps in decoded.get("pruning_score", [])
-        ]
-        decoded["emission"] = [_tbwu(em, _netuid) for em in decoded.get("emission", [])]
-        decoded["dividends"] = [u16tf(dv) for dv in decoded.get("dividends", [])]
-        decoded["incentives"] = [u16tf(ic) for ic in decoded.get("incentives", [])]
-        decoded["consensus"] = [u16tf(cs) for cs in decoded.get("consensus", [])]
-        decoded["trust"] = [u16tf(tr) for tr in decoded.get("trust", [])]
-        decoded["rank"] = [u16tf(rk) for rk in decoded.get("trust", [])]
-        decoded["alpha_stake"] = [_tbwu(ast, _netuid) for ast in decoded["alpha_stake"]]
-        decoded["tao_stake"] = [_tbwu(ts) for ts in decoded["tao_stake"]]
-        decoded["total_stake"] = [_tbwu(ts, _netuid) for ts in decoded["total_stake"]]
-
-        # Dividend break down
-        decoded["tao_dividends_per_hotkey"] = [
-            (decode_account_id(alpha[0]), _tbwu(alpha[1]))
-            for alpha in decoded["tao_dividends_per_hotkey"]
-        ]
-        decoded["alpha_dividends_per_hotkey"] = [
-            (decode_account_id(adphk[0]), _tbwu(adphk[1], _netuid))
-            for adphk in decoded["alpha_dividends_per_hotkey"]
-        ]
-        return MetagraphInfo(**decoded)
 
 
 @dataclass
