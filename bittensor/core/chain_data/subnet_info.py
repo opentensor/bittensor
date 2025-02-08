@@ -32,6 +32,7 @@ class SubnetInfo(InfoBase):
 
     @classmethod
     def _from_dict(cls, decoded: Any) -> "SubnetInfo":
+        """Returns a SubnetInfo object from decoded chain data."""
         return SubnetInfo(
             blocks_since_epoch=decoded["blocks_since_last_step"],
             burn=Balance.from_rao(decoded["burn"]),

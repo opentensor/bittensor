@@ -68,19 +68,7 @@ class SubnetHyperparameters(InfoBase):
 
     @classmethod
     def _from_dict(cls, decoded: dict) -> "SubnetHyperparameters":
-        """
-        Create a `SubnetHyperparameters` instance from a vector of bytes.
-
-        This method decodes the given vector of bytes using the `bt_decode` module and creates a new instance of
-            `SubnetHyperparameters` with the decoded values.
-
-        Args:
-            vec_u8 (bytes): A vector of bytes to decode into `SubnetHyperparameters`.
-
-        Returns:
-            Optional[SubnetHyperparameters]: An instance of `SubnetHyperparameters` if decoding is successful, None
-                otherwise.
-        """
+        """Returns a SubnetHyperparameters object from decoded chain data."""
         return SubnetHyperparameters(
             activity_cutoff=decoded["activity_cutoff"],
             adjustment_alpha=decoded["adjustment_alpha"],

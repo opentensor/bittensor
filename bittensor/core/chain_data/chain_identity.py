@@ -16,6 +16,7 @@ class ChainIdentity(InfoBase):
 
     @classmethod
     def _from_dict(cls, decoded: dict) -> "ChainIdentity":
+        """Returns a ChainIdentity object from decoded chain data."""
         return cls(
             name=decoded["name"],
             url=decoded["url"],

@@ -40,6 +40,7 @@ class DelegateInfo(InfoBase):
 
     @classmethod
     def _from_dict(cls, decoded: dict) -> Optional["DelegateInfo"]:
+        """Returns a DelegateInfo object from decoded chain data."""
         nominators = [
             (decode_account_id(x), Balance.from_rao(y))
             for x, y in decoded["nominators"]

@@ -83,6 +83,7 @@ class AxonInfo(InfoBase):
 
     @classmethod
     def _from_dict(cls, data):
+        """Returns a AxonInfo object from decoded chain data."""
         return AxonInfo(
             version=data["version"],
             ip=str(netaddr.IPAddress(data["ip"])),
