@@ -60,7 +60,7 @@ setup(
     python_requires=">=3.9",
     install_requires=requirements,
     extras_require={
-        "dev": extra_requirements_dev,
+        "dev": extra_requirements_dev + extra_requirements_torch,
         "torch": extra_requirements_torch,
     },
     classifiers=[
